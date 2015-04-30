@@ -295,6 +295,78 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
+void Parm_Amber::ArrayFromBondParm(BondParmArray const& bpa, Darray& Rk, Darray& Req) {
+  // TODO: Use resize(0) instead?
+  Rk.clear();
+  Req.clear();
+  Rk.reserve( bpa.size() );
+  Req.reserve( bpa.size() );
+  for (BondParmArray::const_iterator parm = bpa.begin(); parm != bpa.end(); ++parm)
+  {
+    Rk.push_back( parm->Rk() );
+    Req.push_back( parm->Req() );
+  }
+}
+
+void Parm_Amber::ArrayFromAngleParm(AngleParmArray const& apa, Darray& Rk, Darray& Req) {
+  Rk.clear();
+  Req.clear();
+  Rk.reserve( apa.size() );
+  Req.reserve( apa.size() );
+  for (AngleParmArray::const_iterator parm = apa.begin(); parm != apa.end(); ++parm)
+  {
+    Rk.push_back( parm->Tk() );
+    Req.push_back( parm->Teq() );
+  }
+}
+
+void Parm_Amber::ArrayFromCharmmUB(BondParmArray const& bpa, int UBsize, Darray& Rk, Darray& Req, Iarray& UBC)
+{
+    UBC.resize(2);
+    UBC[0] = UBsize;
+    UBC[1] = bpa.size();
+    Rk.clear();
+    Req.clear();
+    Rk.reserve(  UBC[1] );
+    Req.reserve( UBC[1] );
+    for (BondParmArray::const_iterator parm = bpa.begin(); parm != bpa.end(); ++parm)
+    {
+      Rk.push_back( parm->Rk() );
+      Req.push_back( parm->Req() );
+    }
+}
+
+void Parm_Amber::ArrayFromDihedralParm(DihedralParmArray const& dpa, Darray& Rk, Darray& Req,
+                                       Darray& phase, Darray& scee, Darray& scnb)
+{
+  Rk.clear(); Req.clear(); phase.clear(); scee.clear(); scnb.clear();
+  Rk.reserve( dpa.size() );
+  Req.reserve( dpa.size() );
+  phase.reserve( dpa.size() );
+  scee.reserve( dpa.size() ); 
+  scnb.reserve( dpa.size() ); 
+  for (DihedralParmArray::const_iterator parm = dpa.begin(); parm != dpa.end(); ++parm)
+  {
+    Rk.push_back( parm->Pk() );
+    Req.push_back( parm->Pn() );
+    phase.push_back( parm->Phase() );
+    scee.push_back( parm->SCEE() );
+    scnb.push_back( parm->SCNB() );
+  }
+}
+
+void Parm_Amber::ArrayFromCharmmImproper(DihedralParmArray const& dpa, Darray& Rk, Darray& phase) {
+    Rk.clear(); phase.clear();
+    int NIMP = dpa.size();
+    Rk.reserve( NIMP );
+    phase.reserve( NIMP );
+    for (DihedralParmArray::const_iterator parm = dpa.begin(); parm != dpa.end(); ++parm)
+    {
+      Rk.push_back( parm->Pk() );
+      phase.push_back( parm->Phase() );
+    }
+}
+
 // Parm_Amber::WriteParm()
 /** CHAMBER writes out topologies in slightly different order than LEaP,
   * namely the EXCLUDED and SOLVENT_POINTERS sections are in different
@@ -388,7 +460,9 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   values[NATYP] = parmIn.NatomTypes(); // Only for SOLTY
   values[NPHB] = (int)parmIn.Nonbond().HBarray().size();
   values[IFBOX] = AmberIfbox( parmIn.ParmBox() );
-  values[NMXRS] = parmIn.FindResidueMaxNatom();
+  values[NMXRS] = 0;
+  for (Topology::res_iterator res = parmIn.ResStart(); res != parmIn.ResEnd(); ++res)
+    values[NMXRS] = std::max(values[NMXRS], res->NumAtoms());
   if (parmIn.Cap().NatCap() > 0)
     values[IFCAP] = 1;
   values[NEXTRA] = parmIn.NextraPts();
@@ -444,123 +518,56 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteName(F_RESNAMES, resnames);
   WriteInteger(F_RESNUMS, resnums);
   // BOND, ANGLE, and DIHEDRAL FORCE CONSTANT and EQUIL VALUES
-  std::vector<double> Rk, Req;
+  Darray Rk, Req;
   // Bond params
-  Rk.reserve( parmIn.BondParm().size() );
-  Req.reserve( parmIn.BondParm().size() );
-  for (BondParmArray::const_iterator parm = parmIn.BondParm().begin(); 
-                                     parm != parmIn.BondParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Rk() );
-    Req.push_back( parm->Req() );
-  }
+  ArrayFromBondParm( parmIn.BondParm(), Rk, Req );
   WriteDouble(F_BONDRK,  Rk);
   WriteDouble(F_BONDREQ, Req);
-  // TODO: Use resize(0) instead?
-  Rk.clear();
-  Req.clear();
   // Angle params
-  Rk.reserve( parmIn.AngleParm().size() );
-  Req.reserve( parmIn.AngleParm().size() );
-  for (AngleParmArray::const_iterator parm = parmIn.AngleParm().begin(); 
-                                      parm != parmIn.AngleParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Tk() );
-    Req.push_back( parm->Teq() );
-  }
+  ArrayFromAngleParm( parmIn.AngleParm(), Rk, Req );
   WriteDouble(F_ANGLETK, Rk);
   WriteDouble(F_ANGLETEQ, Req);
-  Rk.clear();
-  Req.clear();
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
-    std::vector<int> UBC(2);
-    UBC[0] = parmIn.Chamber().UB().size();
-    UBC[1] = parmIn.Chamber().UBparm().size();
-    Rk.reserve(  UBC[1] );
-    Req.reserve( UBC[1] );
-    for (BondParmArray::const_iterator parm = parmIn.Chamber().UBparm().begin();
-                                       parm != parmIn.Chamber().UBparm().end(); ++parm)
-    {
-      Rk.push_back( parm->Rk() );
-      Req.push_back( parm->Req() );
-    }
+    std::vector<int> UBC;
+    ArrayFromCharmmUB( parmIn.Chamber().UBparm(), parmIn.Chamber().UB().size(),
+                       Rk, Req, UBC );
     WriteInteger(F_CHM_UBC, UBC);
     WriteInteger(F_CHM_UB, BondArrayToIndex(parmIn.Chamber().UB(), true));
     WriteDouble(F_CHM_UBFC, Rk);
     WriteDouble(F_CHM_UBEQ, Req);
-    Rk.clear();
-    Req.clear();
   }
   // Dihedral params
-  Rk.reserve( parmIn.DihedralParm().size() );
-  Req.reserve( parmIn.DihedralParm().size() );
   std::vector<double> phase, scee, scnb;
-  phase.reserve( parmIn.DihedralParm().size() );
-  scee.reserve( parmIn.DihedralParm().size() ); 
-  scnb.reserve( parmIn.DihedralParm().size() ); 
-  for (DihedralParmArray::const_iterator parm = parmIn.DihedralParm().begin(); 
-                                         parm != parmIn.DihedralParm().end(); ++parm)
-  {
-    Rk.push_back( parm->Pk() );
-    Req.push_back( parm->Pn() );
-    phase.push_back( parm->Phase() );
-    scee.push_back( parm->SCEE() );
-    scnb.push_back( parm->SCNB() );
-  }
+  ArrayFromDihedralParm( parmIn.DihedralParm(), Rk, Req, phase, scee, scnb );
   WriteDouble(F_DIHPK, Rk);
   WriteDouble(F_DIHPN, Req);
   WriteDouble(F_DIHPHASE, phase);
   WriteDouble(F_SCEE, scee);
   WriteDouble(F_SCNB, scnb);
-  Rk.clear();
-  Req.clear();
   phase.clear();
-  scee.clear();
-  scnb.clear();
   // CHAMBER only - Impropers
   if (ptype_ == CHAMBER) {
     std::vector<int> NIMP(1, parmIn.Chamber().Impropers().size());
     WriteInteger(F_CHM_NIMP, NIMP);
     WriteInteger(F_CHM_IMP, DihedralArrayToIndex(parmIn.Chamber().Impropers(),true));
     NIMP[0] = parmIn.Chamber().ImproperParm().size();
-    Rk.reserve( NIMP[0] );
-    phase.reserve( NIMP[0] );
-    for (DihedralParmArray::const_iterator parm = parmIn.Chamber().ImproperParm().begin();
-                                           parm != parmIn.Chamber().ImproperParm().end(); ++parm)
-    {
-      Rk.push_back( parm->Pk() );
-      phase.push_back( parm->Phase() );
-    }
+    ArrayFromCharmmImproper( parmIn.Chamber().ImproperParm(), Rk, phase );
     WriteInteger(F_CHM_NIMPT, NIMP);
     WriteDouble(F_CHM_IMPFC, Rk);
     WriteDouble(F_CHM_IMPP, phase);
-    Rk.clear();
-    phase.clear();
   }
   // SOLTY - Currently unused
   WriteDouble(F_SOLTY, std::vector<double>(values[NATYP], 0.0));
   // LJ params
-  Rk.reserve( parmIn.Nonbond().NBarray().size() );
-  Req.reserve( parmIn.Nonbond().NBarray().size() );
-  for (NonbondArray::const_iterator nb = parmIn.Nonbond().NBarray().begin();
-                                    nb != parmIn.Nonbond().NBarray().end(); ++nb)
-  {
-    Rk.push_back( nb->A() );
-    Req.push_back( nb->B() );
-  }
+  NonbondParmType::NB_to_array( parmIn.Nonbond().NBarray(), Rk, Req );
   WriteDouble(F_LJ_A, Rk);
   WriteDouble(F_LJ_B, Req);
   Rk.clear();
   Req.clear();
   // CHAMBER only - LJ 1-4: Same size as LJ arrays above, no need to reserve.
   if (ptype_ == CHAMBER) {
-    for (NonbondArray::const_iterator nb = parmIn.Chamber().LJ14().begin();
-                                      nb != parmIn.Chamber().LJ14().end(); ++nb)
-    {
-      Rk.push_back( nb->A() );
-      Req.push_back( nb->B() );
-    }
+    NonbondParmType::NB_to_array( parmIn.Chamber().LJ14(), Rk, Req );
     WriteDouble(F_LJ14A, Rk);
     WriteDouble(F_LJ14B, Req);
     Rk.clear();
@@ -576,6 +583,7 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   // EXCLUDED ATOMS LIST
   WriteInteger(F_EXCLUDE, excluded);
   // HBOND
+  phase.clear();
   Rk.reserve( parmIn.Nonbond().HBarray().size() );
   Req.reserve( parmIn.Nonbond().HBarray().size() );
   phase.reserve( parmIn.Nonbond().HBarray().size() );
@@ -591,7 +599,6 @@ int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
   WriteDouble(F_HBCUT, phase);
   Rk.clear();
   Req.clear();
-  phase.clear();
   // AMBER ATOM TYPE
   WriteName(F_TYPES, types);
   // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
@@ -1133,6 +1140,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       for (int rnum = 1; rnum <= values[NRES]; rnum++)
         pdb_resnum.push_back( rnum );
     if (pdb_res_chainID.empty()) pdb_res_chainID.resize(values[NRES]);
+    if (pdb_atom_alt.empty()) pdb_atom_alt.resize(values[NATOM]);
     // Add atoms to topology.
     for (int ai = 0; ai < values[NATOM]; ai++) {
       if (ai + 1 == resnums[ri+1]) ++ri;
@@ -1178,10 +1186,10 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       if (!itree.empty()) {
         extra.reserve( itree.size() );
         for (size_t n = 0; n != itree.size(); n++)
-          extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], ' ') );
+          extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], pdb_atom_alt[n][0]) );
       }
     }
-    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra);
+    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra, pdb_res_icode);
     if (values[IFBOX]>0) 
       TopIn.SetParmBox( parmbox );
     TopIn.SetChamber( chamberParm );

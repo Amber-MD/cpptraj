@@ -76,11 +76,8 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
       lesTraj_.clear();
       lesTraj_.reserve( lesMasks_.size() );
       for (unsigned int i = 0; i < lesMasks_.size(); i++) {
-        lesTraj_.push_back( new Trajout() );
-        // Copy trajArgs so they are the same for each.
-        // FIXME: Should InitTrajWrite take const?
-        ArgList targ = trajArgs_;
-        if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), targ,
+        lesTraj_.push_back( new Trajout_Single() );
+        if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), trajArgs_,
                                             lesParm_, TrajectoryFile::UNKNOWN_TRAJ) )
           return Action::ERR;
         lesTraj_.back()->PrintInfo(1);
@@ -89,7 +86,6 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
     if (lesAverage_) {
       // For average only care about coords.
       avgFrame_.SetupFrame( lesParm_->Natom() );
-      // NOTE: This will use up all traj args
       if (avgTraj_.InitTrajWrite( avgfilename_, trajArgs_, lesParm_, TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
       avgTraj_.PrintInfo(1);

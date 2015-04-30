@@ -5,6 +5,9 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
@@ -24,6 +27,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 
 #ifdef BINTRAJ
 // DEFINES
+#define NCENSEMBLE "ensemble"
 #define NCFRAME "frame"
 #define NCSPATIAL "spatial"
 #define NCATOM "atom"
@@ -117,7 +121,9 @@ std::string NetcdfFile::GetAttrText(const char *attribute) {
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   NCTYPE nctype = NC_UNKNOWN;
   std::string attrText = GetAttrText(NC_GLOBAL, "Conventions");
-  if (attrText == "AMBER")
+  if (attrText == "AMBERENSEMBLE")
+    nctype = NC_AMBERENSEMBLE;
+  else if (attrText == "AMBER")
     nctype = NC_AMBERTRAJ;
   else if (attrText == "AMBERRESTART")
     nctype = NC_AMBERRESTART;
@@ -126,7 +132,7 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions() {
   else {
     mprinterr("Error: Netcdf file: Unrecognized conventions \"%s\".\n",
               attrText.c_str());
-    mprinterr("Error:   Expected \"AMBER\" or \"AMBERRESTART\".\n");
+    mprinterr("Error:   Expected \"AMBER\", \"AMBERRESTART\", or \"AMBERENSEMBLE\".\n");
   }
   return nctype;
 }
@@ -160,6 +166,14 @@ int NetcdfFile::SetupFrameDim() {
   frameDID_ = GetDimInfo( NCFRAME, &ncframe_ );
   if (frameDID_==-1) return 1;
   return 0;
+}
+
+/** Get the ensemble dimension ID and size. */
+int NetcdfFile::SetupEnsembleDim() {
+  int ensembleSize = 0;
+  ensembleDID_ = GetDimInfo( NCENSEMBLE, &ensembleSize );
+  if (ensembleDID_ == -1) return 0;
+  return ensembleSize;
 }
 
 // NetcdfFile::SetupCoordsVelo()
@@ -220,8 +234,22 @@ int NetcdfFile::SetupTime() {
   if ( nc_inq_varid(ncid_, NCTIME, &timeVID_) == NC_NOERR ) {
     std::string attrText = GetAttrText(timeVID_, "units");
     if (attrText!="picosecond")
-      mprintf("Warning: Netcdf file has time units of %s - expected picosecond.\n",
+      mprintf("Warning: NetCDF file has time units of %s - expected picosecond.\n",
               attrText.c_str());
+    // Check for time values which have NOT been filled, which was possible
+    // with netcdf trajectories created by older versions of ptraj/cpptraj.
+    if (ncframe_ > 0 && GetNetcdfConventions() == NC_AMBERTRAJ) {
+      float time;
+      start_[0] = 0; count_[0] = 1;
+      if (checkNCerr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
+        mprinterr("Error: Getting time value for NetCDF file.\n");
+        return -1;
+      }
+      if (time == NC_FILL_FLOAT) {
+        mprintf("Warning: NetCDF file time variable defined but empty. Disabling.\n");
+        timeVID_ = -1;
+      }
+    }
     return 0;
   }
   timeVID_=-1;
@@ -311,18 +339,26 @@ int NetcdfFile::SetupBox(double* boxIn, NCTYPE typeIn) {
     start_[0]=0; 
     start_[1]=0; 
     start_[2]=0;
+    start_[3]=0;
     switch (typeIn) {
       case NC_AMBERRESTART:
         count_[0]=3;
         count_[1]=0;
+        count_[2]=0;
         break;
       case NC_AMBERTRAJ:
         count_[0]=1; 
         count_[1]=3;
+        count_[2]=0;
+        break;
+      case NC_AMBERENSEMBLE:
+        count_[0]=1; // NOTE: All ensemble members must have same box type
+        count_[1]=1; // TODO: Check all members?
+        count_[2]=3;
         break;
       case NC_UNKNOWN: return 1; // Sanity check
     }
-    count_[2]=0;
+    count_[3]=0;
     if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, boxIn )) )
     {
       mprinterr("Error: Getting cell lengths.\n");
@@ -486,6 +522,10 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   
   // Set number of dimensions based on file type
   switch (type) {
+    case NC_AMBERENSEMBLE:
+      NDIM = 4;
+      dataType = NC_FLOAT;
+      break;
     case NC_AMBERTRAJ: 
       NDIM = 3;
       dataType = NC_FLOAT;
@@ -499,13 +539,26 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
       return 1;
   }
 
+  if (type == NC_AMBERENSEMBLE) {
+    // Ensemble dimension for ensemble
+    if (coordInfo.EnsembleSize() < 1) {
+      mprinterr("Internal Error: NetcdfFile: ensembleSize < 1\n");
+      return 1;
+    }
+    if ( checkNCerr(nc_def_dim(ncid_, NCENSEMBLE, coordInfo.EnsembleSize(), &ensembleDID_)) ) {
+      mprinterr("Error: Defining ensemble dimension.\n");
+      return 1;
+    }
+    dimensionID[1] = ensembleDID_;
+  }
   ncframe_ = 0;
-  if (type == NC_AMBERTRAJ) {
+  if (type == NC_AMBERTRAJ || type == NC_AMBERENSEMBLE) {
     // Frame dimension for traj
     if ( checkNCerr( nc_def_dim( ncid_, NCFRAME, NC_UNLIMITED, &frameDID_)) ) {
       mprinterr("Error: Defining frame dimension.\n");
       return 1;
     }
+    // Since frame is UNLIMITED, it must be lowest dim.
     dimensionID[0] = frameDID_;
   }
   // Time variable and units
@@ -536,7 +589,12 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   }
   // Setup dimensions for Coords/Velocity
   // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-  if (type == NC_AMBERTRAJ) {
+  if (type == NC_AMBERENSEMBLE) {
+    dimensionID[0] = frameDID_;
+    dimensionID[1] = ensembleDID_;
+    dimensionID[2] = atomDID_;
+    dimensionID[3] = spatialDID_;
+  } else if (type == NC_AMBERTRAJ) {
     dimensionID[0] = frameDID_;
     dimensionID[1] = atomDID_;
     dimensionID[2] = spatialDID_;
@@ -593,9 +651,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   int remDimTypeVID = -1;
   if (coordInfo.HasReplicaDims()) {
     // Define number of replica dimensions
+    remd_dimension_ = coordInfo.ReplicaDimensions().Ndims();
     int remDimDID = -1;
-    if ( checkNCerr(nc_def_dim(ncid_, NCREMD_DIMENSION, coordInfo.ReplicaDimensions().Ndims(),
-                                &remDimDID)) ) {
+    if ( checkNCerr(nc_def_dim(ncid_, NCREMD_DIMENSION, remd_dimension_, &remDimDID)) ) {
       mprinterr("Error: Defining replica indices dimension.\n");
       return 1;
     }
@@ -608,7 +666,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     }
     // Need to store the indices of replica in each dimension each frame
     // NOTE: THIS MUST BE MODIFIED IF NEW TYPES ADDED
-    if (type == NC_AMBERTRAJ) {
+    if (type == NC_AMBERENSEMBLE) {
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      dimensionID[2] = remDimDID;
+    } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       dimensionID[1] = remDimDID;
     } else {
@@ -655,7 +717,11 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     // Setup dimensions for Box
     // NOTE: This must be modified if more types added
     int boxdim;
-    if (type == NC_AMBERTRAJ) {
+    if (type == NC_AMBERENSEMBLE) {
+      dimensionID[0] = frameDID_;
+      dimensionID[1] = ensembleDID_;
+      boxdim = 2;
+    } else if (type == NC_AMBERTRAJ) {
       dimensionID[0] = frameDID_;
       boxdim = 1;
     } else {
@@ -705,16 +771,16 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     return 1;
   }
   // TODO: Make conventions a static string
-  if ( type == NC_AMBERTRAJ ) {
-    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER")) ) {
-      mprinterr("Error: Writing conventions.\n");
-      return 1;
-    }
-  } else {
-    if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART")) ) {
-      mprinterr("Error: Writing conventions.\n");
-      return 1;
-    }
+  bool errOccurred = false;
+  if ( type == NC_AMBERENSEMBLE )
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",13,"AMBERENSEMBLE"));
+  else if ( type == NC_AMBERTRAJ )
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",5,"AMBER"));
+  else
+    errOccurred = checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"Conventions",12,"AMBERRESTART"));
+  if (errOccurred) {
+    mprinterr("Error: Writing conventions.\n");
+    return 1;
   }
   if (checkNCerr(nc_put_att_text(ncid_,NC_GLOBAL,"ConventionVersion",3,"1.0")) ) {
     mprinterr("Error: Writing conventions version.\n");
@@ -769,9 +835,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   if (coordInfo.HasReplicaDims()) {
     ReplicaDimArray const& remdDim = coordInfo.ReplicaDimensions();
     start_[0] = 0;
-    count_[0] = remdDim.Ndims();
-    int* tempDims = new int[ remdDim.Ndims() ];
-    for (int i = 0; i < remdDim.Ndims(); ++i)
+    count_[0] = remd_dimension_;
+    int* tempDims = new int[ remd_dimension_ ];
+    for (int i = 0; i < remd_dimension_; ++i)
       tempDims[i] = remdDim[i];
     if (checkNCerr(nc_put_vara_int(ncid_, remDimTypeVID, start_, count_, tempDims))) {
       mprinterr("Error: writing replica dimension types.\n");
@@ -801,4 +867,43 @@ void NetcdfFile::DoubleToFloat(float* Coord, const double* X) {
     Coord[i]=(float) X[i];
 }
 
+void NetcdfFile::WriteIndices() const {
+  mprintf("DBG: Start={%zu, %zu, %zu, %zu} Count={%zu, %zu, %zu, %zu}\n",
+         start_[0], start_[1], start_[2], start_[3],
+         count_[0], count_[1], count_[2], count_[3]);
+}
+
+void NetcdfFile::WriteVIDs() const {
+  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+          "  cellLengthVID_=%i  indicesVID_=%i\n",
+          TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
+}
+
+void NetcdfFile::Sync() {
+# ifdef MPI
+  parallel_bcastMaster(&ncframe_, 1, PARA_INT);
+  parallel_bcastMaster(&TempVID_, 1, PARA_INT);
+  parallel_bcastMaster(&coordVID_, 1, PARA_INT);
+  parallel_bcastMaster(&velocityVID_, 1, PARA_INT);
+  parallel_bcastMaster(&frcVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cellAngleVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cellLengthVID_, 1, PARA_INT);
+  parallel_bcastMaster(&timeVID_, 1, PARA_INT);
+  parallel_bcastMaster(&remd_dimension_, 1, PARA_INT);
+  parallel_bcastMaster(&indicesVID_, 1, PARA_INT);
+  parallel_bcastMaster(&ncdebug_, 1, PARA_INT);
+  parallel_bcastMaster(&ensembleDID_, 1, PARA_INT);
+  parallel_bcastMaster(&frameDID_, 1, PARA_INT);
+  parallel_bcastMaster(&atomDID_, 1, PARA_INT);
+  parallel_bcastMaster(&ncatom_, 1, PARA_INT);
+  parallel_bcastMaster(&ncatom3_, 1, PARA_INT);
+  parallel_bcastMaster(&spatialDID_, 1, PARA_INT);
+  parallel_bcastMaster(&labelDID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_spatialDID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_angularDID_, 1, PARA_INT);
+  parallel_bcastMaster(&spatialVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_spatialVID_, 1, PARA_INT);
+  parallel_bcastMaster(&cell_angularVID_, 1, PARA_INT);
+# endif
+}
 #endif

@@ -4,29 +4,37 @@
 # 2010-11-18
 # Simple script to set compiler vars. Create config.h, which will be used
 # by src/Makefile.
-# Usage: ./configure [gnu/intel] OPTIONS
 
 # Print help message
-Usage() {
-  echo "Usage: ./configure [gnu | intel | clang | pgi] OPTIONS"
+UsageSimple() {
+  echo "Usage: ./configure <OPTIONS> [gnu | intel | pgi | clang | cray]"
   echo "  OPTIONS:"
-  echo "    --help     : Display this message."
-  echo "    -d, -debug : Turn on compiler debugging info"
-  echo "    -openmp    : Use openmp for parallelization of certain routines."
-  echo "    -mpi       : Use mpicc/mpicxx to compile."
-  echo "    -cray      : Use cray compiler wrappers (cc/CC/ftn)."
-  echo "    -debugon   : Add -DDEBUG flag to activate internal debugging"
-  echo "    -noopt     : Do not use optimized compiler flags (default when -d specified)"
+  echo "    --help      : Display this message."
+  echo "    -openmp     : Use openmp for parallelization of certain routines."
+  echo "    -mpi        : Use mpicc/mpicxx to compile."
+  echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
+  echo "    --full-help : Display additional options."
+  echo ""
+}
+
+UsageFull() {
+  echo "  ADDITIONAL OPTIONS:"
+  echo "    -debug     : Turn on compiler debugging info."
+  echo "    -noopt     : Do not use optimized compiler flags."
+  echo "    -d         : Turn on compiler debug info and disable optimization (i.e. -debug -noopt)."
+  echo "    -timer     : Enable additional timing info."
+  echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Enable position-independent code for generating shared library."
   echo ""
-  echo "  Library linking options:"
+  echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
   echo "    --with-zlib=<DIR>"
   echo "    --with-bzlib=<DIR>"
   echo "    --with-blas=<DIR>"
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
+#  echo "   --with-hdf5=<DIR>"
   echo "    -static    : Use static linking."
   echo "    -amberlib  : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    -nobzlib   : Do not use libbz2 (bzip2)"
@@ -35,21 +43,24 @@ Usage() {
   echo "    -nomathlib : Do not include routines which require ARPACK, LAPACK, or BLAS"
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile   : Use Gnu compiler profiling (>= V4.5)"
-  echo "    -gprofile  : Use Gnu compiler GLIBC profiling (>= V4.5)"
-  echo "    -vtune     : Enable options for use with Intel Vtune"
-  echo "    NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
-#  echo "   --with-hdf5=<DIR>"
+  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
+  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)"
+  echo "    -vtune              : Enable options for use with Intel Vtune"
+  echo "    -sanderlib          : Link to sander API (requires AMBERHOME set)."
+  echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
+  echo "    --with-pnetcdf=<DIR>: PNETCDF location, currently only used for single ensemble with MPI."
+  echo ""
+  echo "NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
+  echo ""
 }
 
 # If arg is Key=Value, separate into Key and Value
 ParseArg() {
   KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
   VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
+  eval VALUE=$VALUE
   if [[ $VALUE = $KEY ]] ; then
     VALUE=""
-  else
-    eval VALUE=$VALUE
   fi
 }
 
@@ -186,8 +197,12 @@ EOF
 
 #---------------------------------------------------------------------
 
-if [[ -z $1  || $1 = "--help" || $1 = "-h" ]] ; then
-  Usage
+if [[ -z $1  || $1 = "--help"  || $1 = "-h" ]] ; then
+  UsageSimple
+  exit 0
+elif [[ ! -z $1 && $1 = "--full-help" ]] ; then
+  UsageSimple
+  UsageFull
   exit 0
 fi
 
@@ -226,6 +241,7 @@ INCLUDE=""
 LDFLAGS=""
 STATIC=0
 NETCDF_HOME=""
+PNETCDF_HOME=""
 BZLIB_HOME=""
 ZLIB_HOME=""
 BLAS_HOME=""
@@ -233,11 +249,13 @@ LAPACK_HOME=""
 ARPACK_HOME=""
 READLINE_HOME="readline"
 NETCDFLIB="-lnetcdf"
+PNETCDFLIB=""
 BZLIB="-lbz2"
 ZLIB="-lz"
 BLAS="-lblas"
 LAPACK="-llapack"
 ARPACK="-larpack"
+SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
 USEMKL=0
@@ -325,6 +343,10 @@ while [[ ! -z $1 ]] ; do
       echo "Turning on cpptraj internal debug info"
       DIRECTIVES="$DIRECTIVES -DDEBUG" 
       ;;
+    "-single-ensemble")
+      echo "Enabling support for single ensemble trajectories."
+      DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE"
+      ;;
     "-noopt"        ) 
       echo "Turning off optimization"
       OPT=0 
@@ -361,6 +383,15 @@ while [[ ! -z $1 ]] ; do
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
       USE_AMBER_LIB=1 
+      ;;
+    "-sanderlib"    )
+      if [[ -z $AMBERHOME ]] ; then
+        echo "Error: '-sanderlib' requires AMBERHOME is set."
+        exit 1
+      fi
+      USE_AMBER_LIB=1 # FIXME Should not depend on other libraries
+      SANDERLIB="-lsander"
+      echo "Using libsander"
       ;;
     "-mkl" )
       if [[ -z $MKLROOT ]] ; then
@@ -406,6 +437,11 @@ while [[ ! -z $1 ]] ; do
       INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDF_HOME="$VALUE"
       echo "Using NETCDF in $NETCDF_HOME"
+      ;;
+    "--with-pnetcdf" )
+      PNETCDF_HOME="$VALUE"
+      PNETCDFLIB="-lpnetcdf"
+      echo "Using parallel NETCDF in $PNETCDF_HOME"
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -456,7 +492,7 @@ echo "Installing cpptraj binary to $CPPTRAJBIN"
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then
   echo "No compiler specified."
   echo "Specify 'gnu', 'intel', or 'pgi' as an argument to ./configure"
-  Usage
+  UsageSimple
   exit 1
 fi
 
@@ -472,6 +508,17 @@ if [[ ! -z $NETCDFLIB ]] ; then
   NETCDFLIB="$NETCDFLIB $HDF5LIB"
 fi
 
+# Only use parallel NETCDF with MPI
+if [[ ! -z $PNETCDFLIB ]] ; then
+  if [[ $USEMPI -eq 0 ]] ; then
+    echo "Warning: Parallel NETCDF only supported with '-mpi'"
+    PNETCDFLIB=""
+    PNETCDF_HOME=""
+  else
+    INCLUDE="$INCLUDE -I$PNETCDF_HOME/include"
+  fi
+fi
+
 # Add directives
 if [[ ! -z $BZLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHASBZ2"
@@ -481,6 +528,9 @@ if [[ ! -z $ZLIB ]] ; then
 fi
 if [[ ! -z $NETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DBINTRAJ"
+fi
+if [[ ! -z $PNETCDFLIB ]] ; then
+  DIRECTIVES="$DIRECTIVES -DHAS_PNETCDF"
 fi
 
 # Use libraries in AMBERHOME for stuff thats undefined 
@@ -521,6 +571,9 @@ if [[ $STATIC -eq 1 ]] ; then
   if [[ ! -z $ZLIB_HOME && ! -z $ZLIB ]] ; then
     ZLIB="$ZLIB_HOME/lib/libz.a"
   fi
+  if [[ ! -z $PNETCDF_HOME && ! -z $PNETCDFLIB ]] ; then
+    PNETCDFLIB="$PNETCDF_HOME/lib/libpnetcdf.a"
+  fi
 else
   # Dynamic linking
   if [[ ! -z $BLAS_HOME && ! -z $BLAS ]] ; then
@@ -540,6 +593,9 @@ else
   fi
   if [[ ! -z $ZLIB_HOME && ! -z $ZLIB ]] ; then
     ZLIB="-L$ZLIB_HOME/lib $ZLIB"
+  fi
+  if [[ ! -z $PNETCDF_HOME && ! -z $PNETCDFLIB ]] ; then
+    PNETCDFLIB="-L$PNETCDF_HOME/lib $PNETCDFLIB"
   fi
 fi
 
@@ -568,7 +624,7 @@ if [[ $USEMKL -eq 1 ]] ; then
 fi
 
 # Set up linking flags
-LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $BZLIB $ZLIB $FLIBS"
+LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
 
 # Add options for Timer
 if [[ $USETIMER -eq 1 ]] ; then
@@ -608,6 +664,12 @@ if [[ $CC = "cc" ]] ; then
   if [[ $USEOPENMP -eq 0 ]] ; then
     DIRECTIVES="-h noomp "$DIRECTIVES
   fi
+fi
+
+# Flags for libsander
+if [[ ! -z $SANDERLIB ]] ; then
+  DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
+  LDFLAGS=$LDFLAGS" $SANDERLIB"
 fi
 
 # Change to MPI compiler wrappers if specified
@@ -696,6 +758,18 @@ READLINE_HOME=$READLINE_HOME
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EOF
+
+# Add a rule to config to prevent libcpptraj from being built if not shared.
+if [[ $USESHARED -eq 1 ]] ; then
+  cat >> config.h <<EOF
+checkshared:
+EOF
+else
+  cat >> config.h <<EOF
+checkshared:
+	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
+EOF
+fi
 
 # Create directories if necessary
 if [[ ! -e $CPPTRAJBIN ]] ; then

@@ -6,7 +6,6 @@
 
 // CONSTRUCTOR
 Traj_AmberRestart::Traj_AmberRestart() :
-  restartAtoms_(0),
   natom3_(0),
   numBoxCoords_(0),
   restartTime_(-1.0),
@@ -46,14 +45,9 @@ void Traj_AmberRestart::closeTraj() {
   file_.CloseFile();
 }
 
+// FIXME This needs to be changed if ever used for trajout
 // Traj_AmberRestart::openTrajin()
-int Traj_AmberRestart::openTrajin() {
-  if (file_.OpenFile()) return 1;
-  // Read past title and natom/time/Temp lines
-  if (file_.NextLine() == 0) return 1;
-  if (file_.NextLine() == 0) return 1;
-  return 0; 
-}
+int Traj_AmberRestart::openTrajin() { return 0; }
 
 void Traj_AmberRestart::WriteHelp() {
   mprintf("\tnovelocity: Do not write velocities to restart file.\n"
@@ -71,6 +65,7 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
+  singleWrite_ = argIn.hasKey("single");
   return 0;
 }
 
@@ -102,8 +97,7 @@ int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm
   if (file_.SetupWrite( fname, debug_ )) return 1;
   readAccess_ = false;
   // Set trajectory info
-  restartAtoms_ = trajParm->Natom();
-  natom3_ = restartAtoms_ * 3;
+  natom3_ = trajParm->Natom() * 3;
   // Calculate the length of coordinate frame in bytes
   file_.SetupFrameBuffer( natom3_, 12, 6 ); 
   // Dont know ahead of time if velocities will be used, allocate space
@@ -152,8 +146,7 @@ int Traj_AmberRestart::getBoxAngles(std::string const& boxline, Box& trajBox) {
   if (numBoxCoords_==-1) {
     // This can occur if there is an extra newline or whitespace at the end
     // of the restart. Warn the user.
-    mprintf("Warning: Restart [%s] appears to have an extra newline or whitespace.\n",
-            file_.Filename().base());
+    mprintf("Warning: Restart appears to have an extra newline or whitespace.\n");
     mprintf("         Assuming no box information present.\n");
     trajBox.SetNoBox();
     numBoxCoords_ = 0;
@@ -177,28 +170,31 @@ int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
 }
 
 // Traj_AmberRestart::setupTrajin()
-/** Set up amber restart file for reading. Check that number of atoms matches
-  * number of atoms in associated parmtop. Check for box/velocity info.
+/** Set up and read Amber restart file. Coordinate/velocities will be saved
+  * here to avoid having to open the file again. Check that number of atoms 
+  * matches number of atoms in associated parmtop. Check for box/velocity info.
   */
 int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
 {
-  if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
-  if (file_.OpenFile()) return TRAJIN_ERR;
+  BufferedFrame infile;
+  if (infile.SetupRead( fname, debug_ )) return TRAJIN_ERR;
+  if (infile.OpenFile()) return TRAJIN_ERR;
   readAccess_ = true;
   // Read in title
-  std::string title = file_.GetLine();
+  std::string title = infile.GetLine();
   SetTitle( NoTrailingWhitespace(title) );
   // Read in natoms, time, and Replica Temp if present
-  std::string nextLine = file_.GetLine();
+  std::string nextLine = infile.GetLine();
   if (nextLine.empty()) {
-    mprinterr("Error: AmberRestart::open(): Reading restart atoms/time.\n");
+    mprinterr("Error: Could not read restart atoms/time.\n");
     return TRAJIN_ERR;
   }
+  int restartAtoms = 0;
   bool hasTemp = false;
   bool hasTime = false;
-  int nread = sscanf(nextLine.c_str(),"%i %lE %lE",&restartAtoms_,&restartTime_,&restartTemp_);
+  int nread = sscanf(nextLine.c_str(),"%i %lE %lE",&restartAtoms,&restartTime_,&restartTemp_);
   if (nread < 1) {
-    mprinterr("Error: AmberRestart::open(): Getting restart atoms/time.\n");
+    mprinterr("Error: Unable to read restart atoms/time.\n");
     return TRAJIN_ERR;
   } else if (nread == 1) { // # atoms only
     restartTime_ = 0.0;
@@ -211,28 +207,31 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
     hasTemp = true; 
   }
   if (debug_ > 0) 
-    mprintf("\tAmber restart: Atoms=%i Time=%lf Temp=%lf\n",restartAtoms_,
+    mprintf("\tAmber restart: Atoms=%i Time=%lf Temp=%lf\n",restartAtoms,
             restartTime_, restartTemp_);
   // Check that natoms matches parm natoms
-  if (restartAtoms_ != trajParm->Natom()) {
+  if (restartAtoms != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in Amber Restart %s (%i) does not\n",
-              file_.Filename().base(), restartAtoms_);
+              infile.Filename().base(), restartAtoms);
     mprinterr("       match number in associated parmtop (%i)\n",trajParm->Natom());
     return TRAJIN_ERR;
   }
-  natom3_ = restartAtoms_ * 3;
+  natom3_ = restartAtoms * 3;
   // Calculate the length of coordinate frame in bytes
-  file_.SetupFrameBuffer( natom3_, 12, 6 );
-  coordSize_ = file_.FrameSize();
+  infile.SetupFrameBuffer( natom3_, 12, 6 );
   // Read past restart coords 
-  if ( file_.ReadFrame() ) {
+  if ( infile.ReadFrame() ) {
     mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
     return TRAJIN_ERR; 
   }
+  // Save coordinates
+  CRD_.resize( natom3_ );
+  infile.BufferBegin();
+  infile.BufferToDouble(&CRD_[0], natom3_);
   // Attempt a second read to get velocities or box coords
   bool hasVel = false;
-  Box boxInfo;
-  nread = file_.AttemptReadFrame();
+  boxInfo_.SetNoBox();
+  nread = infile.AttemptReadFrame();
   if ( nread < 0 ) {
     mprinterr("Error: Error attempting to read box line of Amber restart file.\n");
     return TRAJIN_ERR;
@@ -241,23 +240,26 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
   // If 0 no box or velo 
   if (readSize > 0) {
-    if (readSize == file_.FrameSize()) {
+    if (readSize == infile.FrameSize()) {
       // If filled framebuffer again, has velocity info. 
       hasVel = true;
+      VEL_.resize( natom3_ );
+      infile.BufferBegin();
+      infile.BufferToDouble(&VEL_[0], natom3_);
       // If we can read 1 more line after velocity, should be box info.
-      nextLine = file_.GetLine();
+      nextLine = infile.GetLine();
       if (!nextLine.empty()) {
-        if (getBoxAngles(nextLine, boxInfo)) return TRAJIN_ERR;
+        if (getBoxAngles(nextLine, boxInfo_)) return TRAJIN_ERR;
       } 
     } else if (readSize<82) {
       // If we read something but didnt fill framebuffer, should have box coords.
-      nextLine.assign(file_.Buffer(), readSize);
-      if (getBoxAngles(nextLine, boxInfo)) return TRAJIN_ERR;
+      nextLine.assign(infile.Buffer(), readSize);
+      if (getBoxAngles(nextLine, boxInfo_)) return TRAJIN_ERR;
     } else {
       // Otherwise, who knows what was read?
       mprinterr("Error: AmberRestart::setupTrajin(): When attempting to read in\n"
                 "Error: box coords/velocity info got %lu chars, expected 0, 37,\n"
-                "Error: 73, or %lu.\n", readSize, file_.FrameSize());
+                "Error: 73, or %lu.\n", readSize, infile.FrameSize());
       mprinterr("Error: This usually indicates a malformed or corrupted restart file.\n");
       return TRAJIN_ERR;
     }
@@ -266,27 +268,16 @@ int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
     mprinterr("Error: 'usevelascoords' specified but no velocities in this restart.\n");
     return TRAJIN_ERR;
   }
-  // Recalculate the frame size
-  if (hasVel)
-    file_.ResizeBuffer( natom3_ );
-  if (boxInfo.HasBox())
-    file_.ResizeBuffer( numBoxCoords_ );
-  file_.CloseFile();
+  infile.CloseFile();
   // Set coordinate info
-  SetCoordInfo( CoordinateInfo(boxInfo, hasVel, hasTemp, hasTime) );
+  SetCoordInfo( CoordinateInfo(boxInfo_, hasVel, hasTemp, hasTime) );
   // Only 1 frame in restart by definition
   return 1;
 }
 
 // Traj_AmberRestart::readFrame()
-/** Get the restart file frame. If velocities are present, read those too.
-  */
+/** Copy buffered coords/velocities/box to input frame. */
 int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
-  // Read restart coords into frameBuffer_
-  if ( file_.ReadFrame() ) {
-    mprinterr("Error: AmberRestart::readFrame(): Error reading coordinates.\n");
-    return 1;
-  }
   // Set frame temp
   if (CoordInfo().HasTemp())
     frameIn.SetTemperature( restartTemp_ );
@@ -294,35 +285,26 @@ int Traj_AmberRestart::readFrame(int set, Frame& frameIn) {
   if (CoordInfo().HasTime())
     frameIn.SetTime( restartTime_ );
   // Get coords from buffer
-  file_.BufferBegin();
-  file_.BufferToDouble(frameIn.xAddress(), natom3_);
+  std::copy(CRD_.begin(), CRD_.end(), frameIn.xAddress());
   // Get velocity from buffer if present
   if (CoordInfo().HasVel()) {
     if (frameIn.HasVelocity()) {
-      if (useVelAsCoords_) 
-        file_.BufferToDouble(frameIn.xAddress(), natom3_);
+      if (useVelAsCoords_)
+        std::copy(VEL_.begin(), VEL_.end(), frameIn.xAddress());
       else
-        file_.BufferToDouble(frameIn.vAddress(), natom3_);
-    } else
-      file_.AdvanceBuffer( coordSize_ );
+        std::copy(VEL_.begin(), VEL_.end(), frameIn.vAddress());
+    }
   }
   // Get box from buffer if present
   if (numBoxCoords_!=0) 
-    file_.BufferToDouble(frameIn.bAddress(), numBoxCoords_);
-
+    std::copy(boxInfo_.boxPtr(), boxInfo_.boxPtr()+6, frameIn.bAddress());
   return 0;
 }
 
 // Traj_AmberRestart::readVelocity()
 int Traj_AmberRestart::readVelocity(int set, Frame& frameIn) {
   if (CoordInfo().HasVel()) {
-    if ( file_.ReadFrame() ) {
-      mprinterr("Error: AmberRestart::readVelocity(): Error reading file.\n");
-      return 1;
-    }
-    // Start buffer right after coords.
-    file_.BufferBeginAt(coordSize_);
-    file_.BufferToDouble(frameIn.vAddress(), natom3_);
+    std::copy(VEL_.begin(), VEL_.end(), frameIn.vAddress());
     return 0;
   }
   return 1;
@@ -341,7 +323,7 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   // Write out title
   file_.Printf("%-s\n", Title().c_str());
   // Write out atoms
-  file_.Printf("%5i",restartAtoms_);
+  file_.Printf("%5i", frameOut.Natom());
   // Write out restart time
   if (CoordInfo().HasTime()) {
     if (time0_>=0)

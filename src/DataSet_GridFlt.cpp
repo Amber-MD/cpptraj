@@ -1,4 +1,5 @@
 #include "DataSet_GridFlt.h"
+DataSet_GridFlt::DataSet_GridFlt(DataSet_GridFlt const& rhs) : DataSet_3D(rhs), grid_(rhs.grid_) {}
 void DataSet_GridFlt::Write3D(CpptrajFile& outfile, int xIn, int yIn, int zIn) const {
   size_t x = xIn;
   size_t y = yIn;

@@ -8,6 +8,7 @@
    // tw struct timeval is in there on windows
 #  include <Winsock2.h>
 #endif
+#include <cstdio> // sprintf
 #include "Timer.h"
 #include "CpptrajStdio.h"
 
@@ -83,11 +84,12 @@ void Timer::Stop() {
 
 void Timer::WriteTiming(int indents, const char* header, double FracTotal) const
 {
-  mprintf("TIME:");
+  char buffer[128];
+  char* ptr = buffer;
   for (int i = 0; i < indents; i++)
-    mprintf("\t");
-  mprintf("%s %.4f s", header, total_);
+    ptr += sprintf(ptr, "\t");
+  ptr += sprintf(ptr, "%s %.4f s", header, total_);
   if (FracTotal > 0.0)
-    mprintf(" (%.2f%%)", (total_ / FracTotal) * 100.0);
-  mprintf("\n");
+    ptr += sprintf(ptr, " (%.2f%%)", (total_ / FracTotal) * 100.0);
+  mprintf("TIME:%s\n", buffer);
 }

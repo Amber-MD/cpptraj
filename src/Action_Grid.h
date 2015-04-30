@@ -18,7 +18,6 @@ class Action_Grid : public Action, private GridAction {
 
     enum NormType { NONE=0, TO_FRAME, TO_DENSITY };
     NormType normalize_;
-    int ensembleNum_;
     double density_;
     double max_;
     double madura_;
@@ -26,7 +25,7 @@ class Action_Grid : public Action, private GridAction {
     unsigned int nframes_;
     bool invert_;
     AtomMask mask_;
-    std::string pdbname_;
+    CpptrajFile* pdbfile_;
     DataSet_GridFlt* grid_;
 };
 #endif

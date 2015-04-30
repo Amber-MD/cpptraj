@@ -5,13 +5,11 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-FileIO_Gzip::FileIO_Gzip() {
-  fp_ = NULL;
-}
+FileIO_Gzip::FileIO_Gzip() : fp_(NULL) {}
 
 // DESTRUCTOR
 FileIO_Gzip::~FileIO_Gzip() {
-  if (fp_!=NULL) this->Close();
+  Close();
 }
 
 //const unsigned int FileIO_Gzip::GZ_BUF_SIZE = 65536;
@@ -19,6 +17,7 @@ FileIO_Gzip::~FileIO_Gzip() {
 
 // FileIO_Gzip::Open()
 int FileIO_Gzip::Open(const char *filename, const char *mode) {
+  if (filename == 0) return 1;
   fp_ = gzopen(filename, mode);
   if (fp_==NULL) return 1;
   // Set gzip buffer size

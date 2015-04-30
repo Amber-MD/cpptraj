@@ -48,7 +48,7 @@ private:
   double delta_;
   Stats<double> area_;
 
-  CpptrajFile output_;
+  CpptrajFile* output_;
 
   std::vector<AtomMask> masks_;
 

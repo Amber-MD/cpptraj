@@ -18,16 +18,16 @@ class DataSet_MatrixFlt : public DataSet_2D {
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
     void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return (double)mat_.element(x,y);}
+    double GetElement(size_t i)          const { return (double)mat_[i];    }
     size_t Nrows()                       const { return mat_.Nrows();       }
     size_t Ncols()                       const { return mat_.Ncols();       }
     double* MatrixArray()                const;
-    MatrixKind Kind()                    const { return kind_;              }
-    MatrixType Type()                    const { return NO_OP;              }
+    MatrixKindType MatrixKind()          const { return kind_;              }
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
   private:
     Matrix<float> mat_;
-    MatrixKind kind_;
+    MatrixKindType kind_;
 };
 #endif

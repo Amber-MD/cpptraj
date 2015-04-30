@@ -28,7 +28,7 @@ class Action_PairDist : public Action, ImagedAction {
   Action::RetType DoAction(int, Frame*, Frame**);
   void Print();
 
-  CpptrajFile output_;
+  CpptrajFile* output_;
 
   AtomMask mask1_;
   AtomMask mask2_;

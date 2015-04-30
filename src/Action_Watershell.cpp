@@ -28,8 +28,8 @@ Action_Watershell::~Action_Watershell() {
 #endif
 
 void Action_Watershell::Help() {
-  mprintf("\t<solutemask> <filename> [lower <lower cut>] [upper <upper cut>]\n"
-          "\t[noimage] [<solventmask>]\n"
+  mprintf("\t<solutemask> [out <filename>] [lower <lower cut>] [upper <upper cut>]\n"
+          "\t[noimage] [<solventmask>] [<set name>]\n"
           "  Calculate # of waters in 1st and 2nd solvation shells (defined by\n"
           "  <lower cut> (default 3.4 Ang.) and <upper cut> (default 5.0 Ang.)\n"
           "  distance cut-offs respectively.\n");
@@ -39,23 +39,28 @@ void Action_Watershell::Help() {
 Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   InitImaging( !actionArgs.hasKey("noimage") );
-
+  // Get keywords
+  std::string filename = actionArgs.GetStringKey("out");
+  lowerCutoff_ = actionArgs.getKeyDouble("lower", 3.4);
+  upperCutoff_ = actionArgs.getKeyDouble("upper", 5.0);
+  // Get solute mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: WATERSHELL: Solute mask must be specified.\n");
     return Action::ERR;
   }
   soluteMask_.SetMaskString( maskexpr );
-
-  std::string filename = actionArgs.GetStringNext();
-  if (filename.empty()) {
-    mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
-    return Action::ERR;
+  // For backwards compat., if no 'out' assume next string is 
+  if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2)) {
+    filename = actionArgs.GetStringNext();
+    if (filename.empty()) {
+      mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
+      return Action::ERR;
+    }
   }
-
-  lowerCutoff_ = actionArgs.getKeyDouble("lower", 3.4);
-  upperCutoff_ = actionArgs.getKeyDouble("upper", 5.0);
-
+  DataFile* outfile = 0;
+  if (!filename.empty())
+    outfile = DFL->AddDataFile( filename, actionArgs );
   // Check for solvent mask
   solventmaskexpr_ = actionArgs.GetMaskNext();
 
@@ -66,8 +71,10 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
   lower_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "lower");
   upper_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "upper");
   if (lower_ == 0 || upper_ == 0) return Action::ERR;
-  DFL->AddSetToFile(filename, lower_);
-  DFL->AddSetToFile(filename, upper_);
+  if (outfile != 0) {
+    outfile->AddSet(lower_);
+    outfile->AddSet(upper_);
+  }
 # ifdef _OPENMP
   // Determine number of parallel threads
 #pragma omp parallel
@@ -76,16 +83,18 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
     numthreads_ = omp_get_num_threads();
 }
 # endif
-  mprintf("    WATERSHELL: Output to %s\n",filename.c_str());
+  mprintf("    WATERSHELL:");
+  if (outfile != 0) mprintf(" Output to %s", outfile->DataFilename().full());
+  mprintf("\n");
   if (!UseImage())
-    mprintf("                Imaging is disabled.\n");
-  mprintf("                The first shell will contain water < %.3lf angstroms from\n",
+    mprintf("\tImaging is disabled.\n");
+  mprintf("\tThe first shell will contain water < %.3f angstroms from\n",
           lowerCutoff_);
-  mprintf("                the solute; the second shell < %.3lf angstroms...\n",
+  mprintf("\t  the solute; the second shell < %.3f angstroms...\n",
           upperCutoff_);
-  mprintf("                Solute atoms will be specified by [%s]\n",soluteMask_.MaskString());
+  mprintf("\tSolute atoms will be specified by [%s]\n",soluteMask_.MaskString());
   if (!solventmaskexpr_.empty()) {
-    mprintf("                Solvent atoms will be specified by [%s]\n",
+    mprintf("\tSolvent atoms will be specified by [%s]\n",
             solventmaskexpr_.c_str());
     solventMask_.SetMaskString( solventmaskexpr_ );
   }

@@ -4,6 +4,12 @@
 class ReplicaDimArray {
   public:
     ReplicaDimArray() {}
+    ReplicaDimArray(ReplicaDimArray const& rhs) : remDims_(rhs.remDims_) {}
+    ReplicaDimArray& operator=(ReplicaDimArray const& rhs) {
+      if (this == &rhs) return *this;
+      remDims_ = rhs.remDims_;
+      return *this;
+    }
     enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH };
     int operator[](int idx) const { return (int)remDims_[idx];         }
     void AddRemdDimension(int d)  { remDims_.push_back((RemDimType)d); }

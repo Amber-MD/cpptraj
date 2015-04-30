@@ -3,6 +3,9 @@
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // DEBUG
 void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo const& cInfo) {
@@ -12,6 +15,7 @@ void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo co
   if (cInfo.HasTemp()) mprintf(", temps");
   if (cInfo.HasTime()) mprintf(", times");
   if (cInfo.HasForce()) mprintf(", forces");
+  if (cInfo.EnsembleSize() > 0) mprintf(", ensemble size %i", cInfo.EnsembleSize());
   mprintf(" }\n");
 }
 // DEBUG
@@ -520,6 +524,7 @@ void Frame::StripUnmappedAtoms(Frame const& refIn, std::vector<int> const& mapIn
   }
   box_ = refIn.box_;
   T_ = refIn.T_;
+  time_ = refIn.time_;
   remd_indices_ = refIn.remd_indices_;
 
   double* newXptr = X_;
@@ -549,6 +554,7 @@ void Frame::ModifyByMap(Frame const& frameIn, std::vector<int> const& mapIn) {
   }
   box_ = frameIn.box_;
   T_ = frameIn.T_;
+  time_ = frameIn.time_;
   remd_indices_ = frameIn.remd_indices_;
 
   double* Xptr = X_;
@@ -1074,3 +1080,32 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
   //mprintf("|DEBUG temp si fac %10.4f%10.4f%10.4f\n", total_KE/fac,total_KE,fac);
   return total_KE / fac;
 }
+
+#ifdef MPI
+// TODO: Change Frame class so everything can be sent in one MPI call.
+/** Send contents of this Frame to recvrank. */
+int Frame::SendFrame(int recvrank) {
+  //rprintf("SENDING TO %i\n", recvrank); // DEBUG
+  parallel_send( X_,                ncoord_, PARA_DOUBLE, recvrank, 1212 );
+  if (V_ != 0)
+    parallel_send( V_,              ncoord_, PARA_DOUBLE, recvrank, 1215 );
+  parallel_send( box_.boxPtr(),     6,       PARA_DOUBLE, recvrank, 1213 );
+  parallel_send( &T_,               1,       PARA_DOUBLE, recvrank, 1214 );
+  parallel_send( &time_,            1,       PARA_DOUBLE, recvrank, 1217 );
+  parallel_send( &remd_indices_[0], remd_indices_.size(), PARA_INT, recvrank, 1216 );
+  return 0;
+}
+
+/** Receive contents of Frame from sendrank. */
+int Frame::RecvFrame(int sendrank) {
+  //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
+  parallel_recv( X_,                ncoord_, PARA_DOUBLE, sendrank, 1212 );
+  if (V_ != 0)
+    parallel_recv( V_,              ncoord_, PARA_DOUBLE, sendrank, 1215 );
+  parallel_recv( box_.boxPtr(),     6,       PARA_DOUBLE, sendrank, 1213 );
+  parallel_recv( &T_,               1,       PARA_DOUBLE, sendrank, 1214 );
+  parallel_recv( &time_,            1,       PARA_DOUBLE, sendrank, 1217 );
+  parallel_recv( &remd_indices_[0], remd_indices_.size(), PARA_INT, sendrank, 1216 );
+  return 0;
+}
+#endif

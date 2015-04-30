@@ -11,8 +11,9 @@
 // CONSTRUCTOR
 Action_Hbond::Action_Hbond() :
   debug_(0),
-  ensembleNum_(-1),
   Nframes_(0),
+  avgout_(0), solvout_(0), bridgeout_(0),
+  UUseriesout_(0), UVseriesout_(0),
   useAtomNum_(false),
   hasDonorMask_(false),
   hasDonorHmask_(false),
@@ -33,11 +34,15 @@ Action_Hbond::Action_Hbond() :
 {}
 
 void Action_Hbond::Help() {
-  mprintf("\t[out <filename>] <mask> [angle <cut>] [dist <cut>] [series]\n"
-          "\t[donormask <mask> [donorhmask <mask>]] [acceptormask <mask>]\n"
+  mprintf("\t[<dsname>] [out <filename>] [<mask>] [angle <acut>] [dist <dcut>]\n"
+          "\t[donormask <dmask> [donorhmask <dhmask>]] [acceptormask <amask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
-          "\t[solventdonor <mask>] [solventacceptor <mask>]\n"
+          "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
+          "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
+          "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
+          "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
           "  Search for hydrogen bonds using atoms in the region specified by mask.\n"
           "  If just <mask> specified donors and acceptors will be automatically searched for.\n"
           "  If donormask is specified but not acceptormask, acceptors will be\n"
@@ -52,15 +57,22 @@ void Action_Hbond::Help() {
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;
   // Get keywords
   Image_.InitImaging( (actionArgs.hasKey("image")) );
   DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
-  avgout_ = actionArgs.GetStringKey("avgout");
-  solvout_ = actionArgs.GetStringKey("solvout");
-  bridgeout_ = actionArgs.GetStringKey("bridgeout");
+  if (series_) {
+    UUseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
+    UVseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
+    DSL->SetDataSetsPending(true);
+  }
+  std::string avgname = actionArgs.GetStringKey("avgout");
+  std::string solvname = actionArgs.GetStringKey("solvout");
+  if (solvname.empty()) solvname = avgname;
+  std::string bridgename = actionArgs.GetStringKey("bridgeout");
+  if (bridgename.empty()) bridgename = solvname;
+  
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
@@ -104,16 +116,6 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   // Get generic mask
   Mask_.SetMaskString(actionArgs.GetMaskNext());
 
-  // If calculating solvent and avgout filename is specified but 
-  // solvout/bridgeout is not, set solvout = avgout and 
-  // bridgeout = solvout.
-  if ( calcSolvent_ ) {
-    if (solvout_.empty() && !avgout_.empty())
-      solvout_ = avgout_;
-    if (bridgeout_.empty() && !solvout_.empty())
-      bridgeout_ = solvout_;
-  }
-
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
   if (hbsetname_.empty())
@@ -121,6 +123,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   NumHbonds_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UU");
   if (NumHbonds_==0) return Action::ERR;
   if (DF != 0) DF->AddSet( NumHbonds_ );
+  avgout_ = DFL->AddCpptrajFile(avgname, "Avg. solute-solute HBonds");
   if (calcSolvent_) {
     NumSolvent_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UV");
     if (NumSolvent_ == 0) return Action::ERR;
@@ -131,7 +134,9 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
     if (BridgeID_ == 0) return Action::ERR;
     if (DF != 0) DF->AddSet( BridgeID_ );
-  } 
+    solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
+    bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
+  }
 
   mprintf( "  HBOND: ");
   if (!hasDonorMask_ && !hasAcceptorMask_)
@@ -158,20 +163,24 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
             SolventAcceptorMask_.MaskString());
   mprintf("\tDistance cutoff = %.3lf, Angle Cutoff = %.3lf\n",dcut,acut_*Constants::RADDEG);
   if (DF != 0) 
-    mprintf("\tDumping # Hbond v time results to %s\n", DF->DataFilename().base());
-  if (!avgout_.empty())
-    mprintf("\tDumping Hbond avgs to %s\n",avgout_.c_str());
-  if (calcSolvent_ && !solvout_.empty())
-    mprintf("\tDumping solute-solvent hbond avgs to %s\n", solvout_.c_str());
-  if (calcSolvent_ && !bridgeout_.empty())
-    mprintf("\tDumping solvent bridging info to %s\n", bridgeout_.c_str());
+    mprintf("\tWriting # Hbond v time results to %s\n", DF->DataFilename().full());
+  if (avgout_ != 0)
+    mprintf("\tWriting Hbond avgs to %s\n",avgout_->Filename().full());
+  if (calcSolvent_ && solvout_ != 0)
+    mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
+  if (calcSolvent_ && bridgeout_ != 0)
+    mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
   if (useAtomNum_)
     mprintf("\tAtom numbers will be written to output.\n");
-  if (series_)
+  if (series_) {
     mprintf("\tTime series data for each hbond will be saved for analysis.\n");
+    if (UUseriesout_ != 0) mprintf("\tWriting solute-solute time series to %s\n",
+                                   UUseriesout_->DataFilename().full());
+    if (UVseriesout_ != 0) mprintf("\tWriting solute-solvent time series to %s\n",
+                                   UVseriesout_->DataFilename().full());
+  }
   if (Image_.UseImage())
     mprintf("\tImaging enabled.\n");
-  DSL->SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
@@ -391,7 +400,34 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
     mprintf("\tImaging on.\n");
   else
     mprintf("\tImaging off.\n");
+  // Estimate maximum memory usage by hbond data.
+  // Max # of U-U pairs.
+  size_t nPairs = (Acceptor_.size() * (Donor_.size()/2));
+  // If calculating solvent every U acceptor can have V donor etc.
+  if (calcSolvent_)
+    nPairs += (Acceptor_.size() + Donor_.size()/2);
+  mprintf("\tEstimated max potential memory usage: %.2f MB\n", 
+          MemoryUsage(nPairs, masterDSL_->MaxFrames()));
+
   return Action::OK;
+}
+
+double Action_Hbond::MemoryUsage(size_t nPairs, size_t nFrames) const {
+  static const size_t HBmapTypeElt = 32 + sizeof(int) + 
+                                     (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
+  static const size_t BridgeTypeElt = 32 + sizeof(std::set<int>) + sizeof(int);
+  size_t memTotal = nPairs * HBmapTypeElt;
+  // If calculating series every hbond will have time series.
+  // NOTE: This does not include memory used by DataSet.
+  if (series_ && nFrames > 0) {
+    size_t seriesSet = (nFrames * sizeof(int)) + sizeof(std::vector<int>);
+    memTotal += (seriesSet * nPairs);
+  }
+  // Current memory used by bridging solvent
+  for (BridgeType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
+    memTotal += (it->first.size() * sizeof(int));
+  memTotal += (BridgeMap_.size() * BridgeTypeElt);
+  return (double)memTotal / (1024*1024);
 }
 
 double Action_Hbond::ImagedAngle(const double* xyz_a, const double* xyz_h, const double* xyz_d) const
@@ -470,6 +506,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     if (series_) {
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
                                                           hbidx, "solventhb" );
+      if (UVseriesout_ != 0) UVseriesout_->AddSet( HB.data_ );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
       HB.data_->SetLegend( hblegend );
       HB.data_->AddVal( frameNum, 1 );
@@ -516,6 +553,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
                              (*CurrentParm_)[h_atom].Name().Truncated(); \
       HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, \
                                                           hbidx, "solutehb" ); \
+      if (UUseriesout_ != 0) UUseriesout_->AddSet( HB.data_ ); \
       HB.data_->SetLegend( hblegend ); \
       HB.data_->AddVal( frameNum, 1 ); \
     } \
@@ -680,7 +718,15 @@ void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
 void Action_Hbond::Print() {
   std::vector<HbondType> HbondList; // For sorting
   std::string Aname, Hname, Dname;
-  CpptrajFile outfile;
+
+  // Final memory usage
+  mprintf("    HBOND: Actual memory usage is %.2f MB\n",
+          MemoryUsage(HbondMap_.size()+SolventMap_.size(), Nframes_));
+  mprintf("\t%zu solute-solute hydrogen bonds.\n", HbondMap_.size());
+  if (calcSolvent_) {
+   mprintf("\t%zu solute-solvent hydrogen bonds.\n", SolventMap_.size());
+   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
+  }
 
   // Ensure all series have been updated for all frames.
   if (series_) {
@@ -706,8 +752,7 @@ void Action_Hbond::Print() {
   if (useAtomNum_) NUM += ( DigitWidth( CurrentParm_->Natom() ) + 1 );
 
   // Solute Hbonds 
-  if (!avgout_.empty()) { 
-    if (outfile.OpenEnsembleWrite( avgout_, ensembleNum_ )) return;
+  if (avgout_ != 0) { 
     // Place all detected Hbonds in a list and sort.
     for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
@@ -717,7 +762,7 @@ void Action_Hbond::Print() {
     HbondMap_.clear();
     // Sort and Print 
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
-    outfile.Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
+    avgout_->Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
                    NUM, "DonorH", NUM, "Donor", "Frames", "Frac", "AvgDist", "AvgAng");
     for (std::vector<HbondType>::const_iterator hbond = HbondList.begin(); 
                                                 hbond != HbondList.end(); ++hbond ) 
@@ -731,20 +776,14 @@ void Action_Hbond::Print() {
         Hname.append("_" + integerToString((*hbond).H+1));
         Dname.append("_" + integerToString((*hbond).D+1));
       }
-      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
+      avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
-    outfile.CloseFile();
   }
 
   // Solute-solvent Hbonds 
-  if (!solvout_.empty() && calcSolvent_) {
-    if (solvout_ == avgout_) {
-      if (outfile.OpenEnsembleAppend( solvout_, ensembleNum_ )) return;
-    } else {
-      if (outfile.OpenEnsembleWrite( solvout_, ensembleNum_ )) return;
-    }
+  if (solvout_ != 0 && calcSolvent_) {
     HbondList.clear();
     for (HBmapType::const_iterator it = SolventMap_.begin(); it != SolventMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
@@ -754,8 +793,8 @@ void Action_Hbond::Print() {
     SolventMap_.clear();
     sort( HbondList.begin(), HbondList.end(), hbond_cmp() );
     // Calc averages and print
-    outfile.Printf("#Solute-Solvent Hbonds:\n");
-    outfile.Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
+    solvout_->Printf("#Solute-Solvent Hbonds:\n");
+    solvout_->Printf("%-*s %*s %*s %8s %12s %12s %12s\n", NUM, "#Acceptor", 
                    NUM, "DonorH", NUM, "Donor", "Count", "Frac", "AvgDist", "AvgAng");
     for (std::vector<HbondType>::iterator hbond = HbondList.begin();
                                           hbond != HbondList.end(); ++hbond )
@@ -780,21 +819,15 @@ void Action_Hbond::Print() {
           Hname.append("_" + integerToString((*hbond).H+1));
         }
       }
-      outfile.Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
+      solvout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      (*hbond).Frames, avg, (*hbond).dist, (*hbond).angle);
     }
-    outfile.CloseFile();
   }
 
   // BRIDGING INFO
-  if (!bridgeout_.empty() && calcSolvent_) {
-    if (bridgeout_ == avgout_ || bridgeout_ == solvout_) {
-      if (outfile.OpenEnsembleAppend( bridgeout_, ensembleNum_ )) return;
-    } else {
-      if (outfile.OpenEnsembleWrite( bridgeout_, ensembleNum_ )) return; 
-    }
-    outfile.Printf("#Bridging Solute Residues:\n");
+  if (bridgeout_ != 0 && calcSolvent_) {
+    bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
     std::vector<std::pair< std::set<int>, int> > bridgevector;
     for (BridgeType::iterator it = BridgeMap_.begin(); 
@@ -804,12 +837,11 @@ void Action_Hbond::Print() {
     for (std::vector<std::pair< std::set<int>, int> >::iterator bv = bridgevector.begin();
                                                                 bv != bridgevector.end(); ++bv)
     {
-      outfile.Printf("Bridge Res");
+      bridgeout_->Printf("Bridge Res");
       for (std::set<int>::iterator res = (*bv).first.begin();
                                    res != (*bv).first.end(); ++res)
-        outfile.Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
-      outfile.Printf(", %i frames.\n", (*bv).second);
+        bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
+      bridgeout_->Printf(", %i frames.\n", (*bv).second);
     } 
-    outfile.CloseFile();
   } 
 }

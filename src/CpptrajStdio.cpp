@@ -5,6 +5,8 @@
 #endif
 
 static bool worldsilent = false; // If true suppress all mprintf output.
+static bool supressErrorMsg = false; // If true supress all mprinterr output.
+
 // mflush()
 /** Call flush on STDOUT only if this is the master thread */
 void mflush() {
@@ -16,23 +18,34 @@ void mflush() {
 
 /** Print message to STDOUT even if worldsilent */
 void loudPrintf(const char* format, ...) {
-  va_list args;
 #ifdef MPI
   if (worldrank!=0) return;
 #endif
+  va_list args;
   va_start(args,format);
   vfprintf(stdout,format,args);
+  va_end(args);
+}
+
+/** Print message to STDERR even if supressErrorMsg */
+void loudPrinterr(const char *format, ...) {
+#ifdef MPI
+  if (worldrank!=0) return; 
+#endif
+  va_list args;
+  va_start(args,format);
+  vfprintf(stderr,format,args);
   va_end(args);
 }
 
 // mprintf()
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
-  va_list args;
   if (worldsilent) return;
 #ifdef MPI
   if (worldrank!=0) return;
 #endif
+  va_list args;
   va_start(args,format);
   vfprintf(stdout,format,args);
   va_end(args);
@@ -41,11 +54,11 @@ void mprintf(const char *format, ...) {
 // mprinterr()
 /** Print message to STDERR only if this is the master thread */
 void mprinterr(const char *format, ...) {
-  va_list args;
-
+  if (supressErrorMsg) return;
 #ifdef MPI
   if (worldrank!=0) return; 
 #endif
+  va_list args;
   va_start(args,format);
   vfprintf(stderr,format,args);
   va_end(args);
@@ -73,7 +86,7 @@ void rprintf(const char *format, ...) {
 /** Print message to STDERR for this worldrank */
 void rprinterr(const char *format, ...) {
   va_list args;
-
+  if (supressErrorMsg) return;
 #ifdef MPI
   fprintf(stderr,"[%i]\t",worldrank);
 #endif
@@ -83,9 +96,9 @@ void rprinterr(const char *format, ...) {
   return;
 }
 
-void SetWorldSilent(bool silentIn) {
-  worldsilent = silentIn;
-}
+void SetWorldSilent(bool silentIn)   { worldsilent = silentIn;      }
+
+void SupressErrorMsg(bool supressIn) { supressErrorMsg = supressIn; }
 
 // printerr()
 /** Print error message along with calling routine.  */

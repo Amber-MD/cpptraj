@@ -18,7 +18,7 @@ static inline bool check_type(DataSet* ds, int n_ds) {
   if (ds->Type() != DataSet::FLOAT &&
       ds->Type() != DataSet::DOUBLE &&
       ds->Type() != DataSet::INTEGER) {
-    mprinterr("Error: %s: bad set type for overlap.\n", ds->Legend().c_str());
+    mprinterr("Error: %s: bad set type for overlap.\n", ds->legend());
     return true;
   }
   return false;
@@ -34,8 +34,8 @@ Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* dat
   if (check_type(ds2_,2)) return Analysis::ERR;
   useDeviation_ = analyzeArgs.hasKey("rmsd");
 
-  mprintf("    OVERLAP: Between %s and %s\n", ds1_->Legend().c_str(),
-          ds2_->Legend().c_str());
+  mprintf("    OVERLAP: Between %s and %s\n", ds1_->legend(),
+          ds2_->legend());
   if (useDeviation_)
     mprintf("\tCalculating overlap using RMSD.\n");
 
@@ -69,8 +69,8 @@ Analysis::RetType Analysis_Overlap::Analyze() {
     }
     sum /= (double)D1.Size();
     sum = sqrt( sum );
-    mprintf("\tNormalized RMSD of %s from %s is %f\n", ds1_->Legend().c_str(),
-            ds2_->Legend().c_str(), 1.0 - sum);
+    mprintf("\tNormalized RMSD of %s from %s is %f\n", ds1_->legend(),
+            ds2_->legend(), 1.0 - sum);
   } else {  
     int Npoints = 0;
     double sum = 0.0;
@@ -96,8 +96,8 @@ Analysis::RetType Analysis_Overlap::Analyze() {
     else
       sum /= (double)Npoints;
     mprintf("\t%i of %i points had no data.\n", ds1_->Size() - Npoints, ds1_->Size());
-    mprintf("\tPercent overlap between %s and %s is %f\n", ds1_->Legend().c_str(),
-            ds2_->Legend().c_str(), sum);
+    mprintf("\tPercent overlap between %s and %s is %f\n", ds1_->legend(),
+            ds2_->legend(), sum);
   }
   return Analysis::OK;
 }

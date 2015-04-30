@@ -32,7 +32,7 @@ int DataIO_Xplor::ReadData(std::string const& fname,
   mprintf("\t%i remarks\n", nremarks);
   for (int i = 0; i < nremarks; i++) {
     ptr = infile.Line();
-    mprintf("\t%s", ptr);
+    mprintf("\t%s\n", ptr);
   }
   // Next is num grid points, start grid point, stop grid point for XYZ.
   int GridPts[9];
@@ -132,14 +132,14 @@ int DataIO_Xplor::WriteData3D(std::string const& fname, DataSetList const& setLi
 int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.Legend().c_str(), outfile.Filename().full(), setIn.Ndim());
+              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Title
   outfile.Printf("%s\n", title_.c_str());
   // Remarks - Use set legend 
-  outfile.Printf("%8i\n%s\n",1,set.Legend().c_str());
+  outfile.Printf("%8i\n%s\n",1,set.legend());
   // Header - Num grid points, start grid point, stop grid point
   // NOTE: The commented-out section is how grid was set up in ptraj/cpptraj
   //       before. The new method gives maps that match DX output.

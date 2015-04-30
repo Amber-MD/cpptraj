@@ -62,7 +62,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
 
   mprintf("    FILTER: Filtering out frames using %zu data sets.\n", Dsets_.size());
   for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
-    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->Legend().c_str(), Max_[ds]);
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
 
@@ -103,7 +103,7 @@ size_t Action_FilterByData::DetermineFrames() const {
   {
     if ((*it)->Size() > nframes)
       mprintf("Warning: '%s' size %zu is larger than other sets; only processing %zu\n",
-              (*it)->Legend().c_str(), (*it)->Size(), nframes);
+              (*it)->legend(), (*it)->Size(), nframes);
   }
   return nframes;
 }

@@ -20,6 +20,8 @@ class GridBin {
     virtual bool IsOrthoGrid() const = 0;
     /// \return Voxel volume.
     virtual double VoxelVolume() const = 0;
+    /// \return a copy of this GridBin.
+    virtual GridBin* Copy() const = 0;
     /// \return Grid origin.
     Vec3 const& GridOrigin() const { return OXYZ_; }
   protected:
@@ -30,6 +32,7 @@ class GridBin {
 class GridBin_Ortho : public GridBin {
   public:
     GridBin_Ortho() : dx_(-1.0), dy_(-1.0), dz_(-1.0), mx_(0),  my_(0), mz_(0) {}
+    GridBin* Copy() const { return (GridBin*)(new GridBin_Ortho(*this)); }
     bool CalcBins(double x, double y, double z,
                   int& i, int& j, int& k) const
     {
@@ -85,6 +88,7 @@ class GridBin_Ortho : public GridBin {
 class GridBin_Nonortho : public GridBin {
   public:
     GridBin_Nonortho() {}
+    GridBin* Copy() const { return (GridBin*)(new GridBin_Nonortho(*this)); }
     bool CalcBins(double x, double y, double z,
                   int& i, int& j, int& k) const
     {

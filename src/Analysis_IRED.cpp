@@ -116,7 +116,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf(" direct approach.\n");
   else
     mprintf(" FFT approach.\n");
-  mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->Legend().c_str());
+  mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->legend());
   if (relax_)
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
             "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
@@ -150,7 +150,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   CorrF_FFT pubfft_;
   CorrF_Direct corfdir_;
   ComplexArray data1_;
-  mprintf("\t'%s' has %zu modes.\n", modinfo_->Legend().c_str(), modinfo_->Size());
+  mprintf("\t'%s' has %zu modes.\n", modinfo_->legend(), modinfo_->Size());
   if ( modinfo_->Size() != IredVectors_.size() )
     mprintf("Warning: Number of IRED vectors (%zu) does not equal number of modes (%zu).\n",
             IredVectors_.size(), modinfo_->Size());
@@ -184,7 +184,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
 
   if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
     mprinterr("Error: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
-              modinfo_->Legend().c_str(), modinfo_->Nmodes(), IredVectors_.size());
+              modinfo_->legend(), modinfo_->Nmodes(), IredVectors_.size());
     return Analysis::ERR;
   }
 
@@ -198,7 +198,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     else if (Nframes_ != (int)(*Vtmp)->Size()) {
       mprinterr("Error: All IRED vectors must have the same size.\n"
                 "Error:   Vector %s size = %i, first vector size = %i\n",
-                (*Vtmp)->Legend().c_str(), (*Vtmp)->Size(), Nframes_);
+                (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes_);
       return Analysis::ERR;
     }
   }

@@ -2,7 +2,7 @@
 #define INC_ACTION_OUTTRAJ_H
 // Action_Outtraj
 #include "Action.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "DataSet_1D.h"
 /// Write out a trajectory inside the ActionList
 class Action_Outtraj: public Action {
@@ -16,7 +16,7 @@ class Action_Outtraj: public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
 
-    Trajout outtraj_;
+    Trajout_Single outtraj_;
     Topology* CurrentParm_;
     std::vector<double> Max_;
     std::vector<double> Min_;

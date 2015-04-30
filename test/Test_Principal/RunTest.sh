@@ -3,7 +3,7 @@
 # Test of principal 
 . ../MasterTest.sh
 
-CleanFiles principal.in Ctest.pdb
+CleanFiles principal.in Ctest.pdb principal.dat
 
 #CheckPtrajAnalyze
 
@@ -13,11 +13,12 @@ INPUT="principal.in"
 cat > principal.in <<EOF
 noprogress
 trajin ../Test_IRED/1IEE_A_test.mdcrd 1 10
-principal * dorotation mass
+principal * dorotation mass out principal.dat
 trajout Ctest.pdb pdb
 EOF
 RunCpptraj "Principal Test"
 DoTest Ctest.pdb.save Ctest.pdb
+DoTest principal.dat.save principal.dat
 
 CheckTest
 EndTest

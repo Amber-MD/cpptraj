@@ -139,6 +139,12 @@ int parallel_end() {
   return 0;
 }
 
+void parallel_abort(int err) {
+#ifdef MPI
+  MPI_Abort(MPI_COMM_WORLD, err);
+# endif
+}
+
 // parallel_barrier()
 /** Use MPI barrier.  */
 void parallel_barrier() {
@@ -515,6 +521,21 @@ int parallel_recv(void* recvbuffer, int recvcount, parallelDataType recvtype,
     printMPIerr(err, "Performing receive.\n");
     fprintf(stderr,"[%i]\tError: receive of %i elements failed from rank %i\n",
             worldrank, recvcount, source);
+    MPI_Abort(MPI_COMM_WORLD, err);
+  }
+  return 0;
+# endif
+  return 1;
+}
+
+// parallel_bcastMaster()
+int parallel_bcastMaster(void* buffer, int count, parallelDataType datatype)
+{
+# ifdef MPI
+  int err;
+  err = MPI_Bcast( buffer, count, parallelDataMap[datatype], 0, MPI_COMM_WORLD );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing broadcast from master.\n");
     MPI_Abort(MPI_COMM_WORLD, err);
   }
   return 0;

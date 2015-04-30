@@ -50,7 +50,7 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, TopologyList* PFL,
   
   if (getTempFromFrame_) {
     mprintf("    TEMPERATURE: Frame temperatures will be saved in data set %s\n",
-             Tdata_->Legend().c_str());
+             Tdata_->legend());
   } else {
     mprintf("    TEMPERATURE: Calculate temperature for atoms in mask [%s]\n", Mask_.MaskString());
     mprintf("\tUsing SHAKE (ntc) value of [%s]\n", ShakeString[shakeType_]);

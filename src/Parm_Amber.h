@@ -14,6 +14,8 @@ class Parm_Amber : public ParmIO {
     int WriteParm(std::string const&, Topology const&);
     void SetDebug(int debugIn) { debug_ = debugIn; }
   private :
+    typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
     /// Enumerated type for Fortran data type
     enum FortranType {
       UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT
@@ -76,6 +78,12 @@ class Parm_Amber : public ParmIO {
     int AllocateAndRead(int,int,int);
     bool PositionFileAtFlag(AmberParmFlagType);
     bool PositionFileAtFlag(const char*);
+
+    static void ArrayFromBondParm(BondParmArray const&, Darray&, Darray&);
+    static void ArrayFromAngleParm(AngleParmArray const&, Darray&, Darray&);
+    static void ArrayFromCharmmUB(BondParmArray const&, int, Darray&, Darray&, Iarray&);
+    static void ArrayFromDihedralParm(DihedralParmArray const&, Darray&, Darray&, Darray&, Darray&, Darray&);
+    static void ArrayFromCharmmImproper(DihedralParmArray const&, Darray&, Darray&);
 
     static void CheckNameWidth(const char*, NameType const&);
     static int AmberIfbox(const Box&);

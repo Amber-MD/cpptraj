@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // fileExists, integerToString
 #include "DataSet_integer.h" // For converting cnumvtime
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "Timer.h"
 // Clustering Algorithms
 #include "Cluster_HierAgglo.h"
@@ -46,7 +46,7 @@ Analysis_Clustering::~Analysis_Clustering() {
 }
 
 void Analysis_Clustering::Help() {
-  mprintf("\t[crdset <crd set>]\n");
+  mprintf("\t[crdset <crd set> | nocoords]\n");
   mprintf("  Algorithms:\n");
   Cluster_HierAgglo::Help();
   Cluster_DBSCAN::Help();
@@ -80,25 +80,29 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
-  // Attempt to get coords dataset from datasetlist
-  std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
-  if (coords_ == 0) {
-    mprinterr("Error: clustering: Could not locate COORDS set corresponding to %s\n",
-              setname.c_str());
-    return Analysis::ERR;
+  if (analyzeArgs.hasKey("nocoords"))
+    coords_ = 0;
+  else {
+    // Attempt to get coords dataset from datasetlist
+    std::string setname = analyzeArgs.GetStringKey("crdset");
+    coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+    if (coords_ == 0) {
+      mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
+                setname.c_str());
+      return Analysis::ERR;
+    }
   }
   // Check for DataSet(s) to cluster on, otherwise coords will be used
   cluster_dataset_.clear();
-  setname = analyzeArgs.GetStringKey("data");
+  std::string dataSetname = analyzeArgs.GetStringKey("data");
   metric_ = ClusterList::RMS;
-  if (!setname.empty()) {
-    ArgList dsnames(setname, ",");
+  if (!dataSetname.empty()) {
+    ArgList dsnames(dataSetname, ",");
     DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
       DataSetList tempDSL = datasetlist->GetMultipleSets( *name );
       if (tempDSL.empty()) {
-        mprinterr("Error: cluster: %s did not correspond to any data sets.\n");
+        mprinterr("Error: %s did not correspond to any data sets.\n", dataSetname.c_str());
         return Analysis::ERR;
       }
       inputDsets += tempDSL;
@@ -107,7 +111,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       // Clustering only allowed on 1D data sets.
       if ( (*ds)->Ndim() != 1 ) {
         mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
-                  (*ds)->Legend().c_str(), (*ds)->Ndim());
+                  (*ds)->legend(), (*ds)->Ndim());
         return Analysis::ERR;
       }
       cluster_dataset_.push_back( *ds );
@@ -238,7 +242,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
 
-  mprintf("    CLUSTER: Using coords dataset %s, clustering using", coords_->Legend().c_str());
+  mprintf("    CLUSTER:");
+  if (coords_ != 0) mprintf(" Using coords dataset %s,", coords_->legend());
+  mprintf(" clustering using");
   if ( metric_ != ClusterList::DATA ) {
     mprintf(" %s", ClusterList::MetricString( metric_ ));
     if (!maskexpr_.empty())
@@ -253,7 +259,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprintf(" best-fit");
   } else {
     if (cluster_dataset_.size() == 1)
-      mprintf(" dataset %s", cluster_dataset_[0]->Legend().c_str());
+      mprintf(" dataset %s", cluster_dataset_[0]->legend());
     else
       mprintf(" %u datasets.", cluster_dataset_.size());
   }
@@ -350,14 +356,19 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   if (load_pair_ && fileExists(pairdistfile_))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
-  if (cluster_dataset_.empty())
-     cluster_dataset_.push_back( (DataSet*)coords_ );
+  if (cluster_dataset_.empty()) {
+    if (coords_ == 0) {
+      mprinterr("Error: No data to cluster on.\n");
+      return Analysis::ERR;
+    }
+    cluster_dataset_.push_back( (DataSet*)coords_ );
+  }
   // Test that cluster data set contains data
   // FIXME make unsigned
   int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
     mprinterr("Error: cluster data set %s does not contain data.\n", 
-              cluster_dataset_[0]->Legend().c_str());
+              cluster_dataset_[0]->legend());
     return Analysis::ERR;
   }
   // If more than one data set, make sure they are all the same size.
@@ -366,15 +377,15 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   {
     if ((int)(*ds)->Size() != clusterDataSetSize) {
       mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
-                (*ds)->Legend().c_str(), (*ds)->Size(), 
-                cluster_dataset_[0]->Legend().c_str(), clusterDataSetSize);
+                (*ds)->legend(), (*ds)->Size(), 
+                cluster_dataset_[0]->legend(), clusterDataSetSize);
       return Analysis::ERR;
     }
   }
   // If no coordinates were specified, disable coordinate output types
   bool has_coords = true;
-  if (coords_->Size() < 1) {
-    mprintf("Warning: Associated coordinate data set is empty.\n"
+  if (coords_ == 0 || coords_->Size() < 1) {
+    mprintf("Warning: No coordinates or associated coordinate data set is empty.\n"
             "Warning: Disabling coordinate output.\n");
     has_coords = false;
   }
@@ -643,8 +654,8 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    Trajout clusterout;
-    if (clusterout.InitTrajWrite(cfilename, clusterparm, clusterfmt_)) 
+    Trajout_Single clusterout;
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, clusterfmt_)) 
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
                 cfilename.c_str());
@@ -678,8 +689,8 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
-    Trajout clusterout;
-    if (clusterout.InitTrajWrite(cfilename, &avgparm, avgfmt_))
+    Trajout_Single clusterout;
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), &avgparm, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
                 cfilename.c_str());
@@ -709,10 +720,10 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
 // Analysis_Clustering::WriteSingleRepTraj()
 /** Write representative frame of each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
-  Trajout clusterout;
+  Trajout_Single clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, clusterparm, singlerepfmt_)) 
+  if (clusterout.InitTrajWrite(singlerepfile_, ArgList(), clusterparm, singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
                 singlerepfile_.c_str());
@@ -746,7 +757,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
   {
-    Trajout clusterout;
+    Trajout_Single clusterout;
     // Get best rep frame # 
     int framenum = C->BestRepFrame();
     // Create filename based on frame #
@@ -754,7 +765,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
     // Set up trajectory file. 
-    if (clusterout.InitTrajWrite(cfilename, clusterparm, reptrajfmt_)) 
+    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, reptrajfmt_)) 
     {
       mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());

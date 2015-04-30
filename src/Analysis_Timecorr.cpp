@@ -193,10 +193,10 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   // Print Status
   mprintf("    TIMECORR: Calculating %s", ModeString[mode_]);
   if (mode_ == AUTOCORR)
-    mprintf(" of vector %s\n", vinfo1_->Legend().c_str());
+    mprintf(" of vector %s\n", vinfo1_->legend());
   else // CROSSCORR
-    mprintf(" of vectors %s and %s\n", vinfo1_->Legend().c_str(),
-            vinfo2_->Legend().c_str());
+    mprintf(" of vectors %s and %s\n", vinfo1_->legend(),
+            vinfo2_->legend());
   mprintf("\tCorrelation time %f, time step %f, order %i\n", tcorr_, tstep_, order_);
   mprintf("\tCorr. func. are");
   if (dplr_)
@@ -221,8 +221,8 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   if (vinfo2_!=0) {
     if (vinfo1_->Size() != vinfo2_->Size()) {
       mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-                vinfo1_->Legend().c_str(), vinfo1_->Size(), 
-                vinfo2_->Legend().c_str(), vinfo2_->Size());
+                vinfo1_->legend(), vinfo1_->Size(), 
+                vinfo2_->legend(), vinfo2_->Size());
       return Analysis::ERR;
     }
   }

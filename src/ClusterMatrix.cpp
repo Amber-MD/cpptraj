@@ -35,10 +35,14 @@ int ClusterMatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
         ++actual_nrows;
       }
     // Set up underlying TriangleMatrix for sieved frames.
+    mprintf("\tEstimated pair-wise matrix memory usage: > %.4f MB\n",
+            (double)Mat_.sizeInBytes( 0L, actual_nrows ) / (1024 * 1024));
     Mat_.resize( 0L, actual_nrows );
     mprintf("\tPair-wise matrix set up with sieve, %zu frames, %zu sieved frames.\n",
             sizeIn, actual_nrows);
   } else {
+    mprintf("\tEstimated pair-wise matrix memory usage: > %.4f MB\n",
+            (double)Mat_.sizeInBytes( 0L, sizeIn ) / (1024 * 1024));
     Mat_.resize( 0L, sizeIn );
     ignore_.assign(sizeIn, false);
     mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);

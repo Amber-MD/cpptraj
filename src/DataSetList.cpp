@@ -21,6 +21,7 @@
 #include "DataSet_Mesh.h"
 #include "DataSet_Coords_TRJ.h"
 #include "DataSet_Coords_REF.h"
+#include "DataSet_Mat3x3.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -40,6 +41,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
   { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
+  { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { 0, 0 }
 };
 
@@ -49,6 +51,7 @@ const char* DataSetList::SetString(DataSet::DataType d) {
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
+  maxFrames_(-1),
   debug_(0),
   ensembleNum_(-1),
   hasCopies_(false),
@@ -79,21 +82,30 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   return *this;
 }
 
+// DataSetList::MakeDataSetsEnsemble()
+void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
+  ensembleNum_ = ensembleNumIn;
+  for (DataListType::const_iterator ds = DataList_.begin();
+                                    ds != DataList_.end(); ++ds)
+    if ( (*ds)->Member() == -1 )
+      (*ds)->SetMember( ensembleNum_ );
+}
+
 // DataSetList::RemoveSet()
 // NOTE: In order to call erase, must use iterator and not const_iterator.
 //       Hence, the conversion. The new standard *should* allow const_iterator
 //       to be passed to erase(), but this is currently not portable.
 /** Erase element pointed to by posIn from the list. */
 void DataSetList::RemoveSet( const_iterator posIn ) {
-  std::vector<DataSet*>::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
+  DataListType::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
   if (!hasCopies_) delete *pos;
   DataList_.erase( pos ); 
 } 
 
 // DataSetList::RemoveSet()
 void DataSetList::RemoveSet( DataSet* dsIn ) {
-  for (std::vector<DataSet*>::iterator pos = DataList_.begin();
-                                       pos != DataList_.end(); ++pos)
+  for (DataListType::iterator pos = DataList_.begin();
+                              pos != DataList_.end(); ++pos)
   {
     if ( (*pos) == dsIn ) {
       if (!hasCopies_) delete *pos;
@@ -101,6 +113,19 @@ void DataSetList::RemoveSet( DataSet* dsIn ) {
       break;
     }
   }
+}
+
+/** Remove DataSet from the list but do not destroy it. */
+DataSet* DataSetList::PopSet( DataSet* dsIn ) {
+  if (dsIn == 0) return 0;
+  for (DataListType::iterator pos = DataList_.begin(); pos != DataList_.end(); ++pos)
+  {
+    if ( *pos == dsIn ) {
+      DataList_.erase( pos );
+      return dsIn;
+    }
+  }
+  return 0;
 }
 
 // DataSetList::SetDebug()
@@ -112,6 +137,7 @@ void DataSetList::SetDebug(int debugIn) {
 
 /** Call Allocate for each 1D DataSet in the list. */
 void DataSetList::AllocateSets(long int maxFrames) {
+  maxFrames_ = maxFrames;
   if (maxFrames < 1L) return;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {
@@ -148,13 +174,21 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
   */
 std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& idx_arg,
-                                        std::string& attr_arg)
+                                        std::string& attr_arg, std::string& member_arg)
 {
   std::string dsname( nameIn );
   attr_arg.clear();
   //mprinterr("DBG: ParseArgString called with %s\n", nameIn.c_str());
+  // Separate out ensemble arg if present
+  size_t idx_pos = dsname.find( '%' );
+  if ( idx_pos != std::string::npos ) {
+    // Advance to after the '.'
+    member_arg = dsname.substr( idx_pos + 1 );
+    // Drop the ensemble arg
+    dsname.resize( idx_pos );
+  }
   // Separate out index arg if present
-  size_t idx_pos = dsname.find( ':' );
+  idx_pos = dsname.find( ':' );
   if ( idx_pos != std::string::npos ) {
     // Advance to after the ':'
     idx_arg = dsname.substr( idx_pos + 1 );
@@ -194,12 +228,13 @@ void DataSetList::PendingWarning() const {
 
 // DataSetList::GetDataSet()
 DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
   int idx = -1;
   if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
-  DataSet* ds = GetSet( dsname, idx, attr_arg );
+  int member = -1;
+  if (!member_arg.empty()) member = convertToInteger(member_arg);
+  DataSet* ds = GetSet( dsname, idx, attr_arg, member );
   if (ds == 0) {
     mprintf("Warning: Data set '%s' not found.\n", nameIn.c_str());
     PendingWarning();
@@ -209,22 +244,23 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
 
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
-  std::string aspect_arg;
-  std::string idx_arg("-1");
-  std::string dsname = ParseArgString(nameIn, idx_arg, aspect_arg);
+  std::string aspect_arg, member_arg("-1"), idx_arg("-1");
+  std::string dsname = ParseArgString(nameIn, idx_arg, aspect_arg, member_arg);
   int idx = convertToInteger(idx_arg);
-  return CheckForSet(dsname, idx, aspect_arg);
+  int member = convertToInteger(member_arg);
+  return CheckForSet(dsname, idx, aspect_arg, member );
 }
 
 // DataSetList::CheckForSet()
 DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
-                                  std::string const& aspect_arg) const
+                                  std::string const& aspect_arg, int member) const
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( (*ds)->Name() == dsname )
       if ( (*ds)->Aspect() == aspect_arg )
         if ( (*ds)->Idx() == idx )
-          return *ds;
+          if ( (*ds)->Member() == member )
+            return *ds;
   return 0;
 }
 
@@ -233,23 +269,27 @@ DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
-  Range idxrange;
+  Range idxrange, memberrange;
 
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
-  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str());
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
+  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s%%%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
   // If index arg is empty make wildcard (-1)
   if (idx_arg.empty() || idx_arg == "*")
     idxrange.SetRange( -1, 0 ); 
   else
     idxrange.SetRange( idx_arg );
+  // If member arg is empty make none (-1)
+  if (member_arg.empty() || member_arg == "*")
+    memberrange.SetRange( -1, 0 );
+  else
+    memberrange.SetRange( member_arg );
   // If attribute arg not set and name is wildcard, make attribute wildcard.
   if (attr_arg.empty() && dsname == "*")
     attr_arg.assign("*");
   // All start selected
   std::vector<char> SelectedSets(DataList_.size(), 'T');
-  // First check name
+  // Check name
   std::vector<char>::iterator selected = SelectedSets.begin();
   if ( dsname != "*" ) {
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
@@ -257,7 +297,7 @@ DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
       ++selected;
     }
   }
-  // Second check aspect
+  // Check aspect
   if ( attr_arg != "*" ) {
     selected = SelectedSets.begin();
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
@@ -265,11 +305,19 @@ DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
       ++selected;
     }
   }
-  // Last check index
+  // Check index
   if ( !idx_arg.empty() && idx_arg != "*" ) {
     selected = SelectedSets.begin();
     for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
       if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
+      ++selected;
+    }
+  }
+  // Check ensemble
+  if (!member_arg.empty() && member_arg != "*" ) {
+    selected = SelectedSets.begin();
+    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
+      if ( *selected == 'T' && !memberrange.InRange( (*ds)->Member() ) ) *selected = 'F';
       ++selected;
     }
   }
@@ -293,10 +341,11 @@ DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
 // DataSetList::GetSet()
 /** \return Specified Dataset or null if not found.
   */
-DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect) const 
+DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect,
+                             int member) const 
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-    if ( (*ds)->Matches( dsname, idx, aspect ) ) return *ds;
+    if ( (*ds)->Matches( dsname, idx, aspect, member ) ) return *ds;
   return 0;
 }
 
@@ -319,7 +368,7 @@ DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::
     data = Svals;
   } else {
     if (ds->Type() != DataSet::STRING) {
-      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->Legend().c_str(),
+      mprinterr("Error: Cannot append string values to set %s type %s\n", ds->legend(),
                 DataArray[ds->Type()].Description);
       return 0;
     }
@@ -378,7 +427,7 @@ DataSet* DataSetList::AddOrAppendSet(std::string const& nameIn, int idxIn, std::
       }
       if (xstep != ds->Dim(0).Step()) {
         mprinterr("Error: Can not append to set '%s', X step %g does not match current"
-                  " data X step %g\n", ds->Legend().c_str(), ds->Dim(0).Step(), xstep);
+                  " data X step %g\n", ds->legend(), ds->Dim(0).Step(), xstep);
         return 0;
       }
       DataSet_double& data = static_cast<DataSet_double&>( *ds );
@@ -474,11 +523,9 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   }
 
   // Check if DataSet with same attributes already present.
-  DataSet* DS = CheckForSet(nameIn, idxIn, aspectIn);
+  DataSet* DS = CheckForSet(nameIn, idxIn, aspectIn, ensembleNum_);
   if (DS != 0) {
-    mprintf("Warning: DataSet '");
-    DS->PrintName();
-    mprintf("' already present.\n");
+    mprintf("Warning: DataSet '%s' already present.\n", DS->PrintName().c_str());
     // NOTE: Should return found dataset?
     return 0; 
   }
@@ -494,7 +541,7 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
   }
 
   // Set up dataset 
-  if ( DS->SetupSet(nameIn, idxIn, aspectIn) ) {
+  if ( DS->SetupSet(nameIn, idxIn, aspectIn, ensembleNum_) ) {
     mprinterr("Error setting up data set %s.\n",nameIn.c_str());
     delete DS;
     return 0;
@@ -507,11 +554,9 @@ DataSet* DataSetList::AddSetIdxAspect(DataSet::DataType inType,
 
 int DataSetList::AddSet( DataSet* dsIn ) {
   if (dsIn == 0 || dsIn->Name().empty()) return 1;
-  DataSet* ds = CheckForSet( dsIn->Name(), dsIn->Idx(), dsIn->Aspect() );
+  DataSet* ds = CheckForSet( dsIn->Name(), dsIn->Idx(), dsIn->Aspect(), dsIn->Member() );
   if (ds != 0) {
-    mprintf("Warning: DataSet '");
-    ds->PrintName();
-    mprintf("' already present.\n");
+    mprintf("Warning: DataSet '%s' already present.\n", ds->PrintName().c_str());
     return 1;
   }
   DataList_.push_back( dsIn );
@@ -522,7 +567,7 @@ int DataSetList::AddSet( DataSet* dsIn ) {
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
     mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", 
-    dsetIn->Legend().c_str());
+    dsetIn->legend());
     return;
   }
   hasCopies_ = true;
@@ -530,8 +575,7 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 // DataSetList::List()
-/** Print information on all data sets in the list, as well as any datafiles
-  * that will be written to.
+/** Print information on all DataSets in the list.
   */
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.
@@ -547,12 +591,9 @@ void DataSetList::List() const {
     mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int ds=0; ds<DataList_.size(); ds++) {
     DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
-    mprintf("\t");
-    dset.PrintName();
-    mprintf(" \"%s\"", dset.Legend().c_str());
-    mprintf(" (%s", DataArray[dset.Type()].Description);
-    dset.ScalarDescription();
-    mprintf("), size is %i", dset.Size());
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.PrintName().c_str(), dset.legend(),
+            DataArray[dset.Type()].Description, dset.ScalarDescription().c_str(),
+            dset.Size());
     dset.Info();
     mprintf("\n");
   }
@@ -563,7 +604,7 @@ void DataSetList::SynchronizeData() {
   // Sync datasets - does nothing if worldsize is 1
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Sync() ) {
-      rprintf( "Error syncing dataset %s\n",(*ds)->Legend().c_str());
+      rprintf( "Error syncing dataset %s\n",(*ds)->legend());
       //return;
     }
   }
@@ -572,14 +613,15 @@ void DataSetList::SynchronizeData() {
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
-  std::string attr_arg;
-  std::string idx_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg );
+  std::string attr_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
   int idx = -1;
   if (!idx_arg.empty()) idx = convertToInteger(idx_arg);
+  int member = -1;
+  if (!member_arg.empty()) idx = convertToInteger(member_arg);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Type() == typeIn ) {
-      if ( (*ds)->Matches( dsname, idx, attr_arg ) )
+      if ( (*ds)->Matches( dsname, idx, attr_arg, member ) )
         return (*ds);
     }
   }
@@ -606,7 +648,7 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
       outset = FindSetOfType(setname, DataSet::TRAJ);
     // If TRAJ not found, look for REF_FRAME
     if (outset == 0)
-      outset = FindSetOfType(setname, DataSet::REF_FRAME);
+      outset = GetReferenceFrame(setname);
   }
   return outset;
 }
@@ -635,7 +677,7 @@ DataSet* DataSetList::GetReferenceFrame(std::string const& refname) const {
       for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
         if ( (*ds)->Type() == DataSet::REF_FRAME) {
           DataSet_Coords_REF const& R = static_cast<DataSet_Coords_REF const&>(*(*ds));
-          if (refname == R.FrameName().Base()) {
+          if (refname == R.FrameFilename().Base()) {
             ref = *ds;
             break;
           }
@@ -700,8 +742,8 @@ void DataSetList::ListReferenceFrames() const {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", refTemp.size());
     for (std::vector<DataSet_Coords_REF*>::const_iterator ds = refTemp.begin();
                                                           ds != refTemp.end(); ++ds)
-      if (!(*ds)->FrameName().empty())
-        mprintf("    %i: '%s', frame %i\n", (*ds)->RefIndex(), (*ds)->FrameName().full(),
+      if (!(*ds)->FrameFilename().empty())
+        mprintf("    %i: '%s', frame %i\n", (*ds)->RefIndex(), (*ds)->FrameFilename().full(),
                 (*ds)->Idx());
       else
         mprintf("    (DataSet) '%s'\n", (*ds)->Name().c_str());

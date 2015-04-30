@@ -9,7 +9,8 @@ Action_Contacts::Action_Contacts() :
   distance_(49.0), // 7.0^2
   dt_(1.0),
   first_(false),
-  CurrentParm_(0)
+  CurrentParm_(0),
+  outfile_(0), outfile2_(0)
 { }
 
 void Action_Contacts::Help() {
@@ -17,13 +18,6 @@ void Action_Contacts::Help() {
           "\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n"
           "  Calculate contacts for each frame based on a reference.\n"
           "    byresidue: calculate number of contacts and save results per residue\n");
-}
-
-// DESTRUCTOR
-Action_Contacts::~Action_Contacts() {
-  outfile_.CloseFile();
-  if (byResidue_)
-    outfile2_.CloseFile();
 }
 
 /** Set up native contacts based on reference structure. */
@@ -68,15 +62,15 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Da
   ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
-  if (outfile_.OpenEnsembleWrite(outfilename, DSL->EnsembleNum()))
-    return Action::ERR;
+  outfile_ = DFL->AddCpptrajFile(outfilename, "Contacts", DataFileList::TEXT, true);
+  if (outfile_ == 0) return Action::ERR;
   if (byResidue_) {
     if (outfilename.empty()) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return Action::ERR;
     }
-    if (outfile2_.OpenEnsembleWrite( outfilename + ".native", DSL->EnsembleNum() ))
-      return Action::ERR;
+    outfile2_ = DFL->AddCpptrajFile(outfilename + ".native", "Contacts by residue");
+    if (outfile2_ == 0) return Action::ERR;
   }
 
   // Get Mask
@@ -106,10 +100,10 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Da
 
   // Output file header - only if not byresidue
   if (!byResidue_) {
-    outfile_.Printf("#time\tContacts\tnative Contacts ");
+    outfile_->Printf("#time\tContacts\tnative Contacts ");
     if (!first_)
-      outfile_.Printf("(number of natives: %zu)", nativecontacts_.size());
-    outfile_.Printf("\n");
+      outfile_->Printf("(number of natives: %zu)", nativecontacts_.size());
+    outfile_->Printf("\n");
   }
 
   mprintf("    CONTACTS: [%s] Calculating current contacts and comparing results to",
@@ -118,14 +112,10 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, Da
     mprintf(" first frame.\n");
   else
     mprintf(" reference structure.\n");
-  mprintf("                   Distance cutoff is %lf angstroms.\n", dist);
-  if (outfilename.empty())
-    mprintf("              Results will be written to stdout");
-  else
-    mprintf("              Writing results to %s", outfilename.c_str());
-  mprintf("\n");
+  mprintf("\tDistance cutoff is %g angstroms.\n", dist);
+  mprintf("\tWriting results to %s\n", outfile_->Filename().full());
   if (byResidue_)
-    mprintf("              Results are output on a per-residue basis.\n");
+    mprintf("\tResults are output on a per-residue basis to %s.\n", outfile2_->Filename().full());
 
   return Action::OK;
 }
@@ -147,16 +137,16 @@ Action::RetType Action_Contacts::Setup(Topology* currentParm, Topology** parmAdd
 
   // byresidue header - only on first time through
   if (residueContacts_.empty() && byResidue_) {
-    outfile_.Printf("#time");
-    outfile2_.Printf("#time");
+    outfile_->Printf("#time");
+    outfile2_->Printf("#time");
     for (std::set<int>::iterator res = activeResidues_.begin();
                                  res != activeResidues_.end(); ++res)
     {
-      outfile_.Printf("\tresidue %i", *res);
-      outfile2_.Printf("\tresidue %i", *res);
+      outfile_->Printf("\tresidue %i", *res);
+      outfile2_->Printf("\tresidue %i", *res);
     }
-    outfile_.Printf("\tTotal\n");
-    outfile2_.Printf("\tTotal\n");
+    outfile_->Printf("\tTotal\n");
+    outfile2_->Printf("\tTotal\n");
   }
 
   // Reserve space for residue contact counts
@@ -229,19 +219,19 @@ Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Fra
   // is bidirectional, i.e. atom1->atom2 and atom2->atom1 each
   // count as a separate contact.
   if (!byResidue_) {
-    outfile_.Printf("%10.2f\t%i\t%i\n", (double)(frameNum+1) * dt_,
+    outfile_->Printf("%10.2f\t%i\t%i\n", (double)(frameNum+1) * dt_,
                     numcontacts*2, numnative*2);
   } else {
-    outfile_.Printf("%10.2f", (double)(frameNum+1) * dt_);
-    outfile2_.Printf("%10.2f", (double)(frameNum+1) * dt_);
+    outfile_->Printf("%10.2f", (double)(frameNum+1) * dt_);
+    outfile2_->Printf("%10.2f", (double)(frameNum+1) * dt_);
     for (std::set<int>::iterator res = activeResidues_.begin();
                                  res != activeResidues_.end(); ++res)
     {
-      outfile_.Printf("\t%i", residueContacts_[ *res ]);
-      outfile2_.Printf("\t%i", residueNative_[ *res ]);
+      outfile_->Printf("\t%i", residueContacts_[ *res ]);
+      outfile2_->Printf("\t%i", residueNative_[ *res ]);
     }
-    outfile_.Printf("\t%i\n", numcontacts*2);
-    outfile2_.Printf("\t%i\n", numnative*2);
+    outfile_->Printf("\t%i\n", numcontacts*2);
+    outfile2_->Printf("\t%i\n", numnative*2);
   }
 
   return Action::OK;

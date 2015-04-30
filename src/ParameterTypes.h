@@ -105,6 +105,15 @@ class DihedralType {
     inline Dtype Type() const { return type_; }
     inline int Idx()    const { return idx_;  }
     void SetIdx(int i)        { idx_ = i;     }
+    bool operator<(DihedralType const& rhs) const {
+      if (a1_ == rhs.a1_) {
+        if (a2_ == rhs.a2_) {
+          if (a3_ == rhs.a3_) {
+            return (a4_ < rhs.a4_);
+          } else return (a3_ < rhs.a3_);
+        } else return (a2_ < rhs.a2_);
+      } else return (a1_ < rhs.a1_);
+    }
   private:
     int a1_;
     int a2_;
@@ -182,6 +191,19 @@ class NonbondParmType {
       nbindex_[ntypes_ * type1 + type2] = ndx;
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
+    }
+    /// 
+    static void NB_to_array(NonbondArray const& nba, std::vector<double>& Rk, std::vector<double>& Req)
+    {
+      Rk.clear();
+      Req.clear();
+      Rk.reserve( nba.size() );
+      Req.reserve( nba.size() );
+      for (NonbondArray::const_iterator nb = nba.begin(); nb != nba.end(); ++nb)
+      {
+        Rk.push_back( nb->A() );
+        Req.push_back( nb->B() );
+      }
     }
   private:
     int ntypes_;               ///< Number of unique atom types

@@ -12,14 +12,17 @@ Action_Rmsd::Action_Rmsd() :
   perresavg_(0),
   RefParm_(0),
   masterDSL_(0),
+  debug_(0),
   fit_(true),
   rotate_(true),
   useMass_(false),
-  rmsd_(0)
+  rmsd_(0),
+  rmatrices_(0)
 { }
 
 void Action_Rmsd::Help() {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate] [mass]\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
+          "\t[mass] [savematrices]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
@@ -33,18 +36,21 @@ void Action_Rmsd::Help() {
 /** Called once before traj processing. Set up reference info. */
 Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
+  debug_ = debugIn;
   // Check for keywords
   fit_ = !actionArgs.hasKey("nofit");
   if (fit_)
     rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  bool saveMatrices = actionArgs.hasKey("savematrices");
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
   ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  RefParm_ = PFL->GetParm( actionArgs );
+  if (!reftrajname.empty())
+    RefParm_ = PFL->GetParm( actionArgs );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -84,7 +90,16 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
   if (outfile != 0) outfile->AddSet( rmsd_ );
-
+  // Set up rotation matrix data set if specified
+  if (saveMatrices) {
+    if (!fit_) {
+      mprinterr("Error: Must be fitting in order to save rotation matrices.\n");
+      return Action::ERR;
+    }
+    rmatrices_ = DSL->AddSetAspect(DataSet::MAT3X3, rmsd_->Name(), "RM");
+    if (rmatrices_ == 0) return Action::ERR;
+    rmatrices_->SetScalar( DataSet::M_RMS );
+  }
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString());
   if (!fit_)
@@ -97,6 +112,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   if (useMass_)
     mprintf(", mass-weighted");
   mprintf(".\n");
+  if (rmatrices_ != 0)
+    mprintf("\tRotation matrices will be saved to set '%s'\n", rmatrices_->legend());
   // Per-residue RMSD info.
   if (perres_) {
     mprintf("          No-fit RMSD will also be calculated for ");
@@ -213,6 +230,16 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     if (PerRes->tgtResMask_.Nselected() != PerRes->refResMask_.Nselected()) {
       mprintf("Warning: Res %i: # atoms in Tgt (%i) != # atoms in Ref (%i)\n",
               tgtRes, PerRes->tgtResMask_.Nselected(), PerRes->refResMask_.Nselected());
+      if (debug_ > 0) {
+        mprintf("    Target Atoms:\n");
+        for (AtomMask::const_iterator t = PerRes->tgtResMask_.begin();
+                                      t != PerRes->tgtResMask_.end(); ++t)
+          mprintf("\t%s\n", currentParm->AtomMaskName(*t).c_str());
+        mprintf("    Ref Atoms:\n");
+        for (AtomMask::const_iterator r = PerRes->refResMask_.begin();
+                                      r != PerRes->refResMask_.end(); ++r)
+          mprintf("\t%s\n", RefParm->AtomMaskName(*r).c_str());
+      }
       continue;
     }
     if ( PerRes->tgtResMask_.Nselected() > maxNatom ) maxNatom = PerRes->tgtResMask_.Nselected();
@@ -283,10 +310,11 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   double rmsdval;
   // Set selected frame atoms. Masses have already been set.
   tgtFrame_.SetCoordinates(*currentFrame, tgtMask_);
-  if (!fit_) {
+  if (!fit_)
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
-  } else {
+  else {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
+    if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (rotate_)
       currentFrame->Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
     else {

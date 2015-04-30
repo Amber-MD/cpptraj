@@ -19,6 +19,8 @@ template <class T> class Matrix {
     size_t size()                        const { return nelements_;      }
     /// \return current matrix type.
     //MType Type()                         const { return type_;           }
+    /// \return estimated size in bytes.
+    static size_t sizeInBytes(size_t,size_t);
     /// Set up matrix for given number of cols and rows.
     int resize(size_t,size_t);
     /// \return element at specified col and row.
@@ -130,6 +132,20 @@ template<class T> Matrix<T>& Matrix<T>::operator=(const Matrix& rhs) {
     std::copy( rhs.elements_, rhs.elements_ + nelements_, elements_ );
   }
   return *this;
+}
+// Matrix::sizeInBytes()
+template<class T> size_t Matrix<T>::sizeInBytes(size_t nX, size_t nY) {
+  // Size of elements
+  size_t elSize;
+  if (nX > 0L && nY > 0L)       // FULL
+    elSize = nX * nY * sizeof( T );
+  else if (nX > 0L && nY == 0L) // HALF
+    elSize = (nX * (nX + 1UL) / 2UL) * sizeof( T );
+  else if (nX == 0L && nY > 0L) // TRIANGLE
+    elSize = (nY * (nY - 1UL) / 2UL) * sizeof ( T );
+  else elSize = 0UL;
+  return (elSize + sizeof(T*) + sizeof(T) + // elements, pointer, diagEl
+          (5 * sizeof(size_t)) + sizeof(MType) + sizeof(long int(*)()));
 }
 // Matrix::resize()
 /** \param nX number of columns.

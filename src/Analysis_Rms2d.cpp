@@ -132,7 +132,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     corrfile->AddSet( Ct_ );
   }
 
-  mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->Legend().c_str(),
+  mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->legend(),
           TgtMask_.MaskString());
   if ( TgtMask_.MaskExpression() != RefMask_.MaskExpression() )
     mprintf(" ref mask [%s]", RefMask_.MaskString());
@@ -141,7 +141,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   mprintf("\n");
   if (useReferenceTraj_)
     mprintf("\tReference trajectory '%s', %u frames\n",
-            RefTraj_->Legend().c_str(), RefTraj_->Size());
+            RefTraj_->legend(), RefTraj_->Size());
   if (rmsdFile != 0) 
     mprintf("\tOutput to '%s'\n",rmsdFile->DataFilename().full());
   if (corrfile != 0)
@@ -210,7 +210,7 @@ int Analysis_Rms2d::CalcRmsToTraj() {
   size_t max = totalref * totaltgt;
   mprintf("  RMS2D: Calculating %s between each input frame and each reference\n" 
           "         trajectory '%s' frame (%zu total).\n  ",
-          ModeStrings_[mode_], RefTraj_->Legend().c_str(), max);
+          ModeStrings_[mode_], RefTraj_->legend(), max);
   rmsdataset_->Allocate2D( totalref, totaltgt );
 
   // LOOP OVER REFERENCE FRAMES

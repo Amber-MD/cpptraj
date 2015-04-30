@@ -64,7 +64,7 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
       ana = (Analysis*)h_ana;
     }
     if (err != Analysis::OK) {
-      mprinterr("Error: Could not set up histogram for %s\n", (*ds)->Legend().c_str());
+      mprinterr("Error: Could not set up histogram for %s\n", (*ds)->legend());
       delete ana;
       return Analysis::ERR;
     }
@@ -76,7 +76,7 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
   }
   mprintf("    MULTIHIST: Creating 1D histograms for %zu data sets:\n\t", Histograms_.size());
   for (Array1D::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds)
-    mprintf(" %s", (*ds)->Legend().c_str());
+    mprintf(" %s", (*ds)->legend());
   mprintf("\n");
   return Analysis::OK;
 }

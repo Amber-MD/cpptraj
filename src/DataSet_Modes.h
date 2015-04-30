@@ -36,14 +36,11 @@ class DataSet_Modes : public DataSet {
     int ReduceVectors();
     int Thermo(CpptrajFile&, int, double, double) const;
 
-    void SetType( DataSet_2D::MatrixType typeIn ) { type_ = typeIn; }
-
     double Eigenvalue(int i)         const { return evalues_[i];                } // IRED
     const double* Eigenvectors()     const { return evectors_;                  } // IRED
     const double* Eigenvector(int i) const { return evectors_ + (i * vecsize_); }
     int Nmodes()                     const { return nmodes_;                    } // Project
     int VectorSize()                 const { return vecsize_;                   } // Project
-    DataSet_2D::MatrixType Type()    const { return type_;                      } // Project
     bool IsReduced()                 const { return reduced_;                   }
   private:
     int ReduceCovar();
@@ -55,7 +52,6 @@ class DataSet_Modes : public DataSet {
     double* evectors_;            ///< Array of eigenvectors
     int nmodes_;                  ///< Number of eigenmodes
     int vecsize_;                 ///< Size of each eigenvector
-    DataSet_2D::MatrixType type_; ///< Type of matrix modes were generated from
     bool reduced_;                ///< True if modes have been reduced
 };
 #endif

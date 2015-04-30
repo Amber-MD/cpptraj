@@ -10,9 +10,9 @@
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() :
-   masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
+   findOutput_(0), specOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
    strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
-   resOffset_(0), debug_(0), ensembleNum_(-1), nframes_(0), useMass_(false),
+   resOffset_(0), debug_(0), nframes_(0), useMass_(false),
    findNOEs_(false), series_(false) {} 
 
 void Action_NMRrst::Help() {
@@ -38,12 +38,15 @@ static void TranslateAmbiguous(std::string& aname) {
 Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
-  ensembleNum_ = DSL->EnsembleNum();
   // Get Keywords
   Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   findNOEs_ = actionArgs.hasKey("findnoes");
-  findOutputName_ = actionArgs.GetStringKey("findout");
+  findOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
+                                    DataFileList::TEXT, true);
+  specOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("specout"), "Specified NOEs",
+                                    DataFileList::TEXT, true);
+  if (findOutput_ == 0 || specOutput_ == 0) return Action::ERR;
   resOffset_ = actionArgs.getKeyInt("resoffset", 0);
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   max_cut_ = actionArgs.getKeyDouble("cut", 6.0);
@@ -55,14 +58,28 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   setname_ = actionArgs.GetStringKey("name");
   if (setname_.empty())
     setname_ = DSL->GenerateDefaultName("NMR");
-  if (!findNOEs_ && rstfilename.empty()) {
-    mprinterr("Error: Must specify restraint file and/or 'findnoes'.\n");
-    return Action::ERR;
-  }
   nframes_ = 0;
 
   // Atom Mask
-  Mask_.SetMaskString( actionArgs.GetMaskNext() ); 
+  Mask_.SetMaskString( actionArgs.GetMaskNext() );
+
+  // Pairs specified on command line.
+  std::string pair1 = actionArgs.GetStringKey("pair");
+  while (!pair1.empty()) {
+    std::string pair2 = actionArgs.GetStringNext();
+    if (pair2.empty()) {
+      mprinterr("Error: Only one mask specified for pair (%s)\n", pair1.c_str());
+      return Action::ERR;
+    }
+    Pairs_.push_back( MaskPairType(AtomMask(pair1), AtomMask(pair2)) );
+    pair1 = actionArgs.GetStringKey("pair");
+  }
+
+  // Check that something will be done
+  if (!findNOEs_ && rstfilename.empty() && Pairs_.empty()) {
+    mprinterr("Error: Must specify restraint file, 'pair', and/or 'findnoes'.\n");
+    return Action::ERR;
+  }
 
   // Read in NMR restraints.
   if (!rstfilename.empty()) {
@@ -95,7 +112,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
   for (noeDataArray::const_iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe)
-    mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->Legend().c_str(),
+    mprintf("\t'%s'  %f < %f < %f\n", noe->dist_->legend(),
             noe->bound_, noe->rexp_, noe->boundh_);
   if (findNOEs_) {
     mprintf("\tSearching for potential NOEs. Max cutoff is %g Ang.\n", max_cut_);
@@ -104,8 +121,13 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
     if (series_)
       mprintf("\tDistance data for NOEs less than cutoff will be saved as '%s[foundNOE]'.\n",
               setname_.c_str());
-    if (!findOutputName_.empty())
-      mprintf("\tFound NOEs will be written to '%s'\n", findOutputName_.c_str());
+    mprintf("\tFound NOEs will be written to '%s'\n", findOutput_->Filename().full());
+  }
+  if (!Pairs_.empty()) {
+    mprintf("\tSpecified NOE pairs:\n");
+    for (MaskPairArray::const_iterator mp = Pairs_.begin(); mp != Pairs_.end(); ++mp)
+      mprintf("\t\t[%s] to [%s]\n", mp->first.MaskString(), mp->second.MaskString());
+    mprintf("\tSpecified NOE data will be written to '%s'\n", specOutput_->Filename().full());
   }
   if (!Image_.UseImage()) 
     mprintf("\tNon-imaged");
@@ -259,18 +281,20 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
 /** Determine what atoms each mask pertains to for the current parm file.
   */
 Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddress) {
+  // ---------------------------------------------
   // Set up NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if (currentParm->SetupIntegerMask( noe->dMask1_ )) return Action::ERR;
     if (currentParm->SetupIntegerMask( noe->dMask2_ )) return Action::ERR;
     if (noe->dMask1_.None() || noe->dMask2_.None()) {
       mprintf("Warning: One or both masks for NOE '%s' have no atoms (%i and %i).\n",
-              noe->dist_->Legend().c_str(), noe->dMask1_.Nselected(),
+              noe->dist_->legend(), noe->dMask1_.Nselected(),
               noe->dMask2_.Nselected());
       noe->active_ = false; 
     } else
       noe->active_ = true;
   }
+  // ---------------------------------------------
   // Set up potential NOE sites.
   if (findNOEs_) {
     if (currentParm->SetupCharMask( Mask_ )) return Action::ERR;
@@ -394,6 +418,34 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
       return Action::ERR;
     }
   }
+  // ---------------------------------------------
+  // Set up NOEs specified on the command line
+  if (!Pairs_.empty()) {
+    if (!specifiedNOEs_.empty()) {
+      mprinterr("Error: Specifying NOEs currently only works with first topology used.\n");
+      return Action::ERR;
+    }
+    for (MaskPairArray::iterator mp = Pairs_.begin(); mp != Pairs_.end(); mp++) {
+      if (currentParm->SetupIntegerMask( mp->first )) return Action::ERR;
+      int res1 = CheckSameResidue(*currentParm, mp->first);
+      if (res1 < 0) continue;
+      if (currentParm->SetupIntegerMask( mp->second )) return Action::ERR;
+      int res2 = CheckSameResidue(*currentParm, mp->second);
+      if (res2 < 0) continue;
+      Site site1( res1, mp->first.Selected() );
+      Site site2( res2, mp->second.Selected() );
+      std::string legend = site1.SiteLegend(*currentParm) + "--" +
+                           site2.SiteLegend(*currentParm);
+      DataSet* ds = 0;
+      if (series_) {
+        ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
+                                         specifiedNOEs_.size(), "specNOE");
+        if (ds == 0) return Action::ERR;
+        ds->SetLegend(legend);
+      }
+      specifiedNOEs_.push_back( NOEtype(site1, site2, ds, legend) );
+    }
+  } 
   // Set up imaging info for this parm
   Image_.SetupImaging( currentParm->BoxType() );
   if (Image_.ImagingEnabled())
@@ -404,14 +456,56 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
   return Action::OK;  
 }
 
+/** Check that all atoms in mask belong to same residue. */
+int Action_NMRrst::CheckSameResidue(Topology const& top, AtomMask const& mask) const {
+  if (mask.None()) return -1;
+  int resnum = top[mask[0]].ResNum();
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+    int r = top[*at].ResNum();
+    if (r != resnum) {
+      mprintf("Warning: Mask atom %i %s not in same residue as %i %s\n",
+              *at + 1, top.AtomMaskName(*at).c_str(),
+              mask[0] + 1, top.AtomMaskName(mask[0]).c_str());
+    }
+  }
+  return resnum;
+}
+
+/** Process an NOEtypeArray */
+void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, int frameNum) const
+{
+  for (NOEtypeArray::iterator my_noe = Narray.begin();
+                              my_noe != Narray.end(); ++my_noe)
+  {
+    unsigned int shortest_idx1 = 0, shortest_idx2 = 0;
+    double shortest_dist2 = -1.0;
+    for (unsigned int idx1 = 0; idx1 != my_noe->Site1().Nindices(); ++idx1)
+    {
+      for (unsigned int idx2 = 0; idx2 != my_noe->Site2().Nindices(); ++idx2)
+      {
+        double dist2 = DIST2(frameIn.XYZ(my_noe->Site1().Idx(idx1)),
+                             frameIn.XYZ(my_noe->Site2().Idx(idx2)),
+                             Image_.ImageType(), frameIn.BoxCrd(),
+                             ucell_, recip_);
+        if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
+          shortest_dist2 = dist2;
+          shortest_idx1 = idx1;
+          shortest_idx2 = idx2;
+        }
+      }
+    }
+    // NOTE: Saving d^2
+    my_noe->UpdateNOE(frameNum, shortest_dist2, shortest_idx1, shortest_idx2);
+  }
+}
+
 // Action_NMRrst::DoAction()
 Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
   double Dist;
-  Matrix_3x3 ucell, recip;
   Vec3 a1, a2;
 
   if (Image_.ImageType() == NONORTHO)
-    currentFrame->BoxCrd().ToRecip(ucell, recip);
+    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
   // NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if ( noe->active_ ) {
@@ -424,7 +518,7 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
       }
 
       switch ( Image_.ImageType() ) {
-        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip); break;
+        case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell_, recip_); break;
         case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd()); break;
         case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
       }
@@ -433,89 +527,61 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame
     }
   }
   // Find NOEs
-  for (NOEtypeArray::iterator my_noe = noeArray_.begin();
-                              my_noe != noeArray_.end(); ++my_noe)
-  {
-    unsigned int shortest_idx1 = 0, shortest_idx2 = 0;
-    double shortest_dist2 = -1.0;
-    for (unsigned int idx1 = 0; idx1 != my_noe->Site1().Nindices(); ++idx1)
-    {
-      for (unsigned int idx2 = 0; idx2 != my_noe->Site2().Nindices(); ++idx2)
-      {
-        double dist2 = DIST2(currentFrame->XYZ(my_noe->Site1().Idx(idx1)),
-                             currentFrame->XYZ(my_noe->Site2().Idx(idx2)),
-                             Image_.ImageType(), currentFrame->BoxCrd(),
-                             ucell, recip); 
-        if (shortest_dist2 < 0.0 || dist2 < shortest_dist2) {
-          shortest_dist2 = dist2;
-          shortest_idx1 = idx1;
-          shortest_idx2 = idx2;
-        }
-      }
-    }
-    // NOTE: Saving d^2
-    my_noe->UpdateNOE(frameNum, shortest_dist2, shortest_idx1, shortest_idx2);
-  }
+  ProcessNoeArray( noeArray_, *currentFrame, frameNum );
+  // Specified NOEs
+  ProcessNoeArray( specifiedNOEs_, *currentFrame, frameNum );
 
   ++nframes_;
   return Action::OK;
 }
 
-// Action_NMRrst::Print()
-void Action_NMRrst::Print() {
-  if (findNOEs_) {
-    mprintf("    NMRRST:\n");
-    if (nframes_ < 1) {
-      mprintf("Warning: No frames processed.\n");
-      return;
-    }
+/** Analyze NOEtypeArray */
+void Action_NMRrst::AnalyzeNoeArray(NOEtypeArray& Narray, CpptrajFile* out) const {
     // Calculate <r^-6>^(-1/6) 
-    for (NOEtypeArray::iterator my_noe = noeArray_.begin();
-                                my_noe != noeArray_.end(); ++my_noe)
+    for (NOEtypeArray::iterator my_noe = Narray.begin();
+                                my_noe != Narray.end(); ++my_noe)
     {
       double r6Avg = pow( my_noe->R6_Avg() / (double)nframes_, -1.0/6.0 );
       my_noe->SetR6Avg( r6Avg );
     }
     // Sort by R6 avg.
-    std::sort( noeArray_.begin(), noeArray_.end() );
+    std::sort( Narray.begin(), Narray.end() );
     // Remove sets greater than the cutoff.
-    NOEtypeArray::iterator bad_noe = noeArray_.begin();
-    while (bad_noe != noeArray_.end() && bad_noe->R6_Avg() < max_cut_)
+    NOEtypeArray::iterator bad_noe = Narray.begin();
+    while (bad_noe != Narray.end() && bad_noe->R6_Avg() < max_cut_)
       ++bad_noe;
-    size_t newSize = bad_noe - noeArray_.begin();
+    size_t newSize = bad_noe - Narray.begin();
     for (NOEtypeArray::iterator my_noe = bad_noe;
-                                my_noe != noeArray_.end(); ++my_noe)
+                                my_noe != Narray.end(); ++my_noe)
     {
       if (debug_ > 0)
         mprintf("\tRemoving: %s (%g Ang)\n", my_noe->PrintNOE().c_str(), my_noe->R6_Avg());
       if (my_noe->Data() != 0)
         masterDSL_->RemoveSet( my_noe->Data() );
     }
-    noeArray_.resize( newSize );
+    Narray.resize( newSize );
     // Print Final found NOEs. Calculate distances from d^2 if necessary.
-    CpptrajFile outfile;
-    //if (outfile.OpenEnsembleWrite( findOutputName_, ensembleNum_ )) return;
-    if (outfile.OpenWrite( findOutputName_ )) return;
     std::vector<unsigned int> Bins(4, 0); // Strong, weak, medium, none
     double Cutoffs[3] = {strong_cut_, medium_cut_, weak_cut_};
     unsigned int current_cut = 0;
     const char* Labels[4] = {"STRONG", "MEDIUM", "WEAK", "NONE"};
-    while (current_cut < 3 && noeArray_.front().R6_Avg() > Cutoffs[current_cut])
+    while (current_cut < 3 && Narray.front().R6_Avg() > Cutoffs[current_cut])
       ++current_cut;
-    outfile.Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
+    out->Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
                    " <Avg Dist. (Ang)> <Label>\n"
                    "# r1, r2: Residue Numbers\n"
                    "# a1X, a2X: Group atom numbers\n"
                    "# c1X, c2X: Number of times atom was part of shortest distance.\n");
-    outfile.Printf("#Final NOEs (%zu):\n#   %s\n", noeArray_.size(), Labels[current_cut]);
-    for (NOEtypeArray::iterator my_noe = noeArray_.begin();
-                                my_noe != noeArray_.end(); ++my_noe)
+    out->Printf("#Final NOEs (%zu):\n#   %s\n", Narray.size(), Labels[current_cut]);
+    for (NOEtypeArray::iterator my_noe = Narray.begin();
+                                my_noe != Narray.end(); ++my_noe)
     {
-      if (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) {
+      unsigned int old_cut = current_cut;
+      while (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) 
         current_cut++;
-        outfile.Printf("#   %s\n", Labels[current_cut]);
-      }
-      outfile.Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
+      if (old_cut != current_cut)
+        out->Printf("#   %s\n", Labels[current_cut]);
+      out->Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
                      my_noe->R6_Avg(), my_noe->legend());
       if (my_noe->Data() != 0) {
         DataSet_float& data = static_cast<DataSet_float&>( *(my_noe->Data()) );
@@ -528,8 +594,24 @@ void Action_NMRrst::Print() {
       else if (my_noe->R6_Avg() < weak_cut_)   ++Bins[2];
       else                                     ++Bins[3];
     }
-    outfile.Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
+    out->Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
             Bins[0], Bins[1], Bins[2], Bins[3]);
+}
+
+// Action_NMRrst::Print()
+void Action_NMRrst::Print() {
+  if (findNOEs_ || !specifiedNOEs_.empty()) {
+    mprintf("    NMRRST:\n");
+    if (nframes_ < 1) {
+      mprintf("Warning: No frames processed.\n");
+      return;
+    }
+    if (findNOEs_)
+      AnalyzeNoeArray(noeArray_, findOutput_);
+    if (!specifiedNOEs_.empty()) {
+      max_cut_  = 1000.00; // FIXME: Make sure specified NOEs do not get deleted.
+      AnalyzeNoeArray(specifiedNOEs_, specOutput_);
+    }
   }
 }
 

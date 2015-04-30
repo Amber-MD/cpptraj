@@ -43,12 +43,12 @@ void Cpptraj::Intro() {
 # ifdef _OPENMP
           " OpenMP"
 # endif
-          "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n",
+          "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("Running on %i threads\n",CpptrajState::WorldSize());
+  mprintf("| Running on %i threads\n",CpptrajState::WorldSize());
 # endif
-  mprintf("\n| Date/time: %s\n", TimeString().c_str());
+  mprintf("| Date/time: %s\n", TimeString().c_str());
   double available_mem = AvailableMemory_MB();
   // If < 0 could not be calculated correctly.
   if (available_mem > 0.0)
@@ -188,6 +188,15 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
 #     endif
 #     ifdef TIMER
       loudPrintf(" -DTIMER");
+#     endif
+#     ifdef ENABLE_SINGLE_ENSEMBLE
+      loudPrintf(" -DENABLE_SINGLE_ENSEMBLE");
+#     endif
+#     ifdef HAS_PNETCDF
+      loudPrintf(" -DHAS_PNETCDF");
+#     endif
+#     ifdef USE_SANDERLIB
+      loudPrintf(" -DUSE_SANDERLIB");
 #     endif
       loudPrintf("\n");
       return QUIT;

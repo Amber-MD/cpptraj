@@ -2,7 +2,7 @@
 #define INC_ACTION_REPLICATECELL_H
 #include "Action.h"
 #include "ImagedAction.h"
-#include "Trajout.h"
+#include "Trajout_Single.h"
 #include "DataSet_Coords.h"
 /// Action to replicate unit cell in specified directions. 
 class Action_ReplicateCell: public Action {
@@ -22,7 +22,7 @@ class Action_ReplicateCell: public Action {
     Iarray directionArray_;
     std::string trajfilename_;
     std::string parmfilename_;
-    Trajout outtraj_;
+    Trajout_Single outtraj_;
     DataSet_Coords* coords_;
     AtomMask Mask1_;
     int ncopies_;

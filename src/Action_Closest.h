@@ -23,8 +23,10 @@ class Action_Closest: public Action, ImagedAction {
     DataSet *atomdata_;     ///< First atom of each closest molecule.
     int Nclosest_;          ///< Index into Closest molecule DataSets.
     std::string prefix_;    ///< Output topology prefix.
+    std::string parmoutName_; ///< Output topology file name.
     int closestWaters_;     ///< Closest # of molecules to keep.
     bool firstAtom_;        ///< If true just calc based on molecule first atom.
+    bool useMaskCenter_;    ///< If true use geometric center of mask.
     AtomMask stripMask_;    ///< Mask including all solute and closest molecules.
     AtomMask distanceMask_; ///< Mask of atoms to calculate distance from solvent to.
     Topology *newParm_;     ///< New topology with solute and closest molecules.

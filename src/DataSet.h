@@ -17,19 +17,25 @@
 class DataSet {
   public:
     typedef DataSet* (*AllocatorType)();
-    /// Type of data stored in DataSet
+    /// DataSet base type. 
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
-      COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME
+      COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
+      MAT3X3
     };
-    /// Source of data stored in DataSet, used by Analysis_Statistics
+    /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
-      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, UNKNOWN_MODE 
+      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE 
     };
-    /// Type of DataSet, used by Analysis_Statistics
+    /// Type of DataSet, used by Analysis_Statistics. Must match Stypes, TypeModes
     enum scalarType {
-      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER, CHI, H1P,
-      C2P,     PHI,  PSI,   PCHI,  OMEGA,   NOE,   UNDEFINED
+      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER, 
+      CHI,     H1P,  C2P,   PHI,   PSI,     PCHI,  OMEGA,
+      NOE,
+      DIST,   COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
+      CORREL, DISTCOVAR, IDEA, 
+      IRED,   DIHCOVAR,
+      UNDEFINED
     };
 
     DataSet();
@@ -54,12 +60,14 @@ class DataSet {
     void SetWidth(int);
     /// Set output width and precision
     void SetPrecision(int,int);
-    /// Set up DataSet with given name, index, and aspect.
-    int SetupSet(std::string const&,int,std::string const&);
+    /// Set up DataSet with given name, index, aspect, and ensemble num.
+    int SetupSet(std::string const&,int,std::string const&,int);
     /// Set DataSet legend.
     void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
     /// Set scalar mode
     void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
+    /// Set scalar type FIXME OK without setting mode?
+    void SetScalar( scalarType tIn )         { scalartype_ = tIn; }
     /// Set index.
     void SetIndex(int i)                     { idx_  = i;         }
     /// Set specified DataSet dimension.
@@ -69,20 +77,25 @@ class DataSet {
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
-    bool Matches(std::string const&, int, std::string const&) const;
-    /// Write scalar mode/type description
-    void ScalarDescription() const;
-    /// Write name/aspect/index to STDOUT
-    void PrintName() const;
+    bool Matches(std::string const&, int, std::string const&, int) const;
+    /// \return scalar mode/type description
+    std::string ScalarDescription() const;
+    /// \return name/aspect/index/member as "<name>[<aspect>].<idx>%<member>"
+    std::string PrintName() const;
     // -----------------------------------------------------
     // ---===== Functions that return private vars =====----
     /// True if DataSet is empty. 
     bool Empty()                const { return (Size() == 0);      }
     /// DataSet output label.
     std::string const& Legend() const { return legend_;            }
+    const char* legend()        const { return legend_.c_str();    }
     // TODO: Put all data set metadata into one class.
     /// \return DataSet base name.
     std::string const& Name()   const { return name_;              }
+    /// \return DataSet ensemble number.
+    int Member()                const { return ensembleNum_;       }
+    /// Set DataSet ensemble number.
+    void SetMember(int i)             { ensembleNum_ = i;          }
     /// \return DataSet index.
     int Idx()                   const { return idx_;               }
     /// \return DataSet aspect.
@@ -112,9 +125,10 @@ class DataSet {
       }
     };
     const char* DataFormat()    const { return data_format_;       }
-    static const char* Smodes[];
-    static const char* Stypes[];
-    static const scalarMode TypeModes[];
+    const char* ModeString()    const { return Smodes[scalarmode_];}
+    const char* TypeString()    const { return Stypes[scalartype_];}
+    static const char* ModeString(scalarMode m) { return Smodes[m]; }
+    static const char* TypeString(scalarType t) { return Stypes[t]; }
     /// \return scalarMode that matches input keyword.
     static scalarMode ModeFromKeyword(std::string const&);
     /// \return scalarType that matches keyword; check that mode is valid if specified.
@@ -125,9 +139,13 @@ class DataSet {
     int Width()                 const { return width_;             }
     const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
   private:
+    static const char* Smodes[];
+    static const char* Stypes[];
+    static const scalarMode TypeModes[];
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
     std::string name_;        ///< Name of the DataSet
+    int ensembleNum_;         ///< DataSet ensemble number.
     int idx_;                 ///< DataSet index
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.

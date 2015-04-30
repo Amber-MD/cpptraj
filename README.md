@@ -23,7 +23,7 @@ Build Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2014 Daniel R. Roe. 
+CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe. 
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -70,6 +70,11 @@ Contributors
   - Crystal N. Nguyen (University of California, San Diego).
   - Romelia F. Salomon (University of California, San Diego).
     Action_Gist
+
+  - Pawel Janowski (Rutgers University, NJ, USA).
+    Normal mode wizard output for Analysis_Matrix, original code for ADP 
+    calculation in Action_AtomicFluct.
+
 
   The following people wrote code in PTRAJ which was eventually adapted for
 use in CPPTRAJ:

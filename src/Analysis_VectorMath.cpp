@@ -57,7 +57,7 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* 
 
   // Print Status
   mprintf("    VECTORMATH: Calculating %s of vectors %s and %s\n", 
-            ModeString[mode_], vinfo1_->Legend().c_str(), vinfo2_->Legend().c_str());
+            ModeString[mode_], vinfo1_->legend(), vinfo2_->legend());
   if (norm_) mprintf("\tVectors will be normalized.\n");
   if (outfile != 0)
     mprintf("\tResults are written to %s\n", outfile->DataFilename().full());
@@ -107,8 +107,8 @@ Analysis::RetType Analysis_VectorMath::Analyze() {
   // Ensure vectors have the same # of frames
   if (vinfo1_->Size() != vinfo2_->Size()) {
     mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-              vinfo1_->Legend().c_str(), vinfo1_->Size(),
-              vinfo2_->Legend().c_str(), vinfo2_->Size());
+              vinfo1_->legend(), vinfo1_->Size(),
+              vinfo2_->legend(), vinfo2_->Size());
     return Analysis::ERR;
   }
   int err = 0;

@@ -6,7 +6,7 @@
 class NetcdfFile {
   public:
     /// For determining netcdf file type
-    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART };
+    enum NCTYPE { NC_UNKNOWN = 0, NC_AMBERTRAJ, NC_AMBERRESTART, NC_AMBERENSEMBLE };
     NCTYPE GetNetcdfConventions(const char*);
 #   ifndef BINTRAJ
     NetcdfFile() { }
@@ -24,6 +24,7 @@ class NetcdfFile {
     void NC_close();
 
     int SetupFrameDim();
+    int SetupEnsembleDim();
     int SetupCoordsVelo(bool);
     int SetupTime();
     int SetupBox(double*,NCTYPE);
@@ -43,9 +44,11 @@ class NetcdfFile {
     bool HasTemperatures() { return (TempVID_ != -1);     }
     bool HasTimes()        { return (timeVID_ != -1);     }
     inline void SetNcatom( int natomIn ) { ncatom_ = natomIn; }
+    void WriteIndices() const;
+    void WriteVIDs() const;
   protected: // TODO: Make all private
-    size_t start_[3];
-    size_t count_[3];
+    size_t start_[4];
+    size_t count_[4];
 
     int ncid_;
     int ncframe_;
@@ -61,8 +64,10 @@ class NetcdfFile {
     int indicesVID_;          ///< Variable ID for replica indices.
 
     bool checkNCerr(int);
+    void Sync();
   private:
     int ncdebug_;
+    int ensembleDID_;
     int frameDID_;
     int atomDID_;
     int ncatom_;

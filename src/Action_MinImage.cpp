@@ -14,7 +14,7 @@ Action_MinImage::Action_MinImage() :
 {} 
 
 void Action_MinImage::Help() {
-  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [mask]\n"
+  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [maskcenter]\n"
           "  Calculate minimum non-self imaged distance between atoms in <mask1> and <mask2>\n");
 }
 
@@ -25,7 +25,7 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, Da
   // Require imaging.
   image_.InitImaging( true );
   useMass_ = !(actionArgs.hasKey("geom"));
-  calcUsingMask_ = actionArgs.hasKey("mask");
+  calcUsingMask_ = actionArgs.hasKey("maskcenter");
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();

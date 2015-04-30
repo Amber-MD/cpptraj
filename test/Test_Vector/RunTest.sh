@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles vector.in vtest.dat.?
+CleanFiles vector.in vtest.dat.? v8.mol2 corr.v0.v8.dat
 
 CheckNetcdf
 
@@ -18,7 +18,11 @@ vector v3 @91 @92 out vtest.dat.3 ptrajoutput
 vector v4 @91 dipole out vtest.dat.4 ptrajoutput
 vector v5 box out vtest.dat.5 ptrajoutput
 vector v6 center out vtest.dat.6 :1
-vector v7 corrplane out vtest.dat.7 :2@CD2,CE?,CZ?,CH2 
+vector v7 corrplane out vtest.dat.7 :2@CD2,CE?,CZ?,CH2
+vector v8 minimage out vtest.dat.8 :4 :11
+corr v0 v8 out corr.v0.v8.dat
+run
+writedata v8.mol2 vectraj v8 trajfmt mol2
 EOF
 RunCpptraj "Vector Tests"
 DoTest vtest.dat.0.save vtest.dat.0
@@ -29,6 +33,7 @@ DoTest vtest.dat.4.save vtest.dat.4
 DoTest vtest.dat.5.save vtest.dat.5
 DoTest vtest.dat.6.save vtest.dat.6
 DoTest vtest.dat.7.save vtest.dat.7
+DoTest v8.mol2.save v8.mol2
 CheckTest
 
 EndTest

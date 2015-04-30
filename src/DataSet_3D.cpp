@@ -4,6 +4,11 @@
 // DESTRUCTOR
 DataSet_3D::~DataSet_3D() { if (gridBin_ != 0) delete gridBin_; }
 
+// COPY CONSTRUCTOR
+DataSet_3D::DataSet_3D(DataSet_3D const& rhs) : DataSet(rhs), gridBin_(0) {
+  if (rhs.gridBin_ != 0) gridBin_ = rhs.gridBin_->Copy();
+}
+
 // DataSet_3D::Allocate_N_O_Box()
 int DataSet_3D::Allocate_N_O_Box(size_t nx, size_t ny, size_t nz, 
                                  Vec3 const& oxyz, Box const& boxIn)

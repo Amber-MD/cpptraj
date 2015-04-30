@@ -184,6 +184,9 @@ test.lipidorder:
 test.pairdist:
 	@cd Test_PairDist && ./RunTest.sh $(OPT)
 
+test.ambpdb:
+	@cd Test_AmbPDB && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 MAINTESTS=test.general \
           test.strip \

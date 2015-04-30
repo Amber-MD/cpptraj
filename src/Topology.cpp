@@ -1,5 +1,7 @@
 #include <stack> // For ParseMask
 #include <algorithm> // sort
+#include <cmath> // pow
+#include <cctype> // isalpha
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -65,9 +67,11 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
       parmBox = boxIn;
     }
   }
-  coordInfo_ = CoordinateInfo(cinfoIn.ReplicaDimensions(), parmBox,
+  // TODO: Copy above and just set the box here.
+  coordInfo_ = CoordinateInfo(cinfoIn.EnsembleSize(), cinfoIn.ReplicaDimensions(), parmBox,
                               cinfoIn.HasVel(), cinfoIn.HasTemp(),
                               cinfoIn.HasTime(), cinfoIn.HasForce());
+  if (debug_ > 0) Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
 
 // Topology::SetReferenceCoords()
@@ -201,21 +205,6 @@ int Topology::FindAtomInResidue(int res, NameType const& atname) const {
     if ( atoms_[at].Name() == atname )
       return at;
   return -1;
-}
-
-// Topology::FindResidueMaxNatom()
-/** Return the # atoms in the largest residue. */
-int Topology::FindResidueMaxNatom() const {
-  if (residues_.size() <= 1)
-    return (int)atoms_.size();
-  int largest_natom = 0;
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
-  {
-    int diff = (*res).NumAtoms();
-    if (diff > largest_natom) largest_natom = diff;
-  }
-  return largest_natom;
 }
 
 // -----------------------------------------------------------------------------
@@ -666,6 +655,22 @@ int Topology::CommonSetup(bool bondsearch) {
   return 0;
 }
 
+/** Reset any extended PDB info. */
+void Topology::ResetPDBinfo() {
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
+    atom->SetChainID(' ');
+  int rnum = 1;
+  for (std::vector<Residue>::iterator res = residues_.begin(); 
+                                      res != residues_.end(); ++res, ++rnum)
+  {
+    res->SetOriginalNum(rnum);
+    res->SetIcode(' ');
+  }
+  for (std::vector<AtomExtra>::iterator ex = extra_.begin();
+                                        ex != extra_.end(); ++ex)
+    ex->SetAltLoc(' '); // TODO bfactor, occupancy?
+}
+
 /** For topology formats that do not contain residue info, base residues
   * on molecules.
   */
@@ -759,7 +764,8 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
 /** This is for any extra information that is not necessarily pertinent to
   * all topologies, like Ambers ITREE or PDB chain ID etc.
   */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn) 
+int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
+                               std::vector<NameType> const& icodeIn) 
 {
   n_atom_types_ = natyp;
   if (!extraIn.empty()) {
@@ -770,6 +776,20 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
     }
     extra_ = extraIn;
   }
+  if (!icodeIn.empty()) {
+    if (icodeIn.size() == residues_.size()) {
+      for (unsigned int i = 0; i != icodeIn.size(); i++)
+        residues_[i].SetIcode( icodeIn[i][0] );
+    } else if (icodeIn.size() == atoms_.size()) { // from e.g. PDB, CIF
+      for (unsigned int r = 0; r != residues_.size(); r++)
+        residues_[r].SetIcode( icodeIn[residues_[r].FirstAtom()][0] );
+    } else {
+      mprinterr("Error: Size of residue insertion codes (%zu) != # "
+                " residues (%zu) or # atoms (%zu)\n",
+                icodeIn.size(), residues_.size(), atoms_.size());
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -777,6 +797,31 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
 int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
   nonbond_ = nonbondIn;
   return 0;
+}
+
+double Topology::GetVDWradius(int a1) const {
+  //TODO: return zero when no params?
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.B() > 0.0)
+    return ( 0.5 * pow(2.0 * LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+double Topology::GetParseRadius(int a1) const {
+  double radius = 0.0;
+  switch ( atoms_[a1].Element() ) {
+    case Atom::HYDROGEN:   radius = 1.0; break;
+    case Atom::CARBON:     radius = 1.7; break;
+    case Atom::NITROGEN:   radius = 1.5; break;
+    case Atom::OXYGEN:     radius = 1.4; break;
+    case Atom::PHOSPHORUS: radius = 2.0; break;
+    case Atom::SULFUR:     radius = 1.85; break;
+    default:
+      mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
+              atoms_[a1].ElementName(), radius);
+  }
+  return radius;
 }
 
 // Topology::SetAtomBondInfo()
@@ -938,6 +983,27 @@ void Topology::AddBond(int atom1, int atom2) {
   atoms_[atom2].AddBond( atom1 );
 }
 
+void Topology::AddAngle(int atom1, int atom2, int atom3) {
+  // FIXME: Check duplicate
+  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
+      atoms_[atom2].Element() == Atom::HYDROGEN ||
+      atoms_[atom3].Element() == Atom::HYDROGEN)
+    anglesh_.push_back( AngleType(atom1, atom2, atom3, -1) );
+  else
+    angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
+}
+
+void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
+  // FIXME: Check duplicate
+  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
+      atoms_[atom2].Element() == Atom::HYDROGEN ||
+      atoms_[atom3].Element() == Atom::HYDROGEN ||
+      atoms_[atom4].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+  else
+    dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+}
+
 // Topology::VisitAtom()
 // NOTE: Use iterator instead of atom num?
 void Topology::VisitAtom(int atomnum, int mol) {
@@ -961,13 +1027,13 @@ int Topology::DetermineMolecules() {
   if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    (*atom).SetMol( -1 );
+    atom->SetMol( -1 );
   // Perform recursive search along bonds of each atom
   int mol = 0;
   int atomnum = 0;
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
   {
-    if ( (*atom).NoMol() ) {
+    if ( atom->NoMol() ) {
       VisitAtom( atomnum, mol );
       ++mol;
     }
@@ -977,27 +1043,27 @@ int Topology::DetermineMolecules() {
     mprintf("\t%i molecules.\n",mol);
     if (debug_ > 1)
     for (atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), (*atom).MolNum());
+      mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
   }
 
   // Update molecule information
   molecules_.resize( mol );
   if (mol == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
-  (*molecule).SetFirst(0);
+  molecule->SetFirst(0);
   atom = atoms_.begin(); 
-  int lastMol = (*atom).MolNum();
+  int lastMol = atom->MolNum();
   int atomNum = 0;
   for (; atom != atoms_.end(); atom++)
   {
-    if ( (*atom).MolNum() > lastMol ) {
+    if ( atom->MolNum() > lastMol ) {
       // Set last atom of molecule
-      (*molecule).SetLast( atomNum );
+      molecule->SetLast( atomNum );
       // Set first atom of next molecule
       ++molecule;
-      (*molecule).SetFirst( atomNum );
-      lastMol = (*atom).MolNum();
-    } else if ( (*atom).MolNum()  < lastMol) {
+      molecule->SetFirst( atomNum );
+      lastMol = atom->MolNum();
+    } else if ( atom->MolNum()  < lastMol) {
       mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
                 "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
                 "Error:   atom numbering in molecules is not sequential. If topology did not\n"
@@ -1009,12 +1075,12 @@ int Topology::DetermineMolecules() {
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-        (*atom).SetMol( -1 );
+        atom->SetMol( -1 );
       return 1;
     }
     ++atomNum;
   }
-  (*molecule).SetLast( atoms_.size() );
+  molecule->SetLast( atoms_.size() );
   return 0;
 }
 

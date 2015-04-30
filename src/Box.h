@@ -20,7 +20,7 @@ class Box {
     void SetTruncOct();
     void SetNoBox();
     void SetMissingInfo(const Box&);
-
+    // Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const;
 
     void SetX(double xin)     { box_[0] = xin; }

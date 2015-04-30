@@ -29,7 +29,6 @@ DataSet_Modes::DataSet_Modes() :
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
-  type_(DataSet_2D::NO_OP),
   reduced_(false)
 {}
 
@@ -43,7 +42,8 @@ DataSet_Modes::~DataSet_Modes() {
 void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();
   mass_.clear();
-  if (mIn.Type() != DataSet_2D::NO_OP) { // May have avg coords 
+  if (mIn.Type() == DataSet::MATRIX_DBL && mIn.ScalarType() != DataSet::UNDEFINED) 
+  { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
     avgcrd_ = mat.Vect();
     mass_ = mat.Mass();
@@ -87,7 +87,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 #else
   bool eigenvaluesOnly;
   int info = 0;
-  if (mIn.Kind() != DataSet_2D::HALF) {
+  if (mIn.MatrixKind() != DataSet_2D::HALF) {
     mprinterr("Error: DataSet_Modes: Eigenvector/value calc only for symmetric matrices.\n");
     return 1;
   }
@@ -168,6 +168,8 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     else 
       ncv = nelem;
     evectors_ = new double[ ncv * nelem ];
+    // Temporary storage for eigenvectors to avoid memory overlap in dseupd
+    double* eigenvectors = new double[ ncv * nelem ];
     // Allocate memory to store eigenvalues
     if ( evalues_ != 0) delete[] evalues_;
     evalues_ = new double[ nelem ] ; // NOTE: Should this be nmodes?
@@ -215,7 +217,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       }
 
       dsaupd_(ido, bmat, nelem, which, nmodes_, tol, resid,
-              ncv, evectors_, nelem, iparam, ipntr, workd, workl,
+              ncv, eigenvectors, nelem, iparam, ipntr, workd, workl,
               lworkl, info);
       loop = (ido == -1 || ido == 1);
     } while ( loop ); // END LOOP
@@ -229,7 +231,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       int* select = new int[ ncv ];
       dseupd_(rvec, howmny, select, evalues_, evectors_, nelem, sigma,
               bmat, nelem, which, nmodes_, tol, resid,
-              ncv, evectors_, nelem, iparam, ipntr, workd, workl,
+              ncv, eigenvectors, nelem, iparam, ipntr, workd, workl,
               lworkl, info);
       delete[] select;
     } 
@@ -237,6 +239,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     delete[] workl;
     delete[] workd;
     delete[] resid;
+    delete[] eigenvectors;
     if (info != 0) { 
       mprinterr("Error: DataSet_Modes: dseupd returned %i\n",info);
       return 1;
@@ -272,7 +275,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 
 // DataSet_Modes::PrintModes()
 void DataSet_Modes::PrintModes() {
-  mprintf("%s: %i modes.\n",Legend().c_str(),nmodes_);
+  mprintf("%s: %i modes.\n",legend(),nmodes_);
   for (int mode = 0; mode < nmodes_; ++mode) {
     mprintf("Mode %i: Eigenvalue= %f\n", mode, evalues_[mode]);
     if (evectors_!=0) {
@@ -340,13 +343,12 @@ int DataSet_Modes::ReduceVectors() {
     mprintf("Warning: Cannot 'reduce', no eigenvectors present.\n");
     return 0;
   }
-  if ( type_ == DataSet_2D::COVAR || type_ == DataSet_2D::MWCOVAR )
+  if ( ScalarType() == DataSet::COVAR || ScalarType() == DataSet::MWCOVAR )
     return ReduceCovar();
-  else if ( type_ == DataSet_2D::DISTCOVAR )
+  else if ( ScalarType() == DataSet::DISTCOVAR )
     return ReduceDistCovar();
   else
-    mprintf("Warning: 'reduce' not supported for matrix type %s\n",
-            DataSet_2D::MatrixTypeString(type_));
+    mprintf("Warning: 'reduce' not supported for matrix type %s\n", TypeString());
   return 0;
 }
 

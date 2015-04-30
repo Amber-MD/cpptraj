@@ -70,7 +70,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
 
 Analysis::RetType Analysis_AutoCorr::Analyze() {
   for (unsigned int ids = 0; ids < dsets_.size(); ids++) {
-    mprintf("\t\tCalculating AutoCorrelation for set %s\n", dsets_[ids]->Legend().c_str());
+    mprintf("\t\tCalculating AutoCorrelation for set %s\n", dsets_[ids]->legend());
     DataSet_1D& Ct = static_cast<DataSet_1D&>( *outputData_[ids] );
     if (dsets_[ids]->Type() == DataSet::VECTOR) {
       DataSet_Vector const& set = static_cast<DataSet_Vector const&>( *dsets_[ids] );

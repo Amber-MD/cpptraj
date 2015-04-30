@@ -18,16 +18,21 @@ class Traj_PDBfile: public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
     static void WriteHelp();
   private:
+    enum TER_Mode { BY_MOL = 0, BY_RES = 1, NO_TER = 2 };
+    enum Radii_Mode { GB = 0, PARSE, VDW };
+    Radii_Mode radiiMode_; ///< Radii to use if PQR.
+    TER_Mode terMode_;     ///< TER card mode.
     int pdbAtom_;
     int currentSet_;
-    int ter_num_; ///< Amount to increment atom number for TER
+    int ter_num_;      ///< Amount to increment atom number for TER
     PDBWRITEMODE pdbWriteMode_;
-    bool dumpq_;   ///< If true print charges in Occupancy column
-    bool dumpr_;   ///< If true print radii in B-factor column.
+    bool dumpq_;   ///< If true print charges/radii in Occupancy column (PQR).
     bool pdbres_;  ///< If true convert Amber res names to PDBV3 style.
     bool pdbatom_; ///< If true convert Amber atom names to PDBV3 style.
     bool write_cryst1_; ///< If false write CRYST1 for first frame.
     std::string space_group_;
+    std::vector<double> radii_; ///< Hold radii for PQR format.
+    std::vector<int> TER_idxs_; ///< TER card indices.
     Topology *pdbTop_;
     PDBfile file_;
 

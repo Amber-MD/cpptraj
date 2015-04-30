@@ -4,7 +4,7 @@
 #include "Array1D.h"
 class Analysis_Average : public Analysis {
   public:
-    Analysis_Average();
+    Analysis_Average() : outfile_(0), writeHeader_(true) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Average(); }
     static void Help();
   
@@ -12,6 +12,7 @@ class Analysis_Average : public Analysis {
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;
-    CpptrajFile outfile_;
+    CpptrajFile* outfile_;
+    bool writeHeader_;
 };
 #endif

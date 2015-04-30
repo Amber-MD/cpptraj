@@ -32,11 +32,12 @@ class Action_Hbond : public Action {
     ImagedAction Image_;
     Matrix_3x3 ucell_, recip_;
     int debug_;
-    int ensembleNum_;
     int Nframes_;
-    std::string avgout_;
-    std::string solvout_;
-    std::string bridgeout_;
+    CpptrajFile* avgout_;
+    CpptrajFile* solvout_;
+    CpptrajFile* bridgeout_;
+    DataFile* UUseriesout_;
+    DataFile* UVseriesout_;
     bool useAtomNum_;
     typedef std::map<int,HbondType> HBmapType;
     HBmapType HbondMap_;   ///< Track all solute-solute hbonds found
@@ -103,6 +104,7 @@ class Action_Hbond : public Action {
 
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
+    double MemoryUsage(size_t, size_t) const;
     inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;

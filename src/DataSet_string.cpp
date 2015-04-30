@@ -29,8 +29,15 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
 void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
   if (frame >= Data_.size())
     cbuffer.Printf(data_format_, "NoData");
-  else
-    cbuffer.Printf(data_format_, Data_[frame].c_str());
+  else {
+    // Protect against CpptrajFile buffer overflow.
+    if (Data_[frame].size() >= CpptrajFile::BUF_SIZE) {
+      // FIXME: Data sets should not have to worry about spaces in format strings.
+      if (data_format_[0] == ' ') cbuffer.Printf(" ");
+      cbuffer.Write(Data_[frame].c_str(), Data_[frame].size());
+    } else 
+      cbuffer.Printf(data_format_, Data_[frame].c_str());
+  }
 }
 
 void DataSet_string::Append(std::vector<std::string> const& dataIn) {

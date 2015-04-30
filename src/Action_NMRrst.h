@@ -33,7 +33,11 @@ class Action_NMRrst: public Action {
       bool active_;     ///< True if NOE was properly set up.
     };
     typedef std::vector<noeDataType> noeDataArray;
-    noeDataArray NOEs_;
+    noeDataArray NOEs_; ///< NOEs from file.
+
+    typedef std::pair<AtomMask,AtomMask> MaskPairType;
+    typedef std::vector<MaskPairType> MaskPairArray;
+    MaskPairArray Pairs_; ///< NOEs specified on command line
 
     typedef std::vector<int> Iarray;
 
@@ -45,11 +49,18 @@ class Action_NMRrst: public Action {
 
     class NOEtype;
     typedef std::vector<NOEtype> NOEtypeArray;
-    NOEtypeArray noeArray_;
+    NOEtypeArray noeArray_; ///< Found NOEs
+    NOEtypeArray specifiedNOEs_; ///< Specified NOEs
+
+    void ProcessNoeArray(NOEtypeArray&, Frame const&, int) const;
+    int CheckSameResidue(Topology const&, AtomMask const&) const;
+    void AnalyzeNoeArray(NOEtypeArray&, CpptrajFile*) const;
     
     ImagedAction Image_;
+    Matrix_3x3 ucell_, recip_;
     std::string setname_;
-    std::string findOutputName_;
+    CpptrajFile* findOutput_;
+    CpptrajFile* specOutput_;
     AtomMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed
@@ -59,7 +70,6 @@ class Action_NMRrst: public Action {
     double weak_cut_;
     int resOffset_;
     int debug_;
-    int ensembleNum_;
     int nframes_; ///< Total # of frames.
     bool useMass_;
     bool findNOEs_;

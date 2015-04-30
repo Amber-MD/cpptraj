@@ -427,7 +427,7 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
     mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
     FrameDistances_.SaveFile( filename );
   }
-  mprintf("\tMemory used by pair-wise matrix: %.4f MB\n",
+  mprintf("\tMemory used by pair-wise matrix and other cluster data: %.4f MB\n",
           (double)FrameDistances_.DataSize() / 1048576);
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
@@ -535,11 +535,12 @@ void ClusterList::AddSievedFramesByCentroid() {
 }
 
 // -----------------------------------------------------------------------------
-/** The Davies-Bouldin Index (DBI) is a measure of clustering merit; the 
-  * smaller the DBI, the better. The DBI is defined as the average, for all 
-  * clusters X, of fred, where fred(X) = max, across other clusters Y, of 
-  * (Cx + Cy)/dXY ...here Cx is the average distance from points in X to the 
-  * centroid, similarly Cy, and dXY is the distance between cluster centroids.
+/** The Davies-Bouldin Index (DBI) measures the average similarity between each
+  * cluster and its most similar one; the smaller the DBI, the better. The DBI 
+  * is defined as the average, for all clusters X, of fred, where fred(X) = max,
+  * across other clusters Y, of (Cx + Cy)/dXY. Here Cx is the average distance
+  * from points in X to the centroid, similarly Cy, and dXY is the distance 
+  * between cluster centroids.
   */
 double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   std::vector<double> averageDist;
@@ -572,9 +573,12 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   return DBITotal;
 }
 
-/** The pseudo-F statistic is another measure of clustering goodness. High 
-  * values are good. Generally, one selects a cluster-count that gives a peak 
-  * in the pseudo-f statistic (or pSF, for short).
+/** The pseudo-F statistic is another measure of clustering goodness. It is 
+  * intended to capture the 'tightness' of clusters, and is in essence a ratio
+  * of the mean sum of squares between groups to the mean sum of squares within
+  * group (Lattin et al., 2003: 291) High values are good. Generally, one 
+  * selects a cluster-count that gives a peak in the pseudo-f statistic (or 
+  * pSF, for short).
   * Formula: A/B, where A = (T - P)/(G-1), and B = P / (n-G). Here n is the 
   * number of points, G is the number of clusters, T is the total distance from
   * the all-data centroid, and P is the sum (for all clusters) of the distances
@@ -854,9 +858,9 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     pdbout.WriteTITLE("Cluster points.");
     for (std::vector<Vec3>::const_iterator XV = Xarray.begin();
                                            XV != Xarray.end(); ++XV)
-      pdbout.WriteCoord(PDBfile::HETATM, XV - Xarray.begin() + 1, "HE", "HE", ' ',
+      pdbout.WriteCoord(PDBfile::HETATM, XV - Xarray.begin() + 1, "HE", "HE",
                         XV - Xarray.begin() + 1, (*XV)[0], (*XV)[1], (*XV)[2],
-                        1.0, Nums[XV - Xarray.begin()], "HE", 0, false);
+                        1.0, Nums[XV - Xarray.begin()], "HE", 0);
     pdbout.CloseFile();
   }
 }

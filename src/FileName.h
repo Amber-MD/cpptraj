@@ -5,6 +5,7 @@
 class FileName {
   public:
     FileName() {}
+    FileName(std::string const& s) { SetFileName(s); }
     FileName(const FileName&);
     FileName& operator=(const FileName&);
     /// Set file name and extensions; only name is known.
@@ -17,12 +18,15 @@ class FileName {
     void clear();
     /// \return true if string matches full or base file name.
     bool MatchFullOrBase(std::string const&) const;
+    /// Append given string to full and base file name.
+    void append(std::string const&);
 
     const std::string& Full()      const { return fullPathName_;         }
     const std::string& Base()      const { return baseName_;             }
+    const std::string& Ext()       const { return extension_;            }
     const char* full()             const { return fullPathName_.c_str(); }
     const char* base()             const { return baseName_.c_str();     }
-    const std::string& Ext()       const { return extension_;            }
+    const char* ext()              const { return extension_.c_str();    }
     const std::string& Compress()  const { return compressExt_;          }
     const std::string& DirPrefix() const { return dirPrefix_;            }
     bool empty()                   const { return fullPathName_.empty(); }
