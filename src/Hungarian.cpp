@@ -88,7 +88,7 @@ int Hungarian::AssignRowsToColumns() {
     assigned = 0;
     // Find row with lowest number of zeros
     int minRow = -1;
-    int minRowZeros = matrix_.Nrows() + 1;
+    int minRowZeros = nrows_ + 1;
     for (int row = 0; row < nrows_; ++row) {
       if (assignColToRow_[row] == -1) {
         int elt = row * ncols_;
@@ -140,7 +140,7 @@ int Hungarian::AssignRowsToColumns() {
           break;
         }
       }
-    } else if (minRowZeros >= minColZeros) { // Preference given to rows
+    } else if (minRowZeros <= minColZeros) { // Preference given to rows
 #     ifdef DEBUG_HUNGARIAN
       mprintf("\tRow %i has min # of zeros (%i)\n", minRow, minRowZeros);
 #     endif
@@ -229,13 +229,13 @@ void Hungarian::PrintLines(const char* title) {
   for (int row = 0; row < nrows_; ++row) {
     for (int col = 0; col < ncols_; ++col) {
       if (lineThroughRow_[row] && lineThroughCol_[col])
-        mprintf("-%8s", "---|----");
+        mprintf("-%6s", "--|---");
       else if (lineThroughRow_[row])
-        mprintf("-%8s", "--------");
+        mprintf("-%6s", "------");
       else if (lineThroughCol_[col])
-        mprintf(" %8s", "   |    ");
+        mprintf(" %6s", "  |   ");
       else
-        mprintf(" %8.4f", matrix_[elt]);
+        mprintf(" %6.2f", matrix_[elt]);
       elt++;
     }
     mprintf("\n");
@@ -248,7 +248,7 @@ void Hungarian::PrintMatrix(const char* Title) {
   int elt = 0;
   for (int row = 0; row < nrows_; ++row) {
     for (int col = 0; col < ncols_; ++col)
-      mprintf(" %8.4f", matrix_[elt++]);
+      mprintf(" %6.2f", matrix_[elt++]);
     mprintf("\n");
   }
 }
@@ -259,6 +259,147 @@ void Hungarian::PrintMatrix(const char* Title) {
   * and/or columns as possible.
   */
 void Hungarian::CoverZeroElements() {
+  /* New algorithm:
+   *   0: Calc # zeros in each row/col.
+   *   1: Pick row/col with max # zeros and mark, tie goes to row.
+   *   2: Update zero counts, also count unmarked non-zero cells.
+   *   3: If no more zeros exit.
+   *   4: Pick max of [zeros covered - unmarked nonzero covered] to mark, tie to row.
+   *   5: Go to 2.
+   */
+  lineThroughRow_.assign(matrix_.Nrows(), false);
+  lineThroughCol_.assign(matrix_.Ncols(), false);
+  typedef std::vector<int> Iarray;
+  Iarray rowZeroCount(nrows_, 0);
+  Iarray colZeroCount(ncols_, 0);
+  Iarray rowNonzeroCount(nrows_, 0);
+  Iarray colNonzeroCount(ncols_, 0);
+  // Step 0
+  int TotalZeros = 0;
+  Matrix<double>::iterator elt = matrix_.begin(); // TODO: const_iterator
+  for (int row = 0; row != nrows_; ++row)
+  {
+    for (int col = 0; col != ncols_; ++col)
+    {
+      if (*elt < Constants::SMALL) {
+        rowZeroCount[row]++;
+        colZeroCount[col]++;
+        ++TotalZeros;
+      }
+      ++elt;
+    }
+  }
+# ifdef DEBUG_HUNGARIAN
+  mprintf("Initial zero counts (%i total):\n", TotalZeros);
+# endif
+  int maxZeroCount = -1;
+  int maxIdx = -1;
+  bool maxIsRow = true;
+  for (int row = 0; row != nrows_; ++row) {
+    rowNonzeroCount[row] = ncols_ - rowZeroCount[row];
+#   ifdef DEBUG_HUNGARIAN
+    mprintf("\tRow %i has %i zeros.\n", row, rowZeroCount[row]);
+#   endif
+    if (rowZeroCount[row] > maxZeroCount) {
+      maxZeroCount = rowZeroCount[row];
+      maxIdx = row;
+    }
+  }
+  for (int col =0; col != ncols_; ++col) {
+    colNonzeroCount[col] = nrows_ - colZeroCount[col];
+#   ifdef DEBUG_HUNGARIAN
+    mprintf("\tCol %i has %i zeros.\n", col, colZeroCount[col]);
+#   endif
+    if (colZeroCount[col] > maxZeroCount) {
+      maxZeroCount = colZeroCount[col];
+      maxIdx = col;
+      maxIsRow = false;
+    }
+  }
+  // Step 1
+# ifdef DEBUG_HUNGARIAN
+  if (maxIsRow)
+    mprintf("Max zero count %i in row %i\n", maxZeroCount, maxIdx);
+  else
+    mprintf("Max zero count %i in col %i\n", maxZeroCount, maxIdx);
+# endif
+  if (maxIsRow)
+    lineThroughRow_[maxIdx] = true;
+  else
+    lineThroughCol_[maxIdx] = true;
+  // Step 2
+  while (TotalZeros > 0) {
+    rowZeroCount.assign(nrows_, 0);
+    colZeroCount.assign(ncols_, 0);
+    rowNonzeroCount.assign(nrows_, 0);
+    colNonzeroCount.assign(ncols_, 0);
+    TotalZeros = 0;
+    for (int row = 0; row != nrows_; ++row)
+    {
+      if (!lineThroughRow_[row]) {
+        for (int col = 0; col != ncols_; ++col)
+        {
+          if (!lineThroughCol_[col]) {
+            double val = matrix_.element(col, row);
+            if (val < Constants::SMALL) {
+              rowZeroCount[row]++;
+              colZeroCount[col]++;
+              ++TotalZeros;
+            } else {
+              rowNonzeroCount[row]++; // TODO: Just subtract rowZeroCount etc?
+              colNonzeroCount[col]++;
+            }
+          }
+        }
+      }
+    }
+#   ifdef DEBUG_HUNGARIAN
+    mprintf("Current zero counts (%i total):\n", TotalZeros);
+#   endif
+    // Step 3
+    if (TotalZeros < 1) break; // TODO: More elegant?
+    // Step 4
+    maxZeroCount = -1;
+    maxIdx = -1;
+    maxIsRow = true;
+    for (int row = 0; row != nrows_; ++row) {
+      if (!lineThroughRow_[row]) {
+#       ifdef DEBUG_HUNGARIAN
+        //mprintf("\tRow %i has %i zeros, %i non-zeros.\n",row,rowZeroCount[row],rowNonzeroCount[row]);
+#       endif
+        int diff = rowZeroCount[row] - rowNonzeroCount[row];
+        if (maxIdx == -1 || diff > maxZeroCount) {
+          maxZeroCount = diff;
+          maxIdx = row;
+        }
+      }
+    }
+    for (int col =0; col != ncols_; ++col) {
+      if (!lineThroughCol_[col]) {
+#       ifdef DEBUG_HUNGARIAN
+        //mprintf("\tCol %i has %i zeros, %i non-zeros.\n",col,colZeroCount[col],colNonzeroCount[col]);
+#       endif
+        int diff = colZeroCount[col] - colNonzeroCount[col];
+        if (diff > maxZeroCount) {
+          maxZeroCount = diff;
+          maxIdx = col;
+          maxIsRow = false;
+        }
+      }
+    }
+#   ifdef DEBUG_HUNGARIAN
+    if (maxIsRow)
+      mprintf("Max zero count %i in row %i\n", maxZeroCount, maxIdx);
+    else
+      mprintf("Max zero count %i in col %i\n", maxZeroCount, maxIdx);
+#   endif
+    if (maxIsRow)
+      lineThroughRow_[maxIdx] = true;
+    else
+      lineThroughCol_[maxIdx] = true;
+  }
+   
+/*
 # ifdef DEBUG_HUNGARIAN
   mprintf("Drawing lines through rows/cols with zero elements\n");
 # endif
@@ -304,10 +445,10 @@ void Hungarian::CoverZeroElements() {
       if (!markedRow[row]) {
         int elt = row * ncols_;
         for (int col = 0; col < ncols_; ++col, ++elt) {
-          if (markedCol[col] && assignRowToCol_[col] == row) {
+          if (markedCol[col] && matrix_[elt] < Constants::SMALL) {
             markedRow[row] = true;
 #           ifdef DEBUG_HUNGARIAN
-            mprintf("\tMarking row %i (is assigned to marked column %i)\n", row, col);
+            mprintf("\tMarking row %i (has zero in marked column %i)\n", row, col);
 #           endif
             Nmarks++;
             break;
@@ -321,6 +462,7 @@ void Hungarian::CoverZeroElements() {
     if (markedCol[col]) lineThroughCol_[col] = true;
   for (int row = 0; row < nrows_; row++)
     if (!markedRow[row]) lineThroughRow_[row] = true;
+*/
 # ifdef DEBUG_HUNGARIAN
   //mprintf("  Assigned %i lines\n", Nlines);
   PrintLines("Matrix With Lines:");
