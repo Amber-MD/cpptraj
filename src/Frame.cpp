@@ -206,7 +206,7 @@ void Frame::SetFromCRD(CRDtype const& crdIn, AtomMask const& mask, int numCrd,
     X_[ix++] = (double)crdIn[xoffset  ];
     X_[ix++] = (double)crdIn[xoffset+1];
     X_[ix++] = (double)crdIn[xoffset+2];
-    if (hasVel) {
+    if (hasVel && V_ != 0) {
       unsigned int voffset = numCrd + xoffset;
       V_[iv++] = (double)crdIn[voffset  ]; 
       V_[iv++] = (double)crdIn[voffset+1]; 
