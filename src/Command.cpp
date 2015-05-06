@@ -124,6 +124,7 @@
 #include "Analysis_CurveFit.h"
 #include "Analysis_PhiPsi.h"
 #include "Analysis_Rotdif.h"
+#include "Analysis_Wavelet.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1982,6 +1983,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   { ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
+  { ANALYSIS, "wavelet", Analysis_Wavelet::Alloc, Analysis_Wavelet::Help, AddAnalysis },
   // DEPRECATED COMMANDS
   { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
   { DEPRECATED, "avgcoord",     0, Deprecate_AvgCoord,     0 },
