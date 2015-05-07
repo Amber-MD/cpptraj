@@ -231,6 +231,9 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   //          with rows (atom distance vs frame) via dot product of the 
   //          frequency domains, i.e. Fourier-transformed, followed by an
   //          inverse FT.
+  Matrix<double> MAX;
+  MAX.resize( nframes, natoms );
+  Darray output( nframes ); // Scratch space
   for (int at = 0; at != natoms; at++) {
     ComplexArray AtomSignal( nframes ); // Initializes to zero
     // Calculate the distance variance for this atom and populate the array.
@@ -245,6 +248,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
     }
     d_var = (d_var - ((d_avg * d_avg) / (double)nframes)) / ((double)(nframes - 1));
     mprintf("VARIANCE: %g\n", d_var);
+    double var_norm = 1.0 / d_var;
     // Calculate FT of atom signal
     pubfft.Forward( AtomSignal );
     PrintComplex("AtomSignal", AtomSignal);
@@ -255,10 +259,25 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
       ComplexArray dot = AtomSignal.TimesComplexConj( FFT_of_Scaled_Wavelets[iscale] );
       // Inverse FT of dot product
       pubfft.Back( dot );
-    }
-
-  }
+      PrintComplex("InverseFT_Dot", dot);
+      // Chi-squared testing
+      midx = at * nframes;
+      cidx = 0;
+      for (int frm = 0; frm != nframes; frm++, cidx += 2, midx++) {
+        output[frm] = (dot[cidx]*dot[cidx] + dot[cidx+1]*dot[cidx+1]) * var_norm;
+        if (output[frm] < MIN[iscale])
+          output[frm] = 0.0;
+        if (output[frm] > MAX[midx]) {
+          MAX[midx] = output[frm];
+          //Indices[midx] = iscale
+        }
+      }
+      mprintf("DEBUG: AbsoluteValue:");
+      for (Darray::const_iterator dval = output.begin(); dval != output.end(); ++dval)
+        mprintf(" %g", *dval);
+      mprintf("\n");
+    } // END loop over scales
+  } // END loop over atoms
       
-  
   return Analysis::OK;
 }
