@@ -4,6 +4,7 @@
 #include "Matrix.h"
 #include "DistRoutines.h"
 #include "Constants.h"
+#include "PubFFT.h"
 
 // CONSTRUCTOR
 Analysis_Wavelet::Analysis_Wavelet() :
@@ -111,6 +112,13 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
   return Analysis::OK;
 }
 
+static inline void PrintComplex(const char* title, ComplexArray const& C) {
+  if (title != 0) mprintf("DEBUG: %s:", title);
+  for (ComplexArray::iterator cval = C.begin(); cval != C.end(); cval += 2)
+    mprintf(" (%g,%g)", *cval, *(cval+1));
+  mprintf("\n");
+}
+
 // Analysis_Wavelet::Analyze()
 Analysis::RetType Analysis_Wavelet::Analyze() {
   // Step 1 - Create a matrix that is #atoms rows by #frames - 1 cols,
@@ -140,11 +148,19 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   // Iterate over frames
   for (int frm = 1; frm != nframes; frm++) {
     coords_->GetFrame( frm, currentFrame, mask_ );
+    //const double* curr = currentFrame.XYZ(0);
+    //const double* last = lastFrame.XYZ(0);
+    //mprintf("DEBUG: last frame: %g %g %g  this frame: %g %g %g\n",
+    //        last[0], last[1], last[2],
+    //        curr[0], curr[1], curr[2]);
     int idx = frm; // Position in distance matrix; start at column 'frame'
-    for (int at = 0; at != natoms; at++, idx += nframes)
+    for (int at = 0; at != natoms; at++, idx += nframes) {
       // Distance of atom at in current frame from last frame.
-      d_matrix[idx] = DIST2_NoImage( currentFrame.XYZ(at), lastFrame.XYZ(at) );
-    lastFrame = currentFrame;
+      d_matrix[idx] = sqrt(DIST2_NoImage( currentFrame.XYZ(at), lastFrame.XYZ(at) ));
+      //mprintf("DEBUG: Col(frm) %i Row(at) %i Idx %i distance: %g\n",
+      //        frm, at, idx, d_matrix[idx]);
+    }
+    //lastFrame = currentFrame; // TODO: Re-enable?
   }
   // DEBUG: Write matrix to file.
   CpptrajFile dmatrixOut;
@@ -157,18 +173,8 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   }
   dmatrixOut.CloseFile();
 
-  // Calculate scale factors
-  typedef std::vector<double> Darray;
-  Darray scaleVector;
-  scaleVector.reserve( nb_ );
-  for (int iscale = 0; iscale != nb_; iscale++)
-    scaleVector.push_back( S0_ * pow(2.0, iscale * ds_) );
-  mprintf("DEBUG: Scaling factors:");
-  for (Darray::const_iterator sval = scaleVector.begin(); sval != scaleVector.end(); ++sval)
-    mprintf(" %g", *sval);
-  mprintf("\n");
-
   // Precompute some factors for calculating scaled wavelets.
+  double one_over_sqrt_N = 1.0 / sqrt( nframes );
   std::vector<int> arrayK( nframes );
   arrayK[0] = -1 * (nframes/2);
   for (int i = 1; i != nframes; i++)
@@ -178,24 +184,81 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
     mprintf(" %i", *kval);
   mprintf("\n");
 
-  // Step 2 - Get FFT of wavelet for each scale
+  // Step 2 - Get FFT of wavelet for each scale.
+  PubFFT pubfft;
+  pubfft.SetupFFTforN( nframes );
   mprintf("\tMemory required for scaled wavelet array: %.2f MB\n",
           (double)(2 * nframes * nb_ * sizeof(double)) / (1024 * 1024));
   typedef std::vector<ComplexArray> WaveletArray;
   WaveletArray FFT_of_Scaled_Wavelets;
   FFT_of_Scaled_Wavelets.reserve( nb_ );
-  for (Darray::const_iterator sval = scaleVector.begin(); sval != scaleVector.end(); ++sval)
+  typedef std::vector<double> Darray;
+  Darray scaleVector;
+  scaleVector.reserve( nb_ );
+  Darray MIN( nb_ * 2 );
+  for (int iscale = 0; iscale != nb_; iscale++)
   {
+    // Calculate and store scale factor.
+    scaleVector.push_back( S0_ * pow(2.0, iscale * ds_) );
+    // Populate MIN array
+    MIN[iscale    ] = (0.00647*pow((correction_*scaleVector.back()),1.41344)+19.7527)*chival_;
+    MIN[iscale+nb_] = correction_*scaleVector.back();
+    // Calculate scalved wavelet
     ComplexArray scaledWavelet;
     switch (wavelet_type_) {
-      case W_MORLET: scaledWavelet = F_Morlet(arrayK, *sval); break;
-      case W_PAUL  : scaledWavelet = F_Paul(arrayK, *sval); break;
+      case W_MORLET: scaledWavelet = F_Morlet(arrayK, scaleVector.back()); break;
+      case W_PAUL  : scaledWavelet = F_Paul(arrayK, scaleVector.back()); break;
       case W_NONE  : return Analysis::ERR; // Sanity check
     }
+    PrintComplex("wavelet_before_fft", scaledWavelet);
+    // Perform FFT
+    pubfft.Forward( scaledWavelet );
+    // Normalize
+    scaledWavelet.Normalize( one_over_sqrt_N );
+    PrintComplex("wavelet_after_fft", scaledWavelet);
+    FFT_of_Scaled_Wavelets.push_back( scaledWavelet );
   }
-  //  wavelet_fft_scale.push_back( ScaledWaveletFFT(nframes, *sval) );
-  
-      
+  mprintf("DEBUG: Scaling factors:");
+  for (Darray::const_iterator sval = scaleVector.begin(); sval != scaleVector.end(); ++sval)
+    mprintf(" %g", *sval);
+  mprintf("\n");
+  mprintf("DEBUG: MIN:");
+  for (int i = 0; i != nb_; i++)
+    mprintf(" %g", MIN[i]);
+  mprintf("\n");
 
+  // Step 3 - For each atom, calculate the convolution of scaled wavelets
+  //          with rows (atom distance vs frame) via dot product of the 
+  //          frequency domains, i.e. Fourier-transformed, followed by an
+  //          inverse FT.
+  for (int at = 0; at != natoms; at++) {
+    ComplexArray AtomSignal( nframes ); // Initializes to zero
+    // Calculate the distance variance for this atom and populate the array.
+    int midx = at * nframes; // Index into d_matrix
+    int cidx = 0;            // Index into AtomSignal
+    double d_avg = 0.0;
+    double d_var = 0.0;
+    for (int frm = 0; frm != nframes; frm++, cidx += 2, midx++) {
+      d_avg += d_matrix[midx];
+      d_var += (d_matrix[midx] * d_matrix[midx]);
+      AtomSignal[cidx] = d_matrix[midx];
+    }
+    d_var = (d_var - ((d_avg * d_avg) / (double)nframes)) / ((double)(nframes - 1));
+    mprintf("VARIANCE: %g\n", d_var);
+    // Calculate FT of atom signal
+    pubfft.Forward( AtomSignal );
+    PrintComplex("AtomSignal", AtomSignal);
+    // Normalize
+    AtomSignal.Normalize( one_over_sqrt_N );
+    // Calculate dot product of atom signal with each scaled FT wavelet
+    for (int iscale = 0; iscale != nb_; iscale++) {
+      ComplexArray dot = AtomSignal.TimesComplexConj( FFT_of_Scaled_Wavelets[iscale] );
+      // Inverse FT of dot product
+      pubfft.Back( dot );
+    }
+
+  }
+      
+  
   return Analysis::OK;
 }

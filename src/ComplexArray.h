@@ -23,6 +23,8 @@ class ComplexArray {
     void SquareModulus();
     /// Calculate [this]* x [rhs] where * denotes complex conjugate.
     void ComplexConjTimes(ComplexArray const&);
+    /// \return [this] x [rhs]*, where * denotes complex conjugate.
+    ComplexArray TimesComplexConj(ComplexArray const&) const;
     double* CAptr()  { return data_;     }
     int size() const { return ncomplex_; }
     double& operator[](int idx)             { return data_[idx]; }

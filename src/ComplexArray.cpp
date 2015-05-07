@@ -87,3 +87,15 @@ void ComplexArray::ComplexConjTimes(ComplexArray const& rhs) {
     data_[i  ]  = dtmp;
   }
 }
+
+// ComplexArray::TimesComplexConj()
+ComplexArray ComplexArray::TimesComplexConj(ComplexArray const& rhs) const {
+  ComplexArray out;
+  if (rhs.ndata_ != ndata_) return out;
+  out.Allocate( ncomplex_ );
+  for (int i = 0; i != ndata_; i += 2) {
+    out[i  ] = data_[i  ] * rhs.data_[i  ] - data_[i+1] * rhs.data_[i+1];
+    out[i+1] = data_[i  ] * rhs.data_[i+1] + data_[i+1] * rhs.data_[i  ];
+  }
+  return out;
+}
