@@ -3,6 +3,9 @@
 #include "Analysis.h"
 #include "ComplexArray.h"
 /// Perform wavelet analysis
+/** \author Original code: Zahra Heidari
+  * \author Implemented in CPPTRAJ by Dan Roe
+  */
 class Analysis_Wavelet : public Analysis {
   public:
     Analysis_Wavelet();
