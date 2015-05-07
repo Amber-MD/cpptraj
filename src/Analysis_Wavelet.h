@@ -23,6 +23,7 @@ class Analysis_Wavelet : public Analysis {
 
     AtomMask mask_;
     DataSet_Coords* coords_;
+    DataSet* output_;
     double S0_;
     double ds_;
     double correction_;

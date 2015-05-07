@@ -5,6 +5,7 @@
 #include "DistRoutines.h"
 #include "Constants.h"
 #include "PubFFT.h"
+#include "DataSet_MatrixFlt.h"
 
 // CONSTRUCTOR
 Analysis_Wavelet::Analysis_Wavelet() :
@@ -55,7 +56,9 @@ const Analysis_Wavelet::WaveletToken Analysis_Wavelet::Tokens_[] = {
 /// Provide keywords
 void Analysis_Wavelet::Help() {
   mprintf("\t[crdset <set name>] nb <n scaling vals> [s0 <s0>] [ds <ds>]\n"
-          "\t[correction <correction>] [chival <chival>] [type <wavelet>]\n");
+          "\t[correction <correction>] [chival <chival>] [type <wavelet>]\n"
+          "\t[out <filename>] [name <setname>]\n"
+          "    <wavelet>: morlet, paul\n");
 }
 
 // Analysis_Wavelet::Setup
@@ -71,6 +74,8 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
     return Analysis::ERR;
   }
   // Get keywords
+  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  setname = analyzeArgs.GetStringKey("name");
   // TODO: Check defaults
   nb_ = analyzeArgs.getKeyInt("nb", 0); // FIXME: Should be more descriptive? nscale?
   if (nb_ < 1) {
@@ -99,6 +104,10 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
   }
   // Atom mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
+  // Set up output data set
+  output_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
+  if (output_ == 0) return Analysis::ERR;
+  if (outfile != 0) outfile->AddSet( output_ );
 
   mprintf("    WAVELET: Using COORDS set '%s', wavelet type %s\n",
           coords_->legend(), Tokens_[wavelet_type_].description_);
@@ -107,17 +116,19 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
           nb_, S0_, ds_);
   mprintf("\tCorrection: %g\n", correction_);
   mprintf("\tChiVal:     %g\n", chival_);
-
+  if (outfile != 0) mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
 
   return Analysis::OK;
 }
 
+#ifdef DEBUG_WAVELET
 static inline void PrintComplex(const char* title, ComplexArray const& C) {
   if (title != 0) mprintf("DEBUG: %s:", title);
   for (ComplexArray::iterator cval = C.begin(); cval != C.end(); cval += 2)
     mprintf(" (%g,%g)", *cval, *(cval+1));
   mprintf("\n");
 }
+#endif
 
 // Analysis_Wavelet::Analyze()
 Analysis::RetType Analysis_Wavelet::Analyze() {
@@ -136,9 +147,9 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
               nframes, natoms, coords_->legend());
     return Analysis::ERR;
   }
-  mprintf("\t%i frames, %i atoms, distance matrix will require %.2f MB\n",
-          nframes, natoms, (double)(nframes * natoms * sizeof(double)) / (1024 * 1024));
   Matrix<double> d_matrix;
+  mprintf("\t%i frames, %i atoms, distance matrix will require %.2f MB\n",
+          (double)d_matrix.sizeInBytes(nframes, natoms) / (1024.0*1024.0));
   d_matrix.resize(nframes, natoms);
   // Get initial frame.
   Frame currentFrame, lastFrame;
@@ -148,20 +159,13 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   // Iterate over frames
   for (int frm = 1; frm != nframes; frm++) {
     coords_->GetFrame( frm, currentFrame, mask_ );
-    //const double* curr = currentFrame.XYZ(0);
-    //const double* last = lastFrame.XYZ(0);
-    //mprintf("DEBUG: last frame: %g %g %g  this frame: %g %g %g\n",
-    //        last[0], last[1], last[2],
-    //        curr[0], curr[1], curr[2]);
     int idx = frm; // Position in distance matrix; start at column 'frame'
-    for (int at = 0; at != natoms; at++, idx += nframes) {
-      // Distance of atom at in current frame from last frame.
+    for (int at = 0; at != natoms; at++, idx += nframes)
+      // Distance of atom in currentFrame from its position in lastFrame.
       d_matrix[idx] = sqrt(DIST2_NoImage( currentFrame.XYZ(at), lastFrame.XYZ(at) ));
-      //mprintf("DEBUG: Col(frm) %i Row(at) %i Idx %i distance: %g\n",
-      //        frm, at, idx, d_matrix[idx]);
-    }
     //lastFrame = currentFrame; // TODO: Re-enable?
   }
+# ifdef DEBUG_WAVELET
   // DEBUG: Write matrix to file.
   CpptrajFile dmatrixOut;
   dmatrixOut.OpenWrite("dmatrix.dat");
@@ -172,6 +176,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
     dmatrixOut.Printf("\n");
   }
   dmatrixOut.CloseFile();
+# endif
 
   // Precompute some factors for calculating scaled wavelets.
   double one_over_sqrt_N = 1.0 / sqrt( nframes );
@@ -179,10 +184,12 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   arrayK[0] = -1 * (nframes/2);
   for (int i = 1; i != nframes; i++)
     arrayK[i] = arrayK[i-1] + 1;
+# ifdef DEBUG_WAVELET
   mprintf("DEBUG: K:");
   for (std::vector<int>::const_iterator kval = arrayK.begin(); kval != arrayK.end(); ++kval)
     mprintf(" %i", *kval);
   mprintf("\n");
+# endif
 
   // Step 2 - Get FFT of wavelet for each scale.
   PubFFT pubfft;
@@ -210,14 +217,19 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
       case W_PAUL  : scaledWavelet = F_Paul(arrayK, scaleVector.back()); break;
       case W_NONE  : return Analysis::ERR; // Sanity check
     }
+#   ifdef DEBUG_WAVELET
     PrintComplex("wavelet_before_fft", scaledWavelet);
+#   endif
     // Perform FFT
     pubfft.Forward( scaledWavelet );
     // Normalize
     scaledWavelet.Normalize( one_over_sqrt_N );
+#   ifdef DEBUG_WAVELET
     PrintComplex("wavelet_after_fft", scaledWavelet);
+#   endif
     FFT_of_Scaled_Wavelets.push_back( scaledWavelet );
   }
+# ifdef DEBUG_WAVELET
   mprintf("DEBUG: Scaling factors:");
   for (Darray::const_iterator sval = scaleVector.begin(); sval != scaleVector.end(); ++sval)
     mprintf(" %g", *sval);
@@ -226,14 +238,21 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   for (int i = 0; i != nb_; i++)
     mprintf(" %g", MIN[i]);
   mprintf("\n");
+# endif
 
   // Step 3 - For each atom, calculate the convolution of scaled wavelets
   //          with rows (atom distance vs frame) via dot product of the 
   //          frequency domains, i.e. Fourier-transformed, followed by an
   //          inverse FT.
+  DataSet_MatrixFlt& OUT = static_cast<DataSet_MatrixFlt&>( *output_ );
+  mprintf("\tMemory required for output matrix: %.2f MB\n",
+          (double)Matrix<float>::sizeInBytes(nframes, natoms)/(1024.0*1024.0));
+  OUT.Allocate2D( nframes, natoms ); // Should initialize to zero
   Matrix<double> MAX;
+  mprintf("\tMemory required for Max array: %.2f MB\n", 
+          (double)MAX.sizeInBytes(nframes, natoms)/(1024.0*1024.0));
   MAX.resize( nframes, natoms );
-  Darray output( nframes ); // Scratch space
+  Darray magnitude( nframes ); // Scratch space for calculating magnitude across rows
   for (int at = 0; at != natoms; at++) {
     ComplexArray AtomSignal( nframes ); // Initializes to zero
     // Calculate the distance variance for this atom and populate the array.
@@ -247,11 +266,15 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
       AtomSignal[cidx] = d_matrix[midx];
     }
     d_var = (d_var - ((d_avg * d_avg) / (double)nframes)) / ((double)(nframes - 1));
+#   ifdef DEBUG_WAVELET
     mprintf("VARIANCE: %g\n", d_var);
+#   endif
     double var_norm = 1.0 / d_var;
     // Calculate FT of atom signal
     pubfft.Forward( AtomSignal );
+#   ifdef DEBUG_WAVELET
     PrintComplex("AtomSignal", AtomSignal);
+#   endif
     // Normalize
     AtomSignal.Normalize( one_over_sqrt_N );
     // Calculate dot product of atom signal with each scaled FT wavelet
@@ -259,25 +282,41 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
       ComplexArray dot = AtomSignal.TimesComplexConj( FFT_of_Scaled_Wavelets[iscale] );
       // Inverse FT of dot product
       pubfft.Back( dot );
+#     ifdef DEBUG_WAVELET
       PrintComplex("InverseFT_Dot", dot);
+#     endif
       // Chi-squared testing
       midx = at * nframes;
       cidx = 0;
       for (int frm = 0; frm != nframes; frm++, cidx += 2, midx++) {
-        output[frm] = (dot[cidx]*dot[cidx] + dot[cidx+1]*dot[cidx+1]) * var_norm;
-        if (output[frm] < MIN[iscale])
-          output[frm] = 0.0;
-        if (output[frm] > MAX[midx]) {
-          MAX[midx] = output[frm];
+        magnitude[frm] = (dot[cidx]*dot[cidx] + dot[cidx+1]*dot[cidx+1]) * var_norm;
+        if (magnitude[frm] < MIN[iscale])
+          magnitude[frm] = 0.0;
+        if (magnitude[frm] > MAX[midx]) {
+          MAX[midx] = magnitude[frm];
           //Indices[midx] = iscale
+          OUT[midx] = (float)(correction_ * scaleVector[iscale]);
         }
       }
+#     ifdef DEBUG_WAVELET
       mprintf("DEBUG: AbsoluteValue:");
-      for (Darray::const_iterator dval = output.begin(); dval != output.end(); ++dval)
+      for (Darray::const_iterator dval = magnitude.begin(); dval != magnitude.end(); ++dval)
         mprintf(" %g", *dval);
       mprintf("\n");
+#     endif
     } // END loop over scales
   } // END loop over atoms
+# ifdef DEBUG_WAVELET 
+  // DEBUG: Print MAX
+  CpptrajFile maxmatrixOut;
+  maxmatrixOut.OpenWrite("maxmatrix.dat");
+  for (int col = 0; col != nframes; col++) {
+    for (int row = 0; row != natoms; row++)
+      maxmatrixOut.Printf("%g ", MAX.element(col, row));
+    maxmatrixOut.Printf("\n");
+  }
+  maxmatrixOut.CloseFile();
+# endif
       
   return Analysis::OK;
 }
