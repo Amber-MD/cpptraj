@@ -111,6 +111,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Statistics.cpp \
         Analysis_Timecorr.cpp \
         Analysis_VectorMath.cpp \
+        Analysis_Wavelet.cpp \
         ArgList.cpp \
         Array1D.cpp \
         Atom.cpp \
