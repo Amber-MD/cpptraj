@@ -21,7 +21,7 @@ class DataIO_Mdout : public DataIO {
                      ANGLE, DIHED, VDWAALS, EEL, EGB,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
                      RMS, EKtot, ESURF, EAMD_BOOST, VOLUME, TEMP,
-                     PRESS, N_FIELDTYPES };
+                     PRESS, DVDL, N_FIELDTYPES };
     static FieldType getEindex(Sarray const&);
     static const char* Enames[];
 };
