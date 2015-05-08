@@ -179,7 +179,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
 # endif
 
   // Precompute some factors for calculating scaled wavelets.
-  double one_over_sqrt_N = 1.0 / sqrt( nframes );
+  const double one_over_sqrt_N = 1.0 / sqrt(static_cast<double>( nframes ));
   std::vector<int> arrayK( nframes );
   arrayK[0] = -1 * (nframes/2);
   for (int i = 1; i != nframes; i++)
