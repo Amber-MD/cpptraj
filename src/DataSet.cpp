@@ -181,22 +181,38 @@ int DataSet::SetDataSetFormat(bool leftAlignIn) {
 }
 
 // DataSet::Matches()
-bool DataSet::Matches(std::string const& dsname, int idxnum, std::string const& aspect,
-                      int member) const
+/** This version allows wildcards and ranges. */
+bool DataSet::Matches_WC(std::string const& dsname, Range const& idxRange,
+                         std::string const& aspect,
+                         Range const& memberRange, DataType typeIn) const
 {
-  /*mprintf("DEBUG: Input: %s[%s]:%i  This Set: %s[%s]:%i\n",
-          dsname.c_str(), aspect.c_str(), idxnum, 
-          name_.c_str(), aspect_.c_str(), idx_);*/
-  if ( dsname != name_ && dsname != "*") return false;
+  //mprintf("DEBUG: Input: %s[%s]:%s  This Set: %s[%s]:%i\n",
+  //        dsname.c_str(), aspect.c_str(), idxRange.RangeArg(), 
+  //        name_.c_str(), aspect_.c_str(), idx_);
+  // Match type if specified
+  if ( typeIn != UNKNOWN_DATA && typeIn != dType_ ) return false;
+  // Match name
+  if ( WildcardMatch(dsname, name_) == 0 ) return false;
+  // If aspect specified make sure it matches.
+  if ( WildcardMatch(aspect, aspect_) == 0 ) return false;
   // Currently match any index if not specified.
-  if (idxnum != -1 && idxnum != idx_) return false;
+  if (idxRange.Front() != -1 && !idxRange.InRange(idx_)) return false;
   // Match any ensemble if not specified
-  if (member != -1 && member != ensembleNum_) return false;
-  // If aspect specified make sure it matches. 
-  if (!aspect.empty() && (aspect != aspect_ && aspect != "*")) return false;
+  if (memberRange.Front() != -1 && !memberRange.InRange(ensembleNum_)) return false;
   // If no aspect specified but dataset has aspect do not match.
-  if (aspect.empty() && !aspect_.empty()) return false;
+  //if (aspect.empty() && !aspect_.empty()) return false;
   //mprintf("\tMATCH\n");
+  return true;
+}
+
+/** This version does not allow wildcards or ranges. */
+bool DataSet::Matches_Exact(std::string const& nameIn, int idxIn,
+                            std::string const& aspectIn, int memberIn) const
+{
+  if (nameIn != name_         ) return false;
+  if (aspectIn != aspect_     ) return false;
+  if (idxIn  != idx_          ) return false;
+  if (memberIn != ensembleNum_) return false;
   return true;
 }
 

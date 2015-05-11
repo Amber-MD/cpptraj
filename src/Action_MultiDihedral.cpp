@@ -107,7 +107,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   {
     int resNum = dih->ResNum() + 1;
     // See if Dataset already present
-    DataSet* ds = masterDSL_->GetSet(dsetname_, resNum, dih->Name());
+    DataSet* ds = masterDSL_->CheckForSet(dsetname_, resNum, dih->Name());
     if (ds == 0) {
       // Create new DataSet
       ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, dih->Name());

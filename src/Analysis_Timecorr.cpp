@@ -168,7 +168,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
     if ( i < (int)TC_C  ) {
       // Dipolar average DataSets are reserved so it can be spanned across 
       // multiple 'timecorr' commands if desired.
-      DSOut_[i] = DSLin->GetSet(ds_name, -1, Tokens[i].Aspect);
+      DSOut_[i] = DSLin->CheckForSet(ds_name, -1, Tokens[i].Aspect);
     } else {
       ds_name = setname;
       df_ptr = outfile;
