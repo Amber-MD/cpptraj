@@ -82,7 +82,7 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
     int atom1 = currentParm->FindAtomInResidue( *res, name1_ );
     int atom2 = currentParm->FindAtomInResidue( *res, name2_ );
     if (atom1 != -1 && atom2 != -1) {
-      DataSet_Vector* ds = (DataSet_Vector*)masterDSL_->GetSet( dsetname_, atom1+1, "" );
+      DataSet_Vector* ds = (DataSet_Vector*)masterDSL_->CheckForSet( dsetname_, atom1+1, "" );
       if (ds == 0) {
         // Create DataSet
         ds = (DataSet_Vector*)masterDSL_->AddSetIdx( DataSet::VECTOR, dsetname_, atom1+1 );

@@ -3,6 +3,7 @@
 #include <cstddef> // size_t
 #include <vector>
 #include "Dimension.h"
+#include "Range.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
 /** DataSets are given certain attributes to make DataSet selection easier; 
@@ -77,7 +78,9 @@ class DataSet {
     /// Used to set the data and header format strings 
     int SetDataSetFormat(bool);
     /// Check if name and/or index and aspect match this DataSet.
-    bool Matches(std::string const&, int, std::string const&, int) const;
+    bool Matches_WC(std::string const&, Range const&, std::string const&,
+                    Range const&, DataType) const;
+    bool Matches_Exact(std::string const&, int, std::string const&, int) const;
     /// \return scalar mode/type description
     std::string ScalarDescription() const;
     /// \return name/aspect/index/member as "<name>[<aspect>].<idx>%<member>"
