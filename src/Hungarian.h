@@ -12,6 +12,9 @@ class Hungarian {
     void AddElement(double d) { matrix_.addElement( d ); }
     /// \return Array containing Map[col] = row
     std::vector<int> Optimize();
+    typedef Matrix<double>::iterator iterator;
+    iterator begin() { return matrix_.begin(); }
+    iterator end()   { return matrix_.end();   }
   private:
     int AssignRowsToColumns();
     void CoverZeroElements();

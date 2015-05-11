@@ -15,6 +15,7 @@ StrArray ExpandToFilenames(std::string const&);
 bool fileExists(std::string const&);
 
 std::string NumberFilename(std::string const &, int);
+int WildcardMatch(std::string const&, std::string const&);
 int DigitWidth(long int);
 int FloatWidth(double);
 

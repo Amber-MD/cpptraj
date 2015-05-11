@@ -29,11 +29,11 @@ static inline int EOF_ERROR() {
 }
 
 const char* DataIO_Mdout::Enames[] = {
-  "Etot",   "EPtot", "GMAX",   "BOND", 
-  "ANGLE",  "DIHED",  "VDW",   "EELEC",  "EGB",
-  "VDW1-4", "EEL1-4", "RST",   "EAMBER", "Density",
-  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME", "TEMP",
-  "PRESS", 0
+  "Etot",   "EPtot",  "GMAX",  "BOND",
+  "ANGLE",  "DIHED",  "VDW",   "EELEC",      "EGB",
+  "VDW1-4", "EEL1-4", "RST",   "EAMBER",     "Density",
+  "RMS",    "EKtot",  "ESURF", "EAMD_BOOST", "VOLUME",  "TEMP",
+  "PRESS",  "DVDL",   0
 };
 
 /// \return index of name in Energy[] array, N_FIELDTYPES if not recognized.
@@ -60,6 +60,7 @@ DataIO_Mdout::FieldType DataIO_Mdout::getEindex(Sarray const& Name) {
   if (Name[0]=="VOLUME") return VOLUME;
   if (Name[0]=="TEMP(K)") return TEMP;
   if (Name[0]=="PRESS") return PRESS;
+  if (Name[0]=="DV/DL") return DVDL;
   return N_FIELDTYPES;
 }
 

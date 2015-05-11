@@ -228,18 +228,14 @@ void DataSetList::PendingWarning() const {
 
 // DataSetList::GetDataSet()
 DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
-  std::string attr_arg, idx_arg, member_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
-  int idx = -1;
-  if (!idx_arg.empty()) idx = convertToInteger(idx_arg); // TODO: Set idx_arg to -1
-  int member = -1;
-  if (!member_arg.empty()) member = convertToInteger(member_arg);
-  DataSet* ds = GetSet( dsname, idx, attr_arg, member );
-  if (ds == 0) {
+  DataSetList dsetOut = SelectSets( nameIn );
+  if (dsetOut.empty()) {
     mprintf("Warning: Data set '%s' not found.\n", nameIn.c_str());
     PendingWarning();
-  }
-  return ds;
+    return 0;
+  } else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets, only using first set.\n");
+  return dsetOut[0];
 }
 
 /** The set argument must match EXACTLY, so Data will not return Data:1 */
@@ -256,24 +252,26 @@ DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
                                   std::string const& aspect_arg, int member) const
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Name() == dsname )
-      if ( (*ds)->Aspect() == aspect_arg )
-        if ( (*ds)->Idx() == idx )
-          if ( (*ds)->Member() == member )
-            return *ds;
+    if ( (*ds)->Matches_Exact( dsname, idx, aspect_arg, member ) )
+      return *ds;
   return 0;
 }
 
-// DataSetList::GetMultipleSets()
-/** \return a list of all DataSets matching the given argument. */
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
+  return SelectSets( nameIn, DataSet::UNKNOWN_DATA );
+}
+
+/** \return a list of all DataSets matching the given argument. */
+DataSetList DataSetList::SelectSets( std::string const& dsargIn,
+                                     DataSet::DataType typeIn ) const
+{
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
   Range idxrange, memberrange;
 
-  std::string attr_arg, idx_arg, member_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
-  //mprinterr("DBG: GetMultipleSets \"%s\": Looking for %s[%s]:%s%%%s\n",nameIn.c_str(), dsname.c_str(), attr_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
+  std::string aspect_arg, idx_arg, member_arg;
+  std::string dsname = ParseArgString( dsargIn, idx_arg, aspect_arg, member_arg );
+  //mprintf("DBG: GetMultipleSets \"%s\": Looking for name=%s aspect=%s idx=%s member=%s\n",dsargIn.c_str(), dsname.c_str(), aspect_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
   // If index arg is empty make wildcard (-1)
   if (idx_arg.empty() || idx_arg == "*")
     idxrange.SetRange( -1, 0 ); 
@@ -284,69 +282,25 @@ DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
     memberrange.SetRange( -1, 0 );
   else
     memberrange.SetRange( member_arg );
-  // If attribute arg not set and name is wildcard, make attribute wildcard.
-  if (attr_arg.empty() && dsname == "*")
-    attr_arg.assign("*");
-  // All start selected
-  std::vector<char> SelectedSets(DataList_.size(), 'T');
-  // Check name
-  std::vector<char>::iterator selected = SelectedSets.begin();
-  if ( dsname != "*" ) {
-    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( (*ds)->Name() != dsname ) *selected = 'F';
-      ++selected;
-    }
-  }
-  // Check aspect
-  if ( attr_arg != "*" ) {
-    selected = SelectedSets.begin();
-    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( *selected == 'T' && (*ds)->Aspect() != attr_arg ) *selected = 'F';
-      ++selected;
-    }
-  }
-  // Check index
-  if ( !idx_arg.empty() && idx_arg != "*" ) {
-    selected = SelectedSets.begin();
-    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( *selected == 'T' && !idxrange.InRange( (*ds)->Idx() ) ) *selected = 'F';
-      ++selected;
-    }
-  }
-  // Check ensemble
-  if (!member_arg.empty() && member_arg != "*" ) {
-    selected = SelectedSets.begin();
-    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( *selected == 'T' && !memberrange.InRange( (*ds)->Member() ) ) *selected = 'F';
-      ++selected;
-    }
-  }
-  // Add selected DataSets to dsetOut
-  selected = SelectedSets.begin();
+  // If aspect arg not set and name is wildcard, make attribute wildcard.
+  if (aspect_arg.empty() && dsname == "*")
+    aspect_arg.assign("*");
+  // Find matching sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( *(selected++) == 'T' ) dsetOut.DataList_.push_back( *ds );
+    if ((*ds)->Matches_WC( dsname, idxrange, aspect_arg, memberrange, typeIn ))
+      dsetOut.DataList_.push_back( *ds );
+
   return dsetOut;
 }
 
 // DataSetList::GetMultipleSets()
-DataSetList DataSetList::GetMultipleSets( std::string const& nameIn ) const {
-  DataSetList dsetOut = SelectSets(nameIn);
+DataSetList DataSetList::GetMultipleSets( std::string const& dsargIn ) const {
+  DataSetList dsetOut = SelectSets(dsargIn);
   if ( dsetOut.empty() ) {
-    mprintf("Warning: '%s' selects no data sets.\n", nameIn.c_str());
+    mprintf("Warning: '%s' selects no data sets.\n", dsargIn.c_str());
     PendingWarning();
   }
   return dsetOut;
-}
-
-// DataSetList::GetSet()
-/** \return Specified Dataset or null if not found.
-  */
-DataSet* DataSetList::GetSet(std::string const& dsname, int idx, std::string const& aspect,
-                             int member) const 
-{
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
-    if ( (*ds)->Matches( dsname, idx, aspect, member ) ) return *ds;
-  return 0;
 }
 
 /** Create or append string data set from given array. */
@@ -613,19 +567,12 @@ void DataSetList::SynchronizeData() {
 // DataSetList::FindSetOfType()
 DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
-  std::string attr_arg, idx_arg, member_arg;
-  std::string dsname = ParseArgString( nameIn, idx_arg, attr_arg, member_arg );
-  int idx = -1;
-  if (!idx_arg.empty()) idx = convertToInteger(idx_arg);
-  int member = -1;
-  if (!member_arg.empty()) idx = convertToInteger(member_arg);
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    if ( (*ds)->Type() == typeIn ) {
-      if ( (*ds)->Matches( dsname, idx, attr_arg, member ) )
-        return (*ds);
-    }
-  }
-  return 0;
+  DataSetList dsetOut = SelectSets( nameIn, typeIn );
+  if (dsetOut.empty())
+    return 0;
+  else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
+  return dsetOut[0];
 }
 
 /** Search for a COORDS DataSet. If no name specified, create a default 

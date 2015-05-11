@@ -113,6 +113,44 @@ std::string NumberFilename(std::string const &fname, int number) {
   return oss.str();
 }
 
+/** \return 1 if S1 matches S2. 0 otherwise.
+  * \param S1 String containing wildcards.
+  * \param S2 String to match.
+  * The following wildcards are supported:
+  *   '*': Any number of characters, including none.
+  *   '?': A single character.
+  */
+int WildcardMatch(std::string const& S1, std::string const& S2) {
+  std::string::const_iterator c1 = S1.begin();
+  std::string::const_iterator c2 = S2.begin();
+  while ( c1 != S1.end() || c2 != S2.end() ) {
+    if (c1 == S1.end() && c2 != S2.end()) return 0;
+    if (*c1 == '*') {
+      ++c1;
+      if (c1 == S1.end()) return 1;
+      bool match = false;
+      while (c2 != S2.end()) {
+        if (*c2 == *c1) {
+          match = true;
+          break;
+        }
+        ++c2;
+      }
+      if (!match) return 0;
+    } else if (c2 == S2.end()) {
+      return 0;
+    } else if (*c1 == '?') {
+      ++c1;
+      ++c2;
+    } else {
+      if (*c1 != *c2) return 0;
+      ++c1;
+      ++c2;
+    }
+  }
+  return 1;
+}
+
 // DigitWidth()
 /** \return the number of characters necessary to express the given digit. */
 int DigitWidth(long int numberIn) {
