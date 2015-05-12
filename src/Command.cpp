@@ -89,6 +89,7 @@
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
+#include "Action_CheckFrame.h"
 
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
@@ -1869,6 +1870,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "channel", Action_Channel::Alloc, Action_Channel::Help, AddAction },
   { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
+  { ACTION, "checkframe", Action_CheckFrame::Alloc, Action_CheckFrame::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },

@@ -12,6 +12,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Center.cpp \
         Action_Channel.cpp \
         Action_CheckChirality.cpp \
+        Action_CheckFrame.cpp \
         Action_CheckStructure.cpp \
         Action_Closest.cpp \
         Action_ClusterDihedral.cpp \
