@@ -544,7 +544,7 @@ Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame,
     case INTERVAL: IntervalAngles(*currentFrame); break;
   }
   // Check the resulting structure
-  int n_problems = checkStructure_.CheckFrame( frameNum+1, *currentFrame );
+  int n_problems = checkStructure_.CheckOverlap( frameNum+1, *currentFrame, *CurrentParm_ );
   //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
   number_of_problems_->Add(frameNum, &n_problems);
 
