@@ -42,21 +42,7 @@ Action::RetType Action_CheckFrame::Init(ArgList& actionArgs, TopologyList* PFL, 
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
   if (!around.empty())
     Mask2_.SetMaskString( around );
-/*
-# ifdef _OPENMP
-  int numthreads;
-  // Create array so each thread can record what problems it finds.
-# pragma omp parallel
-  {
-#   pragma omp master
-    {
-      numthreads = omp_get_num_threads();
-      if (outfile_ != 0)
-        Problems_.resize( numthreads );
-    }
-  }
-# endif
-*/
+
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'",Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf(" around mask '%s'", Mask2_.MaskString());
@@ -78,9 +64,15 @@ Action::RetType Action_CheckFrame::Init(ArgList& actionArgs, TopologyList* PFL, 
     mprintf("\tFrames with problems will be skipped.\n");
   if (silent_)
     mprintf("\tWarning messages will be suppressed.\n");
-//# ifdef _OPENMP
-//  mprintf("\tParallelizing calculation with %i threads.\n", numthreads);
-//# endif
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+#   pragma omp master
+    {
+    mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
+    }
+  }
+# endif
   // Square the non-bond cutoff
   nonbondcut2_ = nonbondcut * nonbondcut;
   return Action::OK;
@@ -169,9 +161,6 @@ int Action_CheckFrame::CheckBonds(int frameNum, Frame const& currentFrame, Topol
 
   int bond_max = (int)bondList_.size();
 # ifdef _OPENMP
-//  BondType BT;
-//  for (ProblemList::iterator it = Problems_.begin(); it != Problems_.end(); ++it)
-//    it->clear();
 # pragma omp parallel private(idx,D2) reduction(+: Nproblems)
   {
   //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
@@ -184,12 +173,6 @@ int Action_CheckFrame::CheckBonds(int frameNum, Frame const& currentFrame, Topol
     if (D2 > bondList_[idx].Req_off2_) {
       ++Nproblems;
       if (outfile_ != 0) {
-//#       ifdef _OPENMP
-//        BT.Req_off2_ = sqrt(D2);
-//        BT.a1_ = bondList_[idx].a1_;
-//        BT.a2_ = bondList_[idx].a2_;
-//        Problems_[mythread].push_back( BT );
-//#       else 
 #       ifdef _OPENMP
 #       pragma omp critical
 #       endif
@@ -198,18 +181,11 @@ int Action_CheckFrame::CheckBonds(int frameNum, Frame const& currentFrame, Topol
                     bondList_[idx].a1_+1, top.TruncResAtomName(bondList_[idx].a1_).c_str(),
                     bondList_[idx].a2_+1, top.TruncResAtomName(bondList_[idx].a2_).c_str(),
                     sqrt(D2));
-//#       endif
       }
     }
   } // END loop over bonds
 # ifdef _OPENMP
   } // END pragma omp parallel
-//  for (ProblemList::const_iterator p = Problems_.begin(); p != Problems_.end(); ++p)
-//    for (BondList::const_iterator b = p->begin(); b != p->end(); ++b)
-//      outfile_->Printf(
-//                    "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-//                    b->a1_+1, top.TruncResAtomName(b->a1_).c_str(),
-//                    b->a2_+1, top.TruncResAtomName(b->a2_).c_str(), b->Req_off2_);
 # endif
   return Nproblems;   
 }
@@ -226,11 +202,6 @@ int Action_CheckFrame::CheckOverlap(int frameNum, Frame const& currentFrame, Top
   // Get imaging info for non-orthogonal box // TODO Check volume
   if (image_.ImageType()==NONORTHO)
     currentFrame.BoxCrd().ToRecip(ucell, recip);
-# ifdef _OPENMP
-  //BondType BT;
-  //for (ProblemList::iterator it = Problems_.begin(); it != Problems_.end(); ++it)
-  //  it->clear();
-# endif
   if ( Mask2_.MaskStringSet() ) {
     // Calculation of all atoms in Mask1 to all atoms in Mask2
     int outer_max = OuterMask_.Nselected();
@@ -275,7 +246,7 @@ int Action_CheckFrame::CheckOverlap(int frameNum, Frame const& currentFrame, Top
     {
     //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
     //mythread = omp_get_thread_num();
-#   pragma omp for
+#   pragma omp for schedule(dynamic)
 #   endif
     for (nmask1 = 0; nmask1 < mask1_max; nmask1++) {
       atom1 = Mask1_[nmask1];
