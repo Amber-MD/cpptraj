@@ -132,6 +132,10 @@ Action::RetType Action_CheckFrame::Setup(Topology* currentParm, Topology** parmA
       mprinterr("Error: Mask '%s' has no atoms.\n", Mask2_.MaskString());
       return Action::ERR;
     }
+    int common = Mask1_.NumAtomsInCommon( Mask2_ );
+    if (common > 0)
+      mprintf("Warning: '%s' has %i atoms in common with '%s'. Some problems may be reported\n"
+              "Warning:   more than once.\n", Mask1_.MaskString(), common, Mask2_.MaskString());
     // Outer mask should be the one with the most atoms.
     if ( Mask2_.Nselected() > Mask1_.Nselected() ) {
       OuterMask_ = Mask2_;
