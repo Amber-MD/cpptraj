@@ -171,8 +171,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Increment backtrack by 1 since we need to skip over current res
   ++backtrack_;
   // Initialize CheckStructure
-  ArgList cs_args("noimage nobondcheck");
-  if (checkStructure_.Init( cs_args, PFL, DSL, DFL, debug_) != Action::OK) {
+  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, *DFL )) {
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }
@@ -247,8 +246,8 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
     }
   }
 
-  // Set up CheckStructure for this parm
-  if (checkStructure_.Setup(currentParm, parmAddress) != Action::OK)
+  // Set up CheckStructure for this parm (false = nobondcheck)
+  if (checkStructure_.SeparateSetup(*currentParm, false) != Action::OK)
     return Action::ERR;
 
   // Set the overall max number of rotations to try
