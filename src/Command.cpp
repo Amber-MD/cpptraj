@@ -1160,6 +1160,33 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
     return Command::C_OK;
+  } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
+    std::string name = argIn.GetStringKey("name");
+    DataSet* ds1 = State.DSL()->GetDataSet( argIn.GetStringNext() );
+    DataSet* ds2 = State.DSL()->GetDataSet( argIn.GetStringNext() );
+    if (ds1 == 0 || ds2 == 0) return Command::C_ERR;
+    if (ds1->Ndim() != 1 || ds2->Ndim() != 1) {
+      mprinterr("Error: makexy only works for 1D data sets.\n");
+      return Command::C_ERR;
+    }
+    DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "XY" );
+    if (ds3 == 0) return Command::C_ERR;
+    mprintf("\tUsing values from '%s' as X, values from '%s' as Y, output set '%s'\n",
+            ds1->legend(), ds2->legend(), ds3->legend());
+    DataSet_1D const& ds_x = static_cast<DataSet_1D const&>( *ds1 );
+    DataSet_1D const& ds_y = static_cast<DataSet_1D const&>( *ds2 );
+    DataSet_1D&       out  = static_cast<DataSet_1D&>( *ds3 );
+    size_t nframes = std::min( ds_x.Size(), ds_y.Size() );
+    if (ds_x.Size() != ds_y.Size())
+      mprintf("Warning: Data sets do not have equal sizes, only using %zu frames.\n", nframes);
+    double XY[2];
+    for (size_t i = 0; i != nframes; i++) {
+      XY[0] = ds_x.Dval(i);
+      XY[1] = ds_y.Dval(i);
+      out.Add( i, XY );
+    }
+
+    return Command::C_OK;
   }
   // Change mode/type for one or more sets.
   std::string modeKey = argIn.GetStringKey("mode");
