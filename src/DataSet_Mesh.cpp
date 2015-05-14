@@ -17,6 +17,18 @@ int DataSet_Mesh::Allocate1D( size_t sizeIn ) {
   return 0;
 }
 
+/** Insert data vIn at frame. */
+void DataSet_Mesh::Add(size_t frame, const void* vIn) {
+  if (frame > mesh_x_.size()) {
+    mesh_x_.resize( frame, 0.0 );
+    mesh_y_.resize( frame, 0.0 );
+  }
+  // Always insert at the end
+  // NOTE: No check for duplicate frame values.
+  const double* ptr = (const double*)vIn;
+  AddXY( ptr[0], ptr[1] );
+}
+
 // DataSet_Mesh::WriteBuffer()
 void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
   if (frame >= mesh_x_.size())
