@@ -15,5 +15,6 @@ class Action_CreateCrd : public Action {
 
     DataSet_Coords_CRD* coords_;
     int pindex_;
+    bool check_;
 };
 #endif
