@@ -22,6 +22,7 @@ static void Help(const char* prgname, bool showAdditional) {
   if (showAdditional) {
     mprinterr(
             "  Additional Options:\n"
+            "    -v            Print version information.\n"
             "    -tit <TITLE>  Write a REMARK record containing TITLE.\n"
             "                      (default: use prmtop title)\n"
             "    -aatm         Left-justified Amber atom names.\n"
@@ -52,6 +53,10 @@ static bool Unsupported(std::string const& arg) {
   return false;
 }
 
+static void WriteVersion() {
+  mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
+}
+
 // ----- M A I N ---------------------------------------------------------------
 int main(int argc, char** argv) {
   SetWorldSilent(true); // No STDOUT output from cpptraj routines.
@@ -77,6 +82,9 @@ int main(int argc, char** argv) {
       debug = convertToInteger( argv[++i] );
     else if (arg == "-h" || arg == "--help") { // Help
       Help(argv[0], true);
+      return 0;
+    } else if (arg == "-v" || arg == "--version") { // Version info
+      WriteVersion();
       return 0;
     } else if (arg == "-aatm") // Amber atom names
       aatm.clear();
@@ -105,8 +113,7 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
-  if (debug > 0)
-    mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
+  if (debug > 0) WriteVersion();
   // Check command line for errors.
   if (topname.empty()) topname.assign("prmtop");
   if (debug > 0 && crdname.empty())
