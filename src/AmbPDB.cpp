@@ -86,8 +86,8 @@ int main(int argc, char** argv) {
     } else if (arg == "-v" || arg == "--version") { // Version info
       WriteVersion();
       return 0;
-    } else if (arg == "-aatm") // Amber atom names
-      aatm.clear();
+    } else if (arg == "-aatm") // Amber atom names, include extra pts
+      aatm.assign(" include_ep");
     else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
     else if (arg == "-ext") // Use extended PDB info from Topology
