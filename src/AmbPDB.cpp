@@ -55,7 +55,6 @@ static bool Unsupported(std::string const& arg) {
 // ----- M A I N ---------------------------------------------------------------
 int main(int argc, char** argv) {
   SetWorldSilent(true); // No STDOUT output from cpptraj routines.
-  mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
   std::string topname, crdname, title, bres, pqr;
   std::string aatm(" pdbatom"), ter_opt(" terbyres"), box(" sg \"P 1\"");
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
@@ -106,9 +105,11 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
+  if (debug > 0)
+    mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
   // Check command line for errors.
   if (topname.empty()) topname.assign("prmtop");
-  if (crdname.empty())
+  if (debug > 0 && crdname.empty())
     mprinterr("| Reading Amber restart from STDIN\n");
   if (numSoloArgs > 1) {
     mprinterr("Error: Only one alternate output format option may be specified (found %i)\n",
