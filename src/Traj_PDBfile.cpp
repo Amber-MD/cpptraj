@@ -14,6 +14,7 @@ Traj_PDBfile::Traj_PDBfile() :
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
+  include_ep_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -168,7 +169,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tmodel:       Write to single file separated by MODEL records.\n"
           "\tmulti:       Write each frame to separate files.\n"
           "\tchainid <c>: Write character 'c' in chain ID column.\n"
-          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n");
+          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep:  Include extra points.\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -199,6 +201,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
     ter_num_ = 0;
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
+  include_ep_ = argIn.hasKey("include_ep");
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
@@ -387,33 +390,35 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++, Xptr += 3) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
-    if (!pdbTop_->Extra().empty()) {
-      Occ = pdbTop_->Extra()[aidx].Occupancy();
-      B   = pdbTop_->Extra()[aidx].Bfactor();
-      altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
+    if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
+      if (!pdbTop_->Extra().empty()) {
+        Occ = pdbTop_->Extra()[aidx].Occupancy();
+        B   = pdbTop_->Extra()[aidx].Bfactor();
+        altLoc = pdbTop_->Extra()[aidx].AtomAltLoc();
+      }
+      if (dumpq_) {
+        Occ = (float) atom.Charge();
+        B = (float) radii_[aidx];
+      }
+      // If pdbatom change amber atom names to pdb v3
+      NameType atomName = atom.Name();
+      if (pdbatom_) {
+        if      (atomName == "H5'1") atomName = "H5'";
+        else if (atomName == "H5'2") atomName = "H5''";
+        else if (atomName == "H2'1") atomName = "H2'";
+        else if (atomName == "H2'2") atomName = "H2''";
+        else if (atomName == "O1P ") atomName = "OP1";
+        else if (atomName == "O2P ") atomName = "OP2";
+        else if (atomName == "H5T ") atomName = "HO5'";
+        else if (atomName == "H3T ") atomName = "HO3'";
+        else if (atomName == "HO'2") atomName = "HO2'";
+      }
+      file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
+                       chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
+                       pdbTop_->Res(res).Icode(),
+                       Xptr[0], Xptr[1], Xptr[2], Occ, B,
+                       atom.ElementName(), 0, dumpq_);
     }
-    if (dumpq_) {
-      Occ = (float) atom.Charge();
-      B = (float) radii_[aidx];
-    }
-    // If pdbatom change amber atom names to pdb v3
-    NameType atomName = atom.Name();
-    if (pdbatom_) {
-      if      (atomName == "H5'1") atomName = "H5'";
-      else if (atomName == "H5'2") atomName = "H5''";
-      else if (atomName == "H2'1") atomName = "H2'";
-      else if (atomName == "H2'2") atomName = "H2''";
-      else if (atomName == "O1P ") atomName = "OP1";
-      else if (atomName == "O2P ") atomName = "OP2";
-      else if (atomName == "H5T ") atomName = "HO5'";
-      else if (atomName == "H3T ") atomName = "HO3'";
-      else if (atomName == "HO'2") atomName = "HO2'";
-    }
-    file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
-                     chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
-                     pdbTop_->Res(res).Icode(), 
-                     Xptr[0], Xptr[1], Xptr[2], Occ, B, 
-                     atom.ElementName(), 0, dumpq_);
     // Check and see if a TER card should be written.
     if (aidx == *terIdx) {
       // FIXME: Should anum not be incremented until after? 

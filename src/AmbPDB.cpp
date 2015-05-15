@@ -22,6 +22,7 @@ static void Help(const char* prgname, bool showAdditional) {
   if (showAdditional) {
     mprinterr(
             "  Additional Options:\n"
+            "    -v            Print version information.\n"
             "    -tit <TITLE>  Write a REMARK record containing TITLE.\n"
             "                      (default: use prmtop title)\n"
             "    -aatm         Left-justified Amber atom names.\n"
@@ -52,10 +53,13 @@ static bool Unsupported(std::string const& arg) {
   return false;
 }
 
+static void WriteVersion() {
+  mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
+}
+
 // ----- M A I N ---------------------------------------------------------------
 int main(int argc, char** argv) {
   SetWorldSilent(true); // No STDOUT output from cpptraj routines.
-  mprinterr("| ambpdb (C++) Version %s\n", VERSION_STRING);
   std::string topname, crdname, title, bres, pqr;
   std::string aatm(" pdbatom"), ter_opt(" terbyres"), box(" sg \"P 1\"");
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
@@ -79,8 +83,11 @@ int main(int argc, char** argv) {
     else if (arg == "-h" || arg == "--help") { // Help
       Help(argv[0], true);
       return 0;
-    } else if (arg == "-aatm") // Amber atom names
-      aatm.clear();
+    } else if (arg == "-v" || arg == "--version") { // Version info
+      WriteVersion();
+      return 0;
+    } else if (arg == "-aatm") // Amber atom names, include extra pts
+      aatm.assign(" include_ep");
     else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
     else if (arg == "-ext") // Use extended PDB info from Topology
@@ -106,9 +113,10 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
+  if (debug > 0) WriteVersion();
   // Check command line for errors.
   if (topname.empty()) topname.assign("prmtop");
-  if (crdname.empty())
+  if (debug > 0 && crdname.empty())
     mprinterr("| Reading Amber restart from STDIN\n");
   if (numSoloArgs > 1) {
     mprinterr("Error: Only one alternate output format option may be specified (found %i)\n",

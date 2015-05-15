@@ -7,17 +7,20 @@ class Action_CheckStructure : public Action {
     Action_CheckStructure();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
     static void Help();
-    //TODO Create a separate interface
+    // Interface that can be used outside ActionList
+    int SeparateInit(bool, std::string const&, std::string const&, std::string const&,
+                     double, double, bool, DataFileList&);
+    int SeparateSetup(Topology const&, bool);
+    int CheckBonds(int, Frame const& currentFrame, Topology const&);
+    int CheckOverlap(int, Frame const&, Topology const&);
+  private:
     Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
-    int CheckOverlap(int, Frame const&, Topology const&);
-  private:
     void Print() {}
 
     void ProcessBondArray(BondArray const&, BondParmArray const&, AtomMask const&);
     void SetupBondList(AtomMask const&, Topology const&);
-    int CheckBonds(int, Frame const& currentFrame, Topology const&);
     /// Used to cache bond parameters
     struct BondType {
       double Req_off2_; ///< Bond cutoff (Req+bondoffset)^2
@@ -36,7 +39,6 @@ class Action_CheckStructure : public Action {
     double nonbondcut2_; ///< Report distance^2 less than nonbondcut2
     CpptrajFile* outfile_;  ///< Report file.
     Topology* CurrentParm_; ///< Current topology.
-    int debug_;             ///< Debug level
     bool silent_;           ///< If true suppress output
     bool skipBadFrames_;    ///< If true skip frames with problems
     bool bondcheck_;        ///< If true check bonds as well (default)

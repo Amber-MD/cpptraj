@@ -11,7 +11,6 @@ Action_CheckStructure::Action_CheckStructure() :
   nonbondcut2_(0.64), // 0.8^2
   outfile_(0),
   CurrentParm_(0),
-  debug_(0),
   silent_(false),
   skipBadFrames_(false),
   bondcheck_(true)
@@ -23,25 +22,37 @@ void Action_CheckStructure::Help() {
           "  Check frames for atomic overlaps and unusual bond lengths\n");
 }
 
+// Action_CheckStructure::SeparateInit()
+int Action_CheckStructure::SeparateInit(bool imageOn, std::string const& mask1,
+                                        std::string const& mask2, std::string const& fname,
+                                        double cutIn, double offsetIn, bool silentIn,
+                                        DataFileList& DFL)
+{
+  image_.InitImaging( imageOn );
+  bondoffset_ = offsetIn;
+  nonbondcut2_ = cutIn * cutIn; // Save cutoff squared.
+  silent_ = silentIn;
+  if (!silent_)
+    outfile_ = DFL.AddCpptrajFile(fname, "Structure check", DataFileList::TEXT, true);
+  Mask1_.SetMaskString( mask1 );
+  if (!mask2.empty())
+    Mask2_.SetMaskString( mask2 );
+  return 0;
+}
+
 // Action_CheckStructure::Init()
 Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  debug_ = debugIn;
   // Get Keywords
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   std::string around = actionArgs.GetStringKey("around");
-  std::string reportFile = actionArgs.GetStringKey("reportfile");
-  bondoffset_ = actionArgs.getKeyDouble("offset",1.15);
-  double nonbondcut = actionArgs.getKeyDouble("cut",0.8);
+  SeparateInit( !(actionArgs.hasKey("noimage")), actionArgs.GetMaskNext(),
+                around, actionArgs.GetStringKey("reportfile"),
+                actionArgs.getKeyDouble("cut",0.8),
+                actionArgs.getKeyDouble("offset",1.15),
+                actionArgs.hasKey("silent"), *DFL );
+  // DoAction-only keywords.
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
-  silent_ = actionArgs.hasKey("silent");
-  if (!silent_) outfile_ = DFL->AddCpptrajFile(reportFile, "Structure check",
-                                               DataFileList::TEXT, true);
-  // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
-  if (!around.empty())
-    Mask2_.SetMaskString( around );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'",Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
@@ -53,12 +64,12 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   mprintf(".\n");
   if (!bondcheck_) {
     mprintf("\tChecking inter-atomic distances only.\n");
-    mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", nonbondcut);
+    mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
   } else {
     mprintf("\tChecking inter-atomic and bond distances.\n");
     mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
             bondoffset_);
-    mprintf("\tand non-bond distances < %.2f Ang.\n",nonbondcut);
+    mprintf("\tand non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
   }
   if (skipBadFrames_)
     mprintf("\tFrames with problems will be skipped.\n");
@@ -73,8 +84,6 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
     }
   }
 # endif
-  // Square the non-bond cutoff
-  nonbondcut2_ = nonbondcut * nonbondcut;
   return Action::OK;
 }
 
@@ -112,25 +121,24 @@ void Action_CheckStructure::SetupBondList(AtomMask const& iMask, Topology const&
   ProcessBondArray(top.BondsH(), top.BondParm(), cMask);
 }
 
-// Action_CheckStructure::Setup()
-Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  CurrentParm_ = currentParm;
-  image_.SetupImaging( currentParm->BoxType() );
+// Action_CheckStructure::SeparateSetup()
+int Action_CheckStructure::SeparateSetup(Topology const& top, bool checkBonds) {
+  image_.SetupImaging( top.BoxType() );
   bondList_.clear();
   // Set up masks
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
+  if ( top.SetupIntegerMask( Mask1_ ) ) return 1;
   Mask1_.MaskInfo();
   if (Mask1_.None()) {
     mprinterr("Error: Mask '%s' has no atoms.\n", Mask1_.MaskString());
-    return Action::ERR;
+    return 1;
   }
-  if (bondcheck_) SetupBondList(Mask1_, *currentParm);
+  if (checkBonds) SetupBondList(Mask1_, top);
   if ( Mask2_.MaskStringSet() ) {
-    if (currentParm->SetupIntegerMask( Mask2_ ) ) return Action::ERR;
+    if (top.SetupIntegerMask( Mask2_ ) ) return 1;
     Mask2_.MaskInfo();
     if (Mask2_.None()) {
       mprinterr("Error: Mask '%s' has no atoms.\n", Mask2_.MaskString());
-      return Action::ERR;
+      return 1;
     }
     int common = Mask1_.NumAtomsInCommon( Mask2_ );
     if (common > 0)
@@ -144,8 +152,15 @@ Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** p
       OuterMask_ = Mask1_;
       InnerMask_ = Mask2_;
     }
-    if (bondcheck_) SetupBondList(Mask2_, *currentParm);
+    if (checkBonds) SetupBondList(Mask2_, top);
   }
+  return 0;
+}
+
+// Action_CheckStructure::Setup()
+Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
+  CurrentParm_ = currentParm;
+  if (SeparateSetup( *currentParm, bondcheck_ )) return Action::ERR;
   // Print imaging info for this parm
   if (bondcheck_)
     mprintf("\tChecking %u bonds.\n", bondList_.size());

@@ -1,10 +1,10 @@
 #include "Action_CreateCrd.h"
 #include "CpptrajStdio.h"
 
-Action_CreateCrd::Action_CreateCrd() {}
+Action_CreateCrd::Action_CreateCrd() : pindex_(-1), check_(true) {}
 
 void Action_CreateCrd::Help() {
-  mprintf("\t[<name>] [ parm <name> | parmindex <#> ]\n"
+  mprintf("\t[<name>] [ parm <name> | parmindex <#> ] [nocheck]\n"
           "  Create a COORDS data set named <name> for frames associated with the\n"
           "  specified topology.\n");
 }
@@ -18,6 +18,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, D
     return Action::ERR;
   }
   pindex_ = parm->Pindex();
+  check_ = !actionArgs.hasKey("nocheck");
   // DataSet
   std::string setname = actionArgs.GetStringNext();
   if (setname == "_DEFAULTCRD_") {
@@ -31,6 +32,8 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, D
 
   mprintf("    CREATECRD: Saving coordinates from Top %s to \"%s\"\n",
           parm->c_str(), coords_->legend());
+  if (!check_)
+    mprintf("\tNot strictly enforcing that all frames have same # atoms.\n");
   return Action::OK;
 }
 
@@ -44,10 +47,17 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
             coords_->SizeInMB(currentParm->Nframes()));
   }
   // If # atoms in currentParm does not match coords, warn user.
-  if (currentParm->Natom() != coords_->Top().Natom())
-    mprintf("Warning: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n"
-            "Warning:   The resulting COORDS data set may have problems.\n",
-            currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
+  if (currentParm->Natom() != coords_->Top().Natom()) {
+    if (check_) {
+      mprinterr("Error: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n",
+                currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
+      return Action::ERR;
+    } else {
+      mprintf("Warning: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n"
+              "Warning:   The resulting COORDS data set may have problems.\n",
+              currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
+    }
+  }
   return Action::OK;
 }
 
