@@ -1,6 +1,8 @@
 #ifndef INC_MASKTOKEN_H
 #define INC_MASKTOKEN_H
-#include "NameType.h"
+#include <vector>
+#include "Atom.h"
+#include "Residue.h"
 /// Hold information use in mask selection. 
 class MaskToken {
   public:
@@ -39,5 +41,48 @@ class MaskToken {
     double distance_;
 
     void MakeNameType();
+};
+
+/// Hold an array of MaskTokens. Basis of all Mask classes.
+class MaskTokenArray {
+    typedef std::vector<MaskToken> MTarray;
+    typedef MTarray::const_iterator token_iterator;
+  public:
+    typedef std::vector<Atom> AtomArrayT;
+    typedef std::vector<Residue> ResArrayT;
+    MaskTokenArray() : debug_(0) {}
+    //inline token_iterator begintoken()  const { return maskTokens_.begin(); }
+    //inline token_iterator endtoken()    const { return maskTokens_.end();   }
+    std::string const& MaskExpression() const { return maskExpression_;     }
+    const char* MaskString()            const { return maskExpression_.c_str(); }
+    bool MaskStringSet()                const { return !maskExpression_.empty(); }
+    void SetDebug(int d)                      { debug_ = d;                 }
+    int SetMaskString(std::string const&);
+    int SetMaskString(const char*);
+    virtual int SetupMask(AtomArrayT const&, ResArrayT const&, const double*);
+  protected:
+    char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const; 
+  private:
+    static bool IsOperator(char);
+    static bool IsOperand(char);
+    static int OperatorPriority(char);
+    int Tokenize();
+
+
+    int Mask_SelectDistance(const double*, char *, MaskToken const&,
+                            AtomArrayT const&, ResArrayT const&) const;
+    void Mask_AND(char*, char*, unsigned int) const;
+    void Mask_OR(char*, char*, unsigned int) const;
+    void Mask_NEG(char *, unsigned int) const;
+    void MaskSelectResidues(ResArrayT const&, NameType const&, char*) const;
+    void MaskSelectResidues(ResArrayT const&, int, int, char*) const;
+    void MaskSelectElements(AtomArrayT const&, NameType const&, char*) const;
+    void MaskSelectTypes(AtomArrayT const&, NameType const&, char*) const;
+    void MaskSelectAtoms(AtomArrayT const&, NameType const&, char*) const;
+    void MaskSelectAtoms(AtomArrayT const&, int, int, char*) const;
+
+    MTarray maskTokens_;
+    std::string maskExpression_;
+    int debug_;
 };
 #endif
