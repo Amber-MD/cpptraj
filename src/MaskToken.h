@@ -1,6 +1,5 @@
 #ifndef INC_MASKTOKEN_H
 #define INC_MASKTOKEN_H
-#include <vector>
 #include "Atom.h"
 #include "Residue.h"
 /// Hold information use in mask selection. 
@@ -42,7 +41,7 @@ class MaskToken {
 
     void MakeNameType();
 };
-
+// =============================================================================
 /// Hold an array of MaskTokens. Basis of all Mask classes.
 class MaskTokenArray {
     typedef std::vector<MaskToken> MTarray;
@@ -51,24 +50,50 @@ class MaskTokenArray {
     typedef std::vector<Atom> AtomArrayT;
     typedef std::vector<Residue> ResArrayT;
     MaskTokenArray() : debug_(0) {}
-    //inline token_iterator begintoken()  const { return maskTokens_.begin(); }
-    //inline token_iterator endtoken()    const { return maskTokens_.end();   }
+    /// \return original mask expression as std::string
     std::string const& MaskExpression() const { return maskExpression_;     }
+    /// \return original mask expression as const char* 
     const char* MaskString()            const { return maskExpression_.c_str(); }
+    /// \return true if mask expression has been set.
     bool MaskStringSet()                const { return !maskExpression_.empty(); }
     void SetDebug(int d)                      { debug_ = d;                 }
+    /// Set mask expression and tokens
     int SetMaskString(std::string const&);
+    /// Set mask expression and tokens
     int SetMaskString(const char*);
-    virtual int SetupMask(AtomArrayT const&, ResArrayT const&, const double*);
+    /// Print mask string and number of selected atoms.
+    void MaskInfo() const;
+    /// Print brief mask info
+    void BriefMaskInfo() const;
+    // -------------------------------------------
+    /// Print selected atoms to screen.
+    virtual void PrintMaskAtoms(const char* header) const = 0;
+    /// Select atoms based on current MaskTokens given atom/residue info
+    virtual int SetupMask(AtomArrayT const&, ResArrayT const&, const double*) = 0;
+    /// Clear all mask information.
+    virtual void ResetMask() = 0;
+    /// Clear selected atoms only.
+    virtual void ClearSelected() = 0;
+    /// Invert mask selection.
+    virtual void InvertMask() = 0;
+    /// \return Number of selected atoms.
+    virtual int Nselected() const = 0;
+    // -------------------------------------------
+    /// \return true if no atoms selected
+    bool None() const { return Nselected() == 0; }
   protected:
-    char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const; 
+    void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
+    char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const;
+    static char maskChar_;
+    static char unselectedChar_; 
   private:
     static bool IsOperator(char);
     static bool IsOperand(char);
     static int OperatorPriority(char);
+    /// Convert mask expression to MaskTokens
     int Tokenize();
 
-
+    // Mask selection routines.
     int Mask_SelectDistance(const double*, char *, MaskToken const&,
                             AtomArrayT const&, ResArrayT const&) const;
     void Mask_AND(char*, char*, unsigned int) const;
@@ -82,7 +107,7 @@ class MaskTokenArray {
     void MaskSelectAtoms(AtomArrayT const&, int, int, char*) const;
 
     MTarray maskTokens_;
-    std::string maskExpression_;
+    std::string maskExpression_; ///< String specifying atom mask selection.
     int debug_;
 };
 #endif

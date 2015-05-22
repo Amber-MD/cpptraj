@@ -534,7 +534,47 @@ int MaskTokenArray::Tokenize() {
   return 0;
 }
 
+/** Take the given mask expression and preprocess it for subsequent use
+  * with the mask parser. Convert to infix, then postfix notation.
+  */
+int MaskTokenArray::SetMaskString(const char* maskStringIn) {
+  if (maskStringIn!=0)
+    maskExpression_.assign( maskStringIn );
+  else
+    maskExpression_.assign( "*" );
+
+  if (debug_ > 0) mprintf("expression: ==%s==\n", maskExpression_.c_str());
+
+  // Convert mask expression to maskTokens 
+  if (Tokenize()) return 1;
+
+  return 0;
+}
+
+/** If the input string is not empty, set the AtomMask expression to 
+  * input string.
+  * \return 0 if string was set and successfully tokenized.
+  * \return 1 if tokenization failed.
+  */
+int MaskTokenArray::SetMaskString( std::string const& maskStringIn ) {
+  if (!maskStringIn.empty())
+    return ( SetMaskString( maskStringIn.c_str() ) );
+  else
+    return ( SetMaskString( 0 ) );
+}
+
+void MaskTokenArray::MaskInfo() const {
+  mprintf("\tMask [%s] corresponds to %i atoms.\n", maskExpression_.c_str(), Nselected());
+}
+
+void MaskTokenArray::BriefMaskInfo() const {
+  mprintf(" [%s](%i)", maskExpression_.c_str(), Nselected());
+}
+
 // =============================================================================
+char MaskTokenArray::maskChar_ = 'T';
+char MaskTokenArray::unselectedChar_ = 'F';
+
 /** \return Array of char, same size as atoms_, with T for selected atoms and F otherwise.
   */
 char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
