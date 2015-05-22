@@ -10,12 +10,15 @@ class CharMask : public MaskTokenArray {
   public:
     CharMask() : nselected_(0) {}
     CharMask(std::string const& e) : nselected_(0) { SetMaskString(e); }
+    CharMask(std::vector<char> const& c, int n) : CharMask_(c), nselected_(n) {}
     /// \return true if given atom is selected. 
     bool AtomInCharMask(int) const;
     /// \return true if any atoms within given range are selected.
     bool AtomsInCharMask(int,int) const;
     /// \return Integer array of selected atoms.
     std::vector<int> ConvertToIntMask() const;
+    /// \return size of char mask
+    int Natom() const { return (int)CharMask_.size(); }
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;

@@ -23,7 +23,7 @@ class Action_Energy: public Action {
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
     typedef std::vector<CalcType>::const_iterator calc_it;
     Topology* currentParm_;        ///< Hold current topology
-    AtomMask Mask1_;               ///< Char mask for all but NB calc
+    CharMask Mask1_;               ///< Char mask for all but NB calc
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
     Energy_Sander SANDER_;

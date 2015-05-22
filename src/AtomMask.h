@@ -15,6 +15,7 @@ class AtomMask : public MaskTokenArray {
   public:
     AtomMask() : Natom_(0) {}
     AtomMask(std::string const& e) : Natom_(0) { SetMaskString(e); }
+    AtomMask(std::vector<int> s, int n) : Selected_(s), Natom_(n) {}
     ///< Create mask selecting atoms from begin up to (not including) end.
     AtomMask(int,int);
     ///< Create mask with single atom selected.
@@ -61,7 +62,7 @@ class AtomMask : public MaskTokenArray {
   private:
     /** Number of atoms mask was set-up with. Needed when converting from
       * integer mask to Character mask. */
-    int Natom_;
     std::vector<int> Selected_;  ///< Int array of selected atom numbers, 1 for each selected atom
+    int Natom_;
 };
 #endif

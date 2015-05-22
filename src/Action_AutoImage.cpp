@@ -72,7 +72,7 @@ Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( Topology* currentP
                                              std::string const& maskexpr )
 {
   pairList imageList;
-  AtomMask Mask1( maskexpr.c_str() );
+  CharMask Mask1( maskexpr.c_str() );
 
   if (currentParm->SetupCharMask( Mask1 )) return imageList;
   if (Mask1.None()) return imageList;

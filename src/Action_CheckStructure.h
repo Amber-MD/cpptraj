@@ -19,7 +19,7 @@ class Action_CheckStructure : public Action {
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
 
-    void ProcessBondArray(BondArray const&, BondParmArray const&, AtomMask const&);
+    void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     void SetupBondList(AtomMask const&, Topology const&);
     /// Used to cache bond parameters
     struct BondType {
