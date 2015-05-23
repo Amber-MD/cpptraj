@@ -19,7 +19,7 @@ class Action_Mask: public Action {
     void Print() {}
 
     int ensembleNum_;
-    AtomMask Mask1_;         ///< Atoms which will be selected each frame
+    CharMask Mask1_;         ///< Atoms which will be selected each frame
     CpptrajFile* outfile_;   ///< File to write selected atom info to
     std::string maskpdb_;    ///< Traj output file name
     Topology* CurrentParm_;

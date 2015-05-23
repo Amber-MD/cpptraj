@@ -19,6 +19,6 @@ class Action_AreaPerMol: public Action {
     double Nmols_;
     double Nlayers_;
     AreaType areaType_;
-    AtomMask Mask1_;
+    CharMask Mask1_;
 };
 #endif

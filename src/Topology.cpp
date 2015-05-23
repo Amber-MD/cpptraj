@@ -272,7 +272,7 @@ void Topology::Brief(const char* heading) const {
   */
 void Topology::PrintAtomInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // integer mask
+  if (SetupIntegerMask( mask )) return;
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
@@ -297,7 +297,7 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */
-void Topology::PrintBonds(BondArray const& barray, AtomMask const& maskIn, int& nb) const
+void Topology::PrintBonds(BondArray const& barray, CharMask const& maskIn, int& nb) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
   for (BondArray::const_iterator batom = barray.begin();
@@ -325,8 +325,8 @@ void Topology::PrintBonds(BondArray const& barray, AtomMask const& maskIn, int& 
 
 // Topology::PrintBondInfo()
 void Topology::PrintBondInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  CharMask mask( maskString );
+  if (SetupCharMask( mask )) return;
   mprintf("#");
   mask.MaskInfo();
   if (mask.None()) return;
@@ -339,7 +339,7 @@ void Topology::PrintBondInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintAngles()
-void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int& na) const
+void Topology::PrintAngles(AngleArray const& aarray, CharMask const& maskIn, int& na) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
   for (AngleArray::const_iterator aatom = aarray.begin();
@@ -372,8 +372,8 @@ void Topology::PrintAngles(AngleArray const& aarray, AtomMask const& maskIn, int
 
 // Topology::PrintAngleInfo()
 void Topology::PrintAngleInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  CharMask mask( maskString );
+  if (SetupCharMask( mask )) return;
   mprintf("#");
   mask.MaskInfo();
   if (mask.None()) return;
@@ -386,7 +386,7 @@ void Topology::PrintAngleInfo(std::string const& maskString) const {
 }
 
 // Topology::PrintDihedrals()
-void Topology::PrintDihedrals(DihedralArray const& darray, AtomMask const& maskIn, 
+void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskIn, 
                               int& nd) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
@@ -429,8 +429,8 @@ void Topology::PrintDihedrals(DihedralArray const& darray, AtomMask const& maskI
 
 // Topology::PrintDihedralInfo()
 void Topology::PrintDihedralInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (ParseMask(refCoords_, mask, false)) return; // Char mask
+  CharMask mask( maskString );
+  if (SetupCharMask( mask )) return;
   mprintf("#");
   mask.MaskInfo();
   if (mask.None()) return;
@@ -448,8 +448,8 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
   if (molecules_.empty())
     mprintf("\t'%s' No molecule info.\n",c_str());
   else {
-    AtomMask mask( maskString );
-    ParseMask(refCoords_, mask, false); // Char mask
+    CharMask mask( maskString );
+    if (SetupCharMask( mask )) return;
     if ( mask.None() )
       mprintf("\tSelection is empty.\n");
     else {
@@ -485,7 +485,7 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
   */
 void Topology::PrintResidueInfo(std::string const& maskString) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // Integer mask
+  if (SetupIntegerMask( mask )) return;
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
@@ -517,7 +517,7 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
 /** Print residue info using single char names. */
 void Topology::PrintShortResInfo(std::string const& maskString, int maxChar) const {
   AtomMask mask( maskString );
-  ParseMask(refCoords_, mask, true); // Integer mask
+  if (SetupIntegerMask( mask )) return;
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
@@ -565,7 +565,7 @@ void Topology::PrintShortResInfo(std::string const& maskString, int maxChar) con
 // Topology::PrintChargeMassInfo()
 int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
   AtomMask mask( maskString );
-  if (ParseMask(refCoords_, mask, true)) return 1; // Int mask
+  if (SetupIntegerMask( mask )) return 1;
   if (type == 0 || type == 2) {
     mprintf("\tSum of charges in mask");
     mask.BriefMaskInfo();
@@ -1149,7 +1149,7 @@ int Topology::SetSolvent(std::string const& maskexpr) {
     return 0;
   }
   // Setup mask
-  AtomMask mask( maskexpr );
+  CharMask mask( maskexpr );
   SetupCharMask( mask );
   if (mask.None()) {
     mprinterr("Error: SetSolvent [%s]: Mask %s selects no atoms.\n", c_str(), maskexpr.c_str());
@@ -1213,366 +1213,29 @@ int Topology::SetSolventInfo() {
 
 // -----------------------------------------------------------------------------
 // Topology::SetupIntegerMask()
-bool Topology::SetupIntegerMask(AtomMask &mask) const { 
-  return ParseMask(refCoords_, mask, true);
+int Topology::SetupIntegerMask(AtomMask &mask) const {
+  return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
 }
 
 // Topology::SetupCharMask()
-bool Topology::SetupCharMask(AtomMask &mask) const {
-  return ParseMask(refCoords_, mask, false);
+int Topology::SetupCharMask(CharMask &mask) const {
+  return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
 }
 
 // Topology::SetupIntegerMask()
-bool Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
-  if (frame.empty()) return ParseMask(refCoords_, mask, true);
-  return ParseMask( frame, mask, true );
+int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
+  if (frame.empty()) return SetupIntegerMask(mask);
+  return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
 // Topology::SetupCharMask()
-bool Topology::SetupCharMask(AtomMask &mask, Frame const& frame) const {
-  if (frame.empty()) return ParseMask(refCoords_, mask, false);
-  return ParseMask( frame, mask, false );
-}
-
-// Topology::Mask_SelectDistance()
-int Topology::Mask_SelectDistance( Frame const& REF, char *mask, bool within, 
-                                    bool byAtom, double distance ) const 
-{
-  int endatom, resi;
-  bool selectresidue;
-  int atomi, idx, atomj;
-  double d2;
-  const double* i_crd;
-
-  if (REF.empty()) {
-    mprinterr("Error: No reference set for [%s], cannot select by distance.\n",c_str());
-    return 1;
-  }
-  // Distance has been pre-squared.
-  // Create temporary array of atom #s currently selected in mask. Also
-  // reset mask, it will be the output mask.
-  std::vector<unsigned int> selected;
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask[i]=='T') {
-      selected.push_back( i );
-      mask[i] = 'F';
-    }
-  }
-  if (selected.empty()) {
-    mprinterr("Error: SelectAtomsWithin(%f): No atoms in prior selection.\n",distance);
-    return 1;
-  }
-/*  if (debug_ > 1) {
-    mprintf("\t\t\tDistance Op: Within=%i  byAtom=%i  distance^2=%lf\n",
-            (int)within, (int)byAtom, distance);
-    mprintf("\t\t\tInitial Mask=[");
-    for (std::vector<unsigned int>::iterator at = selected.begin(); at != selected.end(); at++)
-      mprintf(" %u",*at + 1);
-    mprintf(" ]\n");
-  }*/
-
-  if (byAtom) { // Select by atom
-    // Loop over all atoms
-    int n_of_atoms = (int)atoms_.size();
-#ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, i_crd)
-{
-#pragma omp for
-#endif
-    for (atomi = 0; atomi < n_of_atoms; atomi++) {
-      // No need to calculate if atomi already selected
-      if (mask[atomi] == 'T') continue;
-      // Loop over initially selected atoms
-      i_crd = REF.XYZ( atomi );
-      for (idx = 0; idx < (int)selected.size(); idx++) {
-        atomj = selected[idx];
-        d2 = DIST2_NoImage(i_crd, REF.XYZ(atomj));
-        if (within) {
-          if (d2 < distance) {
-            mask[atomi] = 'T';
-            break;
-          }
-        } else {
-          if (d2 > distance) {
-            mask[atomi] = 'T';
-            break;
-          }
-        }
-      }
-    }
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
-  } else { // Select by residue
-    int n_of_res = (int)residues_.size();
-#ifdef _OPENMP
-#pragma omp parallel private(atomi, idx, atomj, d2, resi, selectresidue, endatom, i_crd)
-{
-#pragma omp for
-#endif
-    for (resi = 0; resi < n_of_res; resi++) {
-      selectresidue = false;
-      // Determine end atom for this residue
-      endatom = residues_[resi].LastAtom();
-      // Loop over mask atoms
-      for (idx = 0; idx < (int)selected.size(); idx++) {
-        atomj = selected[idx];
-        i_crd = REF.XYZ( atomj );
-        // Loop over residue atoms
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++) {
-          d2 = DIST2_NoImage(REF.XYZ(atomi), i_crd);
-          if (within) {
-            if (d2 < distance) selectresidue = true;
-          } else {
-            if (d2 > distance) selectresidue = true;
-          }
-          if (selectresidue) break; 
-        }
-        if (selectresidue) break;
-      }
-      if (selectresidue) {
-        for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
-          mask[atomi] = 'T';
-        continue;
-      }
-    }
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
-  }
-  return 0;
-}
-
-// Topology::Mask_AND()
-void Topology::Mask_AND(char *mask1, char *mask2) const {
-  //mprintf("\t\t\tPerforming AND on masks.\n");
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
-    //mprintf(" [%c|%c]",mask1[i],mask2[i]);
-    if (mask1[i]=='F' || mask2[i]=='F')
-      mask1[i] = 'F';
-    // Otherwise mask1 should already be T
-  }
-  //mprintf("\n");
-}
-
-// Topology::Mask_OR()
-void Topology::Mask_OR(char *mask1, char *mask2) const {
-  //mprintf("\t\t\tPerforming OR on masks.\n");
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask1[i]=='T' || mask2[i]=='T')
-      mask1[i] = 'T';
-    else
-      mask1[i] = 'F';
-  }
-}
-
-// Topology::Mask_NEG()
-void Topology::Mask_NEG(char *mask1) const {
-  //mprintf("\t\t\tNegating mask.\n");
-  for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask1[i]=='T')
-      mask1[i] = 'F';
-    else
-      mask1[i] = 'T';
-  }
-}
-
-// Topology::MaskSelectResidues()
-void Topology::MaskSelectResidues(NameType const& name, char *mask) const {
-  //mprintf("\t\t\tSelecting residues named [%s]\n",*name);
-  for (std::vector<Residue>::const_iterator res = residues_.begin();
-                                            res != residues_.end(); res++)
-  {
-    if ( (*res).Name().Match( name ) ) {
-      std::fill(mask + (*res).FirstAtom(), mask + (*res).LastAtom(), 'T');
-    }
-  }
-}
-
-// Topology::MaskSelectResidues()
-// Mask args expected to start from 1
-void Topology::MaskSelectResidues(int res1, int res2, char *mask) const {
-  int endatom;
-  int nres = (int) residues_.size();
-  //mprintf("\t\t\tSelecting residues %i to %i\n",res1,res2);
-  // Check start atom. res1 and res2 are checked by MaskToken
-  if (res1 > nres) {
-    if (debug_>0)
-      mprintf("Warning: Select residues: res 1 out of range (%i)\n",res1);
-    return;
-  }
-  // If last res > nres, make it nres
-  if ( res2 >= nres )
-    endatom = (int)atoms_.size();
-  else
-    endatom = residues_[res2-1].LastAtom();
-  // Select atoms
-  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, 'T');
-}
-
-// Topology::MaskSelectElements()
-void Topology::MaskSelectElements( NameType const& element, char* mask ) const {
-  unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom)
-  {
-    NameType atom_element( (*atom).ElementName() );
-    if ( atom_element.Match( element ) )
-      mask[m] = 'T';
-    ++m;
-  } 
-}
-
-// Topology::MaskSelectTypes()
-void Topology::MaskSelectTypes( NameType const& type, char* mask ) const {
-  unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); ++atom)
-  {
-    if ( (*atom).Type().Match( type ) )
-      mask[m] = 'T';
-    ++m;
-  } 
-}
-
-// Topology::MaskSelectAtoms()
-void Topology::MaskSelectAtoms( NameType const& name, char *mask) const {
-  //mprintf("\t\t\tSelecting atoms named [%s]\n",*name);
-  unsigned int m = 0;
-  for (std::vector<Atom>::const_iterator atom = atoms_.begin();
-                                         atom != atoms_.end(); atom++)
-  {
-    //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
-    if ( (*atom).Name().Match( name ) )
-      mask[m] = 'T';
-    //mprintf(" %c\n",mask[m]);
-    ++m;
-  } 
-}
-
-// Topology::MaskSelectAtoms()
-// Mask args expected to start from 1
-void Topology::MaskSelectAtoms(int atom1, int atom2, char *mask) const {
-  int startatom, endatom;
-  //mprintf("\t\t\tSelecting atoms %i to %i\n",atom1,atom2);
-  if (atom1 > (int)atoms_.size()) {
-    if (debug_>0) 
-      mprintf("Warning: Select atoms: atom 1 out of range (%i)\n",atom1);
-    return;
-  }
-  startatom = atom1 - 1;
-  if (atom2 > (int)atoms_.size()) 
-    //mprinterr("Error: Select atoms: atom 2 out of range (%i)\n",atom2)
-    endatom = atoms_.size();
-  else
-    endatom = atom2;
-  // Select atoms
-  std::fill(mask + startatom, mask + endatom, 'T');
-}
-
-// Topology::ParseMask()
-bool Topology::ParseMask(Frame const& REF, AtomMask &maskIn, bool intMask) const {
-  std::stack<char*> Stack;
-  char *pMask = 0; 
-  char *pMask2 = 0;
-  int err = 0;
-
-  for (AtomMask::token_iterator token = maskIn.begintoken();
-                                token != maskIn.endtoken(); ++token)
-  {
-    if (pMask==0) {
-      // Create new blank mask
-      pMask = new char[ atoms_.size() ];
-      std::fill(pMask, pMask + atoms_.size(), 'F');
-    }
-    switch ( token->Type() ) {
-      case MaskToken::ResNum : 
-        MaskSelectResidues( token->Res1(), token->Res2(), pMask );
-        break;
-      case MaskToken::ResName :
-        MaskSelectResidues( token->Name(), pMask );
-        break;
-      case MaskToken::AtomNum :
-        MaskSelectAtoms( token->Res1(), token->Res2(), pMask );
-        break;
-      case MaskToken::AtomName :
-        MaskSelectAtoms( token->Name(), pMask );
-        break;
-      case MaskToken::AtomType :
-        MaskSelectTypes( token->Name(), pMask );
-        break;
-      case MaskToken::AtomElement :
-        MaskSelectElements( token->Name(), pMask );
-        break;
-      case MaskToken::SelectAll :
-        std::fill(pMask, pMask + atoms_.size(), 'T');
-        break;
-      case MaskToken::OP_AND :
-        pMask2 = Stack.top();
-        Stack.pop();
-        Mask_AND( Stack.top(), pMask2 );
-        delete[] pMask2;
-        break;
-      case MaskToken::OP_OR :
-        pMask2 = Stack.top();
-        Stack.pop();
-        Mask_OR( Stack.top(), pMask2 );
-        delete[] pMask2;
-        break;
-      case MaskToken::OP_NEG :
-        Mask_NEG( Stack.top() );
-        break;
-      case MaskToken::OP_DIST :
-        err = Mask_SelectDistance( REF, Stack.top(), token->Within(), 
-                                   token->ByAtom(), token->Distance() );
-        break;
-      default:
-        mprinterr("Error: Invalid mask token (Mask [%s], type [%s]).\n",
-                  maskIn.MaskString(), token->TypeName() );
-    }
-    // If an error occurred, exit the loop.
-    if (err != 0 ) break;
-    // Check if this mask should now go on the stack
-    if ( token->OnStack() ) {
-      //mprintf("Pushing Mask on stack, last Token [%s]\n",token->TypeName());
-      Stack.push( pMask );
-      pMask = 0;
-    }
-  }
-  // If pMask is not null it is probably a blank leftover
-  if (pMask!=0) delete[] pMask;
-
-  // If stack is empty here there was an error.
-  if (Stack.empty()) {
-    mprinterr("Error: Could not parse mask [%s].\n",maskIn.MaskString());
-    return true;
-  }
-
-  // Top of the stack should point to the final mask
-  pMask = Stack.top();
-  Stack.pop();
-  // Stack should be empty now
-  if (!Stack.empty()) {
-    mprinterr("Error: Mask stack is not empty.\n");
-    while (!Stack.empty()) {
-      delete[] Stack.top();
-      Stack.pop();
-    }
-    delete[] pMask;
-    return true;
-  }
-  if (err == 0) {
-    if (intMask)
-      maskIn.SetupIntMask( pMask, atoms_.size(), debug_ );
-    else
-      maskIn.SetupCharMask( pMask, atoms_.size(), debug_);
-  }
-  delete[] pMask;
-  return (err != 0); // false if no error occurred
+int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
+  if (frame.empty()) return SetupCharMask(mask);
+  return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
 // -----------------------------------------------------------------------------
-int Topology::scale_dihedral_K(DihedralArray& dihedrals, AtomMask const& Mask,
+int Topology::scale_dihedral_K(DihedralArray& dihedrals, CharMask const& Mask,
                                double scale_factor, bool useAll)
 {
   std::vector<int> newDihedralParms( dihedralparm_.size(), -1 );
@@ -1623,7 +1286,7 @@ int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, b
       dk->Pk() *= scale_factor;
   } else {
     // Scale only dihedrals with atoms in mask. Requires adding new types.
-    AtomMask Mask( maskExpr );
+    CharMask Mask( maskExpr );
     if (SetupCharMask( Mask )) return 1;
     if (scale_dihedral_K( dihedrals_,  Mask, scale_factor, useAll )) return 1;
     if (scale_dihedral_K( dihedralsh_, Mask, scale_factor, useAll )) return 1;

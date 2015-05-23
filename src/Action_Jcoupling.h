@@ -55,7 +55,7 @@ class Action_Jcoupling: public Action {
     /// Hold info for all j-coupling calcs
     std::vector<jcouplingInfo> JcouplingInfo_;
 
-    AtomMask Mask1_;         ///< Mask to search for dihedrals in.
+    CharMask Mask1_;         ///< Mask to search for dihedrals in.
     int debug_;              ///< Debug level.
     int Nconstants_;
     Topology* CurrentParm_;
