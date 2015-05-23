@@ -13,9 +13,10 @@
   */
 class AtomMask : public MaskTokenArray {
   public:
-    AtomMask() : Natom_(0) {}
-    AtomMask(std::string const& e) : Natom_(0) { SetMaskString(e); }
-    AtomMask(std::vector<int> s, int n) : Selected_(s), Natom_(n) {}
+    AtomMask() : Natom_(0), maskChar_(SelectedChar_) {}
+    AtomMask(std::string const& e) : Natom_(0), maskChar_(SelectedChar_) { SetMaskString(e); }
+    AtomMask(std::vector<int> const& s, int n) : Selected_(s), Natom_(n),
+                                                 maskChar_(SelectedChar_) {}
     ///< Create mask selecting atoms from begin up to (not including) end.
     AtomMask(int,int);
     ///< Create mask with single atom selected.
@@ -32,7 +33,9 @@ class AtomMask : public MaskTokenArray {
     int back()                          const { return Selected_.back();      }
     /// \return selected atom at idx
     const int& operator[](int idx)      const { return Selected_[idx];        }
-    /// Invert mask selection 
+    /// Flip current mask expression.
+    void InvertMaskExpression();
+    /// Invert current mask
     void InvertMask();
     /// \return the number of atoms mask has in common with another mask
     int NumAtomsInCommon(AtomMask const&);
@@ -64,5 +67,6 @@ class AtomMask : public MaskTokenArray {
       * integer mask to Character mask. */
     std::vector<int> Selected_;  ///< Int array of selected atom numbers, 1 for each selected atom
     int Natom_;
+    char maskChar_;
 };
 #endif

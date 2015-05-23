@@ -3,19 +3,26 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-AtomMask::AtomMask(int beginAtom, int endAtom) : Natom_(0)
+AtomMask::AtomMask(int beginAtom, int endAtom) : Natom_(0), maskChar_(SelectedChar_)
 {
   AddAtomRange(beginAtom, endAtom);
 }
 
 // CONSTRUCTOR
-AtomMask::AtomMask(int atomNum) : Natom_(1), Selected_(1, atomNum) {}
+AtomMask::AtomMask(int atomNum) : Selected_(1, atomNum), Natom_(1), maskChar_(SelectedChar_) {}
 
 // AtomMask::ResetMask()
 void AtomMask::ResetMask() {
   Natom_ = 0;
   Selected_.clear();
   ClearTokens();
+}
+
+void AtomMask::InvertMaskExpression() {
+  if (maskChar_ == SelectedChar_)
+    maskChar_ = UnselectedChar_;
+  else
+    maskChar_ = SelectedChar_;
 }
 
 // AtomMask::InvertMask()
@@ -169,11 +176,11 @@ int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, cons
 
 // AtomMask::ConvertToCharMask()
 std::vector<char> AtomMask::ConvertToCharMask() const {
-  std::vector<char> CharMask(Natom_, unselectedChar_);
+  std::vector<char> CharMask(Natom_, UnselectedChar_);
   if (!Selected_.empty()) {
     for (std::vector<int>::const_iterator maskatom = Selected_.begin();
                                           maskatom != Selected_.end(); ++maskatom)
-      CharMask[*maskatom] = maskChar_;
+      CharMask[*maskatom] = SelectedChar_;
   }
   return CharMask;
 }

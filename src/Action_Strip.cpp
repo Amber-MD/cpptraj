@@ -47,7 +47,7 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   // We want to strip the atoms inside the mask and keep those outside
   // the mask. Since modifyStateByMask needs to know the kept atoms,
   // invert the mask selection.
-  M1_.InvertMask();
+  M1_.InvertMaskExpression();
 
   mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1_.MaskString());
   if (!prefix_.empty()) 

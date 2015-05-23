@@ -14,7 +14,8 @@ class MaskToken {
     void Print() const;
     int SetToken( MaskTokenType, std::string const& );
     int SetDistance( std::string & );
-    void SetOperator(MaskTokenType);
+    void SetOperator(MaskTokenType t) { type_ = t; onStack_ = false; }
+    void SetOnStack()                 { onStack_ = true;             }
 
     inline MaskTokenType Type()   const { return type_;     }
     inline int Res1()             const { return res1_;     }
@@ -24,8 +25,6 @@ class MaskToken {
     inline bool Within()          const { return d_within_; }
     inline bool ByAtom()          const { return d_atom_;   }
     inline double Distance()      const { return distance_; }
-
-    void SetOnStack();
   private:
     static const char* MaskTypeString[];
 
@@ -44,8 +43,6 @@ class MaskToken {
 // =============================================================================
 /// Hold an array of MaskTokens. Basis of all Mask classes.
 class MaskTokenArray {
-    typedef std::vector<MaskToken> MTarray;
-    typedef MTarray::const_iterator token_iterator;
   public:
     typedef std::vector<Atom> AtomArrayT;
     typedef std::vector<Residue> ResArrayT;
@@ -69,7 +66,7 @@ class MaskTokenArray {
     void BriefMaskInfo() const;
     // -------------------------------------------
     /// Print selected atoms to screen.
-    virtual void PrintMaskAtoms(const char* header) const = 0;
+    virtual void PrintMaskAtoms(const char*) const = 0;
     /// Select atoms based on current MaskTokens given atom/residue info
     virtual int SetupMask(AtomArrayT const&, ResArrayT const&, const double*) = 0;
     /// Clear all mask information.
@@ -86,9 +83,12 @@ class MaskTokenArray {
   protected:
     void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
     char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const;
-    static char maskChar_;
-    static char unselectedChar_; 
+    static char SelectedChar_;
+    static char UnselectedChar_; 
   private:
+    typedef std::vector<MaskToken> MTarray;
+    typedef MTarray::const_iterator token_iterator;
+
     static bool IsOperator(char);
     static bool IsOperand(char);
     static int OperatorPriority(char);

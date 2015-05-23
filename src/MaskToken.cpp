@@ -161,16 +161,8 @@ int MaskToken::SetDistance(std::string &distop) {
   return 0;
 }
 
-void MaskToken::SetOperator(MaskTokenType typeIn) {
-  type_ = typeIn;
-  onStack_ = false;
-}
-
-void MaskToken::SetOnStack() {
-  onStack_ = true;
-}
 // =============================================================================
-// MaskTokenArray
+// Class: MaskTokenArray
 
 bool MaskTokenArray::IsOperator(char op) {
   if (op=='!') return true;
@@ -333,8 +325,7 @@ int MaskTokenArray::Tokenize() {
     infix += buffer;
   }
 
-  // NOTE: Check for malformed tokens?
-
+  // TODO: Check for malformed tokens?
   // Add terminal symbol '_', needed for RPN conversion
   infix += "_";
 
@@ -518,7 +509,7 @@ int MaskTokenArray::Tokenize() {
         if (tempStack.empty()) { validMask = false; break; }
       }
       if ( T->OnStack() )
-        tempStack.push('T');
+        tempStack.push(SelectedChar_);
     } 
     if ( !validMask ) {
       mprinterr("Error: Misplaced operator %s.\n", T->TypeName());
@@ -572,8 +563,8 @@ void MaskTokenArray::BriefMaskInfo() const {
 }
 
 // =============================================================================
-char MaskTokenArray::maskChar_ = 'T';
-char MaskTokenArray::unselectedChar_ = 'F';
+char MaskTokenArray::SelectedChar_ = 'T';
+char MaskTokenArray::UnselectedChar_ = 'F';
 
 /** \return Array of char, same size as atoms_, with T for selected atoms and F otherwise.
   */
@@ -591,7 +582,7 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
     if (pMask==0) {
       // Create new blank mask
       pMask = new char[ atoms_.size() ];
-      std::fill(pMask, pMask + atoms_.size(), 'F');
+      std::fill(pMask, pMask + atoms_.size(), UnselectedChar_);
     }
     switch ( token->Type() ) {
       case MaskToken::ResNum : 
@@ -613,7 +604,7 @@ char* MaskTokenArray::ParseMask(std::vector<Atom> const& atoms_,
         MaskSelectElements( atoms_, token->Name(), pMask );
         break;
       case MaskToken::SelectAll :
-        std::fill(pMask, pMask + atoms_.size(), 'T');
+        std::fill(pMask, pMask + atoms_.size(), SelectedChar_);
         break;
       case MaskToken::OP_AND :
         pMask2 = Stack.top();
@@ -693,9 +684,9 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
   // reset mask, it will be the output mask.
   std::vector<unsigned int> selected;
   for (unsigned int i = 0; i < atoms_.size(); i++) {
-    if (mask[i]=='T') {
+    if (mask[i]==SelectedChar_) {
       selected.push_back( i );
-      mask[i] = 'F';
+      mask[i] = UnselectedChar_;
     }
   }
   if (selected.empty()) {
@@ -721,7 +712,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
 #endif
     for (atomi = 0; atomi < n_of_atoms; atomi++) {
       // No need to calculate if atomi already selected
-      if (mask[atomi] == 'T') continue;
+      if (mask[atomi] == SelectedChar_) continue;
       // Loop over initially selected atoms
       i_crd = REF + (atomi * 3);
       for (idx = 0; idx < (int)selected.size(); idx++) {
@@ -729,12 +720,12 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
         d2 = DIST2_NoImage(i_crd, REF + (atomj*3));
         if (token.Within()) {
           if (d2 < distance) {
-            mask[atomi] = 'T';
+            mask[atomi] = SelectedChar_;
             break;
           }
         } else {
           if (d2 > distance) {
-            mask[atomi] = 'T';
+            mask[atomi] = SelectedChar_;
             break;
           }
         }
@@ -772,7 +763,7 @@ int MaskTokenArray::Mask_SelectDistance(const double* REF, char *mask,
       }
       if (selectresidue) {
         for (atomi = residues_[resi].FirstAtom(); atomi < endatom; atomi++)
-          mask[atomi] = 'T';
+          mask[atomi] = SelectedChar_;
         continue;
       }
     }
@@ -788,8 +779,8 @@ void MaskTokenArray::Mask_AND(char *mask1, char *mask2, unsigned int N) const {
   //mprintf("\t\t\tPerforming AND on masks.\n");
   for (unsigned int i = 0; i != N; i++) {
     //mprintf(" [%c|%c]",mask1[i],mask2[i]);
-    if (mask1[i]=='F' || mask2[i]=='F')
-      mask1[i] = 'F';
+    if (mask1[i]==UnselectedChar_ || mask2[i]==UnselectedChar_)
+      mask1[i] = UnselectedChar_;
     // Otherwise mask1 should already be T
   }
   //mprintf("\n");
@@ -799,10 +790,10 @@ void MaskTokenArray::Mask_AND(char *mask1, char *mask2, unsigned int N) const {
 void MaskTokenArray::Mask_OR(char *mask1, char *mask2, unsigned int N) const {
   //mprintf("\t\t\tPerforming OR on masks.\n");
   for (unsigned int i = 0; i != N; i++) {
-    if (mask1[i]=='T' || mask2[i]=='T')
-      mask1[i] = 'T';
+    if (mask1[i]==SelectedChar_ || mask2[i]==SelectedChar_)
+      mask1[i] = SelectedChar_;
     else
-      mask1[i] = 'F';
+      mask1[i] = UnselectedChar_;
   }
 }
 
@@ -810,10 +801,10 @@ void MaskTokenArray::Mask_OR(char *mask1, char *mask2, unsigned int N) const {
 void MaskTokenArray::Mask_NEG(char *mask1, unsigned int N) const {
   //mprintf("\t\t\tNegating mask.\n");
   for (unsigned int i = 0; i != N; i++) {
-    if (mask1[i]=='T')
-      mask1[i] = 'F';
+    if (mask1[i]==SelectedChar_)
+      mask1[i] = UnselectedChar_;
     else
-      mask1[i] = 'T';
+      mask1[i] = SelectedChar_;
   }
 }
 
@@ -826,7 +817,7 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, NameType con
                                             res != residues_.end(); res++)
   {
     if ( res->Name().Match( name ) ) {
-      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), 'T');
+      std::fill(mask + res->FirstAtom(), mask + res->LastAtom(), SelectedChar_);
     }
   }
 }
@@ -851,7 +842,7 @@ void MaskTokenArray::MaskSelectResidues(ResArrayT const& residues_, int res1, in
   else
     endatom = residues_[res2-1].LastAtom();
   // Select atoms
-  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, 'T');
+  std::fill(mask + residues_[res1-1].FirstAtom(), mask + endatom, SelectedChar_);
 }
 
 // MaskTokenArray::MaskSelectElements()
@@ -864,7 +855,7 @@ void MaskTokenArray::MaskSelectElements(AtomArrayT const& atoms_, NameType const
   {
     NameType atom_element( atom->ElementName() );
     if ( atom_element.Match( element ) )
-      mask[m] = 'T';
+      mask[m] = SelectedChar_;
   } 
 }
 
@@ -877,7 +868,7 @@ void MaskTokenArray::MaskSelectTypes(AtomArrayT const& atoms_, NameType const& t
                                          atom != atoms_.end(); ++atom, ++m)
   {
     if ( atom->Type().Match( type ) )
-      mask[m] = 'T';
+      mask[m] = SelectedChar_;
   } 
 }
 
@@ -892,7 +883,7 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, NameType const& n
   {
     //mprintf("\t\t\t%u PARM[%s]  NAME[%s]",m,(*atom).c_str(),*name);
     if ( atom->Name().Match( name ) )
-      mask[m] = 'T';
+      mask[m] = SelectedChar_;
     //mprintf(" %c\n",mask[m]);
   }
 }
@@ -915,5 +906,5 @@ void MaskTokenArray::MaskSelectAtoms(AtomArrayT const& atoms_, int atom1, int at
   else
     endatom = atom2;
   // Select atoms
-  std::fill(mask + startatom, mask + endatom, 'T');
+  std::fill(mask + startatom, mask + endatom, SelectedChar_);
 }

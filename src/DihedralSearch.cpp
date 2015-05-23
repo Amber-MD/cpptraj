@@ -279,12 +279,10 @@ AtomMask DihedralSearch::MovingAtoms(Topology const& topIn, int atom0, int atom1
       VisitAtom( topIn, *bndatm, Visited );
   }
   // Everything marked T will move.
-  AtomMask Rmask;
-  // Needed for conversion to atom mask
-  Rmask.SetNatom( topIn.Natom() );
+  std::vector<int> Rmask;
   for (int maskatom = 0; maskatom < (int)Visited.size(); maskatom++) {
     if (Visited[maskatom])
-      Rmask.AddAtom(maskatom);
+      Rmask.push_back(maskatom);
   }
-  return Rmask;
+  return AtomMask(Rmask, topIn.Natom());
 }

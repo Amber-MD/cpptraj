@@ -15,7 +15,7 @@ class Action_Unwrap : public Action {
 
     Image::PairType imageList_;
     Image::Mode imageMode_;
-    AtomMask mask_;
+    std::string maskExpression_;
     Frame RefFrame_;
     Topology* RefParm_;
     bool orthogonal_;
