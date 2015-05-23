@@ -54,7 +54,7 @@ void MaskToken::MakeNameType() {
     type_ = AtomName;
 }
 
-// Basic : or @ operand
+/** Basic : or @ operand. */
 int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) {
   std::locale loc;
   if (tokenString.empty()) return 1;
@@ -125,7 +125,7 @@ int MaskToken::SetToken( MaskTokenType typeIn, std::string const& tokenString ) 
   return 0;
 }
 
-// [<|>][@|:]<dist>
+/** [<|>][@|:]<dist> */
 int MaskToken::SetDistance(std::string &distop) {
   if (distop.empty()) return 1;
   type_ = OP_DIST;

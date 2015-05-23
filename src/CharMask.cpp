@@ -1,6 +1,9 @@
 #include "CharMask.h"
 #include "CpptrajStdio.h" // PrintMaskAtoms
 
+/** Given atom and residue info and coordinates, setup character mask
+  * based on current mask tokens.
+  */
 int CharMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, const double* XYZ)
 {
   CharMask_.clear();
@@ -16,6 +19,7 @@ int CharMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, cons
   return 0;
 }
 
+// CharMask::PrintMaskAtoms()
 void CharMask::PrintMaskAtoms(const char *header) const {
   mprintf("%s=",header);
   if (!CharMask_.empty()) {
@@ -26,17 +30,20 @@ void CharMask::PrintMaskAtoms(const char *header) const {
   mprintf("\n");
 }
 
+// CharMask::ResetMask()
 void CharMask::ResetMask() {
   CharMask_.clear();
   nselected_ = 0;
   ClearTokens();
 }
 
+// CharMask::ClearSelected()
 void CharMask::ClearSelected() {
   CharMask_.assign(CharMask_.size(), UnselectedChar_);
   nselected_ = 0;
 }
 
+// CharMask::InvertMask()
 void CharMask::InvertMask() {
   for (std::vector<char>::iterator atchar = CharMask_.begin();
                                    atchar != CharMask_.end(); ++atchar)
@@ -47,6 +54,7 @@ void CharMask::InvertMask() {
   nselected_ = (int)CharMask_.size() - nselected_;
 }
 
+// CharMask::AtomInCharMask()
 bool CharMask::AtomInCharMask(int atom) const {
   if (CharMask_.empty()) return false;
   if (atom < 0) return false;
@@ -55,6 +63,7 @@ bool CharMask::AtomInCharMask(int atom) const {
   return false;
 }
 
+// CharMask::AtomsInCharMask()
 bool CharMask::AtomsInCharMask(int startatom, int endatom) const {
   if (CharMask_.empty()) return false;
   if (startatom > endatom) return false;
@@ -65,6 +74,9 @@ bool CharMask::AtomsInCharMask(int startatom, int endatom) const {
   return false;
 }
 
+/** This routine can be used to convert a CharMask to an AtomMask, e.g.
+  * AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
+  */
 std::vector<int> CharMask::ConvertToIntMask() const {
   std::vector<int> Selected;
   if (CharMask_.empty()) return Selected;

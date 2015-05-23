@@ -10,16 +10,20 @@
   * at which point the speed is comparable. This is the most common way to use
   * atom masks in cpptraj and is what most of the routines in the Frame class
   * have been written to use.
+  * AtomMasks must currently be set up using the SetupIntMask() routines
+  * in the Topology class.
   */
 class AtomMask : public MaskTokenArray {
   public:
     AtomMask() : Natom_(0), maskChar_(SelectedChar_) {}
+    /// Construct using mask expression
     AtomMask(std::string const& e) : Natom_(0), maskChar_(SelectedChar_) { SetMaskString(e); }
+    /// Construct from given integer array and total # atoms.
     AtomMask(std::vector<int> const& s, int n) : Selected_(s), Natom_(n),
                                                  maskChar_(SelectedChar_) {}
-    ///< Create mask selecting atoms from begin up to (not including) end.
+    /// Create mask selecting atoms from begin up to (not including) end.
     AtomMask(int,int);
-    ///< Create mask with single atom selected.
+    /// Create mask with single atom selected.
     AtomMask(int);
     /// \return Internal selected atom array.
     std::vector<int> const& Selected()  const { return Selected_;             }
@@ -63,10 +67,8 @@ class AtomMask : public MaskTokenArray {
     /// \return number of selected atoms
     int Nselected() const { return (int)Selected_.size(); }
   private:
-    /** Number of atoms mask was set-up with. Needed when converting from
-      * integer mask to Character mask. */
-    std::vector<int> Selected_;  ///< Int array of selected atom numbers, 1 for each selected atom
-    int Natom_;
-    char maskChar_;
+    std::vector<int> Selected_; ///< Int array of selected atom numbers
+    int Natom_;     ///< Total # of atoms mask was set up with, used to convert to CharMask
+    char maskChar_; ///< Current character used for selected atoms.
 };
 #endif

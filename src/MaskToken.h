@@ -2,7 +2,7 @@
 #define INC_MASKTOKEN_H
 #include "Atom.h"
 #include "Residue.h"
-/// Hold information use in mask selection. 
+/// Hold information used in mask selection. 
 class MaskToken {
   public:
     enum MaskTokenType { 
@@ -62,7 +62,7 @@ class MaskTokenArray {
     int SetMaskString(const char*);
     /// Print mask string and number of selected atoms.
     void MaskInfo() const;
-    /// Print brief mask info
+    /// Print [<expression>](<# selected>), no newline.
     void BriefMaskInfo() const;
     // -------------------------------------------
     /// Print selected atoms to screen.
@@ -82,6 +82,7 @@ class MaskTokenArray {
     bool None() const { return Nselected() == 0; }
   protected:
     void ClearTokens() { maskTokens_.clear(); maskExpression_.clear(); }
+    /// \return array of characters with selected atoms marked with SelectedChar_
     char* ParseMask(AtomArrayT const&, ResArrayT const&, const double*) const;
     static char SelectedChar_;
     static char UnselectedChar_; 

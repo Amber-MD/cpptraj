@@ -18,6 +18,9 @@ void AtomMask::ResetMask() {
   ClearTokens();
 }
 
+/** Flip the current character used to select atoms. Useful when you want 
+  * the mask to select the inverse of the given expression, like in 'strip'.
+  */
 void AtomMask::InvertMaskExpression() {
   if (maskChar_ == SelectedChar_)
     maskChar_ = UnselectedChar_;
@@ -175,6 +178,9 @@ int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, cons
 }
 
 // AtomMask::ConvertToCharMask()
+/** Can be used to set up a CharMask, e.g.
+  * CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
+  */
 std::vector<char> AtomMask::ConvertToCharMask() const {
   std::vector<char> CharMask(Natom_, UnselectedChar_);
   if (!Selected_.empty()) {

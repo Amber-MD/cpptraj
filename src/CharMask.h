@@ -4,12 +4,16 @@
 /// Atom mask using character array.
 /** This is the original way to use the atom mask, useful e.g. when 
   * you need to know what atoms are not selected as well as what atoms
-  * are selected. 
+  * are selected.
+  * CharMasks currently must be set up using the SetupCharMask() routines
+  * in the Topology class.
   */
 class CharMask : public MaskTokenArray {
   public:
     CharMask() : nselected_(0) {}
+    /// Construct from mask expression
     CharMask(std::string const& e) : nselected_(0) { SetMaskString(e); }
+    /// Construct from given char array and # selected atoms.
     CharMask(std::vector<char> const& c, int n) : CharMask_(c), nselected_(n) {}
     /// \return true if given atom is selected. 
     bool AtomInCharMask(int) const;
@@ -33,7 +37,7 @@ class CharMask : public MaskTokenArray {
     /// \return number of selected atoms.
     int Nselected() const { return nselected_; }
   private:
-    std::vector<char> CharMask_;
-    int nselected_;
+    std::vector<char> CharMask_; ///< Array of size Natoms, 'T' selected, 'F' otherwise.
+    int nselected_; ///< Total # of selected atoms.
 };
 #endif
