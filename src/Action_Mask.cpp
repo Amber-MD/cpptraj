@@ -91,8 +91,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
   if (!maskpdb_.empty()) {
     Trajout_Single pdbout;
     // Convert Mask1 to an integer mask for use in parm/frame functions
-    AtomMask Mask2 = Mask1_;
-    Mask2.ConvertToIntMask();
+    AtomMask Mask2( Mask1_.ConvertToIntMask(), Mask1_.Natom() );
     // Create new parm and frame based on atoms in Mask. Since we dont care
     // about advanced parm info for PDB write just do a partial modify.
     Topology* pdbParm = CurrentParm_->partialModifyStateByMask(Mask2);

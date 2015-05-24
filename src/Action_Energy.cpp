@@ -95,8 +95,7 @@ Action::RetType Action_Energy::Setup(Topology* currentParm, Topology** parmAddre
     return Action::ERR;
   }
   Mask1_.MaskInfo();
-  Imask_ = Mask1_;
-  Imask_.ConvertToIntMask();
+  Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
   currentParm_ = currentParm;
   return Action::OK;
 }

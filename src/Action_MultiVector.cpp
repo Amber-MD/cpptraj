@@ -32,11 +32,11 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL,
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
   ired_ = actionArgs.hasKey("ired");
-  // Setup DataSet(s) name
-  dsetname_ = actionArgs.GetStringNext();
   // Get atom names
   if (SetName(name1_, actionArgs.GetStringKey("name1"), "name1")) return Action::ERR;
   if (SetName(name2_, actionArgs.GetStringKey("name2"), "name2")) return Action::ERR;
+  // Setup DataSet(s) name
+  dsetname_ = actionArgs.GetStringNext();
 
   mprintf("    MULTIVECTOR: Calculating");
   if (ired_) mprintf(" IRED");

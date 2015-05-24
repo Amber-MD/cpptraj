@@ -171,8 +171,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Increment backtrack by 1 since we need to skip over current res
   ++backtrack_;
   // Initialize CheckStructure
-  ArgList cs_args("noimage nobondcheck");
-  if (checkStructure_.Init( cs_args, PFL, DSL, DFL, debug_) != Action::OK) {
+  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, *DFL )) {
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }
@@ -198,7 +197,6 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   // move, including atom2.
   if (debug_>0)
     mprintf("DEBUG: Dihedrals:\n");
-  AtomMask cMask;
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih)
   {
@@ -209,8 +207,7 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
     // residue as A1 but will not move. They need to be checked for clashes
     // since further rotations will not help them.
     if (mode_ == RANDOM && check_for_clashes_) {
-      cMask = dst.Rmask;
-      cMask.ConvertToCharMask(); 
+      CharMask cMask( dst.Rmask.ConvertToCharMask(), dst.Rmask.Nselected() );
       int a1res = (*currentParm)[(*dih).A1()].ResNum();
       for (int maskatom = currentParm->Res(a1res).FirstAtom();
                maskatom < currentParm->Res(a1res).LastAtom(); ++maskatom)
@@ -247,8 +244,8 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
     }
   }
 
-  // Set up CheckStructure for this parm
-  if (checkStructure_.Setup(currentParm, parmAddress) != Action::OK)
+  // Set up CheckStructure for this parm (false = nobondcheck)
+  if (checkStructure_.SeparateSetup(*currentParm, false) != Action::OK)
     return Action::ERR;
 
   // Set the overall max number of rotations to try
@@ -544,7 +541,7 @@ Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame,
     case INTERVAL: IntervalAngles(*currentFrame); break;
   }
   // Check the resulting structure
-  int n_problems = checkStructure_.CheckFrame( frameNum+1, *currentFrame );
+  int n_problems = checkStructure_.CheckOverlap( frameNum+1, *currentFrame, *CurrentParm_ );
   //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
   number_of_problems_->Add(frameNum, &n_problems);
 

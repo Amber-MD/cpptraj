@@ -54,7 +54,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   }
   else {
     Mask2_ = Mask1_;
-    Mask2_.InvertMask();
+    Mask2_.InvertMaskExpression();
   }
   
   // Get data set name

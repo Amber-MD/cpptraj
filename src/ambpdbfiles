@@ -7,6 +7,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               BufferedFrame.cpp \
               BufferedLine.cpp \
               ByteRoutines.cpp \
+              CharMask.cpp \
               CIFfile.cpp \
               CpptrajFile.cpp \
               CpptrajStdio.cpp \

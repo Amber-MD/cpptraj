@@ -1,6 +1,5 @@
 #ifndef INC_ACTION_IMAGE_H
 #define INC_ACTION_IMAGE_H
-// Class: Action_Image
 /// Action to wrap coordinates back into primary box
 #include "Action.h"
 #include "ImageTypes.h"
@@ -12,8 +11,8 @@ class Action_Image: public Action {
     ~Action_Image();
   private:
     Image::Mode imageMode_;
-    /// Only atoms in Mask1 will be imaged
-    AtomMask Mask1_;
+    /// Mask expression selecting atoms to image.
+    std::string maskExpression_;
     /// If defined, image w.r.t. the center of atoms in ComMask.
     AtomMask *ComMask_;
     /// Offsets

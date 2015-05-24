@@ -3,7 +3,7 @@
 #include "DistRoutines.h"
 
 /** Check that at least 1 atom in the range is in Mask1 */
-static inline void CheckRange(Image::PairType& atomPairs, AtomMask const& MaskIn, 
+static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn, 
                               int firstAtom, int lastAtom)
 {
   bool rangeIsValid = false;
@@ -20,44 +20,39 @@ static inline void CheckRange(Image::PairType& atomPairs, AtomMask const& MaskIn
 }
 
 // Image::CreatePairList() 
-/** Create an atom pair list by molecule, residue, or atom.
-  * NOTE: The mask is passed in by VALUE, not REFERENCE so that it can
-  *       be set up and used here.
-  */
-Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn, AtomMask maskIn) {
+/** Create an atom pair list by molecule, residue, or atom. */
+Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn,
+                                       std::string const& maskExpression)
+{
   PairType atomPairs;
   // Set up mask based on desired imaging mode.
   if ( modeIn == BYMOL || modeIn == BYRES ) {
-    if ( Parm.SetupCharMask( maskIn ) ) return atomPairs;
-  } else { // BYATOM
-    if ( Parm.SetupIntegerMask( maskIn ) ) return atomPairs;
-  }
-  if (maskIn.None()) {
-//    mprintf("Warning: Mask '%s' selects no atoms for topology '%s'.\n",
-//            maskIn.MaskString(), Parm.c_str());
-    return atomPairs;
-  }
-  // Set up atom range for each entity to be imaged.
-  switch (modeIn) {
-    case BYMOL:
+    CharMask cmask( maskExpression );
+    if ( Parm.SetupCharMask( cmask ) ) return atomPairs;
+    cmask.MaskInfo();
+    if (cmask.None()) return atomPairs;
+    // Set up atom range for each entity to be imaged.
+    if (modeIn == BYMOL) {
       atomPairs.reserve( Parm.Nmol()*2 );
       for (Topology::mol_iterator mol = Parm.MolStart();
                                   mol != Parm.MolEnd(); ++mol)
-        CheckRange( atomPairs, maskIn, (*mol).BeginAtom(), (*mol).EndAtom());
-     break;
-    case BYRES:
+        CheckRange( atomPairs, cmask, mol->BeginAtom(), mol->EndAtom());
+    } else { // BYRES
       atomPairs.reserve( Parm.Nres()*2 );
       for (Topology::res_iterator residue = Parm.ResStart();
                                   residue != Parm.ResEnd(); ++residue)
-        CheckRange( atomPairs, maskIn, (*residue).FirstAtom(), (*residue).LastAtom() );
-      break;
-    case BYATOM:
-      atomPairs.reserve( Parm.Natom()*2 );
-      for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
-        atomPairs.push_back(  *atom    );
-        atomPairs.push_back( (*atom)+1 );
-      }
-      break;
+        CheckRange( atomPairs, cmask, residue->FirstAtom(), residue->LastAtom() );
+    }
+  } else { // BYATOM
+    AtomMask imask( maskExpression );
+    if ( Parm.SetupIntegerMask( imask ) ) return atomPairs;
+    imask.MaskInfo();
+    if (imask.None()) return atomPairs;
+    atomPairs.reserve( Parm.Natom()*2 );
+    for (AtomMask::const_iterator atom = imask.begin(); atom != imask.end(); ++atom) {
+      atomPairs.push_back(  *atom    );
+      atomPairs.push_back( (*atom)+1 );
+    }
   }
 //  mprintf("\tNumber of %ss to be imaged is %zu based on mask '%s'\n",
 //           ModeString[modeIn], atomPairs.size()/2, maskIn.MaskString());

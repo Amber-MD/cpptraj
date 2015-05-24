@@ -29,7 +29,8 @@ class Traj_PDBfile: public TrajectoryIO {
     bool dumpq_;   ///< If true print charges/radii in Occupancy column (PQR).
     bool pdbres_;  ///< If true convert Amber res names to PDBV3 style.
     bool pdbatom_; ///< If true convert Amber atom names to PDBV3 style.
-    bool write_cryst1_; ///< If false write CRYST1 for first frame.
+    bool write_cryst1_; ///< If false write CRYST1 for first frame only.
+    bool include_ep_;   ///< If true include extra points.
     std::string space_group_;
     std::vector<double> radii_; ///< Hold radii for PQR format.
     std::vector<int> TER_idxs_; ///< TER card indices.
