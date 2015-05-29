@@ -120,3 +120,10 @@ void TrajFrameCounter::PrintFrameInfo() const {
   else
     mprintf(", unknown #frames, start=%i offset=%i",start_,offset_);
 }
+
+void TrajFrameCounter::PrintInfoLine(const char* fname) const {
+  if (stop_ != -1)
+    mprintf( "----- %s (%i-%i, %i) -----\n", fname, start_+1, stop_+1, offset_);
+  else
+    mprintf( "----- %s (%i-EOF, %i) -----\n", fname,start_+1,offset_);
+}

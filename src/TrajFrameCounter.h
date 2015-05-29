@@ -11,6 +11,8 @@ class TrajFrameCounter {
     int TotalFrames() const { return total_frames_; }
     /// \return Start frame number.
     int Start() const { return start_; }
+    /// \return Number of frames processed since Begin called.
+    int NumFramesProcessed() const { return numFramesProcessed_; }
     /// Prepare counter for use.
     void Begin() { numFramesProcessed_ = 0; current_ = start_; }
     /// Set total number of frames.
@@ -19,10 +21,14 @@ class TrajFrameCounter {
     int CheckFrameArgs(ArgList&);
     /// Print start/stop/offset info to screen
     void PrintFrameInfo() const;
+    /// Print brief info to screen
+    void PrintInfoLine(const char*) const;
     /// Check if processing is complete.
     inline int CheckFinished() { return (current_ > stop_ && stop_ != -1); }
     /// Update current according to offset
     inline void UpdateCounters() { ++numFramesProcessed_; current_ += offset_; }
+    /// \return previous frame number (last # before UpdateCounters was called).
+    inline int PreviousFrameNumber() const { return current_ - offset_; }
   private:
     int start_;  ///< Frame to begin processing.
     int stop_;   ///< Frame to end processing. -1 means until no more frames.

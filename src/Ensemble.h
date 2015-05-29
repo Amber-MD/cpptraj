@@ -27,7 +27,7 @@ class Ensemble {
 #   endif
 #   endif
     inline int GetNextEnsemble(FrameArray&, FramePtrArray&);
-
+    /// \return Common information (counter, filename, Topology ptr)
     InputTrajCommon const& Traj() const { return traj_;        }
     /// \return true if there was a problem reading the ensemble.
     int BadEnsemble()             const { return badEnsemble_; }
@@ -36,11 +36,11 @@ class Ensemble {
     void PrintReplicaInfo() const;
   protected:
     typedef Frame::RemdIdxType RemdIdxType;
-    InputTrajCommon& Traj()             { return traj_; }
 
     int SetTemperatureMap(std::vector<double> const&);
     int SetIndicesMap(std::vector<RemdIdxType> const&);
 
+    InputTrajCommon& SetTraj() { return traj_; }
     /// For converting temperature to replica index
     ReplicaMap<double> TemperatureMap_;
     /// For converting indices to replica index

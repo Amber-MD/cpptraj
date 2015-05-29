@@ -20,7 +20,7 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
 {
   if (eio_ != 0) delete eio_;
   // Set file name and topology pointer.
-  if (Traj().SetNameAndParm(tnameIn, tparmIn)) return 1;
+  if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
   if ( (eio_ = TrajectoryFile::DetectFormat( Traj().Filename().Full(), tformat )) == 0 ) {
@@ -47,8 +47,8 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
   }
   // Set the start, stop, and offset args based on user input. Do some bounds
   // checking. // TODO Merge into single call?
-  if (Traj().Counter().SetTotalFrames( nframes )) return 1;
-  if (Traj().Counter().CheckFrameArgs( argIn )) return 1;
+  if (SetTraj().Counter().SetTotalFrames( nframes )) return 1;
+  if (SetTraj().Counter().CheckFrameArgs( argIn )) return 1;
   // Set trajectory coordinate info.
   cInfo_ = eio_->CoordInfo();
   // NOTE: ensembleSize_ is saved here as a shortcut. Should always equal whats in cInfo_
@@ -124,7 +124,7 @@ int Ensemble_Single::BeginEnsemble() {
     return 1;
   }
   // Initialize counter.
-  Traj().Counter().Begin();
+  SetTraj().Counter().Begin();
   return 0;
 }
 

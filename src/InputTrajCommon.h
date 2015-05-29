@@ -13,6 +13,8 @@ class InputTrajCommon {
     TrajFrameCounter& Counter()             { return frameCount_; }
     /// Set trajectory file name and associated Topology.
     int SetNameAndParm(std::string const&, Topology*);
+    /// Print trajectory info to one line.
+    void PrintInfoLine() const { frameCount_.PrintInfoLine(trajName_.base()); }
   private:
     TrajFrameCounter frameCount_; ///< Frame counter for GetNextX routines.
     FileName trajName_;           ///< Trajectory file name (lowest rep for ensembles).

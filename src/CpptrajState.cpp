@@ -6,26 +6,25 @@
 #include "DataSet_Coords_REF.h" // AddReference
 #ifdef TIMER
 #ifdef MPI
-#include "Trajin_Multi.h"
-#include "Trajin_Ensemble.h"
+#include "Ensemble.h"
 #endif
 #endif
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   std::string fname = argIn.GetStringNext();
+  Topology* tempParm = parmFileList_.GetParm( argIn );
   if (isEnsemble) {
-    if ( trajinList_.AddEnsemble( fname, argIn, parmFileList_ ) ) return 1;
+    if ( trajinList_.AddEnsemble( fname, tempParm, argIn ) ) return 1;
   } else {
-    if ( trajinList_.AddTrajin( fname, argIn, parmFileList_ ) ) return 1;
+    if ( trajinList_.AddTrajin( fname, tempParm, argIn ) ) return 1;
   }
   return 0;
 }
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( std::string const& fname ) {
-  ArgList targ;
-  if ( trajinList_.AddTrajin( fname, targ, parmFileList_ ) ) return 1;
+  if ( trajinList_.AddTrajin( fname, parmFileList_.GetParm(0), ArgList() ) ) return 1;
   return 0;
 }
 
@@ -253,10 +252,11 @@ int CpptrajState::RunEnsemble() {
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
   int ensembleSize = -1;
-  for (TrajinList::const_iterator traj = trajinList_.begin(); traj != trajinList_.end(); ++traj) 
+  for (TrajinList::ensemble_it traj = trajinList_.ensemble_begin(); 
+                               traj != trajinList_.ensemble_end(); ++traj) 
   {
     if (ensembleSize == -1) {
-      ensembleSize = (*traj)->TrajCoordInfo().EnsembleSize();
+      ensembleSize = (*traj)->EnsembleCoordInfo().EnsembleSize();
 #     ifdef MPI
       // TODO: Eventually try to divide ensemble among MPI threads?
       if (worldsize != ensembleSize) {
@@ -265,17 +265,26 @@ int CpptrajState::RunEnsemble() {
         return 1;
       }
 #     endif
-    } else if (ensembleSize != (*traj)->TrajCoordInfo().EnsembleSize()) {
+    } else if (ensembleSize != (*traj)->EnsembleCoordInfo().EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                (*traj)->TrajCoordInfo().EnsembleSize(), ensembleSize);
+                (*traj)->EnsembleCoordInfo().EnsembleSize(), ensembleSize);
       return 1;
     }
-    // Perform ensemble setup - this also resizes FrameEnsemble and SortedFrames
-    if ( (*traj)->EnsembleSetup( FrameEnsemble, SortedFrames ) ) return 1;
   }
-  mprintf("  Ensemble size is %i\n", ensembleSize); 
+  mprintf("  Ensemble size is %i\n", ensembleSize);
+  // Allocate space to hold position of each incoming frame in replica space.
+# ifdef MPI
+  // Only two frames needed; one for reading, one for receiving.
+  SortedFrames.resize( 2 );
+  FrameEnsemble.resize( 2 );
+# else
+  SortedFrames.resize( ensembleSize );
+  FrameEnsemble.resize( ensembleSize );
+# endif
+  //FrameEnsemble.SetupFrames( TrajParm()->Atoms(), cInfo_ );
+
   // At this point all ensembles should match (i.e. same map etc.)
-  trajinList_.front()->EnsembleInfo();
+  trajinList_.FirstEnsembleReplicaInfo();
 
   // Calculate frame division among trajectories
   trajinList_.List();
@@ -364,19 +373,20 @@ int CpptrajState::RunEnsemble() {
   frames_time.Start();
   // Loop over every trajectory in trajFileList
   mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
-  for ( TrajinList::const_iterator traj = trajinList_.begin();
-                                   traj != trajinList_.end(); ++traj)
+  for ( TrajinList::ensemble_it traj = trajinList_.ensemble_begin();
+                                traj != trajinList_.ensemble_end(); ++traj)
   {
-    // Open up the trajectory file. If an error occurs, bail 
-    if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
+    // Open up the trajectory file. If an error occurs, bail
+    // TODO Progress bar 
+    if ( (*traj)->BeginEnsemble() ) {
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
       break;
     }
     // Set current parm from current traj.
-    Topology* CurrentParm = (*traj)->TrajParm();
+    Topology* CurrentParm = (*traj)->Traj().Parm();
     for (int member = 0; member < ensembleSize; ++member)
       EnsembleParm[member] = CurrentParm;
-    CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
+    CoordinateInfo const& currentCoordInfo = (*traj)->EnsembleCoordInfo();
     CurrentParm->SetParmCoordInfo( currentCoordInfo );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
@@ -424,7 +434,7 @@ int CpptrajState::RunEnsemble() {
     setup_time.Stop();
 #   endif
     // Loop over every collection of frames in the ensemble
-    (*traj)->PrintInfoLine();
+    (*traj)->Traj().PrintInfoLine();
 #   ifdef TIMER
     trajin_time.Start();
     bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
@@ -442,7 +452,7 @@ int CpptrajState::RunEnsemble() {
           //rprintf("DEBUG: CurrentFrame=%x SortedFrames[0]=%x\n",CurrentFrame, SortedFrames[0]);
           if ( CurrentFrame->CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
-                    member, (*traj)->CurrentFrameNumber());
+                    member, (*traj)->Traj().Counter().PreviousFrameNumber()+1);
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -484,9 +494,9 @@ int CpptrajState::RunEnsemble() {
     }
 
     // Close the trajectory file
-    (*traj)->EndTraj();
+    (*traj)->EndEnsemble();
     // Update how many frames have been processed.
-    readSets += (*traj)->NumFramesProcessed();
+    readSets += (*traj)->Traj().Counter().NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
@@ -500,8 +510,7 @@ int CpptrajState::RunEnsemble() {
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
   trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
 # ifdef MPI
-  Trajin_Multi::TimingData(trajin_time.Total());
-  Trajin_Ensemble::TimingData(trajin_time.Total());
+  Ensemble::TimingData(trajin_time.Total());
 # endif
 # endif
 
@@ -561,17 +570,18 @@ int CpptrajState::RunNormal() {
   Timer frames_time;
   frames_time.Start();
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
-  for ( TrajinList::const_iterator traj = trajinList_.begin();
-                                   traj != trajinList_.end(); ++traj)
+  for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
+                              traj != trajinList_.trajin_end(); ++traj)
   {
     // Open up the trajectory file. If an error occurs, bail 
-    if ( (*traj)->BeginTraj(showProgress_) ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->TrajFilename().full());
+    // TODO progress bar
+    if ( (*traj)->BeginTraj() ) {
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
       break;
     }
     // Set current parm from current traj.
     CoordinateInfo const& currentCoordInfo = (*traj)->TrajCoordInfo();
-    Topology* CurrentParm = (*traj)->TrajParm();
+    Topology* CurrentParm = (*traj)->Traj().Parm();
     CurrentParm->SetParmCoordInfo( currentCoordInfo );
     // Check if parm has changed
     bool parmHasChanged = (lastPindex != CurrentParm->Pindex());
@@ -601,7 +611,7 @@ int CpptrajState::RunNormal() {
     setup_time.Stop();
 #   endif
     // Loop over every Frame in trajectory
-    (*traj)->PrintInfoLine();
+    (*traj)->Traj().PrintInfoLine();
 #   ifdef TIMER
     trajin_time.Start();
     bool readMoreFrames = (*traj)->GetNextFrame(TrajFrame);
@@ -614,7 +624,7 @@ int CpptrajState::RunNormal() {
       // Check that coords are valid.
       if ( TrajFrame.CheckCoordsInvalid() )
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",
-                (*traj)->CurrentFrameNumber());
+                (*traj)->Traj().Counter().PreviousFrameNumber()+1);
         // Since Frame can be modified by actions, save original and use CurrentFrame
         Frame* CurrentFrame = &TrajFrame;
         // Perform Actions on Frame
@@ -649,7 +659,7 @@ int CpptrajState::RunNormal() {
     // Close the trajectory file
     (*traj)->EndTraj();
     // Update how many frames have been processed.
-    readSets += (*traj)->NumFramesProcessed();
+    readSets += (*traj)->Traj().Counter().NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);

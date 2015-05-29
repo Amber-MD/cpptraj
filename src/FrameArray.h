@@ -5,6 +5,7 @@
 class FrameArray {
   public:
     FrameArray() {}
+    FrameArray(unsigned int u) : farray_(u) {}
     void resize(int nIn)                   { farray_.resize(nIn);     }
     Frame&       operator[](int idx)       { return farray_[idx];     }
     Frame const& operator[](int idx) const { return farray_[idx];     }

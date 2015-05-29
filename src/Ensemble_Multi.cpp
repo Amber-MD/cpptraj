@@ -10,7 +10,7 @@
 int Ensemble_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   // Set file name and topology pointer.
-  if (Traj().SetNameAndParm(tnameIn, tparmIn)) return 1;
+  if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   REMDtraj_.ClearIOarray();
   // Check for deprecated args
   if (argIn.hasKey("remdout")) {
@@ -30,7 +30,7 @@ int Ensemble_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn
   // Set up replica file names.
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
   // Set up TrajectoryIO classes for all file names.
-  if (REMDtraj_.SetupIOarray(argIn, Traj().Counter(), cInfo_, Traj().Parm())) return 1;
+  if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
@@ -251,7 +251,7 @@ int Ensemble_Multi::BeginEnsemble() {
   }
 # endif
   // Initialize counter.
-  Traj().Counter().Begin();
+  SetTraj().Counter().Begin();
   return 0;
 }
 
