@@ -30,7 +30,7 @@ void TrajinList::Clear() {
 
 // TODO: Get rid of the nonsense IncreaseFrames stuff.
 void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
-  int trajFrames = traj.Counter().TotalFrames();
+  int trajFrames = traj.Counter().TotalReadFrames();
   // If < 0 frames this indicates the number of frames could not be determined. 
   if (trajFrames < 0)
     maxframes_ = -1;
