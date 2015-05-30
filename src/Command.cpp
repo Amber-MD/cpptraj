@@ -11,6 +11,7 @@
 #include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
+#include "ProgressBar.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -678,10 +679,10 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   Timer total_time;
   total_time.Start();
   // Start, stop, offset
-  int start, stop, offset;
+  TrajFrameCounter frameCount;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return Command::C_ERR;
-  if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
+  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
+  frameCount.PrintInfoLine(CRD->legend());
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
   Command::TokenPtr tkn = Command::SearchTokenType( Command::ACTION, actionargs);
@@ -703,9 +704,11 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     return Command::C_ERR;
   }
   // Loop over all frames in COORDS.
-  ProgressBar progress( stop - start );
+  ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
-  for (int frame = start; frame < stop; frame += offset) {
+  for (int frame = frameCount.Start(); frame < frameCount.Stop();
+           frame += frameCount.Offset(), ++set)
+  {
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
     Frame* currentFrame = &originalFrame;
@@ -717,7 +720,6 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
     // TODO: Have actions indicate whether they will modify coords
     //if ( currentFrame != &originalFrame ) 
       CRD->SetCRD( frame, *currentFrame );
-    set++;
   }
   // Check if parm was modified. If so, update COORDS.
   if ( currentParm != &originalParm ) {
@@ -749,10 +751,10 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   mprintf("\tUsing set '%s'\n", CRD->legend());
   setname = argIn.GetStringNext();
   // Start, stop, offset
-  int start, stop, offset;
+  TrajFrameCounter frameCount;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  if (Trajin::CheckFrameArgs(crdarg, CRD->Size(), start, stop, offset)) return Command::C_ERR;
-  if (State.Debug() > 0) mprintf("\tDBG: Frames %i to %i, offset %i\n", start+1, stop, offset);
+  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
+  frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
   currentParm->SetNframes( CRD->Size() ); // FIXME: This is a hack to get correct # frames.
@@ -762,9 +764,12 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   }
   outtraj.PrintInfo( 1 );
   Frame currentFrame = CRD->AllocateFrame(); 
-  ProgressBar progress( stop );
-  for (int frame = start; frame < stop; frame += offset) {
-    progress.Update( frame );
+  ProgressBar progress( frameCount.TotalReadFrames() );
+  int set = 0;
+  for (int frame = frameCount.Start(); frame < frameCount.Stop();
+           frame += frameCount.Offset(), ++set)
+  {
+    progress.Update( set );
     CRD->GetFrame( frame, currentFrame );
     if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n",
@@ -798,7 +803,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   // NOTE: Default name should NEVER get used.
   std::string setname = argIn.GetStringNext();
   if (setname.empty())
-    setname = trajin.TrajFilename().Base();
+    setname = trajin.Traj().Filename().Base();
   // Check if set already present
   DataSet_Coords* coords = (DataSet_Coords*)State.DSL()->FindSetOfType(setname, DataSet::COORDS);
   if (coords == 0) {
@@ -809,21 +814,22 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
       return Command::C_ERR;
     }
     coords->SetTopology( *parm );
-    mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.TrajFilename().full(), setname.c_str());
+    mprintf("\tLoading trajectory '%s' as '%s'\n",
+            trajin.Traj().Filename().full(), setname.c_str());
   } else {
     // Check that topology matches. For now just check # atoms.
     if (parm->Natom() != coords->Top().Natom()) {
       mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
-                trajin.TrajFilename().full(), parm->Natom(),
+                trajin.Traj().Filename().full(), parm->Natom(),
                 coords->legend(), coords->Top().Natom());
       return Command::C_ERR;
     }
     mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
-            trajin.TrajFilename().full(), coords->legend());
+            trajin.Traj().Filename().full(), coords->legend());
   }
-  // Read trajectory
-  trajin.BeginTraj(true);
-  trajin.PrintInfoLine();
+  // Read trajectory TODO progress bar
+  trajin.BeginTraj();
+  trajin.Traj().PrintInfoLine();
   while (trajin.GetNextFrame( frameIn ))
     coords->AddFrame( frameIn );
   trajin.EndTraj();
@@ -861,8 +867,8 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
     }
     mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
             setname.c_str());
-    for (TrajinList::const_iterator Trajin = State.InputTrajList().begin();
-                                    Trajin != State.InputTrajList().end(); ++Trajin)
+    for (TrajinList::trajin_it Trajin = State.InputTrajList().trajin_begin();
+                               Trajin != State.InputTrajList().trajin_end(); ++Trajin)
       if (trj->AddInputTraj( *Trajin )) return Command::C_ERR;
     // TODO: Clear input trajectories from trajinList?
   } else {
@@ -1659,14 +1665,30 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if (parm == 0) return Command::C_ERR;
   // Check if this topology has already been used to set up an input
   // trajectory, as this will break the traj read.
-  for (TrajinList::const_iterator tIn = State.InputTrajList().begin();
-                                  tIn != State.InputTrajList().end(); ++tIn)
-    if ( (*tIn)->TrajParm() == parm ) {
-      mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
-                "Error:   To strip this topology use the 'strip' action.\n",
-                parm->c_str(), (*tIn)->TrajFilename().full());
-      return Command::C_ERR;
+  bool topology_in_use = false;
+  const char* fname = 0;
+  for (TrajinList::trajin_it tIn = State.InputTrajList().trajin_begin();
+                             tIn != State.InputTrajList().trajin_end(); ++tIn)
+    if ( (*tIn)->Traj().Parm() == parm ) {
+      topology_in_use = true;
+      fname = (*tIn)->Traj().Filename().full();
+      break;
     }
+  if (!topology_in_use) {
+    for (TrajinList::ensemble_it eIn = State.InputTrajList().ensemble_begin();
+                                 eIn != State.InputTrajList().ensemble_end(); ++eIn)
+      if ( (*eIn)->Traj().Parm() == parm ) {
+        topology_in_use = true;
+        fname = (*eIn)->Traj().Filename().full();
+        break;
+      }
+  }
+  if (topology_in_use) {
+    mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
+              "Error:   To strip this topology use the 'strip' action.\n",
+              parm->c_str(), fname);
+    return Command::C_ERR;
+  }
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMask();

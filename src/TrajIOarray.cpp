@@ -227,8 +227,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     lowestRep = false;
   }
   // Check how many frames will actually be read
-  if (counter.SetTotalFrames( totalFrames )) return 1;
-  if (counter.CheckFrameArgs( argIn )) return 1;
+  if (counter.CheckFrameArgs( totalFrames, argIn )) return 1;
   // Check for errors.
   if (IOarray_.empty()) {
     mprinterr("Error: No replica trajectories set up.\n");

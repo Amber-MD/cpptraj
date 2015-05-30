@@ -11,7 +11,13 @@ TrajFrameCounter::TrajFrameCounter() :
   numFramesProcessed_(0)
 {}
 
-int TrajFrameCounter::SetTotalFrames(int nframes) {
+/** Parse argument list for trajectory-related frame args. Frame args start at
+  * 1, internal frame #s start at 0. So for a traj with 10 frames:
+  * - Internal #: 0 1 2 3 4 5 6 7 8 9
+  * - Frame Arg#: 1 2 3 4 5 6 7 8 9 10
+  * - Defaults: start_=1, stop_=-1, offset_=1
+  */
+int TrajFrameCounter::CheckFrameArgs(int nframes, ArgList &argIn) {
   total_frames_ = nframes;
   if (total_frames_==0) {
     mprinterr("Error: trajectory contains no frames.\n");
@@ -21,16 +27,7 @@ int TrajFrameCounter::SetTotalFrames(int nframes) {
   //  stop_ = total_frames_;
   //else
   //  stop_ = -1;
-  return 0;
-}
 
-/** Parse argument list for trajectory-related frame args. Frame args start at
-  * 1, internal frame #s start at 0. So for a traj with 10 frames:
-  * - Internal #: 0 1 2 3 4 5 6 7 8 9
-  * - Frame Arg#: 1 2 3 4 5 6 7 8 9 10
-  * - Defaults: start_=1, stop_=-1, offset_=1
-  */
-int TrajFrameCounter::CheckFrameArgs(ArgList &argIn) {
   if (argIn.hasKey("lastframe")) {
     // lastframe is a special case where only the last frame will be selected
     if (total_frames_ > 0) {
@@ -123,7 +120,7 @@ void TrajFrameCounter::PrintFrameInfo() const {
 
 void TrajFrameCounter::PrintInfoLine(const char* fname) const {
   if (stop_ != -1)
-    mprintf( "----- %s (%i-%i, %i) -----\n", fname, start_+1, stop_+1, offset_);
+    mprintf( "----- %s (%i-%i, %i) -----\n", fname, start_+1, stop_, offset_);
   else
     mprintf( "----- %s (%i-EOF, %i) -----\n", fname,start_+1,offset_);
 }

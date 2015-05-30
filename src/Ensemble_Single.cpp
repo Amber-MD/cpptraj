@@ -46,9 +46,8 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
       mprintf("\t'%s' contains an unknown number of frames.\n",Traj().Filename().base());
   }
   // Set the start, stop, and offset args based on user input. Do some bounds
-  // checking. // TODO Merge into single call?
-  if (SetTraj().Counter().SetTotalFrames( nframes )) return 1;
-  if (SetTraj().Counter().CheckFrameArgs( argIn )) return 1;
+  // checking.
+  if (SetTraj().Counter().CheckFrameArgs( nframes, argIn )) return 1;
   // Set trajectory coordinate info.
   cInfo_ = eio_->CoordInfo();
   // NOTE: ensembleSize_ is saved here as a shortcut. Should always equal whats in cInfo_

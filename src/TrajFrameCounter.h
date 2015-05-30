@@ -9,22 +9,26 @@ class TrajFrameCounter {
     int Current() const { return current_; }
     /// \return Total number of frames
     int TotalFrames() const { return total_frames_; }
+    /// \return Total number of frames that will be read based on start/stop/offset.
+    int TotalReadFrames() const { return total_read_frames_; }
     /// \return Start frame number.
     int Start() const { return start_; }
+    /// \return End frame number.
+    int Stop() const { return stop_; }
+    /// \return offset
+    int Offset() const { return offset_; }
     /// \return Number of frames processed since Begin called.
     int NumFramesProcessed() const { return numFramesProcessed_; }
     /// Prepare counter for use.
     void Begin() { numFramesProcessed_ = 0; current_ = start_; }
-    /// Set total number of frames.
-    int SetTotalFrames(int);
-    /// Get start/stop/offset from ArgList, check against total_frames_
-    int CheckFrameArgs(ArgList&);
+    /// Set total_frames_ and get start/stop/offset from ArgList, check for validity.
+    int CheckFrameArgs(int, ArgList&);
     /// Print start/stop/offset info to screen
     void PrintFrameInfo() const;
     /// Print brief info to screen
     void PrintInfoLine(const char*) const;
     /// Check if processing is complete.
-    inline int CheckFinished() { return (current_ > stop_ && stop_ != -1); }
+    inline int CheckFinished() { return !(current_ < stop_ || stop_ == -1); }
     /// Update current according to offset
     inline void UpdateCounters() { ++numFramesProcessed_; current_ += offset_; }
     /// \return previous frame number (last # before UpdateCounters was called).

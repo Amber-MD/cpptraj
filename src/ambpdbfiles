@@ -18,6 +18,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               FileName.cpp \
               FileTypes.cpp \
               Frame.cpp \
+              InputTrajCommon.cpp \
               MaskToken.cpp \
               Matrix_3x3.cpp \
               Mol2File.cpp \
@@ -40,6 +41,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               TinkerFile.cpp \
               Topology.cpp \
               TrajectoryFile.cpp \
+              TrajFrameCounter.cpp \
               Trajin.cpp \
               Trajin_Single.cpp \
               Trajout.cpp \

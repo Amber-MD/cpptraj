@@ -21,6 +21,7 @@ class Trajin_Single : public Trajin {
     /// \return trajectory metadata.
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
     // ---------------------------------------------
+    std::string const& Title() const { return trajio_->Title(); } //TODO Check for segfault
   private:
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
