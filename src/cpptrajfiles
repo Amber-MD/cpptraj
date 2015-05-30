@@ -246,6 +246,7 @@ SOURCES=ActionFrameCounter.cpp \
         TrajinList.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
+        TrajIOarray.cpp \
         Trajout.cpp \
         Trajout_Ensemble.cpp \
         Trajout_Multi.cpp \
