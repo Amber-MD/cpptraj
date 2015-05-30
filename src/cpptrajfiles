@@ -122,6 +122,7 @@ SOURCES=ActionFrameCounter.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
         ByteRoutines.cpp \
+        CharMask.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \

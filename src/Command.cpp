@@ -1691,7 +1691,7 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   }
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
-  tempMask.InvertMask();
+  tempMask.InvertMaskExpression();
   if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
   mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(),
            parm->Natom() - tempMask.Nselected(), parm->c_str());

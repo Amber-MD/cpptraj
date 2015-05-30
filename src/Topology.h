@@ -7,6 +7,7 @@
 #include "Molecule.h"
 #include "ParameterTypes.h"
 #include "AtomMask.h"
+#include "CharMask.h"
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
@@ -133,10 +134,10 @@ class Topology {
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&,
                          std::vector<NameType> const&);
     // ----- Mask Routines -----------------------
-    bool SetupIntegerMask(AtomMask &) const;
-    bool SetupCharMask(AtomMask &) const;
-    bool SetupIntegerMask(AtomMask &, Frame const&) const;
-    bool SetupCharMask(AtomMask &, Frame const&) const;
+    int SetupIntegerMask(AtomMask &) const;
+    int SetupCharMask(CharMask &) const;
+    int SetupIntegerMask(AtomMask &, Frame const&) const;
+    int SetupCharMask(CharMask &, Frame const&) const;
     // ----- Topology modification routines ------
     void ScaleDihedralK(double);
     /// Strip atoms outside given mask, do not keep parameters.
@@ -154,9 +155,9 @@ class Topology {
     /// Append topology to this one.
     int AppendTop( Topology const& );
   private:
-    void PrintBonds(BondArray const&, AtomMask const&, int&) const;
-    void PrintAngles(AngleArray const&, AtomMask const&, int&) const;
-    void PrintDihedrals(DihedralArray const&, AtomMask const&, int&) const;
+    void PrintBonds(BondArray const&, CharMask const&, int&) const;
+    void PrintAngles(AngleArray const&, CharMask const&, int&) const;
+    void PrintDihedrals(DihedralArray const&, CharMask const&, int&) const;
     void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
@@ -169,18 +170,6 @@ class Topology {
     void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
     int SetSolventInfo();
-
-    int Mask_SelectDistance( Frame const&, char*, bool, bool, double ) const;
-    void Mask_AND(char*,char*) const;
-    void Mask_OR(char*,char*) const;
-    void Mask_NEG(char*) const;
-    void MaskSelectResidues(NameType const&, char *) const;
-    void MaskSelectResidues(int, int, char *) const;
-    void MaskSelectElements( NameType const&, char* ) const;
-    void MaskSelectTypes( NameType const& , char* ) const;
-    void MaskSelectAtoms(NameType const&, char*) const;
-    void MaskSelectAtoms(int, int, char*) const;
-    bool ParseMask(Frame const&, AtomMask &,bool) const;
 
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;

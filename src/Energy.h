@@ -11,23 +11,23 @@ class Energy_Amber {
     typedef std::vector<double> Darray;
     Energy_Amber();
 
-    double E_bond(Frame const&, Topology const&, AtomMask const&);
-    double E_angle(Frame const&, Topology const&, AtomMask const&);
-    double E_torsion(Frame const&, Topology const&, AtomMask const&);
-    double E_14_Nonbond(Frame const&, Topology const&, AtomMask const&, double&);
+    double E_bond(Frame const&, Topology const&, CharMask const&);
+    double E_angle(Frame const&, Topology const&, CharMask const&);
+    double E_torsion(Frame const&, Topology const&, CharMask const&);
+    double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
     double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&);
 
     void SetDebug(int d) { debug_ = d; }
     void PrintTiming() const;
   private:
     double CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
-                          AtomMask const&);
+                          CharMask const&);
     double CalcAngleEnergy(Frame const&, AngleArray const&, AngleParmArray const&,
-                           AtomMask const&);
+                           CharMask const&);
     double CalcTorsionEnergy(Frame const&, DihedralArray const&, DihedralParmArray const&,
-                             AtomMask const&);
+                             CharMask const&);
     double Calc_14_Energy(Frame const&, DihedralArray const&, DihedralParmArray const&,
-                          Topology const&, AtomMask const&, double&);
+                          Topology const&, CharMask const&, double&);
 
     static const double QFAC;
     int debug_;

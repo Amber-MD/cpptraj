@@ -65,7 +65,7 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, DataS
       ComMask_->SetMaskString(maskexpr);
     }
   }
-  Mask1_.SetMaskString(actionArgs.GetMaskNext());
+  maskExpression_ = actionArgs.GetMaskNext();
   
   mprintf("    IMAGE: By %s to", Image::ModeString(imageMode_));
   if (origin_)
@@ -78,7 +78,10 @@ Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, DataS
     else
       mprintf(" based on first atom position");
   }
-  mprintf(" using atoms in mask %s\n",Mask1_.MaskString());
+  if (!maskExpression_.empty())
+    mprintf(" using atoms in mask %s\n", maskExpression_.c_str());
+  else
+    mprintf(" using all atoms\n");
   if (triclinic_ == FORCE)
     mprintf( "           Triclinic On.\n");
   else if (triclinic_ == FAMILIAR) {
@@ -109,14 +112,13 @@ Action::RetType Action_Image::Setup(Topology* currentParm, Topology** parmAddres
   if (currentParm->BoxType()==Box::ORTHO && triclinic_==OFF) ortho_=true;
 
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(*currentParm, imageMode_, Mask1_);
+  imageList_ = Image::CreatePairList(*currentParm, imageMode_, maskExpression_);
   if (imageList_.empty()) {
-    mprintf("Warning: Mask '%s' selects no atoms for topology '%s'.\n",
-            Mask1_.MaskString(), currentParm->c_str());
+    mprintf("Warning: No atoms selected for topology '%s'.\n", currentParm->c_str());
     return Action::ERR;
   }
-  mprintf("\tNumber of %ss to be imaged is %zu based on mask '%s'\n",
-          Image::ModeString(imageMode_), imageList_.size()/2, Mask1_.MaskString());
+  mprintf("\tNumber of %ss to be imaged is %zu\n",
+          Image::ModeString(imageMode_), imageList_.size()/2);
   // DEBUG: Print all pairs
   if (debug_>0) {
     for (std::vector<int>::iterator ap = imageList_.begin();

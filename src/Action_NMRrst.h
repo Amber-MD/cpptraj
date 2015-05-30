@@ -61,7 +61,7 @@ class Action_NMRrst: public Action {
     std::string setname_;
     CpptrajFile* findOutput_;
     CpptrajFile* specOutput_;
-    AtomMask Mask_;
+    CharMask Mask_;
     DataSetList* masterDSL_; // TODO: Replace these with new DataSet type
     size_t numNoePairs_; ///< Used to check if # of pairs has changed
     double max_cut_; ///< Min distance cutoff for NOE to be considered
