@@ -270,10 +270,6 @@ int CpptrajState::RunEnsemble() {
                 (*traj)->EnsembleCoordInfo().EnsembleSize(), ensembleSize);
       return 1;
     }
-    // FIXME - Set Topology CoordInfo here so that any output trajectories
-    //         will have the correct ensemble size set when MakeEnsembleTrajout
-    //         is called.
-    (*traj)->Traj().Parm()->SetParmCoordInfo( (*traj)->EnsembleCoordInfo() );
   }
   mprintf("  Ensemble size is %i\n", ensembleSize);
   // Allocate space to hold position of each incoming frame in replica space.

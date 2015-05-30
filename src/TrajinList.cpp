@@ -116,6 +116,10 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
     ensemble_.push_back( ensemble );
     // NOTE: Cast to const* to ensure Traj() const& function used.
     UpdateMaxFrames( ensemble->Traj() );
+    // FIXME - Set Topology CoordInfo here so that any output trajectories
+    //         will have the correct ensemble size set when MakeEnsembleTrajout
+    //         is called.
+    ensemble->Traj().Parm()->SetParmCoordInfo( ensemble->EnsembleCoordInfo() );
     delete tio;
   }
   if (err > 0) return 1;
@@ -161,6 +165,9 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
     // Add to trajin list and update # of frames.
     trajin_.push_back( traj );
     UpdateMaxFrames( traj->Traj() );
+    // FIXME - Set Topology CoordInfo here so that topology box info etc
+    //         is consistent with input trajectories.
+    traj->Traj().Parm()->SetParmCoordInfo( traj->TrajCoordInfo() );
   }
   if (err > 0) return 1;
   return 0;
