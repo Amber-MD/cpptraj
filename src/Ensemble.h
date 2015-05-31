@@ -51,8 +51,8 @@ class Ensemble {
 #   ifdef MPI
     RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
 
-    int GatherTemperatures(const double*, std::vector<double>&);
-    int GatherIndices(const double*, std::vector<int>&, int);
+    static int GatherTemperatures(double*, std::vector<double>&);
+    static int GatherIndices(int*, std::vector<RemdIdxType>&, int);
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;

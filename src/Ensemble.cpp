@@ -3,7 +3,7 @@
 #ifdef MPI
 #include "MpiRoutines.h"
 
-int Ensemble::GatherTemperatures(const double* tAddress, std::vector<double>& allTemps) {
+int Ensemble::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) {
   if (parallel_allgather(tAddress, 1, PARA_DOUBLE, &allTemps[0], 1, PARA_DOUBLE)) {
     rprinterr("Error: Gathering temperatures.\n");
     return 1; // TODO: Better parallel error check
@@ -11,7 +11,7 @@ int Ensemble::GatherTemperatures(const double* tAddress, std::vector<double>& al
   return 0;
 }
 
-int Ensemble::GatherIndices(const double* iAddress, std::vector<int>& allIndices, int Ndims) {
+int Ensemble::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) {
   std::vector<int> all_indices(allIndices.size() * Ndims, 0);
   if (parallel_allgather(iAddress, Ndims, PARA_INT, &all_indices[0], Ndims, PARA_INT)) {
     rprinterr("Error: Gathering replica indices\n");
@@ -20,8 +20,8 @@ int Ensemble::GatherIndices(const double* iAddress, std::vector<int>& allIndices
   std::vector<int>::const_iterator idx_it = all_indices.begin();
   for (std::vector<RemdIdxType>::iterator it = allIndices.begin();
                                           it != allIndices.end();
-                                        ++it, idx_it += cInfo_.ReplicaDimensions().Ndims())
-    it->assign(idx_it, idx_it + cInfo_.ReplicaDimensions().Ndims());
+                                        ++it, idx_it += Ndims)
+    it->assign(idx_it, idx_it + Ndims);
   return 0;
 }
 

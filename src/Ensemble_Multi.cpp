@@ -119,7 +119,7 @@ int Ensemble_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn
       if (GatherTemperatures(frameIn.tAddress(), allTemps))
         return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims())
+      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
         return 1;
     }
 #   else
@@ -236,7 +236,7 @@ int Ensemble_Multi::BeginEnsemble() {
   // Open the trajectory this thread will be dealing with.
   if (REMDtraj_[worldrank]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
-              replica_filenames_[worldrank].c_str());
+              REMDtraj_.f_name(worldrank));
     return 1;
   }
 # else
