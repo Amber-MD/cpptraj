@@ -2,10 +2,11 @@
 #define INC_ANALYSIS_STATE_H
 #include <map>
 #include "Analysis.h"
+#include "DataSet_integer.h"
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
   public:
-    Analysis_State() : stateOut_(0) {}
+    Analysis_State() : state_data_(0), curveOut_(0), stateOut_(0), transOut_(0), debug_(0) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_State(); }
     static void Help();
   
@@ -19,9 +20,19 @@ class Analysis_State : public Analysis {
     typedef std::map<StatePair, Transition> TransMapType;
     typedef std::pair<StatePair, Transition> TransPair;
     typedef std::vector<int> Iarray;
+
+    std::string const& StateName(int) const;
+    const char* stateName(int i) const { return StateName(i).c_str(); }
+
+    static std::string UNDEFINED_;
     StateArray States_;
     TransMapType TransitionMap_;
-    DataSet* stateOut_;
+    DataSet* state_data_;
+    DataSetList* masterDSL_;
+    DataFile* curveOut_;
+    CpptrajFile* stateOut_;
+    CpptrajFile* transOut_;
+    int debug_;
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Analysis_State::StateType {
@@ -43,24 +54,38 @@ class Analysis_State::StateType {
 /// Hold information about a transition from state0 to state1
 class Analysis_State::Transition {
   public:
-    Transition() : maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0) {}
-    Transition(int length) : maxLifetime_(length), sumLifetimes_(length), Nlifetimes_(1) {}
+    Transition() : maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0), curve_(0) {}
+    Transition(DataSet_integer* ds) :
+       maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0), curve_(ds) {}
+    Transition(int length, DataSet_integer* ds) :
+       maxLifetime_(length), sumLifetimes_(length), Nlifetimes_(1), curve_(ds)
+    {
+      DataSet_integer& CRV = static_cast<DataSet_integer&>( *curve_ );
+      CRV.Resize( length );
+      for (int lc = 0; lc != length; lc++) CRV[lc]++;
+    }
     void Update(int length) {
       if (length > maxLifetime_) maxLifetime_ = length;
       sumLifetimes_ += length;
       ++Nlifetimes_;
-      if (length > (int)curve_.size())
-        curve_.resize( length, 0 );
+      DataSet_integer& CRV = static_cast<DataSet_integer&>( *curve_ );
+      if (length > (int)CRV.Size())
+        CRV.Resize( length );
       for (int lc = 0; lc != length; lc++)
-        curve_[lc]++;
+        CRV[lc]++;
     }
     int Max() const { return maxLifetime_; }
     int Sum() const { return sumLifetimes_; }
     int Nlifetimes() const { return Nlifetimes_; }
+    double Avg() const {
+      if (Nlifetimes_ > 0) return (double)sumLifetimes_ / (double)Nlifetimes_;
+      return 0.0;
+    }
+    DataSet_integer const& DS() const { return *curve_; }
   private:
     int maxLifetime_; ///< Longest time state0 was active before going to state1
     int sumLifetimes_; ///< Sum of all state0 lifetimes before going to state1
     int Nlifetimes_; ///< Number of state0 lifetimes before going to state1
-    Iarray curve_; ///< Lifetime curve for state0->state1
+    DataSet_integer* curve_; ///< Lifetime curve for state0->state1
 };
 #endif
