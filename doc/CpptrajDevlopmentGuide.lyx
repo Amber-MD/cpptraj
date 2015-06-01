@@ -737,28 +737,47 @@ ref
 \end_layout
 
 \begin_layout Subsection
-AtomMask
+Frame
 \end_layout
 
 \begin_layout Standard
-The AtomMask class is another important class.
- It keeps track of what atoms in a given coordinate Frame are selected based
- on a given mask expression.
- Unlike Ptraj, in Cpptraj the AtomMask functions in 2 ways.
- The main way to use AtomMask is as an integer mask, where the atom numbers
- currently selected are stored as an array of integers.
- The second way (useful when one needs to know both selected and unselected
- atoms) is to use AtomMask as a character mask, which is analogous to the
- way masks functions in Ptraj.
- However, most of the AtomMask functionality requires it to be set up as
- a character mask, and all of the interfacing with Frame and Topology require
- this; in the interests of speed this is NOT EXPLICITLY CHECKED so it is
- up to the developer to use AtomMask responsibly.
+The Frame class is in many ways the workhorse of Cpptraj, as it holds all
+ XYZ coordinates for a given input frame, and optionally box coordinates,
+ masses, and/or velocities, all in double precision.
+ Many routines are available to do things like calculate the center of mass
+ of atoms, rotate, translate, scale, and so on.
+ A major use of the Frame class is to perform RMSD calculations.
+\end_layout
+
+\begin_layout Subsection
+AtomMask/CharMask
 \end_layout
 
 \begin_layout Standard
-There are 3 phases to using AtomMask: 1) initialization with a mask expression,
- 2) setup via a Topology class, and 3) iteration over the mask.
+The AtomMask and CharMask classes keep track of what atoms for a given Topology
+ are selected based on a given mask expression.
+ The AtomMask class holds information on selected atoms only, while CharMask
+ has the state of all atoms (selected/not selected).
+ AtomMask is as an integer mask, where the atom numbers currently selected
+ are stored as an array of integers.
+ Since one is usually only interested in selected atoms, most times AtomMask
+ is all that is needed and so is the most used mask class in Cpptraj; for
+ example, all routines that take masks in the Frame class use the AtomMask
+ class.
+ 
+\end_layout
+
+\begin_layout Standard
+The CharMask class has an internal character array where the state of each
+ atom is stored.
+ It has functions that can then be used to interrogate if a certain atom
+ or atoms are selected or not.
+\end_layout
+
+\begin_layout Standard
+In typical use, there are 3 phases to using AtomMask or CharMask: 1) initializat
+ion with a mask expression, 2) setup via a Topology class, and 3) iteration
+ over the mask/interrogation of the mask.
  Initialization with a mask expression performs all necessary tokenization
  of the mask expression string and prepares the mask to be set up, but does
  not actually select atoms.
@@ -767,7 +786,7 @@ There are 3 phases to using AtomMask: 1) initialization with a mask expression,
 \end_layout
 
 \begin_layout LyX-Code
-Mask = new AtomMask(
+AtomMask* Mask = new AtomMask(
 \begin_inset Quotes eld
 \end_inset
 
@@ -779,7 +798,19 @@ Mask = new AtomMask(
 \end_layout
 
 \begin_layout LyX-Code
-Mask.SetMaskString(
+AtomMask Mask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask Mask; Mask.SetMaskString(
 \begin_inset Quotes eld
 \end_inset
 
@@ -798,7 +829,31 @@ Setup occurs via a Topology class (since in order to set up a mask you need
 \end_layout
 
 \begin_layout LyX-Code
-Top.SetupIntegerMask( Mask );
+AtomMask iMask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+Top.SetupIntegerMask( iMask );
+\end_layout
+
+\begin_layout LyX-Code
+CharMask cMask(
+\begin_inset Quotes eld
+\end_inset
+
+:1-20
+\begin_inset Quotes erd
+\end_inset
+
+);
 \end_layout
 
 \begin_layout LyX-Code
@@ -806,16 +861,23 @@ Top.SetupCharMask( Mask );
 \end_layout
 
 \begin_layout Standard
-If necessary, one can convert between the mask types post-setup by the AtomMask
- ConvertMaskType() function.
- Once a mask has been setup the Nselected() function returns the number
- of selected atoms, while the None() function returns true if no atoms were
+Once a mask has been setup the Nselected() function returns the number of
+ selected atoms, while the None() function returns true if no atoms were
  selected.
+ If necessary, one can convert between the mask types post-setup by using
+ AtomMask::ConvertToCharMask() / CharMask::ConvertToIntMask() routines:
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
+\end_layout
+
+\begin_layout LyX-Code
+CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
 \end_layout
 
 \begin_layout Standard
 The final stage is to make use of the atom mask.
- Many functions in the Frame class take an integer AtomMask as input.
  One can iterate over selected atoms in an integer atom mask using the STL-like
  const_iterator variable and begin() and end() functions - this is the recommend
 ed way to use atom masks:
@@ -840,8 +902,8 @@ for (int maskidx = 0; maskidx < Mask.Nselected(); ++maskidx)
 \end_layout
 
 \begin_layout Standard
-In order to access an AtomMask that has been set up as a char mask, use
- the AtomInCharMask() and AtomsInCharMask() functions.
+To see if atom(s) are selected in a CharMask, use the AtomInCharMask() and
+ AtomsInCharMask() functions.
  The former returns true if a specified atom is selected, the latter returns
  true if any atoms within a given range are selected.
  For example:
@@ -870,24 +932,6 @@ for (int res = 0; res < Top.Nres(); ++res)
 
 \begin_layout LyX-Code
     ResidueIsSelected(res);
-\end_layout
-
-\begin_layout Standard
-Once it has been set up once, an AtomMask can be converted to either type
- with the ConvertToCharMask() and ConvertToIntMask() routines.
-\end_layout
-
-\begin_layout Subsection
-Frame
-\end_layout
-
-\begin_layout Standard
-The Frame class is in many ways the workhorse of Cpptraj, as it holds all
- XYZ coordinates for a given input frame, and optionally box coordinates,
- masses, and/or velocities, all in double precision.
- Many routines are available to do things like calculate the center of mass
- of atoms, rotate, translate, scale, and so on.
- A major use of the Frame class is to perform RMSD calculations.
 \end_layout
 
 \begin_layout Section
