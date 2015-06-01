@@ -175,9 +175,9 @@ Analysis::RetType Analysis_State::Analyze() {
               trans->first.second, trans->second.Max(), trans->second.Sum(),
               trans->second.Nlifetimes(), trans->second.Avg());
   }
-  stateOut_->Printf("%-12s %12s %12s %s\n", "#N", "Average", "Max", "State");
+  stateOut_->Printf("%-8s %12s %12s %12s %s\n", "#Index", "N", "Average", "Max", "State");
   for (int idx = 0; idx != (int)Status.size(); idx++)
-    stateOut_->Printf("%-12i %12.4f %12i %s\n", Status[idx].Nlifetimes(),
+    stateOut_->Printf("%-8i %12i %12.4f %12i %s\n", idx-1, Status[idx].Nlifetimes(),
                       Status[idx].Avg(), Status[idx].Max(), stateName(idx-1));
   transOut_->Printf("%-12s %12s %12s %s\n", "#N", "Average", "Max", "Transition");
   for (TransMapType::const_iterator trans = TransitionMap_.begin();
