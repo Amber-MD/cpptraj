@@ -55,8 +55,8 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
 
   mprintf("    STATE: The following states have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
-    mprintf("\t%u: %20s %12.4f < %-20s < %12.4f\n", state->DS().legend(),
-            state - States_.begin(), state->Min(), state->id(), state->Max());
+    mprintf("\t%u: %20s %12.4f < %-20s < %12.4f\n", state - States_.begin(), state->DS().legend(),
+            state->Min(), state->id(), state->Max());
   if (outfile != 0)
     mprintf("\tOutput to file '%s'\n", outfile->DataFilename().full());
 
@@ -65,7 +65,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
 
 Analysis::RetType Analysis_State::Analyze() {
   // Only process as much data as is in the smallest data set.
-  size_t nframes = 0;
+  size_t nframes = States_.front().DS().Size();
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
   {
     if ( state != States_.begin() && nframes != state->DS().Size() )
