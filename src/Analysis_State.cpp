@@ -77,6 +77,11 @@ Analysis::RetType Analysis_State::Analyze() {
   mprintf("\tProcessing %zu frames.\n", nframes);
   if (nframes < 1) return Analysis::ERR;
 
+  std::vector<Transition> Status( States_.size() + 1 ); // +1 for state -1, undefined
+
+  int last_state = -2;
+  size_t last_State_Start = 0;
+  size_t final_frame = nframes - 1;
   for (size_t frm = 0; frm != nframes; frm++) {
     // Determine which state we are in.
     int state_num = -1;
@@ -92,7 +97,47 @@ Analysis::RetType Analysis_State::Analyze() {
       }
     }
     stateOut_->Add( frm, &state_num );
+
+    // Determine if there has been a transition.
+    if (last_state == -2)
+      // First frame, no possible transition yet.
+      last_state = state_num;
+    else if (state_num != last_state || frm == final_frame) {
+      int length = (int)(frm - last_State_Start);
+      if (state_num != last_state) {
+        // There has been a transition from last_state to state_num.
+        StatePair sPair(last_state, state_num);
+        TransMapType::iterator entry = TransitionMap_.find( sPair );
+        if (entry == TransitionMap_.end())
+          // New transition
+          TransitionMap_.insert( TransPair(sPair, Transition(length)) );
+        else
+          // Update previous transition
+          entry->second.Update(length);
+      }
+      // Update single state information.
+      Status[state_num + 1].Update(length); 
+      last_State_Start = frm;
+      last_state = state_num;
+    }
   }
+
+  // DEBUG: Print single state info.
+  mprintf("  States:\n");
+  mprintf("\t%20s: max= %i  sum= %i  n= %i\n", "Undefined", Status.front().Max(),
+          Status.front().Sum(), Status.front().Nlifetimes());
+  StateArray::const_iterator state = States_.begin();
+  for (std::vector<Transition>::const_iterator s = Status.begin() + 1;
+                                               s != Status.end(); ++s, ++state)
+  mprintf("\t%20s: max= %i  sum= %i  n= %i\n", state->id(),
+          s->Max(), s->Sum(), s->Nlifetimes());
+  // DEBUG: Print transitions.
+  mprintf("  Transitions:\n");
+  for (TransMapType::const_iterator trans = TransitionMap_.begin();
+                                    trans != TransitionMap_.end(); ++trans)
+    mprintf("\t%i -> %i: max= %i  sum= %i  n= %i\n", trans->first.first,
+            trans->first.second, trans->second.Max(), trans->second.Sum(),
+            trans->second.Nlifetimes());
 
   return Analysis::OK;
 } 

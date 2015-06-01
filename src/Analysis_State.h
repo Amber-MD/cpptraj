@@ -1,5 +1,6 @@
 #ifndef INC_ANALYSIS_STATE_H
 #define INC_ANALYSIS_STATE_H
+#include <map>
 #include "Analysis.h"
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
@@ -12,8 +13,14 @@ class Analysis_State : public Analysis {
     Analysis::RetType Analyze();
   private:
     class StateType;
+    class Transition;
     typedef std::vector<StateType> StateArray;
+    typedef std::pair<int,int> StatePair;
+    typedef std::map<StatePair, Transition> TransMapType;
+    typedef std::pair<StatePair, Transition> TransPair;
+    typedef std::vector<int> Iarray;
     StateArray States_;
+    TransMapType TransitionMap_;
     DataSet* stateOut_;
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
@@ -32,5 +39,28 @@ class Analysis_State::StateType {
     DataSet_1D* set_;
     double min_;
     double max_;
+};
+/// Hold information about a transition from state0 to state1
+class Analysis_State::Transition {
+  public:
+    Transition() : maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0) {}
+    Transition(int length) : maxLifetime_(length), sumLifetimes_(length), Nlifetimes_(1) {}
+    void Update(int length) {
+      if (length > maxLifetime_) maxLifetime_ = length;
+      sumLifetimes_ += length;
+      ++Nlifetimes_;
+      if (length > (int)curve_.size())
+        curve_.resize( length, 0 );
+      for (int lc = 0; lc != length; lc++)
+        curve_[lc]++;
+    }
+    int Max() const { return maxLifetime_; }
+    int Sum() const { return sumLifetimes_; }
+    int Nlifetimes() const { return Nlifetimes_; }
+  private:
+    int maxLifetime_; ///< Longest time state0 was active before going to state1
+    int sumLifetimes_; ///< Sum of all state0 lifetimes before going to state1
+    int Nlifetimes_; ///< Number of state0 lifetimes before going to state1
+    Iarray curve_; ///< Lifetime curve for state0->state1
 };
 #endif
