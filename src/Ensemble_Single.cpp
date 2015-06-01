@@ -2,6 +2,9 @@
 #include "Ensemble_Single.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+#include "MpiRoutines.h"
+#endif
 
 // CONSTRUCTOR
 Ensemble_Single::Ensemble_Single() : eio_(0), ensembleSize_(0) {}
@@ -93,7 +96,7 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
       std::vector<double> allTemps( ensembleSize_, -1.0 );
 #     ifdef MPI
       // Consolidate temperatures
-      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps) return 1;
+      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps)) return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)
         allTemps[en] = f_ensemble[en].Temperature();
@@ -103,7 +106,7 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
       std::vector<RemdIdxType> allIndices( ensembleSize_ );
 #     ifdef MPI
       // Consolidate replica indices
-      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims())
+      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
         return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)
