@@ -125,6 +125,7 @@
 #include "Analysis_PhiPsi.h"
 #include "Analysis_Rotdif.h"
 #include "Analysis_Wavelet.h"
+#include "Analysis_State.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1975,6 +1976,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
   { ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, AddAnalysis },
   { ANALYSIS, "avg", Analysis_Average::Alloc, Analysis_Average::Help, AddAnalysis },
+  { ANALYSIS, "calcstate", Analysis_State::Alloc, Analysis_State::Help, AddAnalysis },
   { ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, AddAnalysis },
   { ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
   { ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
