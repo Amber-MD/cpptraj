@@ -39,7 +39,6 @@ PubFFT::~PubFFT() {
 }
 
 // CONSTRUCTOR
-/// Takes FFT size as input; ensures size is power of 2
 PubFFT::PubFFT(int fft_sizeIn) {
   fft_size_ = NextPowOf2( fft_sizeIn ) / 2;
 # ifdef FFTW_FFT
@@ -82,10 +81,11 @@ PubFFT::PubFFT(const PubFFT& rhs) :
 // Assignment operator
 PubFFT& PubFFT::operator=(const PubFFT& rhs) {
   if (this == &rhs) return *this;
-  fft_size_ = rhs.fft_size_;
 # ifdef FFTW_FFT
-  Allocate();
+  // Nothing to copy, just allocate
+  Allocate( rhs.fft_size_);
 # else
+  fft_size_ = rhs.fft_size_;
   if (saved_work_ != 0) delete[] saved_work_;
   std::copy(rhs.saved_factors_, rhs.saved_factors_+saved_factors_size_, saved_factors_);
   saved_work_size_ = rhs.saved_work_size_;
@@ -140,7 +140,9 @@ void PubFFT::Back(ComplexArray& fft_array) {
 }
 
 // PubFFT::Allocate()
-void PubFFT::Allocate() {
+int PubFFT::Allocate(int sizeIn) {
+  if (sizeIn < 0) return 1;
+  fft_size_ = sizeIn;
 # ifdef FFTW_FFT
   // Destroy any existing plans/storage space, allocate new space.
   if (in_ != 0) {
@@ -165,18 +167,11 @@ void PubFFT::Allocate() {
   // NOTE: Should this be called if fft_size is 0?
   cffti_( fft_size_, saved_work_, saved_factors_ );
 # endif
+  return 0;
 }
 
 // PubFFT::SetupFFT_NextPowerOf2()
-int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) {
-  fft_size_ = NextPowOf2( sizeIn ) / 2;
-  Allocate();
-  return 0;
-}
+int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) { return Allocate( NextPowOf2( sizeIn ) / 2 ); }
 
 // PubFFT::SetupFFTforN()
-int PubFFT::SetupFFTforN(int sizeIn) {
-  fft_size_ = sizeIn;
-  Allocate();
-  return 0;
-}
+int PubFFT::SetupFFTforN(int sizeIn) { return Allocate( sizeIn ); }
