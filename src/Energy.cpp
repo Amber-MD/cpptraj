@@ -11,7 +11,7 @@ const double Energy_Amber::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBE
 Energy_Amber::Energy_Amber() : debug_(0) {}
 
 /** Bond energy */
-double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, CharMask const& mask)
 {
   time_bond_.Start();
   // Heavy atom bonds
@@ -23,7 +23,7 @@ double Energy_Amber::E_bond(Frame const& fIn, Topology const& tIn, AtomMask cons
 
 // Energy_Amber::CalcBondEnergy()
 double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
-                                    BondParmArray const& BPA, AtomMask const& mask)
+                                    BondParmArray const& BPA, CharMask const& mask)
 {
   double Ebond = 0.0;
   for (BondArray::const_iterator b = Bonds.begin(); b != Bonds.end(); ++b)
@@ -53,7 +53,7 @@ double Energy_Amber::CalcBondEnergy(Frame const& fIn, BondArray const& Bonds,
 
 // -----------------------------------------------------------------------------
 /** Angle energy */
-double Energy_Amber::E_angle(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_angle(Frame const& fIn, Topology const& tIn, CharMask const& mask)
 {
   time_angle_.Start();
   // Heavy atom angles
@@ -65,7 +65,7 @@ double Energy_Amber::E_angle(Frame const& fIn, Topology const& tIn, AtomMask con
 
 // Energy_Amber::CalcAngleEnergy()
 double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
-                                     AngleParmArray const& APA, AtomMask const& mask)
+                                     AngleParmArray const& APA, CharMask const& mask)
 {
   double Eangle = 0.0;
   for (AngleArray::const_iterator a = Angles.begin(); a != Angles.end(); ++a)
@@ -97,7 +97,7 @@ double Energy_Amber::CalcAngleEnergy(Frame const& fIn, AngleArray const& Angles,
 
 // -----------------------------------------------------------------------------
 /** Dihedral energy */
-double Energy_Amber::E_torsion(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Energy_Amber::E_torsion(Frame const& fIn, Topology const& tIn, CharMask const& mask)
 {
   time_tors_.Start();
   // Heavy atom dihedrals
@@ -109,7 +109,7 @@ double Energy_Amber::E_torsion(Frame const& fIn, Topology const& tIn, AtomMask c
 
 // Energy_Amber::CalcTorsionEnergy()
 double Energy_Amber::CalcTorsionEnergy(Frame const& fIn, DihedralArray const& Dihedrals,
-                                       DihedralParmArray const& DPA, AtomMask const& mask)
+                                       DihedralParmArray const& DPA, CharMask const& mask)
 {
   double Edih = 0.0;
   for (DihedralArray::const_iterator d = Dihedrals.begin(); d != Dihedrals.end(); d++)
@@ -144,7 +144,7 @@ double Energy_Amber::CalcTorsionEnergy(Frame const& fIn, DihedralArray const& Di
 
 // -----------------------------------------------------------------------------
 /** 1-4 nonbond energy */
-double Energy_Amber::E_14_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+double Energy_Amber::E_14_Nonbond(Frame const& fIn, Topology const& tIn, CharMask const& mask,
                                   double& Eq14)
 {
   time_14_.Start();
@@ -159,7 +159,7 @@ double Energy_Amber::E_14_Nonbond(Frame const& fIn, Topology const& tIn, AtomMas
 // Energy_Amber::Calc_14_Energy()
 double Energy_Amber::Calc_14_Energy(Frame const& fIn, DihedralArray const& Dihedrals,
                                     DihedralParmArray const& DPA, Topology const& tIn,
-                                    AtomMask const& mask, double& Eq14)
+                                    CharMask const& mask, double& Eq14)
 {
   double Evdw14 = 0.0;
   for (DihedralArray::const_iterator d = Dihedrals.begin(); d != Dihedrals.end(); d++)

@@ -54,7 +54,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   }
   else {
     Mask2_ = Mask1_;
-    Mask2_.InvertMask();
+    Mask2_.InvertMaskExpression();
   }
   
   // Get data set name
@@ -132,7 +132,7 @@ int Action_LIE::SetupParms(Topology const& ParmIn) {
   atom_charge_.reserve( ParmIn.Natom() );
   for (Topology::atom_iterator atom = ParmIn.begin();
                                atom != ParmIn.end(); ++atom)
-    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER / dielc_ );
+    atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER / sqrt(dielc_) );
   return 0;
 }
 

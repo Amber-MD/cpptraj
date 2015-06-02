@@ -37,6 +37,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
   }
   // Get DataSets from remaining arguments
   Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), *DSL );
+
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
     return Action::ERR;

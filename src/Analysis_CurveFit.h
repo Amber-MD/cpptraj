@@ -5,14 +5,18 @@
 class Analysis_CurveFit : public Analysis {
   public:
     Analysis_CurveFit();
+    Analysis_CurveFit(DataSet*, int, ArgList&, DataSetList*, DataFileList*, int);
+
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CurveFit(); }
     static void Help();
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
+    Analysis::RetType Internal_setup(std::string const&, ArgList&, DataSetList*, DataFileList*, int);
+
     enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY, GAUSS };
     std::string equation_; ///< Equation to fit.
-    std::string resultsName_; ///< Results output filename (final params, stats)
+    CpptrajFile* Results_; ///< Results output file (final params, stats)
     DataSet* dset_;     ///< DataSet to fit.
     DataSet* finalY_;   ///< Final output DataSet.
     typedef std::vector<double> Darray;

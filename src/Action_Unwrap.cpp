@@ -42,10 +42,13 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
 
   // Get mask string
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
+  maskExpression_ = actionArgs.GetMaskNext();
 
-  mprintf("    UNWRAP: By %s using mask '%s'", 
-          Image::ModeString(imageMode_), mask_.MaskString());
+  mprintf("    UNWRAP: By %s", Image::ModeString(imageMode_));
+  if (!maskExpression_.empty())
+    mprintf(" using mask '%s'", maskExpression_.c_str());
+  else
+    mprintf(" using all atoms");
   if (imageMode_ != Image::BYATOM) {
     if (center_)
       mprintf(" based on center of mass.");
@@ -83,14 +86,13 @@ Action::RetType Action_Unwrap::Setup(Topology* currentParm, Topology** parmAddre
     orthogonal_ = true;
 
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(*currentParm, imageMode_, mask_);
+  imageList_ = Image::CreatePairList(*currentParm, imageMode_, maskExpression_);
   if (imageList_.empty()) {
-    mprintf("Warning: Mask '%s' selects no atoms for topology '%s'.\n",
-            mask_.MaskString(), currentParm->c_str());
+    mprintf("Warning: Mask selects no atoms for topology '%s'.\n", currentParm->c_str());
     return Action::ERR;
   }
-  mprintf("\tNumber of %ss to be unwrapped is %zu based on mask '%s'\n",
-          Image::ModeString(imageMode_), imageList_.size()/2, mask_.MaskString());
+  mprintf("\tNumber of %ss to be unwrapped is %zu\n",
+          Image::ModeString(imageMode_), imageList_.size()/2);
 
   // Use current parm as reference if not already set
   if (RefParm_ == 0)

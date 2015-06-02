@@ -28,7 +28,7 @@ class Action_CheckChirality: public Action {
 
     typedef std::vector<ResidueInfo> Rarray;
     Rarray resInfo_; 
-    AtomMask Mask1_;
+    CharMask Mask1_;
     CpptrajFile* outfile_;
 //    DataFile* outfile_;
 //    std::string setname_;

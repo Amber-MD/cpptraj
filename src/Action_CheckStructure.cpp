@@ -92,7 +92,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
   * the mask.
   */
 void Action_CheckStructure::ProcessBondArray(BondArray const& Bonds, BondParmArray const& Parm,
-                                         AtomMask const& cMask)
+                                         CharMask const& cMask)
 {
   BondType BT;
   for (BondArray::const_iterator bnd = Bonds.begin(); bnd != Bonds.end(); ++bnd)
@@ -114,8 +114,7 @@ void Action_CheckStructure::ProcessBondArray(BondArray const& Bonds, BondParmArr
 
 /** Set up bond parameters for bonds for which both atoms present in mask. */
 void Action_CheckStructure::SetupBondList(AtomMask const& iMask, Topology const& top) {
-  AtomMask cMask = iMask;
-  cMask.ConvertToCharMask();
+  CharMask cMask( iMask.ConvertToCharMask(), iMask.Nselected() );
  
   ProcessBondArray(top.Bonds(),  top.BondParm(), cMask);
   ProcessBondArray(top.BondsH(), top.BondParm(), cMask);

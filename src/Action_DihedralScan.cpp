@@ -197,7 +197,6 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   // move, including atom2.
   if (debug_>0)
     mprintf("DEBUG: Dihedrals:\n");
-  AtomMask cMask;
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih)
   {
@@ -208,8 +207,7 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
     // residue as A1 but will not move. They need to be checked for clashes
     // since further rotations will not help them.
     if (mode_ == RANDOM && check_for_clashes_) {
-      cMask = dst.Rmask;
-      cMask.ConvertToCharMask(); 
+      CharMask cMask( dst.Rmask.ConvertToCharMask(), dst.Rmask.Nselected() );
       int a1res = (*currentParm)[(*dih).A1()].ResNum();
       for (int maskatom = currentParm->Res(a1res).FirstAtom();
                maskatom < currentParm->Res(a1res).LastAtom(); ++maskatom)

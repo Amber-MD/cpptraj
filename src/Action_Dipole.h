@@ -17,7 +17,7 @@ class Action_Dipole : public Action, private GridAction {
     DataSet_GridFlt* grid_;
     std::vector<Vec3> dipole_;
     CpptrajFile* outfile_;
-    AtomMask mask_;
+    CharMask mask_;
     double max_;
     Topology* CurrentParm_;
 };
