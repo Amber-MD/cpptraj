@@ -5,7 +5,7 @@
 /// Filter out frames by DataSet
 class Action_FilterByData : public Action {
   public:
-    Action_FilterByData() : maxmin_(0), calcStates_(false) {}
+    Action_FilterByData() : maxmin_(0) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_FilterByData(); }
     static void Help();
     /// For running as a separate command.
@@ -18,9 +18,7 @@ class Action_FilterByData : public Action {
 
     std::vector<double> Max_;
     std::vector<double> Min_;
-    std::vector<int> StateNums_;
     Array1D Dsets_;
     DataSet* maxmin_;
-    bool calcStates_;
 };
 #endif

@@ -2,14 +2,11 @@
 #include "CpptrajStdio.h"
 
 void Action_FilterByData::Help() {
-  mprintf("\t{<dataset arg> min <min> max <max> | state <#>,<dataset arg>}\n"
-          "\t[out <file> [name <setname>]]\n"
+  mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
           "  For all following actions, only allow frames that are between <min>\n"
           "  and <max> of data sets in <dataset arg>. There must be at least\n"
           "  one <min> and <max> argument, and can be as many as there are\n"
-          "  specified data sets.\n"
-          "  If 'state' arguments are specified, data for the specified data set\n"
-          "  that matches the corresponding criteria will be assigned state <#>.\n");
+          "  specified data sets.\n");
 }
 
 // Action_FilterByData::Init()
@@ -38,38 +35,9 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
               Min_.size(), Max_.size());
     return Action::ERR;
   }
-  // Get definitions of states if present.
-  std::string state_arg = actionArgs.GetStringKey("state");
-  if (!state_arg.empty()) {
-    while (!state_arg.empty()) {
-      // Expect form <#>,<dataset>
-      ArgList argtmp(state_arg, ",");
-      if (argtmp.Nargs() != 2) {
-        mprinterr("Error: Malformed state argument '%s': expect <#>,<dataset>\n",
-                  state_arg.c_str());
-        return Action::ERR;
-      }
-      int state_num = argtmp.getNextInteger(-1);
-      if (state_num < 1) {
-        mprinterr("Error: In state argument, <#> must be > 0.\n");
-        return Action::ERR;
-      }
-      DataSet* ds = DSL->GetDataSet( argtmp.GetStringNext() );
-      if (ds == 0) return Action::ERR;
-      if (ds->Ndim() != 1) {
-        mprinterr("Error: Only 1D data sets allowed.\n");
-        return Action::ERR;
-      }
-      Dsets_.push_back( (DataSet_1D* const)ds );
-      StateNums_.push_back( state_num );
-      state_arg = actionArgs.GetStringKey("state");
-    }
-    calcStates_ = true;
-  } else {
-    // Get DataSets from remaining arguments
-    Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), *DSL );
-    calcStates_ = false;
-  }
+  // Get DataSets from remaining arguments
+  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), *DSL );
+
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
     return Action::ERR;
@@ -94,11 +62,8 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
   }
 
   mprintf("    FILTER: Filtering out frames using %zu data sets.\n", Dsets_.size());
-  for (unsigned int ds = 0; ds < Dsets_.size(); ds++) {
-    mprintf("\t%.4f < '%s' < %.4f", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
-    if (calcStates_) mprintf(" State %i", StateNums_[ds]);
-    mprintf("\n");
-  }
+  for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
 
@@ -109,36 +74,20 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
 Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
                                               Frame** frameAddress)
 {
-  if (calcStates_) {
-    int state_num = 0;
-    for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
-    {
-      double dVal = Dsets_[ds]->Dval(frameNum);
-      if (dVal > Min_[ds] && dVal < Max_[ds]) {
-        if (state_num != 0)
-          mprintf("Warning: Frame %i already defined as state %i, also matches state %i.\n",
-                  state_num, StateNums_[ds]);
-        else
-          state_num = StateNums_[ds];
-      }
+  static int ONE = 1;
+  static int ZERO = 0;
+  // Check if frame is within max/min
+  for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
+  {
+    double dVal = Dsets_[ds]->Dval(frameNum);
+    //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
+    // If value from dataset not within min/max, exit now.
+    if (dVal < Min_[ds] || dVal > Max_[ds]) {
+      maxmin_->Add( frameNum, &ZERO );
+      return Action::SUPPRESSCOORDOUTPUT;
     }
-    maxmin_->Add( frameNum, &state_num );
-  } else {
-    static int ONE = 1;
-    static int ZERO = 0;
-    // Check if frame is within max/min
-    for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
-    {
-      double dVal = Dsets_[ds]->Dval(frameNum);
-      //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
-      // If value from dataset not within min/max, exit now.
-      if (dVal < Min_[ds] || dVal > Max_[ds]) {
-        maxmin_->Add( frameNum, &ZERO );
-        return Action::SUPPRESSCOORDOUTPUT;
-      }
-    }
-    maxmin_->Add( frameNum, &ONE );
   }
+  maxmin_->Add( frameNum, &ONE );
   return Action::OK;
 }
 
