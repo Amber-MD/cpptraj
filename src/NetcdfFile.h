@@ -62,6 +62,8 @@ class NetcdfFile {
     // MultiD REMD
     int remd_dimension_;      ///< Number of replica dimensions.
     int indicesVID_;          ///< Variable ID for replica indices.
+    int repidxVID_;           ///< Variable ID for overall replica index.
+    int crdidxVID_;           ///< Variable ID for overall coordinate index.
 
     bool checkNCerr(int);
     void Sync();

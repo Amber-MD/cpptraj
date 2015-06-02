@@ -126,6 +126,8 @@
 #include "Analysis_PhiPsi.h"
 #include "Analysis_Rotdif.h"
 #include "Analysis_Wavelet.h"
+#include "Analysis_State.h"
+#include "Analysis_Multicurve.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -1997,6 +1999,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
   { ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, AddAnalysis },
   { ANALYSIS, "avg", Analysis_Average::Alloc, Analysis_Average::Help, AddAnalysis },
+  { ANALYSIS, "calcstate", Analysis_State::Alloc, Analysis_State::Help, AddAnalysis },
   { ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, AddAnalysis },
   { ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
   { ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
@@ -2018,6 +2021,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
   { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
   { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
+  { ANALYSIS, "multicurve", Analysis_Multicurve::Alloc, Analysis_Multicurve::Help, AddAnalysis },
   { ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
   { ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
   { ANALYSIS, "phipsi", Analysis_PhiPsi::Alloc, Analysis_PhiPsi::Help, AddAnalysis },
