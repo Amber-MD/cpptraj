@@ -28,9 +28,9 @@ class PubFFT {
     fftw_plan forwards_plan_;
     fftw_plan backwards_plan_;
 #   else
-    int saved_factors_size_;
+    static const int saved_factors_size_ = 30;
     int saved_work_size_;
-    int* saved_factors_;
+    int saved_factors_[saved_factors_size_];
     double* saved_work_;
 #   endif
     void Allocate();

@@ -1,4 +1,3 @@
-#include <cstring> // memset, memcpy
 #include <cmath> // log, ldexp
 #include "PubFFT.h"
 
@@ -21,9 +20,7 @@ PubFFT::PubFFT() :
 # ifdef FFTW_FFT
   in_(0)
 # else
-  saved_factors_size_(30),
   saved_work_size_(0),
-  saved_factors_(0),
   saved_work_(0)
 # endif
 {}
@@ -37,30 +34,23 @@ PubFFT::~PubFFT() {
     fftw_destroy_plan(backwards_plan_);
   }
 # else
-  if (saved_factors_ != 0) delete[] saved_factors_;
   if (saved_work_ != 0) delete[] saved_work_;
 # endif
 }
 
 // CONSTRUCTOR
 /// Takes FFT size as input; ensures size is power of 2
-PubFFT::PubFFT(int fft_sizeIn)
-# ifndef FFTW_FFT
-  : saved_factors_size_(30)
-# endif
-{
-  int ndata = NextPowOf2( fft_sizeIn ); 
-  fft_size_ = ndata / 2;
+PubFFT::PubFFT(int fft_sizeIn) {
+  fft_size_ = NextPowOf2( fft_sizeIn ) / 2;
 # ifdef FFTW_FFT
   in_  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fft_size_);
   forwards_plan_  = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_FORWARD,  FFTW_ESTIMATE);
   backwards_plan_ = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_BACKWARD, FFTW_ESTIMATE);
 # else
-  saved_work_size_ = 2 * ndata; // 4 * fft_size
-  saved_factors_ = new int[ saved_factors_size_ ];
-  memset(saved_factors_, 0, saved_factors_size_ * sizeof(int));
+  saved_work_size_ = 4 * fft_size_;
+  std::fill(saved_factors_, saved_factors_+saved_factors_size_, 0);
   saved_work_ = new double[ saved_work_size_ ];
-  memset(saved_work_, 0, saved_work_size_ * sizeof(double));
+  std::fill(saved_work_, saved_work_+saved_work_size_, 0.0);
   cffti_( fft_size_, saved_work_, saved_factors_ );
 # endif
 }
@@ -78,18 +68,13 @@ PubFFT::PubFFT(const PubFFT& rhs) :
   }
 }
 # else
-  saved_factors_size_(rhs.saved_factors_size_),
   saved_work_size_(rhs.saved_work_size_),
-  saved_factors_(0),
   saved_work_(0)
 {
-  if (saved_factors_size_ > 0) {
-    saved_factors_ = new int[ saved_factors_size_ ];
-    memcpy(saved_factors_, rhs.saved_factors_, saved_factors_size_ * sizeof(int));
-  }
+  std::copy(rhs.saved_factors_, rhs.saved_factors_+saved_factors_size_, saved_factors_);
   if (saved_work_size_ > 0) {
     saved_work_ = new double[ saved_work_size_ ];
-    memcpy(saved_work_, rhs.saved_work_, saved_work_size_ * sizeof(double));
+    std::copy(rhs.saved_work_, rhs.saved_work_+saved_work_size_, saved_work_);
   }
 }
 # endif
@@ -102,17 +87,11 @@ PubFFT& PubFFT::operator=(const PubFFT& rhs) {
   Allocate();
 # else
   if (saved_work_ != 0) delete[] saved_work_;
-  if (saved_factors_ != 0) delete[] saved_factors_;
-  saved_factors_size_ = rhs.saved_factors_size_;
+  std::copy(rhs.saved_factors_, rhs.saved_factors_+saved_factors_size_, saved_factors_);
   saved_work_size_ = rhs.saved_work_size_;
-  if (saved_factors_size_ > 0) {
-    saved_factors_ = new int[ saved_factors_size_ ];
-    memcpy(saved_factors_, rhs.saved_factors_, saved_factors_size_ * sizeof(int));
-  } else
-    saved_factors_ = 0;
   if (saved_work_size_ > 0) {
     saved_work_ = new double[ saved_work_size_ ];
-    memcpy(saved_work_, rhs.saved_work_, saved_work_size_ * sizeof(double));
+    std::copy(rhs.saved_work_, rhs.saved_work_+saved_work_size_, saved_work_);
   } else
     saved_work_ = 0;
 # endif
@@ -173,18 +152,14 @@ void PubFFT::Allocate() {
   forwards_plan_  = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_FORWARD,  FFTW_ESTIMATE);
   backwards_plan_ = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_BACKWARD, FFTW_ESTIMATE);
 # else
-  // NOTE: Do not change saved_factors_size
+  // NOTE: saved_factors_size is constant 
   if (saved_work_ != 0) delete[] saved_work_;
-  if (saved_factors_ != 0) delete[] saved_factors_;
   // Reallocate FFT workspace
-  if (saved_factors_size_ > 0) {
-    saved_factors_ = new int[ saved_factors_size_ ];
-    memset(saved_factors_, 0, saved_factors_size_ * sizeof(int));
-  } else
-    saved_factors_ = 0;
+  std::fill(saved_factors_, saved_factors_+saved_factors_size_, 0);
+  saved_work_size_ = 4 * fft_size_;
   if (saved_work_size_ > 0) {
     saved_work_ = new double[ saved_work_size_ ];
-    memset(saved_work_, 0, saved_work_size_ * sizeof(double));
+    std::fill(saved_work_, saved_work_+saved_work_size_, 0.0);
   } else
     saved_work_ = 0;
   // NOTE: Should this be called if fft_size is 0?
@@ -194,11 +169,7 @@ void PubFFT::Allocate() {
 
 // PubFFT::SetupFFT_NextPowerOf2()
 int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) {
-  int ndata = NextPowOf2( sizeIn ); 
-  fft_size_ = ndata / 2;
-# ifndef FFTW_FFT
-  saved_work_size_ = 2 * ndata;
-# endif
+  fft_size_ = NextPowOf2( sizeIn ) / 2;
   Allocate();
   return 0;
 }
@@ -206,9 +177,6 @@ int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) {
 // PubFFT::SetupFFTforN()
 int PubFFT::SetupFFTforN(int sizeIn) {
   fft_size_ = sizeIn;
-# ifndef FFTW_FFT
-  saved_work_size_ = 4 * fft_size_;
-# endif
   Allocate();
   return 0;
 }
