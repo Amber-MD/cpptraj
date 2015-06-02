@@ -63,7 +63,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
 
   mprintf("    STATE: The following states have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
-    mprintf("\t%u: %20s %12.4f < %-20s < %12.4f\n", state - States_.begin(), state->DS().legend(),
+    mprintf("\t%u: %20s %12.4f <= %-20s < %12.4f\n", state - States_.begin(), state->DS().legend(),
             state->Min(), state->id(), state->Max());
   mprintf("\tState data set: %s\n", state_data_->legend());
   if (outfile != 0)
@@ -118,7 +118,7 @@ Analysis::RetType Analysis_State::Analyze() {
     for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
     {
       double dVal = state->DS().Dval( frm );
-      if (dVal > state->Min() && dVal < state->Max()) { // TODO: Periodic
+      if (dVal >= state->Min() && dVal < state->Max()) { // TODO: Periodic
         if (state_num != -1)
           mprintf("Warning: Frame %zu already defined as state '%s', also matches state '%s'.\n",
                   frm, States_[state_num].id(), state->id());
