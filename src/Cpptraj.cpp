@@ -86,8 +86,8 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
-string Cpptraj::Defines() {
-  string defined_str ("");
+std::string Cpptraj::Defines() {
+    std::string defined_str ("");
 #ifdef DEBUG
   defined_str += " -DDEBUG";
 #endif
