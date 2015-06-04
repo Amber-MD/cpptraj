@@ -1,6 +1,7 @@
 #ifndef INC_ANALYSIS_CROSSCORR_H
 #define INC_ANALYSIS_CROSSCORR_H
 #include "Analysis.h"
+#include "Array1D.h"
 class Analysis_CrossCorr : public Analysis {
   public:
     Analysis_CrossCorr();
@@ -13,7 +14,7 @@ class Analysis_CrossCorr : public Analysis {
 
   private:
     DataFile* outfile_;
-    DataSetList dsets_;
+    Array1D input_dsets_;
     DataSet* matrix_;
 };
 #endif
