@@ -8,14 +8,13 @@
 /** This is the main class for cpptraj. It holds all data and controls the 
  *  overall flow of the program. It exists in main.cpp.
  */
-using std::vector;
 using std::string;
 
 class Cpptraj {
   public:
     Cpptraj() {}
     int RunCpptraj(int, char**);
-    static vector<string> ForPytrajInfo();
+    static string Defines();
   private:
     typedef std::vector<std::string> Sarray;
     enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE };

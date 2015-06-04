@@ -86,43 +86,42 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
-vector <string> Cpptraj::ForPytrajInfo() {
-  vector<string> v_str;
+string Cpptraj::Defines() {
+  string defined_str ("");
 #ifdef DEBUG
-  v_str.push_back(" -DDEBUG");
+  defined_str += " -DDEBUG";
 #endif
 #ifdef HASBZ2
-  v_str.push_back(" -DHASBZ2");
+  defined_str += " -DHASBZ2";
 #endif
 #ifdef HASGZ
-  v_str.push_back(" -DHASGZ");
+  defined_str += " -DHASGZ";
 #endif
 #ifdef BINTRAJ
-  v_str.push_back(" -DBINTRAJ");
+  defined_str += " -DBINTRAJ";
 #endif
 #ifdef MPI
-  v_str.push_back(" -DMPI");
+  defined_str += " -DMPI";
 #endif
 #ifdef _OPENMP
-  v_str.push_back(" -D_OPENMP");
+  defined_str += " -D_OPENMP";
 #endif
 #ifdef NO_MATHLIB
-  v_str.push_back(" -DNO_MATHLIB");
+  defined_str += " -DNO_MATHLIB";
 #endif
 #ifdef TIMER
-  v_str.push_back(" -DTIMER");
+  defined_str += " -DTIMER";
 #endif
 #ifdef ENABLE_SINGLE_ENSEMBLE
-  v_str.push_back(" -DENABLE_SINGLE_ENSEMBLE");
+  defined_str += " -DENABLE_SINGLE_ENSEMBLE";
 #endif
 #ifdef HAS_PNETCDF
-  v_str.push_back(" -DHAS_PNETCDF");
+  defined_str += " -DHAS_PNETCDF";
 #endif
 #ifdef USE_SANDERLIB
-  v_str.push_back(" -DUSE_SANDERLIB");
+  defined_str += " -DUSE_SANDERLIB";
 #endif
-  v_str.push_back("end");
-  return v_str; 
+  return defined_str; 
 }
 
 /** Process a mask from the command line. */
@@ -204,39 +203,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --defines: Print information on compiler defines used and exit
       SetWorldSilent( true );
       loudPrintf("Compiled with:");
-#     ifdef DEBUG
-      loudPrintf(" -DDEBUG");
-#     endif
-#     ifdef HASBZ2
-      loudPrintf(" -DHASBZ2");
-#     endif
-#     ifdef HASGZ
-      loudPrintf(" -DHASGZ");
-#     endif
-#     ifdef BINTRAJ
-      loudPrintf(" -DBINTRAJ");
-#     endif
-#     ifdef MPI
-      loudPrintf(" -DMPI");
-#     endif
-#     ifdef _OPENMP
-      loudPrintf(" -D_OPENMP");
-#     endif
-#     ifdef NO_MATHLIB
-      loudPrintf(" -DNO_MATHLIB");
-#     endif
-#     ifdef TIMER
-      loudPrintf(" -DTIMER");
-#     endif
-#     ifdef ENABLE_SINGLE_ENSEMBLE
-      loudPrintf(" -DENABLE_SINGLE_ENSEMBLE");
-#     endif
-#     ifdef HAS_PNETCDF
-      loudPrintf(" -DHAS_PNETCDF");
-#     endif
-#     ifdef USE_SANDERLIB
-      loudPrintf(" -DUSE_SANDERLIB");
-#     endif
+      loudPrintf(Cpptraj::Defines().c_str());
       loudPrintf("\n");
       return QUIT;
     }
