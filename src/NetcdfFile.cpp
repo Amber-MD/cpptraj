@@ -45,6 +45,8 @@ NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
 #define NCREMD_DIMENSION "remd_dimension"
 #define NCREMD_DIMTYPE "remd_dimtype"
 #define NCREMD_INDICES "remd_indices"
+#define NCREMD_REPIDX "remd_repidx"
+#define NCREMD_CRDIDX "remd_crdidx"
 #define NCEPTOT "eptot"
 #define NCBINS "bins"
 
@@ -60,6 +62,8 @@ NetcdfFile::NetcdfFile() :
   timeVID_(-1),
   remd_dimension_(0),
   indicesVID_(-1),
+  repidxVID_(-1),
+  crdidxVID_(-1),
   ncdebug_(0),
   frameDID_(-1),
   atomDID_(-1),
@@ -225,6 +229,17 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
     coordVID_ = velocityVID_;
     velocityVID_ = -1;
   }
+  // Get overall replica and coordinate indices
+  crdidxVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCREMD_REPIDX, &repidxVID_) == NC_NOERR ) {
+    //if (ncdebug_ > 0)
+      mprintf("    Netcdf file has overall replica indices.\n");
+    if ( checkNCerr(nc_inq_varid(ncid_, NCREMD_CRDIDX, &crdidxVID_)) ) {
+      mprinterr("Error: Getting overall coordinate index variable ID.\n");
+      return 1;
+    }
+  } else
+    repidxVID_ = -1;
   return 0;
 }
 

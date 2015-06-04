@@ -113,6 +113,7 @@ int EQ_MultiExpK_Penalty(CurveFit::Darray const& Xvals, CurveFit::Darray const& 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Analysis_CurveFit::Analysis_CurveFit() :
+  Results_(0),
   dset_(0),
   finalY_(0),
   tolerance_(0.0),
@@ -125,6 +126,13 @@ Analysis_CurveFit::Analysis_CurveFit() :
   n_specified_params_(0),
   eqForm_(GENERAL)
 {} 
+
+Analysis_CurveFit::Analysis_CurveFit(DataSet* setIn, int suffix, ArgList& argIn,
+                                     DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+{
+  dset_ = setIn;
+  Internal_setup( integerToString(suffix), argIn, DSLin, DFLin, debugIn );
+}
 
 // Analysis_CurveFit::Help()
 void Analysis_CurveFit::Help() {
@@ -154,6 +162,11 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     mprinterr("Error: Data set '%s' not found.\n", dsinName.c_str());
     return Analysis::ERR;
   }
+  return Internal_setup( "", analyzeArgs, datasetlist, DFLin, debugIn );
+}
+
+Analysis::RetType Analysis_CurveFit::Internal_setup(std::string const& suffixIn, ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+{
   if (dset_->Ndim() != 1) {
     mprinterr("Error: Curve fitting can only be done with 1D data sets.\n");
     return Analysis::ERR;
@@ -226,7 +239,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     n_expected_params_ = Calc_.Nparams();
   }
   // Get keywords
-  resultsName_ = analyzeArgs.GetStringKey("resultsout");
+  Results_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("resultsout"), "Curve Fit Results",
+                                    DataFileList::TEXT, true );
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   tolerance_ = analyzeArgs.getKeyDouble("tol", 0.0001);
   if (tolerance_ < 0.0) {
@@ -274,6 +288,7 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
     mprintf("Warning: # specified params (%i) less than # expected params (%i)\n",
             n_specified_params_, n_expected_params_);
   // Set up output data set.
+  if (!suffixIn.empty()) dsoutName.append(suffixIn);
   finalY_ = datasetlist->AddSet(DataSet::XYMESH, dsoutName, "FIT");
   if (finalY_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddSet( finalY_ );
@@ -291,9 +306,8 @@ Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* da
   if (outXbins_ > 0)
     mprintf("\tFinal X range: %g to %g, %i points.\n", outXmin_, outXmax_, outXbins_);
   mprintf("\tTolerance= %g, maximum iterations= %i\n", tolerance_, maxIt_);
-  if (!resultsName_.empty())
-    mprintf("\tFinal parameters and statistics for fit will be writtent to %s\n",
-            resultsName_.c_str());
+  mprintf("\tFinal parameters and statistics for fit will be writtent to %s\n",
+          Results_->Filename().full());
   if (n_specified_params_ > 0) {
     mprintf("\tInitial parameters:\n");
     for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
@@ -373,15 +387,13 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     mprinterr("Error: %s\n", fit.ErrorMessage());
     return Analysis::ERR;
   }
-  CpptrajFile Results;
-  if (Results.OpenWrite(resultsName_)) return Analysis::ERR;
   const char* HASH_TAB = "\t";
-  if (!resultsName_.empty())
+  if (!Results_->IsStream())
     HASH_TAB = "#";
-  Results.Printf("%sFit equation '%s' to set '%s'\n", HASH_TAB, 
-                 equation_.c_str(), dset_->legend());
+  Results_->Printf("%sFit equation '%s' to set '%s'\n", HASH_TAB, 
+                   equation_.c_str(), dset_->legend());
   for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
-    Results.Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
+    Results_->Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
 
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
@@ -413,7 +425,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
   double corr_coeff, ChiSq, TheilU, rms_percent_error;
   int err = fit.Statistics( Yvals, corr_coeff, ChiSq, TheilU, rms_percent_error);
   if (err != 0) mprintf("Warning: %s\n", fit.Message(err));
-  Results.Printf("%sCorrelation coefficient: %g\n%sChi squared: %g\n"
+  Results_->Printf("%sCorrelation coefficient: %g\n%sChi squared: %g\n"
                  "%sUncertainty coefficient: %g\n%sRMS percent error: %g\n",
                  HASH_TAB, corr_coeff, HASH_TAB, ChiSq, 
                  HASH_TAB, TheilU, HASH_TAB, rms_percent_error);
@@ -429,19 +441,19 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
       sumB = Params_[0];
     for (unsigned int p = pstart; p < Params_.size(); p += 2)
       sumB += Params_[p];
-    Results.Printf("%sSum of prefactors = %g\n", HASH_TAB, sumB);
+    Results_->Printf("%sSum of prefactors = %g\n", HASH_TAB, sumB);
     // Report decay constants from exponential parameters.
-    Results.Printf("%sTime constants (-1.0/A<n>):", HASH_TAB);
+    Results_->Printf("%sTime constants (-1.0/A<n>):", HASH_TAB);
     for (unsigned int p = pstart + 1; p < Params_.size(); p += 2) {
       if (Params_[p] != 0.0) {
         double tau = 1.0 / -Params_[p];
-        Results.Printf(" %12.6g", tau);
+        Results_->Printf(" %12.6g", tau);
       } else {
-        Results.Printf(" %12.6g", 0.0);
+        Results_->Printf(" %12.6g", 0.0);
         mprintf("Warning: exp parameter %u is zero.\n", ((p - pstart) / 2) + 1);
       }
     }
-    Results.Printf("\n");
+    Results_->Printf("\n");
   }
   
   return Analysis::OK;

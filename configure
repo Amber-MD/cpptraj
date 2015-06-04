@@ -26,6 +26,7 @@ UsageFull() {
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Enable position-independent code for generating shared library."
+  echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
@@ -34,6 +35,7 @@ UsageFull() {
   echo "    --with-blas=<DIR>"
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
+  echo "    --with-fftw3=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static    : Use static linking."
   echo "    -amberlib  : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
@@ -148,6 +150,22 @@ EOF
   fi
 }
 
+TestFFTW3() {
+  if [[ -z $FFT_DEPEND ]] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <fftw3.h>
+int main() {
+  fftw_complex* array = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 32);
+  if (array == 0) return 1;
+  fftw_free(array);
+  printf("Testing\n"); return 0;
+}
+EOF
+  TestCxxProgram "Checking FFTW3" "$FFT_LIB"
+  fi
+}
+
 # Test C/C++/Fortran compilers 
 TestCompile() {
   # C
@@ -178,21 +196,23 @@ EOF
   fi
   /bin/rm -f testp.cpp testp
   echo "  OK"
-  # Fortran
-  echo "Testing Fortran compiler:"
-  cat > testp.f <<EOF
+  # Fortran - only needed if pub_fft.F90 needs to be compiled.
+  if [[ ! -z $FFT_DEPEND ]] ; then
+    echo "Testing Fortran compiler:"
+    cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
       end program testf
 EOF
-  $FC $FFLAGS -o testp testp.f > /dev/null 2> compile.err
-  ./testp | grep "testing a Fortran program" > /dev/null
-  status=$?
-  if [[ $status -gt 0 ]] ; then
-      CompileError "$FC $FFLAGS"
+    $FC $FFLAGS -o testp testp.f > /dev/null 2> compile.err
+    ./testp | grep "testing a Fortran program" > /dev/null
+    status=$?
+    if [[ $status -gt 0 ]] ; then
+        CompileError "$FC $FFLAGS"
+    fi
+    /bin/rm -f testp.f testp
+    echo "  OK"
   fi
-  /bin/rm -f testp.f testp
-  echo "  OK"
 }
 
 #---------------------------------------------------------------------
@@ -255,6 +275,9 @@ ZLIB="-lz"
 BLAS="-lblas"
 LAPACK="-llapack"
 ARPACK="-larpack"
+FFT_LIB="pub_fft.o"
+FFT_LIBDIR=""
+FFT_DEPEND=$FFT_LIB
 SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
@@ -393,6 +416,12 @@ while [[ ! -z $1 ]] ; do
       SANDERLIB="-lsander"
       echo "Using libsander"
       ;;
+    "-fftw3" )
+      echo "Using FFTW for FFT."
+      FFT_LIB="-lfftw3"
+      FFT_DEPEND=""
+      DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
+      ;;
     "-mkl" )
       if [[ -z $MKLROOT ]] ; then
         if [[ -z $MKL_HOME ]] ; then
@@ -458,6 +487,14 @@ while [[ ! -z $1 ]] ; do
       ARPACK_HOME="$VALUE"
       echo "Using ARPACK in $ARPACK_HOME"
       ;;
+     "--with-fftw3" )
+       INCLUDE="$INCLUDE -I$VALUE/include"
+       FFT_LIBDIR="-L$VALUE/lib"
+       echo "Using FFTW3 in $VALUE"
+       FFT_LIB="-lfftw3"
+       FFT_DEPEND=""
+       DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
+       ;;
 #    "--with-hdf5" )
 #      INCLUDE="$INCLUDE -I$VALUE/include"
 #      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
@@ -625,6 +662,9 @@ fi
 
 # Set up linking flags
 LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
+if [[ ! -z $FFT_LIBDIR ]] ; then
+  FFT_LIB="$FFT_LIBDIR $FFT_LIB"
+fi
 
 # Add options for Timer
 if [[ $USETIMER -eq 1 ]] ; then
@@ -734,6 +774,7 @@ TestBzlib
 TestZlib
 TestNetcdf
 TestMathlib
+TestFFTW3
 
 # Write config.h
 cat > config.h <<EOF
@@ -754,6 +795,9 @@ FFLAGS=$FFLAGS \$(DBGFLAGS)
 
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
+
+FFT_DEPEND=$FFT_DEPEND
+FFT_LIB=$FFT_LIB
 
 LDFLAGS=$LDFLAGS
 SFX=$SFX
