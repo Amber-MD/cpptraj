@@ -1,15 +1,21 @@
 #ifndef INC_CPPTRAJ_H
 #define INC_CPPTRAJ_H
+#include <vector>
+#include <string>
 #include "CpptrajState.h"
 // Class: Cpptraj:
 /// Hold state information.
 /** This is the main class for cpptraj. It holds all data and controls the 
  *  overall flow of the program. It exists in main.cpp.
  */
+using std::vector;
+using std::string;
+
 class Cpptraj {
   public:
     Cpptraj() {}
     int RunCpptraj(int, char**);
+    static vector<string> ForPytrajInfo();
   private:
     typedef std::vector<std::string> Sarray;
     enum Mode { BATCH = 0, ERROR, QUIT, INTERACTIVE };

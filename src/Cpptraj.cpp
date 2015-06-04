@@ -86,6 +86,45 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
+vector <string> Cpptraj::ForPytrajInfo() {
+  vector<string> v_str;
+#ifdef DEBUG
+  v_str.push_back(" -DDEBUG");
+#endif
+#ifdef HASBZ2
+  v_str.push_back(" -DHASBZ2");
+#endif
+#ifdef HASGZ
+  v_str.push_back(" -DHASGZ");
+#endif
+#ifdef BINTRAJ
+  v_str.push_back(" -DBINTRAJ");
+#endif
+#ifdef MPI
+  v_str.push_back(" -DMPI");
+#endif
+#ifdef _OPENMP
+  v_str.push_back(" -D_OPENMP");
+#endif
+#ifdef NO_MATHLIB
+  v_str.push_back(" -DNO_MATHLIB");
+#endif
+#ifdef TIMER
+  v_str.push_back(" -DTIMER");
+#endif
+#ifdef ENABLE_SINGLE_ENSEMBLE
+  v_str.push_back(" -DENABLE_SINGLE_ENSEMBLE");
+#endif
+#ifdef HAS_PNETCDF
+  v_str.push_back(" -DHAS_PNETCDF");
+#endif
+#ifdef USE_SANDERLIB
+  v_str.push_back(" -DUSE_SANDERLIB");
+#endif
+  v_str.push_back("end");
+  return v_str; 
+}
+
 /** Process a mask from the command line. */
 int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
                           std::string const& maskexpr,
