@@ -19,6 +19,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
                                      DataFileList::TEXT, true);
   transOut_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("transout"), "Transitions Output",
                                      DataFileList::TEXT, true);
+  normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
   // Define states as 'state <#>,<dataset>,<min>,<max>'
   std::string state_arg = analyzeArgs.GetStringKey("state");
@@ -72,6 +73,8 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprintf("\tCurves output to file '%s'\n", curveOut_->DataFilename().full());
   mprintf("\tState output to file '%s'\n", stateOut_->Filename().full());
   mprintf("\tTransitions output to file '%s'\n", transOut_->Filename().full());
+  if (normalize_)
+    mprintf("\tCurves will be normalized to 1.0\n");
 
   return Analysis::OK;
 }
@@ -102,11 +105,11 @@ Analysis::RetType Analysis_State::Analyze() {
   std::vector<Transition> Status;
   Status.reserve( States_.size() + 1 ); // +1 for state -1, undefined
   for (int i = 0; i != (int)States_.size() + 1; i++) {
-    DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::INTEGER, state_data_->Name(), i, "sCurve");
+    DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, state_data_->Name(), i, "sCurve");
     if (ds == 0) return Analysis::ERR;
     if (curveOut_ != 0) curveOut_->AddSet( ds );
     ds->SetLegend( StateName(i-1) );
-    Status.push_back( Transition((DataSet_integer*)ds) );
+    Status.push_back( Transition((DataSet_double*)ds) );
   }
 
   int last_state = -2;
@@ -140,11 +143,11 @@ Analysis::RetType Analysis_State::Analyze() {
         TransMapType::iterator entry = TransitionMap_.find( sPair );
         if (entry == TransitionMap_.end()) {
           // New transition
-          DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::INTEGER, state_data_->Name(), TransitionMap_.size(), "tCurve");
+          DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, state_data_->Name(), TransitionMap_.size(), "tCurve");
           if (ds == 0) return Analysis::ERR;
           if (curveOut_ != 0) curveOut_->AddSet( ds );
           ds->SetLegend( StateName(last_state) + "->" + StateName(state_num) );
-          TransitionMap_.insert( TransPair(sPair, Transition(length, (DataSet_integer*)ds)) );
+          TransitionMap_.insert( TransPair(sPair, Transition(length, (DataSet_double*)ds)) );
         } else
           // Update previous transition
           entry->second.Update(length);
@@ -185,6 +188,13 @@ Analysis::RetType Analysis_State::Analyze() {
     transOut_->Printf("%-12i %12.4f %12i %s\n", trans->second.Nlifetimes(),
                       trans->second.Avg(), trans->second.Max(), 
                       trans->second.DS().legend());
-
+  if (normalize_) {
+    for (std::vector<Transition>::const_iterator s = Status.begin();
+                                                 s != Status.end(); ++s)
+      s->NormalizeCurve();
+    for (TransMapType::const_iterator trans = TransitionMap_.begin();
+                                      trans != TransitionMap_.end(); ++trans)
+      trans->second.NormalizeCurve();
+  }
   return Analysis::OK;
 } 

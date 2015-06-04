@@ -26,12 +26,12 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-libcpptraj: checkshared $(OBJECTS) pub_fft.o $(READLINE)
-	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) pub_fft.o $(LDFLAGS) $(READLINE)
+libcpptraj: checkshared $(OBJECTS) $(FFT_DEPEND) $(READLINE)
+	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) $(FFT_LIB) $(LDFLAGS) $(READLINE)
 	/bin/mv libcpptraj.so $(CPPTRAJLIB)
 
-cpptraj$(SFX): $(OBJECTS) pub_fft.o $(READLINE)
-	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) pub_fft.o $(READLINE) $(LDFLAGS)
+cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE)
+	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)
 
 
 ambpdb: $(AMBPDB_OBJECTS)
@@ -50,14 +50,14 @@ ambpdb.MPI:
 $(READLINE): $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
-pub_fft.o:  pub_fft.F90
+$(FFT_DEPEND):  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
 ReadLine.o: ReadLine.cpp
 	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb
+	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb
 	cd $(READLINE_HOME) && $(MAKE) clean
 
 uninstall:

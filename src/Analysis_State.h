@@ -2,7 +2,7 @@
 #define INC_ANALYSIS_STATE_H
 #include <map>
 #include "Analysis.h"
-#include "DataSet_integer.h"
+#include "DataSet_double.h"
 /// Analyze transitions between states
 class Analysis_State : public Analysis {
   public:
@@ -33,8 +33,10 @@ class Analysis_State : public Analysis {
     CpptrajFile* stateOut_;
     CpptrajFile* transOut_;
     int debug_;
+    bool normalize_;
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
+/// Hold the definition of a state and associated data
 class Analysis_State::StateType {
   public:
     StateType() : set_(0), min_(0.0), max_(0.0) {}
@@ -55,12 +57,12 @@ class Analysis_State::StateType {
 class Analysis_State::Transition {
   public:
     Transition() : maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0), curve_(0) {}
-    Transition(DataSet_integer* ds) :
+    Transition(DataSet_double* ds) :
        maxLifetime_(0), sumLifetimes_(0), Nlifetimes_(0), curve_(ds) {}
-    Transition(int length, DataSet_integer* ds) :
+    Transition(int length, DataSet_double* ds) :
        maxLifetime_(length), sumLifetimes_(length), Nlifetimes_(1), curve_(ds)
     {
-      DataSet_integer& CRV = static_cast<DataSet_integer&>( *curve_ );
+      DataSet_double& CRV = static_cast<DataSet_double&>( *curve_ );
       CRV.Resize( length );
       for (int lc = 0; lc != length; lc++) CRV[lc]++;
     }
@@ -68,7 +70,7 @@ class Analysis_State::Transition {
       if (length > maxLifetime_) maxLifetime_ = length;
       sumLifetimes_ += length;
       ++Nlifetimes_;
-      DataSet_integer& CRV = static_cast<DataSet_integer&>( *curve_ );
+      DataSet_double& CRV = static_cast<DataSet_double&>( *curve_ );
       if (length > (int)CRV.Size())
         CRV.Resize( length );
       for (int lc = 0; lc != length; lc++)
@@ -81,11 +83,19 @@ class Analysis_State::Transition {
       if (Nlifetimes_ > 0) return (double)sumLifetimes_ / (double)Nlifetimes_;
       return 0.0;
     }
-    DataSet_integer const& DS() const { return *curve_; }
+    DataSet_double const& DS() const { return *curve_; }
+    void NormalizeCurve() const {
+      if (curve_->Size() > 0) {
+        DataSet_double& CRV = static_cast<DataSet_double&>( *curve_ );
+        double norm = 1.0 / CRV[0];
+        for (unsigned int i = 0; i != CRV.Size(); i++)
+          CRV[i] *= norm;
+      }
+    }
   private:
     int maxLifetime_; ///< Longest time state0 was active before going to state1
     int sumLifetimes_; ///< Sum of all state0 lifetimes before going to state1
     int Nlifetimes_; ///< Number of state0 lifetimes before going to state1
-    DataSet_integer* curve_; ///< Lifetime curve for state0->state1
+    DataSet_double* curve_; ///< Lifetime curve for state0->state1
 };
 #endif

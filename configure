@@ -26,6 +26,7 @@ UsageFull() {
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Enable position-independent code for generating shared library."
+  echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
@@ -178,21 +179,23 @@ EOF
   fi
   /bin/rm -f testp.cpp testp
   echo "  OK"
-  # Fortran
-  echo "Testing Fortran compiler:"
-  cat > testp.f <<EOF
+  # Fortran - only needed if pub_fft.F90 needs to be compiled.
+  if [[ ! -z $FFT_DEPEND ]] ; then
+    echo "Testing Fortran compiler:"
+    cat > testp.f <<EOF
       program testf
       write(6,*) 'testing a Fortran program'
       end program testf
 EOF
-  $FC $FFLAGS -o testp testp.f > /dev/null 2> compile.err
-  ./testp | grep "testing a Fortran program" > /dev/null
-  status=$?
-  if [[ $status -gt 0 ]] ; then
-      CompileError "$FC $FFLAGS"
+    $FC $FFLAGS -o testp testp.f > /dev/null 2> compile.err
+    ./testp | grep "testing a Fortran program" > /dev/null
+    status=$?
+    if [[ $status -gt 0 ]] ; then
+        CompileError "$FC $FFLAGS"
+    fi
+    /bin/rm -f testp.f testp
+    echo "  OK"
   fi
-  /bin/rm -f testp.f testp
-  echo "  OK"
 }
 
 #---------------------------------------------------------------------
@@ -255,6 +258,8 @@ ZLIB="-lz"
 BLAS="-lblas"
 LAPACK="-llapack"
 ARPACK="-larpack"
+FFT_LIB="pub_fft.o"
+FFT_DEPEND=$FFT_LIB
 SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
@@ -392,6 +397,12 @@ while [[ ! -z $1 ]] ; do
       USE_AMBER_LIB=1 # FIXME Should not depend on other libraries
       SANDERLIB="-lsander"
       echo "Using libsander"
+      ;;
+    "-fftw3" )
+      echo "Using FFTW for FFT."
+      FFT_LIB="-lfftw3"
+      FFT_DEPEND=""
+      DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
       ;;
     "-mkl" )
       if [[ -z $MKLROOT ]] ; then
@@ -754,6 +765,9 @@ FFLAGS=$FFLAGS \$(DBGFLAGS)
 
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
+
+FFT_DEPEND=$FFT_DEPEND
+FFT_LIB=$FFT_LIB
 
 LDFLAGS=$LDFLAGS
 SFX=$SFX
