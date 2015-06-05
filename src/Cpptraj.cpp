@@ -89,37 +89,37 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
 std::string Cpptraj::Defines() {
     std::string defined_str ("");
 #ifdef DEBUG
-  defined_str += " -DDEBUG";
+  defined_str.append(" -DDEBUG");
 #endif
 #ifdef HASBZ2
-  defined_str += " -DHASBZ2";
+  defined_str.append(" -DHASBZ2");
 #endif
 #ifdef HASGZ
-  defined_str += " -DHASGZ";
+  defined_str.append(" -DHASGZ");
 #endif
 #ifdef BINTRAJ
-  defined_str += " -DBINTRAJ";
+  defined_str.append(" -DBINTRAJ");
 #endif
 #ifdef MPI
-  defined_str += " -DMPI";
+  defined_str.append(" -DMPI");
 #endif
 #ifdef _OPENMP
-  defined_str += " -D_OPENMP";
+  defined_str.append(" -D_OPENMP");
 #endif
 #ifdef NO_MATHLIB
-  defined_str += " -DNO_MATHLIB";
+  defined_str.append(" -DNO_MATHLIB");
 #endif
 #ifdef TIMER
-  defined_str += " -DTIMER";
+  defined_str.append(" -DTIMER");
 #endif
 #ifdef ENABLE_SINGLE_ENSEMBLE
-  defined_str += " -DENABLE_SINGLE_ENSEMBLE";
+  defined_str.append(" -DENABLE_SINGLE_ENSEMBLE");
 #endif
 #ifdef HAS_PNETCDF
-  defined_str += " -DHAS_PNETCDF";
+  defined_str.append(" -DHAS_PNETCDF");
 #endif
 #ifdef USE_SANDERLIB
-  defined_str += " -DUSE_SANDERLIB";
+  defined_str.append(" -DUSE_SANDERLIB");
 #endif
   return defined_str; 
 }
@@ -203,8 +203,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --defines: Print information on compiler defines used and exit
       SetWorldSilent( true );
       loudPrintf("Compiled with:");
-      loudPrintf(Cpptraj::Defines().c_str());
-      loudPrintf("\n");
+      loudPrintf("%s\n", Cpptraj::Defines().c_str());
       return QUIT;
     }
     if (arg == "-tl") {
