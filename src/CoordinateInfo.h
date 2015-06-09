@@ -18,6 +18,7 @@ class CoordinateInfo {
       remdDim_(r), box_(b), ensembleSize_(e), hasVel_(v), hasTemp_(t), hasTime_(m), hasFrc_(f) {}
     bool HasBox()              const { return box_.HasBox();            }
     const Box& TrajBox()       const { return box_;                     }
+    Box& TrajBox()                   { return box_;                     }
     int EnsembleSize()         const { return ensembleSize_;            }
     bool HasVel()              const { return hasVel_;                  }
     bool HasTemp()             const { return hasTemp_;                 }
