@@ -85,6 +85,7 @@ class Frame {
     double Mass(int atnum)            const { return Mass_[atnum];   }
     /// \return Box information
     const Box& BoxCrd()               const { return box_;           }
+    Box&  BoxCrd()                          { return box_;           }
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
     // Routines for accessing internal data pointers
     inline double* xAddress() { return X_;                }
