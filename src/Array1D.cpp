@@ -16,7 +16,7 @@ Array1D& Array1D::operator=(const Array1D& rhs) {
 Array1D::Array1D(DataSetList const& SetList) {
   AddDataSets( SetList );
   if (array_.empty())
-    mprinterr("Internal Error: No 1D data sets present.");
+    mprinterr("Internal Error: No 1D data sets present.\n");
 }
 
 // Array1D::push_back()
@@ -40,7 +40,7 @@ void Array1D::SortArray1D() {
 int Array1D::AddDataSets(DataSetList const& SetList) {
   for (DataSetList::const_iterator ds = SetList.begin(); ds != SetList.end(); ++ds)
     if ( push_back( (DataSet_1D*)*ds ) ) {
-      mprinterr("Error: Only 1D data sets allowed.");
+      mprinterr("Error: Only 1D data sets allowed.\n");
       array_.clear();
       return 1;
     }
