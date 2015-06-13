@@ -35,6 +35,7 @@ UsageFull() {
   echo "    --with-blas=<DIR>"
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
+  echo "    --with-fftw3=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static    : Use static linking."
   echo "    -amberlib  : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
@@ -149,6 +150,22 @@ EOF
   fi
 }
 
+TestFFTW3() {
+  if [[ -z $FFT_DEPEND ]] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <fftw3.h>
+int main() {
+  fftw_complex* array = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * 32);
+  if (array == 0) return 1;
+  fftw_free(array);
+  printf("Testing\n"); return 0;
+}
+EOF
+  TestCxxProgram "Checking FFTW3" "$FFT_LIB"
+  fi
+}
+
 # Test C/C++/Fortran compilers 
 TestCompile() {
   # C
@@ -259,6 +276,7 @@ BLAS="-lblas"
 LAPACK="-llapack"
 ARPACK="-larpack"
 FFT_LIB="pub_fft.o"
+FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
 SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
@@ -469,6 +487,14 @@ while [[ ! -z $1 ]] ; do
       ARPACK_HOME="$VALUE"
       echo "Using ARPACK in $ARPACK_HOME"
       ;;
+     "--with-fftw3" )
+       INCLUDE="$INCLUDE -I$VALUE/include"
+       FFT_LIBDIR="-L$VALUE/lib"
+       echo "Using FFTW3 in $VALUE"
+       FFT_LIB="-lfftw3"
+       FFT_DEPEND=""
+       DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
+       ;;
 #    "--with-hdf5" )
 #      INCLUDE="$INCLUDE -I$VALUE/include"
 #      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
@@ -636,6 +662,9 @@ fi
 
 # Set up linking flags
 LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
+if [[ ! -z $FFT_LIBDIR ]] ; then
+  FFT_LIB="$FFT_LIBDIR $FFT_LIB"
+fi
 
 # Add options for Timer
 if [[ $USETIMER -eq 1 ]] ; then
@@ -745,6 +774,7 @@ TestBzlib
 TestZlib
 TestNetcdf
 TestMathlib
+TestFFTW3
 
 # Write config.h
 cat > config.h <<EOF

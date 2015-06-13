@@ -20,11 +20,12 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   std::string setname = analyzeArgs.GetStringKey("name");
   outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Select datasets from remaining args
-  ArgList dsetArgs = analyzeArgs.RemainingArgs();
-  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    dsets_ += datasetlist->GetMultipleSets( *dsa );
-  if (dsets_.empty()) {
-    mprinterr("Error: crosscorr: No data sets selected.\n");
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+    mprinterr("Error: Could not add data sets.\n");
+    return Analysis::ERR;
+  }
+  if (input_dsets_.size() < 2) {
+    mprinterr("Error: At least 2 data sets are required.\n");
     return Analysis::ERR;
   }
   // Setup output dataset
@@ -34,12 +35,12 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
     outfile_->AddSet( matrix_ );
   }
   
-  mprintf("    CROSSCORR: Calculating correlation between %i data sets:\n", dsets_.size());
-  dsets_.List();
-  if ( !setname.empty() )
-    mprintf("\tSet name: %s\n", setname.c_str() );
+  mprintf("    CROSSCORR: Calculating correlation between %zu data sets:\n", input_dsets_.size());
+  for (Array1D::const_iterator ds = input_dsets_.begin(); ds != input_dsets_.end(); ++ds)
+    mprintf("\t'%s'\n", (*ds)->legend());
+  mprintf("\tOutput set name: %s\n", matrix_->Name().c_str() );
   if ( outfile_ != 0 )
-    mprintf("\tOutfile name: %s\n", outfile_->DataFilename().base());
+    mprintf("\tOutfile name: %s\n", outfile_->DataFilename().full());
 
   return Analysis::OK;
 }
@@ -47,25 +48,24 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
 // Analysis_CrossCorr::Analyze()
 Analysis::RetType Analysis_CrossCorr::Analyze() {
   DataSet_MatrixFlt& tmatrix = static_cast<DataSet_MatrixFlt&>( *matrix_ );
+  if (tmatrix.AllocateTriangle(input_dsets_.size())) return Analysis::ERR;
 
-  int Nsets = dsets_.size();
   mprintf("\tDataSet Legend:\n");
   std::string Ylabels("\"");
-  for (int i = 0; i < Nsets; ++i) {
-    mprintf("\t\t%8i: %s\n", i+1, dsets_[i]->legend());
+  for (Array1D::const_iterator ds = input_dsets_.begin(); ds != input_dsets_.end(); ++ds) {
+    int idx = (int)(ds - input_dsets_.begin() + 1);
+    mprintf("\t\t%8i: %s\n", idx, (*ds)->legend());
     //Xlabels_ += (dsets_[i]->Legend() + ",");
-    Ylabels += (integerToString(i+1) + ":" + dsets_[i]->Legend() + ",");
+    Ylabels += (integerToString(idx) + ":" + (*ds)->Legend() + ",");
   }
   Ylabels += "\"";
-  int Nsets1 = Nsets - 1;
-  if (tmatrix.AllocateTriangle(Nsets)) return Analysis::ERR;
-  for (int i = 0; i < Nsets1; ++i) {
-    for (int j = i + 1; j < Nsets; ++j) {
+  for (Array1D::const_iterator ds0 = input_dsets_.begin(); ds0 != input_dsets_.end(); ++ds0) {
+    DataSet_1D const& set0 = static_cast<DataSet_1D const&>( *(*ds0) );
+    for (Array1D::const_iterator ds1 = ds0 + 1; ds1 != input_dsets_.end(); ++ds1) {
+      float corr = (float)set0.CorrCoeff( *(*ds1) );
       //mprinterr("DBG:\tCross corr between %i (%s) and %i (%s)\n",
       //          i, dsets_[i]->legend(), j, dsets_[j]->legend());
-      DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *dsets_[i] );
-      double corr = set1.CorrCoeff( *((DataSet_1D*)dsets_[j]) );
-      tmatrix.AddElement( (float)corr );
+      tmatrix.AddElement( corr );
     }
   }
   if (outfile_ != 0)

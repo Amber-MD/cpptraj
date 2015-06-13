@@ -86,6 +86,44 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
+std::string Cpptraj::Defines() {
+    std::string defined_str ("");
+#ifdef DEBUG
+  defined_str.append(" -DDEBUG");
+#endif
+#ifdef HASBZ2
+  defined_str.append(" -DHASBZ2");
+#endif
+#ifdef HASGZ
+  defined_str.append(" -DHASGZ");
+#endif
+#ifdef BINTRAJ
+  defined_str.append(" -DBINTRAJ");
+#endif
+#ifdef MPI
+  defined_str.append(" -DMPI");
+#endif
+#ifdef _OPENMP
+  defined_str.append(" -D_OPENMP");
+#endif
+#ifdef NO_MATHLIB
+  defined_str.append(" -DNO_MATHLIB");
+#endif
+#ifdef TIMER
+  defined_str.append(" -DTIMER");
+#endif
+#ifdef ENABLE_SINGLE_ENSEMBLE
+  defined_str.append(" -DENABLE_SINGLE_ENSEMBLE");
+#endif
+#ifdef HAS_PNETCDF
+  defined_str.append(" -DHAS_PNETCDF");
+#endif
+#ifdef USE_SANDERLIB
+  defined_str.append(" -DUSE_SANDERLIB");
+#endif
+  return defined_str; 
+}
+
 /** Process a mask from the command line. */
 int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
                           std::string const& maskexpr,
@@ -165,40 +203,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       // --defines: Print information on compiler defines used and exit
       SetWorldSilent( true );
       loudPrintf("Compiled with:");
-#     ifdef DEBUG
-      loudPrintf(" -DDEBUG");
-#     endif
-#     ifdef HASBZ2
-      loudPrintf(" -DHASBZ2");
-#     endif
-#     ifdef HASGZ
-      loudPrintf(" -DHASGZ");
-#     endif
-#     ifdef BINTRAJ
-      loudPrintf(" -DBINTRAJ");
-#     endif
-#     ifdef MPI
-      loudPrintf(" -DMPI");
-#     endif
-#     ifdef _OPENMP
-      loudPrintf(" -D_OPENMP");
-#     endif
-#     ifdef NO_MATHLIB
-      loudPrintf(" -DNO_MATHLIB");
-#     endif
-#     ifdef TIMER
-      loudPrintf(" -DTIMER");
-#     endif
-#     ifdef ENABLE_SINGLE_ENSEMBLE
-      loudPrintf(" -DENABLE_SINGLE_ENSEMBLE");
-#     endif
-#     ifdef HAS_PNETCDF
-      loudPrintf(" -DHAS_PNETCDF");
-#     endif
-#     ifdef USE_SANDERLIB
-      loudPrintf(" -DUSE_SANDERLIB");
-#     endif
-      loudPrintf("\n");
+      loudPrintf("%s\n", Cpptraj::Defines().c_str());
       return QUIT;
     }
     if (arg == "-tl") {
