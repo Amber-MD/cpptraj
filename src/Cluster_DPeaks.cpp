@@ -5,11 +5,12 @@
 #include "DataSet_Mesh.h"
 #include "ProgressBar.h"
 
-Cluster_DPeaks::Cluster_DPeaks() : epsilon_(-1.0), calc_noise_(false) {}
+Cluster_DPeaks::Cluster_DPeaks() :
+   epsilon_(-1.0), calc_noise_(false), useGaussianKernel_(false) {}
 
 void Cluster_DPeaks::Help() {
   mprintf("\t[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]\n"
-          "\t  [runavg <runavg_file>] [deltafile <file>]]\n");
+          "\t  [runavg <runavg_file>] [deltafile <file>] [gauss]]\n");
 }
 
 int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
@@ -28,11 +29,16 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
     mprinterr("Error: avgfactor must be >= 1.\n");
     return 1;
   }
+  useGaussianKernel_ = analyzeArgs.hasKey("gauss");
   return 0;
 }
 
 void Cluster_DPeaks::ClusteringInfo() {
   mprintf("\tDPeaks: Cutoff (epsilon) for determining local density is %g\n", epsilon_);
+  if (useGaussianKernel_)
+    mprintf("\tDensity will be determined with Gaussian kernels.\n");
+  else
+    mprintf("\tDiscrete density calculation.\n");
   if (calc_noise_)
     mprintf("\t\tCalculating noise as all points within epsilon of another cluster.\n");
   if (!dpeaks_.empty())
@@ -46,10 +52,15 @@ void Cluster_DPeaks::ClusteringInfo() {
     mprintf("\t\tDelta of distance minus running avg written to %s\n", radelta_.c_str());
 }
 
-#ifdef DISABLE
-// -----------------------------------------------------------------------------
 int Cluster_DPeaks::Cluster() {
-  mprintf("\tStarting DPeaks clustering.\n");
+  if ( useGaussianKernel_ )
+    return Cluster_GaussianKernel();
+  return Cluster_DiscreteDensity();
+}
+
+// -----------------------------------------------------------------------------
+int Cluster_DPeaks::Cluster_GaussianKernel() {
+  mprintf("\tStarting DPeaks clustering. Using Gaussian kernel to calculate density.\n");
   // First determine which frames are being clustered.
   Points_.clear();
   int oidx = 0;
@@ -126,11 +137,10 @@ int Cluster_DPeaks::Cluster() {
       
   return 1;
 }
-#endif
 
 // -----------------------------------------------------------------------------
-int Cluster_DPeaks::Cluster() {
-  mprintf("\tStarting DPeaks clustering.\n");
+int Cluster_DPeaks::Cluster_DiscreteDensity() {
+  mprintf("\tStarting DPeaks clustering, discrete density calculation.\n");
   Points_.clear();
   // First determine which frames are being clustered.
   for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
@@ -161,17 +171,17 @@ int Cluster_DPeaks::Cluster() {
           density++;
       }
     }
-    point0->SetDensity( density );
+    point0->SetPointsWithinEps( density );
   }
   mprintf("DBG: Max dist= %g\n", maxDist);
   // DEBUG: Frame/Density
   CpptrajFile fdout;
   fdout.OpenWrite("fd.dat");
   for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
-    fdout.Printf("%i %i\n", point->Fnum()+1, point->Density());
+    fdout.Printf("%i %i\n", point->Fnum()+1, point->PointsWithinEps());
   fdout.CloseFile();
   // Sort by density here. Otherwise array indices will be invalid later.
-  std::sort( Points_.begin(), Points_.end(), Cpoint::density_sort() );
+  std::sort( Points_.begin(), Points_.end(), Cpoint::pointsWithinEps_sort() );
   // For each point, find the closest point that has higher density. Since 
   // array is now sorted by density the last point has the highest density.
   Points_.back().SetDist( maxDist );
@@ -185,19 +195,19 @@ int Cluster_DPeaks::Cluster() {
     int nearestIdx = -1; // Index of nearest neighbor with higher density
     Cpoint& point0 = Points_[idx0];
     //mprintf("\nDBG:\tSearching for nearest neighbor to idx %u with higher density than %i.\n",
-    //        idx0, point0.Density());
+    //        idx0, point0.PointsWithinEps());
     // Since array is sorted by density we can start at the next point.
     for (unsigned int idx1 = idx0+1; idx1 != Points_.size(); idx1++)
     {
       Cpoint const& point1 = Points_[idx1];
       double dist1_2 = FrameDistances_.GetFdist(point0.Fnum(), point1.Fnum());
-      if (point1.Density() > point0.Density())
+      if (point1.PointsWithinEps() > point0.PointsWithinEps())
       {
         if (dist1_2 < min_dist) {
           min_dist = dist1_2;
           nearestIdx = (int)idx1;
           //mprintf("DBG:\t\tNeighbor idx %i is closer (density %i, distance %g)\n",
-          //        nearestIdx, point1.Density(), min_dist);
+          //        nearestIdx, point1.PointsWithinEps(), min_dist);
         }
       }
     }
@@ -217,7 +227,7 @@ int Cluster_DPeaks::Cluster() {
                     "Frame", "Idx", "Neighbor");
       for (Carray::const_iterator point = Points_.begin();
                                   point != Points_.end(); ++point)
-        output.Printf("%-10i %10g \"%i\" %10u %10i\n", point->Density(), point->Dist(),
+        output.Printf("%-10i %10g \"%i\" %10u %10i\n", point->PointsWithinEps(), point->Dist(),
                       point->Fnum()+1, point-Points_.begin(), point->NearestIdx());
       output.CloseFile();
     }
@@ -239,7 +249,7 @@ int Cluster_DPeaks::Cluster() {
     {
       if (point0 != point1) {
         // Only do this for close densities
-        double dX = (double)(point0->Density() - point1->Density());
+        double dX = (double)(point0->PointsWithinEps() - point1->PointsWithinEps());
         double dX2 = dX * dX;
         double dY = (point0->Dist() - point1->Dist());
         double dY2 = dY * dY;
@@ -248,7 +258,7 @@ int Cluster_DPeaks::Cluster() {
         }
       }
     }
-    mprintf("%i %i %i\n", point0->Density(), point0->Fnum()+1, Npts);
+    mprintf("%i %i %i\n", point0->PointsWithinEps(), point0->Fnum()+1, Npts);
   }
 */
 
@@ -263,7 +273,7 @@ int Cluster_DPeaks::Cluster() {
   Carray::const_iterator lastPoint = Points_.end() + 1;
   for (Carray::const_iterator point = Points_.begin(); point != lastPoint; ++point)
   {
-    if (point == Points_.end() || point->Density() != currentDensity) {
+    if (point == Points_.end() || point->PointsWithinEps() != currentDensity) {
       if (nValues > 0) {
         distAv = distAv / sumWts; //(double)nValues;
         distSD = (distSD / sumWts) - (distAv * distAv);
@@ -276,7 +286,7 @@ int Cluster_DPeaks::Cluster() {
         tempOut.Printf("%i %g\n", currentDensity, distAv);
       }
       if (point == Points_.end()) break;
-      currentDensity = point->Density();
+      currentDensity = point->PointsWithinEps();
       distAv = 0.0;
       distSD = 0.0;
       sumWts = 0.0;
@@ -298,13 +308,13 @@ int Cluster_DPeaks::Cluster() {
   DataSet_Mesh weightedAverage;
   Carray::const_iterator cp = Points_.begin();
   // Skip local density of 0.
-  //while (cp->Density() == 0 && cp != Points_.end()) ++cp;
+  //while (cp->PointsWithinEps() == 0 && cp != Points_.end()) ++cp;
   while (cp != Points_.end())
   {
-    int densityVal = cp->Density();
+    int densityVal = cp->PointsWithinEps();
     Carray densityArray;
     // Add all points of current density.
-    while (cp->Density() == densityVal && cp != Points_.end())
+    while (cp->PointsWithinEps() == densityVal && cp != Points_.end())
       densityArray.push_back( *(cp++) );
     mprintf("Density value %i has %zu points.\n", densityVal, densityArray.size());
     // Sort array by distance
@@ -379,7 +389,7 @@ int Cluster_DPeaks::Cluster() {
 /*
   // TEST
   tempOut.OpenWrite("temp2.dat");
-  std::vector<double> Hist( Points_.back().Density()+1, 0.0 );
+  std::vector<double> Hist( Points_.back().PointsWithinEps()+1, 0.0 );
   int gWidth = 3;
   double cval = 3.0;
   double two_c_squared = 2.0 * cval * cval;
@@ -453,12 +463,12 @@ int Cluster_DPeaks::Cluster() {
   std::vector<double> candidateDeltas;
   cp = Points_.begin();
   // Skip over points with zero density
-  while (cp != Points_.end() && cp->Density() == 0) ++cp;
-  while (weightedAverage.X(wtIdx) != cp->Density() && wtIdx < (int)Points_.size())
+  while (cp != Points_.end() && cp->PointsWithinEps() == 0) ++cp;
+  while (weightedAverage.X(wtIdx) != cp->PointsWithinEps() && wtIdx < (int)Points_.size())
     ++wtIdx;
   for (Carray::const_iterator point = cp; point != Points_.end(); ++point)
   {
-    if (point->Density() != currentDensity) {
+    if (point->PointsWithinEps() != currentDensity) {
       //currentAvg = weightedAverage.Y(wtIdx);
       // New density value. Determine average.
       currentAvg = 0.0;
@@ -478,7 +488,7 @@ int Cluster_DPeaks::Cluster() {
       //smoothAv += currentAvg;
       //smoothSD += (currentAvg * currentAvg);
       //Nsmooth++;
-      currentDensity = point->Density();
+      currentDensity = point->PointsWithinEps();
       if (raOut.IsOpen())
         raOut.Printf("%i %g %g\n", currentDensity, currentAvg, weightedAverage.Y(wtIdx));
       wtIdx++;
@@ -512,7 +522,7 @@ int Cluster_DPeaks::Cluster() {
       Points_[candidateIdxs[i]].SetCluster( cnum++ );
       mprintf("\tPoint %u (frame %i, density %i) selected as candidate for cluster %i\n",
               candidateIdxs[i], Points_[candidateIdxs[i]].Fnum()+1,
-              Points_[candidateIdxs[i]].Density(), cnum-1);
+              Points_[candidateIdxs[i]].PointsWithinEps(), cnum-1);
     }
   }
   // END WEIGHTED AVG/SD OF DISTANCES
@@ -533,15 +543,17 @@ int Cluster_DPeaks::Cluster() {
   double sumx = 0.0;
   double sumy = 0.0;
   for (unsigned int i = 0; i < window_size; i++) {
-    sumx += (double)Points_[i].Density();
+    sumx += (double)Points_[i].PointsWithinEps();
     sumy += Points_[i].Dist();
   }
   runavg.AddXY( sumx / dwindow, sumy / dwindow );
   for (unsigned int i = 1; i < ra_size; i++) {
     unsigned int nextwin = i + window_size - 1;
     unsigned int prevwin = i - 1;
-    sumx = (double)Points_[nextwin].Density() - (double)Points_[prevwin].Density() + sumx;
-    sumy =         Points_[nextwin].Dist()    -         Points_[prevwin].Dist()    + sumy;
+    sumx = (double)Points_[nextwin].PointsWithinEps() -
+           (double)Points_[prevwin].PointsWithinEps() + sumx;
+    sumy =         Points_[nextwin].Dist()    -
+                   Points_[prevwin].Dist()    + sumy;
     runavg.AddXY( sumx / dwindow, sumy / dwindow );
   }
   // Write running average
@@ -578,7 +590,7 @@ int Cluster_DPeaks::Cluster() {
     if (ra_position != ra_end) {
       // Is the next running avgd point closer to this point?
       while (ra_position != ra_end) {
-        double dens  = (double)point->Density();
+        double dens  = (double)point->PointsWithinEps();
         double diff0 = fabs( dens - runavg.X(ra_position  ) );
         double diff1 = fabs( dens - runavg.X(ra_position+1) );
         if (diff1 < diff0)
@@ -683,9 +695,9 @@ int Cluster_DPeaks::Cluster() {
                                     bidx != borderIndices[c0].end(); ++bidx)
         {
           if (highestDensity == -1)
-            highestDensity = Points_[*bidx].Density();
+            highestDensity = Points_[*bidx].PointsWithinEps();
           else
-            highestDensity = std::max(highestDensity, Points_[*bidx].Density());
+            highestDensity = std::max(highestDensity, Points_[*bidx].PointsWithinEps());
           if (debug_ > 0) mprintf(" %i", Points_[*bidx].Fnum()+1);
         }
         if (debug_ > 0) mprintf(". Highest density in border= %i\n", highestDensity);
@@ -693,11 +705,11 @@ int Cluster_DPeaks::Cluster() {
         for (unsigned int i = *idx; i != *(idx+1); i++)
         {
           Cpoint& point = Points_[i];
-          if (point.Density() <= highestDensity) {
+          if (point.PointsWithinEps() <= highestDensity) {
             point.SetCluster( -1 );
             if (debug_ > 1)
               mprintf("\t\tMarking frame %i as noise (density %i)\n",
-                       point.Fnum()+1, point.Density());
+                       point.Fnum()+1, point.PointsWithinEps());
           }
         }
       }
