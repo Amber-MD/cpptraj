@@ -14,11 +14,17 @@ class Cluster_DPeaks : public ClusterList {
     void AssignClusterNum(int, int&);
     int Cluster_GaussianKernel();
     int Cluster_DiscreteDensity();
+    int ChoosePointsAutomatically();
+    int ChoosePointsManually();
 
-    std::string dpeaks_;
+    enum ChooseType {PLOT_ONLY = 0, MANUAL, AUTOMATIC};
+    std::string dvdfile_;
     std::string rafile_;
     std::string radelta_;
+    double densityCut_;
+    double distanceCut_;
     double epsilon_;
+    ChooseType choosePoints_;
     int avg_factor_;
     bool calc_noise_;
     bool useGaussianKernel_;

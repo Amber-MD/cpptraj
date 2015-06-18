@@ -6,10 +6,17 @@
 #include "ProgressBar.h"
 
 Cluster_DPeaks::Cluster_DPeaks() :
-   epsilon_(-1.0), calc_noise_(false), useGaussianKernel_(false) {}
+   densityCut_(-1.0),
+   distanceCut_(-1.0),
+   epsilon_(-1.0),
+   choosePoints_(PLOT_ONLY),
+   calc_noise_(false),
+   useGaussianKernel_(false) {}
 
 void Cluster_DPeaks::Help() {
   mprintf("\t[dpeaks epsilon <e> [noise] [dvdfile <density_vs_dist_file>]\n"
+          "\t  [choosepoints {manual | auto}]\n"
+          "\t  [distancecut <distcut>] [densitycut <densitycut>]\n"
           "\t  [runavg <runavg_file>] [deltafile <file>] [gauss]]\n");
 }
 
@@ -20,8 +27,10 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
               "Error: Use 'epsilon <e>'\n");
     return 1;
   }
+  densityCut_ = analyzeArgs.getKeyDouble("densitycut", -1.0);
+  distanceCut_ = analyzeArgs.getKeyDouble("distancecut", -1.0);
   calc_noise_ = analyzeArgs.hasKey("noise");
-  dpeaks_ = analyzeArgs.GetStringKey("dvdfile");
+  dvdfile_ = analyzeArgs.GetStringKey("dvdfile");
   rafile_ = analyzeArgs.GetStringKey("runavg");
   radelta_ = analyzeArgs.GetStringKey("deltafile");
   avg_factor_ = analyzeArgs.getKeyInt("avgfactor", -1);
@@ -30,32 +39,197 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
     return 1;
   }
   useGaussianKernel_ = analyzeArgs.hasKey("gauss");
+  // Determine how peaks will be chosen. Default is not to choose peaks,
+  // just print out density versus distance for manual choice.
+  choosePoints_ = PLOT_ONLY;
+  std::string choose_keyword = analyzeArgs.GetStringKey("choosepoints");
+  if (!choose_keyword.empty()) {
+    if      (choose_keyword == "manual") choosePoints_ = MANUAL;
+    else if (choose_keyword == "auto"  ) choosePoints_ = AUTOMATIC;
+    else {
+      mprinterr("Error: Unrecognized choosepoints keyword: %s\n", choose_keyword.c_str());
+      return 1;
+    }
+  }
+  if (choosePoints_ == PLOT_ONLY && dvdfile_.empty())
+    dvdfile_.assign("DensityVsDistance.dat");
+  else if ( choosePoints_ == MANUAL &&
+            (distanceCut_ < 0.0 || densityCut_ < 0.0) )
+  {
+    mprinterr("Error: For choosepoints manual must specify distancecut and densitycut.\n");
+    return 1;
+  }
   return 0;
 }
 
 void Cluster_DPeaks::ClusteringInfo() {
+  mprintf("---------------------------------------------------------------------------\n"
+          "Warning: The dpeaks algorithm is still under development. USE WITH CAUTION!\n"
+          "---------------------------------------------------------------------------\n");
   mprintf("\tDPeaks: Cutoff (epsilon) for determining local density is %g\n", epsilon_);
   if (useGaussianKernel_)
-    mprintf("\tDensity will be determined with Gaussian kernels.\n");
+    mprintf("\t\tDensity will be determined with Gaussian kernels.\n");
   else
-    mprintf("\tDiscrete density calculation.\n");
+    mprintf("\t\tDiscrete density calculation.\n");
   if (calc_noise_)
     mprintf("\t\tCalculating noise as all points within epsilon of another cluster.\n");
-  if (!dpeaks_.empty())
+  if (!dvdfile_.empty())
     mprintf("\t\tDensity vs min distance to point with next highest density written to %s\n",
-            dpeaks_.c_str());
-  if (!rafile_.empty())
-    mprintf("\t\tRunning avg of delta vs distance written to %s\n", rafile_.c_str());
-  if (avg_factor_ != -1)
-    mprintf("\t\tRunning avg window size will be # clustered frames / %i\n", avg_factor_);
-  if (!radelta_.empty())
-    mprintf("\t\tDelta of distance minus running avg written to %s\n", radelta_.c_str());
+            dvdfile_.c_str());
+  if (choosePoints_ == AUTOMATIC) {
+    mprintf("\t\tAttempting to choose density peaks automatically.\n");
+    if (!rafile_.empty())
+      mprintf("\t\tRunning avg of delta vs distance written to %s\n", rafile_.c_str());
+    if (avg_factor_ != -1)
+      mprintf("\t\tRunning avg window size will be # clustered frames / %i\n", avg_factor_);
+    if (!radelta_.empty())
+      mprintf("\t\tDelta of distance minus running avg written to %s\n", radelta_.c_str());
+  } else if (choosePoints_ == MANUAL) {
+    mprintf("\t\tCutoffs for choosing initial clusters from peaks: Distance= %g, density= %g\n",
+            distanceCut_, densityCut_);
+  } else
+    mprintf("\t\tNo clustering, only writing density versus distance file.\n");
 }
 
 int Cluster_DPeaks::Cluster() {
+  int err = 0;
+  // Calculate local densities
   if ( useGaussianKernel_ )
-    return Cluster_GaussianKernel();
-  return Cluster_DiscreteDensity();
+    err = Cluster_GaussianKernel();
+  else
+    err = Cluster_DiscreteDensity();
+  if (err != 0) return 1;
+  // Choose points for which the min distance to point with higher density is
+  // anomalously high.
+  int nclusters = 0;
+  if (choosePoints_ == PLOT_ONLY) {
+    mprintf("Info: Cutoffs for choosing points can be determined visually from the\n"
+            "Info:   density versus min distance to cluster with next highest density file,\n"
+            "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n");
+    return 0;
+  } else if (choosePoints_ == MANUAL)
+    nclusters = ChoosePointsManually();
+  else
+    nclusters = ChoosePointsAutomatically(); 
+      
+  mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
+  // Each remaining point is assigned to the same cluster as its nearest
+  // neighbor of higher density. Do this recursively until a cluster
+  // center is found.
+  int cnum = -1;
+  for (unsigned int idx = 0; idx != Points_.size(); idx++) {
+    if (Points_[idx].Cnum() == -1) {// Point is unassigned.
+      AssignClusterNum(idx, cnum);
+      //mprintf("Finished recursion for index %i\n\n", idx);
+    }
+  }
+  // Sort by cluster number. NOTE: This invalidates NearestIdx
+  std::sort( Points_.begin(), Points_.end(), Cpoint::cnum_sort() );
+  // Determine where each cluster starts and stops in Points array
+  typedef std::vector<unsigned int> Parray;
+  Parray C_start_stop;
+  C_start_stop.reserve( nclusters * 2 );
+  cnum = -1;
+  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
+  {
+    if (point->Cnum() != cnum) {
+      if (!C_start_stop.empty()) C_start_stop.push_back(point - Points_.begin()); // end of cluster
+      C_start_stop.push_back(point - Points_.begin()); // beginning of cluster
+      cnum = point->Cnum();
+    }
+  }
+  C_start_stop.push_back( Points_.size() ); // end of last cluster
+  // Noise calculation.
+  if (calc_noise_) {
+    mprintf("\tDetermining noise frames from cluster borders.\n");
+    // For each cluster find a border region, defined as the set of points
+    // assigned to that cluster which are within epsilon of any other
+    // cluster.
+    // NOTE: Could use a set here to prevent duplicate frames.
+    typedef std::vector<Parray> Barray;
+    Barray borderIndices( nclusters ); // Hold indices of border points for each cluster.
+    for (Parray::const_iterator idx0 = C_start_stop.begin();
+                                idx0 != C_start_stop.end(); idx0 += 2)
+    {
+      int c0 = Points_[*idx0].Cnum();
+      //mprintf("Cluster %i\n", c0);
+      // Check each frame in this cluster.
+      for (unsigned int i0 = *idx0; i0 != *(idx0+1); ++i0)
+      {
+        Cpoint const& point = Points_[i0];
+        // Look at each other cluster
+        for (Parray::const_iterator idx1 = idx0 + 2;
+                                    idx1 != C_start_stop.end(); idx1 += 2)
+        {
+          int c1 = Points_[*idx1].Cnum();
+          // Check each frame in other cluster
+          for (unsigned int i1 = *idx1; i1 != *(idx1+1); i1++)
+          {
+            Cpoint const& other_point = Points_[i1];
+            if (FrameDistances_.GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
+              //mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
+              //        point.Fnum() + 1, c1, other_point.Fnum() + 1);
+              borderIndices[c0].push_back( i0 );
+              borderIndices[c1].push_back( i1 );
+            }
+          }
+        }
+      }
+    }
+    if (debug_ > 0)
+      mprintf("Warning: Cluster numbers here may not match final cluster numbers.\n"
+              "\tBorder Frames:\n");
+    for (Parray::const_iterator idx = C_start_stop.begin();
+                                idx != C_start_stop.end(); idx += 2)
+    {
+      int c0 = Points_[*idx].Cnum();
+      if (debug_ > 0)
+        mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
+                borderIndices[c0].size());
+      if (borderIndices[c0].empty()) {
+        if (debug_ > 0) mprintf(" No border points.\n");
+      } else {
+        int highestDensity = -1;
+        // Find highest density in border region.
+        for (Parray::const_iterator bidx = borderIndices[c0].begin();
+                                    bidx != borderIndices[c0].end(); ++bidx)
+        {
+          if (highestDensity == -1)
+            highestDensity = Points_[*bidx].PointsWithinEps();
+          else
+            highestDensity = std::max(highestDensity, Points_[*bidx].PointsWithinEps());
+          if (debug_ > 0) mprintf(" %i", Points_[*bidx].Fnum()+1);
+        }
+        if (debug_ > 0) mprintf(". Highest density in border= %i\n", highestDensity);
+        // Mark any point with density <= highest border density as noise.
+        for (unsigned int i = *idx; i != *(idx+1); i++)
+        {
+          Cpoint& point = Points_[i];
+          if (point.PointsWithinEps() <= highestDensity) {
+            point.SetCluster( -1 );
+            if (debug_ > 1)
+              mprintf("\t\tMarking frame %i as noise (density %i)\n",
+                       point.Fnum()+1, point.PointsWithinEps());
+          }
+        }
+      }
+    }
+  }
+  // Add the clusters.
+  for (Parray::const_iterator idx = C_start_stop.begin();
+                              idx != C_start_stop.end(); idx += 2)
+  {
+    ClusterDist::Cframes frames;
+    for (unsigned int i = *idx; i != *(idx+1); i++) {
+      if (Points_[i].Cnum() != -1)
+        frames.push_back( Points_[i].Fnum() );
+    }
+    if (!frames.empty())
+      AddCluster( frames );
+  }
+  // Calculate the distances between each cluster based on centroids
+  CalcClusterDistances();
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -127,15 +301,15 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
       }
     }
   }
-  if (!dpeaks_.empty()) {
+  if (!dvdfile_.empty()) {
     CpptrajFile output;
-    if (output.OpenWrite(dpeaks_)) return 1;
+    if (output.OpenWrite(dvdfile_)) return 1;
     for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
       output.Printf("%g %g %i\n", point->Density(), point->Dist(), point->NearestIdx()+1);
     output.CloseFile();
   }
       
-  return 1;
+  return 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -217,11 +391,11 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
     point0.SetNearestIdx( nearestIdx );
   }
   // Plot density vs distance for each point.
-  if (!dpeaks_.empty()) {
+  if (!dvdfile_.empty()) {
     CpptrajFile output;
-    if (output.OpenWrite(dpeaks_))
+    if (output.OpenWrite(dvdfile_))
       mprinterr("Error: Could not open density vs distance plot '%s' for write.\n",
-                dpeaks_.c_str()); // TODO: Make fatal?
+                dvdfile_.c_str()); // TODO: Make fatal?
     else {
       output.Printf("%-10s %10s %s %10s %10s\n", "#Density", "Distance",
                     "Frame", "Idx", "Neighbor");
@@ -232,11 +406,30 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
       output.CloseFile();
     }
   }
-  // Choose points for which the min distance to point with higher density is
-  // anomalously high.
+
+  return 0;
+}
+
+int Cluster_DPeaks::ChoosePointsManually() {
+  int cnum = 0;
+  for (Carray::iterator point = Points_.begin(); point != Points_.end(); ++point) {
+    double density;
+    if (useGaussianKernel_)
+      density = point->Density();
+    else
+      density = (double)point->PointsWithinEps();
+    if ( density >= densityCut_ && point->Dist() >= distanceCut_ ) {
+      point->SetCluster( cnum++ );
+      mprintf("\tPoint %u (frame %i, density %g) selected as candidate for cluster %i\n",
+              point - Points_.begin(), point->Fnum() + 1, density, cnum - 1);
+    }
+  }
+  return cnum;
+}
+
+int Cluster_DPeaks::ChoosePointsAutomatically() {
   // Right now all density values are discrete. Try to choose outliers at each
   // value for which there is density.;
- 
 /*
   // For each point, calculate average distance (X,Y) to points in next and
   // previous density values.
@@ -611,126 +804,7 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
   }
   raDelta.CloseFile();
 */
-  int nclusters = cnum;
-  mprintf("\tIdentified %i cluster centers from density vs distance peaks.\n", nclusters);
-  // Each remaining point is assigned to the same cluster as its nearest
-  // neighbor of higher density. Do this recursively until a cluster
-  // center is found.
-  cnum = -1;
-  for (unsigned int idx = 0; idx != Points_.size(); idx++) {
-    if (Points_[idx].Cnum() == -1) {// Point is unassigned.
-      AssignClusterNum(idx, cnum);
-      //mprintf("Finished recursion for index %i\n\n", idx);
-    }
-  }
-  // Sort by cluster number. NOTE: This invalidates NearestIdx
-  std::sort( Points_.begin(), Points_.end(), Cpoint::cnum_sort() );
-  // Determine where each cluster starts and stops in Points array
-  typedef std::vector<unsigned int> Parray;
-  Parray C_start_stop;
-  C_start_stop.reserve( nclusters * 2 );
-  cnum = -1;
-  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
-  {
-    if (point->Cnum() != cnum) {
-      if (!C_start_stop.empty()) C_start_stop.push_back(point - Points_.begin()); // end of cluster
-      C_start_stop.push_back(point - Points_.begin()); // beginning of cluster
-      cnum = point->Cnum();
-    }
-  }
-  C_start_stop.push_back( Points_.size() ); // end of last cluster
-  // Noise calculation.
-  if (calc_noise_) {
-    mprintf("\tDetermining noise frames from cluster borders.\n");
-    // For each cluster find a border region, defined as the set of points
-    // assigned to that cluster which are within epsilon of any other
-    // cluster.
-    // NOTE: Could use a set here to prevent duplicate frames.
-    typedef std::vector<Parray> Barray;
-    Barray borderIndices( nclusters ); // Hold indices of border points for each cluster.
-    for (Parray::const_iterator idx0 = C_start_stop.begin();
-                                idx0 != C_start_stop.end(); idx0 += 2)
-    {
-      int c0 = Points_[*idx0].Cnum();
-      //mprintf("Cluster %i\n", c0);
-      // Check each frame in this cluster.
-      for (unsigned int i0 = *idx0; i0 != *(idx0+1); ++i0)
-      {
-        Cpoint const& point = Points_[i0];
-        // Look at each other cluster
-        for (Parray::const_iterator idx1 = idx0 + 2;
-                                    idx1 != C_start_stop.end(); idx1 += 2)
-        {
-          int c1 = Points_[*idx1].Cnum();
-          // Check each frame in other cluster
-          for (unsigned int i1 = *idx1; i1 != *(idx1+1); i1++)
-          {
-            Cpoint const& other_point = Points_[i1];
-            if (FrameDistances_.GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
-              //mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
-              //        point.Fnum() + 1, c1, other_point.Fnum() + 1);
-              borderIndices[c0].push_back( i0 );
-              borderIndices[c1].push_back( i1 );
-            }
-          }
-        }
-      }
-    }
-    if (debug_ > 0)
-      mprintf("Warning: Cluster numbers here may not match final cluster numbers.\n"
-              "\tBorder Frames:\n");
-    for (Parray::const_iterator idx = C_start_stop.begin();
-                                idx != C_start_stop.end(); idx += 2)
-    {
-      int c0 = Points_[*idx].Cnum();
-      if (debug_ > 0)
-        mprintf("\tCluster %u: %u frames: %u border frames:", c0, *(idx+1) - *idx,
-                borderIndices[c0].size());
-      if (borderIndices[c0].empty()) {
-        if (debug_ > 0) mprintf(" No border points.\n");
-      } else {
-        int highestDensity = -1;
-        // Find highest density in border region.
-        for (Parray::const_iterator bidx = borderIndices[c0].begin();
-                                    bidx != borderIndices[c0].end(); ++bidx)
-        {
-          if (highestDensity == -1)
-            highestDensity = Points_[*bidx].PointsWithinEps();
-          else
-            highestDensity = std::max(highestDensity, Points_[*bidx].PointsWithinEps());
-          if (debug_ > 0) mprintf(" %i", Points_[*bidx].Fnum()+1);
-        }
-        if (debug_ > 0) mprintf(". Highest density in border= %i\n", highestDensity);
-        // Mark any point with density <= highest border density as noise.
-        for (unsigned int i = *idx; i != *(idx+1); i++)
-        {
-          Cpoint& point = Points_[i];
-          if (point.PointsWithinEps() <= highestDensity) {
-            point.SetCluster( -1 );
-            if (debug_ > 1)
-              mprintf("\t\tMarking frame %i as noise (density %i)\n",
-                       point.Fnum()+1, point.PointsWithinEps());
-          }
-        }
-      }
-    }
-  }
-  // Add the clusters.
-  for (Parray::const_iterator idx = C_start_stop.begin();
-                              idx != C_start_stop.end(); idx += 2)
-  {
-    ClusterDist::Cframes frames;
-    for (unsigned int i = *idx; i != *(idx+1); i++) {
-      if (Points_[i].Cnum() != -1)
-        frames.push_back( Points_[i].Fnum() );
-    }
-    if (!frames.empty())
-      AddCluster( frames );
-  }
-  // Calculate the distances between each cluster based on centroids
-  CalcClusterDistances();
-
-  return 0;
+  return cnum;
 }
 
 // -----------------------------------------------------------------------------
