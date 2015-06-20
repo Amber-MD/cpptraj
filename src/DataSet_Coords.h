@@ -26,6 +26,7 @@ class DataSet_Coords : public DataSet {
     void SetTopology(Topology const&);
     /// \return topology associated with these COORDS.
     inline Topology const& Top() const { return top_; }
+    inline Topology& Top()             { return top_; }
   protected:
     // TODO: Make unsigned
     int numCrd_;    ///< Number of coordinates
