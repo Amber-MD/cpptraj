@@ -58,9 +58,29 @@ void Cluster_HierAgglo::InitializeClusterDistances() {
   ClusterDistances_.SetupMatrix( clusters_.size() );
   // Build initial cluster distances
   if (linkage_==AVERAGELINK) {
+#   ifdef NEWCODE
+    // Set up matrix to hold sums of distances to clusters.
+    SumDistToCluster_.resize(0, clusters_.size());
+    for (cluster_iterator C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
+      for (cluster_iterator C2 = C1; C2 != clusters_.end(); ++C2) {
+        if (C1 != C2) {
+          double sum = 0.0;
+          for (ClusterNode::frame_iterator F1 = C1->beginframe();
+                                           F1 != C1->endframe(); ++F1)
+            for (ClusterNode::frame_iterator F2 = C2->beginframe();
+                                             F2 != C2->endframe(); ++F2)
+              sum += FrameDistances_.GetFdist( *F1, *F2 );
+          SumDistToCluster_.setElement( C1->Num(), C2->Num(), sum );
+          double total = (double)(C1->Nframes() * C2->Nframes());
+          ClusterDistances_.SetElement( C1->Num(), C2->Num(), sum / total );
+        }
+      }
+    }
+#   else
     for (cluster_it C1_it = clusters_.begin();
                     C1_it != clusters_.end(); C1_it++)
       calcAvgDist(C1_it);
+#   endif
   } else if (linkage_==SINGLELINK) {
     for (cluster_it C1_it = clusters_.begin();
                     C1_it != clusters_.end(); C1_it++)
@@ -124,13 +144,24 @@ int Cluster_HierAgglo::Cluster() {
 void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
                  LinkageString[linkage_], nclusters_, epsilon_);
+# ifdef TIMER
+  time_findMin_.WriteTiming(2, "Find min distance");
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames");
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage");
+# endif
 }
 
 /** Find and merge the two closest clusters. */
 int Cluster_HierAgglo::MergeClosest() {
   int C1, C2;
   // Find the minimum distance between clusters. C1 will be lower than C2.
+# ifdef TIMER
+  time_findMin_.Start();
+# endif
   double min = ClusterDistances_.FindMin(C1, C2);
+# ifdef TIMER
+  time_findMin_.Stop();
+# endif
   if (eps_v_n_.IsOpen())
     eps_v_n_.Printf("%12g %12i\n", min, Nclusters());
   if (debug_>0)
@@ -142,8 +173,7 @@ int Cluster_HierAgglo::MergeClosest() {
     return 1;
   }
 
-  // Find the clusters in the cluster list
-  // Find C1
+  // Find C1, the number of the cluster to be merged into.
   cluster_it C1_it = clusters_.begin();
   for (; C1_it != clusters_.end(); ++C1_it)
   {
@@ -164,8 +194,14 @@ int Cluster_HierAgglo::MergeClosest() {
   }
 
   // Merge the closest clusters, C2 -> C1, remove C2
+# ifdef TIMER
+  time_mergeFrames_.Start();
+# endif
   (*C1_it).MergeFrames( *C2_it );
   clusters_.erase( C2_it );
+# ifdef TIMER
+  time_mergeFrames_.Stop();
+# endif
   // DEBUG
   if (debug_>1) {
     mprintf("\nAFTER MERGE of %i and %i:\n",C1,C2);
@@ -173,14 +209,38 @@ int Cluster_HierAgglo::MergeClosest() {
   }
   // Remove all distances having to do with C2
   ClusterDistances_.Ignore(C2);
-
+# ifdef TIMER
+  time_calcLinkage_.Start();
+# endif
+# ifdef NEWCODE
   // Recalculate distances between C1 and all other clusters
+  if (linkage_ == AVERAGELINK) { // TODO: Const
+    // Update sums and average distances from C1 to other clusters, 
+    // excluding any that have already been merged. 
+    for (cluster_it C = clusters_.begin(); C != clusters_.end(); ++C) {
+      if (!ClusterDistances_.IgnoringRow(C->Num()) &&
+           C->Num() != C1 )
+      {
+        SumDistToCluster_.element( C1, C->Num() ) += SumDistToCluster_.element( C2, C->Num() );
+        double nDist = (double)(C1_it->Nframes() * C->Nframes());
+        ClusterDistances_.SetElement( C1, C->Num(), 
+                                      SumDistToCluster_.element(C1, C->Num()) / nDist );
+      }
+    }
+  } else if (linkage_ == SINGLELINK)
+    calcMinDist(C1_it);
+  else
+    calcMaxDist(C1_it);
+# else
   switch (linkage_) {
     case AVERAGELINK : calcAvgDist(C1_it); break;
     case SINGLELINK  : calcMinDist(C1_it); break;
     case COMPLETELINK: calcMaxDist(C1_it); break;
   }
-
+# endif
+# ifdef TIMER
+  time_calcLinkage_.Stop();
+# endif
   if (debug_>2) {
     mprintf("NEW CLUSTER DISTANCES:\n");
     ClusterDistances_.PrintElements();

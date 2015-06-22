@@ -209,31 +209,17 @@ int ClusterMatrix::SetupMatrix(size_t sizeIn) {
   * be used for sieved frames.
   */
 double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
-  iOut = -1;
-  jOut = -1;
-  int iVal = 0;
-  int jVal = 1;
   float min = FLT_MAX;
-  for (size_t idx = 0UL; idx < Nelements(); ++idx) {
-    if (ignore_[iVal] || ignore_[jVal]) {
-      // If we dont care about this row/col, just increment
-      jVal++;
-      if (jVal >= (int)ignore_.size()) {
-        iVal++;
-        jVal = iVal + 1;
-      }
-    } else {
-      // Otherwise search for minimum
-      if ( Mat_[idx] < min ) {
-        min = Mat_[idx];
-        iOut = iVal;
-        jOut = jVal;
-      }
-      // Increment indices
-      jVal++;
-      if (jVal >= (int)ignore_.size()) {
-        iVal++;
-        jVal = iVal + 1;
+  for (unsigned int row = 0; row != Mat_.Nrows(); row++) {
+    if (!ignore_[row]) {
+      unsigned int col = row + 1;
+      unsigned int idx = Mat_.CalcIndex(col, row); // idx is start of this row
+      for (; col != Mat_.Ncols(); col++, idx++) {
+        if (!ignore_[col] && Mat_[idx] < min) {
+          min = Mat_[idx];
+          iOut = (int)row;
+          jOut = (int)col;
+        }
       }
     }
   }
