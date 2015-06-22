@@ -177,7 +177,7 @@ int Cluster_HierAgglo::MergeClosest() {
   cluster_it C1_it = clusters_.begin();
   for (; C1_it != clusters_.end(); ++C1_it)
   {
-    if ( (*C1_it).Num() == C1 ) break;
+    if ( C1_it->Num() == C1 ) break;
   }
   if (C1_it == clusters_.end()) {
     mprinterr("Error: MergeClosest: C1 (%i) not found.\n",C1);
@@ -186,7 +186,7 @@ int Cluster_HierAgglo::MergeClosest() {
   // Find C2 - start from C1 since C1 < C2
   cluster_it C2_it = C1_it;
   for (; C2_it != clusters_.end(); ++C2_it) {
-    if ( (*C2_it).Num() == C2 ) break;
+    if ( C2_it->Num() == C2 ) break;
   }
   if (C2_it == clusters_.end()) {
     mprinterr("Error: MergeClosest: C2 (%i) not found.\n",C2);
@@ -197,7 +197,7 @@ int Cluster_HierAgglo::MergeClosest() {
 # ifdef TIMER
   time_mergeFrames_.Start();
 # endif
-  (*C1_it).MergeFrames( *C2_it );
+  C1_it->MergeFrames( *C2_it );
   clusters_.erase( C2_it );
 # ifdef TIMER
   time_mergeFrames_.Stop();
@@ -256,19 +256,19 @@ void Cluster_HierAgglo::calcMinDist(cluster_it& C1_it)
 {
   // All cluster distances to C1 must be recalcd.
   for (cluster_it C2_it = clusters_.begin();
-                  C2_it != clusters_.end(); C2_it++)
+                  C2_it != clusters_.end(); ++C2_it)
   {
     if (C2_it == C1_it) continue;
     //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
     // Pick the minimum distance between newc2 and C1
     double min = DBL_MAX;
-    for (ClusterNode::frame_iterator c1frames = (*C1_it).beginframe();
-                                     c1frames != (*C1_it).endframe();
-                                     c1frames++)
+    for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
+                                     c1frames != C1_it->endframe();
+                                     ++c1frames)
     {
-      for (ClusterNode::frame_iterator c2frames = (*C2_it).beginframe();
-                                       c2frames != (*C2_it).endframe();
-                                       c2frames++)
+      for (ClusterNode::frame_iterator c2frames = C2_it->beginframe();
+                                       c2frames != C2_it->endframe();
+                                       ++c2frames)
       {
         double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
@@ -276,7 +276,7 @@ void Cluster_HierAgglo::calcMinDist(cluster_it& C1_it)
       }
     }
     //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
-    ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), min );
+    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), min );
   }
 }
 
@@ -287,19 +287,19 @@ void Cluster_HierAgglo::calcMaxDist(cluster_it& C1_it)
 {
   // All cluster distances to C1 must be recalcd.
   for (cluster_it C2_it = clusters_.begin();
-                  C2_it != clusters_.end(); C2_it++)
+                  C2_it != clusters_.end(); ++C2_it)
   {
     if (C2_it == C1_it) continue;
     //mprintf("\t\tRecalc distance between %i and %i:\n",C1,newc2);
     // Pick the maximum distance between newc2 and C1
     double max = -1.0;
-    for (ClusterNode::frame_iterator c1frames = (*C1_it).beginframe();
-                                     c1frames != (*C1_it).endframe();
-                                     c1frames++)
+    for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
+                                     c1frames != C1_it->endframe();
+                                     ++c1frames)
     {
-      for (ClusterNode::frame_iterator c2frames = (*C2_it).beginframe();
-                                       c2frames != (*C2_it).endframe();
-                                       c2frames++)
+      for (ClusterNode::frame_iterator c2frames = C2_it->beginframe();
+                                       c2frames != C2_it->endframe();
+                                       ++c2frames)
       {
         double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
@@ -307,7 +307,7 @@ void Cluster_HierAgglo::calcMaxDist(cluster_it& C1_it)
       }
     }
     //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
-    ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), max );
+    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), max );
   }
 }
 
@@ -318,20 +318,20 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
 {
   // All cluster distances to C1 must be recalcd.
   for (cluster_it C2_it = clusters_.begin();
-                  C2_it != clusters_.end(); C2_it++)
+                  C2_it != clusters_.end(); ++C2_it)
   {
     if (C2_it == C1_it) continue;
     //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
     // Pick the minimum distance between newc2 and C1
     double sumDist = 0;
     double N = 0;
-    for (ClusterNode::frame_iterator c1frames = (*C1_it).beginframe();
-                                     c1frames != (*C1_it).endframe();
-                                     c1frames++)
+    for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
+                                     c1frames != C1_it->endframe();
+                                     ++c1frames)
     {
-      for (ClusterNode::frame_iterator c2frames = (*C2_it).beginframe();
-                                       c2frames != (*C2_it).endframe();
-                                       c2frames++)
+      for (ClusterNode::frame_iterator c2frames = C2_it->beginframe();
+                                       c2frames != C2_it->endframe();
+                                       ++c2frames)
       {
         double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
@@ -341,6 +341,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     }
     double Dist = sumDist / N;
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
-    ClusterDistances_.SetElement( (*C1_it).Num(), (*C2_it).Num(), Dist );
+    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), Dist );
   }
 }
