@@ -14,7 +14,7 @@ class Command {
     enum RetType { C_OK = 0, C_ERR, C_QUIT };
     // TODO: Make below private, make commands part of Command class?
     /// Command categories.
-    enum CommandType { NONE=0, PARM, TRAJ, ACTION, ANALYSIS, GENERAL, DEPRECATED };
+    enum CommandType { NONE=0, PARM, TRAJ, COORDS, ACTION, ANALYSIS, GENERAL, SYSTEM, DEPRECATED };
     /// Shorthand for DispatchAllocatorType
     typedef DispatchObject::DispatchAllocatorType AllocType;
     /// Function pointer to command function.
@@ -40,6 +40,7 @@ class Command {
     static RetType Dispatch(CpptrajState&, std::string const&);
     static RetType ProcessInput(CpptrajState&, std::string const&);
     static Token const& CmdToken(int idx) { return Commands[idx]; }
+    static const char* CommandCategoryKeyword(int i) { return CommandTitle[i]; }
   private:
     static void WarnDeprecated(TokenPtr);
     static const char* CommandTitle[];
