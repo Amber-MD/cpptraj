@@ -154,8 +154,8 @@ Command::TokenPtr Command::SearchTokenType(CommandType dtype,
 }
 
 /// Strings that correspond to CommandType
-const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Action",
-  "Analysis", "General", "Deprecated" };
+const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Coords",
+  "Action", "Analysis", "General", "System", "Deprecated" };
 
 /** List all commands of the given type, or all commands if type
   * is NONE.
@@ -327,13 +327,6 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
 }
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
-static void Help_Help() {
-  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n"
-          "  With no arguments list all known commands, otherwise display help for\n"
-          "  command <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
-          "  list commands only in that category.\n");
-}
-
 static void Help_System() { mprintf("  Call command from system.\n"); }
 
 static void Help_NoProgress() {
@@ -1313,8 +1306,19 @@ Command::RetType Quit(CpptrajState& State, ArgList& argIn, Command::AllocType Al
 /// Run a system command
 Command::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  system( argIn.ArgLine() );
+  int err = system( argIn.ArgLine() );
+  if (err != 0) mprintf("Warning: '%s' returned %i\n", argIn.Command(), err);
   return Command::C_OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Help() {
+  mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
+  for (int i = 1; i != (int)Command::DEPRECATED; i++)
+    mprintf(" %s", Command::CommandCategoryKeyword(i));
+  mprintf("\n");
+  mprintf("  With no arguments list all known commands, otherwise display help for specified\n"
+          "  command. If a category is specified list only commands in that category.\n");
 }
 
 /// Find help for command/topic
@@ -1325,17 +1329,14 @@ Command::RetType Help(CpptrajState& State, ArgList& argIn, Command::AllocType Al
   if (arg.empty())
     // NONE in this context means list all commands
     Command::ListCommands(Command::NONE);
-  else if (arg.CommandIs("General"))
-    Command::ListCommands(Command::GENERAL);
-  else if (arg.CommandIs("Topology"))
-    Command::ListCommands(Command::PARM);
-  else if (arg.CommandIs("Action"))
-    Command::ListCommands(Command::ACTION);
-  else if (arg.CommandIs("Analysis"))
-    Command::ListCommands(Command::ANALYSIS);
-  else if (arg.CommandIs("Trajectory"))
-    Command::ListCommands(Command::TRAJ);
   else {
+    for (int i = 1; i != (int)Command::DEPRECATED; i++) {
+      if (arg.CommandIs(Command::CommandCategoryKeyword(i))) {
+        Command::ListCommands((Command::CommandType)i);
+        return Command::C_OK;
+      }
+    }
+    // Find help for specified command.
     Command::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0)
       mprinterr("No help found for %s\n", arg.Command());
@@ -1817,30 +1818,20 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
   { GENERAL, "calc",          0, Help_Calc,            Calc            },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },
-  { GENERAL, "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
-  { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
-  { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
   { GENERAL, "datafilter",    0, Help_DataFilter,      DataFilter      },
   { GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
-  { GENERAL, "gnuplot",       0, Help_System,          SystemCmd       },
   { GENERAL, "go",            0, Help_Run,             RunState        },
-  { GENERAL, "head",          0, Help_System,          SystemCmd       },
   { GENERAL, "help",          0, Help_Help,            Help            },
-  { GENERAL, "less",          0, Help_System,          SystemCmd       },
   { GENERAL, "list",          0, Help_List,            ListAll         },
-  { GENERAL, "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
-  { GENERAL, "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
-  { GENERAL, "ls",            0, Help_System,          SystemCmd       },
   { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
   { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
   { GENERAL, "precision",     0, Help_Precision,       Precision       },
   { GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
   { GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
-  { GENERAL, "pwd",           0, Help_System,          SystemCmd       },
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
   { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
@@ -1853,7 +1844,19 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
-  { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
+  // SYSTEM COMMANDS
+  { SYSTEM, "gnuplot",        0, Help_System,          SystemCmd       },
+  { SYSTEM, "head",           0, Help_System,          SystemCmd       },
+  { SYSTEM, "less",           0, Help_System,          SystemCmd       },
+  { SYSTEM, "ls",             0, Help_System,          SystemCmd       },
+  { SYSTEM, "pwd",            0, Help_System,          SystemCmd       },
+  { SYSTEM, "xmgrace",        0, Help_System,          SystemCmd       },
+  // COORDS COMMANDS
+  { COORDS,  "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
+  { COORDS,  "crdaction",     0, Help_CrdAction,       CrdAction       },
+  { COORDS,  "crdout",        0, Help_CrdOut,          CrdOut          },
+  { COORDS,  "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
+  { COORDS,  "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
   // TRAJECTORY COMMANDS
   { TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
   { TRAJ,    "reference",     0, Help_Reference,       Reference       },
