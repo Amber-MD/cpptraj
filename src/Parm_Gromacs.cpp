@@ -39,14 +39,30 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
           mprintf("Warning: Could not process '#include' directive for '%s', skipping.\n",
                   fname.c_str());
         numOpen_--;
-      }
+      } /*else if ( gmx_line.compare(0, 8, "#define ") == 0 ) {
+        ArgLine define( gmx_line, SEP );
+        if (define.Nargs() > 1)
+          defines_.push_back( define[1] );
+      } else if ( gmx_line.compare(0, 7, "#ifdef ") == 0 ) {
+        ArgLine ifdef( gmx_line, SEP );
+        if (define.Nargs() < 2) {
+          mprinterr("Error: Malformed ifdef '%s'\n", gmx_line.c_str());
+          return 1;
+        }
+      } else if ( gmx_line.compare(0, 8, "#ifndef ") == 0) {
+
+      } */else
+        mprintf("Warning: Unsupported directive: %s\n", gmx_line.c_str());
     } else if ( ptr[0] == '[' ) {
       // Bracket keyword
       std::string gmx_line( ptr );
       if ( gmx_line.compare(0,16,"[ moleculetype ]")==0 ) {
-        // New molecule
+        // New molecule. Read next line. Continue advancing past comments.
         if ( (ptr = infile.Line()) == 0 ) return 1; // Read past '; name  nrexcl'
-        if ( (ptr = infile.Line()) == 0 ) return 1; // Read name, nrexcl
+        // If line was comment read next line.
+        if (*ptr == ';') {
+          if ( (ptr = infile.Line()) == 0 ) return 1; // Read name, nrexcl
+        }
         if (infile.TokenizeLine(SEP) < 2) {
           mprinterr("Error: After [ moleculetype ] expected name, nrexcl.\n");
           return 1;
@@ -69,15 +85,18 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         // do not rely on them. Expect at least 7 columns, mass may be
         // ommitted and defined elsewhere.
         if ( (ptr = infile.Line()) == 0 ) return 1;
+        // If line was comment read next line.
+        if (*ptr == ';') {
+          if ( (ptr = infile.Line()) == 0 ) return 1; // Read first atom 
+        }
         bool readAtoms = true;
         NameType aname, atype, rname;
         double mass = 0.0, chrg = 0.0;
         int rnum = 0;
         while (readAtoms) {
-          ptr = infile.Line();
           if (ptr == 0)
             readAtoms = false;
-          else {
+          else if (*ptr != ';') {
             int currentcols = infile.TokenizeLine(SEP);
             if ( currentcols < 2 ) {
               // Assume blank line, done reading atoms.
@@ -102,6 +121,7 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
             else // currentcols == 8
               MolAtoms.push_back( gmx_atom(aname, atype, rname, chrg, mass, rnum) );
           } 
+          ptr = infile.Line();
         }
         if (debug_ > 0)
           mprintf("DEBUG: Molecule %s contains %zu atoms.\n", gmx_molecules_.back().Mname(),
@@ -120,10 +140,13 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         // Read header line
         // ; i     j       funct   length  force_constant
         if ( (ptr = infile.Line()) == 0 ) return 1;
+        // If line was comment read next line.
+        if (*ptr == ';') {
+          if ( (ptr = infile.Line()) == 0 ) return 1; // Read first bond 
+        }
         // Gromacs bond lengths are in nm, bond energy in kJ/mol*nm^2
         bool readBonds = true;
         while (readBonds) {
-          ptr = infile.Line();
           if (ptr == 0)
             readBonds = false;
           else {
@@ -137,11 +160,15 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
             MolBonds.push_back( atoi(infile.NextToken()) - 1 );
             MolBonds.push_back( atoi(infile.NextToken()) - 1 );
           }
+          ptr = infile.Line();
         }
       } else if ( gmx_line.compare(0, 10,"[ system ]"       )==0 ) {
         // Title.
-        ptr = infile.Line();
-        if (ptr == 0) return 1;
+        if ( (ptr = infile.Line()) == 0 ) return 1;
+        // If line was comment read next line.
+        if (*ptr == ';') {
+          if ( (ptr = infile.Line()) == 0 ) return 1; // Read first bond 
+        }
         title_.assign( ptr );
         // Remove any quotes/newline
         std::string::iterator pend = std::remove( title_.begin(), title_.end(), '\n' );
@@ -151,13 +178,15 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         // System layout
         ptr = infile.Line();
         while (ptr != 0 && ptr[0] != ' ') { // TODO: Allow blank to end?
-          if (infile.TokenizeLine(SEP) != 2) {
-            mprinterr("Error: [ molecules ]: Line %i, expected 2 entries (<name> <count>)\n",
-                      infile.LineNumber());
-            return 1;
+          if (*ptr != ';') {
+            if (infile.TokenizeLine(SEP) != 2) {
+              mprinterr("Error: [ molecules ]: Line %i, expected 2 entries (<name> <count>)\n",
+                        infile.LineNumber());
+              return 1;
+            }
+            mols_.push_back( std::string(infile.NextToken()) );
+            nums_.push_back( atoi(infile.NextToken()) );
           }
-          mols_.push_back( std::string(infile.NextToken()) );
-          nums_.push_back( atoi(infile.NextToken()) );
           ptr = infile.Line(); 
         }
       }
@@ -218,7 +247,7 @@ bool Parm_Gromacs::ID_ParmFormat(CpptrajFile& fileIn) {
   if (fileIn.OpenFile()) return false;
   // Advance to first non-blank / non-comment line
   const char* ptr = fileIn.NextLine();
-  while (ptr != 0 && (ptr[0] == ' ' || ptr[0] == ';'))
+  while (ptr != 0 && (*ptr == ' ' || *ptr == ';' || *ptr == '\n' || *ptr == '\r'))
     ptr = fileIn.NextLine();
   bool is_gmx = false;
   if (ptr != 0) {
