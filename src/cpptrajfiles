@@ -234,6 +234,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
+        Traj_Gro.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \
