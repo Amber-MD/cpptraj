@@ -11,14 +11,14 @@ class Traj_Gro : public TrajectoryIO {
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(std::string const&, Topology*);
-    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool);
-    int openTrajin();
-    void closeTraj();
-    int readFrame(int,Frame&);
-    int writeFrame(int,Frame const&);
+    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool) { return 1;}
+    int openTrajin() { return 1; }
+    void closeTraj() {}
+    int readFrame(int,Frame&) { return 1; }
+    int writeFrame(int,Frame const&) { return 1; }
     void Info();
-    int processWriteArgs(ArgList&);
-    int readVelocity(int, Frame&);
+    int processWriteArgs(ArgList&) { return 0; }
+    int readVelocity(int, Frame&) { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
 
     double GetTimeValue(const char*) const;

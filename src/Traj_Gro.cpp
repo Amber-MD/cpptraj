@@ -7,13 +7,24 @@
 bool Traj_Gro::ID_TrajFormat(CpptrajFile& infile) {
   // Title line, atoms line, then resnum, resname, atomname, atomnum, X, Y, Z
   if (infile.OpenFile()) return false;
-  if (infile.NextLine() == 0) return false; // Title
-  if (infile.NextLine() == 0) return false; // Natom
-  const char* ptr = infile.NextLine(); // First atom
-  char resnum[6], resname[6], atname[6], atnum[6];
-  float XYZ[3];
-  int nread = sscanf(ptr, "%5c%5c%5c%5c%f %f %f", resnum, resname,
-                     atname, atnum, XYZ, XYZ+1, XYZ+2);
+  int nread = 0;
+  if (infile.NextLine() != 0) { // Title
+    const char* ptr = infile.NextLine(); // Natom
+    if (ptr != 0) {
+      // Ensure only a single value on # atoms line
+      std::string natom_str( ptr );
+      RemoveTrailingWhitespace( natom_str );
+      if (validInteger(natom_str)) {
+        ptr = infile.NextLine(); // First atom
+        if (ptr != 0) {
+          char resnum[6], resname[6], atname[6], atnum[6];
+          float XYZ[3];
+          nread = sscanf(ptr, "%5c%5c%5c%5c%f %f %f", resnum, resname,
+                         atname, atnum, XYZ, XYZ+1, XYZ+2);
+        }
+      }
+    }
+  }
   infile.CloseFile();
   return (nread == 7);
 }
@@ -46,22 +57,13 @@ int Traj_Gro::setupTrajin(std::string const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   std::string title( ptr );
+  RemoveTrailingWhitespace(title);
+  mprintf("DBG: Title: %s\n", title.c_str());
   bool hasTime = true;
   // TODO Is it OK to assume there will never be a negative time value?
   double timeVal = GetTimeValue( ptr );
   if (timeVal < 0.0) hasTime = false;
-  /*std::string title = file_.GetLine();
-  size_t pos = title.find("t=", 0);
-  if (pos != std::string::npos) {
-    std::string timeval = title.substr(pos + 2);
-    if (!validDouble( timeval ))
-      mprintf("Warning: Invalid time value: %s\n", timeval.c_str());
-    else {
-      time0_ = atof(timeval.c_str());
-      hasTime = true;
-    }
-  } else
-    time0_ = 0.0;*/
+  mprintf("DBG: Timeval= %g HasTime= %i\n", timeVal, (int)hasTime);
   // Read number of atoms
   ptr = file_.Line();
   if (ptr == 0) return TRAJIN_ERR;
@@ -76,6 +78,7 @@ int Traj_Gro::setupTrajin(std::string const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Read first atom to see if there are velocities
+  ptr = file_.Line();
   int nread = sscanf(ptr, "%*5c%*5c%*5c%*5c%f %f %f %f %f %f",
                      fXYZ, fXYZ+1, fXYZ+2, fXYZ+3, fXYZ+4, fXYZ+5);
   bool hasV = false;
@@ -91,8 +94,7 @@ int Traj_Gro::setupTrajin(std::string const& fname, Topology* trajParm)
       mprinterr("Error: Reading atom %i of first frame.\n", i+1);
       return TRAJIN_ERR;
     }
-    
-  // Attempt to read box
+  // Attempt to read box line
   // v1(x) v2(y) v3(z) [v1(y) v1(z) v2(x) v2(z) v3(x) v3(y)]
   ptr = file_.Line();
   Box groBox;
@@ -161,4 +163,10 @@ int Traj_Gro::setupTrajin(std::string const& fname, Topology* trajParm)
   }
   file_.CloseFile();
   return nframes;
+}
+
+void Traj_Gro::Info() {
+  mprintf("is a GRO file");
+  if (CoordInfo().HasTime()) mprintf(", with time");
+  if (CoordInfo().HasVel()) mprintf(", with velocities");
 }
