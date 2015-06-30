@@ -24,20 +24,26 @@ Traj_AmberRestart::Traj_AmberRestart() :
 bool Traj_AmberRestart::ID_TrajFormat(CpptrajFile& fileIn) {
   // Assume file set up for read
   if (fileIn.OpenFile()) return false;
-  if (fileIn.NextLine()==0) return false; // Title
-  std::string buffer2 = fileIn.GetLine(); // natom, [time, temp]
-  fileIn.CloseFile();
-  if (buffer2.size() <= 36) {
-    int i=0;
-    for (; i<5; i++) {
-      if (!isspace(buffer2[i]) && !isdigit(buffer2[i])) break;
-    }
-    if ( i==5 ) {
-      if (debug_>0) mprintf("  AMBER RESTART file\n");
-      return true;
+  bool isRestart = false;
+  if ( fileIn.NextLine() !=0 ) { // Title
+    const char* ptr = fileIn.NextLine(); // Natom [time [temp]]
+    if (ptr != 0) {
+      int i0;
+      double D[3];
+      int nread = sscanf(ptr, "%5i%15lf%15lf%lf", &i0, D, D+1, D+2);
+      if (nread > 0 && nread < 4) {
+        // Read at least 3 12.7 coordinates from next line.
+        ptr = fileIn.NextLine();
+        if (ptr != 0) {
+          nread = sscanf(ptr, "%12lf%12lf%12lf", D, D+1, D+2);
+          if (nread == 3)
+            isRestart = true;
+        }
+      }
     }
   }
-  return false;
+  fileIn.CloseFile();
+  return isRestart;
 }
 
 // Traj_AmberRestart::closeTraj()
