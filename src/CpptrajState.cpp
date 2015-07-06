@@ -4,6 +4,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
+#include "ProgressBar.h"
 #ifdef TIMER
 #ifdef MPI
 #include "Ensemble.h"
@@ -373,11 +374,13 @@ int CpptrajState::RunEnsemble() {
   frames_time.Start();
   // Loop over every trajectory in trajFileList
   mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
+  ProgressBar progress;
+  if (showProgress_)
+    progress.SetupProgress( trajinList_.MaxFrames() );
   for ( TrajinList::ensemble_it traj = trajinList_.ensemble_begin();
                                 traj != trajinList_.ensemble_end(); ++traj)
   {
     // Open up the trajectory file. If an error occurs, bail
-    // TODO Progress bar 
     if ( (*traj)->BeginEnsemble() ) {
       mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
       break;
@@ -484,6 +487,7 @@ int CpptrajState::RunEnsemble() {
         mprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
 #       endif
       }
+      if (showProgress_) progress.Update( actionSet );
       // Increment frame counter
       ++actionSet;
 #     ifdef TIMER
@@ -570,11 +574,13 @@ int CpptrajState::RunNormal() {
   Timer frames_time;
   frames_time.Start();
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
+  ProgressBar progress;
+  if (showProgress_)
+    progress.SetupProgress( trajinList_.MaxFrames() );
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
   {
     // Open up the trajectory file. If an error occurs, bail 
-    // TODO progress bar
     if ( (*traj)->BeginTraj() ) {
       mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
       break;
@@ -647,6 +653,7 @@ int CpptrajState::RunNormal() {
           trajout_time.Stop();
 #         endif
         }
+      if (showProgress_) progress.Update( actionSet );
       // Increment frame counter
       ++actionSet;
 #     ifdef TIMER
