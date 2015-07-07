@@ -43,7 +43,6 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Topology.cpp \
               TrajectoryFile.cpp \
               TrajFrameCounter.cpp \
-              Trajin.cpp \
               Trajin_Single.cpp \
               Trajout.cpp \
               Trajout_Single.cpp \

@@ -19,7 +19,7 @@ class Trajout_Single : public Trajout {
     int PrepareStdoutTrajWrite(ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
     /// For writing single traj from Action, ensemble-aware.
     int InitEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
-                              TrajFormatType fmtIn, int ensembleNum);
+                              TrajectoryFile::TrajFormatType fmtIn, int ensembleNum);
   private:
     int InitTrajout(std::string const&, ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
 

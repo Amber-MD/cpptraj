@@ -4,6 +4,8 @@
 
 // CONSTRUCTOR
 Trajout::Trajout() :
+  debug_(0),
+  trajParm_(0),
   numFramesProcessed_(0),
   trajIsOpen_(false),
   nobox_(false),
@@ -18,26 +20,27 @@ int Trajout::CommonTrajoutSetup(std::string const& tnameIn, ArgList& argIn, Topo
                                 TrajectoryFile::TrajFormatType& writeFormat)
 {
   // Check and set associated parm file
-  if ( SetTrajParm( tparmIn ) ) return 1;
+  if (tparmIn == 0) return 1;
+  trajParm_ = tparmIn;
   // Mark as not yet open
   trajIsOpen_ = false;
   // Check for append keyword
   append_ = argIn.hasKey("append");
-  // Set file name 
-  SetTrajFileName( tnameIn, false );
+  // Set file name FIXME: Proper tilde expansion
+  trajName_.SetFileName( tnameIn ); 
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there.
-  if (writeFormat==UNKNOWN_TRAJ) {
-    writeFormat = GetFormatFromArg(argIn);
+  if (writeFormat==TrajectoryFile::UNKNOWN_TRAJ) {
+    writeFormat = TrajectoryFile::GetFormatFromArg(argIn);
     // If still UNKNOWN_TRAJ this means no type specified. Check to see if
     // the filename extension is recognized.
-    if (writeFormat == UNKNOWN_TRAJ) {
-      writeFormat = GetTypeFromExtension( TrajFilename().Ext() );
+    if (writeFormat == TrajectoryFile::UNKNOWN_TRAJ) {
+      writeFormat = TrajectoryFile::GetTypeFromExtension( trajName_.Ext() );
       // Default to Amber trajectory.
-      if (writeFormat == UNKNOWN_TRAJ) {
+      if (writeFormat == TrajectoryFile::UNKNOWN_TRAJ) {
         mprintf("Warning: Format not specified and extension '%s' not recognized."
-                " Defaulting to Amber Trajectory.\n", TrajFilename().ext());
-        writeFormat = AMBERTRAJ;
+                " Defaulting to Amber Trajectory.\n", trajName_.ext());
+        writeFormat = TrajectoryFile::AMBERTRAJ;
       }
     }
   }
@@ -48,7 +51,7 @@ int Trajout::CommonTrajoutSetup(std::string const& tnameIn, ArgList& argIn, Topo
   if (!onlyframes.empty()) {
     if ( FrameRange_.SetRange(onlyframes) )
       mprintf("Warning: trajout %s: onlyframes: %s is not a valid range.\n",
-              TrajFilename().full(), onlyframes.c_str());
+              trajName_.full(), onlyframes.c_str());
     else {
       FrameRange_.PrintRange("\tSaving frames",0);
       mprintf("\n");
@@ -70,9 +73,11 @@ int Trajout::CommonTrajoutSetup(std::string const& tnameIn, ArgList& argIn, Topo
 int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* trajio, 
                              Topology* tparmIn)
 {
+  if (tparmIn == 0) return 1;
   if (debug_>0) rprintf("\tSetting up %s for WRITE, %i atoms, originally %i atoms.\n",
-                          TrajFilename().base(),tparmIn->Natom(),TrajParm()->Natom());
-  SetTrajParm( tparmIn );
+                          trajName_.base(),tparmIn->Natom(),TrajParm()->Natom());
+  // FIXME: This is clunky. Needs to be better.
+  trajParm_ = tparmIn;
   // Use parm to set up coord info for the traj. If 'nobox' was specified
   // remove any box info.
   CoordinateInfo cInfo = tparmIn->ParmCoordInfo();
@@ -86,7 +91,7 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
   if (trajio->setupTrajout(trajoutName, TrajParm(), cInfo, NframesToWrite, append_))
     return 1;
   if (debug_ > 0)
-    Frame::PrintCoordInfo(TrajFilename().base(), tparmIn->c_str(), trajio->CoordInfo()); 
+    Frame::PrintCoordInfo(trajName_.base(), tparmIn->c_str(), trajio->CoordInfo()); 
   trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range
   if (hasRange_)
@@ -98,18 +103,20 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
 /** If the given file exists and will be appended to, check that the specified
   * format matches the existing format. If not, change to existing format.
   */
-int Trajout::CheckAppendFormat(std::string const& fname, TrajFormatType& writeFormat)
+int Trajout::CheckAppendFormat(std::string const& fname,
+                               TrajectoryFile::TrajFormatType& writeFormat)
 {
   if (fileExists(fname)) {
     TrajectoryFile::TrajFormatType appendFormat;
-    TrajectoryIO* tio = DetectFormat( fname, appendFormat );
+    TrajectoryIO* tio = TrajectoryFile::DetectFormat( fname, appendFormat );
     if (appendFormat ==  TrajectoryFile::UNKNOWN_TRAJ)
       mprintf("Warning: Could not determine file format for 'append'. Using %s\n",
-              FormatString( writeFormat ) );
+              TrajectoryFile::FormatString( writeFormat ) );
     else {
       if (writeFormat != TrajectoryFile::UNKNOWN_TRAJ && writeFormat != appendFormat)
         mprintf("Warning: Specified format %s for %s but file exists and is %s\n",
-                FormatString(writeFormat), fname.c_str(), FormatString(appendFormat));
+                TrajectoryFile::FormatString(writeFormat), fname.c_str(),
+                TrajectoryFile::FormatString(appendFormat));
       writeFormat = appendFormat;
     }
     delete tio;

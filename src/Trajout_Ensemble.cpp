@@ -13,7 +13,7 @@ Trajout_Ensemble::~Trajout_Ensemble() {
 
 // Trajout_Ensemble::InitTrajWrite()
 int Trajout_Ensemble::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn,
-                                 Topology *tparmIn, TrajFormatType writeFormatIn)
+                                 Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a base filename
   if (tnameIn.empty()) {
@@ -37,14 +37,14 @@ int Trajout_Ensemble::InitTrajWrite(std::string const& tnameIn, ArgList const& a
   if (eio_ != 0) delete eio_;
   // If appending, file must exist and must match the current format.
   if (TrajoutAppend())
-    CheckAppendFormat( tnameIn, writeFormat );
+    CheckAppendFormat( TrajFilename().Full(), writeFormat );
   // Set up for the specified format.
-  eio_ = AllocTrajIO( writeFormat );
+  eio_ = TrajectoryFile::AllocTrajIO( writeFormat );
   if (eio_ == 0) return 1;
   // Check that the TrajectoryIO object can read/write single ensemble
   if (!eio_->CanProcessEnsemble()) {
     mprinterr("Error: Format '%s' cannot be used for ensemble single file output.\n",
-              FormatString(writeFormat));
+              TrajectoryFile::FormatString(writeFormat));
     return 1;
   }
   mprintf("\tWriting '%s' as %s\n", TrajFilename().full(),

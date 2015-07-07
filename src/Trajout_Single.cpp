@@ -16,7 +16,7 @@ Trajout_Single::~Trajout_Single() {
   * process arguments.
   */
 int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn, 
-                           Topology *tparmIn, TrajFormatType writeFormatIn)
+                           Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a filename
   if (tnameIn.empty()) {
@@ -29,7 +29,7 @@ int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& arg
 // Trajout_Single::PrepareStdoutTrajWrite()
 /** Initialize and set up output trajectory for STDOUT write. */
 int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
-                                 TrajFormatType writeFormatIn)
+                                 TrajectoryFile::TrajFormatType writeFormatIn)
 {
   if (InitTrajout("", argIn, tparmIn, writeFormatIn)) return 1;
   if (SetupTrajWrite(tparmIn)) return 1;
@@ -38,13 +38,13 @@ int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparm
 
 // Trajout_Single::InitEnsembleTrajWrite()
 int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
-                                          Topology* tparmIn, TrajFormatType fmtIn,
+                                          Topology* tparmIn, TrajectoryFile::TrajFormatType fmtIn,
                                           int ensembleNum)
 {
   FileName tempName;
   tempName.SetFileName( tnameIn );
-  TrajFormatType fmt = fmtIn;
-  if (fmt == UNKNOWN_TRAJ)
+  TrajectoryFile::TrajFormatType fmt = fmtIn;
+  if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
     fmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
   if (ensembleNum > -1)
     return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, fmt );
@@ -54,7 +54,7 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
 
 // Trajout_Single::InitTrajout()
 int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn,
-                                Topology *tparmIn, TrajFormatType writeFormatIn)
+                                Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
 {
   ArgList trajout_args = argIn;
   TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
@@ -64,9 +64,9 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
   if (trajio_ != 0) delete trajio_;
   // If appending, file must exist and must match the current format.
   if (TrajoutAppend()) 
-    CheckAppendFormat( tnameIn, writeFormat );
+    CheckAppendFormat( TrajFilename().Full(), writeFormat );
   // Set up for the specified format.
-  trajio_ = AllocTrajIO( writeFormat );
+  trajio_ = TrajectoryFile::AllocTrajIO( writeFormat );
   if (trajio_ == 0) return 1;
   mprintf("\tWriting '%s' as %s\n", TrajFilename().full(), 
           TrajectoryFile::FormatString(writeFormat));

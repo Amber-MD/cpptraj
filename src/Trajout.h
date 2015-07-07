@@ -5,7 +5,7 @@
 #include "ActionFrameCounter.h"
 /// Output trajectory class.
 // FIXME: InitTrajWrite should also take # frames to write?
-class Trajout : public TrajectoryFile {
+class Trajout {
   public:
     Trajout();
     virtual ~Trajout() {}
@@ -28,9 +28,12 @@ class Trajout : public TrajectoryFile {
     bool TrajoutAppend()              const { return append_;             }
     std::string const& TrajoutTitle() const { return title_;              }
     void SetTrajIsOpen(bool o)              { trajIsOpen_ = o;            }
+    void SetDebug(int d)                    { debug_ = d;                 }
     inline int CheckFrameRange(int);
     /// Write single frame, performing set up if needed.
     inline int WriteFrame(int, Topology*, Frame const&);
+    FileName const& TrajFilename() const { return trajName_; }
+    Topology* TrajParm() const { return trajParm_; } // TODO obsolete
   protected:
     /// Grab keywords common to all trajouts, set/determine format if necessary
     int CommonTrajoutSetup(std::string const&, ArgList&, Topology*, 
@@ -38,12 +41,15 @@ class Trajout : public TrajectoryFile {
     /// Set up anything topology-related.
     int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*);
     /// Check format for append
-    int CheckAppendFormat(std::string const&, TrajFormatType&);
+    int CheckAppendFormat(std::string const&, TrajectoryFile::TrajFormatType&);
     /// For ensemble trajouts, get range of members to write.
     Range MembersToWrite(std::string const&,int) const;
     /// Print information for TrajectoryIO
     void CommonInfo(TrajectoryIO*) const;
+    int debug_;
   private:
+    Topology* trajParm_;               ///< Associated topology file.
+    FileName trajName_;                ///< Trajectory file name.
     std::string title_;                ///< Output trajectory title.
     int numFramesProcessed_;
     bool trajIsOpen_;                  ///< If true trajectory has been opened.

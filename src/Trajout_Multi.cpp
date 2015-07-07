@@ -25,7 +25,7 @@ void Trajout_Multi::Clear() {
   * and process arguments.
   */
 int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn, 
-                                 Topology *tparmIn, TrajFormatType writeFormatIn)
+                                 Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a base filename
   if (tnameIn.empty()) {
@@ -90,7 +90,7 @@ int Trajout_Multi::InitTrajWrite(std::string const& tnameIn, ArgList const& argI
   for (unsigned int m = 0; m != fileNames_.size(); ++m) {
     rprintf("\tWriting ensemble '%s' as %s\n", fileNames_[m].c_str(),
             TrajectoryFile::FormatString(fileFormats[m]));
-    TrajectoryIO* tio = AllocTrajIO( fileFormats[m] );
+    TrajectoryIO* tio = TrajectoryFile::AllocTrajIO( fileFormats[m] );
     if (tio == 0) return 1;
     ioarray_.push_back( tio );
     ioarray_.back()->SetDebug( debug_ );
