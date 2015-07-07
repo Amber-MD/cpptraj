@@ -1,13 +1,13 @@
-#ifndef INC_ENSEMBLE_SINGLE_H
-#define INC_ENSEMBLE_SINGLE_H
+#ifndef INC_ENSEMBLEIN_SINGLE_H
+#define INC_ENSEMBLEIN_SINGLE_H
 #ifdef ENABLE_SINGLE_ENSEMBLE
-#include "Ensemble.h"
+#include "EnsembleIn.h"
 #include "TrajectoryIO.h"
 /// Read in an array of frames at a time from a single file.
-class Ensemble_Single : public Ensemble {
+class EnsembleIn_Single : public EnsembleIn {
   public:
-    Ensemble_Single();
-    ~Ensemble_Single();
+    EnsembleIn_Single();
+    ~EnsembleIn_Single();
     // ----- Inherited Functions -----------------
     int SetupEnsembleRead(std::string const&, ArgList&, Topology*);
     int ReadEnsemble(int, FrameArray&, FramePtrArray&);

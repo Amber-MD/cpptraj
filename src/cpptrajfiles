@@ -181,9 +181,9 @@ SOURCES=ActionFrameCounter.cpp \
         Dimension.cpp \
         DistRoutines.cpp \
         Energy.cpp \
-        Ensemble.cpp \
-        Ensemble_Multi.cpp \
-        Ensemble_Single.cpp \
+        EnsembleIn.cpp \
+        EnsembleIn_Multi.cpp \
+        EnsembleIn_Single.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \

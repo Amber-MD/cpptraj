@@ -1,11 +1,11 @@
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
 #include "Trajin.h"
-#include "Ensemble.h"
+#include "EnsembleIn.h"
 /// Hold input trajectories
 class TrajinList {
     typedef std::vector<Trajin*> tListType;
-    typedef std::vector<Ensemble*> eListType;
+    typedef std::vector<EnsembleIn*> eListType;
   public:
     enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
     TrajinList();

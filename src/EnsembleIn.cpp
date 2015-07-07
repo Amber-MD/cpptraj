@@ -1,9 +1,9 @@
-#include "Ensemble.h"
+#include "EnsembleIn.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
 #include "MpiRoutines.h"
 
-int Ensemble::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) {
+int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) {
   if (parallel_allgather(tAddress, 1, PARA_DOUBLE, &allTemps[0], 1, PARA_DOUBLE)) {
     rprinterr("Error: Gathering temperatures.\n");
     return 1; // TODO: Better parallel error check
@@ -11,7 +11,7 @@ int Ensemble::GatherTemperatures(double* tAddress, std::vector<double>& allTemps
   return 0;
 }
 
-int Ensemble::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) {
+int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) {
   std::vector<int> all_indices(allIndices.size() * Ndims, 0);
   if (parallel_allgather(iAddress, Ndims, PARA_INT, &all_indices[0], Ndims, PARA_INT)) {
     rprinterr("Error: Gathering replica indices\n");
@@ -26,10 +26,10 @@ int Ensemble::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices,
 }
 
 #ifdef TIMER
-double Ensemble::total_mpi_allgather_ = 0.0;
-double Ensemble::total_mpi_sendrecv_ = 0.0;
+double EnsembleIn::total_mpi_allgather_ = 0.0;
+double EnsembleIn::total_mpi_sendrecv_ = 0.0;
 
-void Ensemble::TimingData(double trajin_time) {
+void EnsembleIn::TimingData(double trajin_time) {
   if (total_mpi_allgather_ > 0.0 || total_mpi_sendrecv_ > 0.0) {
     double other_time = trajin_time - total_mpi_allgather_ - total_mpi_sendrecv_;
     rprintf("MPI_TIME:\tallgather: %.4f s (%.2f%%), sendrecv: %.4f s (%.2f%%), Other:  %.4f s (%.2f%%)\n",
@@ -41,7 +41,7 @@ void Ensemble::TimingData(double trajin_time) {
 #endif
 #endif
 
-void Ensemble::PrintReplicaInfo() const {
+void EnsembleIn::PrintReplicaInfo() const {
   if (targetType_ == ReplicaInfo::TEMP) {
     mprintf("  Ensemble Temperature Map:\n");
     for (ReplicaMap<double>::const_iterator tmap = TemperatureMap_.begin();
@@ -61,7 +61,7 @@ void Ensemble::PrintReplicaInfo() const {
   }
 }
 
-int Ensemble::SetTemperatureMap(std::vector<double> const& allTemps) {
+int EnsembleIn::SetTemperatureMap(std::vector<double> const& allTemps) {
   if (TemperatureMap_.CreateMap( allTemps )) {
     rprinterr("Error: Ensemble: Duplicate temperature detected (%.2f) in ensemble %s\n"
               "Error:   If this is an H-REMD ensemble try the 'nosort' keyword.\n",
@@ -71,7 +71,7 @@ int Ensemble::SetTemperatureMap(std::vector<double> const& allTemps) {
   return 0;
 }
 
-int Ensemble::SetIndicesMap(std::vector<RemdIdxType> const& allIndices) {
+int EnsembleIn::SetIndicesMap(std::vector<RemdIdxType> const& allIndices) {
   if (IndicesMap_.CreateMap( allIndices )) {
     rprinterr("Error: Ensemble: Duplicate indices detected in ensemble %s:",
               traj_.Filename().full());

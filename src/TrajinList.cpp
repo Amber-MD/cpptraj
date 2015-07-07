@@ -3,8 +3,8 @@
 #include "TrajectoryFile.h"
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
-#include "Ensemble_Single.h"
-#include "Ensemble_Multi.h"
+#include "EnsembleIn_Single.h"
+#include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
 TrajinList::TrajinList() :
@@ -67,13 +67,13 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
       err++;
       continue;
     }
-    Ensemble* ensemble = 0;
+    EnsembleIn* ensemble = 0;
 #   ifdef ENABLE_SINGLE_ENSEMBLE
     if (tio->CanProcessEnsemble())
-      ensemble = new Ensemble_Single();
+      ensemble = new EnsembleIn_Single();
     else
 #   endif
-      ensemble = new Ensemble_Multi();
+      ensemble = new EnsembleIn_Multi();
     if (ensemble == 0) {
       mprinterr("Error: Memory allocation for input ensemble failed.\n");
       delete tio;
@@ -96,7 +96,7 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
 #   ifdef ENABLE_SINGLE_ENSEMBLE
     if ( !tio->CanProcessEnsemble() ) {
 #   endif
-      Ensemble_Multi const& mTraj = static_cast<Ensemble_Multi const&>( *ensemble );
+      EnsembleIn_Multi const& mTraj = static_cast<EnsembleIn_Multi const&>( *ensemble );
       if ( mTraj.TargetMode() == ReplicaInfo::CRDIDX ) {
         finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
         if (finalCrdIndicesArg_.empty()) {

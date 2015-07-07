@@ -1,4 +1,4 @@
-#include "Ensemble_Multi.h"
+#include "EnsembleIn_Multi.h"
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
@@ -6,8 +6,8 @@
 #  include "MpiRoutines.h"
 #endif
 
-// Ensemble_Multi::SetupEnsembleRead()
-int Ensemble_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
+// EnsembleIn_Multi::SetupEnsembleRead()
+int EnsembleIn_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
@@ -143,8 +143,8 @@ int Ensemble_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn
   return 0;
 }
 
-// Ensemble_Multi::ReadEnsemble()
-int Ensemble_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble, 
+// EnsembleIn_Multi::ReadEnsemble()
+int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble, 
                                  FramePtrArray& f_sorted )
 {
   int fidx = 0;
@@ -230,7 +230,7 @@ int Ensemble_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   return 0;
 }
 
-int Ensemble_Multi::BeginEnsemble() {
+int EnsembleIn_Multi::BeginEnsemble() {
   mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
   // Open the trajectory this thread will be dealing with.
@@ -255,7 +255,7 @@ int Ensemble_Multi::BeginEnsemble() {
   return 0;
 }
 
-void Ensemble_Multi::EndEnsemble() {
+void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
   REMDtraj_[worldrank]->closeTraj();
 # ifdef TIMER
@@ -268,7 +268,7 @@ void Ensemble_Multi::EndEnsemble() {
 # endif
 }
 
-void Ensemble_Multi::EnsembleInfo(int showExtended) const {
+void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
   mprintf("Trajectory ensemble (%u total), lowest replica '%s'", REMDtraj_.size(),
           Traj().Filename().base());
   if (showExtended == 1) Traj().Counter().PrintFrameInfo();
@@ -289,7 +289,7 @@ void Ensemble_Multi::EnsembleInfo(int showExtended) const {
   * \return A string containing the coordinate indices (comma separated) of the
   *         final exchange in remlogData_.
   */
-std::string Ensemble_Multi::FinalCrdIndices() const {
+std::string EnsembleIn_Multi::FinalCrdIndices() const {
   if (remlogData_.Empty()) return std::string();
   std::string arg("crdidx ");
   int finalExchg = remlogData_.NumExchange() - 1;

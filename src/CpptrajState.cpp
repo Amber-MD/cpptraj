@@ -7,7 +7,7 @@
 #include "ProgressBar.h"
 #ifdef TIMER
 #ifdef MPI
-#include "Ensemble.h"
+#include "EnsembleIn.h"
 #endif
 #endif
 

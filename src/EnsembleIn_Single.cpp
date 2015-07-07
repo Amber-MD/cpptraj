@@ -1,5 +1,5 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
-#include "Ensemble_Single.h"
+#include "EnsembleIn_Single.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
@@ -7,18 +7,18 @@
 #endif
 
 // CONSTRUCTOR
-Ensemble_Single::Ensemble_Single() : eio_(0), ensembleSize_(0) {}
+EnsembleIn_Single::EnsembleIn_Single() : eio_(0), ensembleSize_(0) {}
 
 // DESTRUCTOR
-Ensemble_Single::~Ensemble_Single() {
+EnsembleIn_Single::~EnsembleIn_Single() {
   if (eio_ != 0) {
     EndEnsemble();
     delete eio_;
   }
 }
 
-// Ensemble_Single::SetupEnsembleRead()
-int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn,
+// EnsembleIn_Single::SetupEnsembleRead()
+int EnsembleIn_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn,
                                        Topology *tparmIn)
 {
   if (eio_ != 0) delete eio_;
@@ -119,7 +119,7 @@ int Ensemble_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argI
   return 0;
 }
 
-int Ensemble_Single::BeginEnsemble() {
+int EnsembleIn_Single::BeginEnsemble() {
   // Open the trajectory
   if (eio_->openTrajin()) {
     mprinterr("Error: Could not open %s\n",Traj().Filename().base());
@@ -130,7 +130,7 @@ int Ensemble_Single::BeginEnsemble() {
   return 0;
 }
 
-void Ensemble_Single::EndEnsemble() {
+void EnsembleIn_Single::EndEnsemble() {
   if (eio_ != 0) {
     eio_->closeTraj();
 #   ifdef MPI
@@ -143,7 +143,7 @@ void Ensemble_Single::EndEnsemble() {
 }
 
 
-int Ensemble_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
+int EnsembleIn_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
                                   FramePtrArray& f_sorted )
 {
   badEnsemble_ = false;
@@ -213,7 +213,7 @@ int Ensemble_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   return 0;
 }
 
-void Ensemble_Single::EnsembleInfo(int showExtended) const {
+void EnsembleIn_Single::EnsembleInfo(int showExtended) const {
   mprintf("'%s' (REMD ensemble size %i) ",Traj().Filename().base(), ensembleSize_); 
   eio_->Info();
   mprintf(", Parm %s",Traj().Parm()->c_str());

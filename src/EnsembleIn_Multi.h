@@ -1,13 +1,13 @@
-#ifndef INC_ENSEMBLE_MULTI_H
-#define INC_ENSEMBLE_MULTI_H
-#include "Ensemble.h"
+#ifndef INC_ENSEMBLEIN_MULTI_H
+#define INC_ENSEMBLEIN_MULTI_H
+#include "EnsembleIn.h"
 #include "TrajIOarray.h"
 #include "DataSet_RemLog.h" // TODO remove
 /// Read in an array of frames at a time from multiple files.
-class Ensemble_Multi : public Ensemble {
+class EnsembleIn_Multi : public EnsembleIn {
   public:
-    Ensemble_Multi() : remdFrameFactor_(1.0), remdFrameOffset_(0) {}
-    ~Ensemble_Multi() { EndEnsemble(); }
+    EnsembleIn_Multi() : remdFrameFactor_(1.0), remdFrameOffset_(0) {}
+    ~EnsembleIn_Multi() { EndEnsemble(); }
     // ----- Inherited Functions -----------------
     int SetupEnsembleRead(std::string const&, ArgList&, Topology*);
     int ReadEnsemble(int, FrameArray&, FramePtrArray&);

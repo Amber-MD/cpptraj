@@ -1,5 +1,5 @@
-#ifndef INC_ENSEMBLE_H
-#define INC_ENSEMBLE_H
+#ifndef INC_ENSEMBLEIN_H
+#define INC_ENSEMBLEIN_H
 #include "InputTrajCommon.h"
 #include "FrameArray.h"
 #include "FramePtrArray.h"
@@ -10,10 +10,10 @@
 #  endif
 #endif
 /// Read in an array of frames at a time.
-class Ensemble {
+class EnsembleIn {
   public:
-    Ensemble() : targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0) {}
-    virtual ~Ensemble() {}
+    EnsembleIn() : targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0) {}
+    virtual ~EnsembleIn() {}
     virtual int SetupEnsembleRead(std::string const&, ArgList&, Topology*) = 0;
     virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;
     virtual int BeginEnsemble() = 0;
@@ -67,7 +67,7 @@ class Ensemble {
     InputTrajCommon traj_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-int Ensemble::GetNextEnsemble(FrameArray& fa, FramePtrArray& fp) {
+int EnsembleIn::GetNextEnsemble(FrameArray& fa, FramePtrArray& fp) {
   if (traj_.Counter().CheckFinished()) return 0;
   if (ReadEnsemble( traj_.Counter().Current(), fa, fp )) return 0;
   traj_.Counter().UpdateCounters();
