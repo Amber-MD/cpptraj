@@ -31,6 +31,7 @@ class CpptrajState {
     TrajinList const& InputTrajList() const { return trajinList_; }
     inline int AddTrajout( ArgList const& );
     inline int AddTrajout( std::string const& );
+    // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
     inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
@@ -82,11 +83,11 @@ class CpptrajState {
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;
     
-    /// Active reference structure for distance-based masks etc.
+    /// Pointer to active reference structure for distance-based masks etc.
     DataSet_Coords_REF* activeRef_;
     /// State debug level
     int debug_;
-    /// Internal reference index for numbering refs in DataSetList.
+    /// Internal reference index for numbering refs in DataSetList. TODO: Put in DataSetList?
     int refidx_;
     /// Display Progress bar during run
     bool showProgress_;
