@@ -84,8 +84,14 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   FmtArray fileFormats(fileNames_.size(), writeFormat);
   // If appending, all files must exist and must have same format.
   if (traj_.Append()) {
-    for (unsigned int m = 0; m != fileNames_.size(); ++m)
-      traj_.CheckAppendFormat( fileNames_[m], fileFormats[m] );
+    for (unsigned int m = 0; m != fileNames_.size(); ++m) {
+      if (traj_.CheckAppendFormat( fileNames_[m], fileFormats[m] )) {
+        mprintf("Warning: 'append' disabled; must be valid for all ensemble members.\n");
+        // TODO: OnlyMembers-aware?
+        traj_.SetAppend( false );
+        break;
+      }
+    }
   }
   // Set up TrajectoryIO for each member.
   for (unsigned int m = 0; m != fileNames_.size(); ++m) {
