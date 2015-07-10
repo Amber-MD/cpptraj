@@ -29,18 +29,37 @@ class OutputTrajCommon {
     /// Set up given TrajectoryIO class with given file name and current options.
     int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*, int,
                         CoordinateInfo const&, int);
+    /// \return 1 if set should not be written.
+    inline int CheckFrameRange(int);
   private:
-    FileName trajName_;
-    Topology* trajParm_;
-    std::string title_;                ///< Output traj title.
-    int numFramesProcessed_;           ///< Number of frames that have been written so far.
-    // Trajout arguments
-    TrajectoryFile::TrajFormatType writeFormat_;
-    bool nobox_;                       ///< If true do not put box information in output traj
-    bool append_;                      ///< If true, append to this file.
-    bool hasRange_;                    ///< If true a frame range is defined.
+    FileName trajName_; // FIXME: Save this here?
+    Topology* trajParm_;// FIXME: Save this here?
+    // Track frame numbers
     Range FrameRange_;                 ///< List of frame numbers to write.
     Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
     ActionFrameCounter frameCount_;    ///< Hold start/stop/offset values
+    int numFramesProcessed_;           ///< Number of frames that have been written so far.
+    // Trajout arguments
+    TrajectoryFile::TrajFormatType writeFormat_;
+    std::string title_;                ///< Output traj title.
+    bool nobox_;                       ///< If true do not put box information in output traj
+    bool append_;                      ///< If true, append to this file.
+    bool hasRange_;                    ///< If true a frame range is defined.
 };
+// ----- INLINE ROUTINES -------------------------------------------------------
+int OutputTrajCommon::CheckFrameRange(int set) {
+  if (hasRange_) {
+    // If no more frames in the framerange, skip.
+    if (rangeframe_ == FrameRange_.end()) return 1;
+    // If this frame is not the next in the range, skip.
+    if ( *rangeframe_ != set ) return 1;
+    // This frame is next in the range. Advance FrameRange iterator.
+    ++rangeframe_;
+  } else {
+    if (frameCount_.CheckFrameCounter( set )) return 1;
+  }
+  // Frame will be processed. Increment frame count.
+  ++numFramesProcessed_;
+  return 0;
+}
 #endif 

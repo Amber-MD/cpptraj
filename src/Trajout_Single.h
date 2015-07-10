@@ -1,28 +1,41 @@
 #ifndef INC_TRAJOUT_SINGLE_H
 #define INC_TRAJOUT_SINGLE_H
-#include "Trajout.h"
-/// Single file output trajectory class.
-class Trajout_Single : public Trajout {
+#include "OutputTrajCommon.h"
+/// Write out 1 frame at a time to a single file.
+/** Note that unlike Trajin, there is really no point in having
+  * a single frame written to multiple files since this is handled
+  * by TrajoutList. Therefore this class doesnt need to inherit
+  * from a base class currently. The Trajout_Single name is used
+  * however in case we do want to inherit in the future in a manner
+  * similar to Trajin.
+  */
+class Trajout_Single {
   public:
-    Trajout_Single();
+    Trajout_Single() : trajio_(0), debug_(0) {}
     ~Trajout_Single();
+    void SetDebug(int d) { debug_ = d; }
     // ----- Inherited functions -----------------
-    int InitTrajWrite(std::string const&, ArgList const&, Topology*, 
-                      TrajectoryFile::TrajFormatType);
-    void EndTraj();
-    int WriteSingle(int, Frame const&);
-    int WriteEnsemble(int,FramePtrArray const&) { return 1; }
-    void PrintInfo(int) const;
+    /// Prepare trajectory for writing to the given format, but no Topology setup.
+    int InitTrajWrite(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
+    /// Peform Topology-related setup for trajectory and open. TODO const&
     int SetupTrajWrite(Topology*);
+    /// Close output trajectory.
+    void EndTraj();
+    /// Write a single frame.
+    int WriteSingle(int, Frame const&);
+    /// Print information on trajectory to be written.
+    void PrintInfo(int) const;
     // -------------------------------------------
     /// For writing single traj to STDOUT (e.g. ambpdb mode)
     int PrepareStdoutTrajWrite(ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
     /// For writing single traj from Action, ensemble-aware.
     int InitEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
-                              TrajectoryFile::TrajFormatType fmtIn, int ensembleNum);
+                              TrajectoryFile::TrajFormatType, int);
   private:
-    int InitTrajout(std::string const&, ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
+    int InitTrajout(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
 
+    OutputTrajCommon traj_;
     TrajectoryIO* trajio_;
+    int debug_;
 };
 #endif

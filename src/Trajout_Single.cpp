@@ -1,9 +1,6 @@
 #include "Trajout_Single.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" //NumberFilename
-
-// CONSTRUCTOR
-Trajout_Single::Trajout_Single() : trajio_(0) {}
+#include "StringRoutines.h" // NumberFilename() TODO put in FileName class
 
 // DESTRUCTOR
 Trajout_Single::~Trajout_Single() {
@@ -15,15 +12,15 @@ Trajout_Single::~Trajout_Single() {
 /** Initialize output trajectory with appropriate TrajectoryIO class and 
   * process arguments.
   */
-int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn, 
-                           Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
+int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                  TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a filename
   if (tnameIn.empty()) {
     mprinterr("Internal Error: InitTrajWrite: No filename given.\n");
     return 1;
   }
-  return InitTrajout(tnameIn, argIn, tparmIn, writeFormatIn);
+  return InitTrajout(tnameIn, argIn, writeFormatIn);
 }
 
 // Trajout_Single::PrepareStdoutTrajWrite()
@@ -31,7 +28,7 @@ int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& arg
 int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
                                  TrajectoryFile::TrajFormatType writeFormatIn)
 {
-  if (InitTrajout("", argIn, tparmIn, writeFormatIn)) return 1;
+  if (InitTrajout("", argIn, writeFormatIn)) return 1;
   if (SetupTrajWrite(tparmIn)) return 1;
   return 0;
 }
@@ -46,37 +43,43 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
   TrajectoryFile::TrajFormatType fmt = fmtIn;
   if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
     fmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+  int err = 0;
   if (ensembleNum > -1)
-    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, fmt );
+    err = InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, fmt );
   else
-    return InitTrajWrite( tnameIn, argIn, tparmIn, fmt );
+    err = InitTrajWrite( tnameIn,                              argIn, fmt );
+  if (err != 0) return 1;
+  if (SetupTrajWrite(tparmIn)) return 1;
+  return 0;
 }
 
 // Trajout_Single::InitTrajout()
 int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn,
-                                Topology *tparmIn, TrajectoryFile::TrajFormatType writeFormatIn)
+                                TrajectoryFile::TrajFormatType writeFormatIn)
 {
   ArgList trajout_args = argIn;
-  TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
   // Process common args
-  if (CommonTrajoutSetup(tnameIn, trajout_args, tparmIn, writeFormat))
+  if (traj_.CommonTrajoutSetup(tnameIn, trajout_args, writeFormatIn))
     return 1;
   if (trajio_ != 0) delete trajio_;
   // If appending, file must exist and must match the current format.
-  if (TrajoutAppend()) 
-    CheckAppendFormat( TrajFilename().Full(), writeFormat );
+  // TODO Do not pass in writeformat directly to be changed.
+  if (traj_.Append()) {
+    if (traj_.CheckAppendFormat( traj_.Filename().Full(), traj_.WriteFormat() ))
+      traj_.SetAppend( false );
+  }
   // Set up for the specified format.
-  trajio_ = TrajectoryFile::AllocTrajIO( writeFormat );
+  trajio_ = TrajectoryFile::AllocTrajIO( traj_.WriteFormat() );
   if (trajio_ == 0) return 1;
-  mprintf("\tWriting '%s' as %s\n", TrajFilename().full(), 
-          TrajectoryFile::FormatString(writeFormat));
+  mprintf("\tWriting '%s' as %s\n", traj_.Filename().full(),
+          TrajectoryFile::FormatString(traj_.WriteFormat()));
   trajio_->SetDebug( debug_ );
   // Set specified title - will not set if empty 
-  trajio_->SetTitle( TrajoutTitle() );
+  trajio_->SetTitle( traj_.Title() );
   // Process any write arguments specific to certain formats not related
   // to parm file. Options related to parm file are handled in SetupTrajWrite 
   if (trajio_->processWriteArgs(trajout_args)) {
-    mprinterr("Error: trajout %s: Could not process arguments.\n",TrajFilename().full());
+    mprinterr("Error: trajout %s: Could not process arguments.\n", traj_.Filename().full());
     return 1;
   }
   // Write is set up for topology in SetupTrajWrite 
@@ -85,31 +88,29 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
 
 // Trajout_Single::EndTraj()
 void Trajout_Single::EndTraj() {
-  if (TrajIsOpen()) {
+  //if (TrajIsOpen()) { // FIXME: Necessary?
     trajio_->closeTraj();
-    SetTrajIsOpen(false);
-  }
+  //  SetTrajIsOpen(false);
+  //}
 }
 
-/** Perform any topology-related setup for this trajectory if given Topology
-  * Pindex matches what trajectory was initialized with; the topology may have
-  * been modified (e.g. by a 'strip' command) since the output trajectory was
-  * initialized.
-  */
+/** Perform any topology-related setup for this trajectory */
 int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
   // First frame setup
-  if (!TrajIsOpen()) {
-    if (FirstFrameSetup(TrajFilename().Full(), trajio_, tparmIn)) return 1;
-  }
+  //if (!TrajIsOpen()) {
+    if (traj_.FirstFrameSetup(traj_.Filename().Full(), trajio_, tparmIn,
+                              tparmIn->Nframes(), tparmIn->ParmCoordInfo(), debug_))
+      return 1;
+  //}
   return 0;
 }
 
 // Trajout_Single::WriteSingle()
 /** Write given frame if trajectory is open (initialzed and set-up).
-  */ 
+  */
 int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
   // Check that set should be written
-  if (CheckFrameRange(set)) return 0;
+  if (traj_.CheckFrameRange(set)) return 0;
   // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
   if (trajio_->writeFrame(set, FrameOut)) return 1;
@@ -118,6 +119,6 @@ int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
 
 // Trajout_Single::PrintInfo()
 void Trajout_Single::PrintInfo(int showExtended) const {
-  mprintf("  '%s' ",TrajFilename().base());
-  CommonInfo( trajio_ );
+  //mprintf("  '%s' ",TrajFilename().base());
+  //CommonInfo( trajio_ );
 }
