@@ -10,7 +10,7 @@ class EnsembleOut {
     // ----- Inherited Functions -----------------
     /// Prepare ensemble for writing given format, no Topology setup.
     virtual int InitEnsembleWrite(std::string const&, ArgList const&,
-                                  TrajectoryFile::TrajFormatType) = 0;
+                                  int, TrajectoryFile::TrajFormatType) = 0;
     /// Perform Topology-related setup for ensemble and open. TODO const&
     virtual int SetupEnsembleWrite(Topology*) = 0;
     /// Close output ensemble.

@@ -185,6 +185,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
         EnsembleOut.cpp \
+        EnsembleOut_Multi.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
