@@ -90,3 +90,38 @@ int OutputTrajCommon::CheckAppendFormat(std::string const& fname,
   return 0;
 }
 
+/** NOTE: trajoutName is passed in and used to setup the TrajectoryIO class
+  * So that ensembles of output trajectories can be set up.
+  */
+int OutputTrajCommon::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* trajio,
+                                      Topology* tparmIn,
+                                      int nFrames, CoordinateInfo const& cInfoIn,
+                                      int debugIn)
+{
+  if (tparmIn == 0) return 1;
+  if (debugIn>0)
+    rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
+            trajName_.base(), tparmIn->c_str(), tparmIn->Natom());
+  trajParm_ = tparmIn;
+  // Use parm to set up coord info for the traj. If 'nobox' was specified
+  // remove any box info.
+  CoordinateInfo cInfo = cInfoIn;
+  if (nobox_)
+    cInfo.SetBox( Box() );
+  // Determine how many frames will be written
+  int NframesToWrite = nFrames;
+  if (hasRange_)
+    NframesToWrite = FrameRange_.Size();
+  // Set up write and open for the current parm file 
+  if (trajio->setupTrajout(trajoutName, trajParm_, cInfo, NframesToWrite, append_))
+    return 1;
+  if (debugIn > 0)
+    Frame::PrintCoordInfo(trajName_.base(), trajParm_->c_str(), trajio->CoordInfo());
+  //trajIsOpen_ = true;
+  // If a framerange is defined set it to the beginning of the range
+  if (hasRange_)
+    rangeframe_ = FrameRange_.begin();
+  numFramesProcessed_ = 0;
+  return 0;
+}
+

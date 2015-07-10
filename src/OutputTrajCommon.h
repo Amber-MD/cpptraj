@@ -1,5 +1,6 @@
 #ifndef INC_OUTPUTTRAJCOMMON_H
-#define INC_OUTPUTTRAJCOMMON_Hi
+#define INC_OUTPUTTRAJCOMMON_H
+#include "TrajectoryIO.h"
 #include "TrajectoryFile.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
@@ -12,10 +13,12 @@ class OutputTrajCommon {
     Topology* Parm()                  const { return trajParm_; }
     /// \return true if trajectory should be appended to.
     bool Append() const { return append_; }
+    /// \return Title
+    std::string const& Title() const { return title_; }
     /// \return Write format, can be changed.
-    TrajectoryFile::TrajFormatType& WriteFormat() { return writeFormat_; }
+    TrajectoryFile::TrajFormatType& WriteFormat()       { return writeFormat_; }
     /// \return Write format.
-    TrajectoryFile::TrajFormatType const& WriteFormat() const { return writeFormat_; }
+    TrajectoryFile::TrajFormatType  WriteFormat() const { return writeFormat_; }
     /// Set append status
     void SetAppend(bool a) { append_ = a; }
     /// Process common arguments
@@ -23,6 +26,9 @@ class OutputTrajCommon {
                            TrajectoryFile::TrajFormatType);
     /// Check if file can be appended to with given format.
     static int CheckAppendFormat(std::string const&, TrajectoryFile::TrajFormatType&);
+    /// Set up given TrajectoryIO class with given file name and current options.
+    int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*, int,
+                        CoordinateInfo const&, int);
   private:
     FileName trajName_;
     Topology* trajParm_;
