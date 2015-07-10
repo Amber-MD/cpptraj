@@ -201,6 +201,7 @@ SOURCES=ActionFrameCounter.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NetcdfFile.cpp \
+        OutputTrajCommon.cpp \
         PDBfile.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \

@@ -7,7 +7,7 @@ class Trajin_Single : public Trajin {
   public:
     Trajin_Single();
     ~Trajin_Single();
-    // ----- Inherited functions -------------------
+    // ----- Inherited functions ------------------
     /// Set up trajectory for reading.
     int SetupTrajRead(std::string const&, ArgList&, Topology*);
     /// Read specified frame #.
