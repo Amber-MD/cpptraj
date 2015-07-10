@@ -95,13 +95,22 @@ void Trajout_Single::EndTraj() {
 }
 
 /** Perform any topology-related setup for this trajectory */
+// TODO pass in nframes and coordinateinfo. Should former be part of latter?
 int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
+  // Set up topology and coordinate info.
+  if (traj_.SetupCoordInfo(tparmIn, tparmIn->Nframes(), tparmIn->ParmCoordInfo()))
+    return 1;
+  if (debug_ > 0)
+    rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
+            traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom());
+  // Set up TrajectoryIO
+  if (trajio_->setupTrajout(traj_.Filename().Full(), traj_.Parm(), traj_.CoordInfo(),
+                            traj_.NframesToWrite(), traj_.Append()))
+    return 1;
+  if (debug_ > 0)
+    Frame::PrintCoordInfo(traj_.Filename().base(), traj_.Parm()->c_str(), trajio_->CoordInfo());
   // First frame setup
-  //if (!TrajIsOpen()) {
-    if (traj_.FirstFrameSetup(traj_.Filename().Full(), trajio_, tparmIn,
-                              tparmIn->Nframes(), tparmIn->ParmCoordInfo(), debug_))
-      return 1;
-  //}
+  //if (!TrajIsOpen()) { //}
   return 0;
 }
 
@@ -119,6 +128,7 @@ int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
 
 // Trajout_Single::PrintInfo()
 void Trajout_Single::PrintInfo(int showExtended) const {
-  //mprintf("  '%s' ",TrajFilename().base());
-  //CommonInfo( trajio_ );
+  mprintf("  '%s' ", traj_.Filename().base());
+  trajio_->Info();
+  traj_.CommonInfo();
 }

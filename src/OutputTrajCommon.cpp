@@ -5,6 +5,7 @@
 // CONSTRUCTOR
 OutputTrajCommon::OutputTrajCommon() :
   trajParm_(0),
+  NframesToWrite_(-1),
   numFramesProcessed_(0),
   writeFormat_(TrajectoryFile::UNKNOWN_TRAJ),
   nobox_(false),
@@ -90,33 +91,20 @@ int OutputTrajCommon::CheckAppendFormat(std::string const& fname,
   return 0;
 }
 
-/** NOTE: trajoutName is passed in and used to setup the TrajectoryIO class
-  * So that ensembles of output trajectories can be set up.
-  */
-int OutputTrajCommon::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* trajio,
-                                      Topology* tparmIn,
-                                      int nFrames, CoordinateInfo const& cInfoIn,
-                                      int debugIn)
+int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateInfo const& cInfoIn)
 {
   if (tparmIn == 0) return 1;
-  if (debugIn>0)
-    rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
-            trajName_.base(), tparmIn->c_str(), tparmIn->Natom());
   trajParm_ = tparmIn;
   // Use parm to set up coord info for the traj. If 'nobox' was specified
   // remove any box info.
   CoordinateInfo cInfo = cInfoIn;
   if (nobox_)
     cInfo.SetBox( Box() );
+  // TODO velocity, temperature, time etc
   // Determine how many frames will be written
-  int NframesToWrite = nFrames;
+  NframesToWrite_ = nFrames;
   if (hasRange_)
-    NframesToWrite = FrameRange_.Size();
-  // Set up write and open for the current parm file 
-  if (trajio->setupTrajout(trajoutName, trajParm_, cInfo, NframesToWrite, append_))
-    return 1;
-  if (debugIn > 0)
-    Frame::PrintCoordInfo(trajName_.base(), trajParm_->c_str(), trajio->CoordInfo());
+    NframesToWrite_ = FrameRange_.Size();
   //trajIsOpen_ = true;
   // If a framerange is defined set it to the beginning of the range
   if (hasRange_)
@@ -125,3 +113,15 @@ int OutputTrajCommon::FirstFrameSetup(std::string const& trajoutName, Trajectory
   return 0;
 }
 
+void OutputTrajCommon::CommonInfo() const {
+  if (trajParm_ != 0) mprintf(", Parm %s", trajParm_->c_str());
+  if (nobox_) mprintf(" (no box info)");
+  if (hasRange_)
+    FrameRange_.PrintRange(": Writing frames", 1);
+  else {
+    mprintf(": Writing %i frames", NframesToWrite_);
+    frameCount_.FrameCounterBrief();
+  }
+  if (append_) mprintf(", appended");
+  mprintf("\n");
+}

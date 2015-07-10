@@ -1,6 +1,5 @@
 #ifndef INC_OUTPUTTRAJCOMMON_H
 #define INC_OUTPUTTRAJCOMMON_H
-#include "TrajectoryIO.h"
 #include "TrajectoryFile.h"
 #include "Range.h"
 #include "ActionFrameCounter.h"
@@ -8,13 +7,19 @@
 class OutputTrajCommon {
   public:
     OutputTrajCommon();
-    FileName const& Filename() const { return trajName_; }
+    /// \return trajout file name
+    FileName const& Filename()                    const { return trajName_; }
     // TODO: return const&, modify all TrajectoryIO routines?
-    Topology* Parm()                  const { return trajParm_; }
+    /// \return Pointer to associated topology
+    Topology* Parm()                              const { return trajParm_; }
     /// \return true if trajectory should be appended to.
-    bool Append() const { return append_; }
+    bool Append()                                 const { return append_; }
     /// \return Title
-    std::string const& Title() const { return title_; }
+    std::string const& Title()                    const { return title_; }
+    /// \return Coordinate Info
+    CoordinateInfo const& CoordInfo()             const { return cInfo_; }
+    /// \return Number of expected frames to write.
+    int NframesToWrite()                          const { return NframesToWrite_; }
     /// \return Write format, can be changed.
     TrajectoryFile::TrajFormatType& WriteFormat()       { return writeFormat_; }
     /// \return Write format.
@@ -22,18 +27,20 @@ class OutputTrajCommon {
     /// Set append status
     void SetAppend(bool a) { append_ = a; }
     /// Process common arguments
-    int CommonTrajoutSetup(std::string const&, ArgList&,
-                           TrajectoryFile::TrajFormatType);
+    int CommonTrajoutSetup(std::string const&, ArgList&, TrajectoryFile::TrajFormatType);
     /// Check if file can be appended to with given format.
     static int CheckAppendFormat(std::string const&, TrajectoryFile::TrajFormatType&);
-    /// Set up given TrajectoryIO class with given file name and current options.
-    int FirstFrameSetup(std::string const&, TrajectoryIO*, Topology*, int,
-                        CoordinateInfo const&, int);
+    /// Set up CoordinateInfo based on given topology etc and current options.
+    int SetupCoordInfo(Topology*, int, CoordinateInfo const&);
+    /// Print common info to STDOUT
+    void CommonInfo() const;
     /// \return 1 if set should not be written.
     inline int CheckFrameRange(int);
   private:
     FileName trajName_; // FIXME: Save this here?
     Topology* trajParm_;// FIXME: Save this here?
+    CoordinateInfo cInfo_;             ///< Coordinate info for trajectory
+    int NframesToWrite_;               ///< Expected number of frames to be written.
     // Track frame numbers
     Range FrameRange_;                 ///< List of frame numbers to write.
     Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
@@ -62,4 +69,4 @@ int OutputTrajCommon::CheckFrameRange(int set) {
   ++numFramesProcessed_;
   return 0;
 }
-#endif 
+#endif
