@@ -2,6 +2,26 @@
 #define INC_TRAJOUTLIST_H
 #include "Trajout_Single.h"
 #include "EnsembleOut.h"
+/// Hold output ensembles.
+class EnsembleOutList {
+  public:
+    EnsembleOutList() {}
+    ~EnsembleOutList() { Clear(); } 
+    void Clear();
+    int AddEnsembleOut(std::string const&, ArgList const&, Topology*,
+                       int, TrajectoryFile::TrajFormatType);
+    int SetupEnsembleOut(Topology*); //TODO const, Topology array?
+    int WriteEnsembleOut(int, FramePtrArray const&);
+    void CloseEnsembleOut();
+    void List() const;
+  private:
+    typedef std::vector<Topology*> TopArray;
+    typedef std::vector<EnsembleOut*> EnsArray;
+    EnsArray ensout_;
+    EnsArray active_;
+    TopArray ensTops_;
+};
+// =============================================================================
 /// Hold output trajectories for a run.
 /** When a 'trajout' or equivalent command is given, the trajectory will
   * be added to TrajoutList as a Trajout_Single class by default. This is
@@ -10,18 +30,27 @@
   */
 class TrajoutList {
   public:
-    typedef std::vector<EnsembleOut*> EnsembleArray;
-
     TrajoutList() : debug_(0) {}
+    ~TrajoutList() { Clear(); }
     void SetDebug(int);
     void Clear();
     /// Add output trajectory to the list and associate with given topology.
     int AddTrajout(std::string const&, ArgList const&, Topology*);
     /// \return Array with current output trajectories converted to ensemble output trajectories.
-    EnsembleArray MakeEnsembleTrajout() const; // FIXME should this clear the trajout array?
+    int MakeEnsembleTrajout(EnsembleOutList&, int) const;
+    /// Set up trajectories for given topology.
+    int SetupTrajout(Topology*);
+    /// Write frame to normal output trajectories.
+    int WriteTrajout(int, Frame const&);
+    /// Call end for all trajectories
+    void CloseTrajout();
+    /// List output trajectories.
+    void List() const;
+    /// \return true if no args/trajectories present.
+    bool Empty()     const { return trajout_.empty();     }
   private:
     int debug_;
-    typedef std::vector<Trajout_Single> ListType;
+    typedef std::vector<Trajout_Single*> ListType;
     typedef std::vector<ArgList> ArgsArray;
     typedef std::vector<Topology*> TopArray;
     typedef std::vector<std::string> Sarray;
