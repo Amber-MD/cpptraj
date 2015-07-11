@@ -15,7 +15,6 @@ class EnsembleOut_Multi : public EnsembleOut {
   private:
     void Clear();
 
-    OutputTrajCommon traj_;
     typedef std::vector<TrajectoryIO*> IOarrayType;
     IOarrayType ioarray_;
     typedef std::vector<std::string> Sarray;

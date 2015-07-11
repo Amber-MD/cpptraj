@@ -19,10 +19,14 @@ class EnsembleOut {
     virtual int WriteEnsemble(int, FramePtrArray const&) = 0;
     /// Print information on ensemble to be written
     virtual void PrintInfo(int) const = 0;
+    // -------------------------------------------
+    OutputTrajCommon const& Traj() const { return traj_; }
   protected:
+    OutputTrajCommon& SetTraj() { return traj_; }
     /// For ensemble trajouts, get range of members to write.
     static Range MembersToWrite(std::string const&,int);
 
     int debug_;
+    OutputTrajCommon traj_;
 };
 #endif

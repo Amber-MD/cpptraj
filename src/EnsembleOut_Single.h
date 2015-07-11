@@ -14,7 +14,6 @@ class EnsembleOut_Single : public EnsembleOut {
     int WriteEnsemble(int, FramePtrArray const&);
     void PrintInfo(int) const;
   private:
-    OutputTrajCommon traj_;
     TrajectoryIO* eio_; // TODO Make EnsembleIO
     int ensembleSize_;
 };
