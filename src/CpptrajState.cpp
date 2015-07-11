@@ -29,6 +29,16 @@ int CpptrajState::AddTrajin( std::string const& fname ) {
   return 0;
 }
 
+int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
+  std::string fname = argIn.GetStringNext();
+  Topology* top = parmFileList_.GetParm( argIn );
+  return trajoutList_.AddTrajout( fname, argIn, top );
+}
+
+int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
+  // Should this use the last Topology instead?
+  return trajoutList_.AddTrajout( fname, ArgList(), parmFileList_.GetParm(0) );
+}
 // -----------------------------------------------------------------------------
 int CpptrajState::WorldSize() { return worldsize; }
 
@@ -294,16 +304,17 @@ int CpptrajState::RunEnsemble() {
   // Print reference information 
   ReferenceInfo();
   // Use separate TrajoutList. Existing trajout in current TrajoutList
-  // will be converted to ensemble trajout. Use actual ensemble size even
-  // when MPI.
-  TrajoutList TrajoutEnsemble;
-  // Set up output trajectories for each member of the ensemble
-  parallel_barrier();
-  mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename suffix corresponds to above map):\n");
-  if (trajoutList_.MakeEnsembleTrajout(parmFileList_, TrajoutEnsemble))
-    return 1;
-  parallel_barrier();
-  TrajoutEnsemble.List();
+  // will be converted to ensemble trajout.
+  EnsembleOutList ensembleOut;
+  if (!trajoutList_.Empty()) {
+    if (trajoutList_.MakeEnsembleTrajout(ensembleOut, ensembleSize))
+      return 1;
+    mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
+            " suffix corresponds to above map):\n");
+    parallel_barrier();
+    ensembleOut.List();
+    parallel_barrier();
+  }
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
 # ifdef MPI
@@ -430,7 +441,7 @@ int CpptrajState::RunEnsemble() {
       // TODO: Currently assuming topology is always modified the same
       //       way for all actions. If this behavior ever changes the
       //       following line will cause undesireable behavior.
-      TrajoutEnsemble.SetupTrajout( EnsembleParm[0] );
+      ensembleOut.SetupEnsembleOut( EnsembleParm[0] );
       lastPindex = CurrentParm->Pindex();
     }
 #   ifdef TIMER
@@ -471,7 +482,7 @@ int CpptrajState::RunEnsemble() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif 
-          if (TrajoutEnsemble.WriteEnsembleOut(actionSet, CurrentFrames))
+          if (ensembleOut.WriteEnsembleOut(actionSet, CurrentFrames))
           {
             mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
             if (exitOnError_) return 1; 
@@ -519,7 +530,7 @@ int CpptrajState::RunEnsemble() {
 # endif
 
   // Close output trajectories
-  TrajoutEnsemble.CloseTrajout();
+  ensembleOut.CloseEnsembleOut();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
