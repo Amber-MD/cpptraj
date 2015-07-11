@@ -1,37 +1,34 @@
 #ifndef INC_TRAJOUTLIST_H
 #define INC_TRAJOUTLIST_H
-#include "Trajout.h"
-#include "TopologyList.h"
-// Class: TrajoutList
-/// Hold trajectories for output
+#include "Trajout_Single.h"
+#include "EnsembleOut.h"
+/// Hold output trajectories for a run.
+/** When a 'trajout' or equivalent command is given, the trajectory will
+  * be added to TrajoutList as a Trajout_Single class by default. This is
+  * done so that some error checking of arguments etc can occur, even if
+  * eventually the list will be used in ensemble output.
+  */
 class TrajoutList {
   public:
-    TrajoutList();
-    ~TrajoutList();
-    void Clear();
+    typedef std::vector<EnsembleOut*> EnsembleArray;
+
+    TrajoutList() : debug_(0) {}
     void SetDebug(int);
-    /// Place current trajout in given list as ensemble trajectory output.
-    int MakeEnsembleTrajout(TopologyList const&, TrajoutList&);
-    /// Add trajectory to list for single trajectory output
-    int AddTrajout(ArgList const&, TopologyList const&);
-    /// Write frame array to ensemble output trajectories.
-    int WriteEnsembleOut(int, FramePtrArray const&);
-    /// Set up trajectories for given topology.
-    int SetupTrajout(Topology*);
-    /// Write frame to normal output trajectories.
-    int WriteTrajout(int, Frame const&);
-    /// Call end for all trajectories
-    void CloseTrajout();
-    /// List output trajectories.
-    void List() const;
-    /// \return true if no args/trajectories present.
-    bool Empty()     const { return trajout_.empty();     }
+    void Clear();
+    /// Add output trajectory to the list and associate with given topology.
+    int AddTrajout(std::string const&, ArgList const&, Topology*);
+    /// \return Array with current output trajectories converted to ensemble output trajectories.
+    EnsembleArray MakeEnsembleTrajout() const; // FIXME should this clear the trajout array?
   private:
     int debug_;
-    typedef std::vector<Trajout*> ListType;
-    ListType trajout_; ///< Hold actual output trajectories.
-    ListType active_;  ///< Hold only active output trajectories.
+    typedef std::vector<Trajout_Single> ListType;
     typedef std::vector<ArgList> ArgsArray;
-    ArgsArray trajoutArgs_; ///< Array of trajout args for setting up trajouts.
+    typedef std::vector<Topology*> TopArray;
+    typedef std::vector<std::string> Sarray;
+    ListType trajout_; ///< Hold output trajectories.
+    ListType active_;  ///< Hold only active output trajectories.
+    ArgsArray trajoutArgs_; ///< Array of trajout args for potentially setting up ensemble.
+    TopArray  trajoutTops_; ///< Array of associated topologies.
+    Sarray trajoutNames_;   ///< Array of trajout file names.
 };
 #endif
