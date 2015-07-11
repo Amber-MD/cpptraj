@@ -744,7 +744,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     return Command::C_ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
-  setname = argIn.GetStringNext();
+  setname = argIn.GetStringNext(); // Output traj file name
   // Start, stop, offset
   TrajFrameCounter frameCount;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
@@ -753,10 +753,11 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast
   currentParm->SetNframes( CRD->Size() ); // FIXME: This is a hack to get correct # frames.
-  if (outtraj.InitTrajWrite( setname, argIn, currentParm, TrajectoryFile::UNKNOWN_TRAJ)) {
+  if (outtraj.InitTrajWrite( setname, argIn, TrajectoryFile::UNKNOWN_TRAJ)) {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
   }
+  outtraj.SetupTrajWrite( currentParm );
   outtraj.PrintInfo( 1 );
   Frame currentFrame = CRD->AllocateFrame(); 
   ProgressBar progress( frameCount.TotalReadFrames() );
@@ -766,7 +767,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   {
     progress.Update( set );
     CRD->GetFrame( frame, currentFrame );
-    if ( outtraj.WriteFrame( frame, currentParm, currentFrame ) ) {
+    if ( outtraj.WriteSingle( frame, currentFrame ) ) {
       mprinterr("Error writing %s to output trajectory, frame %i.\n",
                 CRD->legend(), frame + 1);
       break;
@@ -1522,7 +1523,7 @@ Command::RetType Calc(CpptrajState& State, ArgList& argIn, Command::AllocType Al
 /// Add output trajectory to State
 Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.AddTrajout( argIn );
+  return (Command::RetType)State.AddOutputTrajectory( argIn );
 }
 
 /// Add input trajectory to State
