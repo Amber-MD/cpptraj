@@ -9,6 +9,11 @@ class Residue {
     Residue(int onum, NameType const& resname, int firstAtomIn) :
       resname_(resname), firstAtom_(firstAtomIn), originalResNum_(onum), icode_(' ')
     {}
+    // CONSTRUCTOR - Copy given Residue except first and last atom
+    Residue(Residue const& r, int first, int last) :
+      resname_(r.resname_), firstAtom_(first), lastAtom_(last),
+      originalResNum_(r.originalResNum_), icode_(r.icode_)
+    {}
     inline void SetLastAtom(int i)      { lastAtom_ = i;          }
     inline void SetOriginalNum(int i)   { originalResNum_ = i;    }
     inline void SetIcode(char c)        { icode_ = c;             }
