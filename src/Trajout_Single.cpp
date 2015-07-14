@@ -106,7 +106,7 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
 // Trajout_Single::EndTraj()
 void Trajout_Single::EndTraj() {
   //if (TrajIsOpen()) { // FIXME: Necessary?
-    trajio_->closeTraj();
+  if (trajio_ != 0) trajio_->closeTraj(); // Handle no init case
   //  SetTrajIsOpen(false);
   //}
 }

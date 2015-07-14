@@ -67,7 +67,7 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
 // EnsembleOut_Single::EndEnsemble()
 void EnsembleOut_Single::EndEnsemble() {
   //if (TrajIsOpen()) {
-    eio_->closeTraj();
+  if (eio_ != 0) eio_->closeTraj(); // Handle no init case
   //  SetTrajIsOpen(false);
   //}
 }

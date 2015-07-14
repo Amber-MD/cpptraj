@@ -9,6 +9,9 @@
   * however in case we do want to inherit in the future in a manner
   * similar to Trajin.
   */
+// FIXME: Should open state be tracked and error given if setup called
+//        twice for already open traj? Should append be default if
+//        traj is opened twice?
 class Trajout_Single {
   public:
     Trajout_Single() : trajio_(0), debug_(0) {}
