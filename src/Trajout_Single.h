@@ -18,7 +18,7 @@ class Trajout_Single {
     /// Prepare trajectory for writing to the given format, but no Topology setup.
     int InitTrajWrite(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
     /// Peform Topology-related setup for trajectory and open. TODO const&
-    int SetupTrajWrite(Topology*);
+    int SetupTrajWrite(Topology*, CoordinateInfo const&, int);
     /// Close output trajectory.
     void EndTraj();
     /// Write a single frame.
@@ -29,9 +29,11 @@ class Trajout_Single {
     FileName const& TrajFilename() const { return traj_.Filename(); }
     TrajectoryFile::TrajFormatType  WriteFormat() const { return traj_.WriteFormat(); }
     /// For writing single traj to STDOUT (e.g. ambpdb mode)
-    int PrepareStdoutTrajWrite(ArgList const&, Topology*, TrajectoryFile::TrajFormatType);
+    int PrepareStdoutTrajWrite(ArgList const&, Topology*, CoordinateInfo const&, int,
+                               TrajectoryFile::TrajFormatType);
     /// For writing single traj from Action, ensemble-aware.
     int InitEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
+                              CoordinateInfo const&, int,
                               TrajectoryFile::TrajFormatType, int);
   private:
     int InitTrajout(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);

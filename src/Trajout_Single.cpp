@@ -26,16 +26,18 @@ int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& arg
 // Trajout_Single::PrepareStdoutTrajWrite()
 /** Initialize and set up output trajectory for STDOUT write. */
 int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparmIn,
-                                 TrajectoryFile::TrajFormatType writeFormatIn)
+                                           CoordinateInfo const& cInfoIn, int nFrames,
+                                           TrajectoryFile::TrajFormatType writeFormatIn)
 {
   if (InitTrajout("", argIn, writeFormatIn)) return 1;
-  if (SetupTrajWrite(tparmIn)) return 1;
+  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
   return 0;
 }
 
 // Trajout_Single::InitEnsembleTrajWrite()
 int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
-                                          Topology* tparmIn, TrajectoryFile::TrajFormatType fmtIn,
+                                          Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                          int nFrames, TrajectoryFile::TrajFormatType fmtIn,
                                           int ensembleNum)
 {
   FileName tempName;
@@ -49,7 +51,7 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
   else
     err = InitTrajWrite( tnameIn,                              argIn, fmt );
   if (err != 0) return 1;
-  if (SetupTrajWrite(tparmIn)) return 1;
+  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
   return 0;
 }
 
@@ -95,10 +97,9 @@ void Trajout_Single::EndTraj() {
 }
 
 /** Perform any topology-related setup for this trajectory */
-// TODO pass in nframes and coordinateinfo. Should former be part of latter?
-int Trajout_Single::SetupTrajWrite(Topology* tparmIn) {
+int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
   // Set up topology and coordinate info.
-  if (traj_.SetupCoordInfo(tparmIn, tparmIn->Nframes(), tparmIn->ParmCoordInfo()))
+  if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
   if (debug_ > 0)
     rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
