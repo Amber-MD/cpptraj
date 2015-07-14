@@ -113,7 +113,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   for (ListType::const_iterator to = trajout_.begin();
                                 to != trajout_.end(); ++to)
   {
-    if ( (*to)->TrajFilename().Full() == filename ) {
+    if ( (*to)->Traj().Filename().Full() == filename ) {
       mprinterr("Error: Output trajectory filename %s already in use.\n",filename.c_str());
       return 1;
     }
@@ -142,7 +142,7 @@ int TrajoutList::MakeEnsembleTrajout(EnsembleOutList& ensembleList,
   ensembleList.Clear();
   for (unsigned int i = 0; i != trajoutArgs_.size(); i++) {
     if (ensembleList.AddEnsembleOut(trajoutNames_[i], trajoutArgs_[i], trajoutTops_[i],
-                                    ensembleSize, trajout_[i]->WriteFormat()))
+                                    ensembleSize, trajout_[i]->Traj().WriteFormat()))
       return 1;
   }
   return 0;
@@ -155,7 +155,9 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm) {
   for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
-      if ( trajout_[i]->SetupTrajWrite( CurrentParm ) ) {
+      if ( trajout_[i]->SetupTrajWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
+                                        CurrentParm->Nframes() ) )
+      {
         mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
         return 1;
       }
