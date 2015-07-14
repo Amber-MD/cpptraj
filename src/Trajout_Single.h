@@ -26,15 +26,20 @@ class Trajout_Single {
     /// Print information on trajectory to be written.
     void PrintInfo(int) const;
     // -------------------------------------------
-    FileName const& TrajFilename() const { return traj_.Filename(); }
-    TrajectoryFile::TrajFormatType  WriteFormat() const { return traj_.WriteFormat(); }
-    /// For writing single traj to STDOUT (e.g. ambpdb mode)
+    OutputTrajCommon Traj() const { return traj_; }
+    /// Init and setup/open traj.
+    int PrepareTrajWrite(std::string const&, ArgList const&, Topology*,
+                         CoordinateInfo const&, int, TrajectoryFile::TrajFormatType);
+    /// Init and setup/open traj for writing to STDOUT (e.g. ambpdb mode)
     int PrepareStdoutTrajWrite(ArgList const&, Topology*, CoordinateInfo const&, int,
                                TrajectoryFile::TrajFormatType);
-    /// For writing single traj from Action, ensemble-aware.
-    int InitEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
-                              CoordinateInfo const&, int,
+    /// Init traj; if given, append ensemble number to name
+    int InitEnsembleTrajWrite(std::string const&, ArgList const&,
                               TrajectoryFile::TrajFormatType, int);
+    /// Init and setup/open traj; if given, append ensemble number to name
+    int PrepareEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
+                                 CoordinateInfo const&, int,
+                                 TrajectoryFile::TrajFormatType, int);
   private:
     int InitTrajout(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
 

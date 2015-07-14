@@ -34,11 +34,8 @@ int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparm
   return 0;
 }
 
-// Trajout_Single::InitEnsembleTrajWrite()
 int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
-                                          Topology* tparmIn, CoordinateInfo const& cInfoIn,
-                                          int nFrames, TrajectoryFile::TrajFormatType fmtIn,
-                                          int ensembleNum)
+                                          TrajectoryFile::TrajFormatType fmtIn, int ensembleNum)
 {
   FileName tempName;
   tempName.SetFileName( tnameIn );
@@ -51,6 +48,24 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
   else
     err = InitTrajWrite( tnameIn,                              argIn, fmt );
   if (err != 0) return 1;
+  return 0;
+}
+
+int Trajout_Single::PrepareEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                             Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                             int nFrames, TrajectoryFile::TrajFormatType fmtIn,
+                                             int ensembleNum)
+{
+  if (InitEnsembleTrajWrite(tnameIn, argIn, fmtIn, ensembleNum)) return 1;
+  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
+  return 0;
+}
+
+int Trajout_Single::PrepareTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+                                     Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                     int nFrames, TrajectoryFile::TrajFormatType fmtIn)
+{
+  if (InitTrajWrite(tnameIn, argIn, fmtIn)) return 1;
   if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
   return 0;
 }

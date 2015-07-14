@@ -20,6 +20,8 @@ class OutputTrajCommon {
     CoordinateInfo const& CoordInfo()             const { return cInfo_; }
     /// \return Number of expected frames to write.
     int NframesToWrite()                          const { return NframesToWrite_; }
+    /// \return Number of frames that have been written.
+    int NframesWritten()                          const { return numFramesWritten_; }
     /// \return Write format, can be changed.
     TrajectoryFile::TrajFormatType& WriteFormat()       { return writeFormat_; }
     /// \return Write format.
@@ -45,7 +47,7 @@ class OutputTrajCommon {
     Range FrameRange_;                 ///< List of frame numbers to write.
     Range::const_iterator rangeframe_; ///< If frame range defined, this is next frame in range.
     ActionFrameCounter frameCount_;    ///< Hold start/stop/offset values
-    int numFramesProcessed_;           ///< Number of frames that have been written so far.
+    int numFramesWritten_;           ///< Number of frames that have been written so far.
     // Trajout arguments
     TrajectoryFile::TrajFormatType writeFormat_;
     std::string title_;                ///< Output traj title.
@@ -66,7 +68,7 @@ int OutputTrajCommon::CheckFrameRange(int set) {
     if (frameCount_.CheckFrameCounter( set )) return 1;
   }
   // Frame will be processed. Increment frame count.
-  ++numFramesProcessed_;
+  ++numFramesWritten_;
   return 0;
 }
 #endif

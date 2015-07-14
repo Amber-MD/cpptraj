@@ -6,7 +6,7 @@
 OutputTrajCommon::OutputTrajCommon() :
   trajParm_(0),
   NframesToWrite_(-1),
-  numFramesProcessed_(0),
+  numFramesWritten_(0),
   writeFormat_(TrajectoryFile::UNKNOWN_TRAJ),
   nobox_(false),
   append_(false),
@@ -109,7 +109,7 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
   // If a framerange is defined set it to the beginning of the range
   if (hasRange_)
     rangeframe_ = FrameRange_.begin();
-  numFramesProcessed_ = 0;
+  numFramesWritten_ = 0;
   return 0;
 }
 
