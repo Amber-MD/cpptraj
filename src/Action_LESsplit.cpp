@@ -72,10 +72,12 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
     for (unsigned int i = 0; i != lesMasks_.size(); i++)
       lesPtrs_[i] = &lesFrames_[i];
     if (lesSplit_) {
-      // Set up output ensemble FIXME check overwrites
+      // Set up output ensemble FIXME check overwrites TODO combine init/setup?
       if (lesTraj_.InitEnsembleWrite(trajfilename_, trajArgs_, lesMasks_.size(),
-                                     TrajectoryFile::UNKNOWN_TRAJ)) return Action::ERR;
-      if (lesTraj_.SetupEnsembleWrite(lesParm_)) return Action::ERR;
+                                     TrajectoryFile::UNKNOWN_TRAJ))
+        return Action::ERR;
+      if (lesTraj_.SetupEnsembleWrite(lesParm_, lesParm_->ParmCoordInfo(), lesParm_->Nframes()))
+         return Action::ERR;
       lesTraj_.PrintInfo( 1 );
     }
     if (lesAverage_) {

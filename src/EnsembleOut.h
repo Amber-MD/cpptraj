@@ -12,7 +12,7 @@ class EnsembleOut {
     virtual int InitEnsembleWrite(std::string const&, ArgList const&,
                                   int, TrajectoryFile::TrajFormatType) = 0;
     /// Perform Topology-related setup for ensemble and open. TODO const&
-    virtual int SetupEnsembleWrite(Topology*) = 0;
+    virtual int SetupEnsembleWrite(Topology*, CoordinateInfo const&, int) = 0;
     /// Close output ensemble.
     virtual void EndEnsemble() = 0;
     /// Write array of frames.

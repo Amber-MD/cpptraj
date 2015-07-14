@@ -73,9 +73,9 @@ void EnsembleOut_Single::EndEnsemble() {
 }
 
 // EnsembleOut_Single::SetupEnsembleWrite()
-int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn) {
+int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
   // Set up topology and coordinate info.
-  if (SetTraj().SetupCoordInfo(tparmIn, tparmIn->Nframes(), tparmIn->ParmCoordInfo()))
+  if (SetTraj().SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
   if (debug_ > 0)
     rprintf("\tSetting up single ensemble %s for WRITE, topology '%s' (%i atoms).\n",

@@ -43,7 +43,9 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
       if (!open_[i]) {
-        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm ) ) {
+        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
+                                             CurrentParm->Nframes() ) )
+        {
           mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
           return 1;
         }

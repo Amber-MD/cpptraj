@@ -131,9 +131,9 @@ void EnsembleOut_Multi::EndEnsemble() {
   * been modified (e.g. by a 'strip' command) since the output trajectory was
   * initialized.
   */
-int EnsembleOut_Multi::SetupEnsembleWrite(Topology* tparmIn) {
+int EnsembleOut_Multi::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
   // Setup topology and coordiante info.
-  if (SetTraj().SetupCoordInfo(tparmIn, tparmIn->Nframes(), tparmIn->ParmCoordInfo()))
+  if (SetTraj().SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
   // Set up all TrajectoryIOs
   //if (!TrajIsOpen()) {
