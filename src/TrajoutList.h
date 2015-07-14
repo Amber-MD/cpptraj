@@ -20,6 +20,7 @@ class EnsembleOutList {
     EnsArray ensout_;
     EnsArray active_;
     TopArray ensTops_;
+    std::vector<bool> open_;
 };
 // =============================================================================
 /// Hold output trajectories for a run.
@@ -59,5 +60,6 @@ class TrajoutList {
     ArgsArray trajoutArgs_; ///< Array of trajout args for potentially setting up ensemble.
     TopArray  trajoutTops_; ///< Array of associated topologies.
     Sarray trajoutNames_;   ///< Array of trajout file names.
+    std::vector<bool> open_;
 };
 #endif

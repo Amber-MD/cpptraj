@@ -9,6 +9,7 @@ void EnsembleOutList::Clear() {
   ensout_.clear();
   ensTops_.clear();
   active_.clear();
+  open_.clear();
 }
 
 int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
@@ -32,6 +33,7 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
   }
   ensout_.push_back( ens );
   ensTops_.push_back( eParm );
+  open_.push_back(false);
   return 0;
 }
 
@@ -40,9 +42,12 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm) {
   for (unsigned int i = 0; i != ensout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
-      if ( ensout_[i]->SetupEnsembleWrite( CurrentParm ) ) {
-        mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
-        return 1;
+      if (!open_[i]) {
+        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm ) ) {
+          mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
+          return 1;
+        }
+        open_[i] = true;
       }
       active_.push_back( ensout_[i] );
     }
@@ -92,6 +97,7 @@ void TrajoutList::Clear() {
   trajoutTops_.clear();
   trajoutNames_.clear();
   active_.clear();
+  open_.clear();
 }
 
 /** Add output trajectory to list as single output trajectory. Associate it
@@ -132,6 +138,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   trajoutArgs_.push_back( argIn );
   trajoutTops_.push_back( tParm );
   trajoutNames_.push_back( filename );
+  open_.push_back( false );
   return 0;
 }
 
@@ -155,11 +162,14 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm) {
   for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
-      if ( trajout_[i]->SetupTrajWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
-                                        CurrentParm->Nframes() ) )
-      {
-        mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
-        return 1;
+      if (!open_[i]) { // Only set up if not already open.
+        if ( trajout_[i]->SetupTrajWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
+                                          CurrentParm->Nframes() ) )
+        {
+          mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
+          return 1;
+        }
+        open_[i] = true;
       }
       active_.push_back( trajout_[i] );
     }
