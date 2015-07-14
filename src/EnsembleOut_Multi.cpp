@@ -40,7 +40,6 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
     return 1;
   }
   ArgList trajout_args = argIn;
-  TrajectoryFile::TrajFormatType writeFormat = writeFormatIn;
   // Get onlymembers range
   Range members_to_write = MembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_);
   if (members_to_write.Empty()) return 1;
@@ -50,7 +49,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   //  dbg_mtw += (" " + integerToString(*r));
   //rprintf("DEBUG: %s\n", dbg_mtw.c_str());
   // Process common args
-  if (SetTraj().CommonTrajoutSetup(tnameIn, trajout_args, writeFormat))
+  if (SetTraj().CommonTrajoutSetup(tnameIn, trajout_args, writeFormatIn))
     return 1;
   Clear();
   // Set up ensemble file names.
@@ -81,7 +80,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
 # endif
   // Set up write format for each file. 
   typedef std::vector<TrajectoryFile::TrajFormatType> FmtArray;
-  FmtArray fileFormats(fileNames_.size(), writeFormat);
+  FmtArray fileFormats(fileNames_.size(), Traj().WriteFormat());
   // If appending, all files must exist and must have same format.
   if (Traj().Append()) {
     for (unsigned int m = 0; m != fileNames_.size(); ++m) {
@@ -95,7 +94,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   }
   // Set up TrajectoryIO for each member.
   for (unsigned int m = 0; m != fileNames_.size(); ++m) {
-    rprintf("\tWriting ensemble '%s' as %s\n", fileNames_[m].c_str(),
+    rprintf("\tWriting ensemble member '%s' as %s\n", fileNames_[m].c_str(),
             TrajectoryFile::FormatString(fileFormats[m]));
     TrajectoryIO* tio = TrajectoryFile::AllocTrajIO( fileFormats[m] );
     if (tio == 0) return 1;
