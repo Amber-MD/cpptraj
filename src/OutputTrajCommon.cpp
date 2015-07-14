@@ -97,9 +97,9 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
   trajParm_ = tparmIn;
   // Use parm to set up coord info for the traj. If 'nobox' was specified
   // remove any box info.
-  CoordinateInfo cInfo = cInfoIn;
+  cInfo_ = cInfoIn;
   if (nobox_)
-    cInfo.SetBox( Box() );
+    cInfo_.SetBox( Box() );
   // TODO velocity, temperature, time etc
   // Determine how many frames will be written
   NframesToWrite_ = nFrames;
