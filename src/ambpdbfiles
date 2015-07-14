@@ -25,6 +25,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Mol2File.cpp \
               NameType.cpp \
               NetcdfFile.cpp \
+              OutputTrajCommon.cpp \
               ParmFile.cpp \
               Parm_Amber.cpp \
               Parm_CIF.cpp \
@@ -44,7 +45,6 @@ AMBPDBSOURCES=AmbPDB.cpp \
               TrajectoryFile.cpp \
               TrajFrameCounter.cpp \
               Trajin_Single.cpp \
-              Trajout.cpp \
               Trajout_Single.cpp \
               Residue.cpp \
               Traj_AmberCoord.cpp \

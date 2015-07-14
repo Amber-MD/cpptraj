@@ -81,9 +81,10 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
     if (lesAverage_) {
       // For average only care about coords.
       avgFrame_.SetupFrame( lesParm_->Natom() );
-      if (avgTraj_.InitTrajWrite( avgfilename_, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ ))
+      if (avgTraj_.PrepareTrajWrite( avgfilename_, trajArgs_, lesParm_,
+                                     lesParm_->ParmCoordInfo(), lesParm_->Nframes(),
+                                     TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
-      if (avgTraj_.SetupTrajWrite( lesParm_ )) return Action::ERR;
       avgTraj_.PrintInfo(1);
     }
   } else {

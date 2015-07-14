@@ -144,11 +144,12 @@ int main(int argc, char** argv) {
   ArgList trajArgs;
   // Input coords
   Frame TrajFrame;
-  // TODO: Set coord info in parm?
+  CoordinateInfo cInfo;
   if (!crdname.empty()) {
     Trajin_Single trajin;
     if (trajin.SetupTrajRead(crdname, trajArgs, &parm)) return 1;
-    TrajFrame.SetupFrameV(parm.Atoms(), trajin.TrajCoordInfo());
+    cInfo = trajin.TrajCoordInfo();
+    TrajFrame.SetupFrameV(parm.Atoms(), cInfo);
     trajin.BeginTraj();
     if (trajin.ReadTrajFrame(0, TrajFrame)) return 1;
     trajin.EndTraj();
@@ -164,7 +165,8 @@ int main(int argc, char** argv) {
     //restartIn.processReadArgs( trajArgs );
     int total_frames = restartIn.setupTrajin("", &parm);
     if (total_frames < 1) return 1;
-    TrajFrame.SetupFrameV(parm.Atoms(), restartIn.CoordInfo());
+    cInfo = restartIn.CoordInfo();
+    TrajFrame.SetupFrameV(parm.Atoms(), cInfo);
     if (restartIn.openTrajin()) return 1;
     if (restartIn.readFrame(0, TrajFrame)) return 1;
     restartIn.closeTraj();
@@ -174,7 +176,7 @@ int main(int argc, char** argv) {
   // Output coords
   Trajout_Single trajout;
   trajArgs.SetList( aatm + bres + pqr + title + ter_opt + box, " " );
-  if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, fmt) ) return 1;
+  if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, cInfo, 1, fmt) ) return 1;
   trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
   return 0;
