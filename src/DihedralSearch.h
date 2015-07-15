@@ -36,12 +36,15 @@ class DihedralSearch {
     /// Clear found dihedrals and tokens.
     void Clear();
     /// Clear found dihedrals only.
-    void ClearFound();
+    void ClearFound() { dihedrals_.clear(); }
     /// Print dihedrals currently being searched for.
     void PrintTypes();
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
+    struct DIH_TYPE;
+    static const DIH_TYPE DIH[];
+    static const char* TypeNames[];
     class DihedralToken;
     std::vector<DihedralToken> dihedralTokens_; ///< Dihedrals to search for
     std::vector<DihedralMask> dihedrals_;       ///< Contains atom #s for each found dihedral
@@ -49,28 +52,23 @@ class DihedralSearch {
 // ----- PRIVATE CLASS HEADERS -------------------------------------------------
 /// Hold dihedral type information used for searching.
 class DihedralSearch::DihedralToken {
-    struct DIH_TYPE;
   public:
-    static const DIH_TYPE DIH[];
-    /// Pointer to function used to search atom name/type
-    typedef int (*AtomSearchFxn)(Topology const&, int, NameType const&);
     DihedralToken() : offset_(0), type_(NDIHTYPE) {}
     /// Constructor for custom dihedral type
     DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                   std::string const&);
     /// Constructor for default dihedral type
-    DihedralToken(DIH_TYPE const&, DihedralType);
-    /// \return mask with 4 atoms corresponding to dihedral for specified residue.
-    DihedralMask FindDihedralAtoms(Topology const&, int);
+    DihedralToken(DIH_TYPE const&);
+    /// \return DihedralMask with 4 atoms corresponding to this dihedral for given residue.
+    DihedralMask FindDihedralAtoms(Topology const&, int) const;
     std::string const& Name() const { return name_; }
     DihedralType Type()       const { return type_; }
     void SetAtomName(int i, NameType const& n) { aname_[i] = n; }
   private:
     int offset_;       ///< -1|0|1: Dihedral starts at prev.|stays in current|ends at next res.
-    NameType aname_[4];       ///< Dihedral atom names/types.
-    std::string name_;        ///< Dihedral name.
+    NameType aname_[4];       ///< Dihedral atom names. 
+    std::string name_;        ///< Dihedral type name.
     DihedralType type_;       ///< Dihedral type.
-    AtomSearchFxn search_[4]; ///< Functions to search for atom names/types.
 };
 /// Hold dihedral atom #s, residue #, and type name.
 class DihedralSearch::DihedralMask {

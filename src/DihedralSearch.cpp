@@ -1,64 +1,43 @@
 #include "DihedralSearch.h"
 #include "CpptrajStdio.h"
-#include "AxisType.h" // FIXME: For pyrimidine chi
 
-/// Function to search for atoms within a residue by name.
-static int ByName(Topology const& topIn, int res, NameType const& tgtname)
-{
-  if (res < 0 || res >= topIn.Nres()) return -1;
-  for (int i = topIn.Res(res).FirstAtom(); i < topIn.Res(res).LastAtom(); i++)
-    if (topIn[i].Name() == tgtname) return i;
-  return -1;
-}
-
-/// Function to search for atoms within a residue by type.
-static int ByType(Topology const& topIn, int res, NameType const& tgttype)
-{
-  if (res < 0 || res >= topIn.Nres()) return -1;
-  for (int i = topIn.Res(res).FirstAtom(); i < topIn.Res(res).LastAtom(); i++)
-    if (topIn[i].Type() == tgttype) return i;
-  return -1;
-}
+const char* DihedralSearch::TypeNames[] = {
+  "phi",  "psi", "chip", "omega", "alpha", "beta", "gamma", "delta", "epsilon",
+  "zeta", "nu1", "nu2",  "chin" };
 
 /// Token to store pre-defined dihedral types.
-struct DihedralSearch::DihedralToken::DIH_TYPE {
+struct DihedralSearch::DIH_TYPE {
   int off;
+  DihedralType type;
   const char* an0;
   const char* an1;
   const char* an2;
   const char* an3;
-  const char* name;
-  AtomSearchFxn search0;
-  AtomSearchFxn search1;
-  AtomSearchFxn search2;
-  AtomSearchFxn search3;
 };
 
-/** Recognized dihedral types go here. Must correspond to 
-  * DihedralSearch::DihedralType, except for NDIHTYPE which does not get 
-  * an entry.
-  */
-const DihedralSearch::DihedralToken::DIH_TYPE DihedralSearch::DihedralToken::DIH[] = {
-  {-1, "C"  , "N"  , "CA" , "C"  , "phi"    ,ByName,ByName,ByName,ByName}, // PHI: C0-N1-CA1-C1
-  { 1, "N"  , "CA" , "C"  , "N"  , "psi"    ,ByName,ByName,ByName,ByName}, // PSI: N0-CA0-C0-N1
-  { 0, "N"  , "CA" , "CB" , "CG",  "chip"   ,ByName,ByName,ByName,ByName}, // Protein CHI:
-  {-2, "CA" , "C"  , "N"  , "CA" , "omega"  ,ByName,ByName,ByName,ByName}, // OMEGA: CA0-C0-N1-CA1
-  {-1, "O3'", "P"  , "O5'", "C5'", "alpha"  ,ByName,ByName,ByName,ByName}, // ALPHA: 
-  { 0, "P"  , "O5'", "C5'", "C4'", "beta"   ,ByName,ByName,ByName,ByName}, // BETA:
-  { 0, "O5'", "C5'", "C4'", "C3'", "gamma"  ,ByName,ByName,ByName,ByName}, // GAMMA:
-  { 0, "C5'", "C4'", "C3'", "O3'", "delta"  ,ByName,ByName,ByName,ByName}, // DELTA:
-  { 1, "C4'", "C3'", "O3'", "P"  , "epsilon",ByName,ByName,ByName,ByName}, // EPSILON:
-  { 2, "C3'", "O3'", "P"  , "O5'", "zeta"   ,ByName,ByName,ByName,ByName}, // ZETA:
-  { 0, "O4'", "C1'", "C2'", "C3'", "nu1"    ,ByName,ByName,ByName,ByName}, // NU1:
-  { 0, "C1'", "C2'", "C3'", "C4'", "nu2"    ,ByName,ByName,ByName,ByName}, // NU2:
-  { 0, "O4'", "C1'", "N*",  "C4" , "chin"   ,ByName,ByName,ByType,ByName}  // Nucleic CHI:
-  // NOTE: pyrimidine chi last atom name manually changed to C2 below.
+/** Recognized dihedral types go here.  */
+const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
+  {-1, PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
+  { 1, PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
+  { 0, CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI:
+  {-2, OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
+  {-1, ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
+  { 0, BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
+  { 0, GAMMA,   "O5'", "C5'", "C4'", "C3'" }, // GAMMA:
+  { 0, DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
+  { 1, EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
+  { 2, ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
+  { 0, NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1:
+  { 0, NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2:
+  { 0, CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine
+  { 0, CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine
+  { 0, NDIHTYPE, 0,     0,     0,     0    }
 };
 
 // DihedralSearch::ListKnownTypes()
 void DihedralSearch::ListKnownTypes() {
   for (int i = 0; i < (int)NDIHTYPE; ++i)
-    mprintf(" %s", DihedralSearch::DihedralToken::DIH[i].name);
+    mprintf(" %s", DihedralSearch::TypeNames[i]);
   mprintf("\n");
 }
 
@@ -72,7 +51,7 @@ void DihedralSearch::OffsetHelp() {
 // DihedralSearch::GetType()
 DihedralSearch::DihedralType DihedralSearch::GetType(std::string const& typeIn) {
   for (int i = 0; i < (int)NDIHTYPE; ++i)
-    if (typeIn.compare(DihedralSearch::DihedralToken::DIH[i].name)==0)
+    if (typeIn.compare(DihedralSearch::TypeNames[i])==0)
       return (DihedralType)i;
   return NDIHTYPE;
 }
@@ -102,32 +81,37 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
   aname_[1] = an1;
   aname_[2] = an2;
   aname_[3] = an3;
-  // Default to ByName search
-  search_[0] = ByName;
-  search_[1] = ByName;
-  search_[2] = ByName;
-  search_[3] = ByName;
 }
 
 // CONSTRUCTOR - Recognized type 
-DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih, DihedralType dt) :
+DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih) :
   offset_(dih.off),
-  name_(dih.name),
-  type_(dt)
+  name_(TypeNames[dih.type]),
+  type_(dih.type)
 {
   aname_[0] = dih.an0;
   aname_[1] = dih.an1;
   aname_[2] = dih.an2;
   aname_[3] = dih.an3;
-  search_[0] = dih.search0;
-  search_[1] = dih.search1;
-  search_[2] = dih.search2;
-  search_[3] = dih.search3;
+}
+
+static inline int FindNameBondedTo(Atom const& atm, Topology const& top,
+                                    NameType const& aname, int rnum)
+{
+  int atomX = -1;
+  for (Atom::bond_iterator bat = atm.bondbegin(); bat != atm.bondend(); ++bat)
+    if (top[*bat].Name() == aname && top[*bat].ResNum() == rnum)
+    {
+      atomX = *bat;
+      break;
+    }
+  return atomX;
 }
 
 // DihedralSearch::DihedralToken::FindDihedralAtoms()
+// FIXME handle cyclic peptides etc
 DihedralSearch::DihedralMask 
-  DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn, int resIn)
+  DihedralSearch::DihedralToken::FindDihedralAtoms(Topology const& topIn, int resIn) const
 {
   int resnum[4] = {resIn, resIn, resIn, resIn};
   switch (offset_) {
@@ -136,22 +120,24 @@ DihedralSearch::DihedralMask
     case  2: ++resnum[2];        // +1 a3 and a4
     case  1: ++resnum[3]; break; // +1 a4 only
   }
-  int atnum[4];
-  for (int i = 0; i < 4; i++) {
-    atnum[i] = search_[i](topIn, resnum[i], aname_[i]);
-    if (atnum[i] == -1) return DihedralMask();
-    // Ensure this atom is bonded to previous atom
-    if (i > 0) {
-      if ( !topIn[ atnum[i] ].IsBondedTo( atnum[i-1] ) ) {
-        mprintf("Warning: Atom %s is not bonded to atom %s\n",
-                topIn.AtomMaskName(atnum[i]).c_str(),
-                topIn.AtomMaskName(atnum[i-1]).c_str());
-        return DihedralMask();
-      }
+  if (resnum[0] < 0 || resnum[0] >= topIn.Nres()) return DihedralMask();
+  // Find the first atom in specified residue.
+  int atom0 = -1;
+  for (int at = topIn.Res(resnum[0]).FirstAtom(); at != topIn.Res(resnum[0]).LastAtom(); at++)
+    if (topIn[at].Name() == aname_[0]) {
+      atom0 = at;
+      break;
     }
-  }
+  if (atom0 < 0) return DihedralMask();
+  // Subsequent atoms must be bonded to the previous atom.
+  int atom1 = FindNameBondedTo(topIn[atom0], topIn, aname_[1], resnum[1]);
+  if (atom1 < 0) return DihedralMask();
+  int atom2 = FindNameBondedTo(topIn[atom1], topIn, aname_[2], resnum[2]);
+  if (atom2 < 0) return DihedralMask();
+  int atom3 = FindNameBondedTo(topIn[atom2], topIn, aname_[3], resnum[3]);
+  if (atom3 < 0) return DihedralMask();
   // All atoms found at this point.
-  return DihedralMask(atnum[0], atnum[1], atnum[2], atnum[3], resIn, name_, type_);
+  return DihedralMask(atom0, atom1, atom2, atom3, resIn, name_, type_);
 }
 
 // -----------------------------------------------------------------------------
@@ -159,9 +145,11 @@ DihedralSearch::DihedralMask
 DihedralSearch::DihedralSearch() {}
 
 // DihedralSearch::SearchFor()
+/** Search for all types matching typeIn. */
 int DihedralSearch::SearchFor(DihedralType typeIn) {
-  dihedralTokens_.push_back( DihedralToken(DihedralSearch::DihedralToken::DIH[typeIn],
-                                           typeIn) );
+  for (DIH_TYPE const* ptr = DIH; ptr->type != NDIHTYPE; ++ptr)
+    if (ptr->type == typeIn)
+      dihedralTokens_.push_back( DihedralToken( *ptr ));
   return 0;
 }
 
@@ -169,7 +157,7 @@ int DihedralSearch::SearchFor(DihedralType typeIn) {
 /** See if ArgList has any recognized dihedral type keywords. */
 void DihedralSearch::SearchForArgs(ArgList& argIn) {
   for (int i = 0; i < (int)NDIHTYPE; ++i) {
-    if (argIn.hasKey( DihedralSearch::DihedralToken::DIH[i].name ))
+    if (argIn.hasKey( TypeNames[i] ))
       SearchFor( (DihedralType)i );
   }
 }
@@ -204,27 +192,19 @@ int DihedralSearch::FindDihedrals(Topology const& currentParm, Range const& rang
 {
   dihedrals_.clear();
   for (Range::const_iterator res = rangeIn.begin(); res != rangeIn.end(); ++res)
-  { // FIXME: Kludge for pyrimidine chi
-    NA_Base::NAType baseType = NA_Base::ID_BaseFromName( currentParm.Res(*res).Name() );
-    for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
-                                              tkn != dihedralTokens_.end(); ++tkn)
+  {
+    //std::string notFound; //TODO record this 
+    for (std::vector<DihedralToken>::const_iterator tkn = dihedralTokens_.begin();
+                                                    tkn != dihedralTokens_.end(); ++tkn)
     {
-      // FIXME: Kludge for pyrimidine chi
-      if (tkn->Type() == CHIN && (baseType == NA_Base::URA ||
-                                  baseType == NA_Base::THY ||
-                                  baseType == NA_Base::CYT)  )
-      {
-        DihedralToken pyrimidineChi = *tkn;
-        pyrimidineChi.SetAtomName(3, "C2");
-        dihedrals_.push_back( pyrimidineChi.FindDihedralAtoms(currentParm, *res) );
-      } else
-        dihedrals_.push_back( tkn->FindDihedralAtoms(currentParm, *res) );
+      dihedrals_.push_back( tkn->FindDihedralAtoms(currentParm, *res) );
       if (dihedrals_.back().None()) {
-        mprintf("Warning: Dihedral %s not found for residue %i\n", 
-                tkn->Name().c_str(), *res + 1);
+        //notFound.append( " " + tkn->Name() );
         dihedrals_.pop_back();
       } 
     }
+    //if (!notFound.empty())
+    //  mprintf("Warning: Dihedral%s not found for residue %i\n", notFound.c_str(), *res + 1);
   }
   if (dihedrals_.empty()) {
     mprintf("Warning: No dihedrals selected for topology %s\n", currentParm.c_str());
@@ -240,18 +220,11 @@ void DihedralSearch::Clear() {
   dihedrals_.clear();
 }
 
-// DihedralSearch::ClearFound()
-void DihedralSearch::ClearFound() {
-  dihedrals_.clear();
-}
-
 // DihedralSearch::PrintTypes()
 void DihedralSearch::PrintTypes() {
   for (std::vector<DihedralToken>::iterator tkn = dihedralTokens_.begin();
                                             tkn != dihedralTokens_.end(); ++tkn)
-  {
     mprintf(" %s", tkn->Name().c_str());
-  }
 }
 
 // VisitAtom()
