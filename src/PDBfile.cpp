@@ -7,7 +7,7 @@
 /// PDB record types
 // NOTE: Must correspond with PDB_RECTYPE
 const char* PDBfile::PDB_RECNAME[] = { "ATOM  ", "HETATM", "CRYST1", "TER   ",
-  "END   ", "ANISOU", "EndRec", 0 };
+  "END   ", "ANISOU", "EndRec", "CONECT", 0 };
 
 // PDBfile::IsPDBkeyword()
 bool PDBfile::IsPDBkeyword(std::string const& recname) {
@@ -71,6 +71,8 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
       strncmp(linebuffer_,"HETATM",6)==0   )
     // Just return ATOM for ATOM/HETATM when reading.
     recType_ = ATOM;
+  else if (strncmp(linebuffer_,"CONECT",6)==0)
+    recType_ = CONECT;
   else if (strncmp(linebuffer_,"CRYST1",6)==0)
     recType_ = CRYST1;
   else if (linebuffer_[0]=='T' && linebuffer_[1]=='E' && linebuffer_[2]=='R')
@@ -146,6 +148,13 @@ void PDBfile::pdb_Box(double* box) const {
   if (box[0] == 1.0 && box[1] == 1.0 && box[2] == 1.0)
     mprintf("Warning: PDB cell lengths are all 1.0 Ang.;"
             " this usually indicates an invalid box.\n");
+}
+
+int PDBfile::pdb_Bonds(int* bnd) const {
+  int Nscan = sscanf(linebuffer_, "%*6s%5i%5i%5i%5i%5i", bnd, bnd+1, bnd+2, bnd+3, bnd+4);
+  if (Nscan < 2)
+    mprintf("Warning: Malformed CONECT record: %s", linebuffer_);
+  return Nscan;
 }
 
 // TODO: Should chainID read go here?
