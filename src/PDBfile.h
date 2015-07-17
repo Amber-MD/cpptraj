@@ -6,7 +6,8 @@
 class PDBfile : public CpptrajFile {
   public:
     // NOTE: PDB_RECNAME must correspond with this.
-    enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, UNKNOWN};
+    enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
+                      CONECT, UNKNOWN};
     PDBfile() : anum_(1), recType_(UNKNOWN), lineLengthWarning_(false) {}
     /// Check if either of the first two lines contain valid PDB records.
     static bool ID_PDB(CpptrajFile&);
@@ -22,6 +23,8 @@ class PDBfile : public CpptrajFile {
     void pdb_XYZ(double*);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
     void pdb_Box(double*) const;
+    /// Set given array with atom and #s of bonded atoms from CONECT record.
+    int pdb_Bonds(int*) const;
     /// \return Residue name, only valid for ATOM/HETATM record.
     NameType pdb_ResName();
     /// \return Residue number/icode, only valid for ATOM/HETATM record.
