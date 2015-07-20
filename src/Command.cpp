@@ -127,6 +127,7 @@
 #include "Analysis_Wavelet.h"
 #include "Analysis_State.h"
 #include "Analysis_Multicurve.h"
+#include "Analysis_TI.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -2058,6 +2059,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
+  { ANALYSIS, "ti", Analysis_TI::Alloc, Analysis_TI::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   { ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
   { ANALYSIS, "wavelet", Analysis_Wavelet::Alloc, Analysis_Wavelet::Help, AddAnalysis },
