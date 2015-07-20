@@ -1,5 +1,7 @@
 #include "Analysis_TI.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Mesh.h"
+#include "StringRoutines.h" // integerToString
 
 void Analysis_TI::Help() {
   mprintf("\t<dset0> [<dset1> ...] [nq <n quad pts>] [nskip <# to skip>]\n"
@@ -79,10 +81,19 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
   int nq = analyzeArgs.getKeyInt("nq", 0);
-  nskip_ = analyzeArgs.getKeyInt("nskip", 0);
-  if (nskip_ < 0) nskip_ = 0;
+  ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
+  if (nskipArg.empty())
+    nskip_.resize(1, 0);
+  else {
+    nskip_.clear();
+    for (int i = 0; i != nskipArg.Nargs(); i++) {
+      nskip_.push_back( nskipArg.getNextInteger(0) );
+      if (nskip_.back() < 0) nskip_.back() = 0;
+    }
+  }
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* curveout = DFLin->AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -98,44 +109,79 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
               quad_.size(), input_dsets_.size());
     return Analysis::ERR;
   }
-  dAout_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "TI");
+  dAout_ = datasetlist->AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddSet( dAout_ );
+  for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
+    DataSet* ds = datasetlist->AddSetIdxAspect(DataSet::XYMESH, setname, *it, "TIcurve");
+    if (ds == 0) return Analysis::ERR;
+    ds->SetLegend( setname + "_Skip" + integerToString(*it) );
+    if (curveout != 0) curveout->AddSet( ds );
+    curve_.push_back( ds );
+  }
 
   mprintf("    TI: Calculating TI using Gaussian quadrature with %zu points.\n",
           quad_.size());
   mprintf("\t%6s %8s %8s %s\n", "Point", "Abscissa", "Weight", "SetName");
   for (unsigned int i = 0; i != quad_.size(); i++)
     mprintf("\t%6i %8.5f %8.5f %s\n", i, quad_[i], wgt_[i], input_dsets_[i]->legend());
-  if (nskip_ > 0) mprintf("\tSkipping first %i data points for <DV/DL> calc.\n", nskip_);
+  if (nskip_.front() > 0) {
+    mprintf("\tSkipping first");
+    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf(" data points for <DV/DL> calc.\n");
+  }
   mprintf("\tResults saved in set '%s'\n", dAout_->legend());
+  mprintf("\tTI curve(s) saved in set(s)");
+  for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
+    mprintf(" '%s'", (*ds)->legend());
+  mprintf("\n");
   if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
+  if (curveout!= 0) mprintf("\tTI curve written to '%s'\n", curveout->DataFilename().full());
   return Analysis::OK;
 }
 
 Analysis::RetType Analysis_TI::Analyze() {
-  double sum = 0.0;
+  Darray sum(nskip_.size(), 0.0);
+  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
+  Iarray lastSkipPoint; // Points after which averages can be recorded
+  for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
+    lastSkipPoint.push_back( *it - 1 );
+  // Run for multiple skip values, helps test convergences.
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (ds.Size() < 1) {
       mprinterr("Error: Set '%s' is empty.\n", ds.legend());
       return Analysis::ERR;
     }
-    int lastSkipPoint = nskip_ - 1;
-    double avg = 0.0;
-    for (int i = 0; i != (int)ds.Size(); i++)
-      if (i > lastSkipPoint)
-        avg += ds.Dval( i );
-    int npoints = (int)ds.Size() - nskip_;
-    if (npoints < 1) {
-      mprinterr("Error: Skipped too many points (set '%s' size is %zu)\n", ds.legend(), ds.Size());
-      return Analysis::ERR;
+    // Determine if skip values are valid for this set.
+    Darray Npoints; // Number of points after skipping
+    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
+      int np = (int)ds.Size() - *it;
+      if (np < 1) {
+        mprinterr("Error: Skipped too many points (set '%s' size is %zu)\n",ds.legend(),ds.Size());
+        return Analysis::ERR;
+      }
+      Npoints.push_back((double)np);
     }
-    avg /= (double)npoints;
-    mprintf("\t<DV/DL>=%g\n", avg);
-    sum += (wgt_[idx] * avg);
+    // Calculate averages for each value of skip
+    Darray avg(nskip_.size(), 0.0);
+    for (int i = 0; i != (int)ds.Size(); i++) {
+      for (unsigned int j = 0; j != nskip_.size(); j++)
+        if (i > lastSkipPoint[j])
+          avg[j] += ds.Dval( i );
+    }
+    // Store average DV/DL for each value of skip
+    for (unsigned int j = 0; j != nskip_.size(); j++) {
+      avg[j] /= Npoints[j];
+      //mprintf("\t<DV/DL>=%g\n", avg);
+      DataSet_Mesh& CR = static_cast<DataSet_Mesh&>( *(curve_[j]) );
+      CR.AddXY(quad_[idx], avg[j]);
+      sum[j] += (wgt_[idx] * avg[j]);
+    }
   }
-  dAout_->Add(nskip_, &sum);
+  for (unsigned int j = 0; j != nskip_.size(); j++)
+    DA.AddXY(nskip_[j], sum[j]);
 
   return Analysis::OK;
 }
