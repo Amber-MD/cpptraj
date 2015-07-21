@@ -127,6 +127,7 @@
 #include "Analysis_Wavelet.h"
 #include "Analysis_State.h"
 #include "Analysis_Multicurve.h"
+#include "Analysis_TI.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
 void Command::WarnDeprecated(TokenPtr token)
@@ -154,8 +155,8 @@ Command::TokenPtr Command::SearchTokenType(CommandType dtype,
 }
 
 /// Strings that correspond to CommandType
-const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Action",
-  "Analysis", "General", "Deprecated" };
+const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Coords",
+  "Action", "Analysis", "General", "System", "Deprecated" };
 
 /** List all commands of the given type, or all commands if type
   * is NONE.
@@ -327,13 +328,6 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
 }
 
 // ====================== CPPTRAJ COMMANDS HELP ================================
-static void Help_Help() {
-  mprintf("\t{[<cmd>] | General | Action | Analysis | Topology | Trajectory}\n"
-          "  With no arguments list all known commands, otherwise display help for\n"
-          "  command <cmd>. If General/Action/Analysis/Topology/Trajectory specified\n"
-          "  list commands only in that category.\n");
-}
-
 static void Help_System() { mprintf("  Call command from system.\n"); }
 
 static void Help_NoProgress() {
@@ -396,21 +390,6 @@ static void Help_DataFile() {
           "  Pass <datafile cmd> to specified data file currently in data file list.\n");
   DataFile::WriteHelp();
   DataFile::WriteOptions();
-}
-
-static void Help_DataSetCmd() {
-  mprintf("\t{ legend <legend> <set> | \n"
-          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
-          "  <mode>: ");
-  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
-    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
-  mprintf("\n  <type>: ");
-  for (int i = 0; i != (int)DataSet::DIST; i++)
-    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
-  mprintf("\n\tOptions for 'type noe':\n"
-          "\t  %s\n"
-          "  Either set the legend for a single data set, or change the mode/type for\n"
-          "  one or more data sets.\n", Action_Distance::NOE_Help);
 }
 
 static void Help_ReadData() {
@@ -1152,6 +1131,26 @@ Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::Alloc
   return (Command::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
 }
 
+// -----------------------------------------------------------------------------
+static void Help_DataSetCmd() {
+  mprintf("\t{ legend <legend> <set> | makexy <Xset> <Yset> [name <name>] |\n"
+          "\t  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
+          "\t<mode>: ");
+  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
+    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
+  mprintf("\n\t<type>: ");
+  for (int i = 0; i != (int)DataSet::DIST; i++)
+    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
+  mprintf("\n\tOptions for 'type noe':\n"
+          "\t  %s\n"
+          "  legend: Set the legend for a single data set\n"
+          "  makexy: Create new data set with X values from one set and Y values from another.\n"
+          "  cat   : Concatenate 2 or more data sets.\n"
+          "  Otherwise, change the mode/type for one or more data sets.\n",
+          Action_Distance::NOE_Help);
+}
+
 /// Process DataSet-specific command
 Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1161,7 +1160,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     if (ds == 0) return Command::C_ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
-    return Command::C_OK;
+  // ---------------------------------------------
   } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
     std::string name = argIn.GetStringKey("name");
     DataSet* ds1 = State.DSL()->GetDataSet( argIn.GetStringNext() );
@@ -1187,66 +1186,104 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       XY[1] = ds_y.Dval(i);
       out.Add( i, XY );
     }
-
-    return Command::C_OK;
-  }
-  // Change mode/type for one or more sets.
-  std::string modeKey = argIn.GetStringKey("mode");
-  std::string typeKey = argIn.GetStringKey("type");
-  if (modeKey.empty() && typeKey.empty()) {
-    mprinterr("Error: No valid keywords specified.\n");
-    return Command::C_ERR;
-  }
-  // First determine mode if specified.
-  DataSet::scalarMode dmode = DataSet::UNKNOWN_MODE;
-  if (!modeKey.empty()) {
-    dmode = DataSet::ModeFromKeyword( modeKey );
-    if (dmode == DataSet::UNKNOWN_MODE) {
-      mprinterr("Error: Invalid mode keyword '%s'\n", modeKey.c_str());
-      return Command::C_ERR;
-    }
-  }
-  // Next determine type if specified.
-  DataSet::scalarType dtype = DataSet::UNDEFINED;
-  if (!typeKey.empty()) {
-    dtype = DataSet::TypeFromKeyword( typeKey, dmode );
-    if (dtype == DataSet::UNDEFINED) {
-      mprinterr("Error: Invalid type keyword '%s'\n", typeKey.c_str());
-      return Command::C_ERR;
-    }
-  }
-  // Additional options for type 'noe'
-  double noe_lbound=0.0, noe_ubound=0.0, noe_rexp = -1.0;
-  if (dtype == DataSet::NOE) {
-    if (Action_Distance::NOE_Args(argIn, noe_lbound, noe_ubound, noe_rexp))
-      return Command::C_ERR;
-  }
-  if (dmode != DataSet::UNKNOWN_MODE)
-    mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
-  if (dtype != DataSet::UNDEFINED)
-    mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
-  // Loop over all DataSet arguments 
-  std::string ds_arg = argIn.GetStringNext();
-  while (!ds_arg.empty()) {
-    DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
-    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
-    {
-      if ( (*ds)->Ndim() != 1 )
-        mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
-                (*ds)->legend());
-      else {
-        if ( dtype == DataSet::NOE ) {
-          if ( (*ds)->Type() != DataSet::DOUBLE )
-            mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
-                (*ds)->legend());
-          else
-            ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("cat")) { // Concatenate two or more data sets
+    std::string name = argIn.GetStringKey("name");
+    bool use_offset = !argIn.hasKey("nooffset");
+    DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "CAT" );
+    if (ds3 == 0) return Command::C_ERR;
+    DataSet_1D& out = static_cast<DataSet_1D&>( *ds3 );
+    mprintf("\tConcatenating sets into '%s'\n", out.legend());
+    if (use_offset)
+      mprintf("\tX values will be offset.\n");
+    else
+      mprintf("\tX values will not be offset.\n");
+    std::string dsarg = argIn.GetStringNext();
+    double offset = 0.0;
+    while (!dsarg.empty()) {
+      DataSetList dsl = State.DSL()->GetMultipleSets( dsarg );
+      double XY[2];
+      for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+      {
+        if ( (*ds)->Type() != DataSet::INTEGER &&
+             (*ds)->Type() != DataSet::DOUBLE &&
+             (*ds)->Type() != DataSet::FLOAT &&
+             (*ds)->Type() != DataSet::XYMESH )
+        {
+          mprintf("Warning: '%s': Concatenation only supported for 1D scalar data sets.\n",
+                  (*ds)->legend());
+        } else {
+          DataSet_1D const& set = static_cast<DataSet_1D const&>( *(*ds) );
+          mprintf("\t\t'%s'\n", set.legend());
+          for (size_t i = 0; i != set.Size(); i++) {
+            XY[0] = set.Xcrd( i ) + offset;
+            XY[1] = set.Dval( i );
+            out.Add( i, XY ); // NOTE: value of i does not matter for mesh
+          }
+          if (use_offset) offset = XY[0];
         }
-        mprintf("\t\t'%s'\n", (*ds)->legend());
-        (*ds)->SetScalar( dmode, dtype );
+      }
+      dsarg = argIn.GetStringNext();
+    }
+  // ---------------------------------------------
+  } else { // Default: change mode/type for one or more sets.
+    std::string modeKey = argIn.GetStringKey("mode");
+    std::string typeKey = argIn.GetStringKey("type");
+    if (modeKey.empty() && typeKey.empty()) {
+      mprinterr("Error: No valid keywords specified.\n");
+      return Command::C_ERR;
+    }
+    // First determine mode if specified.
+    DataSet::scalarMode dmode = DataSet::UNKNOWN_MODE;
+    if (!modeKey.empty()) {
+      dmode = DataSet::ModeFromKeyword( modeKey );
+      if (dmode == DataSet::UNKNOWN_MODE) {
+        mprinterr("Error: Invalid mode keyword '%s'\n", modeKey.c_str());
+        return Command::C_ERR;
       }
     }
-    ds_arg = argIn.GetStringNext();
+    // Next determine type if specified.
+    DataSet::scalarType dtype = DataSet::UNDEFINED;
+    if (!typeKey.empty()) {
+      dtype = DataSet::TypeFromKeyword( typeKey, dmode );
+      if (dtype == DataSet::UNDEFINED) {
+        mprinterr("Error: Invalid type keyword '%s'\n", typeKey.c_str());
+        return Command::C_ERR;
+      }
+    }
+    // Additional options for type 'noe'
+    double noe_lbound=0.0, noe_ubound=0.0, noe_rexp = -1.0;
+    if (dtype == DataSet::NOE) {
+      if (Action_Distance::NOE_Args(argIn, noe_lbound, noe_ubound, noe_rexp))
+        return Command::C_ERR;
+    }
+    if (dmode != DataSet::UNKNOWN_MODE)
+      mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
+    if (dtype != DataSet::UNDEFINED)
+      mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
+    // Loop over all DataSet arguments 
+    std::string ds_arg = argIn.GetStringNext();
+    while (!ds_arg.empty()) {
+      DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
+      for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+      {
+        if ( (*ds)->Ndim() != 1 )
+          mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
+                  (*ds)->legend());
+        else {
+          if ( dtype == DataSet::NOE ) {
+            if ( (*ds)->Type() != DataSet::DOUBLE )
+              mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
+                  (*ds)->legend());
+            else
+              ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
+          }
+          mprintf("\t\t'%s'\n", (*ds)->legend());
+          (*ds)->SetScalar( dmode, dtype );
+        }
+      }
+      ds_arg = argIn.GetStringNext();
+    }
   }
   return Command::C_OK;
 }
@@ -1313,8 +1350,19 @@ Command::RetType Quit(CpptrajState& State, ArgList& argIn, Command::AllocType Al
 /// Run a system command
 Command::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  system( argIn.ArgLine() );
+  int err = system( argIn.ArgLine() );
+  if (err != 0) mprintf("Warning: '%s' returned %i\n", argIn.Command(), err);
   return Command::C_OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Help() {
+  mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
+  for (int i = 1; i != (int)Command::DEPRECATED; i++)
+    mprintf(" %s", Command::CommandCategoryKeyword(i));
+  mprintf("\n");
+  mprintf("  With no arguments list all known commands, otherwise display help for specified\n"
+          "  command. If a category is specified list only commands in that category.\n");
 }
 
 /// Find help for command/topic
@@ -1325,17 +1373,14 @@ Command::RetType Help(CpptrajState& State, ArgList& argIn, Command::AllocType Al
   if (arg.empty())
     // NONE in this context means list all commands
     Command::ListCommands(Command::NONE);
-  else if (arg.CommandIs("General"))
-    Command::ListCommands(Command::GENERAL);
-  else if (arg.CommandIs("Topology"))
-    Command::ListCommands(Command::PARM);
-  else if (arg.CommandIs("Action"))
-    Command::ListCommands(Command::ACTION);
-  else if (arg.CommandIs("Analysis"))
-    Command::ListCommands(Command::ANALYSIS);
-  else if (arg.CommandIs("Trajectory"))
-    Command::ListCommands(Command::TRAJ);
   else {
+    for (int i = 1; i != (int)Command::DEPRECATED; i++) {
+      if (arg.CommandIs(Command::CommandCategoryKeyword(i))) {
+        Command::ListCommands((Command::CommandType)i);
+        return Command::C_OK;
+      }
+    }
+    // Find help for specified command.
     Command::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0)
       mprinterr("No help found for %s\n", arg.Command());
@@ -1817,30 +1862,20 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
   { GENERAL, "calc",          0, Help_Calc,            Calc            },
   { GENERAL, "clear",         0, Help_Clear,           ClearList       },
-  { GENERAL, "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
-  { GENERAL, "crdaction",     0, Help_CrdAction,       CrdAction       },
-  { GENERAL, "crdout",        0, Help_CrdOut,          CrdOut          },
   { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
   { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
   { GENERAL, "datafilter",    0, Help_DataFilter,      DataFilter      },
   { GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
   { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
   { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
-  { GENERAL, "gnuplot",       0, Help_System,          SystemCmd       },
   { GENERAL, "go",            0, Help_Run,             RunState        },
-  { GENERAL, "head",          0, Help_System,          SystemCmd       },
   { GENERAL, "help",          0, Help_Help,            Help            },
-  { GENERAL, "less",          0, Help_System,          SystemCmd       },
   { GENERAL, "list",          0, Help_List,            ListAll         },
-  { GENERAL, "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
-  { GENERAL, "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
-  { GENERAL, "ls",            0, Help_System,          SystemCmd       },
   { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
   { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
   { GENERAL, "precision",     0, Help_Precision,       Precision       },
   { GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
   { GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
-  { GENERAL, "pwd",           0, Help_System,          SystemCmd       },
   { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
   { GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
   { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
@@ -1853,7 +1888,19 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
-  { GENERAL, "xmgrace",       0, Help_System,          SystemCmd       },
+  // SYSTEM COMMANDS
+  { SYSTEM, "gnuplot",        0, Help_System,          SystemCmd       },
+  { SYSTEM, "head",           0, Help_System,          SystemCmd       },
+  { SYSTEM, "less",           0, Help_System,          SystemCmd       },
+  { SYSTEM, "ls",             0, Help_System,          SystemCmd       },
+  { SYSTEM, "pwd",            0, Help_System,          SystemCmd       },
+  { SYSTEM, "xmgrace",        0, Help_System,          SystemCmd       },
+  // COORDS COMMANDS
+  { COORDS,  "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
+  { COORDS,  "crdaction",     0, Help_CrdAction,       CrdAction       },
+  { COORDS,  "crdout",        0, Help_CrdOut,          CrdOut          },
+  { COORDS,  "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
+  { COORDS,  "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
   // TRAJECTORY COMMANDS
   { TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
   { TRAJ,    "reference",     0, Help_Reference,       Reference       },
@@ -2012,6 +2059,7 @@ const Command::Token Command::Commands[] = {
   { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
   { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
   { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
+  { ANALYSIS, "ti", Analysis_TI::Alloc, Analysis_TI::Help, AddAnalysis },
   { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
   { ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
   { ANALYSIS, "wavelet", Analysis_Wavelet::Alloc, Analysis_Wavelet::Help, AddAnalysis },

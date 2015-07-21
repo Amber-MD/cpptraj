@@ -1,9 +1,10 @@
 #ifndef INC_PARM_GROMACS_H
 #define INC_PARM_GROMACS_H
 #include "ParmIO.h"
+#include "BufferedLine.h"
 class Parm_Gromacs : public ParmIO {
   public :
-    Parm_Gromacs() : debug_(0), numOpen_(0) { }
+    Parm_Gromacs() : debug_(0), numOpen_(0), directive_err_(0) { }
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Gromacs(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
@@ -12,6 +13,20 @@ class Parm_Gromacs : public ParmIO {
     void SetDebug(int i)                               { debug_ = i; }
     int processWriteArgs(ArgList&) { return 0; }
   private:
+    enum KeyType { G_UNKNOWN_KEY, G_MOLECULE_TYPE, G_ATOMS, G_BONDS,
+                   G_SYSTEM, G_MOLECULES, G_SETTLES, G_VIRTUAL_SITES3 };
+    static const char* SEP;
+
+    bool LineContainsKey(std::string const&, std::string const&) const;
+    int LineContainsDirective(std::string const&, std::string const&, std::string&);
+    int Defined(std::string const&) const;
+    int AdvanceToElse(BufferedLine&) const;
+    KeyType FindKey(std::string const&) const;
+    int ReadAtomsSection(BufferedLine&);
+    int ReadBondsSection(BufferedLine&);
+    int ReadSettles(BufferedLine&);
+    int ReadVsite3(BufferedLine&);
+    int ReadMolsSection(BufferedLine&);
     int ReadGmxFile(std::string const&);
 
     class gmx_atom;
@@ -22,10 +37,12 @@ class Parm_Gromacs : public ParmIO {
     MolArray gmx_molecules_; ///< Hold each molecule defined in topololgy
     typedef std::vector<std::string> Sarray;
     Sarray mols_;           ///< Which molecules are present
+    Sarray defines_;        ///< Which preprocessor defines present.
     std::vector<int> nums_; ///< How much of each mol is present.
 
     int debug_;
     int numOpen_;
+    int directive_err_;
     std::string title_;
     FileName infileName_;
 };

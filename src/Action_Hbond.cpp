@@ -571,15 +571,70 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
 /** Calculate distance between all donors and acceptors. Store Hbond info.
   */    
 Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  // accept ... H-D
   int D, H;
+  // accept ... H-D
+  if (Image_.ImageType() == NONORTHO)
+    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+  // SOLUTE-SOLUTE HBONDS
+# ifdef HBOND_OPENMP
+  int dAt, hAt, aAt, didx, aidx, hbidx, mol1 = -1, numHB = 0;
   double dist, dist2, angle;
   HBmapType::iterator it;
   HbondType HB;
 
-  if (Image_.ImageType() == NONORTHO)
-    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
-  // SOLUTE-SOLUTE HBONDS
+  for (didx = 0; didx < (int)Donor_.size(); didx += 2) {
+    dAt = Donor_[didx  ];
+    hAt = Donor_[didx+1];
+    if (noIntramol_)
+      mol1 = (*CurrentParm_)[dAt].MolNum();
+    for (aidx = 0; aidx < (int)Acceptor_.size(); aidx++) {
+      aAt = Acceptor_[aidx];
+      if (aAt != dAt && mol1 != (*CurrentParm_)[aAt].MolNum()) {
+        dist2 = DIST2(currentFrame->XYZ(aAt), currentFrame->XYZ(dAt), Image_.ImageType(),
+                      currentFrame->BoxCrd(), ucell_, recip_);
+        if (dist2 > dcut2_) continue;
+        if (Image_.ImageType() == NOIMAGE)
+          angle = CalcAngle(currentFrame->XYZ(aAt), currentFrame->XYZ(hAt),
+                            currentFrame->XYZ(dAt));
+        else
+          angle = ImagedAngle(currentFrame->XYZ(aAt), currentFrame->XYZ(hAt),
+                              currentFrame->XYZ(dAt));
+        if (angle < acut_) continue;
+        ++numHB;
+        hbidx = ((didx / 2) * Acceptor_.size()) + aidx;
+        dist = sqrt(dist2);
+        it = HbondMap_.find( hbidx );
+        if (it == HbondMap_.end() ) {
+          // New hbond
+          HB.A = aAt; HB.D = dAt; HB.H = hAt;
+          HB.Frames = 1; HB.dist = dist; HB.angle = angle;
+          if (series_) {
+            std::string hblegend = CurrentParm_->TruncResAtomName(aAt) + "-" +
+                                   CurrentParm_->TruncResAtomName(dAt) + "-" +
+                                   (*CurrentParm_)[hAt].Name().Truncated();
+            HB.data_ = (DataSet_integer*)
+                       masterDSL_->AddSetIdxAspect(DataSet::INTEGER,hbsetname_,hbidx,"solutehb" );
+            if (UUseriesout_ != 0) UUseriesout_->AddSet( HB.data_ );
+            HB.data_->SetLegend( hblegend );
+            HB.data_->AddVal( frameNum, 1 );
+          }
+          HbondMap_.insert( it, std::pair<int,HbondType>(hbidx, HB) );
+        } else {
+          // Update existing hbond
+          it->second.Frames++;
+          it->second.dist += dist;
+          it->second.angle += angle;
+          if (series_) it->second.data_->AddVal( frameNum, 1 );
+        }
+      }
+    } // END acceptor loop
+  } // END donor loop
+  NumHbonds_->Add(frameNum, &numHB);
+# else
+  double dist, dist2, angle;
+  HBmapType::iterator it;
+  HbondType HB;
+
   int hbidx = 0; 
   int numHB=0;
   if (noIntramol_) {
@@ -612,7 +667,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
   } // END noIntramol
   NumHbonds_->Add(frameNum, &numHB);
   //mprintf("HBOND: Scanned %i hbonds.\n",hbidx);
-  
+# endif 
   if (calcSolvent_) {
     // Contains info about which residue(s) a Hbonding solvent mol is
     // Hbonded to.
