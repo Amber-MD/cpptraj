@@ -49,6 +49,7 @@ class Topology {
     atom_iterator begin()            const { return atoms_.begin(); }
     atom_iterator end()              const { return atoms_.end();   }
     const Atom &operator[](int idx)  const { return atoms_[idx];    }
+    Atom &operator[](int idx)              { return atoms_[idx];    }
     std::vector<Atom> const& Atoms() const { return atoms_;         }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;

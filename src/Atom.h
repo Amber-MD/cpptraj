@@ -54,6 +54,8 @@ class Atom {
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
     void SetChainID(char cin)                { chainID_ = cin;      }
+    void SetName(NameType aname)             { aname_ = aname;      }
+    void SetType(NameType atype)             { atype_ = atype;      }
     // Inline functions returning internal vars
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
