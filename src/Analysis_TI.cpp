@@ -113,7 +113,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddSet( dAout_ );
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
-    DataSet* ds = datasetlist->AddSetIdxAspect(DataSet::XYMESH, setname, *it, "TIcurve");
+    DataSet* ds = datasetlist->AddSetIdxAspect(DataSet::XYMESH, dAout_->Name(), *it, "TIcurve");
     if (ds == 0) return Analysis::ERR;
     ds->SetLegend( setname + "_Skip" + integerToString(*it) );
     if (curveout != 0) curveout->AddSet( ds );
