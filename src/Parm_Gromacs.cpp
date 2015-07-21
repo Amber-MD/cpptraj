@@ -46,6 +46,7 @@ int Parm_Gromacs::AdvanceToElse( BufferedLine& infile ) const {
           LineContainsKey(gmx_line, "#endif"))
         return 0;
     }
+    ptr = infile.Line();
   }
   mprinterr("Error: Missing #else or #endif\n");
   return 1;
