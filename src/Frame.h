@@ -101,6 +101,8 @@ class Frame {
     inline const int* iAddress()    const { return &remd_indices_[0]; }
     /// Set box alpha, beta, and gamma
     inline void SetBoxAngles(const double*);
+    /// Set box
+    void SetBox( Box const& b ) { box_ = b; }
     /// Set temperature
     void SetTemperature(double tIn) { T_ = tIn;   }
     /// Set time
