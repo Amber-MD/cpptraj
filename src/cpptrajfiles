@@ -111,6 +111,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Spline.cpp \
         Analysis_State.cpp \
         Analysis_Statistics.cpp \
+        Analysis_TI.cpp \
         Analysis_Timecorr.cpp \
         Analysis_VectorMath.cpp \
         Analysis_Wavelet.cpp \
@@ -234,6 +235,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
+        Traj_Gro.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
         Traj_PDBfile.cpp \

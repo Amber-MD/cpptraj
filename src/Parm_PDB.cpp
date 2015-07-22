@@ -19,6 +19,8 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   float occupancy, bfactor; // Read in occ/bfac
   std::vector<AtomExtra> extra; // Hold occ/bfac if not PQR
   std::vector<NameType> Icodes; // Hold residue icodes
+  BondArray bonds;              // Hold bonds
+  int barray[5];                // Hold CONECT atom and bonds
   char icode[2];                // For reading in icode.
   char altLoc = ' ';            // For reading in altLoc.
   icode[1] = '\0';
@@ -29,6 +31,15 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       // Box info from CRYST1 record.
       infile.pdb_Box( XYZ );
       TopIn.SetParmBox( XYZ );
+    } else if (infile.RecType() == PDBfile::CONECT) {
+      // BOND - first element will be atom, next few are bonded atoms.
+      // To avoid duplicates only add the bond if atom2 > atom1
+      int nscan = infile.pdb_Bonds(barray);
+      if (nscan > 1) {
+        for (int i = 1; i != nscan; i++)
+          if (barray[i] > barray[0])
+            bonds.push_back( BondType(barray[0] - 1, barray[i] - 1, -1) );
+      }
     } else if (infile.RecType() == PDBfile::ATOM) {
       // If this is an ATOM / HETATM keyword, add to topology.
       infile.pdb_XYZ( XYZ );
@@ -49,6 +60,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       if (infile.RecType() == PDBfile::END) break;
     }
   }
+  // Add bonds
+  //for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  //  TopIn.AddBond( bnd->A1(), bnd->A2() ); 
   if (TopIn.SetExtraAtomInfo(0, extra, Icodes)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.

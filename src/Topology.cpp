@@ -644,6 +644,59 @@ int Topology::CommonSetup(bool bondsearch) {
   if (molecules_.empty())  
     if (DetermineMolecules()) 
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  // Check that molecules do not share residue numbers. Only when bond searching.
+  // FIXME always check? 
+  if (bondsearch && !molecules_.empty() && molecules_.size() > 1) {
+    bool mols_share_residues = (molecules_.size() > residues_.size());
+    if (!mols_share_residues) {
+      // More in-depth check
+      for (std::vector<Molecule>::const_iterator mol = molecules_.begin() + 1;
+                                                 mol != molecules_.end(); ++mol)
+      {
+        int m0_resnum = atoms_[(mol-1)->BeginAtom()].ResNum();
+        int m1_resnum = atoms_[    mol->BeginAtom()].ResNum();
+        if (m0_resnum == m1_resnum) {
+          mols_share_residues = true;
+          break;
+        }
+      }
+    }
+    if (mols_share_residues) {
+      mprintf("Warning: 2 or more molecules share residue numbers.\n");
+      //if (bondsearch)
+        mprintf("Warning:   Either residue information is incorrect or molecule determination"
+                " was inaccurate.\n");
+      //else
+      //  mprintf("Warning: Residue information appears to be incorrect.\n");
+      mprintf("Warning:   Basing residue information on molecules.\n");
+      std::vector<Residue> newResArray;
+      unsigned int res_first_atom = 0;
+      while (res_first_atom < atoms_.size()) {
+        // Search for next atom with different res or molecule number.
+        int current_rnum = atoms_[res_first_atom].ResNum();
+        int current_mnum = atoms_[res_first_atom].MolNum();
+        unsigned int res_last_atom = res_first_atom;
+        while (res_last_atom != atoms_.size() &&
+               atoms_[res_last_atom].ResNum() == current_rnum &&
+               atoms_[res_last_atom].MolNum() == current_mnum)
+          ++res_last_atom; 
+        for (unsigned int r_atm = res_first_atom; r_atm != res_last_atom; ++r_atm)
+          atoms_[r_atm].SetResNum( newResArray.size() ); // TODO combine with above while
+        newResArray.push_back( Residue(residues_[current_rnum], res_first_atom, res_last_atom) );
+        res_first_atom = res_last_atom;
+      }
+      mprintf("Warning:   Old # residues= %zu, new # residues = %zu\n",
+              residues_.size(), newResArray.size());
+      residues_ = newResArray;
+      if (debug_ > 0)
+        for (std::vector<Residue>::const_iterator res = newResArray.begin();
+                                                  res != newResArray.end(); ++res)
+          mprintf("%s first=%i last=%i orig=%i icode=%c\n",
+                  res->c_str(), res->FirstAtom()+1, res->LastAtom(),
+                  res->OriginalResNum(), res->Icode());
+
+    }
+  }
   // Set up solvent information
   if (SetSolventInfo())
     mprinterr("Error: Could not determine solvent information for %s.\n", c_str());

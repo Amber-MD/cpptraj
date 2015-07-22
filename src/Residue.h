@@ -9,6 +9,11 @@ class Residue {
     Residue(int onum, NameType const& resname, int firstAtomIn) :
       resname_(resname), firstAtom_(firstAtomIn), originalResNum_(onum), icode_(' ')
     {}
+    // CONSTRUCTOR - Copy given Residue except first and last atom
+    Residue(Residue const& r, int first, int last) :
+      resname_(r.resname_), firstAtom_(first), lastAtom_(last),
+      originalResNum_(r.originalResNum_), icode_(r.icode_)
+    {}
     inline void SetLastAtom(int i)      { lastAtom_ = i;          }
     inline void SetOriginalNum(int i)   { originalResNum_ = i;    }
     inline void SetIcode(char c)        { icode_ = c;             }
@@ -22,7 +27,8 @@ class Residue {
     inline NameType const& Name() const { return resname_;        }
     inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
     inline bool NameIsSolvent()   const {
-      return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3");
+      return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3" ||
+              resname_=="SOL ");
     }
     /// Convert 3-letter residue code to single letter.
     static char ConvertResName(std::string const&);
