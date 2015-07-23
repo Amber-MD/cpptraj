@@ -352,7 +352,7 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
     for (int iat = 0; iat != trajParm->Natom(); iat++) {
       switch (radiiMode_) {
         case GB:    radii_.push_back( (*trajParm)[iat].GBRadius() ); break;
-        case PARSE: radii_.push_back( trajParm->GetParseRadius(iat) ); break;
+        case PARSE: radii_.push_back( (*trajParm)[iat].ParseRadius() ); break;
         case VDW:   radii_.push_back( trajParm->GetVDWradius(iat) ); break;
       }
     }

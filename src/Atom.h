@@ -84,6 +84,8 @@ class Atom {
     void AddExclusionList(std::set<int> const&);
     /// \return Optimal bond length based on element types
     static double GetBondLength(AtomicElementType, AtomicElementType);
+    /// \return PARSE radius based on element.
+    double ParseRadius() const;
   protected:
     static const size_t NUMELEMENTS = 76;
   private:

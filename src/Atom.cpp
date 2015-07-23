@@ -670,3 +670,18 @@ double Atom::GetBondLength(AtomicElementType atom1, AtomicElementType atom2) {
   return cut;
 }
 
+double Atom::ParseRadius() const {
+  double radius = 0.0;
+  switch (element_) {
+    case HYDROGEN:   radius = 1.0; break;
+    case CARBON:     radius = 1.7; break;
+    case NITROGEN:   radius = 1.5; break;
+    case OXYGEN:     radius = 1.4; break;
+    case PHOSPHORUS: radius = 2.0; break;
+    case SULFUR:     radius = 1.85; break;
+    default:
+      mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
+              ElementName(), radius);
+  }
+  return radius;
+}
