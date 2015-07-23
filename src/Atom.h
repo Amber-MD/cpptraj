@@ -74,8 +74,8 @@ class Atom {
     inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
-    void AddBond(int);
-    void ClearBonds();
+    void AddBondToIdx(int idxIn) { bonds_.push_back( idxIn ); }
+    void ClearBonds()            { bonds_.clear() ; }
     void SortBonds();
     // TODO: Use this routine in AtomMap etc
     /// \return true if this atom is bonded to given atom number
@@ -84,6 +84,8 @@ class Atom {
     void AddExclusionList(std::set<int> const&);
     /// \return Optimal bond length based on element types
     static double GetBondLength(AtomicElementType, AtomicElementType);
+    /// \return PARSE radius based on element.
+    double ParseRadius() const;
   protected:
     static const size_t NUMELEMENTS = 76;
   private:

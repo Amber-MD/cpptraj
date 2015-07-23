@@ -56,7 +56,7 @@ int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
       //mprintf("DEBUG:\t\tOriginal bond %u-%i", atom+1, *bndatm+1);
       if (*bndatm >= firstAtom && *bndatm < lastAtom) { 
         int newbndatm = *bndatm - firstAtom;
-        mapatoms_.back().AddBond(newbndatm);
+        mapatoms_.back().AddBondToIdx(newbndatm);
         //mprintf(", new bond %i-%i", mapatoms_.size(), newbndatm+1);
       }
       //mprintf("\n");
