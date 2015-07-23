@@ -865,8 +865,8 @@ double Topology::GetVDWradius(int a1) const {
 void Topology::SetAtomBondInfo(BondArray const& bonds) {
   // Add bonds based on array 
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    atoms_[ bnd->A1() ].AddBond( bnd->A2() );
-    atoms_[ bnd->A2() ].AddBond( bnd->A1() );
+    atoms_[ bnd->A1() ].AddBondToIdx( bnd->A2() );
+    atoms_[ bnd->A2() ].AddBondToIdx( bnd->A1() );
   }
 }
 
@@ -1014,8 +1014,8 @@ void Topology::AddBond(int atom1, int atom2) {
   } else
     bonds_.push_back( BondType( atom1, atom2, -1 ) );
   // Update atoms
-  atoms_[atom1].AddBond( atom2 );
-  atoms_[atom2].AddBond( atom1 );
+  atoms_[atom1].AddBondToIdx( atom2 );
+  atoms_[atom2].AddBondToIdx( atom1 );
 }
 
 void Topology::AddAngle(int atom1, int atom2, int atom3) {

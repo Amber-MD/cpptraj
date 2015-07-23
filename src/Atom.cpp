@@ -181,16 +181,6 @@ Atom &Atom::operator=(Atom other) {
   return *this;
 }
 
-// Atom::AddBond()
-void Atom::AddBond(int idxIn) {
-  bonds_.push_back( idxIn );
-}
-
-// Atom::ClearBonds()
-void Atom::ClearBonds() {
-  bonds_.clear();
-}
-
 // Atom::SortBonds()
 void Atom::SortBonds() {
   sort( bonds_.begin(), bonds_.end() );

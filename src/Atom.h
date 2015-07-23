@@ -74,8 +74,8 @@ class Atom {
     inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
-    void AddBond(int);
-    void ClearBonds();
+    void AddBondToIdx(int idxIn) { bonds_.push_back( idxIn ); }
+    void ClearBonds()            { bonds_.clear() ; }
     void SortBonds();
     // TODO: Use this routine in AtomMap etc
     /// \return true if this atom is bonded to given atom number
