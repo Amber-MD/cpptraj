@@ -37,7 +37,7 @@ class Traj_PDBfile: public TrajectoryIO {
     Topology *pdbTop_;
     PDBfile file_;
 
-    std::vector<char> chainID_;      ///< Hold chainID for each atom.
+    std::vector<char> chainID_;      ///< Hold chainID for each residue.
     std::vector<NameType> resNames_; ///< Hold residue names.
     char chainchar_;
 

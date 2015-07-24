@@ -466,8 +466,7 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
         if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
           int firstres = atoms_[ mol->BeginAtom() ].ResNum();
           mprintf("%*u %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, firstres+1, residues_[firstres].c_str(),
-                  atoms_[mol->BeginAtom()].ChainID());
+                  rwidth, firstres+1, residues_[firstres].c_str(), residues_[firstres].ChainID());
           if ( mol->IsSolvent() ) mprintf(" SOLVENT");
           mprintf("\n");
         }
@@ -506,7 +505,7 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
         loudPrintf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
                    awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
                    awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
-                   mwidth, atoms_[*atom].MolNum()+1, atoms_[*atom].ChainID());
+                   mwidth, atoms_[*atom].MolNum()+1, res.ChainID());
       }
     }
   }
@@ -585,17 +584,17 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-int Topology::AddTopAtom(Atom const& atomIn, int o_resnum, 
-                         NameType const& resname, const double* XYZin)
+int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double* XYZin)
 {
   // If no residues or res num has changed, this is a new residue.
-  if ( residues_.empty() || residues_.back().OriginalResNum() != o_resnum )
+  if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
       residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
-    residues_.push_back( Residue(o_resnum, resname, atoms_.size()) );
+    residues_.push_back( resIn );
+    residues_.back().SetFirstAtom( atoms_.size() );
   }
   atoms_.push_back(atomIn);
   // Set this atoms internal residue number 
@@ -708,14 +707,13 @@ int Topology::CommonSetup(bool bondsearch) {
 
 /** Reset any extended PDB info. */
 void Topology::ResetPDBinfo() {
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-    atom->SetChainID(' ');
   int rnum = 1;
   for (std::vector<Residue>::iterator res = residues_.begin(); 
                                       res != residues_.end(); ++res, ++rnum)
   {
     res->SetOriginalNum(rnum);
     res->SetIcode(' ');
+    res->SetChainID(' ');
   }
   for (std::vector<AtomExtra>::iterator ex = extra_.begin();
                                         ex != extra_.end(); ++ex)
@@ -725,6 +723,7 @@ void Topology::ResetPDBinfo() {
 /** For topology formats that do not contain residue info, base residues
   * on molecules.
   */
+// FIXME Can the routine in CommonSetup be used in place of this instead?
 int Topology::Setup_NoResInfo() {
   mprintf("\tAttempting to determine residue info from molecules.\n");
   if (DetermineMolecules()) {
@@ -757,7 +756,8 @@ int Topology::Setup_NoResInfo() {
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
-    residues_.push_back( Residue(resnum+1, res_name, mol->BeginAtom()) );
+    residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
+    residues_.back().SetFirstAtom( mol->BeginAtom() );
     residues_.back().SetLastAtom( mol->EndAtom() );
     // Update atom residue numbers
     for (int atnum = residues_.back().FirstAtom(); 
@@ -813,10 +813,9 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
 }
 
 /** This is for any extra information that is not necessarily pertinent to
-  * all topologies, like Ambers ITREE or PDB chain ID etc.
+  * all topologies, like Ambers ITREE or PDB B factors etc.
   */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
-                               std::vector<NameType> const& icodeIn) 
+int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
 {
   n_atom_types_ = natyp;
   if (!extraIn.empty()) {
@@ -826,20 +825,6 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
       return 1;
     }
     extra_ = extraIn;
-  }
-  if (!icodeIn.empty()) {
-    if (icodeIn.size() == residues_.size()) {
-      for (unsigned int i = 0; i != icodeIn.size(); i++)
-        residues_[i].SetIcode( icodeIn[i][0] );
-    } else if (icodeIn.size() == atoms_.size()) { // from e.g. PDB, CIF
-      for (unsigned int r = 0; r != residues_.size(); r++)
-        residues_[r].SetIcode( icodeIn[residues_[r].FirstAtom()][0] );
-    } else {
-      mprinterr("Error: Size of residue insertion codes (%zu) != # "
-                " residues (%zu) or # atoms (%zu)\n",
-                icodeIn.size(), residues_.size(), atoms_.size());
-      return 1;
-    }
   }
   return 0;
 }
@@ -1311,8 +1296,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     if ( curres != oldres ) {
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
-      newParm->residues_.push_back( Residue(residues_[curres].OriginalResNum(),
-                                            residues_[curres].Name(), newatom) );
+      Residue const& cr = residues_[curres];
+      newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
+                                            cr.Icode(), cr.ChainID()) );
+      newParm->residues_.back().SetFirstAtom( newatom );
       oldres = curres;
     }
     // Clear bond information from new atom
@@ -1639,7 +1626,7 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, res.OriginalResNum(), res.Name(), 0 );
+    AddTopAtom( CurrentAtom, res, 0 );
   }
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  atomOffset);

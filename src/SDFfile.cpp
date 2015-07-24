@@ -45,7 +45,7 @@ int SDFfile::SDF_XYZ(double* XYZ) {
 }
 
 Atom SDFfile::SDF_Atom() {
-  return Atom( NameType(Name_), ' ', Name_ );
+  return Atom( NameType(Name_), Name_ );
 }
 
 int SDFfile::SDF_Bond(int& at1, int& at2) {

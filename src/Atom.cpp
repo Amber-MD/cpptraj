@@ -60,14 +60,14 @@ const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
 // CONSTRUCTOR
 Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),
                gb_screen_(0.0), aname_(""), atype_(""), atype_index_(0),
-               element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0), chainID_(' ')
+               element_(UNKNOWN_ELEMENT), resnum_(0), mol_(0)
 {}
 
 /** If no 2 char element name provided, try to guess from name. */ 
-Atom::Atom(NameType const& aname, char cid, const char* elt) :
+Atom::Atom(NameType const& aname, const char* elt) :
   charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(cid)
+  resnum_(0), mol_(0)
 {
   if (elt ==0 || (elt[0]==' ' && elt[1]==' '))
     SetElementFromName();
@@ -80,7 +80,7 @@ Atom::Atom(NameType const& aname, char cid, const char* elt) :
 Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
   charge_(q), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(' ')
+  resnum_(0), mol_(0)
 {
   SetElementFromName();
   mass_ = AtomicElementMass[ element_ ];
@@ -90,7 +90,7 @@ Atom::Atom( NameType const& aname, NameType const& atype, double q ) :
 Atom::Atom( NameType const& aname, NameType const& atype, int atidx ) :
   charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(' ')
+  resnum_(0), mol_(0)
 {
   SetElementFromName();
   mass_ = AtomicElementMass[ element_ ];
@@ -122,18 +122,17 @@ void Atom::DetermineElement(int atomicnum) {
 Atom::Atom(NameType const& aname, double charge, double mass, NameType const& atype) :
   charge_(charge), polar_(0.0), mass_(mass), gb_radius_(0.0), gb_screen_(0.0),
   aname_(aname), atype_(atype), atype_index_(0), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(' ')
+  resnum_(0), mol_(0)
 {
   DetermineElement(0);
 }
 
 // CONSTRUCTOR
 Atom::Atom( NameType const& name, double charge, double polar, int atomicnum, 
-            double mass, int atidx, NameType const& type, double rad, double screen,
-            char cID ) :
+            double mass, int atidx, NameType const& type, double rad, double screen) :
   charge_(charge), polar_(polar), mass_(mass), gb_radius_(rad), gb_screen_(screen),
   aname_(name), atype_(type), atype_index_(atidx), element_(UNKNOWN_ELEMENT),
-  resnum_(0), mol_(0), chainID_(cID)
+  resnum_(0), mol_(0)
 {
   DetermineElement(atomicnum);
 }
@@ -151,7 +150,6 @@ Atom::Atom(const Atom &rhs) :
   element_(rhs.element_),
   resnum_(rhs.resnum_),
   mol_(rhs.mol_),
-  chainID_(rhs.chainID_),
   bonds_(rhs.bonds_),
   excluded_(rhs.excluded_)
 { }
@@ -170,7 +168,6 @@ void Atom::swap(Atom &first, Atom &second) {
   swap(first.element_, second.element_);
   swap(first.resnum_, second.resnum_);
   swap(first.mol_, second.mol_);
-  swap(first.chainID_, second.chainID_);
   swap(first.bonds_, second.bonds_);
   swap(first.excluded_, second.excluded_);
 }
