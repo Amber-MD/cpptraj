@@ -228,15 +228,15 @@ int Traj_PDBfile::setupTrajout(std::string const& fname, Topology* trajParm,
       mprintf("Warning: 'append' not compatible with 'multi' pdb write.\n");
     if (file_.SetupWrite( fname, debug_ )) return 1;
   }
-  // Set a chainID for each atom
+  // Set a chainID for each residue 
   // TODO: Set different chain ID for solute mols and solvent
   chainID_.clear();
   if (chainchar_ == ' ') {
-    chainID_.reserve( pdbAtom_ );
-    for (Topology::atom_iterator atom = trajParm->begin(); atom != trajParm->end(); ++atom)
-      chainID_.push_back( atom->ChainID() );
+    chainID_.reserve( trajParm->Nres() );
+    for (Topology::res_iterator res = trajParm->ResStart(); res != trajParm->ResEnd(); ++res)
+      chainID_.push_back( res->ChainID() );
   } else
-    chainID_.resize(pdbAtom_, chainchar_);
+    chainID_.resize(trajParm->Nres(), chainchar_);
         
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
@@ -414,7 +414,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "HO'2") atomName = "HO2'";
       }
       file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
-                       chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
+                       chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
@@ -423,7 +423,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (aidx == *terIdx) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
-                              chainID_[aidx], pdbTop_->Res(res).OriginalResNum(),
+                              chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                               pdbTop_->Res(res).Icode());
       anum += ter_num_;
       ++terIdx;

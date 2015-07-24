@@ -1131,15 +1131,16 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
     // Add total # atoms to resnums.
     resnums.push_back( values[NATOM]+1 ); 
     int ri = 0;
-    // If any optional arrays are empty, fill with zeros.
-    if (at_num.empty()) at_num.resize(values[NATOM], 0);
-    if (gb_radii.empty()) gb_radii.resize(values[NATOM], 0);
-    if (gb_screen.empty()) gb_screen.resize(values[NATOM], 0);
-    if (polar.empty()) polar.resize(values[NATOM], 0);
+    // If any optional arrays are empty, fill with defaults.
+    if (at_num.empty()) at_num.assign(values[NATOM], 0);
+    if (gb_radii.empty()) gb_radii.assign(values[NATOM], 0);
+    if (gb_screen.empty()) gb_screen.assign(values[NATOM], 0);
+    if (polar.empty()) polar.assign(values[NATOM], 0);
     if (pdb_resnum.empty())
       for (int rnum = 1; rnum <= values[NRES]; rnum++)
         pdb_resnum.push_back( rnum );
     if (pdb_res_chainID.empty()) pdb_res_chainID.resize(values[NRES]);
+    if (pdb_res_icode.empty()) pdb_res_icode.resize(values[NRES]);
     if (pdb_atom_alt.empty()) pdb_atom_alt.resize(values[NATOM]);
     // Add atoms to topology.
     for (int ai = 0; ai < values[NATOM]; ai++) {
@@ -1148,8 +1149,9 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
       // NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0 
       TopIn.AddTopAtom( Atom(names[ai], charge[ai] * Constants::AMBERTOELEC, polar[ai],
                              at_num[ai], mass[ai], atype_index[ai] - 1, types[ai],
-                             gb_radii[ai], gb_screen[ai], pdb_res_chainID[ri][0]),
-                        pdb_resnum[ri], resnames[ri], 0 );
+                             gb_radii[ai], gb_screen[ai]),
+                        Residue(resnames[ri], pdb_resnum[ri], 
+                                pdb_res_icode[ri][0], pdb_res_chainID[ri][0]), 0 );
     }
     // NOTE: Shift indices in parm arrays by -1
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, BPA);
@@ -1189,7 +1191,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
           extra.push_back( AtomExtra(itree[n], join_array[n], irotat[n], pdb_atom_alt[n][0]) );
       }
     }
-    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra, pdb_res_icode);
+    error_count_ += TopIn.SetExtraAtomInfo(values[NATYP], extra);
     if (values[IFBOX]>0) 
       TopIn.SetParmBox( parmbox );
     TopIn.SetChamber( chamberParm );

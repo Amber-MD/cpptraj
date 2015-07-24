@@ -93,7 +93,6 @@ Atom PDBfile::pdb_Atom(char& altLoc) {
   NameType aname(linebuffer_+12);
   aname.ReplaceAsterisk();
   linebuffer_[16] = altLoc;
-  // Chain ID (21)
   // Element (76-77), Protect against broken PDB files (lines too short).
   char eltString[2]; eltString[0] = ' '; eltString[1] = ' ';
   if (lineLength > 77) {
@@ -103,18 +102,26 @@ Atom PDBfile::pdb_Atom(char& altLoc) {
     mprintf("Warning: PDB line length is short (%zu chars, expected 80).\n", lineLength);
     lineLengthWarning_ = true;
   }
-  // Set atom info.
-  Atom outAtom(aname, linebuffer_[21], eltString);
   // NOTE: Additional values:
   //       10 chars between Bfactor and element: buffer[66] to buffer[75]
   //       Charge: buffer[78] and buffer[79]
-  return outAtom;
+  return Atom(aname, eltString);
 }
 
-void PDBfile::pdb_OccupanyAndBfactor(float& occ, float& bfac) {
-  // Occupancy (54-59) | charge
-  // B-factor (60-65) | radius
-  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
+Residue PDBfile::pdb_Residue() {
+  // Res name (17-20), Replace asterisks with single quotes.
+  char savechar = linebuffer_[20];
+  linebuffer_[20] = '\0';
+  NameType resName(linebuffer_+17);
+  linebuffer_[20] = savechar;
+  resName.ReplaceAsterisk();
+  // Chain ID (21)
+  // Res num (22-26), insertion code (26)
+  char icode = linebuffer_[26];
+  linebuffer_[26] = '\0';
+  int resnum = atoi( linebuffer_+22 );
+  linebuffer_[26] = icode;
+  return Residue( resName, resnum, icode, linebuffer_[21] );
 }
 
 // PDBfile::pdb_XYZ()
@@ -137,6 +144,12 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
+void PDBfile::pdb_OccupanyAndBfactor(float& occ, float& bfac) {
+  // Occupancy (54-59) | charge
+  // B-factor (60-65) | radius
+  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
+}
+
 void PDBfile::pdb_Box(double* box) const {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
   // A=6-15 B=15-24 C=24-33 alpha=33-40 beta=40-47 gamma=47-54
@@ -155,26 +168,6 @@ int PDBfile::pdb_Bonds(int* bnd) const {
   if (Nscan < 2)
     mprintf("Warning: Malformed CONECT record: %s", linebuffer_);
   return Nscan;
-}
-
-// TODO: Should chainID read go here?
-NameType PDBfile::pdb_ResName() {
-  // Res name (17-20), Replace asterisks with single quotes.
-  char savechar = linebuffer_[20];
-  linebuffer_[20] = '\0';
-  NameType resName(linebuffer_+17);
-  linebuffer_[20] = savechar;
-  resName.ReplaceAsterisk();
-  return resName;
-}
-
-int PDBfile::pdb_ResNum(char& icode) {
-  // Res num (22-26), insertion code (26)
-  icode = linebuffer_[26];
-  linebuffer_[26] = '\0';
-  int resnum = atoi( linebuffer_+22 );
-  linebuffer_[26] = icode;
-  return resnum;
 }
 
 // -----------------------------------------------------------------------------
