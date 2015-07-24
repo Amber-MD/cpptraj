@@ -25,13 +25,13 @@ int Parm_Tinker::ReadParm(std::string const& fname, Topology &parmOut) {
                                    c != infile.TinkerTitle().end(); ++c)
     resname += *c;
   if (resname.size() > 3) resname.resize(3);
-  NameType tinker_res( resname );
+  Residue tinker_res( resname, 0, ' ', ' ' );
   // Put atoms into topology
   const double* XYZ = Coords;
   for (std::vector<Atom>::const_iterator atom = Atoms.begin();
                                          atom != Atoms.end();
                                        ++atom, XYZ += 3)
-    parmOut.AddTopAtom( *atom, 0, tinker_res, XYZ );
+    parmOut.AddTopAtom( *atom, tinker_res, XYZ );
   delete[] Coords;
   // Add bond information
   for (std::vector<int>::const_iterator bond = Bonds.begin();

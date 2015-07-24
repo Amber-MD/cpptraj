@@ -2,6 +2,7 @@
 #define INC_PDBFILE_H
 #include "CpptrajFile.h"
 #include "Atom.h"
+#include "Residue.h"
 /// Used to access PDB files
 class PDBfile : public CpptrajFile {
   public:
@@ -13,22 +14,20 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
-    /// \return Atom info with name, chain, and element for ATOM/HETATM; set altLoc.
+    /// \return Atom info with name and element for ATOM/HETATM; set altLoc.
     Atom pdb_Atom(char&);
-    /// \return Atom info with name, chain, and element for ATOM/HETATM
+    /// \return Atom info with name and element for ATOM/HETATM.
     Atom pdb_Atom() { char al; return pdb_Atom(al); }
-    /// Get occupancy and B-factor from ATOM/HETATM record.
-    void pdb_OccupanyAndBfactor(float&, float&);
+    /// \return Residue info with name, number, icode, and chainID for ATOM/HETATM.
+    Residue pdb_Residue();
     /// Set given XYZ array with coords from ATOM/HETATM record.
     void pdb_XYZ(double*);
+    /// Get occupancy and B-factor from ATOM/HETATM record.
+    void pdb_OccupanyAndBfactor(float&, float&);
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
     void pdb_Box(double*) const;
     /// Set given array with atom and #s of bonded atoms from CONECT record.
     int pdb_Bonds(int*) const;
-    /// \return Residue name, only valid for ATOM/HETATM record.
-    NameType pdb_ResName();
-    /// \return Residue number/icode, only valid for ATOM/HETATM record.
-    int pdb_ResNum(char&);
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
 

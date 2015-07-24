@@ -12,7 +12,6 @@ bool Parm_Mol2::ID_ParmFormat(CpptrajFile& fileIn) {
 /** Read file as a Tripos Mol2 file. */
 int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
   Mol2File infile;
-  int current_res = 0;
   if (infile.OpenRead(fname)) return 1;
   mprintf("    Reading Mol2 file %s as topology file.\n",infile.Filename().base());
   // Get @<TRIPOS>MOLECULE information
@@ -24,8 +23,7 @@ int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
   double XYZ[3];
   for (int atom=0; atom < infile.Mol2Natoms(); atom++) {
     if ( infile.Mol2XYZ(XYZ) ) return 1;
-    NameType mol2resname = infile.Mol2Residue(current_res);
-    parmOut.AddTopAtom( infile.Mol2Atom(), current_res, mol2resname, XYZ );
+    parmOut.AddTopAtom( infile.Mol2Atom(), infile.Mol2Residue(), XYZ );
   }
 
   // Get @<TRIPOS>BOND information [optional]

@@ -17,7 +17,8 @@ int Parm_SDF::ReadParm(std::string const& fname, Topology &parmOut) {
   // Read header
   if (infile.ReadHeader()) return 1;
   parmOut.SetParmName( infile.SDF_Title(), infile.Filename() );
-  // Read atoms
+  // Read atoms. Put everything in same residue.
+  Residue sdf_res("LIG", 0, ' ', ' ');
   double XYZ[3];
   for (int i = 0; i < infile.SDF_Natoms(); i++) {
     if ( infile.SDF_XYZ( XYZ ) ) {
@@ -25,7 +26,7 @@ int Parm_SDF::ReadParm(std::string const& fname, Topology &parmOut) {
       return 1;
     }
     // Put everything in same residue
-    parmOut.AddTopAtom( infile.SDF_Atom(), 0, NameType("LIG"), XYZ );
+    parmOut.AddTopAtom( infile.SDF_Atom(), sdf_res, XYZ );
   }
   // Read bonds
   int at1, at2;

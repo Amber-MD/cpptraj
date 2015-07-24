@@ -125,13 +125,12 @@ class Topology {
     inline Box::BoxType BoxType() const { return coordInfo_.TrajBox().Type(); }
     void SetParmBox( Box const& bIn )   { coordInfo_.SetBox( bIn );           }
     // ----- Setup routines ----------------------
-    int AddTopAtom(Atom const&, int, NameType const&, const double*);
+    int AddTopAtom(Atom const&, Residue const&, const double*);
     void StartNewMol();
     int CommonSetup(bool);
     void ResetPDBinfo();
     int Setup_NoResInfo();
-    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&,
-                         std::vector<NameType> const&);
+    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;

@@ -39,8 +39,9 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
                   Vec.legend(), Vec.Size(), vec_size);
         return 1;
       }
-      pseudo.AddTopAtom(Atom("OXYZ", ' ', 0), nres, "VEC", 0);
-      pseudo.AddTopAtom(Atom("VXYZ", ' ', 0), nres, "VEC", 0);
+      Residue vec_res("VEC", nres, ' ', ' ');
+      pseudo.AddTopAtom(Atom("OXYZ", 0), vec_res, 0);
+      pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res, 0);
       pseudo.AddBond(natom, natom+1);
       natom += 2;
       ++nres;
