@@ -3,9 +3,6 @@
 #include "Action_AtomMap.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
-#ifdef NEW_MAP_CODE
-#include "Hungarian.h"
-#endif
 
 // CONSTRUCTOR
 Action_AtomMap::Action_AtomMap() :
@@ -523,91 +520,6 @@ int Action_AtomMap::MapUniqueAtoms(AtomMap& Ref, AtomMap& Tgt) {
   */
 // NOTE: Also store the number of atoms mapped?
 int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
-# ifdef NEW_MAP_CODE
-  Hungarian H_matrix;
-
-  // Make reference atoms correspond to rows, target atoms correspond to cols.
-  int nrows = Ref.Natom();
-  int ncols = Tgt.Natom();
-  bool has_dummy = false;
-  // Ensure the matrix is square.
-  if (nrows < ncols) {
-    nrows = ncols;
-    has_dummy = true;
-  } else if (ncols < nrows) {
-    ncols = nrows;
-    has_dummy = true;
-  }
-  mprintf("DEBUG: %i ref atoms, %i tgt atoms, matrix is %i cols x %i rows.\n",
-          Ref.Natom(), Tgt.Natom(), ncols, nrows);
-  H_matrix.Initialize( ncols );
-  double maxdist = 0.0;
-  for (int ridx = 0; ridx != nrows; ridx++) {
-    for (int tidx = 0; tidx != ncols; tidx++) {
-      mprintf("\tRow(ref) %i, Col(tgt) %i:\n", ridx+1, tidx+1);
-      double dist;
-      if (ridx >= Ref.Natom() || tidx >= Tgt.Natom()) {
-        // This is a dummy row/column. Set dist to -1.0
-        dist = -1.0;
-      } else {
-        mprintf("\t\tR: %s\n", Ref[ridx].Unique().c_str() );
-        mprintf("\t\tT: %s\n", Tgt[tidx].Unique().c_str() );
-        dist = 0.0;
-        // Make the distance be the difference between the unique strings.
-/*        std::string::const_iterator u_ref = Ref[ridx].Unique().begin();
-        std::string::const_iterator u_tgt = Tgt[tidx].Unique().begin();
-        bool ref_end = false;
-        bool tgt_end = false;
-        while ( !ref_end || !tgt_end )
-        {
-          ref_end = ( u_ref == Ref[ridx].Unique().end() );
-          tgt_end = ( u_tgt == Tgt[tidx].Unique().end() );
-          if (ref_end || tgt_end)
-            dist = dist + 1.0;
-          else if (!ref_end && !tgt_end) {
-            if (*u_ref != *u_tgt)
-              dist = dist + 1.0;
-          }
-          if (!ref_end) ++u_ref;
-          if (!tgt_end) ++u_tgt;
-        }*/
-      }
-      maxdist = std::max(dist, maxdist);
-      mprintf("\t\tDist= %g\n", dist);
-      H_matrix.AddElement( dist );
-    }
-  }
-  mprintf("DEBUG: Max dist= %g\n", maxdist);
-  // Replace any dummy values with the max
-  if (has_dummy) {
-    mprintf("DEBUG: Replacing dummy values with max dist.\n");
-    for (Hungarian::iterator hval = H_matrix.begin(); hval != H_matrix.end(); ++hval)
-      if (*hval < 0.0)
-        *hval = maxdist;
-  }
-  mprintf("DEBUG: Matrix:\n");
-  Hungarian::iterator hval = H_matrix.begin();
-  for (int row = 0; row != nrows; row++) {
-    for (int col = 0; col != ncols; col++)
-      mprintf(" %4.1f", *(hval++));
-    mprintf("\n");
-  }
-  // Optimize: returns Map[col]=row (Map[tgt]=ref)
-  std::vector<int> temp_map = H_matrix.Optimize();
-  for (int t = 0; t != (int)temp_map.size(); t++) {
-    int r = temp_map[t];
-    if ( r < 0 )
-      mprintf("Warning: Target %u was not mapped.\n", t+1);
-    else if ( r < Ref.Natom() && t < Tgt.Natom() ) {
-      AMap_[r] = t;
-      Tgt[t].SetMapped();
-      Ref[r].SetMapped();
-      mprintf("\t tgt %u %s == ref %u %s\n", t+1, Tgt[t].c_str(), r+1, Ref[r].c_str());
-    }
-  }
-  return 0;
-# else
-  // OLD MAP CODE
   std::list<int> refGuess;
   std::list<int> tgtGuess;
   double lowestRMS = 0;
@@ -702,7 +614,6 @@ int Action_AtomMap::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
     AMap_ = bestMap;
   }
   return 0;
-# endif
 }
 
 // Action_AtomMap::MapAtoms()

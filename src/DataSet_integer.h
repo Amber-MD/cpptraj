@@ -13,7 +13,6 @@ class DataSet_integer : public DataSet_1D {
     void AddElement(int i)            { Data_.push_back( i );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)        { Data_.resize(sizeIn, 0);   }
-    void Clear()                      { Data_.clear();             }
     inline void AddVal(size_t, int);
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
