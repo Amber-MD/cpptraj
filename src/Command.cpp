@@ -1801,14 +1801,26 @@ Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::Alloc
   return Command::C_OK;
 }
 
+static void Help_ScaleDihedralK() {
+  mprintf("\t<scale factor> [<mask> [useall]]\n");
+}
+
 /// Scale dihedral force constants in specfied parm by factor.
 Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.PFL()->GetParm( argIn );
   if (parm == 0) return Command::C_ERR;
   double scale_factor = argIn.getNextDouble(1.0);
+  std::string maskexpr = argIn.GetMaskNext();
+  bool useAll = argIn.hasKey("useall");
   mprintf("\tScaling dihedral force constants in %s by %f\n", parm->c_str(), scale_factor);
-  parm->ScaleDihedralK( scale_factor );
+  if (!maskexpr.empty()) {
+    if (useAll)
+      mprintf("\tAll atoms in mask '%s' must be present to select dihedral.\n",maskexpr.c_str());
+    else
+      mprintf("\tAny atom in mask '%s' will select a dihedral.\n",maskexpr.c_str());
+  }
+  parm->ScaleDihedralK( scale_factor, maskexpr, useAll );
   return Command::C_OK;
 }
 
@@ -1952,7 +1964,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "printbonds",    0, Help_BondInfo,        BondInfo        },
   { PARM,    "printdihedrals",0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
-  { PARM,    "scaledihedralk",0, 0,                    ScaleDihedralK  },
+  { PARM,    "scaledihedralk",0, Help_ScaleDihedralK,  ScaleDihedralK  },
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
