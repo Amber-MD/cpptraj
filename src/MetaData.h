@@ -3,7 +3,8 @@
 #include <string>
 class MetaData {
   public:
-    MetaData() : ensembleNum_(-1), idx_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED) {}
+    MetaData() : ensembleNum_(-1), idx_(-1), scalarmode_(UNKNOWN_MODE),
+                 scalartype_(UNDEFINED), isTimeSeries_(false) {}
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
       M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
@@ -33,7 +34,7 @@ class MetaData {
     static const char* TypeString(scalarType t) { return Stypes[t]; }
     /// Set default legend from name/aspect/index/ensemble num
     void SetDefaultLegend();
-    /// \return string containing name based on metadata
+    /// \return string containing name based on MetaData
     std::string PrintName() const;
     /// \return true if given MetaData matches this exactly.
     bool Match_Exact(MetaData const&) const;
@@ -43,6 +44,7 @@ class MetaData {
     std::string const& Legend() const { return legend_;      }
     int Idx()                   const { return idx_;         }
     int EnsembleNum()           const { return ensembleNum_; }
+    bool IsTimeSeries()         const { return isTimeSeries_;}
   private:
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type
@@ -54,6 +56,7 @@ class MetaData {
     int idx_;                 ///< DataSet index
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
+    bool isTimeSeries_;       ///< true if DataSet is a time series.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 bool MetaData::operator<(const MetaData& rhs) const {

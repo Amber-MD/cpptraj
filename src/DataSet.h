@@ -25,10 +25,14 @@ class DataSet {
       COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3
     };
+    /// Group DataSet belongs to if applicable.
+    enum DataGroup {
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES
+    };
 
     DataSet();
     /// Set DataSet type, width, precision, and dimension.
-    DataSet(DataType,int,int,int);
+    DataSet(DataType,DataGroup,int,int,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
@@ -58,9 +62,9 @@ class DataSet {
                     Range const&, DataType) const;
     /// \return true if given metadata matches this set metadat exactly.
     bool Matches_Exact(MetaData const& m) const { return meta_.Match_Exact(m); }
-    /// True if DataSet is empty. 
+    /// \return True if DataSet is empty.
     bool Empty()                const { return (Size() == 0);      }
-    /// DataSet output label.
+    /// \return DataSet output label.
     const char* legend()        const { return meta_.Legend().c_str();    }
     /// \return DataSet MetaData
     MetaData const& Meta()      const { return meta_; }
@@ -68,10 +72,10 @@ class DataSet {
     int ColumnWidth()           const { return colwidth_;          }
     /// \return DataSet type.
     DataType Type()             const { return dType_;             }
+    /// \return DataSet group
+    DataGroup Group()           const { return dGroup_;            }
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
-    /// \return true if set is a coordinate set type.
-    bool IsCoordSet()           const { return (dType_ == COORDS || dType_ == TRAJ); }
     /// \return specified DataSet dimension.
     Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension&       Dim(int i)             { return dim_[i];      }
@@ -94,6 +98,7 @@ class DataSet {
     typedef std::vector<Dimension> DimArray;
     DimArray dim_;            ///< Holds info for each dimension in the DataSet.
     DataType dType_;          ///< The DataSet type
+    DataGroup dGroup_;        ///< The DataSet group
     int colwidth_;            ///< The total output width of a data element.
     int width_;               ///< The output width of numbers in a data element.
     int precision_;           ///< The output precision of numbers in a data element.

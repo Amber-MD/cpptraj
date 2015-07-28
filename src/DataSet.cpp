@@ -7,17 +7,19 @@
 DataSet::DataSet() :
   data_format_(0),
   dType_(UNKNOWN_DATA),
+  dGroup_(GENERIC),
   colwidth_(0),
   width_(0),
   precision_(0),
   leftAlign_(false)
 { }
 
-/// CONSTRUCTOR - Take type, width, precision, and dimension
-DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
+/// CONSTRUCTOR - Take type, group, width, precision, and dimension
+DataSet::DataSet(DataType typeIn, DataGroup groupIn, int widthIn, int precisionIn, int dimIn) :
   data_format_(0),
   dim_(dimIn),
   dType_(typeIn),
+  dGroup_(groupIn),
   colwidth_(widthIn),
   width_(widthIn),
   precision_(precisionIn),
@@ -31,6 +33,7 @@ DataSet::DataSet(const DataSet& rhs) :
   data_format_(0),
   dim_(rhs.dim_),
   dType_(rhs.dType_),
+  dGroup_(rhs.dGroup_),
   colwidth_(rhs.colwidth_),
   width_(rhs.width_),
   precision_(rhs.precision_),
@@ -47,6 +50,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   if (this != &rhs) {
     dim_ = rhs.dim_;
     dType_ = rhs.dType_;
+    dGroup_ = rhs.dGroup_;
     colwidth_ = rhs.colwidth_;
     width_ = rhs.width_;
     precision_ = rhs.precision_;
