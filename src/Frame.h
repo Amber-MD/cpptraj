@@ -36,6 +36,8 @@ class Frame {
     ~Frame();
     /// Set up empty frame for given # of atoms.
     Frame(int);
+    /// Set up Frame as a memoryview. mostly for pytraj.
+    Frame(int, double*);
     /// Set up to be the size of given atom array (including masses).
     Frame(std::vector<Atom> const&);
     /// Copy input frame according to input mask.

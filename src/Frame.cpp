@@ -56,6 +56,20 @@ Frame::Frame(int natomIn) :
     X_ = new double[ ncoord_ ];
 }
 
+Frame::Frame(int natomIn, double* ptr) :
+  natom_(natomIn),
+  maxnatom_(natomIn),
+  ncoord_(natomIn*3), 
+  T_(0.0),
+  time_(0.0),
+  X_(0),
+  V_(0),
+  Mass_(natomIn, 1.0)
+{
+  if (ncoord_ > 0)
+    X_ = ptr;
+}
+
 // CONSTRUCTOR
 Frame::Frame(std::vector<Atom> const& atoms) :
   natom_(atoms.size()),
