@@ -195,6 +195,7 @@ SOURCES=ActionFrameCounter.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
+        MetaData.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NetcdfFile.cpp \

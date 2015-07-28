@@ -25,6 +25,8 @@ class MetaData {
     std::string ScalarDescription() const;
     /// \return scalarMode that matches input keyword.
     static scalarMode ModeFromKeyword(std::string const&);
+    /// \return true if DataSet is periodic.
+    bool IsTorsionArray() const;
     /// \return scalarType that matches keyword; check that mode is valid if specified.
     static scalarType TypeFromKeyword(std::string const&, scalarMode&);
     static scalarType TypeFromKeyword(std::string const&, scalarMode const&);
@@ -70,5 +72,7 @@ bool MetaData::operator<(const MetaData& rhs) const {
     return ( name_ < rhs.name_ );
   }
 }
-
+bool MetaData::IsTorsionArray() const {
+  return ( scalarmode_ == M_TORSION || scalarmode_ == M_PUCKER || scalarmode_ == M_ANGLE );
+}
 #endif

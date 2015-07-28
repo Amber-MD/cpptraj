@@ -26,7 +26,6 @@ class DataSet_1D : public DataSet {
     /// \return the value of the X coordinate at position.
     virtual double Xcrd(size_t) const = 0;
     // -------------------------------------------
-    inline bool IsTorsionArray() const;
     double Avg()           const { return Avg( 0 ); }
     double Avg(double& sd) const { return Avg(&sd); }
     double Min() const;
@@ -37,13 +36,4 @@ class DataSet_1D : public DataSet {
     double Avg(double*) const;
     static inline bool GoodCalcType(DataSet_1D const&);
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-/// \return true if DataSet is cyclic.
-bool DataSet_1D::IsTorsionArray() const {
-  if (ScalarMode() == DataSet::M_TORSION ||
-      ScalarMode() == DataSet::M_PUCKER  ||
-      ScalarMode() == DataSet::M_ANGLE     )
-    return true;
-  return false;
-}
 #endif
