@@ -25,6 +25,7 @@ const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 // ---------- CONSTRUCTION/DESTRUCTION/ASSIGNMENT ------------------------------
 /// CONSTRUCTOR
 Frame::Frame( ) : 
+  only_free_V(false),
   natom_(0),
   maxnatom_(0),
   ncoord_(0),
@@ -37,12 +38,18 @@ Frame::Frame( ) :
 /// DESTRUCTOR
 // Defined since this class can be inherited.
 Frame::~Frame( ) { 
-  if (X_ != 0) delete[] X_;
-  if (V_ != 0) delete[] V_;
+  if (only_free_V) {
+        if (V_ != 0) delete[] V_;
+   }
+  else {
+    if (X_ != 0) delete[] X_;
+    if (V_ != 0) delete[] V_;
+  }
 }
 
 // CONSTRUCTOR
 Frame::Frame(int natomIn) :
+  only_free_V(false),
   natom_(natomIn),
   maxnatom_(natomIn),
   ncoord_(natomIn*3), 
@@ -57,6 +64,7 @@ Frame::Frame(int natomIn) :
 }
 
 Frame::Frame(int natomIn, double* ptr) :
+  only_free_V(true),
   natom_(natomIn),
   maxnatom_(natomIn),
   ncoord_(natomIn*3), 
@@ -72,6 +80,7 @@ Frame::Frame(int natomIn, double* ptr) :
 
 // CONSTRUCTOR
 Frame::Frame(std::vector<Atom> const& atoms) :
+  only_free_V(false),
   natom_(atoms.size()),
   maxnatom_(natom_),
   ncoord_(natom_*3),
@@ -90,6 +99,7 @@ Frame::Frame(std::vector<Atom> const& atoms) :
 
 // CONSTRUCTOR
 Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) : 
+  only_free_V(false),
   natom_( maskIn.Nselected() ),
   maxnatom_(natom_),
   ncoord_(natom_*3),
@@ -131,6 +141,7 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
 
 // COPY CONSTRUCTOR
 Frame::Frame(const Frame& rhs) :
+  only_free_V(false),
   natom_(rhs.natom_),
   maxnatom_(rhs.maxnatom_),
   ncoord_(rhs.ncoord_),
