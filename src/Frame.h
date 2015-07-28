@@ -196,7 +196,7 @@ class Frame {
     int RecvFrame(int);
 #   endif
   private:
-    bool only_free_V;
+    bool OnlyFreeV_;
     typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;
     static const size_t BOXSIZE_;
