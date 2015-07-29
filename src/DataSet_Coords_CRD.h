@@ -10,8 +10,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     int Sync()          { return 1;              }
     void Info() const;
     void Add(size_t, const void*) {}
+    int Allocate(DataSet::SizeArray const&);
     // ----- DataSet_Coords functions ------------
-    int AllocateCoords(size_t);
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 
       coords_.push_back( fIn.ConvertToCRD(numBoxCrd_, hasVel_) ); 

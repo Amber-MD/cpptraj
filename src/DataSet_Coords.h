@@ -7,10 +7,13 @@ class DataSet_Coords : public DataSet {
   public:
     DataSet_Coords() : numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     DataSet_Coords(DataSet::DataType t) : 
-      DataSet(t, 8, 3, 4), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
+      DataSet(t, DataSet::COORDINATES, 8, 3, 1), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     virtual ~DataSet_Coords() {}
-    /// Allocate memory for a certain number of frames.
-    virtual int AllocateCoords(size_t) = 0;
+    // -------------------------------------------
+    // NOTE: Disabled for all COORDS style DataSets
+    int WriteBuffer(CpptrajFile&, DataSet::SizeArray const&, DataSet::SizeArray const&) const
+      { return 1; }
+    // -------------------------------------------
     /// Add given Frame to this COORDS
     virtual void AddFrame(Frame const&) = 0;
     /// Set COORDS at specified position with Frame

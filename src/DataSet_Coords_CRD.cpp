@@ -1,8 +1,9 @@
 #include "DataSet_Coords_CRD.h"
 #include "CpptrajStdio.h"
 
-int DataSet_Coords_CRD::AllocateCoords( size_t sizeIn ) {
-  coords_.reserve( sizeIn );
+int DataSet_Coords_CRD::Allocate(DataSet::SizeArray const& sizeIn) {
+  if (!sizeIn.empty())
+    coords_.reserve( sizeIn[0] );
   return 0;
 }
 
