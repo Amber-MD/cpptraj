@@ -5,6 +5,7 @@
 #include "MetaData.h"
 #include "Dimension.h"
 #include "Range.h"
+#include "CpptrajFile.h"
 // Class: DataSet
 /// Base class that all DataSet types will inherit.
 /** DataSets are given certain attributes to make DataSet selection easier; 
@@ -19,6 +20,7 @@
 class DataSet {
   public:
     typedef DataSet* (*AllocatorType)();
+    typedef std::vector<size_t> SizeArray;
     /// DataSet base type. 
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
@@ -31,7 +33,7 @@ class DataSet {
     };
 
     DataSet();
-    /// Set DataSet type, width, precision, and dimension.
+    /// Set DataSet type, width, precision, and # of dimensions.
     DataSet(DataType,DataGroup,int,int,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
@@ -42,9 +44,13 @@ class DataSet {
     virtual size_t Size() const = 0;
     /// Consolidate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
-    /// Print DataSet information
+    /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    // TODO: Remove this. Should only be in DataSet_1D.h
+    /// Write data to given buffer given start indices and numbers of elements. FIXME Buffer?
+    virtual int WriteBuffer(CpptrajFile&, SizeArray const&, SizeArray const&) const = 0;
+    /// Allocate data given numbers of elements.
+    virtual int Allocate(SizeArray const&) = 0;
+    /// Add element to data set. // FIXME 1D only?
     virtual void Add( size_t, const void* ) = 0;
     // -----------------------------------------------------
     /// Set output width.
