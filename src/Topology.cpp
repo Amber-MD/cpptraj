@@ -1090,7 +1090,7 @@ int Topology::DetermineMolecules() {
                 "Error:   originally contain bond info, 1) can potentially be fixed by\n"
                 "Error:   increasing the bondsearch cutoff offset (currently %.3f). 2) can be\n"
                 "Error:   fixed by either using the 'fixatomorder' command, or using\n"
-                "Error:   the 'setMolecules' command in parmed.py.\n",
+                "Error:   the 'setMolecules' command in parmed.\n",
                 atom - atoms_.begin() + 1, offset_);
       molecules_.clear();
       // Reset molecule info for each atom
