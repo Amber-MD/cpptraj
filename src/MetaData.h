@@ -3,8 +3,11 @@
 #include <string>
 class MetaData {
   public:
-    MetaData() : ensembleNum_(-1), idx_(-1), scalarmode_(UNKNOWN_MODE),
+    MetaData() : idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
                  scalartype_(UNDEFINED), isTimeSeries_(false) {}
+    /// CONSTRUCTOR - name, aspect, index, ensemble number
+    MetaData(std::string const& n, std::string const& a, int i, int e) :
+      name_(n), aspect_(a), idx_(i), ensembleNum_(e) {}
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
       M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
@@ -54,8 +57,8 @@ class MetaData {
     std::string name_;        ///< Name of the DataSet
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.
-    int ensembleNum_;         ///< DataSet ensemble number.
     int idx_;                 ///< DataSet index
+    int ensembleNum_;         ///< DataSet ensemble number.
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
     bool isTimeSeries_;       ///< true if DataSet is a time series.
