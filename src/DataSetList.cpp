@@ -135,16 +135,16 @@ void DataSetList::SetDebug(int debugIn) {
     mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
-/** Call Allocate for each 1D DataSet in the list. */
+/** Call Allocate for each time series in the list. */
 void DataSetList::AllocateSets(long int maxFrames) {
   maxFrames_ = maxFrames;
   if (maxFrames < 1L) return;
+  DataSet::SizeArray mfArray(1, maxFrames);
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {
-    if ((*ds)->Ndim() == 1) // 1D DataSet
-      ((DataSet_1D*)(*ds))->Allocate1D( (size_t)maxFrames );
-    else if ((*ds)->Ndim() == 4) // COORDS DataSet
-      ((DataSet_Coords*)(*ds))->AllocateCoords( (size_t)maxFrames );
+    if ( (*ds)->Meta().IsTimeSeries() )
+      if ( (*ds)->Allocate( mfArray ) )
+        mprinterr("Error: Could not allocate time series for '%s'\n", (*ds)->legend());
   }
 }
 
@@ -251,8 +251,9 @@ DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
 DataSet* DataSetList::CheckForSet(std::string const& dsname, int idx,
                                   std::string const& aspect_arg, int member) const
 {
+  MetaData md( dsname, aspect_arg, idx, member );
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Matches_Exact( dsname, idx, aspect_arg, member ) )
+    if ( (*ds)->Matches_Exact( md ) )
       return *ds;
   return 0;
 }
