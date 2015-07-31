@@ -4,6 +4,7 @@
 #include <vector>
 #include "MetaData.h"
 #include "Dimension.h"
+#include "AssociatedData.h"
 #include "Range.h"
 #include "CpptrajFile.h"
 // Class: DataSet
@@ -58,6 +59,8 @@ class DataSet {
       * consecutive however).
       */
     virtual void Add( size_t, const void* ) = 0;
+    /// Can be used to append given data set to this one.
+    virtual int Append(DataSet*) = 0;
     // -----------------------------------------------------
     /// Set output width.
     void SetWidth(int);
@@ -108,14 +111,18 @@ class DataSet {
   private:
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
-    DimArray dim_;            ///< Holds info for each dimension in the DataSet.
-    DataType dType_;          ///< The DataSet type
-    DataGroup dGroup_;        ///< The DataSet group
-    int colwidth_;            ///< The total output width of a data element.
-    int width_;               ///< The output width of numbers in a data element.
-    int precision_;           ///< The output precision of numbers in a data element.
-    bool leftAlign_;          ///< If true output will be left-aligned (no leading space).
-    std::string format_;      ///< Output printf format string for data.
-    MetaData meta_;           ///< DataSet metadata
+    /// Type to hold any additional data associated with this data set.
+    typedef std::vector<AssociatedData*> AdataArray;
+
+    DimArray dim_;              ///< Holds info for each dimension in the DataSet.
+    AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
+    DataType dType_;            ///< The DataSet type
+    DataGroup dGroup_;          ///< The DataSet group
+    int colwidth_;              ///< The total output width of a data element.
+    int width_;                 ///< The output width of numbers in a data element.
+    int precision_;             ///< The output precision of numbers in a data element.
+    bool leftAlign_;            ///< If true output will be left-aligned (no leading space).
+    std::string format_;        ///< Output printf format string for data.
+    MetaData meta_;             ///< DataSet metadata
 };
 #endif 

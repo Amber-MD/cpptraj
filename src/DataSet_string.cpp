@@ -41,11 +41,15 @@ void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
   }
 }
 
-void DataSet_string::Append(std::vector<std::string> const& dataIn) {
-  if (dataIn.empty()) return;
+int DataSet_string::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Type() != STRING) return 1;
+  std::vector<std::string> const& dataIn = 
+    static_cast<std::vector<std::string> const&>( ((DataSet_string*)dsIn)->Data() );
   size_t oldsize = Size();
   Data_.resize( oldsize + dataIn.size() );
   std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
+  return 0;
 }
 
 // DataSet_string::Sync()
