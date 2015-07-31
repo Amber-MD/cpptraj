@@ -15,3 +15,13 @@ void DataSet_Mat3x3::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
       cbuffer.Printf(data_format_, data_[pIn[0]][i]);
   }
 }
+
+int DataSet_Mat3x3::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Type() != MAT3X3) return 1;
+  Marray const& mIn = ((DataSet_Mat3x3*)dsIn)->data_;
+  size_t oldsize = Size();
+  data_.resize( oldsize + mIn.size() );
+  std::copy( mIn.begin(), mIn.end(), data_.begin() + oldsize );
+  return 0;
+}

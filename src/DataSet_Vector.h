@@ -18,6 +18,7 @@ class DataSet_Vector : public DataSet {
     int Allocate(SizeArray const&);
     inline void Add(size_t, const void*);
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
+    int Append( DataSet* );
     // -------------------------------------------
     void SetIred()                 { isIred_ = true;        }
     bool IsIred()            const { return isIred_;        }

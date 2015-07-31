@@ -47,6 +47,26 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) con
   }
 }
 
+int DataSet_Vector::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Type() != VECTOR) return 1;
+  Varray const& vIn = ((DataSet_Vector*)dsIn)->vectors_;
+  Varray const& oIn = ((DataSet_Vector*)dsIn)->origins_;
+  size_t oldsize = vectors_.size();
+  vectors_.resize( oldsize + vIn.size() );
+  std::copy( vIn.begin(), vIn.end(), vectors_.begin() + oldsize );
+  if (oIn.empty() && !origins_.empty()) // Need vIn.size empty origin vectors
+    origins_.resize( oldsize + vIn.size(), Vec3(0.0) );
+  else if (!oIn.empty() && origins_.empty()) // Need vectors_.size empty origin vecs
+    origins_.resize( vectors_.size(), Vec3(0.0) );
+  if (!oIn.empty()) {
+    oldsize = origins_.size();
+    origins_.resize( oldsize + oIn.size() );
+    std::copy( oIn.begin(), oIn.end(), origins_.begin() + oldsize );
+  }
+  return 0;
+}
+
 // DataSet_Vector::reset()
 void DataSet_Vector::reset() {
   vectors_.clear();
