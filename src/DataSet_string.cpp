@@ -4,8 +4,9 @@
 
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */
-int DataSet_string::Allocate1D( size_t sizeIn ) {
-  Data_.reserve( sizeIn );
+int DataSet_string::Allocate( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.reserve( sizeIn[0] );
   return 0;
 }
 
@@ -26,17 +27,17 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
 // DataSet_string::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
-void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
-  if (frame >= Data_.size())
+void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= Data_.size())
     cbuffer.Printf(data_format_, "NoData");
   else {
     // Protect against CpptrajFile buffer overflow.
-    if (Data_[frame].size() >= CpptrajFile::BUF_SIZE) {
+    if (Data_[pIn[0]].size() >= CpptrajFile::BUF_SIZE) {
       // FIXME: Data sets should not have to worry about spaces in format strings.
       if (data_format_[0] == ' ') cbuffer.Printf(" ");
-      cbuffer.Write(Data_[frame].c_str(), Data_[frame].size());
+      cbuffer.Write(Data_[pIn[0]].c_str(), Data_[pIn[0]].size());
     } else 
-      cbuffer.Printf(data_format_, Data_[frame].c_str());
+      cbuffer.Printf(data_format_, Data_[pIn[0]].c_str());
   }
 }
 

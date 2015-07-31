@@ -1,9 +1,10 @@
 #ifndef INC_DATASET_VECTOR_H
 #define INC_DATASET_VECTOR_H
-#include "DataSet_1D.h"
+#include "DataSet.h"
+#include "DataSet_1D.h" // FIXME remove after Correlation gone
 #include "Vec3.h"
 #include "ComplexArray.h"
-class DataSet_Vector : public DataSet_1D {
+class DataSet_Vector : public DataSet {
     static const Vec3 ZERO;
     static const ComplexArray COMPLEXBLANK;
   public:
@@ -14,12 +15,9 @@ class DataSet_Vector : public DataSet_1D {
     size_t Size()                       const { return vectors_.size(); }
     int Sync()                                { return 1;               }
     void Info()                         const { return;                 }
-    // ----- DataSet_1D functions ----------------
-    int Allocate1D(size_t);
+    int Allocate(SizeArray const&);
     inline void Add(size_t, const void*);
-    double Dval(size_t)                 const { return 0.0;             }
-    double Xcrd(size_t idx)             const { return Dim(0).Coord(idx); }
-    void WriteBuffer(CpptrajFile&, size_t) const;
+    void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     // -------------------------------------------
     void SetIred()                 { isIred_ = true;        }
     bool IsIred()            const { return isIred_;        }
@@ -30,7 +28,6 @@ class DataSet_Vector : public DataSet_1D {
     //typedef Varray::iterator iterator;
     //iterator begin()                    { return vectors_.begin(); }
     //iterator end()                      { return vectors_.end();   }
-    bool Empty()                  const { return vectors_.empty(); }
     const Vec3& operator[](int i) const { return vectors_[i];      }
     Vec3&       operator[](int i)       { return vectors_[i];      }
     const Vec3& VXYZ(int i)       const { return vectors_[i];      }
@@ -49,7 +46,7 @@ class DataSet_Vector : public DataSet_1D {
     const_iterator begin()       const { return vectors_.begin(); }
     const_iterator end()         const { return vectors_.end();   }
     const Vec3&    Back()        const { return vectors_.back();  }
-    /// Calculate auto/cross-correlation
+    /// Calculate auto/cross-correlation //TODO Move to Corr.cpp
     int CalcVectorCorr(DataSet_Vector const&, DataSet_1D&, int) const;
     /// Calculate spherical harmonics arrays for given Legendre order
     int CalcSphericalHarmonics(int);

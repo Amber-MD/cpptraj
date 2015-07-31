@@ -10,7 +10,7 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     int Sync()          { return 1;              }
     void Info() const;
     void Add(size_t, const void*) {}
-    int Allocate(DataSet::SizeArray const&);
+    int Allocate(SizeArray const&);
     // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { 

@@ -46,11 +46,17 @@ class DataSet {
     virtual int Sync() = 0;
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    /// Write data to given buffer given start indices and numbers of elements. FIXME Buffer?
-    virtual int WriteBuffer(CpptrajFile&, SizeArray const&, SizeArray const&) const = 0;
+    /// Write data to given buffer given start indices and numbers of elements. FIXME Buffer? Should this function take number of elements as well?
+    virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
     /// Allocate data given numbers of elements.
     virtual int Allocate(SizeArray const&) = 0;
-    /// Add element to data set. // FIXME 1D only?
+    /// Add element to data set.
+    /** A pointer to the data is passed in as void - it is up to the
+      * inheriting class to cast it. The X value for the data is passed
+      * in as well. It is expected that each successive X value will
+      * be greater than the preceeding one (does not need to be
+      * consecutive however).
+      */
     virtual void Add( size_t, const void* ) = 0;
     // -----------------------------------------------------
     /// Set output width.

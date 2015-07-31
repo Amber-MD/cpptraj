@@ -8,20 +8,22 @@ const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
 const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
 // CONSTRUCTOR
-DataSet_Vector::DataSet_Vector() : DataSet_1D(VECTOR, 8, 4),
+DataSet_Vector::DataSet_Vector() : DataSet(VECTOR, GENERIC, 8, 4, 1),
  order_(0), isIred_(false), writeSum_(false) {}
 
-// DataSet_Vector::Allocate1D()
-int DataSet_Vector::Allocate1D(size_t Nin) {
-  vectors_.reserve( Nin );
-  origins_.reserve( Nin ); // TODO: check if this needs allocation
+// DataSet_Vector::Allocate()
+int DataSet_Vector::Allocate(SizeArray const& Nin) {
+  if (!Nin.empty()) {
+    vectors_.reserve( Nin[0] );
+    origins_.reserve( Nin[0] ); // TODO: check if this needs allocation
+  }
   return 0;
 }
 
 // DataSet_Vector::WriteBuffer()
-void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
+void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   int zmax;
-  if (frameIn >= vectors_.size()) {
+  if (pIn[0] >= vectors_.size()) {
     if (writeSum_)
       zmax = 9;
     else
@@ -29,8 +31,8 @@ void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
     for (int i = 0; i < zmax; i++)
       cbuffer.Printf(data_format_, 0.0);
   } else {
-    Vec3 const& Vxyz = vectors_[frameIn];
-    Vec3 const& Oxyz = OXYZ(frameIn);
+    Vec3 const& Vxyz = vectors_[pIn[0]];
+    Vec3 const& Oxyz = OXYZ(pIn[0]);
     cbuffer.Printf(data_format_, Vxyz[0]);
     cbuffer.Printf(data_format_, Vxyz[1]);
     cbuffer.Printf(data_format_, Vxyz[2]);
