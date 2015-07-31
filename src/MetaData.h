@@ -8,6 +8,9 @@ class MetaData {
     /// CONSTRUCTOR - name, aspect, index, ensemble number
     MetaData(std::string const& n, std::string const& a, int i, int e) :
       name_(n), aspect_(a), idx_(i), ensembleNum_(e) {}
+    /// CONSTRUCTOR - name, aspect, index, ensemble number, legend
+    MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
+      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e) {}
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
       M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
