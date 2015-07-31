@@ -18,14 +18,18 @@
   */
 class DataSetList {
   public:
+    typedef std::vector<DataSet*> DataListType;
+    typedef std::vector<double> Darray;
+
     DataSetList();
     ~DataSetList();
+
     void Clear();
     DataSetList& operator+=(DataSetList const&);
     /// \return Description for given set type.
     static const char* SetString(DataSet::DataType);
     /// DataSetList default iterator
-    typedef std::vector<DataSet*>::const_iterator const_iterator;
+    typedef DataListType::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
     const_iterator begin() const { return DataList_.begin(); }
     /// Iterator to end of dataset list
@@ -65,33 +69,20 @@ class DataSetList {
     /// Get DataSet matching specified argument, no warning if not found.
     DataSet* CheckForSet( std::string const& ) const;
     /// Get DataSet matching specified attibutes.
-    DataSet* CheckForSet( std::string const&, int, std::string const&, int) const;
-    DataSet* CheckForSet( std::string const& n, int i, std::string const& a) const {
-      return CheckForSet(n, i, a, ensembleNum_); }
+    DataSet* CheckForSet( MetaData const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
-    /// Add or append to string DataSet
-    DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
-                            std::vector<std::string> const&);
-    /// Add or append to DataSet
-    DataSet* AddOrAppendSet(std::string const&, int, std::string const&,
-                            std::vector<double> const&, std::vector<double> const&);
-    /// Add DataSet to list with name, or default name if not specified.
-    DataSet* AddSet( DataSet::DataType, std::string const&, const char*);
-    /// Add DataSet to list with name and index.
-    DataSet* AddSetIdx( DataSet::DataType, std::string const&, int);
-    /// Add DataSet to list with name and aspect.
-    DataSet* AddSetAspect( DataSet::DataType, std::string const&, std::string const&);
-    /// Add DataSet to list with name, idx, and aspect.
-    DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&);
-    /// Add DataSet to list with name, idx, aspect, and legend.
-    DataSet* AddSetIdxAspect( DataSet::DataType, std::string const&, int, std::string const&,
-                              std::string const&);
-    /// Add already set up DataSet to list.
+    /// Add or append given sets to this list.
+    int AddOrAppendSets(Darray const&, DataListType const&);
+    /// Add DataSet to list; set up default name if no name specified.
+    DataSet* AddSet( DataSet::DataType, MetaData const&, const char*);
+    /// Add DataSet to list with given MetaData.
+    DataSet* AddSet( DataSet::DataType, MetaData const&);
+    /// Add an already set up DataSet to list; memory for DataSet will be freed.
     int AddSet( DataSet* );
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
@@ -121,8 +112,6 @@ class DataSetList {
     /// Select sets according to argument and type.
     DataSetList SelectSets( std::string const&, DataSet::DataType ) const;
     
-
-    typedef std::vector<DataSet*> DataListType;
     /// Hold number of frames from most recent AllocateSets() call.
     long int maxFrames_;
     /// DataSet debug level

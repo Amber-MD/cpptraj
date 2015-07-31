@@ -7,10 +7,15 @@ class MetaData {
                  scalartype_(UNDEFINED), isTimeSeries_(false) {}
     /// CONSTRUCTOR - name, aspect, index, ensemble number
     MetaData(std::string const& n, std::string const& a, int i, int e) :
-      name_(n), aspect_(a), idx_(i), ensembleNum_(e) {}
+      name_(n), aspect_(a), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), isTimeSeries_(false) {}
     /// CONSTRUCTOR - name, aspect, index, ensemble number, legend
     MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
-      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e) {}
+      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), isTimeSeries_(false) {}
+    /// CONSTRUCTOR - name
+    MetaData(const char* n) : name_(n), idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), isTimeSeries_(false) {}
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
       M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
@@ -54,6 +59,9 @@ class MetaData {
     int EnsembleNum()           const { return ensembleNum_; }
     bool IsTimeSeries()         const { return isTimeSeries_;}
     scalarType ScalarType()     const { return scalartype_;  }
+
+    void SetName(std::string const& n){ name_ = n;           }
+    void SetEnsembleNum(int e)        { ensembleNum_ = e;    }
   private:
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type

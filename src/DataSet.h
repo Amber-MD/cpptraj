@@ -68,6 +68,8 @@ class DataSet {
     void SetPrecision(int,int);
     /// Set DataSet MetaData
     int SetMetaData(MetaData const&);
+    /// Set specific MetaData part
+    MetaData& SetupMeta() { return meta_; }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
     /// Used to set the data and header format strings 
