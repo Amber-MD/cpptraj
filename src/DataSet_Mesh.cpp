@@ -10,10 +10,12 @@ DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
   CalculateMeshX(sizeIn, ti, tf);
 }
 
-// DataSet_Mesh::Allocate1D()
-int DataSet_Mesh::Allocate1D( size_t sizeIn ) {
-  mesh_x_.reserve( sizeIn );
-  mesh_y_.reserve( sizeIn );
+// DataSet_Mesh::Allocate()
+int DataSet_Mesh::Allocate( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty()) {
+    mesh_x_.reserve( sizeIn[0] );
+    mesh_y_.reserve( sizeIn[0] );
+  }
   return 0;
 }
 
@@ -30,23 +32,31 @@ void DataSet_Mesh::Add(size_t frame, const void* vIn) {
 }
 
 // DataSet_Mesh::WriteBuffer()
-void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
-  if (frame >= mesh_x_.size())
+void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= mesh_x_.size())
     cbuffer.Printf(data_format_, 0.0);
   else
-    cbuffer.Printf(data_format_, mesh_y_[frame]);
+    cbuffer.Printf(data_format_, mesh_y_[pIn[0]]);
 }
 
 // -----------------------------------------------------------------------------
-void DataSet_Mesh::Append(std::vector<double> const& xIn,
-                          std::vector<double> const& yIn)
-{
-  if (xIn.empty() || xIn.size() != yIn.size()) return;
-  size_t oldsize = Size();
-  mesh_x_.resize( oldsize + xIn.size() );
-  mesh_y_.resize( oldsize + yIn.size() );
-  std::copy( xIn.begin(), xIn.end(), mesh_x_.begin() + oldsize );
-  std::copy( yIn.begin(), yIn.end(), mesh_y_.begin() + oldsize );
+int DataSet_Mesh::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Group() != SCALAR_1D) return 1;
+  if (dsIn->Type() == XYMESH) {
+    std::vector<double> const& xIn = ((DataSet_Mesh*)dsIn)->mesh_x_;
+    std::vector<double> const& yIn = ((DataSet_Mesh*)dsIn)->mesh_y_;
+    size_t oldsize = Size();
+    mesh_x_.resize( oldsize + xIn.size() );
+    mesh_y_.resize( oldsize + yIn.size() );
+    std::copy( xIn.begin(), xIn.end(), mesh_x_.begin() + oldsize );
+    std::copy( yIn.begin(), yIn.end(), mesh_y_.begin() + oldsize );
+  } else {
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *dsIn );
+    for (unsigned int i = 0; i != ds.Size(); i++)
+      AddXY( ds.Xcrd(i), ds.Dval(i) );
+  }
+  return 0;
 }
 
 // DataSet_Mesh::CalculateMeshX()

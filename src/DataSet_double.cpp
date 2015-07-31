@@ -30,6 +30,7 @@ void DataSet_double::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& frame) c
     cbuffer.Printf(data_format_, Data_[frame[0]]);
 }
 
+// DataSet_double::Append()
 int DataSet_double::Append(DataSet* dsIn) {
   if (dsIn->Empty()) return 0;
   if (dsIn->Group() != SCALAR_1D) return 1;
