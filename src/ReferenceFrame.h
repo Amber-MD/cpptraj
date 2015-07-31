@@ -19,7 +19,7 @@ class ReferenceFrame {
     /// \return base file name, or if that is empty data set name.
     std::string const& RefName() const{
       if (ref_->FrameFilename().empty())
-        return ref_->Name();
+        return ref_->Meta().Name();
       else
         return ref_->FrameFilename().Base();
     }

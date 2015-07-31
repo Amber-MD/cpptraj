@@ -24,7 +24,7 @@ const char* DataSet_Modes::DeprecateFileMsg = "Modes should be read in prior to 
 
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
-  DataSet(MODES, 10, 5, 0), // 0 dim indicates DataSet-specific write
+  DataSet(MODES, GENERIC, 10, 5, 0), // 0 dim indicates DataSet-specific write
   evalues_(0),
   evectors_(0),
   nmodes_(0),
@@ -42,7 +42,7 @@ DataSet_Modes::~DataSet_Modes() {
 void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();
   mass_.clear();
-  if (mIn.Type() == DataSet::MATRIX_DBL && mIn.ScalarType() != DataSet::UNDEFINED) 
+  if (mIn.Type() == DataSet::MATRIX_DBL && mIn.Meta().ScalarType() != MetaData::UNDEFINED) 
   { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
     avgcrd_ = mat.Vect();
@@ -343,12 +343,12 @@ int DataSet_Modes::ReduceVectors() {
     mprintf("Warning: Cannot 'reduce', no eigenvectors present.\n");
     return 0;
   }
-  if ( ScalarType() == DataSet::COVAR || ScalarType() == DataSet::MWCOVAR )
+  if ( Meta().ScalarType() == MetaData::COVAR || Meta().ScalarType() == MetaData::MWCOVAR )
     return ReduceCovar();
-  else if ( ScalarType() == DataSet::DISTCOVAR )
+  else if ( Meta().ScalarType() == MetaData::DISTCOVAR )
     return ReduceDistCovar();
   else
-    mprintf("Warning: 'reduce' not supported for matrix type %s\n", TypeString());
+    mprintf("Warning: 'reduce' not supported for matrix type %s\n", Meta().TypeString());
   return 0;
 }
 

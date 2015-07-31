@@ -1,8 +1,8 @@
 #include "DataSet_MatrixDbl.h"
-void DataSet_MatrixDbl::Write2D(CpptrajFile& outfile, int xIn, int yIn) const {
-  size_t x = (size_t)xIn;
-  size_t y = (size_t)yIn;
-  if ( xIn < 0 || yIn < 0 || x >= mat_.Ncols() || y >= mat_.Nrows() )
+void DataSet_MatrixDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) const {
+  size_t x = (size_t)pIn[0];
+  size_t y = (size_t)pIn[1];
+  if ( x >= mat_.Ncols() || y >= mat_.Nrows() )
     outfile.Printf(data_format_, 0.0);
   else 
     outfile.Printf(data_format_, mat_.element(x,y));

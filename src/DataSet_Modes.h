@@ -2,7 +2,6 @@
 #define INC_DATASET_MODES_H
 #include "DataSet_MatrixDbl.h"
 #include "Frame.h"
-#include "Analysis.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:
@@ -14,7 +13,10 @@ class DataSet_Modes : public DataSet {
     size_t Size() const { return nmodes_; }
     int Sync()          { return 1;       }
     void Info()   const { return;         }
-    void Add( size_t, const void* ) {} // TODO: Get rid of, only needed by DataSet_1D
+    void Add( size_t, const void* ) {}
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const {} // TODO implement?
+    int Allocate(SizeArray const&) { return 0; } // TODO implement?
+    int Append(DataSet*) { return 1; }
     // -------------------------------------------
     typedef std::vector<double> Darray;
     typedef Darray::const_iterator AvgIt;

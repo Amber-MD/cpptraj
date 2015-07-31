@@ -29,6 +29,9 @@ class DataSet_RemLog : public DataSet {
     size_t Size() const { return ensemble_.size(); }
     int Sync()          { return 1;                }
     void Info()   const { return;                  }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    int Allocate(SizeArray const&); // TODO implement?
+    int Append(DataSet*);
     // TODO: Remove
     void Add( size_t, const void* ) { return;      }
   private:

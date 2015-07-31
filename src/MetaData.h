@@ -53,6 +53,7 @@ class MetaData {
     int Idx()                   const { return idx_;         }
     int EnsembleNum()           const { return ensembleNum_; }
     bool IsTimeSeries()         const { return isTimeSeries_;}
+    scalarType ScalarType()     const { return scalartype_;  }
   private:
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type

@@ -12,11 +12,11 @@ class DataSet_MatrixFlt : public DataSet_2D {
     size_t Size()                        const { return mat_.size();        }
     int Sync()                                 { return 1;                  }
     void Info()                          const { return;                    }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
-    void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return (double)mat_.element(x,y);}
     double GetElement(size_t i)          const { return (double)mat_[i];    }
     size_t Nrows()                       const { return mat_.Nrows();       }

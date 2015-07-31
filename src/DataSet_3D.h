@@ -12,9 +12,10 @@ class DataSet_3D : public DataSet {
     virtual ~DataSet_3D(); // Virtual since this class is inherited.
     DataSet_3D(DataSet_3D const&);
     DataSet_3D(DataSet::DataType tIn, int wIn, int pIn) :
-      DataSet(tIn, wIn, pIn, 3), gridBin_(0) {}
-    /// Write 3D data to file.
-    virtual void Write3D(CpptrajFile&,int,int,int) const = 0;
+      DataSet(tIn, GRID_3D, wIn, pIn, 3), gridBin_(0) {}
+    // TODO enable append?
+    int Append(DataSet*) { return 1; }
+    int Allocate(SizeArray const&) { return 1; } // TODO enable?
     /// \return Data from grid at x/y/z point.
     virtual double GetElement(int, int, int) const = 0;
     /// \return Data from grid.

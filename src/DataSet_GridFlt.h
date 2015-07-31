@@ -14,9 +14,9 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t Size()                        const { return grid_.size();        }
     int Sync()                                 { return 1;                   }
     void Info()                          const { return;                     }
+    void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     // ----- DataSet_3D functions ----------------
     int Allocate3D(size_t x,size_t y,size_t z) { return grid_.resize(x,y,z); }
-    void Write3D(CpptrajFile&,int,int,int) const;
     double GetElement(int x,int y,int z) const { return (double)grid_.element(x,y,z); }
     double operator[](size_t idx)        const { return (double)grid_[idx];  }
     size_t NX() const { return grid_.NX(); }
