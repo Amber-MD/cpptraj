@@ -18,12 +18,13 @@ class DataSet_integer : public DataSet_1D {
     size_t Size()               const { return Data_.size();       }
     int Sync();
     void Info()                 const { return;                    }
-    // ----- DataSet_1D functions ----------------
-    int Allocate1D(size_t);
+    int Allocate(SizeArray const&);
     void Add( size_t, const void* );
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    int Append(DataSet*);
+    // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)     const { return (double)Data_[idx]; }
     double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  } 
-    void WriteBuffer(CpptrajFile&, size_t) const;
     // -------------------------------------------
     typedef std::vector<int>::iterator iterator;
     iterator begin()                  { return Data_.begin();      }
