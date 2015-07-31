@@ -4,8 +4,9 @@
 
 // DataSet_float::Allocate()
 /** Reserve space in the Data and Frames arrays. */
-int DataSet_float::Allocate1D( size_t sizeIn ) {
-  Data_.reserve( sizeIn );
+int DataSet_float::Allocate( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.reserve( sizeIn[0] );
   return 0;
 }
 
@@ -22,11 +23,27 @@ void DataSet_float::Add(size_t frame, const void* vIn) {
 // DataSet_float::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
-void DataSet_float::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
-  if (frame >= Data_.size())
+void DataSet_float::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= Data_.size())
     cbuffer.Printf(data_format_, 0.0);
   else
-    cbuffer.Printf(data_format_, Data_[frame]);
+    cbuffer.Printf(data_format_, Data_[pIn[0]]);
+}
+
+int DataSet_float::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Group() != SCALAR_1D) return 1;
+  if (dsIn->Type() == FLOAT) {
+    size_t oldsize = Size();
+    std::vector<float> const& dataIn = ((DataSet_float*)dsIn)->Data_;
+    Data_.resize( oldsize + dataIn.size() );
+    std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
+  } else {
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *dsIn );
+    for (unsigned int i = 0; i != ds.Size(); i++)
+      Data_.push_back( (float)ds.Dval(i) );
+  }
+  return 0;
 }
 
 // DataSet_float::Sync()

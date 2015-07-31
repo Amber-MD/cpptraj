@@ -36,7 +36,7 @@ int DataSet_double::Append(DataSet* dsIn) {
   if (dsIn->Group() != SCALAR_1D) return 1;
   if (dsIn->Type() == DOUBLE) {
     size_t oldsize = Size();
-    std::vector<double> const& dataIn = ((DataSet_double*)dsIn)->Data();
+    std::vector<double> const& dataIn = ((DataSet_double*)dsIn)->Data_;
     Data_.resize( oldsize + dataIn.size() );
     std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
   } else {

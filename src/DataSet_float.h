@@ -2,7 +2,6 @@
 #define INC_DATASET_FLOAT_H
 #include <vector>
 #include "DataSet_1D.h"
-// Class: DataSet_float
 /// Hold an array of float values.
 class DataSet_float : public DataSet_1D {
   public:
@@ -17,12 +16,13 @@ class DataSet_float : public DataSet_1D {
     size_t Size()                  const { return Data_.size();       }
     int Sync();
     void Info()                    const { return;                    }
-    // ----- DataSet_1D functions ----------------
-    int Allocate1D(size_t);
+    int Allocate(SizeArray const&);
     void Add( size_t, const void* );
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
+    int Append(DataSet*);
+    // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return (double)Data_[idx]; }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
-    void WriteBuffer(CpptrajFile&, size_t) const;
   private:
     std::vector<float> Data_;
 };
