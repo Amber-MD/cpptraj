@@ -18,8 +18,8 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     int Sync()          { return 1;              }
     void Info() const;
     void Add( size_t, const void* )              { return;     }
+    int Allocate(SizeArray const&)               { return 0;   }
     // ----- DataSet_Coords functions ------------
-    int AllocateCoords(size_t)                   { return 0;   }
     /// Add a frame.
     void AddFrame(Frame const& fIn) { }
     /// Set CRD at position with frame.

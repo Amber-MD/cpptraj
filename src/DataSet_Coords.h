@@ -12,6 +12,7 @@ class DataSet_Coords : public DataSet {
     // -------------------------------------------
     // NOTE: Disabled for all COORDS style DataSets
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {}
+    int Append(DataSet*) { return 1; }
     // -------------------------------------------
     /// Add given Frame to this COORDS
     virtual void AddFrame(Frame const&) = 0;

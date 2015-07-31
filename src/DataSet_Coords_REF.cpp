@@ -5,7 +5,7 @@
 void DataSet_Coords_REF::Info() const {
   //if (!tag_.empty())
   //  mprintf(" %s", tag_.c_str());
-  if (!name_.empty() && Name() != name_.Full())
+  if (!name_.empty() && Meta().Name() != name_.Full())
     mprintf(" '%s'", name_.full());
   if (num_ > -1) mprintf(", refindex %i", num_);
   mprintf(" (%i atoms)", Top().Natom());
@@ -55,9 +55,7 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
     setname = traj.TrajFilename().Full();
   else
     setname = nameIn;
-  if (SetupSet( setname, traj.Start()+1, "", -1 )) return 1;
-  if (!traj.Title().empty())
-    SetLegend( traj.Title() );
+  if (SetMetaData( MetaData(setname, "", traj.Start()+1, -1, traj.Title()) )) return 1;
   return 0;
 }
 
@@ -71,11 +69,10 @@ int DataSet_Coords_REF::SetupRefFrame(DataSet_Coords* CRD, std::string const& na
   num_ = refidx;
   std::string setname;
   if (nameIn.empty())
-    setname = CRD->Name();
+    setname = CRD->Meta().Name();
   else
     setname = nameIn;
-  SetLegend("");
-  if (SetupSet( setname, fnum+1, "", -1 )) return 1;
+  if (SetMetaData( MetaData(setname, "", fnum+1, -1) )) return 1;
   return 0;
 }
 

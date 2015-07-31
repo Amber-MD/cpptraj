@@ -13,9 +13,9 @@ class DataSet_Coords_REF : public DataSet_Coords {
     int Sync()          { return 1;              }
     void Info() const;
     void Add( size_t, const void* )              { return;     }
-    // ----- DataSet_Coords functions ------------
     // Size is only ever 1, no need to allocate.
-    int AllocateCoords(size_t)                   { return 0;   }
+    int Allocate(SizeArray const&)               { return 0;   }
+    // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { frame_ = fIn; }
     /// Get a frame at position.
@@ -39,7 +39,7 @@ class DataSet_Coords_REF : public DataSet_Coords {
     int RefIndex()                  const { return num_;   }
   private:
     Frame frame_;       ///< Reference coords.
-    FileName name_;     ///< Ref structure filename.
+    FileName name_;     ///< Ref structure filename. //TODO Put in MetaData?
     int num_;           ///< Internal reference index #.
 };
 #endif
