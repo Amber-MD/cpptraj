@@ -44,7 +44,8 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
   if (calcAvgOverSets_) {
     mprintf(" Calculating average over %i data sets.\n", input_dsets_.size());
     mprintf("\tData set base name '%s'", avgOfSets_->Name().c_str());
-    if (setfile != 0) mprintf(", written to %s\n", setfile->DataFilename().full());
+    if (setfile != 0) mprintf(", written to %s", setfile->DataFilename().full());
+    mprintf("\n");
   } else {
     mprintf(" Calculating average of %i data sets.\n", input_dsets_.size());
     mprintf("\tWriting results to %s\n", outfile_->Filename().full());
