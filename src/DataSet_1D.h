@@ -21,6 +21,5 @@ class DataSet_1D : public DataSet {
     double CorrCoeff(DataSet_1D const&) const;
   private:
     double Avg(double*) const;
-    static inline bool GoodCalcType(DataSet_1D const&);
 };
 #endif

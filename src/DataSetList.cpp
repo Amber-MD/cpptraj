@@ -332,6 +332,7 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
     Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
   
   for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
+    if (*ds == 0) continue; // TODO: Warn about blanks?
     if (isMonotonic) (*ds)->SetDim(Dimension::X, Xdim);
     DataSet* existingSet = CheckForSet( (*ds)->Meta() );
     if (existingSet == 0) {
