@@ -41,6 +41,12 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
   else if (argIn.hasKey("vector")) mode_ = READVEC;
   else if (argIn.hasKey("mat3x3")) mode_ = READMAT3X3;
   indexcol_ = argIn.getKeyInt("index", -1);
+  // Column user args start from 1.
+  if (indexcol_ == 0) {
+    mprinterr("Error: Column numbering for standard data files starts from 1.\n");
+    return 1;
+  }
+  --indexcol_;
   return 0;
 }
   
@@ -66,8 +72,8 @@ int DataIO_Std::Read_1D(std::string const& fname,
   ArgList labels;
   bool hasLabels = false;
   // Column user args start from 1
-  if (indexcol_ != -1)
-    mprintf("\tUsing column %i as index column.\n", indexcol_--);
+  if (indexcol_ > -1)
+    mprintf("\tUsing column %i as index column.\n", indexcol_ + 1);
 
   // Buffer file
   BufferedLine buffer;
@@ -120,44 +126,38 @@ int DataIO_Std::Read_1D(std::string const& fname,
               indexcol_+1, ntoken);
     return 1;
   }
+
   // Determine the type of data stored in each column. Assume numbers should
   // be read with double precision.
-  typedef std::vector<double> Darray;
-  typedef std::vector<std::string> Sarray;
-  std::vector<Darray> Dsets; // double data sets
-  std::vector<Sarray> Ssets; // string data sets
-  std::vector<int> SetIndices(ntoken, 0); // Indices into set arrays for each column
-  for (int col = 0; col < ntoken; ++col) {
-    const char* token = buffer.NextToken();
-    // Determine data type
-    if ( isdigit( token[0] )    || 
-                  token[0]=='+' || 
-                  token[0]=='-' ||
-                  token[0]=='.'   )
-    { // Number (double). Indices will start from 1.
-      Dsets.push_back(Darray());
-      SetIndices[col] = (int)Dsets.size();
+  MetaData md( dsname );
+  DataSetList::DataListType inputSets;
+  for (int col = 0; col != ntoken; ++col) {
+    md.SetIdx( col+1 );
+    if (hasLabels) md.SetLegend( labels );
+    std::string token( buffer.NextToken() );
+    if (validInteger(token) || validDouble(token)) {
+      // Number
+      inputSets.push_back( new DataSet_double() );
+      inputSets.back()->SetMetaData( md );
     } else {
-      // Assume string. STRING columns cannot be index columns
-      if ( col == indexcol_ )
+      // Assume string. Not allowed for index column.
+      if (col == indexcol_) {
         mprintf("Warning: DataFile %s index column %i has string values and will be skipped.\n", 
                   buffer.Filename().full(), indexcol_+1);
-      else {
-        // Indices will start from -1.
-        Ssets.push_back(Sarray());
-        SetIndices[col] = -((int)Ssets.size());
+        indexcol_ = -1;
+        inputSets.push_back( 0 ); // Placeholder
+      } else {
+        // String
+        inputSets.push_back( new DataSet_string() );
+        inputSets.back()->SetMetaData( md );
       }
     }
   }
-  //mprintf("DBG: SetIndices={");
-  //for (std::vector<int>::const_iterator it = SetIndices.begin(); it != SetIndices.end(); ++it)
-  //  mprintf(" %i", *it);
-  //mprintf(" }\n");
-  //mprintf("%zu double sets, %zu string sets.\n", Dsets.size(), Ssets.size());
-  if (Dsets.empty() && Ssets.empty()) {
+  if (inputSets.empty()) {
     mprinterr("Error: No data detected.\n");
     return 1;
-  } 
+  }
+
   // Read in data.
   unsigned int Ndata = 0;
   do {
@@ -168,10 +168,12 @@ int DataIO_Std::Read_1D(std::string const& fname,
     // Convert data in columns
     for (int i = 0; i < ntoken; ++i) {
       const char* token = buffer.NextToken();
-      if (SetIndices[i] > 0)      // Double value
-        Dsets[SetIndices[i]-1].push_back( atof(token) );
-      else if (SetIndices[i] < 0) // String value
-        Ssets[-SetIndices[i]-1].push_back( std::string(token) );
+      if (inputSets[i] != 0) {
+        if (inputSets[i]->Type() == DataSet::DOUBLE)
+          ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
+        else
+          ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
+      }
     }
     Ndata++;
   } while (buffer.Line() != 0); // Read in next line.
@@ -182,6 +184,32 @@ int DataIO_Std::Read_1D(std::string const& fname,
     mprintf("\tDataFile contains labels:\n");
     labels.PrintList();
   }
+
+  // Setup X-dimension from X values or number of data points.
+  DataSet_double* Xptr = 0;
+  bool isMonotonic = true;
+  Dimension Xdim;
+  if (indexcol_ != -1 && inputSets[indexcol_] != 0) {
+    Xptr = (DataSet_double*)inputSets[indexcol_];
+    if ( Xdim.SetFromValues( Xptr->Data() ) )
+      isMonotonic = false;
+  } else
+    Xdim = Dimension(1.0, 1.0, Ndata);
+
+  // If not monotonic, any double data sets will be converted to mesh.
+  if (!isMonotonic) {
+    mprintf("Warning: X values are not monotonic.\n");
+    for (unsigned int n = 0; n != inputSets.size(); n++) {
+      if (inputSets[n] != 0 && inputSets[n]->Type() == DataSet::DOUBLE) {
+        mprintf("Warning: Converting set '%s' type to XYMESH\n", inputSets[n]->legend());
+        DataSet_Mesh* xy = new DataSet_Mesh();
+        xy->SetMetaData( inputSets[n]->Meta() );
+        xy->SetMeshXY( Xptr->Data(), ((DataSet_double*)inputSets[n])->Data() );
+        delete inputDsets[n];
+        inputDsets[n] = (DataSet*)xy;
+      }
+
+
   // If no x column read in just use indices.
   Darray* Xptr = 0;
   Darray Xvals;
