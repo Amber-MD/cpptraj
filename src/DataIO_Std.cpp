@@ -4,8 +4,10 @@
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
-#include "Array1D.h"
+#include "Array1D.h" //FIXME shouldnt need
 #include "BufferedLine.h"
+#include "DataSet_double.h"
+#include "DataSet_string.h"
 #include "DataSet_MatrixDbl.h"
 #include "DataSet_3D.h"
 
@@ -133,7 +135,7 @@ int DataIO_Std::Read_1D(std::string const& fname,
   DataSetList::DataListType inputSets;
   for (int col = 0; col != ntoken; ++col) {
     md.SetIdx( col+1 );
-    if (hasLabels) md.SetLegend( labels );
+    if (hasLabels) md.SetLegend( labels[col] );
     std::string token( buffer.NextToken() );
     if (validInteger(token) || validDouble(token)) {
       // Number
@@ -157,6 +159,9 @@ int DataIO_Std::Read_1D(std::string const& fname,
     mprinterr("Error: No data detected.\n");
     return 1;
   }
+  DataSet_double* Xptr = 0;
+  if (indexcol_ != -1)
+    Xptr = (DataSet_double*)inputSets[indexcol_];
 
   // Read in data.
   unsigned int Ndata = 0;
@@ -185,54 +190,16 @@ int DataIO_Std::Read_1D(std::string const& fname,
     labels.PrintList();
   }
 
-  // Setup X-dimension from X values or number of data points.
-  DataSet_double* Xptr = 0;
-  bool isMonotonic = true;
-  Dimension Xdim;
-  if (indexcol_ != -1 && inputSets[indexcol_] != 0) {
-    Xptr = (DataSet_double*)inputSets[indexcol_];
-    if ( Xdim.SetFromValues( Xptr->Data() ) )
-      isMonotonic = false;
-  } else
-    Xdim = Dimension(1.0, 1.0, Ndata);
-
-  // If not monotonic, any double data sets will be converted to mesh.
-  if (!isMonotonic) {
-    mprintf("Warning: X values are not monotonic.\n");
-    for (unsigned int n = 0; n != inputSets.size(); n++) {
-      if (inputSets[n] != 0 && inputSets[n]->Type() == DataSet::DOUBLE) {
-        mprintf("Warning: Converting set '%s' type to XYMESH\n", inputSets[n]->legend());
-        DataSet_Mesh* xy = new DataSet_Mesh();
-        xy->SetMetaData( inputSets[n]->Meta() );
-        xy->SetMeshXY( Xptr->Data(), ((DataSet_double*)inputSets[n])->Data() );
-        delete inputDsets[n];
-        inputDsets[n] = (DataSet*)xy;
-      }
-
-
-  // If no x column read in just use indices.
-  Darray* Xptr = 0;
-  Darray Xvals;
-  if (indexcol_ == -1) {
-    Xvals.reserve(Ndata);
-    for (unsigned int i = 0; i < Ndata; i++)
-      Xvals.push_back( i );
-    Xptr = &Xvals;
-  } else {
-    mprintf("\tIndex column is %i\n", indexcol_ + 1);
-    Xptr = &(Dsets[SetIndices[indexcol_]-1]);
-    SetIndices[indexcol_] = 0;
-  }
-  for (int i = 0; i != ntoken; i++) {
-    DataSet* ds = 0;
-    if (SetIndices[i] != 0) {
-      if (SetIndices[i] > 0)
-        ds = datasetlist.AddOrAppendSet(dsname, i+1, "", *Xptr, Dsets[SetIndices[i]-1]);
-      else //if (SetIndices[i] < 0)
-        ds = datasetlist.AddOrAppendSet(dsname, i+1, "", Ssets[-SetIndices[i]-1]);
-      if (ds == 0) return 1;
-      if (hasLabels) ds->SetLegend( labels[i] );
-    }
+  // Create list containing only data sets.
+  DataSetList::DataListType mySets;
+  for (int idx = 0; idx != (int)inputSets.size(); idx++)
+    if ( inputSets[idx] != 0 && idx != indexcol_ )
+      mySets.push_back( inputSets[idx] );
+  if (Xptr == 0)
+    datasetlist.AddOrAppendSets(DataSetList::Darray(), mySets);
+  else {
+    datasetlist.AddOrAppendSets(Xptr->Data(), mySets);
+    delete Xptr;
   }
 
   return 0;
@@ -278,7 +245,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
   DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
   if (ds == 0) return 1;
   DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  Mat.SetScalar( DataSet::DIST ); // TODO: FIXME 
+  Mat.SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME 
   Mat.Allocate2D( ncols, nrows );
   std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
 
@@ -451,14 +418,22 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
 int DataIO_Std::WriteData(std::string const& fname, DataSetList const& SetList)
 {
   int err = 0;
-  // Open output file.
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
-  if (isInverted_)
-    err = WriteDataInverted(file, SetList);
-  else
-    err = WriteDataNormal(file, SetList);
-  file.CloseFile();
+  if (!SetList.empty()) {
+    // Open output file.
+    CpptrajFile file;
+    if (file.OpenWrite( fname )) return 1;
+    // Base write type off first data set dimension FIXME
+    if (SetList[0]->Ndim() == 1) {
+      if (isInverted_)
+        err = WriteDataInverted(file, SetList);
+      else
+        err = WriteDataNormal(file, SetList);
+    } else if (SetList[0]->Ndim() == 2)
+      err = WriteData2D(file, SetList);
+    else if (SetList[0]->Ndim() == 3)
+      err = WriteData3D(file, SetList);
+    file.CloseFile();
+  }
   return err;
 }
 
@@ -504,32 +479,33 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
     // DataSet if necessary.
     bool labelLeftAligned = !hasXcolumn_;
     for (Array1D::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
-      int requiredColSize = (int)(*ds)->Legend().size();
+      int requiredColSize = (int)(*ds)->Meta().Legend().size();
       if (!labelLeftAligned || (ds == Sets.begin() && !hasXcolumn_))
         requiredColSize++;
       if ( requiredColSize > (*ds)->ColumnWidth() )
-        (*ds)->SetWidth( (*ds)->Legend().size() );
+        (*ds)->SetWidth( (*ds)->Meta().Legend().size() );
       labelLeftAligned = false;
     }
     // Write dataset names to header, left-aligning first set if no X-column
     Array1D::const_iterator set = Sets.begin();
     if (!hasXcolumn_)
-      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), true  );
+      WriteNameToBuffer( file, (*set)->Meta().Legend(), (*set)->ColumnWidth(), true  );
     else
-      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false );
+      WriteNameToBuffer( file, (*set)->Meta().Legend(), (*set)->ColumnWidth(), false );
     ++set;
     for (; set != Sets.end(); ++set) 
-      WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false );
+      WriteNameToBuffer( file, (*set)->Meta().Legend(), (*set)->ColumnWidth(), false );
     file.Printf("\n"); 
   }
 
   // Write Data
-  for (size_t frame=0L; frame < maxFrames; frame++) {
+  DataSet::SizeArray positions(1);
+  for (positions[0] = 0; positions[0] < maxFrames; positions[0]++) {
     // Output Frame for each set
     if (hasXcolumn_)
-      file.Printf(x_col_format.c_str(), Xdata.Xcrd(frame));
+      file.Printf(x_col_format.c_str(), Xdata.Xcrd(positions[0]));
     for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) 
-      (*set)->WriteBuffer(file, frame);
+      (*set)->WriteBuffer(file, positions);
     file.Printf("\n"); 
   }
   return 0;
@@ -544,30 +520,27 @@ int DataIO_Std::WriteDataInverted(CpptrajFile& file, DataSetList const& SetList)
   // Determine size of largest DataSet.
   size_t maxFrames = Sets.DetermineMax();
   // Write each set to a line.
+  DataSet::SizeArray positions(1);
   for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
     // Write dataset name as first column.
-    WriteNameToBuffer( file, (*set)->Legend(), (*set)->ColumnWidth(), false); 
+    WriteNameToBuffer( file, (*set)->Meta().Legend(), (*set)->ColumnWidth(), false); 
     // Write each frame to subsequent columns
-    for (size_t frame=0L; frame < maxFrames; frame++) 
-      (*set)->WriteBuffer(file, frame);
+    for (positions[0] = 0; positions[0] < maxFrames; positions[0]++) 
+      (*set)->WriteBuffer(file, positions);
     file.Printf("\n");
   }
   return 0;
 }
 
 // DataIO_Std::WriteData2D()
-int DataIO_Std::WriteData2D( std::string const& fname, DataSetList const& setList) 
+int DataIO_Std::WriteData2D( CpptrajFile& file, DataSetList const& setList) 
 {
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
   {
     if (set != setList.begin()) file.Printf("\n");
     err += WriteSet2D( *(*set), file );
   }
-  file.CloseFile();
   return err;
 }
 
@@ -585,6 +558,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   Dimension const& Ydim = static_cast<Dimension const&>(set.Dim(1));
   if (Xdim.Step() == 1.0) xcol_precision = 0;
   
+  DataSet::SizeArray positions(2);
   if (square2d_) {
     std::string ycoord_fmt;
     // Print XY values in a grid:
@@ -607,11 +581,11 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
         file.Printf(xcoord_fmt.c_str(), Xdim.Coord( ix ));
       file.Printf("\n");
     }
-    for (size_t iy = 0; iy < set.Nrows(); iy++) {
+    for (positions[1] = 0; positions[1] < set.Nrows(); positions[1]++) {
       if (writeHeader_)
-        file.Printf(ycoord_fmt.c_str(), Ydim.Coord( iy ));
-      for (size_t ix = 0; ix < set.Ncols(); ix++)
-        set.Write2D( file, ix, iy );
+        file.Printf(ycoord_fmt.c_str(), Ydim.Coord( positions[1] ));
+      for (positions[0] = 0; positions[0] < set.Ncols(); positions[0]++)
+        set.WriteBuffer( file, positions );
       file.Printf("\n");
     }
   } else {
@@ -622,10 +596,10 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
                   Ydim.Label().c_str(), set.legend());
     std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
                           SetupCoordFormat( set.Nrows(), Ydim, 8, 3 ); 
-    for (size_t iy = 0; iy < set.Nrows(); ++iy) {
-      for (size_t ix = 0; ix < set.Ncols(); ++ix) {
-        file.Printf(col_fmt.c_str(), Xdim.Coord( ix ), Ydim.Coord( iy ));
-        set.Write2D( file, ix, iy );
+    for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
+      for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
+        file.Printf(col_fmt.c_str(), Xdim.Coord( positions[0] ), Ydim.Coord( positions[1] ));
+        set.WriteBuffer( file, positions );
         file.Printf("\n");
       }
     }
@@ -634,20 +608,15 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
 }
 
 // DataIO_Std::WriteData3D()
-int DataIO_Std::WriteData3D( std::string const& fname, DataSetList const& setList) 
+int DataIO_Std::WriteData3D( CpptrajFile& file, DataSetList const& setList) 
 {
-  // Open output file
-  CpptrajFile file;
-  if (file.OpenWrite( fname )) return 1;
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
   {
     if (set != setList.begin()) file.Printf("\n");
     err += WriteSet3D( *(*set), file );
   }
-  file.CloseFile();
   return err;
-
 }
 
 // DataIO_Std::WriteSet3D()
@@ -665,17 +634,19 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   
   // Print X Y Z Values
   // x y z val(x,y,z)
+  DataSet::SizeArray pos(3);
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
   std::string col_fmt = SetupCoordFormat( set.NX(), Xdim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NY(), Ydim, 8, 3 ) + " " +
                         SetupCoordFormat( set.NZ(), Zdim, 8, 3 );
-  for (size_t iz = 0; iz < set.NZ(); ++iz) {
-    for (size_t iy = 0; iy < set.NY(); ++iy) {
-      for (size_t ix = 0; ix < set.NX(); ++ix) {
-        file.Printf(col_fmt.c_str(), Xdim.Coord( ix ), Ydim.Coord( iy ), Zdim.Coord( iz ));
-        set.Write3D( file, ix, iy, iz );
+  for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
+    for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
+      for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
+        file.Printf(col_fmt.c_str(),
+                    Xdim.Coord( pos[0] ), Ydim.Coord( pos[1] ), Zdim.Coord( pos[2] ));
+        set.WriteBuffer( file, pos );
         file.Printf("\n");
       }
     }

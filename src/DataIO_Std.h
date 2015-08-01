@@ -12,8 +12,6 @@ class DataIO_Std : public DataIO {
     int ReadData(std::string const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&);
     int WriteData(std::string const&,DataSetList const&);
-    int WriteData2D(std::string const&, DataSetList const&);
-    int WriteData3D(std::string const&, DataSetList const&);
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static const char* SEPARATORS;
@@ -25,6 +23,8 @@ class DataIO_Std : public DataIO {
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
+    int WriteData2D(CpptrajFile&, DataSetList const&);
+    int WriteData3D(CpptrajFile&, DataSetList const&);
     int WriteSet2D(DataSet const&, CpptrajFile&);
     int WriteSet3D(DataSet const&, CpptrajFile&);
     enum modeType {READ1D=0, READ2D, READVEC, READMAT3X3};

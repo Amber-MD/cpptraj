@@ -55,7 +55,7 @@ class DataSetList {
     /// Remove set from list but do not destroy.
     DataSet* PopSet( DataSet* );
     /// \return DataSet at didx.
-    DataSet* operator[](int didx) { return DataList_[didx]; } // FIXME: No bounds check
+    DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
     /// Set DataSetList and underlying DataSet debug level
     void SetDebug(int);
     /// Set DataSets pending status.

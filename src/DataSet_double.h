@@ -10,7 +10,8 @@ class DataSet_double : public DataSet_1D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
     double& operator[](size_t idx)       { return Data_[idx];         }
     double  operator[](size_t idx) const { return Data_[idx];         }
-    //std::vector<double> const& Data() const { return Data_;           }
+    // NOTE: Currently used for transporting X values in DataIO_Std
+    std::vector<double> const& Data() const { return Data_;           }
     void operator=(std::vector<double> const& rhs) { Data_ = rhs;     }
     void AddElement(double d)            { Data_.push_back( d );      }
     /// Make set size sizeIn, all values set to 0.0.
