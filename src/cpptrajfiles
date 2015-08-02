@@ -221,6 +221,7 @@ SOURCES=ActionFrameCounter.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \
+        TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \
         Topology.cpp \
