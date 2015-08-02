@@ -47,8 +47,10 @@ class DataSet {
     virtual int Sync() = 0;
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    /// Write data to given buffer given start indices and numbers of elements. FIXME Buffer? Should this function take number of elements as well?
+    /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
     virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
+    /// Write coordinates to file given a format string and start indices.
+    virtual void WriteCoords(CpptrajFile&, const char*, SizeArray const&) const;
     /// Allocate data given numbers of elements.
     virtual int Allocate(SizeArray const&) = 0;
     /// Add element to data set.

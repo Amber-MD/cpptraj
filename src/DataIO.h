@@ -21,10 +21,14 @@ class DataIO : public BaseIOtype {
     bool CheckValidFor(DataSet const&) const;
     void SetDebug(int d) { debug_ = d; }
   protected:
-    // TODO: Move this to DataSet?
-    static std::string SetupCoordFormat(size_t, Dimension const&, int, int);
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
+    /// Check that all sets in given list have given dimension.
+    static int CheckAllDims(DataSetList const&, unsigned int);
+    /// Check that X dim for all sets in given list match; all must be 1D.
+    static int CheckXDimension(DataSetList const&);
+    /// \return max size of DataSets in given list.
+    static size_t DetermineMax(DataSetList const&);
     int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
