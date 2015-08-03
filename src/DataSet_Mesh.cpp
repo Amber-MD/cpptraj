@@ -39,6 +39,11 @@ void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const
     cbuffer.Printf(data_format_, mesh_y_[pIn[0]]);
 }
 
+void DataSet_Mesh::WriteCoord(CpptrajFile& file, const char* fmt, unsigned int d, size_t p) const
+{
+  file.Printf(fmt, mesh_x_[p]);
+}
+
 // -----------------------------------------------------------------------------
 int DataSet_Mesh::Append(DataSet* dsIn) {
   if (dsIn->Empty()) return 0;

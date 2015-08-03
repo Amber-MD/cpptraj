@@ -17,6 +17,7 @@ class DataSet_Mesh : public DataSet_1D {
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     int Append(DataSet*);
+    void WriteCoord(CpptrajFile&, const char*, unsigned int, size_t) const;
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)  const { return mesh_y_[idx];       }
     double Xcrd(size_t idx)  const { return mesh_x_[idx];       }

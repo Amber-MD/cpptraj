@@ -49,8 +49,8 @@ class DataSet {
     virtual void Info() const = 0;
     /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
     virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
-    /// Write coordinates to file given a format string and start indices.
-    virtual void WriteCoords(CpptrajFile&, const char*, SizeArray const&) const;
+    /// Write coordinate for specified dimension and position to file with given format string.
+    virtual void WriteCoord(CpptrajFile&, const char*, unsigned int, size_t) const;
     /// Allocate data given numbers of elements.
     virtual int Allocate(SizeArray const&) = 0;
     /// Add element to data set.

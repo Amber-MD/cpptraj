@@ -62,9 +62,8 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   return *this;
 }
 
-void DataSet::WriteCoords(CpptrajFile& file, const char* fmt, SizeArray const& pos) const {
-  for (unsigned int p = 0; p != pos.size(); ++p)
-    file.Printf(fmt, dim_[p].Coord(p));
+void DataSet::WriteCoord(CpptrajFile& file, const char* fmt, unsigned int dim, size_t pos) const {
+  file.Printf( fmt, dim_[dim].Coord(pos) );
 }
 
 // DataSet::SetWidth()

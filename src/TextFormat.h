@@ -10,16 +10,18 @@ class TextFormat {
     /// CONSTRUCTOR - default 8.3f format
     TextFormat() : type_(DOUBLE), width_(8), precision_(3), nelements_(1),
                    leftAlign_(false), isLong_(false) {}
+    /// CONSTRUCTOR - For output coords, size, min, step, width, precision
+    TextFormat(size_t z, double m, double s, int w, int p) : type_(DOUBLE),
+               width_(w), precision_(p), nelements_(1), leftAlign_(false), isLong_(false)
+      { SetCoordFormat( z, m, s, w, p ); }
     /// Set format string of type given width and precision, optionally append
-    void SetFormatString(FmtType, int, int, bool);
-    /// Set format string of type given width and precision
-    void SetFormatString(FmtType t, int w, int p) {
-      SetFormatString(t, w, p, false);
-    }
-    /// Append double format string for size, min, step, default width and precision 
+    void SetFormatString(FmtType, int, int);
+    /// Set double format string for size, min, step, default width and precision 
     void SetCoordFormat(size_t, double, double, int, int);
-    /// \return Format string.
+    /// \return pointer to format string.
     const char* fmt() const { return fmt_.c_str(); }
+    /// \return format string
+    std::string const& Fmt() const { return fmt_; }
   private:
     static char TypeChar_[]; ///< Hold printf format chars for each type.
 

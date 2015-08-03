@@ -10,7 +10,6 @@
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_MatrixDbl.h" // For reading TODO remove dependency?
 #include "DataSet_3D.h"
-// TODO: Append for vector, mat3x3
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -505,7 +504,7 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   for (positions[0] = 0; positions[0] < maxFrames; positions[0]++) {
     // Output Frame for each set
     if (hasXcolumn_)
-      Xdata->WriteCoords(file, x_col_format.fmt(), positions);
+      Xdata->WriteCoord(file, x_col_format.fmt(), 0, positions[0]);
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) 
       (*set)->WriteBuffer(file, positions);
     file.Printf("\n"); 
@@ -559,8 +558,8 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (Xdim.Step() == 1.0) xcol_precision = 0;
   
   DataSet::SizeArray positions(2);
+  TextFormat ycoord_fmt, xcoord_fmt;
   if (square2d_) {
-    TextFormat ycoord_fmt, xcoord_fmt;
     // Print XY values in a grid:
     // x0y0 x1y0 x2y0
     // x0y1 x1y1 x2y1
@@ -578,12 +577,12 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
       xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(),
                                  set.ColumnWidth(), xcol_precision );
       for (size_t ix = 0; ix < set.Ncols(); ix++)
-        file.Printf(xcoord_fmt.fmt(), Xdim.Coord( ix ));
+        set.WriteCoord( file, xcoord_fmt.fmt(), 0, ix );
       file.Printf("\n");
     }
     for (positions[1] = 0; positions[1] < set.Nrows(); positions[1]++) {
       if (writeHeader_)
-        file.Printf(ycoord_fmt.fmt(), Ydim.Coord( positions[1] ));
+        set.WriteCoord( file, ycoord_fmt.fmt(), 1, positions[1] );
       for (positions[0] = 0; positions[0] < set.Ncols(); positions[0]++)
         set.WriteBuffer( file, positions );
       file.Printf("\n");
@@ -594,12 +593,12 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
                   Ydim.Label().c_str(), set.legend());
-     TextFormat col_fmt;
-     col_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
-     col_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 ); 
+    xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+    ycoord_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
     for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
       for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
-        file.Printf(col_fmt.fmt(), Xdim.Coord( positions[0] ), Ydim.Coord( positions[1] ));
+        set.WriteCoord(file, xcoord_fmt.fmt(), 0, positions[0]);
+        set.WriteCoord(file, ycoord_fmt.fmt(), 1, positions[1]);
         set.WriteBuffer( file, positions );
         file.Printf("\n");
       }
@@ -639,14 +638,15 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
-  TextFormat col_fmt;
-  col_fmt.SetCoordFormat( set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
-  col_fmt.SetCoordFormat( set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  col_fmt.SetCoordFormat( set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
+  TextFormat xcol_fmt( set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
+  TextFormat ycol_fmt( set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
+  TextFormat zcol_fmt( set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
   for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
     for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
       for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
-        set.WriteCoords(file, col_fmt.fmt(), pos);
+        set.WriteCoord(file, xcol_fmt.fmt(), 0, pos[0]);
+        set.WriteCoord(file, ycol_fmt.fmt(), 1, pos[1]);
+        set.WriteCoord(file, zcol_fmt.fmt(), 2, pos[2]);
         set.WriteBuffer( file, pos );
         file.Printf("\n");
       }
