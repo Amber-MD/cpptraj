@@ -35,7 +35,7 @@ char Residue::ConvertResName(std::string const& r) {
   return ' ';
 }
 
-const char* ConvertResName(char letter) {
+const char* Residue::ConvertResName(char letter) {
   switch (letter) {
       case 'A': return "ALA";
       case 'R': return "ARG";

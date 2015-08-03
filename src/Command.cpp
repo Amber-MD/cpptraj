@@ -11,6 +11,7 @@
 #include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
+#include "SequenceAlign.h"
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -601,6 +602,10 @@ static void Deprecate_AvgCoord() {
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
+/// Sequence align
+Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ return (Command::RetType)SequenceAlign(State, argIn); }
+
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1897,6 +1902,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+//  { GENERAL, "sequencealign", 0, 0,                    SequenceAlignCmd},
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
