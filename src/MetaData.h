@@ -3,22 +3,6 @@
 #include <string>
 class MetaData {
   public:
-    MetaData() : idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
-                 scalartype_(UNDEFINED), isTimeSeries_(false) {}
-    /// CONSTRUCTOR - name, aspect, index, ensemble number
-    MetaData(std::string const& n, std::string const& a, int i, int e) :
-      name_(n), aspect_(a), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
-      scalartype_(UNDEFINED), isTimeSeries_(false) {}
-    /// CONSTRUCTOR - name, aspect, index, ensemble number, legend
-    MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
-      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
-      scalartype_(UNDEFINED), isTimeSeries_(false) {}
-    /// CONSTRUCTOR - name
-    MetaData(const char* n) : name_(n), idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
-      scalartype_(UNDEFINED), isTimeSeries_(false) {}
-    /// CONSTRUCTOR - name
-    MetaData(std::string const& n) : name_(n), idx_(-1), ensembleNum_(-1),
-      scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED), isTimeSeries_(false) {}
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
       M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
@@ -33,6 +17,28 @@ class MetaData {
       IRED,   DIHCOVAR,
       UNDEFINED
     };
+    /// Mark whether this data set is a time series.
+    enum tsType { UNKNOWN_TS = 0, IS_TS, NOT_TS };
+    /// CONSTRUCTOR
+    MetaData() : idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
+                 scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, aspect, index, ensemble number
+    MetaData(std::string const& n, std::string const& a, int i, int e) :
+      name_(n), aspect_(a), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, aspect, index, ensemble number, legend
+    MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
+      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name
+    MetaData(const char* n) : name_(n), idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
+      scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name
+    MetaData(std::string const& n) : name_(n), idx_(-1), ensembleNum_(-1),
+      scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, scalarmode
+    MetaData(std::string const& n, scalarMode m) : name_(n), idx_(-1), ensembleNum_(-1),
+      scalarmode_(m), scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
     /// \return string containing scalar mode and type if defined.
@@ -60,7 +66,7 @@ class MetaData {
     std::string const& Legend() const { return legend_;      }
     int Idx()                   const { return idx_;         }
     int EnsembleNum()           const { return ensembleNum_; }
-    bool IsTimeSeries()         const { return isTimeSeries_;}
+    tsType TimeSeries()         const { return timeSeries_;  }
     scalarType ScalarType()     const { return scalartype_;  }
 
     void SetName(std::string const& n)   { name_ = n;        }
@@ -68,6 +74,7 @@ class MetaData {
     void SetIdx(int i)                   { idx_ = i;         }
     void SetEnsembleNum(int e)           { ensembleNum_ = e; }
     void SetScalarType(scalarType s)     { scalartype_ = s;  }
+    void SetTimeSeries(tsType t)         { timeSeries_ = t;  }
   private:
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type
@@ -79,7 +86,7 @@ class MetaData {
     int ensembleNum_;         ///< DataSet ensemble number.
     scalarMode scalarmode_;   ///< Source of data in DataSet.
     scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
-    bool isTimeSeries_;       ///< true if DataSet is a time series.
+    tsType timeSeries_;       ///< DataSet time series status, for allocation. 
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 bool MetaData::operator<(const MetaData& rhs) const {

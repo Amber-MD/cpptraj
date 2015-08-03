@@ -138,7 +138,7 @@ void DataSetList::AllocateSets(long int maxFrames) {
   DataSet::SizeArray mfArray(1, maxFrames);
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {
-    if ( (*ds)->Meta().IsTimeSeries() )
+    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS )
       if ( (*ds)->Allocate( mfArray ) )
         mprinterr("Error: Could not allocate time series for '%s'\n", (*ds)->legend());
   }
@@ -450,7 +450,9 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
     return 0;
   }
-
+  // If 1 dim set and time series status not set, set to true.
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) 
+    meta.SetTimeSeries( MetaData::IS_TS );
   // Set up dataset 
   if ( DS->SetMetaData( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
