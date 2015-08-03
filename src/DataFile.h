@@ -46,9 +46,9 @@ class DataFile {
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
     int SetupStdout(ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
-    int AddSet(DataSet*);
+    int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.
-    int RemoveSet(DataSet*);
+    int RemoveDataSet(DataSet*);
     /// Process DataFile-related arguments
     int ProcessArgs(ArgList&);
     int ProcessArgs(std::string const&);

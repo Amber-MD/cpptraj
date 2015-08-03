@@ -224,8 +224,8 @@ void DataFile::SetMember(int memberIn) {
               member_, memberIn);
 }
 
-// DataFile::AddSet()
-int DataFile::AddSet(DataSet* dataIn) {
+// DataFile::AddDataSet()
+int DataFile::AddDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   if (dataio_ == 0) {
     mprinterr("Internal Error: Attempting to add set to DataFile that is not set up.\n");
@@ -274,8 +274,8 @@ int DataFile::AddSet(DataSet* dataIn) {
   return 0;
 }
 
-// DataFile::RemoveSet()
-int DataFile::RemoveSet(DataSet* dataIn) {
+// DataFile::RemoveDataSet()
+int DataFile::RemoveDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   SetList_.RemoveSet( dataIn );
   return 0;
@@ -329,7 +329,7 @@ void DataFile::WriteData() {
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
   // Loop over all sets, decide which ones should be written.
-  // All DataSets should have same dimension (enforced by AddSet()).
+  // All DataSets should have same dimension (enforced by AddDataSet()).
   DataSetList setsToWrite;
   for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
@@ -376,17 +376,7 @@ void DataFile::WriteData() {
   Timer dftimer;
   dftimer.Start();
 #endif
-  int err = 0;
-  if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
-    err = dataio_->WriteData(filename_.Full(), setsToWrite);
-  else if ( dimension_ == 2) // Two-dimensional
-    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
-  else if ( dimension_ == 3) // Three-dimensional
-    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
-  else {
-    mprinterr("Error: %iD writes not yet supported.\n", dimension_);
-    err = 1;
-  }
+  int err = dataio_->WriteData(filename_.Full(), setsToWrite); 
 #ifdef TIMER
   dftimer.Stop();
   mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
@@ -415,7 +405,7 @@ std::string DataFile::DataSetNames() const {
   if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
       ++setnum;
       ++set;
     }
@@ -423,13 +413,13 @@ std::string DataFile::DataSetNames() const {
     set = SetList_.end() - 4;
     setnum = 0;
     while (setnum < 4) {
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
       ++setnum;
       ++set;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
   }
   return setNames;
 }

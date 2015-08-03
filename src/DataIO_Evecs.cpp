@@ -37,17 +37,17 @@ int DataIO_Evecs::processReadArgs(ArgList& argIn) {
 }
 
 /** This routine should be updated when new matrix types are added. */
-const char* DataIO_Evecs::MatrixOutputString(DataSet::scalarType typeIn) {
+const char* DataIO_Evecs::MatrixOutputString(MetaData::scalarType typeIn) {
   const char* ptr = 0;
   switch (typeIn) {
-    case DataSet::DIST :      ptr = "DIST"; break;
-    case DataSet::COVAR :     ptr = "COVAR"; break;
-    case DataSet::MWCOVAR :   ptr = "MWCOVAR"; break;
-    case DataSet::CORREL :    ptr = "CORREL"; break;
-    case DataSet::DISTCOVAR : ptr = "DISTCOVAR"; break;
-    case DataSet::IDEA :      ptr = "IDEA"; break;
-    case DataSet::IRED :      ptr = "IRED"; break;
-    case DataSet::DIHCOVAR :  ptr = "DIHCOVAR"; break;
+    case MetaData::DIST :      ptr = "DIST"; break;
+    case MetaData::COVAR :     ptr = "COVAR"; break;
+    case MetaData::MWCOVAR :   ptr = "MWCOVAR"; break;
+    case MetaData::CORREL :    ptr = "CORREL"; break;
+    case MetaData::DISTCOVAR : ptr = "DISTCOVAR"; break;
+    case MetaData::IDEA :      ptr = "IDEA"; break;
+    case MetaData::IRED :      ptr = "IRED"; break;
+    case MetaData::DIHCOVAR :  ptr = "DIHCOVAR"; break;
     default:                  ptr = "UNKNOWN";
   }
   return ptr;
@@ -75,28 +75,28 @@ int DataIO_Evecs::ReadData(std::string const& modesfile,
   ArgList title(buffer);
   // Check if reduced
   bool reduced = title.hasKey("Reduced");
-  // Allocate MODES dataset. No appending allowed.
-  DataSet* mds = datasetlist.AddSet( DataSet::MODES, dsname, "Evecs" );
-  if (mds == 0) return 1;
-  DataSet_Modes& modesData = static_cast<DataSet_Modes&>( *mds );
   // Determine modes file type
-  DataSet::scalarType modesType = DataSet::UNDEFINED;
-  for (int matidx = (int)DataSet::DIST;
-           matidx != (int)DataSet::UNDEFINED; ++matidx)
+  MetaData::scalarType modesType = MetaData::UNDEFINED;
+  for (int matidx = (int)MetaData::DIST;
+           matidx != (int)MetaData::UNDEFINED; ++matidx)
   {
-    if (title.hasKey( MatrixOutputString((DataSet::scalarType)matidx) ))
+    if (title.hasKey( MatrixOutputString((MetaData::scalarType)matidx) ))
     {
-      modesType = (DataSet::scalarType)matidx;
+      modesType = (MetaData::scalarType)matidx;
       break;
     }
   }
   // For compatibility with quasih and nmode output
-  if (modesType == DataSet::UNDEFINED) {
+  if (modesType == MetaData::UNDEFINED) {
     mprintf("Warning: ReadEvecFile(): Unrecognized type [%s]. Assuming MWCOVAR.\n",
             title.ArgLine());
-    modesType = DataSet::MWCOVAR;
+    modesType = MetaData::MWCOVAR;
   }
-  modesData.SetScalar( modesType );
+  // Allocate MODES dataset. No appending allowed.
+  MetaData md(dsname, MetaData::M_MATRIX, modesType);
+  DataSet* mds = datasetlist.AddSet( DataSet::MODES, md, "Evecs" );
+  if (mds == 0) return 1;
+  DataSet_Modes& modesData = static_cast<DataSet_Modes&>( *mds );
   // For newer modesfiles, get # of modes in file.
   int modesInFile = title.getKeyInt("nmodes",-1);
   if (modesInFile == -1) {
@@ -240,7 +240,7 @@ int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList
     outfile.Printf(" Reduced Eigenvector file: ");
   else
     outfile.Printf(" Eigenvector file: ");
-  outfile.Printf("%s", MatrixOutputString(modesData.ScalarType()));
+  outfile.Printf("%s", MatrixOutputString(modesData.Meta().ScalarType()));
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", modesData.Nmodes());
   // Write out col width on title line to not break compat. with older modes files
