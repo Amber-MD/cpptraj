@@ -22,23 +22,30 @@ class MetaData {
     /// CONSTRUCTOR
     MetaData() : idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
                  scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
-    /// CONSTRUCTOR - name, aspect, index, ensemble number
+    /// CONSTRUCTOR - name, aspect, index, ensemble number (for searching)
     MetaData(std::string const& n, std::string const& a, int i, int e) :
       name_(n), aspect_(a), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
       scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
     /// CONSTRUCTOR - name, aspect, index, ensemble number, legend
-    MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
-      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
-      scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+//    MetaData(std::string const& n, std::string const& a, int i, int e, std::string const& l) :
+//      name_(n), aspect_(a), legend_(l), idx_(i), ensembleNum_(e), scalarmode_(UNKNOWN_MODE),
+//      scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
     /// CONSTRUCTOR - name
     MetaData(const char* n) : name_(n), idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
       scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
     /// CONSTRUCTOR - name
     MetaData(std::string const& n) : name_(n), idx_(-1), ensembleNum_(-1),
       scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, aspect
+    MetaData(std::string const& n, std::string const& a) : name_(n), aspect_(a), idx_(-1),
+      ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
+      timeSeries_(UNKNOWN_TS) {}
     /// CONSTRUCTOR - name, scalarmode
     MetaData(std::string const& n, scalarMode m) : name_(n), idx_(-1), ensembleNum_(-1),
       scalarmode_(m), scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, scalarmode, scalartype
+    MetaData(std::string const& n, scalarMode m, scalarType t) : name_(n), idx_(-1),
+      ensembleNum_(-1), scalarmode_(m), scalartype_(t), timeSeries_(UNKNOWN_TS) {}
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
     /// \return string containing scalar mode and type if defined.
