@@ -83,7 +83,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
 
   mprintf("  Map of Sbjct to Query:\n");
   for (unsigned int i = 0; i != Sbjct.size(); i++) {
-    mprintf("%-u %3s %i", i+1, Residue::ConvertResName(Sbjct[i]), Smap[i]);
+    mprintf("%-u %3s %i", i+1, Residue::ConvertResName(Sbjct[i]), Smap[i]+1);
     const char* qres = "";
     if (Smap[i] != -1)
       qres = Residue::ConvertResName(Query[Smap[i]]);
