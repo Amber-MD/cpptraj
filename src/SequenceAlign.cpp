@@ -19,6 +19,11 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: 'blastfile' must be specified.\n");
     return 1;
   }
+  ReferenceFrame qref = State.DSL()->GetReferenceFrame(argIn);
+  if (qref.error() || qref.empty()) {
+    mprinterr("Error: Must specify reference structure for query.\n");
+    return 1;
+  }
 
   // Load blast file
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
@@ -80,7 +85,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
       ptr = infile.Line();
     }
   }
-
+  // DEBUG
   mprintf("  Map of Sbjct to Query:\n");
   for (unsigned int i = 0; i != Sbjct.size(); i++) {
     mprintf("%-u %3s %i", i+1, Residue::ConvertResName(Sbjct[i]), Smap[i]+1);
@@ -88,6 +93,17 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     if (Smap[i] != -1)
       qres = Residue::ConvertResName(Query[Smap[i]]);
     mprintf(" %3s\n", qres);
-  } 
+  }
+  // Check that query residues match reference.
+  for (unsigned int i = 0; i != Sbjct.size(); i++) {
+    int qres = Smap[i];
+    if (qres != -1) {
+      if (Query[qres] != qref.Parm().Res(qres).SingleCharName()) {
+        mprintf("Warning: Potential residue mismatch: Query %s reference %s\n",
+                Residue::ConvertResName(Query[qres]), qref.Parm().Res(qres).c_str());
+      }
+    }
+  }
+ 
   return 0;
 }
