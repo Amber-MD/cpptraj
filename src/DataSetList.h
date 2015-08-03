@@ -26,8 +26,6 @@ class DataSetList {
 
     void Clear();
     DataSetList& operator+=(DataSetList const&);
-    /// \return Description for given set type.
-    static const char* SetString(DataSet::DataType);
     /// DataSetList default iterator
     typedef DataListType::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
@@ -62,7 +60,7 @@ class DataSetList {
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Allocate 1D DataSet memory based on current max# expected frames.
     void AllocateSets(long int);
-    /// Set width.precision of all DataSets in the list.
+    /// Set width and precision of specified DataSets in the list.
     void SetPrecisionOfDataSets(std::string const&, int, int);
     /// Get DataSet matching specified argument.
     DataSet* GetDataSet( std::string const& ) const;

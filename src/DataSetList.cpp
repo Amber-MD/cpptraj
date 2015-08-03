@@ -45,10 +45,6 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { 0, 0 }
 };
 
-const char* DataSetList::SetString(DataSet::DataType d) {
-  return DataArray[d].Description;
-}
-
 // CONSTRUCTOR
 DataSetList::DataSetList() :
   maxFrames_(-1),
