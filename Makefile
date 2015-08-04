@@ -1,50 +1,30 @@
-# CPPTRAJ - Main Makefile
+# CPPTRAJ - Main makefile
 # Daniel R. Roe
-# 2010-11-18
-# Revised 2015-03-09
+# 2014-12-10
 
-# Create standalone cpptraj binary in ./src/
-all:
-	cd src && $(MAKE)
+# Create cpptraj binary in ./src/
+all: install
 
-# Create standalone cpptraj binary
-install_local:
-	cd src && $(MAKE) install
+# Create cpptraj binary and move to ./bin/
+install: config.h
+	cd src && $(MAKE) install 
 
-# Create cpptraj/ambpdb binaries within AmberTools
-serial:
-	cd src && $(MAKE) -f Makefile_at install
-
-# Create OpenMP cpptraj binary within AmberTools
-openmp:
-	cd src && $(MAKE) -f Makefile_at install_openmp
-
-# Create MPI cpptraj binary within AmberTools
-parallel:
-	cd src && $(MAKE) -f Makefile_at install_mpi
-
-# Create libcpptraj within AmberTools 
-libcpptraj:
-	cd src && $(MAKE) -f Makefile_at libcpptraj
+# Create libcpptraj.so
+libcpptraj: config.h
+	cd src && $(MAKE) libcpptraj
 
 # Run Tests
-check:
-	cd ../../test/cpptraj/ && $(MAKE) test
+check: config.h
+	cd test && $(MAKE) test.complete summary
 
-check_local:
-	cd ../../test/cpptraj/ && $(MAKE) test.standalone
+# Clean up
+clean: config.h
+	cd src && $(MAKE) clean
+	cd test && $(MAKE) clean
 
 docs: src/cpptraj.Doxyfile
 	cd src && doxygen cpptraj.Doxyfile
 
-# Clean up for standalone
-clean_local:
-	cd src && $(MAKE) clean
-
-# Clean up for AmberTools
-clean:
-	cd src && $(MAKE) -f Makefile_at clean
-
-# Uninstall for AmberTools 
-uninstall:
-	cd src && $(MAKE) -f Makefile_at uninstall
+# Remove cpptraj binary
+uninstall: config.h
+	cd src && $(MAKE) uninstall
