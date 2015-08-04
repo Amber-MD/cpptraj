@@ -155,6 +155,8 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
       sFrame.AddXYZ( Zero.Dptr() );
     }
   }
+  sTop.SetRes(sTop.Nres()-1).SetLastAtom( sTop.Natom() ); // FIXME to not call CommonSetup
+  //sTop.PrintAtomInfo("*");
   mprintf("\tPlaceholder residue indices:");
   for (Iarray::const_iterator p = placeHolder.begin(); p != placeHolder.end(); ++p)
     mprintf(" %i", *p + 1);
@@ -171,11 +173,28 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
           if (placeHolder[pidx] - current_indices.back() > 1) break;
           current_indices.push_back( placeHolder[pidx] );
         }
+        // DEBUG
         mprintf("\tSegment:");
         for (Iarray::const_iterator it = current_indices.begin();
                                     it != current_indices.end(); ++it)
           mprintf(" %i", *it + 1);
-        mprintf("\n");
+        // Get coordinates of residues bordering segment.
+        int prev_res = sTop[current_indices.front()].ResNum() - 1;
+        int next_res = sTop[current_indices.back() ].ResNum() + 1;
+        mprintf(" (prev_res=%i, next_res=%i)\n", prev_res+1, next_res+1);
+        Vec3 prev_crd(sFrame.XYZ(current_indices.front() - 1));
+        Vec3 next_crd(sFrame.XYZ(current_indices.back()  + 1));
+        prev_crd.Print("prev_crd");
+        next_crd.Print("next_crd");
+        Vec3 crd_step = (next_crd - prev_crd) / (double)(current_indices.size()+1);
+        crd_step.Print("crd_step");
+        double* xyz = sFrame.xAddress() + (current_indices.front() * 3);
+        for (unsigned int i = 0; i != current_indices.size(); i++, xyz += 3) {
+          prev_crd += crd_step;
+          xyz[0] = prev_crd[0];
+          xyz[1] = prev_crd[1];
+          xyz[2] = prev_crd[2];
+        }
         current_indices.clear();
       }
     }
