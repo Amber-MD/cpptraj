@@ -115,29 +115,77 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     }
   }
   // Build subject using coordinate from reference.
-  AtomMask sMask; // Contain atoms that should be in sTop
+  //AtomMask sMask; // Contain atoms that should be in sTop
+  Topology sTop;
+  Frame sFrame;
+  Iarray placeHolder; // Atom indices of placeholder residues.
   for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
     int qres = Smap[sres];
+    NameType SresName( Residue::ConvertResName(Sbjct[sres]) );
     if (qres != -1) {
+      Residue const& QR = qref.Parm().Res(qres);
+      Residue SR(SresName, sres+1, ' ', QR.ChainID());
       if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
-        Residue const& QR = qref.Parm().Res(qres);
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {
           if (qref.Parm()[qat].Element() != Atom::HYDROGEN)
-            //sTop.AddAtom( qref.Parm()[qat],
-            //              Residue(QR.Name(), sres+1, ' ', QR.ChainID()),
-            //              qref.Coord().XYZ(qat) );
-            sMask.AddAtom(qat);
+            sTop.AddTopAtom( qref.Parm()[qat], SR, qref.Coord().XYZ(qat) );
+            sFrame.AddXYZ( qref.Coord().XYZ(qat) );
+            //sMask.AddAtom(qat);
         }
-      } // TODO partial match
+      } else { // Partial match. Copy only backbone and CB.
+        for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
+        {
+          if ( qref.Parm()[qat].Name().Match("N" ) ||
+               qref.Parm()[qat].Name().Match("CA") ||
+               qref.Parm()[qat].Name().Match("CB") ||
+               qref.Parm()[qat].Name().Match("C" ) ||
+               qref.Parm()[qat].Name().Match("O" ) )
+          {
+            sTop.AddTopAtom( qref.Parm()[qat], SR, qref.Coord().XYZ(qat) );
+            sFrame.AddXYZ( qref.Coord().XYZ(qat) );
+          }
+        }
+      }
+    } else {
+      // Residue in query does not exist for subject. Just put placeholder CA for now.
+      Vec3 Zero(0.0);
+      placeHolder.push_back( sTop.Natom() );
+      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', ' '), Zero.Dptr() );
+      sFrame.AddXYZ( Zero.Dptr() );
     }
   }
-  Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
-  if (sTop == 0) return 1;
-  Frame sFrame(qref.Coord(), sMask);
+  mprintf("\tPlaceholder residue indices:");
+  for (Iarray::const_iterator p = placeHolder.begin(); p != placeHolder.end(); ++p)
+    mprintf(" %i", *p + 1);
+  mprintf("\n");
+  // Try to give placeholders more reasonable coordinates.
+  if (!placeHolder.empty()) {
+    Iarray current_indices;
+    unsigned int pidx = 0;
+    while (pidx < placeHolder.size()) {
+      if (current_indices.empty()) {
+        current_indices.push_back( placeHolder[pidx++] );
+        // Search for the end of this segment
+        for (; pidx != placeHolder.size(); pidx++) {
+          if (placeHolder[pidx] - current_indices.back() > 1) break;
+          current_indices.push_back( placeHolder[pidx] );
+        }
+        mprintf("\tSegment:");
+        for (Iarray::const_iterator it = current_indices.begin();
+                                    it != current_indices.end(); ++it)
+          mprintf(" %i", *it + 1);
+        mprintf("\n");
+        current_indices.clear();
+      }
+    }
+  }
+  //Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
+  //if (sTop == 0) return 1;
+  //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
-  if (trajout.InitTrajWrite(outfilename, argIn, sTop, fmt)) return 1;
-  if (trajout.SetupTrajWrite(sTop)) return 1;
+  if (trajout.InitTrajWrite(outfilename, argIn, &sTop, fmt)) return 1;
+  if (trajout.SetupTrajWrite(&sTop)) return 1;
   if (trajout.WriteSingle(0, sFrame)) return 1;
   trajout.EndTraj();
   return 0;
