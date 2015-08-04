@@ -2,6 +2,7 @@
 #include "SequenceAlign.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "Trajout_Single.h"
 // EXPERIMENTAL ALPHA CODE
 /** Idea is to take a reference PDB and a BLAST-type alignment
   * with format:
@@ -11,7 +12,7 @@
   * and split the reference PDB into segments with the correct residue IDs so
   * it can then be put together.
   *
-  * Usage: sequencealign <ref keyword> blastfile <file>
+  * Usage: sequencealign <ref keyword> blastfile <file> out <file> [{pdb | mol2}]
   */
 int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   std::string blastfile = argIn.GetStringKey("blastfile");
@@ -24,6 +25,15 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: Must specify reference structure for query.\n");
     return 1;
   }
+  std::string outfilename = argIn.GetStringKey("out");
+  if (outfilename.empty()) {
+    mprinterr("Error: Must specify output file.\n");
+    return 1;
+  }
+  TrajectoryFile::TrajFormatType fmt = TrajectoryFile::GetFormatFromArg(argIn);
+  if (fmt != TrajectoryFile::PDBFILE && fmt != TrajectoryFile::MOL2FILE)
+    fmt = TrajectoryFile::PDBFILE; // Default to PDB
+  Trajout_Single trajout;
 
   // Load blast file
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
@@ -87,16 +97,16 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   }
   // DEBUG
   mprintf("  Map of Sbjct to Query:\n");
-  for (unsigned int i = 0; i != Sbjct.size(); i++) {
-    mprintf("%-u %3s %i", i+1, Residue::ConvertResName(Sbjct[i]), Smap[i]+1);
+  for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
+    mprintf("%-u %3s %i", sres+1, Residue::ConvertResName(Sbjct[sres]), Smap[sres]+1);
     const char* qres = "";
-    if (Smap[i] != -1)
-      qres = Residue::ConvertResName(Query[Smap[i]]);
+    if (Smap[sres] != -1)
+      qres = Residue::ConvertResName(Query[Smap[sres]]);
     mprintf(" %3s\n", qres);
   }
   // Check that query residues match reference.
-  for (unsigned int i = 0; i != Sbjct.size(); i++) {
-    int qres = Smap[i];
+  for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
+    int qres = Smap[sres];
     if (qres != -1) {
       if (Query[qres] != qref.Parm().Res(qres).SingleCharName()) {
         mprintf("Warning: Potential residue mismatch: Query %s reference %s\n",
@@ -104,6 +114,31 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
       }
     }
   }
- 
+  // Build subject using coordinate from reference.
+  AtomMask sMask; // Contain atoms that should be in sTop
+  for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
+    int qres = Smap[sres];
+    if (qres != -1) {
+      if (Query[qres] == Sbjct[sres]) { // Exact match. All non-H atoms.
+        Residue const& QR = qref.Parm().Res(qres);
+        for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
+        {
+          if (qref.Parm()[qat].Element() != Atom::HYDROGEN)
+            //sTop.AddAtom( qref.Parm()[qat],
+            //              Residue(QR.Name(), sres+1, ' ', QR.ChainID()),
+            //              qref.Coord().XYZ(qat) );
+            sMask.AddAtom(qat);
+        }
+      } // TODO partial match
+    }
+  }
+  Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
+  if (sTop == 0) return 1;
+  Frame sFrame(qref.Coord(), sMask);
+  // Write output traj
+  if (trajout.InitTrajWrite(outfilename, argIn, sTop, fmt)) return 1;
+  if (trajout.SetupTrajWrite(sTop)) return 1;
+  if (trajout.WriteSingle(0, sFrame)) return 1;
+  trajout.EndTraj();
   return 0;
 }
