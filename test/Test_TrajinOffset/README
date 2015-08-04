@@ -1,0 +1,6 @@
+DRR - 2010-03-17
+Tested: COORD_AMBER_REMD in and out, gzip/bzip in, trajin with offsets
+
+This tests ptraj's ability to read in compressed and uncompressed trajectories
+with offsets, diff is based on output coordinates. Input and output is in Amber 
+REMD trajectory format, but processed without the remdtraj flag.
