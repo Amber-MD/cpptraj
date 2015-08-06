@@ -31,9 +31,10 @@ class Analysis_IRED : public Analysis {
     double* cf_cjt_;
     double* cfinf_;
     double* taum_;
-    std::string noeFilename_;
-    std::string filename_;
-    std::string orderparamfile_;
+    CpptrajFile* orderout_;
+    CpptrajFile* noefile_;
+    CpptrajFile* cmtfile_;
+    CpptrajFile* cjtfile_;
     DataSet_Modes* modinfo_;
     std::vector<DataSet_Vector*> IredVectors_;
 

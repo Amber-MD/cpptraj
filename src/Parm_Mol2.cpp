@@ -35,8 +35,10 @@ int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
       // mol2 atom #s start from 1
       parmOut.AddBond(at1-1, at2-1);
     }
+    needsBondSearch_ = false;
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
+    needsBondSearch_ = true;
   }
 
   // No box

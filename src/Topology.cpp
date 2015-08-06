@@ -8,6 +8,9 @@
 #include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
 #include "Constants.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -627,12 +630,10 @@ void Topology::StartNewMol() {
 int Topology::CommonSetup(bool bondsearch) {
   // Set residue last atom (PDB/Mol2/PSF) 
   residues_.back().SetLastAtom( atoms_.size() );
-  // Set up bond information if specified and necessary
+  // Set up bond information if specified or necessary
   if (bondsearch) {
-    if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
-      GetBondsFromAtomCoords();
-      molecules_.clear();
-    }
+    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
+    molecules_.clear();
   }
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -893,25 +894,31 @@ void Topology::AssignBondParameters() {
 } 
 
 // Topology::GetBondsFromAtomCoords()
-void Topology::GetBondsFromAtomCoords() {
+int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
   mprintf("\t%s: determining bond info from distances.\n",c_str());
+  if (frameIn.empty()) {
+    mprinterr("Error: No coordinates set for '%s'; cannot search for bonds.\n", c_str());
+    return 1;
+  }
+# ifdef TIMER
+  Timer time_total, time_within, time_between;
+  time_total.Start();
+  time_within.Start();
+# endif
   // ----- STEP 1: Determine bonds within residues
-  for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); ++res) 
+  for (std::vector<Residue>::const_iterator res = residues_.begin(); 
+                                            res != residues_.end(); ++res) 
   {
-    // Get residue start atom.
-    int startatom = (*res).FirstAtom();
-    // Get residue end atom.
-    int stopatom = (*res).LastAtom();
+    int stopatom = res->LastAtom();
     // Check for bonds between each atom in the residue.
-    for (int atom1 = startatom; atom1 < stopatom - 1; ++atom1) {
+    for (int atom1 = res->FirstAtom(); atom1 != stopatom; ++atom1) {
       Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
       // If this is a hydrogen and it already has a bond, move on.
       if (a1Elt==Atom::HYDROGEN && atoms_[atom1].Nbonds() > 0 )
         continue;
-      for (int atom2 = atom1 + 1; atom2 < stopatom; ++atom2) {
+      for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
-        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
+        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) {
@@ -922,47 +929,51 @@ void Topology::GetBondsFromAtomCoords() {
       }
     }
   }
+# ifdef TIMER
+  time_within.Stop();
+  time_between.Start();
+# endif
   // ----- STEP 2: Determine bonds between adjacent residues
-  std::vector<Molecule>::iterator nextmol = molecules_.begin();
+  std::vector<Molecule>::const_iterator nextmol = molecules_.begin();
   if (!molecules_.empty())
     ++nextmol;
-  for (std::vector<Residue>::iterator res = residues_.begin() + 1;
-                                      res != residues_.end(); ++res)
+  for (std::vector<Residue>::const_iterator res = residues_.begin() + 1;
+                                            res != residues_.end(); ++res)
   {
     // If molecule information is already present, check if first atom of 
     // this residue >= first atom of next molecule, which indicates this
     // residue and the previous residue are in different molecules.
     if ( (nextmol != molecules_.end()) && 
-         ((*res).FirstAtom() >= (*nextmol).BeginAtom()) )
+         (res->FirstAtom() >= nextmol->BeginAtom()) )
     {
       ++nextmol;
       continue;
     }
     // If this residue is recognized as solvent, no need to check previous or
     // next residue
-    if ( (*res).NameIsSolvent() ) {
+    if ( res->NameIsSolvent() ) {
       ++res;
       if (res == residues_.end()) break;
       continue;
     }
     // Get previous residue
-    std::vector<Residue>::iterator previous_res = res - 1;
+    std::vector<Residue>::const_iterator previous_res = res - 1;
     // If previous residue is recognized as solvent, no need to check previous.
-    if ( (*previous_res).NameIsSolvent() ) continue;
+    if ( previous_res->NameIsSolvent() ) continue;
     // Get previous residue start atom
-    int startatom = (*previous_res).FirstAtom();
+    int startatom = previous_res->FirstAtom();
     // Previous residue stop atom, this residue start atom
-    int midatom = (*res).FirstAtom();
+    int midatom = res->FirstAtom();
     // This residue stop atom
-    int stopatom = (*res).LastAtom();
+    int stopatom = res->LastAtom();
     // Check for bonds between adjacent residues
-    for (int atom1 = startatom; atom1 < midatom; atom1++) {
+    for (int atom1 = startatom; atom1 != midatom; atom1++) {
       Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
       if (a1Elt==Atom::HYDROGEN) continue;
-      for (int atom2 = midatom; atom2 < stopatom; atom2++) {
+      for (int atom2 = midatom; atom2 != stopatom; atom2++) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
         if (a2Elt==Atom::HYDROGEN) continue;
-        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
+        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) 
@@ -970,9 +981,17 @@ void Topology::GetBondsFromAtomCoords() {
       }
     }
   }
+# ifdef TIMER
+  time_between.Stop();
+  time_total.Stop();
+  time_within.WriteTiming(2, "Distances within residues", time_total.Total());
+  time_between.WriteTiming(2, "Distances between residues", time_total.Total());
+  time_total.WriteTiming(1, "Total for determining bonds via distances");
+# endif
   if (debug_>0)
     mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(), 
             bondsh_.size(), bonds_.size());
+  return 0;
 }
 
 // Topology::AddBond()
@@ -984,7 +1003,8 @@ void Topology::AddBond(int atom1, int atom2) {
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
     if ( *ba == atom2 ) {
-      mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
+      if (debug_ > 0)
+        mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
       return;
     }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
