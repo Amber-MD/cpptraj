@@ -1,6 +1,9 @@
 #include "Parm_PDB.h"
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 void Parm_PDB::ReadHelp() {
   mprintf("\tpqr:     Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
@@ -24,6 +27,10 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   if (infile.OpenRead(fname)) return 1;
+# ifdef TIMER
+  Timer time_total, time_atom;
+  time_total.Start();
+# endif
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
     if (readBox_ && infile.RecType() == PDBfile::CRYST1) {
@@ -40,6 +47,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
             bonds.push_back( BondType(barray[0], barray[i], -1) );
       }
     } else if (infile.RecType() == PDBfile::ATOM) {
+#     ifdef TIMER
+      time_atom.Start();
+#     endif
       // If this is an ATOM / HETATM keyword, add to topology.
       infile.pdb_XYZ( XYZ );
       Atom pdbAtom = infile.pdb_Atom(altLoc, atnum);
@@ -53,6 +63,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       } else
         extra.push_back( AtomExtra(occupancy, bfactor, altLoc) );
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue(), XYZ);
+#     ifdef TIMER
+      time_atom.Stop();
+#     endif
     } else if ( infile.RecType() == PDBfile::TER || 
                 infile.RecType() == PDBfile::END )
     {
@@ -71,6 +84,11 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   TopIn.SetParmName( pdbtitle, infile.Filename() );
 
   infile.CloseFile();
+# ifdef TIMER
+  time_total.Stop();
+  time_atom.WriteTiming(2, "ATOM/HETATM read", time_total.Total());
+  time_total.WriteTiming(1, "Total PDB read");
+# endif
   return 0;
 }
 

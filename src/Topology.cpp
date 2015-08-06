@@ -906,20 +906,17 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
   time_within.Start();
 # endif
   // ----- STEP 1: Determine bonds within residues
-  for (std::vector<Residue>::iterator res = residues_.begin(); 
-                                      res != residues_.end(); ++res) 
+  for (std::vector<Residue>::const_iterator res = residues_.begin(); 
+                                            res != residues_.end(); ++res) 
   {
-    // Get residue start atom.
-    int startatom = (*res).FirstAtom();
-    // Get residue end atom.
-    int stopatom = (*res).LastAtom();
+    int stopatom = res->LastAtom();
     // Check for bonds between each atom in the residue.
-    for (int atom1 = startatom; atom1 < stopatom - 1; ++atom1) {
+    for (int atom1 = res->FirstAtom(); atom1 != stopatom; ++atom1) {
       Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
       // If this is a hydrogen and it already has a bond, move on.
       if (a1Elt==Atom::HYDROGEN && atoms_[atom1].Nbonds() > 0 )
         continue;
-      for (int atom2 = atom1 + 1; atom2 < stopatom; ++atom2) {
+      for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
@@ -937,43 +934,43 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
   time_between.Start();
 # endif
   // ----- STEP 2: Determine bonds between adjacent residues
-  std::vector<Molecule>::iterator nextmol = molecules_.begin();
+  std::vector<Molecule>::const_iterator nextmol = molecules_.begin();
   if (!molecules_.empty())
     ++nextmol;
-  for (std::vector<Residue>::iterator res = residues_.begin() + 1;
-                                      res != residues_.end(); ++res)
+  for (std::vector<Residue>::const_iterator res = residues_.begin() + 1;
+                                            res != residues_.end(); ++res)
   {
     // If molecule information is already present, check if first atom of 
     // this residue >= first atom of next molecule, which indicates this
     // residue and the previous residue are in different molecules.
     if ( (nextmol != molecules_.end()) && 
-         ((*res).FirstAtom() >= (*nextmol).BeginAtom()) )
+         (res->FirstAtom() >= nextmol->BeginAtom()) )
     {
       ++nextmol;
       continue;
     }
     // If this residue is recognized as solvent, no need to check previous or
     // next residue
-    if ( (*res).NameIsSolvent() ) {
+    if ( res->NameIsSolvent() ) {
       ++res;
       if (res == residues_.end()) break;
       continue;
     }
     // Get previous residue
-    std::vector<Residue>::iterator previous_res = res - 1;
+    std::vector<Residue>::const_iterator previous_res = res - 1;
     // If previous residue is recognized as solvent, no need to check previous.
-    if ( (*previous_res).NameIsSolvent() ) continue;
+    if ( previous_res->NameIsSolvent() ) continue;
     // Get previous residue start atom
-    int startatom = (*previous_res).FirstAtom();
+    int startatom = previous_res->FirstAtom();
     // Previous residue stop atom, this residue start atom
-    int midatom = (*res).FirstAtom();
+    int midatom = res->FirstAtom();
     // This residue stop atom
-    int stopatom = (*res).LastAtom();
+    int stopatom = res->LastAtom();
     // Check for bonds between adjacent residues
-    for (int atom1 = startatom; atom1 < midatom; atom1++) {
+    for (int atom1 = startatom; atom1 != midatom; atom1++) {
       Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
       if (a1Elt==Atom::HYDROGEN) continue;
-      for (int atom2 = midatom; atom2 < stopatom; atom2++) {
+      for (int atom2 = midatom; atom2 != stopatom; atom2++) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
         if (a2Elt==Atom::HYDROGEN) continue;
         double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
