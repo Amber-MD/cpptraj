@@ -8,6 +8,9 @@
 #include "StringRoutines.h" // integerToString 
 #include "DistRoutines.h"
 #include "Constants.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -897,6 +900,11 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
     mprinterr("Error: No coordinates set for '%s'; cannot search for bonds.\n", c_str());
     return 1;
   }
+# ifdef TIMER
+  Timer time_total, time_within, time_between;
+  time_total.Start();
+  time_within.Start();
+# endif
   // ----- STEP 1: Determine bonds within residues
   for (std::vector<Residue>::iterator res = residues_.begin(); 
                                       res != residues_.end(); ++res) 
@@ -924,6 +932,10 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
       }
     }
   }
+# ifdef TIMER
+  time_within.Stop();
+  time_between.Start();
+# endif
   // ----- STEP 2: Determine bonds between adjacent residues
   std::vector<Molecule>::iterator nextmol = molecules_.begin();
   if (!molecules_.empty())
@@ -972,6 +984,13 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
       }
     }
   }
+# ifdef TIMER
+  time_between.Stop();
+  time_total.Stop();
+  time_within.WriteTiming(2, "Distances within residues", time_total.Total());
+  time_between.WriteTiming(2, "Distances between residues", time_total.Total());
+  time_total.WriteTiming(1, "Total for determining bonds via distances");
+# endif
   if (debug_>0)
     mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(), 
             bondsh_.size(), bonds_.size());
