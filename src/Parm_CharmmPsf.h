@@ -11,6 +11,7 @@ class Parm_CharmmPsf : public ParmIO {
     int WriteParm(std::string const&, Topology const&);
     void SetDebug(int d) { debug_ = d; }
     int processWriteArgs(ArgList&) { return 0; }
+    bool NeedsBondSearch() const { return false; }
   private:
     static inline int FindTag(char*, const char*, int, CpptrajFile&); 
     int debug_;

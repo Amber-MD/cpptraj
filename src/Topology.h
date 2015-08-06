@@ -161,7 +161,7 @@ class Topology {
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
-    void GetBondsFromAtomCoords();
+    int GetBondsFromAtomCoords( Frame const& );
     void VisitAtom(int, int);
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&) const;

@@ -19,6 +19,8 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   float occupancy, bfactor; // Read in occ/bfac
   std::vector<AtomExtra> extra; // Hold occ/bfac if not PQR
   BondArray bonds;              // Hold bonds
+  std::vector<int> serial;      // Map ATOM/HETATM serial number to actual atom number.
+  int atnum;                    // Read in ATOM/HETATM serial number.
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   if (infile.OpenRead(fname)) return 1;
@@ -35,12 +37,15 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       if (nscan > 1) {
         for (int i = 1; i != nscan; i++)
           if (barray[i] > barray[0])
-            bonds.push_back( BondType(barray[0] - 1, barray[i] - 1, -1) );
+            bonds.push_back( BondType(barray[0], barray[i], -1) );
       }
     } else if (infile.RecType() == PDBfile::ATOM) {
       // If this is an ATOM / HETATM keyword, add to topology.
       infile.pdb_XYZ( XYZ );
-      Atom pdbAtom = infile.pdb_Atom(altLoc);
+      Atom pdbAtom = infile.pdb_Atom(altLoc, atnum);
+      if (atnum >= (int)serial.size())
+        serial.resize( atnum+1, -1 );
+      serial[atnum] = TopIn.Natom();
       infile.pdb_OccupanyAndBfactor(occupancy, bfactor);
       if (readAsPQR_) {
         pdbAtom.SetCharge( occupancy );
@@ -56,9 +61,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       if (infile.RecType() == PDBfile::END) break;
     }
   }
-  // Add bonds
-  //for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
-  //  TopIn.AddBond( bnd->A1(), bnd->A2() ); 
+  // Add bonds. The bonds array actually contains ATOM/HETATM serial #s.
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+    TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] ); 
   if (TopIn.SetExtraAtomInfo(0, extra)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.

@@ -627,12 +627,10 @@ void Topology::StartNewMol() {
 int Topology::CommonSetup(bool bondsearch) {
   // Set residue last atom (PDB/Mol2/PSF) 
   residues_.back().SetLastAtom( atoms_.size() );
-  // Set up bond information if specified and necessary
+  // Set up bond information if specified or necessary
   if (bondsearch) {
-    if (bonds_.empty() && bondsh_.empty() && !refCoords_.empty()) {
-      GetBondsFromAtomCoords();
-      molecules_.clear();
-    }
+    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
+    molecules_.clear();
   }
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
@@ -893,8 +891,12 @@ void Topology::AssignBondParameters() {
 } 
 
 // Topology::GetBondsFromAtomCoords()
-void Topology::GetBondsFromAtomCoords() {
+int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
   mprintf("\t%s: determining bond info from distances.\n",c_str());
+  if (frameIn.empty()) {
+    mprinterr("Error: No coordinates set for '%s'; cannot search for bonds.\n", c_str());
+    return 1;
+  }
   // ----- STEP 1: Determine bonds within residues
   for (std::vector<Residue>::iterator res = residues_.begin(); 
                                       res != residues_.end(); ++res) 
@@ -911,7 +913,7 @@ void Topology::GetBondsFromAtomCoords() {
         continue;
       for (int atom2 = atom1 + 1; atom2 < stopatom; ++atom2) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
-        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
+        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) {
@@ -962,7 +964,7 @@ void Topology::GetBondsFromAtomCoords() {
       for (int atom2 = midatom; atom2 < stopatom; atom2++) {
         Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
         if (a2Elt==Atom::HYDROGEN) continue;
-        double D2 = DIST2_NoImage(refCoords_.XYZ(atom1), refCoords_.XYZ(atom2) );
+        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
         double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
         cutoff2 *= cutoff2;
         if (D2 < cutoff2) 
@@ -973,6 +975,7 @@ void Topology::GetBondsFromAtomCoords() {
   if (debug_>0)
     mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(), 
             bondsh_.size(), bonds_.size());
+  return 0;
 }
 
 // Topology::AddBond()
@@ -984,7 +987,8 @@ void Topology::AddBond(int atom1, int atom2) {
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
     if ( *ba == atom2 ) {
-      mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
+      if (debug_ > 0)
+        mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
       return;
     }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
