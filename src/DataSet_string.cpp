@@ -17,7 +17,7 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
     Data_.resize( frame, "NoData" );
   std::string Temp( (const char*)vIn );
   // Check string width.
-  if ( (int)Temp.size() > Width() )
+  if ( (int)Temp.size() > format_.Width() )
     SetPrecision(Temp.size(), 0);
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
@@ -29,15 +29,15 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
   */
 void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= Data_.size())
-    cbuffer.Printf(data_format_, "NoData");
+    cbuffer.Printf(format_.fmt(), "NoData");
   else {
     // Protect against CpptrajFile buffer overflow.
     if (Data_[pIn[0]].size() >= CpptrajFile::BUF_SIZE) {
       // FIXME: Data sets should not have to worry about spaces in format strings.
-      if (data_format_[0] == ' ') cbuffer.Printf(" ");
+      if (format_.fmt()[0] == ' ') cbuffer.Printf(" ");
       cbuffer.Write(Data_[pIn[0]].c_str(), Data_[pIn[0]].size());
     } else 
-      cbuffer.Printf(data_format_, Data_[pIn[0]].c_str());
+      cbuffer.Printf(format_.fmt(), Data_[pIn[0]].c_str());
   }
 }
 

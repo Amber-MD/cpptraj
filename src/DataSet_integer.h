@@ -6,7 +6,7 @@
 /// Hold an array of integer values.
 class DataSet_integer : public DataSet_1D {
   public:
-    DataSet_integer() : DataSet_1D(INTEGER, 12, 0) {}
+    DataSet_integer() : DataSet_1D(INTEGER, TextFormat(TextFormat::INTEGER, 12)) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_integer();}
     int& operator[](size_t idx)       { return Data_[idx];         }
     int  operator[](size_t idx) const { return Data_[idx];         }

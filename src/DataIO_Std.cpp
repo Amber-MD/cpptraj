@@ -409,12 +409,12 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
     if ( *tc == ' ' )
       *tc = '_';
   // Set up header format string
-  std::string header_format = SetStringFormatString(width, leftAlign);
+  TextFormat header_format(TextFormat::STRING, width, leftAlign);
   // Protect against CpptrajFile buffer overflow
   if (width >= (int)CpptrajFile::BUF_SIZE)
     fileIn.Write(temp_name.c_str(), temp_name.size());
   else
-    fileIn.Printf(header_format.c_str(), temp_name.c_str());
+    fileIn.Printf(header_format.fmt(), temp_name.c_str());
 }
 
 // DataIO_Std::WriteData()

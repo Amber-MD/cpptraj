@@ -5,6 +5,7 @@
 #include "MetaData.h"
 #include "Dimension.h"
 #include "AssociatedData.h"
+#include "TextFormat.h"
 #include "Range.h"
 #include "CpptrajFile.h"
 // Class: DataSet
@@ -34,8 +35,8 @@ class DataSet {
     };
 
     DataSet();
-    /// Set DataSet type, width, precision, and # of dimensions.
-    DataSet(DataType,DataGroup,int,int,int);
+    /// Set DataSet type, text output format, and # of dimensions.
+    DataSet(DataType,DataGroup,TextFormat const&,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
@@ -64,22 +65,23 @@ class DataSet {
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
     // -----------------------------------------------------
-    /// Set output width.
-    void SetWidth(int);
-    /// Set output width and precision
-    void SetPrecision(int,int);
     /// Set DataSet MetaData
     int SetMetaData(MetaData const&);
     /// Set specific MetaData part
     MetaData& SetupMeta() { return meta_; }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
-    /// Used to set the data and header format strings 
-    int SetDataSetFormat(bool);
+    /// Set DataSet format width
+    void SetWidth(int w) { format_.SetWidth(w); } // TODO deprecate
+    /// Set DataSet format width and precision // TODO deprecate
+    void SetPrecision(int w, int p) { format_.SetWidth(w); format_.SetPrecision(p); }
+    /// Setup DataSet format string for current width and precision, optional left align.
+    void SetDataSetFormat(bool leftAlign) { format_.SetFormatString( leftAlign ); }
+
     /// Check if name and/or index and aspect wildcard match this DataSet.
     bool Matches_WC(std::string const&, Range const&, std::string const&,
                     Range const&, DataType) const;
-    /// \return true if given metadata matches this set metadat exactly.
+    /// \return true if given metadata matches this set MetaData exactly.
     bool Matches_Exact(MetaData const& m) const { return meta_.Match_Exact(m); }
     /// \return True if DataSet is empty.
     bool Empty()                const { return (Size() == 0);      }
@@ -87,18 +89,20 @@ class DataSet {
     const char* legend()        const { return meta_.Legend().c_str();    }
     /// \return DataSet MetaData
     MetaData const& Meta()      const { return meta_; }
-    /// \return Total output width of a data element in characters.
-    int ColumnWidth()           const { return colwidth_;          }
+    /// \return DataSet TextFormat
+    TextFormat const& Format()  const { return format_; }
     /// \return DataSet type.
     DataType Type()             const { return dType_;             }
     /// \return DataSet group
     DataGroup Group()           const { return dGroup_;            }
+
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
     /// \return specified DataSet dimension.
     Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension&       Dim(int i)             { return dim_[i];      }
     Dimension const& Dim(int i)       const { return dim_[i];      }
+
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet& rhs) const { return meta_ < rhs.meta_; }
     /// Used to sort DataSet pointers (DataSetList, Array1D).
@@ -107,11 +111,8 @@ class DataSet {
         return *first < *second;
       }
     };
-    const char* DataFormat()    const { return data_format_;       }
   protected:
-    /// Width of numbers in output elements.
-    int Width()                 const { return width_;             }
-    const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
+    TextFormat format_;         ///< Text output data format.
   private:
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
@@ -122,11 +123,6 @@ class DataSet {
     AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
     DataType dType_;            ///< The DataSet type
     DataGroup dGroup_;          ///< The DataSet group
-    int colwidth_;              ///< The total output width of a data element.
-    int width_;                 ///< The output width of numbers in a data element.
-    int precision_;             ///< The output precision of numbers in a data element.
-    bool leftAlign_;            ///< If true output will be left-aligned (no leading space).
-    std::string format_;        ///< Output printf format string for data.
     MetaData meta_;             ///< DataSet metadata
 };
 #endif 

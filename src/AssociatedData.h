@@ -5,6 +5,7 @@ class AssociatedData {
     enum AssociatedType { NOE = 0 };
     AssociatedData(AssociatedType t) : type_(t) {}
     AssociatedType Type() { return type_; }
+    virtual AssociatedData* Copy() const = 0;
   private:
     AssociatedType type_;
 };
@@ -17,6 +18,8 @@ class AssociatedData_NOE : public AssociatedData {
     double NOE_bound()  const { return bound_;  }
     double NOE_boundH() const { return boundh_; }
     double NOE_rexp()   const { return rexp_;   }
+
+    AssociatedData* Copy() const { return new AssociatedData_NOE(*this); }
   private:
     double bound_; ///< Lower bound
     double boundh_; ///< Upper bound

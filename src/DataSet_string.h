@@ -6,7 +6,7 @@
 /// Hold an array of string values.
 class DataSet_string : public DataSet {
   public:
-    DataSet_string() : DataSet(STRING, GENERIC, 1, 0, 1) {}
+    DataSet_string() : DataSet(STRING, GENERIC, TextFormat(TextFormat::STRING, 1), 1) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_string();}
     std::vector<std::string> const& Data() { return Data_; }
     std::string& operator[](size_t idx)  { return Data_[idx];         }
