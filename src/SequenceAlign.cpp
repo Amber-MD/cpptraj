@@ -4,16 +4,21 @@
 #include "BufferedLine.h"
 #include "Trajout_Single.h"
 // EXPERIMENTAL ALPHA CODE
-/** Idea is to take a reference PDB and a BLAST-type alignment
-  * with format:
-  * Query  1    MIVNVIQKDRL-KEQKLQFIRNHQQAFDVEPIRPLPLFEDFVTSIEGDCSLEASCKIESD  59
-  *             MI+     D   KE+++Q +R+H ++FDVE   PLPLFE  V S++    LE S K++
-  * Sbjct  1    MIMTTTWPDSYAKERRIQRLRHHFESFDVERAFPLPLFEQAVLSLDSCPLLEPSFKVQEG  60
-  * and split the reference PDB into segments with the correct residue IDs so
-  * it can then be put together.
-  *
-  * Usage: sequencealign <ref keyword> blastfile <file> out <file> [{pdb | mol2}]
-  */
+void Help_SequenceAlign() {
+  mprintf("\t%s blastfile <file> out <file> [{pdb | mol2}] [<trajout args>]\n"
+          "  blastfile: File containing sequence alignment.\n"
+          "  out: File to write resulting structure to.\n"
+          "  [{pdb | mol2}] Format of structure (default pdb).\n"
+          "Given a reference structure and BLAST-like sequence alignment of format:\n"
+          "    Query  1    MIV...\n"
+          "                MI+...\n"
+          "    Sbjct  1    MIM...\n"
+          "where the Query sequence corresponds to the reference, output a structure\n"
+          "with the Sbjct sequence. All hydrogens will be removed. Non-matching residues\n"
+          "will include only backbone and CB (if applicable) atoms.\n",
+          DataSetList::RefArgs);
+}
+    
 int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   std::string blastfile = argIn.GetStringKey("blastfile");
   if (blastfile.empty()) {

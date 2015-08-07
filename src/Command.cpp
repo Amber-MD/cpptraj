@@ -1902,7 +1902,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
-  { GENERAL, "sequencealign", 0, 0,                    SequenceAlignCmd},
+  { GENERAL, "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
