@@ -31,6 +31,8 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
     return Analysis::ERR;
   }
   // Create output data sets
+  if (setname.empty())
+    setname = datasetlist->GenerateDefaultName("LOWCURVE");
   for (Array1D::const_iterator DS = input_dsets_.begin(); DS != input_dsets_.end(); ++DS) {
     DataSet* dsout = datasetlist->AddSetIdx(DataSet::DOUBLE, setname, DS - input_dsets_.begin());
     if (dsout == 0)
