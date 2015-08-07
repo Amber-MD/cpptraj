@@ -3,12 +3,15 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "Trajout_Single.h"
+#include "StringRoutines.h"
 // EXPERIMENTAL ALPHA CODE
 void Help_SequenceAlign() {
-  mprintf("\t%s blastfile <file> out <file> [{pdb | mol2}] [<trajout args>]\n"
+  mprintf("\t%s blastfile <file> out <file>\n"
+          "\t[{pdb | mol2}] [<trajout args>] [smaskoffset <#>] [qmaskoffset <#>]\n"
           "  blastfile: File containing sequence alignment.\n"
           "  out: File to write resulting structure to.\n"
           "  [{pdb | mol2}] Format of structure (default pdb).\n"
+          "  [smaskoffset]|[qmaskoffset]: Resdiue offset for output.\n"
           "Given a reference structure and BLAST-like sequence alignment of format:\n"
           "    Query  1    MIV...\n"
           "                MI+...\n"
@@ -38,7 +41,8 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::GetFormatFromArg(argIn);
   if (fmt != TrajectoryFile::PDBFILE && fmt != TrajectoryFile::MOL2FILE)
     fmt = TrajectoryFile::PDBFILE; // Default to PDB
-  Trajout_Single trajout;
+  int smaskoffset = argIn.getKeyInt("smaskoffset", 0) + 1;
+  int qmaskoffset = argIn.getKeyInt("qmaskoffset", 0) + 1;
 
   // Load blast file
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
@@ -101,14 +105,29 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     }
   }
   // DEBUG
-  mprintf("  Map of Sbjct to Query:\n");
-  for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
-    mprintf("%-u %3s %i", sres+1, Residue::ConvertResName(Sbjct[sres]), Smap[sres]+1);
+  std::string SmaskExp, QmaskExp;
+  if (State.Debug() > 0) mprintf("  Map of Sbjct to Query:\n");
+  for (int sres = 0; sres != (int)Sbjct.size(); sres++) {
+    if (State.Debug() > 0)
+      mprintf("%-i %3s %i", sres+smaskoffset, Residue::ConvertResName(Sbjct[sres]),
+              Smap[sres]+qmaskoffset);
     const char* qres = "";
-    if (Smap[sres] != -1)
+    if (Smap[sres] != -1) {
       qres = Residue::ConvertResName(Query[Smap[sres]]);
-    mprintf(" %3s\n", qres);
+      if (SmaskExp.empty())
+        SmaskExp.assign( integerToString(sres+smaskoffset) );
+      else
+        SmaskExp.append( "," + integerToString(sres+smaskoffset) );
+      if (QmaskExp.empty())
+        QmaskExp.assign( integerToString(Smap[sres]+qmaskoffset) );
+      else
+        QmaskExp.append( "," + integerToString(Smap[sres]+qmaskoffset) );
+
+    }
+    if (State.Debug() > 0) mprintf(" %3s\n", qres);
   }
+  mprintf("Smask: %s\n", SmaskExp.c_str());
+  mprintf("Qmask: %s\n", QmaskExp.c_str());
   // Check that query residues match reference.
   for (unsigned int sres = 0; sres != Sbjct.size(); sres++) {
     int qres = Smap[sres];
@@ -208,6 +227,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   //if (sTop == 0) return 1;
   //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
+  Trajout_Single trajout;
   if (trajout.InitTrajWrite(outfilename, argIn, &sTop, fmt)) return 1;
   if (trajout.SetupTrajWrite(&sTop)) return 1;
   if (trajout.WriteSingle(0, sFrame)) return 1;
