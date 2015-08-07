@@ -735,7 +735,7 @@ int DataIO_RemLog::ReadData(std::string const& fname,
             int phremd_partneridx = GroupDims_[current_dim][grp][pmap->second - 1].Me();
             // Exchange success if old_pH != new_pH
             double delta_pH = new_pH - old_pH;
-            bool phremd_success = (delta_pH > 0.0 || delta_pH > 0.0);
+            bool phremd_success = (delta_pH > 0.0 || delta_pH < 0.0);
             // If an exchange occured, coordsIdx will be that of partner replica.
             if (phremd_success)
               current_crdidx = CoordinateIndices[phremd_partneridx-1];
