@@ -14,7 +14,7 @@ DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false),
 
 // NOTE: Must match ExchgType
 const char* DataIO_RemLog::ExchgDescription[] = {
-  "Unknown", "Temperature", "Hamiltonian", "MultipleDim", "RXSGLD"
+  "Unknown", "Temperature", "Hamiltonian", "MultipleDim", "RXSGLD", "pH"
 };
 
 /// \return true if char pointer is null.
@@ -68,6 +68,7 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
     if (type == UNKNOWN && columns.hasKey("Rep#,")) {
       if (columns[2] == "Neibr#,") type = HREMD;
       else if (columns[2] == "Velocity") type = TREMD;
+      else if (columns[2] == "N_prot," ) type = PHREMD;
     }
   }
   if (numexchg < 1) {
@@ -229,6 +230,50 @@ DataIO_RemLog::TmapType
   }
 
   return TemperatureMap;
+}
+
+/** buffer should be positioned at the first exchange. */
+DataIO_RemLog::TmapType 
+  DataIO_RemLog::Setup_pH_Map(BufferedLine& buffer, std::vector<int>& CrdIdxs) const
+{
+  TmapType pH_Map;
+  std::vector<TlogType> pList; // Hold temps and associated coord idxs
+  TlogType plog;
+  CrdIdxs.clear();
+  const char* ptr = buffer.Line();
+  while (ptr != 0 && ptr[0] != '#') {
+    // For pH remlog create pH map. 
+    mprintf("DEBUG: pH= %s", ptr+15);
+    // '(i6,x,i7,x,2f7.3,x,f8.4)'
+    if ( sscanf(ptr, "%6i%*8i%*c%7lf", &plog.crdidx, &plog.t0) != 2 ) {
+      mprinterr("Error: could not read pH from pH-REMD log.\n"
+                "Error: Line: %s", ptr);
+      return pH_Map;
+    }
+    pList.push_back( plog );
+    ptr = buffer.Line();
+  }
+  // Sort pHs and associated coord indices
+  std::sort( pList.begin(), pList.end(), TlogType_cmp() );
+  // Place sorted pHs into map starting from replica index 1. Check
+  // for duplicate pHs. Also store the sorted coordinate indices.
+  int repidx = 1;
+  for (std::vector<TlogType>::const_iterator it = pList.begin();
+                                             it != pList.end(); ++it)
+  {
+    mprintf("\t\tReplica %i => %f (crdidx= %i)\n", repidx, it->t0, it->crdidx); 
+    if (it != pList.begin()) {
+      if ( it->t0 == (it-1)->t0 ) {
+        mprinterr("Error: duplicate pH %.2f detected in pH-REMD remlog\n", it->t0);
+        pH_Map.clear();
+        return pH_Map;
+      }
+    }
+    pH_Map.insert(std::pair<double,int>(it->t0, repidx++));
+    CrdIdxs.push_back( it->crdidx );
+  }
+
+  return pH_Map;
 }
 
 // DataIO_RemLog::CountHamiltonianReps()
@@ -471,6 +516,15 @@ int DataIO_RemLog::ReadData(std::string const& fname,
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       }
+    } else if (DimTypes_[dim] == PHREMD) {
+      TemperatureMap[dim] = Setup_pH_Map( buffer[dim], TempCrdIdxs[dim] );
+      if (TemperatureMap[dim].empty()) return 1;
+      group_size = (int)TemperatureMap[dim].size();
+      mprintf("\t\tDim %i: %i pH reps.\n", dim+1, group_size);
+      if (!processMREMD_) SetupDim1Group( group_size );
+      for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
+        if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
+      }
     } else if (DimTypes_[dim] == HREMD) {
       group_size = CountHamiltonianReps( buffer[dim] );
       mprintf("\t\tDim %i: %i Hamiltonian reps.\n", dim+1, group_size);
@@ -644,6 +698,58 @@ int DataIO_RemLog::ReadData(std::string const& fname,
                                                current_crdidx,
                                                tremd_success,
                                                tremd_temp0, tremd_pe, 0.0) );
+          // ----- pH-REMD ----------------------------
+          /* Format:
+           * '(i6,x,i7,x,2f7.3,x,f8.4)'
+           # Rep#, N_prot, old_pH, new_pH, Success rate (i,i+1)
+           # exchange        1
+                1       1   2.000  3.500   0.0000
+           * Order during REMD is exchange -> MD, so old_pH is the pH that gets
+           * simulated. TODO: Is that valid?
+           */
+          } else if (DimTypes_[current_dim] == PHREMD) {
+            int ph_crdidx, current_crdidx; // TODO: Remove ph_crdidx
+            double old_pH, new_pH;
+            if ( sscanf(ptr, "%6i%*8i%*c%7lf%7lf", &ph_crdidx, &old_pH, &new_pH) != 3)
+            {
+              mprinterr("Error reading PH line from rem log. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                        current_dim+1, exchg+1, grp+1, replica+1);
+              mprinterr("Error: Line: %s", ptr);
+              return 1;
+            }
+            // Figure out my position within the group.
+            TmapType::const_iterator pmap = 
+              TemperatureMap[current_dim].find( old_pH );
+            if (pmap == TemperatureMap[current_dim].end()) {
+              mprinterr("Error: replica pH %.2f not found in pH map.\n", old_pH);
+              return 1;
+            }
+            // What is my actual position? Currently mapped rep nums start from 1
+            int phremd_repidx = GroupDims_[current_dim][grp][pmap->second - 1].Me();
+            // Who is my partner? ONLY VALID IF EXCHANGE OCCURS
+            pmap = TemperatureMap[current_dim].find( new_pH ); // TODO: Make function
+            if (pmap == TemperatureMap[current_dim].end()) {
+              mprinterr("Error: partner pH %.2f not found in pH map.\n", new_pH);
+              return 1;
+            }
+            int phremd_partneridx = GroupDims_[current_dim][grp][pmap->second - 1].Me();
+            // Exchange success if old_pH != new_pH
+            double delta_pH = new_pH - old_pH;
+            bool phremd_success = (delta_pH > 0.0 || delta_pH > 0.0);
+            // If an exchange occured, coordsIdx will be that of partner replica.
+            if (phremd_success)
+              current_crdidx = CoordinateIndices[phremd_partneridx-1];
+            else
+              current_crdidx = CoordinateIndices[phremd_repidx-1];
+            mprintf("DEBUG: Exchg %8i pHdim# %2u old_pH=%6.2f group=%2u repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
+                    exchg+1, current_dim+1, old_pH, grp+1, phremd_repidx, phremd_partneridx, CoordinateIndices[phremd_repidx-1], current_crdidx);
+            // Create replica frame for PHREMD
+            ensemble.AddRepFrame( phremd_repidx-1,
+                                  DataSet_RemLog:: 
+                                  ReplicaFrame(phremd_repidx, phremd_partneridx,
+                                               current_crdidx,
+                                               phremd_success,
+                                               old_pH, 0.0, 0.0) );
           // ----- H-REMD ----------------------------
           /* Format:
            * '(2i6,5f10.2,4x,a,2x,f10.2)'

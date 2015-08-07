@@ -19,7 +19,7 @@ class DataIO_RemLog : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     // NOTE: Must match ExchgDescription
-    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD };
+    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
     static const char* ExchgDescription[];
     typedef std::vector<std::string> Sarray;
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
@@ -27,6 +27,7 @@ class DataIO_RemLog : public DataIO {
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
     int ReadRemdDimFile(std::string const&);
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
     void SetupDim1Group( int );
