@@ -741,8 +741,8 @@ int DataIO_RemLog::ReadData(std::string const& fname,
               current_crdidx = CoordinateIndices[phremd_partneridx-1];
             else
               current_crdidx = CoordinateIndices[phremd_repidx-1];
-            mprintf("DEBUG: Exchg %8i pHdim# %2u old_pH=%6.2f group=%2u repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
-                    exchg+1, current_dim+1, old_pH, grp+1, phremd_repidx, phremd_partneridx, CoordinateIndices[phremd_repidx-1], current_crdidx);
+            //mprintf("DEBUG: Exchg %8i pHdim# %2u old_pH=%6.2f group=%2u repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
+            //        exchg+1, current_dim+1, old_pH, grp+1, phremd_repidx, phremd_partneridx, CoordinateIndices[phremd_repidx-1], current_crdidx);
             // Create replica frame for PHREMD
             ensemble.AddRepFrame( phremd_repidx-1,
                                   DataSet_RemLog:: 
