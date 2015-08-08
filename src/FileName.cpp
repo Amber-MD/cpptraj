@@ -1,6 +1,28 @@
+#include <wordexp.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring> // strerror
+#include <cerrno>  // errno
 #include "FileName.h"
-#include "StringRoutines.h" // tildeExpansion
 #include "CpptrajStdio.h"
+
+static void WexpErr(int err) {
+  switch ( err ) {
+    case WRDE_BADCHAR :
+      mprinterr("Error: Illegal occurrence of newline or one of |, &, ;, <, >, (, ), {, }.\n");
+      break;
+    //case WRDE_BADVAL
+    case WRDE_CMDSUB :
+      mprinterr("Error: Command substitution is not allowed in file names.\n");
+      break;
+    case WRDE_NOSPACE :
+      mprinterr("Error: Out of memory.\n");
+      break;
+    case WRDE_SYNTAX :
+      mprinterr("Error: Bad syntax (unbalanced parentheses, unmatched quotes.\n");
+      break;
+  }
+}
 
 // COPY CONSTRUCTOR
 FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
@@ -9,12 +31,13 @@ FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
 
 // ASSIGNMENT
 FileName& FileName::operator=(const FileName& rhs) {
-  if (this == &rhs) return *this;
-  fullPathName_ = rhs.fullPathName_;
-  baseName_ = rhs.baseName_;
-  extension_ = rhs.extension_;
-  compressExt_ = rhs.compressExt_;
-  dirPrefix_ = rhs.dirPrefix_;
+  if (this != &rhs) {
+    fullPathName_ = rhs.fullPathName_;
+    baseName_ = rhs.baseName_;
+    extension_ = rhs.extension_;
+    compressExt_ = rhs.compressExt_;
+    dirPrefix_ = rhs.dirPrefix_;
+  }
   return *this;
 }
 
@@ -36,13 +59,58 @@ bool FileName::MatchFullOrBase(std::string const& rhs) const {
   return false;
 }
 
-/** Main routine for setting file name. Assume nameIn is the full path
-  * filename. Determine the base file name and extensions. If compress
-  * status is yes, set the compression extension and prior extension
-  * (if any). If compress status is unknown, see if extension is a 
-  * recognized compression extension.
-  */
-int FileName::SetFileName(std::string const& nameIn, FileName::CompressStatus compressed) {
+int FileName::SetFileName(std::string const& nameIn) {
+  if (nameIn.empty()) {
+    clear();
+    return 0;
+  }
+  wordexp_t expanded;
+  int err = wordexp( nameIn.c_str(), &expanded, WRDE_NOCMD );
+  WexpErr( err );
+  if (err == 0) {
+    if (expanded.we_wordc < 1) { // Sanity check
+      mprinterr("Internal Error: Word expansion failed.\n");
+      err = 1;
+    } else
+      err = SetFileName_NoExpansion( expanded.we_wordv[0] );
+    wordfree( &expanded );
+  }
+  return err;
+/*# ifdef __PGI
+  // NOTE: It seems some PGI compilers do not function correctly when glob.h
+  //       is included and large file flags are set. Try to expand any tildes.
+  char* HOME = getenv("HOME");
+  std::string fname;
+  if (HOME != 0) {
+    for (std::string::const_iterator c = nameIn.begin(); c != nameIn.end(); ++c) {
+      if (*c == '~')
+        fname.append( HOME );
+      else
+        fname += *c;
+    }
+  } else
+    fname = nameIn;
+  return SetFileName_NoExpansion( fname );
+//# else*/
+/*
+  globbuf.gl_offs = 1;
+  std::string fname;
+  int err = glob(nameIn.c_str(), GLOB_TILDE, NULL, &globbuf);
+  if ( err == GLOB_NOMATCH )
+    //mprinterr("Error: '%s' does not exist.\n", filenameIn); // Make silent
+    return returnFilename;
+  else if ( err != 0 )
+    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn.c_str(), err);
+  else {
+    returnFilename.assign( globbuf.gl_pathv[0] );
+    globfree(&globbuf);
+  }
+  return returnFilename;
+//# endif
+*/
+}
+
+int FileName::SetFileName_NoExpansion(std::string const& nameIn) {
   // null filename allowed for WRITE (indicates STDOUT)
   if (nameIn.empty()) {
     clear();
@@ -66,52 +134,56 @@ int FileName::SetFileName(std::string const& nameIn, FileName::CompressStatus co
   } else {
     extension_ = baseName_.substr(found);
   }
-  bool searchExtension = (compressed == YES);
-  // If compression is unknown (e.g. on writes), see if the extension is one 
-  // of the 2 recognized compression extensions.
-  if (compressed == UNKNOWN) {
-    if ( extension_ == ".gz" || extension_ == ".bz2" )
-      searchExtension = true;
-  }
-  if ( searchExtension ) {
-    // If file is compressed, the extension just found should be the compression
-    // extension.
+  // See if the extension is one of the 2 recognized compression extensions.
+  // If file has a compression format extension, look for another extension.
+  if ( extension_ == ".gz" || extension_ == ".bz2" ) {
     compressExt_ = extension_;
     // Get everything before the compressed extension
     std::string compressPrefix = baseName_.substr(0,found);
     // See if there is another extension
     found = compressPrefix.find_last_of(".");
-    if (found == std::string::npos) 
+    if (found == std::string::npos)
       // No other extension
       extension_.clear();
-    else 
+    else
       extension_ = compressPrefix.substr(found);
   } else
     compressExt_.clear();
   return 0;
 }
 
-int FileName::SetFileName( std::string const& nameIn ) {
-  return SetFileName( nameIn, UNKNOWN );
-}
-
-int FileName::SetFileName( std::string const& nameIn, bool isCompressed ) {
-  if (isCompressed)
-    return SetFileName( nameIn, YES );
-  return SetFileName( nameIn, NO );
-}
-
-int FileName::SetFileNameWithExpansion( std::string const& nameIn ) {
-  if (SetFileName( tildeExpansion( nameIn ), UNKNOWN )) return 1;
-  if (empty()) {
-    mprinterr("Error: File '%s' does not exist.\n", nameIn.c_str());
-    return 1;
+// =============================================================================
+File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
+  NameArray fnames;
+  if (fnameArg.empty()) return fnames;
+  wordexp_t expanded;
+  int err = wordexp( fnameArg.c_str(), &expanded, WRDE_NOCMD );
+  WexpErr( err );
+  if ( err == 0 ) {
+    for (unsigned int i = 0; i != expanded.we_wordc; i++) {
+      if (expanded.we_wordv[i] == 0)
+        mprinterr("Internal Error: Bad expansion at %i\n", i);
+      else {
+        FileName fn;
+        fn.SetFileName_NoExpansion( expanded.we_wordv[i] );
+        fnames.push_back( fn );
+      }
+    }
+    wordfree( &expanded );
   }
-  return 0;
+  return fnames;
 }
 
-// FIXME: Change extension?
-void FileName::append(std::string const& suffix) {
-  baseName_.append(suffix);
-  fullPathName_.append(suffix);
+bool File::Exists(std::string const& fname) {
+  FileName fn( fname );
+  if (!fn.empty()) {
+    FILE* infile = fopen(fn.full(), "rb");
+    if (infile==0) {
+      mprinterr("Error: File '%s': %s\n", fname.c_str(), strerror( errno ));
+      return false;
+    }
+    fclose(infile);
+    return true;
+  }
+  return false;
 }
