@@ -2,7 +2,8 @@
 #include "CpptrajStdio.h"
 
 DataSet_RemLog::DataSet_RemLog() :
-  DataSet(REMLOG, GENERIC, 10, 4, 0) // 0 dim indicates DataSet-specific write 
+  // 0 dim indicates DataSet-specific write 
+  DataSet(REMLOG, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
 {}
 
 void DataSet_RemLog::AllocateReplicas(int n_replicas) {

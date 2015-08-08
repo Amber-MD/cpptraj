@@ -5,7 +5,7 @@
 
 // CONSTRUCTOR - Create X mesh
 DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
-  DataSet_1D(XYMESH, 12, 4)
+  DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4))
 {
   CalculateMeshX(sizeIn, ti, tf);
 }
@@ -34,9 +34,9 @@ void DataSet_Mesh::Add(size_t frame, const void* vIn) {
 // DataSet_Mesh::WriteBuffer()
 void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= mesh_x_.size())
-    cbuffer.Printf(data_format_, 0.0);
+    cbuffer.Printf(format_.fmt(), 0.0);
   else
-    cbuffer.Printf(data_format_, mesh_y_[pIn[0]]);
+    cbuffer.Printf(format_.fmt(), mesh_y_[pIn[0]]);
 }
 
 void DataSet_Mesh::WriteCoord(CpptrajFile& file, const char* fmt, unsigned int d, size_t p) const

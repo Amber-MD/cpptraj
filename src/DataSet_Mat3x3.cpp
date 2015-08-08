@@ -7,12 +7,11 @@ int DataSet_Mat3x3::Allocate(SizeArray const& Nin) {
 }
 
 void DataSet_Mat3x3::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
-  if (pIn[0] >= data_.size()) {
-    for (unsigned int i = 0; i < 9; i++)
-      cbuffer.Printf(data_format_, 0.0);
-  } else {
-    for (unsigned int i = 0; i < 9; i++)
-      cbuffer.Printf(data_format_, data_[pIn[0]][i]);
+  if (pIn[0] >= data_.size())
+    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  else {
+    Matrix_3x3 const& m = data_[pIn[0]];
+    cbuffer.Printf(format_.fmt(), m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
   }
 }
 

@@ -7,7 +7,7 @@ class DataSet_Coords : public DataSet {
   public:
     DataSet_Coords() : numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     DataSet_Coords(DataType t) : 
-      DataSet(t, COORDINATES, 8, 3, 1), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
+      DataSet(t, COORDINATES, TextFormat(), 1), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
     virtual ~DataSet_Coords() {}
     // -------------------------------------------
     // NOTE: Disabled for all COORDS style DataSets

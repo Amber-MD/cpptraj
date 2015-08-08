@@ -7,7 +7,8 @@
 /** This is the class used by Action_Matrix. */
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
-    DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4), snap_(0) {}
+    DataSet_MatrixDbl() :
+      DataSet_2D(MATRIX_DBL, TextFormat(TextFormat::DOUBLE, 12, 4)), snap_(0) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
     // ----- DataSet functions -------------------

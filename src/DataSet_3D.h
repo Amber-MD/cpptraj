@@ -11,8 +11,8 @@ class DataSet_3D : public DataSet {
     DataSet_3D() : gridBin_(0) {}
     virtual ~DataSet_3D(); // Virtual since this class is inherited.
     DataSet_3D(DataSet_3D const&);
-    DataSet_3D(DataSet::DataType tIn, int wIn, int pIn) :
-      DataSet(tIn, GRID_3D, wIn, pIn, 3), gridBin_(0) {}
+    DataSet_3D(DataSet::DataType tIn, TextFormat const& fIn) :
+      DataSet(tIn, GRID_3D, fIn, 3), gridBin_(0) {}
     // TODO enable append?
     int Append(DataSet*) { return 1; }
     int Allocate(SizeArray const&) { return 1; } // TODO enable?

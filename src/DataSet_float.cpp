@@ -25,9 +25,9 @@ void DataSet_float::Add(size_t frame, const void* vIn) {
   */
 void DataSet_float::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= Data_.size())
-    cbuffer.Printf(data_format_, 0.0);
+    cbuffer.Printf(format_.fmt(), 0.0);
   else
-    cbuffer.Printf(data_format_, Data_[pIn[0]]);
+    cbuffer.Printf(format_.fmt(), Data_[pIn[0]]);
 }
 
 int DataSet_float::Append(DataSet* dsIn) {

@@ -16,9 +16,9 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
   if (frame > Data_.size())
     Data_.resize( frame, "NoData" );
   std::string Temp( (const char*)vIn );
-  // Check string width.
+  // Check string width. Update format width if necessary.
   if ( (int)Temp.size() > format_.Width() )
-    SetPrecision(Temp.size(), 0);
+    format_.SetWidth(Temp.size());
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( Temp );

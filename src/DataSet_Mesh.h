@@ -5,7 +5,7 @@
 /// Hold a mesh of X-Y values
 class DataSet_Mesh : public DataSet_1D {
   public:
-    DataSet_Mesh() : DataSet_1D(XYMESH, 12, 4) {}
+    DataSet_Mesh() : DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     /// Construct mesh with preset X values
     DataSet_Mesh(int,double,double);
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();}

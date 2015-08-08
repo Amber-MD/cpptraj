@@ -5,7 +5,7 @@
 /// Single-precision two-dimensional matrix.
 class DataSet_MatrixFlt : public DataSet_2D {
   public:
-    DataSet_MatrixFlt() : DataSet_2D(MATRIX_FLT, 12, 4) {}
+    DataSet_MatrixFlt() : DataSet_2D(MATRIX_FLT, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     float& operator[](size_t idx)              { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixFlt();     }
     // ----- DataSet functions -------------------

@@ -24,7 +24,8 @@ const char* DataSet_Modes::DeprecateFileMsg = "Modes should be read in prior to 
 
 // CONSTRUCTOR
 DataSet_Modes::DataSet_Modes() :
-  DataSet(MODES, GENERIC, 10, 5, 0), // 0 dim indicates DataSet-specific write
+  // 0 dim indicates DataSet-specific write
+  DataSet(MODES, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 5), 0),
   evalues_(0),
   evectors_(0),
   nmodes_(0),

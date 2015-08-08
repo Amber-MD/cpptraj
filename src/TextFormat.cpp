@@ -4,26 +4,32 @@
 char TextFormat::TypeChar_[] = { 'f', 'i', 's', 'E', 'g' };
 
 // TODO benchmark - will using a big buffer and C string routines be better?
-void TextFormat::SetFormatString(FmtType typeIn, int widthIn, int precisionIn) {
-  type_ = typeIn;
-  width_ = widthIn;
-  precision_ = precisionIn;
+void TextFormat::SetFormatString() {
   std::string width_arg, prec_arg, left_arg, long_arg;
   // Set width and/or precision if applicable.
   if (width_ > 0)
     width_arg.assign( integerToString( width_ ) );
   if (precision_ > -1 && (int)type_ < (int)INTEGER)
     prec_arg.assign( "." + integerToString( precision_ ) );
-  if (leftAlign_)
+  if (align_ == LEFT)
     left_arg.assign("-");
   if (isLong_)
     long_arg.assign("l");
   // Set format string.
-  fmt_.clear();
+  if (align_ == LEADING_SPACE) {
+    fmt_.assign(" ");
+    colwidth_ = 1;
+  } else {
+    fmt_.clear();
+    colwidth_ = 0;
+  }
   for (int i = 0; i != nelements_; i++) {
-    if (i != 0)
+    if (i != 0) {
       fmt_.append(" "); // TODO: Option to not have spaces in-between?
+      colwidth_++;
+    }
     fmt_.append( "%" + left_arg + long_arg + width_arg + prec_arg + TypeChar_[type_] );
+    colwidth_ += width_;
   }
 }
 
@@ -51,5 +57,9 @@ void TextFormat::SetCoordFormat(size_t maxFrames, double min, double step,
   // Default width for column is at least default_width.
   if (col_width < default_width) col_width = default_width;
   // Set column data format string, left-aligned (no leading space).
-  SetFormatString( DOUBLE, col_width, col_precision );
+  type_ = DOUBLE;
+  width_ = col_width;
+  precision_ = col_precision;
+  align_ = RIGHT;
+  SetFormatString();
 }

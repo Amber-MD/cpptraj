@@ -267,7 +267,7 @@ int DataFile::AddDataSet(DataSet* dataIn) {
   }
   // Set default width.precision
   if (setDataSetPrecision_)
-    dataIn->SetPrecision( default_width_, default_precision_ );
+    dataIn->SetupFormat().SetFormatWidthPrecision( default_width_, default_precision_ );
   SetList_.AddCopyOfSet( dataIn );
   // Reset dflWrite status
   dflWrite_ = true;
@@ -339,11 +339,7 @@ void DataFile::WriteData() {
       continue;
     }
     // Set the format to right-aligned initially.
-    if ( ds.SetDataSetFormat(false) ) {
-      mprinterr("Error: Could not set format string for set %s. Skipping.\n",
-                ds.legend());
-      continue;
-    }
+    ds.SetupFormat().SetFormatAlign(TextFormat::RIGHT);
     // Ensure current DataIO is valid for this set.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",

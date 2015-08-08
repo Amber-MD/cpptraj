@@ -69,15 +69,10 @@ class DataSet {
     int SetMetaData(MetaData const&);
     /// Set specific MetaData part
     MetaData& SetupMeta() { return meta_; }
+    /// Set specific TextFormat part.
+    TextFormat& SetupFormat() { return format_; }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
-    /// Set DataSet format width
-    void SetWidth(int w) { format_.SetWidth(w); } // TODO deprecate
-    /// Set DataSet format width and precision // TODO deprecate
-    void SetPrecision(int w, int p) { format_.SetWidth(w); format_.SetPrecision(p); }
-    /// Setup DataSet format string for current width and precision, optional left align.
-    void SetDataSetFormat(bool leftAlign) { format_.SetFormatString( leftAlign ); }
-
     /// Check if name and/or index and aspect wildcard match this DataSet.
     bool Matches_WC(std::string const&, Range const&, std::string const&,
                     Range const&, DataType) const;

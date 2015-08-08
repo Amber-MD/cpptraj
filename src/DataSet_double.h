@@ -6,7 +6,7 @@
 /// Hold an array of double values.
 class DataSet_double : public DataSet_1D {
   public:
-    DataSet_double() : DataSet_1D(DOUBLE, 12, 4) {}
+    DataSet_double() : DataSet_1D(DOUBLE, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_double();}
     double& operator[](size_t idx)       { return Data_[idx];         }
     double  operator[](size_t idx) const { return Data_[idx];         }

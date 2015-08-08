@@ -25,9 +25,9 @@ void DataSet_double::Add(size_t frame, const void* vIn) {
   */
 void DataSet_double::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& frame) const {
   if (frame[0] >= Data_.size())
-    cbuffer.Printf(data_format_, 0.0);
+    cbuffer.Printf(format_.fmt(), 0.0);
   else
-    cbuffer.Printf(data_format_, Data_[frame[0]]);
+    cbuffer.Printf(format_.fmt(), Data_[frame[0]]);
 }
 
 // DataSet_double::Append()

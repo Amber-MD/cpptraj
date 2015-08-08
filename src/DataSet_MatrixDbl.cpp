@@ -3,9 +3,9 @@ void DataSet_MatrixDbl::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) 
   size_t x = (size_t)pIn[0];
   size_t y = (size_t)pIn[1];
   if ( x >= mat_.Ncols() || y >= mat_.Nrows() )
-    outfile.Printf(data_format_, 0.0);
+    outfile.Printf(format_.fmt(), 0.0);
   else 
-    outfile.Printf(data_format_, mat_.element(x,y));
+    outfile.Printf(format_.fmt(), mat_.element(x,y));
 }
 
 double* DataSet_MatrixDbl::MatrixArray() const {

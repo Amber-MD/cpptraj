@@ -31,9 +31,6 @@ bool validInteger(std::string const&);
 /// Brief check that the passed in string begins with a digit, '-', or '.'
 bool validDouble(std::string const&);
 
-std::string SetDoubleFormatString(int, int, int);
-std::string SetStringFormatString(int, bool);
-std::string SetIntegerFormatString(int);
 /// \return the current date/time with format 'mm/dd/yy  hh:mm:ss'
 std::string TimeString();
 // NOTE: Not really string routines, but here for convenience.

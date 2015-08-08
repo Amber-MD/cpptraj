@@ -8,8 +8,8 @@ class DataSet_2D : public DataSet {
     /// Kind of matrix.
     enum MatrixKindType { FULL = 0, HALF, TRI };
     DataSet_2D() {}
-    DataSet_2D(DataSet::DataType tIn, int wIn, int pIn) : 
-      DataSet(tIn, MATRIX_2D, wIn, pIn, 2) {}
+    DataSet_2D(DataSet::DataType tIn, TextFormat const& fIn) : 
+      DataSet(tIn, MATRIX_2D, fIn, 2) {}
     // TODO enable Append?
     int Append(DataSet*) { return 1; }
     int Allocate(SizeArray const& s) { return Allocate2D(s[0], s[1]); } // FIXME bounds check

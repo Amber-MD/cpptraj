@@ -7,7 +7,7 @@ void DataSet_GridFlt::WriteBuffer(CpptrajFile& outfile, SizeArray const& pIn) co
   size_t y = pIn[1];
   size_t z = pIn[2];
   if ( x >= grid_.NX() || y >= grid_.NY() || z >= grid_.NZ() )
-    outfile.Printf(data_format_, 0.0);
+    outfile.Printf(format_.fmt(), 0.0);
   else
-    outfile.Printf(data_format_, grid_.element(x,y,z));
+    outfile.Printf(format_.fmt(), grid_.element(x,y,z));
 }

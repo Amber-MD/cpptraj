@@ -5,7 +5,7 @@
 /// Hold an array of float values.
 class DataSet_float : public DataSet_1D {
   public:
-    DataSet_float() : DataSet_1D(FLOAT, 8, 3) {}
+    DataSet_float() : DataSet_1D(FLOAT, TextFormat(TextFormat::DOUBLE, 8, 3)) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_float();}
     float& operator[](size_t idx)        { return Data_[idx];         }
     float  operator[](size_t idx)  const { return Data_[idx];         }
