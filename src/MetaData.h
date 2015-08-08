@@ -1,6 +1,14 @@
 #ifndef INC_METADATA_H
 #define INC_METADATA_H
 #include <string>
+/** Attributes used for DataSet classification and selection. Name is typically
+  * associated with the Action etc. that creates the DataSet, e.g. RMSD or
+  * distance. Index is used when and action outputs numbered subsets of data,
+  * e.g. with RMSD it is possible to output per-residue RMSD, where the DataSet
+  * index corresponds to the residue number. Aspect is used to further subdivide
+  * output data type; e.g. with nucleic acid analysis each base pair (denoted by
+  * index) has shear, stagger etc calculated.
+  */
 class MetaData {
   public:
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
@@ -46,6 +54,7 @@ class MetaData {
     /// CONSTRUCTOR - name, scalarmode, scalartype
     MetaData(std::string const& n, scalarMode m, scalarType t) : name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(m), scalartype_(t), timeSeries_(UNKNOWN_TS) {}
+
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
     /// \return string containing scalar mode and type if defined.
@@ -86,7 +95,8 @@ class MetaData {
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type
     static const scalarMode TypeModes[]; ///< The mode each type is associated with.
-    std::string name_;        ///< Name of the DataSet
+    std::string name_;        ///< Name of the DataSet (optionally tag)
+    // TODO FileName
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.
     int idx_;                 ///< DataSet index

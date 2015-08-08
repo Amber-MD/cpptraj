@@ -8,16 +8,9 @@
 #include "TextFormat.h"
 #include "Range.h"
 #include "CpptrajFile.h"
-// Class: DataSet
 /// Base class that all DataSet types will inherit.
-/** DataSets are given certain attributes to make DataSet selection easier; 
-  * these are name, index, and aspect. Name is typically associated with the
-  * action that creates the DataSet, e.g. RMSD or distance. Index is used
-  * when and action outputs subsets of data, e.g. with RMSD it is possible to 
-  * output per-residue RMSD, where the DataSet index corresponds to the residue
-  * number. Aspect is used to further subdivide output data type; e.g. with 
-  * nucleic acid analysis each base pair (divided by index) has shear,
-  * stagger etc calculated.
+/** The DataSet base class holds common information, like MetaData for
+  * selection, TextFormat for text output, etc.
   */
 class DataSet {
   public:
@@ -29,13 +22,13 @@ class DataSet {
       COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3
     };
-    /// Group DataSet belongs to if applicable.
+    /// Group DataSet belongs to.
     enum DataGroup {
       GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES
     };
 
     DataSet();
-    /// Set DataSet type, text output format, and # of dimensions.
+    /// Set DataSet type, group, text output format, and # of dimensions.
     DataSet(DataType,DataGroup,TextFormat const&,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
@@ -64,6 +57,7 @@ class DataSet {
     virtual void Add( size_t, const void* ) = 0;
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
+    // TODO SizeInMB?
     // -----------------------------------------------------
     /// Set DataSet MetaData
     int SetMetaData(MetaData const&);
@@ -93,7 +87,7 @@ class DataSet {
 
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
-    /// \return specified DataSet dimension.
+    /// \return specified DataSet dimension. // TODO consolidate
     Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension&       Dim(int i)             { return dim_[i];      }
     Dimension const& Dim(int i)       const { return dim_[i];      }

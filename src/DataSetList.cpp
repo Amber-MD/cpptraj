@@ -155,7 +155,7 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   else {
     DataSetList Sets = GetMultipleSets( nameIn );
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) 
-      (*ds)->SetPrecision(widthIn, precisionIn);
+      (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
   }
 }
 
@@ -203,11 +203,14 @@ std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& 
       mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn.c_str());
       return 0;
     }
-    // Advance to after '[', length is position of ']' minus '[' minus 1 
-    attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
-    //mprinterr("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
-    // Drop the attribute arg
-    dsname.resize( attr_pos0 );
+    // If '[' is at very beginning, this is a tag. Otherwise attribute.
+    if (attr_pos0 > 0) {
+      // Advance to after '[', length is position of ']' minus '[' minus 1 
+      attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
+      //mprinterr("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
+      // Drop the attribute arg
+      dsname.resize( attr_pos0 );
+    }
   }
   //mprinterr("DBG:\t\tName Arg [%s]\n", dsname.c_str());
 
