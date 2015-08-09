@@ -8,11 +8,9 @@ class DataIO_Grace : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Grace(); } 
     static void WriteHelp();
     int processReadArgs(ArgList &) { return 0; }
-    int ReadData(std::string const&,DataSetList&,std::string const&);
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList &);
-    int WriteData(std::string const&,DataSetList const&);
-    int WriteData2D(std::string const&, DataSetList const&) { return 1; }
-    int WriteData3D(std::string const&, DataSetList const&) { return 1; }
+    int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     int WriteDataNormal(CpptrajFile&,DataSetList const&);

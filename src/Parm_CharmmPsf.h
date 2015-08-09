@@ -7,8 +7,8 @@ class Parm_CharmmPsf : public ParmIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_CharmmPsf(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
-    int ReadParm(std::string const&, Topology&);
-    int WriteParm(std::string const&, Topology const&);
+    int ReadParm(FileName const&, Topology&);
+    int WriteParm(FileName const&, Topology const&);
     void SetDebug(int d) { debug_ = d; }
     int processWriteArgs(ArgList&) { return 0; }
   private:

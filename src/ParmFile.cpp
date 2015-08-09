@@ -38,7 +38,7 @@ const FileTypes::KeyToken ParmFile::PF_KeyArray[] = {
 };
 
 // ParmFile::DetectFormat()
-ParmIO* ParmFile::DetectFormat(std::string const& fname, ParmFormatType& ptype) {
+ParmIO* ParmFile::DetectFormat(FileName const& fname, ParmFormatType& ptype) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0) == 0) {
     for (int i = 0; i < (int)UNKNOWN_PARM; i++) {
@@ -53,19 +53,19 @@ ParmIO* ParmFile::DetectFormat(std::string const& fname, ParmFormatType& ptype) 
   return 0;
 }
 
-
 // ParmFile::ReadTopology()
-int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn, 
+int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn, 
                            ArgList const& argListIn, int debugIn) 
 {
   if (fnameIn.empty()) {
     mprinterr("Error: No input topology name given.\n");
     return 1;
   }
+  if (!File::Exists( fnameIn )) return 1;
+  parmName_ = fnameIn;
   ArgList argIn = argListIn;
   ParmFormatType pfType;
   ParmIO* parmio = 0;
-  if (parmName_.SetFileNameWithExpansion( fnameIn )) return 1;
   bool bondsearch = !argIn.hasKey("nobondsearch");
   Top.SetDebug( debugIn );
   Top.SetOffset( argIn.getKeyDouble("bondsearch", -1.0) );
@@ -109,10 +109,10 @@ int ParmFile::WritePrefixTopology(Topology const& Top, std::string const& prefix
 }
 
 // ParmFile::WriteTopology()
-int ParmFile::WriteTopology(Topology const& Top, std::string const& fname, 
+int ParmFile::WriteTopology(Topology const& Top, FileName const& fnameIn, 
                             ArgList const& argListIn, ParmFormatType fmtIn, int debugIn)
 {
-  parmName_.SetFileName( fname );
+  parmName_ = fnameIn;
   ArgList argIn = argListIn;
   ParmFormatType fmt = fmtIn;
   if (fmt == UNKNOWN_PARM) {

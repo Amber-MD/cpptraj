@@ -13,6 +13,8 @@ class FileName {
     int SetFileName(std::string const&);
     /// Set file name, no expansions.
     int SetFileName_NoExpansion(std::string const&);
+    /// Append given string to file name but do not change extension info.
+    int AppendFileName(std::string const&);
     /// Clear FileName
     void clear();
     /// \return true if string matches full or base file name.
@@ -34,11 +36,12 @@ class FileName {
     std::string compressExt_;
     std::string dirPrefix_;
 };
-
+/// This namespace contains useful file-related routines.
 namespace File {
   typedef std::vector<FileName> NameArray;
 
   NameArray ExpandToFilenames(std::string const&);
   bool Exists(std::string const&);
+  bool Exists(FileName const& f) { return Exists( f.Full() ); }
 }
 #endif

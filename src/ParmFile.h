@@ -13,18 +13,18 @@ class ParmFile {
     static void ReadOptions() { FileTypes::ReadOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM); }
     static void WriteOptions(){ FileTypes::WriteOptions(PF_KeyArray,PF_AllocArray,UNKNOWN_PARM);} 
     ParmFile() {}
-    int ReadTopology(Topology&, std::string const&, ArgList const&,int);
-    int ReadTopology(Topology& t, std::string const& n, int d) {
+    int ReadTopology(Topology&, FileName const&, ArgList const&,int);
+    int ReadTopology(Topology& t, FileName const& n, int d) {
       return ReadTopology(t, n, ArgList(), d);
     }
     int WritePrefixTopology(Topology const&, std::string const&, ParmFormatType,int);
-    int WriteTopology(Topology const&, std::string const&, ArgList const&,ParmFormatType,int);
-    int WriteTopology(Topology const& t, std::string const& n, ParmFormatType f,int d) {
+    int WriteTopology(Topology const&, FileName const&, ArgList const&,ParmFormatType,int);
+    int WriteTopology(Topology const& t, FileName const& n, ParmFormatType f,int d) {
       return WriteTopology(t, n, ArgList(), f, d);
     }
     FileName const& ParmFilename() { return parmName_; }
   private :
-    ParmIO* DetectFormat(std::string const&, ParmFormatType&); 
+    ParmIO* DetectFormat(FileName const&, ParmFormatType&); 
     FileName parmName_; ///< Topology input/output file name. 
 };
 #endif

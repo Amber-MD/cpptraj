@@ -13,9 +13,9 @@ class DataIO : public BaseIOtype {
     virtual ~DataIO() {}
     // ----- Inherited Functions -----------------
     virtual int processReadArgs(ArgList&) = 0;
-    virtual int ReadData(std::string const&,DataSetList&,std::string const&) = 0;
+    virtual int ReadData(FileName const&, DataSetList&, std::string const&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
-    virtual int WriteData(std::string const&, DataSetList const&) = 0;
+    virtual int WriteData(FileName const&, DataSetList const&) = 0;
     virtual bool ID_DataFormat(CpptrajFile&) = 0; // TODO: -> BaseIOtype?
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;

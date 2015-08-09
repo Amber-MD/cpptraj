@@ -5,7 +5,7 @@
 #include <cstdarg>    // va_X functions
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists, tildeExpansion
+#include "StringRoutines.h" // AppendNumber
 // File Types
 #include "FileIO_Std.h"
 #ifdef HASGZ
@@ -202,13 +202,13 @@ void CpptrajFile::Reset() {
 
 // -----------------------------------------------------------------------------
 // CpptrajFile::OpenRead()
-int CpptrajFile::OpenRead(std::string const& nameIn) {
+int CpptrajFile::OpenRead(FileName const& nameIn) {
   if (SetupRead( nameIn, debug_ )) return 1; 
   return OpenFile();
 }
 
 // CpptrajFile::OpenWrite()
-int CpptrajFile::OpenWrite(std::string const& nameIn) {
+int CpptrajFile::OpenWrite(FileName const& nameIn) {
   if (SetupWrite(nameIn, debug_)) return 1;
   return OpenFile();
 }
@@ -220,14 +220,14 @@ int CpptrajFile::OpenWriteNumbered(int numIn) {
     mprinterr("Internal Error: CpptrajFile::OpenWriteNumbered cannot be used with streams.\n");
     return 1;
   }
-  std::string newName = NumberFilename( fname_.Full(), numIn );
+  std::string newName = AppendNumber( fname_.Full(), numIn );
   if (IO_->Open( newName.c_str(), "wb")) return 1;
   isOpen_ = true;
   return 0;
 }
 
 // CpptrajFile::OpenAppend()
-int CpptrajFile::OpenAppend(std::string const& nameIn) {
+int CpptrajFile::OpenAppend(FileName const& nameIn) {
   if (SetupAppend(nameIn, debug_)) return 1;
   return OpenFile();
 }
@@ -237,35 +237,29 @@ int CpptrajFile::OpenAppend(std::string const& nameIn) {
 /** Set up file for reading. Will autodetect the type.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
+int CpptrajFile::SetupRead(FileName const& nameIn, int debugIn) {
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
   access_ = READ;
   if (debug_>0)
-    mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.c_str());
+    mprintf("CpptrajFile: Setting up %s for READ.\n", nameIn.full());
   // If nameIn is empty assume reading from STDIN desired. 
   if (nameIn.empty()) {
     isStream_ = true;
     // file type must be STANDARD for streams
     fileType_ = STANDARD;
-    fname_.SetFileName("STDIN");
+    fname_.SetFileName_NoExpansion("STDIN");
     IO_ = SetupFileIO( fileType_ );
   } else {
     isStream_ = false;
     // Check if file exists. If not, fail silently
-    if (!fileExists( nameIn )) return 1;
+    if (!File::Exists( nameIn )) return 1;
     fileType_ = UNKNOWN_TYPE;
-    // Perform tilde-expansion
-    std::string expandedName = tildeExpansion( nameIn );
-    if (expandedName.empty()) {
-      mprinterr("Interal Error: CpptrajFile: Tilde-expansion failed.\n");
-      return 1;
-    }
     // Determine file type. This sets up IO and determines compression. 
-    if (ID_Type( expandedName.c_str() )) return 1;
+    if (ID_Type( nameIn.full() )) return 1;
     // Set up filename; sets base filename and extensions
-    fname_.SetFileName( expandedName, IsCompressed() );
+    fname_ = nameIn;
   } 
   if (debug_>0)
     rprintf("\t[%s] is type %s with access READ\n", fname_.full(), FileTypeName[fileType_]);
@@ -273,7 +267,7 @@ int CpptrajFile::SetupRead(std::string const& nameIn, int debugIn) {
 }
 
 // CpptrajFile::SetupWrite()
-int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
+int CpptrajFile::SetupWrite(FileName const& nameIn, int debugIn) {
   return SetupWrite(nameIn, UNKNOWN_TYPE, debugIn);
 }
 
@@ -283,23 +277,23 @@ int CpptrajFile::SetupWrite(std::string const& nameIn, int debugIn) {
   * from the compression extension.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int debugIn) 
+int CpptrajFile::SetupWrite(FileName const& nameIn, FileType typeIn, int debugIn) 
 {
   // Clear file, set debug level
   Reset();
   debug_ = debugIn;
   access_ = WRITE;
   fileType_ = typeIn;
-  // If filenameIn is empty assume writing to STDOUT desired.
-  if (filenameIn.empty()) {
+  // If nameIn is empty assume writing to STDOUT desired.
+  if (nameIn.empty()) {
     isStream_ = true;
     // file type must be STANDARD for streams
     fileType_ = STANDARD;
-    fname_.SetFileName("STDOUT");
+    fname_.SetFileName_NoExpansion("STDOUT");
   } else {
     isStream_ = false;
     // Set up filename; sets base filename and extension
-    fname_.SetFileName(filenameIn);
+    fname_ = nameIn;
   }
   if (debug_>0)
     mprintf("CpptrajFile: Setting up %s for WRITE.\n", fname_.full());
@@ -325,20 +319,20 @@ int CpptrajFile::SetupWrite(std::string const& filenameIn, FileType typeIn, int 
   * the type and format. Set up for write if file does not exist.
   * \return 0 on success, 1 on error.
   */
-int CpptrajFile::SetupAppend(std::string const& filenameIn, int debugIn) {
+int CpptrajFile::SetupAppend(FileName const& nameIn, int debugIn) {
   // Make append to null an error
-  if (filenameIn.empty()) {
+  if (nameIn.empty()) {
     mprinterr("Error: SetupAppend(): No filename specified\n");
     return 1;
   }
   // NOTE: File will be cleared and debug set by either SetupRead/SetupWrite
-  if (fileExists(filenameIn)) {
+  if (File::Exists(nameIn)) {
     // If file exists, first set up for read to determine type and format.
-    if (SetupRead(filenameIn, debugIn)!=0) return 1;
+    if (SetupRead(nameIn, debugIn)!=0) return 1;
     access_ = APPEND;
   } else {
     // File does not exist, just set up for write.
-    if (SetupWrite(filenameIn, debugIn)!=0) return 1;
+    if (SetupWrite(nameIn, debugIn)!=0) return 1;
     if (debug_>0)
       mprintf("Warning: %s does not exist, changed access from APPEND to WRITE.\n",
               fname_.full());

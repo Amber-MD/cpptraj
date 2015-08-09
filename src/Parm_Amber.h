@@ -9,9 +9,9 @@ class Parm_Amber : public ParmIO {
     static void WriteHelp();
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
-    int ReadParm(std::string const&, Topology&);
+    int ReadParm(FileName const&, Topology&);
     int processWriteArgs(ArgList&);
-    int WriteParm(std::string const&, Topology const&);
+    int WriteParm(FileName const&, Topology const&);
     void SetDebug(int debugIn) { debug_ = debugIn; }
   private :
     typedef std::vector<double> Darray;

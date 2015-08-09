@@ -38,11 +38,11 @@ class DataFile {
     /// Set precision for all DataSets in DataFile
     void SetDataFilePrecision(int, int);
     /// Read data from DataFile to DataSets.
-    int ReadDataIn(std::string const&, ArgList const&, DataSetList&);
+    int ReadDataIn(FileName const&, ArgList const&, DataSetList&);
     /// Read data from specific type of DataFile
-    int ReadDataOfType(std::string const&, DataFormatType, DataSetList&);
+    int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
     /// Set up DataFile for writing.
-    int SetupDatafile(std::string const&, ArgList&, int);
+    int SetupDatafile(FileName const&, ArgList&, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
     int SetupStdout(ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
@@ -51,9 +51,9 @@ class DataFile {
     int RemoveDataSet(DataSet*);
     /// Process DataFile-related arguments
     int ProcessArgs(ArgList&);
-    int ProcessArgs(std::string const&);
+    int ProcessArgs(std::string const&); // TODO: Determine where this is used
     /// Write data in DataSets to disk.
-    void WriteData();
+    void WriteDataOut();
     /// \return string listing the names of all DataSets in DataFile.
     std::string DataSetNames() const;
     /// \return DataFile file name.
@@ -69,7 +69,7 @@ class DataFile {
     /// Set DataFile member num.
     void SetMember(int);
   private:
-    static DataIO* DetectFormat(std::string const&, DataFormatType&);
+    static DataIO* DetectFormat(FileName const&, DataFormatType&);
 
     int debug_;
     int member_;               ///< DataFile ensemble member number.

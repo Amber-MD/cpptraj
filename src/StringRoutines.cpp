@@ -1,15 +1,8 @@
-#include <cstdio>    // fprintf, fopen, fclose, sprintf
 #include <cmath>     // log10
 #include <ctime>     // for TimeString()
-#include <cerrno>
-#include <cstring>   // strerror
 #include <sstream>   // istringstream, ostringstream
 #include <locale>    // isspace
 #include <stdexcept> // BadConversion
-#include <vector>
-#ifndef __PGI
-#  include <glob.h>  // For tilde expansion
-#endif
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #ifdef _MSC_VER
@@ -22,92 +15,11 @@
 # include <mach/mach_host.h>
 #endif
 
-// tildeExpansion()
-/** Use glob.h to perform tilde expansion on a filename, returning the
-  * expanded filename. If the file does not exist or globbing fails return an
-  * empty string. Do not print an error message if the file does not exist
-  * so that this routine and fileExists() can be used to silently check files.
+/** \param fname Input string.
+  * \param number Input number.
+  * \return string '<fname>.<number>'
   */
-std::string tildeExpansion(std::string const& filenameIn) {
-  if (filenameIn.empty()) {
-    mprinterr("Error: tildeExpansion: null filename specified.\n");
-    return std::string("");
-  }
-# ifdef __PGI
-  // NOTE: It seems some PGI compilers do not function correctly when glob.h
-  //       is included and large file flags are set. Just disable globbing
-  //       for PGI and return a copy of filenameIn.
-  // Since not globbing, check if file exists before returning filename.
-  FILE *infile = fopen(filenameIn.c_str(), "rb");
-  if (infile == 0) return std::string("");
-  fclose(infile);
-  return filenameIn;
-# else
-  glob_t globbuf;
-  globbuf.gl_offs = 1;
-  std::string returnFilename;
-  int err = glob(filenameIn.c_str(), GLOB_TILDE, NULL, &globbuf);
-  if ( err == GLOB_NOMATCH )
-    //mprinterr("Error: '%s' does not exist.\n", filenameIn); // Make silent
-    return returnFilename;
-  else if ( err != 0 )
-    mprinterr("Internal Error: glob() failed for '%s' (%i)\n", filenameIn.c_str(), err);
-  else {
-    returnFilename.assign( globbuf.gl_pathv[0] );
-    globfree(&globbuf);
-  }
-  return returnFilename;
-# endif
-}
-
-// ExpandToFilenames()
-StrArray ExpandToFilenames(std::string const& fnameArg) {
-  StrArray fnames;
-  if (fnameArg.empty()) return fnames;
-# ifdef __PGI
-  // NOTE: It seems some PGI compilers do not function correctly when glob.h
-  //       is included and large file flags are set. Just disable globbing
-  //       for PGI and return a copy of filenameIn.
-  // Check for any wildcards in fnameArg
-  if ( fnameArg.find_first_of("*?[]") != std::string::npos )
-    fprintf(stdout,"Warning: Currently wildcards in filenames not supported with PGI compilers.\n");
-  fnames.push_back( fnameArg );
-# else
-  glob_t globbuf;
-  int err = glob(fnameArg.c_str(), GLOB_TILDE, NULL, &globbuf );
-  //printf("DEBUG: %s matches %zu files.\n", fnameArg.c_str(), (size_t)globbuf.gl_pathc);
-  if ( err == 0 ) { 
-    for (unsigned int i = 0; i < (size_t)globbuf.gl_pathc; i++)
-      fnames.push_back( globbuf.gl_pathv[i] );
-  } else if (err == GLOB_NOMATCH )
-    fprintf(stderr,"Error: %s matches no files.\n", fnameArg.c_str());
-  else
-    fprintf(stderr,"Error: occurred trying to find %s\n", fnameArg.c_str());
-  if ( globbuf.gl_pathc > 0 ) globfree(&globbuf);
-# endif
-  return fnames;
-}
-
-// fileExists()
-/** Return true if file can be opened "r".  */
-bool fileExists(std::string const& filenameIn) {
-  // Perform tilde expansion
-  std::string fname = tildeExpansion(filenameIn);
-  if (fname.empty()) return false;
-  FILE *infile = fopen(fname.c_str(), "rb");
-  if (infile==0) {
-    mprinterr("Error: File '%s': %s\n", fname.c_str(), strerror( errno ));
-    return false;
-  }
-  fclose(infile);
-  return true;
-}
-
-// NumberFilename()
-/** Given a filename and a number, append number to filename, i.e.
-  * filename.number.
-  */
-std::string NumberFilename(std::string const &fname, int number) {
+std::string AppendNumber(std::string const &fname, int number) {
   std::ostringstream oss;
   oss << fname << "." << number;
   return oss.str();
@@ -179,6 +91,29 @@ int FloatWidth(double floatIn) {
   return (int)float_exponent; // Cast to int implicitly rounds down
 }
 
+// RemoveTrailingWhitespace()
+/// Remove any trailing whitespace from string.
+void RemoveTrailingWhitespace(std::string &line) {
+  std::locale loc;
+
+  std::string::iterator p = line.end();
+  --p;
+  for (; p != line.begin(); p--)
+    if (!isspace( *p, loc) && *p!='\n' && *p!='\r') break;
+  size_t lastSpace = (size_t)(p - line.begin()) + 1;
+  //mprintf("lastSpace = %zu\n",lastSpace);
+  if (lastSpace==1)
+    line.clear();
+  else
+    line.resize( lastSpace );
+}
+
+std::string NoTrailingWhitespace(std::string const& line) {
+  std::string duplicate(line);
+  RemoveTrailingWhitespace(duplicate);
+  return duplicate;
+}
+
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
 /*! \class: BadConversion
     \brief Runtime exception for catching bad conversions from the convertToX routines.
@@ -208,29 +143,6 @@ double convertToDouble(std::string const &s) {
   if (!(iss >> d))
     throw BadConversion("convertToDouble(\"" + s + "\")");
   return d;
-}
-
-// RemoveTrailingWhitespace()
-/// Remove any trailing whitespace from string.
-void RemoveTrailingWhitespace(std::string &line) {
-  std::locale loc;
-
-  std::string::iterator p = line.end();
-  --p;
-  for (; p != line.begin(); p--)
-    if (!isspace( *p, loc) && *p!='\n' && *p!='\r') break;
-  size_t lastSpace = (size_t)(p - line.begin()) + 1;
-  //mprintf("lastSpace = %zu\n",lastSpace);
-  if (lastSpace==1)
-    line.clear();
-  else
-    line.resize( lastSpace );
-}
-
-std::string NoTrailingWhitespace(std::string const& line) {
-  std::string duplicate(line);
-  RemoveTrailingWhitespace(duplicate);
-  return duplicate;
 }
 
 // integerToString()
@@ -295,18 +207,34 @@ bool validDouble(std::string const &argument) {
 }
 
 // -----------------------------------------------------------------------------
+// NOTE: I think this serves as a great example of how printf syntax is way
+//       easier than iostream stuff (same printf command is only 3 lines). -DRR
 std::string TimeString() {
-  char buffer[20];
   time_t rawtime;
-
   time( &rawtime );
   struct tm* timeinfo = localtime( &rawtime );
-  // Use snprintf for safety here. Speed not a factor for this routine.
-  snprintf(buffer, 20, "%02i/%02i/%02i  %02i:%02i:%02i",
-           timeinfo->tm_mon+1,timeinfo->tm_mday,timeinfo->tm_year%100,
-           timeinfo->tm_hour,timeinfo->tm_min,timeinfo->tm_sec);
-  return std::string( buffer );
+  std::ostringstream oss;
+  oss.fill('0');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_mon+1;
+  oss.put('/');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_mday;
+  oss.put('/');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_year%100;
+  oss.put(' ');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_hour;
+  oss.put(':');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_min;
+  oss.put(':');
+  oss.width(2);
+  oss << std::right << timeinfo->tm_sec;
+  return oss.str();
 }
+
 // -----------------------------------------------------------------------------
 long long AvailableMemory() {
 #ifdef _MSC_VER

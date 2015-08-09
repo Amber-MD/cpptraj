@@ -83,7 +83,7 @@ void DataFile::WriteHelp() {
 }
 
 // DataFile::DetectFormat()
-DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
+DataIO* DataFile::DetectFormat(FileName const& fname, DataFormatType& ftype) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0) == 0) {
     for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
@@ -109,14 +109,15 @@ inline int Error(const char* msg) { mprinterr(msg); return 1; }
 
 // DataFile::ReadDataIn()
 // TODO: Should this read to internal DataSetList?
-int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn, 
+int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn, 
                          DataSetList& datasetlist)
 {
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n"); 
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  if (!File::Exists(fnameIn)) return 1;
+  filename_ = fnameIn;
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
@@ -148,12 +149,12 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
-    err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+    err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
     while (!nextFile.empty()) {
-      if (filename_.SetFileNameWithExpansion( nextFile )) return 1;
-      err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+      if (filename_.SetFileName( nextFile )) return 1;
+      err += dataio_->ReadData( filename_, datasetlist, dsname );
       nextFile = argIn.GetStringNext();
     }
   }
@@ -167,25 +168,26 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 }
 
 // DataFile::ReadDataOfType()
-int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
+int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
                              DataSetList& datasetlist)
 {
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n");
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  if (!File::Exists( fnameIn )) return 1;
+  filename_ = fnameIn;
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
   if (dataio_ == 0) return 1;
   dataio_->SetDebug( debug_ );
-  return dataio_->ReadData( filename_.Full(), datasetlist, filename_.Full() );
+  return dataio_->ReadData( filename_, datasetlist, filename_.Full() );
 }
 
 // -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
-int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
+int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );
   if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
-  filename_.SetFileName( fnameIn );
+  filename_ = fnameIn;
   dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
   if (dfType_ == UNKNOWN_DATA)
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(),
@@ -215,9 +217,7 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
 void DataFile::SetMember(int memberIn) {
   if (member_ == -1) { // Not yet designated member of ensemble.
     member_ = memberIn;
-    if (!filename_.empty()) // Sanity check.
-      filename_.append("." + integerToString(member_));
-    else
+    if (filename_.AppendFileName( "." + integerToString(member_) ))
       rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
   } else if (member_ != memberIn) // Another sanity check.
     rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
@@ -324,8 +324,8 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
   return ProcessArgs(args);
 }
 
-// DataFile::WriteData()
-void DataFile::WriteData() {
+// DataFile::WriteDataOut()
+void DataFile::WriteDataOut() {
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
   // Loop over all sets, decide which ones should be written.
@@ -372,7 +372,7 @@ void DataFile::WriteData() {
   Timer dftimer;
   dftimer.Start();
 #endif
-  int err = dataio_->WriteData(filename_.Full(), setsToWrite); 
+  int err = dataio_->WriteData(filename_, setsToWrite); 
 #ifdef TIMER
   dftimer.Stop();
   mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),

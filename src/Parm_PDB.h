@@ -8,8 +8,8 @@ class Parm_PDB : public ParmIO {
     static void ReadHelp();
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&);
-    int ReadParm(std::string const&, Topology&);
-    int WriteParm(std::string const&, Topology const&) { return 1; }
+    int ReadParm(FileName const&, Topology&);
+    int WriteParm(FileName const&, Topology const&) { return 1; }
     void SetDebug(int) {}
     int processWriteArgs(ArgList&) { return 0; }
   private:
