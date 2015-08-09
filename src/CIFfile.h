@@ -10,7 +10,7 @@ class CIFfile {
 
     CIFfile() {}
     static bool ID_CIF( CpptrajFile& );
-    int Read(std::string const&,int);
+    int Read(FileName const&,int);
     /// \return const reference to the specified data block.
     DataBlock const& GetDataBlock(std::string const&) const;
     FileName const& CIFname() const { return file_.Filename(); }

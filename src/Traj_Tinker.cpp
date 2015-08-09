@@ -23,7 +23,7 @@ void Traj_Tinker::closeTraj() {
 /** See how many XYZ records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Traj_Tinker::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_Tinker::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   int Frames=0;
   file_.SetTinkerName( fname );
@@ -78,7 +78,7 @@ int Traj_Tinker::readFrame(int set, Frame& frameIn) {
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Traj_Tinker::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_Tinker::setupTrajout(FileName const& fname, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
 {

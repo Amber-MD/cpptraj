@@ -141,7 +141,7 @@ int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
 }
 
 // Traj_AmberCoord::setupTrajin()
-int Traj_AmberCoord::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   // Set up file for reading 
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
@@ -310,7 +310,7 @@ int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
   * size, necessary only for seeking when MPI writing. Allocate memory for
   * the frame buffer. 
   */
-int Traj_AmberCoord::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_AmberCoord::setupTrajout(FileName const& fname, Topology* trajParm,
                                   CoordinateInfo const& cInfoIn, 
                                   int NframesToWrite, bool append)
 {

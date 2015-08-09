@@ -79,7 +79,7 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
 /** Allocate a character buffer based on number of coords and whether 
   * velocities/box info is present.
   */
-int Traj_AmberRestart::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_AmberRestart::setupTrajout(FileName const& fname, Topology* trajParm,
                                     CoordinateInfo const& cInfoIn, 
                                     int NframesToWrite, bool append)
 {
@@ -180,7 +180,7 @@ int Traj_AmberRestart::processReadArgs(ArgList& argIn) {
   * here to avoid having to open the file again. Check that number of atoms 
   * matches number of atoms in associated parmtop. Check for box/velocity info.
   */
-int Traj_AmberRestart::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   BufferedFrame infile;
   if (infile.SetupRead( fname, debug_ )) return TRAJIN_ERR;
