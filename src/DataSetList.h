@@ -66,7 +66,7 @@ class DataSetList {
     DataSet* GetDataSet( std::string const& ) const;
     /// Get DataSet matching specified argument, no warning if not found.
     DataSet* CheckForSet( std::string const& ) const;
-    /// Get DataSet matching specified attibutes.
+    /// Get DataSet matching specified attributes.
     DataSet* CheckForSet( MetaData const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;

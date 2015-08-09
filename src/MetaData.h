@@ -1,6 +1,6 @@
 #ifndef INC_METADATA_H
 #define INC_METADATA_H
-#include <string>
+#include "FileName.h" 
 /** Attributes used for DataSet classification and selection. Name is typically
   * associated with the Action etc. that creates the DataSet, e.g. RMSD or
   * distance. Index is used when and action outputs numbered subsets of data,
@@ -54,6 +54,10 @@ class MetaData {
     /// CONSTRUCTOR - name, scalarmode, scalartype
     MetaData(std::string const& n, scalarMode m, scalarType t) : name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(m), scalartype_(t), timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - File name, name
+    MetaData(FileName const& f, std::string const& n) : fileName_(f), name_(n), idx_(-1),
+      ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
+      timeSeries_(UNKNOWN_TS) { if (name_.empty()) name_ = fileName_.Base(); }
 
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
@@ -95,8 +99,8 @@ class MetaData {
     static const char* Smodes[]; ///< String for each scalar mode
     static const char* Stypes[]; ///< String for each scalar type
     static const scalarMode TypeModes[]; ///< The mode each type is associated with.
+    FileName fileName_;       ///< Associated file name.
     std::string name_;        ///< Name of the DataSet (optionally tag)
-    // TODO FileName
     std::string aspect_;      ///< DataSet aspect.
     std::string legend_;      ///< DataSet legend.
     int idx_;                 ///< DataSet index

@@ -8,7 +8,6 @@
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
-#include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
@@ -257,11 +256,11 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
     mprintf("INPUT: Reading Input from STDIN\n");
     infile = stdin;
   } else {
-    std::string fname = tildeExpansion(inputFilename);
-    if (fname.empty()) return C_ERR;
-    mprintf("INPUT: Reading Input from file %s\n", fname.c_str());
-    if ( (infile=fopen(fname.c_str(),"r"))==0 ) {
-      rprinterr("Error: Could not open input file %s\n", fname.c_str());
+    FileName fname( inputFilename );
+    if (!File::Exists( fname )) return C_ERR;
+    mprintf("INPUT: Reading Input from file %s\n", fname.full());
+    if ( (infile=fopen(fname.full(), "r"))==0 ) {
+      rprinterr("Error: Could not open input file %s\n", fname.full());
       return C_ERR;
     }
   }
@@ -775,23 +774,27 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   // Create input frame
   Frame frameIn;
   frameIn.SetupFrameV(parm->Atoms(), trajin.TrajCoordInfo());
-  // Get output set name; use base file name as set name if none specified. 
-  // NOTE: Default name should NEVER get used.
-  std::string setname = argIn.GetStringNext();
-  if (setname.empty())
-    setname = trajin.TrajFilename().Base();
+  // Set up metadata with file name and output set name
+  MetaData md( trajin.TrajFilename(), argIn.GetStringNext() );
   // Check if set already present
-  DataSet_Coords* coords = (DataSet_Coords*)State.DSL()->FindSetOfType(setname, DataSet::COORDS);
-  if (coords == 0) {
+  DataSet_Coords* coords = 0;
+  DataSet* ds = State.DSL()->CheckForSet(md);
+  if (ds == 0) {
     // Create Set 
-    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, setname, "__DCRD__");
+    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
     if (coords == 0) {
       mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
       return Command::C_ERR;
     }
     coords->SetTopology( *parm );
-    mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.TrajFilename().full(), setname.c_str());
+    mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.TrajFilename().full(), coords->legend());
   } else {
+    // Check that set is actually coords.
+    if (ds->Type() != DataSet::COORDS) {
+      mprinterr("Error: Set %s present but is not of type COORDS.\n")
+      return Command::C_ERR;
+    }
+    coords = (DataSet_Coords*)ds;
     // Check that topology matches. For now just check # atoms.
     if (parm->Natom() != coords->Top().Natom()) {
       mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
