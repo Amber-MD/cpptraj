@@ -13,6 +13,7 @@ class Parm_Amber : public ParmIO {
     int processWriteArgs(ArgList&);
     int WriteParm(FileName const&, Topology const&);
     void SetDebug(int debugIn) { debug_ = debugIn; }
+    bool NeedsBondSearch() const { return false; }
   private :
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;

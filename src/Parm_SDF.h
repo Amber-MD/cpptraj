@@ -10,5 +10,6 @@ class Parm_SDF : public ParmIO {
     int WriteParm(FileName const&, Topology const&) { return 1; }
     void SetDebug(int) {}
     int processWriteArgs(ArgList&) { return 0; }
+    bool NeedsBondSearch() const { return false; }
 };
 #endif

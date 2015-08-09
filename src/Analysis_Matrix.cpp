@@ -6,6 +6,7 @@
 Analysis_Matrix::Analysis_Matrix() :
   matrix_(0),
   modes_(0),
+  outthermo_(0),
   thermo_temp_(298.15),
   nevec_(0),
   thermopt_(false),
@@ -80,21 +81,22 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Thermo flag
   thermopt_ = analyzeArgs.hasKey("thermo");
-  outthermo_ = analyzeArgs.GetStringKey("outthermo");
+  if (thermopt_) {
+    outthermo_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("outthermo"), "'thermo' output",
+                                       DataFileList::TEXT, true);
+    if (outthermo_ == 0) return Analysis::ERR;
+  }
   thermo_temp_ = analyzeArgs.getKeyDouble("temp", 298.15);
   if (thermopt_ && matrix_->ScalarType()!=DataSet::MWCOVAR) {
     mprinterr("Error: Parameter 'thermo' only works for mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
   }
-  // Number of eigenvectors; allow "0" only in case of 'thermo'
-  nevec_ = analyzeArgs.getKeyInt("vecs",0);
-  if (thermopt_) {
-    if (nevec_ < 0) nevec_ = 0;
-  } else if (nevec_ <= 0) {
-    mprintf("Warning: # of eigenvectors specified is < 1 (%i) and 'thermo' not specified.\n",
-            nevec_);
-    mprintf("Warning: Specify # eigenvectors with 'vecs <#>'. Setting to 1.\n");
-    nevec_ = 1;
+  // Number of eigenvectors; allow "0" only in case of 'thermo'. -1 means 'All'
+  nevec_ = analyzeArgs.getKeyInt("vecs",-1);
+  if (nevec_ == 0 && !thermopt_) {
+    mprintf("Warning: # of eigenvectors specified is 0 and 'thermo' not specified.\n");
+    mprintf("Warning: Specify # eigenvectors with 'vecs <#>'. Setting to All.\n");
+    nevec_ = -1;
   }
   // Reduce flag
   reduce_ = analyzeArgs.hasKey("reduce");
@@ -110,15 +112,15 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   mprintf("    DIAGMATRIX: Diagonalizing matrix %s",matrix_->legend());
   if (outfile != 0)
     mprintf(" and writing modes to %s", outfile->DataFilename().full());
-  mprintf("\n\tCalculating %i eigenvectors", nevec_);
-  if (thermopt_) {
-    mprintf(" and thermodynamic data at %.2f K, output to", thermo_temp_);
-    if (!outthermo_.empty())
-      mprintf(" %s", outthermo_.c_str());
-    else
-      mprintf(" STDOUT");
-  }
-  mprintf("\n");
+  if (nevec_ > 0)
+    mprintf("\n\tCalculating %i eigenvectors.\n", nevec_);
+  else if (nevec_ == 0)
+    mprintf("\n\tNot calculating eigenvectors.\n");
+  else
+    mprintf("\n\tCalculating all eigenvectors.\n");
+  if (thermopt_)
+    mprintf("\tCalculating thermodynamic data at %.2f K, output to %s\n",
+            thermo_temp_, outthermo_->Filename().full());
   if (nmwizopt_) {
     mprintf("\tWriting %i modes to NMWiz file", nmwizvecs_);
     if (!nmwizfile_.empty())
@@ -137,6 +139,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
 // Analysis_Matrix::Analyze()
 Analysis::RetType Analysis_Matrix::Analyze() {
   modes_->SetAvgCoords( *matrix_ );
+  mprintf("\tEigenmode calculation for '%s'\n", matrix_->legend());
   // Check that the matrix was generated with enough snapshots.
   if (matrix_->Type() == DataSet::MATRIX_DBL) {
     DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
@@ -153,17 +156,14 @@ Analysis::RetType Analysis_Matrix::Analyze() {
       mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->legend());
       return Analysis::ERR;
     }
+    mprintf("Info: Converting eigenvalues t cm^-1 and mass-weighting eigenvectors.\n");
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
     // Mass-wt eigenvectors // TODO Do not pass in Mass again, done above in SetAvgCoords
     if (modes_->MassWtEigvect( Dmatrix.Mass() )) return Analysis::ERR;
     // Calc thermo-chemistry if specified
-    if (thermopt_) {
-      CpptrajFile outfile;
-      outfile.OpenWrite(outthermo_);
-      modes_->Thermo( outfile, 1, thermo_temp_, 1.0 );
-      outfile.CloseFile();
-    }
+    if (thermopt_)
+      modes_->Thermo( *outthermo_, 1, thermo_temp_, 1.0 );
   }
   // Print nmwiz file if specified
   if (nmwizopt_) NMWizOutput(); 

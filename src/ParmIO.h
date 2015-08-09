@@ -14,5 +14,6 @@ class ParmIO : public BaseIOtype {
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteParm(FileName const&, Topology const&) = 0;
     virtual void SetDebug(int) = 0;
+    virtual bool NeedsBondSearch() const = 0;
 };
 #endif
