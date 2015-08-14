@@ -4,7 +4,8 @@
 #include "DataSet.h"
 #include "ArgList.h" // GetReferenceFrame
 #include "ReferenceFrame.h" // GetReferenceFrame
-// Class: DataSetList
+/// Search string used for DataSet selection.
+class DataSearchString;
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
   * by DataSetList. DataSets are added to the list by various actions. 
@@ -26,6 +27,8 @@ class DataSetList {
 
     void Clear();
     DataSetList& operator+=(DataSetList const&);
+    /// \return DataSet at didx.
+    DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
     /// DataSetList default iterator
     typedef DataListType::const_iterator const_iterator;
     /// Iterator to beginning of dataset list
@@ -40,38 +43,39 @@ class DataSetList {
     long int MaxFrames()   const { return maxFrames_;        }
     /// Set current ensemble number.
     void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
+    /// Set DataSetList and underlying DataSet debug level
+    void SetDebug(int);
+    /// Set DataSets pending status.
+    void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
     void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.
     bool DataSetsPending() const { return dataSetsPending_;  }
+
     /// Remove set from list - used in DataFile
     void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
     /// Remove set from list but do not destroy.
     DataSet* PopSet( DataSet* );
-    /// \return DataSet at didx.
-    DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
-    /// Set DataSetList and underlying DataSet debug level
-    void SetDebug(int);
-    /// Set DataSets pending status.
-    void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
+
     /// Allocate 1D DataSet memory based on current max# expected frames.
     void AllocateSets(long int);
     /// Set width and precision of specified DataSets in the list.
     void SetPrecisionOfDataSets(std::string const&, int, int);
-    /// Get DataSet matching specified argument.
-    DataSet* GetDataSet( std::string const& ) const;
-    /// Get DataSet matching specified argument, no warning if not found.
-    DataSet* CheckForSet( std::string const& ) const;
-    /// Get DataSet matching specified attributes.
+ 
+   /// Get DataSet matching specified attributes.
     DataSet* CheckForSet( MetaData const& ) const;
+
+    /// Get DataSet corresponding to specified argument.
+    DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
+
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
     /// Add or append given sets to this list.
@@ -84,12 +88,14 @@ class DataSetList {
     int AddSet( DataSet* );
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
+
     /// Print info on DataSets in the list
     void List() const;
 #   ifdef MPI
     /// Call sync for DataSets in the list (MPI only)
     void SynchronizeData();
 #   endif
+
     /// Find next set of specified type with given name.
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.

@@ -159,64 +159,6 @@ void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
   }
 }
 
-// DataSetList::ParseArgString()
-/** Separate argument nameIn specifying DataSet into name, index, and 
-  * attribute parts.
-  * Possible formats:
-  *  - "<name>"         : Plain dataset name.
-  *  - "<name>:<index>" : Dataset within larger overall set (e.g. perres:1)
-  *  - "<name>[<attr>]" : Dataset with name and given attribute (e.g. rog[max])
-  *  - "<name>[<attr>]:<index>" : 
-  *       Dataset with name, given attribute, and index (e.g. NA[shear]:1)
-  */
-std::string DataSetList::ParseArgString(std::string const& nameIn, std::string& idx_arg,
-                                        std::string& attr_arg, std::string& member_arg)
-{
-  std::string dsname( nameIn );
-  attr_arg.clear();
-  //mprinterr("DBG: ParseArgString called with %s\n", nameIn.c_str());
-  // Separate out ensemble arg if present
-  size_t idx_pos = dsname.find( '%' );
-  if ( idx_pos != std::string::npos ) {
-    // Advance to after the '.'
-    member_arg = dsname.substr( idx_pos + 1 );
-    // Drop the ensemble arg
-    dsname.resize( idx_pos );
-  }
-  // Separate out index arg if present
-  idx_pos = dsname.find( ':' );
-  if ( idx_pos != std::string::npos ) {
-    // Advance to after the ':'
-    idx_arg = dsname.substr( idx_pos + 1 );
-    //mprinterr("DBG:\t\tIndex Arg [%s]\n", idx_arg.c_str());
-    // Drop the index arg
-    dsname.resize( idx_pos );
-  }
-
-  // Separate out aspect arg if present
-  size_t attr_pos0 = dsname.find_first_of( '[' );
-  size_t attr_pos1 = dsname.find_last_of( ']' );
-  if ( attr_pos0 != std::string::npos && attr_pos1 != std::string::npos ) {
-    if ( (attr_pos0 != std::string::npos && attr_pos1 == std::string::npos) ||
-         (attr_pos0 == std::string::npos && attr_pos1 != std::string::npos) )
-    {
-      mprinterr("Error: Malformed attribute ([<attr>]) in dataset name %s\n", nameIn.c_str());
-      return 0;
-    }
-    // If '[' is at very beginning, this is a tag. Otherwise attribute.
-    if (attr_pos0 > 0) {
-      // Advance to after '[', length is position of ']' minus '[' minus 1 
-      attr_arg = dsname.substr( attr_pos0 + 1, attr_pos1 - attr_pos0 - 1 );
-      //mprinterr("DBG:\t\tAttr Arg [%s]\n", attr_arg.c_str());
-      // Drop the attribute arg
-      dsname.resize( attr_pos0 );
-    }
-  }
-  //mprinterr("DBG:\t\tName Arg [%s]\n", dsname.c_str());
-
-  return dsname;
-}
-
 // DataSetList::PendingWarning()
 void DataSetList::PendingWarning() const {
   if (dataSetsPending_)
@@ -237,16 +179,8 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   return dsetOut[0];
 }
 
-/** The set argument must match EXACTLY, so Data will not return Data:1 */
-DataSet* DataSetList::CheckForSet( std::string const& nameIn ) const {
-  std::string aspect_arg, member_arg("-1"), idx_arg("-1");
-  std::string dsname = ParseArgString(nameIn, idx_arg, aspect_arg, member_arg);
-  int idx = convertToInteger(idx_arg);
-  int member = convertToInteger(member_arg);
-  return CheckForSet( MetaData(dsname, aspect_arg, idx, member) );
-}
-
 // DataSetList::CheckForSet()
+/** The set argument must match EXACTLY, so Data will not return Data:1 */
 DataSet* DataSetList::CheckForSet(MetaData const& md) const
 {
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
@@ -265,27 +199,10 @@ DataSetList DataSetList::SelectSets( std::string const& dsargIn,
 {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
-  Range idxrange, memberrange;
-
-  std::string aspect_arg, idx_arg, member_arg;
-  std::string dsname = ParseArgString( dsargIn, idx_arg, aspect_arg, member_arg );
-  //mprintf("DBG: GetMultipleSets \"%s\": Looking for name=%s aspect=%s idx=%s member=%s\n",dsargIn.c_str(), dsname.c_str(), aspect_arg.c_str(), idx_arg.c_str(), member_arg.c_str());
-  // If index arg is empty make wildcard (-1)
-  if (idx_arg.empty() || idx_arg == "*")
-    idxrange.SetRange( -1, 0 ); 
-  else
-    idxrange.SetRange( idx_arg );
-  // If member arg is empty make none (-1)
-  if (member_arg.empty() || member_arg == "*")
-    memberrange.SetRange( -1, 0 );
-  else
-    memberrange.SetRange( member_arg );
-  // If aspect arg not set and name is wildcard, make attribute wildcard.
-  if (aspect_arg.empty() && dsname == "*")
-    aspect_arg.assign("*");
   // Find matching sets.
+  DataSet::SearchString search(dsargIn);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ((*ds)->Matches_WC( dsname, idxrange, aspect_arg, memberrange, typeIn ))
+    if ((*ds)->Matches_WC( search, typeIn ))
       dsetOut.DataList_.push_back( *ds );
 
   return dsetOut;
