@@ -305,7 +305,8 @@ CapWords
 
 \begin_layout Itemize
 No one-letter variable names except in loop scopes (e.g.
- for (int i = 0; i < N; ++i) { } ).
+ for (int i = 0; i < N; ++i) { } ), and even then they should be short loops
+ (no more than 10 lines or so).
 \end_layout
 
 \begin_layout Itemize
@@ -393,6 +394,115 @@ to build the documentation.
 $AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
 \family default
  to see the class heirarchy and descriptions.
+\end_layout
+
+\begin_layout Section
+General Layout and Concepts
+\end_layout
+
+\begin_layout Standard
+Cpptraj currently lives in 2 key classes: 
+\series bold
+Cpptraj
+\series default
+ ,which lives in main.cpp and controls overall flow (e.g.
+ it is responsible for deciding whether to execute in batch mode or interactive
+ moce), and 
+\series bold
+CpptrajState
+\series default
+, which holds all of the data.
+ The main components of CpptrajState are:
+\end_layout
+
+\begin_layout Description
+TopologyList
+\begin_inset space ~
+\end_inset
+
+parmFileList_; Hold all Topology classes.
+ These are designed to be shared between trajectories to save memory.
+\end_layout
+
+\begin_layout Description
+DataSetList
+\begin_inset space ~
+\end_inset
+
+DSL_; Hold all DataSets.
+ This is essentially how different components can talk to each other, e.g.
+ an Action creates a DataSet in the DataSetList, which can then be used
+ by a subsequent Analysis.
+\end_layout
+
+\begin_layout Description
+DataFileList
+\begin_inset space ~
+\end_inset
+
+DFL_; Hold all DataFiles.
+ These are either for writing out DataSets or general text output, primarily
+ from Actions/Analyses.
+\end_layout
+
+\begin_layout Description
+TrajinList
+\begin_inset space ~
+\end_inset
+
+trajinList_; Hold all input trajectories to be processed during a run.
+ Whenever a user inputs a 'trajin' or 'ensemble' command, the trajectory/ensembl
+e in question is added to this list.
+ When a 'run' command is executed, these are the trajectories that are read
+ in a frame at a time so that Actions in the ActionList can process them.
+\end_layout
+
+\begin_layout Description
+ActionList
+\begin_inset space ~
+\end_inset
+
+actionList_; Hold all Actions to be executed during a run.
+ By default, whenver an Action command is issued the Action in question
+ is initialized and queued up in the ActionList, to be processed during
+ the next run.
+\end_layout
+
+\begin_layout Description
+TrajoutList
+\begin_inset space ~
+\end_inset
+
+trajoutList_; Hold output trajectories to be written during a run.
+ This output occurs after all Actions have been processed.
+\end_layout
+
+\begin_layout Description
+AnalysisList
+\begin_inset space ~
+\end_inset
+
+analysisList_; Hold all Analyses to be executed after a run or when a 'runanalys
+is' command is given.
+ Similar to ActionList, whenever an Analysis command is issued the Analysis
+ in question is initialized and queued up in the AnalysisList.
+\end_layout
+
+\begin_layout Standard
+A third 
+\begin_inset Quotes eld
+\end_inset
+
+static
+\begin_inset Quotes erd
+\end_inset
+
+ class, 
+\series bold
+Command
+\series default
+, controls how commands are processed.
+ This is the class responsible for translating user input.
 \end_layout
 
 \begin_layout Section
