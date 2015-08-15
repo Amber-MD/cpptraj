@@ -312,12 +312,12 @@ int Action_NAstruct::determineBasePairing() {
     for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                         BP != BasePairAxes_.end(); ++BP)
     {
-      int bp_1 = (*BP).Res1();
-      int bp_2 = (*BP).Res2();
+      int bp_1 = BP->Res1();
+      int bp_2 = BP->Res2();
       mprintf("        BP %i: Res %i:%c to %i:%c", nBP++,
               bp_1+1, Bases_[bp_1].BaseChar(), 
               bp_2+1, Bases_[bp_2].BaseChar());
-      if ( (*BP).IsAnti() )
+      if ( BP->IsAnti() )
         mprintf(" AntiParallel.\n");
       else
         mprintf(" Parallel.\n");
@@ -331,34 +331,43 @@ int Action_NAstruct::determineBasePairing() {
                                       BP != BasePairAxes_.end(); ++BP)
   {
     // Create legend
-    int bp_1 = (*BP).Res1();
-    int bp_2 = (*BP).Res2();
+    int bp_1 = BP->Res1();
+    int bp_2 = BP->Res2();
     std::string b1name = integerToString( Bases_[bp_1].ResNum()+1 ) +
                          Bases_[bp_1].BaseChar();
     std::string b2name = integerToString( Bases_[bp_2].ResNum()+1 ) + 
                          Bases_[bp_2].BaseChar();
     std::string bpname = b1name + b2name;
     // Create pucker Data Sets
-    PUCKER_.push_back( 
-      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
-                                               Bases_[bp_1].ResNum()+1, "pucker",
-                                               b1name) );
-    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
-    PUCKER_.push_back( 
-      (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT, dataname_,
-                                               Bases_[bp_2].ResNum()+1, "pucker",
-                                               b2name) );
-    PUCKER_.back()->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
+    MetaData md(dataname_, "pucker", Bases_[bp_1].ResNum()+1);
+    md.SetScalarMode( MetaData::M_PUCKER );
+    md.SetScalarType( MetaData::PUCKER   );
+    md.SetLegend( b1name );
+    PUCKER_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetIdx( Bases_[bp_2].ResNum()+1 );
+    md.SetLegend( b2name );
+    PUCKER_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
     // Create sets
-    SHEAR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname) );
-    STRETCH_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname));
-    STAGGER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname));
-    BUCKLE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname) );
-    PROPELLER_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname) );
-    OPENING_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname) );
-    BPHBONDS_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname) );
-    MAJOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname) );
-    MINOR_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname) );
+    md.SetIdx(dsidx);
+    md.SetLegend( bpname );
+    md.SetAspect("shear");
+    SHEAR_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("stretch");
+    STRETCH_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("stagger");
+    STAGGER_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("buckle");
+    BUCKLE_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("prop");
+    PROPELLER_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("open");
+    OPENING_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("hb");
+    BPHBONDS_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md) );
+    md.SetAspect("major");
+    MAJOR_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+    md.SetAspect("minor");
+    MINOR_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
     ++dsidx;
   }
   // For each BP step, set up a dataset for each structural parameter. 
@@ -371,10 +380,10 @@ int Action_NAstruct::determineBasePairing() {
     {
       std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
       // Create legend
-      int bp_1 = (*BP1).Res1();
-      int bp_2 = (*BP1).Res2();
-      int bp_3 = (*BP2).Res1();
-      int bp_4 = (*BP2).Res2();
+      int bp_1 = BP1->Res1();
+      int bp_2 = BP1->Res2();
+      int bp_3 = BP2->Res1();
+      int bp_4 = BP2->Res2();
       std::string sname = integerToString( Bases_[bp_1].ResNum()+1 ) +
                           Bases_[bp_1].BaseChar() +
                           integerToString( Bases_[bp_2].ResNum()+1 ) +
@@ -383,19 +392,33 @@ int Action_NAstruct::determineBasePairing() {
                           Bases_[bp_3].BaseChar() +
                           integerToString( Bases_[bp_4].ResNum()+1 ) +
                           Bases_[bp_4].BaseChar();
+      MetaData md( dataname_, dsidx );
+      md.SetLegend( sname );
       // Create Sets
-      SHIFT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname) );
-      SLIDE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname) );
-      RISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname) );
-      TILT_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname) );
-      ROLL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname) );
-      TWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname) );
-      XDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname) );
-      YDISP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname) );
-      HRISE_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname) );
-      INCL_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname) );
-      TIP_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname) );
-      HTWIST_.push_back( (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname) );
+      md.SetAspect("shift");
+      SHIFT_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("slide");
+      SLIDE_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("rise");
+      RISE_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("tilt");
+      TILT_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("roll");
+      ROLL_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("twist");
+      TWIST_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("xdisp");
+      XDISP_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("ydisp");
+      YDISP_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("hrise");
+      HRISE_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("incl");
+      INCL_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("tip");
+      TIP_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
+      md.SetAspect("htwist");
+      HTWIST_.push_back( (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md) );
       ++dsidx;
     }
   }
@@ -740,13 +763,13 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
   for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                       BP != BasePairAxes_.end(); ++BP)
   {
-    int b1 = (*BP).Res1();
-    int b2 = (*BP).Res2();
+    int b1 = BP->Res1();
+    int b2 = BP->Res2();
     const NA_Base& base1 = Bases_[b1];
     const NA_Base& base2 = Bases_[b2]; 
 #   ifdef NASTRUCTDEBUG
     mprintf("BasePair %i:%s to %i:%s", b1+1, base1.ResName(), b2+1, base2.ResName());
-    if ((*BP).IsAnti())
+    if (BP->IsAnti())
       mprintf(" Anti-parallel.\n");
     else
       mprintf(" Parallel.\n");
@@ -754,7 +777,7 @@ int Action_NAstruct::determineBaseParameters(int frameNum) {
     // Check Antiparallel / Parallel
     // Flip YZ (rotate around X) for antiparallel
     // Flip XY (rotate around Z) for parallel
-    if ((*BP).IsAnti())
+    if (BP->IsAnti())
       BaseAxes_[b2].FlipYZ();
     else
       BaseAxes_[b2].FlipXY();
@@ -1091,7 +1114,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
     int bp = 0;
     for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                         BP != BasePairAxes_.end(); ++BP)
-      NumberOfHbonds_[bp++] = CalcNumHB(Bases_[(*BP).Res1()], Bases_[(*BP).Res2()]);
+      NumberOfHbonds_[bp++] = CalcNumHB(Bases_[BP->Res1()], Bases_[BP->Res2()]);
   }
 
   // Determine base parameters
@@ -1127,8 +1150,8 @@ void Action_NAstruct::Print() {
         int nbp = 0;
         for (std::vector<NA_Axis>::iterator BP = BasePairAxes_.begin();
                                         BP != BasePairAxes_.end(); ++BP) {
-          int bp_1 = (*BP).Res1();
-          int bp_2 = (*BP).Res2();
+          int bp_1 = BP->Res1();
+          int bp_2 = BP->Res2();
           // FIXME: Hack for integer
           int n_of_hb = (int)BPHBONDS_[nbp]->Dval(frame);
           bpout_->Printf(BP_OUTPUT_FMT, frame+1, 
@@ -1170,10 +1193,10 @@ void Action_NAstruct::Print() {
                                             BP1 != NBPstep; ++BP1)
         {
           std::vector<NA_Axis>::iterator BP2 = BP1 + 1;
-          int bp1_1 = Bases_[(*BP1).Res1()].ResNum() + 1;
-          int bp1_2 = Bases_[(*BP1).Res2()].ResNum() + 1;
-          int bp2_1 = Bases_[(*BP2).Res1()].ResNum() + 1;
-          int bp2_2 = Bases_[(*BP2).Res2()].ResNum() + 1;
+          int bp1_1 = Bases_[BP1->Res1()].ResNum() + 1;
+          int bp1_2 = Bases_[BP1->Res2()].ResNum() + 1;
+          int bp2_1 = Bases_[BP2->Res1()].ResNum() + 1;
+          int bp2_2 = Bases_[BP2->Res2()].ResNum() + 1;
           // BPstep write
           stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
                          bp1_1, bp1_2, bp2_1, bp2_2,
