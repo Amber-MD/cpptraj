@@ -17,8 +17,9 @@ class MetaData {
     };
     /// Type of DataSet, used by Analysis_Statistics. Must match Stypes, TypeModes
     enum scalarType {
-      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER,
-      CHI,     H1P,  C2P,   PHI,   PSI,     PCHI,  OMEGA,
+      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  NU1,   NU2,
+      H1P,     C2P,  CHIN,  PHI,   PSI,     CHIP,  OMEGA,
+      PUCKER,
       NOE,
       DIST,   COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
       CORREL, DISTCOVAR, IDEA,
@@ -27,6 +28,7 @@ class MetaData {
     };
     /// Mark whether this data set is a time series.
     enum tsType { UNKNOWN_TS = 0, IS_TS, NOT_TS };
+    // TODO Audit constructors - only for searchable stuff?
     /// CONSTRUCTOR
     MetaData() : idx_(-1), ensembleNum_(-1), scalarmode_(UNKNOWN_MODE),
                  scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
@@ -48,20 +50,28 @@ class MetaData {
     MetaData(std::string const& n, std::string const& a) : name_(n), aspect_(a), idx_(-1),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
       timeSeries_(UNKNOWN_TS) {}
-    /// CONSTRUCTOR - name, scalarmode
+    /// CONSTRUCTOR - name, index 
+    MetaData(std::string const& n, int i) : name_(n), idx_(i),
+      ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
+      timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, aspect, index
+    MetaData(std::string const& n, std::string const& a, int i) : name_(n), aspect_(a), idx_(i),
+      ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
+      timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, scalarmode // TODO: Remove?
     MetaData(std::string const& n, scalarMode m) : name_(n), idx_(-1), ensembleNum_(-1),
       scalarmode_(m), scalartype_(UNDEFINED), timeSeries_(UNKNOWN_TS) {}
-    /// CONSTRUCTOR - name, scalarmode, scalartype
+    /// CONSTRUCTOR - name, scalarmode, scalartype // TODO Remove?
     MetaData(std::string const& n, scalarMode m, scalarType t) : name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(m), scalartype_(t), timeSeries_(UNKNOWN_TS) {}
     /// CONSTRUCTOR - File name, name
     MetaData(FileName const& f, std::string const& n) : fileName_(f), name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
       timeSeries_(UNKNOWN_TS) { if (name_.empty()) name_ = fileName_.Base(); }
-    /// CONSTRUCTOR - MetaData, ensemble number
-    MetaData(MetaData const& m, int e) : fileName_(m.fileName_), name_(m.name_),
-      aspect_(m.aspect_), legend_(m.legend_), idx_(m.idx_), ensembleNum_(e),
-      scalarmode_(m.scalarmode_), scalartype_(m.scalartype_), timeSeries_(m.timeSeries_) {}
+    /// CONSTRUCTOR - name, index, mode, type // TODO Remove?
+    MetaData(std::string const& n, int i, scalarMode m, scalarType t) :
+      name_(n), idx_(i), ensembleNum_(-1), scalarmode_(m), scalartype_(t),
+      timeSeries_(UNKNOWN_TS) {}
 
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
@@ -93,11 +103,13 @@ class MetaData {
     tsType TimeSeries()         const { return timeSeries_;  }
     scalarType ScalarType()     const { return scalartype_;  }
 
-    void SetName(std::string const& n)   { name_ = n;        } // TODO: Disable?
+    void SetName(std::string const& n)   { name_ = n;        }
+    void SetAspect(std::string const& a) { aspect_ = a;      }
     void SetLegend(std::string const& l) { legend_ = l;      }
-//    void SetIdx(int i)                   { idx_ = i;         }
-//    void SetEnsembleNum(int e)           { ensembleNum_ = e; }
+    void SetIdx(int i)                   { idx_ = i;         }
+    void SetEnsembleNum(int e)           { ensembleNum_ = e; }
     void SetScalarType(scalarType s)     { scalartype_ = s;  }
+    void SetScalarMode(scalarMode m)     { scalarmode_ = m;  }
     void SetTimeSeries(tsType t)         { timeSeries_ = t;  }
   private:
     static const char* Smodes[]; ///< String for each scalar mode

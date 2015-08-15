@@ -11,6 +11,10 @@
 /// Base class that all DataSet types will inherit.
 /** The DataSet base class holds common information, like MetaData for
   * selection, TextFormat for text output, etc.
+  * Note that specific parts of DataSet MetaData are not directly changeable
+  * since changing things like name directly will affect searching. The
+  * exception is ensemble number, which is not necessarily known at DataSet
+  * creation time.
   */
 class DataSet {
   public:
@@ -61,10 +65,16 @@ class DataSet {
     virtual int Append(DataSet*) = 0;
     // TODO SizeInMB?
     // -----------------------------------------------------
+    /// Associate additional data with this set.
+    void AssociateData(AssociatedData* a) { associatedData_.push_back( a->Copy() ); }
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
     /// Set specific MetaData part
-    MetaData& SetupMeta() { return meta_; }
+    //MetaData& SetupMeta() { return meta_; }
+    /// Set DataSet ensemble number.
+    void SetEnsemble(int e) { meta_.SetEnsembleNum( e ); }
+    /// Set DataSet legend
+    void SetLegend(std::string const& l) { meta_.SetLegend(l); }
     /// Set specific TextFormat part.
     TextFormat& SetupFormat() { return format_; }
     /// Set specified DataSet dimension.
