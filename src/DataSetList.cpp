@@ -84,7 +84,7 @@ void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
   for (DataListType::const_iterator ds = DataList_.begin();
                                     ds != DataList_.end(); ++ds)
     if ( (*ds)->Meta().EnsembleNum() == -1 )
-      (*ds)->SetMeta( MetaData((*ds)->Meta(), ensembleNum_) );
+      (*ds)->SetEnsemble( ensembleNum_ );
 }
 
 // DataSetList::RemoveSet()
@@ -344,14 +344,15 @@ std::string DataSetList::GenerateDefaultName(std::string const& defaultName) con
   * \return pointer to successfully set-up dataset.
   */ 
 DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
-{
+{ // TODO Always generate default name if empty?
   // Do not add to a list with copies
   if (hasCopies_) {
     mprinterr("Internal Error: Adding DataSet %s copy to invalid list.\n",
               metaIn.PrintName().c_str());
     return 0;
   }
-  MetaData meta( metaIn, ensembleNum_ );
+  MetaData meta( metaIn );
+  meta.SetEnsembleNum( ensembleNum_ );
   // Check if DataSet with same attributes already present.
   DataSet* DS = CheckForSet(meta);
   if (DS != 0) {
