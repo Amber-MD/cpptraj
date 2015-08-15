@@ -122,7 +122,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     return Action::ERR;
   }
   // Make default precision a little higher than normal
-  Dset_->SetPrecision(12,6);
+  Dset_->SetupFormat().SetFormatWidthPrecision(12,6);
   // Set DataSet legend from mask strings.
   Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
   // TODO: Set Yaxis label in DataFile
@@ -137,9 +137,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (!intrdfname.empty()) {
-    intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
+    intrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
-    intrdf_->SetPrecision(12,6);
+    intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
@@ -151,10 +151,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     intrdf_ = 0;
   // Set up output for raw rdf
   if (!rawrdfname.empty()) {
-    rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
+    rawrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
-    rawrdf_->SetPrecision(12,6);
-    rawrdf_->SetLegend("Raw[" + Dset_->Legend() + "]");
+    rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
+    rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
     rawrdf_->SetDim(Dimension::X, Rdim);
     outfile = DFL->AddSetToFile( rawrdfname, rawrdf_ );
     if (outfile == 0) {

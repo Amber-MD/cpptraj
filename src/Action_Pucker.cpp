@@ -40,9 +40,9 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Data
     puckerMin_ = -180.0;
   puckerMax_ = puckerMin_ + 360.0;
   useMass_ = !actionArgs.hasKey("geom");
-  DataSet::scalarType stype = DataSet::UNDEFINED;
+  MetaData::scalarType stype = MetaData::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
-  if ( stypename == "pucker" ) stype = DataSet::PUCKER;
+  if ( stypename == "pucker" ) stype = MetaData::PUCKER;
 
   // Get Masks
   Masks_.clear();
@@ -64,24 +64,26 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, TopologyList* PFL, Data
   AX_.resize( Masks_.size() );
 
   // Setup dataset
-  pucker_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Pucker");
+  MetaData md(actionArgs.GetStringNext());
+  md.SetScalarMode( MetaData::M_PUCKER );
+  md.SetScalarType( stype );
+  pucker_ = DSL->AddSet(DataSet::DOUBLE, md, "Pucker");
   if (pucker_ == 0) return Action::ERR;
-  pucker_->SetScalar( DataSet::M_PUCKER, stype );
   amplitude_ = 0;
   theta_ = 0;
   if (calc_amp)
-    amplitude_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Amp");
+    amplitude_ = DSL->AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Amp"));
   if (calc_theta) {
     if ( Masks_.size() < 6 )
       mprintf("Warning: 'theta' calc. not supported for < 6 masks.\n");
     else
-      theta_ = DSL->AddSetAspect(DataSet::DOUBLE, pucker_->Name(), "Theta");
+      theta_ = DSL->AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Theta"));
   }
   // Add dataset to datafile list
   if (outfile != 0) {
-    outfile->AddSet( pucker_ );
-    if (amplitude_ != 0) outfile->AddSet( amplitude_ );
-    if (theta_ != 0) outfile->AddSet( theta_ );
+    outfile->AddDataSet( pucker_ );
+    if (amplitude_ != 0) outfile->AddDataSet( amplitude_ );
+    if (theta_ != 0) outfile->AddDataSet( theta_ );
   }
 
   mprintf("    PUCKER: ");
