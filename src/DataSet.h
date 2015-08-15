@@ -62,7 +62,7 @@ class DataSet {
     // TODO SizeInMB?
     // -----------------------------------------------------
     /// Set DataSet MetaData
-    int SetMetaData(MetaData const&);
+    int SetMeta(MetaData const&);
     /// Set specific MetaData part
     MetaData& SetupMeta() { return meta_; }
     /// Set specific TextFormat part.

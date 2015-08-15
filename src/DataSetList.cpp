@@ -84,7 +84,7 @@ void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
   for (DataListType::const_iterator ds = DataList_.begin();
                                     ds != DataList_.end(); ++ds)
     if ( (*ds)->Meta().EnsembleNum() == -1 )
-      (*ds)->SetupMeta().SetEnsembleNum( ensembleNum_ );
+      (*ds)->SetMeta( MetaData((*ds)->Meta(), ensembleNum_) );
 }
 
 // DataSetList::RemoveSet()
@@ -300,7 +300,7 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         md.SetName( GenerateDefaultName("X") );
         mprintf("Warning: Renaming %s to %s\n", (*ds)->Meta().PrintName().c_str(),
                 md.PrintName().c_str());
-        (*ds)->SetMetaData( md );
+        (*ds)->SetMeta( md );
        
         AddSet( *ds );
       }
@@ -351,8 +351,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
               metaIn.PrintName().c_str());
     return 0;
   }
-  MetaData meta = metaIn;
-  meta.SetEnsembleNum( ensembleNum_ );
+  MetaData meta( metaIn, ensembleNum_ );
   // Check if DataSet with same attributes already present.
   DataSet* DS = CheckForSet(meta);
   if (DS != 0) {
@@ -374,7 +373,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
   if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) 
     meta.SetTimeSeries( MetaData::IS_TS );
   // Set up dataset 
-  if ( DS->SetMetaData( meta ) ) {
+  if ( DS->SetMeta( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
     delete DS;
     return 0;

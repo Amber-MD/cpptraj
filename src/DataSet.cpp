@@ -51,7 +51,7 @@ void DataSet::WriteCoord(CpptrajFile& file, const char* fmt, unsigned int dim, s
   * default legend if not already set.
   * \param In The DataSet meta data 
   */
-int DataSet::SetMetaData(MetaData const& In) {
+int DataSet::SetMeta(MetaData const& In) {
   // Dataset name
   if (In.Name().empty()) {
     mprinterr("Internal Error: DataSet has no name.\n"); //FIXME allow?

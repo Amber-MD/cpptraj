@@ -58,6 +58,10 @@ class MetaData {
     MetaData(FileName const& f, std::string const& n) : fileName_(f), name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
       timeSeries_(UNKNOWN_TS) { if (name_.empty()) name_ = fileName_.Base(); }
+    /// CONSTRUCTOR - MetaData, ensemble number
+    MetaData(MetaData const& m, int e) : fileName_(m.fileName_), name_(m.name_),
+      aspect_(m.aspect_), legend_(m.legend_), idx_(m.idx_), ensembleNum_(e),
+      scalarmode_(m.scalarmode_), scalartype_(m.scalartype_), timeSeries_(m.timeSeries_) {}
 
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
@@ -89,10 +93,10 @@ class MetaData {
     tsType TimeSeries()         const { return timeSeries_;  }
     scalarType ScalarType()     const { return scalartype_;  }
 
-    void SetName(std::string const& n)   { name_ = n;        }
+    void SetName(std::string const& n)   { name_ = n;        } // TODO: Disable?
     void SetLegend(std::string const& l) { legend_ = l;      }
-    void SetIdx(int i)                   { idx_ = i;         }
-    void SetEnsembleNum(int e)           { ensembleNum_ = e; }
+//    void SetIdx(int i)                   { idx_ = i;         }
+//    void SetEnsembleNum(int e)           { ensembleNum_ = e; }
     void SetScalarType(scalarType s)     { scalartype_ = s;  }
     void SetTimeSeries(tsType t)         { timeSeries_ = t;  }
   private:
