@@ -7,6 +7,7 @@ class FileName {
   public:
     FileName() {}
     FileName(std::string const& s) { SetFileName(s); }
+    FileName(const char* s) { SetFileName( std::string(s) ); }
     FileName(const FileName&);
     FileName& operator=(const FileName&);
     /// Set file name and extensions, perform expansion as necessary.

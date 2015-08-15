@@ -160,6 +160,7 @@ int FileName::AppendFileName( std::string const& suffix ) {
   if (fullPathName_.empty()) return 1;
   fullPathName_.append( suffix );
   baseName_.append( suffix );
+  return 0;
 }
 
 // =============================================================================

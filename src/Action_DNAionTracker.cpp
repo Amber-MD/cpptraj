@@ -47,12 +47,11 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, TopologyList* PF
   ions_.SetMaskString(m4);
 
   // Add dataset to dataset list (and datafile list if filename specified)
-  distance_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "DNAion");
-  // NOTE: Set to mode distance in PTRAJ
-  distance_->SetScalar( DataSet::M_DISTANCE );
+  distance_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
+                                                    MetaData::M_DISTANCE), "DNAion");
   if (distance_==0) return Action::ERR;
   if (outfile != 0)
-    outfile->AddSet( distance_ );
+    outfile->AddDataSet( distance_ );
 
   // INFO
   mprintf("    DNAIONTRACKER: Data representing the ");

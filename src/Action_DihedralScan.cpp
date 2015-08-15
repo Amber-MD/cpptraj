@@ -125,7 +125,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   number_of_problems_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(),"Nprob");
   if (number_of_problems_==0) return Action::ERR;
   // Add dataset to data file list
-  if (problemFile != 0) problemFile->AddSet(number_of_problems_);
+  if (problemFile != 0) problemFile->AddDataSet(number_of_problems_);
 
   mprintf("    DIHEDRALSCAN: Dihedrals in");
   if (resRange_.Empty())

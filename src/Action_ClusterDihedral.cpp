@@ -94,7 +94,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* 
   if (cvtfile != 0) {
     CVT_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(), "DCVT");
     if (CVT_ == 0) return Action::ERR;
-    cvtfile->AddSet(CVT_);
+    cvtfile->AddDataSet(CVT_);
   }
 
   // INFO

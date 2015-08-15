@@ -77,7 +77,7 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
       lesTraj_.reserve( lesMasks_.size() );
       for (unsigned int i = 0; i < lesMasks_.size(); i++) {
         lesTraj_.push_back( new Trajout_Single() );
-        if ( lesTraj_.back()->InitTrajWrite(NumberFilename( trajfilename_, i+1 ), trajArgs_,
+        if ( lesTraj_.back()->InitTrajWrite(AppendNumber( trajfilename_, i+1 ), trajArgs_,
                                             lesParm_, TrajectoryFile::UNKNOWN_TRAJ) )
           return Action::ERR;
         lesTraj_.back()->PrintInfo(1);
