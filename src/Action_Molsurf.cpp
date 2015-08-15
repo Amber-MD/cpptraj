@@ -119,13 +119,14 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   sasa_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"MSURF");
   if (sasa_==0) return Action::ERR;
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet(sasa_);
+  if (outfile != 0) outfile->AddDataSet(sasa_);
   // Submask string data sets
   for (Marray::const_iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask) {
-    DataSet* ds = DSL->AddSetIdxAspect(DataSet::FLOAT, sasa_->Name(), 
-                                       mask-SubMasks_.begin(), "submask", mask->MaskExpression());
+    DataSet* ds = DSL->AddSet( DataSet::FLOAT, MetaData(sasa_->Meta().Name(),
+                                                        "submask", mask-SubMasks_.begin()) );
     if (ds == 0) return Action::ERR;
-    if (outfile != 0) outfile->AddSet(ds);
+    ds->SetLegend( mask->MaskExpression() );
+    if (outfile != 0) outfile->AddDataSet(ds);
     SubData_.push_back( ds );
   }
 
