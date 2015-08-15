@@ -117,6 +117,7 @@ SOURCES=ActionFrameCounter.cpp \
         Analysis_Wavelet.cpp \
         ArgList.cpp \
         Array1D.cpp \
+        AssociatedData.cpp \
         Atom.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
