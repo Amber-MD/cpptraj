@@ -31,7 +31,7 @@ class TextFormat {
     void SetFormatAlign(AlignType t) { align_ = t; SetFormatString(); }
     /// Set format string with new width and precision
     void SetFormatWidthPrecision(int w, int p) { width_ = w; precision_ = p; SetFormatString(); }
-    /// Set width only - do not reset format string.
+    /// Set width only - do not reset format string (for DataSet_string).
     void SetWidth(int w) { width_ = w; }
     /// \return pointer to format string.
     const char* fmt() const { return fmt_.c_str(); }
