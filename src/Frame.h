@@ -40,6 +40,8 @@ class Frame {
     Frame(std::vector<Atom> const&);
     /// Copy input frame according to input mask.
     Frame(Frame const&, AtomMask const&);
+    /// Set up frame for # of atoms with external coordinates data.
+    Frame(int, double*);
     Frame(const Frame&);
     Frame& operator=(Frame);
     typedef std::vector<int> RemdIdxType; ///< For dealing with replica indices
@@ -208,6 +210,7 @@ class Frame {
     double* V_;     ///< Velocities (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.
     Darray Mass_;   ///< Masses.
+    bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
 
     void swap(Frame&, Frame&);
     void IncreaseX();
