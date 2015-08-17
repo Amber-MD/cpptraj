@@ -278,6 +278,7 @@ ARPACK="-larpack"
 FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
+LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
 SANDERLIB=""
 READLINE=$READLINE_HOME/libreadline.a
 USE_AMBER_LIB=0
@@ -397,6 +398,7 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
+      LIBCPPTRAJ="libcpptraj.so"
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -796,24 +798,14 @@ FFLAGS=$FFLAGS \$(DBGFLAGS)
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 
+LIBCPPTRAJ=$LIBCPPTRAJ
+
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
 
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EOF
-
-# Add a rule to config to prevent libcpptraj from being built if not shared.
-if [[ $USESHARED -eq 1 ]] ; then
-  cat >> config.h <<EOF
-checkshared:
-EOF
-else
-  cat >> config.h <<EOF
-checkshared:
-	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
-EOF
-fi
 
 # Create directories if necessary
 if [[ ! -e $CPPTRAJBIN ]] ; then
