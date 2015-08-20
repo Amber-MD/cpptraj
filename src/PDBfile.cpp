@@ -44,6 +44,7 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
   if (recname.compare(0,5,"ORIGX" )==0) return true; // ORIGXn
   if (recname.compare(0,5,"MTRIX" )==0) return true; // MTRIXn
+  if (recname.compare(0,9,"USER  MOD")==0) return true; // reduce
   return false;
 }
 
