@@ -91,29 +91,6 @@ int FloatWidth(double floatIn) {
   return (int)float_exponent; // Cast to int implicitly rounds down
 }
 
-// RemoveTrailingWhitespace()
-/// Remove any trailing whitespace from string.
-void RemoveTrailingWhitespace(std::string &line) {
-  std::locale loc;
-
-  std::string::iterator p = line.end();
-  --p;
-  for (; p != line.begin(); p--)
-    if (!isspace( *p, loc) && *p!='\n' && *p!='\r') break;
-  size_t lastSpace = (size_t)(p - line.begin()) + 1;
-  //mprintf("lastSpace = %zu\n",lastSpace);
-  if (lastSpace==1)
-    line.clear();
-  else
-    line.resize( lastSpace );
-}
-
-std::string NoTrailingWhitespace(std::string const& line) {
-  std::string duplicate(line);
-  RemoveTrailingWhitespace(duplicate);
-  return duplicate;
-}
-
 // ---------- STRING CONVERSION ROUTINES --------------------------------------- 
 /*! \class: BadConversion
     \brief Runtime exception for catching bad conversions from the convertToX routines.
@@ -143,6 +120,23 @@ double convertToDouble(std::string const &s) {
   if (!(iss >> d))
     throw BadConversion("convertToDouble(\"" + s + "\")");
   return d;
+}
+
+// RemoveTrailingWhitespace()
+/// Remove any trailing whitespace from string.
+void RemoveTrailingWhitespace(std::string &line) {
+  if (line.empty()) return;
+  std::locale loc;
+  int p = (int)line.size() - 1;
+  while (p > -1 && (isspace(line[p],loc) || line[p]=='\n' || line[p]=='\r'))
+    --p;
+  line.resize(p + 1);
+}
+
+std::string NoTrailingWhitespace(std::string const& line) {
+  std::string duplicate(line);
+  RemoveTrailingWhitespace(duplicate);
+  return duplicate;
 }
 
 // integerToString()
