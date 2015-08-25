@@ -87,8 +87,19 @@ class Frame {
     double Mass(int atnum)            const { return Mass_[atnum];   }
     /// \return Box information
     const Box& BoxCrd()               const { return box_;           }
+    /// \return replica indices
     RemdIdxType const& RemdIndices()  const { return remd_indices_;  }
-    // Routines for accessing internal data pointers
+    /// Set box alpha, beta, and gamma
+    inline void SetBoxAngles(const double*);
+    /// Set box
+    void SetBox( Box const& b ) { box_ = b; }
+    /// Set temperature
+    void SetTemperature(double tIn) { T_ = tIn;   }
+    /// Set time
+    void SetTime(double tIn)        {time_ = tIn; }
+    /// Set masses
+    void SetMass(std::vector<Atom> const&);
+    // ----- Access to internal data pointers ----
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
     inline double* bAddress() { return box_.boxPtr();     }
@@ -101,14 +112,7 @@ class Frame {
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
     inline const int* iAddress()    const { return &remd_indices_[0]; }
-    /// Set box alpha, beta, and gamma
-    inline void SetBoxAngles(const double*);
-    /// Set box
-    void SetBox( Box const& b ) { box_ = b; }
-    /// Set temperature
-    void SetTemperature(double tIn) { T_ = tIn;   }
-    /// Set time
-    void SetTime(double tIn)        {time_ = tIn; }
+    // ----- Frame memory allocation routines ----
     /// Allocate frame for given # atoms, no mass or velocity.
     int SetupFrame(int);
     /// Allocate frame for given # atoms with mass, no velocity. 
@@ -119,19 +123,23 @@ class Frame {
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
+    // ----- Frame coords set routines -----------
     /// Copy coordinates, box, and temp. from input frame according to mask. 
     void SetCoordinates(Frame const&, AtomMask const&);
     /// Copy only coordinates from input frame to this frame.
     void SetCoordinates(Frame const&);
+    /// Set coordinates from external memory.
+    int SetCoordinates(int, double*);
     /// Copy entire input frame according to mask.
     void SetFrame(Frame const&, AtomMask const&);
+    // ----- Frame coordinate remapping ----------
     /// Copy entire input frame, reorder according to input map. 
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
     /// Modify this frame to include only mapped atoms from input frame.
     void StripUnmappedAtoms(Frame const&, std::vector<int>const&);
     /// Copy only input coordinates, reorder according to input map.
     void ModifyByMap(Frame const&, std::vector<int>const&);
-    // Basic Arithmetic
+    // ----- Basic Arithmetic --------------------
     void ZeroCoords();
     Frame& operator+=(const Frame&);
     Frame& operator-=(const Frame&);
@@ -141,6 +149,7 @@ class Frame {
     int Divide(Frame const&, double); 
     void Divide(double);
     void Multiply(double);
+    /// Increment atoms in this frame by the selected atoms in given frame.
     int AddByMask(Frame const&, AtomMask const&); 
     // -------------------------------------------------------------------------
     // NOTE: These functions are placed in the header since most modern 

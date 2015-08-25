@@ -128,6 +128,7 @@ Frame::Frame(int natom, double* Xptr) :
   ncoord_(natom*3),
   X_(Xptr),
   V_(0),
+  Mass_(natom, 1.0),
   memIsExternal_(true)
 {
   if (Xptr == 0) {
@@ -327,6 +328,17 @@ void Frame::AddVec3(Vec3 const& vIn) {
   ncoord_ += 3;
 }
 
+void Frame::SetMass(std::vector<Atom> const& atoms) {
+  // No memory reallocation TODO allow atoms to be larger?
+  if (natom_ != (int)atoms.size()) {
+    mprinterr("Internal Error: Size of atoms array is %zu, Frame size is %i\n",
+              atoms.size(), natom_);
+  } else { // Assume mass has been allocated
+    for (unsigned int i = 0; i != atoms.size(); i++)
+      Mass_[i] = atoms[i].Mass();
+  }
+}
+  
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 /** \return True if reallocation of coordinate arrray must occur based on 
   *         given number of atoms.
@@ -449,6 +461,19 @@ void Frame::SetCoordinates(Frame const& frameIn) {
   natom_ = frameIn.natom_;
   ncoord_ = natom_ * 3;
   memcpy(X_, frameIn.X_, natom_ * COORDSIZE_);
+}
+
+int Frame::SetCoordinates(int natom, double* Xptr) {
+  if (!memIsExternal_)
+    mprinterr("Internal Error: Frame memory is internal, not setting from external pointer.\n");
+  else if (natom != natom_)
+    mprinterr("Internal Error: Frame set up for %i atoms, external memory has %i atoms.\n",
+               natom_, natom);
+  else {
+    X_ = Xptr;
+    return 0;
+  }
+  return 1;
 }
 
 // Frame::SetFrame()
@@ -697,7 +722,6 @@ void Frame::Multiply(double mult) {
 }
 
 // Frame::AddByMask()
-/** Increment atoms in this frame by the selected atoms in given frame. */
 int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: AddByMask: Input mask #atoms (%i) > frame #atoms (%i)\n",
