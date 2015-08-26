@@ -3,8 +3,9 @@
 #include "Analysis.h"
 #include "Array1D.h"
 class Analysis_TI : public Analysis {
+    enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
   public:
-    Analysis_TI() : nskip_(0), dAout_(0) {}
+    Analysis_TI() : nskip_(0), dAout_(0), mode_(GAUSSIAN_QUAD) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_TI(); }
     static void Help();
 
@@ -20,7 +21,8 @@ class Analysis_TI : public Analysis {
     typedef std::vector<DataSet*> DSarray;
     DSarray curve_;       ///< TI curve data set for each skip value
     typedef std::vector<double> Darray;
-    Darray quad_;         ///< Hold Gaussian quadrature abscissas
+    Darray xval_;         ///< Hold abscissas corresponding to data sets.
     Darray wgt_;          ///< Hold Gaussian quadrature weights
+    ModeType mode_;       ///< Integration mode
 };
 #endif

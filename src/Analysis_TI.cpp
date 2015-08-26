@@ -4,70 +4,68 @@
 #include "StringRoutines.h" // integerToString
 
 void Analysis_TI::Help() {
-  mprintf("\t<dset0> [<dset1> ...] [nq <n quad pts>] [nskip <# to skip>]\n"
+  mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>} [nskip <# to skip>]\n"
           "\t[name <set name>] [out <file>]\n" 
           "  Calculate free energy from Amber TI output.\n");
 }
 
 int Analysis_TI::SetQuadAndWeights(int nq) {
-  quad_.clear();
-  wgt_.clear();
-  if (nq < 1) return 1;
-  quad_.resize(nq);
+  if (nq < 1) return 0;
+  xval_.resize(nq);
   wgt_.resize(nq);
   switch (nq) {
     case 1:
-      quad_[0] = 0.5; wgt_[0] = 1.0;
+      xval_[0] = 0.5; wgt_[0] = 1.0;
       break;
     case 2:
-      quad_[0] = 0.21132; wgt_[0] = wgt_[1] = 0.5;
-      quad_[1] = 0.78867;
+      xval_[0] = 0.21132; wgt_[0] = wgt_[1] = 0.5;
+      xval_[1] = 0.78867;
       break;
     case 3:
-      quad_[0] = 0.1127;  wgt_[0] = wgt_[2] = 0.27777;
-      quad_[1] = 0.5;     wgt_[1] = 0.44444;
-      quad_[2] = 0.88729;
+      xval_[0] = 0.1127;  wgt_[0] = wgt_[2] = 0.27777;
+      xval_[1] = 0.5;     wgt_[1] = 0.44444;
+      xval_[2] = 0.88729;
       break;
     case 5: 
-      quad_[0] = 0.04691; wgt_[0] = wgt_[4] = 0.11846;
-      quad_[1] = 0.23076; wgt_[1] = wgt_[3] = 0.23931;
-      quad_[2] = 0.5;     wgt_[2] = 0.28444;
-      quad_[3] = 0.76923;
-      quad_[4] = 0.95308;
+      xval_[0] = 0.04691; wgt_[0] = wgt_[4] = 0.11846;
+      xval_[1] = 0.23076; wgt_[1] = wgt_[3] = 0.23931;
+      xval_[2] = 0.5;     wgt_[2] = 0.28444;
+      xval_[3] = 0.76923;
+      xval_[4] = 0.95308;
       break; 
     case 7:
-      quad_[0] = 0.02544; wgt_[0] = wgt_[6] = 0.06474;
-      quad_[1] = 0.12923; wgt_[1] = wgt_[5] = 0.13985;
-      quad_[2] = 0.29707; wgt_[2] = wgt_[4] = 0.19091;
-      quad_[3] = 0.5;     wgt_[3] = 0.20897;
-      quad_[4] = 0.70292;
-      quad_[5] = 0.87076;
-      quad_[6] = 0.97455;
+      xval_[0] = 0.02544; wgt_[0] = wgt_[6] = 0.06474;
+      xval_[1] = 0.12923; wgt_[1] = wgt_[5] = 0.13985;
+      xval_[2] = 0.29707; wgt_[2] = wgt_[4] = 0.19091;
+      xval_[3] = 0.5;     wgt_[3] = 0.20897;
+      xval_[4] = 0.70292;
+      xval_[5] = 0.87076;
+      xval_[6] = 0.97455;
       break;
     case 9:
-      quad_[0] = 0.01592; wgt_[0] = wgt_[8] = 0.04064;
-      quad_[1] = 0.08198; wgt_[1] = wgt_[7] = 0.09032;
-      quad_[2] = 0.19331; wgt_[2] = wgt_[6] = 0.13031;
-      quad_[3] = 0.33787; wgt_[3] = wgt_[5] = 0.15617;
-      quad_[4] = 0.5;     wgt_[4] = 0.16512;
-      quad_[5] = 0.66213;
-      quad_[6] = 0.80669;
-      quad_[7] = 0.91802;
-      quad_[8] = 0.98408;
+      xval_[0] = 0.01592; wgt_[0] = wgt_[8] = 0.04064;
+      xval_[1] = 0.08198; wgt_[1] = wgt_[7] = 0.09032;
+      xval_[2] = 0.19331; wgt_[2] = wgt_[6] = 0.13031;
+      xval_[3] = 0.33787; wgt_[3] = wgt_[5] = 0.15617;
+      xval_[4] = 0.5;     wgt_[4] = 0.16512;
+      xval_[5] = 0.66213;
+      xval_[6] = 0.80669;
+      xval_[7] = 0.91802;
+      xval_[8] = 0.98408;
       break;
     case 12:
-      quad_[0] = 0.00922; wgt_[0] = wgt_[11] = 0.02359;
-      quad_[1] = 0.04794; wgt_[1] = wgt_[10] = 0.05347;
-      quad_[2] = 0.11505; wgt_[2] = wgt_[9]  = 0.08004;
-      quad_[3] = 0.20634; wgt_[3] = wgt_[8]  = 0.10158;
-      quad_[4] = 0.31608; wgt_[4] = wgt_[7]  = 0.11675;
-      quad_[5] = 0.43738; wgt_[5] = wgt_[6]  = 0.12457;
-      quad_[6] = 0.56262;
-      quad_[7] = 0.68392;
-      quad_[8] = 0.79366;
-      quad_[9] = 0.88495;
-      quad_[10] = 0.95206;
-      quad_[11] = 0.99078;
+      xval_[0] = 0.00922; wgt_[0] = wgt_[11] = 0.02359;
+      xval_[1] = 0.04794; wgt_[1] = wgt_[10] = 0.05347;
+      xval_[2] = 0.11505; wgt_[2] = wgt_[9]  = 0.08004;
+      xval_[3] = 0.20634; wgt_[3] = wgt_[8]  = 0.10158;
+      xval_[4] = 0.31608; wgt_[4] = wgt_[7]  = 0.11675;
+      xval_[5] = 0.43738; wgt_[5] = wgt_[6]  = 0.12457;
+      xval_[6] = 0.56262;
+      xval_[7] = 0.68392;
+      xval_[8] = 0.79366;
+      xval_[9] = 0.88495;
+      xval_[10] = 0.95206;
+      xval_[11] = 0.99078;
       break;
     default:
       mprinterr("Error: Unsupported quadrature: %i\n", nq);
@@ -91,6 +89,12 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
       if (nskip_.back() < 0) nskip_.back() = 0;
     }
   }
+  ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
+  if (!xArgs.empty()) {
+    xval_.clear();
+    for (int i = 0; i != xArgs.Nargs(); i++)
+      xval_.push_back( xArgs.getNextDouble(0.0) );
+  }
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* curveout = DFLin->AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
@@ -104,11 +108,18 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
     return Analysis::ERR;
   }
   if (SetQuadAndWeights(nq)) return Analysis::ERR;
-  if (quad_.size() != input_dsets_.size()) {
-    mprinterr("Error: Expected %zu data sets based on nq, got %zu\n",
-              quad_.size(), input_dsets_.size());
+  // Determine integration mode
+  if (nq > 0)
+    mode_ = GAUSSIAN_QUAD;
+  else
+    mode_ = TRAPEZOID;
+  // Check that # abscissas matches # data sets
+  if (xval_.size() != input_dsets_.size()) {
+     mprinterr("Error: Expected %zu data sets for integration, got %zu\n",
+               input_dsets_.size(), xval_.size());
     return Analysis::ERR;
   }
+
   dAout_ = datasetlist->AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddSet( dAout_ );
@@ -120,11 +131,18 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
     curve_.push_back( ds );
   }
 
-  mprintf("    TI: Calculating TI using Gaussian quadrature with %zu points.\n",
-          quad_.size());
-  mprintf("\t%6s %8s %8s %s\n", "Point", "Abscissa", "Weight", "SetName");
-  for (unsigned int i = 0; i != quad_.size(); i++)
-    mprintf("\t%6i %8.5f %8.5f %s\n", i, quad_[i], wgt_[i], input_dsets_[i]->legend());
+  mprintf("    TI: Calculating TI");
+  if (mode_ == GAUSSIAN_QUAD) {
+    mprintf(" using Gaussian quadrature with %zu points.\n", xval_.size());
+    mprintf("\t%6s %8s %8s %s\n", "Point", "Abscissa", "Weight", "SetName");
+    for (unsigned int i = 0; i != xval_.size(); i++)
+      mprintf("\t%6i %8.5f %8.5f %s\n", i, xval_[i], wgt_[i], input_dsets_[i]->legend());
+  } else {
+    mprintf(" using the trapezoid rule.\n");
+    mprintf("\t%6s %8s %s\n", "Point", "Abscissa", "SetName");
+    for (unsigned int i = 0; i != xval_.size(); i++)
+      mprintf("\t%6i %8.5f %s\n", i, xval_[i], input_dsets_[i]->legend());
+  }
   if (nskip_.front() > 0) {
     mprintf("\tSkipping first");
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
@@ -176,8 +194,16 @@ Analysis::RetType Analysis_TI::Analyze() {
       avg[j] /= Npoints[j];
       //mprintf("\t<DV/DL>=%g\n", avg);
       DataSet_Mesh& CR = static_cast<DataSet_Mesh&>( *(curve_[j]) );
-      CR.AddXY(quad_[idx], avg[j]);
-      sum[j] += (wgt_[idx] * avg[j]);
+      CR.AddXY(xval_[idx], avg[j]);
+      if (mode_ == GAUSSIAN_QUAD)
+        sum[j] += (wgt_[idx] * avg[j]);
+    }
+  }
+  // Integrate each curve if not doing quadrature
+  if (mode_ != GAUSSIAN_QUAD) {
+    for (unsigned int j = 0; j != nskip_.size(); j++) {
+      DataSet_Mesh const& CR = static_cast<DataSet_Mesh const&>( *(curve_[j]) );
+      sum[j] = CR.Integrate_Trapezoid();
     }
   }
   for (unsigned int j = 0; j != nskip_.size(); j++)
