@@ -13,7 +13,8 @@ Analysis_Matrix::Analysis_Matrix() :
   reduce_(false),
   eigenvaluesOnly_(false),
   nmwizopt_(false),
-  nmwizvecs_(0)
+  nmwizvecs_(0),
+  nmwizfile_(0)
 {}
 
 void Analysis_Matrix::Help() {
@@ -61,7 +62,8 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
       mprinterr("Error: nmwizvecs must be >= 1\n");
       return Analysis::ERR;
     }
-    nmwizfile_ = analyzeArgs.GetStringKey("nmwizfile");
+    nmwizfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("nmwizfile"), "NMwiz output",
+                                       DataFileList::TEXT, true);
     Topology* parmIn = PFLin ->GetParm( analyzeArgs);
     if (parmIn == 0) {
       mprinterr("Error: nmwiz: No topology specified.\n");
@@ -121,13 +123,8 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   if (thermopt_)
     mprintf("\tCalculating thermodynamic data at %.2f K, output to %s\n",
             thermo_temp_, outthermo_->Filename().full());
-  if (nmwizopt_) {
-    mprintf("\tWriting %i modes to NMWiz file", nmwizvecs_);
-    if (!nmwizfile_.empty())
-      mprintf(" %s\n", nmwizfile_.c_str());
-    else
-      mprintf(" STDOUT\n");
-  }
+  if (nmwizopt_)
+    mprintf("\tWriting %i modes to NMWiz file %s", nmwizvecs_, nmwizfile_->Filename().full());
   if (nevec_>0 && reduce_)
     mprintf("\tEigenvectors will be reduced\n");
   if (!modesname.empty())
@@ -177,8 +174,6 @@ Analysis::RetType Analysis_Matrix::Analyze() {
 }
 
 int Analysis_Matrix::NMWizOutput() const {
-  CpptrajFile outfile; 
-  if (outfile.OpenWrite(nmwizfile_)) return 1;
   // Check # vecs
   int nvecs;
   if (nmwizvecs_ <= modes_->Nmodes())
@@ -195,40 +190,40 @@ int Analysis_Matrix::NMWizOutput() const {
     return 1;
   }
   
-  outfile.Printf("nmwiz_load %s\n", nmwizfile_.c_str());
+  nmwizfile_->Printf("nmwiz_load %s\n", nmwizfile_->Filename().full());
 
-  outfile.Printf("name default_name\n");  //TODO: get from optionally provided pdb file
+  nmwizfile_->Printf("name default_name\n");  //TODO: get from optionally provided pdb file
 
-  outfile.Printf("atomnames ");
+  nmwizfile_->Printf("atomnames ");
   for (Topology::atom_iterator atom = nmwizParm_.begin(); atom != nmwizParm_.end(); ++atom)
-        outfile.Printf("%s ", atom->c_str());
-  outfile.Printf("\n");
+        nmwizfile_->Printf("%s ", atom->c_str());
+  nmwizfile_->Printf("\n");
 
-  outfile.Printf("resnames ");
+  nmwizfile_->Printf("resnames ");
   for (Topology::atom_iterator atom = nmwizParm_.begin(); atom != nmwizParm_.end(); ++atom)
-    outfile.Printf("%s ", nmwizParm_.Res(atom->ResNum()).c_str());
-  outfile.Printf("\n");
+    nmwizfile_->Printf("%s ", nmwizParm_.Res(atom->ResNum()).c_str());
+  nmwizfile_->Printf("\n");
 
-  outfile.Printf("resids ");
+  nmwizfile_->Printf("resids ");
   for (Topology::atom_iterator atom = nmwizParm_.begin(); atom != nmwizParm_.end(); ++atom)
-    outfile.Printf("%d ", atom->ResNum()+1);
-  outfile.Printf("\n");
+    nmwizfile_->Printf("%d ", atom->ResNum()+1);
+  nmwizfile_->Printf("\n");
 
-  outfile.Printf("chainids \n");    //TODO: get from optionally provided pdb file
+  nmwizfile_->Printf("chainids \n");    //TODO: get from optionally provided pdb file
 
-  outfile.Printf("bfactors \n");    //TODO: get from optionally provided pdb file
+  nmwizfile_->Printf("bfactors \n");    //TODO: get from optionally provided pdb file
 
-  outfile.Printf("coordinates ");
+  nmwizfile_->Printf("coordinates ");
   for (int i = 0; i < modes_->NavgCrd(); ++i)
-          outfile.Printf("%8.3f ", modes_->AvgCrd()[i]);
-  outfile.Printf("\n");
+          nmwizfile_->Printf("%8.3f ", modes_->AvgCrd()[i]);
+  nmwizfile_->Printf("\n");
 
   for (int vec = 0; vec < nvecs; ++vec){
-    outfile.Printf("mode %i %12.10f ", vec+1, 1/modes_->Eigenvalue(vec));
+    nmwizfile_->Printf("mode %i %12.10f ", vec+1, 1/modes_->Eigenvalue(vec));
     const double* Vec = modes_->Eigenvector(vec);
     for (int i = 0 ; i < modes_->VectorSize(); ++i)
-      outfile.Printf("%12.5f ", Vec[i]);
-    outfile.Printf("\n");
+      nmwizfile_->Printf("%12.5f ", Vec[i]);
+    nmwizfile_->Printf("\n");
   }
   return 0;
 }

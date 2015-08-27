@@ -5,6 +5,8 @@
 #include "Analysis_Statistics.h" // torsion_ss, torsion_offset
 
 Analysis_CrankShaft::Analysis_CrankShaft() :
+  frame_vs_bin_(0),
+  results_(0),
   debug_(0),
   start_(0),
   stop_(-1),
@@ -36,8 +38,11 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   else if (analyzeArgs.hasKey("distance"))
     type_ = DISTANCE;
 
-  filename_ = analyzeArgs.GetStringKey("out");
-  resultsname_ = analyzeArgs.GetStringKey("results");
+  frame_vs_bin_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("out"),
+                                         "Crankshaft frame vs bin", DataFileList::TEXT, true);
+  results_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("results"),
+                                    "Crankshaft results", DataFileList::TEXT, true );
+  if (frame_vs_bin_ == 0 || results_ == 0) return Analysis::ERR;
 
   start_ = analyzeArgs.getKeyInt("start", 1);
   --start_;
@@ -145,10 +150,6 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     }
   }
 
-  // Open output file
-  CpptrajFile outfile;
-  if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-
   // MAIN LOOP over frames
   int i1 = 0;
   int i2 = 0;
@@ -230,7 +231,7 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
       //       g+    a+    t    a-    g-    c
       //  g+   0     1     2    3     4     5
       //  a+   6     7     8    9    10    11
-      outfile.Printf("%7i %i\n", frame, i1*6 + i2);
+      frame_vs_bin_->Printf("%7i %i\n", frame, i1*6 + i2);
     }
 
     //  check for transitions from one bin to another
@@ -298,11 +299,6 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     }
   }
 
-  if (resultsname_.empty() || resultsname_ != filename_) {
-    outfile.CloseFile();
-    outfile.OpenWrite( resultsname_ );
-  }
-  
   // PRINT RESULTS
   const char* initial_label = 0;
   const char* final_label = 0;
@@ -313,13 +309,13 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     initial_label = distance_ss_2D[initial_i1][initial_i2];
     final_label =  distance_ss_2D[final_i1][final_i2];
   }
-  outfile.Printf("\n\nCRANKSHAFT: %s.\n", info_.c_str());
-  outfile.Printf("  start at frame %i, stop after frame %i, offset between frames is %i.\n",
+  results_->Printf("\n\nCRANKSHAFT: %s.\n", info_.c_str());
+  results_->Printf("  start at frame %i, stop after frame %i, offset between frames is %i.\n",
                  start_+1, stop_, offset_);
-  outfile.Printf("  total number of frames is %i.  Table values are\n", totalFrames);
-  outfile.Printf("  %%occupied, #transitions to another substate, average angles and stddev\n");
-  outfile.Printf("\n  INITIAL VALUE: %s (%6.1f, %6.1f)\n", initial_label, initial_v1, initial_v2);
-  outfile.Printf("  FINAL VALUE:   %s (%6.1f, %6.1f)\n\n", final_label, final_v1, final_v2);
+  results_->Printf("  total number of frames is %i.  Table values are\n", totalFrames);
+  results_->Printf("  %%occupied, #transitions to another substate, average angles and stddev\n");
+  results_->Printf("\n  INITIAL VALUE: %s (%6.1f, %6.1f)\n", initial_label, initial_v1, initial_v2);
+  results_->Printf("  FINAL VALUE:   %s (%6.1f, %6.1f)\n\n", final_label, final_v1, final_v2);
 
   // Supplementary information based on type of crankshaft
   if (scalar1_->ScalarType() == DataSet::EPSILON && 
@@ -337,72 +333,72 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
       if (v1 > 60 && v1 < 120) i2++;
       if (v1 < -30 && v1 > -120) i1++;
     }
-    outfile.Printf("    EPSILON/ZETA crankshaft\n");
-    outfile.Printf("      BI  = (t, g-) or eps-zeta ~ -90 [currently = %.1f%%]\n",
+    results_->Printf("    EPSILON/ZETA crankshaft\n");
+    results_->Printf("      BI  = (t, g-) or eps-zeta ~ -90 [currently = %.1f%%]\n",
                    i1*100.0 / totalFrames);
-    outfile.Printf("      BII = (g-, t) or eps-zeta ~ +90 [currently = %.1f%%]\n\n",
+    results_->Printf("      BII = (g-, t) or eps-zeta ~ +90 [currently = %.1f%%]\n\n",
                    i2*100.0 / totalFrames);
 
   } else if (scalar1_->ScalarType() == DataSet::ALPHA && 
              scalar2_->ScalarType() == DataSet::GAMMA) 
   {
     // alpha/gamma in nucleic acids!
-    outfile.Printf("    ALPHA/GAMMA crankshaft\n");
-    outfile.Printf("      canonical is (g-, g+) [currently at %.1f%%]\n",
+    results_->Printf("    ALPHA/GAMMA crankshaft\n");
+    results_->Printf("      canonical is (g-, g+) [currently at %.1f%%]\n",
                    visits[4][0]*100.0/totalFrames);
-    outfile.Printf("      other possible states are (t, t) {%.1f%%} or (t, g-) {%.1f%%}\n",
+    results_->Printf("      other possible states are (t, t) {%.1f%%} or (t, g-) {%.1f%%}\n",
                    visits[2][2]*100.0/totalFrames,
                    visits[2][4]*100.0/totalFrames);
-    outfile.Printf("      (g+, t) is found < 5%% in protein/DNA complexes {%.1f%%}\n",
+    results_->Printf("      (g+, t) is found < 5%% in protein/DNA complexes {%.1f%%}\n",
                    visits[0][2]*100.0/totalFrames);
     if ( (visits[0][2] + visits[1][2])*100.0/totalFrames > 10.0 )
-      outfile.Printf("    *** > 10%% population in (g+, t) / (a+, t) states!!!\n");
-    outfile.Printf("\n");
+      results_->Printf("    *** > 10%% population in (g+, t) / (a+, t) states!!!\n");
+    results_->Printf("\n");
   }
 
-  outfile.Printf("                %s         %s         %s         %s         %s          %s\n",
+  results_->Printf("                %s         %s         %s         %s         %s          %s\n",
           Analysis_Statistics::torsion_ss[0], Analysis_Statistics::torsion_ss[1],
           Analysis_Statistics::torsion_ss[2], Analysis_Statistics::torsion_ss[3],
           Analysis_Statistics::torsion_ss[4], Analysis_Statistics::torsion_ss[5]);
-  outfile.Printf("        -------------------------------------------------------------------------------------------------\n");
+  results_->Printf("        -------------------------------------------------------------------------------------------------\n");
   for (int i=0; i < 6; i++) {
-    outfile.Printf("        |");
+    results_->Printf("        |");
     for (int j=0; j < 6; j++) {
       if (visits[i][j] == 0)
-        outfile.Printf("               |");
+        results_->Printf("               |");
       else
-        outfile.Printf("   %7.1f%%    |", 100.0 * visits[i][j]/totalFrames);
+        results_->Printf("   %7.1f%%    |", 100.0 * visits[i][j]/totalFrames);
     }
-    outfile.Printf("\n");
+    results_->Printf("\n");
 
-    outfile.Printf(" %s|", Analysis_Statistics::torsion_ss[i]);
+    results_->Printf(" %s|", Analysis_Statistics::torsion_ss[i]);
     for (int j=0; j < 6; j++) {
       if (visits[i][j] == 0)
-        outfile.Printf("               |");
+        results_->Printf("               |");
       else
-        outfile.Printf(" %8i      |", transitions[i][j]);
+        results_->Printf(" %8i      |", transitions[i][j]);
     }
-    outfile.Printf("\n");
+    results_->Printf("\n");
 
-    outfile.Printf("        |");
+    results_->Printf("        |");
     for (int j=0; j < 6; j++) {
       if (visits[i][j] == 0)
-        outfile.Printf("               |");
+        results_->Printf("               |");
       else
-        outfile.Printf(" %6.1f %6.1f |", v1_avg[i][j], v2_avg[i][j]);
+        results_->Printf(" %6.1f %6.1f |", v1_avg[i][j], v2_avg[i][j]);
     }
-    outfile.Printf("\n");
+    results_->Printf("\n");
 
-    outfile.Printf("        |");
+    results_->Printf("        |");
     for (int j=0; j < 6; j++) {
       if (visits[i][j] < 2)
-        outfile.Printf("               |");
+        results_->Printf("               |");
       else
-        outfile.Printf(" %6.1f %6.1f |", v1_sd[i][j], v2_sd[i][j]);
+        results_->Printf(" %6.1f %6.1f |", v1_sd[i][j], v2_sd[i][j]);
     }
-    outfile.Printf("\n");
+    results_->Printf("\n");
 
-    outfile.Printf("        |-----------------------------------------------------------------------------------------------|\n");
+    results_->Printf("        |-----------------------------------------------------------------------------------------------|\n");
   }
 
   return Analysis::OK;

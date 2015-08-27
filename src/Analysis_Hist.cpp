@@ -12,7 +12,8 @@
 
 // CONSTRUCTOR
 Analysis_Hist::Analysis_Hist() :
-  outfile_(0), 
+  outfile_(0),
+  native_(0), 
   hist_(0),
   debug_(0), 
   calcFreeE_(false),
@@ -325,6 +326,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   } else {
     // Native output. Remove DataFile from DataFileList
     outfile_ = DFLin->RemoveDataFile( outfile_ );
+    native_ = DFLin->AddCpptrajFile( outfilename_, "Histogram output" );
+    if (native_ == 0) return Analysis::ERR; 
   }
 
   mprintf("\tHist: %s: Set up for %zu dimensions using the following datasets:\n", 
@@ -668,22 +671,18 @@ bool Analysis_Hist::IncrementBinIndices(std::vector<int>& BinIndices,
 void Analysis_Hist::PrintBins() {
   int isCircular = 0;
   bool hasCycled = false;
-  CpptrajFile outfile;
 
-  if (outfile.SetupWrite(outfilename_, debug_)) return;
-  if (outfile.OpenFile()) return;
-
-  mprintf("\tHistogram: Writing standard histogram file %s\n",outfilename_.c_str());
+  mprintf("\tHistogram: Writing standard histogram file %s\n", native_->full());
 
   std::vector<int> BinIndices = BinStart( dimensions_.size(), circular_ );
   if (circular_) isCircular = 1;
 
   if (gnuplot_) {
     if (dimensions_.size() == 2)
-      outfile.Printf("set pm3d map\nsplot \"-\" with pm3d title \"%s\"\n",
+      native_->Printf("set pm3d map\nsplot \"-\" with pm3d title \"%s\"\n",
                      outfilename_.c_str());
     else if (dimensions_.size() == 1)
-      outfile.Printf("plot \"-\"\n",outfilename_.c_str());
+      native_->Printf("plot \"-\"\n",outfilename_.c_str());
   }
 
   if (debug_>0) {
@@ -698,16 +697,15 @@ void Analysis_Hist::PrintBins() {
     long int index = BinIndicesToIndex(BinIndices);
     // If we dont care about zero bins or bin pop > 0, output
     for (unsigned int i=0; i < dimensions_.size(); ++i)
-      outfile.Printf("%lf ",
+      native_->Printf("%lf ",
                       ((double)BinIndices[i]*dimensions_[i].Step()) + dimensions_[i].Min() );
-    outfile.Printf("%lf\n",Bins_[index]);
+    native_->Printf("%lf\n",Bins_[index]);
 
     loop = IncrementBinIndices(BinIndices, isCircular, hasCycled);
     // If gnuplot, print extra space when highest order coord cycles
     if (gnuplot_ && hasCycled)
-        outfile.Printf("\n");
+        native_->Printf("\n");
   }
   if (gnuplot_ && dimensions_.size() < 3)
-    outfile.Printf("end\npause -1\n");
-  outfile.CloseFile();
+    native_->Printf("end\npause -1\n");
 }
