@@ -167,7 +167,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   }
 # ifdef DEBUG_WAVELET
   // DEBUG: Write matrix to file.
-  CpptrajFile dmatrixOut;
+  CpptrajFile dmatrixOut; // DEBUG
   dmatrixOut.OpenWrite("dmatrix.dat");
   Matrix<double>::iterator mval = d_matrix.begin();
   for (int row = 0; row != natoms; row++) {
@@ -308,7 +308,7 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   } // END loop over atoms
 # ifdef DEBUG_WAVELET 
   // DEBUG: Print MAX
-  CpptrajFile maxmatrixOut;
+  CpptrajFile maxmatrixOut; // DEBUG
   maxmatrixOut.OpenWrite("maxmatrix.dat");
   for (int col = 0; col != nframes; col++) {
     for (int row = 0; row != natoms; row++)

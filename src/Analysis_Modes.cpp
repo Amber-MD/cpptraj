@@ -274,7 +274,6 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
 // Analysis_Modes::Analyze()
 Analysis::RetType Analysis_Modes::Analyze() {
-  CpptrajFile outfile;
   // Check # of modes
   if (type_ != TRAJ && type_ != EIGENVAL) {
     if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
