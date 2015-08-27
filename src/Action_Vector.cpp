@@ -63,7 +63,7 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 // Action_Vector::Init()
 Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  // filename is saved in case ptraj-compatible output is desired
+  DataFile* df = 0;
   std::string filename = actionArgs.GetStringKey("out");
   if (actionArgs.hasKey("trajout")) return DeprecatedErr( "trajout" );
   if (actionArgs.hasKey("trajfmt")) return DeprecatedErr( "trajfmt" );
@@ -76,7 +76,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Data
     }
     outfile_ = DFL->AddCpptrajFile(filename, "Vector (PTRAJ)");
     if (outfile_ == 0) return Action::ERR;
-  }
+  } else
+    df = DFL->AddDataFile( filename, actionArgs );
   bool calc_magnitude = actionArgs.hasKey("magnitude");
   if (calc_magnitude && ptrajoutput_) {
     mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
@@ -139,13 +140,13 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Data
   if (isIred)
     Vec_->SetIred( );
   // Add set to output file if not doing ptraj-compatible output
-  if (!ptrajoutput_)
-    DFL->AddSetToFile(filename, Vec_);
+  if (!ptrajoutput_ && df != 0)
+    df->AddDataSet( Vec_ );
   // Set up magnitude data set.
   if (calc_magnitude) {
-    Magnitude_ = DSL->AddSetAspect(DataSet::FLOAT, Vec_->Name(), "Mag");
+    Magnitude_ = DSL->AddSet(DataSet::FLOAT, MetaData(Vec_->Meta().Name(), "Mag"));
     if (Magnitude_ == 0) return Action::ERR;
-    DFL->AddSetToFile(filename, Magnitude_);
+    if (df != 0) df->AddDataSet( Magnitude_ );
   }
   
   mprintf("    VECTOR: Type %s", ModeString[ mode_ ]);

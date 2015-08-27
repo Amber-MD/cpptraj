@@ -8,7 +8,7 @@
 #include "Constants.h" // ELECTOAMBER
 #include "DataSet_integer.h"
 #include "DistRoutines.h"
-#include "StringRoutines.h" // fileexists
+#include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() :
@@ -50,7 +50,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   // Always use imaged distances
   InitImaging(true);
   // This is needed everywhere in this function scope
-  std::string filename;
+  FileName filename;
 
   // See if we're doing pure water. If so, we don't need a peak file
   purewater_ = actionArgs.hasKey("purewater");
@@ -74,10 +74,10 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
       solvname_ = std::string("WAT");
   }else {
     // Get the file name with the peaks defined in it
-    filename = actionArgs.GetStringNext();
+    filename.SetFileName( actionArgs.GetStringNext() );
 
-    if (filename.empty() || !fileExists(filename)) {
-      mprinterr("Spam: Error: Peak file [%s] does not exist!\n", filename.c_str());
+    if (filename.empty() || !File::Exists(filename)) {
+      mprinterr("Spam: Error: Peak file [%s] does not exist!\n", filename.full());
       return Action::ERR;
     }
 
@@ -112,7 +112,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     // Parse through the peaks file and extract the peaks
     CpptrajFile peakfile;
     if (peakfile.OpenRead(filename)) {
-      mprinterr("SPAM: Error: Could not open %s for reading!\n", filename.c_str());
+      mprinterr("SPAM: Error: Could not open %s for reading!\n", filename.full());
       return Action::ERR;
     }
     std::string line = peakfile.GetLine();
@@ -139,11 +139,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     // otherwise
     if (npeaks != (int)peaks_.size())
       mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %d!\n",
-                filename.c_str(), npeaks, peaks_.size());
+                filename.full(), npeaks, peaks_.size());
     // Now add all of the data sets
+    MetaData md(ds_name);
     for (int i = 0; i < (int)peaks_.size(); i++) {
-      myDSL_.AddSetAspect(DataSet::DOUBLE, ds_name,
-                                      integerToString(i+1).c_str());
+      md.SetAspect( integerToString(i+1) ); // TODO: Should this be Idx?
+      if (myDSL_.AddSet(DataSet::DOUBLE, md) == 0) return Action::ERR;
       // Add a new list of integers to keep track of omitted frames
       std::vector<int> vec;
       peakFrameData_.push_back(vec);
@@ -163,9 +164,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
       mprintf("SPAM: Printing solvent SPAM summary to %s\n", summaryfile_.c_str());
   }else {
     mprintf("SPAM: Solvent [%s] density peaks taken from %s.\n",
-            solvname_.c_str(), filename.c_str());
+            solvname_.c_str(), filename.base());
     mprintf("SPAM: %d density peaks will be analyzed from %s.\n",
-            peaks_.size(), filename.c_str());
+            peaks_.size(), filename.base());
     mprintf("SPAM: Occupation information printed to %s.\n", infofile_->Filename().full());
     mprintf("SPAM: Sites are ");
     if (sphere_)
@@ -503,9 +504,9 @@ void Action_Spam::Print() {
     ArgList dummy;
     dfl.SetupDatafile(datafile_, dummy, 0);
     for (int i = 0; i < (int)myDSL_.size(); i++) {
-      dfl.AddSet(myDSL_[i]);
+      dfl.AddDataSet(myDSL_[i]);
     }
-    dfl.WriteData();
+    dfl.WriteDataOut();
   }
 }
 

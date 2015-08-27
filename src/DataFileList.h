@@ -29,8 +29,6 @@ class DataFileList {
     DataFile* AddDataFile(std::string const&, ArgList&);
     /// Add DataFile to list if name specified, or return already existing DataFile.
     DataFile* AddDataFile(std::string const&);
-    // TODO: Deprecate in favor of AddDataFile
-    DataFile* AddSetToFile(std::string const&,  DataSet*);
     /// Types of cpptrajfile that can be created.
     enum CFtype { TEXT = 0, PDB };
     /// Add CpptrajFile to list if name specified, or return already existing CpptrajFile.

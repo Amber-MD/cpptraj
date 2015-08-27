@@ -139,18 +139,6 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn) {
   return AddDataFile( nameIn, empty );
 }
 
-// DataFileList::AddSetToFile()
-/** Add given DataSet to the specified DataFile. If the DataFile does not
-  * exist it will be created. Whenever a set is added to a data file
-  * reset its writeFile status to true.
-  */
-DataFile* DataFileList::AddSetToFile(std::string const& nameIn, DataSet* dsetIn) {
-  DataFile* DF = AddDataFile( nameIn );
-  if (DF == 0) return 0;
-  DF->AddSet( dsetIn );
-  return DF;
-}
-
 // DataFileList::AddCpptrajFile()
 /** File type is text, stdout not allowed. */
 CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn, std::string const& descrip)

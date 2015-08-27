@@ -2,7 +2,7 @@
 #define INC_FILENAME_H
 #include <string>
 #include <vector>
-/// Class to hold file name, extension, etc.
+/// Class to hold file name, extension, etc. TODO add to File namespace?
 class FileName {
   public:
     FileName() {}

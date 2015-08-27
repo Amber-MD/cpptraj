@@ -62,7 +62,7 @@ class DataSet_Vector : public DataSet {
     Varray vectors_;
     Varray origins_;
     /// Hold spherical harmonic values for m=-order to order
-    std::vector<ComplexArray> sphericalHarmonics_;
+    std::vector<ComplexArray> sphericalHarmonics_; // TODO Make AdditionalData
 };
 // ---------- INLINE FUNCTIONS -------------------------------------------------
 void DataSet_Vector::Add(size_t frame, const void* vIn) {
