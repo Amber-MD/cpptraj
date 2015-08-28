@@ -188,8 +188,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Check modes type for specified analysis
   if (type_ == FLUCT || type_ == DISPLACE || type_ == CORR || type_ == TRAJ) {
-    if (modinfo_->ScalarType() != DataSet::COVAR && 
-        modinfo_->ScalarType() != DataSet::MWCOVAR)
+    if (modinfo_->Meta().ScalarType() != MetaData::COVAR && 
+        modinfo_->Meta().ScalarType() != MetaData::MWCOVAR)
     {
       mprinterr("Error: Modes must be of type COVAR or MWCOVAR for %s.\n",
                 analysisTypeString[type_]);

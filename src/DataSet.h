@@ -81,6 +81,8 @@ class DataSet {
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
     /// Check if name and/or index and aspect wildcard match this DataSet.
     bool Matches_WC(SearchString const&, DataType) const;
+    /// \return AssociateData of specified type.
+    AssociatedData* GetAssociatedData(AssociatedData::AssociatedType) const;
     /// \return true if given metadata matches this set MetaData exactly.
     bool Matches_Exact(MetaData const& m) const { return meta_.Match_Exact(m); }
     /// \return True if DataSet is empty.

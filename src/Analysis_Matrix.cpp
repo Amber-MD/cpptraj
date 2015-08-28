@@ -89,7 +89,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     if (outthermo_ == 0) return Analysis::ERR;
   }
   thermo_temp_ = analyzeArgs.getKeyDouble("temp", 298.15);
-  if (thermopt_ && matrix_->ScalarType()!=DataSet::MWCOVAR) {
+  if (thermopt_ && matrix_->Meta().ScalarType() != MetaData::MWCOVAR) {
     mprinterr("Error: Parameter 'thermo' only works for mass-weighted covariance matrix ('mwcovar').\n");
     return Analysis::ERR;
   }
@@ -102,13 +102,12 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   }
   // Reduce flag
   reduce_ = analyzeArgs.hasKey("reduce");
-  // Set up DataSet_Modes
-  std::string modesname = analyzeArgs.GetStringKey("name");
-  modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, modesname, "Modes" );
+  // Set up DataSet_Modes. Set Modes DataSet type to be same as input matrix. 
+  MetaData md( analyzeArgs.GetStringKey("name") );
+  md.SetScalarType( matrix_->Meta().ScalarType() );
+  modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, md, "Modes" );
   if (modes_==0) return Analysis::ERR;
-  // Set Modes DataSet type to be same as input matrix. 
-  modes_->SetScalar( matrix_->ScalarType() );
-  if (outfile != 0) outfile->AddSet( modes_ );
+  if (outfile != 0) outfile->AddDataSet( modes_ );
 
   // Print Status
   mprintf("    DIAGMATRIX: Diagonalizing matrix %s",matrix_->legend());
@@ -127,8 +126,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     mprintf("\tWriting %i modes to NMWiz file %s", nmwizvecs_, nmwizfile_->Filename().full());
   if (nevec_>0 && reduce_)
     mprintf("\tEigenvectors will be reduced\n");
-  if (!modesname.empty())
-    mprintf("\tStoring modes with name: %s\n",modesname.c_str());
+  mprintf("\tStoring modes with name: %s\n", modes_->Meta().Name().c_str());
   return Analysis::OK;
 #endif
 }
@@ -147,7 +145,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   }
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
-  if (matrix_->ScalarType() == DataSet::MWCOVAR) {
+  if (matrix_->Meta().ScalarType() == MetaData::MWCOVAR) {
     DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
     if ( Dmatrix.Mass().empty() ) {
       mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->legend());

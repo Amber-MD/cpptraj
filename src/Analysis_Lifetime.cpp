@@ -97,27 +97,28 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     int didx = 0;
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
     {
-      DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSetIdx( DataSet::FLOAT, setname, didx );
+      MetaData md(setname, didx);
+      md.SetLegend( (*set)->Meta().Legend() );
+      DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSet( DataSet::FLOAT, md );
       if (CheckDsetError(outSet, "output", (*set)->legend())) 
         return Analysis::ERR;
-      outSet->SetLegend( (*set)->Legend() );
       outputDsets_.push_back( outSet );
-      if (outfile != 0) outfile->AddSet( outSet );
+      if (outfile != 0) outfile->AddDataSet( outSet );
       if (!averageonly_) {
         // MAX
-        outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::INTEGER, setname, didx, "max");
+        md.SetAspect("max");
+        outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::INTEGER, md);
         if (CheckDsetError(outSet, "lifetime max", (*set)->legend()))
           return Analysis::ERR;
-        outSet->SetLegend( (*set)->Legend() );
         maxDsets_.push_back( outSet );
-        if (maxfile != 0) maxfile->AddSet( outSet );
+        if (maxfile != 0) maxfile->AddDataSet( outSet );
         // AVG
-        outSet = (DataSet_1D*)datasetlist->AddSetIdxAspect(DataSet::FLOAT, setname, didx, "avg");
+        md.SetAspect("avg");
+        outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::FLOAT, md);
         if (CheckDsetError(outSet, "lifetime avg", (*set)->legend()))
           return Analysis::ERR;
-        outSet->SetLegend( (*set)->Legend() );
         avgDsets_.push_back( outSet );
-        if (avgfile != 0) avgfile->AddSet( outSet );
+        if (avgfile != 0) avgfile->AddDataSet( outSet );
       }
       ++didx;
     }
@@ -130,18 +131,19 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   // Lifetime curves
   DataFile* crvfile = 0;
   if (!averageonly_) {
-    if (!outfileName_.empty()) {
+    if (!outfileName.empty()) {
       crvfile = DFLin->AddDataFile(outfileName.DirPrefix() + "crv." + 
                                    outfileName.Base(), analyzeArgs);
     }
+    MetaData md(setname, "curve");
     for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
     {
-      DataSet_1D* outSet = (DataSet_1D*)
-        datasetlist->AddSetIdxAspect(DataSet::DOUBLE, setname, didx, "curve");
+      md.SetIdx(didx);
+      DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::DOUBLE, md);
       if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->legend()))
         return Analysis::ERR;
       curveSets_.push_back( outSet );
-      if (crvfile != 0) crvfile->AddSet( outSet );
+      if (crvfile != 0) crvfile->AddDataSet( outSet );
     }
   }
   // Non-window output file
@@ -173,8 +175,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     if (deltaAvg_)
       mprintf("\tChange of average from previous average will be saved.\n");
   }
-  if (!outfileName_.empty()) {
-    mprintf("\tOutfile: %s", outfileName_.full());
+  if (outfile != 0) {
+    mprintf("\tOutfile: %s", outfile->DataFilename().full());
     if (!averageonly_ && outfile != 0)
       mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
     mprintf("\n");
@@ -416,7 +418,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
       }
     } // END loop over data points.
     // Print lifetime information if no window
-    if ( standalone_ != 0 {
+    if ( standalone_ != 0 ) {
       // Update current lifetime total
       if  (location == INSIDE || location == OUTER_FUZZ) {
         // Were there enough frames?
@@ -442,7 +444,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     }
     // Calculate normalized lifetime curve
     if (!lifetimeCurve.empty() && !curveSets_.empty()) {
-      curveSets_[setIdx]->Allocate1D( lifetimeCurve.size() );
+      curveSets_[setIdx]->Allocate( DataSet::SizeArray(1, lifetimeCurve.size()) );
       double norm;
       if (normalizeCurves_)
         norm = 1.0 / (double)lifetimeCurve.front();

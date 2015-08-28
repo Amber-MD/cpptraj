@@ -34,12 +34,13 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   if (setname.empty())
     setname = datasetlist->GenerateDefaultName("LOWCURVE");
   for (Array1D::const_iterator DS = input_dsets_.begin(); DS != input_dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSetIdx(DataSet::DOUBLE, setname, DS - input_dsets_.begin());
+    DataSet* dsout = datasetlist->AddSet(DataSet::DOUBLE,
+                                         MetaData(setname, DS - input_dsets_.begin()));
     if (dsout == 0)
       return Analysis::ERR;
-    dsout->SetLegend("LC(" + (*DS)->Legend() + ")" );
+    dsout->SetLegend("LC(" + (*DS)->Meta().Legend() + ")" );
     output_sets_.push_back( dsout );
-    if (outfile != 0) outfile->AddSet( dsout );
+    if (outfile != 0) outfile->AddDataSet( dsout );
   }
 
   mprintf("    LOWESTCURVE: Calculating curve of average of %i lowest points in bins of size %g.\n",

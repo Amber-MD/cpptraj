@@ -107,7 +107,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
   // Set up output data set
   output_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( output_ );
+  if (outfile != 0) outfile->AddDataSet( output_ );
 
   mprintf("    WAVELET: Using COORDS set '%s', wavelet type %s\n",
           coords_->legend(), Tokens_[wavelet_type_].description_);

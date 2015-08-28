@@ -88,6 +88,13 @@ bool DataSet::Matches_WC(SearchString const& search, DataType typeIn) const
   return true;
 }
 
+AssociatedData* DataSet::GetAssociatedData(AssociatedData::AssociatedType typeIn) const {
+  for (AdataArray::const_iterator ad = associatedData_.begin();
+                                  ad != assocatedData.end(); ++ad)
+    if (ad->Type() == typeIn) return *ad;
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 /** Separate argument nameIn specifying DataSet into name, index, and 
   * attribute parts.

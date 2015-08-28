@@ -91,11 +91,11 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Set up dataset to hold correlation 
   Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
-  Csd_ = datasetlist->AddSetAspect(DataSet::DOUBLE, Ct_->Name(), "SD");
+  Csd_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "SD"));
   if (Csd_==0) return Analysis::ERR;
   if (outfile != 0) {
-    outfile->AddSet( Ct_ );
-    outfile->AddSet( Csd_ );
+    outfile->AddDataSet( Ct_ );
+    outfile->AddDataSet( Csd_ );
   }
 
   mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->legend(),

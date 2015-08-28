@@ -34,11 +34,11 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* 
   for ( Array1D::const_iterator DS = input_dsets_.begin();
                                 DS != input_dsets_.end(); ++DS)
   {
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::XYMESH, setname, idx++ );
+    DataSet* dsout = datasetlist->AddSet( DataSet::XYMESH, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
-    dsout->SetLegend( "LR(" + (*DS)->Legend() + ")" );
+    dsout->SetLegend( "LR(" + (*DS)->Meta().Legend() + ")" );
     output_dsets_.push_back( (DataSet_1D*)dsout );
-    if (outfile != 0) outfile->AddSet( dsout );
+    if (outfile != 0) outfile->AddDataSet( dsout );
   }
 
   mprintf("    REGRESSION: Calculating linear regression of %i data sets.\n",
