@@ -3,8 +3,7 @@
 #include "DataFile.h"
 #include "DataSet.h"
 #include "ArgList.h"
-// Class: DataFileList
-/// Holds a list of DataFile classes.
+/// Holds a list of output DataFiles/CpptrajFiles.
 /** The DataFileList is meant to hold all output data files defined by any
   * Actions or Analysis. This allows multiple sets to be directed to the
   * same file etc. Holds both DataFiles, which hold DataSets, and CpptrajFiles
@@ -22,19 +21,21 @@ class DataFileList {
     void MakeDataFilesEnsemble(int);
 #   endif
     /// \return DataFile whose full path matches given string or 0.
-    DataFile* GetDataFile(std::string const&) const;
+    DataFile* GetDataFile(FileName const&) const;
     /// \return CpptrajFile whose full path matches given string or 0.
-    CpptrajFile* GetCpptrajFile(std::string const&) const;
-    /// Add DataFile to list if name specified, or return already existing DataFile.
-    DataFile* AddDataFile(std::string const&, ArgList&);
-    /// Add DataFile to list if name specified, or return already existing DataFile.
-    DataFile* AddDataFile(std::string const&);
-    /// Types of cpptrajfile that can be created.
+    CpptrajFile* GetCpptrajFile(FileName const&) const;
+    /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
+    DataFile* AddDataFile(FileName const&, ArgList&);
+    /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
+    DataFile* AddDataFile(FileName const&);
+    /// Types of CpptrajFile that can be created.
     enum CFtype { TEXT = 0, PDB };
-    /// Add CpptrajFile to list if name specified, or return already existing CpptrajFile.
-    CpptrajFile* AddCpptrajFile(std::string const&,std::string const&);
-    CpptrajFile* AddCpptrajFile(std::string const&,std::string const&,CFtype);
-    CpptrajFile* AddCpptrajFile(std::string const&,std::string const&,CFtype,bool);
+    /// \return CpptrajFile specified by name, add if none exists, or 0 if no name specified.
+    CpptrajFile* AddCpptrajFile(FileName const&,std::string const&);
+    /// Add/create CpptrajFile of given type. No STDOUT.
+    CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype);
+    /// Add/create CpptrajFile of given type; optionally allow STDOUT.
+    CpptrajFile* AddCpptrajFile(FileName const&,std::string const&,CFtype,bool);
     /// List DataFiles and CpptrajFiles.
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
@@ -43,7 +44,7 @@ class DataFileList {
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }
   private:
-    int GetCpptrajFileIdx(std::string const&) const;
+    int GetCpptrajFileIdx(FileName const&) const;
 
     typedef std::vector<DataFile*> DFarray;
     DFarray fileList_;

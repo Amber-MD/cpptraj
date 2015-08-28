@@ -44,7 +44,7 @@ DataFile* DataFileList::RemoveDataFile( DataFile* dfIn ) {
 /** Remove given DataSet from any DataFiles in list. */
 void DataFileList::RemoveDataSet( DataSet* dsIn ) {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
-    (*df)->RemoveSet( dsIn );
+    (*df)->RemoveDataSet( dsIn );
 }
 
 // DataFileList::SetDebug()
@@ -68,10 +68,10 @@ void DataFileList::MakeDataFilesEnsemble(int memberIn) {
 /** \return DataFile specified by given file name if it exists in the list,
   *         otherwise return 0. Must match full path.
   */
-DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
+DataFile* DataFileList::GetDataFile(FileName const& nameIn) const {
   if (!nameIn.empty()) {
     for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
-      if (nameIn == (*df)->DataFilename().Full()) return *df;
+      if (nameIn.Full() == (*df)->DataFilename().Full()) return *df;
   }
   return 0;
 }
@@ -79,15 +79,15 @@ DataFile* DataFileList::GetDataFile(std::string const& nameIn) const {
 /** \return Index of CpptrajFile with specified file name if it exists in 
   *         the list, otherwise return -1. Must match full path.
   */
-int DataFileList::GetCpptrajFileIdx(std::string const& nameIn) const {
+int DataFileList::GetCpptrajFileIdx(FileName const& nameIn) const {
   if (!nameIn.empty()) {
     for (int idx = 0; idx != (int)cfList_.size(); idx++)
-      if (nameIn == cfList_[idx]->Filename().Full()) return idx;
+      if (nameIn.Full() == cfList_[idx]->Filename().Full()) return idx;
   }
   return -1;
 }
 
-CpptrajFile* DataFileList::GetCpptrajFile(std::string const& nameIn) const {
+CpptrajFile* DataFileList::GetCpptrajFile(FileName const& nameIn) const {
   int idx = GetCpptrajFileIdx( nameIn );
   if (idx == -1) return 0;
   return cfList_[idx];
@@ -95,24 +95,23 @@ CpptrajFile* DataFileList::GetCpptrajFile(std::string const& nameIn) const {
 
 /** Create new DataFile, or return existing DataFile. */
 // TODO: Accept const ArgList so arguments are not reset?
-DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
-  std::string name = nameIn;
   // Check if filename in use by CpptrajFile.
-  CpptrajFile* cf = GetCpptrajFile(name);
+  CpptrajFile* cf = GetCpptrajFile(nameIn);
   if (cf != 0) {
     mprinterr("Error: Data file name '%s' already in use by text output file '%s'.\n",
-              nameIn.c_str(), cf->Filename().full());
+              nameIn.full(), cf->Filename().full());
     return 0;
   }
   // Check if this filename already in use
-  DataFile* Current = GetDataFile(name);
+  DataFile* Current = GetDataFile(nameIn);
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(name, argIn, debug_)) {
-      mprinterr("Error: Setting up data file %s\n",name.c_str());
+    if (Current->SetupDatafile(nameIn, argIn, debug_)) {
+      mprinterr("Error: Setting up data file %s\n", nameIn.full());
       delete Current;
       return 0;
     }
@@ -134,19 +133,19 @@ DataFile* DataFileList::AddDataFile(std::string const& nameIn, ArgList& argIn) {
 }
 
 // DataFileList::AddDataFile()
-DataFile* DataFileList::AddDataFile(std::string const& nameIn) {
+DataFile* DataFileList::AddDataFile(FileName const& nameIn) {
   ArgList empty;
   return AddDataFile( nameIn, empty );
 }
 
 // DataFileList::AddCpptrajFile()
 /** File type is text, stdout not allowed. */
-CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn, std::string const& descrip)
+CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, std::string const& descrip)
 { return AddCpptrajFile(nameIn, descrip, TEXT, false); }
 
 // DataFileList::AddCpptrajFile()
 /** Stdout is not allowed. */
-CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn, 
+CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
                                           std::string const& descrip, CFtype typeIn)
 { return AddCpptrajFile(nameIn, descrip, typeIn, false); }
 
@@ -154,28 +153,29 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
   * STDOUT will be used if name is empty and STDOUT is allowed.
   */
 // TODO: Accept const ArgList so arguments are not reset?
-CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn, 
+CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn, 
                                           std::string const& descrip,
                                           CFtype typeIn, bool allowStdout)
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
-  std::string name("");
+  FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;
   if (!nameIn.empty()) {
-    name = nameIn;
 #   ifdef MPI
     // FIXME: Unlike DataFiles, CpptrajFiles are opened immediately so append
     //        worldrank to filename now. This will have to change if MPI does
     //        not necessarily mean ensemble mode in the future.
-    name.append("." + integerToString(worldrank));
+    name.SetFileName( AppendNumber(nameIn.Full(), worldrank) );
+#   else
+    name = nameIn;
 #   endif
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
     if (df != 0) {
       mprinterr("Error: Text output file name '%s' already in use by data file '%s'.\n",
-                nameIn.c_str(), df->DataFilename().full());
+                nameIn.full(), df->DataFilename().full());
       return 0;
     }
     // Check if this filename already in use
@@ -193,7 +193,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(std::string const& nameIn,
     //if (Current->SetupWrite( name, debug_ ))
     if (Current->OpenWrite( name ))
     {
-      mprinterr("Error: Setting up text output file %s\n",name.c_str());
+      mprinterr("Error: Setting up text output file %s\n", name.full());
       delete Current;
       return 0;
     }
@@ -244,7 +244,7 @@ void DataFileList::WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      (*df)->WriteData();
+      (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }
   }
