@@ -65,13 +65,13 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
 
   // Setup output dataset
-  std::string corrname = "C(" + D1_->Legend();
-  if (D2_ != D1_) corrname += ("-" + D2_->Legend());
+  std::string corrname = "C(" + D1_->Meta().Legend();
+  if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
   corrname += ")";
   Ct_ = datasetlist->AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
   if (Ct_ == 0) return Analysis::ERR;
   Ct_->SetLegend( corrname );
-  outfile->AddSet( Ct_ );
+  outfile->AddDataSet( Ct_ );
 
   if (calc_covar_)
     calctype = "covariance";

@@ -37,11 +37,11 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   for ( Array1D::const_iterator DS = input_dsets_.begin(); 
                                 DS != input_dsets_.end(); ++DS) 
   {
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++ );
+    DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
-    dsout->SetLegend( (*DS)->Legend() );
+    dsout->SetLegend( (*DS)->Meta().Legend() );
     output_dsets_.push_back( (DataSet_1D*)dsout );
-    if (outfile != 0) outfile->AddSet( dsout );
+    if (outfile != 0) outfile->AddDataSet( dsout );
   }
 
   mprintf("    FFT: Calculating FFT for %u data sets.\n", input_dsets_.size());

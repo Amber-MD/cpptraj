@@ -206,7 +206,7 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   calcAMD_ = false;
   amddata_ = 0;
 
-  dimensionArgs_.push_back( ArgList(dsIn->Legend()) ); // Needed for dim label
+  dimensionArgs_.push_back( ArgList(dsIn->Meta().Legend()) ); // Needed for dim label
   histdata_.push_back( dsIn );
   N_dimensions_ = 1;
   std::string setname = histname;
@@ -216,11 +216,11 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   else
     htype = "Hist_";
   if (setname.empty())
-    setname = datasetlist.GenerateDefaultName(htype + dsIn->Name());
-  hist_ = datasetlist.AddSetIdxAspect( DataSet::DOUBLE, setname, setidx, dsIn->Aspect() );
+    setname = datasetlist.GenerateDefaultName(htype + dsIn->Meta().Name());
+  hist_ = datasetlist.AddSet( DataSet::DOUBLE, MetaData(setname, dsIn->Meta().Aspect(), setidx) );
   if (hist_ == 0) return Analysis::ERR;
-  hist_->SetLegend(htype + dsIn->Legend());
-  if (outfile_ != 0) outfile_->AddSet( hist_ );
+  hist_->SetLegend(htype + dsIn->Meta().Legend());
+  if (outfile_ != 0) outfile_->AddDataSet( hist_ );
   return Analysis::OK;
 }
 
@@ -322,7 +322,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
       mprinterr("Error: Could not set up histogram data set.\n");
       return Analysis::ERR;
     }
-    outfile_->AddSet( hist_ );
+    outfile_->AddDataSet( hist_ );
   } else {
     // Native output. Remove DataFile from DataFileList
     outfile_ = DFLin->RemoveDataFile( outfile_ );
@@ -672,7 +672,7 @@ void Analysis_Hist::PrintBins() {
   int isCircular = 0;
   bool hasCycled = false;
 
-  mprintf("\tHistogram: Writing standard histogram file %s\n", native_->full());
+  mprintf("\tHistogram: Writing standard histogram file %s\n", native_->Filename().full());
 
   std::vector<int> BinIndices = BinStart( dimensions_.size(), circular_ );
   if (circular_) isCircular = 1;

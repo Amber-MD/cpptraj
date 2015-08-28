@@ -47,7 +47,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
     DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, setname, "fluct" );
     if (ds == 0) return Analysis::ERR;
     outSets_.push_back( ds );
-    if (outfile != 0) outfile->AddSet( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
   } else {
     if (coords_->Size() == 0) {
       mprinterr("Error: window size > 0 and COORDS data set %s is empty.\n", 
@@ -60,18 +60,18 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
     int nwindows = coords_->Size() / windowSize_;
     for (int win = 0; win < nwindows; ++win) {
       int frame = (win + 1) * windowSize_;
-      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, frame );
+      DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, frame) );
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "F_" + integerToString( frame ) );
       ds->Dim(Dimension::X).SetLabel("Atom");
       outSets_.push_back( ds );
-      if (outfile != 0) outfile->AddSet( ds );
+      if (outfile != 0) outfile->AddDataSet( ds );
     }
     if ( (coords_->Size() % windowSize_) != 0 ) {
-      DataSet* ds = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, coords_->Size() );
+      DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, coords_->Size()) );
       ds->SetLegend("Final");
       outSets_.push_back( ds );
-      if (outfile != 0) outfile->AddSet( ds );
+      if (outfile != 0) outfile->AddDataSet( ds );
     }
     for (SetList::iterator out = outSets_.begin(); out != outSets_.end(); ++out)
       mprintf("\t%s\n", (*out)->legend());

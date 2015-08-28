@@ -102,6 +102,7 @@ class MetaData {
     int EnsembleNum()           const { return ensembleNum_; }
     tsType TimeSeries()         const { return timeSeries_;  }
     scalarType ScalarType()     const { return scalartype_;  }
+    scalarMode ScalarMode()     const { return scalarmode_;  }
 
     void SetName(std::string const& n)   { name_ = n;        }
     void SetAspect(std::string const& a) { aspect_ = a;      }

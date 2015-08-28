@@ -27,9 +27,9 @@ void Analysis_Lifetime::Help() {
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, std::string const& fname) {
+Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, CpptrajFile* outfile) {
   if (dsArray.empty()) return Analysis::ERR;
-  outfileName_ = fname;
+  standalone_ = outfile;
   inputDsets_ = dsArray;
   windowSize_ = -1;
   averageonly_ = false;

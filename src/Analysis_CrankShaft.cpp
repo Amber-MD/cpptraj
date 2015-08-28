@@ -39,10 +39,10 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
     type_ = DISTANCE;
 
   frame_vs_bin_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("out"),
-                                         "Crankshaft frame vs bin", DataFileList::TEXT, true);
+                                         "Crankshaft frame vs bin" );
   results_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("results"),
                                     "Crankshaft results", DataFileList::TEXT, true );
-  if (frame_vs_bin_ == 0 || results_ == 0) return Analysis::ERR;
+  if (results_ == 0) return Analysis::ERR;
 
   start_ = analyzeArgs.getKeyInt("start", 1);
   --start_;
@@ -78,9 +78,9 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
     return Analysis::ERR;
   }
   // Warn if type does not match data set type
-  if (type_ == ANGLE && !scalar1_->IsTorsionArray())
+  if (type_ == ANGLE && !scalar1_->Meta().IsTorsionArray())
     mprintf("Warning: 'angle' type specified but data sets are not torsions.\n");
-  if (type_ == DISTANCE && scalar1_->ScalarMode() != DataSet::M_DISTANCE)
+  if (type_ == DISTANCE && scalar1_->Meta().ScalarMode() != MetaData::M_DISTANCE)
     mprintf("Warning: 'distance' type specified but data sets are not distances.\n"); 
 
   // INFO:
@@ -221,7 +221,7 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     v1_sd[i1][i2]  = v1_sd[i1][i2] + (v1*v1);
     v2_sd[i1][i2]  = v2_sd[i1][i2] + (v2*v2);
 
-    if (!filename_.empty()) {
+    if (frame_vs_bin_ != 0) {
       //  hack to map substate numbers 0->36 to a-z0-9
       //
       //  j = i1*6 + i2 + 97;
@@ -318,8 +318,8 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
   results_->Printf("  FINAL VALUE:   %s (%6.1f, %6.1f)\n\n", final_label, final_v1, final_v2);
 
   // Supplementary information based on type of crankshaft
-  if (scalar1_->ScalarType() == DataSet::EPSILON && 
-      scalar2_->ScalarType() == DataSet::ZETA) 
+  if (scalar1_->Meta().ScalarType() == MetaData::EPSILON && 
+      scalar2_->Meta().ScalarType() == MetaData::ZETA) 
   {
     // epsilon/zeta in nucleic acids!
     i1 = 0;
@@ -339,8 +339,8 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
     results_->Printf("      BII = (g-, t) or eps-zeta ~ +90 [currently = %.1f%%]\n\n",
                    i2*100.0 / totalFrames);
 
-  } else if (scalar1_->ScalarType() == DataSet::ALPHA && 
-             scalar2_->ScalarType() == DataSet::GAMMA) 
+  } else if (scalar1_->Meta().ScalarType() == MetaData::ALPHA && 
+             scalar2_->Meta().ScalarType() == MetaData::GAMMA) 
   {
     // alpha/gamma in nucleic acids!
     results_->Printf("    ALPHA/GAMMA crankshaft\n");
@@ -403,4 +403,3 @@ Analysis::RetType Analysis_CrankShaft::Analyze() {
 
   return Analysis::OK;
 }
-
