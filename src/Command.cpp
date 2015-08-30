@@ -370,12 +370,6 @@ static void Help_RemoveData() {
           "  Remove data sets(s) corresponding to <arg> from data set list.\n");
 }
 
-static void Help_ActiveRef() {
-  mprintf("\t<#>\n"
-          "  Set the reference structure to be used for coordinate-based mask parsing.\n"
-          "  <#> starts from 0 (first loaded reference).\n");
-}
-
 static void Help_Create_DataFile() {
   mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
           "  Add a file with specified data sets to the data file list. Does not\n"
@@ -600,15 +594,23 @@ static void Deprecate_AvgCoord() {
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
+static void Help_ActiveRef() {
+  mprintf("\t%s\n", DataSetList::RefArgs);
+  mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
+          "  <#> starts from 0 (first reference structure).\n");
+}
+
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
   if (!REF.error() && REF.empty()) {
-    ArgList singleIntArg(integerToString(argIn.getNextInteger(0)));
-    REF = State.DSL()->GetReferenceFrame( singleIntArg );
+    // For backwards compat, see if there is a single integer arg.
+    ArgList refArg( "refindex " + argIn.GetStringNext() );
+    REF = State.DSL()->GetReferenceFrame( refArg );
   }
   if (REF.error() || REF.empty()) return Command::C_ERR;
+  mprintf("\tActive reference is '%s'\n", REF.refName());
   State.SetActiveReference( REF.RefPtr() );
   return Command::C_OK; 
 }
