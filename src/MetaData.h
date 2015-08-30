@@ -64,8 +64,8 @@ class MetaData {
     /// CONSTRUCTOR - name, scalarmode, scalartype // TODO Remove?
     MetaData(std::string const& n, scalarMode m, scalarType t) : name_(n), idx_(-1),
       ensembleNum_(-1), scalarmode_(m), scalartype_(t), timeSeries_(UNKNOWN_TS) {}
-    /// CONSTRUCTOR - File name, name
-    MetaData(FileName const& f, std::string const& n) : fileName_(f), name_(n), idx_(-1),
+    /// CONSTRUCTOR - File name, name, index
+    MetaData(FileName const& f, std::string const& n, int i) : fileName_(f), name_(n), idx_(i),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
       timeSeries_(UNKNOWN_TS) { if (name_.empty()) name_ = fileName_.Base(); }
     /// CONSTRUCTOR - name, index, mode, type // TODO Remove?
@@ -95,6 +95,7 @@ class MetaData {
     /// \return true if given MetaData matches this exactly.
     bool Match_Exact(MetaData const&) const;
 
+    FileName const& Fname()     const { return fileName_;    }
     std::string const& Name()   const { return name_;        }
     std::string const& Aspect() const { return aspect_;      }
     std::string const& Legend() const { return legend_;      }

@@ -98,7 +98,8 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PF
       ss_holder.dihSearch_.SearchFor(MetaData::PSI);
       // Get reference structure
       DataSet_Coords_REF* REF = (DataSet_Coords_REF*)
-                                DSL->GetReferenceFrame(ss_arg.GetStringNext()); // ss_arg[2]
+                                DSL->FindSetOfType(ss_arg.GetStringNext(),
+                                                   DataSet::REF_FRAME); // ss_arg[2]
       if (REF == 0) {
         mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[2].c_str());
         return Action::ERR;

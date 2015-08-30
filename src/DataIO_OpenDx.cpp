@@ -18,17 +18,15 @@ bool DataIO_OpenDx::ID_DataFormat( CpptrajFile& infile ) {
 }
 
 // DataIO_OpenDx::ReadData()
-int DataIO_OpenDx::ReadData(std::string const& fname, 
+int DataIO_OpenDx::ReadData(FileName const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Add grid data set. Default to float for now.
   DataSet* ds = datasetlist.AddSet( DataSet::GRID_FLT, dsname, "GRID" );
   if (ds==0) return 1;
-  if (LoadGrid(fname.c_str(), *ds)) {
+  if (LoadGrid(fname.full(), *ds)) {
     // Load failed. Erase grid data set.
-    DataSetList::const_iterator last = datasetlist.end();
-    --last;
-    datasetlist.RemoveSet( last );
+    datasetlist.RemoveSet( ds );
     return 1;
   }
   return 0;
@@ -159,7 +157,7 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 }
 
 // DataIO_OpenDx::WriteData3D()
-int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSetList const& setList)
+int DataIO_OpenDx::WriteData(FileName const& fname, DataSetList const& setList)
 {
   // Open output file
   CpptrajFile outfile;
@@ -169,7 +167,7 @@ int DataIO_OpenDx::WriteData3D(std::string const& fname, DataSetList const& setL
   }
   // Warn about writing multiple sets
   if (setList.size() > 1)
-    mprintf("Warning: %s: Writing multiple 3D sets in OpenDX format may result in unexpected behavior\n", fname.c_str());
+    mprintf("Warning: %s: Writing multiple 3D sets in OpenDX format may result in unexpected behavior\n", fname.full());
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
     err += WriteSet3D( *(*set), outfile );

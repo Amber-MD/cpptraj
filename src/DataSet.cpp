@@ -72,8 +72,15 @@ bool DataSet::Matches_WC(SearchString const& search, DataType typeIn) const
   //        name_.c_str(), aspect_.c_str(), idx_);
   // Match type if specified
   if ( typeIn != UNKNOWN_DATA && typeIn != dType_ ) return false;
-  // Match name
-  if ( WildcardMatch(search.NameArg(), meta_.Name()) == 0 ) return false;
+  if (meta_.Fname().empty()) {
+    // No filename. Match name if specified.
+    if ( WildcardMatch(search.NameArg(), meta_.Name()) == 0 ) return false;
+  } else {
+    // Has associated file name. Exit if name specified no match with
+    // name/base name/full path.
+    if ( WildcardMatch(search.NameArg(), meta_.Name()) == 0 &&
+         !meta_.Fname().MatchFullOrBase( search.NameArg() ) ) return false;
+  }
   // If aspect specified make sure it matches.
   if ( WildcardMatch(search.AspectArg(), meta_.Aspect()) == 0 ) return false;
   // Currently match any index if not specified.
@@ -90,8 +97,8 @@ bool DataSet::Matches_WC(SearchString const& search, DataType typeIn) const
 
 AssociatedData* DataSet::GetAssociatedData(AssociatedData::AssociatedType typeIn) const {
   for (AdataArray::const_iterator ad = associatedData_.begin();
-                                  ad != assocatedData.end(); ++ad)
-    if (ad->Type() == typeIn) return *ad;
+                                  ad != associatedData_.end(); ++ad)
+    if ((*ad)->Type() == typeIn) return *ad;
   return 0;
 }
 

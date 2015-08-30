@@ -9,7 +9,7 @@ class DataIO_OpenDx : public DataIO {
     int processReadArgs(ArgList&) { return 0; }
     int ReadData(FileName const&, DataSetList&, std::string const&);
     int processWriteArgs(ArgList&)                               { return 0; }
-    int WriteData(FileName const&,DataSetList const&)         { return 1; }
+    int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
     int LoadGrid(const char*, DataSet&);

@@ -4,8 +4,6 @@
 #include "DataSet.h"
 #include "ArgList.h" // GetReferenceFrame
 #include "ReferenceFrame.h" // GetReferenceFrame
-/// Search string used for DataSet selection.
-class DataSearchString;
 /// Hold list of data sets.
 /** Main class for handling datasets. All dataset types can be allocated 
   * by DataSetList. DataSets are added to the list by various actions. 
@@ -55,7 +53,7 @@ class DataSetList {
     bool DataSetsPending() const { return dataSetsPending_;  }
 
     /// Remove set from list - used in DataFile
-    void RemoveSet( const_iterator );
+    //void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
     /// Remove set from list but do not destroy.
@@ -75,6 +73,8 @@ class DataSetList {
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
+    /// Select multiple sets by group.
+    DataSetList SelectGroupSets( std::string const&, DataSet::DataGroup ) const;
 
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
@@ -100,8 +100,6 @@ class DataSetList {
     DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
     /// Find COORDS DataSet or create default COORDS DataSet.
     DataSet* FindCoordsSet(std::string const&);
-    /// Get reference frame DataSet from name/tag
-    DataSet* GetReferenceFrame(std::string const&) const;
     /// reference arg help text
     static const char* RefArgs;
     /// Get reference frame DataSet from args
@@ -115,6 +113,8 @@ class DataSetList {
     inline void PendingWarning() const;
     /// Select sets according to argument and type.
     DataSetList SelectSets( std::string const&, DataSet::DataType ) const;
+    /// Wrapper around DataList_.push_back() that does extra bookkeeping.
+    void Push_Back(DataSet*);
     
     /// Hold number of frames from most recent AllocateSets() call.
     long int maxFrames_;
@@ -128,6 +128,8 @@ class DataSetList {
     bool dataSetsPending_;
     /// List of DataSets
     DataListType DataList_;
+    /// Pointers to reference data sets.
+    DataListType RefList_;
     /// Hold descriptions and allocators for all DataSet types.
     struct DataToken {
       const char* Description;

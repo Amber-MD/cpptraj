@@ -78,6 +78,8 @@ void MetaData::SetDefaultLegend() {
 
 std::string MetaData::PrintName() const {
   std::string out( name_ );
+  if (name_.empty() && !fileName_.empty())
+    out.assign( fileName_.Full() );
   if (!aspect_.empty())
     out.append("[" + aspect_ + "]");
   if (idx_ != -1)

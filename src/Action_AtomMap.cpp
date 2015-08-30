@@ -714,13 +714,13 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     return Action::ERR;
   }
   // Get Reference
-  RefFrame_ = (DataSet_Coords_REF*)DSL->GetReferenceFrame( refName );
+  RefFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( refName, DataSet::REF_FRAME );
   if (RefFrame_ == 0) {
     mprinterr("Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
   // Get Target
-  TgtFrame_ = (DataSet_Coords_REF*)DSL->GetReferenceFrame( targetName );
+  TgtFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( targetName, DataSet::REF_FRAME );
   if (TgtFrame_ == 0) {
     mprinterr("Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;

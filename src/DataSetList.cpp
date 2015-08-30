@@ -64,9 +64,17 @@ void DataSetList::Clear() {
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
       delete *ds;
   DataList_.clear();
+  RefList_.clear();
   hasCopies_ = false;
   dataSetsPending_ = false;
 } 
+
+void DataSetList::Push_Back(DataSet* ds) {
+  // If this is a REF data set it also goes in RefList_.
+  if (ds->Type() == DataSet::REF_FRAME)
+    RefList_.push_back( ds );
+  DataList_.push_back( ds );
+}
 
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // It is OK if rhs does not have copies, but this should have copies.
@@ -74,7 +82,7 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   hasCopies_ = true; 
   // Append rhs entries to here
   for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
-    DataList_.push_back( *DS );
+    Push_Back( *DS );
   return *this;
 }
 
@@ -92,11 +100,11 @@ void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
 //       Hence, the conversion. The new standard *should* allow const_iterator
 //       to be passed to erase(), but this is currently not portable.
 /** Erase element pointed to by posIn from the list. */
-void DataSetList::RemoveSet( const_iterator posIn ) {
+/*void DataSetList::RemoveSet( const_iterator posIn ) {
   DataListType::iterator pos = DataList_.begin() + (posIn - DataList_.begin());
   if (!hasCopies_) delete *pos;
   DataList_.erase( pos ); 
-} 
+} */
 
 // DataSetList::RemoveSet()
 void DataSetList::RemoveSet( DataSet* dsIn ) {
@@ -104,6 +112,12 @@ void DataSetList::RemoveSet( DataSet* dsIn ) {
                               pos != DataList_.end(); ++pos)
   {
     if ( (*pos) == dsIn ) {
+      // Also remove from reference list if applicable.
+      if ( dsIn->Type() == DataSet::REF_FRAME ) {
+        for (DataListType::iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
+          if ( (*ref) == dsIn )
+            RefList_.erase( ref );
+      }
       if (!hasCopies_) delete *pos;
       DataList_.erase( pos );
       break;
@@ -203,8 +217,21 @@ DataSetList DataSetList::SelectSets( std::string const& dsargIn,
   DataSet::SearchString search(dsargIn);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ((*ds)->Matches_WC( search, typeIn ))
-      dsetOut.DataList_.push_back( *ds );
+      dsetOut.Push_Back( *ds );
 
+  return dsetOut;
+}
+
+/** \return a list of all DataSets matching given argument and group. */
+DataSetList DataSetList::SelectGroupSets( std::string const& dsargIn,
+                                          DataSet::DataGroup groupIn ) const
+{
+  DataSetList dsetOut;
+  dsetOut.hasCopies_ = true;
+  DataSet::SearchString search(dsargIn);
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ((*ds)->Group() == groupIn && (*ds)->Matches_WC( search, DataSet::UNKNOWN_DATA ))
+      dsetOut.Push_Back( *ds );
   return dsetOut;
 }
 
@@ -380,7 +407,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     return 0;
   }
 
-  DataList_.push_back(DS); 
+  Push_Back(DS); 
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
   return DS;
 }
@@ -392,7 +419,7 @@ int DataSetList::AddSet( DataSet* dsIn ) {
     mprintf("Warning: DataSet '%s' already present.\n", ds->Meta().PrintName().c_str());
     return 1;
   }
-  DataList_.push_back( dsIn );
+  Push_Back( dsIn );
   return 0;
 }
 
@@ -404,7 +431,7 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
     return;
   }
   hasCopies_ = true;
-  DataList_.push_back( dsetIn );
+  Push_Back( dsetIn );
 }
 
 // DataSetList::List()
@@ -467,56 +494,13 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
       outset = AddSet(DataSet::COORDS, "_DEFAULTCRD_", "CRD");
     }
   } else {
-    // crdset specified
-    outset = FindSetOfType(setname, DataSet::COORDS);
-    // If COORDS not found look for TRAJ
-    if (outset == 0)
-      outset = FindSetOfType(setname, DataSet::TRAJ);
-    // If TRAJ not found, look for REF_FRAME
-    if (outset == 0)
-      outset = GetReferenceFrame(setname);
+    DataSetList dslist = SelectGroupSets(setname, DataSet::COORDINATES);
+    if (!dslist.empty()) outset = dslist[0];
   }
   return outset;
 }
 
 const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
-
-/** Search for a REF_FRAME DataSet by file name/tag. Provided for backwards
-  * compatibility with the FrameList::GetFrameByName() routine.
-  */
-DataSet* DataSetList::GetReferenceFrame(std::string const& refname) const {
-  DataSet* ref = 0;
-  if (refname[0] == '[') {
-    // This is a tag. Handle here since brackets normally reserved for Aspect.
-    // FIXME: Will not work if index arg is also provided.
-    for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-      if ( (*ds)->Type() == DataSet::REF_FRAME && (*ds)->Meta().Name() == refname ) {
-        ref = *ds;
-        break;
-      }
-    }
-  } else {
-    ref = CheckForSet( refname );
-    if (ref == 0) {
-      // If ref not found, check if base file name was specified instead of
-      // full, which is by default how DataSet_Coords_REF chooses name.
-      for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-        if ( (*ds)->Type() == DataSet::REF_FRAME) {
-          DataSet_Coords_REF const& R = static_cast<DataSet_Coords_REF const&>(*(*ds));
-          if (refname == R.FrameFilename().Base()) {
-            ref = *ds;
-            break;
-          }
-        }
-      }
-    }
-    if (ref != 0 && ref->Type() != DataSet::REF_FRAME) {
-      mprinterr("Error: Data set '%s' is not a reference frame.\n", refname.c_str());
-      ref = 0;
-    }
-  }
-  return ref;
-}
 
 /** Search for a REF_FRAME DataSet. Provided for backwards compatibility
   * with the FrameList::GetFrameFromArgs() routine.
@@ -530,28 +514,19 @@ ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
   // 'ref <name>'
   std::string refname = argIn.GetStringKey("ref");
   if (!refname.empty()) {
-    ref = GetReferenceFrame( refname );
+    ref = FindSetOfType( refname, DataSet::REF_FRAME );
     if (ref == 0) {
       mprinterr("Error: Reference '%s' not found.\n", refname.c_str());
       return ReferenceFrame(1);
-    } 
+    }
   } else {
     int refindex = argIn.getKeyInt("refindex", -1);
     if (argIn.hasKey("reference")) refindex = 0;
-    if (refindex > -1) {
-      for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-        if ( (*ds)->Type() == DataSet::REF_FRAME) {
-          DataSet_Coords_REF const& R = static_cast<DataSet_Coords_REF const&>(*(*ds));
-          if (R.RefIndex() == refindex) {
-            ref = *ds;
-            break;
-          }
-        }
-      }
-      if (ref == 0) {
-        mprinterr("Error: Reference index %i not found.\n", refindex);
-        return ReferenceFrame(1);
-      }
+    if (refindex > -1 && refindex < (int)RefList_.size())
+      ref = RefList_[refindex];
+    if (ref == 0) {
+      mprinterr("Error: Reference index %i not found.\n", refindex);
+      return ReferenceFrame(1);
     }
   }
   return ReferenceFrame((DataSet_Coords_REF*)ref);
@@ -559,19 +534,9 @@ ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
 
 // DataSetList::ListReferenceFrames()
 void DataSetList::ListReferenceFrames() const {
-  // Go through DataSetList, count reference frames, put in temp list.
-  std::vector<DataSet_Coords_REF*> refTemp;
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Type() == DataSet::REF_FRAME)
-      refTemp.push_back( (DataSet_Coords_REF*)*ds );
-  if (!refTemp.empty()) {
-    mprintf("\nREFERENCE FRAMES (%zu total):\n", refTemp.size());
-    for (std::vector<DataSet_Coords_REF*>::const_iterator ds = refTemp.begin();
-                                                          ds != refTemp.end(); ++ds)
-      if (!(*ds)->FrameFilename().empty())
-        mprintf("    %i: '%s', frame %i\n", (*ds)->RefIndex(), (*ds)->FrameFilename().full(),
-                (*ds)->Meta().Idx());
-      else
-        mprintf("    (DataSet) '%s'\n", (*ds)->Meta().Name().c_str());
+  if (!RefList_.empty()) {
+    mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
+    for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
+      mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
   }
 }
