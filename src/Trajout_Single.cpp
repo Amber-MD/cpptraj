@@ -1,6 +1,6 @@
 #include "Trajout_Single.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" //NumberFilename
+#include "StringRoutines.h" // AppendNumber
 
 // CONSTRUCTOR
 Trajout_Single::Trajout_Single() : trajio_(0) {}
@@ -47,7 +47,7 @@ int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList co
   if (fmt == UNKNOWN_TRAJ)
     fmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
   if (ensembleNum > -1)
-    return InitTrajWrite( NumberFilename(tnameIn, ensembleNum), argIn, tparmIn, fmt );
+    return InitTrajWrite( AppendNumber(tnameIn, ensembleNum), argIn, tparmIn, fmt );
   else
     return InitTrajWrite( tnameIn, argIn, tparmIn, fmt );
 }

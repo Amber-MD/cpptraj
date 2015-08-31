@@ -43,6 +43,6 @@ namespace File {
 
   NameArray ExpandToFilenames(std::string const&);
   bool Exists(std::string const&);
-  bool Exists(FileName const& f) { return Exists( f.Full() ); }
+  bool Exists(FileName const&);
 }
 #endif

@@ -100,7 +100,7 @@ int Trajout::FirstFrameSetup(std::string const& trajoutName, TrajectoryIO* traji
   */
 int Trajout::CheckAppendFormat(std::string const& fname, TrajFormatType& writeFormat)
 {
-  if (fileExists(fname)) {
+  if (File::Exists(fname)) {
     TrajectoryFile::TrajFormatType appendFormat;
     TrajectoryIO* tio = DetectFormat( fname, appendFormat );
     if (appendFormat ==  TrajectoryFile::UNKNOWN_TRAJ)

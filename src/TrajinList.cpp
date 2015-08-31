@@ -50,19 +50,19 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
   }
   mode_ = ENSEMBLE;
   int err = 0;
-  StrArray fnames = ExpandToFilenames( fname );
+  File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
   ArgList trajin_args = argIn;
   // Get parm from TopologyList based on args
   Topology* tempParm = topListIn.GetParm( trajin_args );
   TrajectoryFile::TrajFormatType trajinFmt;
   TrajectoryIO* tio = 0;
-  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+  for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     ArgList args = trajin_args;
     // Determine whether this file is multiple file or single file ensemble.
-    tio = TrajectoryFile::DetectFormat( *fn, trajinFmt );
+    tio = TrajectoryFile::DetectFormat( fn->Full(), trajinFmt );
     if (tio == 0) {
-      mprinterr("Error: Could not determine trajectory %s format\n", fn->c_str());
+      mprinterr("Error: Could not determine trajectory %s format\n", fn->full());
       err++;
       continue;
     }
@@ -82,8 +82,8 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     traj->SetEnsemble(true); // TODO: Obsolete; split Trajin_Multi up.
     // CRDIDXARG: Append coordinate indices arg if there is one
     args.AddArg( finalCrdIndicesArg_ );
-    if ( traj->SetupTrajRead(fname, args, tempParm) ) {
-      mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
+    if ( traj->SetupTrajRead(fn->Full(), args, tempParm) ) {
+      mprinterr("Error: Could not set up input trajectory '%s'.\n", fn->full());
       delete traj;
       delete tio;
       err++;
@@ -134,11 +134,11 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList const& argIn,
   ArgList trajin_args = argIn;
   bool isRemdtraj = trajin_args.hasKey("remdtraj");
   int err = 0;
-  StrArray fnames = ExpandToFilenames( fname );
+  File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
   // Get parm from TopologyList based on args
   Topology* tempParm = topListIn.GetParm( trajin_args );
-  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+  for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     ArgList args = trajin_args;
     if (isRemdtraj)
       traj = new Trajin_Multi();
@@ -149,8 +149,8 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList const& argIn,
       return 1;
     }
     traj->SetDebug(debug_);
-    if ( traj->SetupTrajRead(*fn, args, tempParm) ) {
-      mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
+    if ( traj->SetupTrajRead(fn->Full(), args, tempParm) ) {
+      mprinterr("Error: Could not set up input trajectory '%s'.\n", fn->full());
       delete traj;
       err++;
       continue;

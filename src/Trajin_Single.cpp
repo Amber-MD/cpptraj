@@ -35,7 +35,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Check and set associated parm file
   if ( SetTrajParm( tparmIn ) ) return 1;
   // Check that file can be opened. 
-  if (!fileExists(tnameIn)) return 1; 
+  if (!File::Exists(tnameIn)) return 1; 
   // Detect file format
   TrajFormatType tformat;
   if ( (trajio_ = DetectFormat( tnameIn, tformat )) == 0 ) {

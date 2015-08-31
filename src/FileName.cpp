@@ -224,3 +224,7 @@ bool File::Exists(std::string const& fname) {
   }
   return false;
 }
+
+bool File::Exists(FileName const& fname) {
+  return File::Exists( fname.Full() );
+}

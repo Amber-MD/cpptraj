@@ -92,9 +92,6 @@ void TrajectoryFile::SetDebug(int debugIn) {
 
 // TrajectoryFile::SetTrajFileName()
 void TrajectoryFile::SetTrajFileName(std::string const& full, bool isRead) {
-  if (isRead)
-    trajName_.SetFileNameWithExpansion( full );
-  else
     trajName_.SetFileName( full );
 } 
 
