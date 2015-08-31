@@ -54,16 +54,16 @@ const char* DataIO_Evecs::MatrixOutputString(MetaData::scalarType typeIn) {
 }
 
 // DataIO_Evecs::ReadData()
-int DataIO_Evecs::ReadData(std::string const& modesfile,
+int DataIO_Evecs::ReadData(FileName const& modesfile,
                            DataSetList& datasetlist, std::string const& dsname)
 {
   // Process Arguments
   int modesToRead = iend_ - ibeg_ + 1;
   if (hasIend_)
     mprintf("\tAttempting to read %i modes (%i to %i) from %s\n", modesToRead,
-            ibeg_, iend_, modesfile.c_str());
+            ibeg_, iend_, modesfile.full());
   else
-    mprintf("\tReading modes from %s\n", modesfile.c_str());
+    mprintf("\tReading modes from %s\n", modesfile.full());
   BufferedFrame infile;
   if (infile.OpenRead( modesfile)) return 1;
   // Read title line, convert to arg list
@@ -118,7 +118,7 @@ int DataIO_Evecs::ReadData(std::string const& modesfile,
   int colwidth = title.getKeyInt("width", -1);
   if (colwidth == -1)
     colwidth = 11; // Default, 10 + 1 space
-  modesData.SetPrecision(colwidth - 1, 5);
+  modesData.SetupFormat().SetFormatWidthPrecision(colwidth - 1, 5);
   // Read number of elements in avg coords and eigenvectors
   if ( (buffer = infile.NextLine())==0 ) {
     mprinterr("Error: ReadEvecFile(): error while reading number of atoms (%s)\n",
@@ -226,14 +226,14 @@ int DataIO_Evecs::ReadData(std::string const& modesfile,
 }
 
 // DataIO_Evecs::WriteData()
-int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList) {
+int DataIO_Evecs::WriteData(FileName const& fname, DataSetList const& SetList) {
   if (SetList.empty()) return 1;
   if (SetList.size() > 1)
     mprintf("Warning: Multiple sets not yet supported for Evecs write.\n");
   DataSet_Modes const& modesData = static_cast<DataSet_Modes const&>( *(*(SetList.begin())) );
   BufferedFrame outfile;
   if (outfile.OpenWrite( fname )) {
-    mprinterr("Error: Could not open %s for writing.\n", fname.c_str());
+    mprinterr("Error: Could not open %s for writing.\n", fname.full());
     return 1;
   }
   if (modesData.IsReduced())
@@ -244,7 +244,7 @@ int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList
   // Write out # of modes on title line to not break compat. with older modes files
   outfile.Printf(" nmodes %i", modesData.Nmodes());
   // Write out col width on title line to not break compat. with older modes files
-  int colwidth = modesData.ColumnWidth();
+  int colwidth = modesData.Format().ColumnWidth();
   outfile.Printf(" width %i\n", colwidth);
   // First number is # avg coords, second is size of each vector
   outfile.Printf(" %4i %4i\n", modesData.NavgCrd(), modesData.VectorSize());
@@ -257,17 +257,17 @@ int DataIO_Evecs::WriteData(std::string const& fname, DataSetList const& SetList
   outfile.SetupFrameBuffer( bufsize, colwidth, 7 );
   // Print average coords
   outfile.DoubleToBuffer( modesData.AvgFramePtr(), modesData.NavgCrd(),
-                          modesData.DataFormat() );
+                          modesData.Format().fmt() );
   outfile.WriteFrame();
   // Eigenvectors and eigenvalues
   for (int mode = 0; mode < modesData.Nmodes(); ++mode) {
     outfile.Printf(" ****\n %4i ", mode+1);
-    outfile.Printf(modesData.DataFormat(), modesData.Eigenvalue(mode));
+    outfile.Printf(modesData.Format().fmt(), modesData.Eigenvalue(mode));
     outfile.Printf("\n");
     if (modesData.Eigenvectors() != 0) {
       const double* Vec = modesData.Eigenvector(mode);
       outfile.BufferBegin();
-      outfile.DoubleToBuffer( Vec, modesData.VectorSize(), modesData.DataFormat() );
+      outfile.DoubleToBuffer( Vec, modesData.VectorSize(), modesData.Format().fmt() );
       outfile.WriteFrame();
     }
   }

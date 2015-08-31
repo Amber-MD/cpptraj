@@ -34,8 +34,10 @@ class TextFormat {
     /// Set width only - do not reset format string (for DataSet_string).
     void SetWidth(int w) { width_ = w; }
     /// \return pointer to format string.
-    const char* fmt() const { return fmt_.c_str(); }
-    int Width()       const { return width_;       }
+    const char* fmt()        const { return fmt_.c_str(); }
+    std::string const& Fmt() const { return fmt_;         }
+    int Width()              const { return width_;       }
+    int ColumnWidth()        const { return colwidth_;    }
   private:
     /// Set format string for current type, width, precision, etc 
     void SetFormatString();

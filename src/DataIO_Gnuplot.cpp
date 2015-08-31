@@ -112,16 +112,31 @@ void DataIO_Gnuplot::JpegOut(size_t xsize, size_t ysize) {
   }
 }
 
-int DataIO_Gnuplot::WriteData(std::string const& fname, DataSetList const& SetList) 
+int DataIO_Gnuplot::WriteData(FileName const& fname, DataSetList const& SetList) 
 {
-  //mprintf("BINARY IS %i\n", (int)binary_);
+  // Determine 1D or 2D.
+  if (SetList.empty()) return 0;
+  int err = 0;
+  // Open output file
   if (file_.OpenWrite( fname )) return 1;
-  if (binary_) {
-    //return WriteDataBinary( fname, SetList );
-    mprinterr("Error: GNUPLOT binary write disabled.\n");
-    return 1;
-  }
-  int err = WriteDataAscii( fname, SetList);
+  // One dimension
+  if (SetList[0]->Ndim() == 1) {
+    //mprintf("BINARY IS %i\n", (int)binary_);
+    if (binary_) {
+      //return WriteDataBinary( fname, SetList );
+      mprinterr("Error: GNUPLOT binary write disabled.\n");
+      return 1;
+    }
+    err = WriteDataAscii( fname.Full(), SetList );
+  } else if (SetList[0]->Ndim() == 2) {
+    // Warn about writing multiple sets
+    if (SetList.size() > 1)
+      mprintf("Warning: %s: Writing multiple 2D sets in GNUplot format may"
+              " result in unexpected behavior\n", fname.full());
+    for (DataSetList::const_iterator set = SetList.begin(); set != SetList.end(); ++set)
+      err += WriteSet2D( *(*set) );
+  } else
+    err = 1;
   file_.CloseFile();
   return err;
 }
@@ -234,23 +249,22 @@ void DataIO_Gnuplot::WriteLabels(LabelArray const& labels, Dimension const& dim,
   * However, in the interest of keeping data consistent, this is no longer
   * done. Could be added back in later as an option.
   */
-int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& SetList)
+int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& Sets)
 {
-  // Hold all 1D data sets.
   // FIXME: Check that dimension of each set matches.
-  Array1D Sets( SetList );
   if (Sets.empty()) return 1;
-  Sets.CheckXDimension();
+  CheckXDimension( Sets );
   // Determine size of largest DataSet.
-  size_t maxFrames = Sets.DetermineMax();
+  size_t maxFrames = DetermineMax( Sets );
   // Use X dimension of set 0 for all set dimensions.
-  DataSet_1D const& Xdata = static_cast<DataSet_1D const&>( *Sets[0] );
-  Dimension const& Xdim = static_cast<Dimension const&>( Xdata.Dim(0) ); 
+  DataSet* Xdata = Sets[0];
+  Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) ); 
   Dimension Ydim( 1, 1, Sets.size() );
-  std::string x_format = SetupCoordFormat( maxFrames, Xdim, 8, 3);
-  std::string y_format = SetupCoordFormat( Sets.size(), Ydim, 8, 3);
-  std::string xy_format_string = x_format + " " + y_format + " ";
-  const char *xy_format = xy_format_string.c_str();
+  TextFormat x_format, y_format;
+  x_format.SetCoordFormat( maxFrames,   Xdim.Min(), Xdim.Step(), 8, 3 );
+  y_format.SetCoordFormat( Sets.size(), Ydim.Min(), Ydim.Step(), 8, 3 );
+  //std::string xy_format_string = x_format.Fmt() + " " + y_format.Fmt() + " ";
+  //const char *xy_format = xy_format_string.c_str();
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -269,7 +283,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
       //outfile->file_.Printf("set style line 100 lt 2 lw 0.5\n");
       // Set up Y labels
       file_.Printf("set ytics %8.3f,%8.3f\nset ytics(", Ydim.Min(), Ydim.Step());
-      std::string label_fmt = "\"%s\" " + y_format;
+      std::string label_fmt = "\"%s\" " + y_format.Fmt();
       for (unsigned int iy = 0; iy != Sets.size(); iy++) {
         if (iy>0) file_.Printf(",");
         file_.Printf(label_fmt.c_str(), Sets[iy]->legend(), Ydim.Coord(iy));
@@ -295,25 +309,27 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   }
 
   // Data
-  for (size_t frame = 0; frame < maxFrames; frame++) {
-    double xcoord = Xdata.Xcrd( frame );
+  DataSet::SizeArray frame(1, 0);
+  for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
     for (size_t setnum = 0; setnum < Sets.size(); ++setnum) {
-      file_.Printf( xy_format, xcoord, Ydim.Coord(setnum) );
+      Xdata->WriteCoord( file_, x_format.fmt(), 0, frame[0] );
+      file_.Printf( y_format.fmt(), Ydim.Coord(setnum) );
       Sets[setnum]->WriteBuffer( file_, frame );
       file_.Printf("\n");
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
-      file_.Printf(xy_format, xcoord, Ydim.Coord(Sets.size()));
+      Xdata->WriteCoord( file_, x_format.fmt(), 0, frame[0] );
+      file_.Printf( y_format.fmt(), Ydim.Coord(Sets.size()) );
       file_.Printf("0\n");
     }
     file_.Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
-    double xcoord = Xdim.Coord( maxFrames );
-    for (size_t blankset=0; blankset <= SetList.size(); blankset++) {
-      file_.Printf(xy_format, xcoord, Ydim.Coord(blankset));
+    for (size_t blankset=0; blankset <= Sets.size(); blankset++) {
+      Xdata->WriteCoord( file_, x_format.fmt(), 0, maxFrames );
+      file_.Printf( y_format.fmt(), Ydim.Coord(blankset) );
       file_.Printf("0\n");
     }
     file_.Printf("\n");
@@ -321,21 +337,6 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // End and Pause command
   Finish();
   return 0;
-}
-
-// DataIO_Gnuplot::WriteData2D()
-int DataIO_Gnuplot::WriteData2D( std::string const& fname, DataSetList const& setList) 
-{
-  // Open output file
-  if (file_.OpenWrite( fname )) return 1;
-  // Warn about writing multiple sets
-  if (setList.size() > 1)
-    mprintf("Warning: %s: Writing multiple 2D sets in GNUplot format may result in unexpected behavior\n", fname.c_str());
-  int err = 0;
-  for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
-    err += WriteSet2D( *(*set) );
-  file_.CloseFile();
-  return err;
 }
 
 // DataIO_Gnuplot::WriteSet2D()
