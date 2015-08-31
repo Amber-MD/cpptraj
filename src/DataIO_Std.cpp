@@ -301,36 +301,51 @@ int DataIO_Std::Read_Vector(std::string const& fname,
   const char* linebuffer = buffer.Line();
   while (linebuffer != 0 && linebuffer[0] == '#')
     linebuffer = buffer.Line();
+  // Determine format. Expect 3 (VXYZ), 6 (VXYZ OXYZ), or
+  // 9 (VXYZ OXYZ VXYZ+OXYZ) values, optionally with indices.
+  int ntokens = buffer.TokenizeLine( SEPARATORS );
+  int ncols = ntokens; // Number of columns of vector data.
+  int nv = 0;          // Number of columns to actually read from (3 or 6).
+  bool hasIndex;
+  if (ntokens < 1) {
+    mprinterr("Error: Could not tokenize line.\n");
+    return 1;
+  }
+  if (ncols == 3 || ncols == 6 || ncols == 9)
+    hasIndex = false;
+  else if (ncols == 4 || ncols == 7 || ncols == 10) {
+    hasIndex = true;
+    mprintf("Warning: Not reading vector data indices.\n");
+  } else {
+    mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
+    return 1;
+  }
+  if (ncols >= 6)
+    nv = 6;
+  else
+    nv = 3;
+  // Get or add set
+  MetaData md( dsname );
+  DataSet* ds = datasetlist.CheckForSet( md );
+  if (ds == 0) {
+    // Create new data set.
+    ds = datasetlist.AddSet( DataSet::VECTOR, md );
+    if (ds == 0) return 1;
+  } else {
+    // Appending to existing. Only VECTOR allowed.
+    if (ds->Type() != DataSet::VECTOR) {
+      mprinterr("Error: Append requires existing set '%s' to be VECTOR\n",
+                ds->legend());
+      return 1;
+    }
+  }
+  // Read vector data
   double vecBuffer[6];
   std::fill(vecBuffer, vecBuffer+6, 0.0);
   size_t ndata = 0;
-  int ncols = -1; // Should be 3, 6, or 9
-  int nv = 0;     // Will be set to 3 or 6
-  bool hasIndex = false;
-  DataSet* vec = 0;
   while (linebuffer != 0) {
-    int ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols < 0) {
-      ncols = ntokens;
-      if (ntokens < 1) {
-        mprinterr("Error: Could not tokenize line.\n");
-        return 1;
-      }
-      if (ncols == 3 || ncols == 6 || ncols == 9)
-        hasIndex = false;
-      else if (ncols == 4 || ncols == 7 || ncols == 10) {
-        hasIndex = true;
-        mprintf("Warning: Not reading vector data indices.\n");
-      } else {
-        mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
-        return 1;
-      }
-      if (ncols >= 6)
-        nv = 6;
-      else
-        nv = 3;
-      vec = datasetlist.AddSet(DataSet::VECTOR, dsname, "Vec");
-    } else if (ncols != ntokens) {
+    ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols != ntokens) {
       mprinterr("Error: In vector file, number of columns changes from %i to %i at line %i\n",
                 ncols, ntokens, buffer.LineNumber());
       return 1;
@@ -339,12 +354,11 @@ int DataIO_Std::Read_Vector(std::string const& fname,
       buffer.NextToken(); // Skip index
     for (int i = 0; i < nv; i++)
       vecBuffer[i] = atof( buffer.NextToken() );
-    vec->Add( ndata, vecBuffer ); 
-    ndata++;
+    ds->Add( ndata++, vecBuffer ); 
     linebuffer = buffer.Line();
-  } 
+  }
   return 0;
-} 
+}
 
 // DataIO_Std::Read_Mat3x3()
 int DataIO_Std::Read_Mat3x3(std::string const& fname, 
@@ -358,31 +372,45 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
   const char* linebuffer = buffer.Line();
   while (linebuffer != 0 && linebuffer[0] == '#')
     linebuffer = buffer.Line();
+  // Check that number of columns (9) is correct.
+  int ntokens = buffer.TokenizeLine( SEPARATORS );
+  if (ntokens < 1) {
+    mprinterr("Error: Could not tokenize line.\n");
+    return 1;
+  }
+  int ncols = ntokens;
+  bool hasIndex;
+  if (ncols == 9)
+    hasIndex = false;
+  else if (ncols == 10) {
+    hasIndex = true;
+    mprintf("Warning: Not reading 3x3 matrix data indices.\n");
+  } else {
+    mprinterr("Error: Expected 9 columns of 3x3 matrix data, got %i.\n", ncols);
+    return 1;
+  }
+  // Get or add set
+  MetaData md( dsname );
+  DataSet* ds = datasetlist.CheckForSet( md );
+  if (ds == 0) {
+    // Create new data set.
+    ds = datasetlist.AddSet( DataSet::MAT3X3, md );
+    if (ds == 0) return 1;
+  } else {
+    // Appending to existing. Only MAT3X3 allowed.
+    if (ds->Type() != DataSet::MAT3X3) {
+      mprinterr("Error: Append requires existing set '%s' to be MAT3X3\n",
+                ds->legend());
+      return 1;
+    }
+  }
+  // Read 3x3 matrix data
   double matBuffer[9];
   std::fill(matBuffer, matBuffer+9, 0.0);
   size_t ndata = 0;
-  int ncols = -1; // Should be 9
-  bool hasIndex = false; // True if there is an index column
-  DataSet* mat = 0;
   while (linebuffer != 0) {
-    int ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols < 0) {
-      ncols = ntokens;
-      if (ntokens < 1) {
-        mprinterr("Error: Could not tokenize line.\n");
-        return 1;
-      }
-      if (ncols == 9)
-        hasIndex = false;
-      else if (ncols == 10) {
-        hasIndex = true;
-        mprintf("Warning: Not reading matrix data indices.\n");
-      } else {
-        mprinterr("Error: Expected 9 columns of 3x3 matrix data, got %i.\n", ncols);
-        return 1;
-      }
-      mat = datasetlist.AddSet(DataSet::MAT3X3, dsname, "M3X3");
-    } else if (ncols != ntokens) {
+    ntokens = buffer.TokenizeLine( SEPARATORS );
+    if (ncols != ntokens) {
       mprinterr("Error: In 3x3 matrix file, number of columns changes from %i to %i at line %i\n",
                 ncols, ntokens, buffer.LineNumber());
       return 1;
@@ -391,8 +419,7 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
       buffer.NextToken(); // Skip index
     for (int i = 0; i < 9; i++)
       matBuffer[i] = atof( buffer.NextToken() );
-    mat->Add( ndata, matBuffer ); 
-    ndata++;
+    ds->Add( ndata++, matBuffer ); 
     linebuffer = buffer.Line();
   }
   return 0;

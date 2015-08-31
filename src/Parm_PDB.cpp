@@ -16,7 +16,7 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
   return 0;
 } 
 
-int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
+int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac

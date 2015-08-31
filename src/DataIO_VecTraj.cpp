@@ -19,7 +19,7 @@ int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
-int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetList) {
+int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList) {
   if (SetList.empty()) return 1;
   // Create pseudo-topology for all vectors.
   Topology pseudo;
@@ -56,7 +56,7 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
     }
   }
   Trajout_Single out;
-  if (out.InitTrajWrite(fname, ArgList(), &pseudo, trajoutFmt_) == 0) {
+  if (out.InitTrajWrite(fname.Full(), ArgList(), &pseudo, trajoutFmt_) == 0) {
     Frame outFrame(pseudo.Natom());
     for (int i = 0; i != vec_size; ++i) {
       outFrame.ClearAtoms();
@@ -72,7 +72,7 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
     }
     out.EndTraj();
   } else {
-    mprinterr("Error: Could not set up '%s' for write.\n", fname.c_str());
+    mprinterr("Error: Could not set up '%s' for write.\n", fname.full());
     return 1;
   }
   return 0;

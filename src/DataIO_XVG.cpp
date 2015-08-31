@@ -2,6 +2,7 @@
 #include "DataIO_XVG.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
+#include "DataSet_Mesh.h"
 
 bool DataIO_XVG::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
@@ -26,11 +27,9 @@ bool DataIO_XVG::ID_DataFormat(CpptrajFile& infile) {
   return false;
 }
 
-int DataIO_XVG::ReadData(std::string const& fname, 
+int DataIO_XVG::ReadData(FileName const& fname, 
                          DataSetList& datasetlist, std::string const& dsname)
 {
-  typedef std::vector<double> Darray;
-  std::vector<Darray> Dsets;
   std::vector<std::string> Legends;
   BufferedLine infile;
 
@@ -62,28 +61,41 @@ int DataIO_XVG::ReadData(std::string const& fname,
     mprinterr("Error: No data in XVG file.\n");
     return 1;
   }
-  Dsets.resize( Legends.size() + 1); // +1 for x values
-  mprintf("\t%s has %zu columns of data (including time values).\n", infile.Filename().base(),
-          Dsets.size());
-  // Should now be positioned at first line of data
+  // Create 1 data set for each legend
+  DataSetList::DataListType inputSets;
+  for (unsigned int i = 0; i != Legends.size(); i++) {
+    MetaData md( dsname, i );
+    md.SetLegend( Legends[i] );
+    DataSet* ds = datasetlist.CheckForSet( md );
+    if (ds == 0) {
+      // Create new data set.
+      ds = datasetlist.AddSet(DataSet::XYMESH, md);
+      if (ds == 0) return 1;
+    } else {
+      // Appending to existing. Only XYMESH allowed.
+      if (ds->Type() != DataSet::XYMESH) {
+        mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
+                  ds->legend());
+        return 1;
+      }
+    }
+    inputSets.push_back( ds );
+  }
+  mprintf("\t%s has %zu columns of data.\n", fname.base(), inputSets.size());
+  // Should now be positioned at first line of data. Assume first column is time values.
+  int expectedCols = (int)inputSets.size() + 1;
   while (ptr != 0) {
     int ncols = infile.TokenizeLine(" \t");
-    if (ncols != (int)Dsets.size())
-      mprinterr("Error: Line %i: %i columns != expected # sets %zu\n", infile.LineNumber(),
-                ncols, Dsets.size());
+    if (ncols != expectedCols)
+      mprinterr("Error: Line %i: %i columns != expected # cols %i\n", infile.LineNumber(),
+                ncols, expectedCols);
     else {
-      for (std::vector<Darray>::iterator set = Dsets.begin(); set != Dsets.end(); ++set)
-        set->push_back( atof( infile.NextToken() ) );
+      double xval = atof( infile.NextToken() );
+      for (unsigned int i = 0; i != inputSets.size(); i++)
+        ((DataSet_Mesh*)inputSets[i])->AddXY( xval, atof( infile.NextToken() ) );
     }
     ptr = infile.Line();
   }
-  // Save data sets
-  for (unsigned int i = 1; i != Dsets.size(); i++) {
-    DataSet* ds = datasetlist.AddOrAppendSet(dsname, i-1, Legends[i-1], Dsets[0], Dsets[i]);
-    if (ds == 0) return 1;
-    ds->SetLegend( Legends[i-1] );
-  }
-
   infile.CloseFile();
   return 0;
 }

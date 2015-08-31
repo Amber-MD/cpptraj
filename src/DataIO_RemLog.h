@@ -19,7 +19,7 @@ class DataIO_RemLog : public DataIO {
     // NOTE: Must match ExchgDescription
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD };
     static const char* ExchgDescription[];
-    typedef std::vector<std::string> Sarray;
+    typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
