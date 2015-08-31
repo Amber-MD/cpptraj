@@ -29,11 +29,11 @@ class DataSet_RemLog : public DataSet {
     size_t Size() const { return ensemble_.size(); }
     int Sync()          { return 1;                }
     void Info()   const { return;                  }
-    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
-    int Allocate(SizeArray const&); // TODO implement?
-    int Append(DataSet*);
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
+    int Allocate(SizeArray const&) { return 0; } // TODO implement?
     // TODO: Remove
     void Add( size_t, const void* ) { return;      }
+    int Append(DataSet*) { return 1; }
   private:
     /// Hold info for all exchanges of a single replica.
     typedef std::vector<ReplicaFrame> ReplicaArray;

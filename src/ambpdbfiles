@@ -38,6 +38,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Range.cpp \
               SDFfile.cpp \
               StringRoutines.cpp \
+              TextFormat.cpp \
               TinkerFile.cpp \
               Timer.cpp \
               Topology.cpp \

@@ -18,15 +18,14 @@ Analysis_Timecorr::Analysis_Timecorr() :
   drct_(false),
   ptrajformat_(false),
   vinfo1_(0),
-  vinfo2_(0)
+  vinfo2_(0),
+  tc_c_(0),
+  tc_p_(0),
+  tc_r3r3_(0),
+  outfile_(0)
 {}
 
-void Analysis_Timecorr::Help() {
-  mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]\n"
-          "\t[order <order>] [tstep <tstep>] [tcorr <tcorr>]\n"
-          "\t[dplr] [norm] [drct] [dplrout <dplrfile>] [ptrajformat]\n"
-          "  Calculate auto/cross-correlation functions for specified vectors.\n");
-}
+const char* Analysis_Timecorr::Plegend_[] = {"<P0>", "<P1>", "<P2"};
 
 // Analysis_TimeCorr::CalculateAverages()
 std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector const& vIn, 
@@ -80,6 +79,13 @@ void Analysis_Timecorr::CalcCorr(int frame) {
       pubfft_.CrossCorr(data1_, data2_);
     }
   }
+}
+
+void Analysis_Timecorr::Help() {
+  mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]\n"
+          "\t[order <order>] [tstep <tstep>] [tcorr <tcorr>]\n"
+          "\t[dplr] [norm] [drct] [dplrout <dplrfile>] [ptrajformat]\n"
+          "  Calculate auto/cross-correlation functions for specified vectors.\n");
 }
 
 // Analysis_Timecorr::Setup()
