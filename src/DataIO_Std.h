@@ -15,11 +15,11 @@ class DataIO_Std : public DataIO {
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     static const char* SEPARATORS;
-    int Read_1D(FileName const&,DataSetList&,std::string const&);
-    int Read_2D(FileName const&,DataSetList&,std::string const&);
-    int Read_3D(FileName const&,DataSetList&,std::string const&);
-    int Read_Vector(FileName const&,DataSetList&,std::string const&);
-    int Read_Mat3x3(FileName const&,DataSetList&,std::string const&);
+    int Read_1D(std::string const&,DataSetList&,std::string const&);
+    int Read_2D(std::string const&,DataSetList&,std::string const&);
+    int Read_3D(std::string const&,DataSetList&,std::string const&);
+    int Read_Vector(std::string const&,DataSetList&,std::string const&);
+    int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);

@@ -52,8 +52,6 @@ class DataSetList {
     /// \return True if Actions have indicated DataSets will be generated.
     bool DataSetsPending() const { return dataSetsPending_;  }
 
-    /// Remove set from list - used in DataFile
-    //void RemoveSet( const_iterator );
     /// Remove set from the list.
     void RemoveSet( DataSet* );
     /// Remove set from list but do not destroy.
@@ -78,8 +76,6 @@ class DataSetList {
 
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
-    /// Add or append given sets to this list.
-    int AddOrAppendSets(Darray const&, DataListType const&);
     /// Add DataSet to list; set up default name if no name specified.
     DataSet* AddSet( DataSet::DataType, MetaData const&, const char*);
     /// Add DataSet to list with given MetaData.
@@ -107,8 +103,7 @@ class DataSetList {
     /// List all reference frames.
     void ListReferenceFrames() const;
   private:
-    /// Separate input string into DataSet args.
-    static std::string ParseArgString(std::string const&, std::string&, std::string&, std::string&);
+    DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
     inline void PendingWarning() const;
     /// Select sets according to argument and type.

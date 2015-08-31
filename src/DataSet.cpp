@@ -43,10 +43,6 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
   return *this;
 }
 
-void DataSet::WriteCoord(CpptrajFile& file, const char* fmt, unsigned int dim, size_t pos) const {
-  file.Printf( fmt, dim_[dim].Coord(pos) );
-}
-
 /** Set up DataSet name, index and/or aspect etc. Also create
   * default legend if not already set.
   * \param In The DataSet meta data 

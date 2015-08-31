@@ -12,6 +12,7 @@ class TextFormat {
     /// CONSTRUCTOR - default 8.3f format
     TextFormat() : type_(DOUBLE), width_(8), precision_(3), nelements_(1),
                    colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
+    // TODO trim constructors
     /// CONSTRUCTOR - type, width
     TextFormat(FmtType t, int w) : type_(t), width_(w), precision_(0), nelements_(1),
                colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
@@ -29,6 +30,8 @@ class TextFormat {
     void SetCoordFormat(size_t, double, double, int, int);
     /// Set format string with new alignment.
     void SetFormatAlign(AlignType t) { align_ = t; SetFormatString(); }
+    /// Set format string with new width
+    void SetFormatWidth(int w) { width_ = w; SetFormatString(); }
     /// Set format string with new width and precision
     void SetFormatWidthPrecision(int w, int p) { width_ = w; precision_ = p; SetFormatString(); }
     /// Set width only - do not reset format string (for DataSet_string).

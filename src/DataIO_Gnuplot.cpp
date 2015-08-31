@@ -263,8 +263,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   TextFormat x_format, y_format;
   x_format.SetCoordFormat( maxFrames,   Xdim.Min(), Xdim.Step(), 8, 3 );
   y_format.SetCoordFormat( Sets.size(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  //std::string xy_format_string = x_format.Fmt() + " " + y_format.Fmt() + " ";
-  //const char *xy_format = xy_format_string.c_str();
+  std::string xyfmt = x_format.Fmt() + " " + y_format.Fmt() + " ";
 
   // Turn off labels if number of sets is too large since they 
   // become unreadable. Should eventually have some sort of 
@@ -311,25 +310,24 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // Data
   DataSet::SizeArray frame(1, 0);
   for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
+    double xcoord = Xdata->Coord(0, frame[0]);
     for (size_t setnum = 0; setnum < Sets.size(); ++setnum) {
-      Xdata->WriteCoord( file_, x_format.fmt(), 0, frame[0] );
-      file_.Printf( y_format.fmt(), Ydim.Coord(setnum) );
+      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(setnum) );
       Sets[setnum]->WriteBuffer( file_, frame );
       file_.Printf("\n");
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
-      Xdata->WriteCoord( file_, x_format.fmt(), 0, frame[0] );
-      file_.Printf( y_format.fmt(), Ydim.Coord(Sets.size()) );
+      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(Sets.size()) );
       file_.Printf("0\n");
     }
     file_.Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
+    double xcoord = Xdata->Coord(0, maxFrames);
     for (size_t blankset=0; blankset <= Sets.size(); blankset++) {
-      Xdata->WriteCoord( file_, x_format.fmt(), 0, maxFrames );
-      file_.Printf( y_format.fmt(), Ydim.Coord(blankset) );
+      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(blankset) );
       file_.Printf("0\n");
     }
     file_.Printf("\n");
@@ -378,27 +376,33 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
     WriteRangeAndHeader(Xdim, set.Ncols(), Ydim, set.Nrows(), pm3d_cmd);
   }
   // Setup XY coord format
-  std::string col_fmt = SetupCoordFormat( set.Ncols(), Xdim, 8, 3 ) + " " +
-                        SetupCoordFormat( set.Nrows(), Ydim, 8, 3 );
+  TextFormat x_fmt, y_fmt;
+  x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+  y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+  std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt() + " ";
 
-  for (size_t ix = 0; ix < set.Ncols(); ++ix) {
-    double xcoord = Xdim.Coord(ix);
-    for (size_t iy = 0; iy < set.Nrows(); ++iy) {
-      file_.Printf(col_fmt.c_str(), xcoord, Ydim.Coord(iy));
-      set.Write2D( file_, ix, iy );
+  DataSet::SizeArray positions(2, 0);
+  for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
+    double xcoord = set.Coord(0, positions[0]);
+    for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
+      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, positions[1]) );
+      set.WriteBuffer( file_, positions );
       file_.Printf("\n");
     }
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
-      file_.Printf("%8.3f %8.3f 0\n", xcoord, Ydim.Coord(set.Nrows()));
+      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, set.Nrows()) );
+      file_.Printf("0\n");
     }
     file_.Printf("\n");
   }
   if (!useMap_) {
     // Print one empty set for gnuplot pm3d without map
-    double xcoord = Xdim.Coord( set.Ncols() );
-    for (size_t blankset=0; blankset <= set.Nrows(); ++blankset)
-      file_.Printf("%8.3f %8.3f 0\n", xcoord, Ydim.Coord(blankset));
+    double xcoord = set.Coord(0, set.Ncols());
+    for (size_t blankset=0; blankset <= set.Nrows(); ++blankset) {
+      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, blankset) );
+      file_.Printf("0\n");
+    }
     file_.Printf("\n");
   }
   // End and Pause command

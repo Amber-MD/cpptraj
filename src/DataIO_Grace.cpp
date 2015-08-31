@@ -2,20 +2,18 @@
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
-#include "Array1D.h"
 
 // TODO: Set dimension labels
 // Dont assume anything about set ordering
-int DataIO_Grace::ReadData(std::string const& fname, 
+int DataIO_Grace::ReadData(FileName const& fname, 
                            DataSetList& datasetlist, std::string const& dsname)
 {
   ArgList dataline;
   int setnum = 0;
-  Array1D Dsets;
   std::vector<std::string> labels;
-  double yval, xval;
+  double XY[0];
   const char* linebuffer;
-  std::vector<double> Xvals, Yvals;
+  DataSetList::DataListType inputSets;
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -37,20 +35,31 @@ int DataIO_Grace::ReadData(std::string const& fname,
         if (linebuffer == 0) return 1; // TODO: Better error
         if (linebuffer[0] != '@') return 1; // TODO: Check type
         linebuffer = buffer.Line(); // Should be first line of data.
+        DataSet* ds = 0;
+        MetaData md( dsname, setnum );
+        ds = datasetlist.CheckForSet( md );
+        if (ds == 0) {
+          // Create new data set.
+          ds = datasetlist.AddSet( DataSet::XYMESH, md );
+          if (ds == 0) return 1;
+        } else {
+          // Appending to existing. Only XYMESH allowed.
+          if (ds->Type() != DataSet::XYMESH) {
+            mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
+                      ds->legend());
+            return 1;
+          }
+        }
+        int Ndata = 0;
         while (linebuffer != 0 && linebuffer[0] != '@' && 
                linebuffer[0] != '&' && linebuffer[0] != '#')
         {
-          if (sscanf(linebuffer, "%lf %lf", &xval, &yval) != 2) break;
-          Xvals.push_back( xval );
-          Yvals.push_back( yval );
+          if (sscanf(linebuffer, "%lf %lf", XY, XY+1) != 2) break;
+          ds->Add(Ndata++, XY);
           linebuffer = buffer.Line();
         }
         // Should now be positioned 1 line after last data line.
-        DataSet* ds = datasetlist.AddOrAppendSet(dsname, setnum, "", Xvals, Yvals);
-        if (ds == 0) return 1;
-        Dsets.push_back((DataSet_1D*)ds);
-        Xvals.clear();
-        Yvals.clear();
+        inputSets.push_back( ds );
         ++setnum;
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
@@ -66,22 +75,17 @@ int DataIO_Grace::ReadData(std::string const& fname,
 
   // Set DataSet legends if specified
   if (!labels.empty()) {
-    if (Dsets.size() == labels.size()) {
+    if (inputSets.size() == labels.size()) {
       mprintf("\tLabels:\n");
-      Array1D::const_iterator set = Dsets.begin();
-      for (std::vector<std::string>::iterator lbl = labels.begin();
-                                              lbl != labels.end(); ++lbl)
-      {
-        mprintf("\t\t%s\n", (*lbl).c_str());
-        (*set)->SetLegend( *lbl );
-        ++set;
+      for (unsigned int i = 0; i != labels.size(); i++) {
+        mprintf("\t\t%s\n", labels[i].c_str());
+        inputSets[i]->SetLegend( labels[i] );
       }
     } else {
       mprintf("Warning: Number of labels (%zu) does not match number of sets (%zu)\n",
-              labels.size(), Dsets.size());
+              labels.size(), inputSets.size());
     }
   }
-    
   return 0;
 }
 // -----------------------------------------------------------------------------
@@ -96,7 +100,7 @@ int DataIO_Grace::processWriteArgs(ArgList &argIn) {
 }
 
 // DataIO_Grace::WriteData()
-int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList)
+int DataIO_Grace::WriteData(FileName const& fname, DataSetList const& SetList)
 {
   int err = 0;
   // Open output file.
@@ -111,9 +115,8 @@ int DataIO_Grace::WriteData(std::string const& fname, DataSetList const& SetList
 }
 
 // DataIO_Grace::WriteDataNormal()
-int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList) {
+int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // Hold all 1D data sets.
-  Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
   //size_t maxFrames = Sets.DetermineMax();
@@ -128,32 +131,32 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& SetList)
               Sets[0]->Dim(0).Label().c_str(), "");
   // Loop over DataSets
   unsigned int setnum = 0;
-  for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+  DataSet::SizeArray frame(1);
+  for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
     size_t maxFrames = (*set)->Size();
     // Set information
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->legend(), setnum );
     // Setup set X coord format.
-    std::string x_col_format = SetupCoordFormat( maxFrames, (*set)->Dim(0), 8, 3 );
+    TextFormat xfmt;
+    xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
     // Write Data for set
-    for (size_t frame = 0L; frame < maxFrames; frame++) {
-      file.Printf(x_col_format.c_str(), (*set)->Xcrd(frame));
+    for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
+      file.Printf(xfmt.fmt(), (*set)->Coord(0, frame[0]));
       (*set)->WriteBuffer(file, frame);
       file.Printf("\n");
     }
-    ++setnum;
   }
   return 0;
 }
 
 // DataIO_Grace::WriteDataInverted()
-int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& SetList)
+int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
 {
   // Hold all 1D data sets.
-  Array1D Sets( SetList );
   if (Sets.empty()) return 1;
   // Determine size of largest DataSet.
-  size_t maxFrames = Sets.DetermineMax();
+  size_t maxFrames = DetermineMax( Sets );
   // Grace header. Use first DataSet for axis labels.
   // TODO: DataFile should pass in axis info.
 /*  file.Printf(
@@ -166,15 +169,17 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& SetLis
   // Setup set X coord format. 
   Dimension Xdim;
   Xdim.SetStep( 1 );
-  std::string x_col_format = SetupCoordFormat( Sets.size(), Xdim, 8, 3 );
+  TextFormat xfmt;
+  xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
   // Loop over frames
-  for (size_t frame = 0L; frame < maxFrames; frame++) {
+  DataSet::SizeArray frame(1);
+  for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
     // Set information
-    file.Printf("@target G0.S%u\n@type xy\n",frame);
+    file.Printf("@target G0.S%zu\n@type xy\n",frame[0]);
     // Loop over all Set Data for this frame
     unsigned int setnum = 0;
-    for (Array1D::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
-      file.Printf(x_col_format.c_str(), Xdim.Coord( setnum ));
+    for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set, ++setnum) {
+      file.Printf(xfmt.fmt(), Xdim.Coord( setnum ));
       (*set)->WriteBuffer(file, frame);
       file.Printf(" \"%s\"\n", (*set)->legend());
     }
