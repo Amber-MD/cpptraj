@@ -392,7 +392,7 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
     if (!useMap_) {
       // Print one empty row for gnuplot pm3d without map
       file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, set.Nrows()) );
-      file_.Printf("0\n");
+      file_.Printf(" 0\n");
     }
     file_.Printf("\n");
   }
@@ -401,7 +401,7 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
     double xcoord = set.Coord(0, set.Ncols());
     for (size_t blankset=0; blankset <= set.Nrows(); ++blankset) {
       file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, blankset) );
-      file_.Printf("0\n");
+      file_.Printf(" 0\n");
     }
     file_.Printf("\n");
   }
