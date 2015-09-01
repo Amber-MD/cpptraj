@@ -60,8 +60,12 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
     mprinterr("Error: could not get energy data set %s\n", eneDsname.c_str());
     return Action::ERR;
   }
-  if (dstmp->Type() != DataSet::FLOAT && dstmp->Type() != DataSet::DOUBLE) {
-    mprinterr("Error: energy data set %s must be type FLOAT or DOUBLE.\n", eneDsname.c_str());
+  if (dstmp->Type() != DataSet::FLOAT &&
+      dstmp->Type() != DataSet::DOUBLE &&
+      dstmp->Type() != DataSet::XYMESH)
+  {
+    mprinterr("Error: energy data set %s must be type FLOAT, DOUBLE, or XYMESH.\n",
+              dstmp->legend());
     return Action::ERR;
   }
   if (dstmp->Ndim() != 1) {
