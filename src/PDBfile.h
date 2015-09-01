@@ -14,10 +14,10 @@ class PDBfile : public CpptrajFile {
     static bool ID_PDB(CpptrajFile&);
     /// \return the type of the next PDB record read.
     PDB_RECTYPE NextRecord();
-    /// \return Atom info with name and element for ATOM/HETATM; set altLoc.
-    Atom pdb_Atom(char&);
+    /// \return Atom info with name and element for ATOM/HETATM; set altLoc and #.
+    Atom pdb_Atom(char&, int&);
     /// \return Atom info with name and element for ATOM/HETATM.
-    Atom pdb_Atom() { char al; return pdb_Atom(al); }
+    Atom pdb_Atom() { char al; int n; return pdb_Atom(al,n); }
     /// \return Residue info with name, number, icode, and chainID for ATOM/HETATM.
     Residue pdb_Residue();
     /// Set given XYZ array with coords from ATOM/HETATM record.
