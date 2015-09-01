@@ -8,7 +8,8 @@ class DataSet_Mesh : public DataSet_1D {
     DataSet_Mesh() : DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     /// Construct mesh with preset X values
     DataSet_Mesh(int,double,double);
-    static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();}
+    static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();            }
+    void Resize(size_t n)   { mesh_x_.resize(n, 0.0); mesh_y_.resize(n, 0.0); }
     // ----- DataSet functions -------------------
     size_t Size()            const { return mesh_x_.size();     }
     int Sync()                     { return 0;                  }

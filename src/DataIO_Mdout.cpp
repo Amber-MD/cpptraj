@@ -4,7 +4,7 @@
 #include "DataIO_Mdout.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // ConvertToDouble
+#include "StringRoutines.h" // convertToDouble
 #include "DataSet_Mesh.h"
 
 // DataIO_Mdout::ID_DataFormat()
@@ -201,18 +201,13 @@ int DataIO_Mdout::ReadData(FileName const& fname,
               }
               inputSets[i] = ds;
             }
+            // Since energy terms can appear and vanish over the course of the
+            // mdout file, resize if necessary.
+            if (frame > (int)inputSets[i]->Size())
+              ((DataSet_Mesh*)inputSets[i])->Resize( frame );
             ((DataSet_Mesh*)inputSets[i])->AddXY( time, Energy[i] );
           }
         }
-        /*for (int i = 0; i < (int)N_FIELDTYPES; i++)
-            if (EnergyExists[i]) {
-              // NOTE: Since energy terms can appear and vanish over the
-              //       course of the mdout file, resize if necessary.
-              if (count > Esets[i].size()) Esets[i].resize(count, 0.0);
-              Esets[i].push_back( Energy[i] );
-            }
-        TimeVals.push_back( time );*/
-        //count++;
         nstep += ntpr;
       }
       frame++;
