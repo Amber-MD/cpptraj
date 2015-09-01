@@ -530,7 +530,6 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
       Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
   } else {
     // If not writing an X-column, no leading space for the first dataset.
-    //Sets[0]->SetupFormat().SetFormatAlign( TextFormat::LEFT );
     for (unsigned int i = 1; i < Sets.size(); i++)
       Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
   }

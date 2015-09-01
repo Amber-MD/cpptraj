@@ -426,7 +426,7 @@ ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
     if (argIn.hasKey("reference")) refindex = 0;
     if (refindex > -1 && refindex < (int)RefList_.size())
       ref = RefList_[refindex];
-    if (ref == 0) {
+    if (refindex != -1 && ref == 0) {
       mprinterr("Error: Reference index %i not found.\n", refindex);
       return ReferenceFrame(1);
     }
