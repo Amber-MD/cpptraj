@@ -462,13 +462,19 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   for (std::string::iterator tc = temp_name.begin(); tc != temp_name.end(); ++tc)
     if ( *tc == ' ' )
       *tc = '_';
-  // Set up header format string
-  TextFormat header_format(TextFormat::STRING, width, leftAlign);
-  // Protect against CpptrajFile buffer overflow
   if (width >= (int)CpptrajFile::BUF_SIZE)
+    // Protect against CpptrajFile buffer overflow
     fileIn.Write(temp_name.c_str(), temp_name.size());
-  else
-    fileIn.Printf(header_format.fmt(), temp_name.c_str());
+  else {
+    // Set up header format string
+    TextFormat::AlignType align;
+    if (leftAlign)
+      align = TextFormat::LEFT;
+    else
+      align = TextFormat::RIGHT;
+    TextFormat header_format(TextFormat::STRING, width, align);
+    fileIn.Printf(header_format.fmt(), temp_name.c_str()); 
+  }
 }
 
 // DataIO_Std::WriteData()
@@ -518,11 +524,15 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     // Create format string for X column based on dimension in first data set.
     if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
       xcol_precision = 0;
-    x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision ); 
+    x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
+    // Introduce a leading space to all sets
+    for (unsigned int i = 0; i < Sets.size(); i++)
+      Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
   } else {
-    // If not writing an X-column, set the format for the first dataset
-    // to left-aligned.
-    Sets[0]->SetupFormat().SetFormatAlign( TextFormat::LEFT );
+    // If not writing an X-column, no leading space for the first dataset.
+    //Sets[0]->SetupFormat().SetFormatAlign( TextFormat::LEFT );
+    for (unsigned int i = 1; i < Sets.size(); i++)
+      Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
   }
 
   // Write header to buffer

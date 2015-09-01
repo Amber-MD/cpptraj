@@ -1,7 +1,7 @@
 #include "TextFormat.h"
 #include "StringRoutines.h"
 
-char TextFormat::TypeChar_[] = { 'f', 'i', 's', 'E', 'g' };
+char TextFormat::TypeChar_[] = { 'f', 'E', 'g', 'i', 's' };
 
 // TODO benchmark - will using a big buffer and C string routines be better?
 void TextFormat::SetFormatString() {

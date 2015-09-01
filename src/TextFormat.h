@@ -16,6 +16,9 @@ class TextFormat {
     /// CONSTRUCTOR - type, width
     TextFormat(FmtType t, int w) : type_(t), width_(w), precision_(0), nelements_(1),
                colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
+    /// CONSTRUCTOR - type, width, alignment
+    TextFormat(FmtType t, int w, AlignType a) : type_(t), width_(w), precision_(0), nelements_(1),
+               colwidth_(0), align_(a), isLong_(false) { SetFormatString(); }
     /// CONSTRUCTOR - type, width, precision
     TextFormat(FmtType t, int w, int p) : type_(t), width_(w), precision_(p), nelements_(1),
                colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
