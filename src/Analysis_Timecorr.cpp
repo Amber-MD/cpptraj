@@ -25,7 +25,7 @@ Analysis_Timecorr::Analysis_Timecorr() :
   outfile_(0)
 {}
 
-const char* Analysis_Timecorr::Plegend_[] = {"<P0>", "<P1>", "<P2"};
+const char* Analysis_Timecorr::Plegend_[] = {"<P0>", "<P1>", "<P2>"};
 
 // Analysis_TimeCorr::CalculateAverages()
 std::vector<double> Analysis_Timecorr::CalculateAverages(DataSet_Vector const& vIn, 
@@ -162,17 +162,20 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
     if (outfile_ == 0) return Analysis::ERR;
   }
   // Set up output DataSets
-  tc_c_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "C"));
   tc_p_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "P"));
-  tc_r3r3_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "R3R3"));
-  if (tc_c_ == 0 || tc_p_ == 0 || tc_r3r3_ == 0) return Analysis::ERR;
-  tc_c_->SetLegend("<C>");
+  if (tc_p_ == 0) return Analysis::ERR;
   tc_p_->SetLegend( Plegend_[order_] );
-  tc_r3r3_->SetLegend( "<1/(r^3*r^3)>" );
-  if (dataout != 0) {
-    dataout->AddDataSet( tc_c_ );
-    dataout->AddDataSet( tc_p_ );
-    dataout->AddDataSet( tc_r3r3_ );
+  if (dataout != 0) dataout->AddDataSet( tc_p_ );
+  if (dplr_) {
+    tc_c_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "C"));
+    tc_r3r3_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "R3R3"));
+    if (tc_c_ == 0 || tc_r3r3_ == 0) return Analysis::ERR;
+    tc_c_->SetLegend("<C>");
+    tc_r3r3_->SetLegend( "<1/(r^3*r^3)>" );
+    if (dataout != 0) {
+      dataout->AddDataSet( tc_c_ );
+      dataout->AddDataSet( tc_r3r3_ );
+    }
   }
 
   // Print Status
@@ -307,8 +310,10 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
   double KN = DataSet_Vector::SphericalHarmonicsNorm( order_ );
   Normalize( tc_p_,    frame, KN );
-  Normalize( tc_c_,    frame, KN );
-  Normalize( tc_r3r3_, frame, 1.0 );
+  if (dplr_) {
+    Normalize( tc_c_,    frame, KN );
+    Normalize( tc_r3r3_, frame, 1.0 );
+  }
   // ----- PRINT PTRAJ FORMAT --------------------
   if (outfile_ != 0) { 
     outfile_->Printf("%ss, normal type\n",ModeString[mode_]);
