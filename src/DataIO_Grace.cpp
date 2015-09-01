@@ -140,8 +140,6 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     // Setup set X coord format.
     TextFormat xfmt;
     xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
-    // For backwards compat. introduce a leading space
-    (*set)->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE );
     // Write Data for set
     for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
       file.Printf(xfmt.fmt(), (*set)->Coord(0, frame[0]));

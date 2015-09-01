@@ -344,8 +344,8 @@ void DataFile::WriteDataOut() {
       mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
       continue;
     }
-    // Set the format to right-aligned initially.
-    ds.SetupFormat().SetFormatAlign(TextFormat::RIGHT);
+    // Setup formats with a leading space initially. Maintains backwards compat. 
+    ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
     // Ensure current DataIO is valid for this set.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",

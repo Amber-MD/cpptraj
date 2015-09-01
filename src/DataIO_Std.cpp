@@ -525,13 +525,9 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
       xcol_precision = 0;
     x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
-    // Introduce a leading space to all sets
-    for (unsigned int i = 0; i < Sets.size(); i++)
-      Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
   } else {
     // If not writing an X-column, no leading space for the first dataset.
-    for (unsigned int i = 1; i < Sets.size(); i++)
-      Sets[i]->SetupFormat().SetFormatAlign( TextFormat::LEADING_SPACE ); 
+    Sets[0]->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
   }
 
   // Write header to buffer
