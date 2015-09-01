@@ -1,7 +1,8 @@
 // CpptrajFile
-#include <cstring>    // strlen 
 #include <sys/stat.h> // stat
 #include <cstdio>     // vsprintf
+#include <cstring>    // strlen, strerror 
+#include <cerrno>     // errno
 #include <cstdarg>    // va_X functions
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
@@ -135,6 +136,7 @@ int CpptrajFile::OpenFile(AccessType accessIn) {
   else {
     if (debug_ > 0)
       rprinterr("Could not open %s with access %s\n", fname_.full(), AccessTypeName[accessIn]);
+    mprinterr("Error: File '%s': %s\n", fname_.full(), strerror( errno ));
   }
   return err;
 }

@@ -116,7 +116,10 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (!File::Exists(fnameIn)) return 1;
+  if (!File::Exists(fnameIn)) {
+    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    return 1;
+  }
   filename_ = fnameIn;
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
@@ -174,7 +177,10 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n");
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (!File::Exists( fnameIn )) return 1;
+  if (!File::Exists( fnameIn )) {
+    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    return 1;
+  }
   filename_ = fnameIn;
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
   if (dataio_ == 0) return 1;

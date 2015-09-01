@@ -61,7 +61,10 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
     mprinterr("Error: No input topology name given.\n");
     return 1;
   }
-  if (!File::Exists( fnameIn )) return 1;
+  if (!File::Exists( fnameIn )) {
+    mprinterr("Error: Topology '%s' does not exist.\n", fnameIn.full());
+    return 1;
+  }
   parmName_ = fnameIn;
   ArgList argIn = argListIn;
   ParmFormatType pfType;

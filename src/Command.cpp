@@ -257,7 +257,10 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
     infile = stdin;
   } else {
     FileName fname( inputFilename );
-    if (!File::Exists( fname )) return C_ERR;
+    if (!File::Exists( fname )) {
+      mprinterr("Error: Input file '%s' does not exist.\n", fname.full());
+      return C_ERR;
+    }
     mprintf("INPUT: Reading Input from file %s\n", fname.full());
     if ( (infile=fopen(fname.full(), "r"))==0 ) {
       rprinterr("Error: Could not open input file %s\n", fname.full());
