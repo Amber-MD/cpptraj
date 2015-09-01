@@ -11,7 +11,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
   ArgList dataline;
   int setnum = 0;
   std::vector<std::string> labels;
-  double XY[0];
+  double XY[2];
   const char* linebuffer;
   DataSetList::DataListType inputSets;
   
@@ -50,7 +50,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
             return 1;
           }
         }
-        int Ndata = 0;
+        unsigned int Ndata = 0;
         while (linebuffer != 0 && linebuffer[0] != '@' && 
                linebuffer[0] != '&' && linebuffer[0] != '#')
         {
