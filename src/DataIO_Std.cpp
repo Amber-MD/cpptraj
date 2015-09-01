@@ -15,6 +15,7 @@
 DataIO_Std::DataIO_Std() :
   DataIO(true, true, true), // Valid for 1D, 2D, 3D
   mode_(READ1D),
+  indexcol_(-1),
   isInverted_(false), 
   hasXcolumn_(true), 
   writeHeader_(true), 
@@ -48,7 +49,7 @@ int DataIO_Std::processReadArgs(ArgList& argIn) {
     mprinterr("Error: Column numbering for standard data files starts from 1.\n");
     return 1;
   }
-  --indexcol_;
+  if (indexcol_ > 0) --indexcol_;
   return 0;
 }
   
@@ -73,10 +74,6 @@ int DataIO_Std::Read_1D(std::string const& fname,
 {
   ArgList labels;
   bool hasLabels = false;
-  // Column user args start from 1
-  if (indexcol_ > -1)
-    mprintf("\tUsing column %i as index column.\n", indexcol_ + 1);
-
   // Buffer file
   BufferedLine buffer;
   if (buffer.OpenFileRead( fname )) return 1;
@@ -116,6 +113,10 @@ int DataIO_Std::Read_1D(std::string const& fname,
       // Not a recognized comment character, assume data.
       isCommentLine = false;
   }
+  // Column user args start from 1
+  if (indexcol_ > -1)
+    mprintf("\tUsing column %i as index column.\n", indexcol_ + 1);
+
   // Should be at first data line. Tokenize the line.
   ntoken = buffer.TokenizeLine( SEPARATORS );
   // If # of data columns does not match # labels, clear labels.
@@ -137,10 +138,14 @@ int DataIO_Std::Read_1D(std::string const& fname,
     DataSet* ds = 0;
     std::string token( buffer.NextToken() );
     bool colContainsNumber = (validInteger(token) || validDouble(token));
-    // String values not allowed for index column.
-    if (col == indexcol_ && !colContainsNumber) {
-      mprintf("Warning: DataFile %s index column %i has string values and will be skipped.\n", 
-              buffer.Filename().full(), indexcol_+1);
+    if (col == indexcol_) {
+      // Index column does not get a data set.
+      if (!colContainsNumber) {
+        // String values not allowed for index column.
+        mprintf("Warning: DataFile %s index column %i has string values and will be skipped.\n", 
+                buffer.Filename().full(), indexcol_+1);
+        indexcol_ = -1;
+      }
     } else {
       // Check if data set for this name/index already exists.
       md.SetIdx( col+1 );
@@ -196,7 +201,7 @@ int DataIO_Std::Read_1D(std::string const& fname,
       // Add XY values.
       double Xval = dvals[indexcol_];
       for (int i = 0; i != ntoken; i++) {
-        if (inputSets[i] != 0 || inputSets[i]->Type() == DataSet::XYMESH)
+        if (inputSets[i] != 0 && inputSets[i]->Type() == DataSet::XYMESH)
           ((DataSet_Mesh*)inputSets[i])->AddXY( Xval, dvals[i] );
       }
       linebuffer = buffer.Line();
@@ -212,10 +217,12 @@ int DataIO_Std::Read_1D(std::string const& fname,
       // Add double/string values 
       for (int i = 0; i != ntoken; i++) {
         const char* token = buffer.NextToken();
-        if (inputSets[i]->Type() == DataSet::DOUBLE)
-          ((DataSet_Mesh*)inputSets[i])->AddXY( Xval, atof(token) );
-        else
-          ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
+        if (inputSets[i] != 0) {
+          if (inputSets[i]->Type() == DataSet::XYMESH)
+            ((DataSet_Mesh*)inputSets[i])->AddXY( Xval, atof(token) );
+          else // STRING
+            ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
+        }
       }
       Xval++;
       linebuffer = buffer.Line();
