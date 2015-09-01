@@ -379,7 +379,7 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
   TextFormat x_fmt, y_fmt;
   x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
   y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt() + " ";
+  std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt(); // FIXME No trailing space for bkwds compat
 
   DataSet::SizeArray positions(2, 0);
   for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
