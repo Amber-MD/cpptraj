@@ -31,14 +31,17 @@ Frame::Frame( ) :
   T_(0.0),
   time_(0.0),
   X_(0),
-  V_(0)
+  V_(0),
+  memIsExternal_(false)
 {}
 
 /// DESTRUCTOR
 // Defined since this class can be inherited.
-Frame::~Frame( ) { 
-  if (X_ != 0) delete[] X_;
-  if (V_ != 0) delete[] V_;
+Frame::~Frame( ) {
+  if (!memIsExternal_) {
+    if (X_ != 0) delete[] X_;
+    if (V_ != 0) delete[] V_;
+  }
 }
 
 // CONSTRUCTOR
@@ -50,7 +53,8 @@ Frame::Frame(int natomIn) :
   time_(0.0),
   X_(0),
   V_(0),
-  Mass_(natomIn, 1.0)
+  Mass_(natomIn, 1.0),
+  memIsExternal_(false)
 {
   if (ncoord_ > 0)
     X_ = new double[ ncoord_ ];
@@ -64,7 +68,8 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   T_(0.0),
   time_(0.0),
   X_(0),
-  V_(0)
+  V_(0),
+  memIsExternal_(false)
 {
   if (ncoord_ > 0) {
     X_ = new double[ ncoord_ ];
@@ -84,7 +89,8 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   time_( frameIn.time_ ),
   X_(0),
   V_(0),
-  remd_indices_(frameIn.remd_indices_)
+  remd_indices_(frameIn.remd_indices_),
+  memIsExternal_(false)
 {
   if (ncoord_ > 0) {
     Mass_.reserve(natom_);
@@ -115,6 +121,22 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   }
 }
 
+// CONSTRUCTOR
+Frame::Frame(int natom, double* Xptr) :
+  natom_(natom),
+  maxnatom_(natom),
+  ncoord_(natom*3),
+  X_(Xptr),
+  V_(0),
+  Mass_(natom, 1.0),
+  memIsExternal_(true)
+{
+  if (Xptr == 0) {
+    mprinterr("Internal Error: in Frame::Frame(int,double*) pointer is NULL.\n");
+    ncoord_ = maxnatom_ = natom_ = 0;
+  }
+}
+
 // COPY CONSTRUCTOR
 Frame::Frame(const Frame& rhs) :
   natom_(rhs.natom_),
@@ -126,17 +148,23 @@ Frame::Frame(const Frame& rhs) :
   X_(0),
   V_(0),
   remd_indices_(rhs.remd_indices_),
-  Mass_(rhs.Mass_)
+  Mass_(rhs.Mass_),
+  memIsExternal_(rhs.memIsExternal_)
 {
-  // Copy coords/velo; allocate for maxnatom but copy natom
-  int maxncoord = maxnatom_ * 3;
-  if (rhs.X_!=0) {
-    X_ = new double[ maxncoord ];
-    memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
-  }
-  if (rhs.V_!=0) {
-    V_ = new double[ maxncoord ];
-    memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+  if (memIsExternal_) {
+    X_ = rhs.X_;
+    V_ = rhs.V_;
+  } else {
+    // Copy coords/velo; allocate for maxnatom but copy natom
+    int maxncoord = maxnatom_ * 3;
+    if (rhs.X_!=0) {
+      X_ = new double[ maxncoord ];
+      memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
+    }
+    if (rhs.V_!=0) {
+      V_ = new double[ maxncoord ];
+      memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+    }
   }
 }
 
@@ -152,6 +180,7 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.V_, second.V_);
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
+  swap(first.memIsExternal_, second.memIsExternal_);
   swap( first.box_[0], second.box_[0] );
   swap( first.box_[1], second.box_[1] );
   swap( first.box_[2], second.box_[2] );
@@ -163,7 +192,10 @@ void Frame::swap(Frame &first, Frame &second) {
 // Frame::operator=()
 /** Assignment operator using copy/swap idiom. */
 Frame &Frame::operator=(Frame rhs) {
-  swap(*this, rhs);
+  if (memIsExternal_)
+    mprinterr("Internal Error: Attempting to assign to Frame with external memory.\n");
+  else
+    swap(*this, rhs);
   return *this;
 }
 
@@ -262,7 +294,10 @@ void Frame::IncreaseX() {
   double *newX = new double[ maxnatom_ * 3 ];
   if (X_!=0) {
     memcpy(newX, X_, natom_ * COORDSIZE_);
-    delete[] X_;
+    if (!memIsExternal_)
+      delete[] X_;
+    else
+      memIsExternal_ = false;
   }
   X_ = newX;
 }
@@ -293,6 +328,17 @@ void Frame::AddVec3(Vec3 const& vIn) {
   ncoord_ += 3;
 }
 
+void Frame::SetMass(std::vector<Atom> const& atoms) {
+  // No memory reallocation TODO allow atoms to be larger?
+  if (natom_ != (int)atoms.size()) {
+    mprinterr("Internal Error: Size of atoms array is %zu, Frame size is %i\n",
+              atoms.size(), natom_);
+  } else { // Assume mass has been allocated
+    for (unsigned int i = 0; i != atoms.size(); i++)
+      Mass_[i] = atoms[i].Mass();
+  }
+}
+  
 // ---------- FRAME MEMORY ALLOCATION/REALLOCATION -----------------------------
 /** \return True if reallocation of coordinate arrray must occur based on 
   *         given number of atoms.
@@ -300,8 +346,11 @@ void Frame::AddVec3(Vec3 const& vIn) {
 bool Frame::ReallocateX(int natomIn) {
   natom_ = natomIn;
   ncoord_ = natom_ * 3;
-  if (natom_ > maxnatom_) {
-    if (X_ != 0) delete[] X_;
+  if (natom_ > maxnatom_ || memIsExternal_) {
+    if (memIsExternal_)
+      memIsExternal_ = false;
+    else if (X_ != 0)
+      delete[] X_;
     X_ = new double[ ncoord_ ];
     maxnatom_ = natom_;
     return true;
@@ -412,6 +461,19 @@ void Frame::SetCoordinates(Frame const& frameIn) {
   natom_ = frameIn.natom_;
   ncoord_ = natom_ * 3;
   memcpy(X_, frameIn.X_, natom_ * COORDSIZE_);
+}
+
+int Frame::SetCoordinates(int natom, double* Xptr) {
+  if (!memIsExternal_)
+    mprinterr("Internal Error: Frame memory is internal, not setting from external pointer.\n");
+  else if (natom != natom_)
+    mprinterr("Internal Error: Frame set up for %i atoms, external memory has %i atoms.\n",
+               natom_, natom);
+  else {
+    X_ = Xptr;
+    return 0;
+  }
+  return 1;
 }
 
 // Frame::SetFrame()
@@ -660,7 +722,6 @@ void Frame::Multiply(double mult) {
 }
 
 // Frame::AddByMask()
-/** Increment atoms in this frame by the selected atoms in given frame. */
 int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   if (maskIn.Nselected() > maxnatom_) {
     mprinterr("Error: AddByMask: Input mask #atoms (%i) > frame #atoms (%i)\n",
