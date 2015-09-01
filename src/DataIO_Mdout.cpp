@@ -178,6 +178,12 @@ int DataIO_Mdout::ReadData(std::string const& fname,
                           strncmp(ptr, "   5.  TIMINGS",            14) == 0   )) ||
            (imin == 0 && strncmp(ptr, "      A V", 9) == 0))
         finalE = true;
+      // Check for '| TI region  2' to prevent reading duplicate energies
+      if ( strncmp(ptr, "| TI region  2", 14) == 0 ) {
+        while (ptr != 0 && !(ptr[0] == ' ' && ptr[1] == '-'))
+          ptr = buffer.Line();
+        if (ptr == 0) return EOF_ERROR();
+      }
       // Record set for energy post-processing
       if (imin == 5 && strncmp(ptr, "minimizing", 10) == 0)
         nstep = atoi( ptr + 22 );
