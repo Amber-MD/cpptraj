@@ -9,8 +9,8 @@ const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
-  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 3), 1),
-  order_(0), isIred_(false), writeSum_(false) {}
+  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
+  order_(0), isIred_(false) {}
 
 // DataSet_Vector::Allocate()
 int DataSet_Vector::Allocate(SizeArray const& Nin) {
@@ -24,17 +24,12 @@ int DataSet_Vector::Allocate(SizeArray const& Nin) {
 // DataSet_Vector::WriteBuffer()
 void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
   if (pIn[0] >= vectors_.size()) {
-    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0); // VXYZ
-    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0); // OXYZ
-    if (writeSum_)
-      cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0);
+    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); // VXYZ OXYZ
   } else {
     Vec3 const& Vxyz = vectors_[pIn[0]];
-    cbuffer.Printf(format_.fmt(), Vxyz[0], Vxyz[1], Vxyz[2]);
     Vec3 const& Oxyz = OXYZ(pIn[0]);
-    cbuffer.Printf(format_.fmt(), Oxyz[0], Oxyz[1], Oxyz[2]);
-    if (writeSum_)
-      cbuffer.Printf(format_.fmt(), Oxyz[0]+Vxyz[0], Oxyz[1]+Vxyz[1], Oxyz[2]+Vxyz[2]);
+    cbuffer.Printf(format_.fmt(), Vxyz[0], Vxyz[1], Vxyz[2],
+                                  Oxyz[0], Oxyz[1], Oxyz[2]);
   }
 }
 
@@ -65,7 +60,6 @@ void DataSet_Vector::reset() {
   sphericalHarmonics_.clear();
   order_ = 0;
   isIred_ = false;
-  writeSum_ = false;
 }
 
 // -----------------------------------------------------------------------------

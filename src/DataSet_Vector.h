@@ -58,7 +58,6 @@ class DataSet_Vector : public DataSet {
   private:
     int order_;      ///< Order for spherical harmonics calculations
     bool isIred_;    ///< If true, this can be used in IRED analysis
-    bool writeSum_;  ///< If true write vector+origin sum TODO: Get rid of
     Varray vectors_;
     Varray origins_;
     /// Hold spherical harmonic values for m=-order to order

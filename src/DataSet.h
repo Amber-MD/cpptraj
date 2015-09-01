@@ -70,8 +70,6 @@ class DataSet {
     void AssociateData(AssociatedData* a) { associatedData_.push_back( a->Copy() ); }
     /// Set DataSet MetaData
     int SetMeta(MetaData const&);
-    /// Set specific MetaData part
-    //MetaData& SetupMeta() { return meta_; }
     /// Set DataSet ensemble number.
     void SetEnsemble(int e) { meta_.SetEnsembleNum( e ); }
     /// Set DataSet legend
