@@ -154,7 +154,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   double Energy[N_FIELDTYPES];
   std::fill( Energy, Energy+N_FIELDTYPES, 0.0 );
   std::vector<bool> EnergyExists(N_FIELDTYPES, false);
-  std::vector<double> TimeVals;
+  DataSetList::Darray TimeVals;
   DataSetList::DataListType inputSets(N_FIELDTYPES, 0);
   Sarray Name(2);
   double time = 0.0;

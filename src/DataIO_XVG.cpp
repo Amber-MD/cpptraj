@@ -2,7 +2,7 @@
 #include "DataIO_XVG.h"
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
-#include "DataSet_Mesh.h"
+#include "DataSet_double.h"
 
 bool DataIO_XVG::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
@@ -66,23 +66,14 @@ int DataIO_XVG::ReadData(FileName const& fname,
   for (unsigned int i = 0; i != Legends.size(); i++) {
     MetaData md( dsname, i );
     md.SetLegend( Legends[i] );
-    DataSet* ds = datasetlist.CheckForSet( md );
-    if (ds == 0) {
-      // Create new data set.
-      ds = datasetlist.AddSet(DataSet::XYMESH, md);
-      if (ds == 0) return 1;
-    } else {
-      // Appending to existing. Only XYMESH allowed.
-      if (ds->Type() != DataSet::XYMESH) {
-        mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
-                  ds->legend());
-        return 1;
-      }
-    }
+    DataSet_double* ds = new DataSet_double();
+    if (ds == 0) return 1;
+    ds->SetMeta( md );
     inputSets.push_back( ds );
   }
   mprintf("\t%s has %zu columns of data.\n", fname.base(), inputSets.size());
   // Should now be positioned at first line of data. Assume first column is time values.
+  DataSetList::Darray Xvals;
   int expectedCols = (int)inputSets.size() + 1;
   while (ptr != 0) {
     int ncols = infile.TokenizeLine(" \t");
@@ -90,12 +81,12 @@ int DataIO_XVG::ReadData(FileName const& fname,
       mprinterr("Error: Line %i: %i columns != expected # cols %i\n", infile.LineNumber(),
                 ncols, expectedCols);
     else {
-      double xval = atof( infile.NextToken() );
+      Xvals.push_back( atof( infile.NextToken() ) );
       for (unsigned int i = 0; i != inputSets.size(); i++)
-        ((DataSet_Mesh*)inputSets[i])->AddXY( xval, atof( infile.NextToken() ) );
+        ((DataSet_double*)inputSets[i])->AddElement( atof( infile.NextToken() ) );
     }
     ptr = infile.Line();
   }
   infile.CloseFile();
-  return 0;
+  return (datasetlist.AddOrAppendSets( Xvals, inputSets ));
 }

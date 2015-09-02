@@ -14,7 +14,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
   std::vector<std::string> labels;
   double XY[2];
   const char* linebuffer;
-  std::vector<double> Xvals;
+  DataSetList::Darray Xvals;
   DataSetList::DataListType inputSets(1);
   
   // Allocate and set up read buffer
