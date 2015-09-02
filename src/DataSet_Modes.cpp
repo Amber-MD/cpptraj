@@ -85,7 +85,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   mprinterr("Error: modes: Compiled without ARPACK/LAPACK/BLAS routines.\n");
   return 1;
 #else
-  bool eigenvaluesOnly;
+  bool eigenvaluesOnly = false;
   int info = 0;
   if (mIn.MatrixKind() != DataSet_2D::HALF) {
     mprinterr("Error: DataSet_Modes: Eigenvector/value calc only for symmetric matrices.\n");
@@ -93,18 +93,20 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   }
   // If number to calc is 0, assume we want eigenvalues only
   if (n_to_calc < 1) {
-    eigenvaluesOnly = true;
+    if (n_to_calc == 0) eigenvaluesOnly = true;
     nmodes_ = (int)mIn.Ncols();
-  } else {
-    eigenvaluesOnly = false;
+  } else
     nmodes_ = n_to_calc;
-  }
   if (nmodes_ > (int)mIn.Ncols()) {
     mprintf("Warning: Specified # of eigenvalues to calc (%i) > matrix dimension (%i).\n",
             nmodes_, mIn.Ncols());
     nmodes_ = mIn.Ncols();
     mprintf("Warning: Only calculating %i eigenvalues.\n", nmodes_);
   }
+  if (eigenvaluesOnly)
+    mprintf("\tCalculating %i eigenvalues only.\n", nmodes_);
+  else
+    mprintf("\tCalculating %i eigenvectors and eigenvalues.\n", nmodes_);
   // -----------------------------------------------------------------
   if (nmodes_ == (int)mIn.Ncols()) {
     // Calculate all eigenvalues (and optionally eigenvectors). 

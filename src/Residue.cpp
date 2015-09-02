@@ -28,7 +28,7 @@ char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"SER")==0) return 'S';
   if (r.compare(0,3,"THR")==0) return 'T';
   if (r.compare(0,3,"TRP")==0) return 'W';
-  if (r.compare(0,3,"TYR")==0) return 'R';
+  if (r.compare(0,3,"TYR")==0) return 'Y';
   if (r.compare(0,3,"VAL")==0) return 'V';
   // Make lower case letter when unrecognized.
   if (!r.empty()) return tolower(r[0]);

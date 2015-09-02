@@ -26,9 +26,14 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-libcpptraj: checkshared $(OBJECTS) $(FFT_DEPEND) $(READLINE)
+libcpptraj: $(LIBCPPTRAJ)
+
+libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE)
 	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) $(FFT_LIB) $(LDFLAGS) $(READLINE)
 	/bin/mv libcpptraj.so $(CPPTRAJLIB)
+
+nolibcpptraj:
+	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
 
 cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)

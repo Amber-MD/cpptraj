@@ -41,6 +41,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               SDFfile.cpp \
               StringRoutines.cpp \
               TinkerFile.cpp \
+              Timer.cpp \
               Topology.cpp \
               TrajectoryFile.cpp \
               TrajFrameCounter.cpp \

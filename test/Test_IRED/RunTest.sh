@@ -3,12 +3,12 @@
 # Test of IRED 
 . ../MasterTest.sh
 
-CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ptraj_ired_step1.in
+CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in
 
 CheckPtrajAnalyze
 
 TOP="1IEE_A_prot.prmtop"
-INPUT="ptraj_ired_step1.in"
+INPUT="ired.in"
 echo "trajin 1IEE_A_test.mdcrd" > $INPUT
 N=0
 # Define N-H vectors. H atom is always N atom plus one.
@@ -28,10 +28,10 @@ for NATOM in 25   41   61   68   92   102  117  136  146  156  166  183  205  \
 done
 cat >> $INPUT <<EOF
 matrix ired name matired order 2
-###Attention: adjust vecs to number of residues in your protein
-analyze matrix matired out ired.vec name ired.vec vecs 126 
-analyze ired relax freq 500.0 NHdist 1.02 tstep 1.0 tcorr 10000.0 norm out v0 noefile noe \
-        order 2 modes ired.vec orderparamfile orderparam
+diagmatrix matired out ired.vec name ired.vec
+ired order 2 modes ired.vec relax freq 500.0 NHdist 1.02 \
+     tstep 1.0 tcorr 10000.0 norm \
+     out v0 noefile noe orderparamfile orderparam
 EOF
 
 RunCpptraj "IRED vector/matrix test"

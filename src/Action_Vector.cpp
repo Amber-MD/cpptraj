@@ -182,8 +182,11 @@ Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddre
   if (mask_.MaskStringSet()) {
     // Setup mask 1
     if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
-    mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
-            mask_.MaskString(), mask_.Nselected());
+    mask_.MaskInfo();
+    if (mask_.None()) {
+      mprinterr("Error: First vector mask is empty.\n");
+      return Action::ERR;
+    }
   }
 
   // Allocate space for CORRPLANE. 
@@ -195,8 +198,11 @@ Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddre
   // Setup mask 2
   if (mask2_.MaskStringSet()) {
     if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
-    mprintf("\tVector mask [%s] corresponds to %i atoms.\n",
-            mask2_.MaskString(), mask2_.Nselected());
+    mask2_.MaskInfo();
+    if (mask2_.None()) {
+      mprinterr("Error: Second vector mask is empty.\n");
+      return Action::ERR;
+    }
   }
   CurrentParm_ = currentParm;
   return Action::OK;

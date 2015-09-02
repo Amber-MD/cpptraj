@@ -18,6 +18,10 @@ Analysis_IRED::Analysis_IRED() :
   cf_cjt_(0),
   cfinf_(0),
   taum_(0),
+  orderout_(0),
+  noefile_(0),
+  cmtfile_(0),
+  cjtfile_(0),
   modinfo_(0)
 {}
 
@@ -71,17 +75,26 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
-  orderparamfile_ = analyzeArgs.GetStringKey("orderparamfile");
 
   // Get tstep, tcorr, filenames
   tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
   tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
-  noeFilename_ = analyzeArgs.GetStringKey("noefile");
-  filename_ = analyzeArgs.GetStringKey("out");
-  if (filename_.empty()) {
+  std::string orderParamName = analyzeArgs.GetStringKey("orderparamfile");
+  if (!orderParamName.empty()) {
+    orderout_ = DFLin->AddCpptrajFile(orderParamName, "IRED order parameters");
+    if (orderout_ == 0) return Analysis::ERR;
+  }
+  noefile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("noefile"), "IRED NOEs",
+                                   DataFileList::TEXT, true);
+  if (noefile_ == 0) return Analysis::ERR;
+  std::string filename = analyzeArgs.GetStringKey("out");
+  if (filename.empty()) {
     mprinterr("Error: No outfile given ('out <filename>').\n");
     return Analysis::ERR;
   }
+  cmtfile_ = DFLin->AddCpptrajFile(filename + ".cmt", "Auto-correlation functions Cm(t)");
+  cjtfile_ = DFLin->AddCpptrajFile(filename + ".cjt", "Auto-correlation functions Cj(t)");
+  if (cmtfile_ == 0 || cjtfile_ == 0) return Analysis::ERR;
 
   // Get norm, drct, relax
   norm_ = analyzeArgs.hasKey("norm");
@@ -103,8 +116,8 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
 
   // Print Status
   mprintf("    IRED: %u IRED vectors.\n", IredVectors_.size());
-  if (!orderparamfile_.empty())
-    mprintf("\tOrder parameters will be written to %s\n",orderparamfile_.c_str());
+  if (orderout_ != 0)
+    mprintf("\tOrder parameters will be written to %s\n", orderout_->Filename().full());
   mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
@@ -117,14 +130,16 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   else
     mprintf(" FFT approach.\n");
   mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->legend());
-  if (relax_)
+  if (relax_) {
     mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
             "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
             distnh_, freq_);
-  if (!noeFilename_.empty())
+  
     mprintf("\t\tNOEs and relaxation rates will be written to %s\n",
-            noeFilename_.c_str());
-  mprintf("\t\tResults are written to %s\n", filename_.c_str());
+            noefile_->Filename().full());
+  }
+  mprintf("\t\tResults are written to %s and %s\n", cmtfile_->Filename().full(),
+          cjtfile_->Filename().full());
   mprintf("#Citation: Prompers, J. J.; Brüschweiler, R.; \"General framework for\n"
           "#          studying the dynamics of folded and nonfolded proteins by\n"
           "#          NMR relaxation spectroscopy and MD simulation\"\n"
@@ -154,19 +169,14 @@ Analysis::RetType Analysis_IRED::Analyze() {
   if ( modinfo_->Size() != IredVectors_.size() )
     mprintf("Warning: Number of IRED vectors (%zu) does not equal number of modes (%zu).\n",
             IredVectors_.size(), modinfo_->Size());
-  if (!orderparamfile_.empty()) {
+  if (orderout_ != 0) {
     // Calculation of S2 order parameters according to 
     //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
     // Originally added by A.N. Koller & H. Gohlke.
-    CpptrajFile orderout;
-    if (orderout.OpenWrite(orderparamfile_)) {
-      mprinterr("Error: Could not set up order parameter file.\n");
-      return Analysis::ERR;
-    }
-    orderout.Printf("\n\t************************************\n"
-                    "\t- Calculated iRed order parameters -\n"
-                    "\t************************************\n\n"
-                    "vector    S2\n----------------------\n");
+    orderout_->Printf("\n\t************************************\n"
+                        "\t- Calculated iRed order parameters -\n"
+                        "\t************************************\n\n"
+                      "vector    S2\n----------------------\n");
     // Loop over all vector elements
     for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
       // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
@@ -177,9 +187,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
         sum += modinfo_->Eigenvalue(mode) * (*evectorElem) * (*evectorElem);
         evectorElem += modinfo_->VectorSize();
       }
-      orderout.Printf(" %4i  %10.5f\n", vi, 1.0 - sum);
+      orderout_->Printf(" %4i  %10.5f\n", vi, 1.0 - sum);
     }
-    orderout.CloseFile();
   }
 
   if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
@@ -363,15 +372,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
     }
 
     // Relaxation calculation. Added by Alrun N. Koller & H. Gohlke
-    CpptrajFile noefile;
-    if (noefile.OpenWrite(noeFilename_) != 0) {
-      mprinterr("Error: Could not open NOE file for write.\n");
-      return Analysis::ERR;
-    }
-    noefile.Printf("\n\t****************************************"
-                   "\n\t- Calculated relaxation rates and NOEs -"
-                   "\n\t****************************************\n\n"
-                   "vector   %10s   %10s   %10s\n","R1","R2","NOE");
+    noefile_->Printf("\n\t****************************************"
+                     "\n\t- Calculated relaxation rates and NOEs -"
+                     "\n\t****************************************\n\n"
+                     "vector   %10s   %10s   %10s\n","R1","R2","NOE");
     // conversion from Angstrom to meter
     double rnh = distnh_ * 1.0E-10;
     // ---------- CONSTANTS ----------
@@ -420,25 +424,17 @@ Analysis::RetType Analysis_IRED::Analyze() {
             - calc_spectral_density( i, lamfreqh + lamfreqn ) );
 
       double Noe = 1.0 + ( gamma_h * 1.0/gamma_n ) * ( 1.0 / R1 ) * Tj;
-      noefile.Printf("%6i   %10.5f   %10.5f   %10.5f\n", i, R1, R2, Noe);
+      noefile_->Printf("%6i   %10.5f   %10.5f   %10.5f\n", i, R1, R2, Noe);
     }
-    noefile.Printf("\n\n");
-    noefile.CloseFile();
+    noefile_->Printf("\n\n");
   } // END if (relax_)
 
   // ----- PRINT IRED -----
-  // Setup and open files with .cjt/.cmt extensions.
-  std::string cmtname = filename_ + ".cmt";
-  CpptrajFile cmtfile;
-  if (cmtfile.OpenWrite( cmtname )) return Analysis::ERR;
-  std::string cjtname = filename_ + ".cjt";
-  CpptrajFile cjtfile;
-  if (cjtfile.OpenWrite( cjtname )) return Analysis::ERR;  
   // Print headers
-  cmtfile.Printf("Auto-correlation functions Cm(t) for each eigenmode m, IRED type according to eq. A18 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
-  cjtfile.Printf("Auto-correlation functions Cj(t) for each ired vector j, IRED type according to eq. A23 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
-  cmtfile.Printf("%12s","XXX");
-  cjtfile.Printf("%12s","XXX");
+  cmtfile_->Printf("Auto-correlation functions Cm(t) for each eigenmode m, IRED type according to eq. A18 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
+  cjtfile_->Printf("Auto-correlation functions Cj(t) for each ired vector j, IRED type according to eq. A23 Prompers & Brüschweiler, JACS  124, 4522, 2002\n");
+  cmtfile_->Printf("%12s","XXX");
+  cjtfile_->Printf("%12s","XXX");
   int colwidth = 11;
   int tgti = 10;
   for (int i = 1; i <= nvect; ++i) {
@@ -447,48 +443,46 @@ Analysis::RetType Analysis_IRED::Analyze() {
       if (colwidth < 7) colwidth = 7;
       tgti *= 10;
     }
-    cmtfile.Printf("%*s%i", colwidth, "Mode",   i);
-    cjtfile.Printf("%*s%i", colwidth, "Vector", i);
+    cmtfile_->Printf("%*s%i", colwidth, "Mode",   i);
+    cjtfile_->Printf("%*s%i", colwidth, "Vector", i);
   }
-  cmtfile.Printf("\n");
-  cjtfile.Printf("\n");
+  cmtfile_->Printf("\n");
+  cjtfile_->Printf("\n");
   // Print cfinf
-  cmtfile.Printf("%12s", "C(m,t->T)");
+  cmtfile_->Printf("%12s", "C(m,t->T)");
   for (int i = 0; i < nvect; ++i) {
     if (norm_)
-      cmtfile.Printf("%12.8f", cfinf_[i] / cf_[nsteps * i] * Nframes_);
+      cmtfile_->Printf("%12.8f", cfinf_[i] / cf_[nsteps * i] * Nframes_);
     else
-      cmtfile.Printf("%12.8f", cfinf_[i]);
+      cmtfile_->Printf("%12.8f", cfinf_[i]);
   }
-  cmtfile.Printf("\n");
+  cmtfile_->Printf("\n");
   // Print Relaxation
   if (relax_) {
     // Print Taum in ps
-    cmtfile.Printf("%12s", "Tau_m [ps]");
+    cmtfile_->Printf("%12s", "Tau_m [ps]");
     for (int i = 0; i < nvect; ++i)
-      cmtfile.Printf("%12.6f", taum_[i]* 1.0E12);
-    cmtfile.Printf("\n");
+      cmtfile_->Printf("%12.6f", taum_[i]* 1.0E12);
+    cmtfile_->Printf("\n");
   }
   // Print cf
   // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
   double Snorm = DataSet_Vector::SphericalHarmonicsNorm( order_ );
   for (int i = 0; i < nsteps; ++i) {
-    cmtfile.Printf("%12.8f", (double)i * tstep_);
-    cjtfile.Printf("%12.8f", (double)i * tstep_);
+    cmtfile_->Printf("%12.8f", (double)i * tstep_);
+    cjtfile_->Printf("%12.8f", (double)i * tstep_);
     for (int j = 0; j < nvect; ++j) {
       if (norm_) {
-        cmtfile.Printf("%12.8f", cf_[nsteps*j + i] * Nframes_ / (cf_[nsteps * j] * (Nframes_ - i)));
-        cjtfile.Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
+        cmtfile_->Printf("%12.8f", cf_[nsteps*j + i] * Nframes_ / (cf_[nsteps * j] * (Nframes_ - i)));
+        cjtfile_->Printf("%12.8f", cf_cjt_[nsteps*j + i] / cf_cjt_[nsteps*j]);
       } else {
-        cmtfile.Printf("%12.8f", Snorm * cf_[nsteps*j + i] / (Nframes_ - i));
-        cjtfile.Printf("%12.8f", Snorm * cf_cjt_[nsteps*j + i]);
+        cmtfile_->Printf("%12.8f", Snorm * cf_[nsteps*j + i] / (Nframes_ - i));
+        cjtfile_->Printf("%12.8f", Snorm * cf_cjt_[nsteps*j + i]);
       }
     }
-    cmtfile.Printf("\n");
-    cjtfile.Printf("\n");
+    cmtfile_->Printf("\n");
+    cjtfile_->Printf("\n");
   }
-  cmtfile.CloseFile();
-  cjtfile.CloseFile();
 
   return Analysis::OK;
 }
