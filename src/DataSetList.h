@@ -82,6 +82,8 @@ class DataSetList {
     DataSet* AddSet( DataSet::DataType, MetaData const&);
     /// Add an already set up DataSet to list; memory for DataSet will be freed.
     int AddSet( DataSet* );
+    /// Add new sets or append to existing ones.
+    int AddOrAppendSets(Darray const&, DataListType const&);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
 

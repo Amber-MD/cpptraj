@@ -1,3 +1,4 @@
+#include <cstdio>  // sscanf
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
@@ -6,8 +7,10 @@
 #include "StringRoutines.h" // SetStringFormatString
 #include "BufferedLine.h"
 #include "TextFormat.h"
-#include "DataSet_Mesh.h" // For reading TODO remove dependency?
+#include "DataSet_double.h" // For reading TODO remove dependency?
 #include "DataSet_string.h" // For reading TODO remove dependency?
+#include "DataSet_Vector.h" // For reading TODO remove dependency?
+#include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_MatrixDbl.h" // For reading TODO remove dependency?
 #include "DataSet_3D.h"
 
@@ -135,105 +138,62 @@ int DataIO_Std::Read_1D(std::string const& fname,
   MetaData md( dsname );
   DataSetList::DataListType inputSets;
   for (int col = 0; col != ntoken; ++col) {
-    DataSet* ds = 0;
+    md.SetIdx( col+1 );
+    if (hasLabels) md.SetLegend( labels[col] );
     std::string token( buffer.NextToken() );
-    bool colContainsNumber = (validInteger(token) || validDouble(token));
-    if (col == indexcol_) {
-      // Index column does not get a data set.
-      if (!colContainsNumber) {
-        // String values not allowed for index column.
-        mprintf("Warning: DataFile %s index column %i has string values and will be skipped.\n", 
-                buffer.Filename().full(), indexcol_+1);
+    if (validInteger(token) || validDouble(token)) {
+      // Number
+      inputSets.push_back( new DataSet_double() );
+    } else {
+      // Assume string. Not allowed for index column.
+      if (col == indexcol_) {
+        mprintf("Warning: '%s' index column %i has string values. No indices will be read.\n", 
+                  buffer.Filename().full(), indexcol_+1);
         indexcol_ = -1;
       }
-    } else {
-      // Check if data set for this name/index already exists.
-      md.SetIdx( col+1 );
-      ds = datasetlist.CheckForSet( md );
-      if (ds == 0) {
-        // Create new data set.
-        if (hasLabels) md.SetLegend( labels[col] );
-        if (colContainsNumber)
-          ds = datasetlist.AddSet(DataSet::XYMESH, md);
-        else
-          ds = datasetlist.AddSet(DataSet::STRING, md);
-        if (ds == 0) return 1;
-      } else {
-        // Appending to existing. For numbers, only XYMESH allowed. TODO Allow other 1D sets?
-        // For string, only STRING allowed.
-        if (colContainsNumber) {
-          if (ds->Type() != DataSet::XYMESH) {
-            mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
-                      ds->legend());
-            return 1;
-          }
-        } else {
-          if (ds->Type() != DataSet::STRING) {
-            mprinterr("Error: Cannot append string values to set '%s'\n",
-                      ds->legend());
-          }
-        }
-      }
+      inputSets.push_back( new DataSet_string() );
     }
-    inputSets.push_back( ds );
+    inputSets.back()->SetMeta( md );
   }
   if (inputSets.empty()) {
     mprinterr("Error: No data detected.\n");
     return 1;
   }
 
-  if (indexcol_ != -1) {
-    // If there is an index column, that needs to be read first.
-    std::vector<double> dvals( ntoken, 0.0 );
-    while (linebuffer != 0) {
-      if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
-        PrintColumnError(buffer.LineNumber());
-        break;
-      }
-      // Save double values. Add string values now.
-      for (int i = 0; i != ntoken; i++) {
-        const char* token = buffer.NextToken();
-        if (inputSets[i] == 0 || inputSets[i]->Type() == DataSet::XYMESH)
-          dvals[i] = atof( token );
-        else
-          ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
-      }
-      // Add XY values.
-      double Xval = dvals[indexcol_];
-      for (int i = 0; i != ntoken; i++) {
-        if (inputSets[i] != 0 && inputSets[i]->Type() == DataSet::XYMESH)
-          ((DataSet_Mesh*)inputSets[i])->AddXY( Xval, dvals[i] );
-      }
-      linebuffer = buffer.Line();
+  // Read in data
+  while (linebuffer != 0) {
+    if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
+      PrintColumnError(buffer.LineNumber());
+      break;
     }
-  } else {
-    // No index column. X value starts at 0 and increases monotonically. 
-    double Xval = 0.0;
-    while (linebuffer != 0) {
-      if ( buffer.TokenizeLine( SEPARATORS ) != ntoken ) {
-        PrintColumnError(buffer.LineNumber());
-        break;
-      }
-      // Add double/string values 
-      for (int i = 0; i != ntoken; i++) {
-        const char* token = buffer.NextToken();
-        if (inputSets[i] != 0) {
-          if (inputSets[i]->Type() == DataSet::XYMESH)
-            ((DataSet_Mesh*)inputSets[i])->AddXY( Xval, atof(token) );
-          else // STRING
-            ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
-        }
-      }
-      Xval++;
-      linebuffer = buffer.Line();
+    // Convert data in columns
+    for (int i = 0; i < ntoken; ++i) {
+      const char* token = buffer.NextToken();
+      if (inputSets[i]->Type() == DataSet::DOUBLE)
+        ((DataSet_double*)inputSets[i])->AddElement( atof(token) );
+      else
+        ((DataSet_string*)inputSets[i])->AddElement( std::string(token) );
     }
+    //Ndata++;
+    linebuffer = buffer.Line();
   }
   buffer.CloseFile();
-  mprintf("\tDataFile %s has %i columns, %i lines.\n", buffer.Filename().full(),
-          ntoken, buffer.LineNumber());
-  if (hasLabels) {
-    mprintf("\tDataFile contains labels:\n");
-    labels.PrintList();
+   mprintf("\tDataFile %s has %i columns, %i lines.\n", buffer.Filename().full(),
+           ntoken, buffer.LineNumber());
+
+  // Create list containing only data sets.
+  DataSetList::DataListType mySets;
+  DataSet_double* Xptr = 0;
+  for (int idx = 0; idx != (int)inputSets.size(); idx++)
+    if ( idx != indexcol_ )
+      mySets.push_back( inputSets[idx] );
+    else
+      Xptr = (DataSet_double*)inputSets[idx];
+  if (Xptr == 0)
+    datasetlist.AddOrAppendSets(DataSetList::Darray(), mySets);
+  else {
+    datasetlist.AddOrAppendSets(Xptr->Data(), mySets);
+    delete Xptr;
   }
 
   return 0;
@@ -327,44 +287,37 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     mprinterr("Error: Expected 3, 6, or 9 columns of vector data, got %i.\n", ncols);
     return 1;
   }
-  if (ncols >= 6)
+  if (ncols >= 6) {
     nv = 6;
-  else
-    nv = 3;
-  // Get or add set
-  MetaData md( dsname );
-  DataSet* ds = datasetlist.CheckForSet( md );
-  if (ds == 0) {
-    // Create new data set.
-    ds = datasetlist.AddSet( DataSet::VECTOR, md );
-    if (ds == 0) return 1;
+    mprintf("\tReading vector X Y Z and origin X Y Z values.\n");
   } else {
-    // Appending to existing. Only VECTOR allowed.
-    if (ds->Type() != DataSet::VECTOR) {
-      mprinterr("Error: Append requires existing set '%s' to be VECTOR\n",
-                ds->legend());
-      return 1;
-    }
+    nv = 3;
+    mprintf("\tReading vector X Y Z values.\n");
   }
+  // Create set
+  DataSet_Vector* ds = new DataSet_Vector();
+  if (ds == 0) return 1;
+  ds->SetMeta( dsname );
   // Read vector data
-  double vecBuffer[6];
-  std::fill(vecBuffer, vecBuffer+6, 0.0);
+  double vec[6];
+  std::fill(vec, vec+6, 0.0);
   size_t ndata = 0;
   while (linebuffer != 0) {
-    ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols != ntokens) {
-      mprinterr("Error: In vector file, number of columns changes from %i to %i at line %i\n",
-                ncols, ntokens, buffer.LineNumber());
-      return 1;
-    }
     if (hasIndex)
-      buffer.NextToken(); // Skip index
-    for (int i = 0; i < nv; i++)
-      vecBuffer[i] = atof( buffer.NextToken() );
-    ds->Add( ndata++, vecBuffer ); 
+      ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf",
+                       vec, vec+1, vec+2, vec+3, vec+4, vec+5);
+    else
+      ntokens = sscanf(linebuffer, "%lf %lf %lf %lf %lf %lf",
+                       vec, vec+1, vec+2, vec+3, vec+4, vec+5);
+    if (ntokens != nv) {
+      mprinterr("Error: In vector file, line %i: expected %i values, got %i\n",
+                buffer.LineNumber(), nv, ntokens);
+      break;
+    }
+    ds->Add( ndata++, vec ); 
     linebuffer = buffer.Line();
   }
-  return 0;
+  return (datasetlist.AddOrAppendSets(DataSetList::Darray(), DataSetList::DataListType(1, ds)));
 }
 
 // DataIO_Std::Read_Mat3x3()
@@ -396,40 +349,30 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
     mprinterr("Error: Expected 9 columns of 3x3 matrix data, got %i.\n", ncols);
     return 1;
   }
-  // Get or add set
-  MetaData md( dsname );
-  DataSet* ds = datasetlist.CheckForSet( md );
-  if (ds == 0) {
-    // Create new data set.
-    ds = datasetlist.AddSet( DataSet::MAT3X3, md );
-    if (ds == 0) return 1;
-  } else {
-    // Appending to existing. Only MAT3X3 allowed.
-    if (ds->Type() != DataSet::MAT3X3) {
-      mprinterr("Error: Append requires existing set '%s' to be MAT3X3\n",
-                ds->legend());
-      return 1;
-    }
-  }
+  // Create data set
+  DataSet_Mat3x3* ds = new DataSet_Mat3x3();
+  if (ds == 0) return 1;
+  ds->SetMeta( dsname );
   // Read 3x3 matrix data
-  double matBuffer[9];
-  std::fill(matBuffer, matBuffer+9, 0.0);
+  double mat[9];
+  std::fill(mat, mat, 0.0);
   size_t ndata = 0;
   while (linebuffer != 0) {
-    ntokens = buffer.TokenizeLine( SEPARATORS );
-    if (ncols != ntokens) {
-      mprinterr("Error: In 3x3 matrix file, number of columns changes from %i to %i at line %i\n",
-                ncols, ntokens, buffer.LineNumber());
-      return 1;
-    }
     if (hasIndex)
-      buffer.NextToken(); // Skip index
-    for (int i = 0; i < 9; i++)
-      matBuffer[i] = atof( buffer.NextToken() );
-    ds->Add( ndata++, matBuffer ); 
+      ntokens = sscanf(linebuffer, "%*f %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                       mat, mat+1, mat+2, mat+3, mat+4, mat+5, mat+6, mat+7, mat+8);
+    else
+      ntokens = sscanf(linebuffer, "%lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                       mat, mat+1, mat+2, mat+3, mat+4, mat+5, mat+6, mat+7, mat+8);
+    if (ntokens != 9) {
+      mprinterr("Error: In 3x3 matrix file, line %i: expected 9 values, got %i\n",
+                buffer.LineNumber(), ntokens);
+      break;
+    }
+    ds->Add( ndata++, mat ); 
     linebuffer = buffer.Line();
   }
-  return 0;
+  return (datasetlist.AddOrAppendSets(DataSetList::Darray(), DataSetList::DataListType(1, ds)));
 }
 
 // -----------------------------------------------------------------------------

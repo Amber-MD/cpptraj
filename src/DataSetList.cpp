@@ -325,6 +325,106 @@ int DataSetList::AddSet( DataSet* dsIn ) {
   return 0;
 }
 
+/** Given an array of already set up data sets (from e.g. input data files)
+  * and optional X values, add the sets to this list if they do not exist
+  * or append any existing sets.
+  */
+int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
+{
+  mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values.\n", Sets.size(), Xvals.size());
+  if (Sets.empty()) return 0; // No error for now.
+  Dimension Xdim;
+  // First determine if X values increase monotonically with a regular step
+  bool isMonotonic = true;
+  double xstep = 1.0;
+  if (Xvals.size() > 1) {
+    xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
+    for (Darray::const_iterator X = Xvals.begin()+2; X != Xvals.end(); ++X)
+      if ((*X - *(X-1)) - xstep > Constants::SMALL) {
+        isMonotonic = false;
+        break;
+      }
+    if (isMonotonic) {
+      Xdim.SetMin( Xvals.front() );
+      Xdim.SetMax( Xvals.back() );
+      Xdim.SetStep( xstep );
+      Xdim.SetBins( Xvals.size() );
+    }
+  } else
+    // No X values. set generic X dim.
+    Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
+  mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n", Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
+  if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
+  
+  for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
+    if (*ds == 0) continue; // TODO: Warn about blanks?
+    mprintf("DEBUG: AddOrAppend set '%s'", (*ds)->legend());
+    if (isMonotonic) (*ds)->SetDim(Dimension::X, Xdim);
+    DataSet* existingSet = CheckForSet( (*ds)->Meta() );
+    if (existingSet == 0) {
+      // New set. If set is scalar 1D but X values are not monotonic,
+      // convert to XY mesh if necessary.
+      if ( !isMonotonic &&
+           (*ds)->Group() == DataSet::SCALAR_1D &&
+           (*ds)->Type() != DataSet::XYMESH )
+      {
+        DataSet* xyptr = AddSet( DataSet::XYMESH, (*ds)->Meta() );
+        if (xyptr == 0) {
+          mprinterr("Error: Could not convert set %s to XY mesh.\n", (*ds)->legend());
+          continue; // TODO exit instead?
+        }
+        if ( (*ds)->Size() != Xvals.size() ) { // Sanity check
+          mprinterr("Error: # of X values does not match set %s size.\n", (*ds)->legend());
+          continue;
+        }
+        DataSet_1D const& set = static_cast<DataSet_1D const&>( *(*ds) );
+        DataSet_Mesh& xy = static_cast<DataSet_Mesh&>( *xyptr );
+        for (unsigned int i = 0; i != set.Size(); i++)
+          xy.AddXY( Xvals[i], set.Dval(i) );
+        mprintf(", New set, converted to XY-MESH\n");
+        // Free memory since set has now been converted.
+        delete *ds;
+      } else { // No conversion. Just add.
+        (*ds)->SetDim(Dimension::X, Xdim);
+        AddSet( *ds );
+        mprintf(", New set\n");
+      }
+    } else {
+      mprintf(", appending to existing set\n");
+      // Set exists. Try to append this set to existing set.
+      bool canAppend = true;
+      if ( (*ds)->Group() == DataSet::GENERIC ) {
+        // For GENERIC sets, base Type must match. // TODO: Should this logic be in DataSets?
+        if ( (*ds)->Type() != existingSet->Type() )
+          canAppend = false;
+      } else {
+        // For non-GENERIC sets, Group must match
+        if ( (*ds)->Group() != existingSet->Group() )
+          canAppend = false;
+      }
+      if (!canAppend)
+        mprinterr("Error: Cannot append set of type %s to set of type %s\n",
+                  DataArray[(*ds)->Type()].Description,
+                  DataArray[existingSet->Type()].Description);
+      // If cannot append or attempt to append fails, rename and add as new set.
+      if (!canAppend || existingSet->Append( *ds )) { // TODO Dimension check?
+        if (canAppend)
+          mprintf("Warning: Append currently not supported for type %s\n",
+                  DataArray[existingSet->Type()].Description);
+        MetaData md = (*ds)->Meta();
+        md.SetName( GenerateDefaultName("X") );
+        mprintf("Warning: Renaming %s to %s\n", (*ds)->Meta().PrintName().c_str(),
+                md.PrintName().c_str());
+        (*ds)->SetMeta( md );
+       
+        AddSet( *ds );
+      } else // Set was appended to existing set; memory can be freed.
+        delete *ds;
+    }
+  } // END loop over input sets
+  return 0;
+}
+
 // DataSetList::AddCopyOfSet()
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {

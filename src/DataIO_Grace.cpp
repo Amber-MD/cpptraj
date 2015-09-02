@@ -2,6 +2,7 @@
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "DataSet_double.h"
 
 // TODO: Set dimension labels
 // Dont assume anything about set ordering
@@ -13,7 +14,8 @@ int DataIO_Grace::ReadData(FileName const& fname,
   std::vector<std::string> labels;
   double XY[2];
   const char* linebuffer;
-  DataSetList::DataListType inputSets;
+  std::vector<double> Xvals;
+  DataSetList::DataListType inputSets(1);
   
   // Allocate and set up read buffer
   BufferedLine buffer;
@@ -35,31 +37,23 @@ int DataIO_Grace::ReadData(FileName const& fname,
         if (linebuffer == 0) return 1; // TODO: Better error
         if (linebuffer[0] != '@') return 1; // TODO: Check type
         linebuffer = buffer.Line(); // Should be first line of data.
-        DataSet* ds = 0;
-        MetaData md( dsname, setnum );
-        ds = datasetlist.CheckForSet( md );
-        if (ds == 0) {
-          // Create new data set.
-          ds = datasetlist.AddSet( DataSet::XYMESH, md );
-          if (ds == 0) return 1;
-        } else {
-          // Appending to existing. Only XYMESH allowed.
-          if (ds->Type() != DataSet::XYMESH) {
-            mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
-                      ds->legend());
-            return 1;
-          }
-        }
-        unsigned int Ndata = 0;
+        DataSet_double* Yvals = new DataSet_double();
+        MetaData md(dsname, setnum);
+        if ((int)labels.size() > setnum)
+          md.SetLegend( labels[setnum] );
+        Yvals->SetMeta( md );
+        Xvals.clear();
         while (linebuffer != 0 && linebuffer[0] != '@' && 
                linebuffer[0] != '&' && linebuffer[0] != '#')
         {
           if (sscanf(linebuffer, "%lf %lf", XY, XY+1) != 2) break;
-          ds->Add(Ndata++, XY);
+          Xvals.push_back(   XY[0] );
+          Yvals->AddElement( XY[1] );
           linebuffer = buffer.Line();
         }
         // Should now be positioned 1 line after last data line.
-        inputSets.push_back( ds );
+        inputSets[0] = (DataSet*)Yvals;
+        if (datasetlist.AddOrAppendSets(Xvals, inputSets)) return 1;
         ++setnum;
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
@@ -75,15 +69,13 @@ int DataIO_Grace::ReadData(FileName const& fname,
 
   // Set DataSet legends if specified
   if (!labels.empty()) {
-    if (inputSets.size() == labels.size()) {
+    if (setnum == (int)labels.size()) {
       mprintf("\tLabels:\n");
-      for (unsigned int i = 0; i != labels.size(); i++) {
+      for (unsigned int i = 0; i != labels.size(); i++)
         mprintf("\t\t%s\n", labels[i].c_str());
-        inputSets[i]->SetLegend( labels[i] );
-      }
     } else {
-      mprintf("Warning: Number of labels (%zu) does not match number of sets (%zu)\n",
-              labels.size(), inputSets.size());
+      mprintf("Warning: Number of labels (%zu) does not match number of sets (%i)\n",
+              labels.size(), setnum);
     }
   }
   return 0;

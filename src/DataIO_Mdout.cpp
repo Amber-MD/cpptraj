@@ -5,7 +5,7 @@
 #include "BufferedLine.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // convertToDouble
-#include "DataSet_Mesh.h"
+#include "DataSet_double.h"
 
 // DataIO_Mdout::ID_DataFormat()
 bool DataIO_Mdout::ID_DataFormat(CpptrajFile& infile) {
@@ -154,6 +154,7 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   double Energy[N_FIELDTYPES];
   std::fill( Energy, Energy+N_FIELDTYPES, 0.0 );
   std::vector<bool> EnergyExists(N_FIELDTYPES, false);
+  std::vector<double> TimeVals;
   DataSetList::DataListType inputSets(N_FIELDTYPES, 0);
   Sarray Name(2);
   double time = 0.0;
@@ -182,32 +183,19 @@ int DataIO_Mdout::ReadData(FileName const& fname,
         for (int i = 0; i < (int)N_FIELDTYPES; i++) {
           if (EnergyExists[i]) {
             if (inputSets[i] == 0) {
-              // Need to obtain data set for this energy type
-              DataSet* ds = 0;
               MetaData md( dsname, Enames[i] );
-              ds = datasetlist.CheckForSet( md );
-              if (ds == 0) {
-                // Create new data set.
-                ds = datasetlist.AddSet( DataSet::XYMESH, md );
-                if (ds == 0) return 1;
-                ds->SetLegend( dsname + "_" + Enames[i] );
-              } else {
-                // Appending to existing. Only XYMESH allowed.
-                if (ds->Type() != DataSet::XYMESH) {
-                  mprinterr("Error: Append currently requires existing set '%s' to be XYMESH\n",
-                            ds->legend());
-                  return 1;
-                }
-              }
-              inputSets[i] = ds;
+              md.SetLegend( dsname + "_" + Enames[i] );
+              inputSets[i] = new DataSet_double();
+              inputSets[i]->SetMeta( md );
             }
             // Since energy terms can appear and vanish over the course of the
             // mdout file, resize if necessary.
             if (frame > (int)inputSets[i]->Size())
-              ((DataSet_Mesh*)inputSets[i])->Resize( frame );
-            ((DataSet_Mesh*)inputSets[i])->AddXY( time, Energy[i] );
+              ((DataSet_double*)inputSets[i])->Resize( frame );
+            ((DataSet_double*)inputSets[i])->AddElement( Energy[i] );
           }
         }
+        TimeVals.push_back( time );
         nstep += ntpr;
       }
       frame++;
@@ -260,5 +248,6 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   }
   mprintf("\t%i frames\n", frame);
   buffer.CloseFile();
+  if (datasetlist.AddOrAppendSets( TimeVals, inputSets )) return 1;
   return 0;
 }
