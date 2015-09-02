@@ -10,6 +10,7 @@
   *   - 3) Add entry/entries describing how the format is to be called
   *        to the TF_AllocArray[] and TF_KeyArray[] arrays.
   */
+// TODO: Namespace? Combine detection of all format types to one file?
 class TrajectoryFile {
     /// Allocator and description for file types. 
     static const FileTypes::AllocToken TF_AllocArray[];
@@ -23,7 +24,7 @@ class TrajectoryFile {
       UNKNOWN_TRAJ
     };
 
-    TrajectoryFile();
+    TrajectoryFile() {}
     virtual ~TrajectoryFile() {}
     /// List read options for each format.
     static void ReadOptions() { FileTypes::ReadOptions(TF_KeyArray,TF_AllocArray, UNKNOWN_TRAJ); }
@@ -49,23 +50,11 @@ class TrajectoryFile {
     static const char* FormatString( TrajFormatType tt ) { return 
       FileTypes::FormatDescription(TF_AllocArray, tt);
     }
-    // NOTE: This is made public in order to detect single ensemble trajs
     /// Allocate TrajectoryIO appropriate for given file.
     static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
-
-    void SetDebug(int);
-    void SetTrajFileName( std::string const&, bool );
-    int SetTrajParm( Topology* );
-    Topology* TrajParm()           const { return trajParm_; }
-    const FileName& TrajFilename() const { return trajName_; }
-  protected:
-    int debug_;            ///< Trajectory debug level.
     /// Allocate TrajectoryIO for given format
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);
     }
-  private:
-    Topology *trajParm_;   ///< Associated parm
-    FileName trajName_;    ///< The full path to trajectory file.
 };
 #endif

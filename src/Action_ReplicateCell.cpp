@@ -149,9 +149,10 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
     if (coords_ != 0)
       coords_->SetTopology( combinedTop_ );
     if (!trajfilename_.empty()) {
-      if ( outtraj_.InitEnsembleTrajWrite(trajfilename_, trajArgs_,
-                                          &combinedTop_, TrajectoryFile::UNKNOWN_TRAJ,
-                                          ensembleNum_) )
+      if ( outtraj_.PrepareEnsembleTrajWrite(trajfilename_, trajArgs_,
+                                             &combinedTop_, combinedTop_.ParmCoordInfo(),
+                                             currentParm->Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
+                                             ensembleNum_) )
         return Action::ERR;
     }
   }
@@ -194,7 +195,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame
   }
 # endif
   if (!trajfilename_.empty()) {
-    if (outtraj_.WriteFrame(frameNum, &combinedTop_, combinedFrame_)!=0)
+    if (outtraj_.WriteSingle(frameNum, combinedFrame_)!=0)
       return Action::ERR;
   }
   if (coords_ != 0)

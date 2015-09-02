@@ -23,39 +23,39 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
   // Set up trajectory - false = do not modify box info
   Trajin_Single traj;
   //traj.SetDebug( debug_ );
-  if ( traj.SetupTrajRead( fname, argIn, (Topology*)&parmIn, false ) ) { // FIXME: Fix cast
+  if ( traj.SetupTrajRead( fname, argIn, (Topology*)&parmIn ) ) { // FIXME: Fix cast
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
   // Check number of frames to be read
-  int trajFrames = traj.TotalReadFrames();
+  int trajFrames = traj.Traj().Counter().TotalReadFrames();
   if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference '%s'\n", traj.TrajFilename().full());
+    mprinterr("Error: No frames could be read for reference '%s'\n", traj.Traj().Filename().full());
     return 1;
   } else if (trajFrames > 1)
     mprintf("Warning: Reference has %i frames, only reading frame %i\n",
-            trajFrames, traj.Start()+1);
+            trajFrames, traj.Traj().Counter().Start()+1);
   // Start trajectory read
-  if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference '%s'\n.", traj.TrajFilename().full());
+  if ( traj.BeginTraj() ) {
+    mprinterr("Error: Could not open reference '%s'\n.", traj.Traj().Filename().full());
     return 1;
   }
   // Set up reference frame
   if (frame_.SetupFrameV(parmIn.Atoms(), traj.TrajCoordInfo()))
     return 1;
   // Read reference frame
-  traj.ReadTrajFrame( traj.Start(), frame_ );
+  traj.ReadTrajFrame( traj.Traj().Counter().Start(), frame_ );
   traj.EndTraj();
-  name_ = traj.TrajFilename();
+  name_ = traj.Traj().Filename();
   num_ = refidx;
   SetTopology( parmIn );
   // If default name is empty use full trajectory file name.
   std::string setname;
   if (nameIn.empty())
-    setname = traj.TrajFilename().Full();
+    setname = traj.Traj().Filename().Full();
   else
     setname = nameIn;
-  if (SetupSet( setname, traj.Start()+1, "", -1 )) return 1;
+  if (SetupSet( setname, traj.Traj().Counter().Start()+1, "", -1 )) return 1;
   if (!traj.Title().empty())
     SetLegend( traj.Title() );
   return 0;

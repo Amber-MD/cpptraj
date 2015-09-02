@@ -56,7 +56,9 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
     }
   }
   Trajout_Single out;
-  if (out.InitTrajWrite(fname, ArgList(), &pseudo, trajoutFmt_) == 0) {
+  if (out.PrepareTrajWrite(fname, ArgList(), &pseudo, CoordinateInfo(),
+                           vec_size, trajoutFmt_) == 0)
+  {
     Frame outFrame(pseudo.Natom());
     for (int i = 0; i != vec_size; ++i) {
       outFrame.ClearAtoms();
@@ -68,7 +70,7 @@ int DataIO_VecTraj::WriteData(std::string const& fname, DataSetList const& SetLi
           outFrame.AddVec3( Vec[i] + ovec );
         }
       }
-      if (out.WriteFrame(i, &pseudo, outFrame)) return 1;
+      if (out.WriteSingle(i, outFrame)) return 1;
     }
     out.EndTraj();
   } else {
