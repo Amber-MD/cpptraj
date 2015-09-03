@@ -2,9 +2,6 @@
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
 
-// CONSTRUCTOR
-Action_Outtraj::Action_Outtraj() : CurrentParm_(0) {} 
-
 void Action_Outtraj::Help() {
   mprintf("\t<filename> [ trajout args ]\n"
           "\t[maxmin <dataset> min <min> max <max>] ...\n"
@@ -22,9 +19,9 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     Help();
     return Action::ERR;
   }
-  Topology* tempParm = PFL->GetParm(actionArgs);
-  if (tempParm==0) {
-    mprinterr("Error: OUTTRAJ: Could not get parm for %s\n",trajfilename.c_str());
+  associatedParm_ = PFL->GetParm(actionArgs);
+  if (associatedParm_ == 0) {
+    mprinterr("Error: Could not get associated topology for %s\n",trajfilename.c_str());
     return Action::ERR;
   }
   // If maxmin, get the name of the dataset as well as the max and min values.
@@ -60,11 +57,13 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   }
   // Initialize output trajectory with remaining arguments
   if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
-                                      tempParm, TrajectoryFile::UNKNOWN_TRAJ,
-                                      DSL->EnsembleNum()) ) 
+                                      TrajectoryFile::UNKNOWN_TRAJ, DSL->EnsembleNum()) ) 
     return Action::ERR;
+  isSetup_ = false;
+
   mprintf("    OUTTRAJ:");
   outtraj_.PrintInfo(1);
+  mprintf("\tWriting frames associated with topology '%s'\n", associatedParm_->c_str());
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
             Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
@@ -74,7 +73,13 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Dat
 
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(Topology* currentParm, Topology** parmAddress) {
-  CurrentParm_ = currentParm; 
+  if (associatedParm_->Pindex() != currentParm->Pindex())
+    return Action::ERR;
+  if (!isSetup_) { // TODO: Trajout IsOpen?
+    if (outtraj_.SetupTrajWrite(currentParm, currentParm->ParmCoordInfo(), currentParm->Nframes()))
+      return Action::ERR;
+    isSetup_ = true;
+  }
   return Action::OK;
 }
 
@@ -93,7 +98,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Fram
       if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
   }
-  if ( outtraj_.WriteFrame(frameNum, CurrentParm_, *currentFrame) != 0 ) 
+  if ( outtraj_.WriteSingle(frameNum, *currentFrame) != 0 ) 
     return Action::ERR;
   return Action::OK;
 }
@@ -102,7 +107,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Fram
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.TrajFilename().base(),
-          outtraj_.NumFramesProcessed());
+  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
+          outtraj_.Traj().NframesWritten());
   outtraj_.EndTraj();
 }

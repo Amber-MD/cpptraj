@@ -53,7 +53,6 @@ ParmIO* ParmFile::DetectFormat(std::string const& fname, ParmFormatType& ptype) 
   return 0;
 }
 
-
 // ParmFile::ReadTopology()
 int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn, 
                            ArgList const& argListIn, int debugIn) 
@@ -66,9 +65,13 @@ int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn,
   ParmFormatType pfType;
   ParmIO* parmio = 0;
   if (parmName_.SetFileNameWithExpansion( fnameIn )) return 1;
-  bool bondsearch = !argIn.hasKey("nobondsearch");
   Top.SetDebug( debugIn );
-  Top.SetOffset( argIn.getKeyDouble("bondsearch", -1.0) );
+  // Only force bond search when 'bondsearch' is specified.
+  bool bondsearch = false;
+  if (argIn.Contains("bondsearch")) {
+    Top.SetOffset( argIn.getKeyDouble("bondsearch", -1.0) );
+    bondsearch = true;
+  }
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
@@ -91,7 +94,7 @@ int ParmFile::ReadTopology(Topology& Top, std::string const& fnameIn,
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
   if (err == 0) 
-    err = Top.CommonSetup(bondsearch);
+    err = Top.CommonSetup(bondsearch || parmio->NeedsBondSearch());
   else
     mprinterr("Error reading topology file '%s'\n", parmName_.full());
   delete parmio;

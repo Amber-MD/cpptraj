@@ -44,6 +44,7 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,5,"SCALE" )==0) return true; // SCALEn
   if (recname.compare(0,5,"ORIGX" )==0) return true; // ORIGXn
   if (recname.compare(0,5,"MTRIX" )==0) return true; // MTRIXn
+  if (recname.compare(0,9,"USER  MOD")==0) return true; // reduce
   return false;
 }
 
@@ -82,11 +83,16 @@ PDBfile::PDB_RECTYPE PDBfile::NextRecord() {
   return recType_;
 }
 
-Atom PDBfile::pdb_Atom(char& altLoc) {
+Atom PDBfile::pdb_Atom(char& altLoc, int& atnum) {
   // ATOM or HETATM keyword.
   // Check line length before any modification.
   size_t lineLength = strlen( linebuffer_ );
-  // Atom number (6-11), Atom name (12-16), alt location indicator (16)
+  // Atom number (6-11)
+  altLoc = linebuffer_[11];
+  linebuffer_[11] = '\0';
+  atnum = atoi(linebuffer_+6);
+  linebuffer_[11] = altLoc;
+  // Atom name (12-16), alt location indicator (16)
   // Replace asterisks in name with single quotes.
   altLoc = linebuffer_[16];
   linebuffer_[16] = '\0';
