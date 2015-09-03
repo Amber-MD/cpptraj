@@ -48,7 +48,6 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   int icode_col = block.ColumnIndex("pdbx_PDB_ins_code");
   int altloc_col = block.ColumnIndex("label_alt_id");
   std::vector<AtomExtra> extra;
-  std::vector<NameType> Icodes;
 
   // Loop over all atom sites
   int current_res = 0;
@@ -56,8 +55,8 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
   double occupancy = 1.0;
   double bfactor = 0.0;
   char altloc = ' ';
-  char icode[2];
-  icode[0] = ' '; icode[1] = '\0';
+  char icode;
+  icode = ' ';
   for (line = block.begin(); line != block.end(); ++line) {
     // If more than 1 model check if we are done.
     if (Nmodels > 1) {
@@ -71,11 +70,10 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     if (altloc == '.') altloc = ' ';
     extra.push_back( AtomExtra(occupancy, bfactor, altloc) );
     if (icode_col != -1) {
-      icode[0] = (*line)[ icode_col ][0];
+      icode = (*line)[ icode_col ][0];
       // '?' icode means blank
-      if (icode[0] == '?') icode[0] = ' ';
+      if (icode == '?') icode = ' ';
     }
-    Icodes.push_back( NameType(icode) );
     XYZ[0] = convertToDouble( (*line)[ COL[X] ] );
     XYZ[1] = convertToDouble( (*line)[ COL[Y] ] );
     XYZ[2] = convertToDouble( (*line)[ COL[Z] ] );
@@ -89,10 +87,11 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
         current_res = TopIn.Nres() + 1;
     } else
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
-    TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], (*line)[ COL[CHAINID] ][0], "  "),
-                      current_res, currentResName, XYZ );
+    TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], "  "),
+                      Residue(currentResName, current_res, icode,
+                              (*line)[ COL[CHAINID] ][0]), XYZ );
   }
-  if (TopIn.SetExtraAtomInfo( 0, extra, Icodes )) return 1;
+  if (TopIn.SetExtraAtomInfo( 0, extra )) return 1;
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;

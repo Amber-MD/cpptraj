@@ -84,7 +84,6 @@ class Topology {
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
     int SetNonbondInfo(NonbondParmType const&);
     double GetVDWradius(int) const;
-    double GetParseRadius(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     // ----- Water Cap Info ----------------------
@@ -126,20 +125,19 @@ class Topology {
     inline Box::BoxType BoxType() const { return coordInfo_.TrajBox().Type(); }
     void SetParmBox( Box const& bIn )   { coordInfo_.SetBox( bIn );           }
     // ----- Setup routines ----------------------
-    int AddTopAtom(Atom const&, int, NameType const&, const double*);
+    int AddTopAtom(Atom const&, Residue const&, const double*);
     void StartNewMol();
     int CommonSetup(bool);
     void ResetPDBinfo();
     int Setup_NoResInfo();
-    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&,
-                         std::vector<NameType> const&);
+    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;
     int SetupIntegerMask(AtomMask &, Frame const&) const;
     int SetupCharMask(CharMask &, Frame const&) const;
     // ----- Topology modification routines ------
-    void ScaleDihedralK(double);
+    int ScaleDihedralK(double, std::string const&, bool);
     /// Strip atoms outside given mask, do not keep parameters.
     Topology* partialModifyStateByMask(AtomMask const& m) const {
       return ModifyByMap(m.Selected(), false);
@@ -170,6 +168,8 @@ class Topology {
     void DetermineExcludedAtoms();
     void DetermineNumExtraPoints();
     int SetSolventInfo();
+
+    int scale_dihedral_K(DihedralArray&, CharMask const&, double, bool);
 
     Topology* ModifyByMap(std::vector<int> const&, bool) const;
     BondArray StripBondArray(BondArray const&, std::vector<int> const&) const;

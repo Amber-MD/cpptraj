@@ -2,6 +2,7 @@
 #define INC_MOL2FILE_H
 #include "CpptrajFile.h"
 #include "Atom.h"
+#include "Residue.h"
 /// Used to access mol2 files.
 class Mol2File : private CpptrajFile {
   public: 
@@ -26,7 +27,7 @@ class Mol2File : private CpptrajFile {
     /// Convert current line to Atom 
     Atom Mol2Atom();
     /// Convert current line to Residue
-    NameType Mol2Residue(int&);
+    Residue Mol2Residue();
     /// Write mol2 atom line: at#, atom, res#, res, coords
     void WriteMol2Atom(int, Atom const&, int, const char*, const double*);
     /// Write mol2 bond line; bond#, atom1, atom2

@@ -1,7 +1,5 @@
-#include <stack> // For ParseMask
-#include <algorithm> // sort
 #include <cmath> // pow
-#include <cctype> // isalpha
+#include <algorithm> // find
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -468,8 +466,7 @@ void Topology::PrintMoleculeInfo(std::string const& maskString) const {
         if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
           int firstres = atoms_[ mol->BeginAtom() ].ResNum();
           mprintf("%*u %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, firstres+1, residues_[firstres].c_str(),
-                  atoms_[mol->BeginAtom()].ChainID());
+                  rwidth, firstres+1, residues_[firstres].c_str(), residues_[firstres].ChainID());
           if ( mol->IsSolvent() ) mprintf(" SOLVENT");
           mprintf("\n");
         }
@@ -508,7 +505,7 @@ void Topology::PrintResidueInfo(std::string const& maskString) const {
         loudPrintf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
                    awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
                    awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
-                   mwidth, atoms_[*atom].MolNum()+1, atoms_[*atom].ChainID());
+                   mwidth, atoms_[*atom].MolNum()+1, res.ChainID());
       }
     }
   }
@@ -587,17 +584,17 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-int Topology::AddTopAtom(Atom const& atomIn, int o_resnum, 
-                         NameType const& resname, const double* XYZin)
+int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double* XYZin)
 {
   // If no residues or res num has changed, this is a new residue.
-  if ( residues_.empty() || residues_.back().OriginalResNum() != o_resnum )
+  if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
       residues_.back().SetLastAtom( atoms_.size() );
     // First atom of new residue is == current # atoms.
-    residues_.push_back( Residue(o_resnum, resname, atoms_.size()) );
+    residues_.push_back( resIn );
+    residues_.back().SetFirstAtom( atoms_.size() );
   }
   atoms_.push_back(atomIn);
   // Set this atoms internal residue number 
@@ -710,14 +707,13 @@ int Topology::CommonSetup(bool bondsearch) {
 
 /** Reset any extended PDB info. */
 void Topology::ResetPDBinfo() {
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
-    atom->SetChainID(' ');
   int rnum = 1;
   for (std::vector<Residue>::iterator res = residues_.begin(); 
                                       res != residues_.end(); ++res, ++rnum)
   {
     res->SetOriginalNum(rnum);
     res->SetIcode(' ');
+    res->SetChainID(' ');
   }
   for (std::vector<AtomExtra>::iterator ex = extra_.begin();
                                         ex != extra_.end(); ++ex)
@@ -727,6 +723,7 @@ void Topology::ResetPDBinfo() {
 /** For topology formats that do not contain residue info, base residues
   * on molecules.
   */
+// FIXME Can the routine in CommonSetup be used in place of this instead?
 int Topology::Setup_NoResInfo() {
   mprintf("\tAttempting to determine residue info from molecules.\n");
   if (DetermineMolecules()) {
@@ -759,7 +756,8 @@ int Topology::Setup_NoResInfo() {
       if (nO == 1 && nH == 2) res_name = "HOH";
     } else
       res_name = default_res_name;
-    residues_.push_back( Residue(resnum+1, res_name, mol->BeginAtom()) );
+    residues_.push_back( Residue(res_name, resnum+1, ' ', ' ') );
+    residues_.back().SetFirstAtom( mol->BeginAtom() );
     residues_.back().SetLastAtom( mol->EndAtom() );
     // Update atom residue numbers
     for (int atnum = residues_.back().FirstAtom(); 
@@ -815,10 +813,9 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
 }
 
 /** This is for any extra information that is not necessarily pertinent to
-  * all topologies, like Ambers ITREE or PDB chain ID etc.
+  * all topologies, like Ambers ITREE or PDB B factors etc.
   */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
-                               std::vector<NameType> const& icodeIn) 
+int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
 {
   n_atom_types_ = natyp;
   if (!extraIn.empty()) {
@@ -828,20 +825,6 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn,
       return 1;
     }
     extra_ = extraIn;
-  }
-  if (!icodeIn.empty()) {
-    if (icodeIn.size() == residues_.size()) {
-      for (unsigned int i = 0; i != icodeIn.size(); i++)
-        residues_[i].SetIcode( icodeIn[i][0] );
-    } else if (icodeIn.size() == atoms_.size()) { // from e.g. PDB, CIF
-      for (unsigned int r = 0; r != residues_.size(); r++)
-        residues_[r].SetIcode( icodeIn[residues_[r].FirstAtom()][0] );
-    } else {
-      mprinterr("Error: Size of residue insertion codes (%zu) != # "
-                " residues (%zu) or # atoms (%zu)\n",
-                icodeIn.size(), residues_.size(), atoms_.size());
-      return 1;
-    }
   }
   return 0;
 }
@@ -861,30 +844,14 @@ double Topology::GetVDWradius(int a1) const {
     return 0.0;
 }
 
-double Topology::GetParseRadius(int a1) const {
-  double radius = 0.0;
-  switch ( atoms_[a1].Element() ) {
-    case Atom::HYDROGEN:   radius = 1.0; break;
-    case Atom::CARBON:     radius = 1.7; break;
-    case Atom::NITROGEN:   radius = 1.5; break;
-    case Atom::OXYGEN:     radius = 1.4; break;
-    case Atom::PHOSPHORUS: radius = 2.0; break;
-    case Atom::SULFUR:     radius = 1.85; break;
-    default:
-      mprintf("Warning: PARSE radius not found for element '%s'; setting to %g\n",
-              atoms_[a1].ElementName(), radius);
-  }
-  return radius;
-}
-
 // Topology::SetAtomBondInfo()
 /** Set up bond information in the atoms array based on given BondArray.
   */
 void Topology::SetAtomBondInfo(BondArray const& bonds) {
   // Add bonds based on array 
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd) {
-    atoms_[ bnd->A1() ].AddBond( bnd->A2() );
-    atoms_[ bnd->A2() ].AddBond( bnd->A1() );
+    atoms_[ bnd->A1() ].AddBondToIdx( bnd->A2() );
+    atoms_[ bnd->A2() ].AddBondToIdx( bnd->A1() );
   }
 }
 
@@ -1032,8 +999,8 @@ void Topology::AddBond(int atom1, int atom2) {
   } else
     bonds_.push_back( BondType( atom1, atom2, -1 ) );
   // Update atoms
-  atoms_[atom1].AddBond( atom2 );
-  atoms_[atom2].AddBond( atom1 );
+  atoms_[atom1].AddBondToIdx( atom2 );
+  atoms_[atom2].AddBondToIdx( atom1 );
 }
 
 void Topology::AddAngle(int atom1, int atom2, int atom3) {
@@ -1288,10 +1255,63 @@ int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
 }
 
 // -----------------------------------------------------------------------------
-void Topology::ScaleDihedralK(double scale_factor) {
-  for (DihedralParmArray::iterator dk = dihedralparm_.begin();
-                                   dk != dihedralparm_.end(); ++dk)
-    (*dk).Pk() *= scale_factor;
+int Topology::scale_dihedral_K(DihedralArray& dihedrals, CharMask const& Mask,
+                               double scale_factor, bool useAll)
+{
+  std::vector<int> newDihedralParms( dihedralparm_.size(), -1 );
+  for (DihedralArray::iterator dih = dihedrals.begin(); dih != dihedrals.end(); ++dih)
+  {
+    bool validDihedral;
+    if (useAll)
+      validDihedral= ( Mask.AtomInCharMask(dih->A1()) && Mask.AtomInCharMask(dih->A2()) &&
+                       Mask.AtomInCharMask(dih->A3()) && Mask.AtomInCharMask(dih->A4()) );
+    else
+      validDihedral= ( Mask.AtomInCharMask(dih->A1()) || Mask.AtomInCharMask(dih->A2()) || 
+                       Mask.AtomInCharMask(dih->A3()) || Mask.AtomInCharMask(dih->A4()) );
+    if (validDihedral) {
+      // See if this dihedral type was previously scaled.
+      int oldidx = dih->Idx();
+      if (oldidx == -1) {
+        mprinterr("Error: No dihedral parameters.\n");
+        return 1;
+      }
+      int newidx = newDihedralParms[oldidx];
+      if (newidx == -1) {
+        // Scale and add new dihedral parameter type.
+        DihedralParmType newparm = dihedralparm_[oldidx];
+        newparm.Pk() *= scale_factor;
+        newidx = (int)dihedralparm_.size();
+        dihedralparm_.push_back( newparm );
+        newDihedralParms[oldidx] = newidx;
+      } 
+      // Update dihedral parameter index.
+      dih->SetIdx( newidx );
+      mprintf("\tDihedral %s-%s-%s-%s old PK= %g  new PK= %g\n",
+              AtomMaskName(dih->A1()).c_str(),
+              AtomMaskName(dih->A2()).c_str(),
+              AtomMaskName(dih->A3()).c_str(),
+              AtomMaskName(dih->A4()).c_str(),
+              dihedralparm_[oldidx].Pk(), dihedralparm_[newidx].Pk());
+    }
+  }
+  return 0;
+}
+
+int Topology::ScaleDihedralK(double scale_factor, std::string const& maskExpr, bool useAll)
+{
+  if (maskExpr.empty()) {
+    // Scale all
+    for (DihedralParmArray::iterator dk = dihedralparm_.begin();
+                                     dk != dihedralparm_.end(); ++dk)
+      dk->Pk() *= scale_factor;
+  } else {
+    // Scale only dihedrals with atoms in mask. Requires adding new types.
+    CharMask Mask( maskExpr );
+    if (SetupCharMask( Mask )) return 1;
+    if (scale_dihedral_K( dihedrals_,  Mask, scale_factor, useAll )) return 1;
+    if (scale_dihedral_K( dihedralsh_, Mask, scale_factor, useAll )) return 1;
+  }
+  return 0;
 }
 
 // Topology::ModifyByMap()
@@ -1329,8 +1349,10 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     if ( curres != oldres ) {
       if (!newParm->residues_.empty())
         newParm->residues_.back().SetLastAtom( newatom );
-      newParm->residues_.push_back( Residue(residues_[curres].OriginalResNum(),
-                                            residues_[curres].Name(), newatom) );
+      Residue const& cr = residues_[curres];
+      newParm->residues_.push_back( Residue(cr.Name(), cr.OriginalResNum(),
+                                            cr.Icode(), cr.ChainID()) );
+      newParm->residues_.back().SetFirstAtom( newatom );
       oldres = curres;
     }
     // Clear bond information from new atom
@@ -1657,7 +1679,7 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, res.OriginalResNum(), res.Name(), 0 );
+    AddTopAtom( CurrentAtom, res, 0 );
   }
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  atomOffset);

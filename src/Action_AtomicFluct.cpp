@@ -171,7 +171,7 @@ void Action_AtomicFluct::Print() {
           PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
           adpout.WriteANISOU(
             atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-            (*fluctParm_)[atom].ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
+            fluctParm_->Res(resnum).ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
             u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
         }
       }

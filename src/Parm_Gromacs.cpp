@@ -387,10 +387,10 @@ int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
       {
         if (atom->mass_ > -1.0)
           TopIn.AddTopAtom( Atom( atom->aname_, atom->charge_, atom->mass_, atom->atype_),
-                            atom->rnum_ + resoffset, atom->rname_, 0 );
+                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', ' '), 0 );
         else
           TopIn.AddTopAtom( Atom( atom->aname_, atom->atype_, atom->charge_ ),
-                            atom->rnum_ + resoffset, atom->rname_, 0 );
+                            Residue(atom->rname_, atom->rnum_ + resoffset, ' ', ' '), 0 );
       }
       for (BondArray::const_iterator bond = Bonds.begin(); bond != Bonds.end(); bond += 2)
         TopIn.AddBond( *bond + atomoffset , *(bond+1) + atomoffset );

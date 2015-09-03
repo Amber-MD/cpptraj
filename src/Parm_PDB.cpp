@@ -18,12 +18,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
   std::vector<AtomExtra> extra; // Hold occ/bfac if not PQR
-  std::vector<NameType> Icodes; // Hold residue icodes
   BondArray bonds;              // Hold bonds
   int barray[5];                // Hold CONECT atom and bonds
-  char icode[2];                // For reading in icode.
   char altLoc = ' ';            // For reading in altLoc.
-  icode[1] = '\0';
   if (infile.OpenRead(fname)) return 1;
   // Loop over PDB records
   while ( infile.NextRecord() != PDBfile::END_OF_FILE ) {
@@ -50,8 +47,7 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
         pdbAtom.SetGBradius( bfactor );
       } else
         extra.push_back( AtomExtra(occupancy, bfactor, altLoc) );
-      TopIn.AddTopAtom(pdbAtom, infile.pdb_ResNum(icode[0]), infile.pdb_ResName(), XYZ);
-      Icodes.push_back( NameType(icode) );
+      TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue(), XYZ);
     } else if ( infile.RecType() == PDBfile::TER || 
                 infile.RecType() == PDBfile::END )
     {
@@ -63,7 +59,7 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   // Add bonds
   //for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
   //  TopIn.AddBond( bnd->A1(), bnd->A2() ); 
-  if (TopIn.SetExtraAtomInfo(0, extra, Icodes)) return 1;
+  if (TopIn.SetExtraAtomInfo(0, extra)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

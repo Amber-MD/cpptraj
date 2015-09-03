@@ -366,7 +366,7 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
     Atom cutatom = Parm[*atnum];
     int resnum = cutatom.ResNum(); 
     cutatom.SetCharge( *(Qi++) );
-    CutParm.AddTopAtom( cutatom, resnum, Parm.Res(resnum).Name(), 0 );
+    CutParm.AddTopAtom( cutatom, Parm.Res(resnum), 0 );
   } 
     
   Trajout_Single tout;

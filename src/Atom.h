@@ -26,16 +26,16 @@ class Atom {
     // Constructors and assignment
     Atom();
     virtual ~Atom() {}
-    /// Take atom name, chain ID, and (optional) 2 character element name.
-    Atom(NameType const&, char, const char*);
+    /// Take atom name, and (optional) 2 character element name.
+    Atom(NameType const&, const char*);
     /// Take atom name, type name, and charge.
     Atom(NameType const&, NameType const&, double);
     /// Take atom name, type name, and type index.
     Atom(NameType const&, NameType const&, int);
     /// Take atom name, charge, mass, and type name
     Atom(NameType const&, double, double, NameType const&);
-    /// Atom name, charge, polarizability atomic num, mass, type index, type name, gb radius and screen parameters, and chain ID.
-    Atom(NameType const&, double, double, int, double, int, NameType const&, double, double, char);
+    /// Atom name, charge, polarizability atomic num, mass, type index, type name, gb radius and screen parameters.
+    Atom(NameType const&, double, double, int, double, int, NameType const&, double, double);
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
@@ -53,7 +53,6 @@ class Atom {
     void SetCharge(double qin)               { charge_ = qin;       }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
-    void SetChainID(char cin)                { chainID_ = cin;      }
     // Inline functions returning internal vars
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -65,7 +64,6 @@ class Atom {
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
     inline int MolNum()                const { return mol_; }
-    inline char ChainID()              const { return chainID_; }
     inline int Nbonds()                const { return (int)bonds_.size(); }
     inline int Nexcluded()             const { return (int)excluded_.size(); }
     inline double Mass()               const { return mass_; }
@@ -74,8 +72,8 @@ class Atom {
     inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
     /// Add atom # to this atoms list of bonded atoms.
-    void AddBond(int);
-    void ClearBonds();
+    void AddBondToIdx(int idxIn) { bonds_.push_back( idxIn ); }
+    void ClearBonds()            { bonds_.clear() ; }
     void SortBonds();
     // TODO: Use this routine in AtomMap etc
     /// \return true if this atom is bonded to given atom number
@@ -84,6 +82,8 @@ class Atom {
     void AddExclusionList(std::set<int> const&);
     /// \return Optimal bond length based on element types
     static double GetBondLength(AtomicElementType, AtomicElementType);
+    /// \return PARSE radius based on element.
+    double ParseRadius() const;
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
@@ -99,11 +99,10 @@ class Atom {
     NameType atype_;   ///< Atom type name
     int atype_index_;  ///< Atom type index for nonbond params
     AtomicElementType element_;
-    int resnum_;
-    int mol_;
-    char chainID_;
-    std::vector<int> bonds_;
-    std::vector<int> excluded_;
+    int resnum_;       ///< Index into residues array.
+    int mol_;          ///< Index into molecules array.
+    std::vector<int> bonds_; ///< Indices of atoms bonded to this one.
+    std::vector<int> excluded_; ///< Indices of atoms excluded from nonbonded calc with this one.
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
     void DetermineElement(int);
