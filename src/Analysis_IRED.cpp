@@ -24,13 +24,14 @@ Analysis_IRED::Analysis_IRED() :
   noefile_(0),
   cmtfile_(0),
   cjtfile_(0),
+  data_s2_(0),
   modinfo_(0)
 {}
 
 void Analysis_IRED::Help() {
   mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
           "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
-          "\tmodes <modesname>\n"
+          "\tmodes <modesname> [name <output sets name>]\n"
           "  Perform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
@@ -77,7 +78,6 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprinterr("Error: %s\n", DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
-
   // Get tstep, tcorr, filenames
   tstep_ = analyzeArgs.getKeyDouble("tstep", 1.0);
   tcorr_ = analyzeArgs.getKeyDouble("tcorr", 10000.0);
@@ -97,6 +97,11 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   cmtfile_ = DFLin->AddCpptrajFile(filename + ".cmt", "Auto-correlation functions Cm(t)");
   cjtfile_ = DFLin->AddCpptrajFile(filename + ".cjt", "Auto-correlation functions Cj(t)");
   if (cmtfile_ == 0 || cjtfile_ == 0) return Analysis::ERR;
+  // Output data sets
+  std::string dsname = analyzeArgs.GetStringKey("name");
+  if (dsname.empty()) dsname = DSLin->GenerateDefaultName("IRED");
+  data_s2_ = DSLin->AddSetAspect(DataSet::FLOAT, dsname, "S2");
+  if (data_s2_ == 0) return Analysis::ERR;
 
   // Get norm, drct, relax
   norm_ = analyzeArgs.hasKey("norm");
@@ -205,6 +210,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
         evectorElem += modinfo_->VectorSize();
       }
       orderout_->Printf(" %4i  %10.5f\n", vi, 1.0 - sum);
+      float fval = (float)(1.0 - sum);
+      data_s2_->Add(vi, &fval);
     }
   }
 
