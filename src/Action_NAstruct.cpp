@@ -769,6 +769,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           BS.incl_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname);
           BS.tip_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname);
           BS.htwist_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname);
+          BS.Zp_     = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"zp",sname);
           BS.b1idx_ = BP1.base1idx_;
           BS.b2idx_ = BP1.base2idx_;
           BS.b3idx_ = BP2.base1idx_;
@@ -780,7 +781,22 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         }
         StepType& currentStep = entry->second;
         // Calc step parameters
-        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, 0, Param);
+        NA_Axis midFrame;
+        calculateParameters(BP1.bpaxis_, BP2.bpaxis_, &midFrame, Param);
+        // Calculate zP
+        float Zp = 0.0;
+        NA_Base const* s2base = 0;
+        if (BP1.isAnti_) {
+          if (base2.HasPatom()) s2base = &base2;
+        } else {
+          if (base4.HasPatom()) s2base = &base4;
+        }
+        if (s2base != 0) {
+          Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz())) / 2);
+          //xyzP.Print("xyzP");
+          Zp = (float)xyzP[2];
+        }
+        currentStep.Zp_->Add(frameNum, &Zp);
         // Store data
         Param[3] *= Constants::RADDEG;
         Param[4] *= Constants::RADDEG;
@@ -1198,6 +1214,7 @@ void Action_NAstruct::Print() {
       UpdateTimeSeries( nframes_, BS.incl_ );
       UpdateTimeSeries( nframes_, BS.tip_ );
       UpdateTimeSeries( nframes_, BS.htwist_ );
+      UpdateTimeSeries( nframes_, BS.Zp_ );
     }
     // Base pair step frames
     if (printheader_)

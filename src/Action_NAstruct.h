@@ -87,6 +87,7 @@ class Action_NAstruct: public Action {
       DataSet_1D* incl_;
       DataSet_1D* tip_;
       DataSet_1D* htwist_;
+      DataSet_1D* Zp_;
       unsigned int b1idx_; ///< Index of base pair 1 base 1 in Bases_
       unsigned int b2idx_;
       unsigned int b3idx_;
