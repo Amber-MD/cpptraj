@@ -11,9 +11,11 @@
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(NA_Base::ALTONA),
-  HBdistCut2_(9.61),  // Hydrogen Bond distance cutoff^2: 3.1^2
+  HBdistCut2_(10.89),     // Hydrogen Bond distance cutoff^2: 3.3^2
   // NOTE: Is this too big?
-  originCut2_(6.25),   // Origin cutoff^2 for base-pairing: 2.5^2
+  originCut2_(6.25),      // Origin cutoff^2 for base-pairing: 2.5^2
+  staggerCut_(2.5),       // Vertical separation cutoff
+  z_angle_cut_(1.134464), // Z angle cutoff in radians (65 deg)
   maxResSize_(0),
   debug_(0),
   nframes_(0),
@@ -211,56 +213,72 @@ int Action_NAstruct::DetermineBasePairing() {
                 base1->ResNum()+1, base1->ResName(), 
                 base2->ResNum()+1, base2->ResName(), sqrt(dist2));
 #       endif
-        // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
-        bool AntiParallel;
-        double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
-        //mprintf("    Dot product of Z vectors: %f\n", dist2);
-        if (theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
-#         ifdef NASTRUCTDEBUG
-          mprintf("      %s is anti-parallel to %s\n", base1->ResName(), base2->ResName());
-#         endif
-          AntiParallel = true;
-        } else {
-#         ifdef NASTRUCTDEBUG
-          mprintf("      %s is parallel to %s\n", base1->ResName(), base2->ResName());
-#         endif
-          AntiParallel = false;
-        }
-        int NHB = CalcNumHB(*base1, *base2);
-        if (NHB > 0) {
-          Rpair respair(base1->ResNum(), base2->ResNum());
-          // Bases are paired. Try to find existing base pair.
-          BPmap::iterator entry = BasePairs_.find( respair );
-          if (entry == BasePairs_.end()) {
-            // New base pair
+        // Calculate parameters between axes.
+        double Param[6];
+        calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
+        mprintf("DEBUG: Shear=%g  Stretch=%g  Stagger=%g  Open=%g  Prop=%g  Buck=%g\n",
+                Param[0], Param[1], Param[2], Param[3], Param[4], Param[5]);
+        // Stagger (vertical separation) must be less than a cutoff.
+        if ( fabs(Param[2]) < staggerCut_ ) {
+          // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
+          bool AntiParallel;
+          double theta = base1->Axis().Rz().Angle( base2->Axis().Rz() );
+          double t_delta; // Deviation from linear
+          if (theta > Constants::PIOVER2) { // If theta(Z) > 90 deg.
 #           ifdef NASTRUCTDEBUG
-            mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+            mprintf("\t%s is anti-parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                    theta * Constants::RADDEG);
 #           endif
-            int dsidx = (int)BasePairs_.size() + 1;
-            BPtype BP;
-            std::string bpname = base1->BaseName() + base2->BaseName();
-            BP.shear_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname);
-            BP.stretch_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname);
-            BP.stagger_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname);
-            BP.buckle_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname);
-            BP.prop_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname);
-            BP.opening_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname);
-            BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname);
-            BP.major_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname);
-            BP.minor_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname);
-            BP.bpidx_ = BasePairs_.size();
-            BP.base1idx_ = base1 - Bases_.begin();
-            BP.base2idx_ = base2 - Bases_.begin();
-            entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
+            AntiParallel = true;
+            t_delta = Constants::PI - theta;
+          } else {
+#           ifdef NASTRUCTDEBUG
+            mprintf("\t%s is parallel to %s (%g deg)\n", base1->ResName(), base2->ResName(),
+                    theta * Constants::RADDEG);
+#           endif
+            AntiParallel = false;
+            t_delta = theta;
           }
-#         ifdef NASTRUCTDEBUG
-          else
-            mprintf("      Existing base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
-          mprintf(", %i hbonds.\n", NHB);
-#         endif
-          entry->second.nhb_ = NHB;
-          entry->second.isAnti_ = AntiParallel;
-        } // END if # hydrogen bonds > 0
+          mprintf("\tDeviation from linear: %g deg.\n", t_delta * Constants::RADDEG);
+          // Deviation from linear must be less than cutoff
+          if (t_delta < z_angle_cut_) {
+            int NHB = CalcNumHB(*base1, *base2);
+            if (NHB > 0) {
+              Rpair respair(base1->ResNum(), base2->ResNum());
+              // Bases are paired. Try to find existing base pair.
+              BPmap::iterator entry = BasePairs_.find( respair );
+              if (entry == BasePairs_.end()) {
+                // New base pair
+#               ifdef NASTRUCTDEBUG
+                mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+#               endif
+                int dsidx = (int)BasePairs_.size() + 1;
+                BPtype BP;
+                std::string bpname = base1->BaseName() + base2->BaseName();
+                BP.shear_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname);
+                BP.stretch_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname);
+                BP.stagger_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname);
+                BP.buckle_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname);
+                BP.prop_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname);
+                BP.opening_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname);
+                BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname);
+                BP.major_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname);
+                BP.minor_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname);
+                BP.bpidx_ = BasePairs_.size();
+                BP.base1idx_ = base1 - Bases_.begin();
+                BP.base2idx_ = base2 - Bases_.begin();
+                entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
+              }
+#             ifdef NASTRUCTDEBUG
+              else
+                mprintf("      Existing base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
+              mprintf(", %i hbonds.\n", NHB);
+#             endif
+              entry->second.nhb_ = NHB;
+              entry->second.isAnti_ = AntiParallel;
+            } // END if # hydrogen bonds > 0
+          } // END if Z angle < cut
+        } // END if stagger < stagger cut
       } // END if base to base origin distance < cut
     } // END base2 loop
   } // END base1 loop

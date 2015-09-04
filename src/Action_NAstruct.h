@@ -95,6 +95,8 @@ class Action_NAstruct: public Action {
     NA_Base::PmethodType puckerMethod_;
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
+    double staggerCut_;                 ///< Cutoff for determining base vertical separation
+    double z_angle_cut_;                ///< Cutoff for angle between base Z-axes
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
     int debug_;
     int nframes_;
