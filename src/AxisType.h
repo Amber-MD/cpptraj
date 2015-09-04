@@ -59,7 +59,8 @@ class NA_Base {
     Frame const& Input()           const { return Inp_;            }
     AtomMask const& InputFitMask() const { return inpFitMask_;     }
     AtomMask const& RefFitMask()   const { return refFitMask_;     }
-    const char* AtomName(int i)    const { return *(anames_[i]);   }
+    const char* atomName(int i)    const { return *(anames_[i]);   }
+    NameType const& AtomName(int i)const { return anames_[i];      }
     std::string const& BaseName()  const { return basename_;       }
     bool HasPatom()                const { return atomIdx_[PHOS] != -1; }
     bool HasO4atom()               const { return atomIdx_[O4p] != -1;  }

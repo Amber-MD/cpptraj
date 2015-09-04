@@ -32,13 +32,15 @@ class Action_NAstruct: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
+
+    enum HbondType { WC = 0, HOOG, OTHER };
     // Functions
     static int TravelBackbone(Topology const&, int, std::vector<int>&); 
     int SetupBaseAxes(Frame const&);
-
-    //int GCpair(NA_Base const&, NA_Base const&);
-    //int ATpair(NA_Base const&, NA_Base const&);
-    int CalcNumHB(NA_Base const&, NA_Base const&);
+    static HbondType GCpair(NA_Base const&, int, NA_Base const&, int);
+    static HbondType ATpair(NA_Base const&, int, NA_Base const&, int);
+    static HbondType ID_HBtype(NA_Base const&, int, NA_Base const&, int);
+    int CalcNumHB(NA_Base const&, NA_Base const&, int&);
     int DetermineBasePairing();
 
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
@@ -64,7 +66,8 @@ class Action_NAstruct: public Action {
       unsigned int bpidx_;
       unsigned int base1idx_; ///< Index of first base in Bases_
       unsigned int base2idx_; ///< Index of second base in Bases_
-      int nhb_;               ///< Current # of hydrogen bonds in base bpair.
+      int nhb_;               ///< Current # of hydrogen bonds in base pair.
+      int n_wc_hb_;           ///< Number of WC hydrogen bonds in base pair.
       bool isAnti_;
     };
     typedef std::pair<int,int> Rpair; ///< Residue pair

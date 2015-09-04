@@ -32,6 +32,7 @@ void Action_NAstruct::Help() {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
+          "\t[zcut <zcut>] [zanglecut <zanglecut>]\n"
           "\t[ %s ]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
           "  from specified reference or first frame.\n"
@@ -99,7 +100,7 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
                                   inpatom != base->InputFitMask().end(); ++inpatom)
     {
       const double* XYZ = base->Input().XYZ(*inpatom);
-      mprintf("%-2i %4s %8.3f %8.3f %8.3f", *inpatom+1, base->AtomName(*inpatom),
+      mprintf("%-2i %4s %8.3f %8.3f %8.3f", *inpatom+1, base->atomName(*inpatom),
               XYZ[0], XYZ[1], XYZ[2]);
       XYZ = base->Ref().XYZ(*refatom);
       mprintf(" %2i %8.3f %8.3f %8.3f\n", *refatom+1, XYZ[0], XYZ[1], XYZ[2]);
@@ -145,12 +146,49 @@ int Action_NAstruct::SetupBaseAxes(Frame const& InputFrame) {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+Action_NAstruct::HbondType Action_NAstruct::GCpair(NA_Base const& bG, int ig,
+                                                   NA_Base const& bC, int ic)
+{
+  if (bG.AtomName(ig) == "O6" && bC.AtomName(ic) == "N4") return WC;
+  if (bG.AtomName(ig) == "N1" && bC.AtomName(ic) == "N3") return WC;
+  if (bG.AtomName(ig) == "N2" && bC.AtomName(ic) == "O2") return WC;
+  return OTHER;
+}
+
+Action_NAstruct::HbondType Action_NAstruct::ATpair(NA_Base const& bA, int ia,
+                                                   NA_Base const& bT, int it)
+{
+  if (bA.AtomName(ia) == "N6" && bT.AtomName(it) == "O4") return WC;
+  if (bA.AtomName(ia) == "N1" && bT.AtomName(it) == "N3") return WC;
+  return OTHER;
+}
+
+Action_NAstruct::HbondType Action_NAstruct::ID_HBtype(NA_Base const& base1, int b1,
+                                                      NA_Base const& base2, int b2)
+{
+  if      ( base1.Type() == NA_Base::GUA && base2.Type() == NA_Base::CYT )
+    return (GCpair(base1, b1, base2, b2));
+  else if ( base1.Type() == NA_Base::CYT && base2.Type() == NA_Base::GUA )
+    return (GCpair(base2, b2, base1, b1));
+  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::THY )
+    return (ATpair(base1, b1, base2, b2));
+  else if ( base1.Type() == NA_Base::THY && base2.Type() == NA_Base::ADE )
+    return (ATpair(base2, b2, base1, b1));
+  else if ( base1.Type() == NA_Base::ADE && base2.Type() == NA_Base::URA ) // FIXME: OK for A-U?
+    return (ATpair(base1, b1, base2, b2));
+  else if ( base1.Type() == NA_Base::URA && base2.Type() == NA_Base::ADE ) // FIXME: OK for A-U?
+    return (ATpair(base2, b2, base1, b1));
+  return OTHER;
+}
+    
 /** Given two NA_Bases for which IDs have been given and input coords set,
   * calculate the number of hydrogen bonds between them.
   */
 // TODO Identify type of base pairing (WC, Hoog., etc)
-int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2) {
+int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& n_WC) {
   int Nhbonds = 0;
+  n_WC = 0;
 
   for (int b1 = 0; b1 != base1.Natom(); b1++) {
     if ( base1.HbondType(b1) != NA_Base::NONE ) {
@@ -163,41 +201,29 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2) {
           double dist2 = DIST2_NoImage(xyz1, xyz2);
           if (dist2 < HBdistCut2_) {
             ++Nhbonds;
+            HbondType hbtype = ID_HBtype(base1, b1, base2, b2);
+            if (hbtype == WC) n_WC++;
 #           ifdef NASTRUCTDEBUG
-            mprintf("\t\t%s:%s -- %s:%s = %f\n",
-                    base1.ResName(), base1.AtomName(b1),
-                    base2.ResName(), base2.AtomName(b2), sqrt(dist2));
+            mprintf("\t\t%s:%s -- %s:%s = %f (%i)\n",
+                    base1.ResName(), base1.atomName(b1),
+                    base2.ResName(), base2.atomName(b2), sqrt(dist2), (int)hbtype);
 #           endif
           }
         }
       }
     }
   }
-/*
-  // G C
-  if      ( base1.Type()==NA_Base::GUA && base2.Type()==NA_Base::CYT ) return GCpair(base1,base2);
-  else if ( base1.Type()==NA_Base::CYT && base2.Type()==NA_Base::GUA ) return GCpair(base2,base1);
-  // A T
-  else if ( base1.Type()==NA_Base::ADE && base2.Type()==NA_Base::THY ) return ATpair(base1,base2);
-  else if ( base1.Type()==NA_Base::THY && base2.Type()==NA_Base::ADE ) return ATpair(base2,base1);
-  // A U
-  else if ( base1.Type()==NA_Base::ADE && base2.Type()==NA_Base::URA ) return ATpair(base1,base2);
-  else if ( base1.Type()==NA_Base::URA && base2.Type()==NA_Base::ADE ) return ATpair(base2,base1);
-//  else {
-//    mprintf("Warning: NAstruct: Unrecognized pair: %s - %s\n",NAbaseName[base1->ID],
-//             NAbaseName[base2->ID]);
-//  }
-  return 0;
-*/
   return Nhbonds;
 }
 
+// -----------------------------------------------------------------------------
 // Action_NAstruct::DetermineBasePairing()
 /** Determine which bases are paired from the individual base axes. Also 
   * sets up BP and BP step parameter DataSets. This routine should only
   * be called once.
   */
 int Action_NAstruct::DetermineBasePairing() {
+  int n_wc_hb;
 # ifdef NASTRUCTDEBUG  
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
@@ -216,8 +242,10 @@ int Action_NAstruct::DetermineBasePairing() {
         // Calculate parameters between axes.
         double Param[6];
         calculateParameters(base1->Axis(), base2->Axis(), 0, Param);
-        mprintf("DEBUG: Shear=%g  Stretch=%g  Stagger=%g  Open=%g  Prop=%g  Buck=%g\n",
+#       ifdef NASTRUCTDEBUG
+        mprintf("    Shear=%g  Stretch=%g  Stagger=%g  Open=%g  Prop=%g  Buck=%g\n",
                 Param[0], Param[1], Param[2], Param[3], Param[4], Param[5]);
+#       endif
         // Stagger (vertical separation) must be less than a cutoff.
         if ( fabs(Param[2]) < staggerCut_ ) {
           // Figure out if z vectors point in same (<90 deg) or opposite (>90 deg) direction
@@ -239,10 +267,12 @@ int Action_NAstruct::DetermineBasePairing() {
             AntiParallel = false;
             t_delta = theta;
           }
+#         ifdef NASTRUCTDEBUG
           mprintf("\tDeviation from linear: %g deg.\n", t_delta * Constants::RADDEG);
+#         endif
           // Deviation from linear must be less than cutoff
           if (t_delta < z_angle_cut_) {
-            int NHB = CalcNumHB(*base1, *base2);
+            int NHB = CalcNumHB(*base1, *base2, n_wc_hb);
             if (NHB > 0) {
               Rpair respair(base1->ResNum(), base2->ResNum());
               // Bases are paired. Try to find existing base pair.
@@ -275,6 +305,7 @@ int Action_NAstruct::DetermineBasePairing() {
               mprintf(", %i hbonds.\n", NHB);
 #             endif
               entry->second.nhb_ = NHB;
+              entry->second.n_wc_hb_ = n_wc_hb;
               entry->second.isAnti_ = AntiParallel;
             } // END if # hydrogen bonds > 0
           } // END if Z angle < cut
@@ -668,7 +699,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.opening_->Add(frameNum, &opening);
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
-    BP.hbonds_->Add(frameNum, &(BP.nhb_));
+    BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
     BP.major_->Add(frameNum, &dPtoP);
     BP.minor_->Add(frameNum, &dOtoO);
 #   ifdef NASTRUCTDEBUG
@@ -825,6 +856,12 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   double origincut = actionArgs.getKeyDouble("origincut", -1);
   if (origincut > 0)
     originCut2_ = origincut * origincut;
+  double zcut = actionArgs.getKeyDouble("zcut", -1);
+  if (zcut > 0)
+    staggerCut_ = zcut;
+  double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
+  if (zanglecut_deg > 0)
+    z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
   // Get residue range
@@ -900,7 +937,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
           sqrt( HBdistCut2_ ) );
   mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
           sqrt( originCut2_ ) );
-
+  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
+          staggerCut_);
+  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
+          z_angle_cut_ * Constants::RADDEG);
   // Use reference to determine base pairing
   if (useReference_) {
     mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
@@ -1073,7 +1113,8 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Fra
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
     for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
-      BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_]);
+      BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
+                                  BP->second.n_wc_hb_);
   }
 
   // Determine base parameters
