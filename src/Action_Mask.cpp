@@ -87,9 +87,9 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     }
   }
 
-  // Optional PDB write out of selected atoms for the frame.
+  // Optional write out of selected atoms for the frame.
   if (!maskpdb_.empty()) {
-    Trajout_Single pdbout;
+    Trajout_Single coordsOut;
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2( Mask1_.ConvertToIntMask(), Mask1_.Natom() );
     // Create new parm and frame based on atoms in Mask. Since we dont care
@@ -97,21 +97,21 @@ Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame**
     Topology* pdbParm = CurrentParm_->partialModifyStateByMask(Mask2);
     //pdbParm->Summary(); // DEBUG
     Frame pdbFrame(*currentFrame, Mask2);
-    // Set up output file. 
-    pdbout.SetDebug(debug_);
-    // Set pdb output options: multi so that 1 file per frame is written; dumpq
-    // so that charges are written out. 
-    if (pdbout.InitEnsembleTrajWrite(maskpdb_,trajOpt_,pdbParm,trajFmt_,ensembleNum_)) 
+    // Set up output trajectory file. 
+    coordsOut.SetDebug(debug_);
+    if (coordsOut.PrepareEnsembleTrajWrite(maskpdb_,trajOpt_,pdbParm,
+                                           pdbParm->ParmCoordInfo(),
+                                           1,trajFmt_,ensembleNum_)) 
     {
-      mprinterr("Error: %s: Could not set up for write of frame %i.\n",
-                maskpdb_.c_str(),frameNum);
+      mprinterr("Error: %s: Could not write mask atoms for frame %i.\n",
+                maskpdb_.c_str(), frameNum + 1);
     } else {
-      if (debug_ > 0) pdbout.PrintInfo(0);
-      pdbout.WriteFrame(frameNum,pdbParm,pdbFrame);
-      pdbout.EndTraj();
+      if (debug_ > 0) coordsOut.PrintInfo(0);
+      coordsOut.WriteSingle(frameNum, pdbFrame);
+      coordsOut.EndTraj();
     }
     delete pdbParm;
   }
 
   return Action::OK;
-} 
+}

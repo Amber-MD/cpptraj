@@ -1,17 +1,90 @@
-// TrajoutList
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString
-#include "Trajout_Single.h"
-#include "Trajout_Multi.h"
-#include "Trajout_Ensemble.h"
+#include "EnsembleOut_Single.h"
+#include "EnsembleOut_Multi.h"
 
-TrajoutList::TrajoutList() : debug_(0) { }
+void EnsembleOutList::Clear() {
+  for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
+    delete *ens;
+  ensout_.clear();
+  ensTops_.clear();
+  active_.clear();
+  open_.clear();
+}
 
-TrajoutList::~TrajoutList() {
+int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
+                                    Topology* eParm, int ensembleSize,
+                                    TrajectoryFile::TrajFormatType fmt)
+{
+  ArgList argIn = args;
+  EnsembleOut* ens = 0;
+# ifdef ENABLE_SINGLE_ENSEMBLE
+  // See if single ensemble output desired. // FIXME: Should not depend on keyword
+  if (argIn.hasKey("ensemble"))
+    ens = new EnsembleOut_Single();
+  else
+# endif
+    // Create new multi output trajectory
+    ens = new EnsembleOut_Multi();
+  if (ens == 0) return 1;
+  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, fmt)) {
+    delete ens;
+    return 1;
+  }
+  ensout_.push_back( ens );
+  ensTops_.push_back( eParm );
+  open_.push_back(false);
+  return 0;
+}
+
+int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm) {
+  active_.clear();
+  for (unsigned int i = 0; i != ensout_.size(); i++) {
+    // Check that input parm matches setup parm - if not, skip
+    if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
+      if (!open_[i]) {
+        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
+                                             CurrentParm->Nframes() ) )
+        {
+          mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
+          return 1;
+        }
+        open_[i] = true;
+      }
+      active_.push_back( ensout_[i] );
+    }
+  }
+  return 0;
+}
+
+/** Go through each active output traj, call write. */
+int EnsembleOutList::WriteEnsembleOut(int set, FramePtrArray const& Farray)
+{
+  for (EnsArray::const_iterator ens = active_.begin(); ens != active_.end(); ++ens) {
+    if ( (*ens)->WriteEnsemble(set, Farray) ) {
+      mprinterr("Error writing output ensemble, frame %i.\n", set+1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/** Close output trajectories. Called after input traj processing completed. */
+void EnsembleOutList::CloseEnsembleOut() {
+  for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
+    (*ens)->EndEnsemble();
   Clear();
 }
 
+void EnsembleOutList::List() const {
+  if (!ensout_.empty()) {
+    mprintf("\nOUTPUT ENSEMBLE:\n");
+    for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
+      (*ens)->PrintInfo( 1 );
+  }
+}
+
+// =============================================================================
 void TrajoutList::SetDebug(int debugIn) {
   debug_ = debugIn;
   if (debug_ > 0)
@@ -19,126 +92,99 @@ void TrajoutList::SetDebug(int debugIn) {
 }
 
 void TrajoutList::Clear() {
-  for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj) 
+  for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     delete *traj;
   trajout_.clear();
   trajoutArgs_.clear();
+  trajoutTops_.clear();
+  trajoutNames_.clear();
+  active_.clear();
+  open_.clear();
 }
 
-// TrajoutList::MakeEnsembleTrajout()
-/** Convert all current output trajectories to ensemble output trajectories.
+/** Add output trajectory to list as single output trajectory. Associate it
+  * with the given Topology but no Topology-dependent setup will occur. This
+  * is because during the course of a Run the Topology may be modified, by
+  * e.g. a 'strip' command.
   */
-int TrajoutList::MakeEnsembleTrajout(TopologyList const& topListIn, TrajoutList& ensembleList)
+int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, Topology* tParm)
 {
-  ensembleList.Clear();
-  for (ArgsArray::const_iterator arg = trajoutArgs_.begin();
-                                 arg != trajoutArgs_.end(); ++arg)
-  {
-    ArgList argIn = *arg;
-    // Filename must be first arg.
-    std::string filename = argIn.GetStringNext();
-    // Get parm from TopologyList based on args
-    Topology* tempParm = topListIn.GetParm( argIn );
-    if (tempParm == 0) return 1;
-#   ifdef ENABLE_SINGLE_ENSEMBLE
-    // See if single ensemble output desired.
-    if (argIn.hasKey("ensemble"))
-      ensembleList.trajout_.push_back( new Trajout_Ensemble() );
-    else
-#   endif
-      // Create new multi output trajectory.
-      ensembleList.trajout_.push_back( new Trajout_Multi() );
-    if (ensembleList.trajout_.back() == 0) return 1;
-    ensembleList.trajout_.back()->SetDebug( debug_ );
-    if (ensembleList.trajout_.back()->InitTrajWrite(filename, *arg, tempParm,
-                                                    TrajectoryFile::UNKNOWN_TRAJ))
-      return 1;
-  }
-  return 0;
-}
-
-// TrajoutList::AddTrajout()
-/** Add output trajectory to list as single output trajectory. */
-int TrajoutList::AddTrajout(ArgList const& argIn, TopologyList const& topListIn) {
-  // Since we need to check if this filename is in use in order to prevent
-  // overwrites, determine the filename here.
-  ArgList args = argIn;
-  std::string filename = args.GetStringNext();
-  if (filename.empty()) {
-    mprinterr("Internal Error: TrajoutList::Add() called with empty filename.\n");
+  if (tParm == 0) {
+    mprinterr("Error: No topology information.\n");
     return 1;
   }
-  //int err = AddTrajout( filename, args, topListIn, TrajectoryFile::UNKNOWN_TRAJ );
-  // Check if filename is in use
+  if (filename.empty()) {
+    mprinterr("Internal Error: TrajoutList::AddTrajout() called with empty filename.\n");
+    return 1;
+  }
+  // Determine if this filename is in use in order to prevent overwrites
   for (ListType::const_iterator to = trajout_.begin();
                                 to != trajout_.end(); ++to)
   {
-    if ( (*to)->TrajFilename().Full() == filename ) { 
-      mprinterr("Error: trajout: Filename %s already in use.\n",filename.c_str());
+    if ( (*to)->Traj().Filename().Full() == filename ) {
+      mprinterr("Error: Output trajectory filename %s already in use.\n",filename.c_str());
       return 1;
     }
   }
-  // Get parm from TopologyList based on args
-  Topology* tempParm = topListIn.GetParm( args );
-  if (tempParm == 0) return 1;
-  // Create trajout.
-  Trajout* traj = new Trajout_Single();
-  if (traj==0) {
-    mprinterr("Error: TrajoutList::Add: Could not allocate memory for traj.\n");
+  // Create Trajout_Single
+  Trajout_Single* to = new Trajout_Single();
+  // Initialize output trajectory
+  ArgList args = argIn;
+  if (to->InitTrajWrite(filename, args, TrajectoryFile::UNKNOWN_TRAJ)) {
+    mprinterr("Error: Could not set up output trajectory.\n");
+    delete to;
     return 1;
   }
-  traj->SetDebug(debug_);
-  // Initialize output trajectory (non-topology-related setup).
-  if (traj->InitTrajWrite(filename, args, tempParm, TrajectoryFile::UNKNOWN_TRAJ)) {
-    mprinterr("Error: trajout: Could not set up trajectory.\n");
-    delete traj;
-    return 1;
-  }
-  // Add to trajectory file list
-  trajout_.push_back(traj);
+  trajout_.push_back( to );
   // For potentially setting up ensemble later, save trajout arg.
   trajoutArgs_.push_back( argIn );
+  trajoutTops_.push_back( tParm );
+  trajoutNames_.push_back( filename );
+  open_.push_back( false );
   return 0;
 }
 
-//TrajoutList::WriteEnsembleOut()
-int TrajoutList::WriteEnsembleOut(int set, FramePtrArray const& Farray)
+// TODO Pass in more ensemble information, maps etc?
+int TrajoutList::MakeEnsembleTrajout(EnsembleOutList& ensembleList,
+                                     int ensembleSize) const
 {
-  for (ListType::const_iterator to = trajout_.begin();
-                                to != trajout_.end(); ++to)
-  {
-    if ( (*to)->WriteEnsemble(set, Farray) ) {
-      mprinterr("Error writing output trajectory, frame %i.\n", set+1);
+  ensembleList.Clear();
+  for (unsigned int i = 0; i != trajoutArgs_.size(); i++) {
+    if (ensembleList.AddEnsembleOut(trajoutNames_[i], trajoutArgs_[i], trajoutTops_[i],
+                                    ensembleSize, trajout_[i]->Traj().WriteFormat()))
       return 1;
-    }
   }
   return 0;
 }
+// trajoutTops_[i]->ParmCoordInfo().EnsembleSize(),
 
 // TrajoutList::SetupTrajout()
 int TrajoutList::SetupTrajout(Topology* CurrentParm) {
   active_.clear();
-  for (ListType::const_iterator traj = trajout_.begin();
-                                traj != trajout_.end(); ++traj)
-  {
+  for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == (*traj)->TrajParm()->Pindex()) {
-      if ( (*traj)->SetupTrajWrite( CurrentParm ) ) {
-        mprinterr("Error: Setting up output trajectory %s\n", (*traj)->TrajFilename().base());
-        return 1;
+    if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
+      if (!open_[i]) { // Only set up if not already open.
+        if ( trajout_[i]->SetupTrajWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
+                                          CurrentParm->Nframes() ) )
+        {
+          mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
+          return 1;
+        }
+        open_[i] = true;
       }
-      active_.push_back( *traj );
+      active_.push_back( trajout_[i] );
     }
   }
   return 0;
 }
 
 // TrajoutList::WriteTrajout()
-/** Go through each active output traj, call write. */ 
+/** Go through each active output traj, call write. */
 int TrajoutList::WriteTrajout(int set, Frame const& CurrentFrame)
-{ 
+{
   for (ListType::const_iterator traj = active_.begin();
-                                traj != active_.end(); ++traj) 
+                                traj != active_.end(); ++traj)
   {
     if ( (*traj)->WriteSingle(set, CurrentFrame) ) {
       mprinterr("Error writing output trajectory, frame %i.\n", set+1);
