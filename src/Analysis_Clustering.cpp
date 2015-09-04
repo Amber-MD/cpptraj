@@ -654,8 +654,10 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    Trajout_Single clusterout;
-    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, clusterfmt_)) 
+    Trajout_Single clusterout; // FIXME is the CoordInfo valid?
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                    clusterparm->ParmCoordInfo(), C->Nframes(),
+                                    clusterfmt_)) 
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
                 cfilename.c_str());
@@ -668,7 +670,7 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
                                      fnum != C->endframe(); ++fnum)
     {
       coords_->GetFrame( *fnum, clusterframe );
-      clusterout.WriteFrame(set++, clusterparm, clusterframe);
+      clusterout.WriteSingle(set++, clusterframe);
     }
     // Close traj
     clusterout.EndTraj();
@@ -689,8 +691,9 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
-    Trajout_Single clusterout;
-    if (clusterout.InitTrajWrite(cfilename, ArgList(), &avgparm, avgfmt_))
+    Trajout_Single clusterout; // FIXME Is CoordInfo valid?
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), &avgparm,
+                                    avgparm.ParmCoordInfo(), 1, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
                 cfilename.c_str());
@@ -712,7 +715,7 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
       avgframe += clusterframe;
     }
     avgframe.Divide( (double)C->Nframes() );
-    clusterout.WriteFrame(0, &avgparm, avgframe);
+    clusterout.WriteSingle(0, avgframe);
     clusterout.EndTraj();
   }
 }
@@ -722,8 +725,10 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout_Single clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
-  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
-  if (clusterout.InitTrajWrite(singlerepfile_, ArgList(), clusterparm, singlerepfmt_)) 
+  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast, is CoordInfo valid?
+  if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
+                                  clusterparm->ParmCoordInfo(), CList.Nclusters(),
+                                  singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
                 singlerepfile_.c_str());
@@ -737,7 +742,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
                                      cluster != CList.endcluster(); ++cluster) 
   {
    coords_->GetFrame( cluster->BestRepFrame(), clusterframe );
-   clusterout.WriteFrame(framecounter++, clusterparm, clusterframe);
+   clusterout.WriteSingle(framecounter++, clusterframe);
   }
   // Close traj
   clusterout.EndTraj();
@@ -764,8 +769,9 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
-    // Set up trajectory file. 
-    if (clusterout.InitTrajWrite(cfilename, ArgList(), clusterparm, reptrajfmt_)) 
+    // Set up trajectory file. // FIXME CoordInfo valid? 
+    if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
+                                    clusterparm->ParmCoordInfo(), 1, reptrajfmt_)) 
     {
       mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());
@@ -773,7 +779,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     }
     // Write cluster rep frame
     coords_->GetFrame( framenum, clusterframe );
-    clusterout.WriteFrame(framenum, clusterparm, clusterframe);
+    clusterout.WriteSingle(framenum, clusterframe);
     // Close traj
     clusterout.EndTraj();
   }

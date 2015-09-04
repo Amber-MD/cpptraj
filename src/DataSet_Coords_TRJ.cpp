@@ -62,7 +62,7 @@ int DataSet_Coords_TRJ::AddSingleTrajin(std::string const& fname, ArgList& argIn
     mprinterr("Error: Could not set up trajectory '%s'\n", fname.c_str());
     return 1;
   }
-  if (UpdateTrjFrames( trajin->TotalReadFrames() )) return 1;
+  if (UpdateTrjFrames( trajin->Traj().Counter().TotalReadFrames() )) return 1;
   trajinList_.push_back( trajin );
   deleteTrajectories_ = true;
   return 0;
@@ -77,8 +77,8 @@ int DataSet_Coords_TRJ::AddInputTraj(Trajin* tIn) {
     return 1;
   }
   if (tIn == 0) return 1;
-  if (SetTrjTopology( *(tIn->TrajParm()) )) return 1;
-  if (UpdateTrjFrames( tIn->TotalReadFrames() )) return 1;
+  if (SetTrjTopology( *(tIn->Traj().Parm()) )) return 1;
+  if (UpdateTrjFrames( tIn->Traj().Counter().TotalReadFrames() )) return 1;
   trajinList_.push_back( tIn );
   deleteTrajectories_ = false;
   return 0;
@@ -94,9 +94,9 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
   int currentMax = 0;
   int desiredTrajNum = 0;
   for (; desiredTrajNum < (int)trajinList_.size(); ++desiredTrajNum) {
-    currentMax += trajinList_[desiredTrajNum]->TotalReadFrames();
+    currentMax += trajinList_[desiredTrajNum]->Traj().Counter().TotalReadFrames();
     if (idx < currentMax) break;
-    globalOffset_ += trajinList_[desiredTrajNum]->TotalReadFrames();
+    globalOffset_ += trajinList_[desiredTrajNum]->Traj().Counter().TotalReadFrames();
   }
   // If desired traj is different than current, open desired traj
   int err = 0;
@@ -110,24 +110,25 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
     if (prevTraj == 0)
       parmHasChanged = true;
     else
-      parmHasChanged = ( prevTraj->TrajParm()->Natom() != 
-                            Traj_->TrajParm()->Natom()    );
+      parmHasChanged = ( prevTraj->Traj().Parm()->Natom() != 
+                            Traj_->Traj().Parm()->Natom()    );
     if ( parmHasChanged || (readFrame_.HasVelocity() != Traj_->TrajCoordInfo().HasVel()) )
-      readFrame_.SetupFrameV(Traj_->TrajParm()->Atoms(), Traj_->TrajCoordInfo());
-    if (Traj_->BeginTraj(false)) {
+      readFrame_.SetupFrameV(Traj_->Traj().Parm()->Atoms(), Traj_->TrajCoordInfo());
+    if (Traj_->BeginTraj()) {
       mprinterr("Error: Could not open trajectory %i '%s'\n", desiredTrajNum,
-                Traj_->TrajFilename().full());
+                Traj_->Traj().Filename().full());
       err = 1;
     }
   }
   if (err == 0) {
     // Convert desired index into trajectory internal index
-    int internalIdx = ((idx - globalOffset_) * Traj_->Offset()) + Traj_->Start();
+    int internalIdx = ((idx - globalOffset_) * Traj_->Traj().Counter().Offset()) + 
+                      Traj_->Traj().Counter().Start();
     // Read desired index
     // TODO: May need to use readFrame here as well...
     if (Traj_->ReadTrajFrame( internalIdx, fIn )) {
       mprinterr("Error: Could not read '%s' frame %i\n", 
-                Traj_->TrajFilename().full(), internalIdx + 1);
+                Traj_->Traj().Filename().full(), internalIdx + 1);
     }
   }
 # ifdef _OPENMP

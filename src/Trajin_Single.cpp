@@ -1,60 +1,54 @@
 #include "Trajin_Single.h"
+#include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // fileExists
 
 // CONSTRUCTOR
-Trajin_Single::Trajin_Single() :
-  trajio_(0),
-  velio_(0),
-  trajIsOpen_(false)
-{}
+Trajin_Single::Trajin_Single() : trajio_(0), velio_(0) {}
 
 // DESTRUCTOR
 Trajin_Single::~Trajin_Single() {
   if (trajio_!=0) {
-    if (trajIsOpen_) EndTraj();
+    EndTraj();
     delete trajio_;
   }
   if (velio_!=0) delete velio_;
 }
 
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology* tparmIn)
-{
-  return SetupTrajRead(tnameIn, argIn, tparmIn, true);
-}
-
-// Trajin_Single::SetupTrajRead()
+// TODO: Should this take a FileName instead of string?
 int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, 
-                                 Topology* tparmIn, bool checkBox) 
+                                 Topology* tparmIn)
 {
-  // Require a filename
-  if (tnameIn.empty()) {
-    mprinterr("Internal Error: Trajin_Single: No filename given.\n");
-    return 1;
-  }
-  // Check and set associated parm file
-  if ( SetTrajParm( tparmIn ) ) return 1;
-  // Check that file can be opened. 
-  if (!fileExists(tnameIn)) return 1; 
+  if (trajio_ != 0) delete trajio_;
+  if (velio_ != 0) delete velio_;
+  // Set file name and topology pointer.
+  if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
-  TrajFormatType tformat;
-  if ( (trajio_ = DetectFormat( tnameIn, tformat )) == 0 ) {
-    mprinterr("Error: Could not determine trajectory %s format.\n", tnameIn.c_str());
+  TrajectoryFile::TrajFormatType tformat;
+  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename().Full(), tformat )) == 0 ) {
+    mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
     return 1;
   }
   trajio_->SetDebug( debug_ );
-  // Set trajectory filename
-  SetTrajFileName( tnameIn, true );
-  mprintf("\tReading '%s' as %s\n", TrajFilename().full(), TrajectoryFile::FormatString(tformat));
+  mprintf("\tReading '%s' as %s\n", Traj().Filename().full(), TrajectoryFile::FormatString(tformat));
   // Process format-specific read args
   if (trajio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
-  if (SetupTrajIO( tnameIn, *trajio_, argIn )) return 1;
+  int nframes = trajio_->setupTrajin(Traj().Filename().Full(), Traj().Parm());
+  if (nframes == TrajectoryIO::TRAJIN_ERR) {
+    mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
+    return 1;
+  }
+  if (debug_ > 0) {
+    if (nframes != TrajectoryIO::TRAJIN_UNK)
+      mprintf("\t'%s' contains %i frames.\n", Traj().Filename().base(), nframes);
+    else
+      mprintf("\t'%s' contains an unknown number of frames.\n",Traj().Filename().base());
+  }
+  // Set the start, stop, and offset args based on user input. Do some bounds
+  // checking.
+  if (SetTraj().Counter().CheckFrameArgs( nframes, argIn )) return 1;
   // Set trajectory coordinate info.
   cInfo_ = trajio_->CoordInfo();
-  // Check how many frames will actually be read
-  if (setupFrameInfo() == 0) return 1;
-  // Check traj box info against parm box info
   // Check if a separate mdvel file will be read
   if (argIn.Contains("mdvel")) {
     std::string mdvelname = argIn.GetStringKey("mdvel");
@@ -62,33 +56,32 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
       mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
       return 1;
     }
+    FileName mdvel_fname;
+    if (mdvel_fname.SetFileNameWithExpansion(mdvelname)) return 1;
     // Detect mdvel format
-    if ( (velio_ = DetectFormat( mdvelname, tformat )) == 0 ) {
+    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname.Full(), tformat )) == 0 ) {
       mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvelname.c_str());
       return 1;
     }
     velio_->SetDebug( debug_ );
     // Set up the format for reading mdvel, get # of mdvel frames
-    int vel_frames = velio_->setupTrajin(mdvelname, TrajParm());
-    if (vel_frames != TotalFrames()) {
+    int vel_frames = velio_->setupTrajin(mdvel_fname.Full(), Traj().Parm());
+    if (vel_frames != Traj().Counter().TotalFrames()) {
       mprinterr("Error: velocity file %s frames (%i) != traj file frames (%i)\n",
-                mdvelname.c_str(), vel_frames, TotalFrames());
+                mdvelname.c_str(), vel_frames, Traj().Counter().TotalFrames());
       return 1;
     }
     cInfo_.SetVelocity( true );
   }
   if (debug_ > 0)
-    Frame::PrintCoordInfo( TrajFilename().base(), TrajParm()->c_str(), cInfo_ );
-  // FIXME: Should this ever be done here?
-  if (checkBox) TrajParm()->SetParmCoordInfo( cInfo_ );
+    Frame::PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str(), cInfo_ );
   return 0;
 }
 
-// Trajin_Single::BeginTraj()
-int Trajin_Single::BeginTraj(bool showProgress) {
+int Trajin_Single::BeginTraj() {
   // Open the trajectory
   if (trajio_->openTrajin()) {
-    mprinterr("Error: Trajin_Single::BeginTraj: Could not open %s\n",TrajFilename().base());
+    mprinterr("Error: Trajin_Single::BeginTraj: Could not open %s\n",Traj().Filename().base());
     return 1;
   }
   // Open mdvel file if present
@@ -96,41 +89,36 @@ int Trajin_Single::BeginTraj(bool showProgress) {
     mprinterr("Error: Could not open mdvel file.\n");
     return 1;
   }
-  // Set progress bar, start and offset.
-  PrepareForRead( showProgress );
-  trajIsOpen_ = true;
+  // Initialize counter.
+  SetTraj().Counter().Begin();
   return 0;
 }
 
-// Trajin_Single::EndTraj()
 void Trajin_Single::EndTraj() {
-  if (trajIsOpen_) {
-    trajio_->closeTraj();
-    if (velio_!=0) velio_->closeTraj();
-    trajIsOpen_ = false;
-  }
+  trajio_->closeTraj();
+  if (velio_ != 0) velio_->closeTraj();
 }
 
 // Trajin_Single::ReadTrajFrame()
-int Trajin_Single::ReadTrajFrame( int currentFrame, Frame& frameIn ) {
-  if (trajio_->readFrame(currentFrame, frameIn))
+int Trajin_Single::ReadTrajFrame( int idx, Frame& frameIn ) {
+  if (trajio_->readFrame(idx, frameIn))
     return 1;
-  if (velio_ != 0 && velio_->readVelocity(currentFrame, frameIn))
+  if (velio_ != 0 && velio_->readVelocity(idx, frameIn))
     return 1;
-  //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,currentFrame,targetSet);
+  //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,idx,targetSet);
   return 0;
 }
 
 // Trajin_Single::PrintInfo()
 void Trajin_Single::PrintInfo(int showExtended) const {
-  mprintf("'%s' ",TrajFilename().base());
+  mprintf("'%s' ",Traj().Filename().base());
   trajio_->Info();
-  mprintf(", Parm %s",TrajParm()->c_str());
+  mprintf(", Parm %s",Traj().Parm()->c_str());
   if (trajio_->CoordInfo().HasBox())
     mprintf(" (%s box)", trajio_->CoordInfo().TrajBox().TypeName());
-  if (showExtended==1) PrintFrameInfo(); 
+  if (showExtended==1) Traj().Counter().PrintFrameInfo(); 
   if (debug_>0)
-    mprintf(", %i atoms, Box %i",TrajParm()->Natom(),(int)trajio_->CoordInfo().HasBox());
+    mprintf(", %i atoms, Box %i",Traj().Parm()->Natom(),(int)trajio_->CoordInfo().HasBox());
   mprintf("\n");
   if (velio_!=0) {
     mprintf("\tMDVEL: ");
