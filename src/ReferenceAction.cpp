@@ -57,7 +57,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
         return 1;
       }
       refFrame_.SetupFrameV(RefParm->Atoms(), refTraj_.TrajCoordInfo());
-      if (refTraj_.BeginTraj(false)) {
+      if (refTraj_.BeginTraj()) {
         mprinterr("Error: %s: Could not open reftraj %s\n", call, reftrajname.c_str());
         return 1;
       }
@@ -73,7 +73,7 @@ int ReferenceAction::InitRef(bool previousIn, bool firstIn, bool massIn, bool fi
   else if (refmode_ == FIRST)
     modeString_ = "first frame";
   else if (refmode_==REFTRAJ)
-    modeString_ = "trajectory " + refTraj_.TrajFilename().Full();
+    modeString_ = "trajectory " + refTraj_.Traj().Filename().Full();
   else // REFFRAME
     modeString_ = "\"" + REF.RefName() + "\"";
   modeString_ += " (" + refMask_.MaskExpression() + ")";

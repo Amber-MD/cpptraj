@@ -27,10 +27,11 @@ class CpptrajState {
     void SetActiveReference(DataSet_Coords_REF* rp) { activeRef_ = rp; }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
+    int AddOutputTrajectory( ArgList& );
+    int AddOutputTrajectory( std::string const& );
     int RunAnalyses();
     TrajinList const& InputTrajList() const { return trajinList_; }
-    inline int AddTrajout( ArgList const& );
-    inline int AddTrajout( std::string const& );
+    // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
     inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
@@ -82,11 +83,11 @@ class CpptrajState {
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;
     
-    /// Active reference structure for distance-based masks etc.
+    /// Pointer to active reference structure for distance-based masks etc.
     DataSet_Coords_REF* activeRef_;
     /// State debug level
     int debug_;
-    /// Internal reference index for numbering refs in DataSetList.
+    /// Internal reference index for numbering refs in DataSetList. TODO: Put in DataSetList?
     int refidx_;
     /// Display Progress bar during run
     bool showProgress_;
@@ -94,16 +95,6 @@ class CpptrajState {
     bool exitOnError_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-// CpptrajState::AddTrajout()
-int CpptrajState::AddTrajout( ArgList const& argIn ) {
-  return trajoutList_.AddTrajout( argIn, parmFileList_ );
-}
-int CpptrajState::AddTrajout( std::string const& fname ) {
-  return AddTrajout( ArgList(fname) );
-}
-int CpptrajState::AddReference( std::string const& fname ) {
-  return AddReference( fname, ArgList() );
-}
 // CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
@@ -113,5 +104,9 @@ int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgLis
 int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
   return analysisList_.AddAnalysis( Alloc, argIn, &parmFileList_, &DSL_, &DFL_ );
+}
+// CpptrajState::AddReference()
+int CpptrajState::AddReference( std::string const& fname ) {
+  return AddReference( fname, ArgList() );
 }
 #endif

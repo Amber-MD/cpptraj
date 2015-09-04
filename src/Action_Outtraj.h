@@ -7,7 +7,7 @@
 /// Write out a trajectory inside the ActionList
 class Action_Outtraj: public Action {
   public:
-    Action_Outtraj();
+    Action_Outtraj() : associatedParm_(0), isSetup_(false) {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Outtraj(); }
     static void Help();
   private:
@@ -17,7 +17,8 @@ class Action_Outtraj: public Action {
     void Print();
 
     Trajout_Single outtraj_;
-    Topology* CurrentParm_;
+    Topology* associatedParm_;
+    bool isSetup_;
     std::vector<double> Max_;
     std::vector<double> Min_;
     std::vector<DataSet_1D*> Dsets_;

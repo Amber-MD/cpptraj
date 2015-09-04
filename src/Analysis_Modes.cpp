@@ -151,8 +151,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       return Analysis::ERR;
     }
     // Setup output traj
-    if (trajout_.InitTrajWrite( tOutName, ArgList(), tOutParm_, tOutFmt ) != 0) {
-      mprinterr("Error: Could not setup output trajectory.\n");
+    if (trajout_.InitTrajWrite( tOutName, ArgList(), tOutFmt ) != 0) {
+      mprinterr("Error: Could not init output trajectory.\n");
       return Analysis::ERR;
     }
     // Get min and max for PC
@@ -267,7 +267,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     mprintf("\n\tCreating trajectory for mode %i\n"
               "\tWriting to trajectory %s\n"
               "\tPC range: %f to %f\n", tMode_, 
-            trajout_.TrajFilename().full(), pcmin_, pcmax_);
+            trajout_.Traj().Filename().full(), pcmin_, pcmax_);
   }
 
   return Analysis::OK;
@@ -541,9 +541,13 @@ int Analysis_Modes::ProjectCoords() {
   for (int idx = 0; idx < ncoord; idx++)
     outframe[idx] += pcmin_ * Vec[idx];
   if (debug_>0) CalculateProjection(0, outframe, tMode_-1);
+  if (trajout_.SetupTrajWrite( tOutParm_, CoordinateInfo(), max_it )) {
+    mprinterr("Error: Could not open output modes traj '%s'\n", trajout_.Traj().Filename().full());
+    return 1;
+  }
   // Write first frame with coords at pcmin.
   int set = 0;
-  trajout_.WriteFrame(set++, tOutParm_, outframe);
+  trajout_.WriteSingle(set++, outframe);
   // Main loop
   for (int it = 0; it < max_it; it++) {
     double* crd = outframe.xAddress();
@@ -555,7 +559,7 @@ int Analysis_Modes::ProjectCoords() {
     //for (int m = 0; m < 3; m++)
     //  CalculateProjection(set, outframe, m);
     // Write frame
-    trajout_.WriteFrame(set++, tOutParm_, outframe);
+    trajout_.WriteSingle(set++, outframe);
   }
   trajout_.EndTraj();
   return 0;
