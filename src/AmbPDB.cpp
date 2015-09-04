@@ -9,8 +9,8 @@
 #include "Trajin_Single.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h"
-#define VERSION_STRING "V16.00a"
 #include "Traj_AmberRestart.h"
+#define VERSION_STRING "V15.00"
 
 static void Help(const char* prgname, bool showAdditional) {
   mprinterr("\nUsage: %s -p 'Top' -c 'Coords' [Additional Options]\n"
