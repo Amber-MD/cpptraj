@@ -182,6 +182,12 @@ SOURCES=ActionFrameCounter.cpp \
         Dimension.cpp \
         DistRoutines.cpp \
         Energy.cpp \
+        EnsembleIn.cpp \
+        EnsembleIn_Multi.cpp \
+        EnsembleIn_Single.cpp \
+        EnsembleOut.cpp \
+        EnsembleOut_Multi.cpp \
+        EnsembleOut_Single.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -192,12 +198,14 @@ SOURCES=ActionFrameCounter.cpp \
         GridAction.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
+        InputTrajCommon.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NetcdfFile.cpp \
+        OutputTrajCommon.cpp \
         PDBfile.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
@@ -243,14 +251,11 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
         TrajectoryFile.cpp \
-        Trajin.cpp \
+        TrajFrameCounter.cpp \
         TrajinList.cpp \
-        Trajin_Ensemble.cpp \
         Trajin_Multi.cpp \
         Trajin_Single.cpp \
-        Trajout.cpp \
-        Trajout_Ensemble.cpp \
-        Trajout_Multi.cpp \
+        TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \

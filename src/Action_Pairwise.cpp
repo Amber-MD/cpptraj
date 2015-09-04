@@ -370,11 +370,13 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
   } 
     
   Trajout_Single tout;
-  if (tout.InitTrajWrite(outfilename,"multi",&CutParm,TrajectoryFile::MOL2FILE)) {
+  if (tout.PrepareTrajWrite(outfilename,"multi",&CutParm,CoordinateInfo(),1,
+                            TrajectoryFile::MOL2FILE))
+  {
     mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename.c_str());
     return 1;
   }
-  tout.WriteFrame(frameNum, &CutParm, CutFrame);
+  tout.WriteSingle(frameNum, CutFrame);
   tout.EndTraj();
   return 0;
 }
