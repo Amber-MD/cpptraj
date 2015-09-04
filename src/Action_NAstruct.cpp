@@ -726,38 +726,26 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
     BPtype const& BP1 = bp1->second;
     NA_Base const& base1 = Bases_[BP1.base1idx_];
     NA_Base const& base2 = Bases_[BP1.base2idx_];
-
+    
     // Find step
-    Rpair respair;
-    respair.first  = Bases_[base1.C3resIdx()].ResNum();
+    int idx1 = base1.C3resIdx();
+    int idx2;
     if (BP1.isAnti_)
-      respair.second = Bases_[base2.C5resIdx()].ResNum();
+      idx2 = base2.C5resIdx();
     else
-      respair.second = Bases_[base1.C3resIdx()].ResNum();
-    BPmap::const_iterator bp2 = BasePairs_.find( respair );
-    if (bp2 != BasePairs_.end()) {
-      BPtype const& BP2 = bp2->second;
-      NA_Base const& base3 = Bases_[BP2.base1idx_];
-      NA_Base const& base4 = Bases_[BP2.base2idx_];
-#     ifdef NASTRUCTDEBUG
-      mprintf("  BP step (%s--%s)-(%s--%s)\n",
-              base1.BaseName().c_str(), base2.BaseName().c_str(),
-              base3.BaseName().c_str(), base4.BaseName().c_str());
-#     endif
-/*
-    BPmap::const_iterator bp2 = bp1;
-    ++bp2;
-    for (; bp2 != BasePairs_.end(); ++bp2) {
-      BPtype const& BP2 = bp2->second;
-      NA_Base const& base3 = Bases_[BP2.base1idx_];
-      NA_Base const& base4 = Bases_[BP2.base2idx_];
-      double dist2 = DIST2_NoImage( BP1.bpaxis_.Oxyz(), BP2.bpaxis_.Oxyz() );
-      mprintf("\tBP step (%s--%s)-(%s--%s) origin dist= %g\n",
-              base1.BaseName().c_str(), base2.BaseName().c_str(),
-              base3.BaseName().c_str(), base4.BaseName().c_str(),
-              sqrt(dist2));
-      if ( dist2 < 30.0 ) { // 4.5^2 = 20.25
-*/
+      idx2 = base2.C3resIdx();
+    if (idx1 != -1 && idx2 != -1) {
+      Rpair respair(Bases_[idx1].ResNum(), Bases_[idx2].ResNum());
+      BPmap::const_iterator bp2 = BasePairs_.find( respair );
+      if (bp2 != BasePairs_.end()) {
+        BPtype const& BP2 = bp2->second;
+        NA_Base const& base3 = Bases_[BP2.base1idx_];
+        NA_Base const& base4 = Bases_[BP2.base2idx_];
+#       ifdef NASTRUCTDEBUG
+        mprintf("  BP step (%s--%s)-(%s--%s)\n",
+                base1.BaseName().c_str(), base2.BaseName().c_str(),
+                base3.BaseName().c_str(), base4.BaseName().c_str());
+#       endif
         // NOTE: Unlike base pairs which are indexed by residue numbers, base
         //       pair steps are indexed by base pair indices.
         Rpair steppair(BP1.bpidx_, BP2.bpidx_);
@@ -828,9 +816,9 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         currentStep.incl_->Add(frameNum, &incl);
         currentStep.tip_->Add(frameNum, &tip);
         currentStep.htwist_->Add(frameNum, &htwist);
-//      } // END distance less than step cutoff
-    } // END bp2 loop
-  } // END bp1 loop
+      } // END second base pair found
+    } // END second base pair valid 
+  } // END loop over base pairs 
   return 0;
 }
 // ----------------------------------------------------------------------------
