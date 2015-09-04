@@ -13,33 +13,35 @@ class Analysis_IRED : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_IRED(); }
     static void Help();
 
-    ~Analysis_IRED();
-
     Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    double freq_;
-    double tstep_;
-    double tcorr_;
-    double distnh_;
-    int order_;
-    int debug_;
-    bool relax_;
-    bool norm_;
-    bool drct_;
-    double* cf_;
-    double* cf_cjt_;
-    double* cfinf_;
-    double* taum_;
-    CpptrajFile* orderout_;
-    CpptrajFile* noefile_;
-    CpptrajFile* cmtfile_;
-    CpptrajFile* cjtfile_;
-    DataSet* data_s2_;
-    DataSet_Modes* modinfo_;
-    std::vector<DataSet_Vector*> IredVectors_;
-
-    double calc_spectral_density(int, double);
     double Jw(int, double, std::vector<double>) const;
+
+    double freq_;           ///< Frequency for calculation of relaxation parameters.
+    double tstep_;          ///< Time step
+    double tcorr_;          ///< Total correlation time.
+    double distnh_;         ///< N-H distance for relaxation calc in Ang.
+    int order_;             ///< Order of spherical harmonics for calculation autocorrelation fns
+    int debug_;
+    bool relax_;            ///< If true calculate relaxation and NOEs
+    bool norm_;             ///< If true output normalized time correlation functions
+    bool drct_;             ///< If true use direct calculation of autocorrelation instead of FFT
+    DataFile* cmtfile_;     ///< File to write mode autocorrelation functions to
+    DataFile* cjtfile_;     ///< File to write reconstructed vector autocorrelation functions to
+    std::string dsname_;    ///< Data set name
+    DataSet* data_s2_;      ///< Order parameters (1 per vector).
+    DataSet* data_plateau_; ///< Cm(t) plateau values, i.e. Cm(t->T), 1 per vector
+    DataSet* data_tauM_;    ///< Cm(t) relaxation values, 1 per vector.
+    DataSet* data_noe_;     ///< NOEs (1 per vector)
+    DataSet* data_t1_;      ///< T1 relaxation (1 per vector).
+    DataSet* data_t2_;      ///< T2 relaxation (1 per vector).
+    typedef std::vector<DataSet*> DataListType;
+    DataListType CmtArray_; ///< Cm(t) for each mode
+    DataListType CjtArray_; ///< Cj(t) for each vector
+    DataSetList* masterDSL_; 
+    
+    DataSet_Modes* modinfo_; ///< Modes data from prior diagonalization of IRED matrix
+    std::vector<DataSet_Vector*> IredVectors_; ///< IRED vectors used to calc IRED matrix
 };
 #endif
