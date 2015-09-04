@@ -25,7 +25,6 @@
 class Action_NAstruct: public Action {
   public:
     Action_NAstruct();
-    ~Action_NAstruct();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_NAstruct(); }
     static void Help();
   private:
@@ -33,33 +32,78 @@ class Action_NAstruct: public Action {
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print();
+
+    enum HbondType { WC = 0, HOOG, OTHER };
     // Functions
-    void ClearLists();
-
-    int setupBaseAxes(Frame const&);
-
-    int GCpair(NA_Base const&, NA_Base const&);
-    int ATpair(NA_Base const&, NA_Base const&);
-    int CalcNumHB(NA_Base const&, NA_Base const&);
-    int determineBasePairing();
+    static int TravelBackbone(Topology const&, int, std::vector<int>&); 
+    int SetupBaseAxes(Frame const&);
+    static HbondType GCpair(NA_Base const&, int, NA_Base const&, int);
+    static HbondType ATpair(NA_Base const&, int, NA_Base const&, int);
+    static HbondType ID_HBtype(NA_Base const&, int, NA_Base const&, int);
+    int CalcNumHB(NA_Base const&, NA_Base const&, int&);
+    int DetermineBasePairing();
 
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
-    int determineBaseParameters(int);
-    void CalcPucker(NA_Base const&, int, int);
-    int determineBasepairParameters(int);
+    int DeterminePairParameters(int);
+    void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
+    int DetermineStepParameters(int);
 
+    typedef std::vector<NA_Base> Barray;
+    Barray Bases_;        ///< Hold nucleobases
+    /// Hold a base pair.
+    struct BPtype {
+      NA_Axis bpaxis_; ///< Base pair axis.
+      DataSet_1D* shear_;
+      DataSet_1D* stretch_;
+      DataSet_1D* stagger_;
+      DataSet_1D* buckle_;
+      DataSet_1D* prop_;
+      DataSet_1D* opening_;
+      DataSet_1D* hbonds_;
+      DataSet_1D* major_;
+      DataSet_1D* minor_;
+      unsigned int bpidx_;
+      unsigned int base1idx_; ///< Index of first base in Bases_
+      unsigned int base2idx_; ///< Index of second base in Bases_
+      int nhb_;               ///< Current # of hydrogen bonds in base pair.
+      int n_wc_hb_;           ///< Number of WC hydrogen bonds in base pair.
+      bool isAnti_;
+    };
+    typedef std::pair<int,int> Rpair; ///< Residue pair
+    typedef std::map<Rpair,BPtype> BPmap;
+    BPmap BasePairs_;     ///< Hold base pairs
+    /// Hold a base pair step.
+    struct StepType {
+      DataSet_1D* shift_;
+      DataSet_1D* slide_;
+      DataSet_1D* rise_;
+      DataSet_1D* tilt_;
+      DataSet_1D* roll_;
+      DataSet_1D* twist_;
+      DataSet_1D* xdisp_;
+      DataSet_1D* ydisp_;
+      DataSet_1D* hrise_;
+      DataSet_1D* incl_;
+      DataSet_1D* tip_;
+      DataSet_1D* htwist_;
+      DataSet_1D* Zp_;
+      unsigned int b1idx_; ///< Index of base pair 1 base 1 in Bases_
+      unsigned int b2idx_;
+      unsigned int b3idx_;
+      unsigned int b4idx_;
+    };
+    typedef std::map<Rpair,StepType> StepMap;
+    StepMap Steps_;       ///< Hold base pair steps.
     // Variables
-    enum PmethodType { ALTONA=0, CREMER };
-    PmethodType puckerMethod_;
-    std::vector<NA_Base> Bases_;        ///< Hold ref/input coordinates for each base
-    std::vector<NA_Axis> BaseAxes_;     ///< Hold axis coordinates for each base
-    std::vector<NA_Axis> BasePairAxes_; ///< Hold axis coordinates for each base pair
-    std::vector<int> NumberOfHbonds_;   ///< # hbonds between each base pair
+    NA_Base::PmethodType puckerMethod_;
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
+    double staggerCut_;                 ///< Cutoff for determining base vertical separation
+    double z_angle_cut_;                ///< Cutoff for angle between base Z-axes
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
     int debug_;
+    int nframes_;
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool useReference_;                 ///< If true, use reference to determine base pairing.
@@ -67,33 +111,9 @@ class Action_NAstruct: public Action {
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).
-
+    /// Map a residue name to an NA base type.
     typedef std::map<std::string, NA_Base::NAType> ResMapType;
     ResMapType CustomMap_;
-    // Datasets - 1 entry per BP/BPstep
-    typedef std::vector<DataSet_1D*> Darray;
-    Darray PUCKER_;
-    Darray SHEAR_;
-    Darray STRETCH_;
-    Darray STAGGER_;
-    Darray BUCKLE_;
-    Darray PROPELLER_;
-    Darray OPENING_;
-    Darray BPHBONDS_;
-    Darray MAJOR_;
-    Darray MINOR_;
-    Darray SHIFT_;
-    Darray SLIDE_;
-    Darray RISE_;
-    Darray TILT_;
-    Darray ROLL_;
-    Darray TWIST_;
-    Darray XDISP_;
-    Darray YDISP_;
-    Darray HRISE_;
-    Darray INCL_;
-    Darray TIP_;
-    Darray HTWIST_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
 #   ifdef NASTRUCTDEBUG
