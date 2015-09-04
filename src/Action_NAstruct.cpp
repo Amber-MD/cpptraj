@@ -11,10 +11,10 @@
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
   puckerMethod_(NA_Base::ALTONA),
-  HBdistCut2_(10.89),     // Hydrogen Bond distance cutoff^2: 3.3^2
+  HBdistCut2_(12.25),     // Hydrogen Bond distance cutoff^2: 3.5^2
   // NOTE: Is this too big?
   originCut2_(6.25),      // Origin cutoff^2 for base-pairing: 2.5^2
-  staggerCut_(2.5),       // Vertical separation cutoff
+  staggerCut_(2.0),       // Vertical separation cutoff
   z_angle_cut_(1.134464), // Z angle cutoff in radians (65 deg)
   maxResSize_(0),
   debug_(0),
@@ -698,13 +698,11 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 
     // Find step
     Rpair respair;
-    if (BP1.isAnti_) {
-      respair.first  = base1.C3resIdx();
-      respair.second = base2.C5resIdx();
-    } else {
-      respair.first = base1.C3resIdx();
-      respair.second = base1.C3resIdx();
-    }
+    respair.first  = Bases_[base1.C3resIdx()].ResNum();
+    if (BP1.isAnti_)
+      respair.second = Bases_[base2.C5resIdx()].ResNum();
+    else
+      respair.second = Bases_[base1.C3resIdx()].ResNum();
     BPmap::const_iterator bp2 = BasePairs_.find( respair );
     if (bp2 != BasePairs_.end()) {
       BPtype const& BP2 = bp2->second;
@@ -729,6 +727,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               sqrt(dist2));
       if ( dist2 < 30.0 ) { // 4.5^2 = 20.25
 */
+        // NOTE: Unlike base pairs which are indexed by residue numbers, base
+        //       pair steps are indexed by base pair indices.
         Rpair steppair(BP1.bpidx_, BP2.bpidx_);
         // Base pair step. Try to find existing base pair step.
         StepMap::iterator entry = Steps_.find( steppair );
