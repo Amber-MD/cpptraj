@@ -149,16 +149,16 @@ void Action_Average::Print() {
   mprintf("    AVERAGE:");
   if (crdset_ == 0) {
     Trajout_Single outfile;
-    AvgParm_.SetNframes( 1 ); // FIXME: Should be passed to trajout
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
-    if (outfile.InitEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_, 
-                                      TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
+    if (outfile.PrepareEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_,
+                                         AvgParm_.ParmCoordInfo(), 1, 
+                                         TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
     {
       mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());
       return;
     }
     outfile.PrintInfo(0);
-    outfile.WriteFrame(0, &AvgParm_, *AvgFrame_);
+    outfile.WriteSingle(0, *AvgFrame_);
     outfile.EndTraj();
   } else {
     DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );

@@ -21,32 +21,35 @@ int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const
 {
   // Set up trajectory - false = do not modify box info
   Trajin_Single traj;
-  traj.SetDebug( dbg );
-  if ( traj.SetupTrajRead( fname.Full(), argIn, (Topology*)&parmIn, false ) ) { // FIXME: Fix cast
+  //traj.SetDebug( debug_ );
+  if ( traj.SetupTrajRead( fname.Full(), argIn, (Topology*)&parmIn ) ) { // FIXME: Fix cast
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }
   // Check number of frames to be read
-  int trajFrames = traj.TotalReadFrames();
+  int trajFrames = traj.Traj().Counter().TotalReadFrames();
   if (trajFrames < 1) {
-    mprinterr("Error: No frames could be read for reference '%s'\n", traj.TrajFilename().full());
+    mprinterr("Error: No frames could be read for reference '%s'\n", traj.Traj().Filename().full());
     return 1;
   } else if (trajFrames > 1)
     mprintf("Warning: Reference has %i frames, only reading frame %i\n",
-            trajFrames, traj.Start()+1);
+            trajFrames, traj.Traj().Counter().Start()+1);
   // Start trajectory read
-  if ( traj.BeginTraj(false) ) {
-    mprinterr("Error: Could not open reference '%s'\n.", traj.TrajFilename().full());
+  if ( traj.BeginTraj() ) {
+    mprinterr("Error: Could not open reference '%s'\n.", traj.Traj().Filename().full());
     return 1;
   }
   // Set up reference frame
   if (frame_.SetupFrameV(parmIn.Atoms(), traj.TrajCoordInfo()))
     return 1;
   // Read reference frame
-  traj.ReadTrajFrame( traj.Start(), frame_ );
+  traj.ReadTrajFrame( traj.Traj().Counter().Start(), frame_ );
   traj.EndTraj();
   SetTopology( parmIn );
-  if (SetMeta( MetaData(fname, nameIn, traj.Start()+1) )) return 1;
+  MetaData md(fname, nameIn, traj.Traj().Counter().Start()+1);
+  if (!traj.Title().empty())
+    md.SetLegend( traj.Title() );
+  if (SetMeta( md )) return 1;
   return 0;
 }
 

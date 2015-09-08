@@ -19,11 +19,13 @@ AMBPDBSOURCES=AmbPDB.cpp \
               FileName.cpp \
               FileTypes.cpp \
               Frame.cpp \
+              InputTrajCommon.cpp \
               MaskToken.cpp \
               Matrix_3x3.cpp \
               Mol2File.cpp \
               NameType.cpp \
               NetcdfFile.cpp \
+              OutputTrajCommon.cpp \
               ParmFile.cpp \
               Parm_Amber.cpp \
               Parm_CIF.cpp \
@@ -43,9 +45,8 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Timer.cpp \
               Topology.cpp \
               TrajectoryFile.cpp \
-              Trajin.cpp \
+              TrajFrameCounter.cpp \
               Trajin_Single.cpp \
-              Trajout.cpp \
               Trajout_Single.cpp \
               Residue.cpp \
               Traj_AmberCoord.cpp \

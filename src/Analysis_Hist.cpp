@@ -487,14 +487,16 @@ Analysis::RetType Analysis_Hist::Analyze() {
             mprinterr("Error: Could not write pseudo topology to '%s'\n", parmoutName_.c_str());
         }
         Trajout_Single out;
-        if (out.InitTrajWrite(traj3dName_, ArgList(), &pseudo, traj3dFmt_) == 0) {
+        if (out.PrepareTrajWrite(traj3dName_, ArgList(), &pseudo, CoordinateInfo(),
+                                 Ndata, traj3dFmt_) == 0)
+        {
           Frame outFrame(1);
           for (size_t i = 0; i < Ndata; ++i) {
             outFrame.ClearAtoms();
             outFrame.AddVec3( Vec3(histdata_[0]->Dval(i), 
                                    histdata_[1]->Dval(i), 
                                    histdata_[2]->Dval(i)) );
-            out.WriteFrame(i, &pseudo, outFrame);
+            out.WriteSingle(i, outFrame);
           }
           out.EndTraj();
         } else

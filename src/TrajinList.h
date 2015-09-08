@@ -1,40 +1,46 @@
 #ifndef INC_TRAJINLIST_H
 #define INC_TRAJINLIST_H
 #include "Trajin.h"
-#include "TopologyList.h"
-// Class: TrajinList
+#include "EnsembleIn.h"
 /// Hold input trajectories
 class TrajinList {
+    typedef std::vector<Trajin*> tListType;
+    typedef std::vector<EnsembleIn*> eListType;
   public:
-    enum TrajModeType { UNDEFINED, NORMAL, ENSEMBLE };
+    enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
     TrajinList();
     ~TrajinList();
     void Clear();
     void SetDebug(int dIn) { debug_ = dIn; }
-    /// Add a traj file to the list based on input from arg list
-    int AddTrajin(std::string const&, ArgList const&, TopologyList const&);
-    /// Add trajectory ensemble
-    int AddEnsemble(std::string const&, ArgList const&, TopologyList const&);
+    /// Add a trajectory file to the list.
+    int AddTrajin(std::string const&, Topology*, ArgList const&);
+    /// Add an ensemble to the list.
+    int AddEnsemble(std::string const&, Topology*, ArgList const&);
 
-    typedef std::vector<Trajin*> ListType;
-    typedef ListType::const_iterator const_iterator;
-    const_iterator begin() const { return trajin_.begin(); }
-    const_iterator end()   const { return trajin_.end();   }
-    bool empty()           const { return trajin_.empty(); }
-    TrajModeType Mode()    const { return mode_;           }
-    const Trajin* front()  const { return trajin_.front(); }
-    int MaxFrames()        const { return maxframes_;      }
+    typedef tListType::const_iterator trajin_it;
+    trajin_it trajin_begin() const { return trajin_.begin(); }
+    trajin_it trajin_end()   const { return trajin_.end();   }
+
+    typedef eListType::const_iterator ensemble_it;
+    ensemble_it ensemble_begin() const { return ensemble_.begin(); }
+    ensemble_it ensemble_end()   const { return ensemble_.end();   }
+    void FirstEnsembleReplicaInfo() const {
+      if (!ensemble_.empty()) ensemble_.front()->PrintReplicaInfo();
+    }
+
+    bool empty() const { return trajin_.empty() && ensemble_.empty(); }
+    TrajModeType Mode() const { return mode_; }
+    int MaxFrames() const { return maxframes_; }
     void List() const;
   private:
-    void AddToList(Trajin*);
-    //int AddInputTraj(std::string const&, Trajin*, ArgList, TopologyList const&);
+    void UpdateMaxFrames(InputTrajCommon const&);
 
-    ListType trajin_;
+    tListType trajin_;
+    eListType ensemble_;
     int debug_;
     int maxframes_;
-    TrajModeType mode_; ///< Trajectory processing mode
+    TrajModeType mode_;
     /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
     std::string finalCrdIndicesArg_;
 };
 #endif
-

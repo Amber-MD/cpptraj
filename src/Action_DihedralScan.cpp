@@ -162,7 +162,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   }
   // Setup output trajectory
   if (!outfilename_.empty()) {
-    if (outtraj_.InitTrajWrite(outfilename_, ArgList(), outtop, outfmt)) return Action::ERR;
+    if (outtraj_.InitTrajWrite(outfilename_, ArgList(), outfmt)) return Action::ERR;
     outframe_ = 0;
   } 
   // Square cutoffs to compare to dist^2 instead of dist
@@ -269,6 +269,10 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
       ResCheck_.push_back(rct);
     }
   }
+
+  if (!outfilename_.empty() && CurrentParm_ == 0) // FIXME: Correct frames for # of rotations
+    outtraj_.SetupTrajWrite(currentParm, currentParm->ParmCoordInfo(), currentParm->Nframes());
+
   CurrentParm_ = currentParm;
   return Action::OK;  
 }
@@ -361,8 +365,10 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
   // DEBUG
   int debugframenum=0;
   Trajout_Single DebugTraj;
-  DebugTraj.InitTrajWrite("debugtraj.nc",CurrentParm_,TrajectoryFile::AMBERNETCDF);
-  DebugTraj.WriteFrame(debugframenum++,CurrentParm_,currentFrame);
+  DebugTraj.PrepareTrajWrite("debugtraj.nc",ArgList(),CurrentParm_,
+                             CurrentParm_->ParmCoordInfo(), CurrentParm_->Nframes(),
+                             TrajectoryFile::AMBERNETCDF);
+  DebugTraj.WriteSingle(debugframenum++,currentFrame);
 #endif
   int next_resnum;
   int bestLoop = 0;
@@ -408,7 +414,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
       currentFrame.Rotate(rotationMatrix, dih->Rmask);
 #ifdef DEBUG_DIHEDRALSCAN
       // DEBUG
-      DebugTraj.WriteFrame(debugframenum++,CurrentParm_,currentFrame);
+      DebugTraj.WriteSingle(debugframenum++,currentFrame);
 #endif
       // If we dont care about sterics exit here
       if (!check_for_clashes_) break;
@@ -508,7 +514,7 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
   double theta_in_radians = interval_ * Constants::DEGRAD;
   // Write original frame
   if (!outfilename_.empty())
-    outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
+    outtraj_.WriteSingle(outframe_++, currentFrame);
   for (std::vector<DihedralScanType>::iterator dih = BB_dihedrals_.begin();
                                                dih != BB_dihedrals_.end();
                                                dih++)
@@ -526,8 +532,8 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
       // Rotate around axis
       currentFrame.Rotate(rotationMatrix, (*dih).Rmask);
       // Write output trajectory
-      if (outtraj_.TrajIsOpen())
-        outtraj_.WriteFrame(outframe_++, CurrentParm_, currentFrame);
+      if (!outfilename_.empty())
+        outtraj_.WriteSingle(outframe_++, currentFrame);
     }
   }
 }

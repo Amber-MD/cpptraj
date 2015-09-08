@@ -1,12 +1,13 @@
-// TrajinList
 #include "TrajinList.h"
 #include "CpptrajStdio.h"
+#include "TrajectoryFile.h"
 #include "Trajin_Single.h"
 #include "Trajin_Multi.h"
-#include "Trajin_Ensemble.h"
+#include "EnsembleIn_Single.h"
+#include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
-TrajinList::TrajinList() : 
+TrajinList::TrajinList() :
   debug_(0),
   maxframes_(0),
   mode_(UNDEFINED) 
@@ -17,33 +18,36 @@ TrajinList::~TrajinList() {
 }
 
 void TrajinList::Clear() {
-  for (ListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
+  for (tListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
     delete *traj;
   trajin_.clear();
+  for (eListType::iterator ens = ensemble_.begin(); ens != ensemble_.end(); ++ens)
+    delete *ens;
+  ensemble_.clear();
   mode_ = UNDEFINED;
   maxframes_ = 0;
 }
 
-// TrajinList::AddToList()
-/** Add given Trajin to trajectory file list and update # of frames in topology.
-  */
-void TrajinList::AddToList(Trajin* traj) {
-  trajin_.push_back(traj);
-  int trajFrames = traj->TotalReadFrames();
+// TODO: Get rid of the nonsense IncreaseFrames stuff.
+void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
+  int trajFrames = traj.Counter().TotalReadFrames();
   // If < 0 frames this indicates the number of frames could not be determined. 
   if (trajFrames < 0)
     maxframes_ = -1;
   else if (maxframes_ != -1) {
     // Only update # of frames if total # of frames so far is known.
-    traj->TrajParm()->IncreaseFrames( trajFrames );
+    traj.Parm()->IncreaseFrames( trajFrames );
     maxframes_ += trajFrames;
   }
 }
 
 // TrajinList::AddEnsemble()
-int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
-                            TopologyList const& topListIn)
+int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList const& argIn)
 {
+  if (topIn == 0) {
+    mprinterr("Error: No topology for input ensemble '%s'\n", fname.c_str());
+    return 1;
+  }
   if (mode_ == NORMAL) {
     mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
     return 1;
@@ -52,13 +56,10 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
   int err = 0;
   File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
-  ArgList trajin_args = argIn;
-  // Get parm from TopologyList based on args
-  Topology* tempParm = topListIn.GetParm( trajin_args );
   TrajectoryFile::TrajFormatType trajinFmt;
   TrajectoryIO* tio = 0;
   for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
-    ArgList args = trajin_args;
+    ArgList args = argIn;
     // Determine whether this file is multiple file or single file ensemble.
     tio = TrajectoryFile::DetectFormat( fn->Full(), trajinFmt );
     if (tio == 0) {
@@ -66,25 +67,24 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
       err++;
       continue;
     }
-    Trajin* traj = 0;
+    EnsembleIn* ensemble = 0;
 #   ifdef ENABLE_SINGLE_ENSEMBLE
     if (tio->CanProcessEnsemble())
-      traj = new Trajin_Ensemble();
+      ensemble = new EnsembleIn_Single();
     else
 #   endif
-      traj = new Trajin_Multi();
-    if (traj == 0) {
-      mprinterr("Error: Memory allocation for input trajectory failed.\n");
+      ensemble = new EnsembleIn_Multi();
+    if (ensemble == 0) {
+      mprinterr("Error: Memory allocation for input ensemble failed.\n");
       delete tio;
       return 1;
     }
-    traj->SetDebug(debug_);
-    traj->SetEnsemble(true); // TODO: Obsolete; split Trajin_Multi up.
+    ensemble->SetDebug( debug_ );
     // CRDIDXARG: Append coordinate indices arg if there is one
     args.AddArg( finalCrdIndicesArg_ );
-    if ( traj->SetupTrajRead(fn->Full(), args, tempParm) ) {
-      mprinterr("Error: Could not set up input trajectory '%s'.\n", fn->full());
-      delete traj;
+    if ( ensemble->SetupEnsembleRead(fn->Full(), args, topIn) ) {
+      mprinterr("Error: Could not set up input ensemble '%s'.\n", fname.c_str());
+      delete ensemble;
       delete tio;
       err++;
       continue;
@@ -96,12 +96,12 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
 #   ifdef ENABLE_SINGLE_ENSEMBLE
     if ( !tio->CanProcessEnsemble() ) {
 #   endif
-      Trajin_Multi const& mTraj = static_cast<Trajin_Multi const&>( *traj );
+      EnsembleIn_Multi const& mTraj = static_cast<EnsembleIn_Multi const&>( *ensemble );
       if ( mTraj.TargetMode() == ReplicaInfo::CRDIDX ) {
         finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
         if (finalCrdIndicesArg_.empty()) {
           mprinterr("Error: Could not obtain final remlog indices.\n");
-          delete traj;
+          delete ensemble;
           delete tio;
           err++;
           continue;
@@ -112,32 +112,39 @@ int TrajinList::AddEnsemble(std::string const& fname, ArgList const& argIn,
     } else
       mprintf("Warning: Single ensemble cannot process crdidx.\n");
 #   endif
-    AddToList(traj);
-    //err += AddInputTraj( *fn, traj, argIn, topListIn );
+    // Add to ensemble list and update # of frames.
+    ensemble_.push_back( ensemble );
+    // NOTE: Cast to const* to ensure Traj() const& function used.
+    UpdateMaxFrames( ensemble->Traj() );
+    // FIXME - Set Topology CoordInfo here so that any output trajectories
+    //         will have the correct ensemble size set when MakeEnsembleTrajout
+    //         is called.
+    ensemble->Traj().Parm()->SetParmCoordInfo( ensemble->EnsembleCoordInfo() );
     delete tio;
   }
   if (err > 0) return 1;
   return 0;
 }
 
-// TrajinList::AddTrajin()
-int TrajinList::AddTrajin(std::string const& fname, ArgList const& argIn,
-                          TopologyList const& topListIn)
+int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList const& argIn)
 {
-  Trajin* traj = 0;
+  if (topIn == 0) {
+    mprinterr("Error: No topology for input trajectory '%s'\n", fname.c_str());
+    return 1;
+  }
   if (mode_ == ENSEMBLE) {
     mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
     return 1;
   }
   mode_ = NORMAL;
+  // CRDIDXARG
   finalCrdIndicesArg_.clear();
   ArgList trajin_args = argIn;
   bool isRemdtraj = trajin_args.hasKey("remdtraj");
   int err = 0;
   File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
-  // Get parm from TopologyList based on args
-  Topology* tempParm = topListIn.GetParm( trajin_args );
+  Trajin* traj = 0;
   for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     ArgList args = trajin_args;
     if (isRemdtraj)
@@ -149,81 +156,42 @@ int TrajinList::AddTrajin(std::string const& fname, ArgList const& argIn,
       return 1;
     }
     traj->SetDebug(debug_);
-    if ( traj->SetupTrajRead(fn->Full(), args, tempParm) ) {
+    if ( traj->SetupTrajRead(fn->Full(), args, topIn) ) {
       mprinterr("Error: Could not set up input trajectory '%s'.\n", fn->full());
       delete traj;
       err++;
       continue;
     }
-    AddToList(traj);
-    //err += AddInputTraj( *fn, traj, argIn, topListIn );
+    // Add to trajin list and update # of frames.
+    trajin_.push_back( traj );
+    UpdateMaxFrames( traj->Traj() );
+    // FIXME - Set Topology CoordInfo here so that topology box info etc
+    //         is consistent with input trajectories.
+    traj->Traj().Parm()->SetParmCoordInfo( traj->TrajCoordInfo() );
   }
   if (err > 0) return 1;
   return 0;
 }
-/*
-// TrajinList::AddInputTraj()
-// NOTE: Pass in a copy of ArgList so the arguments arent modified in case
-//       multiple files passed to trajin/ensemble.
-int TrajinList::AddInputTraj(std::string const& fname, Trajin* traj, ArgList argIn, 
-                             TopologyList const& topListIn)
-{
-  if (traj==0) {
-    mprinterr("Error: Could not allocate memory for input trajectory.\n");
-    return 1;
-  }
-  // Get parm from TopologyList based on args
-  Topology* tempParm = topListIn.GetParm( argIn );
-  traj->SetDebug(debug_);
-  // CRDIDXARG: Append coordinate indices arg if there is one
-  argIn.AddArg( finalCrdIndicesArg_ ); 
-  if ( traj->SetupTrajRead(fname, argIn, tempParm) ) {
-    mprinterr("Error: Could not set up input trajectory '%s'.\n", fname.c_str());
-    delete traj;
-    return 1;
-  }
-  // CRDIDXARG: If trajectory is REMD ensemble and sorting by CRDIDX, need to
-  //            save final CRDIDX for next ensemble command.
-  if ( traj->IsEnsemble() ) {
-    Trajin_Multi const& mTraj = static_cast<Trajin_Multi const&>( *traj );
-    if ( mTraj.TargetMode() == Trajin_Multi::CRDIDX ) {
-      finalCrdIndicesArg_ = mTraj.FinalCrdIndices();
-      if (finalCrdIndicesArg_.empty()) {
-        mprinterr("Error: Could not obtain final remlog indices.\n");
-        delete traj;
-        return 1;
-      }
-      //mprintf("DEBUG: Final crd indices arg: %s\n", finalCrdIndicesArg_.c_str());
-    }
-  } else
-    finalCrdIndicesArg_.clear();
-  // Add to trajectory file list
-  trajin_.push_back(traj);
-  // Update total # of frames
-  int trajFrames = traj->TotalReadFrames();
-  // If < 0 frames this indicates the number of frames could not be determined. 
-  if (trajFrames < 0) 
-    maxframes_ = -1;
-  else if (maxframes_ != -1) {
-    // Only update # of frames if total # of frames so far is known.
-    traj->TrajParm()->IncreaseFrames( trajFrames );
-    maxframes_ += trajFrames;
-  }
 
-  return 0;
-}
-*/
 void TrajinList::List() const {
   if (!trajin_.empty()) {
     mprintf("\nINPUT TRAJECTORIES:\n");
     unsigned int trajnum = 0;
-    for (ListType::const_iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
+    for (trajin_it traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
       mprintf(" %u: ", trajnum++);
       (*traj)->PrintInfo( 1 );
     }
-    if (maxframes_ < 0)
-      mprintf("  Total number of frames is unknown.\n");
-    else
-      mprintf("  Coordinate processing will occur on %i frames.\n", maxframes_);
   }
+  if (!ensemble_.empty()) {
+    mprintf("\nINPUT ENSEMBLES:\n");
+    for (unsigned int en = 0; en != ensemble_.size(); ++en) {
+      mprintf(" %u: ", en);
+      ensemble_[en]->EnsembleInfo( 1 );
+    }
+  }
+  if (maxframes_ < 0)
+    mprintf("  Total number of frames is unknown.\n");
+  else if (maxframes_ > 0)
+    mprintf("  Coordinate processing will occur on %i frames.\n", maxframes_);
+
 }

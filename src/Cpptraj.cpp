@@ -291,7 +291,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
                                 trajoutName != trajoutFiles.end();
                                 ++trajoutName)
-      if (State_.AddTrajout( *trajoutName )) return ERROR;
+      if (State_.AddOutputTrajectory( *trajoutName )) return ERROR;
   }
   // Process all input files specified on command line.
   if ( !inputFiles.empty() ) {

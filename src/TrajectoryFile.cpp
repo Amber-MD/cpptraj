@@ -80,30 +80,6 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
 };
 // -----------------------------------------------------------------------------
 
-// CONSTRUCTOR
-TrajectoryFile::TrajectoryFile() : debug_(0), trajParm_(0) {}
-
-// TrajectoryFile::SetDebug()
-/** Set debug level. */
-void TrajectoryFile::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_>0) mprintf("\tTrajectoryFile debug level set to %i\n",debug_);
-}
-
-// TrajectoryFile::SetTrajFileName()
-void TrajectoryFile::SetTrajFileName(std::string const& full, bool isRead) {
-    trajName_.SetFileName( full );
-} 
-
-int TrajectoryFile::SetTrajParm( Topology* tparmIn ) {
-  if (tparmIn==0) {
-    mprinterr("Error: TrajectoryFile: Parm file is null.\n");
-    return 1;
-  }
-  trajParm_ = tparmIn;
-  return 0;
-}
-
 // TrajectoryFile::DetectFormat()
 TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname, TrajFormatType& ttype) {
   CpptrajFile file;
