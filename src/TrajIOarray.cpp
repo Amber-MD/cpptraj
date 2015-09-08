@@ -31,19 +31,26 @@ int TrajIOarray::SetupReplicaFilenames(std::string const& tnameIn, ArgList& argI
 }
 
 /** Add lowest replica file name and names from comma-separated list. */
-int TrajIOarray::AddReplicasFromArgs(std::string const& name0, 
+int TrajIOarray::AddReplicasFromArgs(std::string const& name0, // TODO accept FileName 
                                      std::string const& commaNames)
 {
   if (name0.empty()) return 1;
-  FileName trajFilename;
-  if (trajFilename.SetFileNameWithExpansion( name0 )) return 1;
-  replica_filenames_.push_back( trajFilename.Full() );
+  FileName trajFilename( name0 );
+  if (!File::Exists( trajFilename )) {
+    mprinterr("Error: File '%s' does not exist.\n", trajFilename.full());
+    return 1;
+  }
+  replica_filenames_.push_back( trajFilename );
   ArgList remdtraj_list( commaNames, "," );
   for (ArgList::const_iterator fname = remdtraj_list.begin();
                                fname != remdtraj_list.end(); ++fname)
   {
-    if (trajFilename.SetFileNameWithExpansion( *fname )) return 1;
-    replica_filenames_.push_back( *fname );
+    if (trajFilename.SetFileName( *fname )) return 1;
+    if (!File::Exists( trajFilename )) {
+      mprinterr("Error: File '%s' does not exist.\n", trajFilename.full());
+      return 1;
+    }
+    replica_filenames_.push_back( trajFilename );
   }
   return 0;
 }
@@ -54,14 +61,13 @@ int TrajIOarray::AddReplicasFromArgs(std::string const& name0,
   * compression extension. 
   * \return Found replica filenames, or an empty list on error. 
   */
-int TrajIOarray::SearchForReplicas(std::string const& fname) {
+int TrajIOarray::SearchForReplicas(std::string const& fname) { // TODO: Accept FileName
   // STEP 1 - Get filename Prefix, Numerical extension, and optional
   //          compression extension.
   // Assume the extension of this trajectory is the number of the lowest 
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  FileName trajFilename;
-  if (trajFilename.SetFileNameWithExpansion( fname )) return 1;
+  FileName trajFilename( fname );
   if (debug_>1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n",trajFilename.full());
   if ( trajFilename.Ext().empty() ) {
@@ -103,22 +109,24 @@ int TrajIOarray::SearchForReplicas(std::string const& fname) {
   std::string replica_filename = Prefix + "." + 
                                  integerToString(lowestRepnum - 1, ExtWidth) +
                                  CompressExt;
-  if (fileExists(replica_filename)) {
+  if (File::Exists(replica_filename)) {
     mprintf("Warning: Replica# found lower than file specified with trajin.\n"
             "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
             replica_filename.c_str());
   }
 
   // SETP 4 - Add lowest filename, search for and add all replicas higher than it.
-  replica_filenames_.push_back( trajFilename.Full() );
+  replica_filenames_.push_back( trajFilename );
   int current_repnum = lowestRepnum;
   bool search_for_files = true;
   while (search_for_files) {
     ++current_repnum;
-    replica_filename = Prefix + "." + integerToString(current_repnum, ExtWidth) + CompressExt;
+    trajFilename.SetFileName_NoExpansion( Prefix + "." +
+                                          integerToString(current_repnum, ExtWidth) +
+                                          CompressExt );
     //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
-    if (fileExists(replica_filename))
-      replica_filenames_.push_back( replica_filename );
+    if (File::Exists(trajFilename))
+      replica_filenames_.push_back( trajFilename );
     else
       search_for_files = false;
   }
@@ -144,17 +152,17 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   int totalFrames = TrajectoryIO::TRAJIN_UNK; // Total # frames to be read from ensemble
   // Right now enforce that all replicas have the same metadata as lowest
   // replica, e.g. if replica 0 has temperature, replica 1 does too etc.
-  for (NameListType::const_iterator repfile = replica_filenames_.begin();
-                                    repfile != replica_filenames_.end(); ++repfile)
+  for (File::NameArray::const_iterator repfile = replica_filenames_.begin();
+                                       repfile != replica_filenames_.end(); ++repfile)
   {
     // Detect format
     TrajectoryFile::TrajFormatType repformat = TrajectoryFile::UNKNOWN_TRAJ;
-    TrajectoryIO* replica0 = TrajectoryFile::DetectFormat( *repfile, repformat );
+    TrajectoryIO* replica0 = TrajectoryFile::DetectFormat( repfile->Full(), repformat );
     if ( replica0 == 0 ) {
-      mprinterr("Error: Could not set up replica file %s\n", repfile->c_str());
+      mprinterr("Error: Could not set up replica file %s\n", repfile->full());
       return 1;
     }
-    mprintf("\tReading '%s' as %s\n", repfile->c_str(), TrajectoryFile::FormatString(repformat));
+    mprintf("\tReading '%s' as %s\n", repfile->full(), TrajectoryFile::FormatString(repformat));
     replica0->SetDebug( debug_ );
     // Pushing replica0 here allows the destructor to handle it on errors
     IOarray_.push_back( replica0 );
@@ -169,7 +177,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     // Set up replica for reading and get the number of frames.
     int nframes = replica0->setupTrajin( *repfile, trajParm );
     if (nframes == TrajectoryIO::TRAJIN_ERR) {
-      mprinterr("Error: Could not set up %s for reading.\n", repfile->c_str());
+      mprinterr("Error: Could not set up %s for reading.\n", repfile->full());
       return 1;
     }
     // TODO: Do not allow unknown number of frames?
@@ -186,7 +194,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
       // Check total frames in this replica against lowest rep.
       if (nframes != rep0Frames)
         mprintf("Warning: Replica %s frames (%i) does not match # frames in first replica (%i).\n",
-                repfile->c_str(), nframes, rep0Frames);
+                repfile->base(), nframes, rep0Frames);
       //if (repframes < 0) {
       //  mprinterr("Error: RemdTraj: Unknown # of frames in replica.\n");
       //  return 1;
@@ -199,20 +207,20 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
       // Check box info against lowest rep.
       if ( replica0->CoordInfo().HasBox() != cInfo.HasBox() ) {
         mprinterr("Error: Replica %s box info does not match first replica.\n",
-                  repfile->c_str());
+                  repfile->full());
         return 1;
       }
       // TODO: Check specific box type
       // Check velocity info against lowest rep.
       if ( replica0->CoordInfo().HasVel() != cInfo.HasVel() ) {
         mprinterr("Error: Replica %s velocity info does not match first replica.\n",
-                  repfile->c_str());
+                  repfile->full());
         return 1;
       }
       // Check # dimensions and types against lowest rep
       if ( replica0->CoordInfo().ReplicaDimensions() != cInfo.ReplicaDimensions() ) {
         mprinterr("Error: Replica %s dimension info does not match first replica.\n",
-                  repfile->c_str());
+                  repfile->full());
         ReplicaDimArray const& thisRepDims = replica0->CoordInfo().ReplicaDimensions();
         for (int rd = 0; rd < thisRepDims.Ndims(); rd++)
           mprinterr("\t\t%i: %s\n", rd+1, thisRepDims.Description(rd)); 
@@ -240,14 +248,14 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   // Update ensemble size
   cInfo.SetEnsembleSize( (int)IOarray_.size() );
   if (debug_ > 0)
-    Frame::PrintCoordInfo( replica_filenames_[0].c_str(), trajParm->c_str(), cInfo );
+    Frame::PrintCoordInfo( replica_filenames_[0].full(), trajParm->c_str(), cInfo );
 
   return 0;
 }
 
 void TrajIOarray::PrintIOinfo() const {
   for (unsigned int rn = 0; rn != IOarray_.size(); ++rn) {
-    mprintf("\t%u:[%s] ", rn, replica_filenames_[rn].c_str());
+    mprintf("\t%u:[%s] ", rn, replica_filenames_[rn].base());
     IOarray_[rn]->Info();
     mprintf("\n");
   }

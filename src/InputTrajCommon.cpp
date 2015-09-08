@@ -11,6 +11,10 @@ int InputTrajCommon::SetNameAndParm(std::string const& fname, Topology* top) {
     mprinterr("Internal Error: Trajin::SetNameAndParm(): File name is empty.\n");
     return 1;
   }
-  if (trajName_.SetFileNameWithExpansion( fname )) return 1;
+  if (trajName_.SetFileName( fname )) return 1;
+  if (!File::Exists( trajName_ )) {
+    mprinterr("Error: File '%s' does not exist.\n", trajName_.full());
+    return 1;
+  }
   return 0;
 }

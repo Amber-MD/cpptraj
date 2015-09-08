@@ -67,10 +67,10 @@ int OutputTrajCommon::CommonTrajoutSetup(std::string const& tnameIn, ArgList& ar
   * format matches the existing format. If not, change to existing format.
   * \return 0 if file exists, 1 if file does not exist.
   */
-int OutputTrajCommon::CheckAppendFormat(std::string const& fname,
+int OutputTrajCommon::CheckAppendFormat(std::string const& fname, // TODO FileName
                                         TrajectoryFile::TrajFormatType& writeFormat)
 {
-  if (fileExists(fname)) {
+  if (File::Exists(fname)) {
     TrajectoryFile::TrajFormatType appendFormat;
     TrajectoryIO* tio = TrajectoryFile::DetectFormat( fname, appendFormat );
     if (appendFormat ==  TrajectoryFile::UNKNOWN_TRAJ)

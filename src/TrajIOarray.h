@@ -30,16 +30,15 @@ class TrajIOarray {
     /// \return number of set-up trajectories
     size_t size()          const { return IOarray_.size();  }
     /// \return specified file name.
-    std::string const& F_name(unsigned int u) const { return replica_filenames_[u]; }
-    const char* f_name(unsigned int u) const { return replica_filenames_[u].c_str(); }
+    FileName const& F_name(unsigned int u) const { return replica_filenames_[u];        }
+    const char* f_name(unsigned int u)     const { return replica_filenames_[u].full(); }
     /// 'remdout' deprecated error message.
     static const char* DEPRECATED_remdout;
   private:
     typedef std::vector<TrajectoryIO*> IOarrayType;
-    typedef std::vector<std::string> NameListType;
 
-    IOarrayType IOarray_;           ///< Input replica trajectories.
-    NameListType replica_filenames_; ///< Replica traj file names.
+    IOarrayType IOarray_;               ///< Input replica trajectories.
+    File::NameArray replica_filenames_; ///< Replica traj file names.
     int debug_;
 };
 #endif
