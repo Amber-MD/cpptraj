@@ -23,7 +23,7 @@ class Action_CreateReservoir : public Action {
     DataSet_1D* bin_;
     double reservoirT_;
     int iseed_;
-    std::string filename_;
+    FileName filename_;
     bool trajIsOpen_;
     bool useVelocity_;
     size_t nframes_;

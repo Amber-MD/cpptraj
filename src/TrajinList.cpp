@@ -61,7 +61,7 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
   for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     ArgList args = argIn;
     // Determine whether this file is multiple file or single file ensemble.
-    tio = TrajectoryFile::DetectFormat( fn->Full(), trajinFmt );
+    tio = TrajectoryFile::DetectFormat( *fn, trajinFmt );
     if (tio == 0) {
       mprinterr("Error: Could not determine trajectory %s format\n", fn->full());
       err++;
@@ -82,7 +82,7 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
     ensemble->SetDebug( debug_ );
     // CRDIDXARG: Append coordinate indices arg if there is one
     args.AddArg( finalCrdIndicesArg_ );
-    if ( ensemble->SetupEnsembleRead(fn->Full(), args, topIn) ) {
+    if ( ensemble->SetupEnsembleRead(*fn, args, topIn) ) {
       mprinterr("Error: Could not set up input ensemble '%s'.\n", fname.c_str());
       delete ensemble;
       delete tio;
@@ -156,7 +156,7 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
       return 1;
     }
     traj->SetDebug(debug_);
-    if ( traj->SetupTrajRead(fn->Full(), args, topIn) ) {
+    if ( traj->SetupTrajRead(*fn, args, topIn) ) {
       mprinterr("Error: Could not set up input trajectory '%s'.\n", fn->full());
       delete traj;
       err++;

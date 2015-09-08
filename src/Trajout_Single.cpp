@@ -12,7 +12,7 @@ Trajout_Single::~Trajout_Single() {
 /** Initialize output trajectory with appropriate TrajectoryIO class and 
   * process arguments.
   */
-int Trajout_Single::InitTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+int Trajout_Single::InitTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                   TrajectoryFile::TrajFormatType writeFormatIn)
 {
   // Require a filename
@@ -34,24 +34,22 @@ int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparm
   return 0;
 }
 
-int Trajout_Single::InitEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                           TrajectoryFile::TrajFormatType fmtIn, int ensembleNum)
 {
-  FileName tempName;
-  tempName.SetFileName( tnameIn );
   TrajectoryFile::TrajFormatType fmt = fmtIn;
   if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
-    fmt = TrajectoryFile::GetTypeFromExtension( tempName.Ext() );
+    fmt = TrajectoryFile::GetTypeFromExtension( tnameIn.Ext() );
   int err = 0;
   if (ensembleNum > -1)
-    err = InitTrajWrite( AppendNumber(tnameIn, ensembleNum), argIn, fmt );
+    err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), argIn, fmt );
   else
     err = InitTrajWrite( tnameIn,                            argIn, fmt );
   if (err != 0) return 1;
   return 0;
 }
 
-int Trajout_Single::PrepareEnsembleTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+int Trajout_Single::PrepareEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                              Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                              int nFrames, TrajectoryFile::TrajFormatType fmtIn,
                                              int ensembleNum)
@@ -61,7 +59,7 @@ int Trajout_Single::PrepareEnsembleTrajWrite(std::string const& tnameIn, ArgList
   return 0;
 }
 
-int Trajout_Single::PrepareTrajWrite(std::string const& tnameIn, ArgList const& argIn,
+int Trajout_Single::PrepareTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                      Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                      int nFrames, TrajectoryFile::TrajFormatType fmtIn)
 {
@@ -71,7 +69,7 @@ int Trajout_Single::PrepareTrajWrite(std::string const& tnameIn, ArgList const& 
 }
 
 // Trajout_Single::InitTrajout()
-int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn,
+int Trajout_Single::InitTrajout(FileName const& tnameIn, ArgList const& argIn,
                                 TrajectoryFile::TrajFormatType writeFormatIn)
 {
   ArgList trajout_args = argIn;
@@ -82,7 +80,7 @@ int Trajout_Single::InitTrajout(std::string const& tnameIn, ArgList const& argIn
   // If appending, file must exist and must match the current format.
   // TODO Do not pass in writeformat directly to be changed.
   if (traj_.Append()) {
-    if (traj_.CheckAppendFormat( traj_.Filename().Full(), traj_.WriteFormat() ))
+    if (traj_.CheckAppendFormat( traj_.Filename(), traj_.WriteFormat() ))
       traj_.SetAppend( false );
   }
   // Set up for the specified format.
@@ -120,7 +118,7 @@ int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInf
     rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
             traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom());
   // Set up TrajectoryIO
-  if (trajio_->setupTrajout(traj_.Filename().Full(), traj_.Parm(), traj_.CoordInfo(),
+  if (trajio_->setupTrajout(traj_.Filename(), traj_.Parm(), traj_.CoordInfo(),
                             traj_.NframesToWrite(), traj_.Append()))
     return 1;
   if (debug_ > 0)

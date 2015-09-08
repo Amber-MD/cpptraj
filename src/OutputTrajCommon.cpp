@@ -13,11 +13,11 @@ OutputTrajCommon::OutputTrajCommon() :
   hasRange_(false)
 {}
 
-int OutputTrajCommon::CommonTrajoutSetup(std::string const& tnameIn, ArgList& argIn,
+int OutputTrajCommon::CommonTrajoutSetup(FileName const& tnameIn, ArgList& argIn,
                                          TrajectoryFile::TrajFormatType fmtIn)
 {
-  // Set file name FIXME: Proper tilde expansion
-  trajName_.SetFileName( tnameIn );
+  // Set file name 
+  trajName_ = tnameIn;
   // Check for append keyword
   append_ = argIn.hasKey("append");
   // Get specified title if any.
@@ -67,7 +67,7 @@ int OutputTrajCommon::CommonTrajoutSetup(std::string const& tnameIn, ArgList& ar
   * format matches the existing format. If not, change to existing format.
   * \return 0 if file exists, 1 if file does not exist.
   */
-int OutputTrajCommon::CheckAppendFormat(std::string const& fname, // TODO FileName
+int OutputTrajCommon::CheckAppendFormat(FileName const& fname,
                                         TrajectoryFile::TrajFormatType& writeFormat)
 {
   if (File::Exists(fname)) {
@@ -79,7 +79,7 @@ int OutputTrajCommon::CheckAppendFormat(std::string const& fname, // TODO FileNa
     else {
       if (writeFormat != TrajectoryFile::UNKNOWN_TRAJ && writeFormat != appendFormat)
         mprintf("Warning: Specified format %s for %s but file exists and is %s\n",
-                TrajectoryFile::FormatString(writeFormat), fname.c_str(),
+                TrajectoryFile::FormatString(writeFormat), fname.full(),
                 TrajectoryFile::FormatString(appendFormat));
       writeFormat = appendFormat;
     }

@@ -10,7 +10,7 @@ Trajin_Multi::Trajin_Multi() :
 /** Expect lowest replica file name to be passed in. 'remdtraj' should have
   * already been parsed out of input arguments.
   */
-int Trajin_Multi::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
+int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;

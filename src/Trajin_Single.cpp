@@ -15,7 +15,7 @@ Trajin_Single::~Trajin_Single() {
 }
 
 // TODO: Should this take a FileName instead of string?
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, 
+int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, 
                                  Topology* tparmIn)
 {
   if (trajio_ != 0) delete trajio_;
@@ -24,7 +24,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
-  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename().Full(), tformat )) == 0 ) {
+  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), tformat )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
     return 1;
   }
@@ -33,7 +33,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Process format-specific read args
   if (trajio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
-  int nframes = trajio_->setupTrajin(Traj().Filename().Full(), Traj().Parm());
+  int nframes = trajio_->setupTrajin(Traj().Filename(), Traj().Parm());
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
     mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
     return 1;
@@ -61,7 +61,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
       return 1;
     }
     // Detect mdvel format
-    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname.Full(), tformat )) == 0 ) {
+    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname, tformat )) == 0 ) {
       mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvel_fname.full());
       return 1;
     }

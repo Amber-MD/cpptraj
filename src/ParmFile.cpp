@@ -86,7 +86,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
     }
     parmio = (ParmIO*)FileTypes::AllocIO( PF_AllocArray, pfType, false );
   } else
-    parmio = DetectFormat( parmName_.Full(), pfType );
+    parmio = DetectFormat( parmName_, pfType );
   if (parmio == 0) {
     mprinterr("Error: Could not determine format of topology '%s'\n", parmName_.full());
     return 1;

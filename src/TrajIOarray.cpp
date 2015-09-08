@@ -20,7 +20,7 @@ void TrajIOarray::ClearIOarray() {
   replica_filenames_.clear();
 }
 
-int TrajIOarray::SetupReplicaFilenames(std::string const& tnameIn, ArgList& argIn) {
+int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn) {
   std::string trajnames = argIn.GetStringKey("trajnames");
   if (!trajnames.empty()) {
     if (AddReplicasFromArgs( tnameIn, trajnames )) return 1;
@@ -31,21 +31,20 @@ int TrajIOarray::SetupReplicaFilenames(std::string const& tnameIn, ArgList& argI
 }
 
 /** Add lowest replica file name and names from comma-separated list. */
-int TrajIOarray::AddReplicasFromArgs(std::string const& name0, // TODO accept FileName 
+int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
                                      std::string const& commaNames)
 {
   if (name0.empty()) return 1;
-  FileName trajFilename( name0 );
-  if (!File::Exists( trajFilename )) {
-    mprinterr("Error: File '%s' does not exist.\n", trajFilename.full());
+  if (!File::Exists( name0 )) {
+    mprinterr("Error: File '%s' does not exist.\n", name0.full());
     return 1;
   }
-  replica_filenames_.push_back( trajFilename );
+  replica_filenames_.push_back( name0 );
   ArgList remdtraj_list( commaNames, "," );
   for (ArgList::const_iterator fname = remdtraj_list.begin();
                                fname != remdtraj_list.end(); ++fname)
   {
-    if (trajFilename.SetFileName( *fname )) return 1;
+    FileName trajFilename( *fname );
     if (!File::Exists( trajFilename )) {
       mprinterr("Error: File '%s' does not exist.\n", trajFilename.full());
       return 1;
@@ -61,29 +60,28 @@ int TrajIOarray::AddReplicasFromArgs(std::string const& name0, // TODO accept Fi
   * compression extension. 
   * \return Found replica filenames, or an empty list on error. 
   */
-int TrajIOarray::SearchForReplicas(std::string const& fname) { // TODO: Accept FileName
+int TrajIOarray::SearchForReplicas(FileName const& fname) {
   // STEP 1 - Get filename Prefix, Numerical extension, and optional
   //          compression extension.
   // Assume the extension of this trajectory is the number of the lowest 
   // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
   // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  FileName trajFilename( fname );
   if (debug_>1)
-    mprintf("\tREMDTRAJ: FileName=[%s]\n",trajFilename.full());
-  if ( trajFilename.Ext().empty() ) {
+    mprintf("\tREMDTRAJ: FileName=[%s]\n",fname.full());
+  if ( fname.Ext().empty() ) {
     mprinterr("Error: Traj %s has no numerical extension, required for automatic\n"
               "Error:   detection of replica trajectories. Expected filename format is\n"
               "Error:   <Prefix>.<#> (with optional compression extension), examples:\n"
-              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", trajFilename.base());
+              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", fname.base());
     return 1;
   }
   // Split off everything before replica extension
-  size_t found = trajFilename.Full().rfind( trajFilename.Ext() );
-  std::string Prefix = trajFilename.Full().substr(0, found); 
-  std::string ReplicaExt = trajFilename.Ext(); // This should be the numeric extension
+  size_t found = fname.Full().rfind( fname.Ext() );
+  std::string Prefix = fname.Full().substr(0, found); 
+  std::string ReplicaExt = fname.Ext(); // This should be the numeric extension
   // Remove leading '.'
   if (ReplicaExt[0] == '.') ReplicaExt.erase(0,1);
-  std::string CompressExt = trajFilename.Compress();
+  std::string CompressExt = fname.Compress();
   if (debug_>1) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
             Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
@@ -116,9 +114,10 @@ int TrajIOarray::SearchForReplicas(std::string const& fname) { // TODO: Accept F
   }
 
   // SETP 4 - Add lowest filename, search for and add all replicas higher than it.
-  replica_filenames_.push_back( trajFilename );
+  replica_filenames_.push_back( fname );
   int current_repnum = lowestRepnum;
   bool search_for_files = true;
+  FileName trajFilename;
   while (search_for_files) {
     ++current_repnum;
     trajFilename.SetFileName_NoExpansion( Prefix + "." +
@@ -157,7 +156,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   {
     // Detect format
     TrajectoryFile::TrajFormatType repformat = TrajectoryFile::UNKNOWN_TRAJ;
-    TrajectoryIO* replica0 = TrajectoryFile::DetectFormat( repfile->Full(), repformat );
+    TrajectoryIO* replica0 = TrajectoryFile::DetectFormat( *repfile, repformat );
     if ( replica0 == 0 ) {
       mprinterr("Error: Could not set up replica file %s\n", repfile->full());
       return 1;

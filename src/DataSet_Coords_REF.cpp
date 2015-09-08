@@ -22,7 +22,7 @@ int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const
   // Set up trajectory - false = do not modify box info
   Trajin_Single traj;
   //traj.SetDebug( debug_ );
-  if ( traj.SetupTrajRead( fname.Full(), argIn, (Topology*)&parmIn ) ) { // FIXME: Fix cast
+  if ( traj.SetupTrajRead( fname, argIn, (Topology*)&parmIn ) ) { // FIXME: Fix cast
     mprinterr("Error: reference: Could not set up trajectory.\n");
     return 1;
   }

@@ -38,7 +38,7 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
   // If appending, file must exist and must match the current format.
   // TODO Do not pass in writeformat directly to be changed.
   if (Traj().Append()) {
-    if (Traj().CheckAppendFormat( Traj().Filename().Full(), SetTraj().WriteFormat() ))
+    if (Traj().CheckAppendFormat( Traj().Filename(), SetTraj().WriteFormat() ))
       SetTraj().SetAppend( false );
   }
   // Set up for the specified format.
@@ -81,7 +81,7 @@ int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo con
     rprintf("\tSetting up single ensemble %s for WRITE, topology '%s' (%i atoms).\n",
             Traj().Filename().base(), tparmIn->c_str(), tparmIn->Natom());
   // Set up TrajectoryIO
-  if (eio_->setupTrajout(Traj().Filename().Full(), Traj().Parm(), Traj().CoordInfo(),
+  if (eio_->setupTrajout(Traj().Filename(), Traj().Parm(), Traj().CoordInfo(),
                          Traj().NframesToWrite(), Traj().Append()))
     return 1;
   if (debug_ > 0)

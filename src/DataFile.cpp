@@ -131,7 +131,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
     }
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   } else
-    dataio_ = DetectFormat( filename_.Full(), dfType_ );
+    dataio_ = DetectFormat( filename_, dfType_ );
   // Default to detection by extension.
   if (dataio_ == 0) {
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(), 

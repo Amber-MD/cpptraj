@@ -29,9 +29,9 @@ class OutputTrajCommon {
     /// Set append status
     void SetAppend(bool a) { append_ = a; }
     /// Process common arguments
-    int CommonTrajoutSetup(std::string const&, ArgList&, TrajectoryFile::TrajFormatType);
+    int CommonTrajoutSetup(FileName const&, ArgList&, TrajectoryFile::TrajFormatType);
     /// Check if file can be appended to with given format.
-    static int CheckAppendFormat(std::string const&, TrajectoryFile::TrajFormatType&);
+    static int CheckAppendFormat(FileName const&, TrajectoryFile::TrajFormatType&);
     /// Set up CoordinateInfo based on given topology etc and current options.
     int SetupCoordInfo(Topology*, int, CoordinateInfo const&);
     /// Print common info to STDOUT

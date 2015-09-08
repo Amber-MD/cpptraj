@@ -31,7 +31,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
 {
 # ifdef BINTRAJ
   // Get keywords
-  filename_ = actionArgs.GetStringNext();
+  filename_.SetFileName( actionArgs.GetStringNext() );
   if (filename_.empty()) {
     mprinterr("Error: createreservoir: No filename specified.\n");
     return Action::ERR;
@@ -98,7 +98,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   // Process additional netcdf traj args
   //reservoir_.processWriteArgs( actionArgs );
 
-  mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.c_str(), ene_->legend());
+  mprintf("    CREATERESERVOIR: %s, energy data %s", filename_.full(), ene_->legend());
   if (bin_ != 0)
     mprintf(", bin data %s", bin_->legend());
   mprintf("\n\tReservoir temperature= %.2f, random seed= %i\n", reservoirT_, iseed_);
@@ -123,7 +123,7 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
     return Action::ERR;
   }
   if (!trajIsOpen_) {
-    mprintf("\tCreating reservoir file %s\n", filename_.c_str());
+    mprintf("\tCreating reservoir file %s\n", filename_.full());
     // Use parm to set up box info for the reservoir.
     CoordinateInfo cInfo = currentParm->ParmCoordInfo();
     cInfo.SetVelocity( useVelocity_ );
@@ -163,7 +163,7 @@ Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFra
 // Action_CreateReservoir::Print()
 void Action_CreateReservoir::Print() {
 # ifdef BINTRAJ
-  mprintf("\tReservoir %s: %u frames.\n", filename_.c_str(), nframes_);
+  mprintf("\tReservoir %s: %u frames.\n", filename_.base(), nframes_);
   reservoir_.closeTraj();
   trajIsOpen_=false;
 # endif
