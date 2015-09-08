@@ -135,10 +135,10 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mask2_.SetMaskString( maskexpr );
   }
   // Set up vector dataset and IRED status
-  Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, actionArgs.GetStringNext(), "Vec");
+  MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
+  if (isIred) md.SetScalarType( MetaData::IREDVEC );
+  Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, md, "Vec");
   if (Vec_ == 0) return Action::ERR;
-  if (isIred)
-    Vec_->SetIred( );
   // Add set to output file if not doing ptraj-compatible output
   if (!ptrajoutput_ && df != 0)
     df->AddDataSet( Vec_ );

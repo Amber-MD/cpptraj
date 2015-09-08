@@ -83,6 +83,8 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
     int atom2 = currentParm->FindAtomInResidue( *res, name2_ );
     if (atom1 != -1 && atom2 != -1) {
       MetaData md(dsetname_, atom1+1);
+      md.SetScalarMode( MetaData::M_VECTOR );
+      if (ired_) md.SetScalarType( MetaData::IREDVEC );
       DataSet_Vector* ds = (DataSet_Vector*)masterDSL_->CheckForSet( md );
       if (ds == 0) {
         // Create DataSet
@@ -90,7 +92,6 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
         if (ds == 0) return Action::ERR;
         ds->SetLegend( "v" + currentParm->AtomMaskName(atom1) + "->" +
                              currentParm->AtomMaskName(atom2) );
-        if (ired_) ds->SetIred( );
         if (outfile_ != 0) outfile_->AddDataSet( ds );
       }
       data_.push_back( ds );

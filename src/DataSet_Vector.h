@@ -20,9 +20,6 @@ class DataSet_Vector : public DataSet {
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     int Append( DataSet* );
     // -------------------------------------------
-    void SetIred()                 { isIred_ = true;        }
-    bool IsIred()            const { return isIred_;        }
-    // -------------------------------------------
     void reset();
     void Resize(size_t s)               { vectors_.resize( s );    }
     void Resize(size_t s, Vec3 const& v){ vectors_.resize(s, v);   }
@@ -57,7 +54,6 @@ class DataSet_Vector : public DataSet {
     static double SphericalHarmonicsNorm(int); 
   private:
     int order_;      ///< Order for spherical harmonics calculations
-    bool isIred_;    ///< If true, this can be used in IRED analysis
     Varray vectors_;
     Varray origins_;
     /// Hold spherical harmonic values for m=-order to order

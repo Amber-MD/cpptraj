@@ -10,7 +10,7 @@ const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 // CONSTRUCTOR
 DataSet_Vector::DataSet_Vector() :
   DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
-  order_(0), isIred_(false) {}
+  order_(0) {}
 
 // DataSet_Vector::Allocate()
 int DataSet_Vector::Allocate(SizeArray const& Nin) {
@@ -59,7 +59,6 @@ void DataSet_Vector::reset() {
   origins_.clear();
   sphericalHarmonics_.clear();
   order_ = 0;
-  isIred_ = false;
 }
 
 // -----------------------------------------------------------------------------

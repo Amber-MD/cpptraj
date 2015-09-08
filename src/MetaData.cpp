@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h" // FIXME remove dependency
 #include "StringRoutines.h"
 
-const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix",0};
+const char* MetaData::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix","vector",0};
 const char* MetaData::Stypes[] = {
   // Torsions
   "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "nu1",   "nu2",
@@ -15,6 +15,8 @@ const char* MetaData::Stypes[] = {
   "distance",    "covariance",          "mass-weighted covariance",
   "correlation", "distance covariance", "IDEA",
   "IRED",        "dihedral covariance",
+  // Vector
+  "IRED",
   0 };
 const MetaData::scalarMode MetaData::TypeModes[] = {
   M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
@@ -24,6 +26,7 @@ const MetaData::scalarMode MetaData::TypeModes[] = {
   M_MATRIX,  M_MATRIX, M_MATRIX,
   M_MATRIX,  M_MATRIX, M_MATRIX,
   M_MATRIX,  M_MATRIX,
+  M_VECTOR,
   UNKNOWN_MODE };
 
 std::string MetaData::ScalarDescription() const {

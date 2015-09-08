@@ -58,7 +58,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   else if (actionArgs.hasKey("idea"))
     mtype = MetaData::IDEA;
   else if (actionArgs.hasKey("ired"))
-    mtype = MetaData::IRED;
+    mtype = MetaData::IREDMAT;
   else if (actionArgs.hasKey("dihcovar"))
     mtype = MetaData::DIHCOVAR;
   // Output type
@@ -73,7 +73,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Check if output type is valid for matrix type
   if ( outtype_ != BYATOM && (mtype == MetaData::COVAR || 
                               mtype == MetaData::MWCOVAR || 
-                              mtype == MetaData::IRED ) )
+                              mtype == MetaData::IREDMAT ) )
   {
     mprinterr("Error: matrix: for COVAR, MWCOVAR, or IRED matrix only byatom output possible\n");
     return Action::ERR;
@@ -84,7 +84,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   useMass_ = actionArgs.hasKey("mass");
   // NOTE: Determine matrix kind here so subsequent Actions/Analyses know about it.
   DataSet_2D::MatrixKindType mkind = DataSet_2D::HALF;
-  if (mtype == MetaData::IRED) { // IRED matrix
+  if (mtype == MetaData::IREDMAT) { // IRED matrix
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
     if (order_ <= 0) {
@@ -92,11 +92,8 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
       return Action::ERR;
     }
     for ( DataSetList::const_iterator DS = DSL->begin(); DS != DSL->end(); ++DS) {
-      if ( (*DS)->Type() == DataSet::VECTOR ) {
-        DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
-        if (Vtmp->IsIred())
-          IredVectors_.push_back( Vtmp );
-      }
+      if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
+        IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
     if (IredVectors_.empty()) {
       mprinterr("Error: matrix: no vectors defined for IRED\n");
@@ -177,7 +174,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
     else
       mprintf("\tAverages will not be mass-weighted.\n");
   }
-  if (mtype == MetaData::IRED)
+  if (mtype == MetaData::IREDMAT)
     mprintf("\t%u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
   else if (mtype == MetaData::DIHCOVAR)
@@ -190,7 +187,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   if (matByRes_ != 0)
     mprintf("\tAveraged by residue matrix data set is '%s'\n", matByRes_->legend());
   FrameCounterInfo();
-  if (mtype != MetaData::IRED && mtype != MetaData::DIHCOVAR) {
+  if (mtype != MetaData::IREDMAT && mtype != MetaData::DIHCOVAR) {
     mprintf("\tMask1 is '%s'\n",mask1_.MaskString());
     if (useMask2_)
       mprintf("\tMask2 is '%s'\n",mask2_.MaskString());
@@ -254,7 +251,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
   // Set up masks.
-  if (Mat_->Meta().ScalarType() == MetaData::IRED) {
+  if (Mat_->Meta().ScalarType() == MetaData::IREDMAT) {
     // IRED - matrix # cols = # of IRED vectors
     mask1tot = IredVectors_.size();
   } else if (Mat_->Meta().ScalarType() == MetaData::DIHCOVAR) {
@@ -331,7 +328,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
       nrows = mask2tot * 2;
       break;
     case MetaData::IDEA     :
-    case MetaData::IRED     : // No Full matrix possible.
+    case MetaData::IREDMAT  : // No Full matrix possible.
       vectsize = mask1tot + mask2tot;
       ncols = mask1tot;
       if (mask2tot > 0) return PrintMask2Error();
@@ -806,7 +803,7 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
     case MetaData::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
     case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
     case MetaData::IDEA     : CalcIdeaMatrix(*currentFrame); break;
-    case MetaData::IRED     : CalcIredMatrix(frameNum); break;
+    case MetaData::IREDMAT  : CalcIredMatrix(frameNum); break;
     default: return Action::ERR; // Sanity check
   }
 

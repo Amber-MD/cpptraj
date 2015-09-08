@@ -13,7 +13,7 @@ class MetaData {
   public:
     /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
     enum scalarMode {
-      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE
+      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, M_VECTOR, UNKNOWN_MODE
     };
     /// Type of DataSet, used by Analysis_Statistics. Must match Stypes, TypeModes
     enum scalarType {
@@ -21,9 +21,10 @@ class MetaData {
       H1P,     C2P,  CHIN,  PHI,   PSI,     CHIP,  OMEGA,
       PUCKER,
       NOE,
-      DIST,   COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
-      CORREL, DISTCOVAR, IDEA,
-      IRED,   DIHCOVAR,
+      DIST,    COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
+      CORREL,  DISTCOVAR, IDEA,
+      IREDMAT, DIHCOVAR,
+      IREDVEC,
       UNDEFINED
     };
     /// Mark whether this data set is a time series.

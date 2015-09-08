@@ -47,11 +47,8 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   debug_ = debugIn;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = DSLin->begin(); DS != DSLin->end(); ++DS) {
-    if ( (*DS)->Type() == DataSet::VECTOR ) {
-      DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
-      if (Vtmp->IsIred())
-        IredVectors_.push_back( Vtmp );
-    }
+    if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
+      IredVectors_.push_back( (DataSet_Vector*)*DS );
   }
   if (IredVectors_.empty()) {
     mprinterr("Error: No IRED vectors defined.\n");
