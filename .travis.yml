@@ -15,11 +15,10 @@ addons:
       - netcdf-bin
 env:
     - COMPILER=gnu
-    - COMPILER=clang
-    - COMPILER=gnu OPENMP="-openmp"
+    - COMPILER=gnu OPENMP="-openmp" OPT=openmp
 
 install:
     - ./configure $OPENMP $COMPILER
-    - make install
+    - make -j2 install
 script:
     - cd test && make test
