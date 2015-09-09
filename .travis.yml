@@ -1,11 +1,18 @@
 language: cpp
 compiler: gcc
-before_install:
-    - sudo apt-get install gfortran
-    - sudo apt-get install libbz2-dev
-    - sudo apt-get install libblas-dev liblapack-dev libarpack2-dev
-    - sudo apt-get install libnetcdf-dev
-    - sudo apt-get install netcdf-bin
+sudo: false
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+      - gfortran
+      - libbz2-dev
+      - libblas-dev
+      - liblapack-dev
+      - libarpack2-dev
+      - libnetcdf-dev
+      - netcdf-bin
 install:
     - ./configure gnu
     - make install
