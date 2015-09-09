@@ -13,8 +13,13 @@ addons:
       - libarpack2-dev
       - libnetcdf-dev
       - netcdf-bin
+env:
+    - COMPILER=gnu
+    - COMPILER=clang
+    - COMPILER=gnu OPENMP="-openmp"
+
 install:
-    - ./configure gnu
+    - ./configure $OPENMP $COMPILER
     - make install
 script:
     - cd test && make test
