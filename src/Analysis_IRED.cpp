@@ -306,14 +306,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
       for (int k = 0; k < nsteps; ++k)
         cm_t[k] += data1_[2 * k];
     }
-    // Normalize
-    // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
-    double Kn = DataSet_Vector::SphericalHarmonicsNorm( order_ ); 
-    // Normalize to 1.0
-//    double Kn = (double)Nframes_ / cm_t[0];
-    for (int k = 0; k < nsteps; ++k)
-      cm_t[k] *= (Kn / (double)(Nframes_ - k));
-//      cm_t[k] /= (double)(Nframes_ - k);
   }
 
   // Calculate tau_m for each mode.
@@ -327,17 +319,20 @@ Analysis::RetType Analysis_IRED::Analyze() {
     int maxsteps = nsteps;
     // Get previously calculated plateau value for this.
     double Cplateau = Plateau[mode];
-    mprintf("Cplateau[%i]= %g\n", mode, Cplateau);
-    // Integrate Cm(t) - Cplateau
+    // Integrate Cm(t) - Cplateau. Cm(t) has "standard" SH normalization.
     double sum = 0.0;
+    double Norm1 = DataSet_Vector::SphericalHarmonicsNorm( order_ );
     for (int i = 1; i < maxsteps; i++)
     {
       //double b_minus_a = ((double)i * tstep_) - ((double)(i-1) * tstep_);
-      double curr_val = cm_t[i  ] - Cplateau;
-      double prev_val = cm_t[i-1] - Cplateau;
+      double curr_val = (cm_t[i  ] * (Norm1 / (double)(Nframes_ -  i     ))) - Cplateau;
+      double prev_val = (cm_t[i-1] * (Norm1 / (double)(Nframes_ - (i - 1)))) - Cplateau;
+      //mprintf("\tcm_t-T[%i]= %g  cm_t-T[%i]=%g\n", i-1, prev_val, i, curr_val);
       sum += (tstep_ * (prev_val + curr_val) * 0.5);
     }
-    TauM[mode] = sum / (cm_t[0] - Cplateau);
+    double cm0 = cm_t[0] * (Norm1 / Nframes_);
+    mprintf("Mode %i : Cm(0)= %g  Cplateau= %g  Sum= %g\n", mode, cm0, Cplateau, sum);
+    TauM[mode] = sum / (cm0 - Cplateau);
   }
 
 /*
@@ -360,7 +355,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
   // Calculate Cj(t) for each vector j as weighted sum over Cm(t) arrays.
   // Cj(t) = SUM(m)[ dSjm^2 * Cm(t) ]
   // dSjm^2 = EVALm * (EVECm[i])^2
-  // Cm(t) must be normalized to 1.0.
   CjtArray_.resize( IredVectors_.size(), 0 );
   for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
   {
@@ -374,26 +368,37 @@ Analysis::RetType Analysis_IRED::Analyze() {
     for (int mode = 0; mode != modinfo_->Nmodes(); ++mode)
     {
       DataSet_double const& cm_t = static_cast<DataSet_double const&>( *CmtArray_[mode] );
-      double Norm1 = 1.0 / cm_t[0];
+      double Norm1 = Nframes_ / cm_t[0];
       // Get element ivec of current eigenvector
       double evectorElement = *(modinfo_->Eigenvector(mode) + ivec);
       double dS2 = modinfo_->Eigenvalue(mode) * evectorElement * evectorElement;
       // Calculate weighted contribution of this mode to Cj(t) for this vector.
+      // Cm(t) must be normalized to 1.0.
       for (int k = 0; k < nsteps; k++)
       {
-        cj_t[k] += (dS2 * cm_t[k] * Norm1);
+        cj_t[k] += (dS2 * cm_t[k] * (Norm1 / (Nframes_ - k)));
       }
     }
   }
 
-  // Normalize Cm(t) for output if necessary.
+  // Normalize Cm(t) for output (also plateau values if necessary)
   if (norm_) {
     for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
     {
       DataSet_double& cm_t = static_cast<DataSet_double&>( *CmtArray_[mode] );
-      double Norm1 = 1.0 / cm_t[0];
+      double Norm1 = Nframes_ / cm_t[0];
+      Plateau[mode] *= Norm1;
       for (int k = 0; k < nsteps; ++k)
-        cm_t[k] *= Norm1;
+        cm_t[k] *= (Norm1 / (Nframes_ - k));
+    }
+  } else {
+    for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
+    {
+      DataSet_double& cm_t = static_cast<DataSet_double&>( *CmtArray_[mode] );
+      // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
+      double Norm1 = DataSet_Vector::SphericalHarmonicsNorm( order_ );
+      for (int k = 0; k < nsteps; ++k)
+        cm_t[k] *= (Norm1 / (Nframes_ - k));
     }
   }
 
