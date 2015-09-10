@@ -207,7 +207,7 @@ void DataSet_Mesh::cubicSpline_coeff(std::vector<double> const& x, std::vector<d
   */
 void DataSet_Mesh::cubicSpline_eval(std::vector<double> const& x, std::vector<double> const& y)
 {
-  int xidx;  
+  int xidx = 0;
   int n = (int)x.size();
   int mesh_size = (int)mesh_x_.size();
 
