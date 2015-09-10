@@ -86,11 +86,14 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   if (dsname_.empty()) dsname_ = DSLin->GenerateDefaultName("IRED");
   data_s2_ = DSLin->AddSetAspect(DataSet::FLOAT, dsname_, "S2");
   if (data_s2_ == 0) return Analysis::ERR;
+  data_s2_->SetPrecision(10,5);
   if (orderout != 0) orderout->AddSet( data_s2_ );
   data_plateau_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "Plateau");
   if (data_plateau_ == 0) return Analysis::ERR;
+  data_plateau_->SetPrecision(12,8);
   data_tauM_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "TauM");
   if (data_tauM_ == 0) return Analysis::ERR;
+  data_tauM_->SetPrecision(12,6);
   if (outfile != 0) {
     outfile->AddSet( data_plateau_ );
     outfile->AddSet( data_tauM_ );
@@ -107,6 +110,9 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     data_t2_  = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "T2");
     data_noe_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "NOE");
     if (data_t1_ == 0 || data_t2_ == 0 || data_noe_ == 0) return Analysis::ERR;
+    data_t1_->SetPrecision(10,5);
+    data_t2_->SetPrecision(10,5);
+    data_noe_->SetPrecision(10,5);
     if (noefile != 0) {
       noefile->AddSet( data_t1_ );
       noefile->AddSet( data_t2_ );
@@ -259,6 +265,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     CmtArray_[mode] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsname_, mode, "Cm(t)");
     if (cmtfile_ != 0) cmtfile_->AddSet( CmtArray_[mode] );
     DataSet_double& cm_t = static_cast<DataSet_double&>( *CmtArray_[mode] );
+    cm_t.SetPrecision(12,8);
     cm_t.SetDim(Dimension::X, Tdim);
     cm_t.Resize( nsteps ); // Sets all elements to 0.0
     // Loop over L = -order ... +order
@@ -362,6 +369,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     CjtArray_[ivec] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsname_, ivec, "Cj(t)");
     if (cjtfile_ != 0) cjtfile_->AddSet( CjtArray_[ivec] );
     DataSet_double& cj_t = static_cast<DataSet_double&>( *CjtArray_[ivec] );
+    cj_t.SetPrecision(12,8);
     cj_t.Resize( nsteps ); // Set all elements to 0.0
     cj_t.SetDim(Dimension::X, Tdim);
     // Calculate dS^2 for this vector and mode.
