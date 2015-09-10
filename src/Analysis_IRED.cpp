@@ -222,16 +222,16 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
 
   // All IRED vectors must have the same size
-  int Nframes_ = -1;
+  int Nframes = -1;
   for (std::vector<DataSet_Vector*>::const_iterator Vtmp = IredVectors_.begin();
                                                     Vtmp != IredVectors_.end(); ++Vtmp)
   { 
-    if (Nframes_ == -1)
-      Nframes_ = (*Vtmp)->Size();
-    else if (Nframes_ != (int)(*Vtmp)->Size()) {
+    if (Nframes == -1)
+      Nframes = (*Vtmp)->Size();
+    else if (Nframes != (int)(*Vtmp)->Size()) {
       mprinterr("Error: All IRED vectors must have the same size.\n"
                 "Error:   Vector %s size = %i, first vector size = %i\n",
-                (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes_);
+                (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes);
       return Analysis::ERR;
     }
   }
@@ -240,37 +240,61 @@ Analysis::RetType Analysis_IRED::Analyze() {
   int time = (int)(tcorr_ / tstep_) + 1;
   // nsteps
   int nsteps = 0;
-  if (time > Nframes_)
-    nsteps = Nframes_;
+  if (time > Nframes)
+    nsteps = Nframes;
   else
     nsteps = time;
   // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
-    data1_.Allocate( Nframes_ );
+    data1_.Allocate( Nframes );
     corfdir_.Allocate( nsteps );
   } else {
     // Initialize FFT
-    pubfft_.Allocate( Nframes_ );
+    pubfft_.Allocate( Nframes );
     data1_ = pubfft_.Array();
   }
   // -------------------- IRED CALCULATION ---------------------------
 # ifdef TIMER
-  time_SH.Start();
-# endif
-  // Ensure SH coords calculated for each ired vector.
-  for (std::vector<DataSet_Vector*>::const_iterator iredvec = IredVectors_.begin();
-                                                    iredvec != IredVectors_.end();
-                                                  ++iredvec)
-    (*iredvec)->CalcSphericalHarmonics( order_ );
-# ifdef TIMER
-  time_SH.Stop();
   time_cmt.Start();
+  //time_SH.Start();
 # endif
-  // Calculate Cm(t) for each mode
+  // Allocate temporary storage for projection of SH for every l on eigenvecs.
+  // Each SH value has a real + imaginary component.
+  // [m-2R0][m-2I0][m-2R1][m-2I1] ... [m-2RN][m-2IN][m-1R0][m-1I0] ... [m+2RN][m+2IN]
+  int ltot = 2 * order_ + 1; // Total # l values
+  std::vector<double> cf_tmp( modinfo_->Nmodes() * ltot * Nframes * 2, 0.0 );
+  // Project SH for each IRED vector on eigenvectors
+  for (unsigned int vidx = 0; vidx != IredVectors_.size(); vidx++)
+  {
+    std::vector<double>::iterator CF = cf_tmp.begin();
+    // Ensure SH calced for order
+#   ifdef TIMER
+    time_SH.Start();
+#   endif
+    IredVectors_[vidx]->CalcSphericalHarmonics( order_ );
+#   ifdef TIMER
+    time_SH.Stop();
+#   endif
+    // Loop over all eigenvectors
+    for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
+    {
+      double Qvec = modinfo_->Eigenvector(mode)[vidx];
+      // Loop over L = -order ... +order
+      for (int Lval = -order_; Lval <= order_; ++Lval)
+      {
+        // Loop over SH coords for this l value (real, img)
+        for (ComplexArray::iterator sh = IredVectors_[vidx]->SphericalHarmonics(Lval).begin();
+                                    sh != IredVectors_[vidx]->SphericalHarmonics(Lval).end(); ++sh)
+          *(CF++) += (Qvec * (*sh));
+      }
+    }
+  }
+  // Now sum each Cml(t) into total Cm(t) for each mode.
   DataSet_double& Plateau = static_cast<DataSet_double&>( *data_plateau_ );
   Plateau.Resize( modinfo_->Nmodes() ); // Sets all elements to 0.0
   CmtArray_.resize( modinfo_->Nmodes(), 0 );
   Dimension Tdim(0.0, tstep_, nsteps);
+  std::vector<double>::const_iterator CF = cf_tmp.begin();
   for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
   {
     // Add DataSet for Cm(t)
@@ -283,49 +307,33 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // Loop over L = -order ... +order
     for (int Lval = -order_; Lval <= order_; Lval++)
     {
-      // Values for determining plateau value of Cm(t)
-      double plateau_r = 0.0;
-      double plateau_i  = 0.0;
-      // Loop over all frames.
-      for (int frame = 0; frame != Nframes_; frame++)
-      {
-        const double* eigenvec = modinfo_->Eigenvector( mode );
-        //DataSet_Modes::AvgIt Avg = modinfo_->AvgBegin(); //FIXME: Is this needed?
-        int cidx = frame*2; // Index into complex arrays
-        data1_[cidx  ] = 0.0; // Real component
-        data1_[cidx+1] = 0.0; // Imaginary component
-        // Loop over each eigenvector/ired vector element for this frame and L
-        //for (int i = 0; i != modinfo_->VectorSize(); i++, Avg++)
-        for (int i = 0; i != modinfo_->VectorSize(); i++)
-        {
-          ComplexArray const& SH_L = IredVectors_[i]->SphericalHarmonics( Lval );
-          double alpha_r = SH_L[cidx    ] * eigenvec[i];
-          plateau_r += alpha_r;
-          data1_[cidx  ] += alpha_r;
-          double alpha_i = SH_L[cidx + 1] * eigenvec[i];
-          plateau_i += alpha_i;
-          data1_[cidx+1] += alpha_i;
-        }
+      // Loop over all snapshots
+      double plateau_r = 0;
+      double plateau_i = 0;
+      for (int k = 0; k < Nframes*2; k += 2) {
+        data1_[k  ] = *CF;
+        plateau_r  += *(CF++);
+        data1_[k+1] = *CF;
+        plateau_i  += *(CF++);
       }
-      plateau_r /= (double)Nframes_;
-      plateau_i /= (double)Nframes_;
-      // Calc contribution of this L to plateau value of correlation function 
-      // (= C(m,t->T) in Bruschweiler paper (A20))
-      Plateau[mode] += (plateau_r*plateau_r) + (plateau_i*plateau_i);
-      // data1_ should now contain projected SH coords for this mode and L.
-      // Calculate autocorrelation of projected coords.
+      plateau_r /= (double)Nframes;
+      plateau_i /= (double)Nframes;
+      // Calc plateau value of correlation function, Cm(t->T) in Bruschweiler paper (A20)
+      Plateau[mode] += (plateau_r * plateau_r) + (plateau_i * plateau_i);
+      // Calc correlation function for this mode and l, Cml(t)
       if (drct_)
         corfdir_.AutoCorr( data1_ );
       else {
-        // Pad with zeros at the end
-        data1_.PadWithZero( Nframes_ );
-        pubfft_.AutoCorr( data1_ );
+        // Pad with zeros after Nframes 
+        data1_.PadWithZero( Nframes );
+        pubfft_.AutoCorr(data1_);
       }
-      // Sum this L into Cm(t)
+      // Sum into Cm(t)
       for (int k = 0; k < nsteps; ++k)
         cm_t[k] += data1_[2 * k];
     }
   }
+  cf_tmp.clear();
 # ifdef TIMER
   time_cmt.Stop();
   time_tau.Start();
@@ -344,15 +352,15 @@ Analysis::RetType Analysis_IRED::Analyze() {
     // Integrate Cm(t) - Cplateau. Cm(t) has "standard" SH normalization.
     double sum = 0.0;
     double Norm1 = DataSet_Vector::SphericalHarmonicsNorm( order_ );
+    double cm0 = cm_t[0] * (Norm1 / Nframes);
+    double prev_val = cm0 - Cplateau; 
     for (int i = 1; i < maxsteps; i++)
     {
-      //double b_minus_a = ((double)i * tstep_) - ((double)(i-1) * tstep_);
-      double curr_val = (cm_t[i  ] * (Norm1 / (double)(Nframes_ -  i     ))) - Cplateau;
-      double prev_val = (cm_t[i-1] * (Norm1 / (double)(Nframes_ - (i - 1)))) - Cplateau;
-      //mprintf("\tcm_t-T[%i]= %g  cm_t-T[%i]=%g\n", i-1, prev_val, i, curr_val);
+      double curr_val = (cm_t[i] * (Norm1 / (double)(Nframes - i))) - Cplateau;
+      mprintf("\tcm_t-T[%i]= %g  cm_t-T[%i]=%g\n", i-1, prev_val, i, curr_val);
       sum += (tstep_ * (prev_val + curr_val) * 0.5);
+      prev_val = curr_val;
     }
-    double cm0 = cm_t[0] * (Norm1 / Nframes_);
     mprintf("Mode %i : Cm(0)= %g  Cplateau= %g  Sum= %g\n", mode, cm0, Cplateau, sum);
     TauM[mode] = sum / (cm0 - Cplateau);
   }
@@ -360,23 +368,6 @@ Analysis::RetType Analysis_IRED::Analyze() {
   time_tau.Stop();
   time_cjt.Start();
 # endif
-/*
-  // Create X mesh
-  DataSet_Mesh mesh(nsteps, 0.0, tstep_ * nsteps);
-  for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
-  {
-    std::vector<double> const& cm_t = CmtArray[mode];
-    for (int i = 0; i < nsteps; i++)
-      mesh.SetY(i, cm_t[i]);
-    double intercept, slope, corr;
-    mesh.SingleExpRegression(slope, intercept, corr, false);
-    TauM[mode] = -1.0 / slope;
-    tauout.Printf("%i %g\n", mode, TauM[mode]);
-    // Convert tau from ps to s
-    TauM[mode] *= 1.0E-12;
-  }
-  tauout.CloseFile();
-*/
   // Calculate Cj(t) for each vector j as weighted sum over Cm(t) arrays.
   // Cj(t) = SUM(m)[ dSjm^2 * Cm(t) ]
   // dSjm^2 = EVALm * (EVECm[i])^2
@@ -394,7 +385,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     for (int mode = 0; mode != modinfo_->Nmodes(); ++mode)
     {
       DataSet_double const& cm_t = static_cast<DataSet_double const&>( *CmtArray_[mode] );
-      double Norm1 = Nframes_ / cm_t[0];
+      double Norm1 = Nframes / cm_t[0];
       // Get element ivec of current eigenvector
       double evectorElement = *(modinfo_->Eigenvector(mode) + ivec);
       double dS2 = modinfo_->Eigenvalue(mode) * evectorElement * evectorElement;
@@ -402,7 +393,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
       // Cm(t) must be normalized to 1.0.
       for (int k = 0; k < nsteps; k++)
       {
-        cj_t[k] += (dS2 * cm_t[k] * (Norm1 / (Nframes_ - k)));
+        cj_t[k] += (dS2 * cm_t[k] * (Norm1 / (Nframes - k)));
       }
     }
   }
@@ -414,10 +405,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
     for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
     {
       DataSet_double& cm_t = static_cast<DataSet_double&>( *CmtArray_[mode] );
-      double Norm1 = Nframes_ / cm_t[0];
+      double Norm1 = Nframes / cm_t[0];
       Plateau[mode] *= Norm1;
       for (int k = 0; k < nsteps; ++k)
-        cm_t[k] *= (Norm1 / (Nframes_ - k));
+        cm_t[k] *= (Norm1 / (Nframes - k));
     }
   } else {
     for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
@@ -426,7 +417,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
       // 4*PI / ((2*order)+1) due to spherical harmonics addition theorem
       double Norm1 = DataSet_Vector::SphericalHarmonicsNorm( order_ );
       for (int k = 0; k < nsteps; ++k)
-        cm_t[k] *= (Norm1 / (Nframes_ - k));
+        cm_t[k] *= (Norm1 / (Nframes - k));
     }
   }
 
