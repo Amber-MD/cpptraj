@@ -33,12 +33,11 @@ ired order 2 modes ired.vec relax freq 500.0 NHdist 1.02 \
      tstep 1.0 tcorr 10000.0 norm name MyIred \
      out v0 noefile noe 
 datafile v0.cmt noheader
+datafile v0.cjt noheader
 create plateau.norm.dat MyIred[Plateau] noxcol prec 12.8 noheader
 create orderparam MyIred[S2] prec 10.5
 run
 writedata cjt1.dat MyIred[Cj(t)]:0 
-writedata cjt2.dat MyIred[Cj(t)]:1 
-writedata cjt3.dat MyIred[Cj(t)]:2 
 EOF
 
 RunCpptraj "IRED vector/matrix test"
