@@ -1,7 +1,6 @@
 #ifndef INC_DATASET_MODES_H
 #define INC_DATASET_MODES_H
 #include "DataSet_MatrixDbl.h"
-#include "Frame.h"
 /// Hold eigenvalues/eigenvectors and optionally averaged coords.
 class DataSet_Modes : public DataSet {
   public:

@@ -355,3 +355,24 @@ int DataSet_Mesh::LinearRegression( double& slope, double& intercept,
   }
   return 0;
 }
+
+// DataSet_Mesh::SingleExponentialRegression()
+int DataSet_Mesh::SingleExpRegression(double& slope, double& intercept,
+                                      double& correl, bool silent )
+{
+  std::vector<double> yorig = mesh_y_;
+  for (unsigned int i = 0; i != mesh_y_.size(); i++)
+  {
+    if (mesh_y_[i] <= 0.0) {
+      if (!silent)
+        mprinterr("Error: Cannot perform exp. regression; set contains value <= 0\n");
+      mesh_y_ = yorig;
+      return 1;
+    }
+    mesh_y_[i] = log( mesh_y_[i] );
+  }
+  int err = LinearRegression(slope, intercept, correl, silent);
+  // Restore original Y values
+  mesh_y_ = yorig;
+  return err;
+}

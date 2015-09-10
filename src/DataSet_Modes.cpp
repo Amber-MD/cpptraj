@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "ArgList.h"
 #include "Constants.h" // PI, TWOPI
+#include "Frame.h"
 
 #ifndef NO_MATHLIB
 // Definition of Fortran subroutines called from this class
