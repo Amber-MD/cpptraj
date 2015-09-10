@@ -36,6 +36,7 @@ class Analysis_IRED : public Analysis {
     DataSet* data_noe_;     ///< NOEs (1 per vector)
     DataSet* data_t1_;      ///< T1 relaxation (1 per vector).
     DataSet* data_t2_;      ///< T2 relaxation (1 per vector).
+    DataSet* data_ds2_mat_; ///< delta * S^2 matrix(j,m)
     typedef std::vector<DataSet*> DataListType;
     DataListType CmtArray_; ///< Cm(t) for each mode
     DataListType CjtArray_; ///< Cj(t) for each vector

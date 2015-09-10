@@ -2,7 +2,8 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 #include "Corr.h"
-#include "DataSet_double.h"
+#include "DataSet_double.h" // Access to Resize and [] op
+#include "DataSet_MatrixDbl.h" // Access to AddElement
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -26,6 +27,7 @@ Analysis_IRED::Analysis_IRED() :
   data_noe_(0),
   data_t1_(0),
   data_t2_(0),
+  data_ds2_mat_(0),
   masterDSL_(0),
   modinfo_(0)
 {}
@@ -33,7 +35,7 @@ Analysis_IRED::Analysis_IRED() :
 void Analysis_IRED::Help() {
   mprintf("\t[relax freq <MHz> [NHdist <distnh>]] [order <order>]\n"
           "\ttstep <tstep> tcorr <tcorr> out <filename> [norm] [drct]\n"
-          "\tmodes <modesname> [name <output sets name>]\n"
+          "\tmodes <modesname> [name <output sets name>] [ds2matrix <file>]\n"
           "  Perform isotropic reorientational Eigenmode dynamics analysis.\n");
 }
 
@@ -83,6 +85,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     cmtfile_ = DFLin->AddDataFile(filename + ".cmt");
     cjtfile_ = DFLin->AddDataFile(filename + ".cjt");
   }
+  DataFile* ds2matfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("ds2matrix"));
   // Output data sets
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty()) dsname_ = DSLin->GenerateDefaultName("IRED");
@@ -99,6 +102,13 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   if (outfile != 0) {
     outfile->AddSet( data_plateau_ );
     outfile->AddSet( data_tauM_ );
+  }
+  if (ds2matfile != 0) {
+    data_ds2_mat_ = DSLin->AddSetAspect(DataSet::MATRIX_DBL, dsname_, "dS2");
+    if (data_ds2_mat_ == 0) return Analysis::ERR;
+    data_ds2_mat_->SetPrecision(10,5);
+    ds2matfile->ProcessArgs("square2d");
+    ds2matfile->AddSet( data_ds2_mat_ );
   }
   // Get norm, drct, relax
   norm_ = analyzeArgs.hasKey("norm");
@@ -136,7 +146,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
     mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
-  mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
+  mprintf("\tCorrelation time %g, time step %g\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
     mprintf(" normalized.\n");
@@ -153,6 +163,9 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     mprintf("\tCm(t->T) and TauM values will be written to '%s'\n", outfile->DataFilename().full());
   if (cjtfile_ != 0)
     mprintf("\tCj(t) functions will be written to '%s'\n", cjtfile_->DataFilename().full());
+  if (data_ds2_mat_ != 0)
+     mprintf("\tFull delta*S^2 matrix (# iRED vec rows by # eigenmodes cols) will be calcd\n"
+             "\t  and written to '%s'\n", ds2matfile->DataFilename().full());
   mprintf("\tiRED modes will be taken from DataSet '%s'\n", modinfo_->legend());
   if (relax_) {
     mprintf("\tRelaxation rates and NOEs will be calculated using the iRED\n"
@@ -177,7 +190,7 @@ double Analysis_IRED::Jw(int ivec, double omega, std::vector<double> TauM) const
   for (int mode = 0; mode != modinfo_->Nmodes(); ++mode)
   {
     // Get element ivec of current eigenvector
-    double evectorElement = *(modinfo_->Eigenvector(mode) + ivec);
+    double evectorElement = modinfo_->Eigenvector(mode)[ivec];
     Jval += ((modinfo_->Eigenvalue(mode) * evectorElement * evectorElement)) *
             (2.0 * TauM[mode]) / (1.0 + omega*omega * TauM[mode]*TauM[mode]);
   }
@@ -203,15 +216,24 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
   // ----- Calculation of S2 order parameters ----
   mprintf("Info: Calculation of S2 parameters does not include first five modes.\n");
+  int startMode = 5;
+  if (data_ds2_mat_ != 0) {
+    if (((DataSet_MatrixDbl*)data_ds2_mat_)->Allocate2D(modinfo_->Nmodes(), modinfo_->VectorSize()))
+      return Analysis::ERR;
+    startMode = 0;
+  }
   // Loop over all vector elements
   for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
     // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
     double sum = 0.0;
-    // Loop over all eigenvectors except the first five ones, i.e.
-    // sum over all internal modes only.
-    for (int mode = 5; mode < modinfo_->Nmodes(); ++mode) {
+    // Loop over all eigenvectors to calculate dS^2. Sum over all except the first
+    // five ones (i.e. sum over all internal modes only).
+    for (int mode = startMode; mode < modinfo_->Nmodes(); ++mode) {
       double Qvec = modinfo_->Eigenvector(mode)[vi];
-      sum += modinfo_->Eigenvalue(mode) * Qvec * Qvec;
+      double ds2 = modinfo_->Eigenvalue(mode) * Qvec * Qvec;
+      if (data_ds2_mat_ != 0)
+        ((DataSet_MatrixDbl*)data_ds2_mat_)->AddElement( ds2 );
+      if (mode > 4) sum += ds2;
     }
     float fval = (float)(1.0 - sum);
     data_s2_->Add(vi, &fval);
