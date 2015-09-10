@@ -6,7 +6,6 @@
 #include "Dimension.h"
 #include "AssociatedData.h"
 #include "TextFormat.h"
-#include "Range.h"
 #include "CpptrajFile.h"
 /// Base class that all DataSet types will inherit.
 /** The DataSet base class holds common information, like MetaData for
@@ -37,9 +36,6 @@ class DataSet {
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
-    /// Used to search for DataSets.
-    class SearchString;
-
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
@@ -79,7 +75,7 @@ class DataSet {
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
     /// Check if name and/or index and aspect wildcard match this DataSet.
-    bool Matches_WC(SearchString const&, DataType) const;
+    bool Matches_WC(MetaData::SearchString const&, DataType) const;
     /// \return AssociateData of specified type.
     AssociatedData* GetAssociatedData(AssociatedData::AssociatedType) const;
     /// \return true if given metadata matches this set MetaData exactly.
@@ -125,21 +121,5 @@ class DataSet {
     DataType dType_;            ///< The DataSet type
     DataGroup dGroup_;          ///< The DataSet group
     MetaData meta_;             ///< DataSet metadata
-};
-// -----------------------------------------------------------------------------
-class DataSet::SearchString {
-  public:
-    SearchString() {}
-    SearchString(std::string const& s) { ParseArgString(s); }
-    int ParseArgString(std::string const&);
-    std::string const& NameArg()   const { return name_arg_;     }
-    std::string const& AspectArg() const { return aspect_arg_;   }
-    Range const& IdxRange()        const { return idx_range_;    }
-    Range const& MemberRange()     const { return member_range_; }
-  private:
-    std::string name_arg_;
-    std::string aspect_arg_;
-    Range idx_range_;
-    Range member_range_;
 };
 #endif 

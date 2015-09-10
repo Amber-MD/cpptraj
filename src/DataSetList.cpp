@@ -207,7 +207,7 @@ DataSetList DataSetList::SelectSets( std::string const& dsargIn,
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
   // Find matching sets.
-  DataSet::SearchString search(dsargIn);
+  MetaData::SearchString search(dsargIn);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ((*ds)->Matches_WC( search, typeIn ))
       dsetOut.Push_Back( *ds );
@@ -221,7 +221,7 @@ DataSetList DataSetList::SelectGroupSets( std::string const& dsargIn,
 {
   DataSetList dsetOut;
   dsetOut.hasCopies_ = true;
-  DataSet::SearchString search(dsargIn);
+  MetaData::SearchString search(dsargIn);
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ((*ds)->Group() == groupIn && (*ds)->Matches_WC( search, DataSet::UNKNOWN_DATA ))
       dsetOut.Push_Back( *ds );

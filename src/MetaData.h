@@ -1,6 +1,7 @@
 #ifndef INC_METADATA_H
 #define INC_METADATA_H
-#include "FileName.h" 
+#include "FileName.h"
+#include "Range.h" // For wildcard matching
 /** Attributes used for DataSet classification and selection. Name is typically
   * associated with the Action etc. that creates the DataSet, e.g. RMSD or
   * distance. Index is used when and action outputs numbered subsets of data,
@@ -74,6 +75,8 @@ class MetaData {
       name_(n), idx_(i), ensembleNum_(-1), scalarmode_(m), scalartype_(t),
       timeSeries_(UNKNOWN_TS) {}
 
+    /// Used for wildcard matching
+    class SearchString;
     /// Comparison for sorting name/aspect/idx
     inline bool operator<(const MetaData&) const;
     /// \return string containing scalar mode and type if defined.
@@ -95,6 +98,8 @@ class MetaData {
     std::string PrintName() const;
     /// \return true if given MetaData matches this exactly.
     bool Match_Exact(MetaData const&) const;
+    /// \return true if given MetaData matches with wildcards.
+    bool Match_WildCard(SearchString const&) const;
 
     FileName const& Fname()     const { return fileName_;    }
     std::string const& Name()   const { return name_;        }
@@ -143,4 +148,20 @@ bool MetaData::operator<(const MetaData& rhs) const {
 bool MetaData::IsTorsionArray() const {
   return ( scalarmode_ == M_TORSION || scalarmode_ == M_PUCKER || scalarmode_ == M_ANGLE );
 }
+// -----------------------------------------------------------------------------
+class MetaData::SearchString {
+  public:
+    SearchString() {}
+    SearchString(std::string const& s) { ParseArgString(s); }
+    int ParseArgString(std::string const&);
+    std::string const& NameArg()   const { return name_arg_;     }
+    std::string const& AspectArg() const { return aspect_arg_;   }
+    Range const& IdxRange()        const { return idx_range_;    }
+    Range const& MemberRange()     const { return member_range_; }
+  private:
+    std::string name_arg_;
+    std::string aspect_arg_;
+    Range idx_range_;
+    Range member_range_;
+};
 #endif
