@@ -190,35 +190,31 @@ Analysis::RetType Analysis_IRED::Analyze() {
   Timer time_total, time_SH, time_cmt, time_tau, time_cjt, time_relax;
   time_total.Start();
 # endif
-  CorrF_FFT pubfft_;
-  CorrF_Direct corfdir_;
-  ComplexArray data1_;
-  mprintf("\t'%s' has %zu modes.\n", modinfo_->legend(), modinfo_->Size());
-  if ( modinfo_->Size() != IredVectors_.size() )
-    mprintf("Warning: Number of iRED vectors (%zu) does not equal number of modes (%zu).\n",
-            IredVectors_.size(), modinfo_->Size());
-  // Calculation of S2 order parameters according to 
-  //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
-  // Loop over all vector elements
+  mprintf("\t'%s' has %zu eigenmodes.\n", modinfo_->legend(), modinfo_->Size());
+  if ( modinfo_->Size() != IredVectors_.size() ) {
+    mprinterr("Error: Number of iRED vectors (%zu) does not equal number of eigenmodes (%zu).\n",
+              IredVectors_.size(), modinfo_->Size());
+    return Analysis::ERR;
+  }
+  if ( modinfo_->VectorSize() != (int)IredVectors_.size() ) {
+    mprinterr("Error: Number of iRED vectors (%zu) does not equal eigenvector length (%i).\n",
+              IredVectors_.size(), modinfo_->VectorSize());
+    return Analysis::ERR;
+  }
+  // ----- Calculation of S2 order parameters ----
   mprintf("Info: Calculation of S2 parameters does not include first five modes.\n");
+  // Loop over all vector elements
   for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
     // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
     double sum = 0.0;
     // Loop over all eigenvectors except the first five ones, i.e.
     // sum over all internal modes only.
-    const double* evectorElem = modinfo_->Eigenvector(5) + vi;
     for (int mode = 5; mode < modinfo_->Nmodes(); ++mode) {
-      sum += modinfo_->Eigenvalue(mode) * (*evectorElem) * (*evectorElem);
-      evectorElem += modinfo_->VectorSize();
+      double Qvec = modinfo_->Eigenvector(mode)[vi];
+      sum += modinfo_->Eigenvalue(mode) * Qvec * Qvec;
     }
     float fval = (float)(1.0 - sum);
     data_s2_->Add(vi, &fval);
-  }
-
-  if (modinfo_->Nmodes() != (int)IredVectors_.size()) {
-    mprinterr("Error: # Modes in %s (%i) does not match # of Ired Vecs (%u)\n",
-              modinfo_->legend(), modinfo_->Nmodes(), IredVectors_.size());
-    return Analysis::ERR;
   }
 
   // All IRED vectors must have the same size
@@ -236,7 +232,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     }
   }
 
-  // Determine sizes
+  // Determine max length of correlation functions
   int time = (int)(tcorr_ / tstep_) + 1;
   // nsteps
   int nsteps = 0;
@@ -246,6 +242,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
     nsteps = time;
   mprintf("\tCorrelation functions calculated from t=0 to %g\n", (double)nsteps * tstep_);
   // Allocate memory to hold complex numbers for direct or FFT
+  CorrF_FFT pubfft_;
+  CorrF_Direct corfdir_;
+  ComplexArray data1_;
   if (drct_) {
     data1_.Allocate( Nframes );
     corfdir_.Allocate( nsteps );
