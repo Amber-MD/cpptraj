@@ -51,7 +51,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
     }
   }
   if (IredVectors_.empty()) {
-    mprinterr("Error: No IRED vectors defined.\n");
+    mprinterr("Error: No iRED vectors defined.\n");
     return Analysis::ERR;
   }
   // Get order for Legendre polynomial
@@ -132,10 +132,10 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   }
 
   // Print Status
-  mprintf("    IRED: %u IRED vectors.\n", IredVectors_.size());
+  mprintf("    IRED: %u iRED vectors.\n", IredVectors_.size());
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
-    mprintf("\tOrder parameters will be written to %s\n", orderout->DataFilename().full());
+    mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
   mprintf("\tCorrelation time %f, time step %lf\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
@@ -148,18 +148,18 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   else
     mprintf(" FFT approach.\n");
   if (cmtfile_ != 0)
-    mprintf("\tCm(t) functions will be written to %s\n", cmtfile_->DataFilename().full());
+    mprintf("\tCm(t) functions will be written to '%s'\n", cmtfile_->DataFilename().full());
   if (outfile != 0)
-    mprintf("\tCm(t->T) and TauM values will be written to %s\n", outfile->DataFilename().full());
+    mprintf("\tCm(t->T) and TauM values will be written to '%s'\n", outfile->DataFilename().full());
   if (cjtfile_ != 0)
-    mprintf("\tCj(t) functions will be written to %s\n", cjtfile_->DataFilename().full());
-  mprintf("\tIRED modes will be taken from DataSet %s\n", modinfo_->legend());
+    mprintf("\tCj(t) functions will be written to '%s'\n", cjtfile_->DataFilename().full());
+  mprintf("\tiRED modes will be taken from DataSet '%s'\n", modinfo_->legend());
   if (relax_) {
-    mprintf("\t\tTauM, relaxation rates, and NOEs are calculated using the iRED\n"
-            "\t\t  approach using an NH distance of %lf Ang. and a frequency of %lf MHz\n",
+    mprintf("\tRelaxation rates and NOEs will be calculated using the iRED\n"
+            "\t  approach using an NH distance of %.2f Ang. and a frequency of %.2f MHz\n",
             distnh_, freq_);
     if (noefile != 0)
-      mprintf("\t\tNOEs and relaxation rates will be written to %s\n",
+      mprintf("\tNOEs and relaxation rates will be written to '%s'\n",
               noefile->DataFilename().full());
   }
   mprintf("#Citation: Prompers, J. J.; Brüschweiler, R.; \"General framework for\n"
@@ -195,7 +195,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   ComplexArray data1_;
   mprintf("\t'%s' has %zu modes.\n", modinfo_->legend(), modinfo_->Size());
   if ( modinfo_->Size() != IredVectors_.size() )
-    mprintf("Warning: Number of IRED vectors (%zu) does not equal number of modes (%zu).\n",
+    mprintf("Warning: Number of iRED vectors (%zu) does not equal number of modes (%zu).\n",
             IredVectors_.size(), modinfo_->Size());
   // Calculation of S2 order parameters according to 
   //   Prompers & Brüschweiler, JACS  124, 4522, 2002; 
@@ -229,7 +229,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     if (Nframes == -1)
       Nframes = (*Vtmp)->Size();
     else if (Nframes != (int)(*Vtmp)->Size()) {
-      mprinterr("Error: All IRED vectors must have the same size.\n"
+      mprinterr("Error: All iRED vectors must have the same size.\n"
                 "Error:   Vector %s size = %i, first vector size = %i\n",
                 (*Vtmp)->legend(), (*Vtmp)->Size(), Nframes);
       return Analysis::ERR;
@@ -244,6 +244,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     nsteps = Nframes;
   else
     nsteps = time;
+  mprintf("\tCorrelation functions calculated from t=0 to %g\n", (double)nsteps * tstep_);
   // Allocate memory to hold complex numbers for direct or FFT
   if (drct_) {
     data1_.Allocate( Nframes );
@@ -253,10 +254,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
     pubfft_.Allocate( Nframes );
     data1_ = pubfft_.Array();
   }
-  // -------------------- IRED CALCULATION ---------------------------
+  // ----- Cm(t) CALCULATION ---------------------
 # ifdef TIMER
   time_cmt.Start();
-  //time_SH.Start();
 # endif
   // Allocate temporary storage for projection of SH for every l on eigenvecs.
   // Each SH value has a real + imaginary component.
@@ -338,6 +338,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   time_cmt.Stop();
   time_tau.Start();
 #endif
+  // ----- TauM CALCULATION ----------------------
   // Calculate tau_m for each mode.
   DataSet_double& TauM = static_cast<DataSet_double&>( *data_tauM_ );
   TauM.Resize( modinfo_->Nmodes() ); // Sets all elements to 0.0
@@ -357,17 +358,19 @@ Analysis::RetType Analysis_IRED::Analyze() {
     for (int i = 1; i < maxsteps; i++)
     {
       double curr_val = (cm_t[i] * (Norm1 / (double)(Nframes - i))) - Cplateau;
-      mprintf("\tcm_t-T[%i]= %g  cm_t-T[%i]=%g\n", i-1, prev_val, i, curr_val);
+      //mprintf("\tcm_t-T[%i]= %g  cm_t-T[%i]=%g\n", i-1, prev_val, i, curr_val);
       sum += (tstep_ * (prev_val + curr_val) * 0.5);
       prev_val = curr_val;
     }
-    mprintf("Mode %i : Cm(0)= %g  Cplateau= %g  Sum= %g\n", mode, cm0, Cplateau, sum);
+    if (debug_ > 0)
+      mprintf("Mode %i : Cm(0)= %g  Cplateau= %g  Sum= %g\n", mode, cm0, Cplateau, sum);
     TauM[mode] = sum / (cm0 - Cplateau);
   }
 # ifdef TIMER
   time_tau.Stop();
   time_cjt.Start();
 # endif
+  // ----- Cj(t) CALCULATION ---------------------
   // Calculate Cj(t) for each vector j as weighted sum over Cm(t) arrays.
   // Cj(t) = SUM(m)[ dSjm^2 * Cm(t) ]
   // dSjm^2 = EVALm * (EVECm[i])^2
@@ -420,7 +423,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
         cm_t[k] *= (Norm1 / (Nframes - k));
     }
   }
-
+  // ----- T1/T2/NOE CALCULATION -----------------
   if (relax_) {
 #   ifdef TIMER
     time_relax.Start();
@@ -453,9 +456,11 @@ Analysis::RetType Analysis_IRED::Analyze() {
                  (8.0 * Constants::PI * Constants::PI * (rnh*rnh*rnh));
     FAC = (FAC * FAC) / 20.0; // Square it.
     double on2c2 = omega_n*omega_n * csa*csa;
-    mprintf("DEBUG: omega_h= %g\nDEBUG: omega_n= %g\nDEBUG: c2= %g\nDEBUG: d2= %g\n",
-            omega_h, omega_n, on2c2, FAC);
-    mprintf("DEBUG: Jw(0, omega_h-omega_n)= %g\n", Jw(0, omega_h - omega_n, TauM_s));
+    if (debug_ > 0) {
+      mprintf("DEBUG: omega_h= %g\nDEBUG: omega_n= %g\nDEBUG: c2= %g\nDEBUG: d2= %g\n",
+              omega_h, omega_n, on2c2, FAC);
+      mprintf("DEBUG: Jw(0, omega_h-omega_n)= %g\n", Jw(0, omega_h - omega_n, TauM_s));
+    }
     // Calculate Spectral Densities and NMR relaxation parameters
     for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
     {
