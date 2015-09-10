@@ -2,8 +2,10 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // PI
 #include "Corr.h"
-//#include "StringRoutines.h" // DEBUG
-#include "DataSet_double.h" // DEBUG
+#include "DataSet_double.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 // CONSTRUCTOR
 Analysis_IRED::Analysis_IRED() :
@@ -184,6 +186,10 @@ double Analysis_IRED::Jw(int ivec, double omega, std::vector<double> TauM) const
 
 // Analysis_IRED::Analyze()
 Analysis::RetType Analysis_IRED::Analyze() {
+# ifdef TIMER
+  Timer time_total, time_SH, time_cmt, time_tau, time_cjt, time_relax;
+  time_total.Start();
+# endif
   CorrF_FFT pubfft_;
   CorrF_Direct corfdir_;
   ComplexArray data1_;
@@ -248,12 +254,18 @@ Analysis::RetType Analysis_IRED::Analyze() {
     data1_ = pubfft_.Array();
   }
   // -------------------- IRED CALCULATION ---------------------------
+# ifdef TIMER
+  time_SH.Start();
+# endif
   // Ensure SH coords calculated for each ired vector.
   for (std::vector<DataSet_Vector*>::const_iterator iredvec = IredVectors_.begin();
                                                     iredvec != IredVectors_.end();
                                                   ++iredvec)
     (*iredvec)->CalcSphericalHarmonics( order_ );
-
+# ifdef TIMER
+  time_SH.Stop();
+  time_cmt.Start();
+# endif
   // Calculate Cm(t) for each mode
   DataSet_double& Plateau = static_cast<DataSet_double&>( *data_plateau_ );
   Plateau.Resize( modinfo_->Nmodes() ); // Sets all elements to 0.0
@@ -314,7 +326,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
         cm_t[k] += data1_[2 * k];
     }
   }
-
+# ifdef TIMER
+  time_cmt.Stop();
+  time_tau.Start();
+#endif
   // Calculate tau_m for each mode.
   DataSet_double& TauM = static_cast<DataSet_double&>( *data_tauM_ );
   TauM.Resize( modinfo_->Nmodes() ); // Sets all elements to 0.0
@@ -341,7 +356,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
     mprintf("Mode %i : Cm(0)= %g  Cplateau= %g  Sum= %g\n", mode, cm0, Cplateau, sum);
     TauM[mode] = sum / (cm0 - Cplateau);
   }
-
+# ifdef TIMER
+  time_tau.Stop();
+  time_cjt.Start();
+# endif
 /*
   // Create X mesh
   DataSet_Mesh mesh(nsteps, 0.0, tstep_ * nsteps);
@@ -388,7 +406,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
       }
     }
   }
-
+# ifdef TIMER
+  time_cjt.Stop();
+# endif
   // Normalize Cm(t) for output (also plateau values if necessary)
   if (norm_) {
     for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
@@ -411,6 +431,9 @@ Analysis::RetType Analysis_IRED::Analyze() {
   }
 
   if (relax_) {
+#   ifdef TIMER
+    time_relax.Start();
+#   endif
     // Convert Tau from ps to s
     std::vector<double> TauM_s;
     for (unsigned int i = 0; i != TauM.Size(); ++i)
@@ -466,7 +489,18 @@ Analysis::RetType Analysis_IRED::Analyze() {
       data_t2_->Add( ivec, &T2 );
       data_noe_->Add( ivec, &NOE );
     }
+#   ifdef TIMER
+    time_relax.Stop();
+#   endif
   }
-
+# ifdef TIMER
+  time_total.Stop();
+  time_SH.WriteTiming(2, "Spherical Harmonics", time_total.Total());
+  time_cmt.WriteTiming(2, "Cm(t)", time_total.Total());
+  time_tau.WriteTiming(2, "TauM", time_total.Total());
+  time_cjt.WriteTiming(2, "Cj(t)", time_total.Total());
+  time_relax.WriteTiming(2, "Relax", time_total.Total());
+  time_total.WriteTiming(1, "Total IRED");
+# endif
   return Analysis::OK;
 }

@@ -42,7 +42,7 @@ class DataSet_Mesh : public DataSet_1D {
     int SetSplinedMesh(DataSet_1D const&);
     /// Calculate linear regression; report slope, intercept, and correlation.
     int LinearRegression( double&, double&, double&, bool ) const;
-    /// Calcultae single exponential regression via log and linear regression.
+    /// Calculate single exponential regression via log and linear regression.
     int SingleExpRegression(double&, double&, double&, bool);
   private:
     void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
