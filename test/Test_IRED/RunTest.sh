@@ -3,7 +3,8 @@
 # Test of IRED 
 . ../MasterTest.sh
 
-CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in
+CleanFiles orderparam ired.vec noe v0.cjt v0.cmt ired.in v0 plateau.norm.dat cjt?.dat \
+           matrix_ds2.dat
 
 CheckPtrajAnalyze
 
@@ -28,16 +29,27 @@ for NATOM in 25   41   61   68   92   102  117  136  146  156  166  183  205  \
 done
 cat >> $INPUT <<EOF
 matrix ired name matired order 2
-diagmatrix matired out ired.vec name ired.vec
+diagmatrix matired out ired.vec name ired.vec vecs 126
 ired order 2 modes ired.vec relax freq 500.0 NHdist 1.02 \
-     tstep 1.0 tcorr 10000.0 norm \
-     out v0 noefile noe orderparamfile orderparam
+     tstep 1.0 tcorr 10000.0 norm name MyIred \
+     out v0 noefile noe ds2matrix matrix_ds2.dat 
+datafile v0.cmt noheader
+datafile v0.cjt noheader
+create plateau.norm.dat MyIred[Plateau] noxcol prec 12.8 noheader
+create orderparam MyIred[S2] prec 10.5
+run
+writedata cjt1.dat MyIred[Cj(t)]:0 
 EOF
 
 RunCpptraj "IRED vector/matrix test"
 DoTest ired.vec.save ired.vec
+DoTest v0.cmt.new.norm.save v0.cmt
+DoTest plateau.norm.dat.save plateau.norm.dat
+DoTest v0.cjt.new.save v0.cjt
 DoTest orderparam.save orderparam
+DoTest matrix_ds2.dat.save matrix_ds2.dat
 DoTest noe.save noe
+
 #DoTest v0.cjt.save v0.cjt
 #DoTest v0.cmt.save v0.cmt
 CheckTest
