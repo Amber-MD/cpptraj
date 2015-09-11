@@ -331,7 +331,9 @@ int DataSetList::AddSet( DataSet* dsIn ) {
   */
 int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
 {
-  mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values.\n", Sets.size(), Xvals.size());
+  if (debug_ > 0)
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values.\n",
+            Sets.size(), Xvals.size());
   if (Sets.empty()) return 0; // No error for now.
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
@@ -353,12 +355,14 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
   } else
     // No X values. set generic X dim.
     Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
-  mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n", Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
-  if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
-  
+  if (debug_ > 0) {
+    mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n",
+            Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
+    if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
+  }
   for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
     if (*ds == 0) continue; // TODO: Warn about blanks?
-    mprintf("DEBUG: AddOrAppend set '%s'", (*ds)->legend());
+    if (debug_ > 0) mprintf("DEBUG: AddOrAppend set '%s'", (*ds)->legend());
     if (isMonotonic) (*ds)->SetDim(Dimension::X, Xdim);
     DataSet* existingSet = CheckForSet( (*ds)->Meta() );
     if (existingSet == 0) {
@@ -381,16 +385,16 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         DataSet_Mesh& xy = static_cast<DataSet_Mesh&>( *xyptr );
         for (unsigned int i = 0; i != set.Size(); i++)
           xy.AddXY( Xvals[i], set.Dval(i) );
-        mprintf(", New set, converted to XY-MESH\n");
+        if (debug_ > 0) mprintf(", New set, converted to XY-MESH\n");
         // Free memory since set has now been converted.
         delete *ds;
       } else { // No conversion. Just add.
         (*ds)->SetDim(Dimension::X, Xdim);
         AddSet( *ds );
-        mprintf(", New set\n");
+        if (debug_ > 0) mprintf(", New set\n");
       }
     } else {
-      mprintf(", appending to existing set\n");
+      if (debug_ > 0) mprintf(", appending to existing set\n");
       // Set exists. Try to append this set to existing set.
       bool canAppend = true;
       if ( (*ds)->Group() == DataSet::GENERIC ) {
