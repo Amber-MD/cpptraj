@@ -32,6 +32,7 @@ class CpptrajState {
     TrajinList const& InputTrajList() const { return trajinList_; }
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
+    int AddTopology( std::string const&, ArgList const& );
     inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );

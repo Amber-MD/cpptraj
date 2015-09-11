@@ -1596,7 +1596,10 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Load topology to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.PFL()->AddParmFile(argIn.GetStringNext(), argIn);
+  // TEST
+  std::string fname = argIn.GetStringNext();
+  State.AddTopology( fname, argIn );
+  return (Command::RetType)State.PFL()->AddParmFile(fname, argIn);
 }
 
 /// Print info for specified parm or atoms in specified parm.

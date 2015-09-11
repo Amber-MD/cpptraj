@@ -127,6 +127,8 @@ class DataSetList {
     DataListType DataList_;
     /// Pointers to reference data sets.
     DataListType RefList_;
+    /// Pointers to topology data sets.
+    DataListType TopList_;
     /// Hold descriptions and allocators for all DataSet types.
     struct DataToken {
       const char* Description;

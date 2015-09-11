@@ -22,6 +22,7 @@
 #include "DataSet_Coords_TRJ.h"
 #include "DataSet_Coords_REF.h"
 #include "DataSet_Mat3x3.h"
+#include "DataSet_Topology.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
@@ -42,6 +43,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
+  { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
   { 0, 0 }
 };
 
@@ -65,6 +67,7 @@ void DataSetList::Clear() {
       delete *ds;
   DataList_.clear();
   RefList_.clear();
+  TopList_.clear();
   hasCopies_ = false;
   dataSetsPending_ = false;
 } 
@@ -73,6 +76,8 @@ void DataSetList::Push_Back(DataSet* ds) {
   // If this is a REF data set it also goes in RefList_.
   if (ds->Type() == DataSet::REF_FRAME)
     RefList_.push_back( ds );
+  else if (ds->Type() == DataSet::TOPOLOGY)
+    TopList_.push_back( ds );
   DataList_.push_back( ds );
 }
 
@@ -110,6 +115,12 @@ DataSet* DataSetList::EraseSet( DataSet* dsIn, bool freeMemory ) {
         for (DataListType::iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
           if ( *ref == dsIn ) {
             RefList_.erase( ref );
+            break;
+          }
+      } else if (dsIn->Type() == DataSet::TOPOLOGY ) {
+        for (DataListType::iterator top = TopList_.begin(); top != TopList_.end(); ++top)
+          if ( *top == dsIn ) {
+            TopList_.erase( top );
             break;
           }
       }

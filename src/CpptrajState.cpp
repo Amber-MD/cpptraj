@@ -4,6 +4,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
+#include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
 #ifdef TIMER
 #ifdef MPI
@@ -784,5 +785,42 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   if (DSL_.AddSet( ref )) return 1; 
   // Set default reference if not already set.
   if (activeRef_ == 0) activeRef_ = ref;
+  return 0;
+}
+
+// CpptrajState::AddTopology()
+/** Add specified file(s) as Topology. Topologies are a unique
+  * DataSet - they are set up OUTSIDE data set list.
+  */
+int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args ) {
+  if (fnameIn.empty()) return 1;
+  File::NameArray fnames = File::ExpandToFilenames( fnameIn );
+  if (fnames.empty()) {
+    mprinterr("Error: '%s' corresponds to no files.\n");
+    return 1;
+  }
+  ArgList argIn = args;
+  // Determine if there is a mask expression for stripping. // TODO: Remove?
+  std::string maskexpr = argIn.GetMaskNext();
+  // Check for tag.
+  std::string tag = argIn.getNextTag();
+  for (File::NameArray::const_iterator fname = fnames.begin(); fname != fnames.end(); ++fname)
+  {
+    // Create Topology DataSet
+    DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY,
+                                                          MetaData(*fname, tag, -1));
+    if (ds == 0) {
+      if (exitOnError_) return 1;
+    } else {
+      if (ds->LoadTopFromFile(argIn, debug_)) {
+        if (exitOnError_) return 1;
+      }
+      // If a mask expression was specified, strip to match the expression.
+      if (!maskexpr.empty()) {
+        if (ds->StripTop( maskexpr )) return 1;
+      }
+    }
+    // TODO: Set active top?
+  } 
   return 0;
 }
