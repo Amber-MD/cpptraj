@@ -85,7 +85,7 @@ static double AvgCalc_Std( DataSet_1D const& dsIn, ClusterDist::Cframes const& c
 ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
   data_((DataSet_1D*)dsIn)
 {
-  if ( data_->IsTorsionArray() )
+  if ( data_->Meta().IsTorsionArray() )
     dcalc_ = DistCalc_Dih;
   else
     dcalc_ = DistCalc_Std;
@@ -127,7 +127,7 @@ double ClusterDist_Num::FrameCentroidDist(int f1, Centroid* c1) {
 /** Calculate avg value of given frames. */
 void ClusterDist_Num::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
   Centroid_Num* cent = (Centroid_Num*)centIn;
-  if (data_->IsTorsionArray())
+  if (data_->Meta().IsTorsionArray())
     cent->cval_ = AvgCalc_Dih(*data_, cframesIn, cent->sumx_, cent->sumy_);
   else
     cent->cval_ = AvgCalc_Std(*data_, cframesIn);
@@ -145,7 +145,7 @@ void ClusterDist_Num::FrameOpCentroid(int frame, Centroid* centIn, double oldSiz
 {
   Centroid_Num* cent = (Centroid_Num*)centIn;
   cent->cval_ = DistCalc_FrameCentroid(data_->Dval(frame), cent->cval_,
-                                       data_->IsTorsionArray(), oldSize, OP,
+                                       data_->Meta().IsTorsionArray(), oldSize, OP,
                                        cent->sumx_, cent->sumy_);
 }
  
@@ -154,7 +154,7 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
 {
   for (DsArray::const_iterator ds = dsIn.begin(); ds != dsIn.end(); ++ds) {
     dsets_.push_back( (DataSet_1D*)*ds );
-    if ( dsets_.back()->IsTorsionArray() )
+    if ( dsets_.back()->Meta().IsTorsionArray() )
       dcalcs_.push_back( DistCalc_Dih );
     else
       dcalcs_.push_back( DistCalc_Std );
@@ -232,7 +232,7 @@ void ClusterDist_Euclid::CalculateCentroid(Centroid* centIn, Cframes const& cfra
   cent->Sumx_.resize( dsets_.size(), 0.0 );
   cent->Sumy_.resize( dsets_.size(), 0.0 );
   for (unsigned int idx = 0; idx != dsets_.size(); ++idx) {
-    if (dsets_[idx]->IsTorsionArray())
+    if (dsets_[idx]->Meta().IsTorsionArray())
       cent->cvals_[idx] = AvgCalc_Dih(*dsets_[idx], cframesIn, cent->Sumx_[idx], cent->Sumy_[idx]);
     else
       cent->cvals_[idx] = AvgCalc_Std(*dsets_[idx], cframesIn);
@@ -262,7 +262,7 @@ void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double old
 //  mprintf("\n");
   for (unsigned int i = 0; i != dsets_.size(); ++i)
     cent->cvals_[i] = DistCalc_FrameCentroid(dsets_[i]->Dval(frame), 
-                          cent->cvals_[i], dsets_[i]->IsTorsionArray(), oldSize, OP,
+                          cent->cvals_[i], dsets_[i]->Meta().IsTorsionArray(), oldSize, OP,
                           cent->Sumx_[i], cent->Sumy_[i]);
 //  mprintf("DEBUG: New Centroids after %s frame %i:", OPSTRING[OP], frame);
 //  for (unsigned int i = 0; i != cent->cvals_.size(); i++)

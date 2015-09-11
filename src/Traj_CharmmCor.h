@@ -11,11 +11,11 @@ class Traj_CharmmCor : public TrajectoryIO {
   private:
     // TrajectoryIO functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*);
+    int setupTrajin(FileName const&, Topology*);
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);
-    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool);
+    int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&) { return 0; }

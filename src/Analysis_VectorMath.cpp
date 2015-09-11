@@ -53,7 +53,7 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* 
     mode_ = DOTPRODUCT;
   // Set up output file in DataFileList if necessary
   DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
-  if (outfile != 0) outfile->AddSet( DataOut_ );
+  if (outfile != 0) outfile->AddDataSet( DataOut_ );
 
   // Print Status
   mprintf("    VECTORMATH: Calculating %s of vectors %s and %s\n", 

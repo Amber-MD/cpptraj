@@ -28,6 +28,7 @@ class Analysis_Hist : public Analysis {
     void PrintBins();
 
     DataFile* outfile_;                  ///< Output DataFile.
+    CpptrajFile* native_;                ///< File for native output.
     DataSet* hist_;                      ///< Histogram data set.
     std::vector<double> Bins_;           ///< Histogram data - double in case free E calculated
     typedef std::vector<long int> OffType;

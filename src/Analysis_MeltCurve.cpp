@@ -29,7 +29,7 @@ Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* d
   mcurve_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "Melt");
   if (mcurve_ == 0) return Analysis::ERR;
   // Add dataset to datafile
-  if (outfile != 0) outfile->AddSet( mcurve_ );
+  if (outfile != 0) outfile->AddDataSet( mcurve_ );
   
   mprintf("    MELTCURVE: Calculating melting curve from %i data sets.\n",
           input_dsets_.size());

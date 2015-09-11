@@ -94,23 +94,23 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
     mprinterr("Error: No topology file name specified.\n");
     return 1;
   }
-  StrArray fnames = ExpandToFilenames( filenameIn );
+  File::NameArray fnames = File::ExpandToFilenames( filenameIn );
   if (fnames.empty()) {
     mprinterr("Error: '%s' matches no files.\n", filenameIn.c_str());
     return 1;
   }
   std::string ParmTag = argIn.getNextTag();
   int numErr = 0;
-  for (StrArray::const_iterator fn = fnames.begin();
-                                fn != fnames.end(); ++fn)
+  for (File::NameArray::const_iterator fn = fnames.begin();
+                                       fn != fnames.end(); ++fn)
   {
     // Check if filename/parmtag already in use
     bool skipFile = false;
     for (std::vector<Topology*>::const_iterator tf = TopList_.begin();
                                                 tf != TopList_.end(); ++tf)
     {
-      if ( (*tf)->OriginalFilename().Full() == *fn ) {
-        mprintf("Warning: Parm '%s' already loaded, skipping.\n", fn->c_str());
+      if ( (*tf)->OriginalFilename().Full() == fn->Full() ) {
+        mprintf("Warning: Parm '%s' already loaded, skipping.\n", fn->full());
         skipFile = true;
       }
       if ( !ParmTag.empty() && (*tf)->Tag() == ParmTag ) {
@@ -126,14 +126,14 @@ int TopologyList::AddParmFile(std::string const& filenameIn, ArgList& argIn)
     ParmFile pfile;
     // NOTE: Arg list will not be modified for multiple parms 
     if (pfile.ReadTopology(*parm, *fn, argIn, debug_)) {
-      mprinterr("Error: Could not open topology '%s'\n", fn->c_str());
+      mprinterr("Error: Could not open topology '%s'\n", fn->full());
       delete parm;
       numErr++;
       continue;
     }
 
     if (debug_>0) 
-      mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(),(*fn).c_str());
+      mprintf("    PARAMETER FILE %zu: %s\n",TopList_.size(), fn->full());
     // pindex is used for quick identification of the parm file
     parm->SetPindex( TopList_.size() );
     TopList_.push_back(parm);

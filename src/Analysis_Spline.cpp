@@ -65,10 +65,10 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   {
     DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, setname, "Spline");
     if (ds == 0) return Analysis::ERR;
-    ds->SetLegend( "Spline(" + (*dsIn)->Legend() + ")" );
+    ds->SetLegend( "Spline(" + (*dsIn)->Meta().Legend() + ")" );
     // TODO: Set individually based on input_dsets_
     ds->SetDim(Dimension::X, Xdim);
-    if (outfile_ != 0) outfile_->AddSet( ds );
+    if (outfile_ != 0) outfile_->AddDataSet( ds );
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
   /*outfile_->Dim(Dimension::X).SetMin( meshmin_ );

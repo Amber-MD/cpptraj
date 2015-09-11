@@ -46,11 +46,8 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   debug_ = debugIn;
   // Count and store the number of previously defined IRED vectors.
   for ( DataSetList::const_iterator DS = DSLin->begin(); DS != DSLin->end(); ++DS) {
-    if ( (*DS)->Type() == DataSet::VECTOR ) {
-      DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
-      if (Vtmp->IsIred())
-        IredVectors_.push_back( Vtmp );
-    }
+    if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC)
+      IredVectors_.push_back( (DataSet_Vector*)*DS );
   }
   if (IredVectors_.empty()) {
     mprinterr("Error: No iRED vectors defined.\n");
@@ -89,26 +86,26 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   // Output data sets
   dsname_ = analyzeArgs.GetStringKey("name");
   if (dsname_.empty()) dsname_ = DSLin->GenerateDefaultName("IRED");
-  data_s2_ = DSLin->AddSetAspect(DataSet::FLOAT, dsname_, "S2");
+  data_s2_ = DSLin->AddSet(DataSet::FLOAT, MetaData(dsname_, "S2"));
   if (data_s2_ == 0) return Analysis::ERR;
-  data_s2_->SetPrecision(10,5);
-  if (orderout != 0) orderout->AddSet( data_s2_ );
-  data_plateau_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "Plateau");
+  data_s2_->SetupFormat().SetFormatWidthPrecision(10,5);
+  if (orderout != 0) orderout->AddDataSet( data_s2_ );
+  data_plateau_ = DSLin->AddSet(DataSet::DOUBLE, MetaData(dsname_, "Plateau"));
   if (data_plateau_ == 0) return Analysis::ERR;
-  data_plateau_->SetPrecision(12,8);
-  data_tauM_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "TauM");
+  data_plateau_->SetupFormat().SetFormatWidthPrecision(12,8);
+  data_tauM_ = DSLin->AddSet(DataSet::DOUBLE, MetaData(dsname_, "TauM"));
   if (data_tauM_ == 0) return Analysis::ERR;
-  data_tauM_->SetPrecision(12,6);
+  data_tauM_->SetupFormat().SetFormatWidthPrecision(12,6);
   if (outfile != 0) {
-    outfile->AddSet( data_plateau_ );
-    outfile->AddSet( data_tauM_ );
+    outfile->AddDataSet( data_plateau_ );
+    outfile->AddDataSet( data_tauM_ );
   }
   if (ds2matfile != 0) {
-    data_ds2_mat_ = DSLin->AddSetAspect(DataSet::MATRIX_DBL, dsname_, "dS2");
+    data_ds2_mat_ = DSLin->AddSet(DataSet::MATRIX_DBL, MetaData(dsname_, "dS2"));
     if (data_ds2_mat_ == 0) return Analysis::ERR;
-    data_ds2_mat_->SetPrecision(10,5);
+    data_ds2_mat_->SetupFormat().SetFormatWidthPrecision(10,5);
     ds2matfile->ProcessArgs("square2d");
-    ds2matfile->AddSet( data_ds2_mat_ );
+    ds2matfile->AddDataSet( data_ds2_mat_ );
   }
   // Get norm, drct, relax
   norm_ = analyzeArgs.hasKey("norm");
@@ -118,17 +115,17 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
   DataFile* noefile = 0;
   if (relax_) {
     noefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("noefile"), analyzeArgs);
-    data_t1_  = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "T1");
-    data_t2_  = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "T2");
-    data_noe_ = DSLin->AddSetAspect(DataSet::DOUBLE, dsname_, "NOE");
+    data_t1_  = DSLin->AddSet(DataSet::DOUBLE, MetaData(dsname_, "T1"));
+    data_t2_  = DSLin->AddSet(DataSet::DOUBLE, MetaData(dsname_, "T2"));
+    data_noe_ = DSLin->AddSet(DataSet::DOUBLE, MetaData(dsname_, "NOE"));
     if (data_t1_ == 0 || data_t2_ == 0 || data_noe_ == 0) return Analysis::ERR;
-    data_t1_->SetPrecision(10,5);
-    data_t2_->SetPrecision(10,5);
-    data_noe_->SetPrecision(10,5);
+    data_t1_->SetupFormat().SetFormatWidthPrecision(10,5);
+    data_t2_->SetupFormat().SetFormatWidthPrecision(10,5);
+    data_noe_->SetupFormat().SetFormatWidthPrecision(10,5);
     if (noefile != 0) {
-      noefile->AddSet( data_t1_ );
-      noefile->AddSet( data_t2_ );
-      noefile->AddSet( data_noe_ );
+      noefile->AddDataSet( data_t1_ );
+      noefile->AddDataSet( data_t2_ );
+      noefile->AddDataSet( data_noe_ );
     }
     // Get freq, NH distance
     freq_ = analyzeArgs.getKeyDouble("freq", -1.0);
@@ -319,10 +316,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
   for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
   {
     // Add DataSet for Cm(t)
-    CmtArray_[mode] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsname_, mode, "Cm(t)");
-    if (cmtfile_ != 0) cmtfile_->AddSet( CmtArray_[mode] );
+    CmtArray_[mode] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "Cm(t)", mode));
+    if (cmtfile_ != 0) cmtfile_->AddDataSet( CmtArray_[mode] );
     DataSet_double& cm_t = static_cast<DataSet_double&>( *CmtArray_[mode] );
-    cm_t.SetPrecision(12,8);
+    cm_t.SetupFormat().SetFormatWidthPrecision(12,8);
     cm_t.SetDim(Dimension::X, Tdim);
     cm_t.Resize( nsteps ); // Sets all elements to 0.0
     // Loop over L = -order ... +order
@@ -399,10 +396,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
   for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
   {
     // Add DataSet for Cj(t)
-    CjtArray_[ivec] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsname_, ivec, "Cj(t)");
-    if (cjtfile_ != 0) cjtfile_->AddSet( CjtArray_[ivec] );
+    CjtArray_[ivec] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "Cj(t)", ivec));
+    if (cjtfile_ != 0) cjtfile_->AddDataSet( CjtArray_[ivec] );
     DataSet_double& cj_t = static_cast<DataSet_double&>( *CjtArray_[ivec] );
-    cj_t.SetPrecision(12,8);
+    cj_t.SetupFormat().SetFormatWidthPrecision(12,8);
     cj_t.Resize( nsteps ); // Set all elements to 0.0
     cj_t.SetDim(Dimension::X, Tdim);
     // Calculate dS^2 for this vector and mode.

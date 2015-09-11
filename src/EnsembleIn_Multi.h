@@ -9,7 +9,7 @@ class EnsembleIn_Multi : public EnsembleIn {
     EnsembleIn_Multi() : remdFrameFactor_(1.0), remdFrameOffset_(0) {}
     ~EnsembleIn_Multi() { EndEnsemble(); }
     // ----- Inherited Functions -----------------
-    int SetupEnsembleRead(std::string const&, ArgList&, Topology*);
+    int SetupEnsembleRead(FileName const&, ArgList&, Topology*);
     int ReadEnsemble(int, FrameArray&, FramePtrArray&);
     int BeginEnsemble();
     void EndEnsemble();

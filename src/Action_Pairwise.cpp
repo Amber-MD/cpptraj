@@ -63,19 +63,19 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, Da
   std::string ds_name = actionArgs.GetStringNext();
   if (ds_name.empty())
     ds_name = DSL->GenerateDefaultName("PW");
-  ds_vdw_  = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EVDW");
-  ds_elec_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EELEC");
+  ds_vdw_  = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
+  ds_elec_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
   if (ds_vdw_ == 0 || ds_elec_ == 0) return Action::ERR;
   // Add DataSets to data file list
   if (dataout != 0) {
-    dataout->AddSet(ds_vdw_);
-    dataout->AddSet(ds_elec_);
+    dataout->AddDataSet(ds_vdw_);
+    dataout->AddDataSet(ds_elec_);
   }
-  vdwMat_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, ds_name, "VMAP");
-  eleMat_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, ds_name, "EMAP");
+  vdwMat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "VMAP"));
+  eleMat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "EMAP"));
   if (vdwMat_ == 0 || eleMat_ == 0) return Action::ERR;
-  if (vmapout != 0) vmapout->AddSet(vdwMat_);
-  if (emapout != 0) emapout->AddSet(eleMat_);
+  if (vmapout != 0) vmapout->AddDataSet(vdwMat_);
+  if (emapout != 0) emapout->AddDataSet(eleMat_);
 
   // Get reference structure
   if (REF.error()) return Action::ERR;

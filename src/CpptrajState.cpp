@@ -141,7 +141,7 @@ int CpptrajState::ClearList( ArgList& argIn ) {
 void CpptrajState::ReferenceInfo() const {
   DSL_.ListReferenceFrames();
   if (activeRef_ != 0)
-    mprintf("\tActive reference frame for distance-based masks is %i\n", activeRef_->RefIndex());
+    mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
 }
 
 /** Remove DataSet from State */
@@ -765,7 +765,7 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
   if (refParm != 0) {
-    if (ref->SetupRefFrame(fname, tag, *refParm, argIn, refidx_)) return 1;
+    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, debug_)) return 1;
   } else { // CRD != 0
     int fnum;
     if (argIn.hasKey("lastframe"))
@@ -774,7 +774,7 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
       fnum = argIn.getNextInteger(1) - 1;
     mprintf("\tSetting up reference from COORDS set '%s', frame %i\n",
             CRD->legend(), fnum+1);
-    if (ref->SetupRefFrame(CRD, tag, fnum, refidx_)) return 1;
+    if (ref->SetRefFromCoords(CRD, tag, fnum)) return 1;
   }
   // If a mask expression was specified, strip to match the expression.
   if (!maskexpr.empty()) {
@@ -784,6 +784,5 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   if (DSL_.AddSet( ref )) return 1; 
   // Set default reference if not already set.
   if (activeRef_ == 0) activeRef_ = ref;
-  refidx_++;
   return 0;
 }

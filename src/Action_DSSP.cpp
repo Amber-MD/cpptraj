@@ -75,13 +75,13 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend");
   // Create data sets for total fraction SS vs time.
   for (int i = 0; i < NSSTYPE; i++) {
-    totalDS_[i] = DSL->AddSetAspect(DataSet::FLOAT, dsetname_, SSname[i]);
+    totalDS_[i] = DSL->AddSet(DataSet::FLOAT, MetaData(dsetname_, SSname[i]));
     if (totalDS_[i] == 0) {
       mprinterr("Error: Could not create DSSP total frac v time data set.\n");
       return Action::ERR;
     }
     // For now dont add 'None' so colors match up.
-    if (totalout != 0 && i > 0) totalout->AddSet( totalDS_[i] );
+    if (totalout != 0 && i > 0) totalout->AddDataSet( totalDS_[i] );
   }
 
   mprintf( "    SECSTRUCT: Calculating secondary structure using mask [%s]\n",Mask_.MaskString());
@@ -185,6 +185,9 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   // Set up DataSet if necessary. 
   Nselected_ = 0;
   std::vector<std::string> missingResidues;
+  MetaData md(dsetname_, "res");
+  DataSet::DataType dt = DataSet::INTEGER;
+  if (printString_) dt = DataSet::STRING;
   for (int res = 0; res < Nres_; ++res) {
     if (SecStruct_[res].isSelected) {
       // Check if C-O/N-H selected.
@@ -207,19 +210,15 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       }
       // Set up dataset if necessary 
       if (SecStruct_[res].resDataSet == 0) {
+        md.SetIdx( res+1 );
+        md.SetLegend( currentParm->TruncResNameNum(res) );
         // Setup dataset for this residue
-        if (printString_)
-          SecStruct_[res].resDataSet =
-            masterDSL_->AddSetIdxAspect( DataSet::STRING, dsetname_, res+1, "res");
-        else
-          SecStruct_[res].resDataSet = 
-            masterDSL_->AddSetIdxAspect( DataSet::INTEGER, dsetname_, res+1, "res");
+        SecStruct_[res].resDataSet = masterDSL_->AddSet( dt, md );
         if (SecStruct_[res].resDataSet == 0) {
           mprinterr("Error: Could not allocate DSSP data set for residue %i\n", res+1);
           return Action::ERR;
         }
-        if (outfile_ != 0) outfile_->AddSet(SecStruct_[res].resDataSet);
-        SecStruct_[res].resDataSet->SetLegend( currentParm->TruncResNameNum(res) );
+        if (outfile_ != 0) outfile_->AddDataSet(SecStruct_[res].resDataSet);
       }
       ++Nselected_;
     }
@@ -534,12 +533,15 @@ void Action_DSSP::Print() {
   if (dsspFile_ != 0) {
     std::vector<DataSet*> dsspData_(NSSTYPE);
     Dimension Xdim( min_res + 1, 1, max_res - min_res + 1, "Residue" );
+    MetaData md(dsetname_, "avgss");
+    md.SetTimeSeries(MetaData::NOT_TS);
     // Set up a dataset for each SS type. TODO: NONE type?
     for (int ss = 1; ss < NSSTYPE; ss++) {
-      dsspData_[ss] = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, dsetname_, ss, "avgss");
-      dsspData_[ss]->SetLegend( SSname[ss] );
+      md.SetIdx(ss);
+      md.SetLegend( SSname[ss] );
+      dsspData_[ss] = masterDSL_->AddSet(DataSet::DOUBLE, md);
       dsspData_[ss]->SetDim(Dimension::X, Xdim);
-      dsspFile_->AddSet( dsspData_[ss] ); 
+      dsspFile_->AddDataSet( dsspData_[ss] ); 
     }
     
     // Calc the avg SS type for each residue that has data.
@@ -563,7 +565,7 @@ void Action_DSSP::Print() {
       for (int resi = min_res; resi < max_res+1; resi++) {
         if (startRes == -1) startRes = resi;
         // Convert residue name.
-        resLine += Residue::ConvertResName( SecStruct_[resi].resDataSet->Legend() );
+        resLine += Residue::ConvertResName( SecStruct_[resi].resDataSet->Meta().Legend() );
         // Figure out which SS element is dominant for res if selected
         if (SecStruct_[resi].resDataSet != 0) {
           int dominantType = 0;

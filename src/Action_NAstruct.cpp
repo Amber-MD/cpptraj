@@ -282,18 +282,27 @@ int Action_NAstruct::DetermineBasePairing() {
 #               ifdef NASTRUCTDEBUG
                 mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
 #               endif
-                int dsidx = (int)BasePairs_.size() + 1;
+                MetaData md(dataname_, BasePairs_.size() + 1); // Name, index
+                md.SetLegend( base1->BaseName() + base2->BaseName() );
                 BPtype BP;
-                std::string bpname = base1->BaseName() + base2->BaseName();
-                BP.shear_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shear",bpname);
-                BP.stretch_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stretch",bpname);
-                BP.stagger_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"stagger",bpname);
-                BP.buckle_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"buckle",bpname);
-                BP.prop_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"prop",bpname);
-                BP.opening_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"open",bpname);
-                BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::INTEGER,dataname_,dsidx,"hb",bpname);
-                BP.major_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"major",bpname);
-                BP.minor_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"minor",bpname);
+                md.SetAspect("shear");
+                BP.shear_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("stretch");
+                BP.stretch_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("stagger");
+                BP.stagger_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("buckle");
+                BP.buckle_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("prop");
+                BP.prop_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("open");
+                BP.opening_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("hb");
+                BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
+                md.SetAspect("major");
+                BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                md.SetAspect("minor");
+                BP.minor_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
                 BP.bpidx_ = BasePairs_.size();
                 BP.base1idx_ = base1 - Bases_.begin();
                 BP.base2idx_ = base2 - Bases_.begin();
@@ -752,24 +761,37 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         // Base pair step. Try to find existing base pair step.
         StepMap::iterator entry = Steps_.find( steppair );
         if (entry == Steps_.end()) {
-          int dsidx = (int)Steps_.size() + 1;
-          std::string sname = base1.BaseName()+base2.BaseName()+"-"+
-                              base3.BaseName()+base4.BaseName();
+          MetaData md(dataname_, Steps_.size() + 1); // Name, index
+          md.SetLegend( base1.BaseName()+base2.BaseName()+"-"+
+                        base3.BaseName()+base4.BaseName() );
           // New base pair step
           StepType BS;
-          BS.shift_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"shift",sname);
-          BS.slide_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"slide",sname);
-          BS.rise_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"rise",sname);
-          BS.tilt_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tilt",sname);
-          BS.roll_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"roll",sname);
-          BS.twist_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"twist",sname);
-          BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"xdisp",sname);
-          BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"ydisp",sname);
-          BS.hrise_  = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"hrise",sname);
-          BS.incl_   = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"incl",sname);
-          BS.tip_    = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"tip",sname);
-          BS.htwist_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"htwist",sname);
-          BS.Zp_     = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::FLOAT,dataname_,dsidx,"zp",sname);
+          md.SetAspect("shift");
+          BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("slide");
+          BS.slide_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("rise");
+          BS.rise_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("tilt");
+          BS.tilt_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("roll");
+          BS.roll_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("twist");
+          BS.twist_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("xdisp");
+          BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("ydisp");
+          BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("hrise");
+          BS.hrise_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("incl");
+          BS.incl_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("tip");
+          BS.tip_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("htwist");
+          BS.htwist_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+          md.SetAspect("zp");
+          BS.Zp_     = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
           BS.b1idx_ = BP1.base1idx_;
           BS.b2idx_ = BP1.base2idx_;
           BS.b3idx_ = BP2.base1idx_;

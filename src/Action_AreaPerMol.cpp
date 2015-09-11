@@ -42,7 +42,7 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, TopologyList* PFL, 
   area_per_mol_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"APM");
   if (area_per_mol_==0) return Action::ERR;
   // Add DataSet to DataFileList
-  if (outfile != 0) outfile->AddSet( area_per_mol_ );
+  if (outfile != 0) outfile->AddDataSet( area_per_mol_ );
 
   mprintf("    AREAPERMOL: Calculating %s area per molecule", APMSTRING[areaType_]);
   if (Mask1_.MaskStringSet())

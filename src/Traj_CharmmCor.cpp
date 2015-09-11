@@ -15,7 +15,7 @@ bool Traj_CharmmCor::ID_TrajFormat(CpptrajFile& fileIn) {
   return false;
 }
 
-int Traj_CharmmCor::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_CharmmCor::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   if (file_.OpenFile()) return TRAJIN_ERR;
@@ -88,7 +88,7 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
 }
 
 // -----------------------------------------------------------------------------
-int Traj_CharmmCor::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_CharmmCor::setupTrajout(FileName const& fname, Topology* trajParm,
                                CoordinateInfo const& cInfoIn,
                                int NframesToWrite, bool append)
 {

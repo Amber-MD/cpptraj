@@ -714,13 +714,13 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     return Action::ERR;
   }
   // Get Reference
-  RefFrame_ = (DataSet_Coords_REF*)DSL->GetReferenceFrame( refName );
+  RefFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( refName, DataSet::REF_FRAME );
   if (RefFrame_ == 0) {
     mprinterr("Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
   // Get Target
-  TgtFrame_ = (DataSet_Coords_REF*)DSL->GetReferenceFrame( targetName );
+  TgtFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( targetName, DataSet::REF_FRAME );
   if (TgtFrame_ == 0) {
     mprinterr("Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
@@ -738,7 +738,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     if (rmsout != 0) {
       rmsdata_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
       if (rmsdata_==0) return Action::ERR;
-      rmsout->AddSet(rmsdata_);
+      rmsout->AddDataSet(rmsdata_);
     }
   }
 
@@ -827,7 +827,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
       }
       // Strip reference parm
       mprintf("    Modifying reference '%s' topology and frame to match mapped atoms.\n",
-              RefFrame_->Name().c_str());
+              RefFrame_->legend());
       if (RefFrame_->StripRef( M1 )) return Action::ERR;
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
       // the indices of AMap must be shifted to match

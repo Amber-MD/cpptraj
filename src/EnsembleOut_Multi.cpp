@@ -1,6 +1,6 @@
 #include "EnsembleOut_Multi.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
+#include "StringRoutines.h" // AppendNumber
 #ifdef MPI
 # include "MpiRoutines.h"
 #endif
@@ -57,10 +57,10 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
 # ifdef MPI
   // In MPI each thread writes a single member.
   if (members_to_write.InRange( worldrank ))
-    fileNames_.push_back( NumberFilename(Traj().Filename().Full(), worldrank) );
+    fileNames_.push_back( AppendNumber(Traj().Filename().Full(), worldrank) );
   else
     rprintf("Warning: Skipping member '%s'\n", 
-            NumberFilename(Traj().Filename().Full(), worldrank).c_str());
+            AppendNumber(Traj().Filename().Full(), worldrank).c_str());
 # else
   // In serial single process writes each member.
   // Create a map: tIndex[ pos ] = <ioarray_index>
@@ -69,11 +69,11 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   int ioidx = 0;
   for (int num = 0; num < ensembleSize_; num++) {
     if (members_to_write.InRange( num )) {
-      fileNames_.push_back( NumberFilename(Traj().Filename().Full(), num) );
+      fileNames_.push_back( AppendNumber(Traj().Filename().Full(), num) );
       tIndex_.push_back( ioidx++ );
     } else {
       mprintf("Warning: Skipping member '%s'\n",
-              NumberFilename(Traj().Filename().Full(), num).c_str());
+              AppendNumber(Traj().Filename().Full(), num).c_str());
       tIndex_.push_back( -1 );
     }
   }

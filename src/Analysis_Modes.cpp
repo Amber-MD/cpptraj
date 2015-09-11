@@ -13,6 +13,7 @@ Analysis_Modes::Analysis_Modes() :
   factor_(0),
   modinfo_(0),
   modinfo2_(0),
+  outfile_(0),
   results_(0),
   tOutParm_(0),
   tMode_(0),
@@ -187,8 +188,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Check modes type for specified analysis
   if (type_ == FLUCT || type_ == DISPLACE || type_ == CORR || type_ == TRAJ) {
-    if (modinfo_->ScalarType() != DataSet::COVAR && 
-        modinfo_->ScalarType() != DataSet::MWCOVAR)
+    if (modinfo_->Meta().ScalarType() != MetaData::COVAR && 
+        modinfo_->Meta().ScalarType() != MetaData::MWCOVAR)
     {
       mprinterr("Error: Modes must be of type COVAR or MWCOVAR for %s.\n",
                 analysisTypeString[type_]);
@@ -197,7 +198,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   }
 
   // Get output filename
-  filename_ = analyzeArgs.GetStringKey("out");
+  outfile_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("out"), "Modes analysis",
+                                    DataFileList::TEXT, true );
+  if (outfile_ == 0) return Analysis::ERR;
 
   // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
   if ( type_ == CORR ) {
@@ -241,11 +244,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
-    mprintf("\n\tResults are written to");
-    if (filename_.empty())
-      mprintf(" STDOUT\n");
-    else
-      mprintf(" %s\n", filename_.c_str());
+    mprintf("\n\tResults are written to %s", outfile_->Filename().full());
     if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");
@@ -275,7 +274,6 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
 // Analysis_Modes::Analyze()
 Analysis::RetType Analysis_Modes::Analyze() {
-  CpptrajFile outfile;
   // Check # of modes
   if (type_ != TRAJ && type_ != EIGENVAL) {
     if (beg_ < 0 || beg_ >= modinfo_->Nmodes()) {
@@ -334,12 +332,11 @@ Analysis::RetType Analysis_Modes::Analyze() {
       Ri += 4;
     }
     // Output
-    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
-    outfile.Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
+    outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
+    outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
     int anum = 1;
     for (int i4 = 0; i4 < modinfo_->NavgCrd()*4/3; i4+=4) 
-      outfile.Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results_[i4], 
+      outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results_[i4], 
                      results_[i4+1], results_[i4+2], results_[i4+3]); 
   // ----- DISPLACE PRINT -----
   } else if (type_ == DISPLACE) {
@@ -369,33 +366,31 @@ Analysis::RetType Analysis_Modes::Analyze() {
       }
     }
     // Output
-    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("#Analysis of modes: DISPLACEMENT\n");
-    outfile.Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
+    outfile_->Printf("#Analysis of modes: DISPLACEMENT\n");
+    outfile_->Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
     int anum = 1;
     for (int i3 = 0; i3 < modinfo_->NavgCrd(); i3 += 3)
-      outfile.Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results_[i3], 
+      outfile_->Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results_[i3], 
                      results_[i3+1], results_[i3+2]);
   // ----- CORR PRINT -----
   } else if (type_ == CORR) {
     // Calc dipole-dipole correlation functions
     CalcDipoleCorr();
     if (results_==0) return Analysis::ERR;
-    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("#Analysis of modes: CORRELATION FUNCTIONS\n");
-    outfile.Printf("%-10s %10s %10s %10s %10s %10s\n", "#Atom1", "Atom2", "Mode", 
+    outfile_->Printf("#Analysis of modes: CORRELATION FUNCTIONS\n");
+    outfile_->Printf("%-10s %10s %10s %10s %10s %10s\n", "#Atom1", "Atom2", "Mode", 
                    "Freq", "1-S^2", "P2(cum)");
     int ncnt = 0;
     for (modestack_it apair = atompairStack_.begin();
                       apair != atompairStack_.end(); ++apair)
     {
-      outfile.Printf("%10i %10i\n", (*apair).first+1, (*apair).second+1);
+      outfile_->Printf("%10i %10i\n", (*apair).first+1, (*apair).second+1);
       double val = 1.0;
       for (int mode = beg_; mode < end_; ++mode) {
         double frq = modinfo_->Eigenvalue(mode);
         if (frq >= 0.5) {
           val += results_[ncnt];
-          outfile.Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
+          outfile_->Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
                          "", "", mode, frq, results_[ncnt], val);
           ++ncnt;
         }
@@ -411,20 +406,17 @@ Analysis::RetType Analysis_Modes::Analyze() {
       sum += modinfo_->Eigenvalue( mode );
     mprintf("\t%zu eigenvalues, sum is %f\n", modinfo_->Size(), sum);
     double cumulative = 0.0;
-    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    outfile.Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
+    outfile_->Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
     for (unsigned int mode = 0; mode != modinfo_->Size(); mode++) {
       double frac = modinfo_->Eigenvalue( mode ) / sum;
       cumulative += frac;
-      outfile.Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
+      outfile_->Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
                      modinfo_->Eigenvalue( mode ));
     }
   } else if (type_ == RMSIP) {
-    if (outfile.OpenWrite( filename_ )) return Analysis::ERR;
-    if (CalcRMSIP(outfile)) return Analysis::ERR; 
+    if (CalcRMSIP()) return Analysis::ERR; 
   } else // SANITY CHECK
     return Analysis::ERR;
-  outfile.CloseFile();
 
   return Analysis::OK;
 }
@@ -566,7 +558,7 @@ int Analysis_Modes::ProjectCoords() {
 }
 
 // Analysis_Modes::CalcRMSIP()
-int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
+int Analysis_Modes::CalcRMSIP() {
   if (modinfo_->VectorSize() != modinfo2_->VectorSize()) {
     mprinterr("Error: '%s' vector size (%i) != '%s' vector size (%i)\n",
               modinfo_->legend(), modinfo_->VectorSize(),
@@ -591,8 +583,6 @@ int Analysis_Modes::CalcRMSIP(CpptrajFile& outfile) {
   }
   sumsq /= (double)(end_ - beg_);
   double rmsip = sqrt( sumsq );
-  mprintf("\tRMSIP= %g\n", rmsip);
-  if (!filename_.empty())
-    outfile.Printf("%g\n", rmsip);
+  outfile_->Printf("%g\n", rmsip);
   return 0;
 }

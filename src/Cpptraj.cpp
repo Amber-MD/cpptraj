@@ -139,7 +139,7 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
   if (!refFiles.empty()) {
     DataSet_Coords_REF refFrame;
-    if (refFrame.LoadRef( refFiles[0], parm, State_.Debug())) return 1;
+    if (refFrame.LoadRefFromFile( refFiles[0], parm, State_.Debug())) return 1;
     parm.SetReferenceCoords( refFrame.RefFrame() );
   }
   if (!verbose) {
@@ -328,8 +328,8 @@ int Cpptraj::Interactive() {
   // Open log file. If no name has been set, use default.
   CpptrajFile logfile_;
   if (logfilename_.empty())
-    logfilename_.assign("cpptraj.log");
-  if (fileExists(logfilename_)) {
+    logfilename_.SetFileName("cpptraj.log");
+  if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
       mprintf("\tLoading previous history from log '%s'\n", logfile_.Filename().full());

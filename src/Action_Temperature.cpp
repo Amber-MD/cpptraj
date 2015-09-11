@@ -46,7 +46,7 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, TopologyList* PFL,
   // DataSet 
   Tdata_ =  DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Tdata");
   if (Tdata_ == 0) return Action::ERR;
-  if (outfile != 0) outfile->AddSet( Tdata_ );
+  if (outfile != 0) outfile->AddDataSet( Tdata_ );
   
   if (getTempFromFrame_) {
     mprintf("    TEMPERATURE: Frame temperatures will be saved in data set %s\n",

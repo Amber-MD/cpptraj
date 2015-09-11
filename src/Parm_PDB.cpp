@@ -16,7 +16,7 @@ int Parm_PDB::processReadArgs(ArgList& argIn) {
   return 0;
 } 
 
-int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
+int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
@@ -42,6 +42,7 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       // To avoid duplicates only add the bond if atom2 > atom1
       int nscan = infile.pdb_Bonds(barray);
       if (nscan > 1) {
+        if (nscan > 5) nscan = 5;
         for (int i = 1; i != nscan; i++)
           if (barray[i] > barray[0])
             bonds.push_back( BondType(barray[0], barray[i], -1) );

@@ -188,7 +188,7 @@ void Traj_CharmmDcd::AllocateCoords() {
 }
 
 // Traj_CharmmDcd::setupTrajin()
-int Traj_CharmmDcd::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   // Call openTrajin, which will open and read past the DCD header.
@@ -462,7 +462,7 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
   * writes; size and endianness will be OS default.
   */
 // TODO: Check OS endianness!
-int Traj_CharmmDcd::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
                                  CoordinateInfo const& cInfoIn,
                                  int NframesToWrite, bool append)
 {

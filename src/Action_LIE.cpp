@@ -64,14 +64,14 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
 
   // Datasets
   if (doelec_) {
-    elec_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EELEC");
+    elec_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
     if (elec_ == 0) return Action::ERR;
-    if (datafile != 0) datafile->AddSet(elec_);
+    if (datafile != 0) datafile->AddDataSet(elec_);
   }
   if (dovdw_) {
-    vdw_ = DSL->AddSetAspect(DataSet::DOUBLE, ds_name, "EVDW");
+    vdw_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
     if (vdw_ == 0) return Action::ERR;
-    if (datafile != 0) datafile->AddSet(vdw_);
+    if (datafile != 0) datafile->AddDataSet(vdw_);
   }
 
   mprintf("    LIE: Ligand mask is %s. Surroundings are ", Mask1_.MaskString());

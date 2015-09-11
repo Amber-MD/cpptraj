@@ -51,7 +51,7 @@ class TrajectoryFile {
       FileTypes::FormatDescription(TF_AllocArray, tt);
     }
     /// Allocate TrajectoryIO appropriate for given file.
-    static TrajectoryIO* DetectFormat(std::string const&, TrajFormatType&);
+    static TrajectoryIO* DetectFormat(FileName const&, TrajFormatType&);
     /// Allocate TrajectoryIO for given format
     static TrajectoryIO* AllocTrajIO(TrajFormatType t) {
       return (TrajectoryIO*)FileTypes::AllocIO(TF_AllocArray, t, true);

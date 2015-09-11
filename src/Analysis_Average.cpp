@@ -19,11 +19,11 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
     setfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
     avgOfSets_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "AVERAGE");
     if (avgOfSets_ == 0) return Analysis::ERR;
-    sdOfSets_ = datasetlist->AddSetAspect(DataSet::DOUBLE, avgOfSets_->Name(), "SD");
+    sdOfSets_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(avgOfSets_->Meta().Name(), "SD"));
     if (sdOfSets_ == 0) return Analysis::ERR;
     if (setfile != 0) {
-      setfile->AddSet( avgOfSets_ );
-      setfile->AddSet( sdOfSets_ );
+      setfile->AddDataSet( avgOfSets_ );
+      setfile->AddDataSet( sdOfSets_ );
     }
   } else {
     outfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("out"), "DataSet Average",
@@ -43,7 +43,7 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* dat
   mprintf("    AVERAGE:");
   if (calcAvgOverSets_) {
     mprintf(" Calculating average over %i data sets.\n", input_dsets_.size());
-    mprintf("\tData set base name '%s'", avgOfSets_->Name().c_str());
+    mprintf("\tData set base name '%s'", avgOfSets_->Meta().Name().c_str());
     if (setfile != 0) mprintf(", written to %s", setfile->DataFilename().full());
     mprintf("\n");
   } else {

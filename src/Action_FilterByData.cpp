@@ -16,7 +16,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
   if (maxmin_ == 0) return Action::ERR;
   DataFile* maxminfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   if (maxminfile != 0)
-    maxminfile->AddSet( maxmin_ );
+    maxminfile->AddDataSet( maxmin_ );
   // Get min and max args.
   while (actionArgs.Contains("min"))
     Min_.push_back( actionArgs.getKeyDouble("min", 0.0) );

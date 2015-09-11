@@ -32,12 +32,12 @@ Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* 
   // Setup output datasets. Use XY Mesh so X can be avgd as well.
   int idx = 0;
   for (Array1D::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSetIdx(DataSet::XYMESH, setname, idx++);
+    DataSet* dsout = datasetlist->AddSet(DataSet::XYMESH, MetaData(setname, idx++));
     if (dsout == 0)
       return Analysis::ERR;
-    dsout->SetLegend( "RunAvg(" + (*DS)->Legend() + ")" );
+    dsout->SetLegend( "RunAvg(" + (*DS)->Meta().Legend() + ")" );
     outputData_.push_back( dsout );
-    if (outfile != 0) outfile->AddSet( dsout );
+    if (outfile != 0) outfile->AddDataSet( dsout );
   }
 
   if (cumulative_)

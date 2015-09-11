@@ -22,6 +22,6 @@ class Cpptraj {
     int Interactive();
 
     CpptrajState State_;
-    std::string logfilename_; // TODO: Put in CpptrajState?
+    FileName logfilename_; // TODO: Put in CpptrajState?
 };
 #endif

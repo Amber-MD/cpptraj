@@ -186,6 +186,9 @@ test.pairdist:
 test.gist:
 	@cd Test_GIST && ./RunTest.sh $(OPT)
 
+test.readdata:
+	@cd Test_ReadData && ./RunTest.sh $(OPT)
+
 test.ambpdb:
 	@cd Test_AmbPDB && ./RunTest.sh $(OPT)
 
@@ -230,6 +233,7 @@ MAINTESTS=test.general \
           test.density \
           test.lipidorder \
           test.pairdist \
+          test.readdata \
           test.ambpdb
 # Every test should go here.
 COMPLETETESTS=test.general \

@@ -20,15 +20,15 @@ Array1D::Array1D(DataSetList const& SetList) {
 }
 
 // Array1D::push_back()
-int Array1D::push_back( DataSet_1D* const& val ) {
-  // Save blank pointers, no error.
-  //FIXME: This is only done for DataIO_Std reads
-  if (val == 0)
-    array_.push_back( val );
-  else if (val->Ndim() == 1)
-    array_.push_back( val );
-  else
+int Array1D::push_back( DataSet* val ) {
+  if (val == 0) {
+    mprinterr("Internal Error: Blank pointer passed to Array1D.\n");
     return 1;
+  } else if (val->Group() != DataSet::SCALAR_1D) {
+    mprinterr("Error: Only 1D data sets allowed.\n");
+    return 1;
+  }
+  array_.push_back( (DataSet_1D*)val );
   return 0;
 }
 
@@ -39,8 +39,7 @@ void Array1D::SortArray1D() {
 // Array1D::AddDataSets()
 int Array1D::AddDataSets(DataSetList const& SetList) {
   for (DataSetList::const_iterator ds = SetList.begin(); ds != SetList.end(); ++ds)
-    if ( push_back( (DataSet_1D*)*ds ) ) {
-      mprinterr("Error: Only 1D data sets allowed.\n");
+    if ( push_back( *ds ) ) {
       array_.clear();
       return 1;
     }
@@ -49,16 +48,15 @@ int Array1D::AddDataSets(DataSetList const& SetList) {
 
 // Array1D::AddTorsionSets()
 int Array1D::AddTorsionSets(DataSetList const& SetList) {
+  // Ensure data sets are 1D and periodic
   for (DataSetList::const_iterator ds = SetList.begin(); ds != SetList.end(); ++ds) {
-    // Ensure data sets are 1D and periodic
-    if ( (*ds)->Ndim() == 1 ) {
-      DataSet_1D* ds1 = (DataSet_1D*)(*ds);
-      if ( ds1->IsTorsionArray() )
-        array_.push_back( ds1 );
-      else
-        mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->legend());
+    if ( (*ds)->Meta().IsTorsionArray()) {
+      if ( push_back( *ds ) ) {
+        array_.clear();
+        return 1;
+      }
     } else
-      mprintf("Warning: Set '%s' is not 1D, skipping.\n", (*ds)->legend());
+        mprintf("Warning: Set '%s' is not periodic, skipping.\n", (*ds)->legend());
   }
   return 0;
 }
@@ -77,32 +75,4 @@ int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) 
   if (AddDataSets( input_dsl ))
     return 1;
   return 0;
-}
-
-// Array1D::DetermineMax() 
-size_t Array1D::DetermineMax() const {
-  size_t maxFrames = 0L;
-  for (std::vector<DataSet_1D*>::const_iterator set = array_.begin(); set != array_.end(); ++set)
-    if ( (*set)->Size() > maxFrames )
-      maxFrames = (*set)->Size();
-  return maxFrames;
-}
-
-// Array1D::CheckXDimension()
-int Array1D::CheckXDimension() const {
-  int err = 0;
-  Dimension const& Xdim = static_cast<Dimension const&>(array_[0]->Dim(0));
-  for (std::vector<DataSet_1D*>::const_iterator set = array_.begin(); set != array_.end(); ++set)
-  {
-    if ((*set)->Dim(0) != Xdim) {
-      mprinterr("Error: X Dimension of %s != %s\n", (*set)->legend(),
-                array_[0]->legend());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->legend(),
-                (*set)->Dim(0).Min(), (*set)->Dim(0).Step());
-      mprinterr("Error:  %s: Min=%f Step=%f\n", array_[0]->legend(),
-                Xdim.Min(), Xdim.Step());
-      ++err;
-    }
-  }
-  return err;
 }

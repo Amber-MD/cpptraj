@@ -5,20 +5,19 @@
 void DataSet_Coords_REF::Info() const {
   //if (!tag_.empty())
   //  mprintf(" %s", tag_.c_str());
-  if (!name_.empty() && Name() != name_.Full())
-    mprintf(" '%s'", name_.full());
-  if (num_ > -1) mprintf(", refindex %i", num_);
+  if (!Meta().Fname().empty() && Meta().Name() != Meta().Fname().Full())
+    mprintf(" '%s'", Meta().Fname().full());
   mprintf(" (%i atoms)", Top().Natom());
 }
 
-int DataSet_Coords_REF::LoadRef(std::string const& fname, Topology const& parmIn, int dbg)
+int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, Topology const& parmIn, int dbg)
 {
   ArgList blank;
-  return SetupRefFrame(fname, "", parmIn, blank, -1);
+  return LoadRefFromFile(fname, "", parmIn, blank, dbg);
 }
 
-int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string const& nameIn,
-                                      Topology const& parmIn, ArgList& argIn, int refidx)
+int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const& nameIn,
+                                        Topology const& parmIn, ArgList& argIn, int dbg)
 {
   // Set up trajectory - false = do not modify box info
   Trajin_Single traj;
@@ -46,36 +45,26 @@ int DataSet_Coords_REF::SetupRefFrame(std::string const& fname, std::string cons
   // Read reference frame
   traj.ReadTrajFrame( traj.Traj().Counter().Start(), frame_ );
   traj.EndTraj();
-  name_ = traj.Traj().Filename();
-  num_ = refidx;
   SetTopology( parmIn );
-  // If default name is empty use full trajectory file name.
-  std::string setname;
-  if (nameIn.empty())
-    setname = traj.Traj().Filename().Full();
-  else
-    setname = nameIn;
-  if (SetupSet( setname, traj.Traj().Counter().Start()+1, "", -1 )) return 1;
+  MetaData md(fname, nameIn, traj.Traj().Counter().Start()+1);
   if (!traj.Title().empty())
-    SetLegend( traj.Title() );
+    md.SetLegend( traj.Title() );
+  if (SetMeta( md )) return 1;
   return 0;
 }
 
-int DataSet_Coords_REF::SetupRefFrame(DataSet_Coords* CRD, std::string const& nameIn,
-                                      int fnum, int refidx)
+int DataSet_Coords_REF::SetRefFromCoords(DataSet_Coords* CRD, std::string const& nameIn, int fnum)
 {
   if (CRD==0) return 1;
   frame_ = CRD->AllocateFrame();
   CRD->GetFrame( fnum, frame_ );
   SetTopology( CRD->Top() );
-  num_ = refidx;
   std::string setname;
   if (nameIn.empty())
-    setname = CRD->Name();
+    setname = CRD->Meta().Name();
   else
     setname = nameIn;
-  SetLegend("");
-  if (SetupSet( setname, fnum+1, "", -1 )) return 1;
+  if (SetMeta( MetaData(setname, fnum+1) )) return 1;
   return 0;
 }
 

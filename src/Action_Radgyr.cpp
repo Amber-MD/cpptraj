@@ -34,16 +34,16 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Also add datasets to data file list
   rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
   if (rog_==0) return Action::ERR;
-  if (outfile != 0) outfile->AddSet( rog_ );
+  if (outfile != 0) outfile->AddDataSet( rog_ );
   if (calcRogmax_) {
-    rogmax_ = DSL->AddSetAspect(DataSet::DOUBLE, rog_->Name(), "Max");
+    rogmax_ = DSL->AddSet(DataSet::DOUBLE, MetaData(rog_->Meta().Name(), "Max"));
     if (rogmax_ == 0) return Action::ERR; 
-    if (outfile != 0) outfile->AddSet( rogmax_ );
+    if (outfile != 0) outfile->AddDataSet( rogmax_ );
   }
   if (calcTensor_) {
-    rogtensor_ = DSL->AddSetAspect(DataSet::VECTOR, rog_->Name(), "Tensor");
+    rogtensor_ = DSL->AddSet(DataSet::VECTOR, MetaData(rog_->Meta().Name(), "Tensor"));
     if (rogtensor_ == 0) return Action::ERR;
-    if (outfile != 0) outfile->AddSet( rogtensor_ );
+    if (outfile != 0) outfile->AddDataSet( rogtensor_ );
   }
 
   mprintf("    RADGYR: Calculating for atoms in mask %s",Mask1_.MaskString());

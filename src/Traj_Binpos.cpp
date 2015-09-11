@@ -43,7 +43,7 @@ void Traj_Binpos::closeTraj() {
   file_.CloseFile();
 }
 
-int Traj_Binpos::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_Binpos::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.SetupRead( fname, 0 )) return TRAJIN_ERR;
   // Open - reads past the 4 byte header
@@ -109,7 +109,7 @@ int Traj_Binpos::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
-int Traj_Binpos::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_Binpos::setupTrajout(FileName const& fname, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
 {

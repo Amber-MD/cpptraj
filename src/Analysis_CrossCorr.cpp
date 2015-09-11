@@ -32,13 +32,13 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
     matrix_->Dim(Dimension::X).SetLabel("DataSets");
-    outfile_->AddSet( matrix_ );
+    outfile_->AddDataSet( matrix_ );
   }
   
   mprintf("    CROSSCORR: Calculating correlation between %zu data sets:\n", input_dsets_.size());
   for (Array1D::const_iterator ds = input_dsets_.begin(); ds != input_dsets_.end(); ++ds)
     mprintf("\t'%s'\n", (*ds)->legend());
-  mprintf("\tOutput set name: %s\n", matrix_->Name().c_str() );
+  mprintf("\tOutput set name: %s\n", matrix_->Meta().Name().c_str() );
   if ( outfile_ != 0 )
     mprintf("\tOutfile name: %s\n", outfile_->DataFilename().full());
 
@@ -56,7 +56,7 @@ Analysis::RetType Analysis_CrossCorr::Analyze() {
     int idx = (int)(ds - input_dsets_.begin() + 1);
     mprintf("\t\t%8i: %s\n", idx, (*ds)->legend());
     //Xlabels_ += (dsets_[i]->Legend() + ",");
-    Ylabels += (integerToString(idx) + ":" + (*ds)->Legend() + ",");
+    Ylabels += (integerToString(idx) + ":" + (*ds)->Meta().Legend() + ",");
   }
   Ylabels += "\"";
   for (Array1D::const_iterator ds0 = input_dsets_.begin(); ds0 != input_dsets_.end(); ++ds0) {
