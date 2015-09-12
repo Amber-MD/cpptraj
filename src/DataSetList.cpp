@@ -563,6 +563,8 @@ void DataSetList::ListReferenceFrames() const {
   }
 }
 
+const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
+
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
   DataSet* top = 0;
   std::string topname = argIn.GetStringKey("parm");
@@ -584,4 +586,19 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
   }
   if (top == 0) return 0;
   return ((DataSet_Topology*)top)->TopPtr();
+}
+
+void DataSetList::ListTopologies() const {
+  if (!TopList_.empty()) {
+    mprintf("\nPARAMETER FILES:\n");
+    for (DataListType::const_iterator ds = TopList_.begin(); ds != TopList_.end(); ++ds)
+    {
+      Topology const& top = ((DataSet_Topology*)*ds)->Top();
+      mprintf(" %i:", top.Pindex());
+      top.Brief(0);
+      if (top.Nframes() > 0)
+        mprintf(", %i frames", top.Nframes());
+      mprintf("\n");
+    }
+  }
 }

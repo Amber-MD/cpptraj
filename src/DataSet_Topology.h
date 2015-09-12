@@ -20,6 +20,7 @@ class DataSet_Topology : public DataSet {
     int StripTop( std::string const& );
     void SetPindex(int p) { top_.SetPindex( p ); }
     Topology* TopPtr() { return &top_; } // FIXME make const?
+    Topology const& Top() const { return top_; }
   private:
     Topology top_;
 };
