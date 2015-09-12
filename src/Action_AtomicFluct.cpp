@@ -24,7 +24,7 @@ void Action_AtomicFluct::Help() {
 }
 
 // Action_AtomicFluct::Init()
-Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get frame # keywords
   if (InitFrameCounter(actionArgs)) return Action::ERR;

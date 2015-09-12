@@ -10,7 +10,7 @@ class Action_AreaPerMol: public Action {
   private:
     enum AreaType { XY, XZ, YZ };
 
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

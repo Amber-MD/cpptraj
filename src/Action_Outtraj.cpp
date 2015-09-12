@@ -9,7 +9,7 @@ void Action_Outtraj::Help() {
 }
 
 // Action_Outtraj::Init()
-Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Set up output traj
   outtraj_.SetDebug(debugIn);
@@ -19,7 +19,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     Help();
     return Action::ERR;
   }
-  associatedParm_ = PFL->GetParm(actionArgs);
+  associatedParm_ = DSL->GetTopology(actionArgs);
   if (associatedParm_ == 0) {
     mprinterr("Error: Could not get associated topology for %s\n",trajfilename.c_str());
     return Action::ERR;

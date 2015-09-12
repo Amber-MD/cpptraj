@@ -45,7 +45,7 @@ void Action_DihedralScan::Help() {
 }
 
 // Action_DihedralScan::Init()
-Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: DIHEDRALSCAN currently cannot be used in ensemble mode.\n");
@@ -80,7 +80,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     outfilename_ = actionArgs.GetStringKey("outtraj");
     if (!outfilename_.empty()) {
       outfmt = TrajectoryFile::GetFormatFromArg( actionArgs );
-      outtop = PFL->GetParm( actionArgs );
+      outtop = DSL->GetTopology( actionArgs );
       if (outtop == 0) {
         mprinterr("Error: dihedralscan: No topology for output traj.\n");
         return Action::ERR;

@@ -37,7 +37,7 @@ void Action_Pairwise::Help() {
 const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
 // Action_Pairwise::Init()
-Action::RetType Action_Pairwise::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Pairwise::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   DataFile* dataout = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

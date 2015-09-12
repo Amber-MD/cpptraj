@@ -58,7 +58,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 }
 
 // Action_ClusterDihedral::Init()
-Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // # of phi and psi bins

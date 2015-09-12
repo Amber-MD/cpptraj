@@ -28,7 +28,7 @@ void Action_PairDist::Help()
 }
 
 // Action_PairDist::init()
-Action::RetType Action_PairDist::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_PairDist::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   InitImaging(true);
 

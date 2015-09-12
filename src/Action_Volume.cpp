@@ -12,7 +12,7 @@ void Action_Volume::Help() {
 }
 
 // Action_Volume::Init()
-Action::RetType Action_Volume::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Volume::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   image_.InitImaging( true );
   // Get keywords

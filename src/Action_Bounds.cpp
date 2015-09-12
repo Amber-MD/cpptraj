@@ -20,7 +20,7 @@ void Action_Bounds::Help() {
 }
 
 // Action_Bounds::Init()
-Action::RetType Action_Bounds::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Bounds::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Bounds",
                                  DataFileList::TEXT, true);

@@ -45,7 +45,7 @@ void Action_Spam::Help() {
 }
 
 // Action_Spam::init()
-Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Spam::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);

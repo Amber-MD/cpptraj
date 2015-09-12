@@ -29,7 +29,7 @@ Action_Strip::~Action_Strip() {
 }
 
 // Action_Strip::Init()
-Action::RetType Action_Strip::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Strip::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");

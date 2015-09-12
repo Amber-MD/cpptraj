@@ -11,7 +11,7 @@ void Action_CheckChirality::Help() {
 }
 
 // Action_CheckChirality::Init()
-Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   //outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

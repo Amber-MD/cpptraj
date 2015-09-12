@@ -54,7 +54,7 @@ void Action_MakeStructure::Help() {
 }
 
 // Action_MakeStructure::Init()
-Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   secstruct_.clear();

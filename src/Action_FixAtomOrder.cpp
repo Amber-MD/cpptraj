@@ -16,7 +16,7 @@ void Action_FixAtomOrder::Help() {
 }
 
 // Action_FixAtomOrder::init()
-Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");

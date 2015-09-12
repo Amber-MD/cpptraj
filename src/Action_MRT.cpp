@@ -23,7 +23,7 @@ void Action_MRT::Help() {
   *    ([solvent <mask> | solute <mask>])
   *    (siteatoms <mask> | onemol <mask> | <sitemask1> ... <sitemaskN>)
   */
-Action::RetType Action_MRT::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MRT::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   useImage_ = !(actionArgs.hasKey("noimage"));
   std::string filename = actionArgs.GetStringKey("out");

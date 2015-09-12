@@ -31,7 +31,7 @@ void Action_Density::Help()
 }
 
 // Action_Density::init()
-Action::RetType Action_Density::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Density::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   InitImaging(true);
 

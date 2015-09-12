@@ -14,7 +14,7 @@ void Action_DistRmsd::Help() {
 
 // Action_DistRmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -23,7 +23,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Da
   bool first = actionArgs.hasKey("first");
   ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  Topology* RefParm = PFL->GetParm( actionArgs );
+  Topology* RefParm = DSL->GetTopology( actionArgs );
   // Get the RMS mask string for target 
   std::string mask0 = actionArgs.GetMaskNext();
   TgtMask_.SetMaskString(mask0);

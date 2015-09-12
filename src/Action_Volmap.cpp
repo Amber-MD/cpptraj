@@ -37,7 +37,7 @@ void Action_Volmap::RawHelp() {
 }
 
 // Action_Volmap::Init()
-Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Volmap::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();

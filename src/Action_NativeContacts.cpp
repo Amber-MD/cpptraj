@@ -219,7 +219,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 }
 // -----------------------------------------------------------------------------
 // Action_NativeContacts::Init()
-Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   masterDSL_ = DSL;
   debug_ = debugIn;

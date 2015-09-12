@@ -20,7 +20,7 @@ static const char* ShakeString[] = {
 };
 
 // Action_Temperature::Init()
-Action::RetType Action_Temperature::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Temperature::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
   if (actionArgs.hasKey("frame")) {

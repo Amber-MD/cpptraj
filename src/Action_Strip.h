@@ -10,7 +10,7 @@ class Action_Strip: public Action {
     static void Help();
     ~Action_Strip();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}
@@ -32,7 +32,7 @@ class Action_Unstrip: public Action {
     static void Help();
 
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int)
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int)
       { return Action::OK; }
     Action::RetType Setup(Topology*, Topology**)   { return Action::USEORIGINALFRAME; }
     Action::RetType DoAction(int, Frame*, Frame**) { return Action::USEORIGINALFRAME; }

@@ -36,7 +36,7 @@ Action_Image::~Action_Image() {
 }
 
 // Action_Image::Init()
-Action::RetType Action_Image::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Image::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords

@@ -27,7 +27,7 @@ void Action_Grid::Help() {
 }
 
 // Action_Grid::Init()
-Action::RetType Action_Grid::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   nframes_ = 0;
   // Get output filename

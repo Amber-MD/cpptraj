@@ -61,7 +61,7 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 }
 
 // Action_Vector::Init()
-Action::RetType Action_Vector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Vector::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   DataFile* df = 0;
   std::string filename = actionArgs.GetStringKey("out");
