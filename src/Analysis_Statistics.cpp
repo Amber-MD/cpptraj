@@ -21,8 +21,7 @@ void Analysis_Statistics::Help() {
 }
 
 // Analysis_Statistics::Setup()
-Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords.

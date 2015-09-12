@@ -21,7 +21,7 @@ void Analysis_KDE::Help() {
           "  Histogram 1D data set using a kernel density estimator.\n");
 }
 
-Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histname,
+Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string const& histname,
                                        int setidx, std::string const& outfilenameIn,
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
@@ -68,8 +68,7 @@ Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histn
 }
 
 // Analysis_KDE::Setup()
-Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   Dimension Xdim;
   if (analyzeArgs.Contains("min"))

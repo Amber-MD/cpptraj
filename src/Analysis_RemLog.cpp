@@ -29,8 +29,7 @@ void Analysis_RemLog::Help() {
 }
 
 // Analysis_RemLog::Setup()
-Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Get remlog dataset
   std::string remlogName = analyzeArgs.GetStringNext();
@@ -170,7 +169,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
-    if (Lifetime.Setup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
+    if (Lifetime.ExternalSetup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
       mprinterr("Error: Could not set up remlog lifetime analysis.\n");
       return Analysis::ERR;
     }

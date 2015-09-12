@@ -34,8 +34,7 @@ const char* Analysis_Rms2d::ModeStrings_[] = {
 };
 
 // Analysis_Rms2d::Setup()
-Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
@@ -61,7 +60,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   DataFile* rmsdFile = DFLin->AddDataFile(outfilename, analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
-    RefParm_ = PFLin->GetParm(analyzeArgs);
+    RefParm_ = datasetlist->GetTopology(analyzeArgs); // TODO Use coords set
     useReferenceTraj_ = true;
   } else
     useReferenceTraj_ = false;

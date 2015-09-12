@@ -7,7 +7,7 @@ class Analysis_Regression : public Analysis {
     Analysis_Regression();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Regression(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;

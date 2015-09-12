@@ -10,8 +10,7 @@ void Analysis_LowestCurve::Help() {
 }
 
 // Analysis_LowestCurve::Setup()
-Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   points_ = analyzeArgs.getKeyInt("points", -1);

@@ -12,8 +12,7 @@ void Analysis_RunningAvg::Help() {
 }
 
 // Analysis_RunningAvg::Setup()
-Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, 
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,  DataFileList* DFLin, int debugIn)
 {
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   std::string setname = analyzeArgs.GetStringKey("name");

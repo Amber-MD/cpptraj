@@ -9,8 +9,7 @@ void Analysis_Average::Help() {
 }
 
 // Analysis_Average::Setup()
-Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   calcAvgOverSets_ = analyzeArgs.hasKey("oversets");
   writeHeader_ = !analyzeArgs.hasKey("noheader");

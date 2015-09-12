@@ -8,8 +8,7 @@ void Analysis_State::Help() {
           "  will be assigned state <#>.\n");
 }
 
-Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   masterDSL_ = datasetlist;

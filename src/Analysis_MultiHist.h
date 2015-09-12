@@ -8,7 +8,7 @@ class Analysis_MultiHist : public Analysis {
     ~Analysis_MultiHist();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_MultiHist(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     typedef std::vector<Analysis*> Harray; // Use ptrs, no copy construct defined

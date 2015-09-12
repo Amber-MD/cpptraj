@@ -19,8 +19,7 @@ void Analysis_VectorMath::Help() {
 }
 
 // Analysis_VectorMath::Setup()
-Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   // Get Vectors
   vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( analyzeArgs.GetStringKey("vec1"),

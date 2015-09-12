@@ -15,8 +15,7 @@ void Analysis_AutoCorr::Help() {
           "  Calculate autocorrelation functions for selected data set(s)\n");
 }
 
-Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   const char* calctype;
 

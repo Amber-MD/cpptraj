@@ -29,8 +29,7 @@ void Analysis_RmsAvgCorr::Help() {
           "  <crd set> can be created with the 'createcrd' command.\n", DataSetList::RefArgs);
 }
 
-Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");

@@ -24,8 +24,7 @@ static inline bool check_type(DataSet* ds, int n_ds) {
   return false;
 }
 
-Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Keywords
   ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds1") );
