@@ -76,8 +76,10 @@ void DataSetList::Push_Back(DataSet* ds) {
   // If this is a REF data set it also goes in RefList_.
   if (ds->Type() == DataSet::REF_FRAME)
     RefList_.push_back( ds );
-  else if (ds->Type() == DataSet::TOPOLOGY)
+  else if (ds->Type() == DataSet::TOPOLOGY) {
+    ((DataSet_Topology*)ds)->SetPindex( TopList_.size() );
     TopList_.push_back( ds );
+  }
   DataList_.push_back( ds );
 }
 
@@ -123,6 +125,9 @@ DataSet* DataSetList::EraseSet( DataSet* dsIn, bool freeMemory ) {
             TopList_.erase( top );
             break;
           }
+        // Reset P indices so they are unique.
+        for (DataListType::iterator top = TopList_.begin(); top != TopList_.end(); ++top)
+          ((DataSet_Topology*)*top)->SetPindex( top - TopList_.begin() );
       }
       if (!hasCopies_ && freeMemory) delete *pos;
       DataList_.erase( pos );
@@ -556,4 +561,27 @@ void DataSetList::ListReferenceFrames() const {
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
       mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
   }
+}
+
+Topology* DataSetList::GetTopology(ArgList& argIn) const {
+  DataSet* top = 0;
+  std::string topname = argIn.GetStringKey("parm");
+  if (!topname.empty()) {
+    top = FindSetOfType( topname, DataSet::TOPOLOGY );
+    if ( top == 0 )
+      mprinterr("Error: Topology '%s' not found.\n", topname.c_str());
+  } else {
+    int topindex = argIn.getKeyInt("parmindex", -1);
+    if (topindex > -1 && topindex < (int)TopList_.size())
+      top = TopList_[topindex];
+    if (topindex != -1 && top == 0)
+      mprinterr("Error: Topology index %i not found.\n", topindex);
+  }
+  if (top == 0) {
+    // By default return first parm if nothing else specified.
+    if (!TopList_.empty())
+      top = TopList_.front();
+  }
+  if (top == 0) return 0;
+  return ((DataSet_Topology*)top)->TopPtr();
 }

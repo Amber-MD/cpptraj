@@ -18,6 +18,8 @@ class DataSet_Topology : public DataSet {
     // -------------------------------------------
     int LoadTopFromFile(ArgList const&, int);
     int StripTop( std::string const& );
+    void SetPindex(int p) { top_.SetPindex( p ); }
+    Topology* TopPtr() { return &top_; } // FIXME make const?
   private:
     Topology top_;
 };

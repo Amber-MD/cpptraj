@@ -104,6 +104,8 @@ class DataSetList {
     ReferenceFrame GetReferenceFrame(ArgList&) const;
     /// List all reference frames.
     void ListReferenceFrames() const;
+    // Get topology from args
+    Topology* GetTopology(ArgList&) const;
   private:
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
