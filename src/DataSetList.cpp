@@ -73,12 +73,14 @@ void DataSetList::Clear() {
 } 
 
 void DataSetList::Push_Back(DataSet* ds) {
-  // If this is a REF data set it also goes in RefList_.
-  if (ds->Type() == DataSet::REF_FRAME)
-    RefList_.push_back( ds );
-  else if (ds->Type() == DataSet::TOPOLOGY) {
-    ((DataSet_Topology*)ds)->SetPindex( TopList_.size() );
-    TopList_.push_back( ds );
+  if (!hasCopies_) {
+    // If this is a REF data set it also goes in RefList_.
+    if (ds->Type() == DataSet::REF_FRAME)
+      RefList_.push_back( ds );
+    else if (ds->Type() == DataSet::TOPOLOGY) {
+      ((DataSet_Topology*)ds)->SetPindex( TopList_.size() );
+      TopList_.push_back( ds );
+    }
   }
   DataList_.push_back( ds );
 }
