@@ -213,7 +213,7 @@ class Topology {
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
-    int pindex_;            ///< Internal index used in TopologyList
+    int pindex_;            ///< Internal index used to ID Topology 
     int nframes_;           ///< Number of 'trajin' frames associated with topology.
     int n_extra_pts_;       ///< Number of extra points.
     int n_atom_types_;      ///< Number of unique atom types.

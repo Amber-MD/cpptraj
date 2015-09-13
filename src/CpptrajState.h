@@ -31,6 +31,7 @@ class CpptrajState {
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
     int AddTopology( std::string const&, ArgList const& );
+    int AddTopology( Topology const&, std::string const& );
     inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );

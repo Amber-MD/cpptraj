@@ -106,8 +106,10 @@ class DataSetList {
     void ListReferenceFrames() const;
     /// topology arg help text
     static const char* TopArgs;
-    // Get topology from args
+    /// Get topology from args
     Topology* GetTopology(ArgList&) const;
+    /// Get topology from args; allow index specified without 'parmindex'
+    Topology* GetTopByIndex(ArgList&) const;
     /// List all topologies
     void ListTopologies() const;
   private:

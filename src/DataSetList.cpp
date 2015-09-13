@@ -566,6 +566,10 @@ void DataSetList::ListReferenceFrames() const {
 const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
+  if (TopList_.empty()) {
+    mprinterr("Error: No topologies loaded.\n");
+    return 0;
+  }
   DataSet* top = 0;
   std::string topname = argIn.GetStringKey("parm");
   if (!topname.empty()) {
@@ -579,13 +583,27 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
     if (topindex != -1 && top == 0)
       mprinterr("Error: Topology index %i not found.\n", topindex);
   }
-  if (top == 0) {
+  if (top == 0)
     // By default return first parm if nothing else specified.
-    if (!TopList_.empty())
-      top = TopList_.front();
-  }
-  if (top == 0) return 0;
+    top = TopList_.front();
+  if (top == 0) return 0; // Sanity check
   return ((DataSet_Topology*)top)->TopPtr();
+}
+
+Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
+  if (TopList_.empty()) {
+    mprinterr("Error: No topologies loaded.\n");
+    return 0;
+  }
+  Topology* top = GetTopology( argIn );
+  if (top == 0) {
+    int topindex = argIn.getNextInteger(-1);
+    if (topindex > -1 && topindex < (int)TopList_.size())
+      top = ((DataSet_Topology*)TopList_[topindex])->TopPtr();
+  }
+  if (top == 0)
+    mprinterr("Error: Could not find specified topology.\n");
+  return top;
 }
 
 void DataSetList::ListTopologies() const {

@@ -27,7 +27,7 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( std::string const& fname ) {
   ArgList blank;
-  if ( trajinList_.AddTrajin( fname, DSL.GetTopology(blank), blank ) ) return 1;
+  if ( trajinList_.AddTrajin( fname, DSL_.GetTopology(blank), blank ) ) return 1;
   return 0;
 }
 
@@ -808,21 +808,34 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
   std::string tag = argIn.getNextTag();
   for (File::NameArray::const_iterator fname = fnames.begin(); fname != fnames.end(); ++fname)
   {
-    // Create Topology DataSet
-    DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY,
-                                                          MetaData(*fname, tag, -1));
-    if (ds == 0) {
-      if (exitOnError_) return 1;
-    } else {
-      if (ds->LoadTopFromFile(argIn, debug_)) {
+    MetaData md(*fname, tag, -1);
+    DataSet* set = DSL_.CheckForSet( md );
+    if (set != 0)
+      mprintf("Warning: Set '%s' already present.\n", set->legend());
+    else {
+      // Create Topology DataSet
+      DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, md);
+      if (ds == 0) { 
         if (exitOnError_) return 1;
-      }
-      // If a mask expression was specified, strip to match the expression.
-      if (!maskexpr.empty()) {
-        if (ds->StripTop( maskexpr )) return 1;
+      } else {
+        if (ds->LoadTopFromFile(argIn, debug_)) {
+          if (exitOnError_) return 1;
+        }
+        // If a mask expression was specified, strip to match the expression.
+        if (!maskexpr.empty()) {
+          if (ds->StripTop( maskexpr )) return 1;
+        }
       }
     }
     // TODO: Set active top?
-  } 
+  }
+  return 0;
+}
+
+int CpptrajState::AddTopology( Topology const& top, std::string const& parmname ) {
+  
+  DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, parmname);
+  if (ds == 0) return 1;
+  ds->SetTop( top );
   return 0;
 }
