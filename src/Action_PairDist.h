@@ -30,9 +30,8 @@ class Action_PairDist : public Action, ImagedAction {
 
   CpptrajFile* output_;
 
-  DataSet *dist_;  /// Distance
-  DataSet *Pr_;    /// P(r)
-  DataSet *std_;   /// std
+  DataSet *Pr_;    /// distance vs P(r)
+  DataSet *std_;   /// distance vs std
 
   AtomMask mask1_;
   AtomMask mask2_;

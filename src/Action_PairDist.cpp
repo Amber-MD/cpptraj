@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
-#include "DataSet_double.h"
+#include "DataSet_Mesh.h"
 
 
 /** Calculate pair distribution function P(r) between two masks.
@@ -70,9 +70,8 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, TopologyList* PFL, Da
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
 
-  dist_ = DSL->AddSet(DataSet::DOUBLE, "", "distance");
-  Pr_ = DSL->AddSet(DataSet::DOUBLE, "", "Pr");
-  std_ = DSL->AddSet(DataSet::DOUBLE, "", "std");
+  Pr_ = DSL->AddSet(DataSet::XYMESH, "", "Pr");
+  std_ = DSL->AddSet(DataSet::XYMESH, "", "std");
 
   return Action::OK;
 }
@@ -192,9 +191,8 @@ void Action_PairDist::Print()
     if (Pr > 0.0) {
       dist = ((double) i + 0.5) * delta_;
       sd = sqrt(histogram_[i].variance() );
-      ((DataSet_double*) dist_)->AddElement(dist);
-      ((DataSet_double*) Pr_)->AddElement(Pr);
-      ((DataSet_double*) std_)->AddElement(sd);
+      ((DataSet_Mesh*) Pr_)->AddXY(dist, Pr);
+      ((DataSet_Mesh*) std_)->AddXY(dist, sd);
       
       output_->Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
     }
