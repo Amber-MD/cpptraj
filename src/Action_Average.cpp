@@ -146,7 +146,7 @@ void Action_Average::Print() {
   double d_Nframes = (double) Nframes_;
   AvgFrame_->Divide(d_Nframes);
 
-  mprintf("    AVERAGE:");
+  mprintf("    AVERAGE: %i frames,", Nframes_);
   if (crdset_ == 0) {
     Trajout_Single outfile;
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
@@ -161,6 +161,7 @@ void Action_Average::Print() {
     outfile.WriteSingle(0, *AvgFrame_);
     outfile.EndTraj();
   } else {
+    mprintf(" COORDS set '%s'\n", crdset_->legend());
     DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
     ref.SetTopology( AvgParm_ );
     ref.AddFrame( *AvgFrame_ );
