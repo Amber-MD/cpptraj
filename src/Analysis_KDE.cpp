@@ -321,8 +321,10 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #     ifdef _OPENMP
       } // End first parallel block
 #     endif
-      normP = 1.0 / normP;
-      normQ = 1.0 / normQ;
+      if (normP > std::numeric_limits<double>::min())
+        normP = 1.0 / normP;
+      if (normQ > std::numeric_limits<double>::min())
+        normQ = 1.0 / normQ;
       KL = 0.0;
 #     ifdef _OPENMP
 #     pragma omp parallel private(bin, Pnorm, Qnorm, Pzero, Qzero) reduction(+:KL, validPoint)
