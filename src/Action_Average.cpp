@@ -163,7 +163,7 @@ void Action_Average::Print() {
   } else {
     mprintf(" COORDS set '%s'\n", crdset_->legend());
     DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
-    ref.SetTopology( AvgParm_ );
+    ref.CoordsSetup( AvgParm_, CoordinateInfo() ); // Coords Only
     ref.AddFrame( *AvgFrame_ );
   }
 }

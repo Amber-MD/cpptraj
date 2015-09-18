@@ -7,7 +7,13 @@ void DataSet_Coords_REF::Info() const {
   //  mprintf(" %s", tag_.c_str());
   if (!Meta().Fname().empty() && Meta().Name() != Meta().Fname().Full())
     mprintf(" '%s'", Meta().Fname().full());
-  mprintf(" (%i atoms)", Top().Natom());
+  CommonInfo();
+}
+
+int DataSet_Coords_REF::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn) {
+  top_ = topIn;
+  cInfo_ = cInfoIn;
+  return 0;
 }
 
 int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, Topology const& parmIn, int dbg)
@@ -45,7 +51,7 @@ int DataSet_Coords_REF::LoadRefFromFile(FileName const& fname, std::string const
   // Read reference frame
   traj.ReadTrajFrame( traj.Traj().Counter().Start(), frame_ );
   traj.EndTraj();
-  SetTopology( parmIn );
+  CoordsSetup( parmIn, traj.TrajCoordInfo() );
   MetaData md(fname, nameIn, traj.Traj().Counter().Start()+1);
   if (!traj.Title().empty())
     md.SetLegend( traj.Title() );
@@ -58,7 +64,7 @@ int DataSet_Coords_REF::SetRefFromCoords(DataSet_Coords* CRD, std::string const&
   if (CRD==0) return 1;
   frame_ = CRD->AllocateFrame();
   CRD->GetFrame( fnum, frame_ );
-  SetTopology( CRD->Top() );
+  CoordsSetup( CRD->Top(), CRD->CoordsInfo() );
   std::string setname;
   if (nameIn.empty())
     setname = CRD->Meta().Name();
@@ -85,7 +91,7 @@ int DataSet_Coords_REF::StripRef(AtomMask const& stripMask) {
     }
     stripParm->Brief("Stripped ref parm:");
     frame_ = stripFrame;
-    SetTopology( *stripParm );
-    delete stripParm; // OK to free, parm has been copied by SetTopology.
+    CoordsSetup( *stripParm, cInfo_ );
+    delete stripParm; // OK to free, parm has been copied by CoordsSetup.
     return 0;
 }
