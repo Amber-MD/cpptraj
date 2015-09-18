@@ -5,9 +5,8 @@
 /// Interface to COORDS data sets
 class DataSet_Coords : public DataSet {
   public:
-    DataSet_Coords() : numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
-    DataSet_Coords(DataType t) : 
-      DataSet(t, COORDINATES, TextFormat(), 1), numCrd_(0), numBoxCrd_(0), hasVel_(false) {}
+    DataSet_Coords() {}
+    DataSet_Coords(DataType t) : DataSet(t, COORDINATES, TextFormat(), 1) {}
     virtual ~DataSet_Coords() {}
     // -------------------------------------------
     // NOTE: Disabled for all COORDS style DataSets
@@ -22,18 +21,18 @@ class DataSet_Coords : public DataSet {
     virtual void GetFrame(int, Frame&) = 0;
     /// Set given Frame with COORDS at specified position according to mask
     virtual void GetFrame(int, Frame&, AtomMask const&) = 0;
+    /// Set topology and coordinate information associated with this COORDS set.
+    virtual int CoordsSetup(Topology const&, CoordinateInfo const&) = 0;
     // -------------------------------------------
     /// Allocate a Frame that can be used to store COORDS 
     Frame AllocateFrame() const;
-    /// Set main topology that will be associated with frames to/from this COORDS
-    void SetTopology(Topology const&);
-    /// \return topology associated with these COORDS.
+    /// \return Topology associated with these COORDS.
     inline Topology const& Top() const { return top_; }
+    /// \return CoordinateInfo associated with these COORDS
+    inline CoordinateInfo const& CoordsInfo() const { return cInfo_; }
   protected:
-    // TODO: Make unsigned
-    int numCrd_;    ///< Number of coordinates
-    int numBoxCrd_; ///< Number of box coords (0 or 6).
-    bool hasVel_;   ///< Coordinates contain velocities.
-    Topology top_;  ///< Topology corresponding to coordinates.
+    void CommonInfo() const;
+    Topology top_;         ///< Topology corresponding to coordinates.
+    CoordinateInfo cInfo_; ///< Describes coordinate Frame
 };
 #endif

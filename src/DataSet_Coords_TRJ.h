@@ -20,17 +20,17 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     void Add( size_t, const void* )              { return;     }
     int Allocate(SizeArray const&)               { return 0;   }
     // ----- DataSet_Coords functions ------------
-    /// Add a frame.
+    /// DISABLED: Add a frame.
     void AddFrame(Frame const& fIn) { }
-    /// Set CRD at position with frame.
+    /// DISABLED: Set CRD at position with frame.
     void SetCRD(int idx, Frame const& fIn) { }
-    // -------------------------------------------
     /// Get a frame at position.
     void GetFrame(int idx, Frame& fIn);
     /// Get a frame at position corresponding to mask.
     void GetFrame(int idx, Frame& fIn, AtomMask const& mIn);
+    /// Set topology and coordinate information.
+    int CoordsSetup(Topology const&, CoordinateInfo const&);
    private:
-      int SetTrjTopology( Topology const& );
       int UpdateTrjFrames(int);
 
       typedef std::vector<Trajin*> ListType;
