@@ -115,7 +115,7 @@ class Topology {
     void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
     void PrintAngleInfo(std::string const&) const;
-    void PrintDihedralInfo(std::string const&) const;
+    void PrintDihedralInfo(std::string const&, bool) const;
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
     void PrintShortResInfo(std::string const&, int) const;
@@ -155,7 +155,7 @@ class Topology {
   private:
     void PrintBonds(BondArray const&, CharMask const&, int&) const;
     void PrintAngles(AngleArray const&, CharMask const&, int&) const;
-    void PrintDihedrals(DihedralArray const&, CharMask const&, int&) const;
+    void PrintDihedrals(DihedralArray const&, CharMask const&, int&, bool) const;
     void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
