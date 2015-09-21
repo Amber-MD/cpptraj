@@ -30,8 +30,8 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* d
     {
       DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, setname, "Int");
       if (ds == 0) return Analysis::ERR;
-      ds->SetLegend( "Int(" + (*dsIn)->Legend() + ")" );
-      outfile_->AddSet( ds );
+      ds->SetLegend( "Int(" + (*dsIn)->Meta().Legend() + ")" );
+      outfile_->AddDataSet( ds );
       output_dsets_.push_back( (DataSet_Mesh*)ds );
     }
   }

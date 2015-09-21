@@ -4,7 +4,8 @@
 #include <cstdlib> // atoi, atof
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // RemoveTrailingWhitespace, SetIntegerFormatString etc
+#include "StringRoutines.h" // RemoveTrailingWhitespace
+#include "TextFormat.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC
 
 // ---------- Constants and Enumerated types -----------------------------------
@@ -198,7 +199,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 }
 
 // Parm_Amber::ReadParm()
-int Parm_Amber::ReadParm(std::string const& fname, Topology &TopIn ) {
+int Parm_Amber::ReadParm(FileName const& fname, Topology &TopIn ) {
   if (file_.OpenRead( fname )) return 1;
   int err = ReadAmberParm( TopIn );
   file_.CloseFile();
@@ -373,7 +374,7 @@ void Parm_Amber::ArrayFromCharmmImproper(DihedralParmArray const& dpa, Darray& R
   * places. The LEaP order is used here since the ReadAmberParm routine
   * is optimized for that order.
   */
-int Parm_Amber::WriteParm(std::string const& fname, Topology const& parmIn) {
+int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
   ptype_ = NEWPARM;
   // Create arrays of atom info
   std::vector<NameType> names, types, itree;
@@ -1471,11 +1472,10 @@ int Parm_Amber::WriteSetup(AmberParmFlagType fflag, size_t Nelements) {
 // Parm_Amber::WriteInteger()
 int Parm_Amber::WriteInteger(AmberParmFlagType fflag, std::vector<int>const& iarray)
 {
-  std::string FS;
   if (WriteSetup(fflag, iarray.size())) return 0;
   // Set up printf format string
-  FS = SetIntegerFormatString(fwidth_);
-  const char *FORMAT = FS.c_str();
+  TextFormat FS(TextFormat::INTEGER, fwidth_);
+  const char *FORMAT = FS.fmt();
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<int>::const_iterator it = iarray.begin(); it != iarray.end(); it++) {
@@ -1506,12 +1506,13 @@ int Parm_Amber::WriteDouble(AmberParmFlagType fflag, std::vector<double>const& d
 int Parm_Amber::WriteDoubleArray(std::vector<double>const& darray)
 {
   // Set up printf format string
-  std::string FS;
+  TextFormat::FmtType ft;
   if (ftype_ == FDOUBLE)
-    FS = SetDoubleFormatString(fwidth_, fprecision_, 2);
+    ft = TextFormat::SCIENTIFIC;
   else
-    FS = SetDoubleFormatString(fwidth_, fprecision_, 1);
-  const char *FORMAT = FS.c_str();
+    ft = TextFormat::DOUBLE;
+  TextFormat FS(ft, fwidth_, fprecision_);
+  const char *FORMAT = FS.fmt();
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<double>::const_iterator it = darray.begin(); it != darray.end(); it++) {
@@ -1535,11 +1536,10 @@ int Parm_Amber::WriteDoubleArray(std::vector<double>const& darray)
 // Parm_Amber::WriteName()
 int Parm_Amber::WriteName(AmberParmFlagType fflag, std::vector<NameType>const& carray)
 {
-  std::string FS;
   if (WriteSetup(fflag, carray.size())) return 0;
   // Set up printf format string; true == no leading space
-  FS = SetStringFormatString(fwidth_, true);
-  const char *FORMAT = FS.c_str();
+  TextFormat FS( TextFormat::STRING, fwidth_ );
+  const char *FORMAT = FS.fmt();
   char *ptr = buffer_;
   int col = 0;
   for (std::vector<NameType>::const_iterator it = carray.begin(); it != carray.end(); it++) {

@@ -1,8 +1,5 @@
 #include "DataIO.h"
-#include "StringRoutines.h"
 #include "CpptrajStdio.h"
-#include "Constants.h"
-#include "DataSet_Mesh.h"
 
 // DataIO::CheckValidFor()
 bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
@@ -15,30 +12,41 @@ bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
   return false;
 }
 
-// DataIO::SetupCoordFormat()
-std::string DataIO::SetupCoordFormat(size_t maxFrames, Dimension const& dim, 
-                                     int default_width, int default_precision)
-{
-  int col_precision = default_precision;
-  // Determine maximum coordinate.
-  double maxCoord = (dim.Step() * (double)maxFrames) + dim.Min();
-  // Determine character width necessary to hold largest coordinate.
-  int col_width = DigitWidth( (long int)maxCoord );
-  // Check if the precision is enough to support the step size.
-  if (dim.Step() < 1.0) {
-    int prec_exp_width = FloatWidth( dim.Step() );
-    if (prec_exp_width > col_precision)
-      col_precision = prec_exp_width;
+int DataIO::CheckAllDims(DataSetList const& array, unsigned int tgtDim) {
+  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
+  {
+    if ( (*set)->Ndim() != tgtDim ) {
+      mprinterr("Error: Set '%s' dimension is %i, expected only %iD.\n",
+                (*set)->legend(), (*set)->Ndim(), tgtDim);
+      return 1;
+    }
   }
-  // If the width for the column plus the characters needed for precision
-  // (plus 1 for decimal point) would be greated than default_width, increment 
-  // the column width by (precision+1).
-  if (col_precision != 0) {
-    int precision_width = col_width + col_precision + 1;
-    if (precision_width > default_width) col_width = precision_width;
+  return 0;
+}
+
+int DataIO::CheckXDimension(DataSetList const& array) {
+  if (array.empty()) return 0; // FIXME return error?
+  int err = 0;
+  Dimension const& Xdim = static_cast<Dimension const&>(array[0]->Dim(0));
+  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
+  {
+    if ((*set)->Dim(0) != Xdim) {
+      mprinterr("Error: X Dimension of %s != %s\n", (*set)->legend(),
+                array[0]->legend());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", (*set)->legend(),
+                (*set)->Dim(0).Min(), (*set)->Dim(0).Step());
+      mprinterr("Error:  %s: Min=%f Step=%f\n", array[0]->legend(),
+                Xdim.Min(), Xdim.Step());
+      ++err;
+    }
   }
-  // Default width for column is at least default_width.
-  if (col_width < default_width) col_width = default_width;
-  // Set column data format string, left-aligned (no leading space).
-  return SetDoubleFormatString( col_width, col_precision, 0 );
+  return err;
+}
+
+size_t DataIO::DetermineMax(DataSetList const& array) {
+  size_t maxSize = 0L;
+  for (DataSetList::const_iterator set = array.begin(); set != array.end(); ++set)
+    if ( (*set)->Size() > maxSize )
+      maxSize = (*set)->Size();
+  return maxSize;
 }

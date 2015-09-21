@@ -65,7 +65,7 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   if (crdset_ == 0)
     mprintf("\tWriting averaged coords to file '%s'\n",avgfilename_.c_str());
   else
-    mprintf("\tSaving averaged coords to set '%s'\n", crdset_->Name().c_str());
+    mprintf("\tSaving averaged coords to set '%s'\n", crdset_->legend());
 
   Nframes_ = 0;
 
@@ -146,7 +146,7 @@ void Action_Average::Print() {
   double d_Nframes = (double) Nframes_;
   AvgFrame_->Divide(d_Nframes);
 
-  mprintf("    AVERAGE:");
+  mprintf("    AVERAGE: %i frames,", Nframes_);
   if (crdset_ == 0) {
     Trajout_Single outfile;
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
@@ -161,8 +161,9 @@ void Action_Average::Print() {
     outfile.WriteSingle(0, *AvgFrame_);
     outfile.EndTraj();
   } else {
+    mprintf(" COORDS set '%s'\n", crdset_->legend());
     DataSet_Coords_REF& ref = static_cast<DataSet_Coords_REF&>( *crdset_ );
-    ref.SetTopology( AvgParm_ );
+    ref.CoordsSetup( AvgParm_, CoordinateInfo() ); // Coords Only
     ref.AddFrame( *AvgFrame_ );
   }
 }

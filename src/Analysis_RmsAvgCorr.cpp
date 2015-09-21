@@ -9,6 +9,7 @@
 
 // CONSTRUCTOR
 Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
+  separate_(0),
   coords_(0),
   Ct_(0),
   Csd_(0),
@@ -48,8 +49,9 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
     return Analysis::ERR;
   }
+  separate_ = 0;
 # else
-  separateName_ = analyzeArgs.GetStringKey("output");
+  separate_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("output"), "RMS avg corr." );
 # endif
   useMass_ = analyzeArgs.hasKey("mass");
   maxwindow_ = analyzeArgs.getKeyInt("stop",-1);
@@ -89,11 +91,11 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Set up dataset to hold correlation 
   Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
-  Csd_ = datasetlist->AddSetAspect(DataSet::DOUBLE, Ct_->Name(), "SD");
+  Csd_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "SD"));
   if (Csd_==0) return Analysis::ERR;
   if (outfile != 0) {
-    outfile->AddSet( Ct_ );
-    outfile->AddSet( Csd_ );
+    outfile->AddDataSet( Ct_ );
+    outfile->AddDataSet( Csd_ );
   }
 
   mprintf("    RMSAVGCORR: COORDS set [%s], mask [%s]", coords_->legend(),
@@ -107,8 +109,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   if (maxwindow_!=-1) mprintf("\tMax window size %i\n",maxwindow_);
   if (lagOffset_ > 1) mprintf("\tWindow size offset %i\n", lagOffset_);
   if (outfile != 0) mprintf("\tOutput to %s\n",outfile->DataFilename().base());
-  if (!separateName_.empty())
-    mprintf("\tSeparate datafile will be written to %s\n",separateName_.c_str());
+  if (separate_ != 0)
+    mprintf("\tSeparate datafile will be written to %s\n", separate_->Filename().full());
   return Analysis::OK;
 }
 
@@ -119,19 +121,10 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
 Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   double avg, stdev, rmsd, d_Nwindow;
   int window, frame, WindowMax, widx, widx_end;
-  CpptrajFile separateDatafile;
   int frameThreshold, subtractWindow, maxFrame;
   bool first;
 
   mprintf("    RMSAVGCORR:\n");
-  // If 'output' specified open up separate datafile that will be written
-  // to as correlation is calculated; useful for very long runs.
-  if (!separateName_.empty()) {
-    if (separateDatafile.OpenWrite(separateName_)) {
-      mprinterr("Error: Could not set up separate data file %s\n",separateName_.c_str());
-      return Analysis::ERR;
-    }
-  }
   // Set up mask
   if (coords_->Top().SetupIntegerMask( tgtMask_ )) return Analysis::ERR;
   tgtMask_.MaskInfo();
@@ -207,8 +200,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     stdev = 0.0;
   Ct_->Add(0, &avg);
   Csd_->Add(0, &stdev);
-  if (!separateName_.empty())
-    separateDatafile.Printf("%8i %f %f\n",1,avg,stdev);
+  if (separate_ != 0)
+    separate_->Printf("%8i %f %f\n",1,avg,stdev);
 
   // Create an array with window sizes to be calcd.
   std::vector<int> w_sizes;
@@ -306,8 +299,8 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
 #   else 
     Ct_->Add(widx+1, &avg);
     Csd_->Add(widx+1, &stdev);
-    if (!separateName_.empty())
-      separateDatafile.Printf("%8i %f %f\n",window, avg, stdev);
+    if (separate_ != 0)
+      separate_->Printf("%8i %f %f\n",window, avg, stdev);
 #   endif
   } // END LOOP OVER WINDOWS
 #ifdef _OPENMP
@@ -321,7 +314,5 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
   delete[] Csd_openmp;
 #endif
   progress.Finish();
-  if (!separateName_.empty())
-    separateDatafile.CloseFile();
   return Analysis::OK;
 }

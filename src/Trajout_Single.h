@@ -19,7 +19,7 @@ class Trajout_Single {
     void SetDebug(int d) { debug_ = d; }
     // ----- Inherited functions -----------------
     /// Prepare trajectory for writing to the given format, but no Topology setup.
-    int InitTrajWrite(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
+    int InitTrajWrite(FileName const&, ArgList const&, TrajectoryFile::TrajFormatType);
     /// Peform Topology-related setup for trajectory and open. TODO const&
     int SetupTrajWrite(Topology*, CoordinateInfo const&, int);
     /// Close output trajectory.
@@ -31,20 +31,20 @@ class Trajout_Single {
     // -------------------------------------------
     OutputTrajCommon Traj() const { return traj_; }
     /// Init and setup/open traj.
-    int PrepareTrajWrite(std::string const&, ArgList const&, Topology*,
+    int PrepareTrajWrite(FileName const&, ArgList const&, Topology*,
                          CoordinateInfo const&, int, TrajectoryFile::TrajFormatType);
     /// Init and setup/open traj for writing to STDOUT (e.g. ambpdb mode)
     int PrepareStdoutTrajWrite(ArgList const&, Topology*, CoordinateInfo const&, int,
                                TrajectoryFile::TrajFormatType);
     /// Init traj; if given, append ensemble number to name
-    int InitEnsembleTrajWrite(std::string const&, ArgList const&,
+    int InitEnsembleTrajWrite(FileName const&, ArgList const&,
                               TrajectoryFile::TrajFormatType, int);
     /// Init and setup/open traj; if given, append ensemble number to name
-    int PrepareEnsembleTrajWrite(std::string const&, ArgList const&, Topology*,
+    int PrepareEnsembleTrajWrite(FileName const&, ArgList const&, Topology*,
                                  CoordinateInfo const&, int,
                                  TrajectoryFile::TrajFormatType, int);
   private:
-    int InitTrajout(std::string const&, ArgList const&, TrajectoryFile::TrajFormatType);
+    int InitTrajout(FileName const&, ArgList const&, TrajectoryFile::TrajFormatType);
 
     OutputTrajCommon traj_;
     TrajectoryIO* trajio_;

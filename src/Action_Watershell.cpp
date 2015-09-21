@@ -68,12 +68,12 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, 
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
     dsname = DSL->GenerateDefaultName("WS");
-  lower_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "lower");
-  upper_ = DSL->AddSetAspect(DataSet::INTEGER, dsname, "upper");
+  lower_ = DSL->AddSet(DataSet::INTEGER, MetaData(dsname, "lower"));
+  upper_ = DSL->AddSet(DataSet::INTEGER, MetaData(dsname, "upper"));
   if (lower_ == 0 || upper_ == 0) return Action::ERR;
   if (outfile != 0) {
-    outfile->AddSet(lower_);
-    outfile->AddSet(upper_);
+    outfile->AddDataSet(lower_);
+    outfile->AddDataSet(upper_);
   }
 # ifdef _OPENMP
   // Determine number of parallel threads

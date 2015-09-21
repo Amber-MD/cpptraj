@@ -378,10 +378,7 @@ double RPNcalc::DoOperation(double d1, double d2, TokenType op_type) {
 }
 
 static inline bool ScalarTimeSeries(DataSet* ds) {
-  return (ds->Type()==DataSet::DOUBLE ||
-          ds->Type()==DataSet::FLOAT ||
-          ds->Type()==DataSet::INTEGER ||
-          ds->Type()==DataSet::XYMESH); // FIXME X values will be lost
+  return (ds->Group()==DataSet::SCALAR_1D); // FIXME MESH X values will be lost
 }
 
 static inline bool IsMatrix(DataSet* ds) {
@@ -471,7 +468,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           return 1;
         }
         // Check if set already exists.
-        DataSet* mainDS = DSL.CheckForSet(tokens_.front().Name(), -1, "", -1);
+        DataSet* mainDS = DSL.CheckForSet(tokens_.front().Name());
         if (mainDS != 0) {
           // Overwriting. TODO Only allow if dimensions match?
           mprintf("Warning: Overwriting existing set '%s'\n", mainDS->legend());
@@ -484,13 +481,12 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           bool outputIsLocal = (LocalList.PopSet( output ) != 0);
           if (!outputIsLocal)
             mprintf("Warning: Data set copy not yet implemented. Renaming set '%s' to '%s'\n",
-                    output->PrintName().c_str(), tokens_.front().Name().c_str());
+                    output->Meta().PrintName().c_str(), tokens_.front().Name().c_str());
           if (debug_>0)
             mprintf("DEBUG: Assigning '%s' to '%s'\n", Dval[0].DS()->legend(),
                     tokens_.front().Name().c_str());
           // Reset DataSet info.
-          output->SetLegend("");
-          if (output->SetupSet(tokens_.front().Name(), -1, "", -1)) return 1;
+          output->SetMeta( tokens_.front().Name() );
           if (outputIsLocal) {
             if (DSL.AddSet( output )) return 1;
           } 
@@ -543,7 +539,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           }
         } else {
           mprinterr("Error: Operation '%s' not yet permitted for set '%s' type.\n",
-                    T->Description(), ds1->PrintName().c_str());
+                    T->Description(), ds1->Meta().PrintName().c_str());
           return 1;
         }
       // -----------------------------------------
@@ -567,19 +563,19 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             }
             if (ScalarTimeSeries(ds1) && ScalarTimeSeries(ds2))
             {
-              tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+              tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
               DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-              D0.Allocate1D( ds1->Size() );
+              D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
               DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
               DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
               for (unsigned int n = 0; n != D1.Size(); n++)
                 D0.AddElement( DoOperation(D1.Dval(n), D2.Dval(n), T->Type()) );
-            } 
+            }
             else if (ds1->Type() == DataSet::VECTOR && ds2->Type() == DataSet::VECTOR)
             {
-              tempDS = LocalList.AddSetIdx(DataSet::VECTOR, "TEMP", T-tokens_.begin());
+              tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
               DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
-              V0.Allocate1D( ds1->Size() );
+              V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
               DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
               DataSet_Vector const& V2 = static_cast<DataSet_Vector const&>(*ds2);
               // TODO: Worry about origin?
@@ -615,7 +611,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                           M1.legend(), M2.legend());
                 return 1;
               }
-              tempDS = LocalList.AddSetIdx(DataSet::MATRIX_DBL, "TEMP", T-tokens_.begin());
+              tempDS = LocalList.AddSet(DataSet::MATRIX_DBL, MetaData("TEMP", T-tokens_.begin()));
               DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
               switch (M1.MatrixKind()) {
                 case DataSet_2D::FULL : M0.Allocate2D(M1.Nrows(), M1.Ncols()); break;
@@ -643,7 +639,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               if (G1.GridOrigin() != G2.GridOrigin())
                 mprintf("Warning: Grid origins do not match. Using origin %g %g %g\n",
                         G1.GridOrigin()[0], G1.GridOrigin()[1], G1.GridOrigin()[2]);
-              tempDS = LocalList.AddSetIdx(DataSet::GRID_FLT, "TEMP", T-tokens_.begin());
+              tempDS = LocalList.AddSet(DataSet::GRID_FLT, MetaData("TEMP", T-tokens_.begin()));
               DataSet_GridFlt& G0 = static_cast<DataSet_GridFlt&>( *tempDS );
               G0.Allocate_N_O_Box(G1.NX(), G1.NY(), G1.NZ(), G1.GridOrigin(), Box(G1.Ucell()));
               G1.GridInfo();
@@ -666,9 +662,9 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                         ds2->legend(), T-tokens_.begin());
               if (ScalarTimeSeries( ds2 ))
               {
-                tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate1D( ds2->Size() );
+                D0.Allocate( DataSet::SizeArray(1,ds2->Size()) );
                 DataSet_1D const& D2 = static_cast<DataSet_1D const&>( *ds2 );
                 for (unsigned int n = 0; n != D2.Size(); n++)
                   D0.AddElement( DoOperation(D2.Dval(n), d1, T->Type()) );
@@ -686,18 +682,18 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
                         d2, T-tokens_.begin());
               if (ScalarTimeSeries( ds1 ))
               {
-                tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+                tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_double& D0 = static_cast<DataSet_double&>( *tempDS );
-                D0.Allocate1D( ds1->Size() );
+                D0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
                 DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
                 for (unsigned int n = 0; n != D1.Size(); n++)
                   D0.AddElement( DoOperation(d2, D1.Dval(n), T->Type()) );
               }
               else if ( ds1->Type() == DataSet::VECTOR )
               {
-                tempDS = LocalList.AddSetIdx(DataSet::VECTOR, "TEMP", T-tokens_.begin());
+                tempDS = LocalList.AddSet(DataSet::VECTOR, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_Vector& V0 = static_cast<DataSet_Vector&>(*tempDS);
-                V0.Allocate1D( ds1->Size() );
+                V0.Allocate( DataSet::SizeArray(1, ds1->Size()) );
                 DataSet_Vector const& V1 = static_cast<DataSet_Vector const&>(*ds1);
                 for (unsigned int n = 0; n != V1.Size(); n++) {
                   switch (T->Type()) {
@@ -717,7 +713,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
               else if ( IsMatrix(ds1) )
               {
                 DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
-                tempDS = LocalList.AddSetIdx(DataSet::MATRIX_DBL, "TEMP", T-tokens_.begin());
+                tempDS = LocalList.AddSet(DataSet::MATRIX_DBL, MetaData("TEMP", T-tokens_.begin()));
                 DataSet_MatrixDbl& M0 = static_cast<DataSet_MatrixDbl&>(*tempDS);
                 switch (M1.MatrixKind()) {
                   case DataSet_2D::FULL : M0.Allocate2D(M1.Nrows(), M1.Ncols()); break;
@@ -740,7 +736,7 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
             mprintf("DEBUG: [%s] '%s' => 'TEMP:%u'\n", T->Description(),
                     ds1->legend(), T-tokens_.begin());
           if (ScalarTimeSeries( ds1 )) {
-            tempDS = LocalList.AddSetIdx(DataSet::DOUBLE, "TEMP", T-tokens_.begin());
+            tempDS = LocalList.AddSet(DataSet::DOUBLE, MetaData("TEMP", T-tokens_.begin()));
             DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
             for (unsigned int n = 0; n != D1.Size(); n++) {
               double dval = DoOperation(D1.Dval(n), 0.0, T->Type());

@@ -291,7 +291,7 @@ Analysis::RetType Analysis_CurveFit::Internal_setup(std::string const& suffixIn,
   if (!suffixIn.empty()) dsoutName.append(suffixIn);
   finalY_ = datasetlist->AddSet(DataSet::XYMESH, dsoutName, "FIT");
   if (finalY_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( finalY_ );
+  if (outfile != 0) outfile->AddDataSet( finalY_ );
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
           dset_->legend(), equation_.c_str());
@@ -407,14 +407,14 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     }
     double xstep = (outXmax_ - outXmin_) / (double)(outXbins_ - 1);
     double xval = outXmin_, yval = 0.0;
-    Yout.Allocate1D( outXbins_ );
+    Yout.Allocate( DataSet::SizeArray(1, outXbins_) );
     for (int bin = 0; bin != outXbins_; bin++, xval += xstep) {
       Calc_.Evaluate( Params_, xval, yval );
       Yout.AddXY( xval, yval );
     }
     Yout.SetDim(Dimension::X, Dimension(outXmin_, xstep, outXbins_));
   } else {
-    Yout.Allocate1D( dset_->Size() );
+    Yout.Allocate( DataSet::SizeArray(1, dset_->Size()) );
     CurveFit::Darray::const_iterator ny = fit.FinalY().begin();
     for (CurveFit::Darray::const_iterator x = Xvals.begin(); x != Xvals.end(); ++x, ++ny)
       Yout.AddXY( *x, *ny );

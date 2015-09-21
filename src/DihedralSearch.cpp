@@ -1,9 +1,8 @@
 #include "DihedralSearch.h"
 #include "CpptrajStdio.h"
 
-const char* DihedralSearch::TypeNames[] = {
-  "phi",  "psi", "chip", "omega", "alpha", "beta", "gamma", "delta", "epsilon",
-  "zeta", "nu1", "nu2",  "chin" };
+const DihedralSearch::DihedralType DihedralSearch::D_FIRST = MetaData::ALPHA;
+const DihedralSearch::DihedralType DihedralSearch::D_END   = MetaData::PUCKER;
 
 /// Token to store pre-defined dihedral types.
 struct DihedralSearch::DIH_TYPE {
@@ -17,27 +16,31 @@ struct DihedralSearch::DIH_TYPE {
 
 /** Recognized dihedral types go here.  */
 const DihedralSearch::DIH_TYPE DihedralSearch::DIH[] = {
-  {-1, PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
-  { 1, PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
-  { 0, CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI:
-  {-2, OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
-  {-1, ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
-  { 0, BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
-  { 0, GAMMA,   "O5'", "C5'", "C4'", "C3'" }, // GAMMA:
-  { 0, DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
-  { 1, EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
-  { 2, ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
-  { 0, NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1:
-  { 0, NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2:
-  { 0, CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine
-  { 0, CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine
-  { 0, NDIHTYPE, 0,     0,     0,     0    }
+  {-1, MetaData::PHI,     "C"  , "N"  , "CA" , "C"   }, // PHI: C0-N1-CA1-C1
+  { 1, MetaData::PSI,     "N"  , "CA" , "C"  , "N"   }, // PSI: N0-CA0-C0-N1
+  { 0, MetaData::CHIP,    "N"  , "CA" , "CB" , "CG"  }, // Protein CHI:
+  {-2, MetaData::OMEGA,   "CA" , "C"  , "N"  , "CA"  }, // OMEGA: CA0-C0-N1-CA1
+  {-1, MetaData::ALPHA,   "O3'", "P"  , "O5'", "C5'" }, // ALPHA: 
+  { 0, MetaData::BETA,    "P"  , "O5'", "C5'", "C4'" }, // BETA:
+  { 0, MetaData::GAMMA,   "O5'", "C5'", "C4'", "C3'" }, // GAMMA:
+  { 0, MetaData::DELTA,   "C5'", "C4'", "C3'", "O3'" }, // DELTA:
+  { 1, MetaData::EPSILON, "C4'", "C3'", "O3'", "P"   }, // EPSILON:
+  { 2, MetaData::ZETA,    "C3'", "O3'", "P"  , "O5'" }, // ZETA:
+  { 0, MetaData::NU1,     "O4'", "C1'", "C2'", "C3'" }, // NU1: Nucleic pucker
+  { 0, MetaData::NU2,     "C1'", "C2'", "C3'", "C4'" }, // NU2: Nucleic pucker
+  { 0, MetaData::CHIN,    "O4'", "C1'", "N9",  "C4"  }, // Nucleic CHI: Purine
+  { 0, MetaData::CHIN,    "O4'", "C1'", "N1",  "C2"  }, // Nucleic CHI: Pyrimidine
+  { 0, MetaData::H1P,     "H1'", "C1'", "N9",  "C4"  }, // Nucleic H1' sugar pucker-base (purine)
+  { 0, MetaData::H1P,     "H1'", "C1'", "N1",  "C2"  }, // Nucleic H1' sugar pucker-base (pyrim.)
+  { 0, MetaData::C2P,     "C2'", "C1'", "N9",  "C4"  }, // Nucleic C2' sugar pucker-base (purine)
+  { 0, MetaData::C2P,     "C2'", "C1'", "N1",  "C2"  }, // Nucleic C2' sugar pucker-base (pyrim.)
+  { 0, MetaData::UNDEFINED,   0,     0,     0,     0 }
 };
 
 // DihedralSearch::ListKnownTypes()
 void DihedralSearch::ListKnownTypes() {
-  for (int i = 0; i < (int)NDIHTYPE; ++i)
-    mprintf(" %s", DihedralSearch::TypeNames[i]);
+  for (int i = (int)D_FIRST; i < (int)D_END; ++i)
+    mprintf(" %s", MetaData::TypeString((DihedralType)i));
   mprintf("\n");
 }
 
@@ -50,16 +53,16 @@ void DihedralSearch::OffsetHelp() {
 
 // DihedralSearch::GetType()
 DihedralSearch::DihedralType DihedralSearch::GetType(std::string const& typeIn) {
-  for (int i = 0; i < (int)NDIHTYPE; ++i)
-    if (typeIn.compare(DihedralSearch::TypeNames[i])==0)
+  for (int i = (int)D_FIRST; i < (int)D_END; ++i)
+    if (typeIn.compare( MetaData::TypeString((DihedralType)i) )==0)
       return (DihedralType)i;
-  return NDIHTYPE;
+  return MetaData::UNDEFINED;
 }
 
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask() : 
-  a0_(-1), a1_(-1), a2_(-1), a3_(-1), res_(-1), type_(NDIHTYPE) {}
+  a0_(-1), a1_(-1), a2_(-1), a3_(-1), res_(-1), type_(MetaData::UNDEFINED) {}
 
 // CONSTRUCTOR - DihedralMask
 DihedralSearch::DihedralMask::DihedralMask(int a0, int a1, int a2, int a3, 
@@ -75,7 +78,7 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
                                              std::string const& name) :
   offset_(off),
   name_(name),
-  type_(NDIHTYPE)
+  type_(MetaData::UNDEFINED)
 {
   aname_[0] = an0;
   aname_[1] = an1;
@@ -86,7 +89,7 @@ DihedralSearch::DihedralToken::DihedralToken(int off,
 // CONSTRUCTOR - Recognized type 
 DihedralSearch::DihedralToken::DihedralToken(DIH_TYPE const& dih) :
   offset_(dih.off),
-  name_(TypeNames[dih.type]),
+  name_(MetaData::TypeString(dih.type)),
   type_(dih.type)
 {
   aname_[0] = dih.an0;
@@ -147,7 +150,7 @@ DihedralSearch::DihedralSearch() {}
 // DihedralSearch::SearchFor()
 /** Search for all types matching typeIn. */
 int DihedralSearch::SearchFor(DihedralType typeIn) {
-  for (DIH_TYPE const* ptr = DIH; ptr->type != NDIHTYPE; ++ptr)
+  for (DIH_TYPE const* ptr = DIH; ptr->type != MetaData::UNDEFINED; ++ptr)
     if (ptr->type == typeIn)
       dihedralTokens_.push_back( DihedralToken( *ptr ));
   return 0;
@@ -156,8 +159,8 @@ int DihedralSearch::SearchFor(DihedralType typeIn) {
 // DihedralSearch::SearchForArgs()
 /** See if ArgList has any recognized dihedral type keywords. */
 void DihedralSearch::SearchForArgs(ArgList& argIn) {
-  for (int i = 0; i < (int)NDIHTYPE; ++i) {
-    if (argIn.hasKey( TypeNames[i] ))
+  for (int i = (int)D_FIRST; i < (int)D_END; ++i) {
+    if (argIn.hasKey( MetaData::TypeString((DihedralType)i) ))
       SearchFor( (DihedralType)i );
   }
 }
@@ -182,7 +185,7 @@ int DihedralSearch::SearchForNewType(int off, std::string const& an0, std::strin
 /** If no dihedrals selected yet, select all. */
 int DihedralSearch::SearchForAll() {
   if (!dihedralTokens_.empty()) return 0;
-  for (int dih=0; dih < (int)NDIHTYPE; dih++)
+  for (int dih = (int)D_FIRST; dih < (int)D_END; ++dih)
     SearchFor((DihedralType)dih);
   return 0;
 }

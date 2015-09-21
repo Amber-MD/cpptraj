@@ -38,13 +38,15 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
     setname = datasetlist->GenerateDefaultName( "autocorr" );
   // Setup output datasets
   int idx = 0;
+  MetaData md( setname );
   for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSetIdx( DataSet::DOUBLE, setname, idx++ );
+    md.SetIdx( idx++ );
+    DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, md );
     if (dsout==0) return Analysis::ERR;
-    dsout->SetLegend( (*DS)->Legend() );
+    dsout->SetLegend( (*DS)->Meta().Legend() );
     outputData_.push_back( dsout );
     // Add set to output file
-    if (outfile != 0) outfile->AddSet( outputData_.back() );
+    if (outfile != 0) outfile->AddDataSet( outputData_.back() );
   }
  
   if (calc_covar_)

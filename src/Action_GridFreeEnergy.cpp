@@ -29,7 +29,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
   grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
   if (grid_ == 0) return Action::ERR;
-  outfile->AddSet( grid_ );
+  outfile->AddDataSet( grid_ );
   //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
 
   // Get mask

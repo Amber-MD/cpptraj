@@ -282,7 +282,7 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
           // TODO: Look for previously set up matching data set
           if (setname_.empty())
             setname_ = masterDSL_->GenerateDefaultName("JC");
-          JC.data_ = masterDSL_->AddSetIdx( DataSet::FLOAT, setname_, setcount_++ );
+          JC.data_ = masterDSL_->AddSet( DataSet::FLOAT, MetaData(setname_, setcount_++) );
           if ( JC.data_ != 0 ) {
             JC.data_->SetLegend( currentParm->TruncResNameNum(JC.residue) + "_" +
                                  (*currentParm)[JC.atom[0]].Name().Truncated() + "-" +
@@ -290,7 +290,7 @@ Action::RetType Action_Jcoupling::Setup(Topology* currentParm, Topology** parmAd
                                  (*currentParm)[JC.atom[2]].Name().Truncated() + "-" +
                                  (*currentParm)[JC.atom[3]].Name().Truncated()  );
             if (outfile_ != 0)
-              outfile_->AddSet( JC.data_ ); 
+              outfile_->AddDataSet( JC.data_ ); 
             JcouplingInfo_.push_back(JC);
           } else {
             mprinterr("Internal Error: Could not set up Jcoupling data set for res %i\n",

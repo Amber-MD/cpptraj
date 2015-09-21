@@ -1,13 +1,26 @@
 language: cpp
 compiler: gcc
-before_install:
-    - sudo apt-get install gfortran
-    - sudo apt-get install libbz2-dev
-    - sudo apt-get install libblas-dev liblapack-dev libarpack2-dev
-    - sudo apt-get install libnetcdf-dev
-    - sudo apt-get install netcdf-bin
+sudo: false
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+      - gfortran
+      - libbz2-dev
+      - libblas-dev
+      - liblapack-dev
+      - libarpack2-dev
+      - libnetcdf-dev
+      - netcdf-bin
+env:
+    - COMPILER=gnu
+    - COMPILER=gnu OPENMP="-openmp" OPT=openmp
+
 install:
-    - ./configure gnu
-    - make install
+    - ./configure $OPENMP $COMPILER
+    - make -j2 install
+      # Hack to get ambpdb installed with OpenMP
+    - make -C src ambpdb && mv src/ambpdb bin/
 script:
     - cd test && make test

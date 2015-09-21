@@ -10,8 +10,8 @@ class Traj_Gro : public TrajectoryIO {
   private:
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*);
-    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool) { return 1;}
+    int setupTrajin(FileName const&, Topology*);
+    int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool) { return 1;}
     int openTrajin();
     void closeTraj() { file_.CloseFile(); }
     int readFrame(int,Frame&);
@@ -29,6 +29,6 @@ class Traj_Gro : public TrajectoryIO {
     int natom_;
     int currentSet_;
     int linesToRead_; ///< For blank reads
-    std::string fname_; ///< File name TODO file_ should save this
+    FileName fname_; ///< File name TODO file_ should save this
 };
 #endif

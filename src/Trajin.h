@@ -6,7 +6,7 @@ class Trajin {
   public:
     Trajin() : debug_(0) {}
     virtual ~Trajin() {}
-    virtual int SetupTrajRead(std::string const&, ArgList&, Topology*) = 0;
+    virtual int SetupTrajRead(FileName const&, ArgList&, Topology*) = 0;
     virtual int ReadTrajFrame(int, Frame&) = 0;
     virtual int BeginTraj() = 0;
     virtual void EndTraj() = 0;

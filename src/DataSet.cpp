@@ -1,289 +1,73 @@
-// DataSet
 #include "DataSet.h"
-#include "StringRoutines.h" // SetStringFormatString etc
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet::DataSet() :
-  data_format_(0),
-  ensembleNum_(-1),
-  idx_(-1),
-  dType_(UNKNOWN_DATA),
-  colwidth_(0),
-  width_(0),
-  precision_(0),
-  leftAlign_(false),
-  scalarmode_(UNKNOWN_MODE),
-  scalartype_(UNDEFINED)
-{ }
+DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC) {}
 
-/// CONSTRUCTOR - Take type, width, precision, and dimension
-DataSet::DataSet(DataType typeIn, int widthIn, int precisionIn, int dimIn) :
-  data_format_(0),
-  ensembleNum_(-1),
-  idx_(-1),
-  dType_(typeIn),
+/// CONSTRUCTOR - Take type, group, width, precision, and dimension
+DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, int dimIn) :
+  format_(fmtIn),
   dim_(dimIn),
-  colwidth_(widthIn),
-  width_(widthIn),
-  precision_(precisionIn),
-  leftAlign_(false),
-  scalarmode_(UNKNOWN_MODE),
-  scalartype_(UNDEFINED)
-{
-  SetDataSetFormat(leftAlign_);
-}
+  dType_(typeIn),
+  dGroup_(groupIn)
+{ }
 
 // COPY CONSTRUCTOR
 DataSet::DataSet(const DataSet& rhs) :
-  data_format_(0),
-  name_(rhs.name_),
-  ensembleNum_(rhs.ensembleNum_),
-  idx_(rhs.idx_),
-  aspect_(rhs.aspect_),
-  legend_(rhs.legend_),
-  dType_(rhs.dType_),
-  dim_(rhs.dim_),
-  colwidth_(rhs.colwidth_),
-  width_(rhs.width_),
-  precision_(rhs.precision_),
-  leftAlign_(rhs.leftAlign_),
   format_(rhs.format_),
-  scalarmode_(rhs.scalarmode_),
-  scalartype_(rhs.scalartype_)
+  dim_(rhs.dim_),
+  dType_(rhs.dType_),
+  dGroup_(rhs.dGroup_),
+  meta_(rhs.meta_)
 {
-  if (!format_.empty())
-    data_format_ = format_.c_str();
+  for (AdataArray::const_iterator a = rhs.associatedData_.begin();
+                                  a != rhs.associatedData_.end(); ++a)
+    associatedData_.push_back( (*a)->Copy() );
 }
 
 // ASSIGNMENT
 DataSet& DataSet::operator=(const DataSet& rhs) {
-  if (this == &rhs) return *this;
-  name_ = rhs.name_;
-  ensembleNum_ = rhs.ensembleNum_;
-  idx_ = rhs.idx_;
-  aspect_ = rhs.aspect_;
-  legend_ = rhs.legend_;
-  dType_ = rhs.dType_;
-  dim_ = rhs.dim_;
-  colwidth_ = rhs.colwidth_;
-  width_ = rhs.width_;
-  precision_ = rhs.precision_;
-  leftAlign_ = rhs.leftAlign_;
-  format_ = rhs.format_;
-  if (!format_.empty()) 
-    data_format_ = format_.c_str();
-  scalarmode_ = rhs.scalarmode_;
-  scalartype_ = rhs.scalartype_;
+  if (this != &rhs) {
+    format_ = rhs.format_;
+    dim_ = rhs.dim_;
+    dType_ = rhs.dType_;
+    dGroup_ = rhs.dGroup_;
+    meta_ = rhs.meta_;
+    associatedData_.clear();
+    for (AdataArray::const_iterator a = rhs.associatedData_.begin();
+                                    a != rhs.associatedData_.end(); ++a)
+      associatedData_.push_back( (*a)->Copy() );
+  }
   return *this;
 }
 
-// DataSet::SetWidth()
-/** Set only DataSet width */
-void DataSet::SetWidth(int widthIn) {
-  width_ = widthIn;
-  SetDataSetFormat( leftAlign_ );
-}
-
-// DataSet::SetPrecision()
-/** Set DataSet width and precision; recalc. output format string.
-  */
-void DataSet::SetPrecision(int widthIn, int precisionIn) {
-  width_ = widthIn;
-  precision_ = precisionIn;
-  SetDataSetFormat( leftAlign_ );
-}
-
-// DataSet::SetupSet()
-/** Set up DataSet name and optionally index and/or aspect. Also create
+/** Set up DataSet name, index and/or aspect etc. Also create
   * default legend if not already set.
-  * \param nameIn The DataSet name; should be unique and not empty.
-  * \param idxIn DataSet index; if no index should be -1.
-  * \param aspectIn DataSet aspect; if no aspect should be empty.
+  * \param In The DataSet meta data 
   */
-int DataSet::SetupSet(std::string const& nameIn, int idxIn, std::string const& aspectIn,
-                      int ensembleNumIn)
-{
+int DataSet::SetMeta(MetaData const& In) {
   // Dataset name
-  if (nameIn.empty()) {
-    mprinterr("Internal Error: DataSet has no name.\n");
+  if (In.Name().empty()) {
+    mprinterr("Internal Error: DataSet has no name.\n"); //FIXME allow?
     return 1;
   }
-  name_ = nameIn;
-  // Set index and aspect if given
-  idx_ = idxIn;
-  aspect_ = aspectIn;
-  ensembleNum_ = ensembleNumIn;
-  // If no legend set yet create a default one. Possible formats are:
-  //  - Name[Aspect]
-  //  - Name:idx
-  //  - Aspect:Idx
-  //  - Name
-  if (legend_.empty()) {
-    if (!aspect_.empty() && idx_ == -1)
-      legend_ = name_ + "[" + aspect_ + "]";
-    else if (aspect_.empty() && idx_ != -1)
-      legend_ = name_ + ":" + integerToString( idx_ );
-    else if (!aspect_.empty() && idx_ != -1)
-      legend_ = aspect_ + ":" + integerToString( idx_ );
-    else
-      legend_ = name_;
-    if (ensembleNum_ != -1)
-      legend_ += ("%" + integerToString( ensembleNum_ ));
-  }
+  meta_ = In;
+  if (meta_.Legend().empty())
+    meta_.SetDefaultLegend();
   return 0;
 }
 
-// DataSet::SetDataSetFormat()
-/** Sets the output format strings for DataSet data and name.
-  * \param leftAlign if true the data and header will be left-aligned,
-  *        otherwise they will be preceded by a space.
-  * \return 0 on success, 1 on error.
-  */
-// TODO: Each data set has their own 
-int DataSet::SetDataSetFormat(bool leftAlignIn) {
-  leftAlign_ = leftAlignIn;
-  // Set data format string.
-  // NOTE: According to C++ std 4.7/4 (int)true == 1
-  colwidth_ = width_ + (int)(!leftAlign_);
-  switch (dType_) {
-    case MODES :
-    case REMLOG:
-    case MATRIX_DBL:
-    case XYMESH   :
-    case TRAJ     :
-    case REF_FRAME:
-    case DOUBLE   : format_ = SetDoubleFormatString(width_, precision_, 0); break;
-    case MATRIX_FLT:
-    case GRID_FLT  :
-    case COORDS : 
-    case FLOAT  : format_ = SetDoubleFormatString(width_, precision_, 1); break;
-    case INTEGER: format_ = SetIntegerFormatString(width_); break;
-    case STRING : format_ = SetStringFormatString(width_, leftAlign_); break;
-    case VECTOR:
-      format_ = SetDoubleFormatString(width_, precision_, 0); 
-      colwidth_ = (width_ + 1) * 6; // Vx Vy Vz Ox Oy Oz
-      break;
-    case MAT3X3:
-      format_ = SetDoubleFormatString(width_, precision_, 0);
-      colwidth_ = (width_ + 1) * 9;
-      break;
-    default:
-      mprinterr("Error: No format string defined for this data type (%s).\n", 
-                PrintName().c_str());
-      return 1;
-  }
-  // If we are not left-aligning prepend a space to the format string.
-  if (!leftAlign_) format_ = " " + format_;
-  // Assign format to a constant ptr to avoid continuous calls to c_str
-  data_format_ = format_.c_str();
-  return 0;
-}
-
-// DataSet::Matches()
 /** This version allows wildcards and ranges. */
-bool DataSet::Matches_WC(std::string const& dsname, Range const& idxRange,
-                         std::string const& aspect,
-                         Range const& memberRange, DataType typeIn) const
+bool DataSet::Matches_WC(MetaData::SearchString const& search, DataType typeIn) const
 {
-  //mprintf("DEBUG: Input: %s[%s]:%s  This Set: %s[%s]:%i\n",
-  //        dsname.c_str(), aspect.c_str(), idxRange.RangeArg(), 
-  //        name_.c_str(), aspect_.c_str(), idx_);
   // Match type if specified
   if ( typeIn != UNKNOWN_DATA && typeIn != dType_ ) return false;
-  // Match name
-  if ( WildcardMatch(dsname, name_) == 0 ) return false;
-  // If aspect specified make sure it matches.
-  if ( WildcardMatch(aspect, aspect_) == 0 ) return false;
-  // Currently match any index if not specified.
-  if (idxRange.Front() != -1 && !idxRange.InRange(idx_)) return false;
-  // Match any ensemble if not specified
-  if (memberRange.Front() != -1 && !memberRange.InRange(ensembleNum_)) return false;
-  // If no aspect specified but dataset has aspect do not match.
-  //if (aspect.empty() && !aspect_.empty()) return false;
-  //mprintf("\tMATCH\n");
-  return true;
+  return (meta_.Match_WildCard( search ));
 }
 
-/** This version does not allow wildcards or ranges. */
-bool DataSet::Matches_Exact(std::string const& nameIn, int idxIn,
-                            std::string const& aspectIn, int memberIn) const
-{
-  if (nameIn != name_         ) return false;
-  if (aspectIn != aspect_     ) return false;
-  if (idxIn  != idx_          ) return false;
-  if (memberIn != ensembleNum_) return false;
-  return true;
-}
-
-std::string DataSet::PrintName() const {
-  std::string out( name_ );
-  if (!aspect_.empty())
-    out.append("[" + aspect_ + "]");
-  if (idx_ != -1)
-    out.append(":" + integerToString(idx_));
-  if (ensembleNum_ != -1)
-    out.append("%" + integerToString(ensembleNum_));
-  return out;
-}
-// -----------------------------------------------------------------------------
-const char* DataSet::Smodes[] = {"distance","angle","torsion","pucker","rms","matrix",0};
-const char* DataSet::Stypes[] = {
-  // Torsions
-  "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "pucker",
-  "chi",   "h1p",  "c2p",   "phi",   "psi",     "pchi", "omega",
-  // Distance
-  "noe",
-  // Matrix
-  "distance",    "covariance",          "mass-weighted covariance",
-  "correlation", "distance covariance", "IDEA",
-  "IRED",        "dihedral covariance",
-  0 };
-const DataSet::scalarMode DataSet::TypeModes[] = {
-  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_PUCKER,
-  M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION, M_TORSION,
-  M_DISTANCE,
-  M_MATRIX,  M_MATRIX, M_MATRIX,
-  M_MATRIX,  M_MATRIX, M_MATRIX,
-  M_MATRIX,  M_MATRIX,
-  UNKNOWN_MODE };
-
-// DataSet::ScalarDescription()
-std::string DataSet::ScalarDescription() const {
-  std::string out("");
-  if (scalarmode_ != UNKNOWN_MODE)
-    out.append(", " + std::string(Smodes[scalarmode_]));
-  if (scalartype_ != UNDEFINED)
-    out.append("(" + std::string(Stypes[scalartype_]) + ")");
-  return out;
-}
-
-// DataSet::ModeFromKeyword()
-DataSet::scalarMode DataSet::ModeFromKeyword(std::string const& key) {
-  for (int i = 0; i != (int)UNKNOWN_MODE; i++)
-    if (key.compare( Smodes[i] ) == 0) return (scalarMode)i;
-  return UNKNOWN_MODE;
-}
-
-DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode const& mIn)
-{
-  scalarMode dm = mIn;
-  return TypeFromKeyword(key, dm);
-}
-
-// DataSet::TypeFromKeyword()
-DataSet::scalarType DataSet::TypeFromKeyword(std::string const& key, scalarMode& modeIn) {
-  for (int i = 0; i != (int)UNDEFINED; i++)
-    if (key.compare( Stypes[i] ) == 0) {
-      if (modeIn != UNKNOWN_MODE) {
-        // Is type valid for given mode?
-        if (modeIn != TypeModes[i]) {
-          mprinterr("Error: Type '%s' not valid for mode '%s'\n",Stypes[i],Smodes[TypeModes[i]]);
-          return UNDEFINED;
-        }
-      } else
-        modeIn = TypeModes[i];
-      return (scalarType)i;
-    }
-  return UNDEFINED;
+AssociatedData* DataSet::GetAssociatedData(AssociatedData::AssociatedType typeIn) const {
+  for (AdataArray::const_iterator ad = associatedData_.begin();
+                                  ad != associatedData_.end(); ++ad)
+    if ((*ad)->Type() == typeIn) return *ad;
+  return 0;
 }

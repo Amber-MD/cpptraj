@@ -11,21 +11,19 @@ class DataIO_RemLog : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_RemLog(); }
     static void ReadHelp();
     int processReadArgs(ArgList&);
-    int ReadData(std::string const&,DataSetList&,std::string const&);
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }
-    int WriteData(std::string const&, DataSetList const&) { return 1; }
-    int WriteData2D(std::string const&, DataSetList const&) { return 1; }
-    int WriteData3D(std::string const&, DataSetList const&) { return 1; }
+    int WriteData(FileName const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
     // NOTE: Must match ExchgDescription
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
     static const char* ExchgDescription[];
-    typedef std::vector<std::string> Sarray;
+    typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
     int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
-    int ReadRemdDimFile(std::string const&);
+    int ReadRemdDimFile(FileName const&);
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;

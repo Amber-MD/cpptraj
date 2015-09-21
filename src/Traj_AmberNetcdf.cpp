@@ -63,9 +63,9 @@ int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
 /* * Open the netcdf file, read all dimension and variable IDs, close.
   * Return the number of frames in the file. 
   */
-int Traj_AmberNetcdf::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-  if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
+  filename_ = fname;
   if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
   // Sanity check - Make sure this is a Netcdf trajectory
@@ -138,7 +138,7 @@ int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
 /** Create Netcdf file specified by filename and set up dimension and
   * variable IDs. 
   */
-int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
                                    CoordinateInfo const& cInfoIn, 
                                    int NframesToWrite, bool append)
 {
@@ -151,7 +151,7 @@ int Traj_AmberNetcdf::setupTrajout(std::string const& fname, Topology* trajParm,
     // Explicitly write velocity - initial frames may not have velocity info.
     if (outputVel_ && !cInfo.HasVel()) cInfo.SetVelocity(true);
     SetCoordInfo( cInfo );
-    filename_.SetFileName( fname );
+    filename_ = fname;
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");

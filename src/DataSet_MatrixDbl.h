@@ -7,18 +7,19 @@
 /** This is the class used by Action_Matrix. */
 class DataSet_MatrixDbl : public DataSet_2D {
   public:
-    DataSet_MatrixDbl() : DataSet_2D(MATRIX_DBL, 12, 4), snap_(0) {}
+    DataSet_MatrixDbl() :
+      DataSet_2D(MATRIX_DBL, TextFormat(TextFormat::DOUBLE, 12, 4)), snap_(0) {}
     double& operator[](size_t idx)             { return mat_[idx];          }
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
     int Sync()                                 { return 1;                  }
     void Info()                          const { return;                    }
+    void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
-    void Write2D(CpptrajFile&, int, int) const;
     double GetElement(size_t x,size_t y) const { return mat_.element(x,y);  }
     double GetElement(size_t i)          const { return mat_[i];            }
     size_t Nrows()                       const { return mat_.Nrows();       }

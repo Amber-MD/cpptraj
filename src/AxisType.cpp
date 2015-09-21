@@ -353,9 +353,12 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
   basename_ = integerToString( rnum_+1 ) + BaseChar();
   // Add any base-related DataSets
   if (hasSugarAtoms) {
-    pucker_ = (DataSet_1D*)masterDSL.AddSetIdxAspect(DataSet::FLOAT, dataname, rnum_+1, "pucker", basename_);
+    MetaData md(dataname, "pucker", rnum_+1);
+    md.SetLegend( basename_ );
+    md.SetScalarType( MetaData::PUCKER );
+    md.SetScalarMode( MetaData::M_PUCKER );
+    pucker_ = (DataSet_1D*)masterDSL.AddSet(DataSet::FLOAT, md);
     if (pucker_ == 0) return 1;
-    pucker_->SetScalar( DataSet::M_PUCKER, DataSet::PUCKER );
   } else
     pucker_ = 0;
   return 0;

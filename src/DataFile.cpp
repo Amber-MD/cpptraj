@@ -83,7 +83,7 @@ void DataFile::WriteHelp() {
 }
 
 // DataFile::DetectFormat()
-DataIO* DataFile::DetectFormat(std::string const& fname, DataFormatType& ftype) {
+DataIO* DataFile::DetectFormat(FileName const& fname, DataFormatType& ftype) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0) == 0) {
     for (int i = 0; i < (int)UNKNOWN_DATA; i++) {
@@ -109,14 +109,18 @@ inline int Error(const char* msg) { mprinterr(msg); return 1; }
 
 // DataFile::ReadDataIn()
 // TODO: Should this read to internal DataSetList?
-int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn, 
+int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn, 
                          DataSetList& datasetlist)
 {
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n"); 
   ArgList argIn = argListIn;
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  if (!File::Exists(fnameIn)) {
+    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    return 1;
+  }
+  filename_ = fnameIn;
   // 'as' keyword specifies a format
   std::string as_arg = argIn.GetStringKey("as");
   if (!as_arg.empty()) {
@@ -127,7 +131,7 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
     }
     dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, dfType_, false );
   } else
-    dataio_ = DetectFormat( filename_.Full(), dfType_ );
+    dataio_ = DetectFormat( filename_, dfType_ );
   // Default to detection by extension.
   if (dataio_ == 0) {
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(), 
@@ -148,12 +152,12 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
-    err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+    err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
     while (!nextFile.empty()) {
-      if (filename_.SetFileNameWithExpansion( nextFile )) return 1;
-      err += dataio_->ReadData( filename_.Full(), datasetlist, dsname );
+      if (filename_.SetFileName( nextFile )) return 1;
+      err += dataio_->ReadData( filename_, datasetlist, dsname );
       nextFile = argIn.GetStringNext();
     }
   }
@@ -167,25 +171,29 @@ int DataFile::ReadDataIn(std::string const& fnameIn, ArgList const& argListIn,
 }
 
 // DataFile::ReadDataOfType()
-int DataFile::ReadDataOfType(std::string const& fnameIn, DataFormatType typeIn,
+int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
                              DataSetList& datasetlist)
 {
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n");
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
-  if (filename_.SetFileNameWithExpansion( fnameIn )) return 1;
+  if (!File::Exists( fnameIn )) {
+    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    return 1;
+  }
+  filename_ = fnameIn;
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, typeIn, false );
   if (dataio_ == 0) return 1;
   dataio_->SetDebug( debug_ );
-  return dataio_->ReadData( filename_.Full(), datasetlist, filename_.Full() );
+  return dataio_->ReadData( filename_, datasetlist, filename_.Full() );
 }
 
 // -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
-int DataFile::SetupDatafile(std::string const& fnameIn, ArgList& argIn, int debugIn) {
+int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
   SetDebug( debugIn );
   if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
-  filename_.SetFileName( fnameIn );
+  filename_ = fnameIn;
   dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
   if (dfType_ == UNKNOWN_DATA)
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(),
@@ -215,17 +223,15 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
 void DataFile::SetMember(int memberIn) {
   if (member_ == -1) { // Not yet designated member of ensemble.
     member_ = memberIn;
-    if (!filename_.empty()) // Sanity check.
-      filename_.append("." + integerToString(member_));
-    else
+    if (filename_.AppendFileName( "." + integerToString(member_) ))
       rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
   } else if (member_ != memberIn) // Another sanity check.
     rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
               member_, memberIn);
 }
 
-// DataFile::AddSet()
-int DataFile::AddSet(DataSet* dataIn) {
+// DataFile::AddDataSet()
+int DataFile::AddDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   if (dataio_ == 0) {
     mprinterr("Internal Error: Attempting to add set to DataFile that is not set up.\n");
@@ -267,15 +273,15 @@ int DataFile::AddSet(DataSet* dataIn) {
   }
   // Set default width.precision
   if (setDataSetPrecision_)
-    dataIn->SetPrecision( default_width_, default_precision_ );
+    dataIn->SetupFormat().SetFormatWidthPrecision( default_width_, default_precision_ );
   SetList_.AddCopyOfSet( dataIn );
   // Reset dflWrite status
   dflWrite_ = true;
   return 0;
 }
 
-// DataFile::RemoveSet()
-int DataFile::RemoveSet(DataSet* dataIn) {
+// DataFile::RemoveDataSet()
+int DataFile::RemoveDataSet(DataSet* dataIn) {
   if (dataIn == 0) return 1;
   SetList_.RemoveSet( dataIn );
   return 0;
@@ -324,12 +330,12 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
   return ProcessArgs(args);
 }
 
-// DataFile::WriteData()
-void DataFile::WriteData() {
+// DataFile::WriteDataOut()
+void DataFile::WriteDataOut() {
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
   // Loop over all sets, decide which ones should be written.
-  // All DataSets should have same dimension (enforced by AddSet()).
+  // All DataSets should have same dimension (enforced by AddDataSet()).
   DataSetList setsToWrite;
   for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
     DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
@@ -338,12 +344,8 @@ void DataFile::WriteData() {
       mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
       continue;
     }
-    // Set the format to right-aligned initially.
-    if ( ds.SetDataSetFormat(false) ) {
-      mprinterr("Error: Could not set format string for set %s. Skipping.\n",
-                ds.legend());
-      continue;
-    }
+    // Setup formats with a leading space initially. Maintains backwards compat. 
+    ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
     // Ensure current DataIO is valid for this set.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
@@ -376,17 +378,7 @@ void DataFile::WriteData() {
   Timer dftimer;
   dftimer.Start();
 #endif
-  int err = 0;
-  if ( dimension_ < 2 )        // One-dimensional/DataSet-specific write
-    err = dataio_->WriteData(filename_.Full(), setsToWrite);
-  else if ( dimension_ == 2) // Two-dimensional
-    err = dataio_->WriteData2D(filename_.Full(), setsToWrite);
-  else if ( dimension_ == 3) // Three-dimensional
-    err = dataio_->WriteData3D(filename_.Full(), setsToWrite);
-  else {
-    mprinterr("Error: %iD writes not yet supported.\n", dimension_);
-    err = 1;
-  }
+  int err = dataio_->WriteData(filename_, setsToWrite); 
 #ifdef TIMER
   dftimer.Stop();
   mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
@@ -415,7 +407,7 @@ std::string DataFile::DataSetNames() const {
   if (SetList_.size() > 10) {
     int setnum = 0;
     while (setnum < 4) {
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
       ++setnum;
       ++set;
     }
@@ -423,13 +415,13 @@ std::string DataFile::DataSetNames() const {
     set = SetList_.end() - 4;
     setnum = 0;
     while (setnum < 4) {
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
       ++setnum;
       ++set;
     }
   } else {
     for (; set != SetList_.end(); set++)
-      setNames.append(" " + (*set)->Legend());
+      setNames.append(" " + (*set)->Meta().Legend());
   }
   return setNames;
 }

@@ -10,11 +10,7 @@ class TrajIOarray {
     /// Clear all IO classes and names.
     void ClearIOarray();
     /// Set up replica file names from arguments or by searching.
-    int SetupReplicaFilenames(std::string const&, ArgList&);
-    /// Given lowest replica name, search for all other replicas.
-    int SearchForReplicas(std::string const&);
-    /// Add the given file name and names from comma-separated list. 
-    int AddReplicasFromArgs(std::string const&, std::string const&);
+    int SetupReplicaFilenames(FileName const&, ArgList&);
     /// Setup TrajectoryIO classes for all file names.
     int SetupIOarray(ArgList&, TrajFrameCounter&, CoordinateInfo&, Topology*);
     /// Print file names and IO info to STDOUT
@@ -30,16 +26,19 @@ class TrajIOarray {
     /// \return number of set-up trajectories
     size_t size()          const { return IOarray_.size();  }
     /// \return specified file name.
-    std::string const& F_name(unsigned int u) const { return replica_filenames_[u]; }
-    const char* f_name(unsigned int u) const { return replica_filenames_[u].c_str(); }
+    FileName const& F_name(unsigned int u) const { return replica_filenames_[u];        }
+    const char* f_name(unsigned int u)     const { return replica_filenames_[u].full(); }
     /// 'remdout' deprecated error message.
     static const char* DEPRECATED_remdout;
   private:
-    typedef std::vector<TrajectoryIO*> IOarrayType;
-    typedef std::vector<std::string> NameListType;
+    /// Given lowest replica name, search for all other replicas.
+    int SearchForReplicas(FileName const&); // TODO private?
+    /// Add the given file name and names from comma-separated list. 
+    int AddReplicasFromArgs(FileName const&, std::string const&); // TODO private
 
-    IOarrayType IOarray_;           ///< Input replica trajectories.
-    NameListType replica_filenames_; ///< Replica traj file names.
+    typedef std::vector<TrajectoryIO*> IOarrayType;
+    IOarrayType IOarray_;               ///< Input replica trajectories.
+    File::NameArray replica_filenames_; ///< Replica traj file names.
     int debug_;
 };
 #endif

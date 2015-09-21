@@ -7,7 +7,7 @@
 #endif
 
 // EnsembleIn_Multi::SetupEnsembleRead()
-int EnsembleIn_Multi::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn, Topology *tparmIn)
+int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;

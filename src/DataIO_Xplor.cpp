@@ -11,7 +11,7 @@ inline int ErrorMsg(const char* msg) {
 }
 
 // DataIO_Xplor::ReadData()
-int DataIO_Xplor::ReadData(std::string const& fname, 
+int DataIO_Xplor::ReadData(FileName const& fname, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
   // Add grid data set. Default to float for now.
@@ -109,8 +109,8 @@ int DataIO_Xplor::ReadData(std::string const& fname,
   return 0;
 }
 
-// DataIO_Xplor::WriteData3D()
-int DataIO_Xplor::WriteData3D(std::string const& fname, DataSetList const& setList)
+// DataIO_Xplor::WriteData()
+int DataIO_Xplor::WriteData(FileName const& fname, DataSetList const& setList)
                               
 {
   // Open output file
@@ -121,10 +121,13 @@ int DataIO_Xplor::WriteData3D(std::string const& fname, DataSetList const& setLi
   }
   // Warn about writing multiple sets
   if (setList.size() > 1)
-    mprintf("Warning: %s: Writing multiple 3D sets in XPLOR format may result in unexpected behavior\n", fname.c_str());
+    mprintf("Warning: %s: Writing multiple 3D sets in XPLOR format may result in unexpected behavior\n", fname.full());
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
-    err += WriteSet3D( *(*set), outfile );
+  {
+    if ( (*set)->Ndim() == 3)
+      err += WriteSet3D( *(*set), outfile );
+  }
   return err;
 }
 

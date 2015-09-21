@@ -4,8 +4,9 @@
 
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */
-int DataSet_string::Allocate1D( size_t sizeIn ) {
-  Data_.reserve( sizeIn );
+int DataSet_string::Allocate( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty())
+    Data_.reserve( sizeIn[0] );
   return 0;
 }
 
@@ -15,9 +16,9 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
   if (frame > Data_.size())
     Data_.resize( frame, "NoData" );
   std::string Temp( (const char*)vIn );
-  // Check string width.
-  if ( (int)Temp.size() > Width() )
-    SetPrecision(Temp.size(), 0);
+  // Check string width. Update format width if necessary.
+  if ( (int)Temp.size() > format_.Width() )
+    format_.SetWidth(Temp.size());
   // Always insert at the end
   // NOTE: No check for duplicate frame values.
   Data_.push_back( Temp );
@@ -26,25 +27,29 @@ void DataSet_string::Add(size_t frame, const void* vIn) {
 // DataSet_string::WriteBuffer()
 /** Write data at frame to CharBuffer. If no data for frame write 0.0.
   */
-void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
-  if (frame >= Data_.size())
-    cbuffer.Printf(data_format_, "NoData");
+void DataSet_string::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= Data_.size())
+    cbuffer.Printf(format_.fmt(), "NoData");
   else {
     // Protect against CpptrajFile buffer overflow.
-    if (Data_[frame].size() >= CpptrajFile::BUF_SIZE) {
+    if (Data_[pIn[0]].size() >= CpptrajFile::BUF_SIZE) {
       // FIXME: Data sets should not have to worry about spaces in format strings.
-      if (data_format_[0] == ' ') cbuffer.Printf(" ");
-      cbuffer.Write(Data_[frame].c_str(), Data_[frame].size());
+      if (format_.fmt()[0] == ' ') cbuffer.Printf(" ");
+      cbuffer.Write(Data_[pIn[0]].c_str(), Data_[pIn[0]].size());
     } else 
-      cbuffer.Printf(data_format_, Data_[frame].c_str());
+      cbuffer.Printf(format_.fmt(), Data_[pIn[0]].c_str());
   }
 }
 
-void DataSet_string::Append(std::vector<std::string> const& dataIn) {
-  if (dataIn.empty()) return;
+int DataSet_string::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Type() != STRING) return 1;
+  std::vector<std::string> const& dataIn = 
+    static_cast<std::vector<std::string> const&>( ((DataSet_string*)dsIn)->Data() );
   size_t oldsize = Size();
   Data_.resize( oldsize + dataIn.size() );
   std::copy( dataIn.begin(), dataIn.end(), Data_.begin() + oldsize );
+  return 0;
 }
 
 // DataSet_string::Sync()

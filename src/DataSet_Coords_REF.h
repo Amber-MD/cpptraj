@@ -5,7 +5,7 @@
 ///< Store a single reference frame in double precision.
 class DataSet_Coords_REF : public DataSet_Coords {
   public:
-    DataSet_Coords_REF() : DataSet_Coords(REF_FRAME), num_(-1) {}
+    DataSet_Coords_REF() : DataSet_Coords(REF_FRAME) {}
     static DataSet* Alloc() { return (DataSet*) new DataSet_Coords_REF(); }
     // ----- DataSet functions -------------------
     // NOTE: Technically a 1D data set so return 1 if not empty.
@@ -13,9 +13,9 @@ class DataSet_Coords_REF : public DataSet_Coords {
     int Sync()          { return 1;              }
     void Info() const;
     void Add( size_t, const void* )              { return;     }
-    // ----- DataSet_Coords functions ------------
     // Size is only ever 1, no need to allocate.
-    int AllocateCoords(size_t)                   { return 0;   }
+    int Allocate(SizeArray const&)               { return 0;   }
+    // ----- DataSet_Coords functions ------------
     /// Add a frame.
     inline void AddFrame(Frame const& fIn) { frame_ = fIn; }
     /// Get a frame at position.
@@ -26,20 +26,19 @@ class DataSet_Coords_REF : public DataSet_Coords {
     }
     /// Set CRD at position with frame.
     inline void SetCRD(int idx, Frame const& fIn) { frame_ = fIn; }
+    /// Set Topology and coordinate info
+    int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
-    int LoadRef(std::string const&, Topology const&, int);
     /// Set up reference frame from file.
-    int SetupRefFrame(std::string const&, std::string const&, Topology const&, ArgList&, int);
+    int LoadRefFromFile(FileName const&, Topology const&, int);
+    /// Set up reference frame from file.
+    int LoadRefFromFile(FileName const&, std::string const&, Topology const&, ArgList&, int);
     /// Set up reference frame from COORDS DataSet.
-    int SetupRefFrame(DataSet_Coords*, std::string const&, int, int);
+    int SetRefFromCoords(DataSet_Coords*, std::string const&, int);
     int StripRef(std::string const&);
     int StripRef(AtomMask const&);
     Frame const& RefFrame()         const { return frame_; }
-    FileName const& FrameFilename() const { return name_ ; }
-    int RefIndex()                  const { return num_;   }
   private:
     Frame frame_;       ///< Reference coords.
-    FileName name_;     ///< Ref structure filename.
-    int num_;           ///< Internal reference index #.
 };
 #endif

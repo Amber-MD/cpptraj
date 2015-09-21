@@ -10,7 +10,7 @@ bool Parm_Mol2::ID_ParmFormat(CpptrajFile& fileIn) {
     
 // Parm_Mol2::ReadParm()
 /** Read file as a Tripos Mol2 file. */
-int Parm_Mol2::ReadParm(std::string const& fname, Topology &parmOut) {
+int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
   Mol2File infile;
   if (infile.OpenRead(fname)) return 1;
   mprintf("    Reading Mol2 file %s as topology file.\n",infile.Filename().base());

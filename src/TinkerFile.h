@@ -8,7 +8,7 @@ class TinkerFile {
   public:
     TinkerFile();
     static bool ID_Tinker(CpptrajFile&);
-    void SetTinkerName(std::string const& t) { tinkerName_ = t; }
+    void SetTinkerName(FileName const& t) { tinkerName_ = t; }
     int TinkerNatom() const { return natom_; }
     Box const& TinkerBox() const { return box_; }
     std::string const& TinkerTitle() const { return title_; }
@@ -31,6 +31,6 @@ class TinkerFile {
     bool hasBox_; /// true if file has box coords.
     Box box_; ///< hold box info for first coords.
     std::string title_; ///< Title.
-    std::string tinkerName_; ///< Full file name
+    FileName tinkerName_; ///< Full file name
 };
 #endif

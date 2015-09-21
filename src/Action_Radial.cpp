@@ -72,8 +72,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   else
     rmode_ = NORMAL;
   useVolume_ = actionArgs.hasKey("volume");
-  std::string intrdfname = actionArgs.GetStringKey("intrdf");
-  std::string rawrdfname = actionArgs.GetStringKey("rawrdf");
+  DataFile* intrdfFile = DFL->AddDataFile(actionArgs.GetStringKey("intrdf"));
+  DataFile* rawrdfFile = DFL->AddDataFile(actionArgs.GetStringKey("rawrdf"));
 
   // Get required args
   std::string outfilename = actionArgs.GetStringNext();
@@ -116,13 +116,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Set up output dataset. 
   Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
   if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
-  DataFile* outfile = DFL->AddSetToFile(outfilename, Dset_);
-  if (outfile==0) {
-    mprinterr("Error: Radial: Could not setup output file %s\n",outfilename.c_str());
-    return Action::ERR;
-  }
+  DataFile* outfile = DFL->AddDataFile(outfilename, actionArgs);
+  if (outfile != 0) outfile->AddDataSet( Dset_ );
   // Make default precision a little higher than normal
-  Dset_->SetPrecision(12,6);
+  Dset_->SetupFormat().SetFormatWidthPrecision(12,6);
   // Set DataSet legend from mask strings.
   Dset_->SetLegend(Mask1_.MaskExpression() + " => " + Mask2_.MaskExpression());
   // TODO: Set Yaxis label in DataFile
@@ -136,31 +133,23 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   Dimension Rdim( spacing_ / 2.0, spacing_, numBins_, "Distance (Ang)" ); 
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
-  if (!intrdfname.empty()) {
-    intrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "int" );
+  if (intrdfFile != 0) {
+    intrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
-    intrdf_->SetPrecision(12,6);
+    intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
     intrdf_->SetDim(Dimension::X, Rdim);
-    outfile = DFL->AddSetToFile( intrdfname, intrdf_ );
-    if (outfile == 0) {
-      mprinterr("Error: Could not add intrdf set to file %s\n", intrdfname.c_str());
-      return Action::ERR;
-    }
+    intrdfFile->AddDataSet( intrdf_ );
   } else
     intrdf_ = 0;
   // Set up output for raw rdf
-  if (!rawrdfname.empty()) {
-    rawrdf_ = DSL->AddSetAspect( DataSet::DOUBLE, Dset_->Name(), "raw" );
+  if (rawrdfFile != 0) {
+    rawrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
-    rawrdf_->SetPrecision(12,6);
-    rawrdf_->SetLegend("Raw[" + Dset_->Legend() + "]");
+    rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
+    rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
     rawrdf_->SetDim(Dimension::X, Rdim);
-    outfile = DFL->AddSetToFile( rawrdfname, rawrdf_ );
-    if (outfile == 0) {
-      mprinterr("Error: Could not add rawrdf set to file %s\n", rawrdfname.c_str());
-      return Action::ERR;
-    }
+    rawrdfFile->AddDataSet( rawrdf_ );
   } else
     rawrdf_ = 0;
 
@@ -188,9 +177,11 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
   mprintf("\n            Output to %s.\n",outfilename.c_str());
   if (intrdf_ != 0)
-    mprintf("            Integral of mask2 atoms will be output to %s\n", intrdfname.c_str());
+    mprintf("            Integral of mask2 atoms will be output to %s\n",
+            intrdfFile->DataFilename().full());
   if (rawrdf_ != 0)
-    mprintf("            Raw RDF bin values will be output to %s\n", rawrdfname.c_str());
+    mprintf("            Raw RDF bin values will be output to %s\n",
+            rawrdfFile->DataFilename().full());
   if (rmode_==CENTER1)
     mprintf("            Using center of atoms in mask1.\n");
   else if (rmode_==CENTER2)

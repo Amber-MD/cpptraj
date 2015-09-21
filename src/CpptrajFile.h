@@ -2,7 +2,6 @@
 #define INC_CPPTRAJFILE_H
 #include "FileName.h" 
 #include "FileIO.h"
-// Class: CpptrajFile
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
   public:
@@ -23,7 +22,7 @@ class CpptrajFile {
     /// Close file.
     void CloseFile();
     // -------------------------------------------
-    /// Printf using the files Write routine.
+    /// Printf using the Write routine.
     void Printf(const char*, ...);
     /// Get next line as a string
     std::string GetLine();
@@ -31,22 +30,22 @@ class CpptrajFile {
     const char* NextLine();
     // -------------------------------------------
     /// Set up and open file for reading.
-    int OpenRead(std::string const&);
+    int OpenRead(FileName const&);
     /// Set up and open file for writing.
-    int OpenWrite(std::string const&);
+    int OpenWrite(FileName const&);
     /// Open file previously set up for write with given numeric suffix.
     int OpenWriteNumbered(int);
     /// Set up and open file for appending.
-    int OpenAppend(std::string const&);
+    int OpenAppend(FileName const&);
     // -------------------------------------------
     /// Prepare file for reading. 
-    int SetupRead(std::string const&, int);
+    int SetupRead(FileName const&, int);
     /// Prepare file for writing.
-    int SetupWrite(std::string const&, int);
+    int SetupWrite(FileName const&, int);
     /// Prepare file of given type for writing
-    int SetupWrite(std::string const&, FileType, int);
+    int SetupWrite(FileName const&, FileType, int);
     /// Prepare file for appending. 
-    int SetupAppend(std::string const&, int);
+    int SetupAppend(FileName const&, int);
     // -------------------------------------------
     /// \return the access file is currently set up for.
     AccessType Access()         const { return access_;               }

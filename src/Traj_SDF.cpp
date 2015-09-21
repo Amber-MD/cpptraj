@@ -16,7 +16,7 @@ int Traj_SDF::openTrajin() {
   return 0;
 }
 
-int Traj_SDF::setupTrajin(std::string const& fname, Topology* trajParm) {
+int Traj_SDF::setupTrajin(FileName const& fname, Topology* trajParm) {
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   if (openTrajin()) return TRAJIN_ERR;
   // Check number of atoms
@@ -49,7 +49,7 @@ int Traj_SDF::readFrame(int set, Frame& frameIn) {
   return 0;
 }
 
-int Traj_SDF::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_SDF::setupTrajout(FileName const& fname, Topology* trajParm,
                            CoordinateInfo const& cInfoIn,
                                int NframesToWrite, bool append)
 {

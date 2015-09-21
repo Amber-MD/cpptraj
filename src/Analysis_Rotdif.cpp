@@ -4,7 +4,7 @@
 #include <algorithm> // sort
 #include "Analysis_Rotdif.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
+#include "StringRoutines.h" // AppendNumber
 #include "Constants.h" // TWOPI
 #include "DataSet_Mesh.h"
 #include "ProgressBar.h"
@@ -1594,9 +1594,9 @@ int Analysis_Rotdif::DetermineDeffs() {
       CpptrajFile outfile;
       std::string namebuffer;
       if (!corrOut_.empty())
-        namebuffer = NumberFilename( corrOut_, nvec );
+        namebuffer = AppendNumber( corrOut_, nvec );
       else
-        namebuffer = NumberFilename( "p1p2.dat", nvec );
+        namebuffer = AppendNumber( "p1p2.dat", nvec );
       outfile.OpenWrite(namebuffer);
       for (int i = 0; i < maxdat; i++) 
         //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
@@ -1604,7 +1604,7 @@ int Analysis_Rotdif::DetermineDeffs() {
       outfile.CloseFile();
       //    Write Mesh
       if (debug_>3) {
-        namebuffer = NumberFilename( "mesh.dat", nvec );
+        namebuffer = AppendNumber( "mesh.dat", nvec );
         outfile.OpenWrite(namebuffer);
         for (int i=0; i < (int)spline.Size(); i++)
           outfile.Printf("%12.6g %20.8e\n", spline.X(i), spline.Y(i));

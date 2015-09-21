@@ -30,11 +30,11 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Da
   else
     minTorsion_ = -180.0;
   int dsidx = actionArgs.getKeyInt("idx", -1);
-  DataSet::scalarType stype = DataSet::UNDEFINED;
+  MetaData::scalarType stype = MetaData::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if (!stypename.empty()) {
-    stype = DataSet::TypeFromKeyword( stypename, DataSet::M_TORSION );
-    if (stype == DataSet::UNDEFINED) {
+    stype = MetaData::TypeFromKeyword( stypename, MetaData::M_TORSION );
+    if (stype == MetaData::UNDEFINED) {
       mprinterr("Error: Invalid torsion type keyword '%s'\n", stypename.c_str());
       return Action::ERR;
     }
@@ -55,12 +55,11 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, TopologyList* PFL, Da
   M4_.SetMaskString(mask4);
 
   // Setup dataset
-  dih_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Dih");
+  dih_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), dsidx,
+                                               MetaData::M_TORSION, stype),"Dih");
   if (dih_==0) return Action::ERR;
-  dih_->SetScalar( DataSet::M_TORSION, stype );
-  if (dsidx > -1) dih_->SetIndex( dsidx );
   // Add dataset to datafile list
-  if (outfile != 0) outfile->AddSet( dih_ );
+  if (outfile != 0) outfile->AddDataSet( dih_ );
 
   mprintf("    DIHEDRAL: [%s]-[%s]-[%s]-[%s]\n", M1_.MaskString(), 
           M2_.MaskString(), M3_.MaskString(), M4_.MaskString());

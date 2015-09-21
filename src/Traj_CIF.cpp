@@ -16,7 +16,7 @@ int Traj_CIF::openTrajin() {
 
 // Traj_CIF::setupTrajin()
 /** Read in entire CIF file. */
-int Traj_CIF::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_CIF::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   if (file_.Read( fname, debug_ )) return TRAJIN_ERR;
   CIFfile::DataBlock const& block = file_.GetDataBlock("_atom_site");
