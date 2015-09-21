@@ -710,7 +710,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( currentParm != &originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->SetTopology( *currentParm );
+    CRD->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -742,7 +742,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast, ensure CoordInfo valid
-  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, currentParm->ParmCoordInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
@@ -797,7 +797,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
       mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
       return Command::C_ERR;
     }
-    coords->SetTopology( *parm );
+    coords->CoordsSetup( *parm, trajin.TrajCoordInfo() );
     mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.Traj().Filename().full(),
             coords->legend());
   } else {
@@ -923,8 +923,8 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     mprinterr("Error: Could not create COORDS data set.\n");
     return Command::C_ERR;
   }
-  CombinedCrd->SetTopology( CombinedTop );
   // FIXME: Only copying coords for now
+  CombinedCrd->CoordsSetup( CombinedTop, CoordinateInfo() );
   Frame CombinedFrame( CombinedTop.Natom() * 3 );
   std::vector<Frame> InputFrames;
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)

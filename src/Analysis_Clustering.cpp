@@ -655,9 +655,9 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    Trajout_Single clusterout; // FIXME is the CoordInfo valid?
+    Trajout_Single clusterout;
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    clusterparm->ParmCoordInfo(), C->Nframes(),
+                                    coords_->CoordsInfo(), C->Nframes(),
                                     clusterfmt_)) 
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
@@ -692,9 +692,9 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
-    Trajout_Single clusterout; // FIXME Is CoordInfo valid?
+    Trajout_Single clusterout; // FIXME CoordinateInfo OK for just coords?
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), &avgparm,
-                                    avgparm.ParmCoordInfo(), 1, avgfmt_))
+                                    CoordinateInfo(), 1, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
                 cfilename.c_str());
@@ -728,7 +728,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast, is CoordInfo valid?
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
-                                  clusterparm->ParmCoordInfo(), CList.Nclusters(),
+                                  coords_->CoordsInfo(), CList.Nclusters(),
                                   singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
@@ -770,9 +770,9 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
-    // Set up trajectory file. // FIXME CoordInfo valid? 
+    // Set up trajectory file.
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    clusterparm->ParmCoordInfo(), 1, reptrajfmt_)) 
+                                    coords_->CoordsInfo(), 1, reptrajfmt_))
     {
       mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());

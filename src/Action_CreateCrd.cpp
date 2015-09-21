@@ -40,7 +40,7 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, DataSetList* DSL, Da
 Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAddress) {
   // Set COORDS topology now if not already set.
   if (currentParm->Pindex() == pindex_ && coords_->Top().Natom() == 0) {
-    coords_->SetTopology( *currentParm );
+    coords_->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %.2g MB\n",
             currentParm->Nframes(),

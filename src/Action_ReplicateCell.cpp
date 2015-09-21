@@ -147,7 +147,7 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
     combinedFrame_.SetupFrameV(combinedTop_.Atoms(), combinedTop_.ParmCoordInfo());
     // Set up COORDS / output traj if necessary.
     if (coords_ != 0)
-      coords_->SetTopology( combinedTop_ );
+      coords_->CoordsSetup( combinedTop_, combinedTop_.ParmCoordInfo() );
     if (!trajfilename_.empty()) {
       if ( outtraj_.PrepareEnsembleTrajWrite(trajfilename_, trajArgs_,
                                              &combinedTop_, combinedTop_.ParmCoordInfo(),

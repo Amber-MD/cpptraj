@@ -26,7 +26,10 @@ class DataSet_Coords_REF : public DataSet_Coords {
     }
     /// Set CRD at position with frame.
     inline void SetCRD(int idx, Frame const& fIn) { frame_ = fIn; }
+    /// Set Topology and coordinate info
+    int CoordsSetup(Topology const&, CoordinateInfo const&);
     // -------------------------------------------
+    /// Set up reference frame from file.
     int LoadRefFromFile(FileName const&, Topology const&, int);
     /// Set up reference frame from file.
     int LoadRefFromFile(FileName const&, std::string const&, Topology const&, ArgList&, int);
