@@ -57,13 +57,13 @@ Analysis::RetType Analysis_KDE::Setup(DataSet_1D* dsIn, std::string const& histn
   else
     htype = "KDE_";
   if (setname.empty())
-    setname = datasetlist.GenerateDefaultName(htype + dsIn->Name());
+    setname = datasetlist.GenerateDefaultName(htype + dsIn->Meta().Name());
   DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
-  output_ = datasetlist.AddSetIdxAspect(DataSet::DOUBLE, setname, setidx, dsIn->Aspect());
+  output_ = datasetlist.AddSet(DataSet::DOUBLE, MetaData(setname, dsIn->Meta().Aspect(), setidx));
   if (output_ == 0) return Analysis::ERR;
-  output_->SetLegend(htype + dsIn->Legend());
+  output_->SetLegend(htype + dsIn->Meta().Legend());
   output_->SetDim(Dimension::X, Xdim);
-  if (outfile != 0) outfile->AddSet( output_ );
+  if (outfile != 0) outfile->AddDataSet( output_ );
   return Analysis::OK;
 }
 
@@ -138,11 +138,11 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   output_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "kde");
   if (output_ == 0) return Analysis::ERR;
   output_->SetDim(Dimension::X, Xdim);
-  if (outfile != 0) outfile->AddSet( output_ );
+  if (outfile != 0) outfile->AddDataSet( output_ );
   // Output for KL divergence calc.
   if ( q_data_ != 0 ) {
-    kldiv_ = datasetlist->AddSetAspect(DataSet::DOUBLE, output_->Name(), "kld");
-    if (klOutfile != 0) klOutfile->AddSet( kldiv_ );
+    kldiv_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(output_->Meta().Name(), "kld"));
+    if (klOutfile != 0) klOutfile->AddDataSet( kldiv_ );
   }
 
   mprintf("    KDE: Using gaussian KDE to histogram set \"%s\"\n", data_->legend());
@@ -321,8 +321,10 @@ Analysis::RetType Analysis_KDE::Analyze() {
 #     ifdef _OPENMP
       } // End first parallel block
 #     endif
-      normP = 1.0 / normP;
-      normQ = 1.0 / normQ;
+      if (normP > std::numeric_limits<double>::min())
+        normP = 1.0 / normP;
+      if (normQ > std::numeric_limits<double>::min())
+        normQ = 1.0 / normQ;
       KL = 0.0;
 #     ifdef _OPENMP
 #     pragma omp parallel private(bin, Pnorm, Qnorm, Pzero, Qzero) reduction(+:KL, validPoint)

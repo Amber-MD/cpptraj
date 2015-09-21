@@ -35,7 +35,7 @@ int Traj_Conflib::openTrajin() {
 }
 
 // Traj_Conflib::setupTrajin()
-int Traj_Conflib::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_Conflib::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   int Frames;
   // Conflib frame is double,double,int,natom*3*double
@@ -71,7 +71,7 @@ int Traj_Conflib::readFrame(int set, Frame& frameIn) {
 }
 
 // Traj_Conflib::setupTrajout()
-int Traj_Conflib::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_Conflib::setupTrajout(FileName const& fname, Topology* trajParm,
                                CoordinateInfo const& cInfoIn,
                                int NframesToWrite, bool append)
 {

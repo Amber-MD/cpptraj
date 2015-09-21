@@ -2,7 +2,8 @@
 #include "CpptrajStdio.h"
 
 DataSet_RemLog::DataSet_RemLog() :
-  DataSet(REMLOG, 10, 4, 0) // 0 dim indicates DataSet-specific write 
+  // 0 dim indicates DataSet-specific write 
+  DataSet(REMLOG, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
 {}
 
 void DataSet_RemLog::AllocateReplicas(int n_replicas) {
@@ -23,7 +24,7 @@ bool DataSet_RemLog::ValidEnsemble() const {
   for (; member != ensemble_.end(); ++member) {
     if ((*member).size() != first_size) {
       mprinterr("Error: In remlog data set %s size of ensemble member %zu (%zu) !="
-                " size of first member (%zu)\n", Name().c_str(), // TODO: Change to legend
+                " size of first member (%zu)\n", Meta().Name().c_str(), // TODO: Change to legend
                 member - ensemble_.begin() + 1, (*member).size(), first_size);
       return false;
     }

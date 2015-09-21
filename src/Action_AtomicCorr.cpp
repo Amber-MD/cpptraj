@@ -55,7 +55,7 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, 
     return Action::ERR;
   }
   // Add DataSet to output file
-  outfile_->AddSet( dset_ );
+  outfile_->AddDataSet( dset_ );
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);

@@ -78,7 +78,7 @@ int Traj_Gro::openTrajin() {
   return file_.OpenFileRead( fname_ );
 }
 
-int Traj_Gro::setupTrajin(std::string const& fnameIn, Topology* trajParm)
+int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
 {
   float fXYZ[9];
   fname_ = fnameIn; // TODO SetupRead for BufferedLine

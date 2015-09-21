@@ -61,9 +61,9 @@ int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
 /** Set up netcdf restart file for reading, get all variable and dimension IDs. 
   * Also check number of atoms against associated parmtop.
   */
-int Traj_AmberRestartNC::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-  if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
+  filename_ = fname;
   if (openTrajin()) return TRAJIN_ERR;
   readAccess_ = true;
   // Sanity check - Make sure this is a Netcdf restart
@@ -132,7 +132,7 @@ int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
 
 // Traj_AmberRestartNC::setupTrajout()
 /** Setting up is done for each frame.  */
-int Traj_AmberRestartNC::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_AmberRestartNC::setupTrajout(FileName const& fname, Topology* trajParm,
                                       CoordinateInfo const& cInfoIn,
                                       int NframesToWrite, bool append)
 {
@@ -149,7 +149,7 @@ int Traj_AmberRestartNC::setupTrajout(std::string const& fname, Topology* trajPa
   } else
     cInfo.SetTime(false);
   SetCoordInfo( cInfo );
-  filename_.SetFileName( fname );
+  filename_ = fname;
   SetNcatom( trajParm->Natom() );
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
@@ -240,7 +240,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   if (singleWrite_)
     fname = filename_.Full();
   else
-    fname = NumberFilename(filename_.Full(), set+1);
+    fname = AppendNumber(filename_.Full(), set+1);
   // Create Netcdf file 
   if ( NC_create( fname, NC_AMBERRESTART, Ncatom(), CoordInfo(), Title() ) )
     return 1;

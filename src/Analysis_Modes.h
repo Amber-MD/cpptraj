@@ -35,7 +35,7 @@ class Analysis_Modes : public Analysis {
     double factor_;
     DataSet_Modes* modinfo_;
     DataSet_Modes* modinfo2_;
-    std::string filename_;
+    CpptrajFile* outfile_;
     modestackType atompairStack_;
     double* results_;
     Topology* tOutParm_;
@@ -48,6 +48,6 @@ class Analysis_Modes : public Analysis {
     void CalcDipoleCorr();
     int ProjectCoords();
     void CalculateProjection(int,Frame const&,int); // DEBUG
-    int CalcRMSIP(CpptrajFile&);
+    int CalcRMSIP();
 };
 #endif

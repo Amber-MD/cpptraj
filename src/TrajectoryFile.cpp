@@ -81,7 +81,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
 // -----------------------------------------------------------------------------
 
 // TrajectoryFile::DetectFormat()
-TrajectoryIO* TrajectoryFile::DetectFormat(std::string const& fname, TrajFormatType& ttype) {
+TrajectoryIO* TrajectoryFile::DetectFormat(FileName const& fname, TrajFormatType& ttype) {
   CpptrajFile file;
   if (file.SetupRead(fname, 0) == 0) {
     for (int i = 0; i < (int)UNKNOWN_TRAJ; i++) {

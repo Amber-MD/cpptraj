@@ -96,13 +96,13 @@ static int NoPnetcdf() {
 #endif
 
 // Traj_NcEnsemble::setupTrajin()
-int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 {
 # ifdef USE_MPI
   if (NoPnetcdf()) return TRAJIN_ERR;
 # endif
   readAccess_ = true;
-  if (filename_.SetFileNameWithExpansion( fname )) return TRAJIN_ERR;
+  filename_ = fname;
   //if (openTrajin()) return TRAJIN_ERR;
   // Open single thread for now
   if (NC_openRead( filename_.Full() )) return TRAJIN_ERR;
@@ -175,7 +175,7 @@ int Traj_NcEnsemble::setupTrajin(std::string const& fname, Topology* trajParm)
 }
 
 // Traj_NcEnsemble::setupTrajout()
-int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
                                   CoordinateInfo const& cInfoIn,
                                   int NframesToWrite, bool append)
 {
@@ -195,7 +195,7 @@ int Traj_NcEnsemble::setupTrajout(std::string const& fname, Topology* trajParm,
     ensembleStart_ = 0;
     ensembleEnd_ = cInfo.EnsembleSize();;
 #   endif
-    filename_.SetFileName( fname );
+    filename_ = fname;
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");

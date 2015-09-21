@@ -139,11 +139,11 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
             int r2 = parmIn[*c2].ResNum(); \
             ret = nativeContacts_.insert( Mpair(Cpair(*c1,*c2), contactType(legend,r1,r2)) ); \
             if (ret.second && series_) {\
-              DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::INTEGER, \
-                                          numnative_->Name(), nativeContacts_.size(), \
-                                          "NC", legend); \
+              MetaData md(numnative_->Meta().Name(), "NC", nativeContacts_.size()); \
+              md.SetLegend( legend ); \
+              DataSet* ds = masterDSL_->AddSet(DataSet::INTEGER, md); \
               ret.first->second.SetData( ds ); \
-              if (seriesout_ != 0) seriesout_->AddSet( ds ); \
+              if (seriesout_ != 0) seriesout_->AddDataSet( ds ); \
             } \
           } \
         } \
@@ -268,36 +268,36 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   std::string name = actionArgs.GetStringKey("name");
   if (name.empty())
     name = DSL->GenerateDefaultName("Contacts");
-  numnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "native");
-  nonnative_ = DSL->AddSetAspect(DataSet::INTEGER, name, "nonnative");
+  numnative_ = DSL->AddSet(DataSet::INTEGER, MetaData(name, "native"));
+  nonnative_ = DSL->AddSet(DataSet::INTEGER, MetaData(name, "nonnative"));
   if (outfile != 0) {
-    outfile->AddSet(numnative_);
-    outfile->AddSet(nonnative_);
+    outfile->AddDataSet(numnative_);
+    outfile->AddDataSet(nonnative_);
   }
   if (numnative_ == 0 || nonnative_ == 0) return Action::ERR;
   if (actionArgs.hasKey("mindist")) {
-    mindist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "mindist");
+    mindist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(name, "mindist"));
     if (mindist_ == 0) return Action::ERR;
-    if (outfile != 0) outfile->AddSet(mindist_);
+    if (outfile != 0) outfile->AddDataSet(mindist_);
   }
   if (actionArgs.hasKey("maxdist")) {
-    maxdist_ = DSL->AddSetAspect(DataSet::DOUBLE, name, "maxdist");
+    maxdist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(name, "maxdist"));
     if (maxdist_ == 0) return Action::ERR;
-    if (outfile != 0) outfile->AddSet(maxdist_);
+    if (outfile != 0) outfile->AddDataSet(maxdist_);
   }
   DataFile *natmapfile = 0, *nonmapfile = 0;
   if (actionArgs.hasKey("map")) {
-    nativeMap_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, name, "nativemap");
+    nativeMap_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(name, "nativemap"));
     if (nativeMap_ == 0) return Action::ERR;
-    nonnatMap_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, name, "nonnatmap");
+    nonnatMap_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(name, "nonnatmap"));
     if (nonnatMap_ == 0) return Action::ERR;
     FileName mapFilename;
     mapFilename.SetFileName( actionArgs.GetStringKey("mapout") );
     if (!mapFilename.empty()) {
       natmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "native." + mapFilename.Base());
-      if (natmapfile != 0) natmapfile->AddSet(nativeMap_);
+      if (natmapfile != 0) natmapfile->AddDataSet(nativeMap_);
       nonmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "nonnative." + mapFilename.Base());
-      if (nonmapfile != 0) nonmapfile->AddSet(nonnatMap_);
+      if (nonmapfile != 0) nonmapfile->AddDataSet(nonnatMap_);
     }
   }
   // Get Masks
@@ -478,14 +478,14 @@ void Action_NativeContacts::Print() {
   }
   if (!cfile_->IsStream()) {
     mprintf("    CONTACTS: %s: Writing native contacts to file '%s'\n",
-            numnative_->Name().c_str(), cfile_->Filename().full());
-    cfile_->Printf("# Contacts: %s\n", numnative_->Name().c_str());
+            numnative_->Meta().Name().c_str(), cfile_->Filename().full());
+    cfile_->Printf("# Contacts: %s\n", numnative_->Meta().Name().c_str());
     cfile_->Printf("# Native contacts determined from mask '%s'", Mask1_.MaskString());
     if (Mask2_.MaskStringSet())
       cfile_->Printf(" and mask '%s'", Mask2_.MaskString());
     cfile_->Printf("\n");
   } else
-    mprintf("    CONTACTS: %s\n", numnative_->Name().c_str());
+    mprintf("    CONTACTS: %s\n", numnative_->Meta().Name().c_str());
   // Map of residue pairs to total contact values.
   typedef std::map<Cpair, resContact> resContactMap;
   resContactMap ResContacts;
@@ -546,7 +546,7 @@ void Action_NativeContacts::Print() {
     norm = 100.00 / norm;
     PDBfile& contactPDB = static_cast<PDBfile&>( *pfile_ );
     mprintf("\tWriting contacts PDB to '%s'\n", pfile_->Filename().full());
-    contactPDB.WriteTITLE( numnative_->Name() + " " + Mask1_.MaskExpression() + " " +
+    contactPDB.WriteTITLE( numnative_->Meta().Name() + " " + Mask1_.MaskExpression() + " " +
                            Mask2_.MaskExpression() );
     int cidx = 0;
     for (int aidx = 0; aidx != refParm_->Natom(); aidx++, cidx += 3) {

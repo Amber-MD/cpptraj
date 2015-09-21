@@ -11,7 +11,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     static void WriteHelp();
     static void ReadHelp();
 
-    int setupTrajin(std::string const&, Topology*);
+    int setupTrajin(FileName const&, Topology*);
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);
@@ -19,7 +19,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     // Inherited functions
     int processReadArgs(ArgList&);
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool);
+    int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int readVelocity(int, Frame&);
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);

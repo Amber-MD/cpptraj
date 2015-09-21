@@ -3,16 +3,14 @@
 #include "DataSetList.h"
 #include "DataSet_1D.h"
 #include "ArgList.h"
-/// Hold 1D DataSets
+/// Hold 1D Scalar DataSets
 class Array1D {
   public:
     Array1D() {}
     Array1D(const Array1D&);
     Array1D& operator=(const Array1D&);
     Array1D(DataSetList const&);
-    /// \return size of largest data set in the array.
-    size_t DetermineMax() const;
-    int push_back( DataSet_1D* const& );
+    int push_back( DataSet* );
     DataSet_1D* const& operator[](int idx) const { return array_[idx];       }
     DataSet_1D* operator[](int idx)              { return array_[idx];       }
     bool empty()                           const { return array_.empty();    }
@@ -25,7 +23,6 @@ class Array1D {
     int AddDataSets(DataSetList const&);
     int AddTorsionSets(DataSetList const&);
     int AddSetsFromArgs(ArgList const&, DataSetList const&);
-    int CheckXDimension() const;
   private:
     std::vector<DataSet_1D*> array_;
 };

@@ -37,7 +37,7 @@ class Analysis_Clustering: public Analysis {
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
     std::string avgfile_;       ///< Cluster traj average structure filename.
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
-    std::string pairdistfile_;  ///< Name of pairwise-distances file.
+    FileName pairdistfile_;  ///< Name of pairwise-distances file.
     std::string sil_file_;      ///< Prefix name of file for cluster silhouette.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
     ClusterList::DistMetricType metric_;

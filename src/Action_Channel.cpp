@@ -34,7 +34,7 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   // Grid Data Set
   grid_ = DSL->AddSet(DataSet::GRID_FLT, actionArgs.GetStringNext(), "Channel");
   if (grid_ == 0) return Action::ERR;
-  if (outfile != 0) outfile->AddSet( grid_ );
+  if (outfile != 0) outfile->AddDataSet( grid_ );
 
   mprintf("Warning: *** THIS ACTION IS EXPERIMENTAL AND NOT FULLY IMPLEMENTED. ***\n");
   mprintf("    CHANNEL: Solute mask [%s], solvent mask [%s]\n",

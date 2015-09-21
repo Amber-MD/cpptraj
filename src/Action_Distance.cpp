@@ -1,7 +1,6 @@
 // Action_Distance
 #include <cmath>
 #include "Action_Distance.h"
-#include "DataSet_double.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -10,53 +9,27 @@ Action_Distance::Action_Distance() :
   useMass_(true)
 { } 
 
-const char* Action_Distance::NOE_Help = 
-  "[bound <lower> bound <upper>] [rexp <expected>] [noe_strong] [noe_medium] [noe_weak]";
-
 void Action_Distance::Help() {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"
           "\tOptions for 'type noe':\n"
           "\t  %s\n"
-          "  Calculate distance between atoms in <mask1> and <mask2>\n", NOE_Help);
-}
-
-int Action_Distance::NOE_Args(ArgList& argIn, double& noe_lbound, 
-                              double& noe_ubound, double& noe_rexp)
-{
-  noe_lbound = argIn.getKeyDouble("bound", 0.0);
-  noe_ubound = argIn.getKeyDouble("bound", 0.0);
-  noe_rexp = argIn.getKeyDouble("rexp", -1.0);
-  if (argIn.hasKey("noe_weak")) {
-    noe_lbound = 3.5;
-    noe_ubound = 5.0;
-  } else if (argIn.hasKey("noe_medium")) {
-    noe_lbound = 2.9;
-    noe_ubound = 3.5;
-  } else if (argIn.hasKey("noe_strong")) {
-    noe_lbound = 1.8;
-    noe_ubound = 2.9;
-  }
-  if (noe_ubound <= noe_lbound) {
-    mprinterr("Error: noe lower bound (%g) must be less than upper bound (%g).\n",
-              noe_lbound, noe_ubound);
-    return 1; 
-  }
-  return 0;
+          "  Calculate distance between atoms in <mask1> and <mask2>\n", 
+          AssociatedData_NOE::HelpText);
 }
 
 // Action_Distance::Init()
 Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  double noe_bound = 0.0, noe_boundh = 0.0, noe_rexp = -1.0;
+  AssociatedData_NOE noe;
   // Get Keywords
-  InitImaging( !(actionArgs.hasKey("noimage")) );
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  DataSet::scalarType stype = DataSet::UNDEFINED;
+  MetaData::scalarType stype = MetaData::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if ( stypename == "noe" ) {
-    stype = DataSet::NOE;
-    if (NOE_Args(actionArgs, noe_bound, noe_boundh, noe_rexp)) return Action::ERR;
+    stype = MetaData::NOE;
+    if (noe.NOE_Args( actionArgs )) return Action::ERR;
   }
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
@@ -68,19 +41,19 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, Da
   Mask1_.SetMaskString(mask1);
   Mask2_.SetMaskString(mask2);
 
-  // Dataset to store distances
-  dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
+  // Dataset to store distances TODO store masks in data set?
+  dist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
+                                                MetaData::M_DISTANCE, stype), "Dis");
   if (dist_==0) return Action::ERR;
-  dist_->SetScalar( DataSet::M_DISTANCE, stype );
-  if ( stype == DataSet::NOE ) {
-    ((DataSet_double*)dist_)->SetNOE(noe_bound, noe_boundh, noe_rexp);
+  if ( stype == MetaData::NOE ) {
+    dist_->AssociateData( &noe );
     dist_->SetLegend(Mask1_.MaskExpression() + " and " + Mask2_.MaskExpression());
   }
   // Add dataset to data file
-  if (outfile != 0) outfile->AddSet( dist_ );
+  if (outfile != 0) outfile->AddDataSet( dist_ );
 
   mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
-  if (!UseImage()) 
+  if (!image_.UseImage()) 
     mprintf(", non-imaged");
   if (useMass_) 
     mprintf(", center of mass");
@@ -105,8 +78,8 @@ Action::RetType Action_Distance::Setup(Topology* currentParm, Topology** parmAdd
     return Action::ERR;
   }
   // Set up imaging info for this parm
-  SetupImaging( currentParm->BoxType() );
-  if (ImagingEnabled())
+  image_.SetupImaging( currentParm->BoxType() );
+  if (image_.ImagingEnabled())
     mprintf(", imaged");
   else
     mprintf(", imaging off");
@@ -129,7 +102,7 @@ Action::RetType Action_Distance::DoAction(int frameNum, Frame* currentFrame, Fra
     a2 = currentFrame->VGeometricCenter( Mask2_ );
   }
 
-  switch ( ImageType() ) {
+  switch ( image_.ImageType() ) {
     case NONORTHO:
       currentFrame->BoxCrd().ToRecip(ucell, recip);
       Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);

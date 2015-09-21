@@ -119,17 +119,17 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
     return Analysis::ERR;
   }
   // Format DataSet 
-  rmsdataset_->SetPrecision(8,3);
+  rmsdataset_->SetupFormat().SetFormatWidthPrecision(8,3);
   // Add to output file
   if (rmsdFile != 0) {
-    rmsdFile->AddSet( rmsdataset_ );
+    rmsdFile->AddDataSet( rmsdataset_ );
     rmsdFile->ProcessArgs("square2d");
   }
   // Set up DataSet for corr if specified
   if (corrfile != 0) {
-    Ct_ = datasetlist->AddSetAspect( DataSet::DOUBLE, rmsdataset_->Name(), "Corr" );
+    Ct_ = datasetlist->AddSet( DataSet::DOUBLE, MetaData(rmsdataset_->Meta().Name(), "Corr") );
     if (Ct_ == 0) return Analysis::ERR;
-    corrfile->AddSet( Ct_ );
+    corrfile->AddDataSet( Ct_ );
   }
 
   mprintf("    RMS2D: COORDS set [%s], mask [%s]", coords_->legend(),

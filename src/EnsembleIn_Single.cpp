@@ -18,7 +18,7 @@ EnsembleIn_Single::~EnsembleIn_Single() {
 }
 
 // EnsembleIn_Single::SetupEnsembleRead()
-int EnsembleIn_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& argIn,
+int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
                                        Topology *tparmIn)
 {
   if (eio_ != 0) delete eio_;
@@ -26,7 +26,7 @@ int EnsembleIn_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& ar
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
-  if ( (eio_ = TrajectoryFile::DetectFormat( Traj().Filename().Full(), tformat )) == 0 ) {
+  if ( (eio_ = TrajectoryFile::DetectFormat( Traj().Filename(), tformat )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
     return 1;
   }
@@ -37,7 +37,7 @@ int EnsembleIn_Single::SetupEnsembleRead(std::string const& tnameIn, ArgList& ar
   // Process format-specific read args
   if (eio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
-  int nframes = eio_->setupTrajin(Traj().Filename().Full(), Traj().Parm());
+  int nframes = eio_->setupTrajin(Traj().Filename(), Traj().Parm());
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
     mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
     return 1;

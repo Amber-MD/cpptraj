@@ -8,17 +8,18 @@ class DataSet_2D : public DataSet {
     /// Kind of matrix.
     enum MatrixKindType { FULL = 0, HALF, TRI };
     DataSet_2D() {}
-    DataSet_2D(DataSet::DataType tIn, int wIn, int pIn) : 
-      DataSet(tIn, wIn, pIn, 2) {}
+    DataSet_2D(DataSet::DataType tIn, TextFormat const& fIn) : 
+      DataSet(tIn, MATRIX_2D, fIn, 2) {}
+    // TODO enable Append?
+    int Append(DataSet*) { return 1; }
+    int Allocate(SizeArray const& s) { return Allocate2D(s[0], s[1]); } // FIXME bounds check
     // TODO: 1 allocate using MatrixKind?
-    /// Set up matrix for given # columns and rows.
+    /// Set up matrix for given # columns and rows. // TODO replace with Allocate
     virtual int Allocate2D(size_t, size_t) = 0;
     /// Set up symmetric matrix with diagonal.
     virtual int AllocateHalf(size_t) = 0;
     /// Set up symmetrix matrix with no diagonal.
     virtual int AllocateTriangle(size_t) = 0;
-    /// Write 2D data to file (2D)
-    virtual void Write2D(CpptrajFile&,int,int) const = 0;
     /// \return Data from matrix at col/row 
     virtual double GetElement(size_t, size_t) const = 0;
     /// \return Data from underlying matrix array.

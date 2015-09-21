@@ -122,12 +122,14 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
 
   dAout_ = datasetlist->AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( dAout_ );
+  if (outfile != 0) outfile->AddDataSet( dAout_ );
+  MetaData md(dAout_->Meta().Name(), "TIcurve");
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
-    DataSet* ds = datasetlist->AddSetIdxAspect(DataSet::XYMESH, dAout_->Name(), *it, "TIcurve");
+    md.SetIdx( *it );
+    DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, md);
     if (ds == 0) return Analysis::ERR;
-    ds->SetLegend( setname + "_Skip" + integerToString(*it) );
-    if (curveout != 0) curveout->AddSet( ds );
+    ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
+    if (curveout != 0) curveout->AddDataSet( ds );
     curve_.push_back( ds );
   }
 

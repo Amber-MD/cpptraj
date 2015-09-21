@@ -16,8 +16,7 @@ class DihedralSearch {
     /// Number of found dihedrals
     int Ndihedrals() const { return (int)dihedrals_.size(); }
     /// Recognized dihedral types
-    enum DihedralType { PHI = 0, PSI, CHIP, OMEGA, ALPHA, BETA, GAMMA, DELTA,
-                        EPSILON, ZETA, NU1, NU2, CHIN, NDIHTYPE };
+    typedef MetaData::scalarType DihedralType;
     DihedralSearch();
     static void ListKnownTypes();
     static void OffsetHelp();
@@ -42,9 +41,10 @@ class DihedralSearch {
     /// \return Mask of atoms that will move upon rotation.
     static AtomMask MovingAtoms(Topology const&, int, int);
   private:
+    static const DihedralType D_FIRST;
+    static const DihedralType D_END;
     struct DIH_TYPE;
     static const DIH_TYPE DIH[];
-    static const char* TypeNames[];
     class DihedralToken;
     std::vector<DihedralToken> dihedralTokens_; ///< Dihedrals to search for
     std::vector<DihedralMask> dihedrals_;       ///< Contains atom #s for each found dihedral
@@ -53,7 +53,7 @@ class DihedralSearch {
 /// Hold dihedral type information used for searching.
 class DihedralSearch::DihedralToken {
   public:
-    DihedralToken() : offset_(0), type_(NDIHTYPE) {}
+    DihedralToken() : offset_(0), type_(MetaData::UNDEFINED) {}
     /// Constructor for custom dihedral type
     DihedralToken(int, NameType const&, NameType const&, NameType const&, NameType const&,
                   std::string const&);

@@ -209,7 +209,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   bool save_pair = analyzeArgs.hasKey("savepairdist");
   pairdistfile_ = analyzeArgs.GetStringKey("pairdist");
   if ( (load_pair_ || save_pair) && pairdistfile_.empty() )
-    pairdistfile_.assign(PAIRDISTFILE);
+    pairdistfile_ = PAIRDISTFILE;
   else if (!pairdistfile_.empty())
     load_pair_ = true;
   // Output trajectory stuff
@@ -228,16 +228,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
-  if (cnumvtimefile != 0) cnumvtimefile->AddSet( cnumvtime_ );
+  if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
   // DataSet for # clusters seen v time
   if (clustersvtimefile != 0) {
     if (windowSize_ < 2) {
       mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
       return Analysis::ERR;
     }
-    clustersVtime_ = datasetlist->AddSetAspect(DataSet::INTEGER, cnumvtime_->Name(), "NCVT");
+    clustersVtime_ = datasetlist->AddSet(DataSet::INTEGER, 
+                                         MetaData(cnumvtime_->Meta().Name(), "NCVT"));
     if (clustersVtime_ == 0) return Analysis::ERR;
-    clustersvtimefile->AddSet( clustersVtime_ );
+    clustersvtimefile->AddDataSet( clustersVtime_ );
   }
   // Save master DSL for Cpopvtime
   masterDSL_ = datasetlist;
@@ -289,7 +290,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     mprintf("\tCluster lifetime data sets will be calculated.\n");
   if (load_pair_)
     mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
-            pairdistfile_.c_str());
+            pairdistfile_.full());
   if (!clusterinfo_.empty())
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
@@ -353,7 +354,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   //          USE_FILE    - If pairdistfile exists, load pair distances from there.
   // Calculated distances will be saved if not loaded from file.
   ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
-  if (load_pair_ && fileExists(pairdistfile_))
+  if (load_pair_ && File::Exists(pairdistfile_))
     pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
   if (cluster_dataset_.empty()) {
@@ -392,7 +393,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_setup.Stop();
   // Calculate distances between frames
   cluster_pairwise.Start();
-  if (CList_->CalcFrameDistances( pairdistfile_, cluster_dataset_, pairdist_mode,
+  if (CList_->CalcFrameDistances( pairdistfile_.full(), cluster_dataset_, pairdist_mode,
                                   metric_, nofitrms_, useMass_, maskexpr_, 
                                   sieve_, sieveSeed_ ))
     return Analysis::ERR;
@@ -534,14 +535,15 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
   std::vector<int> Pop(CList.Nclusters(), 0);
   // Set up output data sets
   std::vector<DataSet*> DSL;
-  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
-    DSL.push_back(masterDSL_->AddSetIdxAspect( DataSet::FLOAT, cnumvtime_->Name(), 
-                                               cnum, "Pop" ));
+  MetaData md(cnumvtime_->Meta().Name(), "Pop");
+  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
+    md.SetIdx( cnum );
+    DSL.push_back(masterDSL_->AddSet( DataSet::FLOAT, md ));
     if (DSL.back() == 0) {
       mprinterr("Error: Could not allocate cluster pop v time DataSet.\n");
       return;
     }
-    cpopvtimefile_->AddSet( DSL.back() );
+    cpopvtimefile_->AddDataSet( DSL.back() );
   }
   // Set up normalization
   std::vector<double> Norm;
@@ -577,10 +579,10 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
 void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFrames ) {
   // Set up output data sets. TODO: use ChildDSL
   std::vector<DataSet_integer*> DSL;
-  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) { 
-    DSL.push_back((DataSet_integer*)
-                  masterDSL_->AddSetIdxAspect( DataSet::INTEGER, cnumvtime_->Name(), 
-                                               cnum, "Lifetime" ));
+  MetaData md(cnumvtime_->Meta().Name(), "Lifetime");
+  for (int cnum = 0; cnum < CList.Nclusters(); ++cnum) {
+    md.SetIdx( cnum ); 
+    DSL.push_back((DataSet_integer*) masterDSL_->AddSet( DataSet::INTEGER, md));
     if (DSL.back() == 0) {
       mprinterr("Error: Could not allocate cluster lifetime DataSet.\n");
       return;
@@ -654,9 +656,9 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename =  clusterfile_ + ".c" + integerToString( cnum );
     // Set up trajectory file 
-    Trajout_Single clusterout; // FIXME is the CoordInfo valid?
+    Trajout_Single clusterout;
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    clusterparm->ParmCoordInfo(), C->Nframes(),
+                                    coords_->CoordsInfo(), C->Nframes(),
                                     clusterfmt_)) 
     {
       mprinterr("Error: Could not set up cluster trajectory %s for write.\n",
@@ -691,9 +693,9 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
     int cnum = C->Num();
     std::string cfilename = avgfile_ + ".c" + integerToString( cnum ) + tmpExt;
     // Set up trajectory file
-    Trajout_Single clusterout; // FIXME Is CoordInfo valid?
+    Trajout_Single clusterout; // FIXME CoordinateInfo OK for just coords?
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), &avgparm,
-                                    avgparm.ParmCoordInfo(), 1, avgfmt_))
+                                    CoordinateInfo(), 1, avgfmt_))
     {
       mprinterr("Error: Could not set up cluster average file %s for write.\n",
                 cfilename.c_str());
@@ -727,7 +729,7 @@ void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   // Set up trajectory file. Use parm from COORDS DataSet. 
   Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast, is CoordInfo valid?
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
-                                  clusterparm->ParmCoordInfo(), CList.Nclusters(),
+                                  coords_->CoordsInfo(), CList.Nclusters(),
                                   singlerepfmt_)) 
   {
     mprinterr("Error: Could not set up single trajectory for represenatatives %s for write.\n",
@@ -769,9 +771,9 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     std::string cfilename = reptrajfile_ + ".c" + integerToString(C->Num());
     if (writeRepFrameNum_) cfilename += ("." + integerToString(framenum+1));
     cfilename += tmpExt;
-    // Set up trajectory file. // FIXME CoordInfo valid? 
+    // Set up trajectory file.
     if (clusterout.PrepareTrajWrite(cfilename, ArgList(), clusterparm,
-                                    clusterparm->ParmCoordInfo(), 1, reptrajfmt_)) 
+                                    coords_->CoordsInfo(), 1, reptrajfmt_))
     {
       mprinterr("Error: Could not set up representative trajectory file %s for write.\n",
                 cfilename.c_str());

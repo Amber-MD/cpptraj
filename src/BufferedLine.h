@@ -16,7 +16,7 @@ class BufferedLine : private CpptrajFile {
     /// \return specified token, not null-delimited.
     inline const char* Token(int);
     /// Open file for reading, set up buffer.
-    int OpenFileRead( std::string const& fname ) {
+    int OpenFileRead( FileName const& fname ) {
       if ( OpenRead( fname ) ) return 1;
       return ResetBuffer();
     }

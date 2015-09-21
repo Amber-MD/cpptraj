@@ -34,7 +34,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
   VAC_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
   if (VAC_ == 0) return Action::ERR;
   VAC_->Dim(0).SetStep( tstep_ );
-  if (outfile != 0) outfile->AddSet( VAC_ ); 
+  if (outfile != 0) outfile->AddDataSet( VAC_ ); 
 
   mprintf("    VELOCITYAUTOCORR:\n"
           "\tCalculate velocity auto-correlation function for atoms in mask '%s'\n",

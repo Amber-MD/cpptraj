@@ -29,7 +29,7 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   surf_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "SA");
   if (surf_==0) return Action::ERR;
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( surf_ );
+  if (outfile != 0) outfile->AddDataSet( surf_ );
 
   mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1_.MaskString());
   mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"

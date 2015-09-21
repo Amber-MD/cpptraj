@@ -30,7 +30,7 @@ int Parm_CharmmPsf::FindTag(char* tag, const char* target, int tgtsize, CpptrajF
 /** Open the Charmm PSF file specified by filename and set up topology data.
   * Mask selection requires natom, nres, names, resnames, resnums.
   */
-int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
+int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   const size_t TAGSIZE = 10; 
   char tag[TAGSIZE];
   tag[0]='\0';
@@ -153,7 +153,7 @@ int Parm_CharmmPsf::ReadParm(std::string const& fname, Topology &parmOut) {
   return 0;
 }
 
-int Parm_CharmmPsf::WriteParm(std::string const& fname, Topology const& parm) {
+int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // TODO: CMAP etc info
   CpptrajFile outfile;
   if (outfile.OpenWrite(fname)) return 1;

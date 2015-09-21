@@ -41,7 +41,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, TopologyList* PFL, Da
   drmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");
   if (drmsd_==0) return Action::ERR;
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( drmsd_ );
+  if (outfile != 0) outfile->AddDataSet( drmsd_ );
 
   mprintf("    DISTRMSD: (%s), reference is %s\n",TgtMask_.MaskString(),
           refHolder_.RefModeString());

@@ -1,6 +1,5 @@
 #include <cmath> // sqrt
 #include "Analysis_Statistics.h"
-#include "DataSet_double.h" // for DISTANCE NOE
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
@@ -52,28 +51,30 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   // Count number of NOE data sets
   int numNOEsets = 0;
   for (Array1D::const_iterator set = datasets_.begin(); set != datasets_.end(); ++set)
-    if ( (*set)->ScalarMode() == DataSet::M_DISTANCE && (*set)->ScalarType() == DataSet::NOE)
+    if ( (*set)->Meta().ScalarMode() == MetaData::M_DISTANCE &&
+         (*set)->Meta().ScalarType() == MetaData::NOE)
      numNOEsets++;
   if (numNOEsets > 0) {
     std::string dsetName = analyzeArgs.GetStringKey("name");
     if (dsetName.empty())
       dsetName = DSLin->GenerateDefaultName("NOE");
-    NOE_r6_ = (DataSet_float*)DSLin->AddSetAspect(DataSet::FLOAT, dsetName, "R6");
-    NOE_violations_ = (DataSet_integer*)DSLin->AddSetAspect(DataSet::INTEGER, dsetName, 
-                                                            "NViolations");
-    NOE_avgViolations_ = (DataSet_float*)DSLin->AddSetAspect(DataSet::FLOAT, dsetName, 
-                                                             "AvgViolation");
-    NOE_names_ = (DataSet_string*)DSLin->AddSetAspect(DataSet::STRING, dsetName, "NOEnames");
+    NOE_r6_ = (DataSet_float*)DSLin->AddSet(DataSet::FLOAT, MetaData(dsetName, "R6"));
+    NOE_violations_ = (DataSet_integer*)DSLin->AddSet(DataSet::INTEGER,
+                                                      MetaData(dsetName, "NViolations"));
+    NOE_avgViolations_ = (DataSet_float*)DSLin->AddSet(DataSet::FLOAT,
+                                                       MetaData( dsetName, "AvgViolation"));
+    NOE_names_ = (DataSet_string*)DSLin->AddSet(DataSet::STRING,
+                                                MetaData(dsetName, "NOEnames"));
     if (NOE_r6_==0 || NOE_violations_==0 || NOE_avgViolations_==0 || NOE_names_==0) {
       mprinterr("Error: Could not set up NOE data sets.\n");
       return Analysis::ERR;
     }
     NOE_r6_->Dim(0).SetLabel("#NOE");
     if (NOE_out != 0) {
-      NOE_out->AddSet( NOE_r6_ );
-      NOE_out->AddSet( NOE_violations_ );
-      NOE_out->AddSet( NOE_avgViolations_ );
-      NOE_out->AddSet( NOE_names_ );
+      NOE_out->AddDataSet( NOE_r6_ );
+      NOE_out->AddDataSet( NOE_violations_ );
+      NOE_out->AddDataSet( NOE_avgViolations_ );
+      NOE_out->AddDataSet( NOE_names_ );
     }
   }
   // INFO
@@ -102,7 +103,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
   if (outfile_.OpenWrite( filename_ )) return Analysis::ERR;
   for (Array1D::const_iterator ds = datasets_.begin(); ds != datasets_.end(); ++ds)
   {
-    mprintf("\t'%s'%s\n", (*ds)->legend(), (*ds)->ScalarDescription().c_str());
+    mprintf("\t'%s'%s\n", (*ds)->legend(), (*ds)->Meta().ScalarDescription().c_str());
     DataSet_1D const& data_set = static_cast<DataSet_1D const&>( *(*ds) );
     int Nelements = data_set.Size();
     if (Nelements < 1) {
@@ -112,7 +113,7 @@ Analysis::RetType Analysis_Statistics::Analyze() {
     }
 
     // Compute average and standard deviation with optional shift.
-    bool periodic = data_set.IsTorsionArray();
+    bool periodic = data_set.Meta().IsTorsionArray();
     double average = 0.0;
     double stddev = 0.0;
     for (int i = 0; i < Nelements; ++i) {
@@ -143,12 +144,11 @@ Analysis::RetType Analysis_Statistics::Analyze() {
                     data_set.Dval( 0 ), data_set.Dval( Nelements-1 ) );
 
     // More specific analysis based on MODE
-    DataSet::scalarMode mode = data_set.ScalarMode();
-    if ( mode == DataSet::M_PUCKER) 
+    if ( data_set.Meta().ScalarMode() == MetaData::M_PUCKER) 
       PuckerAnalysis( data_set, Nelements ); 
-    else if ( mode == DataSet::M_TORSION)
+    else if ( data_set.Meta().ScalarMode() == MetaData::M_TORSION)
       TorsionAnalysis( data_set, Nelements );
-    else if ( mode == DataSet::M_DISTANCE)
+    else if ( data_set.Meta().ScalarMode() == MetaData::M_DISTANCE)
       DistanceAnalysis( data_set, Nelements );
 
   } // END loop over DataSets
@@ -199,7 +199,7 @@ void Analysis_Statistics::PuckerAnalysis( DataSet_1D const& ds, int totalFrames 
     }
   }
 
-  if ( ds.ScalarType() == DataSet::PUCKER)
+  if ( ds.Meta().ScalarType() == MetaData::PUCKER)
     outfile_.Printf("\n   This is marked as a nucleic acid sugar pucker phase\n");
 
   outfile_.Printf("\n            %s %s %s %s %s %s %s %s %s %s\n",
@@ -363,8 +363,8 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
   outfile_.Printf("-----------------------------\n");
 
   // Specific torsion types
-  switch ( ds.ScalarType() ) {
-    case DataSet::ALPHA:
+  switch ( ds.Meta().ScalarType() ) {
+    case MetaData::ALPHA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" ALPHA       minor             minor            canonical\n");
       outfile_.Printf("\n   O3'-P-O5'-C5', SNB range is 270-300 deg (g-)\n");
@@ -373,7 +373,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** > 10%% out of range population detected\n");
       break;
 
-    case DataSet::BETA:
+    case MetaData::BETA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" BETA                <-- canonical -->\n");
 
@@ -383,7 +383,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** > 5%% out of range population detected\n");
       break;
 
-    case DataSet::GAMMA:
+    case MetaData::GAMMA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" GAMMA     canonical           minor             minor\n");
       outfile_.Printf("\n   O5'-C5'-C4'-C3', SNB range is 20-80 (g+)\n");
@@ -391,7 +391,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** GAMMA trans > 10%% detected!!!\n");
       break;
 
-    case DataSet::DELTA:
+    case MetaData::DELTA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" DELTA      <------ canonical ------>\n");
       outfile_.Printf("\n   C5'-C4'-C3'-O3', SNB range is 70-180\n");
@@ -401,7 +401,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** > 5%% out of range population detected\n");
       break;
 
-    case DataSet::EPSILON:
+    case MetaData::EPSILON:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" EPSILON                         BI       BII\n");
       outfile_.Printf("\n   C4'-C3'-O3'-P, SNB range is 160-270\n");
@@ -413,7 +413,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** > 5%% out of range population detected\n");
       break;
 
-    case DataSet::ZETA:
+    case MetaData::ZETA:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" ZETA                <----- BII ------------- BI ----->\n");
       outfile_.Printf("\n   C3'-O3'-P-O5', SNB range is 230-300 (BI), 150-210 (BII)\n");
@@ -425,7 +425,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** > 5%% out of range population detected\n");
       break;
 
-    case DataSet::CHI:
+    case MetaData::CHIN:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" CHI                         <-------- anti ------->  <--syn---\n");
       outfile_.Printf("\n   O4'-C1'-NX-CX, SNB range is 200-300\n");
@@ -436,13 +436,13 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
         outfile_.Printf("   *** Unexpected CHI population in a+ region, > 5%%\n");
       break;
 
-    case DataSet::C2P:
+    case MetaData::C2P:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" C2' to base      in\n");
       outfile_.Printf("\n   C2'-C1'-NX-CX\n\n");
       break;
 
-    case DataSet::H1P:
+    case MetaData::H1P:
       //              "               g+       a+       t        a-       g-       c 
       outfile_.Printf(" H1'       below-plane                           above      in\n");
       outfile_.Printf("\n   H1'-C1'-NX-CX, > 0 H1' below plane (check if sugar in plane)\n\n");
@@ -505,22 +505,28 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
   }
 
   // Init for NOE
-  bool isNOE = (ds.ScalarType() == DataSet::NOE);
+  bool isNOE = (ds.Meta().ScalarType() == MetaData::NOE);
+
   if (isNOE) {
-    outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, W < 5.0, blank otherwise.\n    |");
-    average = 0;
-    Nb = 0;
-    Nh = 0;
-    DataSet_double const& DsDbl = static_cast<DataSet_double const&>( ds );
-    bound = DsDbl.NOE_bound();
-    boundh = DsDbl.NOE_boundH();
-    rexp = DsDbl.NOE_rexp();
-    if (rexp < 0.0) {
-      // If lower bound is zero just use boundh, otherwise use avg.
-      if (bound > 0.0)
-        rexp = (bound + boundh) / 2.0;
-      else
-        rexp = boundh;
+    AssociatedData_NOE* noeData = (AssociatedData_NOE*)ds.GetAssociatedData( AssociatedData::NOE );
+    if (noeData == 0) {
+      mprinterr("Error: No NOE data associated with %s, but marked as NOE\n", ds.legend());
+      isNOE = false;
+    } else { 
+      outfile_.Printf("   NOE SERIES: S < 2.9, M < 3.5, W < 5.0, blank otherwise.\n    |");
+      average = 0;
+      Nb = 0;
+      Nh = 0;
+      bound = noeData->NOE_bound();
+      boundh = noeData->NOE_boundH();
+      rexp = noeData->NOE_rexp();
+      if (rexp < 0.0) {
+        // If lower bound is zero just use boundh, otherwise use avg.
+        if (bound > 0.0)
+          rexp = (bound + boundh) / 2.0;
+        else
+          rexp = boundh;
+      }
     }
   }
 
@@ -603,7 +609,7 @@ void Analysis_Statistics::DistanceAnalysis( DataSet_1D const& ds, int totalFrame
       outfile_.Printf("   Rexp= %.4f <Violation>= %.4f\n", rexp, avg_violation);
     }
     NOE_avgViolations_->AddElement( (float)avg_violation );
-    NOE_names_->AddElement( "\"" + ds.Legend() + "\"" );
+    NOE_names_->AddElement( "\"" + ds.Meta().Legend() + "\"" );
   }
 
   // OUTPUT

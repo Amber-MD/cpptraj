@@ -9,7 +9,7 @@ class EnsembleIn_Single : public EnsembleIn {
     EnsembleIn_Single();
     ~EnsembleIn_Single();
     // ----- Inherited Functions -----------------
-    int SetupEnsembleRead(std::string const&, ArgList&, Topology*);
+    int SetupEnsembleRead(FileName const&, ArgList&, Topology*);
     int ReadEnsemble(int, FrameArray&, FramePtrArray&);
     int BeginEnsemble();
     void EndEnsemble();

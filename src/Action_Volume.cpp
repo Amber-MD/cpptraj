@@ -24,7 +24,7 @@ Action::RetType Action_Volume::Init(ArgList& actionArgs, TopologyList* PFL, Data
   vol_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Vol");
   if (vol_==0) return Action::ERR;
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( vol_ );
+  if (outfile != 0) outfile->AddDataSet( vol_ );
 
   mprintf("    VOLUME:");
   if (outfile != 0)

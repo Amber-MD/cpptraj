@@ -7,8 +7,8 @@ class Parm_CIF : public ParmIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_CIF(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
-    int ReadParm(std::string const&, Topology&);
-    int WriteParm(std::string const&, Topology const&) { return 1;   }
+    int ReadParm(FileName const&, Topology&);
+    int WriteParm(FileName const&, Topology const&) { return 1;   }
     void SetDebug(int i)                               { debug_ = i; }
     int processWriteArgs(ArgList&) { return 0; }
     bool NeedsBondSearch() const { return true; }

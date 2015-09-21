@@ -6,17 +6,19 @@
 #endif
 
 void Parm_PDB::ReadHelp() {
-  mprintf("\tpqr:     Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
-          "\treadbox: Read unit cell information from CRYST1 record if present.\n");
+  mprintf("\tpqr     : Read atomic charge/radius from occupancy/B-factor columns (PQR).\n"
+          "\treadbox : Read unit cell information from CRYST1 record if present.\n"
+          "\tnoconect: Do not read CONECT records if present.\n");
 }
 
 int Parm_PDB::processReadArgs(ArgList& argIn) {
   readAsPQR_ = argIn.hasKey("pqr");
   readBox_ = argIn.hasKey("readbox");
+  readConect_ = !argIn.hasKey("noconect");
   return 0;
 } 
 
-int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
+int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
@@ -27,6 +29,9 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
   if (infile.OpenRead(fname)) return 1;
+  if (readAsPQR_)   mprintf("\tReading as PQR file.\n");
+  if (readBox_)     mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
+  if (!readConect_) mprintf("\tNot reading bond info from CONECT records.\n");
 # ifdef TIMER
   Timer time_total, time_atom;
   time_total.Start();
@@ -37,11 +42,12 @@ int Parm_PDB::ReadParm(std::string const& fname, Topology &TopIn) {
       // Box info from CRYST1 record.
       infile.pdb_Box( XYZ );
       TopIn.SetParmBox( XYZ );
-    } else if (infile.RecType() == PDBfile::CONECT) {
+    } else if (infile.RecType() == PDBfile::CONECT && readConect_) {
       // BOND - first element will be atom, next few are bonded atoms.
       // To avoid duplicates only add the bond if atom2 > atom1
       int nscan = infile.pdb_Bonds(barray);
       if (nscan > 1) {
+        if (nscan > 5) nscan = 5;
         for (int i = 1; i != nscan; i++)
           if (barray[i] > barray[0])
             bonds.push_back( BondType(barray[0], barray[i], -1) );

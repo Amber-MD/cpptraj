@@ -23,6 +23,7 @@ class Range {
     int Size()             const { return (int) rangeList_.size(); }
     int Back()             const { return rangeList_.back();       }
     int Front()            const { return rangeList_.front();      }
+    void Clear() { rangeArg_.clear(); rangeList_.clear(); }
 
     int SetRange(std::string const&);
     int SetRange(int,int);

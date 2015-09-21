@@ -22,9 +22,9 @@ static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4_Nonbond", "Nonb
 int Action_Energy::AddSet(Etype typeIn, DataSetList* DSL, DataFile* outfile,
                           std::string const& setname)
 {
-  Energy_[typeIn] = DSL->AddSetAspect(DataSet::DOUBLE, setname, Estring[typeIn]);
+  Energy_[typeIn] = DSL->AddSet(DataSet::DOUBLE, MetaData(setname, Estring[typeIn]));
   if (Energy_[typeIn] == 0) return 1;
-  if (outfile != 0) outfile->AddSet( Energy_[typeIn] );
+  if (outfile != 0) outfile->AddDataSet( Energy_[typeIn] );
   return 0;
 }
 
