@@ -8,14 +8,12 @@ class DataIO_Evecs : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Evecs(); }
     static void ReadHelp();
     int processReadArgs(ArgList &);
-    int ReadData(std::string const&,DataSetList&,std::string const&);
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList &)                     { return 0; }
-    int WriteData(std::string const&,DataSetList const&);
-    int WriteData2D(std::string const&, DataSetList const&) { return 1; }
-    int WriteData3D(std::string const&, DataSetList const&) { return 1; }
+    int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
-    static const char* MatrixOutputString(DataSet::scalarType);
+    static const char* MatrixOutputString(MetaData::scalarType);
     int ibeg_, iend_;
     bool hasIend_;
 };

@@ -36,8 +36,8 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, D
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   // Set up data
   if (!dsname.empty()) {
-     vecData_ = (DataSet_Mat3x3*)DSL->AddSetAspect(DataSet::MAT3X3, dsname, "evec");
-     valData_ = (DataSet_Vector*)DSL->AddSetAspect(DataSet::VECTOR, dsname, "eval");
+     vecData_ = (DataSet_Mat3x3*)DSL->AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
+     valData_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, MetaData(dsname, "eval"));
      if (vecData_ == 0 || valData_ == 0) return Action::ERR;
   }
 

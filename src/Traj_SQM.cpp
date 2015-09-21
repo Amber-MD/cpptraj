@@ -18,7 +18,7 @@ int Traj_SQM::processWriteArgs(ArgList& argIn) {
 }
 
 // Traj_SQM::setupTrajout()
-int Traj_SQM::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_SQM::setupTrajout(FileName const& fname, Topology* trajParm,
                            CoordinateInfo const& cInfoIn,
                            int NframesToWrite, bool append)
 {

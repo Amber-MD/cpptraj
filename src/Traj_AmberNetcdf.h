@@ -14,8 +14,8 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     static void WriteHelp();
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
-    int setupTrajin(std::string const&, Topology*);
-    int setupTrajout(std::string const&, Topology*, CoordinateInfo const&,int, bool);
+    int setupTrajin(FileName const&, Topology*);
+    int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int openTrajin();
     void closeTraj();
     int readFrame(int,Frame&);

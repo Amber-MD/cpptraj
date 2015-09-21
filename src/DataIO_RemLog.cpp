@@ -79,13 +79,13 @@ int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type) const
 
 // DataIO_RemLog::ReadRemdDimFile()
 // TODO: Handle cases where groups are not in order.
-int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
+int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name) {
   typedef std::map<int,GroupArray> GroupMapType;
   typedef std::pair<GroupMapType::iterator,bool> GroupMapRet;
   typedef std::pair<int,GroupArray> GroupMapElt;
   BufferedLine rd_file;
   if (rd_file.OpenFileRead( rd_name )) {
-    mprinterr("Error: Could not read remd dim file '%s'\n", rd_name.c_str());
+    mprinterr("Error: Could not read remd dim file '%s'\n", rd_name.full());
     return 1;
   }
   const char* separators = " =,()";
@@ -93,7 +93,7 @@ int DataIO_RemLog::ReadRemdDimFile(std::string const& rd_name) {
   const char* ptr = rd_file.Line();
   if (IsNullPtr( ptr )) return 1;
   // ptr Should end with a newline
-  mprintf("\tReplica dimension file '%s' title: %s", rd_name.c_str(), ptr);
+  mprintf("\tReplica dimension file '%s' title: %s", rd_name.base(), ptr);
   // Read each &multirem section
   GroupDims_.clear();
   DimTypes_.clear();
@@ -340,27 +340,28 @@ int DataIO_RemLog::processReadArgs(ArgList& argIn) {
   logFilenames_.push_back( std::string("") );
   std::string log_name = argIn.GetStringNext();
   while (!log_name.empty()) {
-    if (!fileExists( log_name ))
-      mprintf("Warning: '%s' does not exist.\n", log_name.c_str());
+    FileName log(log_name);
+    if (!File::Exists( log ))
+      mprintf("Warning: '%s' does not exist.\n", log.full());
     else
-      logFilenames_.push_back( log_name );
+      logFilenames_.push_back( log.Full() );
     log_name = argIn.GetStringNext();
   }
   return 0;
 }
 
 // DataIO_RemLog::ReadData()
-int DataIO_RemLog::ReadData(std::string const& fname, 
+int DataIO_RemLog::ReadData(FileName const& fnameIn, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  if (!fileExists( fname )) {
-    mprinterr("Error: File '%s' does not exist.\n", fname.c_str());
+  if (!File::Exists( fnameIn )) {
+    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
     return 1;
   }
   if (logFilenames_.empty()) // processReadArgs not called
-    logFilenames_.push_back( fname );
+    logFilenames_.push_back( fnameIn.Full() );
   else
-    logFilenames_[0] = fname;
+    logFilenames_[0] = fnameIn.Full();
   if (!dimfile_.empty()) {
     if (ReadRemdDimFile( dimfile_ )) {
       mprinterr("Error: Reading remd.dim file '%s'\n", dimfile_.c_str());
@@ -419,7 +420,7 @@ int DataIO_RemLog::ReadData(std::string const& fname,
         dimLogs.push_back( *logfile );
         for (int idim = 2; idim <= (int)GroupDims_.size(); idim++) {
           std::string logname = Prefix + "." + integerToString( idim );
-          if ( !fileExists(logname) ) {
+          if ( !File::Exists(logname) ) {
             mprinterr("Error: MREMD log not found for dimension %i, '%s'\n",
                       idim, logname.c_str());
             return 1;
@@ -532,7 +533,8 @@ int DataIO_RemLog::ReadData(std::string const& fname,
     mprintf("\n");
 //  }
   // Allocate replica log DataSet
-  DataSet* ds = datasetlist.CheckForSet(dsname, -1, "");
+  DataSet* ds = 0;
+  if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
   if (ds == 0) {
     // New set
     ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );

@@ -30,6 +30,7 @@ class CoordinateInfo {
     void SetVelocity(bool v)    { hasVel_ = v;  }
     void SetEnsembleSize(int s) { ensembleSize_ = s; }
     void SetBox(Box const& b)   { box_ = b;     }
+    void SetReplicaDims(ReplicaDimArray const& r) { remdDim_ = r; }
   private:
     ReplicaDimArray remdDim_; ///< Hold info on any replica dimensions.
     Box box_;                 ///< Hold box information.

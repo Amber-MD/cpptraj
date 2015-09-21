@@ -358,10 +358,10 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
 }
         
 // Parm_Gromacs::ReadParm()
-int Parm_Gromacs::ReadParm(std::string const& fname, Topology &TopIn) {
+int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
   mprintf("Warning: Currently only basic topology info read from gromacs topologies.\n");
   // Reads topology and #included files, sets up gmx_molXXX arrays.
-  if (ReadGmxFile(fname)) return 1;
+  if (ReadGmxFile(fname.Full())) return 1;
   // Set title/filename
   TopIn.SetParmName( title_, infileName_ );
   int resoffset = 0;

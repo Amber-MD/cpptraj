@@ -12,7 +12,11 @@ Analysis_RemLog::Analysis_RemLog() :
   printIndividualTrips_(false), 
   remlog_(0),
   mode_(NONE),
-  calcRepFracSlope_(0)
+  lifetimes_(0),
+  statsout_(0),
+  reptime_(0),
+  calcRepFracSlope_(0),
+  repFracSlope_(0)
 {}
 
 void Analysis_RemLog::Help() {
@@ -44,13 +48,18 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: remlog data set appears to be empty.\n");
     return Analysis::ERR;
   }
-  acceptout_ = analyzeArgs.GetStringKey("acceptout");
-  lifetimesName_ = analyzeArgs.GetStringKey("lifetime");
-  calculateLifetimes_ = !lifetimesName_.empty();
+  acceptout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
+                                      DataFileList::TEXT, true );
+  if (acceptout_ == 0) return Analysis::ERR;
+  lifetimes_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
+  calculateLifetimes_ = (lifetimes_ != 0);
   calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
-    if (statsout_.OpenWrite( analyzeArgs.GetStringKey("statsout") )) return Analysis::ERR;
-    if (reptime_.OpenWrite( analyzeArgs.GetStringKey("reptime") )) return Analysis::ERR;
+    statsout_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("statsout"), "remlog stats",
+                                       DataFileList::TEXT, true );
+    reptime_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("reptime"), "replica times",
+                                      DataFileList::TEXT, true );
+    if (statsout_ == 0 || reptime_ == 0) return Analysis::ERR;
   }
   calcRepFracSlope_ = analyzeArgs.getKeyInt("reptimeslope", 0);
   std::string rfs_name = analyzeArgs.GetStringKey("reptimeslopeout");
@@ -62,8 +71,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     mprinterr("Error: Both reptimeslope and reptimeslopeout must be specified.\n");
     return Analysis::ERR;
   }
-  if (!rfs_name.empty())
-    if (repFracSlope_.OpenWrite(rfs_name)) return Analysis::ERR;
+  repFracSlope_ = DFLin->AddCpptrajFile( rfs_name, "replica fraction slope" );
   printIndividualTrips_ = analyzeArgs.hasKey("printtrips");
   // Get mode
   if (analyzeArgs.hasKey("crdidx"))
@@ -94,11 +102,13 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
     std::string dsname = analyzeArgs.GetStringNext();
     if (dsname.empty())
       dsname = datasetlist->GenerateDefaultName(def_name);
+    MetaData md(dsname);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
-      DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSetIdx(DataSet::INTEGER, dsname, i+1);
+      md.SetIdx(i+1);
+      DataSet_integer* ds = (DataSet_integer*)datasetlist->AddSet(DataSet::INTEGER, md);
       if (ds == 0) return Analysis::ERR;
       outputDsets_.push_back( (DataSet*)ds );
-      if (dfout != 0) dfout->AddSet( (DataSet*)ds );
+      if (dfout != 0) dfout->AddDataSet( (DataSet*)ds );
       ds->Resize( remlog_->NumExchange() ); 
     }
   }
@@ -111,23 +121,16 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   if (mode_ != NONE && dfout != 0)
     mprintf("\tOutput is to %s\n", dfout->DataFilename().base());
   if (calculateStats_) {
-    mprintf("\tGetting replica exchange stats, output to ");
-    if (statsout_.Filename().empty())
-      mprintf("STDOUT\n");
-    else
-      mprintf("%s\n", statsout_.Filename().full());
+    mprintf("\tGetting replica exchange stats, output to %s", statsout_->Filename().full());
     if (printIndividualTrips_)
       mprintf("\tIndividual round trips will be printed.\n");
-    mprintf("\tWriting time spent at each replica to ");
-    if (reptime_.Filename().empty())
-      mprintf("STDOUT\n");
-    else
-      mprintf("%s\n", reptime_.Filename().full());
+    mprintf("\tWriting time spent at each replica to %s", reptime_->Filename().full());
   }
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
-  if (!acceptout_.empty())
-    mprintf("\tOverall exchange acceptance % will be written to %s\n", acceptout_.c_str());
+  if (acceptout_ != 0)
+    mprintf("\tOverall exchange acceptance % will be written to %s\n",
+            acceptout_->Filename().full());
 
   return Analysis::OK;
 }
@@ -167,7 +170,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
-    if (Lifetime.Setup( dsLifetime, lifetimesName_ ) == Analysis::ERR) {
+    if (Lifetime.Setup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
       mprinterr("Error: Could not set up remlog lifetime analysis.\n");
       return Analysis::ERR;
     }
@@ -176,10 +179,10 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   DataSet_Mesh mesh;
   if ( calcRepFracSlope_ > 0 ) {
     mesh.CalculateMeshX( remlog_->Size(), 1, remlog_->Size() );
-    repFracSlope_.Printf("%-8s", "#Exchg");
+    repFracSlope_->Printf("%-8s", "#Exchg");
     for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++)
-      repFracSlope_.Printf("  C%07i_slope C%07i_corel", crdidx + 1, crdidx + 1);
-    repFracSlope_.Printf("\n");
+      repFracSlope_->Printf("  C%07i_slope C%07i_corel", crdidx + 1, crdidx + 1);
+    repFracSlope_->Printf("\n");
   }
 
   ProgressBar progress( remlog_->NumExchange() );
@@ -220,7 +223,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
           if (repidx == 0) {
             int rtrip = frame - replicaBottom[crdidx];
             if (printIndividualTrips_)
-              statsout_.Printf("[%i] CRDIDX %i took %i exchanges to travel"
+              statsout_->Printf("[%i] CRDIDX %i took %i exchanges to travel"
                                " up and down (exch %i to %i)\n",
                                replica, crdidx+1, rtrip, replicaBottom[crdidx]+1, frame+1);
             roundTrip[crdidx].AddElement( rtrip );
@@ -231,55 +234,52 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       }
     } // END loop over replicas
     if (calcRepFracSlope_ > 0 && frame > 0 && (frame % calcRepFracSlope_) == 0) {
-      repFracSlope_.Printf("%8i", frame+1);
+      repFracSlope_->Printf("%8i", frame+1);
       for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++) {
         for (int replica = 0; replica < (int)remlog_->Size(); replica++)
           mesh.SetY(replica, (double)replicaFrac[replica][crdidx] / (double)frame);
         double slope, intercept, correl;
         mesh.LinearRegression(slope, intercept, correl, true);
-        repFracSlope_.Printf("  %14.7g %14.7g", slope * 100.0, correl);
+        repFracSlope_->Printf("  %14.7g %14.7g", slope * 100.0, correl);
                 //frame+1, crdidx, slope * 100.0, intercept * 100.0, correl
       }
-      repFracSlope_.Printf("\n");
+      repFracSlope_->Printf("\n");
     }
   } // END loop over exchanges
   // Number of exchange attempts is actually /2 for TREMD/HREMD since
   // attempts alternate up/down.
-  CpptrajFile Accept;
-  Accept.OpenWrite( acceptout_ );
-  Accept.Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
+  acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
   double exchangeAttempts = (double)remlog_->NumExchange() / 2;
   for (int replica = 0; replica < (int)remlog_->Size(); replica++)
-    Accept.Printf("%8i %8.3f %8.3f\n", replica+1,
+    acceptout_->Printf("%8i %8.3f %8.3f\n", replica+1,
             ((double)acceptUp[replica] / exchangeAttempts) * 100.0,
             ((double)acceptDown[replica] / exchangeAttempts) * 100.0);
-  Accept.CloseFile();
 
   if (calculateStats_) {
-    statsout_.Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
-    statsout_.Printf("#Round-trip stats:\n");
-    statsout_.Printf("#%-8s %8s %12s %12s %12s %12s\n", "CRDIDX", "RndTrips", 
+    statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
+    statsout_->Printf("#Round-trip stats:\n");
+    statsout_->Printf("#%-8s %8s %12s %12s %12s %12s\n", "CRDIDX", "RndTrips", 
                      "AvgExch.", "SD_Exch.", "Min", "Max");
     for (std::vector<DataSet_integer>::iterator rt = roundTrip.begin();
                                                 rt != roundTrip.end(); ++rt)
     {
       double stdev = 0.0;
       double avg = (*rt).Avg( stdev );
-      statsout_.Printf("%-8u %8i %12.4f %12.4f %12.0f %12.0f\n", 
+      statsout_->Printf("%-8u %8i %12.4f %12.4f %12.0f %12.0f\n", 
                        rt - roundTrip.begin() + 1, (*rt).Size(), avg, stdev,
                        (*rt).Min(), (*rt).Max());
     }
    
-    reptime_.Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
+    reptime_->Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
     for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-      reptime_.Printf(" CRD_%04i", crd + 1);
-    reptime_.Printf("\n");
+      reptime_->Printf(" CRD_%04i", crd + 1);
+    reptime_->Printf("\n");
     double dframes = (double)remlog_->NumExchange();
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
-      reptime_.Printf("%8i", replica+1);
+      reptime_->Printf("%8i", replica+1);
       for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-        reptime_.Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
-      reptime_.Printf("\n");
+        reptime_->Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
+      reptime_->Printf("\n");
     }
   }
   if (calculateLifetimes_) {

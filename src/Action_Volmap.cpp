@@ -52,6 +52,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mprinterr("Error: Volmap: no filename specified.\n");
     return Action::ERR;
   }
+  DataFile* outfile = DFL->AddDataFile( filename, actionArgs );
   // Get grid resolutions
   dx_ = actionArgs.getNextDouble(0.0);
   dy_ = actionArgs.getNextDouble(0.0);
@@ -119,11 +120,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
 
   // Setup output file
-  DataFile* outfile = DFL->AddSetToFile(filename, (DataSet*)grid_);
-  if (outfile == 0) {
-    mprinterr("Error: volmap: Could not set up output file %s\n", filename.c_str());
-    return Action::ERR;
-  }
+  outfile->AddDataSet( grid_ );
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
@@ -132,7 +129,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
             centermask_.MaskExpression().c_str(), buffer_);
   else
     mprintf("\tGrid centered at origin.\n");
-  mprintf("\tDensity will wrtten to %s\n", filename.c_str());
+  mprintf("\tDensity will wrtten to %s\n", outfile->DataFilename().full());
   if (peakfile_ != 0)
     mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
             peakcut_, peakfile_->Filename().full());

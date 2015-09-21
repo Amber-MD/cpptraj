@@ -42,7 +42,7 @@ Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* dat
   // Set up bias data set
   bias_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(), "bias");
   if (bias_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( bias_ );
+  if (outfile != 0) outfile->AddDataSet( bias_ );
 
   mprintf("    AMDBIAS: Using energy in data set %s, ethresh=%.4f, alpha=%.4f\n", 
           ds1_->legend(), Ethresh_, alpha_);

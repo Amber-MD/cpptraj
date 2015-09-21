@@ -84,21 +84,21 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   if (perres_ && RefParm_ == 0 && !refFrm.empty())
     RefParm_ = (Topology*)(&refFrm.Parm()); // 
 
-  // Set up the RMSD data set. 
-  rmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"RMSD");
+  // Set up the RMSD data set.
+  MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
+  rmsd_ = DSL->AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
-  rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( rmsd_ );
+  if (outfile != 0) outfile->AddDataSet( rmsd_ );
   // Set up rotation matrix data set if specified
   if (saveMatrices) {
+    md.SetAspect("RM");
     if (!fit_) {
       mprinterr("Error: Must be fitting in order to save rotation matrices.\n");
       return Action::ERR;
     }
-    rmatrices_ = DSL->AddSetAspect(DataSet::MAT3X3, rmsd_->Name(), "RM");
+    rmatrices_ = DSL->AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
-    rmatrices_->SetScalar( DataSet::M_RMS );
   }
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString());
@@ -172,6 +172,8 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
   // Setup a dataset, target mask, and reference mask for each residue.
   int maxNatom = 0;
   Range::const_iterator ref_it = ref_range.begin();
+  MetaData md(rmsd_->Meta().Name(), "res");
+  md.SetScalarMode( MetaData::M_RMS );
   for (Range::const_iterator tgt_it = tgt_range.begin();
                              tgt_it != tgt_range.end(); ++tgt_it, ++ref_it)
   {
@@ -189,18 +191,18 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     // Check if a perResType has been set for this residue # yet.
     perResArray::iterator PerRes;
     for (PerRes = ResidueRMS_.begin(); PerRes != ResidueRMS_.end(); ++PerRes)
-      if ( PerRes->data_->Idx() == tgtRes ) break;
+      if ( PerRes->data_->Meta().Idx() == tgtRes ) break;
     // If necessary, create perResType for residue
     if (PerRes == ResidueRMS_.end()) {
       perResType p;
-      p.data_ = (DataSet_1D*)masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, rmsd_->Name(),
-                                                         tgtRes, "res");
+      md.SetIdx( tgtRes );
+      md.SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
+      p.data_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::DOUBLE, md);
       if (p.data_ == 0) {
         mprinterr("Internal Error: Could not set up per residue data set.\n");
         return 1;
       }
-      p.data_->SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
-      if (perresout_ != 0) perresout_->AddSet( p.data_ );
+      if (perresout_ != 0) perresout_->AddDataSet( p.data_ );
       // Setup mask strings. Note that masks are based off user residue nums
       p.tgtResMask_.SetMaskString(":" + integerToString(tgtRes) + perresmask_);
       p.refResMask_.SetMaskString(":" + integerToString(refRes) + perresmask_);
@@ -369,16 +371,18 @@ void Action_Rmsd::Print() {
   // Average
   if (perresavg_ != 0) {
     // Use the per residue rmsd dataset list to add one more for averaging
-    DataSet_Mesh* PerResAvg = (DataSet_Mesh*)masterDSL_->AddSetAspect(DataSet::XYMESH, 
-                                                                      rmsd_->Name(), "Avg");
+    DataSet_Mesh* PerResAvg = (DataSet_Mesh*)masterDSL_->AddSet(DataSet::XYMESH, 
+                                                                MetaData(rmsd_->Meta().Name(),
+                                                                         "Avg"));
     PerResAvg->Dim(Dimension::X).SetLabel("Residue");
     // another for stdev
-    DataSet_Mesh* PerResStdev = (DataSet_Mesh*)masterDSL_->AddSetAspect(DataSet::XYMESH, 
-                                                                        rmsd_->Name(), "Stdev");
+    DataSet_Mesh* PerResStdev = (DataSet_Mesh*)masterDSL_->AddSet(DataSet::XYMESH, 
+                                                                  MetaData(rmsd_->Meta().Name(),
+                                                                           "Stdev"));
     PerResStdev->Dim(Dimension::X).SetLabel("Residue");
     // Add the average and stdev datasets to the master datafile list
-    perresavg_->AddSet(PerResAvg);
-    perresavg_->AddSet(PerResStdev);
+    perresavg_->AddDataSet(PerResAvg);
+    perresavg_->AddDataSet(PerResStdev);
     // For each residue, get the average rmsd
     double stdev = 0;
     double avg = 0;
@@ -386,7 +390,7 @@ void Action_Rmsd::Print() {
                                      PerRes != ResidueRMS_.end(); ++PerRes)
     {
       avg = PerRes->data_->Avg( stdev );
-      double pridx = (double)PerRes->data_->Idx();
+      double pridx = (double)PerRes->data_->Meta().Idx();
       PerResAvg->AddXY(pridx, avg);
       PerResStdev->AddXY(pridx, stdev);
     }

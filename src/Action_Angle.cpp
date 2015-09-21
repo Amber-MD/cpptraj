@@ -35,16 +35,15 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   Mask3_.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Ang");
+  ang_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),MetaData::M_ANGLE),"Ang");
   if (ang_==0) return Action::ERR;
-  ang_->SetScalar( DataSet::M_ANGLE );
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( ang_ );
+  if (outfile != 0) outfile->AddDataSet( ang_ );
 
   mprintf("    ANGLE: [%s]-[%s]-[%s]\n",Mask1_.MaskString(), Mask2_.MaskString(), 
           Mask3_.MaskString());
   if (useMass_)
-    mprintf("              Using center of mass of atoms in masks.\n");
+    mprintf("\tUsing center of mass of atoms in masks.\n");
 
   return Action::OK;
 }

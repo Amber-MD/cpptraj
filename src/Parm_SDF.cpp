@@ -9,7 +9,7 @@ bool Parm_SDF::ID_ParmFormat(CpptrajFile& fileIn) {
     
 // Parm_SDF::ReadParm()
 /** Read file as an SDF file. */
-int Parm_SDF::ReadParm(std::string const& fname, Topology &parmOut) {
+int Parm_SDF::ReadParm(FileName const& fname, Topology &parmOut) {
   SDFfile infile;
 
   if (infile.OpenRead(fname)) return 1;

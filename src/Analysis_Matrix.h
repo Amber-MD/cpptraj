@@ -25,7 +25,7 @@ class Analysis_Matrix : public Analysis {
     bool eigenvaluesOnly_;
     bool nmwizopt_;
     int nmwizvecs_;
-    std::string nmwizfile_;
+    CpptrajFile* nmwizfile_;
     Topology nmwizParm_;
 };
 #endif

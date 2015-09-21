@@ -14,7 +14,7 @@ class EnsembleIn {
   public:
     EnsembleIn() : targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0) {}
     virtual ~EnsembleIn() {}
-    virtual int SetupEnsembleRead(std::string const&, ArgList&, Topology*) = 0;
+    virtual int SetupEnsembleRead(FileName const&, ArgList&, Topology*) = 0;
     virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;
     virtual int BeginEnsemble() = 0;
     virtual void EndEnsemble() = 0;

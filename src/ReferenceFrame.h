@@ -18,10 +18,10 @@ class ReferenceFrame {
     DataSet_Coords_REF* RefPtr()const { return ref_;              }
     /// \return base file name, or if that is empty data set name.
     std::string const& RefName() const{
-      if (ref_->FrameFilename().empty())
-        return ref_->Name();
+      if (ref_->Meta().Fname().empty())
+        return ref_->Meta().Name();
       else
-        return ref_->FrameFilename().Base();
+        return ref_->Meta().Fname().Base();
     }
     const char* refName() const { return RefName().c_str() ; }
   private:

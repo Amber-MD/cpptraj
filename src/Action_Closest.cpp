@@ -64,10 +64,10 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     if (dsetName.empty())
       dsetName = DSL->GenerateDefaultName("CLOSEST");
     // Set up datasets
-    framedata_ = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "Frame");
-    moldata_   = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "Mol");
-    distdata_  = DSL->AddSetAspect(DataSet::DOUBLE,  dsetName, "Dist");
-    atomdata_  = DSL->AddSetAspect(DataSet::INTEGER, dsetName, "FirstAtm");
+    framedata_ = DSL->AddSet(DataSet::INTEGER, MetaData(dsetName, "Frame"));
+    moldata_   = DSL->AddSet(DataSet::INTEGER, MetaData(dsetName, "Mol"));
+    distdata_  = DSL->AddSet(DataSet::DOUBLE,  MetaData(dsetName, "Dist"));
+    atomdata_  = DSL->AddSet(DataSet::INTEGER, MetaData(dsetName, "FirstAtm"));
     if (framedata_==0 || moldata_==0 || distdata_==0 || atomdata_==0) {
       mprinterr("Error: Could not setup data sets for output file %s\n",
                 filename.c_str());
@@ -79,10 +79,10 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, Dat
       mprinterr("Error: Could not set up output file %s\n", filename.c_str());
       return Action::ERR;
     }
-    outFile_->AddSet(framedata_);
-    outFile_->AddSet(moldata_);
-    outFile_->AddSet(distdata_);
-    outFile_->AddSet(atomdata_);
+    outFile_->AddDataSet(framedata_);
+    outFile_->AddDataSet(moldata_);
+    outFile_->AddDataSet(distdata_);
+    outFile_->AddDataSet(atomdata_);
     outFile_->ProcessArgs("noxcol");
   }
 

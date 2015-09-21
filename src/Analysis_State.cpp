@@ -60,7 +60,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   state_data_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "State");
   if (state_data_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddSet( state_data_ );
+  if (outfile != 0) outfile->AddDataSet( state_data_ );
 
   mprintf("    STATE: The following states have been set up:\n");
   for (StateArray::const_iterator state = States_.begin(); state != States_.end(); ++state)
@@ -105,9 +105,10 @@ Analysis::RetType Analysis_State::Analyze() {
   std::vector<Transition> Status;
   Status.reserve( States_.size() + 1 ); // +1 for state -1, undefined
   for (int i = 0; i != (int)States_.size() + 1; i++) {
-    DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, state_data_->Name(), i, "sCurve");
+    DataSet* ds = masterDSL_->AddSet(DataSet::DOUBLE, 
+                                     MetaData(state_data_->Meta().Name(), "sCurve", i));
     if (ds == 0) return Analysis::ERR;
-    if (curveOut_ != 0) curveOut_->AddSet( ds );
+    if (curveOut_ != 0) curveOut_->AddDataSet( ds );
     ds->SetLegend( StateName(i-1) );
     Status.push_back( Transition((DataSet_double*)ds) );
   }
@@ -143,9 +144,11 @@ Analysis::RetType Analysis_State::Analyze() {
         TransMapType::iterator entry = TransitionMap_.find( sPair );
         if (entry == TransitionMap_.end()) {
           // New transition
-          DataSet* ds = masterDSL_->AddSetIdxAspect(DataSet::DOUBLE, state_data_->Name(), TransitionMap_.size(), "tCurve");
+          DataSet* ds = masterDSL_->AddSet( DataSet::DOUBLE,
+                                            MetaData(state_data_->Meta().Name(), "tCurve",
+                                                     TransitionMap_.size()) );
           if (ds == 0) return Analysis::ERR;
-          if (curveOut_ != 0) curveOut_->AddSet( ds );
+          if (curveOut_ != 0) curveOut_->AddDataSet( ds );
           ds->SetLegend( StateName(last_state) + "->" + StateName(state_num) );
           TransitionMap_.insert( TransPair(sPair, Transition(length, (DataSet_double*)ds)) );
         } else

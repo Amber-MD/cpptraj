@@ -193,7 +193,7 @@ bool CIFfile::ID_CIF(CpptrajFile& fileIn) {
 }
 
 // CIFfile::Read()
-int CIFfile::Read(std::string const& fnameIn, int debugIn) {
+int CIFfile::Read(FileName const& fnameIn, int debugIn) {
   if (file_.OpenFileRead( fnameIn )) return 1;
   const char* ptr = file_.Line();
   mode currentMode = UNKNOWN;

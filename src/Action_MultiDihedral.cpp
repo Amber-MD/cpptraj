@@ -106,33 +106,18 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
                                dih != dihSearch_.end(); ++dih)
   {
     int resNum = dih->ResNum() + 1;
-    // See if Dataset already present
-    DataSet* ds = masterDSL_->CheckForSet(dsetname_, resNum, dih->Name());
+    // See if Dataset already present. FIXME should AddSet do this?
+    MetaData md( dsetname_, dih->Name(), resNum );
+    DataSet* ds = masterDSL_->CheckForSet(md);
     if (ds == 0) {
       // Create new DataSet
-      ds = masterDSL_->AddSetIdxAspect( DataSet::DOUBLE, dsetname_, resNum, dih->Name());
+      md.SetScalarMode( MetaData::M_TORSION );
+      md.SetScalarType( dih->Type() );
+      ds = masterDSL_->AddSet( DataSet::DOUBLE, md );
       if (ds == 0) return Action::ERR;
-      // FIXME: Dihedral types in DihedralSearch.h and DataSet.h should be
-      //        consolidated.
-      DataSet::scalarType dstype = DataSet::UNDEFINED;
-      switch (dih->Type()) {
-        case DihedralSearch::PHI: dstype = DataSet::PHI; break;
-        case DihedralSearch::PSI: dstype = DataSet::PSI; break;
-        case DihedralSearch::CHIP: dstype = DataSet::PCHI; break;
-        case DihedralSearch::ALPHA: dstype = DataSet::ALPHA; break;
-        case DihedralSearch::BETA: dstype = DataSet::BETA; break;
-        case DihedralSearch::GAMMA: dstype = DataSet::GAMMA; break;
-        case DihedralSearch::DELTA: dstype = DataSet::DELTA; break;
-        case DihedralSearch::EPSILON: dstype = DataSet::EPSILON; break;
-        case DihedralSearch::ZETA: dstype = DataSet::ZETA; break;
-        case DihedralSearch::CHIN: dstype = DataSet::CHI; break;
-        case DihedralSearch::OMEGA: dstype = DataSet::OMEGA; break;
-        default: dstype = DataSet::UNDEFINED;
-      }
-      ds->SetScalar( DataSet::M_TORSION, dstype );
       // Add to outfile
       if (outfile_ != 0)
-        outfile_->AddSet( ds );
+        outfile_->AddDataSet( ds );
     }
     data_.push_back( ds ); 
     if (debug_ > 0) {

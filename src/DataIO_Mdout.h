@@ -8,11 +8,9 @@ class DataIO_Mdout : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Mdout(); }
     static void ReadHelp();
     int processReadArgs(ArgList&) { return 0; }
-    int ReadData(std::string const&,DataSetList&,std::string const&);
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&) { return 0; }
-    int WriteData(std::string const&, DataSetList const&)   { return 1; }
-    int WriteData2D(std::string const&, DataSetList const&) { return 1; }
-    int WriteData3D(std::string const&, DataSetList const&) { return 1; }
+    int WriteData(FileName const&, DataSetList const&)   { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
     typedef std::vector<std::string> Sarray;

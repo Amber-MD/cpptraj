@@ -41,12 +41,12 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   if (REF_.InitRef(previous, first, useMass, fit, reftrajname, REF, RefParm,
                    rMaskExpr, actionArgs, "symmrmsd"))
     return Action::ERR;
-  // Set up the RMSD data set. 
-  rmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"RMSD");
+  // Set up the RMSD data set.
+  MetaData md(actionArgs.GetStringNext(), MetaData::M_RMS); 
+  rmsd_ = DSL->AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
-  rmsd_->SetScalar( DataSet::M_RMS );
   // Add dataset to data file list
-  if (outfile != 0) outfile->AddSet( rmsd_ );
+  if (outfile != 0) outfile->AddDataSet( rmsd_ );
   
   mprintf("    SYMMRMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString());

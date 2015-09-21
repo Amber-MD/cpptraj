@@ -2,181 +2,124 @@
 #define INC_DATASET_H
 #include <cstddef> // size_t
 #include <vector>
+#include "MetaData.h"
 #include "Dimension.h"
-#include "Range.h"
-// Class: DataSet
+#include "AssociatedData.h"
+#include "TextFormat.h"
+#include "CpptrajFile.h"
 /// Base class that all DataSet types will inherit.
-/** DataSets are given certain attributes to make DataSet selection easier; 
-  * these are name, index, and aspect. Name is typically associated with the
-  * action that creates the DataSet, e.g. RMSD or distance. Index is used
-  * when and action outputs subsets of data, e.g. with RMSD it is possible to 
-  * output per-residue RMSD, where the DataSet index corresponds to the residue
-  * number. Aspect is used to further subdivide output data type; e.g. with 
-  * nucleic acid analysis each base pair (divided by index) has shear,
-  * stagger etc calculated.
+/** The DataSet base class holds common information, like MetaData for
+  * selection, TextFormat for text output, etc.
+  * Note that specific parts of DataSet MetaData are not directly changeable
+  * since changing things like name directly will affect searching. The
+  * exception is ensemble number, which is not necessarily known at DataSet
+  * creation time.
   */
 class DataSet {
   public:
     typedef DataSet* (*AllocatorType)();
+    typedef std::vector<size_t> SizeArray;
     /// DataSet base type. 
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
       MAT3X3
     };
-    /// Source of data stored in DataSet, used by Analysis_Statistics. Must match Smodes.
-    enum scalarMode {
-      M_DISTANCE=0, M_ANGLE, M_TORSION, M_PUCKER, M_RMS, M_MATRIX, UNKNOWN_MODE 
-    };
-    /// Type of DataSet, used by Analysis_Statistics. Must match Stypes, TypeModes
-    enum scalarType {
-      ALPHA=0, BETA, GAMMA, DELTA, EPSILON, ZETA,  PUCKER, 
-      CHI,     H1P,  C2P,   PHI,   PSI,     PCHI,  OMEGA,
-      NOE,
-      DIST,   COVAR,     MWCOVAR, //FIXME: May need more descriptive names 
-      CORREL, DISTCOVAR, IDEA, 
-      IRED,   DIHCOVAR,
-      UNDEFINED
+    /// Group DataSet belongs to.
+    enum DataGroup {
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES
     };
 
     DataSet();
-    /// Set DataSet type, width, precision, and dimension.
-    DataSet(DataType,int,int,int);
+    /// Set DataSet type, group, text output format, and # of dimensions.
+    DataSet(DataType,DataGroup,TextFormat const&,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
     virtual ~DataSet() {} // Destructor - virtual since this class is inherited
-
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
     /// Consolidate this DataSet across all threads (MPI only)
     virtual int Sync() = 0;
-    /// Print DataSet information
+    /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
-    // -----------------------------------------------------
-    // TODO: Remove this. Should only be in DataSet_1D.h
+    /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
+    virtual void WriteBuffer(CpptrajFile&, SizeArray const&) const = 0;
+    /// \return value of coordinate for specified dimension d and position p.
+    /** NOTE: It is assumed this can ALWAYS be represented as double precision. */
+    virtual double Coord(unsigned int d, size_t p) const { return dim_[d].Coord(p); }
+    /// Allocate data given numbers of elements.
+    virtual int Allocate(SizeArray const&) = 0;
+    /// Add element to data set.
+    /** A pointer to the data is passed in as void - it is up to the
+      * inheriting class to cast it. The X value for the data is passed
+      * in as well. It is expected that each successive X value will
+      * be greater than the preceeding one (does not need to be
+      * consecutive however).
+      */
     virtual void Add( size_t, const void* ) = 0;
-    // ----------===== Public functions =====---------------
-    /// Set output width.
-    void SetWidth(int);
-    /// Set output width and precision
-    void SetPrecision(int,int);
-    /// Set up DataSet with given name, index, aspect, and ensemble num.
-    int SetupSet(std::string const&,int,std::string const&,int);
-    /// Set DataSet legend.
-    void SetLegend( std::string const& lIn ) { legend_ = lIn;     }
-    /// Set scalar mode
-    void SetScalar( scalarMode mIn )         { scalarmode_ = mIn; }
-    /// Set scalar type FIXME OK without setting mode?
-    void SetScalar( scalarType tIn )         { scalartype_ = tIn; }
-    /// Set index.
-    void SetIndex(int i)                     { idx_  = i;         }
+    /// Can be used to append given data set to this one.
+    virtual int Append(DataSet*) = 0;
+    // TODO SizeInMB?
+    // -----------------------------------------------------
+    /// Associate additional data with this set.
+    void AssociateData(AssociatedData* a) { associatedData_.push_back( a->Copy() ); }
+    /// Set DataSet MetaData
+    int SetMeta(MetaData const&);
+    /// Set DataSet ensemble number.
+    void SetEnsemble(int e) { meta_.SetEnsembleNum( e ); }
+    /// Set DataSet legend
+    void SetLegend(std::string const& l) { meta_.SetLegend(l); }
+    /// Set specific TextFormat part.
+    TextFormat& SetupFormat() { return format_; }
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
-    /// Set scalar mode and type
-    inline void SetScalar( scalarMode, scalarType );
-    /// Used to set the data and header format strings 
-    int SetDataSetFormat(bool);
-    /// Check if name and/or index and aspect match this DataSet.
-    bool Matches_WC(std::string const&, Range const&, std::string const&,
-                    Range const&, DataType) const;
-    bool Matches_Exact(std::string const&, int, std::string const&, int) const;
-    /// \return scalar mode/type description
-    std::string ScalarDescription() const;
-    /// \return name/aspect/index/member as "<name>[<aspect>].<idx>%<member>"
-    std::string PrintName() const;
-    // -----------------------------------------------------
-    // ---===== Functions that return private vars =====----
-    /// True if DataSet is empty. 
+    /// Check if name and/or index and aspect wildcard match this DataSet.
+    bool Matches_WC(MetaData::SearchString const&, DataType) const;
+    /// \return AssociateData of specified type.
+    AssociatedData* GetAssociatedData(AssociatedData::AssociatedType) const;
+    /// \return true if given metadata matches this set MetaData exactly.
+    bool Matches_Exact(MetaData const& m) const { return meta_.Match_Exact(m); }
+    /// \return True if DataSet is empty.
     bool Empty()                const { return (Size() == 0);      }
-    /// DataSet output label.
-    std::string const& Legend() const { return legend_;            }
-    const char* legend()        const { return legend_.c_str();    }
-    // TODO: Put all data set metadata into one class.
-    /// \return DataSet base name.
-    std::string const& Name()   const { return name_;              }
-    /// \return DataSet ensemble number.
-    int Member()                const { return ensembleNum_;       }
-    /// Set DataSet ensemble number.
-    void SetMember(int i)             { ensembleNum_ = i;          }
-    /// \return DataSet index.
-    int Idx()                   const { return idx_;               }
-    /// \return DataSet aspect.
-    std::string const& Aspect() const { return aspect_;            }
-    /// \return Total output width of a data element in characters.
-    int ColumnWidth()           const { return colwidth_;          }
+    /// \return DataSet output label.
+    const char* legend()        const { return meta_.Legend().c_str();    }
+    /// \return DataSet MetaData
+    MetaData const& Meta()      const { return meta_; }
+    /// \return DataSet TextFormat
+    TextFormat const& Format()  const { return format_; }
     /// \return DataSet type.
     DataType Type()             const { return dType_;             }
-    /// \return scalar mode
-    scalarMode ScalarMode()     const { return scalarmode_;        }
-    /// \return scalar type
-    scalarType ScalarType()     const { return scalartype_;        }
+    /// \return DataSet group
+    DataGroup Group()           const { return dGroup_;            }
+
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
-    /// \return true if set is a coordinate set type.
-    bool IsCoordSet()           const { return (dType_ == COORDS || dType_ == TRAJ); }
-    /// \return specified DataSet dimension.
+    /// \return specified DataSet dimension. // TODO consolidate
     Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
     Dimension&       Dim(int i)             { return dim_[i];      }
     Dimension const& Dim(int i)       const { return dim_[i];      }
+
     /// Comparison for sorting, name/aspect/idx
-    inline bool operator<(const DataSet&) const;
+    inline bool operator<(const DataSet& rhs) const { return meta_ < rhs.meta_; }
     /// Used to sort DataSet pointers (DataSetList, Array1D).
     struct DS_PtrCmp {
       inline bool operator()(DataSet const* first, DataSet const* second) const {
         return *first < *second;
       }
     };
-    const char* DataFormat()    const { return data_format_;       }
-    const char* ModeString()    const { return Smodes[scalarmode_];}
-    const char* TypeString()    const { return Stypes[scalartype_];}
-    static const char* ModeString(scalarMode m) { return Smodes[m]; }
-    static const char* TypeString(scalarType t) { return Stypes[t]; }
-    /// \return scalarMode that matches input keyword.
-    static scalarMode ModeFromKeyword(std::string const&);
-    /// \return scalarType that matches keyword; check that mode is valid if specified.
-    static scalarType TypeFromKeyword(std::string const&, scalarMode&);
-    static scalarType TypeFromKeyword(std::string const&, scalarMode const&);
   protected:
-    /// Width of numbers in output elements.
-    int Width()                 const { return width_;             }
-    const char* data_format_; ///< Used to avoid constant calls to format_.c_str().
+    TextFormat format_;         ///< Text output data format.
   private:
-    static const char* Smodes[];
-    static const char* Stypes[];
-    static const scalarMode TypeModes[];
     /// Type to hold coordinate info for each dimension in DataSet.
     typedef std::vector<Dimension> DimArray;
-    std::string name_;        ///< Name of the DataSet
-    int ensembleNum_;         ///< DataSet ensemble number.
-    int idx_;                 ///< DataSet index
-    std::string aspect_;      ///< DataSet aspect.
-    std::string legend_;      ///< DataSet legend.
-    DataType dType_;          ///< The DataSet type
-    DimArray dim_;            ///< Holds info for each dimension in the DataSet.
-    int colwidth_;            ///< The total output width of a data element.
-    int width_;               ///< The output width of numbers in a data element.
-    int precision_;           ///< The output precision of numbers in a data element.
-    bool leftAlign_;          ///< If true output will be left-aligned (no leading space).
-    std::string format_;      ///< Output printf format string for data.
-    scalarMode scalarmode_;   ///< Source of data in DataSet.
-    scalarType scalartype_;   ///< Specific type of data in DataSet (if any).
-};
-// ---------- INLINE FUNCTIONS -------------------------------------------------
-bool DataSet::operator<(const DataSet& rhs) const {
-  if ( name_ == rhs.name_ ) {
-    if ( aspect_ == rhs.aspect_ ) {
-      return ( idx_ < rhs.idx_ );
-    } else {
-      return ( aspect_ < rhs.aspect_ );
-    }
-  } else {
-    return ( name_ < rhs.name_ );
-  }
-}
+    /// Type to hold any additional data associated with this data set.
+    typedef std::vector<AssociatedData*> AdataArray;
 
-void DataSet::SetScalar( scalarMode modeIn, scalarType typeIn ) {
-  scalarmode_ = modeIn;
-  scalartype_ = typeIn;
-}
+    DimArray dim_;              ///< Holds info for each dimension in the DataSet.
+    AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
+    DataType dType_;            ///< The DataSet type
+    DataGroup dGroup_;          ///< The DataSet group
+    MetaData meta_;             ///< DataSet metadata
+};
 #endif 

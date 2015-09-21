@@ -38,17 +38,20 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, TopologyList* PFL, Da
   Mask2_.SetMaskString(mask2);
 
   // Dataset to store distances
-  dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "MID");
+  MetaData md(actionArgs.GetStringNext());
+  md.SetScalarMode( MetaData::M_DISTANCE );
+  dist_ = DSL->AddSet(DataSet::DOUBLE, md, "MID");
   if (dist_==0) return Action::ERR;
-  dist_->SetScalar( DataSet::M_DISTANCE );
-  atom1_ = DSL->AddSetAspect(DataSet::INTEGER, dist_->Name(), "A1");
-  atom2_ = DSL->AddSetAspect(DataSet::INTEGER, dist_->Name(), "A2");
+  md.SetAspect("A1");
+  atom1_ = DSL->AddSet(DataSet::INTEGER, md);
+  md.SetAspect("A2");
+  atom2_ = DSL->AddSet(DataSet::INTEGER, md);
   if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
   // Add DataSets to data file
   if (outfile != 0) {
-    outfile->AddSet( dist_ );
-    outfile->AddSet( atom1_ );
-    outfile->AddSet( atom2_ );
+    outfile->AddDataSet( dist_ );
+    outfile->AddDataSet( atom1_ );
+    outfile->AddDataSet( atom2_ );
   }
   int numthreads = 1;
 # ifdef _OPENMP

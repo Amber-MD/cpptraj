@@ -8,41 +8,49 @@ const Vec3 DataSet_Vector::ZERO = Vec3(0,0,0);
 const ComplexArray DataSet_Vector::COMPLEXBLANK = ComplexArray(0);
 
 // CONSTRUCTOR
-DataSet_Vector::DataSet_Vector() : DataSet_1D(VECTOR, 8, 4),
- order_(0), isIred_(false), writeSum_(false) {}
+DataSet_Vector::DataSet_Vector() :
+  DataSet(VECTOR, GENERIC, TextFormat(TextFormat::DOUBLE, 8, 4, 6), 1),
+  order_(0) {}
 
-// DataSet_Vector::Allocate1D()
-int DataSet_Vector::Allocate1D(size_t Nin) {
-  vectors_.reserve( Nin );
-  origins_.reserve( Nin ); // TODO: check if this needs allocation
+// DataSet_Vector::Allocate()
+int DataSet_Vector::Allocate(SizeArray const& Nin) {
+  if (!Nin.empty()) {
+    vectors_.reserve( Nin[0] );
+    origins_.reserve( Nin[0] ); // TODO: check if this needs allocation
+  }
   return 0;
 }
 
 // DataSet_Vector::WriteBuffer()
-void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, size_t frameIn) const {
-  int zmax;
-  if (frameIn >= vectors_.size()) {
-    if (writeSum_)
-      zmax = 9;
-    else
-      zmax = 6;
-    for (int i = 0; i < zmax; i++)
-      cbuffer.Printf(data_format_, 0.0);
+void DataSet_Vector::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= vectors_.size()) {
+    cbuffer.Printf(format_.fmt(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); // VXYZ OXYZ
   } else {
-    Vec3 const& Vxyz = vectors_[frameIn];
-    Vec3 const& Oxyz = OXYZ(frameIn);
-    cbuffer.Printf(data_format_, Vxyz[0]);
-    cbuffer.Printf(data_format_, Vxyz[1]);
-    cbuffer.Printf(data_format_, Vxyz[2]);
-    cbuffer.Printf(data_format_, Oxyz[0]);
-    cbuffer.Printf(data_format_, Oxyz[1]);
-    cbuffer.Printf(data_format_, Oxyz[2]);
-    if (writeSum_) {
-      cbuffer.Printf(data_format_, Oxyz[0]+Vxyz[0]);
-      cbuffer.Printf(data_format_, Oxyz[1]+Vxyz[1]);
-      cbuffer.Printf(data_format_, Oxyz[2]+Vxyz[2]);
-    }
+    Vec3 const& Vxyz = vectors_[pIn[0]];
+    Vec3 const& Oxyz = OXYZ(pIn[0]);
+    cbuffer.Printf(format_.fmt(), Vxyz[0], Vxyz[1], Vxyz[2],
+                                  Oxyz[0], Oxyz[1], Oxyz[2]);
   }
+}
+
+int DataSet_Vector::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Type() != VECTOR) return 1;
+  Varray const& vIn = ((DataSet_Vector*)dsIn)->vectors_;
+  Varray const& oIn = ((DataSet_Vector*)dsIn)->origins_;
+  size_t oldsize = vectors_.size();
+  vectors_.resize( oldsize + vIn.size() );
+  std::copy( vIn.begin(), vIn.end(), vectors_.begin() + oldsize );
+  if (oIn.empty() && !origins_.empty()) // Need vIn.size empty origin vectors
+    origins_.resize( oldsize + vIn.size(), Vec3(0.0) );
+  else if (!oIn.empty() && origins_.empty()) // Need vectors_.size empty origin vecs
+    origins_.resize( vectors_.size(), Vec3(0.0) );
+  if (!oIn.empty()) {
+    oldsize = origins_.size();
+    origins_.resize( oldsize + oIn.size() );
+    std::copy( oIn.begin(), oIn.end(), origins_.begin() + oldsize );
+  }
+  return 0;
 }
 
 // DataSet_Vector::reset()
@@ -51,8 +59,6 @@ void DataSet_Vector::reset() {
   origins_.clear();
   sphericalHarmonics_.clear();
   order_ = 0;
-  isIred_ = false;
-  writeSum_ = false;
 }
 
 // -----------------------------------------------------------------------------

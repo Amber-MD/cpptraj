@@ -8,7 +8,6 @@
 #include "DataSet_Coords_TRJ.h" // LoadTraj
 #include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
-#include "StringRoutines.h" // tildeExpansion
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 #include "SequenceAlign.h"
@@ -259,11 +258,14 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
     mprintf("INPUT: Reading Input from STDIN\n");
     infile = stdin;
   } else {
-    std::string fname = tildeExpansion(inputFilename);
-    if (fname.empty()) return C_ERR;
-    mprintf("INPUT: Reading Input from file %s\n", fname.c_str());
-    if ( (infile=fopen(fname.c_str(),"r"))==0 ) {
-      rprinterr("Error: Could not open input file %s\n", fname.c_str());
+    FileName fname( inputFilename );
+    if (!File::Exists( fname )) {
+      mprinterr("Error: Input file '%s' does not exist.\n", fname.full());
+      return C_ERR;
+    }
+    mprintf("INPUT: Reading Input from file %s\n", fname.full());
+    if ( (infile=fopen(fname.full(), "r"))==0 ) {
+      rprinterr("Error: Could not open input file %s\n", fname.full());
       return C_ERR;
     }
   }
@@ -371,12 +373,6 @@ static void Help_Clear() {
 static void Help_RemoveData() {
   mprintf("\t[<arg>]\n"
           "  Remove data sets(s) corresponding to <arg> from data set list.\n");
-}
-
-static void Help_ActiveRef() {
-  mprintf("\t<#>\n"
-          "  Set the reference structure to be used for coordinate-based mask parsing.\n"
-          "  <#> starts from 0 (first loaded reference).\n");
 }
 
 static void Help_Create_DataFile() {
@@ -607,15 +603,23 @@ static void Deprecate_AvgCoord() {
 Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 { return (Command::RetType)SequenceAlign(State, argIn); }
 
+static void Help_ActiveRef() {
+  mprintf("\t%s\n", DataSetList::RefArgs);
+  mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
+          "  <#> starts from 0 (first reference structure).\n");
+}
+
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
   if (!REF.error() && REF.empty()) {
-    ArgList singleIntArg(integerToString(argIn.getNextInteger(0)));
-    REF = State.DSL()->GetReferenceFrame( singleIntArg );
+    // For backwards compat, see if there is a single integer arg.
+    ArgList refArg( "refindex " + argIn.GetStringNext() );
+    REF = State.DSL()->GetReferenceFrame( refArg );
   }
   if (REF.error() || REF.empty()) return Command::C_ERR;
+  mprintf("\tActive reference is '%s'\n", REF.refName());
   State.SetActiveReference( REF.RefPtr() );
   return Command::C_OK; 
 }
@@ -711,7 +715,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( currentParm != &originalParm ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->SetTopology( *currentParm );
+    CRD->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -743,7 +747,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
   Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast, ensure CoordInfo valid
-  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, currentParm->ParmCoordInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
@@ -786,24 +790,28 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   // Create input frame
   Frame frameIn;
   frameIn.SetupFrameV(parm->Atoms(), trajin.TrajCoordInfo());
-  // Get output set name; use base file name as set name if none specified. 
-  // NOTE: Default name should NEVER get used.
-  std::string setname = argIn.GetStringNext();
-  if (setname.empty())
-    setname = trajin.Traj().Filename().Base();
+  // Set up metadata with file name and output set name
+  MetaData md( trajin.Traj().Filename(), argIn.GetStringNext(), -1 );
   // Check if set already present
-  DataSet_Coords* coords = (DataSet_Coords*)State.DSL()->FindSetOfType(setname, DataSet::COORDS);
-  if (coords == 0) {
+  DataSet_Coords* coords = 0;
+  DataSet* ds = State.DSL()->CheckForSet(md);
+  if (ds == 0) {
     // Create Set 
-    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, setname, "__DCRD__");
+    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
     if (coords == 0) {
       mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
       return Command::C_ERR;
     }
-    coords->SetTopology( *parm );
-    mprintf("\tLoading trajectory '%s' as '%s'\n",
-            trajin.Traj().Filename().full(), setname.c_str());
+    coords->CoordsSetup( *parm, trajin.TrajCoordInfo() );
+    mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.Traj().Filename().full(),
+            coords->legend());
   } else {
+    // Check that set is actually coords.
+    if (ds->Type() != DataSet::COORDS) {
+      mprinterr("Error: Set %s present but is not of type COORDS.\n", ds->legend());
+      return Command::C_ERR;
+    }
+    coords = (DataSet_Coords*)ds;
     // Check that topology matches. For now just check # atoms.
     if (parm->Natom() != coords->Top().Natom()) {
       mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
@@ -908,15 +916,15 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
   State.PFL()->AddParm( CombinedTop );
   // Combine coordinates
   if (crdname.empty())
-    crdname = CRD[0]->Legend() + "_" + CRD[1]->Legend();
+    crdname = CRD[0]->Meta().Legend() + "_" + CRD[1]->Meta().Legend();
   mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
   DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, crdname, "CRD");
   if (CombinedCrd == 0) {
     mprinterr("Error: Could not create COORDS data set.\n");
     return Command::C_ERR;
   }
-  CombinedCrd->SetTopology( *CombinedTop );
   // FIXME: Only copying coords for now
+  CombinedCrd->CoordsSetup( *CombinedTop, CoordinateInfo() );
   Frame CombinedFrame( CombinedTop->Natom() * 3 );
   std::vector<Frame> InputFrames;
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
@@ -1079,7 +1087,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
 
 // -----------------------------------------------------------------------------
 /// Add DataSets specified by arguments to given DataFile.
-// NOTE: Used byt Create_DataFile and Write_DataFile
+// NOTE: Used by Create_DataFile and Write_DataFile
 // TODO: Put in DataFile?
 static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList& DSL)
 {
@@ -1087,10 +1095,10 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
     DataSetList Sets = DSL.GetMultipleSets( *dsa );
     if (Sets.empty())
-      mprintf("Warning: %s does not correspond to any data sets.\n", (*dsa).c_str());
+      mprintf("Warning: %s does not correspond to any data sets.\n", dsa->c_str());
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
       mprintf(" %s", (*set)->legend());
-      if ( df.AddSet(*set) ) {
+      if ( df.AddDataSet(*set) ) {
         mprinterr("Error: Could not add data set %s to file.\n", (*set)->legend());
         ++err;
       }
@@ -1132,7 +1140,7 @@ Command::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Command::Al
   }
   mprintf("\tWriting sets to %s, format '%s'\n", df->DataFilename().full(), df->FormatString());
   int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
-  if (err == 0) df->WriteData();
+  if (err == 0) df->WriteDataOut();
   delete df;
   return (Command::RetType)err;
 }
@@ -1149,18 +1157,18 @@ static void Help_DataSetCmd() {
           "\t  cat <set0> <set1> ... [name <name>] [nooffset]\n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
           "\t<mode>: ");
-  for (int i = 0; i != (int)DataSet::M_MATRIX; i++) // TODO: Allow matrix?
-    mprintf(" %s", DataSet::ModeString((DataSet::scalarMode)i));
+  for (int i = 0; i != (int)MetaData::M_MATRIX; i++) // TODO: Allow matrix?
+    mprintf(" %s", MetaData::ModeString((MetaData::scalarMode)i));
   mprintf("\n\t<type>: ");
-  for (int i = 0; i != (int)DataSet::DIST; i++)
-    mprintf(" %s", DataSet::TypeString((DataSet::scalarType)i));
+  for (int i = 0; i != (int)MetaData::DIST; i++)
+    mprintf(" %s", MetaData::TypeString((MetaData::scalarType)i));
   mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  legend: Set the legend for a single data set\n"
           "  makexy: Create new data set with X values from one set and Y values from another.\n"
           "  cat   : Concatenate 2 or more data sets.\n"
           "  Otherwise, change the mode/type for one or more data sets.\n",
-          Action_Distance::NOE_Help);
+          AssociatedData_NOE::HelpText);
 }
 
 /// Process DataSet-specific command
@@ -1246,52 +1254,49 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       return Command::C_ERR;
     }
     // First determine mode if specified.
-    DataSet::scalarMode dmode = DataSet::UNKNOWN_MODE;
+    MetaData::scalarMode dmode = MetaData::UNKNOWN_MODE;
     if (!modeKey.empty()) {
-      dmode = DataSet::ModeFromKeyword( modeKey );
-      if (dmode == DataSet::UNKNOWN_MODE) {
+      dmode = MetaData::ModeFromKeyword( modeKey );
+      if (dmode == MetaData::UNKNOWN_MODE) {
         mprinterr("Error: Invalid mode keyword '%s'\n", modeKey.c_str());
         return Command::C_ERR;
       }
     }
     // Next determine type if specified.
-    DataSet::scalarType dtype = DataSet::UNDEFINED;
+    MetaData::scalarType dtype = MetaData::UNDEFINED;
     if (!typeKey.empty()) {
-      dtype = DataSet::TypeFromKeyword( typeKey, dmode );
-      if (dtype == DataSet::UNDEFINED) {
+      dtype = MetaData::TypeFromKeyword( typeKey, dmode );
+      if (dtype == MetaData::UNDEFINED) {
         mprinterr("Error: Invalid type keyword '%s'\n", typeKey.c_str());
         return Command::C_ERR;
       }
     }
     // Additional options for type 'noe'
-    double noe_lbound=0.0, noe_ubound=0.0, noe_rexp = -1.0;
-    if (dtype == DataSet::NOE) {
-      if (Action_Distance::NOE_Args(argIn, noe_lbound, noe_ubound, noe_rexp))
+    AssociatedData_NOE noeData;
+    if (dtype == MetaData::NOE) {
+      if (noeData.NOE_Args(argIn))
         return Command::C_ERR;
     }
-    if (dmode != DataSet::UNKNOWN_MODE)
-      mprintf("\tDataSet mode = %s\n", DataSet::ModeString(dmode));
-    if (dtype != DataSet::UNDEFINED)
-      mprintf("\tDataSet type = %s\n", DataSet::TypeString(dtype));
+    if (dmode != MetaData::UNKNOWN_MODE)
+      mprintf("\tDataSet mode = %s\n", MetaData::ModeString(dmode));
+    if (dtype != MetaData::UNDEFINED)
+      mprintf("\tDataSet type = %s\n", MetaData::TypeString(dtype));
     // Loop over all DataSet arguments 
     std::string ds_arg = argIn.GetStringNext();
     while (!ds_arg.empty()) {
       DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
       for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
       {
-        if ( (*ds)->Ndim() != 1 )
+        if ( (*ds)->Ndim() != 1 ) // TODO remove restriction
           mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
                   (*ds)->legend());
         else {
-          if ( dtype == DataSet::NOE ) {
-            if ( (*ds)->Type() != DataSet::DOUBLE )
-              mprintf("Warning:\t\t'%s': Can only set NOE parameters for 'double' data sets.\n",
-                  (*ds)->legend());
-            else
-              ((DataSet_double*)(*ds))->SetNOE(noe_lbound, noe_ubound, noe_rexp);
-          }
+          if ( dtype == MetaData::NOE ) (*ds)->AssociateData( &noeData );
           mprintf("\t\t'%s'\n", (*ds)->legend());
-          (*ds)->SetScalar( dmode, dtype );
+          MetaData md = (*ds)->Meta();
+          md.SetScalarMode( dmode );
+          md.SetScalarType( dtype );
+          (*ds)->SetMeta( md );
         }
       }
       ds_arg = argIn.GetStringNext();
@@ -1337,15 +1342,15 @@ Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   DataFile dataIn;
   dataIn.SetDebug( State.DFL()->Debug() );
   std::string filenameIn = argIn.GetStringNext();
-  StrArray fnames = ExpandToFilenames( filenameIn );
+  File::NameArray fnames = File::ExpandToFilenames( filenameIn );
   if (fnames.empty()) {
     mprinterr("Error: '%s' matches no files.\n", filenameIn.c_str());
     return Command::C_ERR;
   }
   int err = 0;
-  for (StrArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
+  for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
     if (dataIn.ReadDataIn( *fn, argIn, *State.DSL() )!=0) {
-      mprinterr("Error: Could not read data file '%s'.\n", fn->c_str());
+      mprinterr("Error: Could not read data file '%s'.\n", fn->full());
       err++;
     }
   }
@@ -1535,18 +1540,17 @@ static void Help_PrintData() {
 
 Command::RetType PrintData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  std::string ds_arg = argIn.GetStringNext();
-  if (ds_arg.empty()) {
-    mprinterr("Error: No data set arg specified.\n");
-    return Command::C_ERR;
-  }
-  DataSet* ds = State.DSL()->GetDataSet( ds_arg );
-  if (ds == 0) return Command::C_ERR;
-
   DataFile ToStdout;
   ToStdout.SetupStdout(argIn, State.Debug());
-  ToStdout.AddSet( ds );
-  ToStdout.WriteData();
+  DataSetList selected; 
+  std::string ds_arg = argIn.GetStringNext();
+  while (!ds_arg.empty()) {
+    selected += State.DSL()->GetMultipleSets( ds_arg );
+    ds_arg = argIn.GetStringNext();
+  }
+  for (DataSetList::const_iterator ds = selected.begin(); ds != selected.end(); ++ds)
+    ToStdout.AddDataSet( *ds );
+  ToStdout.WriteDataOut();
   return Command::C_OK;
 }
 

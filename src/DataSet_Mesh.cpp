@@ -5,15 +5,17 @@
 
 // CONSTRUCTOR - Create X mesh
 DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
-  DataSet_1D(XYMESH, 12, 4)
+  DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4))
 {
   CalculateMeshX(sizeIn, ti, tf);
 }
 
-// DataSet_Mesh::Allocate1D()
-int DataSet_Mesh::Allocate1D( size_t sizeIn ) {
-  mesh_x_.reserve( sizeIn );
-  mesh_y_.reserve( sizeIn );
+// DataSet_Mesh::Allocate()
+int DataSet_Mesh::Allocate( SizeArray const& sizeIn ) {
+  if (!sizeIn.empty()) {
+    mesh_x_.reserve( sizeIn[0] );
+    mesh_y_.reserve( sizeIn[0] );
+  }
   return 0;
 }
 
@@ -30,23 +32,31 @@ void DataSet_Mesh::Add(size_t frame, const void* vIn) {
 }
 
 // DataSet_Mesh::WriteBuffer()
-void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, size_t frame) const {
-  if (frame >= mesh_x_.size())
-    cbuffer.Printf(data_format_, 0.0);
+void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const {
+  if (pIn[0] >= mesh_x_.size())
+    cbuffer.Printf(format_.fmt(), 0.0);
   else
-    cbuffer.Printf(data_format_, mesh_y_[frame]);
+    cbuffer.Printf(format_.fmt(), mesh_y_[pIn[0]]);
 }
 
 // -----------------------------------------------------------------------------
-void DataSet_Mesh::Append(std::vector<double> const& xIn,
-                          std::vector<double> const& yIn)
-{
-  if (xIn.empty() || xIn.size() != yIn.size()) return;
-  size_t oldsize = Size();
-  mesh_x_.resize( oldsize + xIn.size() );
-  mesh_y_.resize( oldsize + yIn.size() );
-  std::copy( xIn.begin(), xIn.end(), mesh_x_.begin() + oldsize );
-  std::copy( yIn.begin(), yIn.end(), mesh_y_.begin() + oldsize );
+int DataSet_Mesh::Append(DataSet* dsIn) {
+  if (dsIn->Empty()) return 0;
+  if (dsIn->Group() != SCALAR_1D) return 1;
+  if (dsIn->Type() == XYMESH) {
+    std::vector<double> const& xIn = ((DataSet_Mesh*)dsIn)->mesh_x_;
+    std::vector<double> const& yIn = ((DataSet_Mesh*)dsIn)->mesh_y_;
+    size_t oldsize = Size();
+    mesh_x_.resize( oldsize + xIn.size() );
+    mesh_y_.resize( oldsize + yIn.size() );
+    std::copy( xIn.begin(), xIn.end(), mesh_x_.begin() + oldsize );
+    std::copy( yIn.begin(), yIn.end(), mesh_y_.begin() + oldsize );
+  } else {
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *dsIn );
+    for (unsigned int i = 0; i != ds.Size(); i++)
+      AddXY( ds.Xcrd(i), ds.Dval(i) );
+  }
+  return 0;
 }
 
 // DataSet_Mesh::CalculateMeshX()
@@ -197,7 +207,7 @@ void DataSet_Mesh::cubicSpline_coeff(std::vector<double> const& x, std::vector<d
   */
 void DataSet_Mesh::cubicSpline_eval(std::vector<double> const& x, std::vector<double> const& y)
 {
-  int xidx;  
+  int xidx = 0;
   int n = (int)x.size();
   int mesh_size = (int)mesh_x_.size();
 
@@ -344,4 +354,25 @@ int DataSet_Mesh::LinearRegression( double& slope, double& intercept,
     mprintf("\t%-10s %5u %14.7g\n", "Total",  mesh_x_.size() - 1, syy);
   }
   return 0;
+}
+
+// DataSet_Mesh::SingleExponentialRegression()
+int DataSet_Mesh::SingleExpRegression(double& slope, double& intercept,
+                                      double& correl, bool silent )
+{
+  std::vector<double> yorig = mesh_y_;
+  for (unsigned int i = 0; i != mesh_y_.size(); i++)
+  {
+    if (mesh_y_[i] <= 0.0) {
+      if (!silent)
+        mprinterr("Error: Cannot perform exp. regression; set contains value <= 0\n");
+      mesh_y_ = yorig;
+      return 1;
+    }
+    mesh_y_[i] = log( mesh_y_[i] );
+  }
+  int err = LinearRegression(slope, intercept, correl, silent);
+  // Restore original Y values
+  mesh_y_ = yorig;
+  return err;
 }

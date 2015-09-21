@@ -120,20 +120,20 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, TopologyList* PFL, DataS
   hbsetname_ = actionArgs.GetStringNext();
   if (hbsetname_.empty())
     hbsetname_ = DSL->GenerateDefaultName("HB");
-  NumHbonds_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UU");
+  NumHbonds_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
   if (NumHbonds_==0) return Action::ERR;
-  if (DF != 0) DF->AddSet( NumHbonds_ );
+  if (DF != 0) DF->AddDataSet( NumHbonds_ );
   avgout_ = DFL->AddCpptrajFile(avgname, "Avg. solute-solute HBonds");
   if (calcSolvent_) {
-    NumSolvent_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "UV");
+    NumSolvent_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UV"));
     if (NumSolvent_ == 0) return Action::ERR;
-    if (DF != 0) DF->AddSet( NumSolvent_ );
-    NumBridge_ = DSL->AddSetAspect(DataSet::INTEGER, hbsetname_, "Bridge");
+    if (DF != 0) DF->AddDataSet( NumSolvent_ );
+    NumBridge_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "Bridge"));
     if (NumBridge_ == 0) return Action::ERR;
-    if (DF != 0) DF->AddSet( NumBridge_ );
-    BridgeID_ = DSL->AddSetAspect(DataSet::STRING, hbsetname_, "ID");
+    if (DF != 0) DF->AddDataSet( NumBridge_ );
+    BridgeID_ = DSL->AddSet(DataSet::STRING, MetaData(hbsetname_, "ID"));
     if (BridgeID_ == 0) return Action::ERR;
-    if (DF != 0) DF->AddSet( BridgeID_ );
+    if (DF != 0) DF->AddDataSet( BridgeID_ );
     solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
   }
@@ -504,21 +504,22 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
     HB.dist = dist;
     HB.angle = angle;
     if (series_) {
-      HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, 
-                                                          hbidx, "solventhb" );
-      if (UVseriesout_ != 0) UVseriesout_->AddSet( HB.data_ );
+      HB.data_ = (DataSet_integer*)
+                 masterDSL_->AddSet( DataSet::INTEGER,
+                                     MetaData(hbsetname_, "solventhb", hbidx) ); 
+      if (UVseriesout_ != 0) UVseriesout_->AddDataSet( HB.data_ );
       //mprinterr("Created Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,HB.data_);
       HB.data_->SetLegend( hblegend );
       HB.data_->AddVal( frameNum, 1 );
     }
     SolventMap_.insert( entry, std::pair<int,HbondType>(hbidx, HB) );
   } else {
-    (*entry).second.Frames++;
-    (*entry).second.dist += dist;
-    (*entry).second.angle += angle;
+    entry->second.Frames++;
+    entry->second.dist += dist;
+    entry->second.angle += angle;
     if (series_) {
       //mprinterr("Adding Solvent HB data frame %i idx %i %p\n",frameNum,hbidx,(*entry).second.data_);
-      (*entry).second.data_->AddVal( frameNum, 1 );
+      entry->second.data_->AddVal( frameNum, 1 );
     }
   }     
   return 1;
@@ -551,19 +552,20 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
       std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" + \
                              CurrentParm_->TruncResAtomName(d_atom) + "-" + \
                              (*CurrentParm_)[h_atom].Name().Truncated(); \
-      HB.data_ = (DataSet_integer*) masterDSL_->AddSetIdxAspect( DataSet::INTEGER, hbsetname_, \
-                                                          hbidx, "solutehb" ); \
-      if (UUseriesout_ != 0) UUseriesout_->AddSet( HB.data_ ); \
+      HB.data_ = (DataSet_integer*) \
+                 masterDSL_->AddSet( DataSet::INTEGER, \
+                                     MetaData(hbsetname_, "solutehb", hbidx) ); \
+      if (UUseriesout_ != 0) UUseriesout_->AddDataSet( HB.data_ ); \
       HB.data_->SetLegend( hblegend ); \
       HB.data_->AddVal( frameNum, 1 ); \
     } \
     HbondMap_.insert( it, std::pair<int,HbondType>(hbidx, HB) ); \
   } else { \
-    (*it).second.Frames++; \
-    (*it).second.dist += dist; \
-    (*it).second.angle += angle; \
+    it->second.Frames++; \
+    it->second.dist += dist; \
+    it->second.angle += angle; \
     if (series_) \
-      (*it).second.data_->AddVal( frameNum, 1 ); \
+      it->second.data_->AddVal( frameNum, 1 ); \
   } \
 } 
 
@@ -613,7 +615,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
                                    CurrentParm_->TruncResAtomName(dAt) + "-" +
                                    (*CurrentParm_)[hAt].Name().Truncated();
             HB.data_ = (DataSet_integer*)
-                       masterDSL_->AddSetIdxAspect(DataSet::INTEGER,hbsetname_,hbidx,"solutehb" );
+                       masterDSL_->AddSet(DataSet::INTEGER,
+                                          MetaData(hbsetname_,"solutehb",hbidx) );
             if (UUseriesout_ != 0) UUseriesout_->AddSet( HB.data_ );
             HB.data_->SetLegend( hblegend );
             HB.data_->AddVal( frameNum, 1 );

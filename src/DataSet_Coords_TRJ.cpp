@@ -20,18 +20,21 @@ DataSet_Coords_TRJ::~DataSet_Coords_TRJ() {
   }
 }
 
-// DataSet_Coords_TRJ::SetTrjTopology()
-int DataSet_Coords_TRJ::SetTrjTopology( Topology const& parmIn ) {
-  if (trajinList_.empty())
-    SetTopology( parmIn );
-  else {
-    if ( parmIn.Natom() != this->Top().Natom() ) {
+int DataSet_Coords_TRJ::CoordsSetup(Topology const& topIn, CoordinateInfo const& cInfoIn ) {
+  if (trajinList_.empty()) {
+    top_ = topIn;
+    cInfo_ = cInfoIn;
+  } else {
+    if ( topIn.Natom() != top_.Natom() ) {
       mprinterr("Error: For TRAJ data set currently all trajectories must have same number\n"
-                "Error:  of atoms: %s (%i) != %s (%i). Recommended course of action is to\n"
+                "Error:  of atoms: %i != %i. Recommended course of action is to\n"
                 "Error:  create a trajectory where all frames have been stripped to the same\n"
-                "Error:  number of atoms first.\n", parmIn.Natom(), this->Top().Natom());
+                "Error:  number of atoms first.\n", topIn.Natom(), top_.Natom());
       return 1;
     }
+    // Since velocity info is not always allocated in Frame, if one traj
+    // has velocity info ensure that all do.
+    if (cInfoIn.HasVel()) cInfo_.SetVelocity( true );
   }
   return 0;
 }
@@ -56,12 +59,12 @@ int DataSet_Coords_TRJ::AddSingleTrajin(std::string const& fname, ArgList& argIn
     mprinterr("Internal Error: This DataSet_Coords_TRJ class set up for copies.\n");
     return 1;
   }
-  if (SetTrjTopology(*parmIn)) return 1;
   Trajin_Single* trajin = new Trajin_Single();
   if (trajin->SetupTrajRead(fname, argIn, parmIn)) {
     mprinterr("Error: Could not set up trajectory '%s'\n", fname.c_str());
     return 1;
   }
+  if (CoordsSetup(*parmIn, trajin->TrajCoordInfo())) return 1;
   if (UpdateTrjFrames( trajin->Traj().Counter().TotalReadFrames() )) return 1;
   trajinList_.push_back( trajin );
   deleteTrajectories_ = true;
@@ -77,7 +80,7 @@ int DataSet_Coords_TRJ::AddInputTraj(Trajin* tIn) {
     return 1;
   }
   if (tIn == 0) return 1;
-  if (SetTrjTopology( *(tIn->Traj().Parm()) )) return 1;
+  if (CoordsSetup( *(tIn->Traj().Parm()), tIn->TrajCoordInfo() )) return 1;
   if (UpdateTrjFrames( tIn->Traj().Counter().TotalReadFrames() )) return 1;
   trajinList_.push_back( tIn );
   deleteTrajectories_ = false;
@@ -146,4 +149,5 @@ void DataSet_Coords_TRJ::Info() const {
     mprintf(" (1 trajectory)");
   else
     mprintf(" (%zu trajectories)", trajinList_.size());
+  CommonInfo();
 }

@@ -15,7 +15,7 @@ Trajin_Single::~Trajin_Single() {
 }
 
 // TODO: Should this take a FileName instead of string?
-int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn, 
+int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, 
                                  Topology* tparmIn)
 {
   if (trajio_ != 0) delete trajio_;
@@ -24,7 +24,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
   TrajectoryFile::TrajFormatType tformat;
-  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename().Full(), tformat )) == 0 ) {
+  if ( (trajio_ = TrajectoryFile::DetectFormat( Traj().Filename(), tformat )) == 0 ) {
     mprinterr("Error: Could not determine trajectory %s format.\n", Traj().Filename().full());
     return 1;
   }
@@ -33,7 +33,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   // Process format-specific read args
   if (trajio_->processReadArgs( argIn )) return 1;
   // Set up the format for reading and get the number of frames.
-  int nframes = trajio_->setupTrajin(Traj().Filename().Full(), Traj().Parm());
+  int nframes = trajio_->setupTrajin(Traj().Filename(), Traj().Parm());
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
     mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
     return 1;
@@ -51,16 +51,18 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
   cInfo_ = trajio_->CoordInfo();
   // Check if a separate mdvel file will be read
   if (argIn.Contains("mdvel")) {
-    std::string mdvelname = argIn.GetStringKey("mdvel");
-    if (mdvelname.empty()) {
+    FileName mdvel_fname( argIn.GetStringKey("mdvel") );
+    if (mdvel_fname.empty()) {
       mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
       return 1;
     }
-    FileName mdvel_fname;
-    if (mdvel_fname.SetFileNameWithExpansion(mdvelname)) return 1;
+    if ( !File::Exists( mdvel_fname ) ) {
+      mprinterr("Error: %s does not exist.\n", mdvel_fname.full() );
+      return 1;
+    }
     // Detect mdvel format
-    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname.Full(), tformat )) == 0 ) {
-      mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvelname.c_str());
+    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname, tformat )) == 0 ) {
+      mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvel_fname.full());
       return 1;
     }
     velio_->SetDebug( debug_ );
@@ -68,7 +70,7 @@ int Trajin_Single::SetupTrajRead(std::string const& tnameIn, ArgList& argIn,
     int vel_frames = velio_->setupTrajin(mdvel_fname.Full(), Traj().Parm());
     if (vel_frames != Traj().Counter().TotalFrames()) {
       mprinterr("Error: velocity file %s frames (%i) != traj file frames (%i)\n",
-                mdvelname.c_str(), vel_frames, Traj().Counter().TotalFrames());
+                mdvel_fname.full(), vel_frames, Traj().Counter().TotalFrames());
       return 1;
     }
     cInfo_.SetVelocity( true );

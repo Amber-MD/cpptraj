@@ -44,23 +44,23 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Get start/stop/offset
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Determine matrix type
-  DataSet::scalarType mtype = DataSet::DIST;
+  MetaData::scalarType mtype = MetaData::DIST;
   if (actionArgs.hasKey("distcovar"))
-    mtype = DataSet::DISTCOVAR;
+    mtype = MetaData::DISTCOVAR;
   else if (actionArgs.hasKey("mwcovar"))
-    mtype = DataSet::MWCOVAR;
+    mtype = MetaData::MWCOVAR;
   else if (actionArgs.hasKey("dist"))
-    mtype = DataSet::DIST;
+    mtype = MetaData::DIST;
   else if (actionArgs.hasKey("covar"))
-    mtype = DataSet::COVAR;
+    mtype = MetaData::COVAR;
   else if (actionArgs.hasKey("correl"))
-    mtype = DataSet::CORREL;
+    mtype = MetaData::CORREL;
   else if (actionArgs.hasKey("idea"))
-    mtype = DataSet::IDEA;
+    mtype = MetaData::IDEA;
   else if (actionArgs.hasKey("ired"))
-    mtype = DataSet::IRED;
+    mtype = MetaData::IREDMAT;
   else if (actionArgs.hasKey("dihcovar"))
-    mtype = DataSet::DIHCOVAR;
+    mtype = MetaData::DIHCOVAR;
   // Output type
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRESIDUE;
@@ -71,9 +71,9 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   else
     outtype_ = BYATOM;
   // Check if output type is valid for matrix type
-  if ( outtype_ != BYATOM && (mtype == DataSet::COVAR || 
-                              mtype == DataSet::MWCOVAR || 
-                              mtype == DataSet::IRED ) )
+  if ( outtype_ != BYATOM && (mtype == MetaData::COVAR || 
+                              mtype == MetaData::MWCOVAR || 
+                              mtype == MetaData::IREDMAT ) )
   {
     mprinterr("Error: matrix: for COVAR, MWCOVAR, or IRED matrix only byatom output possible\n");
     return Action::ERR;
@@ -84,7 +84,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   useMass_ = actionArgs.hasKey("mass");
   // NOTE: Determine matrix kind here so subsequent Actions/Analyses know about it.
   DataSet_2D::MatrixKindType mkind = DataSet_2D::HALF;
-  if (mtype == DataSet::IRED) { // IRED matrix
+  if (mtype == MetaData::IREDMAT) { // IRED matrix
     // Setup IRED vectors and determine Legendre order
     order_ = actionArgs.getKeyInt("order",1);
     if (order_ <= 0) {
@@ -92,17 +92,14 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
       return Action::ERR;
     }
     for ( DataSetList::const_iterator DS = DSL->begin(); DS != DSL->end(); ++DS) {
-      if ( (*DS)->Type() == DataSet::VECTOR ) {
-        DataSet_Vector* Vtmp = (DataSet_Vector*)(*DS);
-        if (Vtmp->IsIred())
-          IredVectors_.push_back( Vtmp );
-      }
+      if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
+        IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
     if (IredVectors_.empty()) {
       mprinterr("Error: matrix: no vectors defined for IRED\n");
       return Action::ERR;
     }
-  } else if (mtype == DataSet::DIHCOVAR) { // Dihedral Covariance
+  } else if (mtype == MetaData::DIHCOVAR) { // Dihedral Covariance
     // Get data set mask for dihedral covariance
     DihedralSets_.clear();
     DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
@@ -115,10 +112,10 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mask1_.SetMaskString( actionArgs.GetMaskNext() );
     std::string maskexpr = actionArgs.GetMaskNext();
     if (!maskexpr.empty()) useMask2_ = true;
-    if ( useMask2_ && (mtype == DataSet::IDEA || mtype == DataSet::DISTCOVAR) )
+    if ( useMask2_ && (mtype == MetaData::IDEA || mtype == MetaData::DISTCOVAR) )
     {
       mprinterr("Error: Mask 2 [%s] specified but not used for %s matrix\n",
-                maskexpr.c_str(), DataSet::TypeString(mtype));
+                maskexpr.c_str(), MetaData::TypeString(mtype));
       useMask2_ = false;
       return Action::ERR;
     }
@@ -129,13 +126,13 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
 
   // Create matrix BYATOM DataSet
-  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, name, "Mat");
+  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL,
+                                         MetaData(name, MetaData::M_MATRIX, mtype), "Mat");
   if (Mat_ == 0) return Action::ERR;
   // NOTE: Type/Kind is set here so subsequent analyses/actions know about it.
-  Mat_->SetScalar(DataSet::M_MATRIX, mtype);
   Mat_->SetMatrixKind( mkind );
   // Set default precision for backwards compat.
-  Mat_->SetPrecision(6, 3);
+  Mat_->SetupFormat().SetFormatWidthPrecision(6, 3);
   Mat_->Dim(Dimension::X).SetLabel("Atom");
   // Determine what will be output.
   matByRes_ = 0;
@@ -149,22 +146,23 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   } else {
     // BYATOM or BYRESIDUE output. Set up DataFile. 
     if (outtype_ == BYRESIDUE) {
-      matByRes_ = (DataSet_MatrixDbl*)DSL->AddSetAspect(DataSet::MATRIX_DBL, Mat_->Name(), "ByRes");
+      MetaData md(Mat_->Meta().Name(), "ByRes");
+      md.SetScalarMode(MetaData::M_MATRIX);
+      matByRes_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, md);
       if (matByRes_ == 0) return Action::ERR;
-      matByRes_->SetPrecision(6, 3);
+      matByRes_->SetupFormat().SetFormatWidthPrecision(6, 3);
       matByRes_->Dim(Dimension::X).SetLabel("Res");
-      matByRes_->SetScalar(DataSet::M_MATRIX);
     } 
     outfile_ = DFL->AddDataFile(outfilename, actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
-        outfile_->AddSet( Mat_ );
+        outfile_->AddDataSet( Mat_ );
       else
-        outfile_->AddSet( matByRes_ );
+        outfile_->AddDataSet( matByRes_ );
     }
   }
 
-  mprintf("    MATRIX: Calculating %s matrix, output is", Mat_->TypeString());
+  mprintf("    MATRIX: Calculating %s matrix, output is", Mat_->Meta().TypeString());
   switch (outtype_) {
     case BYATOM:    mprintf(" by atom.\n"); break;
     case BYRESIDUE: mprintf(" averaged by residue.\n"); break;
@@ -176,10 +174,10 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
     else
       mprintf("\tAverages will not be mass-weighted.\n");
   }
-  if (mtype == DataSet::IRED)
+  if (mtype == MetaData::IREDMAT)
     mprintf("\t%u IRED vecs, Order of Legendre polynomials: %i\n",
             IredVectors_.size(), order_);
-  else if (mtype == DataSet::DIHCOVAR)
+  else if (mtype == MetaData::DIHCOVAR)
     mprintf("\t%u data sets.\n", DihedralSets_.size());
   if (outfile_ != 0)
     mprintf("\tPrinting to file %s\n", outfile_->DataFilename().full());
@@ -189,7 +187,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   if (matByRes_ != 0)
     mprintf("\tAveraged by residue matrix data set is '%s'\n", matByRes_->legend());
   FrameCounterInfo();
-  if (mtype != DataSet::IRED && mtype != DataSet::DIHCOVAR) {
+  if (mtype != MetaData::IREDMAT && mtype != MetaData::DIHCOVAR) {
     mprintf("\tMask1 is '%s'\n",mask1_.MaskString());
     if (useMask2_)
       mprintf("\tMask2 is '%s'\n",mask2_.MaskString());
@@ -253,10 +251,10 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
   // Set up masks.
-  if (Mat_->ScalarType() == DataSet::IRED) {
+  if (Mat_->Meta().ScalarType() == MetaData::IREDMAT) {
     // IRED - matrix # cols = # of IRED vectors
     mask1tot = IredVectors_.size();
-  } else if (Mat_->ScalarType() == DataSet::DIHCOVAR) {
+  } else if (Mat_->Meta().ScalarType() == MetaData::DIHCOVAR) {
     // Dihedral covariance - matrix # cols = # data sets
     mask1tot = DihedralSets_.size();
   } else {
@@ -282,7 +280,7 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     return Action::ERR;
   }
   // Store mass info for MWCOVAR matrix or when output BYRESIDUE or BYMASK.
-  if ( Mat_->ScalarType() == DataSet::MWCOVAR || (outtype_ != BYATOM && useMass_) ) {
+  if ( Mat_->Meta().ScalarType() == MetaData::MWCOVAR || (outtype_ != BYATOM && useMass_) ) {
     mass1_ = FillMassArray(*currentParm, mask1_);
     mass2_ = FillMassArray(*currentParm, mask2_);
     if (outtype_ != BYATOM && !useMass_)
@@ -304,33 +302,33 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   size_t vectsize = 0;
   size_t ncols = 0;
   size_t nrows = 0;
-  switch( Mat_->ScalarType() ) {
-    case DataSet::CORREL   : // Like DIST but vectors required. 
+  switch( Mat_->Meta().ScalarType() ) {
+    case MetaData::CORREL   : // Like DIST but vectors required. 
       vectsize = (mask1tot + mask2tot) * 3;
-    case DataSet::DIST     : // No vectors required.
+    case MetaData::DIST     : // No vectors required.
       ncols = mask1tot;
       nrows = mask2tot;
       break;
-    case DataSet::DISTCOVAR: // No Full matrix possible.
+    case MetaData::DISTCOVAR: // No Full matrix possible.
       vectsize = mask1tot * (mask1tot - 1) / 2;
       ncols = vectsize;
       if (mask2tot > 0) return PrintMask2Error();
       break;
-    case DataSet::MWCOVAR  :
+    case MetaData::MWCOVAR  :
       // Store mass info matrix DataSet for mass-weighting eigenvectors.
       Mat_->StoreMass( mass1_ );
-    case DataSet::COVAR    :
+    case MetaData::COVAR    :
       vectsize = (mask1tot + mask2tot) * 3;
       ncols = mask1tot * 3;
       nrows = mask2tot * 3;
       break;
-    case DataSet::DIHCOVAR: // Dihedral covariance
+    case MetaData::DIHCOVAR: // Dihedral covariance
       vectsize = (mask1tot + mask2tot) * 2;
       ncols = mask1tot * 2;
       nrows = mask2tot * 2;
       break;
-    case DataSet::IDEA     :
-    case DataSet::IRED     : // No Full matrix possible.
+    case MetaData::IDEA     :
+    case MetaData::IREDMAT  : // No Full matrix possible.
       vectsize = mask1tot + mask2tot;
       ncols = mask1tot;
       if (mask2tot > 0) return PrintMask2Error();
@@ -365,8 +363,8 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   }
 # ifdef _OPENMP
   if (
-       ( Mat_->ScalarType() == DataSet::COVAR ||
-         Mat_->ScalarType() == DataSet::MWCOVAR ))
+       ( Mat_->Meta().ScalarType() == MetaData::COVAR ||
+         Mat_->Meta().ScalarType() == MetaData::MWCOVAR ))
   {
 #   ifdef NEW_MATRIX_PARA
     // Store coordinate XYZ indices of mask 1.
@@ -797,15 +795,15 @@ Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame
   // Increment number of snapshots
   Mat_->IncrementSnapshots();
 
-  switch (Mat_->ScalarType()) {
-    case DataSet::DIST     : CalcDistanceMatrix(*currentFrame); break;
-    case DataSet::COVAR    :
-    case DataSet::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
-    case DataSet::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
-    case DataSet::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
-    case DataSet::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
-    case DataSet::IDEA     : CalcIdeaMatrix(*currentFrame); break;
-    case DataSet::IRED     : CalcIredMatrix(frameNum); break;
+  switch (Mat_->Meta().ScalarType()) {
+    case MetaData::DIST     : CalcDistanceMatrix(*currentFrame); break;
+    case MetaData::COVAR    :
+    case MetaData::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
+    case MetaData::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case MetaData::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
+    case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
+    case MetaData::IDEA     : CalcIdeaMatrix(*currentFrame); break;
+    case MetaData::IREDMAT  : CalcIredMatrix(frameNum); break;
     default: return Action::ERR; // Sanity check
   }
 
@@ -835,14 +833,14 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
     v_iterator v1idx2begin = Mat_->v1begin() + Mat_->Ncols();
     for (v_iterator v1idx2 = v1idx2begin; v1idx2 != Mat_->v1end(); v1idx2 += element_size)
     {
-      if (Mat_->ScalarType() == DataSet::MWCOVAR)
+      if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
         mass2 = *(m2++);
       for (unsigned int iidx = 0; iidx < element_size; ++iidx) {
         M_iterator m1 = mass1_.begin();
         double Vi = *(v1idx2 + iidx);
         for (v_iterator v1idx1 = Mat_->v1begin(); v1idx1 != v1idx2begin; v1idx1 += element_size)
         {
-          if (Mat_->ScalarType() == DataSet::MWCOVAR)
+          if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           for (unsigned int idx = 0; idx < element_size; ++idx) {
             *mat = (*mat - (Vi * *(v1idx1+idx))) * Mass;
@@ -856,14 +854,14 @@ void Action_Matrix::FinishCovariance(size_t element_size) {
     M_iterator m2 = mass1_.begin();
     for (v_iterator v1idx2 = Mat_->v1begin(); v1idx2 != Mat_->v1end(); v1idx2 += element_size)
     {
-      if (Mat_->ScalarType() == DataSet::MWCOVAR)
+      if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
         mass2 = *m2;
       for (unsigned int iidx = 0; iidx < element_size; ++iidx) {
         M_iterator m1 = m2;
         double Vi = *(v1idx2 + iidx);
         for (v_iterator v1idx1 = v1idx2; v1idx1 != Mat_->v1end(); v1idx1 += element_size)
         {
-          if (Mat_->ScalarType() == DataSet::MWCOVAR)
+          if (Mat_->Meta().ScalarType() == MetaData::MWCOVAR)
             Mass = sqrt( mass2 * *(m1++) );
           if ( v1idx1 == v1idx2 ) {
             for (unsigned int jidx = iidx; jidx < element_size; ++jidx) {
@@ -977,7 +975,7 @@ void Action_Matrix::Print() {
     return;
   }
   double norm = (double)Mat_->Nsnapshots();
-  if (Mat_->ScalarType() == DataSet::IDEA) norm *= 3.0;
+  if (Mat_->Meta().ScalarType() == MetaData::IDEA) norm *= 3.0;
   norm = 1.0 / norm;
   for (v_iterator v1 = Mat_->v1begin(); v1 != Mat_->v1end(); ++v1)
     *v1 *= norm;
@@ -986,12 +984,12 @@ void Action_Matrix::Print() {
   for (DataSet_MatrixDbl::iterator m = Mat_->begin(); m != Mat_->end(); ++m)
     *m *= norm;
 
-  switch (Mat_->ScalarType()) {
-    case DataSet::COVAR    :
-    case DataSet::MWCOVAR  : FinishCovariance(3); break;
-    case DataSet::DIHCOVAR : FinishCovariance(2); break;
-    case DataSet::CORREL   : FinishCorrelation(); break;
-    case DataSet::DISTCOVAR: FinishDistanceCovariance(); break;
+  switch (Mat_->Meta().ScalarType()) {
+    case MetaData::COVAR    :
+    case MetaData::MWCOVAR  : FinishCovariance(3); break;
+    case MetaData::DIHCOVAR : FinishCovariance(2); break;
+    case MetaData::CORREL   : FinishCorrelation(); break;
+    case MetaData::DISTCOVAR: FinishDistanceCovariance(); break;
     default: break; 
   }
 

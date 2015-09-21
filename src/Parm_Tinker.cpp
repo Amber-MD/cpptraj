@@ -9,7 +9,7 @@ bool Parm_Tinker::ID_ParmFormat(CpptrajFile& fileIn) {
     
 // Parm_Tinker::ReadParm()
 /** Read file as a Tinker file. */
-int Parm_Tinker::ReadParm(std::string const& fname, Topology &parmOut) {
+int Parm_Tinker::ReadParm(FileName const& fname, Topology &parmOut) {
   TinkerFile infile;
   infile.SetTinkerName( fname );
   if (infile.OpenTinker()) return 1;

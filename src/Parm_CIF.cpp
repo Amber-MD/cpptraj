@@ -10,7 +10,7 @@ const char* Parm_CIF::Entries[] = {
 };
 
 // Parm_CIF::ReadParm()
-int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
+int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   CIFfile infile;
   CIFfile::DataBlock::data_it line;
 
@@ -29,7 +29,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     Nmodels = convertToInteger( (*line)[model_col] );
     if (Nmodels > 1)
       mprintf("Warning: CIF '%s' contains %i models. Using first model for topology.\n", 
-              fname.c_str(), Nmodels);
+              fname.full(), Nmodels);
   }
   // Get essential columns
   int COL[NENTRY];
@@ -37,7 +37,7 @@ int Parm_CIF::ReadParm(std::string const& fname, Topology &TopIn) {
     COL[i] = block.ColumnIndex(Entries[i]);
     if (COL[i] == -1) {
       mprinterr("Error: In CIF file '%s' could not find entry '%s' in block '%s'\n",
-                fname.c_str(), Entries[i], block.Header().c_str());
+                fname.full(), Entries[i], block.Header().c_str());
       return 1;
     }
     if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);

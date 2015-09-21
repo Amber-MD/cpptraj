@@ -266,7 +266,7 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
 }
 
 /** Prepare trajectory for reading. Determine number of frames. */
-int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   int nframes = 0;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
@@ -315,7 +315,7 @@ int Traj_GmxTrX::setupTrajin(std::string const& fname, Topology* trajParm)
   return nframes;
 }
 
-int Traj_GmxTrX::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
 {

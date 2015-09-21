@@ -43,10 +43,10 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* data
     for (DataSetList::const_iterator ds = sets.begin(); ds != sets.end(); ++ds)
     {
       // TODO: Handle multiple data set names well.
-      if ((*ds)->Idx() == *res)
+      if ((*ds)->Meta().Idx() == *res)
       {
-        if ((*ds)->ScalarType() == DataSet::PHI) phi = *ds;
-        else if ((*ds)->ScalarType() == DataSet::PSI) psi = *ds;
+        if ((*ds)->Meta().ScalarType() == MetaData::PHI) phi = *ds;
+        else if ((*ds)->Meta().ScalarType() == MetaData::PSI) psi = *ds;
       }
     }
     if (phi != 0 && psi != 0) {
@@ -83,7 +83,7 @@ Analysis::RetType Analysis_PhiPsi::Analyze() {
   {
     DataSet_1D const& phi = *(*DS);
     DataSet_1D const& psi = *(*(DS+1));
-    std::string legend( phi.Legend() + "-" + psi.Legend() );
+    std::string legend( phi.Meta().Legend() + "-" + psi.Meta().Legend() );
     //mprintf("\t%s\n", legend.c_str());
     if ( phi.Size() < 1 || psi.Size() < 1)
       mprintf("Warning: Phi/Psi pair \"%s\" has no data.\n", legend.c_str());

@@ -15,7 +15,7 @@ class Analysis_RmsAvgCorr: public Analysis {
     Analysis::RetType Analyze();
   private:
     AtomMask tgtMask_;
-    std::string separateName_;
+    CpptrajFile* separate_;
     DataSet_Coords* coords_;
     DataSet* Ct_;
     DataSet* Csd_;

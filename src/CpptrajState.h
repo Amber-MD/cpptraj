@@ -10,8 +10,7 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : activeRef_(0), debug_(0), refidx_(0),
-                     showProgress_(true), exitOnError_(true) {}
+    CpptrajState() : activeRef_(0), debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
     TopologyList* PFL()      { return &parmFileList_; }
     DataSetList* DSL()       { return &DSL_;          }
@@ -87,8 +86,6 @@ class CpptrajState {
     DataSet_Coords_REF* activeRef_;
     /// State debug level
     int debug_;
-    /// Internal reference index for numbering refs in DataSetList. TODO: Put in DataSetList?
-    int refidx_;
     /// Display Progress bar during run
     bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue

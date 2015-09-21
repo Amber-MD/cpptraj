@@ -89,21 +89,23 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, TopologyList* PFL, Data
   // Set up distances.
   int num_noe = 1;
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe, ++num_noe) {
-     // Translate any ambiguous atom names
-     TranslateAmbiguous( noe->aName1_ ); 
-     TranslateAmbiguous( noe->aName2_ );
-     // Create mask expressions from resnum/atom name
-     noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
-     noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
-     // Dataset to store distances
-    noe->dist_ = DSL->AddSetIdxAspect(DataSet::DOUBLE, setname_, num_noe, "NOE");
+    // Translate any ambiguous atom names
+    TranslateAmbiguous( noe->aName1_ ); 
+    TranslateAmbiguous( noe->aName2_ );
+    // Create mask expressions from resnum/atom name
+    noe->dMask1_.SetMaskString( MaskExpression( noe->resNum1_, noe->aName1_ ) ); 
+    noe->dMask2_.SetMaskString( MaskExpression( noe->resNum2_, noe->aName2_ ) ); 
+    // Dataset to store distances
+    AssociatedData_NOE noeData(noe->bound_, noe->boundh_, noe->rexp_);
+    MetaData md(setname_, "NOE", num_noe);
+    md.SetLegend( noe->dMask1_.MaskExpression() + " and " + noe->dMask2_.MaskExpression());
+    md.SetScalarMode( MetaData::M_DISTANCE );
+    md.SetScalarType( MetaData::NOE );
+    noe->dist_ = DSL->AddSet(DataSet::DOUBLE, md);
     if (noe->dist_==0) return Action::ERR;
-    noe->dist_->SetScalar( DataSet::M_DISTANCE, DataSet::NOE );
-    ((DataSet_double*)noe->dist_)->SetNOE(noe->bound_, noe->boundh_, noe->rexp_);
-    noe->dist_->SetLegend( noe->dMask1_.MaskExpression() + " and " + 
-                           noe->dMask2_.MaskExpression());
+    noe->dist_->AssociateData( &noeData );
     // Add dataset to data file
-    if (outfile != 0) outfile->AddSet( noe->dist_ );
+    if (outfile != 0) outfile->AddDataSet( noe->dist_ );
   }
 
   masterDSL_ = DSL;
@@ -388,8 +390,8 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
                                  site2->SiteLegend(*currentParm);
             DataSet* ds = 0;
             if (series_) {
-              ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
-                                               noeArray_.size(), "foundNOE");
+              ds = masterDSL_->AddSet(DataSet::FLOAT,
+                                      MetaData(setname_, "foundNOE", noeArray_.size()));
               if (ds == 0) return Action::ERR;
               // Construct a data set name.
               ds->SetLegend(legend);
@@ -438,8 +440,8 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
                            site2.SiteLegend(*currentParm);
       DataSet* ds = 0;
       if (series_) {
-        ds = masterDSL_->AddSetIdxAspect(DataSet::FLOAT, setname_, 
-                                         specifiedNOEs_.size(), "specNOE");
+        ds = masterDSL_->AddSet(DataSet::FLOAT,
+                                MetaData(setname_, "specNOE", specifiedNOEs_.size()));
         if (ds == 0) return Action::ERR;
         ds->SetLegend(legend);
       }

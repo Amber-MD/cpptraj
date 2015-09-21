@@ -183,8 +183,8 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   DataFile outfile;
   ArgList outargs("usemap");
   outfile.SetupDatafile(k_prefix_ + "Kmatrix.gnu", outargs, debug_);
-  outfile.AddSet( (DataSet*)&kmatrix );
-  outfile.WriteData();
+  outfile.AddDataSet( (DataSet*)&kmatrix );
+  outfile.WriteDataOut();
   // Write out the largest and smallest values for each K.
   // This means for each value of K the point with the furthest Kth-nearest
   // neighbor etc.

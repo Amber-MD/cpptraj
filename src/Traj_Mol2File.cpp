@@ -30,7 +30,7 @@ void Traj_Mol2File::closeTraj() {
 /** See how many MOLECULE records are in file, make sure num atoms match
   * parm and each frame.
   */
-int Traj_Mol2File::setupTrajin(std::string const& fname, Topology* trajParm)
+int Traj_Mol2File::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   int Frames=0;
   mol2WriteMode_ = NONE;
@@ -103,7 +103,7 @@ int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
 /** Set parm information required for write, and check write mode against
   * number of frames to be written.
   */
-int Traj_Mol2File::setupTrajout(std::string const& fname, Topology* trajParm,
+int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
                                 CoordinateInfo const& cInfoIn,
                                 int NframesToWrite, bool append)
 {
