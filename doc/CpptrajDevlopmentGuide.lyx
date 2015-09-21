@@ -427,22 +427,55 @@ General Layout and Concepts
 \end_layout
 
 \begin_layout Standard
-Cpptraj currently lives in 2 key classes: 
+Cpptraj currently lives in 3 key classes:
+\end_layout
+
+\begin_layout Description
+
 \series bold
 Cpptraj
 \series default
-, which is defined in main.cpp and controls overall flow (e.g.
+ Defined in main.cpp, controls overall flow (e.g.
  it is responsible for deciding whether to execute in batch mode or interactive
- moce), and 
+ mode).
+\end_layout
+
+\begin_layout Description
+
 \series bold
 CpptrajState
 \series default
-, which is defined in 
+ Defined in 
 \series bold
 Cpptraj
 \series default
- and holds all of the data, Actions, Analyses, etc.
- The main components of 
+, holds all of the data, Actions, Analyses, etc.
+ 
+\end_layout
+
+\begin_layout Description
+Command 
+\begin_inset Quotes eld
+\end_inset
+
+Static
+\begin_inset Quotes erd
+\end_inset
+
+ class used by 
+\series bold
+Cpptraj
+\series default
+ to process user input.
+ The file Command.cpp also contains all of the logic for executing commands.
+\end_layout
+
+\begin_layout Subsection
+CpptrajState
+\end_layout
+
+\begin_layout Standard
+The main components of 
 \series bold
 CpptrajState
 \series default
@@ -520,28 +553,6 @@ analysisList_; Hold all Analyses to be executed after a run or when a 'runanalys
 is' command is given.
  Similar to ActionList, whenever an Analysis command is issued the Analysis
  in question is initialized and queued up in the AnalysisList.
-\end_layout
-
-\begin_layout Standard
-A third 
-\begin_inset Quotes eld
-\end_inset
-
-static
-\begin_inset Quotes erd
-\end_inset
-
- class, 
-\series bold
-Command
-\series default
-, controls how commands are processed.
- 
-\series bold
-Command
-\series default
- is the class responsible for translating user input.
- The file Command.cpp also contains all of the logic for executing commands.
 \end_layout
 
 \begin_layout Section
