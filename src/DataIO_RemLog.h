@@ -16,19 +16,19 @@ class DataIO_RemLog : public DataIO {
     int WriteData(FileName const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    // NOTE: Must match ExchgDescription
+    // NOTE: Must match ExchgDescription TODO Merge with ReplicaDimArray
     enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
     static const char* ExchgDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
-    int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
-    int ReadRemdDimFile(FileName const&);
+    int ReadRemlogHeader(BufferedLine&, ExchgType&, unsigned int) const;
+    int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&);
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
-    void SetupDim1Group( int );
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, unsigned int);
+    void SetupDim1Group( int, DataSet_RemLog::GdimArray& );
     void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
@@ -37,10 +37,7 @@ class DataIO_RemLog : public DataIO {
     int n_mremd_replicas_;
     bool processMREMD_;
     bool searchForLogs_;
-    class GroupReplica;
-    typedef std::vector<GroupReplica> GroupArray;
-    typedef std::vector<GroupArray> GroupDimType;
-    std::vector<GroupDimType> GroupDims_;
+
     std::vector<ExchgType> DimTypes_;
     // Used for getting temps/coord indices from T-remlog
     struct TlogType {
@@ -53,17 +50,4 @@ class DataIO_RemLog : public DataIO {
       }
     };
 };
-/// Used to hold replica partner info in M-REMD simulations
-class DataIO_RemLog::GroupReplica {
-  public:
-    GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}
-    GroupReplica(const GroupReplica& rhs) :
-      l_partner_(rhs.l_partner_), me_(rhs.me_), r_partner_(rhs.r_partner_) {}
-    GroupReplica(int l, int m, int r) : l_partner_(l), me_(m), r_partner_(r) {}
-    int L_partner() const { return l_partner_; }
-    int Me()        const { return me_;        }
-    int R_partner() const { return r_partner_; }
-  private:
-    int l_partner_, me_, r_partner_;
-}; 
 #endif

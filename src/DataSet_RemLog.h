@@ -9,10 +9,15 @@ class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();
     static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
+    /// Used to hold replica partner information.
+    class GroupReplica;
+    typedef std::vector<GroupReplica> GroupArray; ///< Used to hold rep partner info in a group 
+    typedef std::vector<GroupArray> GroupDimType; ///< Used to hold group info in a dimension
+    typedef std::vector<GroupDimType> GdimArray;  ///< User to hold group info for all dimensions
     /// Hold info for a single replica at one exchange.
     class ReplicaFrame;
     /// Allocate for given # of replicas
-    void AllocateReplicas(int);
+    void AllocateReplicas(int, GdimArray const&);
     /// Add given replica frame to specified ensemble member.
     void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
     /// \return replica frame at exchange in specified ensemble member.
@@ -25,6 +30,7 @@ class DataSet_RemLog : public DataSet {
     bool ValidEnsemble() const;
     /// Trim last replica frame.
     void TrimLastExchange(); 
+    
     // ----- DataSet routines --------------------
     size_t Size() const { return ensemble_.size(); }
     int Sync()          { return 1;                }
@@ -39,7 +45,8 @@ class DataSet_RemLog : public DataSet {
     typedef std::vector<ReplicaFrame> ReplicaArray;
     /// Hold info for all exchanges of all replicas.
     typedef std::vector<ReplicaArray> ReplicaEnsemble;
-    ReplicaEnsemble ensemble_;
+    ReplicaEnsemble ensemble_;            // [replica][exchange]
+    GdimArray GroupDims_; // [dim][group][idx]
 };
 // ----- Public Class Definitions ----------------------------------------------
 class DataSet_RemLog::ReplicaFrame {
@@ -65,5 +72,18 @@ class DataSet_RemLog::ReplicaFrame {
     double temp0_;   ///< Replica bath temperature.
     double PE_x1_;   ///< (HREMD) Potential energy with coords 1.
     double PE_x2_;   ///< (HREMD) Potential energy with coords 2.
+};
+
+class DataSet_RemLog::GroupReplica {
+  public:
+    GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}
+    GroupReplica(const GroupReplica& rhs) :
+      l_partner_(rhs.l_partner_), me_(rhs.me_), r_partner_(rhs.r_partner_) {}
+    GroupReplica(int l, int m, int r) : l_partner_(l), me_(m), r_partner_(r) {}
+    int L_partner() const { return l_partner_; }
+    int Me()        const { return me_;        }
+    int R_partner() const { return r_partner_; }
+  private:
+    int l_partner_, me_, r_partner_;
 };
 #endif
