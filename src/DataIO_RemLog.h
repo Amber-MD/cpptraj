@@ -27,7 +27,7 @@ class DataIO_RemLog : public DataIO {
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, unsigned int);
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
     void SetupDim1Group( int, DataSet_RemLog::GdimArray& );
     void PrintReplicaStats(DataSet_RemLog const&);
 
@@ -38,7 +38,6 @@ class DataIO_RemLog : public DataIO {
     bool processMREMD_;
     bool searchForLogs_;
 
-    //std::vector<ExchgType> DimTypes_;
     ReplicaDimArray DimTypes_;
     // Used for getting temps/coord indices from T-remlog
     struct TlogType {

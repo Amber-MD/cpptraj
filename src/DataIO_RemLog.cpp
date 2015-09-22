@@ -85,8 +85,14 @@ const {
   return numexchg;
 }
 
+// -----------------------------------------------------------------------------
 // DataIO_RemLog::ReadRemdDimFile()
 // TODO: Handle cases where groups are not in order.
+/** Read dimension info from replica dimension file. Set up Groups.
+  * \return 0 if setup OK, 1 if error.
+  * \param rd_name replica dimension file name.
+  * \param GroupDims Output array that will contain group layout.
+  */
 int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
                                    DataSet_RemLog::GdimArray& GroupDims)
 {
@@ -190,13 +196,22 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
   return 0;
 }
 
-/// Get filename up to extension
-//TODO May not need to be its own function. Make a general FileName function?
-static inline std::string GetPrefix(FileName const& fname) {
-  size_t found = fname.Full().rfind( fname.Ext() );
-  return fname.Full().substr(0, found);
-}
+/** For non-MREMD runs, setup dimension 1 group. */
+void DataIO_RemLog::SetupDim1Group( int group_size, DataSet_RemLog::GdimArray& GroupDims ) {
+  if (GroupDims.empty()) GroupDims.resize( 1 );
+  GroupDims[0].resize( 1 );
+  for (int replica = 0; replica < group_size; replica++) {
+    int me = replica + 1;
+    int l_partner = me - 1;
+    if (l_partner < 1) l_partner = group_size;
+    int r_partner = me + 1;
+    if (r_partner > group_size) r_partner = 1;
+    GroupDims[0][0].push_back( DataSet_RemLog::GroupReplica(l_partner, me, r_partner) );
+  }
+  n_mremd_replicas_ = group_size;
+}  
 
+// -----------------------------------------------------------------------------
 // DataIO_RemLog::SetupTemperatureMap()
 /** buffer should be positioned at the first exchange. */
 DataIO_RemLog::TmapType 
@@ -242,6 +257,7 @@ DataIO_RemLog::TmapType
   return TemperatureMap;
 }
 
+// DataIO_RemLog::Setup_pH_Map()
 /** buffer should be positioned at the first exchange. */
 DataIO_RemLog::TmapType 
   DataIO_RemLog::Setup_pH_Map(BufferedLine& buffer, std::vector<int>& CrdIdxs) const
@@ -298,24 +314,16 @@ int DataIO_RemLog::CountHamiltonianReps(BufferedLine& buffer) const {
   return n_replicas;
 }
 
-static inline int MremdNrepsError(int n_replicas, int dim, int groupsize) {
-  if (n_replicas != groupsize) {
-    mprinterr("Error: Number of replicas in dimension %i (%i) does not match\n"
-              "Error: number of replicas in remd.dim file (%u)\n", dim+1, n_replicas,
-              groupsize);
-    return 1;
-  }
-  return 0;
-}
-
-/** Open all dimension files associated with given replica log. Check that the
-  * number of exchanges reported in the files match each other and that each
+// -----------------------------------------------------------------------------
+/** Open replica logs for all dimensions. For MREMD (# dims > 1), check that
+  * the number of exchanges reported in each file is the same and that each
   * is actually a MREMD log. Will leave all remlogs positioned at the first
   * exchange.
-  * \return Expected number of exchanges
+  * \return Expected number of exchanges.
+  * \param buffer Array of replica log files (unopened), 1 per dimension.
+  * \param dimLogs Array of replica log file names, 1 per dimension.
   */
-int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer, 
-                                 Sarray const& dimLogs, unsigned int Ndims)
+int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer, Sarray const& dimLogs)
 {
   // Sanity check
   if (buffer.size() != dimLogs.size()) {
@@ -324,15 +332,17 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
     return 1;
   }
   int total_exchanges = -1;
-  LogType log_type = UNKNOWN;
+  LogType first_log_type = UNKNOWN;
   // Open remlogs for each dimension as buffered file.
-  for (unsigned int dim = 0; dim < Ndims; dim++) {
+  for (unsigned int dim = 0; dim != buffer.size(); dim++) {
+    LogType log_type;
     buffer[dim].CloseFile();
     if (buffer[dim].OpenFileRead( dimLogs[dim]  )) return -1;
     //mprintf("\tOpened %s\n", logname.c_str());
     // Read the remlog header.
-    int numexchg = ReadRemlogHeader(buffer[dim], log_type, Ndims);
+    int numexchg = ReadRemlogHeader(buffer[dim], log_type, buffer.size());
     if (numexchg == -1) return -1;
+    if (first_log_type == UNKNOWN) first_log_type = log_type;
     mprintf("\t%s, type %s, should contain %i exchanges\n",
             dimLogs[dim].c_str(), LogDescription[log_type], numexchg);
     if (total_exchanges == -1)
@@ -348,7 +358,7 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
         return -1;
       }
     } else {
-      // Single dimension. Record log type, ensure subsqeuent opens match.
+      // Single dimension. Record log type if not already done.
       ReplicaDimArray::RemDimType  exch_type = ReplicaDimArray::UNKNOWN;
       if      (log_type == TREMD ) exch_type = ReplicaDimArray::TEMPERATURE;
       else if (log_type == HREMD ) exch_type = ReplicaDimArray::HAMILTONIAN;
@@ -356,9 +366,9 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
       else if (log_type == PHREMD) exch_type = ReplicaDimArray::PH;
       if (DimTypes_.Ndims() == 0)
         DimTypes_.AddRemdDimension( exch_type );
-      else if ( exch_type != DimTypes_[0] ) {
+      else if ( first_log_type != log_type ) {
         mprinterr("Error: Log type of %s (%s) does not match first log type.\n", 
-                  buffer[dim].Filename().full(), LogDescription[log_type]);
+                  buffer[dim].Filename().full(), LogDescription[first_log_type]);
         return -1;
       }
     }
@@ -366,21 +376,7 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
   return total_exchanges;
 }
 
-/** For non-MREMD runs, setup dimension 1 group. */
-void DataIO_RemLog::SetupDim1Group( int group_size, DataSet_RemLog::GdimArray& GroupDims ) {
-  if (GroupDims.empty()) GroupDims.resize( 1 );
-  GroupDims[0].resize( 1 );
-  for (int replica = 0; replica < group_size; replica++) {
-    int me = replica + 1;
-    int l_partner = me - 1;
-    if (l_partner < 1) l_partner = group_size;
-    int r_partner = me + 1;
-    if (r_partner > group_size) r_partner = 1;
-    GroupDims[0][0].push_back( DataSet_RemLog::GroupReplica(l_partner, me, r_partner) );
-  }
-  n_mremd_replicas_ = group_size;
-}  
-
+// -----------------------------------------------------------------------------
 // DataIO_RemLog::ReadHelp()
 void DataIO_RemLog::ReadHelp() {
   mprintf("\tnosearch            : Do not automatically search for MREMD dimension logs.\n"
@@ -390,6 +386,7 @@ void DataIO_RemLog::ReadHelp() {
           "\tMultiple REM logs may be specified.\n");
 }
 
+// DataIO_RemLog::processReadArgs()
 int DataIO_RemLog::processReadArgs(ArgList& argIn) {
   searchForLogs_ = !argIn.hasKey("nosearch");
   // Get dimfile arg
@@ -407,6 +404,23 @@ int DataIO_RemLog::processReadArgs(ArgList& argIn) {
     else
       logFilenames_.push_back( log.Full() );
     log_name = argIn.GetStringNext();
+  }
+  return 0;
+}
+
+/// Get filename up to extension
+//TODO May not need to be its own function. Make a general FileName function?
+static inline std::string GetPrefix(FileName const& fname) {
+  size_t found = fname.Full().rfind( fname.Ext() );
+  return fname.Full().substr(0, found);
+}
+
+static inline int MremdNrepsError(int n_replicas, int dim, int groupsize) {
+  if (n_replicas != groupsize) {
+    mprinterr("Error: Number of replicas in dimension %i (%i) does not match\n"
+              "Error: number of replicas in remd.dim file (%u)\n", dim+1, n_replicas,
+              groupsize);
+    return 1;
   }
   return 0;
 }
@@ -514,7 +528,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   // Base this on the first set of MREMD replica logs.
   // Open remlogs for each dimension as buffered file.
   std::vector<BufferedLine> buffer( GroupDims_.size() );
-  int total_exchanges = OpenMremdDims(buffer, logFileGroups.front(), GroupDims_.size());
+  int total_exchanges = OpenMremdDims(buffer, logFileGroups.front());
   if (total_exchanges == -1) return 1;
   // Should now be positioned at the first exchange in each dimension.
   // Set up map/coordinate indices for each group and make sure they match
@@ -663,7 +677,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   for (LogGroupType::const_iterator it = logFileGroups.begin(); it != logFileGroups.end(); ++it)
   { 
     // Open the current remlog, advance to first exchange
-    int numexchg = OpenMremdDims(buffer, *it, GroupDims_.size());
+    int numexchg = OpenMremdDims(buffer, *it);
     if (numexchg == -1) return 1;
     mprintf("\t%s should contain %i exchanges\n", it->front().c_str(), numexchg);
     // Should now be positioned at 'exchange 1'.
