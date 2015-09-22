@@ -51,7 +51,7 @@ const {
         break;
       else
       {
-        if (debug_ > 0) mprintf("\t%s", line.c_str());
+        //if (debug_ > 0) mprintf("\t%s", line.c_str());
         if (columns[1] == "numexchg")
           numexchg = columns.getNextInteger(-1);
         else if (columns[1] == "Dimension") {
@@ -97,7 +97,7 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
   const char* ptr = rd_file.Line();
   if (IsNullPtr( ptr )) return 1;
   // ptr Should end with a newline
-  mprintf("\tReplica dimension file '%s' title: %s", rd_name.base(), ptr);
+  mprintf("\tReplica dimension file '%s' title: %s\n", rd_name.base(), ptr);
   // Read each &multirem section
   GroupDims.clear();
   DimTypes_.clear();
@@ -567,6 +567,40 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       }
     }
   }
+
+  // Set up dimension topological info for each replica.
+  DataSet_RemLog::RepInfoArray repInfo( n_mremd_replicas_ ); // [rep][dim]
+  for (unsigned int dim = 0; dim != GroupDims_.size(); dim++) {
+    for (unsigned int grp = 0; grp != GroupDims_[dim].size(); grp++) {
+      unsigned int topidx = GroupDims_[dim][grp].size() - 1;
+      for (unsigned int idx = 0; idx != GroupDims_[dim][grp].size(); idx++)
+      {
+        DataSet_RemLog::LocationType loc;
+        if (idx == 0)
+          loc = DataSet_RemLog::BOTTOM;
+        else if (idx == topidx)
+          loc = DataSet_RemLog::TOP;
+        else
+          loc = DataSet_RemLog::MIDDLE;
+        DataSet_RemLog::GroupReplica const& Rep =
+          static_cast<DataSet_RemLog::GroupReplica const&>( GroupDims_[dim][grp][idx] );
+        repInfo[ Rep.Me() - 1 ].push_back(
+          DataSet_RemLog::RepInfo(grp, Rep.L_partner()-1, Rep.R_partner()-1, loc) );
+      }
+    }
+  }
+  const char* LOCSTRING[] = {"BOT", "MID", "TOP"};
+  for (unsigned int rep = 0; rep != repInfo.size(); rep++) {
+    mprintf("\tReplica %u:", rep);
+    for (unsigned int dim = 0; dim != repInfo[rep].size(); dim++) {
+      DataSet_RemLog::RepInfo const& RI =
+        static_cast<DataSet_RemLog::RepInfo const&>(repInfo[rep][dim]);
+      mprintf(" Dim%u[G=%i L=%i R=%i Loc=%s]", dim, RI.GroupID(), RI.LeftID(), RI.RightID(),
+              LOCSTRING[RI.Location()]);
+    }
+    mprintf("\n");
+  }
+
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
   std::vector<int> CoordinateIndices( n_mremd_replicas_ );
   for (int repidx = 0; repidx < n_mremd_replicas_; repidx++) {
@@ -599,7 +633,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     // New set
     ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
     if (ds == 0) return 1;
-    ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas_, GroupDims_);
+    ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas_, GroupDims_, repInfo);
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
@@ -706,7 +740,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
             ensemble.AddRepFrame( tremd_repidx-1,
                                   DataSet_RemLog:: 
                                   ReplicaFrame(tremd_repidx, tremd_partneridx,
-                                               current_crdidx,
+                                               current_crdidx, current_dim,
                                                tremd_success,
                                                tremd_temp0, tremd_pe, 0.0) );
           // ----- pH-REMD ----------------------------
@@ -761,7 +795,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
             ensemble.AddRepFrame( phremd_repidx-1,
                                   DataSet_RemLog:: 
                                   ReplicaFrame(phremd_repidx, phremd_partneridx,
-                                               current_crdidx,
+                                               current_crdidx, current_dim,
                                                phremd_success,
                                                old_pH, 0.0, 0.0) );
           // ----- H-REMD ----------------------------
@@ -804,7 +838,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
             ensemble.AddRepFrame( hremd_repidx-1,
                                   DataSet_RemLog::
                                   ReplicaFrame(hremd_repidx, hremd_partneridx,
-                                               current_crdidx,
+                                               current_crdidx, current_dim,
                                                hremd_success,
                                                hremd_temp0, hremd_pe_x1, hremd_pe_x2) );
           // ----- RXSGLD ----------------------------
@@ -854,7 +888,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
             ensemble.AddRepFrame( sgld_repidx-1,
                                   DataSet_RemLog::
                                   ReplicaFrame(sgld_repidx, sgld_partneridx,
-                                               current_crdidx,
+                                               current_crdidx, current_dim,
                                                sgld_success,
                                                0.0, 0.0, 0.0) );
           // -----------------------------------------
@@ -894,12 +928,12 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
 
 void DataIO_RemLog::PrintReplicaStats(DataSet_RemLog const& ensemble) {
   mprintf("Replica Stats:\n"
-          "%-10s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "RepIdx", "PrtIdx", "CrdIdx",
-          "Temp0", "PE_X1", "PE_X2");
+          "%-10s %2s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "#D",
+          "RepIdx", "PrtIdx", "CrdIdx", "Temp0", "PE_X1", "PE_X2");
   for (int exchg = 0; exchg < ensemble.NumExchange(); exchg++) {
     for (int replica = 0; replica < (int)ensemble.Size(); replica++) {
       DataSet_RemLog::ReplicaFrame const& frm = ensemble.RepFrame(exchg, replica); 
-      mprintf("%10u %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", exchg + 1,
+      mprintf("%10u %2i %6i %6i %6i %12.4f %12.4f %12.4f %1i\n", exchg + 1, frm.Dim(),
               frm.ReplicaIdx(), frm.PartnerIdx(), frm.CoordsIdx(), frm.Temp0(), 
               frm.PE_X1(), frm.PE_X2(), (int)frm.Success());
     }

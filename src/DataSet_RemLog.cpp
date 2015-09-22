@@ -6,10 +6,13 @@ DataSet_RemLog::DataSet_RemLog() :
   DataSet(REMLOG, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
 {}
 
-void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn) {
+void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
+                                      RepInfoArray const& repInfoIn)
+{
   ensemble_.clear();
   ensemble_.resize( n_replicas );
-  GroupDims_ = gdimIn;
+  groupDims_ = gdimIn;
+  repInfo_ = repInfoIn;
 }
 
 int DataSet_RemLog::NumExchange() const {
