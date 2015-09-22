@@ -16,13 +16,13 @@ class DataIO_RemLog : public DataIO {
     int WriteData(FileName const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    // NOTE: Must match ExchgDescription TODO Merge with ReplicaDimArray
-    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
-    static const char* ExchgDescription[];
+    // NOTE: Must match LogDescription
+    enum LogType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
+    static const char* LogDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
-    int ReadRemlogHeader(BufferedLine&, ExchgType&, unsigned int) const;
+    int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
     int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&);
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
     TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
@@ -38,7 +38,8 @@ class DataIO_RemLog : public DataIO {
     bool processMREMD_;
     bool searchForLogs_;
 
-    std::vector<ExchgType> DimTypes_;
+    //std::vector<ExchgType> DimTypes_;
+    ReplicaDimArray DimTypes_;
     // Used for getting temps/coord indices from T-remlog
     struct TlogType {
       double t0;

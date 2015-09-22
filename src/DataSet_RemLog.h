@@ -9,7 +9,6 @@ class DataSet_RemLog : public DataSet {
   public:
     DataSet_RemLog();
     static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
-    typedef std::vector<int> Iarray;
     /// Replica location in dimension
     enum LocationType { BOTTOM = 0, MIDDLE, TOP };
     // -------------------------------------------

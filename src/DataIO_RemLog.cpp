@@ -12,8 +12,8 @@ DataIO_RemLog::DataIO_RemLog() : n_mremd_replicas_(0), processMREMD_(false),
   SetValid( DataSet::REMLOG );
 }
 
-// NOTE: Must match ExchgType
-const char* DataIO_RemLog::ExchgDescription[] = {
+// NOTE: Must match LogType
+const char* DataIO_RemLog::LogDescription[] = {
   "Unknown", "Temperature", "Hamiltonian", "MultipleDim", "RXSGLD", "pH"
 };
 
@@ -27,7 +27,13 @@ static inline bool IsNullPtr( const char* ptr ) {
 }
 
 // DataIO_RemLog::ReadRemlogHeader()
-int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, ExchgType& type, unsigned int Ndims)
+/** Read information from given replica log file header.
+  * \return Number of exchanges expected in log file.
+  * \param buffer Log file, should be opened.
+  * \param type Will be set to type of log file.
+  * \param Ndims For MREMD, expected # of dims from remd.dim file.
+  */
+int DataIO_RemLog::ReadRemlogHeader(BufferedLine& buffer, LogType& type, unsigned int Ndims)
 const {
   int numexchg = -1;
   // Read the first line. Should be '# Replica Exchange log file'
@@ -108,16 +114,16 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
       GroupMapType GroupMap;
       std::string desc;
       int n_replicas = 0;
-      ExchgType exch_type = UNKNOWN;
+      ReplicaDimArray::RemDimType exch_type = ReplicaDimArray::UNKNOWN;
       while (ptr != 0) {
         rd_arg.SetList( std::string(ptr), separators );
         if (rd_arg.CommandIs("&end") || rd_arg.CommandIs("/")) break;
         rd_arg.MarkArg(0);
         if ( rd_arg.CommandIs("exch_type") ) {
           if ( rd_arg.hasKey("TEMP") || rd_arg.hasKey("TEMPERATURE") )
-            exch_type = TREMD;
+            exch_type = ReplicaDimArray::TEMPERATURE;
           else if ( rd_arg.hasKey("HAMILTONIAN") || rd_arg.hasKey("HREMD") )
-            exch_type = HREMD;
+            exch_type = ReplicaDimArray::HAMILTONIAN;
           else {
             mprinterr("Error: Unrecognized exch_type: %s\n", rd_arg.ArgLine());
             return 1;
@@ -163,7 +169,7 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
       for (GroupMapType::const_iterator it = GroupMap.begin(); it != GroupMap.end(); ++it)
         Groups.push_back( it->second );
       mprintf("\tDimension %zu: type '%s', description '%s', groups=%zu, replicas=%i\n", 
-              GroupDims.size() + 1, ExchgDescription[exch_type], desc.c_str(), 
+              GroupDims.size() + 1, ReplicaDimArray::dimType(exch_type), desc.c_str(), 
               Groups.size(), n_replicas);
       if (n_mremd_replicas_ == 0)
         n_mremd_replicas_ = n_replicas;
@@ -173,7 +179,7 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
         return 1;
       }
       GroupDims.push_back( Groups );
-      DimTypes_.push_back( exch_type );
+      DimTypes_.AddRemdDimension( exch_type );
     }
     ptr = rd_file.Line();
   }
@@ -318,7 +324,7 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
     return 1;
   }
   int total_exchanges = -1;
-  ExchgType log_type = UNKNOWN;
+  LogType log_type = UNKNOWN;
   // Open remlogs for each dimension as buffered file.
   for (unsigned int dim = 0; dim < Ndims; dim++) {
     buffer[dim].CloseFile();
@@ -327,7 +333,8 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
     // Read the remlog header.
     int numexchg = ReadRemlogHeader(buffer[dim], log_type, Ndims);
     if (numexchg == -1) return -1;
-    //mprintf("\t%s should contain %i exchanges\n", dimLogs[dim].c_str(), numexchg);
+    mprintf("\t%s, type %s, should contain %i exchanges\n",
+            dimLogs[dim].c_str(), LogDescription[log_type], numexchg);
     if (total_exchanges == -1)
       total_exchanges = numexchg;
     else if (numexchg != total_exchanges) {
@@ -342,11 +349,16 @@ int DataIO_RemLog::OpenMremdDims(std::vector<BufferedLine>& buffer,
       }
     } else {
       // Single dimension. Record log type, ensure subsqeuent opens match.
-      if (DimTypes_.empty())
-        DimTypes_.push_back( log_type );
-      else if ( log_type != DimTypes_.front() ) {
-        mprinterr("Error: Log type of %s does not match first log type.\n", 
-                  buffer[dim].Filename().full());
+      ReplicaDimArray::RemDimType  exch_type = ReplicaDimArray::UNKNOWN;
+      if      (log_type == TREMD ) exch_type = ReplicaDimArray::TEMPERATURE;
+      else if (log_type == HREMD ) exch_type = ReplicaDimArray::HAMILTONIAN;
+      else if (log_type == RXSGLD) exch_type = ReplicaDimArray::RXSGLD;
+      else if (log_type == PHREMD) exch_type = ReplicaDimArray::PH;
+      if (DimTypes_.Ndims() == 0)
+        DimTypes_.AddRemdDimension( exch_type );
+      else if ( exch_type != DimTypes_[0] ) {
+        mprinterr("Error: Log type of %s (%s) does not match first log type.\n", 
+                  buffer[dim].Filename().full(), LogDescription[log_type]);
         return -1;
       }
     }
@@ -513,7 +525,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   std::vector< std::vector<int> > TempCrdIdxs( GroupDims_.size() ); 
   for (int dim = 0; dim < (int)GroupDims_.size(); dim++) {
     int group_size = 0;
-    if ( DimTypes_[dim] == TREMD ) {
+    if ( DimTypes_[dim] == ReplicaDimArray::TEMPERATURE ) {
       TemperatureMap[dim] = SetupTemperatureMap( buffer[dim], TempCrdIdxs[dim] );
       if (TemperatureMap[dim].empty()) return 1;
       group_size = (int)TemperatureMap[dim].size();
@@ -522,7 +534,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       }
-    } else if (DimTypes_[dim] == PHREMD) {
+    } else if (DimTypes_[dim] == ReplicaDimArray::PH) {
       TemperatureMap[dim] = Setup_pH_Map( buffer[dim], TempCrdIdxs[dim] );
       if (TemperatureMap[dim].empty()) return 1;
       group_size = (int)TemperatureMap[dim].size();
@@ -531,14 +543,14 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       }
-    } else if (DimTypes_[dim] == HREMD) {
+    } else if (DimTypes_[dim] == ReplicaDimArray::HAMILTONIAN) {
       group_size = CountHamiltonianReps( buffer[dim] );
       mprintf("\t\tDim %i: %i Hamiltonian reps.\n", dim+1, group_size);
       if (!processMREMD_) SetupDim1Group( group_size, GroupDims_ );
       for (unsigned int grp = 0; grp < GroupDims_[dim].size(); grp++) {
         if (MremdNrepsError(group_size, dim, GroupDims_[dim][grp].size())) return 1;
       } 
-    } else if (DimTypes_[dim] == RXSGLD) {
+    } else if (DimTypes_[dim] == ReplicaDimArray::RXSGLD) {
       group_size = CountHamiltonianReps( buffer[dim] );
       mprintf("\t\tDim %i: %i RXSGLD reps.\n", dim+1, group_size);
       if (!processMREMD_) SetupDim1Group( group_size, GroupDims_ );
@@ -695,7 +707,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
            * Order during REMD is exchange -> MD, so NewTemp0 is the temp. that gets
            * simulated. TODO: Is that valid?
            */
-          if (DimTypes_[current_dim] == TREMD) {
+          if (DimTypes_[current_dim] == ReplicaDimArray::TEMPERATURE) {
             int tremd_crdidx, current_crdidx; // TODO: Remove tremd_crdidx
             double tremd_scaling, tremd_pe, tremd_temp0, tremd_tempP;
             if ( sscanf(ptr, "%2i%10lf%*10f%10lf%10lf%10lf", &tremd_crdidx, &tremd_scaling,
@@ -752,7 +764,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
            * Order during REMD is exchange -> MD, so old_pH is the pH that gets
            * simulated. TODO: Is that valid?
            */
-          } else if (DimTypes_[current_dim] == PHREMD) {
+          } else if (DimTypes_[current_dim] == ReplicaDimArray::PH) {
             int ph_crdidx, current_crdidx; // TODO: Remove ph_crdidx
             double old_pH, new_pH;
             if ( sscanf(ptr, "%6i%*8i%*c%7lf%7lf", &ph_crdidx, &old_pH, &new_pH) != 3)
@@ -804,7 +816,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
        # Rep#, Neibr#, Temp0, PotE(x_1), PotE(x_2), left_fe, right_fe, Success, Success rate (i,i+1)
             1     8    300.00 -25011.03 -24959.58    -27.48      0.00    F        0.00
            */
-          } else if (DimTypes_[current_dim] == HREMD) {
+          } else if (DimTypes_[current_dim] == ReplicaDimArray::HAMILTONIAN) {
             int hremd_grp_repidx, hremd_grp_partneridx, current_crdidx;
             double hremd_temp0, hremd_pe_x1, hremd_pe_x2;
             bool hremd_success;
@@ -847,7 +859,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
            # Rep Stagid Vscale  SGscale Temp Templf Eptot Acceptance(i,i+1)
               1   1  1.0000  1.0000    0.00   21.21 -0.102302E+02  0.0000
            */
-          } else if (DimTypes_[current_dim] == RXSGLD) {
+          } else if (DimTypes_[current_dim] == ReplicaDimArray::RXSGLD) {
             // Consider accept if sgscale is not -1.0.
             int sgld_repidx, sgld_crdidx;
             double sgscale;
