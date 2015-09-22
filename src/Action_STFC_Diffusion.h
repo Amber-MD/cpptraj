@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_STFC_DIFFUSION_H
 #define INC_ACTION_STFC_DIFFUSION_H
 #include "Action.h"
+#include "DataSet.h"
 /** \author Hannes H. Loeffler
   * \author C++ adaptation by Daniel R. Roe
   */
@@ -39,6 +40,7 @@ class Action_STFC_Diffusion : public Action {
     Darray distance_;
     Darray deltaxyz_;
     Darray previousxyz_;
+    DataSet* distancecp_;
 
     Darray dSum1_;
     Darray dSum2_;
