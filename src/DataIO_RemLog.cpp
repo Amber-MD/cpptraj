@@ -794,11 +794,11 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
               current_crdidx = CoordinateIndices[tremd_partneridx-1];
             else
               current_crdidx = CoordinateIndices[tremd_repidx-1];
-            mprintf("DEBUG: Exchg %8i Tdim# %2u T=%6.2f group=%2u"
-                    " repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
-                    exchg+1, current_dim+1, tremd_temp0, grp+1,
-                    tremd_repidx, tremd_partneridx,
-                    CoordinateIndices[tremd_repidx-1], current_crdidx);
+            //mprintf("DEBUG: Exchg %8i Tdim# %2u T=%6.2f group=%2u"
+            //        " repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i\n",
+            //        exchg+1, current_dim+1, tremd_temp0, grp+1,
+            //        tremd_repidx, tremd_partneridx,
+            //        CoordinateIndices[tremd_repidx-1], current_crdidx);
             // Create replica frame for TREMD
             ensemble.AddRepFrame( tremd_repidx-1,
                                   DataSet_RemLog:: 

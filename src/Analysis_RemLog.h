@@ -11,6 +11,19 @@ class Analysis_RemLog : public Analysis {
     Analysis::RetType Analyze();
   private:
     enum ModeType { NONE = 0, CRDIDX, REPIDX };
+
+    /// Track stats for each dimension.
+    typedef std::vector<int> Iarray;
+    class RepStats {
+      public:
+        RepStats(int nreps) : acceptUp_(nreps, 0), acceptDown_(nreps, 0), attempts_(0) {}
+
+        Iarray acceptUp_;
+        Iarray acceptDown_;
+        int attempts_;
+    };
+
+    int debug_;
     bool calculateStats_;
     bool calculateLifetimes_;
     bool printIndividualTrips_;

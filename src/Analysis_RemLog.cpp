@@ -7,6 +7,7 @@
 #include "DataSet_Mesh.h" // Regression
 
 Analysis_RemLog::Analysis_RemLog() :
+  debug_(0),
   calculateStats_(false),
   calculateLifetimes_(false),
   printIndividualTrips_(false), 
@@ -32,6 +33,7 @@ void Analysis_RemLog::Help() {
 Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
                             TopologyList* PFLin, DataFileList* DFLin, int debugIn)
 {
+  debug_ = debugIn;
   // Get remlog dataset
   std::string remlogName = analyzeArgs.GetStringNext();
   if (remlogName.empty()) {
@@ -121,10 +123,10 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   if (mode_ != NONE && dfout != 0)
     mprintf("\tOutput is to %s\n", dfout->DataFilename().base());
   if (calculateStats_) {
-    mprintf("\tGetting replica exchange stats, output to %s", statsout_->Filename().full());
+    mprintf("\tGetting replica exchange stats, output to %s\n", statsout_->Filename().full());
     if (printIndividualTrips_)
       mprintf("\tIndividual round trips will be printed.\n");
-    mprintf("\tWriting time spent at each replica to %s", reptime_->Filename().full());
+    mprintf("\tWriting time spent at each replica to %s\n", reptime_->Filename().full());
   }
   if (calculateLifetimes_)
     mprintf("\tThe lifetime of each crd at each replica will be calculated.\n");
@@ -137,8 +139,17 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
 
 // Analysis_RemLog::Analyze()
 Analysis::RetType Analysis_RemLog::Analyze() {
-  std::vector<int> acceptUp( remlog_->Size(), 0 );
-  std::vector<int> acceptDown( remlog_->Size(), 0 );
+  if (remlog_->Size() < 1) {
+    mprinterr("Error: No replicas in remlog data '%s'\n", remlog_->legend());
+    return Analysis::ERR;
+  }
+  int Ndims = remlog_->DimTypes().Ndims();
+  mprintf("\t'%s' %i replicas, %i exchanges, %i dims.\n", remlog_->legend(),
+         remlog_->Size(), remlog_->NumExchange(), Ndims);
+  std::vector<RepStats> DimStats;
+  for (int i = 0; i != Ndims; i++)
+    DimStats.push_back( RepStats(remlog_->Size()) );
+
   // Variables for calculating replica stats
   enum RepStatusType { UNKNOWN = 0, HIT_BOTTOM, HIT_TOP };
   std::vector<int> replicaStatus;
@@ -192,11 +203,18 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
       int crdidx = frm.CoordsIdx() - 1;
       int repidx = frm.ReplicaIdx() - 1;
+      int dim = frm.Dim();
+      // Exchange acceptance.
+      // NOTE: Because currently the direction of the attempt is not always
+      //       known unless the attempt succeeds for certain remlog types,
+      //       the results will be skewed if dimension size is 2 since in that
+      //       case the left partner is the right partner.
+      if (replica == 0) DimStats[dim].attempts_++; // Assume same # attempts for every rep in dim
       if (frm.Success()) {
-        if (frm.PartnerIdx() > frm.ReplicaIdx())
-          acceptUp[replica]++;
-        else
-          acceptDown[replica]++;
+        if (frm.PartnerIdx() - 1 == remlog_->ReplicaInfo()[replica][dim].RightID())
+          DimStats[dim].acceptUp_[replica]++;
+        else // Assume down
+          DimStats[dim].acceptDown_[replica]++;
       }
       if (mode_ == CRDIDX) {
         DataSet_integer& ds = static_cast<DataSet_integer&>( *(outputDsets_[repidx]) );
@@ -246,15 +264,22 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       repFracSlope_->Printf("\n");
     }
   } // END loop over exchanges
-  // Number of exchange attempts is actually /2 for TREMD/HREMD since
-  // attempts alternate up/down.
-  acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
-  double exchangeAttempts = (double)remlog_->NumExchange() / 2;
-  for (int replica = 0; replica < (int)remlog_->Size(); replica++)
-    acceptout_->Printf("%8i %8.3f %8.3f\n", replica+1,
-            ((double)acceptUp[replica] / exchangeAttempts) * 100.0,
-            ((double)acceptDown[replica] / exchangeAttempts) * 100.0);
-
+  // Exchange acceptance calc.
+  for (int dim = 0; dim != Ndims; dim++) {
+    // Assume number of exchange attempts is actually /2 since in Amber
+    // attempts alternate up/down.
+    acceptout_->Printf("DIMENSION %i\n", dim+1);
+    if (debug_ > 0) {
+    for (int replica = 0; replica != (int)remlog_->Size(); replica++)
+      mprintf("Rep %i attempts %i up %i down %i\n", replica, DimStats[dim].attempts_, DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
+    }
+    acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
+    double exchangeAttempts = (double)DimStats[dim].attempts_ / 2.0;
+    for (int replica = 0; replica != (int)remlog_->Size(); replica++)
+      acceptout_->Printf("%8i %8.3f %8.3f\n", replica+1,
+            ((double)DimStats[dim].acceptUp_[replica] / exchangeAttempts) * 100.0,
+            ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
+  }
   if (calculateStats_) {
     statsout_->Printf("# %i replicas, %i exchanges.\n", remlog_->Size(), remlog_->NumExchange());
     statsout_->Printf("#Round-trip stats:\n");

@@ -21,22 +21,24 @@ class DataSet_RemLog : public DataSet {
     GdimArray const& GroupDims() const { return groupDims_; }
     //GdimArray& SetupGroupDims()        { return groupDims_; }
     // -------------------------------------------
-    /// Hold info for a single replica at one exchange.
-    class ReplicaFrame;
     /// Hold topological info for replica in dimension.
     class RepInfo;
     typedef std::vector<RepInfo> RepInfoDimArray;      ///< Hold rep info in each dimension
     typedef std::vector<RepInfoDimArray> RepInfoArray; ///< Hold rep dim info for all replicas
     RepInfoArray const& ReplicaInfo() const { return repInfo_; }
-
-    /// Allocate for given # of replicas
-    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&, ReplicaDimArray const&);
+    // -------------------------------------------
+    /// Hold info for a single replica at one exchange.
+    class ReplicaFrame;
     /// Add given replica frame to specified ensemble member.
     void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
     /// \return replica frame at exchange in specified ensemble member.
     ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch];  }
     /// \return replica frame at last exchange in specified ensemble member.
     ReplicaFrame const& LastRepFrame(int rep)       const { return ensemble_[rep].back(); }
+
+    ReplicaDimArray const& DimTypes() const { return repDims_; }
+    /// Allocate for given # of replicas
+    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&, ReplicaDimArray const&);
     /// \return number of exchanges
     int NumExchange() const;
     /// \return true if ensemble is valid.
