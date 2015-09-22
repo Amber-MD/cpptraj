@@ -284,7 +284,7 @@ DataIO_RemLog::TmapType
                 "Error: Line: %s", ptr);
       return pH_Map;
     }
-    mprintf("DEBUG: pH= %g\n", plog.t0);
+    //mprintf("DEBUG: pH= %g\n", plog.t0);
     pList.push_back( plog );
     ptr = buffer.Line();
   }
@@ -652,16 +652,18 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       }
     }
   }
-  const char* LOCSTRING[] = {"BOT", "MID", "TOP"};
-  for (unsigned int rep = 0; rep != repInfo.size(); rep++) {
-    mprintf("\tReplica %u:", rep);
-    for (unsigned int dim = 0; dim != repInfo[rep].size(); dim++) {
-      DataSet_RemLog::RepInfo const& RI =
-        static_cast<DataSet_RemLog::RepInfo const&>(repInfo[rep][dim]);
-      mprintf(" Dim%u[G=%i L=%i R=%i Loc=%s]", dim, RI.GroupID(), RI.LeftID(), RI.RightID(),
-              LOCSTRING[RI.Location()]);
+  if (debug_ > 0) {
+    const char* LOCSTRING[] = {"BOT", "MID", "TOP"};
+    for (unsigned int rep = 0; rep != repInfo.size(); rep++) {
+      mprintf("\tReplica %u:", rep);
+      for (unsigned int dim = 0; dim != repInfo[rep].size(); dim++) {
+        DataSet_RemLog::RepInfo const& RI =
+          static_cast<DataSet_RemLog::RepInfo const&>(repInfo[rep][dim]);
+        mprintf(" Dim%u[G=%i L=%i R=%i Loc=%s]", dim, RI.GroupID(), RI.LeftID(), RI.RightID(),
+                LOCSTRING[RI.Location()]);
+      }
+      mprintf("\n");
     }
-    mprintf("\n");
   }
 
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
@@ -849,11 +851,11 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
               current_crdidx = CoordinateIndices[phremd_partneridx-1];
             else
               current_crdidx = CoordinateIndices[phremd_repidx-1];
-            mprintf("DEBUG: Exchg %3i pHdim# %1u old_pH=%6.2f group=%2u"
-                    " repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i Exch=%i\n",
-                    exchg+1, current_dim+1, old_pH, grp+1,
-                    phremd_repidx, phremd_partneridx,
-                    CoordinateIndices[phremd_repidx-1], current_crdidx, (int)phremd_success);
+            //mprintf("DEBUG: Exchg %3i pHdim# %1u old_pH=%6.2f group=%2u"
+            //        " repidx=%3i partneridx=%3i oldcrdidx=%i newcrdidx=%i Exch=%i\n",
+            //        exchg+1, current_dim+1, old_pH, grp+1,
+            //        phremd_repidx, phremd_partneridx,
+            //        CoordinateIndices[phremd_repidx-1], current_crdidx, (int)phremd_success);
             // Create replica frame for PHREMD
             ensemble.AddRepFrame( phremd_repidx-1,
                                   DataSet_RemLog:: 
