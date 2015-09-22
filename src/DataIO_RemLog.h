@@ -22,23 +22,29 @@ class DataIO_RemLog : public DataIO {
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
+    /// Read remlog header
     int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
-    int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&);
+    /// Set up groups and dimensions from replica dim file
+    int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&, ReplicaDimArray&);
+    /// Set up groups for single dimension.
+    int SetupDim1Group( int, DataSet_RemLog::GdimArray& );
+
+    /// Set up replica temperature map
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    /// Set up replica pH map
     TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
+    /// Count number of Hamiltonian replicas
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
-    void SetupDim1Group( int, DataSet_RemLog::GdimArray& );
+
+    /// Open replica logs for all dimensions.
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, LogType);
     void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
-    std::string dimfile_;
-    std::string crdidx_;
-    int n_mremd_replicas_;
-    bool processMREMD_;
-    bool searchForLogs_;
+    std::string dimfile_; ///< remd.dim file name
+    std::string crdidx_;  ///< Starting coordinate indices
+    bool searchForLogs_;  ///< True if need to search for logs for individual dimensions
 
-    ReplicaDimArray DimTypes_;
     // Used for getting temps/coord indices from T-remlog
     struct TlogType {
       double t0;

@@ -7,12 +7,14 @@ DataSet_RemLog::DataSet_RemLog() :
 {}
 
 void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
-                                      RepInfoArray const& repInfoIn)
+                                      RepInfoArray const& repInfoIn,
+                                      ReplicaDimArray const& repDimIn)
 {
   ensemble_.clear();
   ensemble_.resize( n_replicas );
   groupDims_ = gdimIn;
   repInfo_ = repInfoIn;
+  repDims_ = repDimIn;
 }
 
 int DataSet_RemLog::NumExchange() const {

@@ -2,6 +2,7 @@
 #define INC_DATASET_REMLOG_H
 #include <vector>
 #include "DataSet.h"
+#include "ReplicaDimArray.h"
 /** Store data from Amber REMD log. For each exchange, the replica index and
   * coordinates index for each replica is stored. These indices start from 1.
   */
@@ -29,7 +30,7 @@ class DataSet_RemLog : public DataSet {
     RepInfoArray const& ReplicaInfo() const { return repInfo_; }
 
     /// Allocate for given # of replicas
-    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&);
+    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&, ReplicaDimArray const&);
     /// Add given replica frame to specified ensemble member.
     void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
     /// \return replica frame at exchange in specified ensemble member.
@@ -60,6 +61,7 @@ class DataSet_RemLog : public DataSet {
     ReplicaEnsemble ensemble_; // [replica][exchange]
     GdimArray groupDims_;      // [dim][group][idx]
     RepInfoArray repInfo_;     // [replica][dim]
+    ReplicaDimArray repDims_;  // [dim]
 };
 // ----- Public Class Definitions ----------------------------------------------
 class DataSet_RemLog::ReplicaFrame {
