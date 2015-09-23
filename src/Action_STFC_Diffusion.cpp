@@ -52,7 +52,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     return Action::ERR;
   }
 
-  distancecp_ = (DataSet_double*) DSL->AddSet(DataSet::DOUBLE, "", "distance");
+  dsetavg_ = (DataSet_double*) DSL->AddSet(DataSet::DOUBLE, "", "distance");
 
   outputad_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avout"), "Diffusion Avg Dist");
   time_ = actionArgs.getKeyDouble("time", 1.0);
@@ -429,6 +429,11 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
   output_->Printf("%10.3f %10.3f %10.3f %10.3f %10.3f",
                  Time, avgx, avgy, avgz, average);
 
+  dsetavg_->AddElement(avgx);
+  dsetavg_->AddElement(avgy);
+  dsetavg_->AddElement(avgz);
+  dsetavg_->AddElement(average);
+
   // Write un-imaged distances if requested.
   if (printDistances_) {
     int i3 = 0;
@@ -441,7 +446,6 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
   }
 
   output_->Printf("\n");
-  distancecp_.AddElement(distance_):
 
   return Action::OK;
 }
