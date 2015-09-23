@@ -16,31 +16,35 @@ class DataIO_RemLog : public DataIO {
     int WriteData(FileName const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    // NOTE: Must match ExchgDescription
-    enum ExchgType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD };
-    static const char* ExchgDescription[];
+    // NOTE: Must match LogDescription
+    enum LogType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
+    static const char* LogDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
 
-    int ReadRemlogHeader(BufferedLine&, ExchgType&) const;
-    int ReadRemdDimFile(FileName const&);
+    /// Read remlog header
+    int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
+    /// Set up groups and dimensions from replica dim file
+    int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&, ReplicaDimArray&);
+    /// Set up groups for single dimension.
+    int SetupDim1Group( int, DataSet_RemLog::GdimArray& );
+
+    /// Set up replica temperature map
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    /// Set up replica pH map
+    TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
+    /// Count number of Hamiltonian replicas
     int CountHamiltonianReps(BufferedLine&) const;
-    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&);
-    void SetupDim1Group( int );
+
+    /// Open replica logs for all dimensions.
+    int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, LogType);
     void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
-    std::string dimfile_;
-    std::string crdidx_;
-    int n_mremd_replicas_;
-    bool processMREMD_;
-    bool searchForLogs_;
-    class GroupReplica;
-    typedef std::vector<GroupReplica> GroupArray;
-    typedef std::vector<GroupArray> GroupDimType;
-    std::vector<GroupDimType> GroupDims_;
-    std::vector<ExchgType> DimTypes_;
+    std::string dimfile_; ///< remd.dim file name
+    std::string crdidx_;  ///< Starting coordinate indices
+    bool searchForLogs_;  ///< True if need to search for logs for individual dimensions
+
     // Used for getting temps/coord indices from T-remlog
     struct TlogType {
       double t0;
@@ -52,17 +56,4 @@ class DataIO_RemLog : public DataIO {
       }
     };
 };
-/// Used to hold replica partner info in M-REMD simulations
-class DataIO_RemLog::GroupReplica {
-  public:
-    GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}
-    GroupReplica(const GroupReplica& rhs) :
-      l_partner_(rhs.l_partner_), me_(rhs.me_), r_partner_(rhs.r_partner_) {}
-    GroupReplica(int l, int m, int r) : l_partner_(l), me_(m), r_partner_(r) {}
-    int L_partner() const { return l_partner_; }
-    int Me()        const { return me_;        }
-    int R_partner() const { return r_partner_; }
-  private:
-    int l_partner_, me_, r_partner_;
-}; 
 #endif
