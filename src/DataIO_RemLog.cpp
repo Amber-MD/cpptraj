@@ -727,7 +727,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     unsigned int current_dim = 0;
     int grp; // Will be set to group number for MREMD or group index otherwise
     for (int exchg = 0; exchg < numexchg; exchg++) {
-      //progress.Update( exchg ); // DEBUG
+      progress.Update( exchg );
       // Loop over all groups in the current dimension
       for (unsigned int gidx = 0; gidx < GroupDims[current_dim].size(); gidx++) {
         if (processMREMD_) {
