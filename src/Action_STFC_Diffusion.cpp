@@ -2,7 +2,6 @@
 #include "Action_STFC_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
-#include "DataSet_double.h"
 
 // CONSTRUCTOR
 Action_STFC_Diffusion::Action_STFC_Diffusion() :
@@ -51,8 +50,6 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* P
     mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
     return Action::ERR;
   }
-
-  dsetavg_ = (DataSet_double*) DSL->AddSet(DataSet::DOUBLE, "", "distance");
 
   outputad_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("avout"), "Diffusion Avg Dist");
   time_ = actionArgs.getKeyDouble("time", 1.0);
@@ -388,7 +385,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
         double dist2 = DIST2_NoImage( currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2) );
-        // Find minimum distance.
+        // Find minimum distnace.
         if (dist2 < minDist) {
           minDist = dist2;
           //mprintf("CDBG:\tMinDist^2 %i to %i is %lf\n", *atom1, *atom2, dist2);
@@ -428,11 +425,6 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, Frame* currentFram
   // Output
   output_->Printf("%10.3f %10.3f %10.3f %10.3f %10.3f",
                  Time, avgx, avgy, avgz, average);
-
-  dsetavg_->AddElement(avgx);
-  dsetavg_->AddElement(avgy);
-  dsetavg_->AddElement(avgz);
-  dsetavg_->AddElement(average);
 
   // Write un-imaged distances if requested.
   if (printDistances_) {
