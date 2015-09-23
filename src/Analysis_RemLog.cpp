@@ -22,7 +22,7 @@ Analysis_RemLog::Analysis_RemLog() :
 void Analysis_RemLog::Help() {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
-          "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>]\n"
+          "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data.\n");
@@ -89,7 +89,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
   } else if (mode_ == REPIDX) {
     def_name = "crdidx";
     yaxis = "ylabel RepIdx";
-  } 
+  }
   // Set up an output set for each replica
   DataFile* dfout = 0;
   if (mode_ != NONE) {
@@ -100,7 +100,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, DataSetList* data
       if (dfout == 0 ) return Analysis::ERR;
       if (yaxis != 0 ) dfout->ProcessArgs(yaxis);
     }
-    std::string dsname = analyzeArgs.GetStringNext();
+    std::string dsname = analyzeArgs.GetStringKey("name");
     if (dsname.empty())
       dsname = datasetlist->GenerateDefaultName(def_name);
     MetaData md(dsname);
