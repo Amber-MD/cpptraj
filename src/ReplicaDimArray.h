@@ -10,21 +10,29 @@ class ReplicaDimArray {
       remDims_ = rhs.remDims_;
       return *this;
     }
-    enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH };
+    // NOTE: The indices for TEMPERATURE(1), HAMILTONIAN(3), and PH(4)
+    //       currently match what is defined in Amber for REMD (remd.F90)
+    //       EXCEPT RXSGLD, which uses the TEMPERATURE framework in Amber.
+    //       Care should be taken to keep these in sync.
+    enum RemDimType { UNKNOWN=0, TEMPERATURE, PARTIAL, HAMILTONIAN, PH, RXSGLD };
     int operator[](int idx) const { return (int)remDims_[idx];         }
-    void AddRemdDimension(int d)  { remDims_.push_back((RemDimType)d); }
-    void clear()                  { remDims_.clear();                  }
     int Ndims()             const { return (int)remDims_.size();       }
-    const char* Description(int idx) const {
-      if (idx >= 0 && idx < (int)remDims_.size()) {
-        switch (remDims_[idx]) {
-          case UNKNOWN:     return "Unknown";
-          case TEMPERATURE: return "Temperature";
-          case PARTIAL:     return "Partial";
-          case HAMILTONIAN: return "Hamiltonian";
-          case PH:          return "pH";
-        }
+    void AddRemdDimension(int d)         { remDims_.push_back((RemDimType)d); }
+    void AddRemdDimension(RemDimType d)  { remDims_.push_back(d);             }
+    void clear()                         { remDims_.clear();                  }
+    static const char* dimType(RemDimType type) {
+      switch (type) {
+        case UNKNOWN:     return "Unknown";     // 0
+        case TEMPERATURE: return "Temperature"; // 1
+        case PARTIAL:     return "Partial";     // 2 (UNUSED?)
+        case HAMILTONIAN: return "Hamiltonian"; // 3
+        case PH:          return "pH";          // 4
+        case RXSGLD:      return "RXSGLD";      // 5
       }
+      return 0; // Sanity check, should never reach.
+    }
+    const char* Description(int idx) const {
+      if (idx >= 0 && idx < (int)remDims_.size()) return dimType( remDims_[idx] ); 
       return 0; // Sanity check, should never reach.
     }
     bool operator!=(const ReplicaDimArray& rhs) const {

@@ -388,7 +388,7 @@ void Topology::PrintAngleInfo(std::string const& maskString) const {
 
 // Topology::PrintDihedrals()
 void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskIn, 
-                              int& nd) const
+                              int& nd, bool Select_OR) const
 {
   int rwidth = DigitWidth(residues_.size()) + 7;
   for (DihedralArray::const_iterator datom = darray.begin();
@@ -398,9 +398,14 @@ void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskI
     int atom2 = (*datom).A2();
     int atom3 = (*datom).A3();
     int atom4 = (*datom).A4();
-    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
-        maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   )
-    {
+    bool selected;
+    if (Select_OR)
+      selected = (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
+                  maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   );
+    else // AND
+      selected = (maskIn.AtomInCharMask( atom1 ) && maskIn.AtomInCharMask( atom2 ) &&
+                  maskIn.AtomInCharMask( atom3 ) && maskIn.AtomInCharMask( atom4 )   );
+    if (selected) {
       // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
       char type = ' ';
       if ((*datom).Type() == DihedralType::END) type = 'E';
@@ -429,7 +434,7 @@ void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskI
 }
 
 // Topology::PrintDihedralInfo()
-void Topology::PrintDihedralInfo(std::string const& maskString) const {
+void Topology::PrintDihedralInfo(std::string const& maskString, bool select_OR) const {
   CharMask mask( maskString );
   if (SetupCharMask( mask )) return;
   mprintf("#");
@@ -438,9 +443,9 @@ void Topology::PrintDihedralInfo(std::string const& maskString) const {
   mprintf("#Dihedral    pk     phase pn                atoms\n");
   int nd = 1;
   if (!dihedralsh_.empty())
-    PrintDihedrals( dihedralsh_, mask, nd );
+    PrintDihedrals( dihedralsh_, mask, nd, select_OR );
   if (!dihedrals_.empty())
-    PrintDihedrals( dihedrals_, mask, nd );
+    PrintDihedrals( dihedrals_, mask, nd, select_OR );
 }
 
 

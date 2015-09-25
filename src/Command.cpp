@@ -517,7 +517,7 @@ static void Help_AngleInfo() {
 }
 
 static void Help_DihedralInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
+  mprintf("\t[<parmindex>] [<mask>] [and]\n"
       "  Print dihedral information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
@@ -1640,7 +1640,7 @@ Command::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Command::Allo
 {
   Topology* parm = State.PFL()->GetParmByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintDihedralInfo( argIn.GetMaskNext() );
+  parm->PrintDihedralInfo( argIn.GetMaskNext(), !argIn.hasKey("and") );
   return Command::C_OK;
 }
 
