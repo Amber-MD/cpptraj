@@ -473,8 +473,8 @@ void DataSetList::List() const {
     mprintf("  1 data set:\n");
   else
     mprintf("  %zu data sets:\n", DataList_.size());
-  for (unsigned int ds=0; ds<DataList_.size(); ds++) {
-    DataSet const& dset = static_cast<DataSet const&>(*DataList_[ds]);
+  for (unsigned int idx = 0; idx != DataList_.size(); idx++) {
+    DataSet const& dset = static_cast<DataSet const&>( *DataList_[idx] );
     mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
             DataArray[dset.Type()].Description, dset.Meta().ScalarDescription().c_str(),
             dset.Size());
@@ -524,6 +524,7 @@ DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
   return outset;
 }
 
+// -----------------------------------------------------------------------------
 const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
 
 /** Search for a REF_FRAME DataSet. Provided for backwards compatibility
@@ -565,6 +566,7 @@ void DataSetList::ListReferenceFrames() const {
   }
 }
 
+// -----------------------------------------------------------------------------
 const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
