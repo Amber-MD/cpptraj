@@ -541,7 +541,7 @@ static void Help_MolInfo() {
 }
 
 static void Help_LoadCrd() {
-  mprintf("\t<filename> %s [<trajin args>] [<name>]\n", DataSetList::TopArgs);
+  mprintf("\t<filename> %s [<trajin args>] [name <name>]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 
@@ -786,7 +786,10 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   Frame frameIn;
   frameIn.SetupFrameV(parm->Atoms(), trajin.TrajCoordInfo());
   // Set up metadata with file name and output set name
-  MetaData md( trajin.Traj().Filename(), argIn.GetStringNext(), -1 );
+  std::string setname = argIn.GetStringKey("name");
+  // NOTE: For backwards compat.
+  if (setname.empty()) setname = argIn.GetStringNext();
+  MetaData md( trajin.Traj().Filename(), setname, -1 );
   // Check if set already present
   DataSet_Coords* coords = 0;
   DataSet* ds = State.DSL()->CheckForSet(md);
