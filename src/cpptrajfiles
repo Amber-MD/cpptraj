@@ -235,7 +235,6 @@ SOURCES=ActionFrameCounter.cpp \
         Timer.cpp \
         TinkerFile.cpp \
         Topology.cpp \
-        TopologyList.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp \
         Traj_AmberNetcdf.cpp \
