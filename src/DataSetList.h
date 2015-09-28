@@ -52,28 +52,32 @@ class DataSetList {
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.
     bool DataSetsPending() const { return dataSetsPending_;  }
+    /// Allocate 1D DataSet memory based on current max# expected frames.
+    void AllocateSets(long int);
+    /// Set width and precision of specified DataSets in the list.
+    void SetPrecisionOfDataSets(std::string const&, int, int);
 
     /// Remove set from the list.
     void RemoveSet( DataSet* );
     /// Remove set from list but do not destroy.
     DataSet* PopSet( DataSet* );
 
-    /// Allocate 1D DataSet memory based on current max# expected frames.
-    void AllocateSets(long int);
-    /// Set width and precision of specified DataSets in the list.
-    void SetPrecisionOfDataSets(std::string const&, int, int);
- 
-   /// Get DataSet matching specified attributes.
+    /// Get DataSet matching specified attributes exactly.
     DataSet* CheckForSet( MetaData const& ) const;
-
     /// Get DataSet corresponding to specified argument.
     DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
+    /// Select multiple sets by type.
+    DataSetList SelectSets( std::string const&, DataSet::DataType ) const;
     /// Select multiple sets by group.
     DataSetList SelectGroupSets( std::string const&, DataSet::DataGroup ) const;
+    /// Find next set of specified type with given name.
+    DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
+    /// Find COORDS DataSet or create default COORDS DataSet.
+    DataSet* FindCoordsSet(std::string const&);
 
     /// Generate name based on given default and # of DataSets.
     std::string GenerateDefaultName(std::string const&) const;
@@ -95,10 +99,6 @@ class DataSetList {
     void SynchronizeData();
 #   endif
 
-    /// Find next set of specified type with given name.
-    DataSet* FindSetOfType(std::string const&, DataSet::DataType) const;
-    /// Find COORDS DataSet or create default COORDS DataSet.
-    DataSet* FindCoordsSet(std::string const&);
     // REF_COORDS functions ----------------------
     /// reference arg help text
     static const char* RefArgs;
@@ -119,8 +119,6 @@ class DataSetList {
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
     inline void PendingWarning() const;
-    /// Select sets according to argument and type.
-    DataSetList SelectSets( std::string const&, DataSet::DataType ) const;
     /// Wrapper around DataList_.push_back() that does extra bookkeeping.
     void Push_Back(DataSet*);
     

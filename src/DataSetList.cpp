@@ -1,11 +1,7 @@
-// DataSetList
-// This also includes basic DataSet class and dataType
 #include "DataSetList.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // convertToInteger and DigitWidth
-#include "ArgList.h"
-#include "Range.h"
-#include "Constants.h"
+#include "StringRoutines.h" // DigitWidth
+#include "Constants.h" // For AddOrAppendSets
 // Data types go here
 #include "DataSet_double.h"
 #include "DataSet_float.h"
@@ -24,7 +20,6 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 
-// ----- STATIC VARS / ROUTINES ------------------------------------------------
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
   { "unknown",     0                           }, // UNKNOWN_DATA
@@ -48,19 +43,14 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 };
 
 // CONSTRUCTOR
-DataSetList::DataSetList() :
-  maxFrames_(-1),
-  debug_(0),
-  ensembleNum_(-1),
-  hasCopies_(false),
-  dataSetsPending_(false) 
+DataSetList::DataSetList() : maxFrames_(-1), debug_(0), ensembleNum_(-1),
+                             hasCopies_(false), dataSetsPending_(false)
 {}
 
 // DESTRUCTOR
-DataSetList::~DataSetList() {
-  Clear();
-}
+DataSetList::~DataSetList() { Clear(); }
 
+// DataSetList::Clear()
 void DataSetList::Clear() {
   if (!hasCopies_)
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
@@ -72,6 +62,7 @@ void DataSetList::Clear() {
   dataSetsPending_ = false;
 } 
 
+// DataSetList::Push_Back()
 void DataSetList::Push_Back(DataSet* ds) {
   if (!hasCopies_) {
     // If this is a REF data set it also goes in RefList_.
@@ -85,6 +76,7 @@ void DataSetList::Push_Back(DataSet* ds) {
   DataList_.push_back( ds );
 }
 
+// DataSetList::operator+=()
 DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   // It is OK if rhs does not have copies, but this should have copies.
   // For now just set hasCopies to true.
@@ -93,6 +85,13 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
     Push_Back( *DS );
   return *this;
+}
+
+// DataSetList::SetDebug()
+void DataSetList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_>0)
+    mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
 // DataSetList::MakeDataSetsEnsemble()
@@ -104,6 +103,41 @@ void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
       (*ds)->SetEnsemble( ensembleNum_ );
 }
 
+/** Call Allocate for each time series in the list. */
+void DataSetList::AllocateSets(long int maxFrames) {
+  maxFrames_ = maxFrames;
+  if (maxFrames < 1L) return;
+  DataSet::SizeArray mfArray(1, maxFrames);
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+  {
+    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS )
+      if ( (*ds)->Allocate( mfArray ) )
+        mprinterr("Error: Could not allocate time series for '%s'\n", (*ds)->legend());
+  }
+}
+
+// DataSetList::SetPrecisionOfDataSets()
+void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
+                                         int precisionIn)
+{
+  if (widthIn < 1)
+    mprinterr("Error: Invalid data width (%i)\n", widthIn);
+  else {
+    DataSetList Sets = GetMultipleSets( nameIn );
+    for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+      (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
+  }
+}
+
+// DataSetList::PendingWarning()
+void DataSetList::PendingWarning() const {
+  if (dataSetsPending_)
+    mprintf("Warning: Some Actions currently in Action list need to be run in order to create\n"
+            "Warning:   data sets. Try processing currently loaded trajectories with 'run' or\n"
+            "Warning:   'go' to generate these data sets.\n");
+}
+
+// -----------------------------------------------------------------------------
 /** Remove the specified set from all lists if found, and optionally free
   * memory.
   * \return dsIn if found and removed/erased, 0 otherwise.
@@ -149,47 +183,14 @@ DataSet* DataSetList::PopSet( DataSet* dsIn ) {
   return EraseSet( dsIn, false );
 }
 
-// DataSetList::SetDebug()
-void DataSetList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_>0) 
-    mprintf("DataSetList Debug Level set to %i\n",debug_);
-}
-
-/** Call Allocate for each time series in the list. */
-void DataSetList::AllocateSets(long int maxFrames) {
-  maxFrames_ = maxFrames;
-  if (maxFrames < 1L) return;
-  DataSet::SizeArray mfArray(1, maxFrames);
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-  {
-    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS )
-      if ( (*ds)->Allocate( mfArray ) )
-        mprinterr("Error: Could not allocate time series for '%s'\n", (*ds)->legend());
-  }
-}
-
-/* DataSetList::SetPrecisionOfDataSets()
- * Set the width and precision for all datasets in the list.
- */
-void DataSetList::SetPrecisionOfDataSets(std::string const& nameIn, int widthIn,
-                                         int precisionIn)
+// -----------------------------------------------------------------------------
+/** The set argument must match EXACTLY, so Data will not return Data:1 */
+DataSet* DataSetList::CheckForSet(MetaData const& md) const
 {
-  if (widthIn < 1)
-    mprinterr("Error: Invalid data width (%i)\n", widthIn);
-  else {
-    DataSetList Sets = GetMultipleSets( nameIn );
-    for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) 
-      (*ds)->SetupFormat().SetFormatWidthPrecision(widthIn, precisionIn);
-  }
-}
-
-// DataSetList::PendingWarning()
-void DataSetList::PendingWarning() const {
-  if (dataSetsPending_)
-    mprintf("Warning: Some Actions currently in Action list need to be run in order to create\n"
-            "Warning:   data sets. Try processing currently loaded trajectories with 'run' or\n"
-            "Warning:   'go' to generate these data sets.\n");
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Matches_Exact( md ) )
+      return *ds;
+  return 0;
 }
 
 // DataSetList::GetDataSet()
@@ -204,16 +205,17 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
   return dsetOut[0];
 }
 
-// DataSetList::CheckForSet()
-/** The set argument must match EXACTLY, so Data will not return Data:1 */
-DataSet* DataSetList::CheckForSet(MetaData const& md) const
-{
-  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->Matches_Exact( md ) )
-      return *ds;
-  return 0;
+// DataSetList::GetMultipleSets()
+DataSetList DataSetList::GetMultipleSets( std::string const& dsargIn ) const {
+  DataSetList dsetOut = SelectSets(dsargIn);
+  if ( dsetOut.empty() ) {
+    mprintf("Warning: '%s' selects no data sets.\n", dsargIn.c_str());
+    PendingWarning();
+  }
+  return dsetOut;
 }
 
+// DataSetList::SelectSets()
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   return SelectSets( nameIn, DataSet::UNKNOWN_DATA );
 }
@@ -246,32 +248,37 @@ DataSetList DataSetList::SelectGroupSets( std::string const& dsargIn,
   return dsetOut;
 }
 
-// DataSetList::GetMultipleSets()
-DataSetList DataSetList::GetMultipleSets( std::string const& dsargIn ) const {
-  DataSetList dsetOut = SelectSets(dsargIn);
-  if ( dsetOut.empty() ) {
-    mprintf("Warning: '%s' selects no data sets.\n", dsargIn.c_str());
-    PendingWarning();
-  }
-  return dsetOut;
-}
-
-// DataSetList::AddSet()
-/** Add a DataSet with given name, or if no name given create a name based on 
-  * defaultName and DataSet position.
-  */
-DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
-                              const char* defaultName )
+// DataSetList::FindSetOfType()
+DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
 {
-  MetaData meta = metaIn;
-  if (meta.Name().empty()) {
-    if (defaultName != 0)
-      meta.SetName( GenerateDefaultName(defaultName) );
-  }
-  return AddSet( inType, meta );
+  DataSetList dsetOut = SelectSets( nameIn, typeIn );
+  if (dsetOut.empty())
+    return 0;
+  else if (dsetOut.size() > 1)
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
+  return dsetOut[0];
 }
 
-// DataSetList::GenerateDefaultName()
+/** Search for a COORDS DataSet. If no name specified, create a default
+  * COORDS DataSet named _DEFAULTCRD_.
+  */
+DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
+  DataSet* outset = 0;
+  if (setname.empty()) {
+    // crdset not given, search for the default set
+    outset = FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
+    if (outset == 0) {
+      // No default set; create one.
+      outset = AddSet(DataSet::COORDS, "_DEFAULTCRD_", "CRD");
+    }
+  } else {
+    DataSetList dslist = SelectGroupSets(setname, DataSet::COORDINATES);
+    if (!dslist.empty()) outset = dslist[0];
+  }
+  return outset;
+}
+
+// -----------------------------------------------------------------------------
 /** Create a name based on the given defaultName and # of DataSets,
   * i.e. defaultName_XXXXX 
   */
@@ -285,10 +292,24 @@ std::string DataSetList::GenerateDefaultName(std::string const& defaultName) con
     return ( defaultName + "_" + integerToString(size(), extsize) ); 
 }
 
+/** Add a DataSet with given MetaData; if no name given create a name based on
+  * defaultName and DataSet position.
+  */
+DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
+                              const char* defaultName )
+{
+  MetaData meta = metaIn;
+  if (meta.Name().empty()) {
+    if (defaultName != 0)
+      meta.SetName( GenerateDefaultName(defaultName) );
+  }
+  return AddSet( inType, meta );
+}
+
 /** Add a DataSet of specified type, set it up and return pointer to it. 
   * \param inType type of DataSet to add.
-  * \param metaIn DataSet meta data.
-  * \return pointer to successfully set-up dataset.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
   */ 
 DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 { // TODO Always generate default name if empty?
@@ -332,6 +353,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
   return DS;
 }
 
+// DataSetList::AddSet()
 int DataSetList::AddSet( DataSet* dsIn ) {
   if (dsIn == 0 ) return 1;
   DataSet* ds = CheckForSet( dsIn->Meta() );
@@ -460,8 +482,6 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 }
 
 // DataSetList::List()
-/** Print information on all DataSets in the list.
-  */
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.
     if (DataList_.empty()) return;
@@ -495,36 +515,6 @@ void DataSetList::SynchronizeData() {
   }
 }
 #endif
-// DataSetList::FindSetOfType()
-DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType typeIn) const
-{
-  DataSetList dsetOut = SelectSets( nameIn, typeIn );
-  if (dsetOut.empty())
-    return 0;
-  else if (dsetOut.size() > 1)
-    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
-  return dsetOut[0];
-}
-
-/** Search for a COORDS DataSet. If no name specified, create a default 
-  * COORDS DataSet named _DEFAULTCRD_.
-  */
-DataSet* DataSetList::FindCoordsSet(std::string const& setname) {
-  DataSet* outset = 0;
-  if (setname.empty()) {
-    // crdset not given, search for the default set
-    outset = FindSetOfType("_DEFAULTCRD_", DataSet::COORDS);
-    if (outset == 0) {
-      // No default set; create one.
-      outset = AddSet(DataSet::COORDS, "_DEFAULTCRD_", "CRD");
-    }
-  } else {
-    DataSetList dslist = SelectGroupSets(setname, DataSet::COORDINATES);
-    if (!dslist.empty()) outset = dslist[0];
-  }
-  return outset;
-}
-
 // -----------------------------------------------------------------------------
 const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
 
@@ -570,6 +560,7 @@ void DataSetList::ListReferenceFrames() const {
 // -----------------------------------------------------------------------------
 const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
+// DataSetList::GetTopology()
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
   if (TopList_.empty()) {
     mprinterr("Error: No topologies loaded.\n");
@@ -595,6 +586,7 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
   return ((DataSet_Topology*)top)->TopPtr();
 }
 
+// DataSetList::GetTopByIndex()
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
   if (TopList_.empty()) {
     mprinterr("Error: No topologies loaded.\n");
@@ -611,6 +603,7 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
   return top;
 }
 
+// DataSetList::ListTopologies()
 void DataSetList::ListTopologies() const {
   if (!TopList_.empty()) {
     mprintf("\nPARAMETER FILES:\n");
