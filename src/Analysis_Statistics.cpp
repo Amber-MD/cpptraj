@@ -15,7 +15,7 @@ Analysis_Statistics::Analysis_Statistics() :
 
 void Analysis_Statistics::Help() {
   mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n"
-          "\t [ignorenv]\n"
+          "\t [ignorenv] [name <noe setname>]\n"
           "  Calculate various statistical quantities for data in specified data set(s)\n"
           "  based on the data set type (e.g. distance noe, dihedral alpha, etc)\n");
 }
