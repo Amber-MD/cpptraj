@@ -294,7 +294,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 { // TODO Always generate default name if empty?
   // Do not add to a list with copies
   if (hasCopies_) {
-    mprinterr("Internal Error: Adding DataSet %s copy to invalid list.\n",
+    mprinterr("Internal Error: Attempting to add DataSet (%s) to DataSetList with copies.\n",
               metaIn.PrintName().c_str());
     return 0;
   }
@@ -450,8 +450,9 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
 // DataSetList::AddCopyOfSet()
 void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   if (!hasCopies_ && !DataList_.empty()) {
-    mprinterr("Internal Error: Adding DataSet (%s) copy to invalid list\n", 
-    dsetIn->legend());
+    mprinterr("Internal Error: Attempting to add copy of DataSet (%s) to DataSetList"
+              " not set up to hold copies.\n",
+              dsetIn->Meta().PrintName().c_str());
     return;
   }
   hasCopies_ = true;
