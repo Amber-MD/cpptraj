@@ -11,7 +11,7 @@ cat > hbond.in <<EOF
 noprogress
 parm ../DPDP.parm7
 trajin ../DPDP.nc
-hbond out nhb.dat avgout avghb.dat 
+hbond HB out nhb.dat avgout avghb.dat
 EOF
 INPUT="-i hbond.in"
 RunCpptraj "Solute Hbond test."

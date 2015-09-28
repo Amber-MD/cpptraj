@@ -3,7 +3,7 @@
 @  yaxis label ""
 @  legend 0.2, 0.995
 @  legend char size 0.60
-@  s0 legend "WS_00000[lower]"
+@  s0 legend "Tz2[lower]"
 @target G0.S0
 @type xy
    1.000          128
@@ -16,7 +16,7 @@
    8.000          112
    9.000          110
   10.000          116
-@  s1 legend "WS_00000[upper]"
+@  s1 legend "Tz2[upper]"
 @target G0.S1
 @type xy
    1.000          239
