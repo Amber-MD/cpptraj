@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 void Analysis_State::Help() {
-  mprintf("\t{state <ID>,<dataset>,<min>,<max>} [out <state v time file>]\n"
+  mprintf("\t{state <ID>,<dataset>,<min>,<max>} [out <state v time file>] [name <setname>]\n"
           "\t[curveout <curve file>] [stateout <states file>] [transout <transitions file>]\n"
           "  Data for the specified data set(s) that matches the given criteria\n"
           "  will be assigned state <#>.\n");
@@ -57,7 +57,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprinterr("Error: No states defined.\n");
     return Analysis::ERR;
   }
-  state_data_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "State");
+  state_data_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringKey("name"), "State");
   if (state_data_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( state_data_ );
 
