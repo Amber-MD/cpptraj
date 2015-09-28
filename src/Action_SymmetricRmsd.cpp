@@ -87,8 +87,7 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_SymmetricRmsd::DoAction()
-Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress) 
+Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   // Perform any needed reference actions
   REF_.ActionRef( *currentFrame, SRMSD_.Fit(), SRMSD_.UseMass() );

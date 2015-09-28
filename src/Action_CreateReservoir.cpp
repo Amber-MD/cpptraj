@@ -146,8 +146,7 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
 }
 
 // Action_CreateReservoir::DoAction()
-Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, 
-                                                 Frame** frameAddress) 
+Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
 # ifdef BINTRAJ
   int bin = -1;

@@ -101,8 +101,7 @@ Action::RetType Action_Energy::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Energy::DoAction()
-Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   double Etot = 0.0, ene, ene2;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)

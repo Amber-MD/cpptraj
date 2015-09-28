@@ -168,8 +168,7 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Watershell::action()
-Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, 
-                                            Frame** frameAddress) 
+Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   Matrix_3x3 ucell, recip;
   int nlower = 0;

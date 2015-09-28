@@ -300,8 +300,7 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
 }
 
 // Action_Spam::action()
-Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame,
-                                     Frame ** frameAddress)
+Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
 {
 
   Nframes_++;

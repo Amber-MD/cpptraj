@@ -110,8 +110,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
 }
 
 // Action_FixAtomOrder::action()
-Action::RetType Action_FixAtomOrder::DoAction(int frameNum, Frame* currentFrame, 
-                                              Frame** frameAddress)
+Action::RetType Action_FixAtomOrder::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   // Reorder atoms in the frame
   newFrame_.SetCoordinatesByMap( *currentFrame, atomMap_ );

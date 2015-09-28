@@ -89,8 +89,7 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_AreaPerMol::DoAction()
-Action::RetType Action_AreaPerMol::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_AreaPerMol::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   double area;
   if (areaType_ == XY)

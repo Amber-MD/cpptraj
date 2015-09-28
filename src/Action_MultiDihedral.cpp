@@ -132,8 +132,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_MultiDihedral::DoAction()
-Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress)
+Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   std::vector<DataSet*>::const_iterator ds = data_.begin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();

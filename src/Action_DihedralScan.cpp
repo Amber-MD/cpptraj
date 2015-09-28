@@ -539,8 +539,7 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
 }
 
 // Action_DihedralScan::DoAction()
-Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, 
-                                              Frame** frameAddress) 
+Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   switch (mode_) {
     case RANDOM: RandomizeAngles(*currentFrame); break;

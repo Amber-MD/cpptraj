@@ -224,8 +224,7 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
 }
 
 // Action_LIE::action()
-Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame,
-                                     Frame ** frameAddress)
+Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
 {
   
   if (doelec_) {

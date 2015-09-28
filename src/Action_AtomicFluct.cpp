@@ -117,8 +117,7 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_AtomicFluct::DoAction()
-Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, 
-                                             Frame** frameAddress) 
+Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   SumCoords_ += *currentFrame;

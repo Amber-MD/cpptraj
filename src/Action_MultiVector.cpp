@@ -115,8 +115,7 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_MultiVector::DoAction()
-Action::RetType Action_MultiVector::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress)
+Action::RetType Action_MultiVector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (unsigned int nv = 0; nv < CrdIdx1_.size(); ++nv) {
     Vec3 CXYZ( currentFrame->CRD( CrdIdx1_[nv] ) );

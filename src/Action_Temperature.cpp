@@ -91,8 +91,7 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_Temperature::DoAction()
-Action::RetType Action_Temperature::DoAction(int frameNum, Frame* currentFrame, 
-                                             Frame** frameAddress) 
+Action::RetType Action_Temperature::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   double tdata;
   if (getTempFromFrame_)

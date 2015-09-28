@@ -161,8 +161,7 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_ReplicateCell::DoAction()
-Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame,
-                                               Frame** frameAddress)
+Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   int idx, newFrameIdx;
   unsigned int id;

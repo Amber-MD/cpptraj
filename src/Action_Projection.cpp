@@ -181,8 +181,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Projection::DoAction()
-Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, 
-                                            Frame** frameAddress)
+Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.

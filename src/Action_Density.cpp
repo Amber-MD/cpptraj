@@ -88,8 +88,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, DataSetList* DSL, Data
 
 
 // Action_Density::Setup()
-Action::RetType Action_Density::Setup(Topology* currentParm,
-				      Topology** parmAddress)
+Action::RetType Action_Density::Setup(Topology* currentParm, Topology** parmAddress)
 {
   properties_.resize(0);
 
@@ -137,9 +136,7 @@ Action::RetType Action_Density::Setup(Topology* currentParm,
 
 
 // Action_Density::action()
-Action::RetType Action_Density::DoAction(int frameNum,
-					 Frame* currentFrame,
-					 Frame** frameAddress)
+Action::RetType Action_Density::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   long slice;
   unsigned long i, j;

@@ -119,8 +119,7 @@ Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_CheckChirality::DoAction()
-Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (Rarray::iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
   {

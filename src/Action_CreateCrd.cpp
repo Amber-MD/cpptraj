@@ -61,8 +61,7 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;
 }
 
-Action::RetType Action_CreateCrd::DoAction(int frameNum, Frame* currentFrame, 
-                                           Frame** frameAddress) 
+Action::RetType Action_CreateCrd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   coords_->AddFrame( *currentFrame );
   return Action::OK;

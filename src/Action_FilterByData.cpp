@@ -71,8 +71,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, DataSetList* DSL,
 }
 
 // Action_FilterByData::DoAction()
-Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
-                                              Frame** frameAddress)
+Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   static int ONE = 1;
   static int ZERO = 0;

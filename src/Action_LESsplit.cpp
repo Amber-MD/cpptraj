@@ -101,8 +101,7 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
 }
 
 // Action_LESsplit::DoAction()
-Action::RetType Action_LESsplit::DoAction(int frameNum, Frame* currentFrame, 
-                                          Frame** frameAddress)
+Action::RetType Action_LESsplit::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (unsigned int i = 0; i != lesMasks_.size(); i++)
     lesFrames_[i].SetFrame(*currentFrame, lesMasks_[i]);

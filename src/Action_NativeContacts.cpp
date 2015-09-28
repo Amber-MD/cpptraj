@@ -417,8 +417,7 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 }
 
 // Action_NativeContacts::DoAction()
-Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFrame,
-                                                Frame** frameAddress)
+Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   if (image_.ImageType() == NONORTHO) currentFrame->BoxCrd().ToRecip(ucell_, recip_);
   if (first_) {

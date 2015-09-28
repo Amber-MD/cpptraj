@@ -78,8 +78,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 
 
 // Action_PairDist::Setup()
-Action::RetType Action_PairDist::Setup(Topology* currentParm,
-				       Topology** parmAddress)
+Action::RetType Action_PairDist::Setup(Topology* currentParm, Topology** parmAddress)
 {
   if (currentParm->SetupIntegerMask(mask1_) ) return Action::ERR;
 
@@ -124,9 +123,7 @@ Action::RetType Action_PairDist::Setup(Topology* currentParm,
 
 
 // Action_PairDist::action()
-Action::RetType Action_PairDist::DoAction(int frameNum,
-					  Frame* currentFrame,
-					  Frame** frameAddress)
+Action::RetType Action_PairDist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   unsigned long bin, j;
   double Dist = 0.0;
