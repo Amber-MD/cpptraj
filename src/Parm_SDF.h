@@ -8,8 +8,6 @@ class Parm_SDF : public ParmIO {
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(FileName const&, Topology&);
     int WriteParm(FileName const&, Topology const&) { return 1; }
-    void SetDebug(int) {}
     int processWriteArgs(ArgList&) { return 0; }
-    bool NeedsBondSearch() const { return false; }
 };
 #endif

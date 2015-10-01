@@ -2,6 +2,7 @@
 #include "CIFfile.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#include "BondSearch.h"
 
 // NOTE: MUST correspond to EntryType!
 const char* Parm_CIF::Entries[] = {
@@ -57,6 +58,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   char altloc = ' ';
   char icode;
   icode = ' ';
+  Frame Coords;
   for (line = block.begin(); line != block.end(); ++line) {
     // If more than 1 model check if we are done.
     if (Nmodels > 1) {
@@ -89,15 +91,18 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
     TopIn.AddTopAtom( Atom((*line)[ COL[ANAME] ], "  "),
                       Residue(currentResName, current_res, icode,
-                              (*line)[ COL[CHAINID] ][0]), XYZ );
+                              (*line)[ COL[CHAINID] ][0]) );
+    Coords.AddXYZ( XYZ );
   }
   if (TopIn.SetExtraAtomInfo( 0, extra )) return 1;
+  // Search for bonds // FIXME nobondsearch?
+  BondSearch( TopIn, Coords, Topology::Offset_, debug_ );
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
   if (!entryblock.empty())
     ciftitle = entryblock.Data("id");
-  TopIn.SetParmName( ciftitle, infile.CIFname() );
+  TopIn.SetParmName( ciftitle );//, infile.CIFname() );
   // Get unit cell parameters if present.
   CIFfile::DataBlock const& cellblock = infile.GetDataBlock("_cell");
   if (!cellblock.empty()) {

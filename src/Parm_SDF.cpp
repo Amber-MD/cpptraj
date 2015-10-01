@@ -16,17 +16,19 @@ int Parm_SDF::ReadParm(FileName const& fname, Topology &parmOut) {
   mprintf("    Reading SDF file %s as topology file.\n",infile.Filename().base());
   // Read header
   if (infile.ReadHeader()) return 1;
-  parmOut.SetParmName( infile.SDF_Title(), infile.Filename() );
+  parmOut.SetParmName( infile.SDF_Title() ); //, infile.Filename() );
   // Read atoms. Put everything in same residue.
   Residue sdf_res("LIG", 0, ' ', ' ');
   double XYZ[3];
+  Frame Coords;
   for (int i = 0; i < infile.SDF_Natoms(); i++) {
     if ( infile.SDF_XYZ( XYZ ) ) {
       mprinterr("Error: Could not read atoms from SDF file.\n");
       return 1;
     }
     // Put everything in same residue
-    parmOut.AddTopAtom( infile.SDF_Atom(), sdf_res, XYZ );
+    parmOut.AddTopAtom( infile.SDF_Atom(), sdf_res );
+    Coords.AddXYZ( XYZ );
   }
   // Read bonds
   int at1, at2;

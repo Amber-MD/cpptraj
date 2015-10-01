@@ -1,40 +1,32 @@
 #include <cmath> // pow
 #include <algorithm> // find
-#ifdef _OPENMP
-#  include "omp.h"
-#endif
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
-#include "DistRoutines.h"
-#include "Constants.h"
-#ifdef TIMER
-# include "Timer.h"
-#endif
+//#include "DistRoutines.h"
+#include "Constants.h" // RADDEG
+//#ifdef TIMER
+//# include "Timer.h"
+//#endif
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
 // CONSTRUCTOR
 Topology::Topology() :
-  offset_(0.20),
+//  offset_(0.20),
   debug_(0),
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-  nframes_(0),
+//  nframes_(0),
   n_extra_pts_(0),
   n_atom_types_(0)
 { }
 
-// Topology::SetParmName()
-void Topology::SetParmName(std::string const& title, FileName const& filename) {
-  parmName_ = title;
-  fileName_ = filename;
-}
-
 /** Used to set expected coordinate info from currently associated
   * trajectory. Modify box information as appropriate.
   */
+/*
 void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
 {
   Box const& boxIn = cinfoIn.TrajBox();
@@ -99,7 +91,7 @@ void Topology::SetReferenceCoords( Frame const& frameIn ) {
     }
   }
 }
-
+*/
 // -----------------------------------------------------------------------------
 /** \return Range containing only solute residues. */
 Range Topology::SoluteResidues() const {
@@ -122,18 +114,7 @@ Range Topology::SoluteResidues() const {
   return solute_res;
 }
 
-// Topology::c_str()
-/** Return a printf-compatible char* of the parm filename, or the parm
-  * name (title) if the parm filename is empty.
-  */
-const char *Topology::c_str() const {
-  if (!fileName_.empty())
-    return fileName_.base();
-  return parmName_.c_str();
-}
-
 // -----------------------------------------------------------------------------
-
 // Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
@@ -226,7 +207,7 @@ void Topology::Summary() const {
   s2 = dihedrals_.size();
   if (s1 + s2 > 0)
     mprintf("\t\t%zu dihedrals (%zu with H, %zu other).\n", s1+s2, s1, s2);
-  mprintf("\t\tBox: %s\n", coordInfo_.TrajBox().TypeName());
+  mprintf("\t\tBox: %s\n", parmBox_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
   }
@@ -251,12 +232,10 @@ void Topology::Summary() const {
 void Topology::Brief(const char* heading) const {
   if (heading != 0)
     mprintf("\t%s", heading);
-  if (!fileName_.empty())
-    mprintf(" '%s',", fileName_.base());
   else if (!parmName_.empty())
     mprintf(" %s,", parmName_.c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
-          residues_.size(), coordInfo_.TrajBox().TypeName(), molecules_.size());
+          residues_.size(), parmBox_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)
@@ -588,7 +567,7 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double* XYZin)
+int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
   if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
@@ -603,8 +582,6 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double*
   atoms_.push_back(atomIn);
   // Set this atoms internal residue number 
   atoms_.back().SetResNum( residues_.size()-1 );
-  // Add coordinate if given
-  refCoords_.AddXYZ( XYZin );
   return 0;
 }
 
@@ -628,14 +605,14 @@ void Topology::StartNewMol() {
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup(bool bondsearch) {
+int Topology::CommonSetup() {
   // Set residue last atom (PDB/Mol2/PSF) 
   residues_.back().SetLastAtom( atoms_.size() );
   // Set up bond information if specified or necessary
-  if (bondsearch) {
-    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
-    molecules_.clear();
-  }
+//  if (bondsearch) {
+//    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
+//    molecules_.clear();
+//  }
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
     AssignBondParameters();
@@ -645,7 +622,7 @@ int Topology::CommonSetup(bool bondsearch) {
       mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   // Check that molecules do not share residue numbers. Only when bond searching.
   // FIXME always check? 
-  if (bondsearch && !molecules_.empty() && molecules_.size() > 1) {
+  if (!molecules_.empty() && molecules_.size() > 1) {
     bool mols_share_residues = (molecules_.size() > residues_.size());
     if (!mols_share_residues) {
       // More in-depth check
@@ -893,7 +870,7 @@ void Topology::AssignBondParameters() {
   for (BondArray::iterator bnd = bonds_.begin(); bnd != bonds_.end(); ++bnd)
     AddBondParam( *bnd, bpMap );
 } 
-
+/*
 // Topology::GetBondsFromAtomCoords()
 int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
   mprintf("\t%s: determining bond info from distances.\n",c_str());
@@ -994,7 +971,7 @@ int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
             bondsh_.size(), bonds_.size());
   return 0;
 }
-
+*/
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
@@ -1112,7 +1089,7 @@ int Topology::DetermineMolecules() {
                 "Error:   increasing the bondsearch cutoff offset (currently %.3f). 2) can be\n"
                 "Error:   fixed by either using the 'fixatomorder' command, or using\n"
                 "Error:   the 'setMolecules' command in parmed.\n",
-                atom - atoms_.begin() + 1, offset_);
+                atom - atoms_.begin() + 1, Offset_);
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
@@ -1253,6 +1230,7 @@ int Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
+/*
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask) const {
   return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
@@ -1261,17 +1239,19 @@ int Topology::SetupIntegerMask(AtomMask &mask) const {
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask) const {
   return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
-}
+}*/
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
-  if (frame.empty()) return SetupIntegerMask(mask);
+  //if (frame.empty()) return SetupIntegerMask(mask);
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
-  if (frame.empty()) return SetupCharMask(mask);
+  //if (frame.empty()) return SetupCharMask(mask);
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
@@ -1343,11 +1323,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   Topology *newParm = new Topology();
 
   newParm->parmName_ = parmName_;
-  newParm->fileName_ = fileName_;
-  // NOTE: Do NOT copy tag to avoid duplication.
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
-  newParm->coordInfo_ = coordInfo_; // TODO: Necessary? This should also copy box
   newParm->n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
@@ -1707,5 +1684,5 @@ int Topology::AppendTop(Topology const& CurrentTop) {
   AddBondArray(CurrentTop.BondsH(), atomOffset);
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
-  return CommonSetup(false);
+  return CommonSetup();
 }

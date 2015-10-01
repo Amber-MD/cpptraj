@@ -140,7 +140,6 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS[] = {
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
-  debug_(0),
   nochamber_(false), 
   ptype_(OLDPARM),
   ftype_(UNKNOWN_FTYPE),
@@ -888,7 +887,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
     Npointers = 30;
   }
   if (debug_>0) mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
-  TopIn.SetParmName( title, file_.Filename() );
+  TopIn.SetParmName( title ); //, file_.Filename() );
   // POINTERS
   std::vector<int> values = GetFlagInteger(F_POINTERS, Npointers);
   if (values.empty()) {
@@ -1152,7 +1151,7 @@ int Parm_Amber::ReadAmberParm( Topology &TopIn ) {
                              at_num[ai], mass[ai], atype_index[ai] - 1, types[ai],
                              gb_radii[ai], gb_screen[ai]),
                         Residue(resnames[ri], pdb_resnum[ri], 
-                                pdb_res_icode[ri][0], pdb_res_chainID[ri][0]), 0 );
+                                pdb_res_icode[ri][0], pdb_res_chainID[ri][0]) );
     }
     // NOTE: Shift indices in parm arrays by -1
     error_count_ += TopIn.SetBondInfo(bonds, bondsh, BPA);

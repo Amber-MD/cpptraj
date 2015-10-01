@@ -7,13 +7,15 @@
 /// Abstract base class that all ParmIO objects inherit from
 class ParmIO : public BaseIOtype {
   public:
+    ParmIO() : debug_(0) {}
     virtual ~ParmIO() { }
     virtual bool ID_ParmFormat(CpptrajFile&) = 0;
     virtual int processReadArgs(ArgList&) = 0; 
     virtual int ReadParm(FileName const&, Topology&) = 0;
     virtual int processWriteArgs(ArgList&) = 0;
     virtual int WriteParm(FileName const&, Topology const&) = 0;
-    virtual void SetDebug(int) = 0;
-    virtual bool NeedsBondSearch() const = 0;
+    void SetDebug(int d) { debug_ = d; }
+  protected:
+    int debug_;
 };
 #endif

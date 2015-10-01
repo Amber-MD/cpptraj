@@ -17,7 +17,7 @@ class ParmFile {
     int ReadTopology(Topology& t, FileName const& n, int d) {
       return ReadTopology(t, n, ArgList(), d);
     }
-    int WritePrefixTopology(Topology const&, std::string const&, ParmFormatType,int);
+    //int WritePrefixTopology(Topology const&, std::string const&, ParmFormatType,int);
     int WriteTopology(Topology const&, FileName const&, ArgList const&,ParmFormatType,int);
     int WriteTopology(Topology const& t, FileName const& n, ParmFormatType f,int d) {
       return WriteTopology(t, n, ArgList(), f, d);

@@ -15,7 +15,7 @@ int Parm_Tinker::ReadParm(FileName const& fname, Topology &parmOut) {
   if (infile.OpenTinker()) return 1;
   mprintf("\tReading Tinker file %s as topology file.\n",infile.Filename().base());
   // Allocate memory for coordinates.
-  double* Coords = new double[ infile.TinkerNatom() * 3 ];
+  Frame Coords;
   std::vector<int> Bonds;
   std::vector<Atom> Atoms = infile.ReadTinkerAtoms(Coords, Bonds);
   if (Atoms.empty()) return 1;
@@ -27,12 +27,10 @@ int Parm_Tinker::ReadParm(FileName const& fname, Topology &parmOut) {
   if (resname.size() > 3) resname.resize(3);
   Residue tinker_res( resname, 0, ' ', ' ' );
   // Put atoms into topology
-  const double* XYZ = Coords;
   for (std::vector<Atom>::const_iterator atom = Atoms.begin();
                                          atom != Atoms.end();
-                                       ++atom, XYZ += 3)
-    parmOut.AddTopAtom( *atom, tinker_res, XYZ );
-  delete[] Coords;
+                                       ++atom)
+    parmOut.AddTopAtom( *atom, tinker_res );
   // Add bond information
   for (std::vector<int>::const_iterator bond = Bonds.begin();
                                         bond != Bonds.end(); bond += 2)
@@ -41,7 +39,7 @@ int Parm_Tinker::ReadParm(FileName const& fname, Topology &parmOut) {
   if (parmOut.Setup_NoResInfo()) return 1;
   // Set topology box info.
   parmOut.SetParmBox( infile.TinkerBox() );
-  parmOut.SetParmName( infile.TinkerTitle(), infile.Filename() );
+  parmOut.SetParmName( infile.TinkerTitle() ); //, infile.Filename() );
   mprintf("\tTinker file contains %i atoms, %i residues,\n", parmOut.Natom(),parmOut.Nres());
   //mprintf("    %i bonds to H, %i other bonds.\n", parmOut.NbondsWithH,parmOut.NbondsWithoutH);
 

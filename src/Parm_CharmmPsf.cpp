@@ -51,7 +51,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     while (*ptr != '\0' && (*ptr == ' ' || *ptr == '*')) ++ptr;
     psftitle.assign( ptr );
   }
-  parmOut.SetParmName( NoTrailingWhitespace(psftitle), infile.Filename() );
+  parmOut.SetParmName( NoTrailingWhitespace(psftitle) );//, infile.Filename() );
   // Advance to <natom> !NATOM
   int natom = FindTag(tag, "!NATOM", 6, infile);
   if (debug_>0) mprintf("\tPSF: !NATOM tag found, natom=%i\n", natom);
@@ -77,7 +77,7 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
     parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), 
-                        Residue( psfresname, psfresnum, ' ', ' '), 0 );
+                        Residue( psfresname, psfresnum, ' ', ' ') );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
