@@ -17,11 +17,11 @@ class DataSet_Topology : public DataSet {
     int Append(DataSet*)                 { return 1;                    }
     // -------------------------------------------
     int LoadTopFromFile(ArgList const&, int);
-    void SetTop(Topology const& t) { top_ = t; }
     int StripTop( std::string const& );
-    void SetPindex(int p) { top_.SetPindex( p ); }
-    Topology* TopPtr() { return &top_; } // FIXME make const?
-    Topology const& Top() const { return top_; }
+    void SetTop(Topology const& t) { top_ = t;            }
+    void SetPindex(int p)          { top_.SetPindex( p ); }
+    Topology* TopPtr()             { return &top_; } // NOTE: pytraj currently relies on this 
+    Topology const& Top() const    { return top_;  }
   private:
     Topology top_;
 };
