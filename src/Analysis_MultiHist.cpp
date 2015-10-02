@@ -18,7 +18,7 @@ void Analysis_MultiHist::Help() {
           "  Histogram each data set separately in 1D.\n");
 }
 
-Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   bool useKdehist = analyzeArgs.hasKey("kde");
   double min = 0.0;
@@ -39,7 +39,7 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
   double Temp = analyzeArgs.getKeyDouble("free",-1.0);
   // Remaining args should be data sets
   Array1D inputDsets;
-  if (inputDsets.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (inputDsets.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSL )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -53,13 +53,13 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
       Analysis_KDE* k_ana = new Analysis_KDE();
       err = k_ana->ExternalSetup( (*ds), setname, ds - inputDsets.begin(), outfilename, 
                           minArgSet, min, maxArgSet, max, step, bins, Temp,
-                          *datasetlist, *DFLin );
+                          *DSL, *DFL );
       ana = (Analysis*)k_ana;
     } else {
       Analysis_Hist* h_ana = new Analysis_Hist();
       err = h_ana->ExternalSetup( (*ds), setname, ds - inputDsets.begin(), outfilename,
                           minArgSet, min, maxArgSet, max, step, bins, Temp, 
-                          normalize, *datasetlist, *DFLin );
+                          normalize, *DSL, *DFL );
       ana = (Analysis*)h_ana;
     }
     if (err != Analysis::OK) {

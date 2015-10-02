@@ -8,15 +8,15 @@ void Analysis_Multicurve::Help() {
 }
 
 
-Analysis::RetType Analysis_Multicurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Multicurve::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  masterDSL_ = datasetlist;
-  masterDFL_ = DFLin;
+  masterDSL_ = DSL;
+  masterDFL_ = DFL;
   debug_ = debugIn;
   // Parse all 'set' arguments.
   std::string set_arg = analyzeArgs.GetStringKey("set");
   while (!set_arg.empty()) {
-    inputDsets_.AddDataSets( datasetlist->GetMultipleSets( set_arg ) );
+    inputDsets_.AddDataSets( DSL->GetMultipleSets( set_arg ) );
     set_arg = analyzeArgs.GetStringKey("set");
   }
   if (inputDsets_.empty()) {

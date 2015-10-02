@@ -24,12 +24,12 @@ static inline bool check_type(DataSet* ds, int n_ds) {
   return false;
 }
 
-Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Overlap::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
-  ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds1") );
+  ds1_ = DSL->GetDataSet( analyzeArgs.GetStringKey("ds1") );
   if (check_type(ds1_,1)) return Analysis::ERR;
-  ds2_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds2") );
+  ds2_ = DSL->GetDataSet( analyzeArgs.GetStringKey("ds2") );
   if (check_type(ds2_,2)) return Analysis::ERR;
   useDeviation_ = analyzeArgs.hasKey("rmsd");
 

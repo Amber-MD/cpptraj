@@ -19,14 +19,14 @@ void Analysis_Corr::Help() {
 }
 
 // Analysis_Corr::Setup()
-Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   const char* calctype;
   // Keywords
   lagmax_ = analyzeArgs.getKeyInt("lagmax",-1);
   usefft_ = !analyzeArgs.hasKey("direct");
   calc_covar_ = !analyzeArgs.hasKey("nocovar");
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   if (outfile == 0) {
     mprinterr("Error: Corr: No output filename specified ('out' <filename>).\n");
     return Analysis::ERR;
@@ -42,13 +42,13 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   std::string D2name = analyzeArgs.GetStringNext();
   // Get DataSet(s)
-  D1_ = datasetlist->GetDataSet(D1name);
+  D1_ = DSL->GetDataSet(D1name);
   if (D1_==0) {
     mprinterr("Error: Corr: Could not get dataset named %s\n",D1name.c_str());
     return Analysis::ERR;
   }
   if (!D2name.empty())
-    D2_ = datasetlist->GetDataSet(D2name);
+    D2_ = DSL->GetDataSet(D2name);
   else {
     D2_ = D1_;
     D2name = D1name;
@@ -67,7 +67,7 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datase
   std::string corrname = "C(" + D1_->Meta().Legend();
   if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
   corrname += ")";
-  Ct_ = datasetlist->AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
+  Ct_ = DSL->AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
   if (Ct_ == 0) return Analysis::ERR;
   Ct_->SetLegend( corrname );
   outfile->AddDataSet( Ct_ );

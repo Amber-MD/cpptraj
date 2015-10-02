@@ -83,7 +83,7 @@ void Analysis_Rotdif::Help() {
 }
 
 // Analysis_Rotdif::Setup()
-Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -146,7 +146,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL,
   RNgen_.rn_set( rseed_ );
 
   // Open output file. Defaults to stdout if no name specified
-  outfile_ = DFLin->AddCpptrajFile(outfilename, "Rotational diffusion",
+  outfile_ = DFL->AddCpptrajFile(outfilename, "Rotational diffusion",
                                  DataFileList::TEXT, true);
   if (outfile_ == 0) {
     mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());

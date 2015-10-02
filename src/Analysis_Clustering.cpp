@@ -76,15 +76,15 @@ void Analysis_Clustering::Help() {
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
-Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   if (analyzeArgs.hasKey("nocoords"))
     coords_ = 0;
   else {
-    // Attempt to get coords dataset from datasetlist
+    // Attempt to get coords dataset from DSL
     std::string setname = analyzeArgs.GetStringKey("crdset");
-    coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+    coords_ = (DataSet_Coords*)DSL->FindCoordsSet( setname );
     if (coords_ == 0) {
       mprinterr("Error: Could not locate COORDS set corresponding to %s\n",
                 setname.c_str());
@@ -99,7 +99,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
     ArgList dsnames(dataSetname, ",");
     DataSetList inputDsets;
     for (ArgList::const_iterator name = dsnames.begin(); name != dsnames.end(); ++name) {
-      DataSetList tempDSL = datasetlist->GetMultipleSets( *name );
+      DataSetList tempDSL = DSL->GetMultipleSets( *name );
       if (tempDSL.empty()) {
         mprinterr("Error: %s did not correspond to any data sets.\n", dataSetname.c_str());
         return Analysis::ERR;
@@ -184,11 +184,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   draw_maxit_ = analyzeArgs.getKeyInt("draw_maxit", 1000);
   draw_tol_ = analyzeArgs.getKeyDouble("draw_tol", 1.0E-5);
   
-  DataFile* cnumvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* clustersvtimefile = DFLin->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
+  DataFile* cnumvtimefile = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* clustersvtimefile = DFL->AddDataFile(analyzeArgs.GetStringKey("clustersvtime"),
                                                    analyzeArgs);
   windowSize_ = analyzeArgs.getKeyInt("cvtwindow", 0);
-  cpopvtimefile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
+  cpopvtimefile_ = DFL->AddDataFile(analyzeArgs.GetStringKey("cpopvtime"), analyzeArgs);
   clusterinfo_ = analyzeArgs.GetStringKey("info");
   summaryfile_ = analyzeArgs.GetStringKey("summary");
   nofitrms_ = analyzeArgs.hasKey("nofit");
@@ -225,7 +225,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
   // Dataset to store cluster number v time
-  cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
+  cnumvtime_ = DSL->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
   // DataSet for # clusters seen v time
@@ -234,13 +234,13 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
       mprinterr("Error: For # clusters seen vs time, cvtwindow must be specified and > 1\n");
       return Analysis::ERR;
     }
-    clustersVtime_ = datasetlist->AddSet(DataSet::INTEGER, 
+    clustersVtime_ = DSL->AddSet(DataSet::INTEGER, 
                                          MetaData(cnumvtime_->Meta().Name(), "NCVT"));
     if (clustersVtime_ == 0) return Analysis::ERR;
     clustersvtimefile->AddDataSet( clustersVtime_ );
   }
   // Save master DSL for Cpopvtime
-  masterDSL_ = datasetlist;
+  masterDSL_ = DSL;
 
   mprintf("    CLUSTER:");
   if (coords_ != 0) mprintf(" Using coords dataset %s,", coords_->legend());

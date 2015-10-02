@@ -10,9 +10,9 @@ void Analysis_LowestCurve::Help() {
 }
 
 // Analysis_LowestCurve::Setup()
-Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   points_ = analyzeArgs.getKeyInt("points", -1);
   if (points_ < 1) {
     mprinterr("Error: 'points' must be specified and > 0\n");
@@ -21,7 +21,7 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   step_ = analyzeArgs.getKeyDouble("step", 1.0);
   std::string setname = analyzeArgs.GetStringKey("name");
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSL )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -31,9 +31,9 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   }
   // Create output data sets
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName("LOWCURVE");
+    setname = DSL->GenerateDefaultName("LOWCURVE");
   for (Array1D::const_iterator DS = input_dsets_.begin(); DS != input_dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSet(DataSet::DOUBLE,
+    DataSet* dsout = DSL->AddSet(DataSet::DOUBLE,
                                          MetaData(setname, DS - input_dsets_.begin()));
     if (dsout == 0)
       return Analysis::ERR;

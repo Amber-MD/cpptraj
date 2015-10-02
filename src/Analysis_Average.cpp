@@ -9,28 +9,28 @@ void Analysis_Average::Help() {
 }
 
 // Analysis_Average::Setup()
-Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   calcAvgOverSets_ = analyzeArgs.hasKey("oversets");
   writeHeader_ = !analyzeArgs.hasKey("noheader");
   DataFile* setfile = 0;
   if (calcAvgOverSets_) {
-    setfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-    avgOfSets_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "AVERAGE");
+    setfile = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+    avgOfSets_ = DSL->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "AVERAGE");
     if (avgOfSets_ == 0) return Analysis::ERR;
-    sdOfSets_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(avgOfSets_->Meta().Name(), "SD"));
+    sdOfSets_ = DSL->AddSet(DataSet::DOUBLE, MetaData(avgOfSets_->Meta().Name(), "SD"));
     if (sdOfSets_ == 0) return Analysis::ERR;
     if (setfile != 0) {
       setfile->AddDataSet( avgOfSets_ );
       setfile->AddDataSet( sdOfSets_ );
     }
   } else {
-    outfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("out"), "DataSet Average",
+    outfile_ = DFL->AddCpptrajFile(analyzeArgs.GetStringKey("out"), "DataSet Average",
                                      DataFileList::TEXT, true);
     if (outfile_ == 0) return Analysis::ERR;
   }
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSL )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }

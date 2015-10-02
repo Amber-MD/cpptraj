@@ -62,10 +62,10 @@ int Array1D::AddTorsionSets(DataSetList const& SetList) {
 }
 
 // Array1D::AddSetsFromArgs()
-int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSLin) {
+int Array1D::AddSetsFromArgs(ArgList const& dsetArgs, DataSetList const& DSL) {
   DataSetList input_dsl;
   for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    input_dsl += DSLin.GetMultipleSets( *dsa );
+    input_dsl += DSL.GetMultipleSets( *dsa );
   if (input_dsl.empty()) {
     mprinterr("Error: No data sets selected.\n");
     return 1;

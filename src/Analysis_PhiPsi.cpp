@@ -9,7 +9,7 @@ void Analysis_PhiPsi::Help() {
 }
 
 // Analysis_PhiPsi::Setup()
-Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   std::string outname = analyzeArgs.GetStringKey("out");
   std::string rangearg = analyzeArgs.GetStringKey("resrange");
@@ -23,7 +23,7 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* data
   DataSetList sets;
   std::string dsarg = analyzeArgs.GetStringNext();
   while (!dsarg.empty()) {
-    sets += datasetlist->GetMultipleSets( dsarg );
+    sets += DSL->GetMultipleSets( dsarg );
     dsarg = analyzeArgs.GetStringNext();
   }
   //std::string dsname = analyzeArgs.GetStringKey("name");

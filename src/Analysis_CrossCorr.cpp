@@ -14,12 +14,12 @@ void Analysis_CrossCorr::Help() {
 }
 
 // Analysis_CrossCorr::Setup()
-Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  outfile_ = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSL )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -28,7 +28,7 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
     return Analysis::ERR;
   }
   // Setup output dataset
-  matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
+  matrix_ = DSL->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
     matrix_->Dim(Dimension::X).SetLabel("DataSets");
     outfile_->AddDataSet( matrix_ );
