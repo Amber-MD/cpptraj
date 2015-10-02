@@ -64,6 +64,9 @@ class CpptrajState {
 
     int RunNormal();
     int RunEnsemble();
+#   ifdef MPI
+    int RunParallel();
+#   endif
     // -------------------------------------------
     /// List of parameter files 
     TopologyList parmFileList_;

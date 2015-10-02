@@ -5,10 +5,11 @@
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
 #include "ProgressBar.h"
-#ifdef TIMER
 #ifdef MPI
-#include "EnsembleIn.h"
-#endif
+# include "DataSet_Coords_TRJ.h"
+# ifdef TIMER
+#   include "EnsembleIn.h"
+# endif
 #endif
 
 // CpptrajState::AddTrajin()
@@ -212,20 +213,15 @@ int CpptrajState::Run() {
   else if (actionList_.Empty() && trajoutList_.Empty())
     mprintf("Warning: No actions/output trajectories specified.\n");
   else {
-#   ifdef MPI
-    // Only ensemble mode allowed with MPI for now.
-    if ( trajinList_.Mode() != TrajinList::ENSEMBLE ) {
-      mprinterr("Error: Only 'ensemble' mode supported in parallel.\n");
-      err = 1;
-    } else
-      err = RunEnsemble();
-#   else
     switch ( trajinList_.Mode() ) {
+#     ifdef MPI
+      case TrajinList::NORMAL   : err = RunParallel(); break;
+#     else
       case TrajinList::NORMAL   : err = RunNormal(); break;
+#     endif
       case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
       case TrajinList::UNDEFINED: break;
     }
-#   endif
     // Clean up Actions if run completed successfully.
     if (err == 0) {
       actionList_.Clear();
@@ -546,7 +542,79 @@ int CpptrajState::RunEnsemble() {
 
   return 0;
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+/** Process trajectories in trajinList in parallel. */
+int CpptrajState::RunParallel() {
+  // Currently only let this happen if all trajectories share same topology.
+  Topology* FirstParm = 0;
+  int err = 0;
+  for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
+                              traj != trajinList_.trajin_end(); ++traj)
+    if (FirstParm == 0)
+      FirstParm = (*traj)->Traj().Parm();
+    else {
+      if (FirstParm != (*traj)->Traj().Parm()) {
+        err = 1;
+        break;
+      }
+  }
+  if (parallel_check_error( err )) {
+    mprinterr("Error: 'trajin' in parallel currently requires all trajectories use"
+              " the same topology file.\n");
+    return 1;
+  }
 
+  // Put all trajectories into a DataSet_Coords_TRJ for random access.
+  // FIXME error check above goes here instead?
+  DataSet_Coords_TRJ input_traj;
+  for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
+                              traj != trajinList_.trajin_end(); ++traj)
+    if (input_traj.AddInputTraj( *traj )) { err = 1; break; }
+  if (parallel_check_error( err )) return 1;
+
+  // Divide frames among threads.
+  int my_start = 0;
+  int my_stop = 0;
+  int my_frames = 0;
+  if (worldrank == 0) {
+    mprintf("Max frames is %zu\n", input_traj.Size());
+    int maxFrames = (int)input_traj.Size();
+    int frames_per_thread = maxFrames / worldsize;
+    int remainder         = maxFrames % worldsize;
+    int* rank_frames = new int[ worldsize * 3 ];
+    std::fill( rank_frames, rank_frames + worldsize, frames_per_thread );
+    int* rank_start = rank_frames + worldsize;
+    int* rank_stop  = rank_start  + worldsize;
+    std::fill( rank_start, rank_start + (2*worldsize), 0 ); // TODO Necessary?
+    for (int rank = 0; rank != worldsize; rank++) {
+      if (rank > 0)
+        rank_start[rank] = rank_stop[rank-1];
+      if (rank < remainder)
+        rank_frames[rank]++;
+      rank_stop[rank] = rank_start[rank] + rank_frames[rank];
+      //rprintf("Start %i Stop %i\n", rank_start[rank], rank_stop[rank]);
+      if (rank > 0) {
+        parallel_send( rank_start  + rank, 1, PARA_INT, rank, 1000 );
+        parallel_send( rank_stop   + rank, 1, PARA_INT, rank, 1001 );
+        parallel_send( rank_frames + rank, 1, PARA_INT, rank, 1002 );
+      }
+    }
+    my_stop = rank_stop[0];
+    my_frames = rank_frames[0];
+    delete[] rank_frames;
+  } else {
+    // Get start, stop, and total frames from master
+    parallel_recv( &my_start,  1, PARA_INT, 0, 1000 );
+    parallel_recv( &my_stop,   1, PARA_INT, 0, 1001 );
+    parallel_recv( &my_frames, 1, PARA_INT, 0, 1002 );
+  }
+  parallel_barrier();
+  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+
+  return 0;
+}
+#endif
 // -----------------------------------------------------------------------------
 // CpptrajState::RunNormal()
 /** Process trajectories in trajinList. Each frame in trajinList is sent
