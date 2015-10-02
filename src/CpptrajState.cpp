@@ -681,8 +681,10 @@ int CpptrajState::RunParallel() {
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set sync");
   mprintf("\nACTION OUTPUT:\n");
-  actionList_.Print( );
-
+  // Only call print for master
+  if (worldrank == 0)
+    actionList_.Print( );
+  parallel_barrier();
   return 0;
 }
 #endif

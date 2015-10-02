@@ -7,7 +7,7 @@ class ReferenceAction {
   public:
     ReferenceAction() {}
     /// Set up selected ref coordinates base on given frame and ref mask.
-    inline void SetRefStructure(Frame const&, bool, bool);
+    void SetRefStructure(Frame const&, bool, bool);
     /// Initialize
     int InitRef(bool, bool, bool, bool, std::string const&, ReferenceFrame const&,
                 Topology*, std::string const&, ArgList&, const char*);
@@ -35,15 +35,7 @@ class ReferenceAction {
     bool previous_;          ///< True if current reference is previous frame (only RMSD now)
     std::string modeString_; ///< Information on current reference mode.
 };
-/// ----- INLINE FUNCTIONS -----------------------------------------------------
-// ReferenceAction::SetRefStructure()
-void ReferenceAction::SetRefStructure(Frame const& frameIn, bool fitIn, bool useMassIn)
-{
-  refFrame_ = frameIn;
-  selectedRef_.SetCoordinates( refFrame_, refMask_ );
-  if (fitIn)
-    refTrans_ = selectedRef_.CenterOnOrigin( useMassIn );
-}
+// ----- INLINE FUNCTIONS ------------------------------------------------------
 // ReferenceAction::ActionRef()
 void ReferenceAction::ActionRef(Frame const& frameIn, bool fitIn, bool useMassIn)
 {

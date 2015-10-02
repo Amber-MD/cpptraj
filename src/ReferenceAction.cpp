@@ -98,3 +98,12 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt, const char* call)
   }
   return 0;
 }
+
+// ReferenceAction::SetRefStructure()
+void ReferenceAction::SetRefStructure(Frame const& frameIn, bool fitIn, bool useMassIn)
+{
+  refFrame_ = frameIn;
+  selectedRef_.SetCoordinates( refFrame_, refMask_ );
+  if (fitIn)
+    refTrans_ = selectedRef_.CenterOnOrigin( useMassIn );
+}
