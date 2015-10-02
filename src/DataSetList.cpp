@@ -466,11 +466,11 @@ void DataSetList::List() const {
 }
 #ifdef MPI
 // DataSetList::SynchronizeData()
-void DataSetList::SynchronizeData() {
-  // Sync datasets - does nothing if worldsize is 1
+void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames) {
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    if ( (*ds)->Sync() ) {
-      rprintf( "Error syncing dataset %s\n",(*ds)->legend());
+    mprintf("DEBUG: Syncing '%s'\n", (*ds)->legend());
+    if ( (*ds)->Sync(total, rank_frames) ) {
+      rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
       //return;
     }
   }

@@ -40,7 +40,7 @@ class DataSet {
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
     /// Consolidate this DataSet across all threads (MPI only)
-    virtual int Sync() = 0;
+    virtual int Sync(size_t, std::vector<int> const&) = 0;
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
     /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?

@@ -6,8 +6,8 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     DataSet_Coords_CRD() : DataSet_Coords(COORDS), numCrd_(0), numBoxCrd_(0) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD(); }
     // ----- DataSet functions -------------------
-    size_t Size() const { return coords_.size(); }
-    int Sync()          { return 1;              }
+    size_t Size() const                       { return coords_.size(); }
+    int Sync(size_t, std::vector<int> const&) { return 1;              }
     void Info() const;
     void Add(size_t, const void*) {}
     int Allocate(SizeArray const&);

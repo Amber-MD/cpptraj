@@ -1,6 +1,8 @@
 // DataSet_integer
 #include "DataSet_integer.h"
+#ifdef MPI
 #include "MpiRoutines.h"
+#endif
 
 // DataSet_integer::Allocate()
 /** Reserve space in the Data and Frames arrays. */
@@ -47,12 +49,22 @@ int DataSet_integer::Append(DataSet* dsIn) {
 }
 
 // DataSet_integer::Sync()
-/** First, non-master threads convert their vectors into C-arrays.
-  * These arrays are then sent to the master, where they are put 
-  * into the master arrays. It is assumed that master (rank 0) has 
-  * first chunk of data, rank 1 has next and so on.
-  */
-int DataSet_integer::Sync() {
+int DataSet_integer::Sync(size_t total, std::vector<int> const& rank_frames) {
+#ifdef MPI
+  if (worldsize==1) return 0;
+  if (worldrank == 0) {
+    int* endptr = &(Data_[0]) + Data_.size();
+    // Need to increase size of Data on master by number of frames on each other rank.
+    int additional_frames = (int)total - rank_frames[0];
+    Data_.resize( Data_.size() + additional_frames );
+    // Receive data from each rank.
+    for (int rank = 1; rank < worldsize; rank++) {
+      parallel_sendMaster( endptr, rank_frames[rank], rank, PARA_INT );
+      endptr += rank_frames[rank];
+    }
+  } else // Send data to master //TODO adjust for repeated additions?
+    parallel_sendMaster( &(Data_[0]), Data_.size(), worldrank, PARA_INT );
+/*
   unsigned int dataSize;
   unsigned int masterSize = 0;
   int* values = 0;
@@ -102,6 +114,7 @@ int DataSet_integer::Sync() {
 
   // Free master array
   if (worldrank == 0 && values != 0 ) delete[] values;
-
+*/
+#endif
   return 0;
 }

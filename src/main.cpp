@@ -12,13 +12,13 @@
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
 /// Main routine.
 int main(int argc, char **argv) {
-  Cpptraj Program;
   if (parallel_init(argc,argv) != 0) return 1;
+  Cpptraj Program;
   int err = Program.RunCpptraj(argc, argv);
-  parallel_end();
 # ifdef FFTW_FFT
   // Ensure no debris from FFTW is left over.
   fftw_cleanup();
 # endif
+  parallel_end();
   return err;
 }

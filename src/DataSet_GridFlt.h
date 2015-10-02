@@ -12,7 +12,7 @@ class DataSet_GridFlt : public DataSet_3D {
     Grid<float> const& InternalGrid()    const { return grid_; }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return grid_.size();        }
-    int Sync()                                 { return 1;                   }
+    int Sync(size_t, std::vector<int> const&)  { return 1;                   }
     void Info()                          const { return;                     }
     void WriteBuffer(CpptrajFile&,SizeArray const&) const;
     // ----- DataSet_3D functions ----------------

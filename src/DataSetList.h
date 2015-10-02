@@ -91,7 +91,7 @@ class DataSetList {
     void List() const;
 #   ifdef MPI
     /// Call sync for DataSets in the list (MPI only)
-    void SynchronizeData();
+    void SynchronizeData(size_t, std::vector<int> const&);
 #   endif
 
     /// Find next set of specified type with given name.

@@ -4,6 +4,7 @@
 #include "MpiRoutines.h" // parallel_barrier
 #include "PDBfile.h"
 #ifdef MPI
+# include "MpiRoutines.h"
 # include "StringRoutines.h" // integerToString
 #endif
 #ifdef TIMER
@@ -244,7 +245,7 @@ void DataFileList::WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      (*df)->WriteDataOut();
+      if (worldrank == 0) (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }
   }

@@ -11,9 +11,9 @@ class DataSet_Mesh : public DataSet_1D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();            }
     void Resize(size_t n)   { mesh_x_.resize(n, 0.0); mesh_y_.resize(n, 0.0); }
     // ----- DataSet functions -------------------
-    size_t Size()            const { return mesh_x_.size();     }
-    int Sync()                     { return 0;                  }
-    void Info()              const { return;                    }
+    size_t Size()                       const { return mesh_x_.size();     }
+    int Sync(size_t, std::vector<int> const&) { return 1;                  }
+    void Info()                         const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;

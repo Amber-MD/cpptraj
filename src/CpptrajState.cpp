@@ -546,6 +546,11 @@ int CpptrajState::RunEnsemble() {
 // -----------------------------------------------------------------------------
 /** Process trajectories in trajinList in parallel. */
 int CpptrajState::RunParallel() {
+  // Print information.
+  parmFileList_.List();
+  trajinList_.List();
+  ReferenceInfo();
+
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
   int err = 0;
@@ -576,8 +581,27 @@ int CpptrajState::RunParallel() {
   // Divide frames among threads.
   int my_start = 0;
   int my_stop = 0;
-  int my_frames = 0;
+//  int my_frames = 0;
+  int maxFrames = (int)input_traj.Size();
+  int frames_per_thread = maxFrames / worldsize;
+  int remainder         = maxFrames % worldsize;
+  int my_frames         = frames_per_thread + (int)(worldrank < remainder);
+  // Figure out where this thread starts and stops
+  for (int rank = 0; rank != worldrank; rank++)
+    if (rank < remainder)
+      my_start += (frames_per_thread + 1);
+    else
+      my_start += (frames_per_thread);
+  my_stop = my_start + my_frames;
+  // Store how many frames each rank will process (only needed by master).
+  std::vector<int> rank_frames( worldsize, frames_per_thread );
+  for (int i = 0; i != worldsize; i++)
+    if (i < remainder) rank_frames[i]++;
   if (worldrank == 0) {
+    for (int i = 0; i != worldsize; i++)
+      mprintf("Thread %i will process %i frames.\n", i, rank_frames[i]);
+  }
+/*  if (worldrank == 0) {
     mprintf("Max frames is %zu\n", input_traj.Size());
     int maxFrames = (int)input_traj.Size();
     int frames_per_thread = maxFrames / worldsize;
@@ -608,9 +632,52 @@ int CpptrajState::RunParallel() {
     parallel_recv( &my_start,  1, PARA_INT, 0, 1000 );
     parallel_recv( &my_stop,   1, PARA_INT, 0, 1001 );
     parallel_recv( &my_frames, 1, PARA_INT, 0, 1002 );
+  }*/
+  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+  parallel_barrier();
+
+  // Disable trajectory output for now. FIXME
+  if (!trajoutList_.Empty()) {
+    mprinterr("Error: trajout not yet supported in parallel.\n");
+    return 1;
+  }
+
+  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  DSL_.AllocateSets( my_frames );
+
+  // ----- SETUP PHASE ---------------------------
+  CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
+  Topology* CurrentParm = (Topology*)&(input_traj.Top()); // TODO fix cast
+  CurrentParm->SetParmCoordInfo( currentCoordInfo );
+  CurrentParm->SetReferenceCoords( ActiveReference() );
+  err = actionList_.SetupActions( &CurrentParm );
+  if (parallel_check_error( err )) {
+    mprinterr("Error: Could not set up actions for '%s'\n", CurrentParm->c_str());
+    return 1;
+  }
+  // TODO Set up output trajectories
+
+  // ----- ACTION PHASE --------------------------
+  ProgressBar progress;
+  if (showProgress_)
+    progress.SetupProgress( my_frames );
+  Frame TrajFrame = input_traj.AllocateFrame();
+  int actionSet = 0; // Internal data frame
+  for (int set = my_start; set != my_stop; set++, actionSet++) {
+    input_traj.GetFrame(set, TrajFrame);
+    if (TrajFrame.CheckCoordsInvalid()) // TODO actual frame #
+      rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
+    Frame* CurrentFrame = &TrajFrame;
+    //bool suppress_output =
+    actionList_.DoActions(&CurrentFrame, actionSet);
+    // TODO trajout stuff
+    if (showProgress_) progress.Update( actionSet );
   }
   parallel_barrier();
-  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+  // Sync data sets to master thread
+  DSL_.SynchronizeData( input_traj.Size(), rank_frames );
+  mprintf("\nACTION OUTPUT:\n");
+  actionList_.Print( );
 
   return 0;
 }
@@ -787,8 +854,14 @@ int CpptrajState::RunAnalyses() {
   if (analysisList_.Empty()) return 0;
   Timer analysis_time;
   analysis_time.Start();
-  int err = analysisList_.DoAnalyses();
+  // Only master performs analyses currently.
+  int err = 0;
+  if (worldrank == 0)
+    err = analysisList_.DoAnalyses();
   analysis_time.Stop();
+# ifdef MPI
+  if (parallel_check_error( err )) err = 1;
+# endif
   mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
   // If all Analyses completed successfully, clean up analyses.
   if ( err == 0) 

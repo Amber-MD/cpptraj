@@ -10,7 +10,7 @@ class DataSet_MatrixFlt : public DataSet_2D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixFlt();     }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
-    int Sync()                                 { return 1;                  }
+    int Sync(size_t, std::vector<int> const&)  { return 1;                  }
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------

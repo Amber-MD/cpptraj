@@ -21,7 +21,7 @@ class DataSet_double : public DataSet_1D {
     iterator end()                       { return Data_.end();        }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
-    int Sync();
+    int Sync(size_t, std::vector<int> const&);
     void Info()                    const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );

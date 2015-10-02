@@ -14,11 +14,11 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     int AddSingleTrajin(std::string const&, ArgList&, Topology*);
     int AddInputTraj(Trajin*);
     // ---- DataSet functions -------------------
-    size_t Size() const { return maxFrames_;     }
-    int Sync()          { return 1;              }
+    size_t Size() const                          { return maxFrames_; }
+    int Sync(size_t, std::vector<int> const&)    { return 1;          }
     void Info() const;
-    void Add( size_t, const void* )              { return;     }
-    int Allocate(SizeArray const&)               { return 0;   }
+    void Add( size_t, const void* )              { return;            }
+    int Allocate(SizeArray const&)               { return 0;          }
     // ----- DataSet_Coords functions ------------
     /// DISABLED: Add a frame.
     void AddFrame(Frame const& fIn) { }
