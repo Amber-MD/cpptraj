@@ -74,7 +74,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
     if (!State_.EmptyState())
       err = State_.Run();
   } else if ( cmode == INTERACTIVE ) {
+#   ifdef MPI
+    mprinterr("Error: MPI version of cpptraj cannot run in interactive mode.\n");
+    err = 1;
+#   else
     err = Interactive();
+#   endif
   } else if ( cmode == ERROR ) {
     err = 1;
   }
