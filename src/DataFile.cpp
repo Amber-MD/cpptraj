@@ -332,6 +332,7 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
+  rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
   // Loop over all sets, decide which ones should be written.

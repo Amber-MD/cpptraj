@@ -222,7 +222,7 @@ void DataFileList::List() const {
     mprintf("\nDATAFILES:\n");
     if (!fileList_.empty()) {
       for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it)
-        rprintf("  %s (%s): %s\n",(*it)->DataFilename().base(), (*it)->FormatString(),
+        mprintf("  %s (%s): %s\n",(*it)->DataFilename().base(), (*it)->FormatString(),
                 (*it)->DataSetNames().c_str());
     }
     if (!cfList_.empty()) {
