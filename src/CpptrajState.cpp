@@ -675,7 +675,11 @@ int CpptrajState::RunParallel() {
   }
   parallel_barrier();
   // Sync data sets to master thread
+  Timer time_sync;
+  time_sync.Start();
   DSL_.SynchronizeData( input_traj.Size(), rank_frames );
+  time_sync.Stop();
+  time_sync.WriteTiming(1, "Data set sync");
   mprintf("\nACTION OUTPUT:\n");
   actionList_.Print( );
 
