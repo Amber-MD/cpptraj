@@ -17,7 +17,7 @@ void Action_AreaPerMol::Help() {
 static const char* APMSTRING[] = {"XY", "XZ", "YZ"};
 
 // Action_AreaPerMol::Init()
-Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -89,8 +89,7 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_AreaPerMol::DoAction()
-Action::RetType Action_AreaPerMol::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_AreaPerMol::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   double area;
   if (areaType_ == XY)

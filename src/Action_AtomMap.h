@@ -12,7 +12,7 @@ class Action_AtomMap : public Action {
     static void Help();
     ~Action_AtomMap();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

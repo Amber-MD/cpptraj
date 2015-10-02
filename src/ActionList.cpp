@@ -28,13 +28,13 @@ void ActionList::SetDebug(int debugIn) {
 
 // ActionList::AddAction()
 int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                          TopologyList* PFL, DataSetList* DSL, DataFileList* DFL)
+                          DataSetList* DSL, DataFileList* DFL)
 {
   int err = 0;
   if (actionsAreSilent_) SetWorldSilent( true );
   Action* act = (Action*)Alloc();
   // Attempt to initialize action
-  if ( act->Init( argIn, PFL, DSL, DFL, debug_ ) != Action::OK ) {
+  if ( act->Init( argIn, DSL, DFL, debug_ ) != Action::OK ) {
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
     delete act;
     err = 1;

@@ -33,7 +33,7 @@ void Action_OrderParameter::Help()
 }
 
 // Action_OrderParameter::init()
-Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   size_t nGroups;
   std::string mask;
@@ -132,8 +132,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
 
 
 // Action_OrderParameter::Setup()
-Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
-					     Topology** parmAddress)
+Action::RetType Action_OrderParameter::Setup(Topology* currentParm, Topology** parmAddress)
 {
   int i, nlen1;
   int nlen2 = 0;
@@ -204,9 +203,7 @@ Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
 
 
 // Action_OrderParameter::action()
-Action::RetType Action_OrderParameter::DoAction(int frameNum,
-						Frame* currentFrame,
-						Frame** frameAddress)
+Action::RetType Action_OrderParameter::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   int i, j, curr_atom, prev_atom, next_atom;
 

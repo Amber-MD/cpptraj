@@ -12,7 +12,7 @@ void Action_LESsplit::Help() {
 }
 
 // Action_LESsplit::Init()
-Action::RetType Action_LESsplit::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_LESsplit::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");
@@ -101,8 +101,7 @@ Action::RetType Action_LESsplit::Setup(Topology* currentParm, Topology** parmAdd
 }
 
 // Action_LESsplit::DoAction()
-Action::RetType Action_LESsplit::DoAction(int frameNum, Frame* currentFrame, 
-                                          Frame** frameAddress)
+Action::RetType Action_LESsplit::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (unsigned int i = 0; i != lesMasks_.size(); i++)
     lesFrames_[i].SetFrame(*currentFrame, lesMasks_[i]);

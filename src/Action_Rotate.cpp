@@ -10,7 +10,7 @@ void Action_Rotate::Help() {
           "  Rotate atoms in <mask> around x, y, and/or z axes.\n");
 }
 
-Action::RetType Action_Rotate::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rotate::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
   inverse_ = actionArgs.hasKey("inverse");

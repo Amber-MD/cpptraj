@@ -9,7 +9,7 @@ class Analysis_CrossCorr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrossCorr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
 
   private:

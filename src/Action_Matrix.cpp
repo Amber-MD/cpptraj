@@ -36,7 +36,7 @@ void Action_Matrix::Help() {
 }
 
 // Action_Matrix::Init()
-Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords

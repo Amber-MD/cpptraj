@@ -14,7 +14,7 @@ void Action_Center::Help() {
 }
 
 // Action_Center::Init()
-Action::RetType Action_Center::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Center::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   if (actionArgs.hasKey("origin"))

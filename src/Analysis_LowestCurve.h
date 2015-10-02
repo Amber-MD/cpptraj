@@ -8,7 +8,7 @@ class Analysis_LowestCurve : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_LowestCurve(); }
     static void Help();
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;

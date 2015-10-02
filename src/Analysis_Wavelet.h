@@ -11,7 +11,7 @@ class Analysis_Wavelet : public Analysis {
     Analysis_Wavelet();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Wavelet(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     enum WaveletType { W_MORLET = 0, W_PAUL, W_NONE };

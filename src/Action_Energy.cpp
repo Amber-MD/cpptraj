@@ -29,7 +29,7 @@ int Action_Energy::AddSet(Etype typeIn, DataSetList* DSL, DataFile* outfile,
 }
 
 // Action_Energy::Init()
-Action::RetType Action_Energy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Energy::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ENE_.SetDebug( debugIn );
   // Get keywords
@@ -101,8 +101,7 @@ Action::RetType Action_Energy::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Energy::DoAction()
-Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   double Etot = 0.0, ene, ene2;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)

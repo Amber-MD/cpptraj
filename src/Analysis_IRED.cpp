@@ -40,8 +40,7 @@ void Analysis_IRED::Help() {
 }
 
 // Analysis_IRED::Setup()
-Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Count and store the number of previously defined IRED vectors.

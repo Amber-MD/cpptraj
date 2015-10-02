@@ -28,7 +28,7 @@ void Action_AtomicCorr::Help() {
 const char* Action_AtomicCorr::ModeString[] = {"atom", "residue"};
 
 // Action_AtomicCorr::Init()
-Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );

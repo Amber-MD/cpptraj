@@ -4,7 +4,6 @@
 #include "ArgList.h"
 #include "DataFileList.h"
 #include "DataSetList.h"
-#include "TopologyList.h"
 // Class: Action 
 /// The abstract base class that all other actions inherit. 
 /** By convention actions have 3 main phases: Init, Setup, and DoAction.
@@ -34,7 +33,7 @@ class Action : public DispatchObject {
     virtual ~Action() {}
     /// Initialize action
     /** Process input args, set up any DataSets or DataFiles, set debug level */
-    virtual RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int) = 0;
+    virtual RetType Init(ArgList&, DataSetList*, DataFileList*, int) = 0;
     /// Set up action for given Topology
     virtual RetType Setup(Topology*,Topology**) = 0;
     /// Perform action for given frame number and Frame.

@@ -21,7 +21,7 @@ void Action_VelocityAutoCorr::Help() {
 }
 
 // Action_VelocityAutoCorr::Init()
-Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   useVelInfo_ = actionArgs.hasKey("usevelocity");
   mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -62,8 +62,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
 
 // Action_VelocityAutoCorr::Setup()
 /** For this to be valid the same # of atoms should be selected each time. */
-Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm,
-                                               Topology** parmAddress)
+Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm, Topology** parmAddress)
 {
   if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
@@ -91,9 +90,7 @@ Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm,
 }
 
 // Action_VelocityAutoCorr::DoAction()
-Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, 
-                                                  Frame* currentFrame,
-                                                  Frame** frameAddress)
+Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   if (!useVelInfo_) {
     // Calculate pseudo-velocities between frames.

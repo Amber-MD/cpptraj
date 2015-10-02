@@ -49,7 +49,7 @@ int Action_Contacts::SetupContacts(Frame const& refframe, Topology const& refpar
 }
 
 // Action_Contacts::Init()
-Action::RetType Action_Contacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Contacts::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
 
   byResidue_ = actionArgs.hasKey("byresidue");

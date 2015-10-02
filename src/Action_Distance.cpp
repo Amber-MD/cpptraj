@@ -18,7 +18,7 @@ void Action_Distance::Help() {
 }
 
 // Action_Distance::Init()
-Action::RetType Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Distance::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   AssociatedData_NOE noe;
   // Get Keywords

@@ -16,7 +16,7 @@ void Action_FixAtomOrder::Help() {
 }
 
 // Action_FixAtomOrder::init()
-Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");
@@ -110,8 +110,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
 }
 
 // Action_FixAtomOrder::action()
-Action::RetType Action_FixAtomOrder::DoAction(int frameNum, Frame* currentFrame, 
-                                              Frame** frameAddress)
+Action::RetType Action_FixAtomOrder::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   // Reorder atoms in the frame
   newFrame_.SetCoordinatesByMap( *currentFrame, atomMap_ );

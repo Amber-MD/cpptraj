@@ -219,7 +219,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 }
 // -----------------------------------------------------------------------------
 // Action_NativeContacts::Init()
-Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   masterDSL_ = DSL;
   debug_ = debugIn;
@@ -417,8 +417,7 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 }
 
 // Action_NativeContacts::DoAction()
-Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFrame,
-                                                Frame** frameAddress)
+Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   if (image_.ImageType() == NONORTHO) currentFrame->BoxCrd().ToRecip(ucell_, recip_);
   if (first_) {

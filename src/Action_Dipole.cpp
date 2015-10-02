@@ -18,7 +18,7 @@ void Action_Dipole::Help() {
 }
 
 // Action_Dipole::Init()
-Action::RetType Action_Dipole::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dipole::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
   std::string filename = actionArgs.GetStringNext();

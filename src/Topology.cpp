@@ -127,9 +127,7 @@ Range Topology::SoluteResidues() const {
   * name (title) if the parm filename is empty.
   */
 const char *Topology::c_str() const {
-  if (!parmTag_.empty())
-    return (parmTag_.c_str());
-  else if (!fileName_.empty()) 
+  if (!fileName_.empty())
     return fileName_.base();
   return parmName_.c_str();
 }
@@ -253,8 +251,6 @@ void Topology::Summary() const {
 void Topology::Brief(const char* heading) const {
   if (heading != 0)
     mprintf("\t%s", heading);
-  if (!parmTag_.empty())
-    mprintf(" %s", parmTag_.c_str());
   if (!fileName_.empty())
     mprintf(" '%s',", fileName_.base());
   else if (!parmName_.empty())

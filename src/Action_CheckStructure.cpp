@@ -41,7 +41,7 @@ int Action_CheckStructure::SeparateInit(bool imageOn, std::string const& mask1,
 }
 
 // Action_CheckStructure::Init()
-Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   std::string around = actionArgs.GetStringKey("around");

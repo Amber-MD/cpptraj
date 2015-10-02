@@ -9,10 +9,10 @@ void Action_CreateCrd::Help() {
           "  specified topology.\n");
 }
 
-Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
-  Topology* parm = PFL->GetParm( actionArgs );
+  Topology* parm = DSL->GetTopology( actionArgs );
   if (parm == 0) {
     mprinterr("Error: createcrd: No parm files loaded.\n");
     return Action::ERR;
@@ -61,8 +61,7 @@ Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;
 }
 
-Action::RetType Action_CreateCrd::DoAction(int frameNum, Frame* currentFrame, 
-                                           Frame** frameAddress) 
+Action::RetType Action_CreateCrd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   coords_->AddFrame( *currentFrame );
   return Action::OK;

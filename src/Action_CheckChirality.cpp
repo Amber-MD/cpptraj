@@ -11,7 +11,7 @@ void Action_CheckChirality::Help() {
 }
 
 // Action_CheckChirality::Init()
-Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   //outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -119,8 +119,7 @@ Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_CheckChirality::DoAction()
-Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
+Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (Rarray::iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
   {

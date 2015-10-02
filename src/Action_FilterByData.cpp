@@ -10,7 +10,7 @@ void Action_FilterByData::Help() {
 }
 
 // Action_FilterByData::Init()
-Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_FilterByData::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   maxmin_ = DSL->AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
   if (maxmin_ == 0) return Action::ERR;
@@ -71,8 +71,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
 }
 
 // Action_FilterByData::DoAction()
-Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
-                                              Frame** frameAddress)
+Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   static int ONE = 1;
   static int ZERO = 0;

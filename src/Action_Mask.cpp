@@ -22,7 +22,7 @@ void Action_Mask::Help() {
 // Action_Mask::Init()
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
-Action::RetType Action_Mask::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Mask::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;

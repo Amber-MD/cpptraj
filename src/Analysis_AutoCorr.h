@@ -8,11 +8,11 @@ class Analysis_AutoCorr : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AutoCorr(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
-    DataSetList dsets_;
-    std::vector<DataSet*> outputData_;
+    DataSetList::DataListType dsets_;
+    DataSetList::DataListType outputData_;
     int lagmax_;
     bool usefft_;
     bool calc_covar_;

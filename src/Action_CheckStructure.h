@@ -14,7 +14,7 @@ class Action_CheckStructure : public Action {
     int CheckBonds(int, Frame const& currentFrame, Topology const&);
     int CheckOverlap(int, Frame const&, Topology const&);
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

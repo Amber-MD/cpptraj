@@ -10,7 +10,7 @@ void Action_Box::Help() {
 }
 
 // Action_Box::Init()
-Action::RetType Action_Box::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Box::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   if ( actionArgs.hasKey("nobox") )

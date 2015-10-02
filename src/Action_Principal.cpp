@@ -19,7 +19,7 @@ void Action_Principal::Help() {
 }
 
 // Action_Principal::Init()
-Action::RetType Action_Principal::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Principal::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Keywords

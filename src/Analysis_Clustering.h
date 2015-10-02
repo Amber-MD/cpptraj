@@ -13,7 +13,7 @@ class Analysis_Clustering: public Analysis {
 
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Clustering(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.

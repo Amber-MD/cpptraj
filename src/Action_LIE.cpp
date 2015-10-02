@@ -22,7 +22,7 @@ void Action_LIE::Help() {
 }
 
 // Action_LIE::init()
-Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_LIE::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);
@@ -224,8 +224,7 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
 }
 
 // Action_LIE::action()
-Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame,
-                                     Frame ** frameAddress)
+Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
 {
   
   if (doelec_) {

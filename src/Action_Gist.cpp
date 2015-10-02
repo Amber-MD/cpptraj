@@ -51,7 +51,7 @@ void Action_Gist::Help() {
 */}
 
 // Action_Gist::Init()
-Action::RetType Action_Gist::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Gist::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   if (DSL->EnsembleNum() > -1) {
     mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");

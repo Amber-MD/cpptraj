@@ -54,7 +54,7 @@ void Action_MakeStructure::Help() {
 }
 
 // Action_MakeStructure::Init()
-Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   secstruct_.clear();
@@ -355,8 +355,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_MakeStructure::DoAction()
-Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress) 
+Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   Matrix_3x3 rotationMatrix;
   for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();

@@ -25,7 +25,7 @@ void Action_AutoImage::Help() {
 }
 
 // Action_AutoImage::Init()
-Action::RetType Action_AutoImage::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AutoImage::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");

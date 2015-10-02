@@ -18,7 +18,7 @@ void Action_GridFreeEnergy::Help() {
 }
 
 // Action_GridFreeEnergy::init()
-Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get output filename
   DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringNext(), actionArgs);
@@ -74,8 +74,7 @@ Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_GridFreeEnergy::action()
-Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, 
-                                                Frame** frameAddress) 
+Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   GridFrame( *currentFrame, mask_, *grid_ );
   return Action::OK;

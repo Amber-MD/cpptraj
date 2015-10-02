@@ -56,7 +56,7 @@ inline Action::RetType RDF_ERR(const char* msg) {
 }
 
 // Action_Radial::Init()
-Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Radial::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords

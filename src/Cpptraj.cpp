@@ -274,7 +274,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   for (Sarray::const_iterator topFilename = topFiles.begin();
                               topFilename != topFiles.end();
                               ++topFilename)
-    if (State_.PFL()->AddParmFile( *topFilename )) return ERROR;
+    if (State_.AddTopology( *topFilename, ArgList() )) return ERROR;
   // Add all reference trajectories specified on command line.
   for (Sarray::const_iterator refName = refFiles.begin();
                               refName != refFiles.end();

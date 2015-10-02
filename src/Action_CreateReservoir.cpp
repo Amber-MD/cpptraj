@@ -27,7 +27,7 @@ void Action_CreateReservoir::Help() {
 }
 
 // Action_CreateReservoir::Init()
-Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
 # ifdef BINTRAJ
   // Get keywords
@@ -48,7 +48,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, TopologyList* 
   }
   useVelocity_ = actionArgs.hasKey("velocity");
   // Get parm for reservoir traj
-  original_trajparm_ = PFL->GetParm( actionArgs );
+  original_trajparm_ = DSL->GetTopology( actionArgs );
   if (original_trajparm_ == 0) {
     mprinterr("Error: createreservoir: no topology.\n");
     return Action::ERR;
@@ -146,8 +146,7 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
 }
 
 // Action_CreateReservoir::DoAction()
-Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, 
-                                                 Frame** frameAddress) 
+Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
 # ifdef BINTRAJ
   int bin = -1;
