@@ -18,17 +18,17 @@ class Topology {
     Topology();
     static double Offset_;
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)               { if (oIn > 0.0) Offset_ = oIn; }
+    void SetOffset(double oIn)               { if (oIn > 0.0) Offset_ = oIn; } //TODO Pass in
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
 //    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
 //    void SetNframes(int fIn)                 { nframes_ = fIn;               }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
-    void SetParmCoordInfo(CoordinateInfo const& c);
+//    void SetParmCoordInfo(CoordinateInfo const& c);
 //    void SetParmName(std::string const&, FileName const&);
     void SetParmName(std::string const& p)   { parmName_ = p;                }
-    void SetReferenceCoords( Frame const& );
+    void SetDistMaskRef( Frame const& );
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
@@ -132,8 +132,8 @@ class Topology {
     int Setup_NoResInfo();
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
     // ----- Mask Routines -----------------------
-    //int SetupIntegerMask(AtomMask &) const;
-    //int SetupCharMask(CharMask &) const;
+    int SetupIntegerMask(AtomMask &) const;
+    int SetupCharMask(CharMask &) const;
     int SetupIntegerMask(AtomMask &, Frame const&) const;
     int SetupCharMask(CharMask &, Frame const&) const;
     // ----- Topology modification routines ------
@@ -207,7 +207,7 @@ class Topology {
 
 //    CoordinateInfo coordInfo_; ///< Coordinate metadata. TODO: Make completely separate from topology.
     Box parmBox_;
-//    Frame refCoords_;
+    Frame refCoords_;
 
 //    double offset_;         ///< Offset used when searching for bonds
     int debug_;

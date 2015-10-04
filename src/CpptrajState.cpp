@@ -102,7 +102,7 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
-  if ( enabled[L_REF]      ) ReferenceInfo();
+  if ( enabled[L_REF]      ) DSL_.ListReferenceFrames();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
   if ( enabled[L_PARM]     ) DSL_.ListTopologies();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
@@ -138,13 +138,6 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
   if ( enabled[L_DATASET]  ) DSL_.Clear();
   return 0;
-}
-
-/** List reference information. */
-void CpptrajState::ReferenceInfo() const {
-  DSL_.ListReferenceFrames();
-  if (activeRef_ != 0)
-    mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
 }
 
 /** Remove DataSet from State */
@@ -247,14 +240,6 @@ int CpptrajState::Run() {
   return err;
 }
 
-// CpptrajState::ActiveReference()
-Frame CpptrajState::ActiveReference() const {
-  if (activeRef_ == 0)
-    return Frame();
-  else
-    return activeRef_->RefFrame();
-}
-
 // -----------------------------------------------------------------------------
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
@@ -305,7 +290,7 @@ int CpptrajState::RunEnsemble() {
   // Parameter file information
   DSL_.ListTopologies();
   // Print reference information 
-  ReferenceInfo();
+  DSL_.ListReferenceFrames();
   // Use separate TrajoutList. Existing trajout in current TrajoutList
   // will be converted to ensemble trajout.
   EnsembleOutList ensembleOut;
@@ -418,8 +403,6 @@ int CpptrajState::RunEnsemble() {
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
-      // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( ActiveReference() );
       // Set up actions for this parm
       bool setupOK = true;
       for (int member = 0; member < ensembleSize; ++member) {
@@ -569,7 +552,7 @@ int CpptrajState::RunNormal() {
   // Input coordinate file information
   trajinList_.List();
   // Print reference information
-  ReferenceInfo(); 
+  DSL_.ListReferenceFrames(); 
   // Output traj
   trajoutList_.List();
   // Allocate DataSets in the master DataSetList based on # frames to be read
@@ -615,8 +598,6 @@ int CpptrajState::RunNormal() {
       TrajFrame.SetupFrameV(CurrentParm->Atoms(), currentCoordInfo);
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
-      // Set active reference for this parm
-      CurrentParm->SetReferenceCoords( ActiveReference() );
       // Set up actions for this parm
       if (actionList_.SetupActions( &CurrentParm )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
@@ -785,8 +766,6 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   }
   // Add DataSet to main DataSetList.
   if (DSL_.AddSet( ref )) return 1; 
-  // Set default reference if not already set.
-  if (activeRef_ == 0) activeRef_ = ref;
   return 0;
 }
 

@@ -66,9 +66,9 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
                               cinfoIn.HasTime(), cinfoIn.HasForce());
   if (debug_ > 0) Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
-
-// Topology::SetReferenceCoords()
-void Topology::SetReferenceCoords( Frame const& frameIn ) {
+*/
+// Topology::SetDistMaskRef()
+void Topology::SetDistMaskRef( Frame const& frameIn ) {
   if (!frameIn.empty()) {
     if (frameIn.Natom() == Natom())
       refCoords_ = frameIn;
@@ -91,7 +91,7 @@ void Topology::SetReferenceCoords( Frame const& frameIn ) {
     }
   }
 }
-*/
+
 // -----------------------------------------------------------------------------
 /** \return Range containing only solute residues. */
 Range Topology::SoluteResidues() const {
@@ -1230,7 +1230,7 @@ int Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
-/*
+
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask) const {
   return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
@@ -1239,7 +1239,7 @@ int Topology::SetupIntegerMask(AtomMask &mask) const {
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask) const {
   return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
-}*/
+}
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
@@ -1390,7 +1390,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   //        bondparm_.size(), newParm->bondparm_.size());
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
-  newParm->nframes_ = nframes_;
+  //newParm->nframes_ = nframes_;
   // Copy box information
   //newParm->box_ = box_;
   // If we dont care about setting up full parm information, exit now.
@@ -1677,7 +1677,7 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, res, 0 );
+    AddTopAtom( CurrentAtom, res );
   }
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  atomOffset);

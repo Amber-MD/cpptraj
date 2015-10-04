@@ -607,16 +607,7 @@ static void Help_ActiveRef() {
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
-  if (!REF.error() && REF.empty()) {
-    // For backwards compat, see if there is a single integer arg.
-    ArgList refArg( "refindex " + argIn.GetStringNext() );
-    REF = State.DSL()->GetReferenceFrame( refArg );
-  }
-  if (REF.error() || REF.empty()) return Command::C_ERR;
-  mprintf("\tActive reference is '%s'\n", REF.refName());
-  State.SetActiveReference( REF.RefPtr() );
-  return Command::C_OK; 
+  return (Command::RetType)State.DSL()->SetActiveReference( argIn );
 }
 
 /// Clear data in specified lists
@@ -905,7 +896,7 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
     addTop = false;
   }
-  CombinedTop.SetParmName( parmname, FileName() );
+  CombinedTop.SetParmName( parmname ); //, FileName() );
   // TODO: Check Parm box info.
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
