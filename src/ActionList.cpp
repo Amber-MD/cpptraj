@@ -28,13 +28,13 @@ void ActionList::SetDebug(int debugIn) {
 
 // ActionList::AddAction()
 int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                          DataSetList* DSL, DataFileList* DFL)
+                          ActionInit& state)
 {
   int err = 0;
   if (actionsAreSilent_) SetWorldSilent( true );
   Action* act = (Action*)Alloc();
   // Attempt to initialize action
-  if ( act->Init( argIn, DSL, DFL, debug_ ) != Action::OK ) {
+  if ( act->Init( argIn, state, debug_ ) != Action::OK ) {
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());
     delete act;
     err = 1;
@@ -53,11 +53,11 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.
   */
-int ActionList::SetupActions(Topology **ParmAddress) {
+int ActionList::SetupActions(ActionSetup& state) {
   if (actionlist_.empty()) return 0;
-  Topology *OriginalParm = *ParmAddress;
+  ActionSetup OriginalState = state;
   mprintf(".....................................................\n");
-  mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n",(*ParmAddress)->c_str(),actionlist_.size());
+  mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n", state.Top().c_str(),actionlist_.size());
   if (actionsAreSilent_) SetWorldSilent( true );
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
@@ -66,14 +66,14 @@ int ActionList::SetupActions(Topology **ParmAddress) {
     if (actionstatus_[actnum] != INACTIVE) {
       mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());
       actionstatus_[actnum] = SETUP;
-      Action::RetType err = (*act)->Setup(*ParmAddress, ParmAddress);
+      Action::RetType err = (*act)->Setup(state);
       if (err == Action::ERR) {
         mprintf("Warning: Setup failed for [%s]: Skipping\n",
                 actioncmd_[actnum].c_str());
         // Reset action status to INIT (pre-setup)
         actionstatus_[actnum] = INIT;
-      } else if (err == Action::USEORIGINALFRAME) {
-        *ParmAddress = OriginalParm;
+      } else if (err == Action::USE_ORIGINAL_FRAME) {
+        state = OriginalState;
       }
     }
     ++actnum;
@@ -91,8 +91,8 @@ int ActionList::SetupActions(Topology **ParmAddress) {
   * \return true if coordinate output should be suppressed.
   * \return false if coordinate output should be performed.
   */
-bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
-  Frame *OriginalFrame = *FrameAddress;
+bool ActionList::DoActions(int frameNumIn, ActionFrame& frm) {
+  ActionFrame OriginalFrame = frm;
 
   //fprintf(stdout,"DEBUG: Performing %i actions on frame %i.\n",Naction,frameNumIn);
   unsigned int actnum = 0;
@@ -101,13 +101,13 @@ bool ActionList::DoActions(Frame **FrameAddress, int frameNumIn) {
     // Only do actions which were properly set up
     if (actionstatus_[actnum] == SETUP) { 
       // Perform action on frame
-      Action::RetType err = (*act)->DoAction(frameNumIn, *FrameAddress, FrameAddress);
+      Action::RetType err = (*act)->DoAction(frameNumIn, frm);
       // Check for action special conditions/errors
       if (err != Action::OK) {
-        if (err == Action::USEORIGINALFRAME) {
+        if (err == Action::USE_ORIGINAL_FRAME) {
           // Return value of 2 requests return to original frame
-          *FrameAddress = OriginalFrame;
-        } else if (err == Action::SUPPRESSCOORDOUTPUT) {
+          frm = OriginalFrame;
+        } else if (err == Action::SUPPRESS_COORD_OUTPUT) {
           // Skip the rest of the actions and suppress output. Necessary when
           // e.g. performing a running average over coords.
           return true;

@@ -17,12 +17,11 @@ class ActionList {
     void SetSilent(bool b) { actionsAreSilent_ = b; }
     int Debug() const { return debug_; }
     /// Add given action to the action list and initialize.
-    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
-                  DataSetList*,DataFileList*);
+    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&, ActionInit&);
     /// Set up actions for the given parm.
-    int SetupActions(Topology **);
+    int SetupActions(ActionSetup&);
     /// Perform actions on the given frame.
-    bool DoActions(Frame **, int);
+    bool DoActions(int, ActionFrame&);
     /// Call print for each action.
     void Print();
     /// List all actions in the action list.
