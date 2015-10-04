@@ -16,9 +16,7 @@
 class Topology {
   public:
     Topology();
-    static double Offset_;
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)               { if (oIn > 0.0) Offset_ = oIn; } //TODO Pass in
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
@@ -161,7 +159,6 @@ class Topology {
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
-    //int GetBondsFromAtomCoords( Frame const&, double );
     void VisitAtom(int, int);
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&) const;
@@ -209,7 +206,6 @@ class Topology {
     Box parmBox_;
     Frame refCoords_;
 
-//    double offset_;         ///< Offset used when searching for bonds
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT

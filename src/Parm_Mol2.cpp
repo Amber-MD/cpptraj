@@ -16,7 +16,7 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
   mprintf("    Reading Mol2 file %s as topology file.\n",infile.Filename().base());
   // Get @<TRIPOS>MOLECULE information
   if (infile.ReadMolecule()) return 1;
-  parmOut.SetParmName( infile.Mol2Title(), infile.Filename() );
+  parmOut.SetParmName( infile.Mol2Title() ); //, infile.Filename() );
 
   // Get @<TRIPOS>ATOM information
   if (infile.ScanTo( Mol2File::ATOM)) return 1;
@@ -39,7 +39,7 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
     }
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
-    BondSearch( parmOut, Coords, Topology::Offset_, debug_ );
+    BondSearch( parmOut, Coords, Offset_, debug_ );
   }
 
   // No box

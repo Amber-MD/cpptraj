@@ -86,7 +86,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   // Add bonds. The bonds array actually contains ATOM/HETATM serial #s.
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
     TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
-  BondSearch( TopIn, Coords, Topology::Offset_, debug_ ); 
+  BondSearch( TopIn, Coords, Offset_, debug_ ); 
   if (TopIn.SetExtraAtomInfo(0, extra)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.

@@ -122,6 +122,7 @@ SOURCES=ActionFrameCounter.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
         AxisType.cpp \
+        BondSearch.cpp \
         Box.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \

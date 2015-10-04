@@ -96,7 +96,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   }
   if (TopIn.SetExtraAtomInfo( 0, extra )) return 1;
   // Search for bonds // FIXME nobondsearch?
-  BondSearch( TopIn, Coords, Topology::Offset_, debug_ );
+  BondSearch( TopIn, Coords, Offset_, debug_ );
   // Get title. 
   CIFfile::DataBlock const& entryblock = infile.GetDataBlock("_entry");
   std::string ciftitle;
