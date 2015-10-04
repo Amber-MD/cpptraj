@@ -1,5 +1,6 @@
 #include <cstdio> // for ProcessInput
 #include <cstdlib> // system
+#include <algorithm> // std::sort
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
@@ -11,11 +12,13 @@
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 #include "ProgressBar.h"
+#include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
+#include "Action_Angle.h"
+/*
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
-#include "Action_Angle.h"
 #include "Action_AtomMap.h"
 #include "Action_Strip.h"
 #include "Action_DSSP.h"
@@ -76,7 +79,9 @@
 #include "Action_OrderParameter.h"
 #include "Action_FixAtomOrder.h"
 #include "Action_NMRrst.h"
+*/
 #include "Action_FilterByData.h"
+/*
 #include "Action_LESsplit.h"
 #include "Action_NativeContacts.h"
 #include "Action_VelocityAutoCorr.h"
@@ -89,7 +94,7 @@
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
-
+*/
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -665,17 +670,19 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( tkn == 0 ) return Command::C_ERR;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return Command::C_ERR;
-  if ( act->Init( actionargs, State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
+  ActionInit state(*State.DSL(), *State.DFL());
+  if ( act->Init( actionargs, state, State.Debug() ) != Action::OK ) {
     delete act;
     return Command::C_ERR;
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  Topology originalParm = CRD->Top();
+  ActionSetup Parm( CRD->TopPtr(), CRD->CinfoPtr() );
   Frame originalFrame = CRD->AllocateFrame();
+  ActionFrame Coord( &originalFrame );
   // Set up for this topology
-  Topology* currentParm = &originalParm;
-  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
+  Action::RetType setup_ret = act->Setup( Parm );
+  if ( setup_ret == Action::ERR ) {
     delete act;
     return Command::C_ERR;
   }
@@ -687,21 +694,20 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   {
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
-    Frame* currentFrame = &originalFrame;
-    if (act->DoAction( set, currentFrame, &currentFrame ) == Action::ERR) {
+    Action::RetType ret = act->DoAction( set, Coord );
+    if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
-    // TODO: Have actions indicate whether they will modify coords
-    //if ( currentFrame != &originalFrame ) 
-      CRD->SetCRD( frame, *currentFrame );
+    if ( ret == Action::MODIFY_COORDS ) 
+      CRD->SetCRD( frame, Coord.Frm() );
   }
   // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != &originalParm ) {
+  if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
+    CRD->CoordsSetup( Parm.Top(), Parm.CoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -1312,7 +1318,8 @@ static void Help_DataFilter() {
 Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Action_FilterByData filterAction;
-  if (filterAction.Init(argIn, State.DSL(), State.DFL(), State.Debug()) != Action::OK)
+  ActionInit state(*State.DSL(), *State.DFL());
+  if (filterAction.Init(argIn, state, State.Debug()) != Action::OK)
     return Command::C_ERR;
   size_t nframes = filterAction.DetermineFrames();
   if (nframes < 1) {
@@ -1320,9 +1327,10 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
     return Command::C_ERR;
   }
   ProgressBar progress( nframes );
+  ActionFrame coords;
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );
-    filterAction.DoAction(frame, (Frame*)0, (Frame**)0); // Filter does not need frame.
+    filterAction.DoAction(frame, coords); // Filter does not need frame.
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
@@ -1970,6 +1978,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
+/*
   { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
   { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
@@ -2001,7 +2010,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
   { ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
+*/
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
+/*
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
@@ -2056,6 +2067,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
   { ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
   { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
+*/
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
