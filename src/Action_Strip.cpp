@@ -116,5 +116,5 @@ Action::RetType Action_Strip::DoAction(int frameNum, ActionFrame& frm) {
   // Set frame
   frm.SetFrame( &newFrame_ );
 
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }
