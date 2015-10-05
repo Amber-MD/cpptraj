@@ -53,11 +53,11 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.
   */
-int ActionList::SetupActions(ActionSetup& state) {
+int ActionList::SetupActions(ActionSetup& setup) {
   if (actionlist_.empty()) return 0;
-  ActionSetup OriginalState = state;
+  ActionSetup OriginalSetup = setup;
   mprintf(".....................................................\n");
-  mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n", state.Top().c_str(),actionlist_.size());
+  mprintf("ACTION SETUP FOR PARM '%s' (%zu actions):\n", setup.Top().c_str(),actionlist_.size());
   if (actionsAreSilent_) SetWorldSilent( true );
   unsigned int actnum = 0;
   for (Aarray::iterator act = actionlist_.begin(); act != actionlist_.end(); ++act)
@@ -66,14 +66,14 @@ int ActionList::SetupActions(ActionSetup& state) {
     if (actionstatus_[actnum] != INACTIVE) {
       mprintf("  %u: [%s]\n", actnum, actioncmd_[actnum].c_str());
       actionstatus_[actnum] = SETUP;
-      Action::RetType err = (*act)->Setup(state);
+      Action::RetType err = (*act)->Setup(setup);
       if (err == Action::ERR) {
         mprintf("Warning: Setup failed for [%s]: Skipping\n",
                 actioncmd_[actnum].c_str());
         // Reset action status to INIT (pre-setup)
         actionstatus_[actnum] = INIT;
       } else if (err == Action::USE_ORIGINAL_FRAME) {
-        state = OriginalState;
+        setup = OriginalSetup;
       }
     }
     ++actnum;

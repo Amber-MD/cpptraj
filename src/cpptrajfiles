@@ -1,6 +1,8 @@
 SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Angle.cpp \
+        Action_CreateCrd.cpp \
+        Action_FilterByData.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -207,7 +209,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Closest.cpp \
 #       Action_ClusterDihedral.cpp \
 #       Action_Contacts.cpp \
-#       Action_CreateCrd.cpp \
 #       Action_CreateReservoir.cpp \
 #       Action_DNAionTracker.cpp \
 #       Action_DSSP.cpp \
@@ -219,7 +220,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_DistRmsd.cpp \
 #       Action_Distance.cpp \
 #       Action_Energy.cpp \
-#       Action_FilterByData.cpp \
 #       Action_FixAtomOrder.cpp \
 #       Action_Gist.cpp \
 #       Action_Grid.cpp \

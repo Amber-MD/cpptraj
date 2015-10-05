@@ -87,7 +87,8 @@ class CpptrajState {
 // CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return actionList_.AddAction( Alloc, argIn, &DSL_, &DFL_ );
+  ActionInit init(DSL_, DFL_);
+  return actionList_.AddAction( Alloc, argIn, init );
 }
 // CpptrajState::AddAnalysis()
 int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {

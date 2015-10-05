@@ -13,10 +13,10 @@ void Action_Angle::Help() {
 }
 
 // Action_Angle::init()
-Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& state, int debugIn)
+Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = state.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
@@ -32,7 +32,7 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& state, int d
   Mask3_.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang_ = state.DSL().AddSet(DataSet::DOUBLE,
+  ang_ = init.DSL().AddSet(DataSet::DOUBLE,
                             MetaData(actionArgs.GetStringNext(),MetaData::M_ANGLE),"Ang");
   if (ang_==0) return Action::ERR;
   // Add dataset to data file list
@@ -49,10 +49,10 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& state, int d
 // Action_Angle::setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_Angle::Setup(ActionSetup& state) {
-  if (state.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
-  if (state.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
-  if (state.Top().SetupIntegerMask(Mask3_)) return Action::ERR;
+Action::RetType Action_Angle::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(Mask3_)) return Action::ERR;
   mprintf("\t");
   Mask1_.BriefMaskInfo();
   Mask2_.BriefMaskInfo();
@@ -66,16 +66,16 @@ Action::RetType Action_Angle::Setup(ActionSetup& state) {
 }
 
 // Action_Angle::action()
-Action::RetType Action_Angle::DoAction(int frameNum, ActionFrame& state) {
+Action::RetType Action_Angle::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 a1, a2, a3;
   if (useMass_) {
-    a1 = state.Frm().VCenterOfMass( Mask1_ );
-    a2 = state.Frm().VCenterOfMass( Mask2_ );
-    a3 = state.Frm().VCenterOfMass( Mask3_ );
+    a1 = frm.Frm().VCenterOfMass( Mask1_ );
+    a2 = frm.Frm().VCenterOfMass( Mask2_ );
+    a3 = frm.Frm().VCenterOfMass( Mask3_ );
   } else {
-    a1 = state.Frm().VGeometricCenter( Mask1_ );
-    a2 = state.Frm().VGeometricCenter( Mask2_ );
-    a3 = state.Frm().VGeometricCenter( Mask3_ );
+    a1 = frm.Frm().VGeometricCenter( Mask1_ );
+    a2 = frm.Frm().VGeometricCenter( Mask2_ );
+    a3 = frm.Frm().VGeometricCenter( Mask3_ );
   }
   double aval = CalcAngle( a1.Dptr(), a2.Dptr(), a3.Dptr() );
 

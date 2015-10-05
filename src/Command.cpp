@@ -677,11 +677,11 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  ActionSetup Parm( CRD->TopPtr(), CRD->CinfoPtr() );
+  ActionSetup originalSetup( CRD->TopPtr(), CRD->CinfoPtr(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
-  ActionFrame Coord( &originalFrame );
+  ActionFrame frm( &originalFrame );
   // Set up for this topology
-  Action::RetType setup_ret = act->Setup( Parm );
+  Action::RetType setup_ret = act->Setup( originalSetup );
   if ( setup_ret == Action::ERR ) {
     delete act;
     return Command::C_ERR;
@@ -694,20 +694,20 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   {
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
-    Action::RetType ret = act->DoAction( set, Coord );
+    Action::RetType ret = act->DoAction( set, frm );
     if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
     if ( ret == Action::MODIFY_COORDS ) 
-      CRD->SetCRD( frame, Coord.Frm() );
+      CRD->SetCRD( frame, frm.Frm() );
   }
   // Check if parm was modified. If so, update COORDS.
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->CoordsSetup( Parm.Top(), Parm.CoordInfo() );
+    CRD->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -1327,10 +1327,10 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
     return Command::C_ERR;
   }
   ProgressBar progress( nframes );
-  ActionFrame coords;
+  ActionFrame frm;
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );
-    filterAction.DoAction(frame, coords); // Filter does not need frame.
+    filterAction.DoAction(frame, frm); // Filter does not need frame.
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();

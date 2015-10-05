@@ -10,11 +10,11 @@ void Action_FilterByData::Help() {
 }
 
 // Action_FilterByData::Init()
-Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& state, int debugIn)
+Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  maxmin_ = state.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
+  maxmin_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
   if (maxmin_ == 0) return Action::ERR;
-  DataFile* maxminfile = state.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* maxminfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   if (maxminfile != 0)
     maxminfile->AddDataSet( maxmin_ );
   // Get min and max args.
@@ -36,7 +36,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& state
     return Action::ERR;
   }
   // Get DataSets from remaining arguments
-  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), state.DSL() );
+  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), init.DSL() );
 
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
@@ -71,7 +71,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& state
 }
 
 // Action_FilterByData::DoAction()
-Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& state)
+Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 {
   static int ONE = 1;
   static int ZERO = 0;

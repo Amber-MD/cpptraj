@@ -17,17 +17,19 @@ class ActionInit {
 
 class ActionSetup {
   public:
-    ActionSetup(Topology* topIn, CoordinateInfo* cInfoIn) :
-      top_(topIn), cInfo_(cInfoIn) {}
-    Topology const& Top()             const { return *top_;   }
-    Topology* TopPtr()                      { return top_;    }
-    CoordinateInfo const& CoordInfo() const { return *cInfo_; }
+    ActionSetup(Topology* topIn, CoordinateInfo* cInfoIn, int nIn) :
+      top_(topIn), cInfo_(cInfoIn), nFrames_(nIn) {}
+    Topology const& Top()             const { return *top_;    }
+    //Topology* TopPtr()                      { return top_;    }
+    CoordinateInfo const& CoordInfo() const { return *cInfo_;  }
+    int Nframes()                     const { return nFrames_; }
     //CoordinateInfo* CinfoPtr()              { return cInfo_;  }
-    void SetTopology( Topology* p )         { top_ = p;       }
-    void SetCoordInfo( CoordinateInfo* c )  { cInfo_ = c;     }
+    void SetTopology( Topology* p )         { top_ = p;        }
+    void SetCoordInfo( CoordinateInfo* c )  { cInfo_ = c;      }
   private:
     Topology* top_;
     CoordinateInfo* cInfo_;
+    int nFrames_;
 };
 
 class ActionFrame {
