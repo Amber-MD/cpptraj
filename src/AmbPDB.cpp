@@ -135,7 +135,6 @@ int main(int argc, char** argv) {
     if (topname == "prmtop") Help(argv[0], false);
     return 1;
   }
-  parm.IncreaseFrames( 1 );
   if (!useExtendedInfo)
     parm.ResetPDBinfo();
   if (res_offset != 0)

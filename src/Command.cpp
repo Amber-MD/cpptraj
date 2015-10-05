@@ -65,7 +65,9 @@
 #include "Action_Rotate.h"
 #include "Action_Translate.h"
 #include "Action_Box.h"
+*/
 #include "Action_CreateCrd.h"
+/*
 #include "Action_MultiDihedral.h"
 #include "Action_MakeStructure.h"
 #include "Action_SymmetricRmsd.h"
@@ -677,7 +679,7 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  ActionSetup originalSetup( CRD->TopPtr(), CRD->CinfoPtr(), CRD->Size() );
+  ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
   ActionFrame frm( &originalFrame );
   // Set up for this topology
@@ -738,8 +740,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
-  Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast, ensure CoordInfo valid
-  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, CRD->CoordsInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
@@ -1997,7 +1998,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
   { ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
   { ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
+*/
   { ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, AddAction },
+/*
   { ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, AddAction },
   { ACTION, "density", Action_Density::Alloc, Action_Density::Help, AddAction },
   { ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, AddAction },

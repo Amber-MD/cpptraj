@@ -64,7 +64,10 @@ int ActionList::SetupActions(ActionSetup& setup) {
       act->status_ = SETUP;
       Action::RetType err = act->ptr_->Setup(setup);
       if (err == Action::ERR) {
-        mprintf("Warning: Setup failed for [%s]: Skipping\n", act->args_.Command());
+        mprinterr("Error: Setup failed for [%s]\n", act->args_.Command());
+        return 1;
+      } else if (err == Action::SKIP) {
+        mprintf("Warning: Setup incomplete for [%s]: Skipping\n", act->args_.Command());
         // Reset action status to INIT (pre-setup)
         act->status_ = INIT;
       } else if (err == Action::USE_ORIGINAL_FRAME) {

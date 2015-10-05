@@ -20,7 +20,6 @@ class Topology {
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
-//    void SetParmCoordInfo(CoordinateInfo const& c);
 //    void SetParmName(std::string const&, FileName const&);
     void SetParmName(std::string const& p)   { parmName_ = p;                }
     void SetDistMaskRef( Frame const& );
@@ -32,11 +31,9 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
-//    CoordinateInfo const& ParmCoordInfo() const { return coordInfo_;      }
     std::string const& ParmName()         const { return parmName_;       }
 //    FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
-//    bool NoRefCoords()                    const { return (refCoords_.empty()); }
     const char *c_str() const { return parmName_.c_str(); } //FIXME rename
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
@@ -118,6 +115,7 @@ class Topology {
     inline Box const& ParmBox()   const { return parmBox_;        }
     inline Box::BoxType BoxType() const { return parmBox_.Type(); }
     void SetParmBox( Box const& bIn )   { parmBox_ = bIn;         }
+    void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
     void StartNewMol();
@@ -198,9 +196,8 @@ class Topology {
     // Extra atom info
     std::vector<AtomExtra> extra_;
 
-//    CoordinateInfo coordInfo_; ///< Coordinate metadata. TODO: Make completely separate from topology.
     Box parmBox_;
-    Frame refCoords_;
+    Frame refCoords_;       ///< Internal reference coords for distance-based masks
 
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable

@@ -3,7 +3,7 @@
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
-#include "Constants.h" // RADDEG
+#include "Constants.h" // RADDEG, SMALL
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
@@ -17,21 +17,19 @@ Topology::Topology() :
   n_atom_types_(0)
 { }
 
-/** Used to set expected coordinate info from currently associated
-  * trajectory. Modify box information as appropriate.
-  */
-/*
-void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
-{
-  Box const& boxIn = cinfoIn.TrajBox();
-  Box parmBox = coordInfo_.TrajBox();
+/** Used to set box info from currently associated trajectory. */
+// FIXME: This routine is here for potential backwards compatibility issues
+//        since the topology box information was previously modified by
+//        trajectory box information, but may no longer be necessary or
+//        desirable.
+void Topology::SetBoxFromTraj(Box const& boxIn) {
   if (!boxIn.HasBox()) {
     // No incoming box.
-    if ( parmBox.HasBox()) {
+    if ( parmBox_.HasBox()) {
       // No incoming box and parm has box - disable parm box.
-      mprintf("Warning: Box information present in parm but not in trajectory.\n"
-              "Warning: DISABLING BOX in parm '%s'!\n", c_str());
-      parmBox.SetNoBox();
+      mprintf("Warning: Box information present in topology but not in trajectory.\n"
+              "Warning: DISABLING BOX in topology '%s'!\n", c_str());
+      parmBox_.SetNoBox();
     }
   } else {
     // Incoming box.
@@ -41,26 +39,21 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
     {
       // Incoming box has no lengths - disable parm box.
       mprintf("Warning: Box information present in trajectory but lengths are zero.\n"
-              "Warning: DISABLING BOX in parm '%s'!\n", c_str());
-      parmBox.SetNoBox();
+              "Warning: DISABLING BOX in topology '%s'!\n", c_str());
+      parmBox_.SetNoBox();
     } else {
       // Incoming box is valid. Indicate if current box type differs from
       // incoming box type.
-      if (parmBox.Type() != boxIn.Type()) {
+      if (parmBox_.Type() != boxIn.Type()) {
         mprintf("Warning: Trajectory box type is '%s' but topology box type is '%s'.\n"
                 "Warning: Setting topology box information from trajectory.\n",
-                boxIn.TypeName(), parmBox.TypeName());
+                boxIn.TypeName(), parmBox_.TypeName());
       }
-      parmBox = boxIn;
+      parmBox_ = boxIn;
     }
   }
-  // TODO: Copy above and just set the box here.
-  coordInfo_ = CoordinateInfo(cinfoIn.EnsembleSize(), cinfoIn.ReplicaDimensions(), parmBox,
-                              cinfoIn.HasVel(), cinfoIn.HasTemp(),
-                              cinfoIn.HasTime(), cinfoIn.HasForce());
-  if (debug_ > 0) Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
-*/
+
 // Topology::SetDistMaskRef()
 void Topology::SetDistMaskRef( Frame const& frameIn ) {
   if (!frameIn.empty()) {
@@ -607,7 +600,7 @@ int Topology::CommonSetup() {
 //    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
 //    molecules_.clear();
 //  }
-  // Assign default lengths if necessary (for e.g. CheckStructure)
+  // Assign default lengths if necessary (for e.g. CheckStructure) // TODO: Make optional?
   if (bondparm_.empty())
     AssignBondParameters();
   // Determine molecule info

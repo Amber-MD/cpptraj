@@ -32,8 +32,6 @@ class DataSet_Coords : public DataSet {
     inline Topology* TopPtr() { return &top_; }
     /// \return CoordinateInfo associated with these COORDS
     inline CoordinateInfo const& CoordsInfo() const { return cInfo_; }
-    /// \return Pointer to CoordinateInfo associated with these COORDS.
-    inline CoordinateInfo* CinfoPtr() { return &cInfo_; }
   protected:
     void CommonInfo() const;
     Topology top_;         ///< Topology corresponding to coordinates.

@@ -108,7 +108,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
       if (DCT->AddSingleTrajin( reftrajname, analyzeArgs, RefParm_ )) return Analysis::ERR;
       RefTraj_ = (DataSet_Coords*)DCT;
     } else
-      RefParm_ = (Topology*)&(RefTraj_->Top()); // TODO: Fix cast
+      RefParm_ = RefTraj_->TopPtr();
   }
   // Set up output DataSet
   rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 

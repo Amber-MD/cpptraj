@@ -17,13 +17,20 @@ class ActionInit {
 
 class ActionSetup {
   public:
-    ActionSetup(Topology* topIn, CoordinateInfo* cInfoIn, int nIn) :
-      top_(topIn), cInfo_(cInfoIn), nFrames_(nIn) {}
+    // NOTE: Blank constructor/Set for use during ensemble
+    ActionSetup() : top_(0), cInfo_(0), nFrames_(0) {}
+    void Set(Topology* p, CoordinateInfo const& c, int n) {
+      top_ = p;
+      cInfo_ = (CoordinateInfo*)&c;
+      nFrames_ = n;
+    }
+    ActionSetup(Topology* topIn, CoordinateInfo const& cInfoIn, int nIn) :
+      top_(topIn), cInfo_((CoordinateInfo*)&cInfoIn), nFrames_(nIn) {}
     Topology const& Top()             const { return *top_;    }
-    //Topology* TopPtr()                      { return top_;    }
+    // NOTE: Used to set up output trajectories.
+    Topology* TopAddress()                  { return top_;     }
     CoordinateInfo const& CoordInfo() const { return *cInfo_;  }
     int Nframes()                     const { return nFrames_; }
-    //CoordinateInfo* CinfoPtr()              { return cInfo_;  }
     void SetTopology( Topology* p )         { top_ = p;        }
     void SetCoordInfo( CoordinateInfo* c )  { cInfo_ = c;      }
   private:
@@ -37,6 +44,7 @@ class ActionFrame {
     ActionFrame() : frm_(0) {}
     ActionFrame(Frame* fIn) : frm_(fIn) {}
     Frame const& Frm()  const { return *frm_; }
+    Frame* FramePtr()         { return frm_;  }
     void SetFrame( Frame* f ) { frm_ = f;     }
   private:
     Frame* frm_;
