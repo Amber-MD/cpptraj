@@ -37,14 +37,15 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
   return 0;
 }
 
-int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm) {
+int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo const& cInfo,
+                                      int Nframes)
+{
   active_.clear();
   for (unsigned int i = 0; i != ensout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
       if (!open_[i]) {
-        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
-                                             CurrentParm->Nframes() ) )
+        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, cInfo, Nframes ) )
         {
           mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
           return 1;
@@ -159,14 +160,15 @@ int TrajoutList::MakeEnsembleTrajout(EnsembleOutList& ensembleList,
 // trajoutTops_[i]->ParmCoordInfo().EnsembleSize(),
 
 // TrajoutList::SetupTrajout()
-int TrajoutList::SetupTrajout(Topology* CurrentParm) {
+int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo,
+                              int Nframes)
+{
   active_.clear();
   for (unsigned int i = 0; i != trajout_.size(); i++) {
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
       if (!open_[i]) { // Only set up if not already open.
-        if ( trajout_[i]->SetupTrajWrite( CurrentParm, CurrentParm->ParmCoordInfo(),
-                                          CurrentParm->Nframes() ) )
+        if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )
         {
           mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
           return 1;
