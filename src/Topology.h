@@ -11,7 +11,6 @@
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
-// Class: Topology
 /// Hold information for all atoms
 class Topology {
   public:
@@ -20,8 +19,6 @@ class Topology {
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
-//    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
-//    void SetNframes(int fIn)                 { nframes_ = fIn;               }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
 //    void SetParmCoordInfo(CoordinateInfo const& c);
 //    void SetParmName(std::string const&, FileName const&);
@@ -34,7 +31,6 @@ class Topology {
     int Nres()                     const { return (int)residues_.size();  }
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
-//    int Nframes()                  const { return nframes_;               }
     int NextraPts()                const { return n_extra_pts_;           }
 //    CoordinateInfo const& ParmCoordInfo() const { return coordInfo_;      }
     std::string const& ParmName()         const { return parmName_;       }
@@ -210,7 +206,6 @@ class Topology {
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
     int pindex_;            ///< Internal index used to ID Topology 
-//    int nframes_;           ///< Number of 'trajin' frames associated with topology.
     int n_extra_pts_;       ///< Number of extra points.
     int n_atom_types_;      ///< Number of unique atom types.
 };

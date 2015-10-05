@@ -13,7 +13,6 @@ Topology::Topology() :
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-//  nframes_(0),
   n_extra_pts_(0),
   n_atom_types_(0)
 { }
@@ -1284,9 +1283,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   //        bondparm_.size(), newParm->bondparm_.size());
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
-  //newParm->nframes_ = nframes_;
   // Copy box information
-  //newParm->box_ = box_;
+  newParm->parmBox_ = parmBox_;
   // If we dont care about setting up full parm information, exit now.
   if (!setupFullParm) return newParm;
 

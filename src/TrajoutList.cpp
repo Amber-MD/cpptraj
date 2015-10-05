@@ -157,7 +157,6 @@ int TrajoutList::MakeEnsembleTrajout(EnsembleOutList& ensembleList,
   }
   return 0;
 }
-// trajoutTops_[i]->ParmCoordInfo().EnsembleSize(),
 
 // TrajoutList::SetupTrajout()
 int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo,
