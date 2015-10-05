@@ -20,7 +20,10 @@
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
 #include "Action_AtomMap.h"
+*/
 #include "Action_Strip.h"
+#include "Action_Unstrip.h"
+/*
 #include "Action_DSSP.h"
 #include "Action_Center.h"
 #include "Action_Hbond.h"
@@ -31,7 +34,9 @@
 #include "Action_Closest.h"
 #include "Action_NAstruct.h"
 #include "Action_Pucker.h"
+*/
 #include "Action_Outtraj.h"
+/*
 #include "Action_Average.h"
 #include "Action_Radial.h"
 #include "Action_DistRmsd.h"
@@ -2036,7 +2041,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
   { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
   { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
+*/
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
+/*
   { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
   { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
   { ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, AddAction },
@@ -2057,13 +2064,17 @@ const Command::Token Command::Commands[] = {
   { ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
   { ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
   { ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
+*/
   { ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
+/*
   { ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, AddAction },
   { ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, AddAction },
   { ACTION, "temperature", Action_Temperature::Alloc, Action_Temperature::Help, AddAction },
   { ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, AddAction },
   { ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, AddAction },
+*/
   { ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
+/*
   { ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
   { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },

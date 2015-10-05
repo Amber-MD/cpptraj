@@ -640,6 +640,13 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
   return top;
 }
 
+DataSet* DataSetList::GetTopByPindex(int pindexIn) const {
+  for (DataListType::const_iterator ds = TopList_.begin(); ds != TopList_.end(); ++ds)
+    if ( ((DataSet_Topology*)*ds)->Top().Pindex() == pindexIn )
+      return *ds;
+  return 0;
+}
+
 // DataSetList::ListTopologies()
 void DataSetList::ListTopologies() const {
   if (!TopList_.empty()) {

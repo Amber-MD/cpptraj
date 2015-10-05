@@ -7,6 +7,7 @@ class ActionInit {
       dsl_(&dslIn), dfl_(&dflIn) {}
     DataSetList& DSL()              { return *dsl_; }
     DataSetList const& DSL()  const { return *dsl_; }
+    DataSetList* DslPtr()           { return dsl_;  }
     DataFileList& DFL()             { return *dfl_; }
     DataFileList const& DFL() const { return *dfl_; }
     DataSetList* DSL_Ptr()          { return dsl_;  }

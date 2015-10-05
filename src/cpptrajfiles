@@ -3,6 +3,9 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Angle.cpp \
         Action_CreateCrd.cpp \
         Action_FilterByData.cpp \
+        Action_Outtraj.cpp \
+        Action_Strip.cpp \
+        Action_Unstrip.cpp \
         AnalysisList.cpp \
         Analysis_AmdBias.cpp \
         Analysis_AutoCorr.cpp \
@@ -240,7 +243,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_NativeContacts.cpp \
 #       Action_NMRrst.cpp \
 #       Action_OrderParameter.cpp \
-#       Action_Outtraj.cpp \
 #       Action_PairDist.cpp \
 #       Action_Pairwise.cpp \
 #       Action_Principal.cpp \
@@ -257,7 +259,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Scale.cpp \
 #       Action_SetVelocity.cpp \
 #       Action_Spam.cpp \
-#       Action_Strip.cpp \
 #       Action_Surf.cpp \
 #       Action_SymmetricRmsd.cpp \
 #       Action_Temperature.cpp \

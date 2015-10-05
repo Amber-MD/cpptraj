@@ -5,31 +5,21 @@
 
 // CONSTRUCTOR
 Action_Strip::Action_Strip() :
-  oldParm_(0),
-  newParm_(0),
-  removeBoxInfo_(false)
-{
-  //fprintf(stderr,"Strip Con\n");
-} 
+  newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
 
 void Action_Strip::Help() {
   mprintf("\t<mask> [outprefix <name>] [parmout <file>] [nobox]\n"
           "  Strip atoms in <mask> from the system.\n");
 }
 
-void Action_Unstrip::Help() {
-  mprintf("\tReturn to original topology/coordinates.\n");
-}
-
 // DESTRUCTOR
 Action_Strip::~Action_Strip() {
-  //fprintf(stderr,"Strip Des\n");
-  // oldParm does not need dealloc because it is passed in
   if (newParm_!=0) delete newParm_;
+  if (newCinfo_ != 0) delete newCinfo_;
 }
 
 // Action_Strip::Init()
-Action::RetType Action_Strip::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output stripped parm filename
   prefix_ = actionArgs.GetStringKey("outprefix");
@@ -54,71 +44,77 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
     mprintf("           Stripped topology will be output with prefix %s\n",prefix_.c_str());
   if (removeBoxInfo_)
     mprintf("           Any existing box information will be removed.\n");
-
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
 // Action_Strip::Setup()
 /** Attempt to create a new stripped down version of the input parmtop
   */
-Action::RetType Action_Strip::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( M1_ )) return Action::ERR;
+Action::RetType Action_Strip::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( M1_ )) return Action::ERR;
   if (M1_.None()) {
     mprintf("Warning: strip: Mask [%s] has no atoms.\n",M1_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
-  int numStripped = currentParm->Natom() - M1_.Nselected();
+  int numStripped = setup.Top().Natom() - M1_.Nselected();
   mprintf("\tStripping %i atoms.\n", numStripped);
   // If no atoms will be stripped, no need to use this command. SKIP
   if ( numStripped == 0 ) {
     mprintf("Warning: No atoms to strip. Skipping 'strip' for topology '%s'\n",
-            currentParm->c_str());
-    return Action::ERR;
+            setup.Top().c_str());
+    return Action::SKIP;
   }
 
-  // Store old parm
-  oldParm_ = currentParm;
-
-  // Attempt to create new parmtop based on mask
-  if (newParm_!=0) delete newParm_;
-  newParm_ = currentParm->modifyStateByMask(M1_);
-  if (newParm_==0) {
+  // Attempt to create new parmtop based on mask, set as new Topology
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = setup.Top().modifyStateByMask(M1_);
+  if (newParm_ == 0) {
     mprinterr("Error: Could not create new parmtop.\n");
     return Action::ERR;
   }
+  setup.SetTopology( newParm_ );
   // Remove box information if asked
-  if (removeBoxInfo_)
-    newParm_->SetParmBox( Box() ); 
+  if (removeBoxInfo_) {
+    newParm_->SetParmBox( Box() );
+    newCinfo_ = new CoordinateInfo( setup.CoordInfo() );
+    newCinfo_->SetBox( Box() );
+    setup.SetCoordInfo( newCinfo_ );
+  }
   newParm_->Brief("Stripped parm:");
   // Allocate space for new frame
-  newFrame_.SetupFrameV(newParm_->Atoms(), newParm_->ParmCoordInfo());
+  newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
+    FileName prefixName;
+    // Determine if topology has a file name.
+    DataSet* ds = masterDSL_->GetTopByPindex( setup.Top().Pindex() );
+    if (ds == 0 || ds->Meta().Fname().empty())
+      prefixName.SetFileName_NoExpansion( prefix_ + ".parm7" );
+    else
+      prefixName.SetFileName_NoExpansion( prefix_ + "." + ds->Meta().Fname().Base() );
     ParmFile pfile;
-    if ( pfile.WritePrefixTopology( *newParm_, prefix_, ParmFile::AMBERPARM, 0 ) )
+    if ( pfile.WriteTopology( setup.Top(), prefixName, ParmFile::AMBERPARM, 0 ) )
       mprinterr("Error: Could not write out stripped parm file.\n");
   }
   if (!parmoutName_.empty()) {
     ParmFile pfile;
-    if ( pfile.WriteTopology( *newParm_, parmoutName_, ParmFile::AMBERPARM, 0 ) )
+    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
       mprinterr("Error: Could not write out stripped parm file %s\n", parmoutName_.c_str());
   }
 
-  // Set parm
-  *parmAddress = newParm_;
-
-  return Action::OK;  
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_Strip::DoAction()
 /** Modify the coordinate frame to reflect stripped parmtop. */
-Action::RetType Action_Strip::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Strip::DoAction(int frameNum, ActionFrame& frm) {
 
-  newFrame_.SetFrame(*currentFrame, M1_);
+  newFrame_.SetFrame(frm.Frm(), M1_);
 
   // Set frame
-  *frameAddress = &newFrame_;
+  frm.SetFrame( &newFrame_ );
 
   return Action::OK;
-} 
+}
