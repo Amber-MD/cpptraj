@@ -7,7 +7,6 @@ class Action_Unstrip: public Action {
     Action_Unstrip() {}
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unstrip(); }
     static void Help();
-
   private:
     Action::RetType Init(ArgList&, ActionInit&, int) { return Action::OK;                 }
     Action::RetType Setup(ActionSetup&)              { return Action::USE_ORIGINAL_FRAME; }

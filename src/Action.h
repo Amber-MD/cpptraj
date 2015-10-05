@@ -27,8 +27,8 @@ class Action : public DispatchObject {
                    USE_ORIGINAL_FRAME, ///< Return to unmodified frame/topology.
                    SUPPRESS_COORD_OUTPUT, ///< Skip remaining actions and traj output. TODO just SKIP?
                    SKIP, ///< Non-fatal problem occurred, skip action until re-setup.
-                   MODIFY_TOPOLOGY, ///< Action has modified/will modify the topology.
-                   MODIFY_COORDS ///< Action has modified/will modify the frame.
+                   MODIFY_TOPOLOGY, ///< Action has modified the topology.
+                   MODIFY_COORDS ///< Action has modified the frame.
     };
     /// Destructor - virtual since this class is inherited
     virtual ~Action() {}
