@@ -681,7 +681,6 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
 // Analysis_Clustering::WriteAvgStruct()
 void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
   Topology avgparm = coords_->Top();
-  avgparm.SetNframes( 1 );
   // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(avgfmt_);
   // Loop over all clusters
