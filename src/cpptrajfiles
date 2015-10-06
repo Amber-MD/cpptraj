@@ -2,13 +2,16 @@ SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Angle.cpp \
         Action_AutoImage.cpp \
+        Action_Closest.cpp \
         Action_CreateCrd.cpp \
         Action_Dihedral.cpp \
         Action_Distance.cpp \
         Action_FilterByData.cpp \
+        Action_Hbond.cpp \
         Action_Outtraj.cpp \
         Action_Pucker.cpp \
         Action_Radgyr.cpp \
+        Action_Radial.cpp \
         Action_Rmsd.cpp \
         Action_Strip.cpp \
         Action_Unstrip.cpp \
@@ -214,7 +217,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Channel.cpp \
 #       Action_CheckChirality.cpp \
 #       Action_CheckStructure.cpp \
-#       Action_Closest.cpp \
 #       Action_ClusterDihedral.cpp \
 #       Action_Contacts.cpp \
 #       Action_CreateReservoir.cpp \
@@ -230,7 +232,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Gist.cpp \
 #       Action_Grid.cpp \
 #       Action_GridFreeEnergy.cpp \
-#       Action_Hbond.cpp \
 #       Action_Image.cpp \
 #       Action_Jcoupling.cpp \
 #       Action_LESsplit.cpp \
@@ -250,7 +251,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Pairwise.cpp \
 #       Action_Principal.cpp \
 #       Action_Projection.cpp \
-#       Action_Radial.cpp \
 #       Action_RandomizeIons.cpp \
 #       Action_ReplicateCell.cpp \
 #       Action_Rotate.cpp \

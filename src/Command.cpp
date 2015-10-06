@@ -25,21 +25,27 @@
 /*
 #include "Action_DSSP.h"
 #include "Action_Center.h"
+*/
 #include "Action_Hbond.h"
+/*
 #include "Action_Image.h"
 #include "Action_Surf.h"
 */
 #include "Action_Radgyr.h"
 /*
 #include "Action_Mask.h"
+*/
 #include "Action_Closest.h"
+/*
 #include "Action_NAstruct.h"
 */
 #include "Action_Pucker.h"
 #include "Action_Outtraj.h"
 /*
 #include "Action_Average.h"
+*/
 #include "Action_Radial.h"
+/*
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
 #include "Action_Pairwise.h"
@@ -2004,8 +2010,10 @@ const Command::Token Command::Commands[] = {
   { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+*/
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
   { ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
+/*
   { ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
   { ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
 */
@@ -2034,7 +2042,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
   { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
+*/
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
+/*
   { ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
   { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
   { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
@@ -2060,9 +2070,12 @@ const Command::Token Command::Commands[] = {
 */
   { ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, AddAction },
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
-/*
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
+/*
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+*/
+  { ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
+/*
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
 */
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
