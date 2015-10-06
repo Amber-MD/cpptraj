@@ -70,7 +70,7 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   if (newParm_ != 0) delete newParm_;
   newParm_ = setup.Top().modifyStateByMask(M1_);
   if (newParm_ == 0) {
-    mprinterr("Error: Could not create new parmtop.\n");
+    mprinterr("Error: Could not create new topology.\n");
     return Action::ERR;
   }
   setup.SetTopology( newParm_ );
@@ -81,27 +81,20 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
     newCinfo_->SetBox( Box() );
     setup.SetCoordInfo( newCinfo_ );
   }
-  newParm_->Brief("Stripped parm:");
+  newParm_->Brief("Stripped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
 
-  // If prefix given then output stripped parm
+  // If prefix given then output stripped topology
   if (!prefix_.empty()) {
-    FileName prefixName;
-    // Determine if topology has a file name.
-    DataSet* ds = masterDSL_->GetTopByPindex( setup.Top().Pindex() );
-    if (ds == 0 || ds->Meta().Fname().empty())
-      prefixName.SetFileName_NoExpansion( prefix_ + ".parm7" );
-    else
-      prefixName.SetFileName_NoExpansion( prefix_ + "." + ds->Meta().Fname().Base() );
     ParmFile pfile;
-    if ( pfile.WriteTopology( setup.Top(), prefixName, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out stripped parm file.\n");
+    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::AMBERPARM, 0 ) )
+      mprinterr("Error: Could not write out stripped topology file.\n");
   }
   if (!parmoutName_.empty()) {
     ParmFile pfile;
     if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out stripped parm file %s\n", parmoutName_.c_str());
+      mprinterr("Error: Could not write out stripped topology file %s\n", parmoutName_.c_str());
   }
 
   return Action::MODIFY_TOPOLOGY;
