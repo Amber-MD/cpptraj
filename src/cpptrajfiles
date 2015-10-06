@@ -1,6 +1,7 @@
 SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
         Action_Angle.cpp \
+        Action_AutoImage.cpp \
         Action_CreateCrd.cpp \
         Action_FilterByData.cpp \
         Action_Outtraj.cpp \
@@ -201,7 +202,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_AtomMap.cpp \
 #       Action_AtomicCorr.cpp \
 #       Action_AtomicFluct.cpp \
-#       Action_AutoImage.cpp \
 #       Action_Average.cpp \
 #       Action_Bounds.cpp \
 #       Action_Box.cpp \

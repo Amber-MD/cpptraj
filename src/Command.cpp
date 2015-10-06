@@ -63,7 +63,9 @@
 #include "Action_DNAionTracker.h"
 #include "Action_Scale.h"
 #include "Action_RandomizeIons.h"
+*/
 #include "Action_AutoImage.h"
+/*
 #include "Action_STFC_Diffusion.h"
 #include "Action_AtomicCorr.h"
 #include "Action_Bounds.h"
@@ -1989,7 +1991,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
   { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
+*/
   { ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, AddAction },
+/*
   { ACTION, "average", Action_Average::Alloc, Action_Average::Help, AddAction },
   { ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, AddAction },
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },

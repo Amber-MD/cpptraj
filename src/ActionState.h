@@ -45,6 +45,7 @@ class ActionFrame {
     ActionFrame() : frm_(0) {}
     ActionFrame(Frame* fIn) : frm_(fIn) {}
     Frame const& Frm()  const { return *frm_; }
+    Frame& ModifyFrm()        { return *frm_; }
     Frame* FramePtr()         { return frm_;  }
     void SetFrame( Frame* f ) { frm_ = f;     }
   private:
