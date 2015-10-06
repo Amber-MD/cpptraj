@@ -15,9 +15,7 @@
 #include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Angle.h"
-/*
 #include "Action_Distance.h"
-*/
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
 /*
@@ -2020,7 +2018,9 @@ const Command::Token Command::Commands[] = {
 /*
   { ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, AddAction },
   { ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction },
+*/
   { ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction },
+/*
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },

@@ -4,6 +4,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_AutoImage.cpp \
         Action_CreateCrd.cpp \
         Action_Dihedral.cpp \
+        Action_Distance.cpp \
         Action_FilterByData.cpp \
         Action_Outtraj.cpp \
         Action_Rmsd.cpp \
@@ -222,7 +223,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_DihedralScan.cpp \
 #       Action_Dipole.cpp \
 #       Action_DistRmsd.cpp \
-#       Action_Distance.cpp \
 #       Action_Energy.cpp \
 #       Action_FixAtomOrder.cpp \
 #       Action_Gist.cpp \

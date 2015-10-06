@@ -46,7 +46,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, ActionInit& init, int
   std::string mask3 = actionArgs.GetMaskNext();
   std::string mask4 = actionArgs.GetMaskNext();
   if (mask1.empty() || mask2.empty() || mask3.empty() || mask4.empty()) {
-    mprinterr("Error: dihedral: Requires 4 masks\n");
+    mprinterr("Error: dihedral requires 4 masks\n");
     return Action::ERR;
   }
   M1_.SetMaskString(mask1);
@@ -86,7 +86,7 @@ Action::RetType Action_Dihedral::Setup(ActionSetup& setup) {
   M4_.BriefMaskInfo();
   mprintf("\n");
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() ) {
-    mprintf("Warning: dihedral: One or more masks have no atoms.\n");
+    mprintf("Warning: One or more masks have no atoms.\n");
     return Action::SKIP;
   }
 
