@@ -115,8 +115,6 @@ class DataSetList {
     Topology* GetTopology(ArgList&) const;
     /// Get topology from args; allow index specified without 'parmindex'
     Topology* GetTopByIndex(ArgList&) const;
-    /// Get topology set matching given Pindex. Currently used to obtain original file name.
-    DataSet* GetTopByPindex(int) const;
     /// List all topologies
     void ListTopologies() const;
   private:
