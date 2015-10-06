@@ -17,6 +17,22 @@ Topology::Topology() :
   n_atom_types_(0)
 { }
 
+// Topology::SetParmName()
+void Topology::SetParmName(std::string const& title, FileName const& filename) {
+  parmName_ = title;
+  fileName_ = filename;
+}
+
+// Topology::c_str()
+/** Return a printf-compatible char* of the parm filename, or the parm
+  * name (title) if the parm filename is empty.
+  */
+const char *Topology::c_str() const {
+  if (!fileName_.empty())
+    return fileName_.base();
+  return parmName_.c_str();
+}
+
 /** Used to set box info from currently associated trajectory. */
 // FIXME: This routine is here for potential backwards compatibility issues
 //        since the topology box information was previously modified by
@@ -180,6 +196,8 @@ void Topology::Summary() const {
   mprintf("\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   if (!parmName_.empty())
     mprintf("\t\tTitle: %s\n", parmName_.c_str());
+  if (!fileName_.empty())
+    mprintf("\t\tOriginal filename: %s\n", fileName_.full());
   mprintf("\t\t%zu residues.\n", residues_.size());
   mprintf("\t\t%zu molecules.\n", molecules_.size());
   size_t s1 = bondsh_.size();
@@ -1211,6 +1229,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   Topology *newParm = new Topology();
 
   newParm->parmName_ = parmName_;
+  newParm->fileName_ = fileName_;
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
   newParm->n_atom_types_ = n_atom_types_;

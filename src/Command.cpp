@@ -911,7 +911,7 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
     addTop = false;
   }
-  CombinedTop.SetParmName( parmname ); //, FileName() );
+  CombinedTop.SetParmName( parmname, FileName() );
   // TODO: Check Parm box info.
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {

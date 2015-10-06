@@ -363,7 +363,7 @@ int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
   // Reads topology and #included files, sets up gmx_molXXX arrays.
   if (ReadGmxFile(fname.Full())) return 1;
   // Set title/filename
-  TopIn.SetParmName( title_ );//, infileName_ );
+  TopIn.SetParmName( title_, infileName_ );
   int resoffset = 0;
   int atomoffset = 0;
   // Set up <count> of each <molecule>

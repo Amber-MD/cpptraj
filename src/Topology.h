@@ -20,8 +20,7 @@ class Topology {
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
-//    void SetParmName(std::string const&, FileName const&);
-    void SetParmName(std::string const& p)   { parmName_ = p;                }
+    void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
@@ -32,9 +31,9 @@ class Topology {
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
     std::string const& ParmName()         const { return parmName_;       }
-//    FileName const& OriginalFilename()    const { return fileName_;       }
+    FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
-    const char *c_str() const { return parmName_.c_str(); } //FIXME rename
+    const char *c_str() const; //FIXME rename
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
     atom_iterator begin()            const { return atoms_.begin(); }
@@ -175,7 +174,8 @@ class Topology {
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
-//    FileName fileName_;
+    // NOTE: Filename is stored to enable things like 'strip outprefix'
+    FileName fileName_; 
     std::string parmName_;
     std::string radius_set_;
 

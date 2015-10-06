@@ -102,7 +102,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   std::string ciftitle;
   if (!entryblock.empty())
     ciftitle = entryblock.Data("id");
-  TopIn.SetParmName( ciftitle );//, infile.CIFname() );
+  TopIn.SetParmName( ciftitle, infile.CIFname() );
   // Get unit cell parameters if present.
   CIFfile::DataBlock const& cellblock = infile.GetDataBlock("_cell");
   if (!cellblock.empty()) {

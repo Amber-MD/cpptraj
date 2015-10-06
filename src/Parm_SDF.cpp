@@ -16,7 +16,7 @@ int Parm_SDF::ReadParm(FileName const& fname, Topology &parmOut) {
   mprintf("    Reading SDF file %s as topology file.\n",infile.Filename().base());
   // Read header
   if (infile.ReadHeader()) return 1;
-  parmOut.SetParmName( infile.SDF_Title() ); //, infile.Filename() );
+  parmOut.SetParmName( infile.SDF_Title(), infile.Filename() );
   // Read atoms. Put everything in same residue.
   Residue sdf_res("LIG", 0, ' ', ' ');
   double XYZ[3];
