@@ -28,7 +28,7 @@ class ActionSetup {
     ActionSetup(Topology* topIn, CoordinateInfo const& cInfoIn, int nIn) :
       top_(topIn), cInfo_((CoordinateInfo*)&cInfoIn), nFrames_(nIn) {}
     Topology const& Top()             const { return *top_;    }
-    // NOTE: Used to set up output trajectories.
+    // NOTE: Used to set up output trajectories and for certain Actions (DoAction).
     Topology* TopAddress()                  { return top_;     }
     CoordinateInfo const& CoordInfo() const { return *cInfo_;  }
     int Nframes()                     const { return nFrames_; }
