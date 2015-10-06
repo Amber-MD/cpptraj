@@ -13,6 +13,7 @@ class ReferenceFrame {
     ReferenceFrame(const ReferenceFrame& rhs) : ref_(rhs.ref_), err_(rhs.err_) {}
     Frame const& Coord()        const { return ref_->RefFrame();  }
     Topology const& Parm()      const { return ref_->Top();       }
+    Topology* ParmPtr()               { return ref_->TopPtr();    } // FIXME deprecate this
     bool error()                const { return err_ != 0;         }
     bool empty()                const { return ref_ == 0;         }
     DataSet_Coords_REF* RefPtr()const { return ref_;              }

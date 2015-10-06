@@ -12,14 +12,14 @@ class Action_Rmsd: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     // PerResRMSD -------------
     /// Set up per-residue RMSD calc
-    int perResSetup(Topology*,Topology*);
+    int perResSetup(Topology const&, Topology const&);
     bool perres_;                      ///< If true calculate per-residue rmsd
     struct perResType {
       AtomMask tgtResMask_; ///< Target mask for residue

@@ -17,7 +17,9 @@
 #include "Action_Angle.h"
 /*
 #include "Action_Distance.h"
+*/
 #include "Action_Rmsd.h"
+/*
 #include "Action_Dihedral.h"
 #include "Action_AtomMap.h"
 */
@@ -2057,8 +2059,10 @@ const Command::Token Command::Commands[] = {
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
+*/
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
+/*
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },

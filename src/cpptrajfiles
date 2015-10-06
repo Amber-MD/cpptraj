@@ -5,6 +5,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_CreateCrd.cpp \
         Action_FilterByData.cpp \
         Action_Outtraj.cpp \
+        Action_Rmsd.cpp \
         Action_Strip.cpp \
         Action_Unstrip.cpp \
         AnalysisList.cpp \
@@ -252,7 +253,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Radial.cpp \
 #       Action_RandomizeIons.cpp \
 #       Action_ReplicateCell.cpp \
-#       Action_Rmsd.cpp \
 #       Action_Rotate.cpp \
 #       Action_RunningAvg.cpp \
 #       Action_STFC_Diffusion.cpp \
