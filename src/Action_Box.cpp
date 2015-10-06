@@ -10,7 +10,7 @@ void Action_Box::Help() {
 }
 
 // Action_Box::Init()
-Action::RetType Action_Box::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Box::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
   if ( actionArgs.hasKey("nobox") )
@@ -41,22 +41,24 @@ Action::RetType Action_Box::Init(ArgList& actionArgs, DataSetList* DSL, DataFile
 }
 
 // Action_Box::Setup()
-Action::RetType Action_Box::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Box::Setup(ActionSetup& setup) {
+  cInfo_ = setup.CoordInfo();
   if (nobox_) {
-    currentParm->SetParmBox( Box() );
     mprintf("\tRemoving box info.\n");
+    cInfo_.SetBox( Box() );
   } else {
     Box pbox( box_ );
-    // Fill in missing parm box information from specified parm
-    pbox.SetMissingInfo( currentParm->ParmBox() );
+    // Fill in missing box information from current box 
+    pbox.SetMissingInfo( setup.CoordInfo().TrajBox() );
     mprintf("\tNew box type is %s\n", pbox.TypeName() );
-    currentParm->SetParmBox( pbox );
+    cInfo_.SetBox( pbox );
   }
+  setup.SetCoordInfo( &cInfo_ );
   return Action::OK;
 }
 
-Action::RetType Action_Box::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  double* frame_box = currentFrame->bAddress();
+Action::RetType Action_Box::DoAction(int frameNum, ActionFrame& frm) {
+  double* frame_box = frm.ModifyFrm().bAddress();
   if (nobox_) {
     frame_box[0] = 0.0;
     frame_box[1] = 0.0;
@@ -74,5 +76,5 @@ Action::RetType Action_Box::DoAction(int frameNum, Frame* currentFrame, Frame** 
     frame_box[4] = fbox.Beta();
     frame_box[5] = fbox.Gamma();
   }
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }

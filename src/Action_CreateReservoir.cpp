@@ -27,7 +27,7 @@ void Action_CreateReservoir::Help() {
 }
 
 // Action_CreateReservoir::Init()
-Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef BINTRAJ
   // Get keywords
@@ -48,14 +48,14 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, DataSetList* D
   }
   useVelocity_ = actionArgs.hasKey("velocity");
   // Get parm for reservoir traj
-  original_trajparm_ = DSL->GetTopology( actionArgs );
+  original_trajparm_ = init.DSL().GetTopology( actionArgs );
   if (original_trajparm_ == 0) {
     mprinterr("Error: createreservoir: no topology.\n");
     return Action::ERR;
   }
   // Get energy data set
   std::string eneDsname = actionArgs.GetStringKey("ene");
-  DataSet* dstmp = DSL->GetDataSet( eneDsname );
+  DataSet* dstmp = init.DSL().GetDataSet( eneDsname );
   if (dstmp == 0) {
     mprinterr("Error: could not get energy data set %s\n", eneDsname.c_str());
     return Action::ERR;
@@ -76,7 +76,7 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, DataSetList* D
   // Get bin data set
   std::string binDSname = actionArgs.GetStringKey("bin");
   if (!binDSname.empty()) {
-    dstmp = DSL->GetDataSet( binDSname );
+    dstmp = init.DSL().GetDataSet( binDSname );
     if (dstmp == 0) {
       mprinterr("Error: could not get bin data set %s\n", binDSname.c_str());
       return Action::ERR;
@@ -113,22 +113,21 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, DataSetList* D
 }
 
 // Action_CreateReservoir::Setup()
-Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** parmAddress)
-{
+Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
 # ifdef BINTRAJ
   // Check that input parm matches current parm
-  if (original_trajparm_->Pindex() != currentParm->Pindex()) {
+  if (original_trajparm_->Pindex() != setup.Top().Pindex()) {
     mprintf("Info: createreservoir was set up for topology %s\n", original_trajparm_->c_str());
-    mprintf("Info: skipping topology %s\n", currentParm->c_str());
-    return Action::ERR;
+    mprintf("Info: skipping topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
   if (!trajIsOpen_) {
     mprintf("\tCreating reservoir file %s\n", filename_.full());
     // Use parm to set up box info for the reservoir.
-    CoordinateInfo cInfo = currentParm->ParmCoordInfo();
+    CoordinateInfo cInfo = setup.CoordInfo();
     cInfo.SetVelocity( useVelocity_ );
     // Set up write and open - no append.
-    if (reservoir_.setupTrajout( filename_, currentParm, cInfo, currentParm->Nframes(), false))
+    if (reservoir_.setupTrajout( filename_, setup.TopAddress(), cInfo, setup.Nframes(), false))
       return Action::ERR;
     // Add reservoir vars to netcdf traj
     if (reservoir_.createReservoir((bin_!=0), reservoirT_, iseed_)) {
@@ -146,12 +145,11 @@ Action::RetType Action_CreateReservoir::Setup(Topology* currentParm, Topology** 
 }
 
 // Action_CreateReservoir::DoAction()
-Action::RetType Action_CreateReservoir::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
-{
+Action::RetType Action_CreateReservoir::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef BINTRAJ
   int bin = -1;
   if (bin_ != 0) bin = (int)bin_->Dval(frameNum);
-  if (reservoir_.writeReservoir(nframes_++, *currentFrame, ene_->Dval(frameNum), bin))
+  if (reservoir_.writeReservoir(nframes_++, frm.Frm(), ene_->Dval(frameNum), bin))
     return Action::ERR;
   return Action::OK;
 # else

@@ -49,7 +49,7 @@ int Action_Contacts::SetupContacts(Frame const& refframe, Topology const& refpar
 }
 
 // Action_Contacts::Init()
-Action::RetType Action_Contacts::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Contacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 
   byResidue_ = actionArgs.hasKey("byresidue");
@@ -59,17 +59,17 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   distance_ = dist * dist;
   first_ = actionArgs.hasKey("first");
   // Get reference
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   std::string outfilename = actionArgs.GetStringKey("out"); 
-  outfile_ = DFL->AddCpptrajFile(outfilename, "Contacts", DataFileList::TEXT, true);
+  outfile_ = init.DFL().AddCpptrajFile(outfilename, "Contacts", DataFileList::TEXT, true);
   if (outfile_ == 0) return Action::ERR;
   if (byResidue_) {
     if (outfilename.empty()) {
       mprinterr("Error: Contacts 'byresidue' requires output filename.\n");
       return Action::ERR;
     }
-    outfile2_ = DFL->AddCpptrajFile(outfilename + ".native", "Contacts by residue");
+    outfile2_ = init.DFL().AddCpptrajFile(outfilename + ".native", "Contacts by residue");
     if (outfile2_ == 0) return Action::ERR;
   }
 
@@ -120,18 +120,18 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   return Action::OK;
 }
 
-Action::RetType Action_Contacts::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Contacts::Setup(ActionSetup& setup) {
   //if (first_) 
   //  RefParm_ = currentParm;
   // Set up atom mask 
-  if (currentParm->SetupIntegerMask(Mask_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(Mask_)) return Action::ERR;
 
   // Determine which residues are active based on the mask
   activeResidues_.clear();
   for (AtomMask::const_iterator atom = Mask_.begin();
                                 atom != Mask_.end(); ++atom)
   {
-    int resnum = (*currentParm)[*atom].ResNum();
+    int resnum = setup.Top()[*atom].ResNum();
     activeResidues_.insert( resnum );
   }
 
@@ -150,16 +150,16 @@ Action::RetType Action_Contacts::Setup(Topology* currentParm, Topology** parmAdd
   }
 
   // Reserve space for residue contact counts
-  residueContacts_.reserve( currentParm->Nres() );
-  residueNative_.reserve( currentParm->Nres() );
+  residueContacts_.reserve( setup.Top().Nres() );
+  residueNative_.reserve( setup.Top().Nres() );
   
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
-Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Contacts::DoAction(int frameNum, ActionFrame& frm) {
   if (first_) {
-    SetupContacts( *currentFrame, *CurrentParm_ );
+    SetupContacts( frm.Frm(), *CurrentParm_ );
     first_ = false;
   }
 
@@ -179,7 +179,7 @@ Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Fra
     for (AtomMask::const_iterator atom2 = atom1 + 1;
                                   atom2 != Mask_.end(); ++atom2)
     {
-      double d2 = DIST2_NoImage(currentFrame->XYZ(*atom1), currentFrame->XYZ(*atom2));
+      double d2 = DIST2_NoImage(frm.Frm().XYZ(*atom1), frm.Frm().XYZ(*atom2));
       // Contact?
       if (d2 < distance_) {
         ++numcontacts;
@@ -236,4 +236,3 @@ Action::RetType Action_Contacts::DoAction(int frameNum, Frame* currentFrame, Fra
 
   return Action::OK;
 }
-     
