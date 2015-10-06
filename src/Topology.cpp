@@ -569,6 +569,8 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
   atoms_.push_back(atomIn);
   // Set this atoms internal residue number 
   atoms_.back().SetResNum( residues_.size()-1 );
+  // Set current residues final atom number
+  residues_.back().SetLastAtom( atoms_.size() );
   return 0;
 }
 
@@ -594,7 +596,7 @@ void Topology::StartNewMol() {
 // Topology::CommonSetup()
 int Topology::CommonSetup() {
   // Set residue last atom (PDB/Mol2/PSF) 
-  residues_.back().SetLastAtom( atoms_.size() );
+//  residues_.back().SetLastAtom( atoms_.size() );
   // Set up bond information if specified or necessary
 //  if (bondsearch) {
 //    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
