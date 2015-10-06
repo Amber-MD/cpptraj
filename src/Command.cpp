@@ -19,8 +19,8 @@
 #include "Action_Distance.h"
 */
 #include "Action_Rmsd.h"
-/*
 #include "Action_Dihedral.h"
+/*
 #include "Action_AtomMap.h"
 */
 #include "Action_Strip.h"
@@ -2015,7 +2015,9 @@ const Command::Token Command::Commands[] = {
   { ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, AddAction },
   { ACTION, "density", Action_Density::Alloc, Action_Density::Help, AddAction },
   { ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, AddAction },
+*/
   { ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, AddAction },
+/*
   { ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, AddAction },
   { ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction },
   { ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction },

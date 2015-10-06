@@ -3,6 +3,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Angle.cpp \
         Action_AutoImage.cpp \
         Action_CreateCrd.cpp \
+        Action_Dihedral.cpp \
         Action_FilterByData.cpp \
         Action_Outtraj.cpp \
         Action_Rmsd.cpp \
@@ -218,7 +219,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_DSSP.cpp \
 #       Action_Density.cpp \
 #       Action_Diffusion.cpp \
-#       Action_Dihedral.cpp \
 #       Action_DihedralScan.cpp \
 #       Action_Dipole.cpp \
 #       Action_DistRmsd.cpp \
