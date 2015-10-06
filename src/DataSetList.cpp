@@ -527,16 +527,17 @@ const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
   *   - 'ref <name>'  : Get reference frame by full/base filename or tag.
   *   - 'reference'   : First reference frame in list.
   *   - 'refindex <#>': Reference frame at position.
+  * \param err Set to 1 if keyword present but no reference found, 0 otherwise.
   */
-DataSet* DataSetList::GetReferenceSet(ArgList& argIn) const {
+DataSet* DataSetList::GetReferenceSet(ArgList& argIn, int& err) const {
   DataSet* ref = 0;
-  // 'ref <name>'
+  err = 0;
   std::string refname = argIn.GetStringKey("ref");
   if (!refname.empty()) {
     ref = FindSetOfType( refname, DataSet::REF_FRAME );
     if (ref == 0) {
       mprinterr("Error: Reference '%s' not found.\n", refname.c_str());
-      return 0;
+      err = 1;
     }
   } else {
     int refindex = argIn.getKeyInt("refindex", -1);
@@ -545,24 +546,26 @@ DataSet* DataSetList::GetReferenceSet(ArgList& argIn) const {
       ref = RefList_[refindex];
     if (refindex != -1 && ref == 0) {
       mprinterr("Error: Reference index %i not found.\n", refindex);
-      return 0;
+      err = 1;
     }
   }
   return ref;
 }
 
 ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
-  DataSet* ds = GetReferenceSet(argIn);
-  if (ds == 0) return ReferenceFrame(1);
+  int err = 0;
+  DataSet* ds = GetReferenceSet(argIn, err);
+  if (ds == 0) return ReferenceFrame(err);
   return ReferenceFrame((DataSet_Coords_REF*)ds);
 }
 
 int DataSetList::SetActiveReference(ArgList &argIn) {
-  DataSet* ds = GetReferenceSet( argIn );
+  int err = 0;
+  DataSet* ds = GetReferenceSet( argIn, err );
   if (ds == 0) {
     // For backwards compat, see if there is a single integer arg.
     ArgList refArg( "refindex " + argIn.GetStringNext() );
-    ds = GetReferenceSet( refArg );
+    ds = GetReferenceSet( refArg, err );
   }
   return SetActiveReference( ds );
 }

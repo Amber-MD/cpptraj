@@ -125,7 +125,7 @@ class DataSetList {
     inline void PendingWarning() const;
     /// Wrapper around DataList_.push_back() that does extra bookkeeping.
     void Push_Back(DataSet*);
-    DataSet* GetReferenceSet(ArgList&) const;
+    DataSet* GetReferenceSet(ArgList&, int&) const;
     int SetActiveReference(DataSet*);
 
     /// Current active reference for distance-based masks.
