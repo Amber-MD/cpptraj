@@ -7,7 +7,6 @@
 #include "TorsionRoutines.h" // GenerateAmberRst
 #include "Constants.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
-#include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
@@ -29,12 +28,14 @@
 #include "Action_Hbond.h"
 #include "Action_Image.h"
 #include "Action_Surf.h"
+*/
 #include "Action_Radgyr.h"
+/*
 #include "Action_Mask.h"
 #include "Action_Closest.h"
 #include "Action_NAstruct.h"
-#include "Action_Pucker.h"
 */
+#include "Action_Pucker.h"
 #include "Action_Outtraj.h"
 /*
 #include "Action_Average.h"
@@ -2056,16 +2057,18 @@ const Command::Token Command::Commands[] = {
   { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
   { ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, AddAction },
   { ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, AddAction },
+*/
   { ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, AddAction },
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
+/*
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
 */
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
-/*
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
+/*
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },

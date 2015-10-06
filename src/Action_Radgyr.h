@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_RADGYR_H
 #define INC_ACTION_RADGYR_H
 #include "Action.h"
-// Class: Action_Radgyr
 /// Action to calculate the radius of gyration of atoms within a mask.
 class Action_Radgyr: public Action {
   public:
@@ -9,9 +8,9 @@ class Action_Radgyr: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radgyr(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     DataSet* rog_;

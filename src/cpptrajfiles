@@ -7,6 +7,8 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Distance.cpp \
         Action_FilterByData.cpp \
         Action_Outtraj.cpp \
+        Action_Pucker.cpp \
+        Action_Radgyr.cpp \
         Action_Rmsd.cpp \
         Action_Strip.cpp \
         Action_Unstrip.cpp \
@@ -248,8 +250,6 @@ CSOURCES=MpiRoutines.c \
 #       Action_Pairwise.cpp \
 #       Action_Principal.cpp \
 #       Action_Projection.cpp \
-#       Action_Pucker.cpp \
-#       Action_Radgyr.cpp \
 #       Action_Radial.cpp \
 #       Action_RandomizeIons.cpp \
 #       Action_ReplicateCell.cpp \
