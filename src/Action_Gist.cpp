@@ -165,7 +165,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
   */
 Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   gist_setup_.Start();
-  CurrentParm_ = currentParm;      
+  CurrentParm_ = setup.TopAddress();
   NFRAME_ = 0;
   max_nwat_ = 0;
 
@@ -291,11 +291,11 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   gridwat_.resize( setup.Top().Nsolvent() );
 
   // We need box info
-  if (setup.Top().BoxType() == Box::NOBOX) {
+  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
     mprinterr("Error: Gist: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
-  SetupImaging( setup.Top().BoxType() );
+  SetupImaging( setup.CoordInfo().TrajBox().Type() );
 
   resnum_ = 0;
   voxel_ = 0;
@@ -324,22 +324,22 @@ Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
     resindex1_++;
     if (!solvmol_->IsSolvent()) continue;
     gist_grid_.Start();
-    Grid( currentFrame );
+    Grid( frm.Frm() );
     gist_grid_.Stop();
     voxel_ = gridwat_[resnum_];
     resnum_++;
     gist_nonbond_.Start();
-    NonbondEnergy( currentFrame );
+    NonbondEnergy( frm.Frm() );
     gist_nonbond_.Stop();
     if (voxel_ >= MAX_GRID_PT_) continue;
     gist_euler_.Start();
-    EulerAngle( currentFrame );
+    EulerAngle( frm.Frm() );
     gist_euler_.Stop();
     gist_dipole_.Start();
-    Dipole( currentFrame );
+    Dipole( frm.Frm() );
     gist_dipole_.Stop();
   }
-  if(doOrder_) Order( currentFrame );
+  if(doOrder_) Order( frm.Frm() );
   
   //Debug
 //  if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum_);
@@ -351,7 +351,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 // Action_Gist::NonbondEnergy()
-void Action_Gist::NonbondEnergy(Frame *currentFrame) {
+void Action_Gist::NonbondEnergy(Frame const& frameIn) {
   double rij2, rij, r2, r6, r12, f12, f6, e_vdw, e_elec;
   int satom, satom2, atom1, atom2;
   
@@ -361,7 +361,7 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   // Setup imaging info
   Matrix_3x3 ucell, recip;
   if (ImagingEnabled())
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+    frameIn.BoxCrd().ToRecip(ucell, recip);
 
   // Inner loop has both solute and solvent
   resnum2_=0;
@@ -392,14 +392,14 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
     for (satom = solvmol_->BeginAtom(); satom < solvmol_->EndAtom(); ++satom)
     {
       // Set up coord index for this atom
-      const double* XYZ =  frm.Frm().XYZ( satom );
+      const double* XYZ =  frameIn.XYZ( satom );
       atom2=0;
       for (satom2 = solvmol2_->BeginAtom(); satom2 < solvmol2_->EndAtom(); ++satom2)
       {    
         // Set up coord index for this atom
-        const double* XYZ2 = frm.Frm().XYZ( satom2 );
+        const double* XYZ2 = frameIn.XYZ( satom2 );
         // Calculate the vector pointing from atom2 to atom1
-        rij2 = DIST2(XYZ, XYZ2, ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+        rij2 = DIST2(XYZ, XYZ2, ImageType(), frameIn.BoxCrd(), ucell, recip);
         rij = sqrt(rij2);
         // LJ energy
         NonbondType const& LJ = CurrentParm_->GetLJparam(satom, satom2); 
@@ -456,13 +456,13 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
 }
 
 // Action_Gist::Grid()
-void Action_Gist::Grid(Frame *frameIn) {
+void Action_Gist::Grid(Frame const& frameIn) {
   int  i, gridindex[3], nH;
   Vec3 comp,  atom_coord;
   i = solvmol_->BeginAtom();
 
   gridwat_[resnum_] = MAX_GRID_PT_ + 1;
-  atom_coord = Vec3(frameIn->XYZ(i));
+  atom_coord = Vec3(frameIn.XYZ(i));
   // get the components of the water vector
   comp = Vec3(atom_coord) - Vec3(gridorig_);
   nH=0;
@@ -494,7 +494,7 @@ void Action_Gist::Grid(Frame *frameIn) {
     
     // evaluate hydrogen atoms
     for (int a=1; a<=nH; a++) {
-      atom_coord = Vec3(frameIn->XYZ(i+a));
+      atom_coord = Vec3(frameIn.XYZ(i+a));
       comp = Vec3(atom_coord) - Vec3(gridorig_);
       if (comp[0]<0 || comp[1]<0 || comp[2]<0) continue;
       comp /= gridspacn_;
@@ -513,15 +513,15 @@ void Action_Gist::Grid(Frame *frameIn) {
 }
 
 // Action_Gist::EulerAngle()
-void Action_Gist::EulerAngle(Frame *frameIn) {
+void Action_Gist::EulerAngle(Frame const& frameIn) {
   //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
   Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
   double dp;
 
   int i = solvmol_->BeginAtom();
-  O_wat = Vec3(frameIn->XYZ(i));
-  H1_wat = Vec3(frameIn->XYZ(i+1)) - O_wat;
-  H2_wat = Vec3(frameIn->XYZ(i+2)) - O_wat;
+  O_wat = Vec3(frameIn.XYZ(i));
+  H1_wat = Vec3(frameIn.XYZ(i+1)) - O_wat;
+  H2_wat = Vec3(frameIn.XYZ(i+2)) - O_wat;
   
   // make sure the first three atoms are oxygen followed by two hydrogen
   if ((*CurrentParm_)[i].Element() != Atom::OXYGEN) {
@@ -610,7 +610,7 @@ void Action_Gist::EulerAngle(Frame *frameIn) {
 } 
 
 // Action_Gist::Dipole()
-void Action_Gist::Dipole(Frame *frameIn) {
+void Action_Gist::Dipole(Frame const& frameIn) {
   
   //if (NFRAME_==1) mprintf("GIST Dipole \n");
   double dipolar_vector[3], charge;
@@ -622,7 +622,7 @@ void Action_Gist::Dipole(Frame *frameIn) {
   // Loop over solvent atoms
   for (satom = solvmol_->BeginAtom(); satom < solvmol_->EndAtom(); ++satom)
   {
-    const double* XYZ = frameIn->XYZ( satom );
+    const double* XYZ = frameIn.XYZ( satom );
     // Calculate dipole vector. The oxygen of the solvent is used to 
     // assign the voxel index to the water.
     // NOTE: the total charge on the solvent should be neutral for this 
@@ -639,7 +639,7 @@ void Action_Gist::Dipole(Frame *frameIn) {
 }
 
 // Action_Gist::Order() 
-void Action_Gist::Order(Frame *frameIn) {
+void Action_Gist::Order(Frame const& frameIn) {
 //  if (NFRAME_==1) mprintf("GIST Order Parameter \n");
   int i;
   double cos, sum, r1, r2, r3, r4, rij2, x[5], y[5], z[5];
@@ -658,7 +658,7 @@ void Action_Gist::Order(Frame *frameIn) {
     if (voxel_>=MAX_GRID_PT_) continue;
     // assume that oxygen is the first atom
     i = solvmol_->BeginAtom();
-    O_wat1 = Vec3(frameIn->XYZ( i ));
+    O_wat1 = Vec3(frameIn.XYZ( i ));
 
     r1=1000; r2=1000; r3=1000; r4=1000; resnum2_=0;
     // Can't make into triangular matrix
@@ -669,7 +669,7 @@ void Action_Gist::Order(Frame *frameIn) {
       resnum2_++;
       if (resnum_ == resnum2_) continue;
       i = solvmol2_->BeginAtom();
-      O_wat2 = Vec3(frameIn->XYZ( i ));      
+      O_wat2 = Vec3(frameIn.XYZ( i ));      
       rij2 = DIST2_NoImage(O_wat1, O_wat2);
       if (rij2<r1) {
         r4 = r3;

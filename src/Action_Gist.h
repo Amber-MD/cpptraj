@@ -127,10 +127,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> dipoley_;
     std::vector <double> dipolez_;
 
-    void NonbondEnergy(Frame *);
-    void Grid(Frame *);
-    void EulerAngle(Frame *);
-    void Dipole(Frame *);
-    void Order(Frame *);
+    void NonbondEnergy(Frame const&);
+    void Grid(Frame const&);
+    void EulerAngle(Frame const&);
+    void Dipole(Frame const&);
+    void Order(Frame const&);
 };
 #endif

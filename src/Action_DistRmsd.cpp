@@ -57,14 +57,14 @@ Action::RetType Action_DistRmsd::Setup(ActionSetup& setup) {
 
   if ( setup.Top().SetupIntegerMask(TgtMask_) ) return Action::ERR;
   if ( TgtMask_.None() ) {
-    mprintf("    Error: DistRmsd::setup: No atoms in mask.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms in mask.\n");
+    return Action::SKIP;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
   SelectedTgt_.SetupFrameFromMask(TgtMask_, setup.Top().Atoms());
 
-  if (refHolder_.SetupRef(*currentParm, TgtMask_.Nselected(), "distrmsd"))
+  if (refHolder_.SetupRef(setup.Top(), TgtMask_.Nselected(), "distrmsd"))
     return Action::ERR; 
 
   return Action::OK;
@@ -76,9 +76,9 @@ Action::RetType Action_DistRmsd::Setup(ActionSetup& setup) {
   */
 Action::RetType Action_DistRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  refHolder_.ActionRef( *currentFrame, false, false );
+  refHolder_.ActionRef( frm.Frm(), false, false );
   // Set selected frame atoms. Masses have already been set.
-  SelectedTgt_.SetCoordinates(*currentFrame, TgtMask_);
+  SelectedTgt_.SetCoordinates(frm.Frm(), TgtMask_);
   double DR = SelectedTgt_.DISTRMSD( refHolder_.SelectedRef() );
   drmsd_->Add(frameNum, &DR);
   return Action::OK;

@@ -35,7 +35,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  grid_ = GridInit( "Dipole", actionArgs, *DSL );
+  grid_ = GridInit( "Dipole", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
   dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );
@@ -72,26 +72,26 @@ Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol)
   {
-    if ( (*Mol).IsSolvent() ) {
-      if ( (*Mol).NumAtoms() > NsolventAtoms )
-        NsolventAtoms = (*Mol).NumAtoms();
+    if ( Mol->IsSolvent() ) {
+      if ( Mol->NumAtoms() > NsolventAtoms )
+        NsolventAtoms = Mol->NumAtoms();
     }
   }
   //sol_.resize( NsolventAtoms );
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
   if (setup.Top().SetupCharMask( mask_ ))
     return Action::ERR;
-  mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: Dipole: No atoms selected for parm %s\n", setup.Top().c_str());
-    return Action::ERR;
+    mprinterr("Warning: No atoms selected for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 

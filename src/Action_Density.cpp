@@ -89,7 +89,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 
 // Action_Density::Setup()
 Action::RetType Action_Density::Setup(ActionSetup& setup) {
-{
   properties_.resize(0);
 
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
@@ -101,7 +100,7 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
 
     for (AtomMask::const_iterator idx = mask->begin();
 	 idx != mask->end(); idx++) {
-      const Atom& atom = (*currentParm)[*idx];
+      const Atom& atom = setup.Top()[*idx];
 
       switch (property_) {
       case NUMBER:
@@ -129,7 +128,7 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
     mprintf("\n");
   }
 
-  SetupImaging(setup.Top().BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
   return Action::OK;  
 }
@@ -137,7 +136,6 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
 
 // Action_Density::action()
 Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
-{
   long slice;
   unsigned long i, j;
   Vec3 coord;
@@ -303,4 +301,3 @@ void Action_Density::Print()
     output_->Printf("\n");
   }
 }
-

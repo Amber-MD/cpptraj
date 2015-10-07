@@ -171,7 +171,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, ActionInit& init,
   // Increment backtrack by 1 since we need to skip over current res
   ++backtrack_;
   // Initialize CheckStructure
-  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, *DFL )) {
+  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, init.DFL() )) {
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }
@@ -190,7 +190,7 @@ Action::RetType Action_DihedralScan::Setup(ActionSetup& setup) {
   else 
     actualRange = resRange_;
   // Search for dihedrals
-  if (dihSearch_.FindDihedrals(*currentParm, actualRange))
+  if (dihSearch_.FindDihedrals(setup.Top(), actualRange))
     return Action::ERR;
   // For each found dihedral, set up mask of atoms that will move upon 
   // rotation. Also set up mask of atoms in this residue that will not
@@ -202,38 +202,38 @@ Action::RetType Action_DihedralScan::Setup(ActionSetup& setup) {
   {
     dst.checkAtoms.clear();
     // Set mask of atoms that will move during dihedral rotation.
-    dst.Rmask = DihedralSearch::MovingAtoms(*currentParm, (*dih).A1(), (*dih).A2());
+    dst.Rmask = DihedralSearch::MovingAtoms(setup.Top(), dih->A1(), dih->A2());
     // If randomly rotating angles, check for atoms that are in the same
     // residue as A1 but will not move. They need to be checked for clashes
     // since further rotations will not help them.
     if (mode_ == RANDOM && check_for_clashes_) {
       CharMask cMask( dst.Rmask.ConvertToCharMask(), dst.Rmask.Nselected() );
-      int a1res = (*currentParm)[(*dih).A1()].ResNum();
+      int a1res = setup.Top()[dih->A1()].ResNum();
       for (int maskatom = setup.Top().Res(a1res).FirstAtom();
                maskatom < setup.Top().Res(a1res).LastAtom(); ++maskatom)
         if (!cMask.AtomInCharMask(maskatom))
           dst.checkAtoms.push_back( maskatom );
-      dst.checkAtoms.push_back((*dih).A1()); // TODO: Does this need to be added first?
+      dst.checkAtoms.push_back(dih->A1()); // TODO: Does this need to be added first?
       // Since only the second atom and atoms it is bonded to move during 
       // rotation, base the check on the residue of the second atom.
       dst.resnum = a1res;
     }
-    dst.atom0 = (*dih).A0(); // FIXME: This duplicates info
-    dst.atom1 = (*dih).A1();
-    dst.atom2 = (*dih).A2();
-    dst.atom3 = (*dih).A3();
+    dst.atom0 = dih->A0(); // FIXME: This duplicates info
+    dst.atom1 = dih->A1();
+    dst.atom2 = dih->A2();
+    dst.atom3 = dih->A3();
     BB_dihedrals_.push_back(dst);
     // DEBUG: List dihedral info.
     if (debug_ > 0) {
       mprintf("\t%s-%s-%s-%s\n", 
-              setup.Top().TruncResAtomName((*dih).A0()).c_str(),
-              setup.Top().TruncResAtomName((*dih).A1()).c_str(),
-              setup.Top().TruncResAtomName((*dih).A2()).c_str(),
-              setup.Top().TruncResAtomName((*dih).A3()).c_str() );
+              setup.Top().TruncResAtomName(dih->A0()).c_str(),
+              setup.Top().TruncResAtomName(dih->A1()).c_str(),
+              setup.Top().TruncResAtomName(dih->A2()).c_str(),
+              setup.Top().TruncResAtomName(dih->A3()).c_str() );
       if (debug_ > 1 && mode_ == RANDOM && check_for_clashes_) {
         mprintf("\t\tCheckAtoms=");
-        for (std::vector<int>::iterator ca = dst.checkAtoms.begin();
-                                        ca != dst.checkAtoms.end(); ++ca)
+        for (std::vector<int>::const_iterator ca = dst.checkAtoms.begin();
+                                              ca != dst.checkAtoms.end(); ++ca)
           mprintf(" %i", *ca + 1);
         mprintf("\n");
       }
@@ -245,7 +245,8 @@ Action::RetType Action_DihedralScan::Setup(ActionSetup& setup) {
   }
 
   // Set up CheckStructure for this parm (false = nobondcheck)
-  if (checkStructure_.SeparateSetup(*currentParm, false) != Action::OK)
+  if (checkStructure_.SeparateSetup(setup.Top(),
+                                    setup.CoordInfo().TrajBox().Type(), false) != Action::OK)
     return Action::ERR;
 
   // Set the overall max number of rotations to try
@@ -263,17 +264,17 @@ Action::RetType Action_DihedralScan::Setup(ActionSetup& setup) {
                                 residue != setup.Top().ResEnd(); ++residue)
     {
       rct.resnum = res++;
-      rct.start = (*residue).FirstAtom();
-      rct.stop = (*residue).LastAtom();
+      rct.start = residue->FirstAtom();
+      rct.stop = residue->LastAtom();
       rct.checkatom = rct.start;
       ResCheck_.push_back(rct);
     }
   }
 
   if (!outfilename_.empty() && CurrentParm_ == 0) // FIXME: Correct frames for # of rotations
-    outtraj_.SetupTrajWrite(currentParm, setup.Top().ParmCoordInfo(), setup.Top().Nframes());
+    outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
 
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;  
 }
 
@@ -540,13 +541,12 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
 
 // Action_DihedralScan::DoAction()
 Action::RetType Action_DihedralScan::DoAction(int frameNum, ActionFrame& frm) {
-{
   switch (mode_) {
-    case RANDOM: RandomizeAngles(*currentFrame); break;
-    case INTERVAL: IntervalAngles(*currentFrame); break;
+    case RANDOM: RandomizeAngles(frm.ModifyFrm()); break;
+    case INTERVAL: IntervalAngles(frm.ModifyFrm()); break;
   }
   // Check the resulting structure
-  int n_problems = checkStructure_.CheckOverlap( frameNum+1, *currentFrame, *CurrentParm_ );
+  int n_problems = checkStructure_.CheckOverlap( frameNum+1, frm.Frm(), *CurrentParm_ );
   //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
   number_of_problems_->Add(frameNum, &n_problems);
 

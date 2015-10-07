@@ -46,7 +46,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
     mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
             "Warning: This indicates that there is no need to fix atom ordering in this topology.\n",
             setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
   molNums_.resize( setup.Top().Natom(), -1 );
   // Perform recursive search along bonds of each atom.
@@ -54,7 +54,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   for (int atomnum = 0; atomnum < setup.Top().Natom(); ++atomnum)
   {
     if (molNums_[atomnum] == -1) {
-      VisitAtom( atomnum, Nmol, *currentParm );
+      VisitAtom( atomnum, Nmol, setup.Top() );
       ++Nmol;
     }
   }
@@ -76,8 +76,7 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   // Place all atoms in molecule 0 first, molecule 1 next and so on
   for (std::vector<MapType>::const_iterator mol = molecules.begin();
                                             mol != molecules.end(); ++mol)
-    for (MapType::const_iterator atom = (*mol).begin();
-                                 atom != (*mol).end(); ++atom)
+    for (MapType::const_iterator atom = mol->begin(); atom != mol->end(); ++atom)
       atomMap_.push_back( *atom );
   if (debug_ > 0) {
     mprintf("\tNew atom mapping:\n");
@@ -93,28 +92,24 @@ Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   newParm_->Brief("Re-ordered parm:");
+  setup.SetTopology( newParm_ );
   // Allocate space for new frame
-  newFrame_.SetupFrameV( newParm_->Atoms(), newParm_->ParmCoordInfo() );
+  newFrame_.SetupFrameV( setup.Top().Atoms(), setup.CoordInfo() );
 
   // If prefix given then output stripped parm
   if (!prefix_.empty()) {
     ParmFile pfile;
-    if ( pfile.WritePrefixTopology( *newParm_, prefix_, ParmFile::AMBERPARM, debug_ ) )
+    if ( pfile.WritePrefixTopology( setup.Top(), prefix_, ParmFile::AMBERPARM, debug_ ) )
       mprinterr("Error: Could not write out reordered parm file.\n");
   }
 
-  // Set parm
-  *parmAddress = newParm_;
-
-  return Action::OK;  
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_FixAtomOrder::action()
 Action::RetType Action_FixAtomOrder::DoAction(int frameNum, ActionFrame& frm) {
-{
   // Reorder atoms in the frame
-  newFrame_.SetCoordinatesByMap( *currentFrame, atomMap_ );
-  *frameAddress = &newFrame_;
-  return Action::OK;
+  newFrame_.SetCoordinatesByMap( frm.Frm(), atomMap_ );
+  frm.SetFrame( &newFrame_ );
+  return Action::MODIFY_COORDS;
 }
-

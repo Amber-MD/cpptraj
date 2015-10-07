@@ -37,7 +37,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
   // Get grid options
-  grid_ = GridInit( "GRID", actionArgs, *DSL );
+  grid_ = GridInit( "GRID", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
 
   // Get extra options
@@ -91,15 +91,15 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Grid::Setup()
 Action::RetType Action_Grid::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
   if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: GRID: No atoms selected for parm %s\n", setup.Top().c_str());
-    return Action::ERR;
+    mprintf("Warning: No atoms selected for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;
@@ -107,7 +107,7 @@ Action::RetType Action_Grid::Setup(ActionSetup& setup) {
 
 // Action_Grid::DoAction()
 Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
-  GridFrame( *currentFrame, mask_, *grid_ );
+  GridFrame( frm.Frm(), mask_, *grid_ );
   ++nframes_;
   return Action::OK;
 }

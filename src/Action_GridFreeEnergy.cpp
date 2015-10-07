@@ -27,7 +27,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
+  grid_ = GridInit( "GridFreeEnergy", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
   outfile->AddDataSet( grid_ );
   //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
@@ -59,15 +59,15 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
 // Action_GridFreeEnergy::setup()
 Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
   if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
-  mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", setup.Top().c_str());
-    return Action::ERR;
+    mprinterr("Warning: No atoms selected for parm %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;
@@ -75,8 +75,7 @@ Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
 
 // Action_GridFreeEnergy::action()
 Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) {
-{
-  GridFrame( *currentFrame, mask_, *grid_ );
+  GridFrame( frm.Frm(), mask_, *grid_ );
   return Action::OK;
 }
 

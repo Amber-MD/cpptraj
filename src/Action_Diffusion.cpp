@@ -72,14 +72,14 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
-    mprinterr("Error: diffusion: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
 
   // Check for box
-  if ( setup.Top().BoxType() != Box::NOBOX ) {
+  if ( setup.CoordInfo().TrajBox().Type() != Box::NOBOX ) {
     // Currently only works for orthogonal boxes
-    if ( setup.Top().BoxType() != Box::ORTHO ) {
+    if ( setup.CoordInfo().TrajBox().Type() != Box::ORTHO ) {
       mprintf("Warning: diffusion command currently only works with orthogonal boxes.\n");
       mprintf("Warning: imaging will be disabled for this command. This may result in\n");
       mprintf("Warning: large jumps if target molecule is imaged. To counter this please\n");
@@ -121,7 +121,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   // Load initial frame if necessary
   if (initial_.empty()) {
-    initial_ = *currentFrame;
+    initial_ = frm.Frm();
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
       const double* XYZ = frm.Frm().XYZ(*atom);
