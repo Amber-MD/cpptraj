@@ -34,7 +34,7 @@ void Action_Rmsd::Help() {
 
 // Action_Rmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rmsd::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Check for keywords
@@ -50,7 +50,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   if (!reftrajname.empty())
-    RefParm_ = PFL->GetParm( actionArgs );
+    RefParm_ = DSL->GetTopology( actionArgs );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {

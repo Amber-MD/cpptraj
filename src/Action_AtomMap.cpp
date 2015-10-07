@@ -689,7 +689,7 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
 }
 
 // Action_AtomMap::Init()
-Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomMap::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   DataFile* rmsout = 0;
   int refatom,targetatom;

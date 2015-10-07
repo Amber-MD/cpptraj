@@ -36,7 +36,7 @@ void Action_Watershell::Help() {
 }
 
 // Action_Watershell::init()
-Action::RetType Action_Watershell::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Watershell::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   InitImaging( !actionArgs.hasKey("noimage") );
   // Get keywords
@@ -168,8 +168,7 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Watershell::action()
-Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, 
-                                            Frame** frameAddress) 
+Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   Matrix_3x3 ucell, recip;
   int nlower = 0;

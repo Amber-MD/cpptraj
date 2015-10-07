@@ -12,7 +12,7 @@ TOP="../tz2.truncoct.parm7"
 cat > prec.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
-rms first :2-11 out prec.dat
+rms R0 first :2-11 out prec.dat
 precision prec.dat * 8 3
 EOF
 INPUT="prec.in"

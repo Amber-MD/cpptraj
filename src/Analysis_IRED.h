@@ -13,7 +13,7 @@ class Analysis_IRED : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_IRED(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     double Jw(int, double, std::vector<double>) const;

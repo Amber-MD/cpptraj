@@ -7,7 +7,7 @@ class Analysis_AmdBias : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AmdBias(); }
     static void Help();
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     DataSet* ds1_;

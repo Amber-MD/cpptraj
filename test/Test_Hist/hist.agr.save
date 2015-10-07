@@ -3,7 +3,7 @@
 @  yaxis label ""
 @  legend 0.2, 0.995
 @  legend char size 0.60
-@  s0 legend "Hist_00005"
+@  s0 legend "D1hist"
 @target G0.S0
 @type xy
    9.000       1.0000

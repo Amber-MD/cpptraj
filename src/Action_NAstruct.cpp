@@ -862,7 +862,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 // ----------------------------------------------------------------------------
 
 // Action_NAstruct::Init()
-Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   masterDSL_ = DSL;

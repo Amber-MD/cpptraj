@@ -16,7 +16,7 @@ void Action_SymmetricRmsd::Help() {
 }
 
 // Action_SymmetricRmsd::Init()
-Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Check for keywords
   bool fit = !actionArgs.hasKey("nofit");
@@ -28,7 +28,7 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, TopologyList* PF
   bool first = actionArgs.hasKey("first");
   ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  Topology* RefParm = PFL->GetParm( actionArgs );
+  Topology* RefParm = DSL->GetTopology( actionArgs );
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   if (tgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
@@ -87,8 +87,7 @@ Action::RetType Action_SymmetricRmsd::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_SymmetricRmsd::DoAction()
-Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress) 
+Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   // Perform any needed reference actions
   REF_.ActionRef( *currentFrame, SRMSD_.Fit(), SRMSD_.UseMass() );

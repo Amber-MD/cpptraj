@@ -18,7 +18,7 @@ void Action_Unwrap::Help() {
 }
 
 // Action_Unwrap::Init()
-Action::RetType Action_Unwrap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Unwrap::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   center_ = actionArgs.hasKey("center");

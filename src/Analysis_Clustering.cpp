@@ -76,8 +76,7 @@ void Analysis_Clustering::Help() {
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
-Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   if (analyzeArgs.hasKey("nocoords"))

@@ -23,13 +23,11 @@ class Topology {
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
     void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
     void SetNframes(int fIn)                 { nframes_ = fIn;               }
-    void SetTag(std::string const& t)        { parmTag_ = t;                 }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmCoordInfo(CoordinateInfo const& c);
     void SetParmName(std::string const&, FileName const&);
     void SetReferenceCoords( Frame const& );
     // ----- Return internal variables -----------
-    std::string const& Tag()       const { return parmTag_;               }
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
@@ -185,7 +183,6 @@ class Topology {
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
     FileName fileName_;
-    std::string parmTag_;
     std::string parmName_;
     std::string radius_set_;
 
@@ -213,7 +210,7 @@ class Topology {
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
-    int pindex_;            ///< Internal index used in TopologyList
+    int pindex_;            ///< Internal index used to ID Topology 
     int nframes_;           ///< Number of 'trajin' frames associated with topology.
     int n_extra_pts_;       ///< Number of extra points.
     int n_atom_types_;      ///< Number of unique atom types.

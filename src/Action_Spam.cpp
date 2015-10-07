@@ -45,7 +45,7 @@ void Action_Spam::Help() {
 }
 
 // Action_Spam::init()
-Action::RetType Action_Spam::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Spam::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);
@@ -300,8 +300,7 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
 }
 
 // Action_Spam::action()
-Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame,
-                                     Frame ** frameAddress)
+Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
 {
 
   Nframes_++;

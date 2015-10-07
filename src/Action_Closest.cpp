@@ -40,7 +40,7 @@ Action_Closest::~Action_Closest() {
 }
 
 // Action_Closest::Init()
-Action::RetType Action_Closest::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Closest::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords

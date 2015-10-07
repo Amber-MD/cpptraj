@@ -10,7 +10,7 @@ CheckNetcdf
 cat > cpptraj.in <<EOF
 noprogress
 trajin ../DPDP.nc
-surf out surf.dat 
+surf All out surf.dat
 EOF
 INPUT="-i cpptraj.in"
 TOP="../DPDP.parm7"
@@ -22,7 +22,7 @@ CheckTest
 cat > cpptraj.in <<EOF
 noprogress
 trajin ../DPDP.nc
-surf out tsurf.dat :1-12 
+surf R1-12 out tsurf.dat :1-12
 EOF
 INPUT="-i cpptraj.in"
 TOP="../DPDP.parm7"

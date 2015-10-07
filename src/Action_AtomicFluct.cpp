@@ -24,7 +24,7 @@ void Action_AtomicFluct::Help() {
 }
 
 // Action_AtomicFluct::Init()
-Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get frame # keywords
   if (InitFrameCounter(actionArgs)) return Action::ERR;
@@ -117,8 +117,7 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_AtomicFluct::DoAction()
-Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, 
-                                             Frame** frameAddress) 
+Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   SumCoords_ += *currentFrame;

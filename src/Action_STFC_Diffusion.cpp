@@ -31,7 +31,7 @@ static const char* DirectionString[] = {
 };
 
 // Action_STFC_Diffusion::Init()
-Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   n_atom_ = -1;
   // Get keywords

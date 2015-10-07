@@ -4,6 +4,7 @@
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
+#include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
 #ifdef MPI
 # include "DataSet_Coords_TRJ.h"
@@ -15,7 +16,7 @@
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   std::string fname = argIn.GetStringNext();
-  Topology* tempParm = parmFileList_.GetParm( argIn );
+  Topology* tempParm = DSL_.GetTopology( argIn );
   if (isEnsemble) {
     if ( trajinList_.AddEnsemble( fname, tempParm, argIn ) ) return 1;
   } else {
@@ -26,19 +27,21 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
 
 // CpptrajState::AddTrajin()
 int CpptrajState::AddTrajin( std::string const& fname ) {
-  if ( trajinList_.AddTrajin( fname, parmFileList_.GetParm(0), ArgList() ) ) return 1;
+  ArgList blank;
+  if ( trajinList_.AddTrajin( fname, DSL_.GetTopology(blank), blank ) ) return 1;
   return 0;
 }
 
 int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   std::string fname = argIn.GetStringNext();
-  Topology* top = parmFileList_.GetParm( argIn );
+  Topology* top = DSL_.GetTopology( argIn );
   return trajoutList_.AddTrajout( fname, argIn, top );
 }
 
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
-  // Should this use the last Topology instead?
-  return trajoutList_.AddTrajout( fname, ArgList(), parmFileList_.GetParm(0) );
+  // FIXME Should this use the last Topology instead?
+  ArgList blank;
+  return trajoutList_.AddTrajout( fname, blank, DSL_.GetTopology(blank) );
 }
 // -----------------------------------------------------------------------------
 int CpptrajState::WorldSize() { return worldsize; }
@@ -102,7 +105,7 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
   if ( enabled[L_REF]      ) ReferenceInfo();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
-  if ( enabled[L_PARM]     ) parmFileList_.List();
+  if ( enabled[L_PARM]     ) DSL_.ListTopologies();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
   if ( enabled[L_DATAFILE] ) DFL_.List();
   if ( enabled[L_DATASET]  ) DSL_.List();
@@ -117,7 +120,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
   if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
 //  if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
   if ( enabled[L_TRAJOUT]  ) trajoutList_.SetDebug( debug_ );
-  if ( enabled[L_PARM]     ) parmFileList_.SetDebug( debug_ );
+//  if ( enabled[L_PARM]     ) parmFileList_.SetDebug( debug_ );
   if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
   if ( enabled[L_DATAFILE] ) DFL_.SetDebug( debug_ );
   if ( enabled[L_DATASET]  ) DSL_.SetDebug( debug_ );
@@ -131,7 +134,7 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   if ( enabled[L_TRAJIN]   ) trajinList_.Clear();
 //  if ( enabled[L_REF]      ) refFrames_.Clear();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
-  if ( enabled[L_PARM]     ) parmFileList_.Clear();
+//  if ( enabled[L_PARM]     ) parmFileList_.Clear();
   if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
   if ( enabled[L_DATASET]  ) DSL_.Clear();
@@ -173,7 +176,7 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
 int CpptrajState::TrajLength( std::string const& topname, 
                               std::vector<std::string> const& trajinFiles)
 {
-  if (parmFileList_.AddParmFile( topname )) return 1;
+  if (AddTopology( topname, ArgList() )) return 1;
   for (std::vector<std::string>::const_iterator trajinName = trajinFiles.begin();
                                                 trajinName != trajinFiles.end();
                                                 ++trajinName)
@@ -296,7 +299,7 @@ int CpptrajState::RunEnsemble() {
   // Calculate frame division among trajectories
   trajinList_.List();
   // Parameter file information
-  parmFileList_.List();
+  DSL_.ListTopologies();
   // Print reference information 
   ReferenceInfo();
   // Use separate TrajoutList. Existing trajout in current TrajoutList
@@ -355,7 +358,7 @@ int CpptrajState::RunEnsemble() {
         command.MarkArg(0); // TODO: Create separate CommandArg class?
         // Attempt to add same action to this ensemble. 
         if (ActionEnsemble[member]->AddAction( actionList_.ActionAlloc(iaction), 
-                                                command, &parmFileList_, &DSL_, &DFL_ ))
+                                               command, &DSL_, &DFL_ ))
             return 1;
       }
     }
@@ -703,7 +706,7 @@ int CpptrajState::RunNormal() {
   Timer init_time;
   init_time.Start();
   // Parameter file information
-  parmFileList_.List();
+  DSL_.ListTopologies();
   // Input coordinate file information
   trajinList_.List();
   // Print reference information
@@ -898,7 +901,7 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
     }
   } else {
     // Get topology file.
-    refParm = parmFileList_.GetParm( argIn );
+    refParm = DSL_.GetTopology( argIn );
     if (refParm == 0) {
       mprinterr("Error: Cannot get topology for reference '%s'\n", fname.c_str());
       return 1;
@@ -931,5 +934,55 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   if (DSL_.AddSet( ref )) return 1; 
   // Set default reference if not already set.
   if (activeRef_ == 0) activeRef_ = ref;
+  return 0;
+}
+
+// CpptrajState::AddTopology()
+/** Add specified file(s) as Topology. Topologies are a unique
+  * DataSet - they are set up OUTSIDE data set list.
+  */
+int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args ) {
+  if (fnameIn.empty()) return 1;
+  File::NameArray fnames = File::ExpandToFilenames( fnameIn );
+  if (fnames.empty()) {
+    mprinterr("Error: '%s' corresponds to no files.\n");
+    return 1;
+  }
+  ArgList argIn = args;
+  // Determine if there is a mask expression for stripping. // TODO: Remove?
+  std::string maskexpr = argIn.GetMaskNext();
+  // Check for tag.
+  std::string tag = argIn.getNextTag();
+  for (File::NameArray::const_iterator fname = fnames.begin(); fname != fnames.end(); ++fname)
+  {
+    MetaData md(*fname, tag, -1);
+    DataSet* set = DSL_.CheckForSet( md );
+    if (set != 0)
+      mprintf("Warning: Set '%s' already present.\n", set->legend());
+    else {
+      // Create Topology DataSet
+      DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, md);
+      if (ds == 0) { 
+        if (exitOnError_) return 1;
+      } else {
+        if (ds->LoadTopFromFile(argIn, debug_)) {
+          if (exitOnError_) return 1;
+        }
+        // If a mask expression was specified, strip to match the expression.
+        if (!maskexpr.empty()) {
+          if (ds->StripTop( maskexpr )) return 1;
+        }
+      }
+    }
+    // TODO: Set active top?
+  }
+  return 0;
+}
+
+int CpptrajState::AddTopology( Topology const& top, std::string const& parmname ) {
+  
+  DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, parmname);
+  if (ds == 0) return 1;
+  ds->SetTop( top );
   return 0;
 }

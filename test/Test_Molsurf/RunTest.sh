@@ -8,7 +8,7 @@ CleanFiles molsurf.in msurf.dat
 cat > molsurf.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10
-molsurf out msurf.dat
+molsurf M1 out msurf.dat
 #trajout pqr pdb dumpq multi
 EOF
 INPUT="-i molsurf.in"

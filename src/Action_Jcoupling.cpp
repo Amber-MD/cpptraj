@@ -156,7 +156,7 @@ int Action_Jcoupling::loadKarplus(std::string filename) {
 
 // -----------------------------------------------------------------------------
 // Action_Jcoupling::Init()
-Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   outfile_ = 0;

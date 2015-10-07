@@ -12,7 +12,7 @@ void Action_SetVelocity::Help() {
 }
 
 // Action_SetVelocity::Init()
-Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Keywords
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
@@ -55,8 +55,7 @@ Action::RetType Action_SetVelocity::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_SetVelocity::DoAction()
-Action::RetType Action_SetVelocity::DoAction(int frameNum, Frame* currentFrame, 
-                                             Frame** frameAddress) 
+Action::RetType Action_SetVelocity::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
 {
   // FIXME: Should be able to add V info when not present
   if (!currentFrame->HasVelocity()) {

@@ -12,7 +12,7 @@ class Analysis_Modes : public Analysis {
 
     ~Analysis_Modes();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     static const double CONSQ;

@@ -17,7 +17,7 @@ void Action_RunningAvg::Help() {
 }
 
 // Action_RunningAvg::init()
-Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get Keywords
   Nwindow_ = actionArgs.getKeyInt("window",5);

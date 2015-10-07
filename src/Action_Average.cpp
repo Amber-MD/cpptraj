@@ -29,7 +29,7 @@ Action_Average::~Action_Average() {
 }
 
 // Action_Average::Init()
-Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Average::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   ensembleNum_ = DSL->EnsembleNum();
   debug_ = debugIn;

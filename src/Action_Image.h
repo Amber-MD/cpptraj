@@ -31,7 +31,7 @@ class Action_Image: public Action {
     /// Vector containing atom ranges to be imaged (first to last)
     Image::PairType imageList_; 
 
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
     Action::RetType Setup(Topology*, Topology**);
     Action::RetType DoAction(int, Frame*, Frame**);
     void Print() {}

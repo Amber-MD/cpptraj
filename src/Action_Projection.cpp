@@ -18,7 +18,7 @@ void Action_Projection::Help() {
 }
 
 // Action_Projection::Init()
-Action::RetType Action_Projection::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Get ibeg, iend, start, stop, offset
   // NOTE: Must get 'end' before InitFrameCounter since the latter checks for 'end'
@@ -181,8 +181,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Projection::DoAction()
-Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, 
-                                            Frame** frameAddress)
+Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.

@@ -14,14 +14,14 @@ void Action_ReplicateCell::Help() {
 }
 
 // Action_ReplicateCell::Init()
-Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Require imaging.
   image_.InitImaging( true );
   // Set up output traj
   trajfilename_ = actionArgs.GetStringKey("out");
   parmfilename_ = actionArgs.GetStringKey("parmout");
-  Topology* tempParm = PFL->GetParm( actionArgs );
+  Topology* tempParm = DSL->GetTopology( actionArgs );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
@@ -161,8 +161,7 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_ReplicateCell::DoAction()
-Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame,
-                                               Frame** frameAddress)
+Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   int idx, newFrameIdx;
   unsigned int id;

@@ -23,7 +23,7 @@ inline static int SetName(NameType& name, std::string const& expr, const char* s
   return 0;
 }
 
-Action::RetType Action_MultiVector::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MultiVector::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords
@@ -115,8 +115,7 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_MultiVector::DoAction()
-Action::RetType Action_MultiVector::DoAction(int frameNum, Frame* currentFrame, 
-                                               Frame** frameAddress)
+Action::RetType Action_MultiVector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
 {
   for (unsigned int nv = 0; nv < CrdIdx1_.size(); ++nv) {
     Vec3 CXYZ( currentFrame->CRD( CrdIdx1_[nv] ) );

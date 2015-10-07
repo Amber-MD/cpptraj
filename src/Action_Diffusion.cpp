@@ -23,7 +23,7 @@ void Action_Diffusion::Help() {
           "    <prefix>_a.xmgr: Total distance travelled (in Å).\n");
 }
 
-Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Diffusion::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   printIndividual_ = !(actionArgs.hasKey("average"));
