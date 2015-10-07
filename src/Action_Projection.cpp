@@ -18,7 +18,7 @@ void Action_Projection::Help() {
 }
 
 // Action_Projection::Init()
-Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get ibeg, iend, start, stop, offset
   // NOTE: Must get 'end' before InitFrameCounter since the latter checks for 'end'
@@ -34,7 +34,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
     return Action::ERR;
   }
   // Check if DataSet exists
-  modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
+  modinfo_ = (DataSet_Modes*)init.DSL().FindSetOfType( modesname, DataSet::MODES );
   if (modinfo_ == 0) {
     // To preserve backwards compat., if no modes data set specified try to
     // load the data file.
@@ -42,7 +42,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
     dataIn.SetDebug( debugIn );
     if (dataIn.ReadDataOfType( modesname, DataFile::EVECS, *DSL ))
       return Action::ERR;
-    modinfo_ = (DataSet_Modes*)DSL->FindSetOfType( modesname, DataSet::MODES );
+    modinfo_ = (DataSet_Modes*)init.DSL().FindSetOfType( modesname, DataSet::MODES );
     if (modinfo_ == 0) return Action::ERR;
   }
   // Check if beg and end are in bounds.
@@ -67,12 +67,12 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
   }
 
   // Output Filename
-  DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* DF = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
   // Get dihedral data sets 
   if (modinfo_->Meta().ScalarType() == MetaData::DIHCOVAR) {
     DihedralSets_.clear();
-    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets(actionArgs.GetStringKey("dihedrals")) );
+    DihedralSets_.AddTorsionSets( init.DSL().GetMultipleSets(actionArgs.GetStringKey("dihedrals")) );
     if ( DihedralSets_.empty() ) {
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
@@ -92,11 +92,11 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
   // Set up data sets
   std::string setname = actionArgs.GetStringNext();
   if (setname.empty())
-    setname = DSL->GenerateDefaultName("Proj");
+    setname = init.DSL().GenerateDefaultName("Proj");
   for (int mode = beg_; mode < end_; ++mode) {
     int imode = mode + 1;
     if (modinfo_->Meta().ScalarType() != MetaData::IDEA) { // COVAR, MWCOVAR
-      DataSet* dout = DSL->AddSet( DataSet::FLOAT, MetaData(setname, imode) );
+      DataSet* dout = init.DSL().AddSet( DataSet::FLOAT, MetaData(setname, imode) );
       if (dout == 0) {
         mprinterr("Error: Could not create output dataset for mode %i\n", imode);
         return Action::ERR;
@@ -105,13 +105,13 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
       project_.push_back( dout );
       if (DF != 0) DF->AddDataSet( dout );
     } else { // IDEA TODO: Error check
-      project_.push_back( DSL->AddSet( DataSet::FLOAT, MetaData(setname, "X", imode) ) );
+      project_.push_back( init.DSL().AddSet( DataSet::FLOAT, MetaData(setname, "X", imode) ) );
       if (DF != 0) DF->AddDataSet( project_.back() );
-      project_.push_back( DSL->AddSet( DataSet::FLOAT, MetaData(setname, "Y", imode) ) );
+      project_.push_back( init.DSL().AddSet( DataSet::FLOAT, MetaData(setname, "Y", imode) ) );
       if (DF != 0) DF->AddDataSet( project_.back() );
-      project_.push_back( DSL->AddSet( DataSet::FLOAT, MetaData(setname, "Z", imode) ) );
+      project_.push_back( init.DSL().AddSet( DataSet::FLOAT, MetaData(setname, "Z", imode) ) );
       if (DF != 0) DF->AddDataSet( project_.back() );
-      project_.push_back( DSL->AddSet( DataSet::FLOAT, MetaData(setname, "R", imode) ) );
+      project_.push_back( init.DSL().AddSet( DataSet::FLOAT, MetaData(setname, "R", imode) ) );
       if (DF != 0) DF->AddDataSet( project_.back() );
     }
   }
@@ -130,10 +130,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, DataSetList* DSL, D
 }
 
 // Action_Projection::Setup()
-Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Projection::Setup(ActionSetup& setup) {
   if (modinfo_->Meta().ScalarType() != MetaData::DIHCOVAR) {
     // Setup mask
-    if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
+    if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
     if (mask_.None()) {
       mprinterr("Error: No atoms selected.\n");
       return Action::ERR;
@@ -181,7 +181,7 @@ Action::RetType Action_Projection::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Projection::DoAction()
-Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
 {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
@@ -196,7 +196,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, F
       std::vector<double>::const_iterator sqrtmass = sqrtmasses_.begin();
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
       {
-        const double* XYZ = currentFrame->XYZ( *atom );
+        const double* XYZ = frm.Frm().XYZ( *atom );
         double mass = *(sqrtmass++);
         proj += (XYZ[0] - *(Avg++)) * mass * Vec[0]; 
         proj += (XYZ[1] - *(Avg++)) * mass * Vec[1]; 
@@ -230,7 +230,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, Frame* currentFrame, F
       double proj3 = 0;
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
       {
-        const double* XYZ = currentFrame->XYZ(*atom);
+        const double* XYZ = frm.Frm().XYZ(*atom);
         proj1 += XYZ[0] * *(Vec  );
         proj2 += XYZ[1] * *(Vec  );
         proj3 += XYZ[2] * *(Vec++);

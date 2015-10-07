@@ -82,13 +82,11 @@ class Action_Spam: public Action, ImagedAction {
     int SetupParms(Topology*);
     double Calculate_Energy(Frame*, Residue const&);
 
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     // Custom Do- routines
-    Action::RetType DoPureWater(int, Frame*);
-    Action::RetType DoSPAM(int, Frame*);
 };
 
 inline bool inside_box(Vec3 gp, Vec3 pt, double edge);

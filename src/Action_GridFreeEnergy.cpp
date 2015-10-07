@@ -18,10 +18,10 @@ void Action_GridFreeEnergy::Help() {
 }
 
 // Action_GridFreeEnergy::init()
-Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output filename
-  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringNext(), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringNext(), actionArgs);
   if (outfile == 0) {
     mprinterr("Error: GridFreeEnergy: no output filename specified.\n");
     return Action::ERR;
@@ -57,16 +57,16 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, DataSetList* DS
 }
 
 // Action_GridFreeEnergy::setup()
-Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
   if (GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ ))
+  if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
   mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
   if (mask_.None()) {
-    mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", currentParm->c_str());
+    mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", setup.Top().c_str());
     return Action::ERR;
   }
 
@@ -74,7 +74,7 @@ Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_GridFreeEnergy::action()
-Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
+Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) {
 {
   GridFrame( *currentFrame, mask_, *grid_ );
   return Action::OK;

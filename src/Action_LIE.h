@@ -28,9 +28,9 @@ class Action_LIE: public Action, ImagedAction {
     // Hold atom charges * 18.2223
     std::vector<double> atom_charge_;
 
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     // Specific routines to this action

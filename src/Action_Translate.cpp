@@ -9,7 +9,7 @@ void Action_Translate::Help() {
           "  Translate atoms in <mask>\n");
 }
 
-Action::RetType Action_Translate::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Translate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   double x = actionArgs.getKeyDouble("x",0.0);
   double y = actionArgs.getKeyDouble("y",0.0);
@@ -23,8 +23,8 @@ Action::RetType Action_Translate::Init(ArgList& actionArgs, DataSetList* DSL, Da
   return Action::OK;
 };
 
-Action::RetType Action_Translate::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
+Action::RetType Action_Translate::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprinterr("Error: translate: No atoms selected.\n");
@@ -33,8 +33,8 @@ Action::RetType Action_Translate::Setup(Topology* currentParm, Topology** parmAd
   return Action::OK;
 }
 
-Action::RetType Action_Translate::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Translate::DoAction(int frameNum, ActionFrame& frm) {
   for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-    currentFrame->Translate(Trans_, *atom);
+    frm.Frm().Translate(Trans_, *atom);
   return Action::OK;
 }

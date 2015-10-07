@@ -17,7 +17,7 @@ void Action_RunningAvg::Help() {
 }
 
 // Action_RunningAvg::init()
-Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
   Nwindow_ = actionArgs.getKeyInt("window",5);
@@ -44,19 +44,19 @@ Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, DataSetList* DSL, D
 }
 
 // Action_RunningAvg::setup()
-Action::RetType Action_RunningAvg::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_RunningAvg::Setup(ActionSetup& setup) {
   // If windowNatom is 0, this is the first setup.
   // If windowNatom is not 0, setup has been called for another parm.
   // Check if the number of atoms has changed. If so the running average
   // will break.
-  if ( currentParm->Natom() != windowNatom_ ) {
+  if ( setup.Top().Natom() != windowNatom_ ) {
     if (windowNatom_!=0) {
       mprintf("Warning: # atoms in parm %s different than previous parm.\n",
-              currentParm->c_str());
+              setup.Top().c_str());
       mprintf("         Running average will NOT be carried over between parms!\n");
       return Action::ERR;
     }
-    windowNatom_ = currentParm->Natom();
+    windowNatom_ = setup.Top().Natom();
     // Set up a frame for each window, no masses
     for (int i = 0; i < Nwindow_; i++)
       Window_[i].SetupFrame( windowNatom_ );
@@ -74,7 +74,7 @@ Action::RetType Action_RunningAvg::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_RunningAvg::action()
-Action::RetType Action_RunningAvg::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_RunningAvg::DoAction(int frameNum, ActionFrame& frm) {
   // If frameNum is >= Nwindow, subtract from avgFrame. currentWindow is at
   // the frame that should be subtracted.
   if (frameNum > frameThreshold_) { 
@@ -88,7 +88,7 @@ Action::RetType Action_RunningAvg::DoAction(int frameNum, Frame* currentFrame, F
 
   // Store current coordinates in Window
   //mprintf("DBG:\tAssigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow_,
-  //        Window_[currentWindow_].natom, currentFrame->natom);
+  //        Window_[currentWindow_].natom, frm.Frm().natom);
   Window_[currentWindow_] = *currentFrame;
   ++currentWindow_;
   // If currentWindow is out of range, reset

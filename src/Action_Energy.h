@@ -9,9 +9,9 @@ class Action_Energy: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Energy(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     /// Corresponds to data sets.
     enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, TOTAL};

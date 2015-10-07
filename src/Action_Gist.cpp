@@ -51,9 +51,9 @@ void Action_Gist::Help() {
 */}
 
 // Action_Gist::Init()
-Action::RetType Action_Gist::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  if (DSL->EnsembleNum() > -1) {
+  if (init.DSL().EnsembleNum() > -1) {
     mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
@@ -163,7 +163,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
 // Action_Gist::Setup()
 /** Set Gist up for this parmtop. Get masks etc.
   */
-Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   gist_setup_.Start();
   CurrentParm_ = currentParm;      
   NFRAME_ = 0;
@@ -288,14 +288,14 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
   pol_.resize(MAX_GRID_PT_, 0.0);
 
   gridwat_.clear();
-  gridwat_.resize( currentParm->Nsolvent() );
+  gridwat_.resize( setup.Top().Nsolvent() );
 
   // We need box info
-  if (currentParm->BoxType() == Box::NOBOX) {
+  if (setup.Top().BoxType() == Box::NOBOX) {
     mprinterr("Error: Gist: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
-  SetupImaging( currentParm->BoxType() );
+  SetupImaging( setup.Top().BoxType() );
 
   resnum_ = 0;
   voxel_ = 0;
@@ -304,14 +304,14 @@ Action::RetType Action_Gist::Setup(Topology* currentParm, Topology** parmAddress
 }
 
 // Action_Gist::DoAction()
-Action::RetType Action_Gist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
   NFRAME_ ++;
 //  if (NFRAME_==1) mprintf("GIST Action \n");
 
   // Simulation box length - assign here because it can vary for npt simulation
-  //Lx_ = currentFrame->BoxCrd().BoxX();
-  //Ly_ = currentFrame->BoxCrd().BoxY();
-  //Lz_ = currentFrame->BoxCrd().BoxZ();
+  //Lx_ = frm.Frm().BoxCrd().BoxX();
+  //Ly_ = frm.Frm().BoxCrd().BoxY();
+  //Lz_ = frm.Frm().BoxCrd().BoxZ();
 //  if (NFRAME_==1) mprintf("GIST Action box length: %f %f %f \n", Lx_, Ly_, Lz_);
   
   int solventMolecules = CurrentParm_->Nsolvent();
@@ -361,7 +361,7 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
   // Setup imaging info
   Matrix_3x3 ucell, recip;
   if (ImagingEnabled())
-    currentFrame->BoxCrd().ToRecip(ucell, recip);
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
 
   // Inner loop has both solute and solvent
   resnum2_=0;
@@ -392,14 +392,14 @@ void Action_Gist::NonbondEnergy(Frame *currentFrame) {
     for (satom = solvmol_->BeginAtom(); satom < solvmol_->EndAtom(); ++satom)
     {
       // Set up coord index for this atom
-      const double* XYZ =  currentFrame->XYZ( satom );
+      const double* XYZ =  frm.Frm().XYZ( satom );
       atom2=0;
       for (satom2 = solvmol2_->BeginAtom(); satom2 < solvmol2_->EndAtom(); ++satom2)
       {    
         // Set up coord index for this atom
-        const double* XYZ2 = currentFrame->XYZ( satom2 );
+        const double* XYZ2 = frm.Frm().XYZ( satom2 );
         // Calculate the vector pointing from atom2 to atom1
-        rij2 = DIST2(XYZ, XYZ2, ImageType(), currentFrame->BoxCrd(), ucell, recip);
+        rij2 = DIST2(XYZ, XYZ2, ImageType(), frm.Frm().BoxCrd(), ucell, recip);
         rij = sqrt(rij2);
         // LJ energy
         NonbondType const& LJ = CurrentParm_->GetLJparam(satom, satom2); 

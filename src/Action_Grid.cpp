@@ -27,7 +27,7 @@ void Action_Grid::Help() {
 }
 
 // Action_Grid::Init()
-Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   nframes_ = 0;
   // Get output filename
@@ -45,7 +45,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
-  pdbfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("pdb"),"Grid PDB",DataFileList::PDB,true);
+  pdbfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("pdb"),"Grid PDB",DataFileList::PDB,true);
   density_ = actionArgs.getKeyDouble("density",0.033456);
   if (actionArgs.hasKey("normframe")) normalize_ = TO_FRAME;
   else if (actionArgs.hasKey("normdensity")) normalize_ = TO_DENSITY;
@@ -63,7 +63,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   mask_.SetMaskString(maskexpr);
 
   // Setup output file
-  DataFile* outfile = DFL->AddDataFile(filename, actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(filename, actionArgs);
   if (outfile == 0) {
     mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
     return Action::ERR;
@@ -89,16 +89,16 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
 }
 
 // Action_Grid::Setup()
-Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Grid::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
   if (GridSetup( *currentParm )) return Action::ERR;
 
   // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ ))
+  if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: GRID: No atoms selected for parm %s\n", currentParm->c_str());
+    mprinterr("Error: GRID: No atoms selected for parm %s\n", setup.Top().c_str());
     return Action::ERR;
   }
 
@@ -106,7 +106,7 @@ Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress
 }
 
 // Action_Grid::DoAction()
-Action::RetType Action_Grid::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
   GridFrame( *currentFrame, mask_, *grid_ );
   ++nframes_;
   return Action::OK;

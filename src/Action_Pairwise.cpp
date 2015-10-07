@@ -37,19 +37,19 @@ void Action_Pairwise::Help() {
 const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
 // Action_Pairwise::Init()
-Action::RetType Action_Pairwise::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
-  DataFile* dataout = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  DataFile* vmapout = DFL->AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
-  DataFile* emapout = DFL->AddDataFile( actionArgs.GetStringKey("emapout"), actionArgs );
+  DataFile* dataout = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* vmapout = init.DFL().AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
+  DataFile* emapout = init.DFL().AddDataFile( actionArgs.GetStringKey("emapout"), actionArgs );
   avgout_ = actionArgs.GetStringKey("avgout");
   std::string eout = actionArgs.GetStringKey("eout");
   cut_eelec_ = fabs(actionArgs.getKeyDouble("cuteelec",1.0));
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
   mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   
   // Get Masks
   Mask0_.SetMaskString( actionArgs.GetMaskNext() );
@@ -62,17 +62,17 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   // Datasets
   std::string ds_name = actionArgs.GetStringNext();
   if (ds_name.empty())
-    ds_name = DSL->GenerateDefaultName("PW");
-  ds_vdw_  = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
-  ds_elec_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
+    ds_name = init.DSL().GenerateDefaultName("PW");
+  ds_vdw_  = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
+  ds_elec_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
   if (ds_vdw_ == 0 || ds_elec_ == 0) return Action::ERR;
   // Add DataSets to data file list
   if (dataout != 0) {
     dataout->AddDataSet(ds_vdw_);
     dataout->AddDataSet(ds_elec_);
   }
-  vdwMat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "VMAP"));
-  eleMat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "EMAP"));
+  vdwMat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "VMAP"));
+  eleMat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(ds_name, "EMAP"));
   if (vdwMat_ == 0 || eleMat_ == 0) return Action::ERR;
   if (vmapout != 0) vmapout->AddDataSet(vdwMat_);
   if (emapout != 0) emapout->AddDataSet(eleMat_);
@@ -97,7 +97,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 
   // Output for individual atom energy | dEnergy
   if (!eout.empty()) {
-    Eout_ = DFL->AddCpptrajFile(eout, "Atom Energies");
+    Eout_ = init.DFL().AddCpptrajFile(eout, "Atom Energies");
     if (Eout_ == 0) {
       mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
@@ -169,9 +169,9 @@ int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& Pa
 // Action_Pairwise::Setup()
 /** Set up mask, allocate memory for exclusion list.
   */
-Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
   // Set up mask
-  if ( currentParm->SetupIntegerMask( Mask0_ ) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask( Mask0_ ) ) return Action::ERR;
   if (Mask0_.None()) {
     mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
     return Action::ERR;
@@ -183,8 +183,8 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   // Allocate matrix memory
   int previous_size = (int)vdwMat_->Size();
   if (previous_size == 0) {
-    vdwMat_->AllocateTriangle( currentParm->Natom() );
-    eleMat_->AllocateTriangle( currentParm->Natom() );
+    vdwMat_->AllocateTriangle( setup.Top().Natom() );
+    eleMat_->AllocateTriangle( setup.Top().Natom() );
   } else {
     if (previous_size != N_interactions) {
       mprinterr("Error: Attempting to reallocate matrix with different size.\n"
@@ -208,9 +208,9 @@ Action::RetType Action_Pairwise::Setup(Topology* currentParm, Topology** parmAdd
   }
   // Set up cumulative energy arrays
   atom_eelec_.clear();
-  atom_eelec_.resize(currentParm->Natom(), 0.0);
+  atom_eelec_.resize(setup.Top().Natom(), 0.0);
   atom_evdw_.clear();
-  atom_evdw_.resize(currentParm->Natom(), 0.0);
+  atom_evdw_.resize(setup.Top().Natom(), 0.0);
   // Print pairwise info for this parm
   Mask0_.MaskInfo();
   CurrentParm_ = currentParm;      
@@ -424,7 +424,7 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
 }
 
 // Action_Pairwise::DoAction()
-Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
+Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
 {
   // Reset cumulative energy arrays
   atom_eelec_.assign(CurrentParm_->Natom(), 0.0);
@@ -448,7 +448,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, Frame* currentFrame, Fra
         occ = (float)atom_evdw_[*atom];
       if (fabs(atom_eelec_[*atom]) > cut_eelec_)
         bfac = (float)atom_eelec_[*atom];
-      const double* XYZ = currentFrame->XYZ( *atom );
+      const double* XYZ = frm.Frm().XYZ( *atom );
       Atom const& AT = (*CurrentParm_)[*atom];
       int rn = AT.ResNum();
       PdbOut_.WriteCoord(PDBfile::ATOM, *atom+1, AT.c_str(), CurrentParm_->Res(rn).c_str(),

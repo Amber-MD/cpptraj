@@ -22,7 +22,7 @@ void Action_LIE::Help() {
 }
 
 // Action_LIE::init()
-Action::RetType Action_LIE::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);
@@ -31,7 +31,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, DataSetList* DSL, DataFile
   // Get Keywords
   doelec_ = !(actionArgs.hasKey("noelec"));
   dovdw_ = !(actionArgs.hasKey("novdw"));
-  DataFile* datafile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   dielc_ = actionArgs.getKeyDouble("diel", 1.0);
   cut = actionArgs.getKeyDouble("cutvdw", 12.0);
   cut2vdw_ = cut * cut; // store square of cut for computational efficiency
@@ -60,16 +60,16 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, DataSetList* DSL, DataFile
   // Get data set name
   std::string ds_name = actionArgs.GetStringNext();
   if (ds_name.empty())
-    ds_name = DSL->GenerateDefaultName("LIE");
+    ds_name = init.DSL().GenerateDefaultName("LIE");
 
   // Datasets
   if (doelec_) {
-    elec_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
+    elec_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
     if (elec_ == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet(elec_);
   }
   if (dovdw_) {
-    vdw_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
+    vdw_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
     if (vdw_ == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet(vdw_);
   }
@@ -92,14 +92,14 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, DataSetList* DSL, DataFile
 // Action_LIE::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   */
-Action::RetType Action_LIE::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
-  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
+Action::RetType Action_LIE::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
 
   mprintf("\tLIE: %i Ligand Atoms, %i Surrounding Atoms\n",
           Mask1_.Nselected(), Mask2_.Nselected());
 
-  if (currentParm->BoxType() == Box::NOBOX) {
+  if (setup.Top().BoxType() == Box::NOBOX) {
     mprintf("Error: LIE: Must have explicit solvent system with box info\n");
     return Action::ERR;
   }
@@ -224,7 +224,7 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
 }
 
 // Action_LIE::action()
-Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
+Action::RetType Action_LIE::DoAction(int frameNum, ActionFrame& frm) {
 {
   
   if (doelec_) {

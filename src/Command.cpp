@@ -17,35 +17,22 @@
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
-/*
 #include "Action_AtomMap.h"
-*/
 #include "Action_Strip.h"
 #include "Action_Unstrip.h"
-/*
 #include "Action_DSSP.h"
 #include "Action_Center.h"
-*/
 #include "Action_Hbond.h"
-/*
 #include "Action_Image.h"
 #include "Action_Surf.h"
-*/
 #include "Action_Radgyr.h"
-/*
 #include "Action_Mask.h"
-*/
 #include "Action_Closest.h"
-/*
 #include "Action_NAstruct.h"
-*/
 #include "Action_Pucker.h"
 #include "Action_Outtraj.h"
-/*
 #include "Action_Average.h"
-*/
 #include "Action_Radial.h"
-/*
 #include "Action_DistRmsd.h"
 #include "Action_Jcoupling.h"
 #include "Action_Pairwise.h"
@@ -70,18 +57,14 @@
 #include "Action_DNAionTracker.h"
 #include "Action_Scale.h"
 #include "Action_RandomizeIons.h"
-*/
 #include "Action_AutoImage.h"
-/*
 #include "Action_STFC_Diffusion.h"
 #include "Action_AtomicCorr.h"
 #include "Action_Bounds.h"
 #include "Action_Rotate.h"
 #include "Action_Translate.h"
 #include "Action_Box.h"
-*/
 #include "Action_CreateCrd.h"
-/*
 #include "Action_MultiDihedral.h"
 #include "Action_MakeStructure.h"
 #include "Action_SymmetricRmsd.h"
@@ -95,9 +78,7 @@
 #include "Action_OrderParameter.h"
 #include "Action_FixAtomOrder.h"
 #include "Action_NMRrst.h"
-*/
 #include "Action_FilterByData.h"
-/*
 #include "Action_LESsplit.h"
 #include "Action_NativeContacts.h"
 #include "Action_VelocityAutoCorr.h"
@@ -110,7 +91,7 @@
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
-*/
+
 // INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -1993,14 +1974,11 @@ const Command::Token Command::Commands[] = {
   { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
-/*
   { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
   { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
   { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
-*/
   { ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, AddAction },
-/*
   { ACTION, "average", Action_Average::Alloc, Action_Average::Help, AddAction },
   { ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, AddAction },
   { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
@@ -2010,41 +1988,29 @@ const Command::Token Command::Commands[] = {
   { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
   { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
   { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
-*/
   { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
   { ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
-/*
   { ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
   { ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
-*/
   { ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, AddAction },
-/*
   { ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, AddAction },
   { ACTION, "density", Action_Density::Alloc, Action_Density::Help, AddAction },
   { ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, AddAction },
-*/
   { ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, AddAction },
-/*
   { ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, AddAction },
   { ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction },
-*/
   { ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction },
-/*
 //  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
   { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
   { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
   { ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
-*/
   { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
-/*
   { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
   { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
 //  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
   { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
-*/
   { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
-/*
   { ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
   { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
   { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
@@ -2060,28 +2026,20 @@ const Command::Token Command::Commands[] = {
   { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
   { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
   { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
-*/
   { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
-/*
   { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
   { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
   { ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, AddAction },
   { ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, AddAction },
-*/
   { ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, AddAction },
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
-/*
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
-*/
   { ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
-/*
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
-*/
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
-/*
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
   { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
@@ -2090,24 +2048,19 @@ const Command::Token Command::Commands[] = {
   { ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
   { ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
   { ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
-*/
   { ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
-/*
   { ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, AddAction },
   { ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, AddAction },
   { ACTION, "temperature", Action_Temperature::Alloc, Action_Temperature::Help, AddAction },
   { ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, AddAction },
   { ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, AddAction },
-*/
   { ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
-/*
   { ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
   { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
   { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
   { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
   { ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
   { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
-*/
   // INC_ANALYSIS: ANALYSIS COMMANDS
   { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
   { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },

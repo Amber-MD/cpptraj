@@ -16,7 +16,7 @@ void Action_FixAtomOrder::Help() {
 }
 
 // Action_FixAtomOrder::init()
-Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_FixAtomOrder::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   prefix_ = actionArgs.GetStringKey("outprefix");
@@ -40,18 +40,18 @@ void Action_FixAtomOrder::VisitAtom(int atomnum, int mol, Topology const& Parm) 
 
 
 // Action_FixAtomOrder::setup()
-Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_FixAtomOrder::Setup(ActionSetup& setup) {
   // If topology already has molecule info assume no need to reorder.
-  if (currentParm->Nmol() > 0) {
+  if (setup.Top().Nmol() > 0) {
     mprintf("Warning: %s already has molecule information. No reordering will occur.\n"
             "Warning: This indicates that there is no need to fix atom ordering in this topology.\n",
-            currentParm->c_str());
+            setup.Top().c_str());
     return Action::ERR;
   }
-  molNums_.resize( currentParm->Natom(), -1 );
+  molNums_.resize( setup.Top().Natom(), -1 );
   // Perform recursive search along bonds of each atom.
   int Nmol = 0;
-  for (int atomnum = 0; atomnum < currentParm->Natom(); ++atomnum)
+  for (int atomnum = 0; atomnum < setup.Top().Natom(); ++atomnum)
   {
     if (molNums_[atomnum] == -1) {
       VisitAtom( atomnum, Nmol, *currentParm );
@@ -60,7 +60,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
   }
   mprintf("\tDetected %i molecules.\n", Nmol);
   if (Nmol < 1) {
-    mprinterr("Error: No molecules detected in %s\n", currentParm->c_str());
+    mprinterr("Error: No molecules detected in %s\n", setup.Top().c_str());
     return Action::ERR;
   }
   if (debug_ > 0) {
@@ -69,10 +69,10 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
   }
   // Figure out which atoms should go in which molecules 
   std::vector<MapType> molecules(Nmol);
-  for (int atomnum = 0; atomnum < currentParm->Natom(); ++atomnum)
+  for (int atomnum = 0; atomnum < setup.Top().Natom(); ++atomnum)
     molecules[molNums_[atomnum]].push_back( atomnum );
   atomMap_.clear();
-  atomMap_.reserve( currentParm->Natom() );
+  atomMap_.reserve( setup.Top().Natom() );
   // Place all atoms in molecule 0 first, molecule 1 next and so on
   for (std::vector<MapType>::const_iterator mol = molecules.begin();
                                             mol != molecules.end(); ++mol)
@@ -87,7 +87,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
   }
   // Create new topology based on map
   if (newParm_ != 0) delete newParm_;
-  newParm_ = currentParm->ModifyByMap( atomMap_ );
+  newParm_ = setup.Top().ModifyByMap( atomMap_ );
   if (newParm_ == 0) {
     mprinterr("Error: Could not create re-ordered topology.\n");
     return Action::ERR;
@@ -110,7 +110,7 @@ Action::RetType Action_FixAtomOrder::Setup(Topology* currentParm, Topology** par
 }
 
 // Action_FixAtomOrder::action()
-Action::RetType Action_FixAtomOrder::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+Action::RetType Action_FixAtomOrder::DoAction(int frameNum, ActionFrame& frm) {
 {
   // Reorder atoms in the frame
   newFrame_.SetCoordinatesByMap( *currentFrame, atomMap_ );

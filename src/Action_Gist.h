@@ -14,9 +14,9 @@ class Action_Gist: public Action, ImagedAction  {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     void PrintDX(std::string const&, std::vector<float>&);
     void PrintDX_double(std::string const&, std::vector<double>&);

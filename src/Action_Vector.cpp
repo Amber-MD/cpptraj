@@ -61,7 +61,7 @@ static inline Action::RetType DeprecatedErr(const char* key) {
 }
 
 // Action_Vector::Init()
-Action::RetType Action_Vector::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   DataFile* df = 0;
   std::string filename = actionArgs.GetStringKey("out");
@@ -74,10 +74,10 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, DataSetList* DSL, DataF
       mprinterr("Error: 'ptrajoutput' specified but no 'out <filename>' arg given.\n");
       return Action::ERR;
     }
-    outfile_ = DFL->AddCpptrajFile(filename, "Vector (PTRAJ)");
+    outfile_ = init.DFL().AddCpptrajFile(filename, "Vector (PTRAJ)");
     if (outfile_ == 0) return Action::ERR;
   } else
-    df = DFL->AddDataFile( filename, actionArgs );
+    df = init.DFL().AddDataFile( filename, actionArgs );
   bool calc_magnitude = actionArgs.hasKey("magnitude");
   if (calc_magnitude && ptrajoutput_) {
     mprinterr("Error: 'ptrajoutput' and 'magnitude' are incompatible.\n");
@@ -137,14 +137,14 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   // Set up vector dataset and IRED status
   MetaData md(actionArgs.GetStringNext(), MetaData::M_VECTOR);
   if (isIred) md.SetScalarType( MetaData::IREDVEC );
-  Vec_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, md, "Vec");
+  Vec_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, md, "Vec");
   if (Vec_ == 0) return Action::ERR;
   // Add set to output file if not doing ptraj-compatible output
   if (!ptrajoutput_ && df != 0)
     df->AddDataSet( Vec_ );
   // Set up magnitude data set.
   if (calc_magnitude) {
-    Magnitude_ = DSL->AddSet(DataSet::FLOAT, MetaData(Vec_->Meta().Name(), "Mag"));
+    Magnitude_ = init.DSL().AddSet(DataSet::FLOAT, MetaData(Vec_->Meta().Name(), "Mag"));
     if (Magnitude_ == 0) return Action::ERR;
     if (df != 0) df->AddDataSet( Magnitude_ );
   }
@@ -171,18 +171,18 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 }
 
 // Action_Vector::Setup()
-Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Vector::Setup(ActionSetup& setup) {
   if (needBoxInfo_) {
     // Check for box info
-    if (currentParm->BoxType() == Box::NOBOX) {
+    if (setup.Top().BoxType() == Box::NOBOX) {
       mprinterr("Error: vector box: Parm %s does not have box information.\n",
-                currentParm->c_str());
+                setup.Top().c_str());
       return Action::ERR;
     }
   }
   if (mask_.MaskStringSet()) {
     // Setup mask 1
-    if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(mask_)) return Action::ERR;
     mask_.MaskInfo();
     if (mask_.None()) {
       mprinterr("Error: First vector mask is empty.\n");
@@ -198,7 +198,7 @@ Action::RetType Action_Vector::Setup(Topology* currentParm, Topology** parmAddre
 
   // Setup mask 2
   if (mask2_.MaskStringSet()) {
-    if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(mask2_)) return Action::ERR;
     mask2_.MaskInfo();
     if (mask2_.None()) {
       mprinterr("Error: Second vector mask is empty.\n");
@@ -399,20 +399,20 @@ void Action_Vector::MinImage(Frame const& frm) {
 }
                  
 // Action_Vector::DoAction()
-Action::RetType Action_Vector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
   switch ( mode_ ) {
     case MASK        : Mask(*currentFrame); break;
-    case CENTER      : Vec_->AddVxyz( currentFrame->VCenterOfMass(mask_) ); break; 
+    case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break; 
     case DIPOLE      : Dipole(*currentFrame); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
     case PRINCIPAL_Z : Principal(*currentFrame); break;
     case CORRPLANE   : CorrPlane(*currentFrame); break;
-    case BOX         : Vec_->AddVxyz( currentFrame->BoxCrd().Lengths() ); break;
+    case BOX         : Vec_->AddVxyz( frm.Frm().BoxCrd().Lengths() ); break;
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : 
-    case BOX_CTR     : UnitCell( currentFrame->BoxCrd() ); break;
+    case BOX_CTR     : UnitCell( frm.Frm().BoxCrd() ); break;
     case MINIMAGE    : MinImage( *currentFrame ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode

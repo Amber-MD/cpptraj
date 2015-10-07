@@ -14,18 +14,18 @@ void Action_ReplicateCell::Help() {
 }
 
 // Action_ReplicateCell::Init()
-Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Require imaging.
   image_.InitImaging( true );
   // Set up output traj
   trajfilename_ = actionArgs.GetStringKey("out");
   parmfilename_ = actionArgs.GetStringKey("parmout");
-  Topology* tempParm = DSL->GetTopology( actionArgs );
+  Topology* tempParm = init.DSL().GetTopology( actionArgs );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
-    coords_ = (DataSet_Coords*)DSL->AddSet(DataSet::COORDS, dsname, "RCELL");
+    coords_ = (DataSet_Coords*)init.DSL().AddSet(DataSet::COORDS, dsname, "RCELL");
     if (coords_ == 0) return Action::ERR;
   }
   if (trajfilename_.empty() && coords_ == 0) {
@@ -85,7 +85,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, DataSetList* DSL
     outtraj_.SetDebug( debugIn );
     // Initialize output trajectory with remaining arguments
     trajArgs_ = actionArgs.RemainingArgs();
-    ensembleNum_ = DSL->EnsembleNum();
+    ensembleNum_ = init.DSL().EnsembleNum();
   }
 
   mprintf("    REPLICATE CELL: Replicating cell in %i directions:\n", ncopies_);
@@ -107,17 +107,17 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, DataSetList* DSL
 // Action_ReplicateCell::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   */
-Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
+Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
   mprintf("\t%s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected());
   if (Mask1_.None()) {
     mprintf("Warning: One or both masks have no atoms.\n");
     return Action::ERR;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( currentParm->BoxType() );
+  image_.SetupImaging( setup.Top().BoxType() );
   if (!image_.ImagingEnabled()) {
-    mprintf("Warning: Imaging cannot be performed for topology %s\n", currentParm->c_str());
+    mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
     return Action::ERR;
   }
   // Create combined topology.
@@ -131,7 +131,7 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
     // Otherwise assume top does not change.
   } else {
     // Set up topology and frame.
-    Topology* stripParm = currentParm->modifyStateByMask( Mask1_ );
+    Topology* stripParm = setup.Top().modifyStateByMask( Mask1_ );
     if (stripParm == 0) return Action::ERR;
     for (int cell = 0; cell != ncopies_; cell++)
       combinedTop_.AppendTop( *stripParm );
@@ -151,7 +151,7 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
     if (!trajfilename_.empty()) {
       if ( outtraj_.PrepareEnsembleTrajWrite(trajfilename_, trajArgs_,
                                              &combinedTop_, combinedTop_.ParmCoordInfo(),
-                                             currentParm->Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
+                                             setup.Top().Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
                                              ensembleNum_) )
         return Action::ERR;
     }
@@ -161,13 +161,13 @@ Action::RetType Action_ReplicateCell::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_ReplicateCell::DoAction()
-Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
 {
   int idx, newFrameIdx;
   unsigned int id;
   Vec3 frac, t2;
 
-  currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+  frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   int shift = Mask1_.Nselected() * 3;
 # ifdef _OPENMP
 # pragma omp parallel private(idx, newFrameIdx, id) firstprivate(frac, t2)
@@ -176,7 +176,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, Frame* currentFrame
 # endif
   for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
-    frac = recip_ * Vec3(currentFrame->XYZ( Mask1_[idx] ));
+    frac = recip_ * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
     // replicate in each direction
     newFrameIdx = idx * 3;
     for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)

@@ -14,16 +14,16 @@ void Action_DistRmsd::Help() {
 
 // Action_DistRmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Check for keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
   // TODO: Can these just be put in the InitRef call?
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  Topology* RefParm = DSL->GetTopology( actionArgs );
+  Topology* RefParm = init.DSL().GetTopology( actionArgs );
   // Get the RMS mask string for target 
   std::string mask0 = actionArgs.GetMaskNext();
   TgtMask_.SetMaskString(mask0);
@@ -38,7 +38,7 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, DataSetList* DSL, Dat
     return Action::ERR;
  
   // Set up the RMSD data set
-  drmsd_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");
+  drmsd_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");
   if (drmsd_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( drmsd_ );
@@ -53,16 +53,16 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 /** Called every time the trajectory changes. Set up TgtMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
-Action::RetType Action_DistRmsd::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_DistRmsd::Setup(ActionSetup& setup) {
 
-  if ( currentParm->SetupIntegerMask(TgtMask_) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask(TgtMask_) ) return Action::ERR;
   if ( TgtMask_.None() ) {
     mprintf("    Error: DistRmsd::setup: No atoms in mask.\n");
     return Action::ERR;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  SelectedTgt_.SetupFrameFromMask(TgtMask_, currentParm->Atoms());
+  SelectedTgt_.SetupFrameFromMask(TgtMask_, setup.Top().Atoms());
 
   if (refHolder_.SetupRef(*currentParm, TgtMask_.Nselected(), "distrmsd"))
     return Action::ERR; 
@@ -74,7 +74,7 @@ Action::RetType Action_DistRmsd::Setup(Topology* currentParm, Topology** parmAdd
 /** Called every time a frame is read in. Calc distance RMSD.
   * If first is true, set the first frame read in as reference.
   */
-Action::RetType Action_DistRmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_DistRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
   refHolder_.ActionRef( *currentFrame, false, false );
   // Set selected frame atoms. Masses have already been set.

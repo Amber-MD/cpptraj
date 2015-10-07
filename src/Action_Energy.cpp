@@ -22,18 +22,18 @@ static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4_Nonbond", "Nonb
 int Action_Energy::AddSet(Etype typeIn, DataSetList* DSL, DataFile* outfile,
                           std::string const& setname)
 {
-  Energy_[typeIn] = DSL->AddSet(DataSet::DOUBLE, MetaData(setname, Estring[typeIn]));
+  Energy_[typeIn] = init.DSL().AddSet(DataSet::DOUBLE, MetaData(setname, Estring[typeIn]));
   if (Energy_[typeIn] == 0) return 1;
   if (outfile != 0) outfile->AddDataSet( Energy_[typeIn] );
   return 0;
 }
 
 // Action_Energy::Init()
-Action::RetType Action_Energy::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   ENE_.SetDebug( debugIn );
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Which terms will be calculated?
   Ecalcs_.clear();
   if (actionArgs.hasKey("bond"))     Ecalcs_.push_back(BND);
@@ -53,7 +53,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   // DataSet
   std::string setname = actionArgs.GetStringNext();
   if (setname.empty())
-    setname = DSL->GenerateDefaultName("ENE");
+    setname = init.DSL().GenerateDefaultName("ENE");
   Energy_.clear();
   Energy_.resize( (int)TOTAL + 1, 0 );
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
@@ -88,8 +88,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 // Action_Energy::Setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_Energy::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupCharMask(Mask1_)) return Action::ERR;
+Action::RetType Action_Energy::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
     mprinterr("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
     return Action::ERR;
@@ -101,7 +101,7 @@ Action::RetType Action_Energy::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Energy::DoAction()
-Action::RetType Action_Energy::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
 {
   double Etot = 0.0, ene, ene2;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)

@@ -36,7 +36,7 @@ void Action_Watershell::Help() {
 }
 
 // Action_Watershell::init()
-Action::RetType Action_Watershell::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   InitImaging( !actionArgs.hasKey("noimage") );
   // Get keywords
@@ -60,16 +60,16 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, DataSetList* DSL, D
   }
   DataFile* outfile = 0;
   if (!filename.empty())
-    outfile = DFL->AddDataFile( filename, actionArgs );
+    outfile = init.DFL().AddDataFile( filename, actionArgs );
   // Check for solvent mask
   solventmaskexpr_ = actionArgs.GetMaskNext();
 
   // Set up datasets
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
-    dsname = DSL->GenerateDefaultName("WS");
-  lower_ = DSL->AddSet(DataSet::INTEGER, MetaData(dsname, "lower"));
-  upper_ = DSL->AddSet(DataSet::INTEGER, MetaData(dsname, "upper"));
+    dsname = init.DSL().GenerateDefaultName("WS");
+  lower_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "lower"));
+  upper_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "upper"));
   if (lower_ == 0 || upper_ == 0) return Action::ERR;
   if (outfile != 0) {
     outfile->AddDataSet(lower_);
@@ -112,20 +112,20 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, DataSetList* DSL, D
 /** Set up solute and solvent masks. If no solvent mask was specified use 
   * solvent information in the current topology.
   */
-Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Set up solute mask
-  if (currentParm->SetupIntegerMask( soluteMask_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( soluteMask_ )) return Action::ERR;
   if ( soluteMask_.None() ) {
     mprinterr("Error: WATERSHELL: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
     return Action::ERR;
   }
   // Set up solvent mask
   if (!solventmaskexpr_.empty()) {
-    if (currentParm->SetupIntegerMask( solventMask_ )) return Action::ERR;
+    if (setup.Top().SetupIntegerMask( solventMask_ )) return Action::ERR;
   } else {
     solventMask_.ResetMask();
-    for (Topology::mol_iterator mol = currentParm->MolStart();
-                                mol != currentParm->MolEnd(); ++mol)
+    for (Topology::mol_iterator mol = setup.Top().MolStart();
+                                mol != setup.Top().MolEnd(); ++mol)
     {
       if ( (*mol).IsSolvent() )
         solventMask_.AddAtomRange( (*mol).BeginAtom(), (*mol).EndAtom() );
@@ -136,14 +136,14 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
       mprinterr("Error: WATERSHELL: No solvent atoms selected by mask [%s]\n",
                 solventmaskexpr_.c_str());
     else
-      mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",currentParm->c_str());
+      mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",setup.Top().c_str());
     return Action::ERR;
   }
-  SetupImaging( currentParm->BoxType() );
+  SetupImaging( setup.Top().BoxType() );
   // Create space for residues
 # ifdef _OPENMP
   // Only re-allocate for larger # of residues
-  if ( currentParm->Nres() > NactiveResidues_ ) {
+  if ( setup.Top().Nres() > NactiveResidues_ ) {
     if (activeResidues_thread_ != 0) {
       // Deallocate each thread
       for (int i = 0; i < NactiveResidues_; ++i)
@@ -154,13 +154,13 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
     }
     // Allocate each thread
     for (int i = 0; i < numthreads_; ++i) {
-      activeResidues_thread_[i] = new int[ currentParm->Nres() ];
-      std::fill( activeResidues_thread_[i], activeResidues_thread_[i] + currentParm->Nres(), 0 );
+      activeResidues_thread_[i] = new int[ setup.Top().Nres() ];
+      std::fill( activeResidues_thread_[i], activeResidues_thread_[i] + setup.Top().Nres(), 0 );
     }
   }
-  NactiveResidues_ = currentParm->Nres();
+  NactiveResidues_ = setup.Top().Nres();
 # else
-  activeResidues_.resize( currentParm->Nres(), 0 );
+  activeResidues_.resize( setup.Top().Nres(), 0 );
 # endif
   // Store current Parm
   CurrentParm_ = currentParm;
@@ -168,13 +168,13 @@ Action::RetType Action_Watershell::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_Watershell::action()
-Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
+Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
 {
   Matrix_3x3 ucell, recip;
   int nlower = 0;
   int nupper = 0;
 
-  if (ImageType()==NONORTHO) currentFrame->BoxCrd().ToRecip(ucell,recip);
+  if (ImageType()==NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell,recip);
 
   int Vidx, Uidx, Vat, currentRes;
   int NU = soluteMask_.Nselected();
@@ -202,8 +202,8 @@ Action::RetType Action_Watershell::DoAction(int frameNum, Frame* currentFrame, F
       if ( activeResidues_[currentRes] < 2 )
 #     endif
       {
-        dist = DIST2(currentFrame->XYZ(soluteMask_[Uidx]), currentFrame->XYZ(Vat),
-                     ImageType(), currentFrame->BoxCrd(), ucell, recip );
+        dist = DIST2(frm.Frm().XYZ(soluteMask_[Uidx]), frm.Frm().XYZ(Vat),
+                     ImageType(), frm.Frm().BoxCrd(), ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) 
         {

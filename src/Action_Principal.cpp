@@ -19,7 +19,7 @@ void Action_Principal::Help() {
 }
 
 // Action_Principal::Init()
-Action::RetType Action_Principal::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Keywords
@@ -36,14 +36,14 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, DataSetList* DSL, Da
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   // Set up data
   if (!dsname.empty()) {
-     vecData_ = (DataSet_Mat3x3*)DSL->AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
-     valData_ = (DataSet_Vector*)DSL->AddSet(DataSet::VECTOR, MetaData(dsname, "eval"));
+     vecData_ = (DataSet_Mat3x3*)init.DSL().AddSet(DataSet::MAT3X3, MetaData(dsname, "evec"));
+     valData_ = (DataSet_Vector*)init.DSL().AddSet(DataSet::VECTOR, MetaData(dsname, "eval"));
      if (vecData_ == 0 || valData_ == 0) return Action::ERR;
   }
 
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
-    outfile_ = DFL->AddCpptrajFile(filename, "Eigenvectors/Eigenvalues");
+    outfile_ = init.DFL().AddCpptrajFile(filename, "Eigenvectors/Eigenvalues");
     if (outfile_ == 0) return Action::ERR;
     mprintf(" output eigenvectors/eigenvalues to %s,", outfile_->Filename().full());
   }
@@ -64,11 +64,11 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, DataSetList* DSL, Da
 }
 
 // Action_Principal::Setup()
-Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask(mask_)) return Action::ERR;
+Action::RetType Action_Principal::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask(mask_)) return Action::ERR;
 
   if (mask_.None()) {
-    mprintf("Warning: No atoms selected for %s [%s].\n",currentParm->c_str(), mask_.MaskString());
+    mprintf("Warning: No atoms selected for %s [%s].\n",setup.Top().c_str(), mask_.MaskString());
     return Action::ERR;
   }
 
@@ -77,11 +77,11 @@ Action::RetType Action_Principal::Setup(Topology* currentParm, Topology** parmAd
 }
 
 // Action_Principal::DoAction()
-Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Principal::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 Inertia;
   Vec3 Eval;
 
-  currentFrame->CalculateInertia( mask_, Inertia );
+  frm.Frm().CalculateInertia( mask_, Inertia );
 
   // NOTE: Diagonalize_Sort_Chirality places sorted eigenvectors in rows.
   Inertia.Diagonalize_Sort_Chirality( Eval, debug_ );
@@ -104,7 +104,7 @@ Action::RetType Action_Principal::DoAction(int frameNum, Frame* currentFrame, Fr
   // are returned in rows) just do plain rotation to affect an
   // inverse rotation.
   if (doRotation_)
-    currentFrame->Rotate( Inertia );
+    frm.Frm().Rotate( Inertia );
 
   return Action::OK;
 }

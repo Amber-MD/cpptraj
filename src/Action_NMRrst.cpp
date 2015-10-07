@@ -35,20 +35,20 @@ static void TranslateAmbiguous(std::string& aname) {
 }
 // -----------------------------------------------------------------------------
 // Action_NMRrst::Init()
-Action::RetType Action_NMRrst::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
   Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
   findNOEs_ = actionArgs.hasKey("findnoes");
-  findOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
+  findOutput_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("findout"), "Found NOEs",
                                     DataFileList::TEXT, true);
-  specOutput_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("specout"), "Specified NOEs",
+  specOutput_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("specout"), "Specified NOEs",
                                     DataFileList::TEXT, true);
   if (findOutput_ == 0 || specOutput_ == 0) return Action::ERR;
   resOffset_ = actionArgs.getKeyInt("resoffset", 0);
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   max_cut_ = actionArgs.getKeyDouble("cut", 6.0);
   strong_cut_ = actionArgs.getKeyDouble("strongcut", 2.9);
   medium_cut_ = actionArgs.getKeyDouble("mediumcut", 3.5);
@@ -57,7 +57,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   std::string rstfilename = actionArgs.GetStringKey("file");
   setname_ = actionArgs.GetStringKey("name");
   if (setname_.empty())
-    setname_ = DSL->GenerateDefaultName("NMR");
+    setname_ = init.DSL().GenerateDefaultName("NMR");
   nframes_ = 0;
 
   // Atom Mask
@@ -101,7 +101,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, DataSetList* DSL, DataF
     md.SetLegend( noe->dMask1_.MaskExpression() + " and " + noe->dMask2_.MaskExpression());
     md.SetScalarMode( MetaData::M_DISTANCE );
     md.SetScalarType( MetaData::NOE );
-    noe->dist_ = DSL->AddSet(DataSet::DOUBLE, md);
+    noe->dist_ = init.DSL().AddSet(DataSet::DOUBLE, md);
     if (noe->dist_==0) return Action::ERR;
     noe->dist_->AssociateData( &noeData );
     // Add dataset to data file
@@ -282,12 +282,12 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
 // Action_NMRrst::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   */
-Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
   // ---------------------------------------------
   // Set up NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
-    if (currentParm->SetupIntegerMask( noe->dMask1_ )) return Action::ERR;
-    if (currentParm->SetupIntegerMask( noe->dMask2_ )) return Action::ERR;
+    if (setup.Top().SetupIntegerMask( noe->dMask1_ )) return Action::ERR;
+    if (setup.Top().SetupIntegerMask( noe->dMask2_ )) return Action::ERR;
     if (noe->dMask1_.None() || noe->dMask2_.None()) {
       mprintf("Warning: One or both masks for NOE '%s' have no atoms (%i and %i).\n",
               noe->dist_->legend(), noe->dMask1_.Nselected(),
@@ -299,18 +299,18 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
   // ---------------------------------------------
   // Set up potential NOE sites.
   if (findNOEs_) {
-    if (currentParm->SetupCharMask( Mask_ )) return Action::ERR;
+    if (setup.Top().SetupCharMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
     if (Mask_.None()) return Action::ERR;
     SiteArray potentialSites; // .clear();
     AtomMap resMap;
     resMap.SetDebug( debug_ );
     std::vector<bool> selected;
-    Range soluteRes = currentParm->SoluteResidues();
+    Range soluteRes = setup.Top().SoluteResidues();
     for (Range::const_iterator res = soluteRes.begin(); res != soluteRes.end(); ++res)
     {
-      int res_first_atom = currentParm->Res(*res).FirstAtom();
-      selected.assign( currentParm->Res(*res).NumAtoms(), false );
+      int res_first_atom = setup.Top().Res(*res).FirstAtom();
+      selected.assign( setup.Top().Res(*res).NumAtoms(), false );
       // Find symmetric atom groups.
       AtomMap::AtomIndexArray symmGroups;
       if (resMap.SymmetricAtoms(*currentParm, symmGroups, *res)) return Action::ERR;
@@ -323,7 +323,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
           mprintf("\t\t");
           for (AtomMap::Iarray::const_iterator at = grp->begin();
                                                at != grp->end(); ++at)
-            mprintf(" %s", currentParm->TruncAtomNameNum( *at ).c_str());
+            mprintf(" %s", setup.Top().TruncAtomNameNum( *at ).c_str());
           mprintf("\n");
         }
       }
@@ -348,7 +348,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
         }
       }
       // All other non-selected hydrogens bonded to same heavy atom are sites.
-      for (int ratom = res_first_atom; ratom != currentParm->Res(*res).LastAtom(); ++ratom)
+      for (int ratom = res_first_atom; ratom != setup.Top().Res(*res).LastAtom(); ++ratom)
       {
         if ( (*currentParm)[ratom].Element() != Atom::HYDROGEN ) {
           Iarray heavyAtomGroup;
@@ -356,7 +356,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
                                    ba != (*currentParm)[ratom].bondend(); ++ba)
             if ( Mask_.AtomInCharMask(*ba) && 
                  *ba >= res_first_atom && 
-                 *ba < currentParm->Res(*res).LastAtom() )
+                 *ba < setup.Top().Res(*res).LastAtom() )
             {
               if ( !selected[ *ba - res_first_atom ] &&
                    (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
@@ -373,7 +373,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
     {
       mprintf("  %u\tRes %i:", site - potentialSites.begin(), site->ResNum()+1);
       for (unsigned int idx = 0; idx != site->Nindices(); ++idx)
-        mprintf(" %s", currentParm->TruncAtomNameNum( site->Idx(idx) ).c_str());
+        mprintf(" %s", setup.Top().TruncAtomNameNum( site->Idx(idx) ).c_str());
       mprintf("\n");
     }
     if (noeArray_.empty()) {
@@ -428,10 +428,10 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
       return Action::ERR;
     }
     for (MaskPairArray::iterator mp = Pairs_.begin(); mp != Pairs_.end(); mp++) {
-      if (currentParm->SetupIntegerMask( mp->first )) return Action::ERR;
+      if (setup.Top().SetupIntegerMask( mp->first )) return Action::ERR;
       int res1 = CheckSameResidue(*currentParm, mp->first);
       if (res1 < 0) continue;
-      if (currentParm->SetupIntegerMask( mp->second )) return Action::ERR;
+      if (setup.Top().SetupIntegerMask( mp->second )) return Action::ERR;
       int res2 = CheckSameResidue(*currentParm, mp->second);
       if (res2 < 0) continue;
       Site site1( res1, mp->first.Selected() );
@@ -449,7 +449,7 @@ Action::RetType Action_NMRrst::Setup(Topology* currentParm, Topology** parmAddre
     }
   } 
   // Set up imaging info for this parm
-  Image_.SetupImaging( currentParm->BoxType() );
+  Image_.SetupImaging( setup.Top().BoxType() );
   if (Image_.ImagingEnabled())
     mprintf("\tImaged.\n");
   else
@@ -502,26 +502,26 @@ void Action_NMRrst::ProcessNoeArray(NOEtypeArray& Narray, Frame const& frameIn, 
 }
 
 // Action_NMRrst::DoAction()
-Action::RetType Action_NMRrst::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
   double Dist;
   Vec3 a1, a2;
 
   if (Image_.ImageType() == NONORTHO)
-    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
     if ( noe->active_ ) {
       if (useMass_) {
-        a1 = currentFrame->VCenterOfMass( noe->dMask1_ );
-        a2 = currentFrame->VCenterOfMass( noe->dMask2_ );
+        a1 = frm.Frm().VCenterOfMass( noe->dMask1_ );
+        a2 = frm.Frm().VCenterOfMass( noe->dMask2_ );
       } else {
-        a1 = currentFrame->VGeometricCenter( noe->dMask1_ );
-        a2 = currentFrame->VGeometricCenter( noe->dMask2_ );
+        a1 = frm.Frm().VGeometricCenter( noe->dMask1_ );
+        a2 = frm.Frm().VGeometricCenter( noe->dMask2_ );
       }
 
       switch ( Image_.ImageType() ) {
         case NONORTHO: Dist = DIST2_ImageNonOrtho(a1, a2, ucell_, recip_); break;
-        case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd()); break;
+        case ORTHO: Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd()); break;
         case NOIMAGE: Dist = DIST2_NoImage(a1, a2); break;
       }
       Dist = sqrt(Dist);

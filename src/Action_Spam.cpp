@@ -45,7 +45,7 @@ void Action_Spam::Help() {
 }
 
 // Action_Spam::init()
-Action::RetType Action_Spam::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);
@@ -94,7 +94,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
     std::string infoname = actionArgs.GetStringKey("info");
     if (infoname.empty())
       infoname = std::string("spam.info");
-    infofile_ = DFL->AddCpptrajFile(infoname, "SPAM info");
+    infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
     // The default maskstr is the Oxygen atom of the solvent
     summaryfile_ = actionArgs.GetStringKey("summary");
@@ -198,25 +198,25 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
 }
 
 // Action_Spam::setup()
-Action::RetType Action_Spam::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 
   // We need box info
-  if (currentParm->BoxType() == Box::NOBOX) {
+  if (setup.Top().BoxType() == Box::NOBOX) {
     mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
 
   // See if our box dimensions are too small for our cutoff...
-  if (currentParm->ParmBox().BoxX() < doublecut_ ||
-      currentParm->ParmBox().BoxY() < doublecut_ ||
-      currentParm->ParmBox().BoxZ() < doublecut_) {
+  if (setup.Top().ParmBox().BoxX() < doublecut_ ||
+      setup.Top().ParmBox().BoxY() < doublecut_ ||
+      setup.Top().ParmBox().BoxZ() < doublecut_) {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
   int resnum = 0;
-  for (Topology::res_iterator res = currentParm->ResStart();
-       res != currentParm->ResEnd(); res++) {
+  for (Topology::res_iterator res = setup.Top().ResStart();
+       res != setup.Top().ResEnd(); res++) {
     if (res->Name().Truncated() == solvname_) {
       solvent_residues_.push_back(*res);
       // Tabulate COM
@@ -300,15 +300,15 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
 }
 
 // Action_Spam::action()
-Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame, Frame ** frameAddress)
+Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
 {
 
   Nframes_++;
 
   // Check that our box is still big enough...
-  overflow_ = overflow_ || currentFrame->BoxCrd().BoxX() < doublecut_ ||
-                           currentFrame->BoxCrd().BoxY() < doublecut_ ||
-                           currentFrame->BoxCrd().BoxZ() < doublecut_;
+  overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
+                           frm.Frm().BoxCrd().BoxY() < doublecut_ ||
+                           frm.Frm().BoxCrd().BoxZ() < doublecut_;
   if (purewater_)
     return DoPureWater(frameNum, currentFrame);
   else
@@ -318,7 +318,6 @@ Action::RetType Action_Spam::DoAction(int frameNum, Frame* currentFrame, Frame *
 
 // Action_Spam::DoPureWater
 /** Carries out SPAM analysis for pure water to parametrize bulk */
-Action::RetType Action_Spam::DoPureWater(int frameNum, Frame* currentFrame) {
   /* This is relatively simple... We have to loop through every water molecule
    * for every frame, calculate the energy of that solvent molecule, and add
    * that to our one data set. Therefore we will have NFRAMES * NWATER data
@@ -337,7 +336,6 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame* currentFrame) {
 
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
-Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
   // Set up a function pointer to see if we are inside
   bool (*inside)(Vec3, Vec3, double);
   if (sphere_)
@@ -354,7 +352,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
   std::vector<Vec3> comlist;
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
        res != solvent_residues_.end(); res++) {
-    comlist.push_back(currentFrame->VCenterOfMass(res->FirstAtom(), res->LastAtom()));
+    comlist.push_back(frm.Frm().VCenterOfMass(res->FirstAtom(), res->LastAtom()));
   }
   // Loop through each peak and then scan through every residue, and assign a
   // solvent residue to each peak
@@ -447,7 +445,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame* currentFrame) {
         // This is the solvent residue in our site
         if (reservations[j] == i) {
           for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
-            currentFrame->SwapAtoms(solvent_residues_[i].FirstAtom()+k,
+            frm.Frm().SwapAtoms(solvent_residues_[i].FirstAtom()+k,
                                     solvent_residues_[j].FirstAtom()+k);
           // Since we swapped solvent_residues_ of 2 solvent atoms, we also have
           // to swap reservations[i] and reservations[j]...

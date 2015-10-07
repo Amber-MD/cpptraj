@@ -54,7 +54,7 @@ void Action_MakeStructure::Help() {
 }
 
 // Action_MakeStructure::Init()
-Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   secstruct_.clear();
@@ -98,7 +98,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, DataSetList* DSL
       ss_holder.dihSearch_.SearchFor(MetaData::PSI);
       // Get reference structure
       DataSet_Coords_REF* REF = (DataSet_Coords_REF*)
-                                DSL->FindSetOfType(ss_arg.GetStringNext(),
+                                init.DSL().FindSetOfType(ss_arg.GetStringNext(),
                                                    DataSet::REF_FRAME); // ss_arg[2]
       if (REF == 0) {
         mprinterr("Error: Could not get reference structure [%s]\n", ss_arg[2].c_str());
@@ -238,7 +238,7 @@ Action::RetType Action_MakeStructure::Init(ArgList& actionArgs, DataSetList* DSL
 }
 
 // Action_MakeStructure::Setup()
-Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_MakeStructure::Setup(ActionSetup& setup) {
   // Set up each SS type
   for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();
                                               ss != secstruct_.end(); ++ss)
@@ -355,7 +355,7 @@ Action::RetType Action_MakeStructure::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_MakeStructure::DoAction()
-Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
+Action::RetType Action_MakeStructure::DoAction(int frameNum, ActionFrame& frm) {
 {
   Matrix_3x3 rotationMatrix;
   for (std::vector<SecStructHolder>::iterator ss = secstruct_.begin();
@@ -368,14 +368,14 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
     {
       double theta_in_radians = (double)*theta;
       // Calculate current value of dihedral
-      double torsion = Torsion( currentFrame->XYZ( (*dih).A0() ),
-                                currentFrame->XYZ( (*dih).A1() ),
-                                currentFrame->XYZ( (*dih).A2() ),
-                                currentFrame->XYZ( (*dih).A3() ) );
+      double torsion = Torsion( frm.Frm().XYZ( (*dih).A0() ),
+                                frm.Frm().XYZ( (*dih).A1() ),
+                                frm.Frm().XYZ( (*dih).A2() ),
+                                frm.Frm().XYZ( (*dih).A3() ) );
       // Calculate delta needed to get to theta
       double delta = theta_in_radians - torsion;
       // Set axis of rotation
-      Vec3 axisOfRotation = currentFrame->SetAxisOfRotation((*dih).A1(), (*dih).A2());
+      Vec3 axisOfRotation = frm.Frm().SetAxisOfRotation((*dih).A1(), (*dih).A2());
       // Calculate rotation matrix for delta 
       rotationMatrix.CalcRotationMatrix(axisOfRotation, delta);
       if (debug_ > 0) {
@@ -389,7 +389,7 @@ Action::RetType Action_MakeStructure::DoAction(int frameNum, Frame* currentFrame
                   torsion*Constants::RADDEG, delta*Constants::RADDEG, theta_in_radians*Constants::RADDEG);
       }
       // Rotate around axis
-      currentFrame->Rotate(rotationMatrix, *Rmask);
+      frm.Frm().Rotate(rotationMatrix, *Rmask);
     }
   }
   return Action::OK;

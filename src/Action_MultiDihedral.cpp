@@ -22,11 +22,11 @@ void Action_MultiDihedral::Help() {
   mprintf("  Calculate specified dihedral angle types for residues in given <range>.\n");
 }
 
-Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords
-  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   if (actionArgs.hasKey("range360"))
     minTorsion_ = 0.0;
   else
@@ -68,18 +68,18 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, DataSetList* DSL
     mprintf("\tOutput range is 0 to 360 degrees.\n");
   else
     mprintf("\tOutput range is -180 to 180 degrees.\n");
-  DSL->SetDataSetsPending(true);
+  init.DSL().SetDataSetsPending(true);
   masterDSL_ = DSL;
   return Action::OK;
 }
 
 // Action_MultiDihedral::Setup();
-Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
   Range actualRange;
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   if (resRange_.Empty())
-    actualRange = currentParm->SoluteResidues();
+    actualRange = setup.Top().SoluteResidues();
   else {
     // If user range specified, create new range shifted by -1 since internal
     // resnums start from 0.
@@ -88,7 +88,7 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
   }
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: No residues specified for %s\n",currentParm->c_str());
+    mprinterr("Error: No residues specified for %s\n",setup.Top().c_str());
     return Action::ERR;
   }
   // Search for specified dihedrals in each residue in the range
@@ -132,16 +132,16 @@ Action::RetType Action_MultiDihedral::Setup(Topology* currentParm, Topology** pa
 }
 
 // Action_MultiDihedral::DoAction()
-Action::RetType Action_MultiDihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
+Action::RetType Action_MultiDihedral::DoAction(int frameNum, ActionFrame& frm) {
 {
   std::vector<DataSet*>::const_iterator ds = data_.begin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih, ++ds)
   {
-    double torsion = Torsion( currentFrame->XYZ(dih->A0()),
-                              currentFrame->XYZ(dih->A1()),
-                              currentFrame->XYZ(dih->A2()),
-                              currentFrame->XYZ(dih->A3()) );
+    double torsion = Torsion( frm.Frm().XYZ(dih->A0()),
+                              frm.Frm().XYZ(dih->A1()),
+                              frm.Frm().XYZ(dih->A2()),
+                              frm.Frm().XYZ(dih->A3()) );
     torsion *= Constants::RADDEG;
     if (torsion < minTorsion_)
       torsion += 360.0;

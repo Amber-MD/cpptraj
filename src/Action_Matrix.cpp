@@ -36,7 +36,7 @@ void Action_Matrix::Help() {
 }
 
 // Action_Matrix::Init()
-Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -91,7 +91,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataF
       mprinterr("Error: matrix: order parameter <= 0, ignoring command\n");
       return Action::ERR;
     }
-    for ( DataSetList::const_iterator DS = DSL->begin(); DS != DSL->end(); ++DS) {
+    for ( DataSetList::const_iterator DS = init.DSL().begin(); DS != init.DSL().end(); ++DS) {
       if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
         IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
@@ -102,7 +102,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   } else if (mtype == MetaData::DIHCOVAR) { // Dihedral Covariance
     // Get data set mask for dihedral covariance
     DihedralSets_.clear();
-    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
+    DihedralSets_.AddTorsionSets( init.DSL().GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
     if ( DihedralSets_.empty() ) {
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
@@ -126,7 +126,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   }
 
   // Create matrix BYATOM DataSet
-  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL,
+  Mat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL,
                                          MetaData(name, MetaData::M_MATRIX, mtype), "Mat");
   if (Mat_ == 0) return Action::ERR;
   // NOTE: Type/Kind is set here so subsequent analyses/actions know about it.
@@ -140,7 +140,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   byMaskOut_ = 0;
   if (outtype_ == BYMASK) {
     // BYMASK output - no final data set, just write to file/STDOUT.
-    byMaskOut_ = DFL->AddCpptrajFile(outfilename, "Matrix by mask",
+    byMaskOut_ = init.DFL().AddCpptrajFile(outfilename, "Matrix by mask",
                                      DataFileList::TEXT, true);
     if (byMaskOut_ == 0) return Action::ERR;
   } else {
@@ -148,12 +148,12 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, DataSetList* DSL, DataF
     if (outtype_ == BYRESIDUE) {
       MetaData md(Mat_->Meta().Name(), "ByRes");
       md.SetScalarMode(MetaData::M_MATRIX);
-      matByRes_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, md);
+      matByRes_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, md);
       if (matByRes_ == 0) return Action::ERR;
       matByRes_->SetupFormat().SetFormatWidthPrecision(6, 3);
       matByRes_->Dim(Dimension::X).SetLabel("Res");
     } 
-    outfile_ = DFL->AddDataFile(outfilename, actionArgs);
+    outfile_ = init.DFL().AddDataFile(outfilename, actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
         outfile_->AddDataSet( Mat_ );
@@ -246,7 +246,7 @@ Action_Matrix::MatResArray Action_Matrix::MaskToMatResArray(Topology const& curr
 }
 
 // Action_Matrix::Setup()
-Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
   size_t mask1tot = 0; // Will be # of columns
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
@@ -258,14 +258,14 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     // Dihedral covariance - matrix # cols = # data sets
     mask1tot = DihedralSets_.size();
   } else {
-    if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
       mprinterr("Error: No atoms selected for mask1.\n");
       return Action::ERR;
     }
     if (useMask2_) {
-      if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
+      if (setup.Top().SetupIntegerMask(mask2_)) return Action::ERR;
       mask2_.MaskInfo(); 
       if (mask2_.None()) {
         mprinterr("Error: No atoms selected for mask2.\n");
@@ -789,7 +789,7 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame const& currentFrame) {
 }
 
 // Action_Matrix::DoAction()
-Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   // Check if this frame should be processed
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Increment number of snapshots

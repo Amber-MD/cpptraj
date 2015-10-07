@@ -22,12 +22,12 @@ void Action_Mask::Help() {
 // Action_Mask::Init()
 // NOTE: Could also split the arglist at maskpdb and make it so any type of 
 //       file can be written out.
-Action::RetType Action_Mask::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
+  ensembleNum_ = init.DSL().EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
-  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("maskout"), "Atoms in mask");
+  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("maskout"), "Atoms in mask");
   maskpdb_ = actionArgs.GetStringKey("maskpdb");
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   if (!maskpdb_.empty()) {
@@ -59,13 +59,13 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
 }
 
 // Action_Mask::Setup()
-Action::RetType Action_Mask::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Mask::Setup(ActionSetup& setup) {
   CurrentParm_ = currentParm;
   return Action::OK;
 }
 
 // Action_Mask::DoAction()
-Action::RetType Action_Mask::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
   // Get atom selection
   if ( CurrentParm_->SetupCharMask(Mask1_, *currentFrame) ) {
     mprintf("Warning: Could not set up atom mask [%s]\n",

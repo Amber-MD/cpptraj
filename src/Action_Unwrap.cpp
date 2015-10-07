@@ -18,7 +18,7 @@ void Action_Unwrap::Help() {
 }
 
 // Action_Unwrap::Init()
-Action::RetType Action_Unwrap::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
   center_ = actionArgs.hasKey("center");
@@ -33,7 +33,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   } else
     imageMode_ = Image::BYATOM;
   // Get reference
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) {
     RefFrame_ = REF.Coord();
@@ -66,29 +66,29 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 }
 
 // Action_Unwrap::Setup()
-Action::RetType Action_Unwrap::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
   // Ensure same number of atoms in current parm and ref parm
   if ( RefParm_!=0 ) {
-    if ( currentParm->Natom() != RefParm_->Natom() ) {
+    if ( setup.Top().Natom() != RefParm_->Natom() ) {
       mprinterr("Error: unwrap: # atoms in reference parm %s is not\n", RefParm_->c_str());
-      mprinterr("Error:         equal to # atoms in parm %s\n", currentParm->c_str());
+      mprinterr("Error:         equal to # atoms in parm %s\n", setup.Top().c_str());
       return Action::ERR;
     }
   }
   // Check box type
-  if (currentParm->BoxType()==Box::NOBOX) {
+  if (setup.Top().BoxType()==Box::NOBOX) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
-            currentParm->c_str());
+            setup.Top().c_str());
     return Action::ERR;
   }
   orthogonal_ = false;
-  if (currentParm->BoxType()==Box::ORTHO)
+  if (setup.Top().BoxType()==Box::ORTHO)
     orthogonal_ = true;
 
   // Setup atom pairs to be unwrapped.
   imageList_ = Image::CreatePairList(*currentParm, imageMode_, maskExpression_);
   if (imageList_.empty()) {
-    mprintf("Warning: Mask selects no atoms for topology '%s'.\n", currentParm->c_str());
+    mprintf("Warning: Mask selects no atoms for topology '%s'.\n", setup.Top().c_str());
     return Action::ERR;
   }
   mprintf("\tNumber of %ss to be unwrapped is %zu\n",
@@ -101,7 +101,7 @@ Action::RetType Action_Unwrap::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Unwrap::DoAction()
-Action::RetType Action_Unwrap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   // Set reference structure if not already set
   if (RefFrame_.empty()) {
@@ -112,7 +112,7 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, Frame* currentFrame, Frame
   if (orthogonal_)
     Image::UnwrapOrtho( *currentFrame, RefFrame_, imageList_, center_, true );
   else {
-    currentFrame->BoxCrd().ToRecip( ucell, recip );
+    frm.Frm().BoxCrd().ToRecip( ucell, recip );
     Image::UnwrapNonortho( *currentFrame, RefFrame_, imageList_, ucell, recip, center_, true );
   }
 
