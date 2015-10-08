@@ -23,9 +23,9 @@ public:
   static void Help();
 
 private:
-    Action::RetType Init(ArgList&, ActionInit&, int);
-    Action::RetType Setup(ActionSetup&);
-    Action::RetType DoAction(int, ActionFrame&);
+  Action::RetType Init(ArgList&, ActionInit&, int);
+  Action::RetType Setup(ActionSetup&);
+  Action::RetType DoAction(int, ActionFrame&);
   void Print();
 
   static const std::string emptystring;

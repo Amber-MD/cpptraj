@@ -60,14 +60,13 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
 
 // Action_Temperature::Setup()
 Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
-{
   if (!getTempFromFrame_) {
     // Masks
     if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
     if (Mask_.None()) {
       mprintf("Warning: temperature: No atoms selected in [%s]\n", Mask_.MaskString());
-      return Action::ERR;
+      return Action::SKIP;
     }
     // Calculate degrees of freedom
     // If SHAKE is on, add up all bonds which cannot move because of SHAKE.
@@ -92,7 +91,6 @@ Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
 
 // Action_Temperature::DoAction()
 Action::RetType Action_Temperature::DoAction(int frameNum, ActionFrame& frm) {
-{
   double tdata;
   if (getTempFromFrame_)
     tdata = frm.Frm().Temperature();

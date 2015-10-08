@@ -66,13 +66,11 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
 // Action_Principal::Setup()
 Action::RetType Action_Principal::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask(mask_)) return Action::ERR;
-
+  mask_.MaskInfo();
   if (mask_.None()) {
     mprintf("Warning: No atoms selected for %s [%s].\n",setup.Top().c_str(), mask_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
-
-  mprintf("\tSelected %i atoms.\n", mask_.Nselected());
   return Action::OK;
 }
 
@@ -103,8 +101,9 @@ Action::RetType Action_Principal::DoAction(int frameNum, ActionFrame& frm) {
   // Rotate - since Evec is already transposed (eigenvectors
   // are returned in rows) just do plain rotation to affect an
   // inverse rotation.
-  if (doRotation_)
-    frm.Frm().Rotate( Inertia );
-
+  if (doRotation_) {
+    frm.ModifyFrm().Rotate( Inertia );
+    return Action::MODIFY_COORDS;
+  }
   return Action::OK;
 }

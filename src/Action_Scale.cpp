@@ -32,13 +32,13 @@ Action::RetType Action_Scale::Setup(ActionSetup& setup) {
   if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   if ( mask_.None() ) {
     mprintf("Warning: scale: No atoms selected.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   return Action::OK;
 }
 
 // Action_Scale::action()
 Action::RetType Action_Scale::DoAction(int frameNum, ActionFrame& frm) {
-  frm.Frm().Scale(mask_, sx_, sy_, sz_);
-  return Action::OK;
+  frm.ModifyFrm().Scale(mask_, sx_, sy_, sz_);
+  return Action::MODIFY_COORDS;
 }

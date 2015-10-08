@@ -27,14 +27,14 @@ Action::RetType Action_Translate::Setup(ActionSetup& setup) {
   if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: translate: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: translate: No atoms selected.\n");
+    return Action::SKIP;
   }
   return Action::OK;
 }
 
 Action::RetType Action_Translate::DoAction(int frameNum, ActionFrame& frm) {
   for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-    frm.Frm().Translate(Trans_, *atom);
-  return Action::OK;
+    frm.ModifyFrm().Translate(Trans_, *atom);
+  return Action::MODIFY_COORDS;
 }

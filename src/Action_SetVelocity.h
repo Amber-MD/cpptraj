@@ -18,5 +18,7 @@ class Action_SetVelocity : public Action {
     std::vector<double> SD_;
     double tempi_;
     Random_Number RN_;
+    CoordinateInfo cInfo_;
+    Frame newFrame_;
 };
 #endif

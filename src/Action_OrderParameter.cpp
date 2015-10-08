@@ -133,13 +133,12 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
 
 // Action_OrderParameter::Setup()
 Action::RetType Action_OrderParameter::Setup(ActionSetup& setup) {
-{
   int i, nlen1;
   int nlen2 = 0;
   std::vector<AtomMask>::iterator mask;
 
 
-  SetupImaging(setup.Top().BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
 
   if (!scd_) {
@@ -204,7 +203,6 @@ Action::RetType Action_OrderParameter::Setup(ActionSetup& setup) {
 
 // Action_OrderParameter::action()
 Action::RetType Action_OrderParameter::DoAction(int frameNum, ActionFrame& frm) {
-{
   int i, j, curr_atom, prev_atom, next_atom;
 
   unsigned long bin;

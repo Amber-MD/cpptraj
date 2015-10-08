@@ -83,7 +83,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
     // Set up reference mask
     if ( REF.Parm().SetupIntegerMask(RefMask_) ) return Action::ERR;
     if (RefMask_.None()) {
-      mprinterr("Error: Pairwise::init: No atoms selected in reference mask.\n");
+      mprinterr("Error: No atoms selected in reference mask.\n");
       return Action::ERR;
     }
     // Set up nonbonded params for reference
@@ -99,7 +99,7 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   if (!eout.empty()) {
     Eout_ = init.DFL().AddCpptrajFile(eout, "Atom Energies");
     if (Eout_ == 0) {
-      mprinterr("Error: Pairwise: Could not set up file %s for eout.\n",eout.c_str());
+      mprinterr("Error: Could not set up file %s for eout.\n",eout.c_str());
       return Action::ERR;
     }
   }
@@ -173,12 +173,12 @@ Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
   // Set up mask
   if ( setup.Top().SetupIntegerMask( Mask0_ ) ) return Action::ERR;
   if (Mask0_.None()) {
-    mprintf("    Error: Pairwise::setup: Mask has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: Mask has no atoms.\n");
+    return Action::SKIP;
   }
 
   // Set up exclusion list and determine total # interactions.
-  int N_interactions = SetupNonbondParm(Mask0_, *currentParm);
+  int N_interactions = SetupNonbondParm(Mask0_, setup.Top());
 
   // Allocate matrix memory
   int previous_size = (int)vdwMat_->Size();
@@ -199,10 +199,8 @@ Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
   // the number of interactions is the same in reference and parm.
   if (nb_calcType_==COMPARE_REF) {
     if (N_interactions != N_ref_interactions_) {
-      mprinterr(
-        "Error: Pairwise: # reference interactions (%i) != # interactions for this parm (%i)\n",
-        N_ref_interactions_,N_interactions
-      );
+      mprinterr("Error: # reference interactions (%i) != # interactions for this parm (%i)\n",
+                N_ref_interactions_, N_interactions);
       return Action::ERR;
     }
   }
@@ -213,7 +211,7 @@ Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
   atom_evdw_.resize(setup.Top().Natom(), 0.0);
   // Print pairwise info for this parm
   Mask0_.MaskInfo();
-  CurrentParm_ = currentParm;      
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;  
 }
 
@@ -353,32 +351,29 @@ int Action_Pairwise::WriteCutFrame(int frameNum, Topology const& Parm, AtomMask 
                                    Frame const& frame, std::string const& outfilename) 
 {
   if (CutMask.Nselected() != (int)CutCharges.size()) {
-    mprinterr("Error: Pairwise: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
+    mprinterr("Error: WriteCutFrame: # of charges (%u) != # mask atoms (%i)\n",
               CutCharges.size(), CutMask.Nselected());
     return 1;
   }
   Frame CutFrame(frame, CutMask);
-  Topology CutParm;
-  // Dont use modifyStateByMask so we can set new charges. This means no
-  // bond/molecule information (could add with call to CommonSetup).
-  Darray::const_iterator Qi = CutCharges.begin();
-  for (AtomMask::const_iterator atnum = CutMask.begin(); atnum != CutMask.end(); ++atnum) {
-    Atom cutatom = Parm[*atnum];
-    int resnum = cutatom.ResNum(); 
-    cutatom.SetCharge( *(Qi++) );
-    CutParm.AddTopAtom( cutatom, Parm.Res(resnum), 0 );
-  } 
-    
+  Topology* CutParm = Parm.modifyStateByMask( CutMask );
+  if (CutParm == 0) return 1;
+  // Set new charges
+  for (int i = 0; i != CutParm->Natom(); i++)
+    CutParm->SetAtom(i).SetCharge( CutCharges[i] );
+  int err = 0;
   Trajout_Single tout;
-  if (tout.PrepareTrajWrite(outfilename,"multi",&CutParm,CoordinateInfo(),1,
+  if (tout.PrepareTrajWrite(outfilename, "multi", CutParm, CoordinateInfo(), 1,
                             TrajectoryFile::MOL2FILE))
   {
-    mprinterr("Error: Pairwise: Could not set up cut mol2 file %s\n",outfilename.c_str());
-    return 1;
+    mprinterr("Error: Could not set up cut mol2 file %s\n", outfilename.c_str());
+    err = 1;
+  } else {
+    tout.WriteSingle(frameNum, CutFrame);
+    tout.EndTraj();
   }
-  tout.WriteSingle(frameNum, CutFrame);
-  tout.EndTraj();
-  return 0;
+  delete CutParm;
+  return err;
 }
 
 static const char* CalcString[] = { "Evdw", "Eelec" };
@@ -425,17 +420,16 @@ int Action_Pairwise::PrintCutAtoms(Frame const& frame, int frameNum, EoutType ct
 
 // Action_Pairwise::DoAction()
 Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
-{
   // Reset cumulative energy arrays
   atom_eelec_.assign(CurrentParm_->Natom(), 0.0);
   atom_evdw_.assign(CurrentParm_->Natom(), 0.0);
   if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frameNum);
-  NonbondEnergy( *currentFrame, *CurrentParm_, Mask0_ );
+  NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_ );
   nframes_++;
   // Write cumulative energy arrays
-  if (PrintCutAtoms( *currentFrame, frameNum, VDWOUT, atom_evdw_, cut_evdw_ ))
+  if (PrintCutAtoms( frm.Frm(), frameNum, VDWOUT, atom_evdw_, cut_evdw_ ))
     return Action::ERR;
-  if (PrintCutAtoms( *currentFrame, frameNum, ELECOUT, atom_eelec_, cut_eelec_ ))
+  if (PrintCutAtoms( frm.Frm(), frameNum, ELECOUT, atom_eelec_, cut_eelec_ ))
     return Action::ERR;
   // Write PDB with atoms that satisfy cutoff colored in.
   if (PdbOut_.IsOpen()) {

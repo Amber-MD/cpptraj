@@ -156,7 +156,7 @@ Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   }
 
   // Check for box
-  if ( setup.Top().BoxType()!=Box::NOBOX )
+  if ( setup.CoordInfo().TrajBox().Type()!=Box::NOBOX )
     hasBox_ = true;
   else
     hasBox_ = false;

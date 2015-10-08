@@ -38,7 +38,7 @@ Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int d
   if (!REF.empty()) {
     RefFrame_ = REF.Coord();
     // Get reference parm for frame
-    RefParm_ = (Topology*)(&REF.Parm()); // FIXME: 
+    RefParm_ = REF.ParmPtr();
   }
 
   // Get mask string
@@ -76,27 +76,27 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
     }
   }
   // Check box type
-  if (setup.Top().BoxType()==Box::NOBOX) {
+  if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
     mprintf("Error: unwrap: Parm %s does not contain box information.\n",
             setup.Top().c_str());
     return Action::ERR;
   }
   orthogonal_ = false;
-  if (setup.Top().BoxType()==Box::ORTHO)
+  if (setup.CoordInfo().TrajBox().Type()==Box::ORTHO)
     orthogonal_ = true;
 
   // Setup atom pairs to be unwrapped.
-  imageList_ = Image::CreatePairList(*currentParm, imageMode_, maskExpression_);
+  imageList_ = Image::CreatePairList(setup.Top(), imageMode_, maskExpression_);
   if (imageList_.empty()) {
     mprintf("Warning: Mask selects no atoms for topology '%s'.\n", setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
   mprintf("\tNumber of %ss to be unwrapped is %zu\n",
           Image::ModeString(imageMode_), imageList_.size()/2);
 
   // Use current parm as reference if not already set
   if (RefParm_ == 0)
-    RefParm_ = currentParm;
+    RefParm_ = setup.TopAddress();
   return Action::OK;
 }
 
@@ -105,16 +105,16 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   // Set reference structure if not already set
   if (RefFrame_.empty()) {
-    RefFrame_ = *currentFrame;
+    RefFrame_ = frm.Frm();
     return Action::OK;
   }
  
   if (orthogonal_)
-    Image::UnwrapOrtho( *currentFrame, RefFrame_, imageList_, center_, true );
+    Image::UnwrapOrtho( frm.ModifyFrm(), RefFrame_, imageList_, center_, true );
   else {
     frm.Frm().BoxCrd().ToRecip( ucell, recip );
-    Image::UnwrapNonortho( *currentFrame, RefFrame_, imageList_, ucell, recip, center_, true );
+    Image::UnwrapNonortho( frm.ModifyFrm(), RefFrame_, imageList_, ucell, recip, center_, true );
   }
 
-  return Action::OK;
-} 
+  return Action::MODIFY_COORDS;
+}

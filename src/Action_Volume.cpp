@@ -38,11 +38,11 @@ Action::RetType Action_Volume::Init(ArgList& actionArgs, ActionInit& init, int d
 /** Set angle up for this parmtop. Get masks etc.
   */
 Action::RetType Action_Volume::Setup(ActionSetup& setup) {
-  image_.SetupImaging( setup.Top().BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (!image_.ImagingEnabled()) {
     mprintf("Warning: No unit cell information, volume cannot be calculated for '%s'\n",
             setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
 
   return Action::OK;  

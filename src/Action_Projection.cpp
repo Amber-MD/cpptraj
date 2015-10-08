@@ -40,7 +40,7 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
     // load the data file.
     DataFile dataIn;
     dataIn.SetDebug( debugIn );
-    if (dataIn.ReadDataOfType( modesname, DataFile::EVECS, *DSL ))
+    if (dataIn.ReadDataOfType( modesname, DataFile::EVECS, init.DSL() ))
       return Action::ERR;
     modinfo_ = (DataSet_Modes*)init.DSL().FindSetOfType( modesname, DataSet::MODES );
     if (modinfo_ == 0) return Action::ERR;
@@ -135,8 +135,8 @@ Action::RetType Action_Projection::Setup(ActionSetup& setup) {
     // Setup mask
     if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
     if (mask_.None()) {
-      mprinterr("Error: No atoms selected.\n");
-      return Action::ERR;
+      mprintf("Warning: No atoms selected.\n");
+      return Action::SKIP;
     }
     mask_.MaskInfo();
     // Check # of selected atoms against modes info
@@ -171,7 +171,7 @@ Action::RetType Action_Projection::Setup(ActionSetup& setup) {
     if ( modinfo_->Meta().ScalarType() == MetaData::MWCOVAR ) {
       sqrtmasses_.reserve( mask_.Nselected() );
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-        sqrtmasses_.push_back( sqrt( (*currentParm)[*atom].Mass() ) );
+        sqrtmasses_.push_back( sqrt( setup.Top()[*atom].Mass() ) );
     } else {
       // If not MWCOVAR no mass-weighting necessary
       sqrtmasses_.resize( mask_.Nselected(), 1.0 );
@@ -182,7 +182,6 @@ Action::RetType Action_Projection::Setup(ActionSetup& setup) {
 
 // Action_Projection::DoAction()
 Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
-{
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_->Eigenvector(beg_);

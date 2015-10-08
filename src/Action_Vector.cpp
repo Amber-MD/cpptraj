@@ -174,8 +174,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
 Action::RetType Action_Vector::Setup(ActionSetup& setup) {
   if (needBoxInfo_) {
     // Check for box info
-    if (setup.Top().BoxType() == Box::NOBOX) {
-      mprinterr("Error: vector box: Parm %s does not have box information.\n",
+    if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+      mprinterr("Error: vector box: No box information.\n",
                 setup.Top().c_str());
       return Action::ERR;
     }
@@ -205,7 +205,7 @@ Action::RetType Action_Vector::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
   }
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
@@ -401,19 +401,19 @@ void Action_Vector::MinImage(Frame const& frm) {
 // Action_Vector::DoAction()
 Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
   switch ( mode_ ) {
-    case MASK        : Mask(*currentFrame); break;
+    case MASK        : Mask(frm.Frm()); break;
     case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break; 
-    case DIPOLE      : Dipole(*currentFrame); break;
+    case DIPOLE      : Dipole(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :
-    case PRINCIPAL_Z : Principal(*currentFrame); break;
-    case CORRPLANE   : CorrPlane(*currentFrame); break;
+    case PRINCIPAL_Z : Principal(frm.Frm()); break;
+    case CORRPLANE   : CorrPlane(frm.Frm()); break;
     case BOX         : Vec_->AddVxyz( frm.Frm().BoxCrd().Lengths() ); break;
     case BOX_X       : 
     case BOX_Y       : 
     case BOX_Z       : 
     case BOX_CTR     : UnitCell( frm.Frm().BoxCrd() ); break;
-    case MINIMAGE    : MinImage( *currentFrame ); break; 
+    case MINIMAGE    : MinImage( frm.Frm() ); break; 
     default          : return Action::ERR; // NO_OP
   } // END switch over vectorMode
   if (Magnitude_ != 0) {

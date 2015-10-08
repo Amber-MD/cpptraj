@@ -112,13 +112,13 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
   mprintf("\t%s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected());
   if (Mask1_.None()) {
     mprintf("Warning: One or both masks have no atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.Top().BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (!image_.ImagingEnabled()) {
     mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Create combined topology.
   if (combinedTop_.Natom() > 0) {
@@ -126,7 +126,7 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     if (Mask1_.Nselected() * ncopies_ != combinedTop_.Natom()) {
       mprintf("Warning: Unit cell can currently only be replicated for"
               " topologies with same # atoms.\n");
-      return Action::ERR;
+      return Action::SKIP;
     }
     // Otherwise assume top does not change.
   } else {
@@ -144,14 +144,15 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
         return Action::ERR;
       }
     }
-    combinedFrame_.SetupFrameV(combinedTop_.Atoms(), combinedTop_.ParmCoordInfo());
+    // Only coordinates for now. FIXME
+    combinedFrame_.SetupFrameM(combinedTop_.Atoms());
     // Set up COORDS / output traj if necessary.
     if (coords_ != 0)
-      coords_->CoordsSetup( combinedTop_, combinedTop_.ParmCoordInfo() );
+      coords_->CoordsSetup( combinedTop_, CoordinateInfo() );
     if (!trajfilename_.empty()) {
       if ( outtraj_.PrepareEnsembleTrajWrite(trajfilename_, trajArgs_,
-                                             &combinedTop_, combinedTop_.ParmCoordInfo(),
-                                             setup.Top().Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
+                                             &combinedTop_, CoordinateInfo(),
+                                             setup.Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
                                              ensembleNum_) )
         return Action::ERR;
     }
@@ -162,7 +163,6 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
 
 // Action_ReplicateCell::DoAction()
 Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
-{
   int idx, newFrameIdx;
   unsigned int id;
   Vec3 frac, t2;

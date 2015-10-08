@@ -865,7 +865,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   // Get keywords
   std::string outputsuffix = actionArgs.GetStringKey("naout");
   if (!outputsuffix.empty()) {
@@ -970,7 +970,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   // Use reference to determine base pairing
   if (useReference_) {
     mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
-    if (Setup((Topology*)(&REF.Parm()), 0)) return Action::ERR;
+    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
+    if (Setup( ref_setup )) return Action::ERR;
     // Set up base axes
     if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
     // Determine Base Pairing
@@ -1022,8 +1023,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     actualRange = resRange_;
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: NAstruct::setup: No residues specified for %s\n",setup.Top().c_str());
-    return Action::ERR;
+    mprintf("Warning: No residues specified for %s\n",setup.Top().c_str());
+    return Action::SKIP;
   }
   if (dataname_.empty())
     dataname_ = masterDSL_->GenerateDefaultName("NA");
@@ -1064,7 +1065,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     if (firstTimeSetup) {
       // Set up ref coords for this base type.
       NA_Base currentBase;
-      if (currentBase.Setup_Base( *currentParm, *resnum, baseType, *masterDSL_, dataname_ )) {
+      if (currentBase.Setup_Base( setup.Top(), *resnum, baseType, *masterDSL_, dataname_ )) {
         mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
                   setup.Top().TruncResNameNum(*resnum).c_str());
         return Action::ERR;
@@ -1095,17 +1096,17 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     int c5neighbor = -1;
     int c3neighbor = -1;
     for (int ratom = res.FirstAtom(); ratom != res.LastAtom(); ++ratom) {
-      if ( (*currentParm)[ratom].Name() == "C5' " ||
-           (*currentParm)[ratom].Name() == "C5* " )
-        c5neighbor = TravelBackbone( *currentParm, ratom, Visited );
-      else if ( (*currentParm)[ratom].Name() == "C3' " ||
-                (*currentParm)[ratom].Name() == "C3* " )
-        c3neighbor = TravelBackbone( *currentParm, ratom, Visited ); 
+      if ( setup.Top()[ratom].Name() == "C5' " ||
+           setup.Top()[ratom].Name() == "C5* " )
+        c5neighbor = TravelBackbone( setup.Top(), ratom, Visited );
+      else if ( setup.Top()[ratom].Name() == "C3' " ||
+                setup.Top()[ratom].Name() == "C3* " )
+        c3neighbor = TravelBackbone( setup.Top(), ratom, Visited ); 
     }
     std::fill( Visited.begin()+res.FirstAtom(), Visited.begin()+res.LastAtom(), 0 );
     // Convert from atom #s to residue #s
-    if (c5neighbor != -1) c5neighbor = (*currentParm)[c5neighbor].ResNum();
-    if (c3neighbor != -1) c3neighbor = (*currentParm)[c3neighbor].ResNum();
+    if (c5neighbor != -1) c5neighbor = setup.Top()[c5neighbor].ResNum();
+    if (c3neighbor != -1) c3neighbor = setup.Top()[c3neighbor].ResNum();
     // Find residue #s in Bases_ and set indices.
     for (idx = 0; idx != Bases_.size(); idx++) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
@@ -1130,7 +1131,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
 // Action_NAstruct::DoAction()
 Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   // Set up base axes
-  if ( SetupBaseAxes(*currentFrame) ) return Action::ERR;
+  if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
 
   if (!useReference_) {
     // Determine Base Pairing based on first frame

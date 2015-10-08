@@ -1,4 +1,3 @@
-// Action_Surf 
 #include <cmath>  // sqrt
 #include <cctype> // toupper
 #include "Action_Surf.h"
@@ -49,7 +48,7 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
   if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("Warning: Mask '%s' corresponds to 0 atoms.\n", Mask1_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
   mprintf("\tLCPO surface area will be calculated for %i atoms.\n",Mask1_.Nselected());
 
@@ -65,14 +64,14 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
   SurfaceInfo_noNeighbor_.clear();
   int soluteAtoms = 0;
   for (AtomMask::const_iterator atomi = Mask1_.begin(); atomi!=Mask1_.end(); atomi++) {
-    int molNum = (*currentParm)[ *atomi ].MolNum();
+    int molNum = setup.Top()[ *atomi ].MolNum();
     if (setup.Top().Mol( molNum ).IsSolvent()) {
       mprinterr("Error: Atom %i in mask %s does not belong to solute.\n",
                 *atomi+1, Mask1_.MaskString());
       return Action::ERR;
     }
     ++soluteAtoms;
-    SetAtomLCPO( *currentParm, *atomi, &SI ); 
+    SetAtomLCPO( setup.Top(), *atomi, &SI ); 
     if (SI.vdwradii > 2.5) {
       atomi_neighborMask_.AddAtom(*atomi);
       SurfaceInfo_neighbor_.push_back( SI );
@@ -101,7 +100,7 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
   {
     if (!mol->IsSolvent()) {
       for (int atomj=mol->BeginAtom(); atomj != mol->EndAtom(); atomj++) {
-        SetAtomLCPO( *currentParm, atomj, &SI );
+        SetAtomLCPO( setup.Top(), atomj, &SI );
         VDW_.push_back( SI.vdwradii );
         if (SI.vdwradii > 2.5)
           atomj_neighborMask_.AddAtom(atomj);

@@ -79,15 +79,14 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 
 // Action_PairDist::Setup()
 Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
-{
   if (setup.Top().SetupIntegerMask(mask1_) ) return Action::ERR;
 
   mprintf("\t");
   mask1_.BriefMaskInfo();
 
   if (mask1_.None()) {
-    mprintf("    Error: PairDist::setup: Mask has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: Mask has no atoms.\n");
+    return Action::SKIP;
   }
 
   if (setup.Top().SetupIntegerMask(mask2_) ) return Action::ERR;
@@ -96,15 +95,15 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
   mprintf("\n");
 
   if (mask2_.None()) {
-    mprintf("    Error: PairDist::setup: Mask2 has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: PairDist::setup: Mask2 has no atoms.\n");
+    return Action::SKIP;
   }
 
   if (mask1_.MaskExpression() != mask2_.MaskExpression() &&
       mask1_.NumAtomsInCommon(mask2_) > 0) {
-    mprintf("    Error: PairDist::setup: mask expressions must be either "
-	    "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
-	    "be non-overlapping.\n");
+    mprinterr("Error: mask expressions must be either "
+	      "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
+	      "be non-overlapping.\n");
     return Action::ERR;
   }
 
@@ -116,7 +115,7 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
     ub2_ = mask2_.Nselected();
   }
 
-  SetupImaging(setup.Top().BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
   return Action::OK;
 }
@@ -124,7 +123,6 @@ Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
 
 // Action_PairDist::action()
 Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
-{
   unsigned long bin, j;
   double Dist = 0.0;
   Matrix_3x3 ucell, recip;

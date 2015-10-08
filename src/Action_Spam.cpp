@@ -201,15 +201,16 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 
   // We need box info
-  if (setup.Top().BoxType() == Box::NOBOX) {
+  Box const& currentBox = setup.CoordInfo().TrajBox();
+  if (currentBox.Type() == Box::NOBOX) {
     mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!");
     return Action::ERR;
   }
 
   // See if our box dimensions are too small for our cutoff...
-  if (setup.Top().ParmBox().BoxX() < doublecut_ ||
-      setup.Top().ParmBox().BoxY() < doublecut_ ||
-      setup.Top().ParmBox().BoxZ() < doublecut_) {
+  if (currentBox.BoxX() < doublecut_ ||
+      currentBox.BoxY() < doublecut_ ||
+      currentBox.BoxZ() < doublecut_) {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
@@ -222,7 +223,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       // Tabulate COM
       double mass = 0.0;
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++)
-        mass += (*currentParm)[i].Mass();
+        mass += setup.Top()[i].Mass();
     }
     resnum++;
   }
@@ -232,11 +233,11 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
           solvname_.c_str());
 
   // Set up the charge array and check that we have enough info
-  if (SetupParms(currentParm)) return Action::ERR;
+  if (SetupParms(setup.Top())) return Action::ERR;
 
   // Back up the parm
   // NOTE: This is a full copy - use reference instead?
-  CurrentParm_ = *currentParm;
+  CurrentParm_ = setup.TopAddress();
 
   return Action::OK;
 }
@@ -245,21 +246,20 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 /** Sets the temporary charge array and makes sure that we have the necessary
   * parameters in our topology to calculate nonbonded energy terms
   */
-int Action_Spam::SetupParms(Topology* ParmIn) {
+int Action_Spam::SetupParms(Topology const& ParmIn) {
   // Store the charges
   atom_charge_.clear();
-  atom_charge_.reserve( ParmIn->Natom() );
-  for (Topology::atom_iterator atom = ParmIn->begin();
-       atom != ParmIn->end(); ++atom)
+  atom_charge_.reserve( ParmIn.Natom() );
+  for (Topology::atom_iterator atom = ParmIn.begin(); atom != ParmIn.end(); ++atom)
     atom_charge_.push_back( atom->Charge() * Constants::ELECTOAMBER );
-  if (!ParmIn->Nonbond().HasNonbond()) {
+  if (!ParmIn.Nonbond().HasNonbond()) {
     mprinterr("Error: SPAM: Parm does not have LJ information.\n");
     return 1;
   }
   return 0;
 }
 
-double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
+double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
 
   // The first atom of the solvent residue we want the energy from
   double result = 0;
@@ -267,27 +267,27 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
    * get the energies
    */
   for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
-    Vec3 atm1 = Vec3(frameIn->XYZ(i));
-    for (int j = 0; j < CurrentParm_.Natom(); j++) {
+    Vec3 atm1 = Vec3(frameIn.XYZ(i));
+    for (int j = 0; j < CurrentParm_->Natom(); j++) {
       if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
-      Vec3 atm2 = Vec3(frameIn->XYZ(j));
+      Vec3 atm2 = Vec3(frameIn.XYZ(j));
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
       switch( ImageType() ) {
         case NONORTHO:
-          frameIn->BoxCrd().ToRecip(ucell, recip);
+          frameIn.BoxCrd().ToRecip(ucell, recip);
           dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
           break;
         case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn->BoxCrd());
+          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
           break;
         default:
           dist2 = DIST2_NoImage(atm1, atm2);
       }
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
-        NonbondType const& LJ = CurrentParm_.GetLJparam(i, j);
+        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
         double r2 = 1 / dist2;
         double r6 = r2 * r2 * r2;
                   // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
@@ -301,8 +301,6 @@ double Action_Spam::Calculate_Energy(Frame *frameIn, Residue const& res) {
 
 // Action_Spam::action()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
-{
-
   Nframes_++;
 
   // Check that our box is still big enough...
@@ -310,10 +308,9 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
                            frm.Frm().BoxCrd().BoxY() < doublecut_ ||
                            frm.Frm().BoxCrd().BoxZ() < doublecut_;
   if (purewater_)
-    return DoPureWater(frameNum, currentFrame);
+    return DoPureWater(frameNum, frm.Frm());
   else
-    return DoSPAM(frameNum, currentFrame);
-
+    return DoSPAM(frameNum, frm.ModifyFrm());
 }
 
 // Action_Spam::DoPureWater
@@ -323,11 +320,13 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
    * that to our one data set. Therefore we will have NFRAMES * NWATER data
    * points
    */
+Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
+{
   int wat = 0;
   int basenum = frameNum * solvent_residues_.size();
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
         res != solvent_residues_.end(); res++) {
-    double ene = Calculate_Energy(currentFrame, *res);
+    double ene = Calculate_Energy(frameIn, *res);
     myDSL_[0]->Add(basenum + wat, &ene);
     wat++;
   }
@@ -336,6 +335,7 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
 
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
+Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   // Set up a function pointer to see if we are inside
   bool (*inside)(Vec3, Vec3, double);
   if (sphere_)
@@ -352,7 +352,7 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   std::vector<Vec3> comlist;
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
        res != solvent_residues_.end(); res++) {
-    comlist.push_back(frm.Frm().VCenterOfMass(res->FirstAtom(), res->LastAtom()));
+    comlist.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
   }
   // Loop through each peak and then scan through every residue, and assign a
   // solvent residue to each peak
@@ -426,7 +426,7 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
          * molecule that can be used for each atom in that residue. Should
          * provide some time savings.
          */
-        double ene = Calculate_Energy(currentFrame, solvent_residues_[i]);
+        double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
         myDSL_[peak]->Add(frameNum, &ene);
         break;
       }
@@ -445,8 +445,8 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
         // This is the solvent residue in our site
         if (reservations[j] == i) {
           for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
-            frm.Frm().SwapAtoms(solvent_residues_[i].FirstAtom()+k,
-                                    solvent_residues_[j].FirstAtom()+k);
+            frameIn.SwapAtoms(solvent_residues_[i].FirstAtom()+k,
+                              solvent_residues_[j].FirstAtom()+k);
           // Since we swapped solvent_residues_ of 2 solvent atoms, we also have
           // to swap reservations[i] and reservations[j]...
           int tmp = reservations[j];
@@ -454,6 +454,7 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
         }
       }
     }
+    return MODIFY_COORDS;
   }
 
   return Action::OK;

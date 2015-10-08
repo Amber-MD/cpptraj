@@ -63,15 +63,14 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
 // Action_VelocityAutoCorr::Setup()
 /** For this to be valid the same # of atoms should be selected each time. */
 Action::RetType Action_VelocityAutoCorr::Setup(ActionSetup& setup) {
-{
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprintf("Warning: No atoms selected by mask.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   // If using velocity info, check that it is present.
-  if (useVelInfo_ && !setup.Top().ParmCoordInfo().HasVel()) {
+  if (useVelInfo_ && !setup.CoordInfo().HasVel()) {
     mprinterr("Error: 'usevelocity' specified but no velocity info assocated with %s\n",
               setup.Top().c_str());
     return Action::ERR;
@@ -91,7 +90,6 @@ Action::RetType Action_VelocityAutoCorr::Setup(ActionSetup& setup) {
 
 // Action_VelocityAutoCorr::DoAction()
 Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm) {
-{
   if (!useVelInfo_) {
     // Calculate pseudo-velocities between frames.
     if (!previousFrame_.empty()) {
@@ -102,7 +100,7 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm
                                   ++atom, ++vel)
         vel->AddVxyz( (Vec3(frm.Frm().XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom))) / tstep_ );
     }
-    previousFrame_ = *currentFrame;
+    previousFrame_ = frm.Frm();
   } else {
     // Use velocity information in the frame.
     // FIXME: Eventually dont assume V is in Amber units.

@@ -66,19 +66,16 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
 // Action_RandomizeIons::setup()
 Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   n_solvent_ = setup.Top().Nsolvent();
-  if (n_solvent_==0) {
-    mprinterr("Warning: randomizeions: This command only works if solvent information\n");
-    mprinterr("Warning:                has been specified.");
-    //mprinterr(" See the \"solvent\" command.");
-    mprinterr("\n");
+  if (n_solvent_ == 0) {
+    mprinterr("Error: This command only works if solvent information has been specified.\n");
     return Action::ERR;
   }
 
   // Set up ion mask
   if (setup.Top().SetupIntegerMask( ions_ )) return Action::ERR;
   if ( ions_.None() ) {
-    mprinterr("Warning: randomizeions: Mask [%s] has no atoms.\n", ions_.MaskString());
-    return Action::ERR;
+    mprintf("Warning: Mask [%s] has no atoms.\n", ions_.MaskString());
+    return Action::SKIP;
   }
   mprintf("\tIon mask is [%s] (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
 
@@ -86,8 +83,7 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   if (!aroundmask_.empty()) {
     if (setup.Top().SetupIntegerMask( around_ )) return Action::ERR;
     if ( around_.None() ) {
-      mprintf("Warning: randomizeions: Around mask [%s] has no atoms.\n",
-              around_.MaskString());
+      mprintf("Warning: Around mask [%s] has no atoms.\n", around_.MaskString());
     } else {
       mprintf("\tAround mask is [%s] (%i atoms)\n", around_.MaskString(),
               around_.Nselected());
@@ -98,7 +94,7 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   // NOTE: Should this be a molecule check instead? If so can then get rid of ResSize 
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
-    int res = (*currentParm)[*ion].ResNum();
+    int res = setup.Top()[*ion].ResNum();
     if (debug_ > 0)
       mprintf("\tAtom %i is in residue %i which is %i atoms\n",
               *ion+1, res+1, setup.Top().Res( res ).NumAtoms() );
@@ -122,22 +118,21 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   for (Topology::mol_iterator Mol = setup.Top().MolStart();
                               Mol != setup.Top().MolEnd(); ++Mol)
   {
-    if ( (*Mol).IsSolvent() ) {
+    if ( Mol->IsSolvent() ) {
       if (NsolventAtoms == -1)
-        NsolventAtoms = (*Mol).NumAtoms();
-      else if ( NsolventAtoms != (*Mol).NumAtoms() ) {
-
-        mprinterr("Warning: randomizeions: Solvent molecules in %s are not of uniform size.\n",
+        NsolventAtoms = Mol->NumAtoms();
+      else if ( NsolventAtoms != Mol->NumAtoms() ) {
+        mprinterr("Error: Solvent molecules in %s are not of uniform size.\n",
                   setup.Top().c_str());
-        mprinterr("       First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
-                  NsolventAtoms, (*Mol).NumAtoms());
+        mprinterr("Error:   First solvent mol = %i atoms, this solvent mol = %i atoms.\n",
+                  NsolventAtoms, Mol->NumAtoms());
         return Action::ERR;
       }
-      solventStart_.push_back( (*Mol).BeginAtom() );
-      solventEnd_.push_back( (*Mol).EndAtom() );
+      solventStart_.push_back( Mol->BeginAtom() );
+      solventEnd_.push_back( Mol->EndAtom() );
     }
   }
-  SetupImaging( setup.Top().BoxType() );
+  SetupImaging( setup.CoordInfo().TrajBox().Type() );
   // Allocate solvent molecule mask
   solvent_.resize( n_solvent_ );
 
@@ -240,8 +235,8 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
 
     // If a suitable solvent molecule was found, swap it.
     if (loop > 0) {
-      mprintf("Warning: randomizeions: Tried to swap ion @%i with %i random waters\n",*ion+1,loop);
-      mprintf("Warning:                and couldn't meet criteria; skipping.\n");
+      mprintf("Warning: Tried to swap ion @%i with %i random waters\n",*ion+1,loop);
+      mprintf("Warning: and couldn't meet criteria; skipping.\n");
     } else {
       if (debug_ > 2)
         mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
@@ -249,12 +244,12 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
       int sbegin = solventStart_[ swapMol ];
       const double* watXYZ = frm.Frm().XYZ( sbegin );
       Vec3 trans( ionXYZ[0]-watXYZ[0], ionXYZ[1]-watXYZ[1], ionXYZ[2]-watXYZ[2]);
-      frm.Frm().Translate( trans, sbegin, solventEnd_[ swapMol ] );
+      frm.ModifyFrm().Translate( trans, sbegin, solventEnd_[ swapMol ] );
       trans.Neg();
-      frm.Frm().Translate( trans, *ion );
+      frm.ModifyFrm().Translate( trans, *ion );
     }
 
   } // END outer loop over all ions
 
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }

@@ -221,7 +221,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 // Action_NativeContacts::Init()
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -355,7 +355,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   // Set up reference if necessary.
   if (!first_) {
     // Set up imaging info for ref parm
-    image_.SetupImaging( REF.Parm().BoxType() );
+    image_.SetupImaging( REF.CoordsInfo().TrajBox().Type() );
     if (image_.ImageType() == NONORTHO)
       REF.Coord().BoxCrd().ToRecip(ucell_, recip_);
     if (DetermineNativeContacts( REF.Parm(), REF.Coord() )) return Action::ERR;
@@ -366,18 +366,18 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
 // Action_NativeContacts::Setup()
 Action::RetType Action_NativeContacts::Setup(ActionSetup& setup) {
   // Setup potential contact lists for this topology
-  if (SetupContactLists( *currentParm, Frame()))
-    return Action::ERR;
+  if (SetupContactLists( setup.Top(), Frame()))
+    return Action::SKIP;
   mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.Top().BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())
     mprintf("\tImaging enabled.\n");
   else
     mprintf("\tImaging disabled.\n");
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
@@ -418,11 +418,10 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 
 // Action_NativeContacts::DoAction()
 Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) {
-{
   if (image_.ImageType() == NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   if (first_) {
     mprintf("\tUsing first frame to determine native contacts.\n");
-    if (DetermineNativeContacts( *CurrentParm_, *currentFrame )) return Action::ERR;
+    if (DetermineNativeContacts( *CurrentParm_, frm.Frm() )) return Action::ERR;
     first_ = false;
   }
   nframes_++;

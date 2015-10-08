@@ -48,8 +48,8 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
   if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: rotate: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
   return Action::OK;
 }
@@ -57,18 +57,18 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
 Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
   if (rmatrices_ == 0) {
     if (inverse_)
-      frm.Frm().InverseRotate(RotMatrix_, mask_);
+      frm.ModifyFrm().InverseRotate(RotMatrix_, mask_);
     else
-      frm.Frm().Rotate(RotMatrix_, mask_);
+      frm.ModifyFrm().Rotate(RotMatrix_, mask_);
   } else {
     if (frameNum >= (int)rmatrices_->Size()) {
       mprintf("Warning: Frame %i out of range for set '%s'\n", frameNum+1, rmatrices_->legend());
       return Action::ERR;
     }
     if (inverse_)
-      frm.Frm().InverseRotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().InverseRotate((*rmatrices_)[frameNum], mask_);
     else
-      frm.Frm().Rotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().Rotate((*rmatrices_)[frameNum], mask_);
   }
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }

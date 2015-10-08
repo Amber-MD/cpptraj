@@ -46,7 +46,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   // Get solute mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
-    mprinterr("Error: WATERSHELL: Solute mask must be specified.\n");
+    mprinterr("Error: Solute mask must be specified.\n");
     return Action::ERR;
   }
   soluteMask_.SetMaskString( maskexpr );
@@ -54,7 +54,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2)) {
     filename = actionArgs.GetStringNext();
     if (filename.empty()) {
-      mprinterr("Error: WATERSHELL: Output filename must be specified.\n");
+      mprinterr("Error: Output filename must be specified.\n");
       return Action::ERR;
     }
   }
@@ -116,8 +116,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Set up solute mask
   if (setup.Top().SetupIntegerMask( soluteMask_ )) return Action::ERR;
   if ( soluteMask_.None() ) {
-    mprinterr("Error: WATERSHELL: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
-    return Action::ERR;
+    mprintf("Warning: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
+    return Action::SKIP;
   }
   // Set up solvent mask
   if (!solventmaskexpr_.empty()) {
@@ -127,19 +127,19 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     for (Topology::mol_iterator mol = setup.Top().MolStart();
                                 mol != setup.Top().MolEnd(); ++mol)
     {
-      if ( (*mol).IsSolvent() )
-        solventMask_.AddAtomRange( (*mol).BeginAtom(), (*mol).EndAtom() );
+      if ( mol->IsSolvent() )
+        solventMask_.AddAtomRange( mol->BeginAtom(), mol->EndAtom() );
     }
   }
   if ( solventMask_.None() ) {
     if (!solventmaskexpr_.empty())
-      mprinterr("Error: WATERSHELL: No solvent atoms selected by mask [%s]\n",
+      mprintf("Warning: No solvent atoms selected by mask [%s]\n",
                 solventmaskexpr_.c_str());
     else
-      mprinterr("Error: WATERSHELL: No solvent atoms in topology %s\n",setup.Top().c_str());
-    return Action::ERR;
+      mprintf("Warning: No solvent atoms in topology %s\n",setup.Top().c_str());
+    return Action::SKIP;
   }
-  SetupImaging( setup.Top().BoxType() );
+  SetupImaging( setup.CoordInfo().TrajBox().Type() );
   // Create space for residues
 # ifdef _OPENMP
   // Only re-allocate for larger # of residues
@@ -163,13 +163,12 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   activeResidues_.resize( setup.Top().Nres(), 0 );
 # endif
   // Store current Parm
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;    
 }
 
 // Action_Watershell::action()
 Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
-{
   Matrix_3x3 ucell, recip;
   int nlower = 0;
   int nupper = 0;

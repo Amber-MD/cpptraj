@@ -17,6 +17,7 @@ class ReferenceFrame {
     bool error()                const { return err_ != 0;         }
     bool empty()                const { return ref_ == 0;         }
     DataSet_Coords_REF* RefPtr()const { return ref_;              }
+    CoordinateInfo const& CoordsInfo() const { return ref_->CoordsInfo(); }
     /// \return base file name, or if that is empty data set name.
     std::string const& RefName() const{
       if (ref_->Meta().Fname().empty())

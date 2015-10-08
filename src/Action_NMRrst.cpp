@@ -108,7 +108,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
     if (outfile != 0) outfile->AddDataSet( noe->dist_ );
   }
 
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
  
   mprintf("    NMRRST: %zu NOEs from NMR restraint file.\n", NOEs_.size());
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
@@ -301,7 +301,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
   if (findNOEs_) {
     if (setup.Top().SetupCharMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
-    if (Mask_.None()) return Action::ERR;
+    if (Mask_.None()) return Action::SKIP;
     SiteArray potentialSites; // .clear();
     AtomMap resMap;
     resMap.SetDebug( debug_ );
@@ -313,7 +313,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
       selected.assign( setup.Top().Res(*res).NumAtoms(), false );
       // Find symmetric atom groups.
       AtomMap::AtomIndexArray symmGroups;
-      if (resMap.SymmetricAtoms(*currentParm, symmGroups, *res)) return Action::ERR;
+      if (resMap.SymmetricAtoms(setup.Top(), symmGroups, *res)) return Action::ERR;
       // DEBUG
       if (debug_ > 0) {
         mprintf("DEBUG: Residue %i: symmetric atom groups:\n", *res + 1);
@@ -331,7 +331,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
       for (AtomMap::AtomIndexArray::const_iterator grp = symmGroups.begin();
                                                    grp != symmGroups.end(); ++grp)
       { // NOTE: If first atom is H all should be H.
-        if ( (*currentParm)[ grp->front() ].Element() == Atom::HYDROGEN )
+        if ( setup.Top()[ grp->front() ].Element() == Atom::HYDROGEN )
         {
           Iarray symmAtomGroup;
           for (Iarray::const_iterator at = grp->begin();
@@ -350,16 +350,16 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
       // All other non-selected hydrogens bonded to same heavy atom are sites.
       for (int ratom = res_first_atom; ratom != setup.Top().Res(*res).LastAtom(); ++ratom)
       {
-        if ( (*currentParm)[ratom].Element() != Atom::HYDROGEN ) {
+        if ( setup.Top()[ratom].Element() != Atom::HYDROGEN ) {
           Iarray heavyAtomGroup;
-          for (Atom::bond_iterator ba = (*currentParm)[ratom].bondbegin();
-                                   ba != (*currentParm)[ratom].bondend(); ++ba)
+          for (Atom::bond_iterator ba = setup.Top()[ratom].bondbegin();
+                                   ba != setup.Top()[ratom].bondend(); ++ba)
             if ( Mask_.AtomInCharMask(*ba) && 
                  *ba >= res_first_atom && 
                  *ba < setup.Top().Res(*res).LastAtom() )
             {
               if ( !selected[ *ba - res_first_atom ] &&
-                   (*currentParm)[ *ba ].Element() == Atom::HYDROGEN )
+                   setup.Top()[ *ba ].Element() == Atom::HYDROGEN )
                 heavyAtomGroup.push_back( *ba );
             }
           if (!heavyAtomGroup.empty())
@@ -386,8 +386,8 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
                                        site2 != potentialSites.end(); ++site2)
         {
           if (site1->ResNum() != site2->ResNum()) {
-            std::string legend = site1->SiteLegend(*currentParm) + "--" +
-                                 site2->SiteLegend(*currentParm);
+            std::string legend = site1->SiteLegend(setup.Top()) + "--" +
+                                 site2->SiteLegend(setup.Top());
             DataSet* ds = 0;
             if (series_) {
               ds = masterDSL_->AddSet(DataSet::FLOAT,
@@ -414,30 +414,30 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
         mprintf(" + %g MB per frame", (double)(numNoePairs_ * sizeof(float)) / 1048576.0);
       mprintf(".\n");
     } else if (numNoePairs_ != potentialSites.size()) {
-      mprinterr("Error: Found NOE matrix has already been set up for %zu potential\n"
-                "Error:   NOEs, but %zu NOEs currently found.\n", numNoePairs_,
+      mprinterr("Warning: Found NOE matrix has already been set up for %zu potential\n"
+                "Warning:   NOEs, but %zu NOEs currently found.\n", numNoePairs_,
                 potentialSites.size());
-      return Action::ERR;
+      return Action::SKIP;
     }
   }
   // ---------------------------------------------
   // Set up NOEs specified on the command line
   if (!Pairs_.empty()) {
     if (!specifiedNOEs_.empty()) {
-      mprinterr("Error: Specifying NOEs currently only works with first topology used.\n");
-      return Action::ERR;
+      mprintf("Warning: Specifying NOEs currently only works with first topology used.\n");
+      return Action::SKIP;
     }
     for (MaskPairArray::iterator mp = Pairs_.begin(); mp != Pairs_.end(); mp++) {
       if (setup.Top().SetupIntegerMask( mp->first )) return Action::ERR;
-      int res1 = CheckSameResidue(*currentParm, mp->first);
+      int res1 = CheckSameResidue(setup.Top(), mp->first);
       if (res1 < 0) continue;
       if (setup.Top().SetupIntegerMask( mp->second )) return Action::ERR;
-      int res2 = CheckSameResidue(*currentParm, mp->second);
+      int res2 = CheckSameResidue(setup.Top(), mp->second);
       if (res2 < 0) continue;
       Site site1( res1, mp->first.Selected() );
       Site site2( res2, mp->second.Selected() );
-      std::string legend = site1.SiteLegend(*currentParm) + "--" +
-                           site2.SiteLegend(*currentParm);
+      std::string legend = site1.SiteLegend(setup.Top()) + "--" +
+                           site2.SiteLegend(setup.Top());
       DataSet* ds = 0;
       if (series_) {
         ds = masterDSL_->AddSet(DataSet::FLOAT,
@@ -449,7 +449,7 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
     }
   } 
   // Set up imaging info for this parm
-  Image_.SetupImaging( setup.Top().BoxType() );
+  Image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (Image_.ImagingEnabled())
     mprintf("\tImaged.\n");
   else
@@ -529,9 +529,9 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Find NOEs
-  ProcessNoeArray( noeArray_, *currentFrame, frameNum );
+  ProcessNoeArray( noeArray_, frm.Frm(), frameNum );
   // Specified NOEs
-  ProcessNoeArray( specifiedNOEs_, *currentFrame, frameNum );
+  ProcessNoeArray( specifiedNOEs_, frm.Frm(), frameNum );
 
   ++nframes_;
   return Action::OK;
