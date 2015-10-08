@@ -413,12 +413,13 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
       }
-      file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
+      file_.WriteCoord(PDBfile::ATOM, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
     }
+    anum++;
     // Check and see if a TER card should be written.
     if (aidx == *terIdx) {
       // FIXME: Should anum not be incremented until after? 
