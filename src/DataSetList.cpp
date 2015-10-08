@@ -66,6 +66,7 @@ void DataSetList::Clear() {
 
 // DataSetList::Push_Back()
 void DataSetList::Push_Back(DataSet* ds) {
+  DataList_.push_back( ds );
   if (!hasCopies_) {
     // If this is a REF data set it also goes in RefList_.
     if (ds->Type() == DataSet::REF_FRAME) { 
@@ -76,7 +77,6 @@ void DataSetList::Push_Back(DataSet* ds) {
       TopList_.push_back( ds );
     }
   }
-  DataList_.push_back( ds );
 }
 
 // DataSetList::operator+=()
@@ -574,7 +574,7 @@ int DataSetList::SetActiveReference(DataSet* ds) {
   if (ds == 0) return 1;
   activeRef_ = ds;
   ReferenceFrame REF((DataSet_Coords_REF*)ds);
-  mprintf("\tSettiing active reference for distance-based masks: '%s'\n", REF.refName());
+  mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
   // Set in all Topologies and COORDS data sets.
   for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
   {

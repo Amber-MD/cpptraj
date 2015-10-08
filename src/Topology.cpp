@@ -237,8 +237,8 @@ void Topology::Summary() const {
 void Topology::Brief(const char* heading) const {
   if (heading != 0)
     mprintf("\t%s", heading);
-  else if (!parmName_.empty())
-    mprintf(" %s,", parmName_.c_str());
+  else
+    mprintf(" %s,", c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
           residues_.size(), parmBox_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
@@ -1149,14 +1149,12 @@ int Topology::SetupCharMask(CharMask &mask) const {
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
-  //if (frame.empty()) return SetupIntegerMask(mask);
   if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
-  //if (frame.empty()) return SetupCharMask(mask);
   if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
