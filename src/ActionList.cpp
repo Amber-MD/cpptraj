@@ -29,6 +29,7 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
   int err = 0;
   if (actionsAreSilent_) SetWorldSilent( true );
   ActHolder act;
+  act.alloc_ = Alloc;
   act.ptr_ = (Action*)Alloc();
   act.args_ = argIn;
   if (act.ptr_ == 0) return 1;
