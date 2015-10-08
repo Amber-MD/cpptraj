@@ -119,6 +119,8 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
     delete tio;
   }
   if (err > 0) return 1;
+  // FIXME: For backwards compat. overwrite Topology box info with traj box info.
+  topIn->SetBoxFromTraj( ensemble_.back()->EnsembleCoordInfo().TrajBox() );
   return 0;
 }
 
@@ -163,6 +165,8 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
     UpdateMaxFrames( traj->Traj() );
   }
   if (err > 0) return 1;
+  // FIXME: For backwards compat. overwrite Topology box info with traj box info.
+  topIn->SetBoxFromTraj( trajin_.back()->TrajCoordInfo().TrajBox() );
   return 0;
 }
 

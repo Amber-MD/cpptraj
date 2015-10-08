@@ -13,7 +13,7 @@
   * \param debug If > 0 print extra info.
   */
 int BondSearch( Topology& top, Frame const& frameIn, double offset, int debug) {
-  mprintf("\t%s: determining bond info from distances.\n", top.c_str());
+  mprintf("\tDetermining bond info from distances.\n");
   if (frameIn.empty()) {
     mprinterr("Internal Error: No coordinates set; cannot search for bonds.\n");
     return 1;

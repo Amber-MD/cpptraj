@@ -613,20 +613,13 @@ void Topology::StartNewMol() {
 
 // Topology::CommonSetup()
 int Topology::CommonSetup() {
-  // Set residue last atom (PDB/Mol2/PSF) 
-//  residues_.back().SetLastAtom( atoms_.size() );
-  // Set up bond information if specified or necessary
-//  if (bondsearch) {
-//    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
-//    molecules_.clear();
-//  }
-  // Assign default lengths if necessary (for e.g. CheckStructure) // TODO: Make optional?
+  // TODO: Make bond parm assignment / molecule search optional?
+  // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
     AssignBondParameters();
-  // Determine molecule info
-  if (molecules_.empty())  
-    if (DetermineMolecules()) 
-      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  // Always determine molecule info from bonds
+  if (DetermineMolecules())
+    mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   // Check that molecules do not share residue numbers. Only when bond searching.
   // FIXME always check? 
   if (!molecules_.empty() && molecules_.size() > 1) {
