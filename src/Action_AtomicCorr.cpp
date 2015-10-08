@@ -32,10 +32,6 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, i
 {
   debug_ = debugIn;
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  if (outfile_ == 0) {
-    mprinterr("Error: Output file is required [out <filename>]\n");
-    return Action::ERR;
-  }
   cut_ = actionArgs.getKeyDouble("cut", 0.0);
   if (cut_ < 0.0 || cut_ > 1.0) {
     mprinterr("Error: cut value must be between 0 and 1.\n");
@@ -55,12 +51,13 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, i
     return Action::ERR;
   }
   // Add DataSet to output file
-  outfile_->AddDataSet( dset_ );
+  if (outfile_ != 0) outfile_->AddDataSet( dset_ );
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);
-  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), 
-          outfile_->DataFilename().full());
+  mprintf("\tatoms in mask [%s]", mask_.MaskString());
+  if (outfile_ != 0) mprintf(", output to file %s", outfile_->DataFilename().full());
+  mprintf("\n\tData saved in set '%s'\n", dset_->legend());
   if (cut_ != 0)
     mprintf("\tOnly correlations greater than %.2f or less than -%.2f will be printed.\n",
             cut_,cut_);
@@ -217,5 +214,6 @@ void Action_AtomicCorr::Print() {
   for (ACvector::const_iterator atom = atom_vectors_.begin();
                                 atom != atom_vectors_.end(); ++atom)
     labels += ( atom->Label() + "," );
-  outfile_->ProcessArgs( "xlabels " + labels + " ylabels " + labels );
+  if (outfile_ != 0)
+    outfile_->ProcessArgs( "xlabels " + labels + " ylabels " + labels );
 }

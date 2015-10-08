@@ -31,7 +31,7 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() {
-  mprintf("\t<outfilename> <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
+  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
           "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
           "\t[intrdf <file>] [rawrdf <file>]\n"
           "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
@@ -61,6 +61,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
   if (actionArgs.hasKey("center1"))
@@ -74,14 +75,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
-
-  // Get required args
-  std::string outfilename = actionArgs.GetStringNext();
-  if (outfilename.empty()) {
-    mprinterr("Error: Radial: No output filename given.\n");
-    Help();
-    return Action::ERR;
-  }
+  // If filename not yet specified check for backwards compat.
+  if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
+    outfilename = actionArgs.GetStringNext();
   spacing_ = actionArgs.getNextDouble(-1.0);
   if (spacing_ < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
@@ -175,7 +171,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
   if (!mask2.empty()) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
-  mprintf("\n            Output to %s.\n",outfilename.c_str());
+  mprintf("\n");
+  if (outfile != 0)
+    mprintf("            Output to %s.\n", outfile->DataFilename().full());
   if (intrdf_ != 0)
     mprintf("            Integral of mask2 atoms will be output to %s\n",
             intrdfFile->DataFilename().full());

@@ -51,16 +51,9 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   }
   soluteMask_.SetMaskString( maskexpr );
   // For backwards compat., if no 'out' assume next string is 
-  if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2)) {
+  if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2))
     filename = actionArgs.GetStringNext();
-    if (filename.empty()) {
-      mprinterr("Error: Output filename must be specified.\n");
-      return Action::ERR;
-    }
-  }
-  DataFile* outfile = 0;
-  if (!filename.empty())
-    outfile = init.DFL().AddDataFile( filename, actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( filename, actionArgs );
   // Check for solvent mask
   solventmaskexpr_ = actionArgs.GetMaskNext();
 
@@ -100,6 +93,8 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   }
   if (numthreads_ > 1)
     mprintf("\tParallelizing calculation with %i threads.\n", numthreads_);
+  mprintf("\t# waters in 'lower' shell stored in set '%s'\n", lower_->legend());
+  mprintf("\t# waters in 'upper' shell stored in set '%s'\n", upper_->legend());
 
   // Pre-square upper and lower cutoffs
   lowerCutoff_ *= lowerCutoff_;
