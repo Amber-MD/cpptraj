@@ -1567,6 +1567,7 @@ void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& CurrentTop) {
   int atomOffset = (int)atoms_.size();
+  int resOffset = (int)residues_.size();
   // ATOMS
   for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
   {
@@ -1574,7 +1575,8 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, res );
+    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
+                                     res.Icode(), res.ChainID()) );
   }
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  atomOffset);
