@@ -49,7 +49,7 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
   init.DSL().SetDataSetsPending(true);
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -68,8 +68,8 @@ Action::RetType Action_MultiVector::Setup(ActionSetup& setup) {
   }
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: No residues specified for %s\n",setup.Top().c_str());
-    return Action::ERR;
+    mprintf("Warning: No residues specified for %s\n",setup.Top().c_str());
+    return Action::SKIP;
   }
   // Set default DataSet name if not specified.
   if (dsetname_.empty())
@@ -116,7 +116,6 @@ Action::RetType Action_MultiVector::Setup(ActionSetup& setup) {
 
 // Action_MultiVector::DoAction()
 Action::RetType Action_MultiVector::DoAction(int frameNum, ActionFrame& frm) {
-{
   for (unsigned int nv = 0; nv < CrdIdx1_.size(); ++nv) {
     Vec3 CXYZ( frm.Frm().CRD( CrdIdx1_[nv] ) );
     Vec3 VXYZ( frm.Frm().CRD( CrdIdx2_[nv] ) );

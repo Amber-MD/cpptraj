@@ -38,7 +38,7 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
 Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
   if ( !setup.Top().LES().HasLES() ) {
     mprintf("Warning: No LES parameters in '%s', skipping.\n", setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
   if (lesParm_ == 0) { // First time setup
     // Set up masks for all copies
@@ -67,7 +67,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
     if (lesParm_ == 0) return Action::ERR;
     // Set up frames to hold individual copies
     lesFrames_.resize( lesMasks_.size() );
-    lesFrames_.SetupFrames(lesParm_->Atoms(), lesParm_->ParmCoordInfo());
+    lesFrames_.SetupFrames(lesParm_->Atoms(), setup.CoordInfo());
     lesPtrs_.resize( lesMasks_.size() );
     for (unsigned int i = 0; i != lesMasks_.size(); i++)
       lesPtrs_[i] = &lesFrames_[i];
@@ -76,7 +76,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
       if (lesTraj_.InitEnsembleWrite(trajfilename_, trajArgs_, lesMasks_.size(),
                                      TrajectoryFile::UNKNOWN_TRAJ))
         return Action::ERR;
-      if (lesTraj_.SetupEnsembleWrite(lesParm_, lesParm_->ParmCoordInfo(), lesParm_->Nframes()))
+      if (lesTraj_.SetupEnsembleWrite(lesParm_, setup.CoordInfo(), setup.Nframes()))
          return Action::ERR;
       lesTraj_.PrintInfo( 1 );
     }
@@ -84,7 +84,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
       // For average only care about coords.
       avgFrame_.SetupFrame( lesParm_->Natom() );
       if (avgTraj_.PrepareTrajWrite( avgfilename_, trajArgs_, lesParm_,
-                                     lesParm_->ParmCoordInfo(), lesParm_->Nframes(),
+                                     CoordinateInfo(), setup.Nframes(),
                                      TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
       avgTraj_.PrintInfo(1);
@@ -93,7 +93,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
     if (lesParm_->Pindex() != setup.Top().Pindex()) {
       mprintf("Warning: Already set up for LES parm '%s'. Skipping '%s'\n",
               lesParm_->c_str(), setup.Top().c_str());
-      return Action::ERR;
+      return Action::SKIP;
     }
   }
 
@@ -102,9 +102,8 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
 
 // Action_LESsplit::DoAction()
 Action::RetType Action_LESsplit::DoAction(int frameNum, ActionFrame& frm) {
-{
   for (unsigned int i = 0; i != lesMasks_.size(); i++)
-    lesFrames_[i].SetFrame(*currentFrame, lesMasks_[i]);
+    lesFrames_[i].SetFrame(frm.Frm(), lesMasks_[i]);
   if (lesSplit_) {
     if ( lesTraj_.WriteEnsemble(frameNum, lesPtrs_) ) return Action::ERR;
   }

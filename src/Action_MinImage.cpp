@@ -92,13 +92,13 @@ Action::RetType Action_MinImage::Setup(ActionSetup& setup) {
           Mask2_.MaskString(),Mask2_.Nselected());
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: One or both masks have no atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( setup.Top().BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (!image_.ImagingEnabled()) {
     mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
-    return Action::ERR;
+    return Action::SKIP;
   }
 
   return Action::OK;  
@@ -162,7 +162,6 @@ double Action_MinImage::MinNonSelfDist2(Vec3 const& a1, Vec3 const& a2) {
 
 // Action_MinImage::DoAction()
 Action::RetType Action_MinImage::DoAction(int frameNum, ActionFrame& frm) {
-{
 //  PDBfile pdbout;
 //  pdbout_.OpenWrite("minimage.pdb");
   double Dist2;

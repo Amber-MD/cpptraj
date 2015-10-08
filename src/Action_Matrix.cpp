@@ -261,15 +261,15 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
     if (setup.Top().SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
-      mprinterr("Error: No atoms selected for mask1.\n");
-      return Action::ERR;
+      mprintf("Warning: No atoms selected for mask1.\n");
+      return Action::SKIP;
     }
     if (useMask2_) {
       if (setup.Top().SetupIntegerMask(mask2_)) return Action::ERR;
       mask2_.MaskInfo(); 
       if (mask2_.None()) {
-        mprinterr("Error: No atoms selected for mask2.\n");
-        return Action::ERR;
+        mprintf("Warning: No atoms selected for mask2.\n");
+        return Action::SKIP;
       }
     }
     mask1tot = (size_t)mask1_.Nselected();
@@ -281,8 +281,8 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
   }
   // Store mass info for MWCOVAR matrix or when output BYRESIDUE or BYMASK.
   if ( Mat_->Meta().ScalarType() == MetaData::MWCOVAR || (outtype_ != BYATOM && useMass_) ) {
-    mass1_ = FillMassArray(*currentParm, mask1_);
-    mass2_ = FillMassArray(*currentParm, mask2_);
+    mass1_ = FillMassArray(setup.Top(), mask1_);
+    mass2_ = FillMassArray(setup.Top(), mask2_);
     if (outtype_ != BYATOM && !useMass_)
       mprintf("Warning: Using mass-weighted covar matrix, byres/bymask output will be"
               "weighted by mass.\n");
@@ -295,8 +295,8 @@ Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
   // which residues, as well as how many residues are selected in mask1 (cols)
   // and mask2 (rows) to determine output matrix dimensions.
   if (outtype_ == BYRESIDUE) {
-    residues1_ = MaskToMatResArray( *currentParm, mask1_ );
-    residues2_ = MaskToMatResArray( *currentParm, mask2_ );
+    residues1_ = MaskToMatResArray( setup.Top(), mask1_ );
+    residues2_ = MaskToMatResArray( setup.Top(), mask2_ );
   }
   // Determine matrix/vector dimensions. 
   size_t vectsize = 0;
@@ -796,13 +796,13 @@ Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   Mat_->IncrementSnapshots();
 
   switch (Mat_->Meta().ScalarType()) {
-    case MetaData::DIST     : CalcDistanceMatrix(*currentFrame); break;
+    case MetaData::DIST     : CalcDistanceMatrix(frm.Frm()); break;
     case MetaData::COVAR    :
-    case MetaData::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
-    case MetaData::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case MetaData::MWCOVAR  : CalcCovarianceMatrix(frm.Frm()); break;
+    case MetaData::CORREL   : CalcCorrelationMatrix(frm.Frm()); break;
     case MetaData::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
-    case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
-    case MetaData::IDEA     : CalcIdeaMatrix(*currentFrame); break;
+    case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(frm.Frm()); break;
+    case MetaData::IDEA     : CalcIdeaMatrix(frm.Frm()); break;
     case MetaData::IREDMAT  : CalcIredMatrix(frameNum); break;
     default: return Action::ERR; // Sanity check
   }

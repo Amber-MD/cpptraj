@@ -186,12 +186,12 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
   if (atom_!=0) delete[] atom_;
   atom_ = new ATOM[ Mask1_.Nselected() ];
   if (atom_==0) {
-    mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
+    mprinterr("Error: Could not allocate memory for ATOMs.\n");
     return Action::ERR;
   }
   // Set up parm info for atoms in mask
-  if ( (*currentParm)[0].GBRadius() == 0 ) {
-    mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
+  if ( setup.Top()[0].GBRadius() == 0 ) {
+    mprinterr("Error: Molsurf requires radii, but no radii in %s\n",
               setup.Top().c_str());
     return Action::ERR;
   }
@@ -201,7 +201,7 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
                                 ++parmatom, ++atm_ptr)
   {
     atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
-    const Atom patom = (*currentParm)[*parmatom];
+    const Atom patom = setup.Top()[*parmatom];
     int nres = patom.ResNum();
     atm_ptr->rnum = nres+1; // for debug output only, residues start from 1
     patom.Name().ToBuffer( atm_ptr->anam );

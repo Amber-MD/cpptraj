@@ -203,7 +203,7 @@ Action::RetType Action_Jcoupling::Init(ArgList& actionArgs, ActionInit& init, in
   mprintf("# Citations: Chou et al. JACS (2003) 125 p.8959-8966\n"
           "#            Perez et al. JACS (2001) 123 p.7081-7093\n");
   init.DSL().SetDataSetsPending(true);
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -219,8 +219,8 @@ Action::RetType Action_Jcoupling::Setup(ActionSetup& setup) {
 
   if ( setup.Top().SetupCharMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprinterr("Error: Mask specifies no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: Mask specifies no atoms.\n");
+    return Action::SKIP;
   }
   // If JcouplingInfo has already been set up, print a warning and reset for
   // new parm.
@@ -285,10 +285,10 @@ Action::RetType Action_Jcoupling::Setup(ActionSetup& setup) {
           JC.data_ = masterDSL_->AddSet( DataSet::FLOAT, MetaData(setname_, setcount_++) );
           if ( JC.data_ != 0 ) {
             JC.data_->SetLegend( setup.Top().TruncResNameNum(JC.residue) + "_" +
-                                 (*currentParm)[JC.atom[0]].Name().Truncated() + "-" +
-                                 (*currentParm)[JC.atom[1]].Name().Truncated() + "-" +
-                                 (*currentParm)[JC.atom[2]].Name().Truncated() + "-" +
-                                 (*currentParm)[JC.atom[3]].Name().Truncated()  );
+                                 setup.Top()[JC.atom[0]].Name().Truncated() + "-" +
+                                 setup.Top()[JC.atom[1]].Name().Truncated() + "-" +
+                                 setup.Top()[JC.atom[2]].Name().Truncated() + "-" +
+                                 setup.Top()[JC.atom[3]].Name().Truncated()  );
             if (outfile_ != 0)
               outfile_->AddDataSet( JC.data_ ); 
             JcouplingInfo_.push_back(JC);
@@ -309,7 +309,7 @@ Action::RetType Action_Jcoupling::Setup(ActionSetup& setup) {
             "Warning:   Check that all atoms of dihedrals are included in mask [%s]\n"
             "Warning:   and/or that dihedrals are defined in Karplus parameter file.\n",
             Mask1_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
   // DEBUG
   if (debug_>0) {
@@ -318,16 +318,16 @@ Action::RetType Action_Jcoupling::Setup(ActionSetup& setup) {
                                               jc != JcouplingInfo_.end(); ++jc) 
     {
       mprintf("%8i [%i:%4s]",MaxResidues,jc->residue, setup.Top().Res(jc->residue).c_str());
-      mprintf(" %6i:%-4s",jc->atom[0],(*currentParm)[jc->atom[0]].c_str());
-      mprintf(" %6i:%-4s",jc->atom[1],(*currentParm)[jc->atom[1]].c_str());
-      mprintf(" %6i:%-4s",jc->atom[2],(*currentParm)[jc->atom[2]].c_str());
-      mprintf(" %6i:%-4s",jc->atom[3],(*currentParm)[jc->atom[3]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[0],setup.Top()[jc->atom[0]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[1],setup.Top()[jc->atom[1]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[2],setup.Top()[jc->atom[2]].c_str());
+      mprintf(" %6i:%-4s",jc->atom[3],setup.Top()[jc->atom[3]].c_str());
       mprintf(" %6.2lf%6.2lf%6.2lf%6.2lf %i\n",jc->C[0],jc->C[1],jc->C[2],jc->C[3],
               jc->type);
       MaxResidues++;
     }
   }
-  CurrentParm_ = currentParm;    
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;  
 }
 

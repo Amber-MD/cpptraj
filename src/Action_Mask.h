@@ -23,6 +23,7 @@ class Action_Mask: public Action {
     CpptrajFile* outfile_;   ///< File to write selected atom info to
     std::string maskpdb_;    ///< Traj output file name
     Topology* CurrentParm_;
+    CoordinateInfo currentCoordInfo_;
     int debug_;
     TrajectoryFile::TrajFormatType trajFmt_; ///< Output trajectory format
     const char* trajOpt_;    ///< Output trajectory options

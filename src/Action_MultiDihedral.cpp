@@ -69,7 +69,7 @@ Action::RetType Action_MultiDihedral::Init(ArgList& actionArgs, ActionInit& init
   else
     mprintf("\tOutput range is -180 to 180 degrees.\n");
   init.DSL().SetDataSetsPending(true);
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -92,8 +92,8 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   // Search for specified dihedrals in each residue in the range
-  if (dihSearch_.FindDihedrals(*currentParm, actualRange))
-    return Action::ERR;
+  if (dihSearch_.FindDihedrals(setup.Top(), actualRange))
+    return Action::SKIP;
   mprintf("\tResRange=[%s]", resRange_.RangeArg());
   dihSearch_.PrintTypes();
   mprintf(", %i dihedrals.\n", dihSearch_.Ndihedrals());
@@ -122,10 +122,10 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
     data_.push_back( ds ); 
     if (debug_ > 0) {
       mprintf("\tDIH [%s]:", ds->legend());
-      mprintf(" :%i@%i",   (*currentParm)[dih->A0()].ResNum()+1, dih->A0() + 1);
-      mprintf(" :%i@%i",   (*currentParm)[dih->A1()].ResNum()+1, dih->A1() + 1);
-      mprintf(" :%i@%i",   (*currentParm)[dih->A2()].ResNum()+1, dih->A2() + 1);
-      mprintf(" :%i@%i\n", (*currentParm)[dih->A3()].ResNum()+1, dih->A3() + 1);
+      mprintf(" :%i@%i",   setup.Top()[dih->A0()].ResNum()+1, dih->A0() + 1);
+      mprintf(" :%i@%i",   setup.Top()[dih->A1()].ResNum()+1, dih->A1() + 1);
+      mprintf(" :%i@%i",   setup.Top()[dih->A2()].ResNum()+1, dih->A2() + 1);
+      mprintf(" :%i@%i\n", setup.Top()[dih->A3()].ResNum()+1, dih->A3() + 1);
     }
   }
   return Action::OK;
@@ -133,7 +133,6 @@ Action::RetType Action_MultiDihedral::Setup(ActionSetup& setup) {
 
 // Action_MultiDihedral::DoAction()
 Action::RetType Action_MultiDihedral::DoAction(int frameNum, ActionFrame& frm) {
-{
   std::vector<DataSet*>::const_iterator ds = data_.begin();
   for (DihedralSearch::mask_it dih = dihSearch_.begin();
                                dih != dihSearch_.end(); ++dih, ++ds)
