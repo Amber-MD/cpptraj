@@ -80,7 +80,6 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (REF_.InitRef(previous, first, useMass_, fit_, reftrajname, refFrm, 
                    RefParm_, rMaskExpr, actionArgs, "rmsd"))
     return Action::ERR;
-  mprintf("DEBUG: Ref inititalized\n");
   // Set RefParm for perres if not empty
   if (perres_ && RefParm_ == 0 && !refFrm.empty())
     RefParm_ = refFrm.ParmPtr();
