@@ -310,7 +310,7 @@ while [[ ! -z $1 ]] ; do
       OMPFLAGS=""
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -w"
+      FLIBS="$FLIBS -lgfortran -w"
       PICFLAG="-fPIC"
       ;;
     "intel" )
@@ -660,6 +660,14 @@ if [[ $USEMKL -eq 1 ]] ; then
   fi
   BLAS=""
   LAPACK=""
+fi
+
+if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
+    # Linking against fortran libraries (e.g. -lgfortran) is not required on
+    # Mac OS X using FFTW3, since the the Mac Accelerate blas/lapack/arpack
+    # doesn't require any extra fortran libs, and fftw3 does not require
+    # fortran.
+    FLIBS=""
 fi
 
 # Set up linking flags
