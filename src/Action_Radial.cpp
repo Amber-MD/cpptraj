@@ -75,9 +75,6 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   useVolume_ = actionArgs.hasKey("volume");
   DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
   DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
-  // If filename not yet specified check for backwards compat.
-  if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
-    outfilename = actionArgs.GetStringNext();
   spacing_ = actionArgs.getNextDouble(-1.0);
   if (spacing_ < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
@@ -108,6 +105,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     Mask2_.SetMaskString(mask2);
   else
     Mask2_.SetMaskString(mask1);
+  // If filename not yet specified check for backwards compat.
+  if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
+    outfilename = actionArgs.GetStringNext();
 
   // Set up output dataset. 
   Dset_ = init.DSL().AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");

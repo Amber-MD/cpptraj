@@ -50,12 +50,12 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
     return Action::ERR;
   }
   soluteMask_.SetMaskString( maskexpr );
+  // Check for solvent mask
+  solventmaskexpr_ = actionArgs.GetMaskNext();
   // For backwards compat., if no 'out' assume next string is 
   if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2))
     filename = actionArgs.GetStringNext();
   DataFile* outfile = init.DFL().AddDataFile( filename, actionArgs );
-  // Check for solvent mask
-  solventmaskexpr_ = actionArgs.GetMaskNext();
 
   // Set up datasets
   std::string dsname = actionArgs.GetStringNext();
