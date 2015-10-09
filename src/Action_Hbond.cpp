@@ -575,7 +575,7 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
 Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   int D, H;
   // accept ... H-D
-  if (Image_.ImageType() == NONORTHO)
+  if (Image_.ImagingEnabled())
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // SOLUTE-SOLUTE HBONDS
 # ifdef HBOND_OPENMP
