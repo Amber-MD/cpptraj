@@ -19,7 +19,7 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("\t<filename>\n%s\n", GridAction::HelpText);
+  mprintf("\t[out <filename>]\n%s\n", GridAction::HelpText);
   mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
           "\t[pdb <pdbout> [max <fraction>]] \n"
           "\t[[smoothdensity <value>] [invert]] [madura <madura>]\n"
@@ -31,11 +31,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
 {
   nframes_ = 0;
   // Get output filename
-  std::string filename = actionArgs.GetStringNext();
-  if (filename.empty()) {
-    mprinterr("Error: GRID: no filename specified.\n");
-    return Action::ERR;
-  }
+  std::string filename = actionArgs.GetStringKey("out");
   // Get grid options
   grid_ = GridInit( "GRID", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
@@ -63,19 +59,17 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
   mask_.SetMaskString(maskexpr);
 
   // Setup output file
+  // For backwards compat., if no 'out' assume next string is filename
+  if (filename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
+    filename = actionArgs.GetStringNext();
   DataFile* outfile = init.DFL().AddDataFile(filename, actionArgs);
-  if (outfile == 0) {
-    mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
-    return Action::ERR;
-  }
-  outfile->AddDataSet((DataSet*)grid_);
-  // grid_.PrintXplor( filename_, "This line is ignored", 
-  //                      "rdparm generated grid density" );
+  if (outfile != 0) outfile->AddDataSet((DataSet*)grid_);
 
   // Info
   mprintf("    GRID:\n");
   GridInfo( *grid_ );
-  mprintf("\tGrid will be printed to file %s\n",filename.c_str());
+  if (outfile != 0) mprintf("\tGrid will be printed to file %s\n", outfile->DataFilename().full());
+  mprintf("\tGrid data set: '%s'\n", grid_->legend());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (pdbfile_ != 0)
       mprintf("\tPseudo-PDB will be printed to %s\n", pdbfile_->Filename().full());
