@@ -1,7 +1,6 @@
 #ifndef INC_ACTION_ANGLE_H
 #define INC_ACTION_ANGLE_H
 #include "Action.h"
-// Class: Action_Angle
 /// Calculate angle between atom(s) in 3 masks
 class Action_Angle: public Action {
   public:
@@ -9,9 +8,9 @@ class Action_Angle: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Angle(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     DataSet *ang_;

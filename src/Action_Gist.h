@@ -14,9 +14,9 @@ class Action_Gist: public Action, ImagedAction  {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     void PrintDX(std::string const&, std::vector<float>&);
     void PrintDX_double(std::string const&, std::vector<double>&);
@@ -127,10 +127,10 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> dipoley_;
     std::vector <double> dipolez_;
 
-    void NonbondEnergy(Frame *);
-    void Grid(Frame *);
-    void EulerAngle(Frame *);
-    void Dipole(Frame *);
-    void Order(Frame *);
+    void NonbondEnergy(Frame const&);
+    void Grid(Frame const&);
+    void EulerAngle(Frame const&);
+    void Dipole(Frame const&);
+    void Order(Frame const&);
 };
 #endif

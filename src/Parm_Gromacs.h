@@ -4,15 +4,13 @@
 #include "BufferedLine.h"
 class Parm_Gromacs : public ParmIO {
   public :
-    Parm_Gromacs() : debug_(0), numOpen_(0), directive_err_(0) { }
+    Parm_Gromacs() : numOpen_(0), directive_err_(0) { }
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Gromacs(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(FileName const&, Topology&);
     int WriteParm(FileName const&, Topology const&) { return 1;   }
-    void SetDebug(int i)                               { debug_ = i; }
     int processWriteArgs(ArgList&) { return 0; }
-    bool NeedsBondSearch() const { return false; }
   private:
     enum KeyType { G_UNKNOWN_KEY, G_MOLECULE_TYPE, G_ATOMS, G_BONDS,
                    G_SYSTEM, G_MOLECULES, G_SETTLES, G_VIRTUAL_SITES3 };
@@ -41,7 +39,6 @@ class Parm_Gromacs : public ParmIO {
     Sarray defines_;        ///< Which preprocessor defines present.
     std::vector<int> nums_; ///< How much of each mol is present.
 
-    int debug_;
     int numOpen_;
     int directive_err_;
     std::string title_;

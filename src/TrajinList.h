@@ -28,9 +28,10 @@ class TrajinList {
       if (!ensemble_.empty()) ensemble_.front()->PrintReplicaInfo();
     }
 
-    bool empty() const { return trajin_.empty() && ensemble_.empty(); }
-    TrajModeType Mode() const { return mode_; }
-    int MaxFrames() const { return maxframes_; }
+    bool empty()         const { return trajin_.empty() && ensemble_.empty(); }
+    TrajModeType Mode()  const { return mode_; }
+    int MaxFrames()      const { return maxframes_; }
+    int TopFrames(int i) const { return topFrames_[i]; }
     void List() const;
   private:
     void UpdateMaxFrames(InputTrajCommon const&);
@@ -40,6 +41,8 @@ class TrajinList {
     int debug_;
     int maxframes_;
     TrajModeType mode_;
+    typedef std::vector<int> Iarray;
+    Iarray topFrames_; ///< Record how many frames currently associated with each topology.
     /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
     std::string finalCrdIndicesArg_;
 };

@@ -1,9 +1,8 @@
 #ifndef INC_ACTIONLIST_H
 #define INC_ACTIONLIST_H
 #include "Action.h"
-// Class: ActionList
-/// Hold actions that will be performed every frame.
-/** This class is responsible for holding all actions that will be performed
+/// Hold Actions that will be performed every frame.
+/** This class is responsible for holding all Actions that will be performed
   * during the course of trajectory processing.
   */
 class ActionList {
@@ -14,43 +13,43 @@ class ActionList {
     void Clear();
     /// Set the debug level for actions.
     void SetDebug(int);
+    /// Set whether to supress Action Init/Setup output.
     void SetSilent(bool b) { actionsAreSilent_ = b; }
-    int Debug() const { return debug_; }
     /// Add given action to the action list and initialize.
-    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&,
-                  DataSetList*,DataFileList*);
-    /// Set up actions for the given parm.
-    int SetupActions(Topology **);
-    /// Perform actions on the given frame.
-    bool DoActions(Frame **, int);
-    /// Call print for each action.
+    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&, ActionInit&);
+    /// Set up Actions for the given Topology.
+    int SetupActions(ActionSetup&);
+    /// Perform Actions on the given Frame.
+    bool DoActions(int, ActionFrame&);
+    /// Call print for each Action.
     void Print();
-    /// List all actions in the action list.
+    /// List all Actions in the list.
     void List() const;
-    bool Empty() const { return actionlist_.empty(); }
+    /// \return Current debug level.
+    int Debug()                      const { return debug_;                  }
+    /// \return True if no Actions in list.
+    bool Empty()                     const { return actionList_.empty();     }
     // The functions below help set up actions when ensemble processing.
-    /// \return the number of actions in the list.
-    int Naction() const { return actionlist_.size(); }
-    /// \return command string for corresponding action.
-    std::string const& CmdString(int i) const { return actioncmd_[i];              }
-    /// \return new action corresponding to existing action.
+    /// \return the number of Actions in the list.
+    int Naction()                    const { return (int)actionList_.size(); }
+    /// \return Arguments for corresponding Action.
+    ArgList const& ActionArgs(int i) const { return actionList_[i].args_;    }
+    /// \return Allocator corresponding to existing Action.
     DispatchObject::DispatchAllocatorType
-      ActionAlloc(int i)                const { return actionAlloc_[i]; }
+      ActionAlloc(int i)             const { return actionList_[i].alloc_;   }
   private:
     /// Action initialization and setup status.
     enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };
-    typedef std::vector<Action*> Aarray;
-    /// List of actions
-    Aarray actionlist_;
-    /// List of action commands
-    std::vector<std::string> actioncmd_;
-    /// List of action allocators (for ensemble).
-    std::vector<DispatchObject::DispatchAllocatorType> actionAlloc_;
-    /// List of action statuses
-    std::vector<ActionStatusType> actionstatus_;
-    /// Default debug level for actions
-    int debug_;
-    /// If true suppress all init/setup output from actions.
-    bool actionsAreSilent_;
+    struct ActHolder {
+      /// Action allocator (for ensemble)
+      DispatchObject::DispatchAllocatorType alloc_;
+      Action* ptr_;             ///< Pointer to Action.
+      ArgList args_;            ///< Arguments associated with Action.
+      ActionStatusType status_; ///< Current Action status.
+    };
+    typedef std::vector<ActHolder> Aarray;
+    Aarray actionList_;     ///< List of Actions
+    int debug_;             ///< Default debug level for new Actions
+    bool actionsAreSilent_; ///< If true suppress all Init/Setup output from Actions.
 };
 #endif

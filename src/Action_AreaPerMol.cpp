@@ -17,10 +17,10 @@ void Action_AreaPerMol::Help() {
 static const char* APMSTRING[] = {"XY", "XZ", "YZ"};
 
 // Action_AreaPerMol::Init()
-Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   if (actionArgs.hasKey("xy")) areaType_ = XY;
   else if (actionArgs.hasKey("xz")) areaType_ = XZ;
   else if (actionArgs.hasKey("yz")) areaType_ = YZ;
@@ -39,7 +39,7 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, DataSetList* DSL, D
   }
 
   // DataSet
-  area_per_mol_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"APM");
+  area_per_mol_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"APM");
   if (area_per_mol_==0) return Action::ERR;
   // Add DataSet to DataFileList
   if (outfile != 0) outfile->AddDataSet( area_per_mol_ );
@@ -56,32 +56,32 @@ Action::RetType Action_AreaPerMol::Init(ArgList& actionArgs, DataSetList* DSL, D
 // Action_AreaPerMol::Setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
   // Needs box info
-  if (currentParm->BoxType() == Box::NOBOX) {
+  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
     mprintf("Warning: No box information for '%s', cannot calculate area.\n",
-            currentParm->c_str());
-    return Action::ERR;
+            setup.Top().c_str());
+    return Action::SKIP;
   }
   // Probably will not work for non-orthorhombic cells
-  if (currentParm->BoxType() != Box::ORTHO)
+  if (setup.CoordInfo().TrajBox().Type() != Box::ORTHO)
     mprintf("Warning: Box is not orthorhombic, calculated area may not be correct.\n");
   // Determine how many molecules are selected
   if (Mask1_.MaskStringSet()) {
-    if (currentParm->SetupCharMask(Mask1_)) return Action::ERR;
+    if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
     if (Mask1_.None()) {
       mprinterr("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
-      return Action::ERR;
+      return Action::SKIP;
     }
     Nmols_ = 0.0;
-    for (Topology::mol_iterator mol = currentParm->MolStart();
-                                mol != currentParm->MolEnd(); ++mol)
+    for (Topology::mol_iterator mol = setup.Top().MolStart();
+                                mol != setup.Top().MolEnd(); ++mol)
     {
       if (Mask1_.AtomsInCharMask(mol->BeginAtom(), mol->EndAtom()))
         Nmols_ += 1.0;
     }
     mprintf("\tMask '%s' selects %.0f molecules.\n", Mask1_.MaskString(), Nmols_);
-    if (Nmols_ < 1.0) return Action::ERR;
+    if (Nmols_ < 1.0) return Action::SKIP;
     Nmols_ /= Nlayers_;
     mprintf("\tArea per %.0f molecules (%0.f layers) will be determined.\n", Nmols_, Nlayers_);
   }
@@ -89,15 +89,14 @@ Action::RetType Action_AreaPerMol::Setup(Topology* currentParm, Topology** parmA
 }
 
 // Action_AreaPerMol::DoAction()
-Action::RetType Action_AreaPerMol::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_AreaPerMol::DoAction(int frameNum, ActionFrame& frm) {
   double area;
   if (areaType_ == XY)
-    area = currentFrame->BoxCrd().BoxX() * currentFrame->BoxCrd().BoxY();
+    area = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxY();
   else if (areaType_ == XZ) 
-    area = currentFrame->BoxCrd().BoxX() * currentFrame->BoxCrd().BoxZ();
+    area = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxZ();
   else // if areaType_ == YZ
-    area = currentFrame->BoxCrd().BoxY() * currentFrame->BoxCrd().BoxZ();
+    area = frm.Frm().BoxCrd().BoxY() * frm.Frm().BoxCrd().BoxZ();
 
   area = area / Nmols_;
 

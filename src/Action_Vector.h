@@ -17,9 +17,9 @@ class Action_Vector : public Action {
     };
     static const char* ModeString[];
 
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     static double solve_cubic_eq(double,double,double,double);

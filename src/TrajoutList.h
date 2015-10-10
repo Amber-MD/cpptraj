@@ -10,7 +10,7 @@ class EnsembleOutList {
     void Clear();
     int AddEnsembleOut(std::string const&, ArgList const&, Topology*,
                        int, TrajectoryFile::TrajFormatType);
-    int SetupEnsembleOut(Topology*); //TODO const, Topology array?
+    int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const, Topology array?
     int WriteEnsembleOut(int, FramePtrArray const&);
     void CloseEnsembleOut();
     void List() const;
@@ -40,7 +40,7 @@ class TrajoutList {
     /// \return Array with current output trajectories converted to ensemble output trajectories.
     int MakeEnsembleTrajout(EnsembleOutList&, int) const;
     /// Set up trajectories for given topology.
-    int SetupTrajout(Topology*);
+    int SetupTrajout(Topology*, CoordinateInfo const&, int);
     /// Write frame to normal output trajectories.
     int WriteTrajout(int, Frame const&);
     /// Call end for all trajectories

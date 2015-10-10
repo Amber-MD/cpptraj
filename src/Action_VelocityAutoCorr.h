@@ -8,9 +8,9 @@ class Action_VelocityAutoCorr : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_VelocityAutoCorr(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     bool useVelInfo_;     ///< If true use actual velocities in frame if present

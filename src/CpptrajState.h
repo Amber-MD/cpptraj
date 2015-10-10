@@ -9,7 +9,7 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : activeRef_(0), debug_(0), showProgress_(true), exitOnError_(true) {}
+    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
     DataSetList* DSL()       { return &DSL_;          }
     DataFileList* DFL()      { return &DFL_;          }
@@ -21,7 +21,6 @@ class CpptrajState {
                                        analysisList_.Empty() &&
                                        trajoutList_.Empty()); }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
-    void SetActiveReference(DataSet_Coords_REF* rp) { activeRef_ = rp; }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int AddOutputTrajectory( ArgList& );
@@ -58,9 +57,6 @@ class CpptrajState {
     };
     static ListKeyType ListKeys[];
     std::vector<bool> ListsFromArg(ArgList&, bool) const;
-    /// \return active reference structure or empty frame if no reference.
-    Frame ActiveReference() const;
-    void ReferenceInfo() const;
 
     int RunNormal();
     int RunEnsemble();
@@ -83,8 +79,6 @@ class CpptrajState {
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;
     
-    /// Pointer to active reference structure for distance-based masks etc.
-    DataSet_Coords_REF* activeRef_;
     /// State debug level
     int debug_;
     /// Display Progress bar during run
@@ -96,7 +90,8 @@ class CpptrajState {
 // CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return actionList_.AddAction( Alloc, argIn, &DSL_, &DFL_ );
+  ActionInit init(DSL_, DFL_);
+  return actionList_.AddAction( Alloc, argIn, init );
 }
 // CpptrajState::AddAnalysis()
 int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {

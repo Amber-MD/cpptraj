@@ -62,7 +62,7 @@ class Action_Spam: public Action, ImagedAction {
     /** \brief The topology instance so we can extract necessary parameters for
       * energy evaluations
       */
-    Topology CurrentParm_;
+    Topology* CurrentParm_;
     /** \brief List of charges that have been converted to Amber units */
     std::vector<double> atom_charge_;
     /** \brief Is our site shape a sphere? If no, it's a box. */
@@ -79,16 +79,16 @@ class Action_Spam: public Action, ImagedAction {
     bool overflow_;
 
     // ------------------- Functions -------------------
-    int SetupParms(Topology*);
-    double Calculate_Energy(Frame*, Residue const&);
+    int SetupParms(Topology const&);
+    double Calculate_Energy(Frame const&, Residue const&);
 
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     // Custom Do- routines
-    Action::RetType DoPureWater(int, Frame*);
-    Action::RetType DoSPAM(int, Frame*);
+    Action::RetType DoPureWater(int, Frame const&);
+    Action::RetType DoSPAM(int, Frame&);
 };
 
 inline bool inside_box(Vec3 gp, Vec3 pt, double edge);

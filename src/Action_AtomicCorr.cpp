@@ -20,7 +20,7 @@ Action_AtomicCorr::Action_AtomicCorr() :
 {}
 
 void Action_AtomicCorr::Help() {
-  mprintf("\t[<mask>] out <filename> [cut <cutoff>] [min <min spacing>]\n"
+  mprintf("\t[<mask>] [out <filename>] [cut <cutoff>] [min <min spacing>]\n"
           "\t[byatom | byres]\n"
           "  Calculate average correlations between the motion of atoms in <mask>.\n");
 }
@@ -28,14 +28,10 @@ void Action_AtomicCorr::Help() {
 const char* Action_AtomicCorr::ModeString[] = {"atom", "residue"};
 
 // Action_AtomicCorr::Init()
-Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  if (outfile_ == 0) {
-    mprinterr("Error: Output file is required [out <filename>]\n");
-    return Action::ERR;
-  }
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   cut_ = actionArgs.getKeyDouble("cut", 0.0);
   if (cut_ < 0.0 || cut_ > 1.0) {
     mprinterr("Error: cut value must be between 0 and 1.\n");
@@ -49,18 +45,19 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, DataSetList* DSL, D
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   
   // Set up DataSet
-  dset_ = DSL->AddSet( DataSet::MATRIX_FLT, actionArgs.GetStringNext(), "ACorr" );
+  dset_ = init.DSL().AddSet( DataSet::MATRIX_FLT, actionArgs.GetStringNext(), "ACorr" );
   if (dset_ == 0) {
     mprinterr("Error: Could not allocate output data set.\n");
     return Action::ERR;
   }
   // Add DataSet to output file
-  outfile_->AddDataSet( dset_ );
+  if (outfile_ != 0) outfile_->AddDataSet( dset_ );
 
   mprintf("    ATOMICCORR: Correlation of %s motions will be calculated for\n",
           ModeString[acorr_mode_]);
-  mprintf("\tatoms in mask [%s], output to file %s\n", mask_.MaskString(), 
-          outfile_->DataFilename().full());
+  mprintf("\tatoms in mask [%s]", mask_.MaskString());
+  if (outfile_ != 0) mprintf(", output to file %s", outfile_->DataFilename().full());
+  mprintf("\n\tData saved in set '%s'\n", dset_->legend());
   if (cut_ != 0)
     mprintf("\tOnly correlations greater than %.2f or less than -%.2f will be printed.\n",
             cut_,cut_);
@@ -71,10 +68,10 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, DataSetList* DSL, D
   return Action::OK;
 }
 
-Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
+Action::RetType Action_AtomicCorr::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
-  if (mask_.None()) return Action::ERR;
+  if (mask_.None()) return Action::SKIP;
   if (acorr_mode_ == ATOM) {
     // Setup output array; labels and index
     atom_vectors_.clear();
@@ -85,7 +82,7 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
     // Find which residues selected atoms belong to.
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom) 
     {
-      int current_res = (*currentParm)[*atom].ResNum();
+      int current_res = setup.Top()[*atom].ResNum();
       std::map<int,AtomMask>::iterator rmask = rmaskmap.find( current_res );
       if ( rmask == rmaskmap.end() ) {
         // Residue not yet in map.
@@ -106,7 +103,7 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
       if (debug_ > 0)
         mprintf("DBG:\tRes mask for %i has %i atoms\n", rmask->first, rmask->second.Nselected());
       resmasks_.push_back( rmask->second );
-      atom_vectors_.push_back( AtomVector( currentParm->TruncResNameNum( rmask->first ),
+      atom_vectors_.push_back( AtomVector( setup.Top().TruncResNameNum( rmask->first ),
                                            rmask->first ) );
     }
     mprintf("\tSelected %zu residues.\n", resmasks_.size());
@@ -114,8 +111,7 @@ Action::RetType Action_AtomicCorr::Setup(Topology* currentParm, Topology** parmA
   return Action::OK;
 }
 
-Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_AtomicCorr::DoAction(int frameNum, ActionFrame& frm) {
   // On first pass through refframe will be empty and first frame will become ref.
   if (!refframe_.empty()) {
     ACvector::iterator atom_vector = atom_vectors_.begin();
@@ -123,7 +119,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
       // For each atom in mask, calc delta position.
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom) 
       {
-        const double* tgtxyz = currentFrame->XYZ( *atom );
+        const double* tgtxyz = frm.Frm().XYZ( *atom );
         const double* refxyz = refframe_.XYZ( *atom );
         atom_vector->push_back( (float)(tgtxyz[0] - refxyz[0]) );
         atom_vector->push_back( (float)(tgtxyz[1] - refxyz[1]) );
@@ -134,7 +130,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
       for (std::vector<AtomMask>::const_iterator rmask = resmasks_.begin();
                                                  rmask != resmasks_.end(); ++rmask)
       {
-        Vec3 CXYZ = currentFrame->VGeometricCenter( *rmask );
+        Vec3 CXYZ = frm.Frm().VGeometricCenter( *rmask );
         Vec3 RXYZ = refframe_.VGeometricCenter( *rmask );
         atom_vector->push_back( (float)(CXYZ[0] - RXYZ[0]) );
         atom_vector->push_back( (float)(CXYZ[1] - RXYZ[1]) );
@@ -144,7 +140,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, Frame* currentFrame, F
     }
   }
   // Store this frame as new reference frame
-  refframe_ = *currentFrame;
+  refframe_ = frm.Frm();
   return Action::OK;
 }
 
@@ -218,5 +214,6 @@ void Action_AtomicCorr::Print() {
   for (ACvector::const_iterator atom = atom_vectors_.begin();
                                 atom != atom_vectors_.end(); ++atom)
     labels += ( atom->Label() + "," );
-  outfile_->ProcessArgs( "xlabels " + labels + " ylabels " + labels );
+  if (outfile_ != 0)
+    outfile_->ProcessArgs( "xlabels " + labels + " ylabels " + labels );
 }

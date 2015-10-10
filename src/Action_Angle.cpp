@@ -5,10 +5,7 @@
 #include "TorsionRoutines.h"
 
 // CONSTRUCTOR
-Action_Angle::Action_Angle() :
-  ang_(0),
-  useMass_(false)
-{ } 
+Action_Angle::Action_Angle() : ang_(0), useMass_(false) {} 
 
 void Action_Angle::Help() {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> [out <filename>] [mass]\n"
@@ -16,10 +13,10 @@ void Action_Angle::Help() {
 }
 
 // Action_Angle::init()
-Action::RetType Action_Angle::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Angle::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
 
   // Get Masks
@@ -35,7 +32,8 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
   Mask3_.SetMaskString(mask3);
 
   // Dataset to store angles
-  ang_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),MetaData::M_ANGLE),"Ang");
+  ang_ = init.DSL().AddSet(DataSet::DOUBLE,
+                            MetaData(actionArgs.GetStringNext(),MetaData::M_ANGLE),"Ang");
   if (ang_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( ang_ );
@@ -51,11 +49,10 @@ Action::RetType Action_Angle::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
 // Action_Angle::setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_Angle::Setup(Topology* currentParm, Topology** parmAddress) {
-
-  if (currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
-  if (currentParm->SetupIntegerMask(Mask2_)) return Action::ERR;
-  if (currentParm->SetupIntegerMask(Mask3_)) return Action::ERR;
+Action::RetType Action_Angle::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(Mask2_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(Mask3_)) return Action::ERR;
   mprintf("\t");
   Mask1_.BriefMaskInfo();
   Mask2_.BriefMaskInfo();
@@ -63,23 +60,22 @@ Action::RetType Action_Angle::Setup(Topology* currentParm, Topology** parmAddres
   mprintf("\n");
   if (Mask1_.None() || Mask2_.None() || Mask3_.None()) {
     mprintf("Warning: angle: One or more masks contain 0 atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
-
   return Action::OK;  
 }
 
 // Action_Angle::action()
-Action::RetType Action_Angle::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Angle::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 a1, a2, a3;
   if (useMass_) {
-    a1 = currentFrame->VCenterOfMass( Mask1_ );
-    a2 = currentFrame->VCenterOfMass( Mask2_ );
-    a3 = currentFrame->VCenterOfMass( Mask3_ );
+    a1 = frm.Frm().VCenterOfMass( Mask1_ );
+    a2 = frm.Frm().VCenterOfMass( Mask2_ );
+    a3 = frm.Frm().VCenterOfMass( Mask3_ );
   } else {
-    a1 = currentFrame->VGeometricCenter( Mask1_ );
-    a2 = currentFrame->VGeometricCenter( Mask2_ );
-    a3 = currentFrame->VGeometricCenter( Mask3_ );
+    a1 = frm.Frm().VGeometricCenter( Mask1_ );
+    a2 = frm.Frm().VGeometricCenter( Mask2_ );
+    a3 = frm.Frm().VGeometricCenter( Mask3_ );
   }
   double aval = CalcAngle( a1.Dptr(), a2.Dptr(), a3.Dptr() );
 
@@ -89,4 +85,3 @@ Action::RetType Action_Angle::DoAction(int frameNum, Frame* currentFrame, Frame*
 
   return Action::OK;
 }
-

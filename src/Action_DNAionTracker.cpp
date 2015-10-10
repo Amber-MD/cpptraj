@@ -17,10 +17,10 @@ void Action_DNAionTracker::Help() {
           "\t[shortest | counttopcone| countbottomcone | count]\n");
 }
 
-Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   poffset_ = actionArgs.getKeyDouble("poffset", 5.0);
   InitImaging( !actionArgs.hasKey("noimage") );
   if (actionArgs.hasKey("shortest"))
@@ -47,7 +47,7 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, DataSetList* DSL
   ions_.SetMaskString(m4);
 
   // Add dataset to dataset list (and datafile list if filename specified)
-  distance_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
+  distance_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
                                                     MetaData::M_DISTANCE), "DNAion");
   if (distance_==0) return Action::ERR;
   if (outfile != 0)
@@ -79,29 +79,29 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, DataSetList* DSL
   return Action::OK;
 }
 
-Action::RetType Action_DNAionTracker::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_DNAionTracker::Setup(ActionSetup& setup) {
   // Setup masks
-  if (currentParm->SetupIntegerMask( p1_ )) return Action::ERR; 
+  if (setup.Top().SetupIntegerMask( p1_ )) return Action::ERR; 
   if ( p1_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask1\n");
     return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( p2_ )) return Action::ERR;  
+  if (setup.Top().SetupIntegerMask( p2_ )) return Action::ERR;  
   if ( p2_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask2\n");
     return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( base_ )) return Action::ERR;  
+  if (setup.Top().SetupIntegerMask( base_ )) return Action::ERR;  
   if ( base_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask3\n");
     return Action::ERR;
   }
-  if (currentParm->SetupIntegerMask( ions_ )) return Action::ERR;  
+  if (setup.Top().SetupIntegerMask( ions_ )) return Action::ERR;  
   if ( ions_.None() ) {
     mprinterr("Error: dnaiontracker: No atoms in mask4\n");
     return Action::ERR;
   }
-  SetupImaging( currentParm->BoxType() );
+  SetupImaging( setup.CoordInfo().TrajBox().Type() );
   mprintf("\tPhosphate1 Mask [%s] %i atoms.\n", p1_.MaskString(), p1_.Nselected());
   mprintf("\tPhosphate2 Mask [%s] %i atoms.\n", p2_.MaskString(), p2_.Nselected());
   mprintf("\t      Base Mask [%s] %i atoms.\n", base_.MaskString(), base_.Nselected());
@@ -110,34 +110,34 @@ Action::RetType Action_DNAionTracker::Setup(Topology* currentParm, Topology** pa
   return Action::OK;
 }
 
-Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_DNAionTracker::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   double d_tmp, dval;
   Vec3 P1, P2, BASE;
   // Setup imaging info if necessary
   if (ImageType()==NONORTHO) 
-    currentFrame->BoxCrd().ToRecip(ucell,recip);
+    frm.Frm().BoxCrd().ToRecip(ucell,recip);
 
   // Get center for P1, P2, and Base
   if (useMass_) {
-    P1 = currentFrame->VCenterOfMass( p1_ );
-    P2 = currentFrame->VCenterOfMass( p2_ );
-    BASE = currentFrame->VCenterOfMass( base_ );
+    P1 = frm.Frm().VCenterOfMass( p1_ );
+    P2 = frm.Frm().VCenterOfMass( p2_ );
+    BASE = frm.Frm().VCenterOfMass( base_ );
   } else {
-    P1 = currentFrame->VGeometricCenter( p1_ );
-    P2 = currentFrame->VGeometricCenter( p2_ );
-    BASE = currentFrame->VGeometricCenter( base_ );
+    P1 = frm.Frm().VGeometricCenter( p1_ );
+    P2 = frm.Frm().VGeometricCenter( p2_ );
+    BASE = frm.Frm().VGeometricCenter( base_ );
   }
  
   // Calculate P -- P distance and centroid
-  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), currentFrame->BoxCrd(), ucell, recip);
+  double d_pp = DIST2(P1.Dptr(), P2.Dptr(), ImageType(), frm.Frm().BoxCrd(), ucell, recip);
   Vec3 pp_centroid = (P1 + P2) / 2.0;
 
   // Cutoff^2
   double d_cut = d_pp*0.25 + (poffset_*poffset_); // TODO: precalc offset^2
 
   // Calculate P -- base centroid to median point
-  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), currentFrame->BoxCrd(), 
+  double d_pbase = DIST2(pp_centroid.Dptr(), BASE.Dptr(), ImageType(), frm.Frm().BoxCrd(), 
                          ucell, recip);
 
   //double d_min = DBL_MAX;
@@ -148,12 +148,12 @@ Action::RetType Action_DNAionTracker::DoAction(int frameNum, Frame* currentFrame
   // Loop over ion positions
   for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
   {
-    const double* ionxyz = currentFrame->XYZ(*ion);
-    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), currentFrame->BoxCrd(), 
+    const double* ionxyz = frm.Frm().XYZ(*ion);
+    double d_p1ion =   DIST2(P1.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
                              ucell, recip);
-    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), currentFrame->BoxCrd(), 
+    double d_p2ion =   DIST2(P2.Dptr(),   ionxyz, ImageType(), frm.Frm().BoxCrd(), 
                              ucell, recip);
-    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), currentFrame->BoxCrd(), 
+    double d_baseion = DIST2(BASE.Dptr(), ionxyz, ImageType(), frm.Frm().BoxCrd(), 
                              ucell, recip);
     //mprintf("DEBUG: ion atom %i to P1 is %f\n", *ion+1, sqrt(d_p1ion));
     //mprintf("DEBUG: ion atom %i to P2 is %f\n", *ion+1, sqrt(d_p2ion));

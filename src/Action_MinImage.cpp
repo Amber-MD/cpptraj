@@ -19,14 +19,14 @@ void Action_MinImage::Help() {
 }
 
 // Action_MinImage::Init()
-Action::RetType Action_MinImage::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
   // Require imaging.
   image_.InitImaging( true );
   useMass_ = !(actionArgs.hasKey("geom"));
   calcUsingMask_ = actionArgs.hasKey("maskcenter");
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Get Masks
   std::string mask1 = actionArgs.GetMaskNext();
   std::string mask2 = actionArgs.GetMaskNext();
@@ -40,12 +40,12 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   // Dataset to store distances
   MetaData md(actionArgs.GetStringNext());
   md.SetScalarMode( MetaData::M_DISTANCE );
-  dist_ = DSL->AddSet(DataSet::DOUBLE, md, "MID");
+  dist_ = init.DSL().AddSet(DataSet::DOUBLE, md, "MID");
   if (dist_==0) return Action::ERR;
   md.SetAspect("A1");
-  atom1_ = DSL->AddSet(DataSet::INTEGER, md);
+  atom1_ = init.DSL().AddSet(DataSet::INTEGER, md);
   md.SetAspect("A2");
-  atom2_ = DSL->AddSet(DataSet::INTEGER, md);
+  atom2_ = init.DSL().AddSet(DataSet::INTEGER, md);
   if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
   // Add DataSets to data file
   if (outfile != 0) {
@@ -85,20 +85,20 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 // Action_MinImage::Setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   */
-Action::RetType Action_MinImage::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
-  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
+Action::RetType Action_MinImage::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
   mprintf("\t%s (%i atoms) to %s (%i atoms)\n",Mask1_.MaskString(), Mask1_.Nselected(),
           Mask2_.MaskString(),Mask2_.Nselected());
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: One or both masks have no atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Set up imaging info for this parm
-  image_.SetupImaging( currentParm->BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (!image_.ImagingEnabled()) {
-    mprintf("Warning: Imaging cannot be performed for topology %s\n", currentParm->c_str());
-    return Action::ERR;
+    mprintf("Warning: Imaging cannot be performed for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;  
@@ -161,23 +161,22 @@ double Action_MinImage::MinNonSelfDist2(Vec3 const& a1, Vec3 const& a2) {
 
 
 // Action_MinImage::DoAction()
-Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_MinImage::DoAction(int frameNum, ActionFrame& frm) {
 //  PDBfile pdbout;
 //  pdbout_.OpenWrite("minimage.pdb");
   double Dist2;
 
-  currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+  frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
 
   if (calcUsingMask_) {
     // Use center of mask1 and mask2
     Vec3 a1, a2;
     if (useMass_) {
-      a1 = currentFrame->VCenterOfMass( Mask1_ );
-      a2 = currentFrame->VCenterOfMass( Mask2_ );
+      a1 = frm.Frm().VCenterOfMass( Mask1_ );
+      a2 = frm.Frm().VCenterOfMass( Mask2_ );
     } else {
-      a1 = currentFrame->VGeometricCenter( Mask1_ );
-      a2 = currentFrame->VGeometricCenter( Mask2_ );
+      a1 = frm.Frm().VGeometricCenter( Mask1_ );
+      a2 = frm.Frm().VGeometricCenter( Mask2_ );
     }
 
   // Unit cell parameters
@@ -202,10 +201,10 @@ Action::RetType Action_MinImage::DoAction(int frameNum, Frame* currentFrame, Fra
 #   endif 
     for (m1 = 0; m1 < m1end; m1++)
     {
-      a1 = Vec3(currentFrame->XYZ( Mask1_[m1] ));
+      a1 = Vec3(frm.Frm().XYZ( Mask1_[m1] ));
       for (m2 = 0; m2 < m2end; m2++)
       {
-        Dist2 = MinNonSelfDist2( a1, Vec3(currentFrame->XYZ(Mask2_[m2])) );
+        Dist2 = MinNonSelfDist2( a1, Vec3(frm.Frm().XYZ(Mask2_[m2])) );
         if (Dist2 < minDist_[mythread]) {
           minDist_[mythread] = Dist2;
           minAtom1_[mythread] = Mask1_[m1];

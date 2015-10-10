@@ -478,8 +478,8 @@ Analysis::RetType Analysis_Hist::Analyze() {
       // Create pseudo-topology/trajectory
       if (!traj3dName_.empty()) {
         Topology pseudo;
-        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '), 0);
-        pseudo.CommonSetup(false);
+        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '));
+        pseudo.CommonSetup();
         if (!parmoutName_.empty()) {
           ParmFile pfile;
           if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))

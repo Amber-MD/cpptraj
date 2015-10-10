@@ -19,10 +19,10 @@ void Action_Radgyr::Help() {
 }
 
 // Action_Radgyr::init()
-Action::RetType Action_Radgyr::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Radgyr::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   useMass_ = actionArgs.hasKey("mass");
   calcRogmax_ = !actionArgs.hasKey("nomax");
   calcTensor_ = actionArgs.hasKey("tensor");
@@ -32,16 +32,16 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 
   // Datasets to store radius of gyration and max
   // Also add datasets to data file list
-  rog_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
+  rog_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RoG");
   if (rog_==0) return Action::ERR;
   if (outfile != 0) outfile->AddDataSet( rog_ );
   if (calcRogmax_) {
-    rogmax_ = DSL->AddSet(DataSet::DOUBLE, MetaData(rog_->Meta().Name(), "Max"));
+    rogmax_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(rog_->Meta().Name(), "Max"));
     if (rogmax_ == 0) return Action::ERR; 
     if (outfile != 0) outfile->AddDataSet( rogmax_ );
   }
   if (calcTensor_) {
-    rogtensor_ = DSL->AddSet(DataSet::VECTOR, MetaData(rog_->Meta().Name(), "Tensor"));
+    rogtensor_ = init.DSL().AddSet(DataSet::VECTOR, MetaData(rog_->Meta().Name(), "Tensor"));
     if (rogtensor_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( rogtensor_ );
   }
@@ -61,12 +61,12 @@ Action::RetType Action_Radgyr::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 // Action_Radgyr::setup()
 /** Set radius of gyration up for this parmtop. Get masks etc. */
 // currentParm is set in Action::Setup
-Action::RetType Action_Radgyr::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask(Mask1_)) return Action::ERR;
+Action::RetType Action_Radgyr::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask(Mask1_)) return Action::ERR;
   mprintf("\t%s (%i atoms).\n",Mask1_.MaskString(),Mask1_.Nselected());
   if (Mask1_.None()) {
     mprintf("Warning: Radgyr::setup: Mask contains 0 atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
 
   return Action::OK;  
@@ -93,7 +93,7 @@ static inline void CalcTensor(double* tsum, double dx, double dy, double dz, dou
 /** Calc the radius of gyration of atoms in mask. Also record the maximum 
   * distance from center. Use center of mass if useMass is true.
   */
-Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Radgyr::DoAction(int frameNum, ActionFrame& frm) {
   double max = 0.0;
   double total_mass = 0.0;
   double maxMass = 1.0;
@@ -104,14 +104,14 @@ Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame
 
   // TODO: Make sumMass part of Frame?
   if (useMass_) {
-    Vec3 mid = currentFrame->VCenterOfMass( Mask1_ );
+    Vec3 mid = frm.Frm().VCenterOfMass( Mask1_ );
     for (AtomMask::const_iterator atom = Mask1_.begin(); atom != Mask1_.end(); ++atom)
     {
-      const double* XYZ = currentFrame->XYZ( *atom );
+      const double* XYZ = frm.Frm().XYZ( *atom );
       double dx = XYZ[0] - mid[0];
       double dy = XYZ[1] - mid[1];
       double dz = XYZ[2] - mid[2];
-      double mass = currentFrame->Mass( *atom );
+      double mass = frm.Frm().Mass( *atom );
       if (calcTensor_) CalcTensor(tsum, dx, dy, dz, mass);
       total_mass += mass;
       double dist2 = ((dx*dx) + (dy*dy) + (dz*dz)) * mass;
@@ -122,11 +122,11 @@ Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame
       sumDist2 += dist2;
     }
   } else {
-    Vec3 mid = currentFrame->VGeometricCenter( Mask1_ );
+    Vec3 mid = frm.Frm().VGeometricCenter( Mask1_ );
     total_mass = (double)Mask1_.Nselected();
     for (AtomMask::const_iterator atom = Mask1_.begin(); atom != Mask1_.end(); ++atom)
     {
-      const double* XYZ = currentFrame->XYZ( *atom );
+      const double* XYZ = frm.Frm().XYZ( *atom );
       double dx = XYZ[0] - mid[0];
       double dy = XYZ[1] - mid[1];
       double dz = XYZ[2] - mid[2];
@@ -158,7 +158,5 @@ Action::RetType Action_Radgyr::DoAction(int frameNum, Frame* currentFrame, Frame
     rogtensor_->Add(frameNum, tsum);
   }
 
-  //fprintf(outfile,"%10i %10.4lf %10.4lf\n",frameNum,Rog,max);
-  
   return Action::OK;
 } 

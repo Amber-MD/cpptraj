@@ -17,9 +17,9 @@ class Action_Principal : public Action {
     DataSet_Mat3x3* vecData_;
     DataSet_Vector* valData_;
 
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 };
 #endif

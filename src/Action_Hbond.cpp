@@ -55,17 +55,17 @@ void Action_Hbond::Help() {
 }
 
 // Action_Hbond::Init()
-Action::RetType Action_Hbond::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords
   Image_.InitImaging( (actionArgs.hasKey("image")) );
-  DataFile* DF = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* DF = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   series_ = actionArgs.hasKey("series");
   if (series_) {
-    UUseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
-    UVseriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
-    DSL->SetDataSetsPending(true);
+    UUseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("uuseries"), actionArgs);
+    UVseriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("uvseries"), actionArgs);
+    init.DSL().SetDataSetsPending(true);
   }
   std::string avgname = actionArgs.GetStringKey("avgout");
   std::string solvname = actionArgs.GetStringKey("solvout");
@@ -119,23 +119,23 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
   // Setup datasets
   hbsetname_ = actionArgs.GetStringNext();
   if (hbsetname_.empty())
-    hbsetname_ = DSL->GenerateDefaultName("HB");
-  NumHbonds_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
+    hbsetname_ = init.DSL().GenerateDefaultName("HB");
+  NumHbonds_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UU"));
   if (NumHbonds_==0) return Action::ERR;
   if (DF != 0) DF->AddDataSet( NumHbonds_ );
-  avgout_ = DFL->AddCpptrajFile(avgname, "Avg. solute-solute HBonds");
+  avgout_ = init.DFL().AddCpptrajFile(avgname, "Avg. solute-solute HBonds");
   if (calcSolvent_) {
-    NumSolvent_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UV"));
+    NumSolvent_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(hbsetname_, "UV"));
     if (NumSolvent_ == 0) return Action::ERR;
     if (DF != 0) DF->AddDataSet( NumSolvent_ );
-    NumBridge_ = DSL->AddSet(DataSet::INTEGER, MetaData(hbsetname_, "Bridge"));
+    NumBridge_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(hbsetname_, "Bridge"));
     if (NumBridge_ == 0) return Action::ERR;
     if (DF != 0) DF->AddDataSet( NumBridge_ );
-    BridgeID_ = DSL->AddSet(DataSet::STRING, MetaData(hbsetname_, "ID"));
+    BridgeID_ = init.DSL().AddSet(DataSet::STRING, MetaData(hbsetname_, "ID"));
     if (BridgeID_ == 0) return Action::ERR;
     if (DF != 0) DF->AddDataSet( BridgeID_ );
-    solvout_ = DFL->AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
-    bridgeout_ = DFL->AddCpptrajFile(bridgename,"Solvent bridging info");
+    solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
+    bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
   }
 
   mprintf( "  HBOND: ");
@@ -181,7 +181,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
   }
   if (Image_.UseImage())
     mprintf("\tImaging enabled.\n");
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -280,29 +280,29 @@ void Action_Hbond::SearchDonor(HBlistType& dlist, AtomMask& dmask, bool Auto,
 
 // Action_Hbond::Setup()
 /** Search for hbond donors and acceptors. */
-Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddress) {
-  CurrentParm_ = currentParm;
-  Image_.SetupImaging( currentParm->BoxType() );
+Action::RetType Action_Hbond::Setup(ActionSetup& setup) {
+  CurrentParm_ = setup.TopAddress();
+  Image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   // Set up mask
   if (!hasDonorMask_ || !hasAcceptorMask_) {
-    if ( currentParm->SetupIntegerMask( Mask_ ) ) return Action::ERR;
+    if ( setup.Top().SetupIntegerMask( Mask_ ) ) return Action::ERR;
     if ( Mask_.None() ) {
-      mprintf("Warning: Hbond::setup: Mask has no atoms.\n");
-      return Action::ERR;
+      mprintf("Warning: Mask has no atoms.\n");
+      return Action::SKIP;
     }
   }
   // Set up donor mask
   if (hasDonorMask_) {
-    if ( currentParm->SetupIntegerMask( DonorMask_ ) ) return Action::ERR;
+    if ( setup.Top().SetupIntegerMask( DonorMask_ ) ) return Action::ERR;
     if (DonorMask_.None()) {
-      mprintf("Warning: Hbond: DonorMask has no atoms.\n");
-      return Action::ERR;
+      mprintf("Warning: DonorMask has no atoms.\n");
+      return Action::SKIP;
     }
     if ( hasDonorHmask_ ) {
-      if ( currentParm->SetupIntegerMask( DonorHmask_ ) ) return Action::ERR;
+      if ( setup.Top().SetupIntegerMask( DonorHmask_ ) ) return Action::ERR;
       if ( DonorHmask_.None() ) {
-        mprintf("Warning: Hbond: Donor H mask has no atoms.\n");
-        return Action::ERR;
+        mprintf("Warning: Donor H mask has no atoms.\n");
+        return Action::SKIP;
       }
       if ( DonorHmask_.Nselected() != DonorMask_.Nselected() ) {
         mprinterr("Error: There is not a 1 to 1 correspondance between donor and donorH masks.\n");
@@ -314,26 +314,26 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
   }
   // Set up acceptor mask
   if (hasAcceptorMask_) {
-    if ( currentParm->SetupIntegerMask( AcceptorMask_ ) ) return Action::ERR;
+    if ( setup.Top().SetupIntegerMask( AcceptorMask_ ) ) return Action::ERR;
     if (AcceptorMask_.None()) {
-      mprintf("Warning: Hbond: AcceptorMask has no atoms.\n");
-      return Action::ERR;
+      mprintf("Warning: AcceptorMask has no atoms.\n");
+      return Action::SKIP;
     }
   }
   if (calcSolvent_) {
     // Set up solvent donor/acceptor masks
     if (hasSolventDonor_) {
-      if (currentParm->SetupIntegerMask( SolventDonorMask_ )) return Action::ERR;
+      if (setup.Top().SetupIntegerMask( SolventDonorMask_ )) return Action::ERR;
       if (SolventDonorMask_.None()) {
-        mprintf("Warning: Hbond: SolventDonorMask has no atoms.\n");
-        return Action::ERR;
+        mprintf("Warning: SolventDonorMask has no atoms.\n");
+        return Action::SKIP;
       }
     }
     if (hasSolventAcceptor_) {
-      if (currentParm->SetupIntegerMask( SolventAcceptorMask_ )) return Action::ERR;
+      if (setup.Top().SetupIntegerMask( SolventAcceptorMask_ )) return Action::ERR;
       if (SolventAcceptorMask_.None()) {
-        mprintf("Warning: Hbond: SolventAcceptorMask has no atoms.\n");
-        return Action::ERR;
+        mprintf("Warning: SolventAcceptorMask has no atoms.\n");
+        return Action::SKIP;
       }
     }
   }
@@ -366,7 +366,7 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
   mprintf("\tSet up %zu acceptors:\n", Acceptor_.size() );
   if (debug_>0) {
     for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
-      mprintf("        %8i: %4s\n",*accept+1,(*currentParm)[*accept].c_str());
+      mprintf("        %8i: %4s\n",*accept+1,setup.Top()[*accept].c_str());
   }
   mprintf("\tSet up %zu donors:\n", Donor_.size()/2 );
   if (debug_>0) {
@@ -374,13 +374,13 @@ Action::RetType Action_Hbond::Setup(Topology* currentParm, Topology** parmAddres
       int atom = (*donor);
       ++donor;
       int a2   = (*donor);
-      mprintf("        %8i:%4s - %8i:%4s\n",atom+1,(*currentParm)[atom].c_str(),
-              a2+1,(*currentParm)[a2].c_str()); 
+      mprintf("        %8i:%4s - %8i:%4s\n",atom+1,setup.Top()[atom].c_str(),
+              a2+1,setup.Top()[a2].c_str()); 
     } 
   }
   if ( Acceptor_.empty() && Donor_.empty() ) {
-    mprinterr("Error: No HBond donors or acceptors.\n");
-    return Action::ERR;
+    mprintf("Warning: No HBond donors or acceptors.\n");
+    return Action::SKIP;
   }
 
   // SOLVENT:
@@ -531,12 +531,12 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
   * hbond loop.
   */
 #define SoluteHbond(a_atom, d_atom, h_atom)  { \
-  dist2 = DIST2(currentFrame->XYZ(a_atom), currentFrame->XYZ(d_atom), Image_.ImageType(), currentFrame->BoxCrd(), ucell_, recip_); \
+  dist2 = DIST2(frm.Frm().XYZ(a_atom), frm.Frm().XYZ(d_atom), Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_); \
   if (dist2 > dcut2_) continue; \
   if (Image_.ImageType() == NOIMAGE) \
-    angle = CalcAngle(currentFrame->XYZ(a_atom), currentFrame->XYZ(h_atom), currentFrame->XYZ(d_atom)); \
+    angle = CalcAngle(frm.Frm().XYZ(a_atom), frm.Frm().XYZ(h_atom), frm.Frm().XYZ(d_atom)); \
   else \
-    angle = ImagedAngle(currentFrame->XYZ(a_atom), currentFrame->XYZ(h_atom), currentFrame->XYZ(d_atom)); \
+    angle = ImagedAngle(frm.Frm().XYZ(a_atom), frm.Frm().XYZ(h_atom), frm.Frm().XYZ(d_atom)); \
   if (angle < acut_) continue; \
   ++numHB; \
   dist = sqrt(dist2); \
@@ -572,11 +572,11 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
 // Action_Hbond::DoAction()
 /** Calculate distance between all donors and acceptors. Store Hbond info.
   */    
-Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   int D, H;
   // accept ... H-D
-  if (Image_.ImageType() == NONORTHO)
-    currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+  if (Image_.ImagingEnabled())
+    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // SOLUTE-SOLUTE HBONDS
 # ifdef HBOND_OPENMP
   int dAt, hAt, aAt, didx, aidx, hbidx, mol1 = -1, numHB = 0;
@@ -592,15 +592,15 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
     for (aidx = 0; aidx < (int)Acceptor_.size(); aidx++) {
       aAt = Acceptor_[aidx];
       if (aAt != dAt && mol1 != (*CurrentParm_)[aAt].MolNum()) {
-        dist2 = DIST2(currentFrame->XYZ(aAt), currentFrame->XYZ(dAt), Image_.ImageType(),
-                      currentFrame->BoxCrd(), ucell_, recip_);
+        dist2 = DIST2(frm.Frm().XYZ(aAt), frm.Frm().XYZ(dAt), Image_.ImageType(),
+                      frm.Frm().BoxCrd(), ucell_, recip_);
         if (dist2 > dcut2_) continue;
         if (Image_.ImageType() == NOIMAGE)
-          angle = CalcAngle(currentFrame->XYZ(aAt), currentFrame->XYZ(hAt),
-                            currentFrame->XYZ(dAt));
+          angle = CalcAngle(frm.Frm().XYZ(aAt), frm.Frm().XYZ(hAt),
+                            frm.Frm().XYZ(dAt));
         else
-          angle = ImagedAngle(currentFrame->XYZ(aAt), currentFrame->XYZ(hAt),
-                              currentFrame->XYZ(dAt));
+          angle = ImagedAngle(frm.Frm().XYZ(aAt), frm.Frm().XYZ(hAt),
+                              frm.Frm().XYZ(dAt));
         if (angle < acut_) continue;
         ++numHB;
         hbidx = ((didx / 2) * Acceptor_.size()) + aidx;
@@ -689,7 +689,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
                                   accept != SolventAcceptor_.end(); ++accept)
         { 
-          if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, H, true )) {
+          if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, H, true )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[D].ResNum();
             int solventmol = (*CurrentParm_)[*accept].ResNum();
@@ -714,7 +714,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, Frame* currentFrame, Frame*
         for (HBlistType::iterator accept = Acceptor_.begin();
                                   accept != Acceptor_.end(); ++accept)
         {
-          if (AtomsAreHbonded( *currentFrame, frameNum, *accept, D, H, *accept, false )) {
+          if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, *accept, false )) {
             ++numHB;
             int soluteres = (*CurrentParm_)[*accept].ResNum();
             int solventmol = (*CurrentParm_)[D].ResNum();

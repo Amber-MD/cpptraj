@@ -10,10 +10,10 @@ class Action_FilterByData : public Action {
     static void Help();
     /// For running as a separate command.
     size_t DetermineFrames() const;
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType DoAction(int, ActionFrame&);
   private:
-    Action::RetType Setup(Topology*, Topology**) { return Action::OK; }
+    Action::RetType Setup(ActionSetup&) { return Action::OK; }
     void Print() {}
 
     std::vector<double> Max_;

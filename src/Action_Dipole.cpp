@@ -18,7 +18,7 @@ void Action_Dipole::Help() {
 }
 
 // Action_Dipole::Init()
-Action::RetType Action_Dipole::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output filename
   std::string filename = actionArgs.GetStringNext();
@@ -26,7 +26,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, DataSetList* DSL, DataF
     mprinterr("Error: Dipole: no filename specified.\n");
     return Action::ERR;
   }
-  outfile_ = DFL->AddCpptrajFile(filename, "dipole");
+  outfile_ = init.DFL().AddCpptrajFile(filename, "dipole");
   if (outfile_ == 0) return Action::ERR;
   // 'negative' means something different here than for other grid actions,
   // so get it here. Done this way to be consistent with PTRAJ behavior.
@@ -35,7 +35,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   else
     max_ = actionArgs.getKeyDouble("max", 0);
   // Get grid options
-  grid_ = GridInit( "Dipole", actionArgs, *DSL );
+  grid_ = GridInit( "Dipole", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
   // Setup dipole x, y, and z grids
   dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );
@@ -60,50 +60,50 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 }
 
 // Action_Dipole::setup()
-Action::RetType Action_Dipole::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->Nsolvent() < 1) {
-    mprinterr("Error: Dipole: no solvent present in %s.\n", currentParm->c_str());
+Action::RetType Action_Dipole::Setup(ActionSetup& setup) {
+  if (setup.Top().Nsolvent() < 1) {
+    mprinterr("Error: Dipole: no solvent present in %s.\n", setup.Top().c_str());
     return Action::ERR;
   }
   // Traverse over solvent molecules to find out the 
   // "largest" solvent molecule; allocate space for this
   // many coordinates.
   int NsolventAtoms = 0;
-  for (Topology::mol_iterator Mol = currentParm->MolStart();
-                              Mol != currentParm->MolEnd(); ++Mol)
+  for (Topology::mol_iterator Mol = setup.Top().MolStart();
+                              Mol != setup.Top().MolEnd(); ++Mol)
   {
-    if ( (*Mol).IsSolvent() ) {
-      if ( (*Mol).NumAtoms() > NsolventAtoms )
-        NsolventAtoms = (*Mol).NumAtoms();
+    if ( Mol->IsSolvent() ) {
+      if ( Mol->NumAtoms() > NsolventAtoms )
+        NsolventAtoms = Mol->NumAtoms();
     }
   }
   //sol_.resize( NsolventAtoms );
   mprintf("\tLargest solvent mol is %i atoms.\n", NsolventAtoms);
 
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
-  if (currentParm->SetupCharMask( mask_ ))
+  if (setup.Top().SetupCharMask( mask_ ))
     return Action::ERR;
-  mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: Dipole: No atoms selected for parm %s\n", currentParm->c_str());
-    return Action::ERR;
+    mprinterr("Warning: No atoms selected for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
 // Action_Dipole::action()
-Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 cXYZ, dipolar_vector, COM;
 
   // Set up center to origin or box center
   if (GridMode() == GridAction::BOX) 
-    cXYZ = currentFrame->BoxCrd().Center();
+    cXYZ = frm.Frm().BoxCrd().Center();
   else if (GridMode() == GridAction::MASKCENTER)
-    cXYZ = currentFrame->VGeometricCenter( CenterMask() );
+    cXYZ = frm.Frm().VGeometricCenter( CenterMask() );
   else // GridAction::ORIGIN/SPECIFIEDCENTER
     cXYZ.Zero();
 
@@ -123,7 +123,7 @@ Action::RetType Action_Dipole::DoAction(int frameNum, Frame* currentFrame, Frame
       if ( mask_.AtomInCharMask(satom) ) {
         // Get coordinates and shift to origin and then to appropriate spacing
         // NOTE: Do not shift into grid coords until the very end.
-        const double* sol = currentFrame->XYZ( satom );
+        const double* sol = frm.Frm().XYZ( satom );
         // Calculate dipole vector. The center of mass of the solvent is used 
         // as the "origin" for the vector.
         // NOTE: the total charge on the solvent should be neutral for this 

@@ -43,8 +43,9 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 };
 
 // CONSTRUCTOR
-DataSetList::DataSetList() : maxFrames_(-1), debug_(0), ensembleNum_(-1),
-                             hasCopies_(false), dataSetsPending_(false)
+DataSetList::DataSetList() :
+  activeRef_(0),maxFrames_(-1), debug_(0), ensembleNum_(-1), hasCopies_(false),
+  dataSetsPending_(false)
 {}
 
 // DESTRUCTOR
@@ -60,20 +61,22 @@ void DataSetList::Clear() {
   TopList_.clear();
   hasCopies_ = false;
   dataSetsPending_ = false;
+  activeRef_ = 0;
 } 
 
 // DataSetList::Push_Back()
 void DataSetList::Push_Back(DataSet* ds) {
+  DataList_.push_back( ds );
   if (!hasCopies_) {
     // If this is a REF data set it also goes in RefList_.
-    if (ds->Type() == DataSet::REF_FRAME)
+    if (ds->Type() == DataSet::REF_FRAME) { 
       RefList_.push_back( ds );
-    else if (ds->Type() == DataSet::TOPOLOGY) {
+      if (activeRef_ == 0) SetActiveReference( ds );
+    } else if (ds->Type() == DataSet::TOPOLOGY) {
       ((DataSet_Topology*)ds)->SetPindex( TopList_.size() );
       TopList_.push_back( ds );
     }
   }
-  DataList_.push_back( ds );
 }
 
 // DataSetList::operator+=()
@@ -524,16 +527,17 @@ const char* DataSetList::RefArgs = "reference | ref <name> | refindex <#>";
   *   - 'ref <name>'  : Get reference frame by full/base filename or tag.
   *   - 'reference'   : First reference frame in list.
   *   - 'refindex <#>': Reference frame at position.
+  * \param err Set to 1 if keyword present but no reference found, 0 otherwise.
   */
-ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
+DataSet* DataSetList::GetReferenceSet(ArgList& argIn, int& err) const {
   DataSet* ref = 0;
-  // 'ref <name>'
+  err = 0;
   std::string refname = argIn.GetStringKey("ref");
   if (!refname.empty()) {
     ref = FindSetOfType( refname, DataSet::REF_FRAME );
     if (ref == 0) {
       mprinterr("Error: Reference '%s' not found.\n", refname.c_str());
-      return ReferenceFrame(1);
+      err = 1;
     }
   } else {
     int refindex = argIn.getKeyInt("refindex", -1);
@@ -542,10 +546,44 @@ ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
       ref = RefList_[refindex];
     if (refindex != -1 && ref == 0) {
       mprinterr("Error: Reference index %i not found.\n", refindex);
-      return ReferenceFrame(1);
+      err = 1;
     }
   }
-  return ReferenceFrame((DataSet_Coords_REF*)ref);
+  return ref;
+}
+
+ReferenceFrame DataSetList::GetReferenceFrame(ArgList& argIn) const {
+  int err = 0;
+  DataSet* ds = GetReferenceSet(argIn, err);
+  if (ds == 0) return ReferenceFrame(err);
+  return ReferenceFrame((DataSet_Coords_REF*)ds);
+}
+
+int DataSetList::SetActiveReference(ArgList &argIn) {
+  int err = 0;
+  DataSet* ds = GetReferenceSet( argIn, err );
+  if (ds == 0) {
+    // For backwards compat, see if there is a single integer arg.
+    ArgList refArg( "refindex " + argIn.GetStringNext() );
+    ds = GetReferenceSet( refArg, err );
+  }
+  return SetActiveReference( ds );
+}
+
+int DataSetList::SetActiveReference(DataSet* ds) {
+  if (ds == 0) return 1;
+  activeRef_ = ds;
+  ReferenceFrame REF((DataSet_Coords_REF*)ds);
+  mprintf("\tSetting active reference for distance-based masks: '%s'\n", REF.refName());
+  // Set in all Topologies and COORDS data sets.
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+  {
+    if ( (*ds)->Type() == DataSet::TOPOLOGY )
+      ((DataSet_Topology*)(*ds))->TopPtr()->SetDistMaskRef( REF.Coord() );
+    else if ( (*ds)->Group() == DataSet::COORDINATES )
+      ((DataSet_Coords*)(*ds))->TopPtr()->SetDistMaskRef( REF.Coord() );
+  }
+  return 0;
 }
 
 // DataSetList::ListReferenceFrames()
@@ -554,6 +592,8 @@ void DataSetList::ListReferenceFrames() const {
     mprintf("\nREFERENCE FRAMES (%zu total):\n", RefList_.size());
     for (DataListType::const_iterator ref = RefList_.begin(); ref != RefList_.end(); ++ref)
       mprintf("    %u: %s\n", ref - RefList_.begin(), (*ref)->Meta().PrintName().c_str());
+    if (activeRef_ != 0)
+      mprintf("\tActive reference frame for distance-based masks is '%s'\n", activeRef_->legend());
   }
 }
 
@@ -612,8 +652,6 @@ void DataSetList::ListTopologies() const {
       Topology const& top = ((DataSet_Topology*)*ds)->Top();
       mprintf(" %i:", top.Pindex());
       top.Brief(0);
-      if (top.Nframes() > 0)
-        mprintf(", %i frames", top.Nframes());
       mprintf("\n");
     }
   }

@@ -100,10 +100,10 @@ int Action_Molsurf::AllocateMemory() {
 }
 
 // Action_Molsurf::Init()
-Action::RetType Action_Molsurf::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Molsurf::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   probe_rad_ = actionArgs.getKeyDouble("probe",1.4);
   rad_offset_ = actionArgs.getKeyDouble("offset",0.0);
   std::string submaskString = actionArgs.GetStringKey("submask");
@@ -116,13 +116,13 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, DataSetList* DSL, Data
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
 
   // Dataset to store angles
-  sasa_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"MSURF");
+  sasa_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"MSURF");
   if (sasa_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet(sasa_);
   // Submask string data sets
   for (Marray::const_iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask) {
-    DataSet* ds = DSL->AddSet( DataSet::FLOAT, MetaData(sasa_->Meta().Name(),
+    DataSet* ds = init.DSL().AddSet( DataSet::FLOAT, MetaData(sasa_->Meta().Name(),
                                                         "submask", mask-SubMasks_.begin()) );
     if (ds == 0) return Action::ERR;
     ds->SetLegend( mask->MaskExpression() );
@@ -144,8 +144,8 @@ Action::RetType Action_Molsurf::Init(ArgList& actionArgs, DataSetList* DSL, Data
 /** Set mask up for this parmtop. Allocate the ATOM structure array used 
   * by the molsurf C routines and set everything but the atom coords.
   */
-Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask(Mask1_) ) return Action::ERR;
+Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask(Mask1_) ) return Action::ERR;
   if (Mask1_.None()) {
     mprintf("Warning: Mask contains 0 atoms.\n");
     return Action::ERR;
@@ -156,9 +156,9 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
   // Set up submasks
   if (!SubMasks_.empty()) {
     // Set up an array so we can index from parm atoms to Mask1 indices.
-    mask1idx_.assign( currentParm->Natom(), -1 );
+    mask1idx_.assign( setup.Top().Natom(), -1 );
     int idx = 0;
-    for (int at = 0; at != currentParm->Natom(); at++) {
+    for (int at = 0; at != setup.Top().Natom(); at++) {
       if (at == Mask1_[idx])
         mask1idx_[at] = idx++;
       mprintf("DBG: mask1idx_[%i]= %i\n", at, mask1idx_[at]);
@@ -166,7 +166,7 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
     }
     for (Marray::iterator mask = SubMasks_.begin(); mask != SubMasks_.end(); ++mask)
     {
-      if (currentParm->SetupIntegerMask(*mask)) return Action::ERR;
+      if (setup.Top().SetupIntegerMask(*mask)) return Action::ERR;
       if (mask->None())
         mprintf("Warning: No atoms selected for mask '%s'\n", mask->MaskString());
       else {
@@ -186,13 +186,13 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
   if (atom_!=0) delete[] atom_;
   atom_ = new ATOM[ Mask1_.Nselected() ];
   if (atom_==0) {
-    mprinterr("Error: Molsurf::Setup Could not allocate memory for ATOMs.\n");
+    mprinterr("Error: Could not allocate memory for ATOMs.\n");
     return Action::ERR;
   }
   // Set up parm info for atoms in mask
-  if ( (*currentParm)[0].GBRadius() == 0 ) {
-    mprinterr("Error: Molsurf::Setup: Molsurf requires radii, but no radii in %s\n",
-              currentParm->c_str());
+  if ( setup.Top()[0].GBRadius() == 0 ) {
+    mprinterr("Error: Molsurf requires radii, but no radii in %s\n",
+              setup.Top().c_str());
     return Action::ERR;
   }
   ATOM *atm_ptr = atom_;
@@ -201,11 +201,11 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
                                 ++parmatom, ++atm_ptr)
   {
     atm_ptr->anum = *parmatom + 1; // anum is for debug output only, atoms start from 1
-    const Atom patom = (*currentParm)[*parmatom];
+    const Atom patom = setup.Top()[*parmatom];
     int nres = patom.ResNum();
     atm_ptr->rnum = nres+1; // for debug output only, residues start from 1
     patom.Name().ToBuffer( atm_ptr->anam );
-    strcpy(atm_ptr->rnam, currentParm->Res(nres).c_str());
+    strcpy(atm_ptr->rnam, setup.Top().Res(nres).c_str());
     atm_ptr->pos[0] = 0;
     atm_ptr->pos[1] = 0;
     atm_ptr->pos[2] = 0;
@@ -224,13 +224,13 @@ Action::RetType Action_Molsurf::Setup(Topology* currentParm, Topology** parmAddr
 }
 
 // Action_Molsurf::DoAction()
-Action::RetType Action_Molsurf::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Molsurf::DoAction(int frameNum, ActionFrame& frm) {
   // Set up coordinates for atoms in mask
   ATOM *atm_ptr = atom_;
   for (AtomMask::const_iterator maskatom = Mask1_.begin(); maskatom != Mask1_.end();
        ++maskatom, ++atm_ptr)
   {
-    const double* XYZ = currentFrame->XYZ( *maskatom );
+    const double* XYZ = frm.Frm().XYZ( *maskatom );
     std::copy( XYZ, XYZ+3, atm_ptr->pos );
     atm_ptr->area = 0.0;
   }
