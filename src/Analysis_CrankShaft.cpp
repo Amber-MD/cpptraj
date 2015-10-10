@@ -25,7 +25,7 @@ void Analysis_CrankShaft::Help() {
 
 const char* Analysis_CrankShaft::CSstring[] = { "angle", "distance" };
 
-Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   debug_ = debugIn;
   info_ = analyzeArgs.GetStringKey("info");
@@ -37,9 +37,9 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   else if (analyzeArgs.hasKey("distance"))
     type_ = DISTANCE;
 
-  frame_vs_bin_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("out"),
+  frame_vs_bin_ = DFL->AddCpptrajFile( analyzeArgs.GetStringKey("out"),
                                          "Crankshaft frame vs bin" );
-  results_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("results"),
+  results_ = DFL->AddCpptrajFile( analyzeArgs.GetStringKey("results"),
                                     "Crankshaft results", DataFileList::TEXT, true );
   if (results_ == 0) return Analysis::ERR;
 
@@ -61,12 +61,12 @@ Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* 
   }
 
   // Get datasets
-  scalar1_ = (DataSet_1D*)DSLin->GetDataSet( name1 );
+  scalar1_ = (DataSet_1D*)DSL->GetDataSet( name1 );
   if (scalar1_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name1.c_str());
     return Analysis::ERR;
   }
-  scalar2_ = (DataSet_1D*)DSLin->GetDataSet( name2 );
+  scalar2_ = (DataSet_1D*)DSL->GetDataSet( name2 );
   if (scalar2_ == 0) {
     mprinterr("Error: crankshaft: Dataset %s not found.\n", name2.c_str());
     return Analysis::ERR;

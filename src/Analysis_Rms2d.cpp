@@ -34,11 +34,11 @@ const char* Analysis_Rms2d::ModeStrings_[] = {
 };
 
 // Analysis_Rms2d::Setup()
-Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  // Attempt to get coords dataset from datasetlist
+  // Attempt to get coords dataset from DSL
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+  coords_ = (DataSet_Coords*)DSL->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: rms2d: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
@@ -57,15 +57,15 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   useMass_ = analyzeArgs.hasKey("mass");
   std::string outfilename = analyzeArgs.GetStringKey("out");
   if (outfilename.empty()) outfilename = analyzeArgs.GetStringKey("rmsout"); // DEPRECATED
-  DataFile* rmsdFile = DFLin->AddDataFile(outfilename, analyzeArgs);
+  DataFile* rmsdFile = DFL->AddDataFile(outfilename, analyzeArgs);
   std::string reftrajname = analyzeArgs.GetStringKey("reftraj");
   if (!reftrajname.empty()) {
-    RefParm_ = datasetlist->GetTopology(analyzeArgs); // TODO Use coords set
+    RefParm_ = DSL->GetTopology(analyzeArgs); // TODO Use coords set
     useReferenceTraj_ = true;
   } else
     useReferenceTraj_ = false;
   // Check for correlation. 
-  DataFile* corrfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("corr"), analyzeArgs);
+  DataFile* corrfile = DFL->AddDataFile(analyzeArgs.GetStringKey("corr"), analyzeArgs);
   // Require an output filename if corr not specified
   if (rmsdFile == 0 && corrfile == 0) {
     mprinterr("Error: Rms2d: No output filename specified.\n");
@@ -94,7 +94,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   // If reference is trajectory, open traj
   if (useReferenceTraj_) {
     // Find out if reference traj is already present
-    RefTraj_ = (DataSet_Coords*)datasetlist->FindCoordsSet( reftrajname );
+    RefTraj_ = (DataSet_Coords*)DSL->FindCoordsSet( reftrajname );
     if (RefTraj_ == 0) {
       // Reference traj not yet present. Load it; requires parm.
       if (RefParm_==0) {
@@ -103,7 +103,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
         return Analysis::ERR;
       }
       DataSet_Coords_TRJ* DCT = (DataSet_Coords_TRJ*)
-                                datasetlist->AddSet(DataSet::TRAJ, reftrajname, "RmsRefTraj");
+                                DSL->AddSet(DataSet::TRAJ, reftrajname, "RmsRefTraj");
       if (DCT == 0) return Analysis::ERR;
       if (DCT->AddSingleTrajin( reftrajname, analyzeArgs, RefParm_ )) return Analysis::ERR;
       RefTraj_ = (DataSet_Coords*)DCT;
@@ -111,7 +111,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
       RefParm_ = RefTraj_->TopPtr();
   }
   // Set up output DataSet
-  rmsdataset_ = (DataSet_MatrixFlt*)datasetlist->AddSet( DataSet::MATRIX_FLT, 
+  rmsdataset_ = (DataSet_MatrixFlt*)DSL->AddSet( DataSet::MATRIX_FLT, 
                                                          analyzeArgs.GetStringNext(), "Rms2d" );
   if (rmsdataset_ == 0) {
     mprinterr("Error: Could not set up DataSet for calculating 2DRMS.\n");
@@ -126,7 +126,7 @@ Analysis::RetType Analysis_Rms2d::Setup(ArgList& analyzeArgs, DataSetList* datas
   }
   // Set up DataSet for corr if specified
   if (corrfile != 0) {
-    Ct_ = datasetlist->AddSet( DataSet::DOUBLE, MetaData(rmsdataset_->Meta().Name(), "Corr") );
+    Ct_ = DSL->AddSet( DataSet::DOUBLE, MetaData(rmsdataset_->Meta().Name(), "Corr") );
     if (Ct_ == 0) return Analysis::ERR;
     corrfile->AddDataSet( Ct_ );
   }

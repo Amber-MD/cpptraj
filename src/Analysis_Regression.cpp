@@ -10,12 +10,12 @@ void Analysis_Regression::Help() {
 }
 
 // Analysis_Regression::Setup()
-Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = DFL->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   std::string setname = analyzeArgs.GetStringKey("name");
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSL )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -29,11 +29,11 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* 
     idx = -1; // Only one input set, no need to refer to it by index
   // If setname is empty generate a default name
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName( "LR" );
+    setname = DSL->GenerateDefaultName( "LR" );
   for ( Array1D::const_iterator DS = input_dsets_.begin();
                                 DS != input_dsets_.end(); ++DS)
   {
-    DataSet* dsout = datasetlist->AddSet( DataSet::XYMESH, MetaData(setname, idx++) );
+    DataSet* dsout = DSL->AddSet( DataSet::XYMESH, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( "LR(" + (*DS)->Meta().Legend() + ")" );
     output_dsets_.push_back( (DataSet_1D*)dsout );

@@ -26,7 +26,7 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
                                        double stepIn, int binsIn, double tempIn,
-                                       DataSetList& datasetlist, DataFileList& DFLin)
+                                       DataSetList& DSL, DataFileList& DFL)
 {
   if (dsIn == 0) return Analysis::ERR;
   data_ = dsIn;
@@ -57,9 +57,9 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
   else
     htype = "KDE_";
   if (setname.empty())
-    setname = datasetlist.GenerateDefaultName(htype + dsIn->Meta().Name());
-  DataFile* outfile = DFLin.AddDataFile( outfilenameIn );
-  output_ = datasetlist.AddSet(DataSet::DOUBLE, MetaData(setname, dsIn->Meta().Aspect(), setidx));
+    setname = DSL.GenerateDefaultName(htype + dsIn->Meta().Name());
+  DataFile* outfile = DFL.AddDataFile( outfilenameIn );
+  output_ = DSL.AddSet(DataSet::DOUBLE, MetaData(setname, dsIn->Meta().Aspect(), setidx));
   if (output_ == 0) return Analysis::ERR;
   output_->SetLegend(htype + dsIn->Meta().Legend());
   output_->SetDim(Dimension::X, Xdim);
@@ -68,7 +68,7 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
 }
 
 // Analysis_KDE::Setup()
-Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   Dimension Xdim;
   if (analyzeArgs.Contains("min"))
@@ -88,12 +88,12 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     calcFreeE_ = false;
   std::string setname = analyzeArgs.GetStringKey("name");
   bandwidth_ = analyzeArgs.getKeyDouble("bandwidth", -1.0);
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* outfile = DFL->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   DataFile* klOutfile = 0;
   // Get second data set for KL divergence calc.
   std::string q_dsname = analyzeArgs.GetStringKey("kldiv");
   if (!q_dsname.empty()) {
-    q_data_ = datasetlist->GetDataSet( q_dsname );
+    q_data_ = DSL->GetDataSet( q_dsname );
     if (q_data_ == 0) {
       mprinterr("Error: Data set %s not found.\n", q_dsname.c_str());
       return Analysis::ERR;
@@ -102,7 +102,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
       mprinterr("Error: Only 1D data sets supported.\n");
       return Analysis::ERR;
     }
-    klOutfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("klout"), analyzeArgs );
+    klOutfile = DFL->AddDataFile( analyzeArgs.GetStringKey("klout"), analyzeArgs );
   } else {
     q_data_ = 0;
     kldiv_ = 0;
@@ -110,7 +110,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   // Get AMD boost data set
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
-    amddata_ = datasetlist->GetDataSet( amdname );
+    amddata_ = DSL->GetDataSet( amdname );
     if (amddata_ == 0) {
       mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
       return Analysis::ERR;
@@ -123,7 +123,7 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     amddata_ = 0;
 
   // Get data set
-  data_ = datasetlist->GetDataSet( analyzeArgs.GetStringNext() );
+  data_ = DSL->GetDataSet( analyzeArgs.GetStringNext() );
   if (data_ == 0) {
     mprinterr("Error: No data set or invalid data set name specified\n");
     return Analysis::ERR;
@@ -134,13 +134,13 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   }
   
   // Output data set
-  output_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "kde");
+  output_ = DSL->AddSet(DataSet::DOUBLE, setname, "kde");
   if (output_ == 0) return Analysis::ERR;
   output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddDataSet( output_ );
   // Output for KL divergence calc.
   if ( q_data_ != 0 ) {
-    kldiv_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(output_->Meta().Name(), "kld"));
+    kldiv_ = DSL->AddSet(DataSet::DOUBLE, MetaData(output_->Meta().Name(), "kld"));
     if (klOutfile != 0) klOutfile->AddDataSet( kldiv_ );
   }
 

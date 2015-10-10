@@ -62,18 +62,18 @@ void Analysis_Wavelet::Help() {
 }
 
 // Analysis_Wavelet::Setup
-Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
 {
   // Attempt to get COORDS DataSet from DataSetList. If none specified the
   // default COORDS set will be used.
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+  coords_ = (DataSet_Coords*)DSL->FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: Could not locate COORDS set corresponding to %s\n", setname.c_str());
     return Analysis::ERR;
   }
   // Get keywords
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* outfile = DFL->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   setname = analyzeArgs.GetStringKey("name");
   // TODO: Check defaults
   nb_ = analyzeArgs.getKeyInt("nb", 0); // FIXME: Should be more descriptive? nscale?
@@ -104,7 +104,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
   // Atom mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
   // Set up output data set
-  output_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
+  output_ = DSL->AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( output_ );
 
