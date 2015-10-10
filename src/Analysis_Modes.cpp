@@ -130,8 +130,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprinterr("Error: Require output trajectory filename, 'trajout <name>'\n");
       return Analysis::ERR;
     }
-    TrajectoryFile::TrajFormatType tOutFmt = 
-      TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
+    TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
+    if ( analyzeArgs.Contains("trajoutfmt") )
+      tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
     Topology* parm = DSLin->GetTopology( analyzeArgs ); // TODO include with modes
     if (parm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
