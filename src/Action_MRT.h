@@ -15,7 +15,7 @@ class Action_MRT : public Action {
     static void Help();
 
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
+    Action::RetType Init(ArgList&, ActionInit&, int);
 
     CpptrajFile outfile_;
     double time_; // darg1

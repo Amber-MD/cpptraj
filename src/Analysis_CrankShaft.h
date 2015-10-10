@@ -9,7 +9,7 @@ class Analysis_CrankShaft : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrankShaft(); }
     static void Help();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     enum CStype { ANGLE=0, DISTANCE };

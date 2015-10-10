@@ -152,8 +152,7 @@ void Analysis_CurveFit::Help() {
           "                   exp. constants constrained to < 0.0.\n");
 }
 
-Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CurveFit::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // First argument should be DataSet to fit to.
   std::string dsinName = analyzeArgs.GetStringNext();

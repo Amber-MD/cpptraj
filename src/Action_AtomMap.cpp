@@ -689,7 +689,7 @@ int Action_AtomMap::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
 }
 
 // Action_AtomMap::Init()
-Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   DataFile* rmsout = 0;
   int refatom,targetatom;
@@ -698,11 +698,11 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   TgtMap_.SetDebug(debug_);
 
   // Get Args
-  CpptrajFile* outputfile = DFL->AddCpptrajFile(actionArgs.GetStringKey("mapout"), "Atom Map");
+  CpptrajFile* outputfile = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("mapout"), "Atom Map");
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   if (rmsfit_)
-    rmsout = DFL->AddDataFile( actionArgs.GetStringKey("rmsout"), actionArgs );
+    rmsout = init.DFL().AddDataFile( actionArgs.GetStringKey("rmsout"), actionArgs );
   std::string targetName = actionArgs.GetStringNext();
   std::string refName = actionArgs.GetStringNext();
   if (targetName.empty()) {
@@ -714,13 +714,13 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     return Action::ERR;
   }
   // Get Reference
-  RefFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( refName, DataSet::REF_FRAME );
+  RefFrame_ = (DataSet_Coords_REF*)init.DSL().FindSetOfType( refName, DataSet::REF_FRAME );
   if (RefFrame_ == 0) {
     mprinterr("Error: Could not get reference frame %s\n",refName.c_str());
     return Action::ERR;
   }
   // Get Target
-  TgtFrame_ = (DataSet_Coords_REF*)DSL->FindSetOfType( targetName, DataSet::REF_FRAME );
+  TgtFrame_ = (DataSet_Coords_REF*)init.DSL().FindSetOfType( targetName, DataSet::REF_FRAME );
   if (TgtFrame_ == 0) {
     mprinterr("Error: Could not get target frame %s\n",targetName.c_str());
     return Action::ERR;
@@ -736,7 +736,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   if (!maponly_ && rmsfit_) {
     mprintf("             rmsfit: Will rms fit mapped atoms in tgt to reference.\n");
     if (rmsout != 0) {
-      rmsdata_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
+      rmsdata_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
       if (rmsdata_==0) return Action::ERR;
       rmsout->AddDataSet(rmsdata_);
     }
@@ -861,20 +861,20 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, TopologyList* PFL, Dat
 /** If the current parm does not match the target parm, deactivate. Otherwise
   * replace current parm with mapped parm.
   */
-Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
   if (maponly_) {
     mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
     return Action::OK;
   }
-  if (currentParm->Pindex() != TgtFrame_->Top().Pindex() ||
-      currentParm->Natom() != TgtFrame_->Top().Natom()) 
+  if (setup.Top().Pindex() != TgtFrame_->Top().Pindex() ||
+      setup.Top().Natom() != TgtFrame_->Top().Natom()) 
   {
     mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
             RefFrame_->Top().c_str(), TgtFrame_->Top().Natom());
-    mprintf("             Current parm %s (%i atom).\n",currentParm->c_str(),
-            currentParm->Natom());
+    mprintf("             Current parm %s (%i atom).\n",setup.Top().c_str(),
+            setup.Top().Natom());
     mprintf("             Not using map for this parm.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   if (rmsfit_) {
     mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
@@ -883,25 +883,25 @@ Action::RetType Action_AtomMap::Setup(Topology* currentParm, Topology** parmAddr
   mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
           RefFrame_->Top().c_str(), TgtFrame_->Top().Natom());
 
-  *parmAddress = newParm_;
+  setup.SetTopology( newParm_ );
   
-  return Action::OK;
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_AtomMap::action()
 /** Modify the current frame based on the atom map. 
   */
-Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_AtomMap::DoAction(int frameNum, ActionFrame& frm) {
   if (maponly_) return Action::OK;
 
   // Perform RMS fit on mapped atoms only
   if (rmsfit_) {
     // Set target frame up according to atom map.
-    rmsTgtFrame_.ModifyByMap(*currentFrame, AMap_);
+    rmsTgtFrame_.ModifyByMap(frm.Frm(), AMap_);
     Matrix_3x3 Rot;
     Vec3 Trans, refTrans;
     double R = rmsTgtFrame_.RMSD(rmsRefFrame_, Rot, Trans, refTrans, false);
-    currentFrame->Trans_Rot_Trans(Trans, Rot, refTrans);
+    frm.ModifyFrm().Trans_Rot_Trans(Trans, Rot, refTrans);
     if (rmsdata_!=0)
       rmsdata_->Add(frameNum, &R);
     return Action::OK;
@@ -909,8 +909,7 @@ Action::RetType Action_AtomMap::DoAction(int frameNum, Frame* currentFrame, Fram
 
   // Modify the current frame
   // TODO: Fix this since its probably busted for unmapped atoms
-  newFrame_->SetCoordinatesByMap(*currentFrame, AMap_);
-  *frameAddress = newFrame_;
-  return Action::OK;
+  newFrame_->SetCoordinatesByMap(frm.Frm(), AMap_);
+  frm.SetFrame( newFrame_ );
+  return Action::MODIFY_COORDS;
 }
-

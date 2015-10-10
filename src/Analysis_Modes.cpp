@@ -26,7 +26,7 @@ void Analysis_Modes::Help() {
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
-          "\t[trajout <name> %s\n", TopologyList::ParmArgs);
+          "\t[trajout <name> %s\n", DataSetList::TopArgs);
   mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
           "  Perform one of the following analysis on calculated Eigenmodes.\n"
@@ -80,8 +80,7 @@ void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesnam
 }
 
 // Analysis_Modes::Setup()
-Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Analysis type
@@ -131,9 +130,10 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprinterr("Error: Require output trajectory filename, 'trajout <name>'\n");
       return Analysis::ERR;
     }
-    TrajectoryFile::TrajFormatType tOutFmt = 
-      TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
-    Topology* parm = PFLin->GetParm( analyzeArgs );
+    TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
+    if ( analyzeArgs.Contains("trajoutfmt") )
+      tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
+    Topology* parm = DSLin->GetTopology( analyzeArgs ); // TODO include with modes
     if (parm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
       return Analysis::ERR;
@@ -204,7 +204,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
 
   // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
   if ( type_ == CORR ) {
-    Topology* analyzeParm = PFLin->GetParm( analyzeArgs );
+    Topology* analyzeParm = DSLin->GetTopology( analyzeArgs ); // TODO include with above?
     if (analyzeParm == 0) {
       mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
       return Analysis::ERR;

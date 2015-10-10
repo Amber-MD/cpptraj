@@ -8,7 +8,7 @@ class Analysis_RemLog : public Analysis {
     Analysis_RemLog();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_RemLog(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     enum ModeType { NONE = 0, CRDIDX, REPIDX };

@@ -3,16 +3,12 @@
 #include "ParmIO.h"
 class Parm_Mol2 : public ParmIO {
   public :
-    Parm_Mol2() : needsBondSearch_(false) {}
+    Parm_Mol2() {}
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Mol2(); }
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(FileName const&, Topology&);
     int WriteParm(FileName const&, Topology const&) { return 1; }
-    void SetDebug(int) {}
     int processWriteArgs(ArgList&) { return 0; }
-    bool NeedsBondSearch() const { return needsBondSearch_; }
-  private:
-    bool needsBondSearch_;
 };
 #endif

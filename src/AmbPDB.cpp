@@ -26,6 +26,7 @@ static void Help(const char* prgname, bool showAdditional) {
             "    -tit <TITLE>  Write a REMARK record containing TITLE.\n"
             "                      (default: use prmtop title)\n"
             "    -aatm         Left-justified Amber atom names.\n"
+            "    -ep           Include extra points if present.\n"
             "    -bres         Brookhaven Residue names (HIE->HIS, etc.).\n"
             "    -ctr          Center molecule on (0,0,0).\n"
             "    -noter        Do not write TER records.\n"
@@ -88,6 +89,8 @@ int main(int argc, char** argv) {
       return 0;
     } else if (arg == "-aatm") // Amber atom names, include extra pts
       aatm.assign(" include_ep");
+    else if (arg == "-ep") // PDB atom names, include extra pts
+      aatm.append(" include_ep");
     else if (arg == "-bres") // PDB residue names
       bres.assign(" pdbres");
     else if (arg == "-ext") // Use extended PDB info from Topology
@@ -135,7 +138,6 @@ int main(int argc, char** argv) {
     if (topname == "prmtop") Help(argv[0], false);
     return 1;
   }
-  parm.IncreaseFrames( 1 );
   if (!useExtendedInfo)
     parm.ResetPDBinfo();
   if (res_offset != 0)

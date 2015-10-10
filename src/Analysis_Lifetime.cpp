@@ -27,7 +27,7 @@ void Analysis_Lifetime::Help() {
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, CpptrajFile* outfile) {
+Analysis::RetType Analysis_Lifetime::ExternalSetup(Array1D const& dsArray, CpptrajFile* outfile) {
   if (dsArray.empty()) return Analysis::ERR;
   standalone_ = outfile;
   inputDsets_ = dsArray;
@@ -51,8 +51,7 @@ inline static int CheckDsetError(DataSet_1D* ds, const char* msg, const char* le
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Get Keywords
   FileName outfileName( analyzeArgs.GetStringKey("out") );

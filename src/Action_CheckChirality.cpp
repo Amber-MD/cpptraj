@@ -11,11 +11,11 @@ void Action_CheckChirality::Help() {
 }
 
 // Action_CheckChirality::Init()
-Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  //outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Chirality",
+  //outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Chirality",
                                  DataFileList::TEXT, true);
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
@@ -38,11 +38,11 @@ Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, TopologyList* P
 // Action_CheckChirality::Setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupCharMask(Mask1_)) return Action::ERR;
+Action::RetType Action_CheckChirality::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
     mprinterr("Warning: Mask '%s' selects no atoms.\n", Mask1_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Reset any existing ResidueInfos to inactive
   for (Rarray::iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
@@ -51,23 +51,23 @@ Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** p
   // Loop over all non-solvent residues
   int resnum = 0;
   std::vector<std::string> NotFound;
-  for (Topology::res_iterator res = currentParm->ResStart();
-                              res != currentParm->ResEnd(); ++res, ++resnum)
+  for (Topology::res_iterator res = setup.Top().ResStart();
+                              res != setup.Top().ResEnd(); ++res, ++resnum)
   {
     int firstAtom = res->FirstAtom();
-    int molnum = (*currentParm)[firstAtom].MolNum();
+    int molnum = setup.Top()[firstAtom].MolNum();
     // Skip solvent
-    if (!currentParm->Mol(molnum).IsSolvent())
+    if (!setup.Top().Mol(molnum).IsSolvent())
     {
       if (Mask1_.AtomsInCharMask( firstAtom, res->LastAtom() ))
       { 
-        int n_atom = currentParm->FindAtomInResidue(resnum, "N");
-        int ca_atom = currentParm->FindAtomInResidue(resnum, "CA");
-        int c_atom = currentParm->FindAtomInResidue(resnum, "C");
-        int cb_atom = currentParm->FindAtomInResidue(resnum, "CB");
+        int n_atom = setup.Top().FindAtomInResidue(resnum, "N");
+        int ca_atom = setup.Top().FindAtomInResidue(resnum, "CA");
+        int c_atom = setup.Top().FindAtomInResidue(resnum, "C");
+        int cb_atom = setup.Top().FindAtomInResidue(resnum, "CB");
         if (n_atom == -1 || ca_atom == -1 || c_atom == -1 || cb_atom == -1)
         {
-          NotFound.push_back( currentParm->TruncResNameNum(resnum) );
+          NotFound.push_back( setup.Top().TruncResNameNum(resnum) );
           continue;
         }
         Nactive++;
@@ -103,8 +103,8 @@ Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** p
   } // END loop over residues
 
   if (Nactive == 0) {
-    mprintf("Warning: No valid residues selected from '%s'\n", currentParm->c_str());
-    return Action::ERR;
+    mprintf("Warning: No valid residues selected from '%s'\n", setup.Top().c_str());
+    return Action::SKIP;
   }
   mprintf("\tChecking chirality for %i residues\n", Nactive);
   if (!NotFound.empty()) {
@@ -119,15 +119,13 @@ Action::RetType Action_CheckChirality::Setup(Topology* currentParm, Topology** p
 }
 
 // Action_CheckChirality::DoAction()
-Action::RetType Action_CheckChirality::DoAction(int frameNum, Frame* currentFrame,
-                                            Frame** frameAddress)
-{
+Action::RetType Action_CheckChirality::DoAction(int frameNum, ActionFrame& frm) {
   for (Rarray::iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
   {
-    double torsion = Torsion( currentFrame->CRD(ri->n_),
-                              currentFrame->CRD(ri->ca_),
-                              currentFrame->CRD(ri->c_),
-                              currentFrame->CRD(ri->cb_) );
+    double torsion = Torsion( frm.Frm().CRD(ri->n_),
+                              frm.Frm().CRD(ri->ca_),
+                              frm.Frm().CRD(ri->c_),
+                              frm.Frm().CRD(ri->cb_) );
     if (torsion < 0.0)
       ri->N_L_++;
     else

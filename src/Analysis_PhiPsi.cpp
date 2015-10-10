@@ -9,8 +9,7 @@ void Analysis_PhiPsi::Help() {
 }
 
 // Analysis_PhiPsi::Setup()
-Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   std::string outname = analyzeArgs.GetStringKey("out");
   std::string rangearg = analyzeArgs.GetStringKey("resrange");

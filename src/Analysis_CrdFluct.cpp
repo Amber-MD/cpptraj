@@ -18,8 +18,7 @@ void Analysis_CrdFluct::Help() {
 }
 
 // Analysis_CrdFluct::Setup()
-Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   bfactor_ = analyzeArgs.hasKey("bfactor");
   // Attempt to get coords dataset from datasetlist

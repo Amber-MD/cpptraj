@@ -13,8 +13,7 @@ void Analysis_AmdBias::Help() {
   mprintf("\tds <Edata> ethresh <Ethresh> alpha <alpha> out <filename>\n");
 }
 
-Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Keywords
   ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds") );

@@ -31,7 +31,7 @@ void Action_Density::Help()
 }
 
 // Action_Density::init()
-Action::RetType Action_Density::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   InitImaging(true);
 
@@ -41,7 +41,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     outfileName = "density.dat";
   }
 
-  output_ = DFL->AddCpptrajFile(outfileName, "Density");
+  output_ = init.DFL().AddCpptrajFile(outfileName, "Density");
   if (output_ == 0) {
     mprinterr("Error: Density: Could not open output file %s\n", outfileName.c_str());
     return Action::ERR;
@@ -88,21 +88,19 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, TopologyList* PFL, Dat
 
 
 // Action_Density::Setup()
-Action::RetType Action_Density::Setup(Topology* currentParm,
-				      Topology** parmAddress)
-{
+Action::RetType Action_Density::Setup(ActionSetup& setup) {
   properties_.resize(0);
 
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
        mask != masks_.end();
        mask++) {
-    if (currentParm->SetupIntegerMask(*mask) ) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(*mask) ) return Action::ERR;
 
     std::vector<double> property;
 
     for (AtomMask::const_iterator idx = mask->begin();
 	 idx != mask->end(); idx++) {
-      const Atom& atom = (*currentParm)[*idx];
+      const Atom& atom = setup.Top()[*idx];
 
       switch (property_) {
       case NUMBER:
@@ -130,17 +128,14 @@ Action::RetType Action_Density::Setup(Topology* currentParm,
     mprintf("\n");
   }
 
-  SetupImaging(currentParm->BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
   return Action::OK;  
 }
 
 
 // Action_Density::action()
-Action::RetType Action_Density::DoAction(int frameNum,
-					 Frame* currentFrame,
-					 Frame** frameAddress)
-{
+Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
   long slice;
   unsigned long i, j;
   Vec3 coord;
@@ -160,7 +155,7 @@ Action::RetType Action_Density::DoAction(int frameNum,
     for (AtomMask::const_iterator idx = mask->begin();
 	 idx != mask->end();
 	 idx++) {
-      coord = currentFrame->XYZ(*idx);
+      coord = frm.Frm().XYZ(*idx);
       slice = (unsigned long) (coord[axis_] / delta_);
 
       if (coord[axis_] < 0) {
@@ -181,7 +176,7 @@ Action::RetType Action_Density::DoAction(int frameNum,
     i++;
   }
 
-  box = currentFrame->BoxCrd();
+  box = frm.Frm().BoxCrd();
   area_.accumulate(box[area_coord_[0]] * box[area_coord_[1]]);
 
   return Action::OK;
@@ -306,4 +301,3 @@ void Action_Density::Print()
     output_->Printf("\n");
   }
 }
-

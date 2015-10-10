@@ -14,9 +14,9 @@ class Action_GridFreeEnergy : public Action, private GridAction {
     static void Help();
   private:
     // Action members
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     /// maximum expected voxel occupancy count

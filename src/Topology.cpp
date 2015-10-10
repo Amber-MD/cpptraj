@@ -1,27 +1,18 @@
 #include <cmath> // pow
 #include <algorithm> // find
-#ifdef _OPENMP
-#  include "omp.h"
-#endif
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
-#include "DistRoutines.h"
-#include "Constants.h"
-#ifdef TIMER
-# include "Timer.h"
-#endif
+#include "Constants.h" // RADDEG, SMALL
 
 const NonbondType Topology::LJ_EMPTY = NonbondType();
 
 // CONSTRUCTOR
 Topology::Topology() :
-  offset_(0.20),
   debug_(0),
   ipol_(0),
   NsolventMolecules_(0),
   pindex_(0),
-  nframes_(0),
   n_extra_pts_(0),
   n_atom_types_(0)
 { }
@@ -32,20 +23,29 @@ void Topology::SetParmName(std::string const& title, FileName const& filename) {
   fileName_ = filename;
 }
 
-/** Used to set expected coordinate info from currently associated
-  * trajectory. Modify box information as appropriate.
+// Topology::c_str()
+/** Return a printf-compatible char* of the parm filename, or the parm
+  * name (title) if the parm filename is empty.
   */
-void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
-{
-  Box const& boxIn = cinfoIn.TrajBox();
-  Box parmBox = coordInfo_.TrajBox();
+const char *Topology::c_str() const {
+  if (!fileName_.empty())
+    return fileName_.base();
+  return parmName_.c_str();
+}
+
+/** Used to set box info from currently associated trajectory. */
+// FIXME: This routine is here for potential backwards compatibility issues
+//        since the topology box information was previously modified by
+//        trajectory box information, but may no longer be necessary or
+//        desirable.
+void Topology::SetBoxFromTraj(Box const& boxIn) {
   if (!boxIn.HasBox()) {
     // No incoming box.
-    if ( parmBox.HasBox()) {
+    if ( parmBox_.HasBox()) {
       // No incoming box and parm has box - disable parm box.
-      mprintf("Warning: Box information present in parm but not in trajectory.\n"
-              "Warning: DISABLING BOX in parm '%s'!\n", c_str());
-      parmBox.SetNoBox();
+      mprintf("Warning: Box information present in topology but not in trajectory.\n"
+              "Warning: DISABLING BOX in topology '%s'!\n", c_str());
+      parmBox_.SetNoBox();
     }
   } else {
     // Incoming box.
@@ -55,28 +55,23 @@ void Topology::SetParmCoordInfo(CoordinateInfo const& cinfoIn)
     {
       // Incoming box has no lengths - disable parm box.
       mprintf("Warning: Box information present in trajectory but lengths are zero.\n"
-              "Warning: DISABLING BOX in parm '%s'!\n", c_str());
-      parmBox.SetNoBox();
+              "Warning: DISABLING BOX in topology '%s'!\n", c_str());
+      parmBox_.SetNoBox();
     } else {
       // Incoming box is valid. Indicate if current box type differs from
       // incoming box type.
-      if (parmBox.Type() != boxIn.Type()) {
+      if (parmBox_.Type() != boxIn.Type()) {
         mprintf("Warning: Trajectory box type is '%s' but topology box type is '%s'.\n"
                 "Warning: Setting topology box information from trajectory.\n",
-                boxIn.TypeName(), parmBox.TypeName());
+                boxIn.TypeName(), parmBox_.TypeName());
       }
-      parmBox = boxIn;
+      parmBox_ = boxIn;
     }
   }
-  // TODO: Copy above and just set the box here.
-  coordInfo_ = CoordinateInfo(cinfoIn.EnsembleSize(), cinfoIn.ReplicaDimensions(), parmBox,
-                              cinfoIn.HasVel(), cinfoIn.HasTemp(),
-                              cinfoIn.HasTime(), cinfoIn.HasForce());
-  if (debug_ > 0) Frame::PrintCoordInfo("SetParmCoordInfo", c_str(), coordInfo_);
 }
 
-// Topology::SetReferenceCoords()
-void Topology::SetReferenceCoords( Frame const& frameIn ) {
+// Topology::SetDistMaskRef()
+void Topology::SetDistMaskRef( Frame const& frameIn ) {
   if (!frameIn.empty()) {
     if (frameIn.Natom() == Natom())
       refCoords_ = frameIn;
@@ -122,20 +117,7 @@ Range Topology::SoluteResidues() const {
   return solute_res;
 }
 
-// Topology::c_str()
-/** Return a printf-compatible char* of the parm filename, or the parm
-  * name (title) if the parm filename is empty.
-  */
-const char *Topology::c_str() const {
-  if (!parmTag_.empty())
-    return (parmTag_.c_str());
-  else if (!fileName_.empty()) 
-    return fileName_.base();
-  return parmName_.c_str();
-}
-
 // -----------------------------------------------------------------------------
-
 // Topology::TruncResAtomName()
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
@@ -214,6 +196,8 @@ void Topology::Summary() const {
   mprintf("\tTopology %s contains %zu atoms.\n", c_str(), atoms_.size());
   if (!parmName_.empty())
     mprintf("\t\tTitle: %s\n", parmName_.c_str());
+  if (!fileName_.empty())
+    mprintf("\t\tOriginal filename: %s\n", fileName_.full());
   mprintf("\t\t%zu residues.\n", residues_.size());
   mprintf("\t\t%zu molecules.\n", molecules_.size());
   size_t s1 = bondsh_.size();
@@ -228,7 +212,7 @@ void Topology::Summary() const {
   s2 = dihedrals_.size();
   if (s1 + s2 > 0)
     mprintf("\t\t%zu dihedrals (%zu with H, %zu other).\n", s1+s2, s1, s2);
-  mprintf("\t\tBox: %s\n", coordInfo_.TrajBox().TypeName());
+  mprintf("\t\tBox: %s\n", parmBox_.TypeName());
   if (NsolventMolecules_>0) {
     mprintf("\t\t%i solvent molecules.\n", NsolventMolecules_);
   }
@@ -253,14 +237,10 @@ void Topology::Summary() const {
 void Topology::Brief(const char* heading) const {
   if (heading != 0)
     mprintf("\t%s", heading);
-  if (!parmTag_.empty())
-    mprintf(" %s", parmTag_.c_str());
-  if (!fileName_.empty())
-    mprintf(" '%s',", fileName_.base());
-  else if (!parmName_.empty())
-    mprintf(" %s,", parmName_.c_str());
+  else
+    mprintf(" %s,", c_str());
   mprintf(" %zu atoms, %zu res, box: %s, %zu mol", atoms_.size(), 
-          residues_.size(), coordInfo_.TrajBox().TypeName(), molecules_.size());
+          residues_.size(), parmBox_.TypeName(), molecules_.size());
   if (NsolventMolecules_>0)
     mprintf(", %i solvent", NsolventMolecules_);
   if (heading != 0)
@@ -592,7 +572,7 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
-int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double* XYZin)
+int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
   if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
@@ -607,8 +587,8 @@ int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn, const double*
   atoms_.push_back(atomIn);
   // Set this atoms internal residue number 
   atoms_.back().SetResNum( residues_.size()-1 );
-  // Add coordinate if given
-  refCoords_.AddXYZ( XYZin );
+  // Set current residues final atom number
+  residues_.back().SetLastAtom( atoms_.size() );
   return 0;
 }
 
@@ -632,24 +612,17 @@ void Topology::StartNewMol() {
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup(bool bondsearch) {
-  // Set residue last atom (PDB/Mol2/PSF) 
-  residues_.back().SetLastAtom( atoms_.size() );
-  // Set up bond information if specified or necessary
-  if (bondsearch) {
-    if ( GetBondsFromAtomCoords( refCoords_ ) ) return 1;
-    molecules_.clear();
-  }
+int Topology::CommonSetup() {
+  // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
     AssignBondParameters();
-  // Determine molecule info
-  if (molecules_.empty())  
-    if (DetermineMolecules()) 
-      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  // Always determine molecule info from bonds
+  if (DetermineMolecules())
+    mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
   // Check that molecules do not share residue numbers. Only when bond searching.
   // FIXME always check? 
-  if (bondsearch && !molecules_.empty() && molecules_.size() > 1) {
+  if (!molecules_.empty() && molecules_.size() > 1) {
     bool mols_share_residues = (molecules_.size() > residues_.size());
     if (!mols_share_residues) {
       // More in-depth check
@@ -898,107 +871,6 @@ void Topology::AssignBondParameters() {
     AddBondParam( *bnd, bpMap );
 } 
 
-// Topology::GetBondsFromAtomCoords()
-int Topology::GetBondsFromAtomCoords( Frame const& frameIn) {
-  mprintf("\t%s: determining bond info from distances.\n",c_str());
-  if (frameIn.empty()) {
-    mprinterr("Error: No coordinates set for '%s'; cannot search for bonds.\n", c_str());
-    return 1;
-  }
-# ifdef TIMER
-  Timer time_total, time_within, time_between;
-  time_total.Start();
-  time_within.Start();
-# endif
-  // ----- STEP 1: Determine bonds within residues
-  for (std::vector<Residue>::const_iterator res = residues_.begin(); 
-                                            res != residues_.end(); ++res) 
-  {
-    int stopatom = res->LastAtom();
-    // Check for bonds between each atom in the residue.
-    for (int atom1 = res->FirstAtom(); atom1 != stopatom; ++atom1) {
-      Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
-      // If this is a hydrogen and it already has a bond, move on.
-      if (a1Elt==Atom::HYDROGEN && atoms_[atom1].Nbonds() > 0 )
-        continue;
-      for (int atom2 = atom1 + 1; atom2 != stopatom; ++atom2) {
-        Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
-        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
-        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
-        cutoff2 *= cutoff2;
-        if (D2 < cutoff2) {
-          AddBond(atom1, atom2);
-          // Once a bond has been made to hydrogen move on.
-          if (a1Elt==Atom::HYDROGEN) break;
-        }
-      }
-    }
-  }
-# ifdef TIMER
-  time_within.Stop();
-  time_between.Start();
-# endif
-  // ----- STEP 2: Determine bonds between adjacent residues
-  std::vector<Molecule>::const_iterator nextmol = molecules_.begin();
-  if (!molecules_.empty())
-    ++nextmol;
-  for (std::vector<Residue>::const_iterator res = residues_.begin() + 1;
-                                            res != residues_.end(); ++res)
-  {
-    // If molecule information is already present, check if first atom of 
-    // this residue >= first atom of next molecule, which indicates this
-    // residue and the previous residue are in different molecules.
-    if ( (nextmol != molecules_.end()) && 
-         (res->FirstAtom() >= nextmol->BeginAtom()) )
-    {
-      ++nextmol;
-      continue;
-    }
-    // If this residue is recognized as solvent, no need to check previous or
-    // next residue
-    if ( res->NameIsSolvent() ) {
-      ++res;
-      if (res == residues_.end()) break;
-      continue;
-    }
-    // Get previous residue
-    std::vector<Residue>::const_iterator previous_res = res - 1;
-    // If previous residue is recognized as solvent, no need to check previous.
-    if ( previous_res->NameIsSolvent() ) continue;
-    // Get previous residue start atom
-    int startatom = previous_res->FirstAtom();
-    // Previous residue stop atom, this residue start atom
-    int midatom = res->FirstAtom();
-    // This residue stop atom
-    int stopatom = res->LastAtom();
-    // Check for bonds between adjacent residues
-    for (int atom1 = startatom; atom1 != midatom; atom1++) {
-      Atom::AtomicElementType a1Elt = atoms_[atom1].Element();
-      if (a1Elt==Atom::HYDROGEN) continue;
-      for (int atom2 = midatom; atom2 != stopatom; atom2++) {
-        Atom::AtomicElementType a2Elt = atoms_[atom2].Element();
-        if (a2Elt==Atom::HYDROGEN) continue;
-        double D2 = DIST2_NoImage(frameIn.XYZ(atom1), frameIn.XYZ(atom2) );
-        double cutoff2 = Atom::GetBondLength(a1Elt, a2Elt) + offset_;
-        cutoff2 *= cutoff2;
-        if (D2 < cutoff2) 
-          AddBond(atom1, atom2);
-      }
-    }
-  }
-# ifdef TIMER
-  time_between.Stop();
-  time_total.Stop();
-  time_within.WriteTiming(2, "Distances within residues", time_total.Total());
-  time_between.WriteTiming(2, "Distances between residues", time_total.Total());
-  time_total.WriteTiming(1, "Total for determining bonds via distances");
-# endif
-  if (debug_>0)
-    mprintf("\t%s: %zu bonds to hydrogen, %zu other bonds.\n",c_str(), 
-            bondsh_.size(), bonds_.size());
-  return 0;
-}
-
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
@@ -1113,10 +985,10 @@ int Topology::DetermineMolecules() {
                 "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
                 "Error:   atom numbering in molecules is not sequential. If topology did not\n"
                 "Error:   originally contain bond info, 1) can potentially be fixed by\n"
-                "Error:   increasing the bondsearch cutoff offset (currently %.3f). 2) can be\n"
+                "Error:   increasing the bondsearch cutoff offset. 2) can be\n"
                 "Error:   fixed by either using the 'fixatomorder' command, or using\n"
                 "Error:   the 'setMolecules' command in parmed.\n",
-                atom - atoms_.begin() + 1, offset_);
+                atom - atoms_.begin() + 1);
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
@@ -1257,6 +1129,7 @@ int Topology::SetSolventInfo() {
 }
 
 // -----------------------------------------------------------------------------
+
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask) const {
   return mask.SetupMask(atoms_, residues_, refCoords_.xAddress());
@@ -1269,13 +1142,13 @@ int Topology::SetupCharMask(CharMask &mask) const {
 
 // Topology::SetupIntegerMask()
 int Topology::SetupIntegerMask(AtomMask &mask, Frame const& frame) const {
-  if (frame.empty()) return SetupIntegerMask(mask);
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
 // Topology::SetupCharMask()
 int Topology::SetupCharMask(CharMask &mask, Frame const& frame) const {
-  if (frame.empty()) return SetupCharMask(mask);
+  if (frame.empty()) return mask.SetupMask(atoms_, residues_, 0);
   return mask.SetupMask(atoms_, residues_, frame.xAddress());
 }
 
@@ -1348,10 +1221,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 
   newParm->parmName_ = parmName_;
   newParm->fileName_ = fileName_;
-  // NOTE: Do NOT copy tag to avoid duplication.
   newParm->radius_set_ = radius_set_;
   newParm->debug_ = debug_;
-  newParm->coordInfo_ = coordInfo_; // TODO: Necessary? This should also copy box
   newParm->n_atom_types_ = n_atom_types_;
 
   // Reverse Atom map
@@ -1417,9 +1288,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   //        bondparm_.size(), newParm->bondparm_.size());
   // Give stripped parm the same pindex as original
   newParm->pindex_ = pindex_;
-  newParm->nframes_ = nframes_;
   // Copy box information
-  //newParm->box_ = box_;
+  newParm->parmBox_ = parmBox_;
   // If we dont care about setting up full parm information, exit now.
   if (!setupFullParm) return newParm;
 
@@ -1697,6 +1567,7 @@ void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& CurrentTop) {
   int atomOffset = (int)atoms_.size();
+  int resOffset = (int)residues_.size();
   // ATOMS
   for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
   {
@@ -1704,12 +1575,13 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
-    AddTopAtom( CurrentAtom, res, 0 );
+    AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
+                                     res.Icode(), res.ChainID()) );
   }
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  atomOffset);
   AddBondArray(CurrentTop.BondsH(), atomOffset);
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
-  return CommonSetup(false);
+  return CommonSetup();
 }

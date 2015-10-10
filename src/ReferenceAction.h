@@ -31,7 +31,7 @@ class ReferenceAction {
     Frame selectedRef_;      ///< Atoms from reference frame selected by mask.
     AtomMask refMask_;       ///< Atoms to use from reference
     Vec3 refTrans_;          ///< If fitting, translation from origin to original ref center
-    Trajin_Single refTraj_;  ///< Reference trajectory.
+    Trajin_Single refTraj_;  ///< Reference trajectory. TODO replace with DataSet_Coords
     bool previous_;          ///< True if current reference is previous frame (only RMSD now)
     std::string modeString_; ///< Information on current reference mode.
 };

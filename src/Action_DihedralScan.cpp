@@ -45,9 +45,9 @@ void Action_DihedralScan::Help() {
 }
 
 // Action_DihedralScan::Init()
-Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  if (DSL->EnsembleNum() > -1) {
+  if (init.DSL().EnsembleNum() > -1) {
     mprinterr("Error: DIHEDRALSCAN currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
@@ -80,7 +80,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     outfilename_ = actionArgs.GetStringKey("outtraj");
     if (!outfilename_.empty()) {
       outfmt = TrajectoryFile::GetFormatFromArg( actionArgs );
-      outtop = PFL->GetParm( actionArgs );
+      outtop = init.DSL().GetTopology( actionArgs );
       if (outtop == 0) {
         mprinterr("Error: dihedralscan: No topology for output traj.\n");
         return Action::ERR;
@@ -120,9 +120,9 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
     RN_.rn_set( iseed );
   }
   // Output file for # of problems
-  DataFile* problemFile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* problemFile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   // Dataset to store number of problems
-  number_of_problems_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(),"Nprob");
+  number_of_problems_ = init.DSL().AddSet(DataSet::INTEGER, actionArgs.GetStringNext(),"Nprob");
   if (number_of_problems_==0) return Action::ERR;
   // Add dataset to data file list
   if (problemFile != 0) problemFile->AddDataSet(number_of_problems_);
@@ -171,7 +171,7 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
   // Increment backtrack by 1 since we need to skip over current res
   ++backtrack_;
   // Initialize CheckStructure
-  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, *DFL )) {
+  if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, init.DFL() )) {
     mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
     return Action::ERR;
   }
@@ -180,17 +180,17 @@ Action::RetType Action_DihedralScan::Init(ArgList& actionArgs, TopologyList* PFL
 
 // Action_DihedralScan::Setup()
 /** Determine from selected mask atoms which dihedrals will be rotated. */
-Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_DihedralScan::Setup(ActionSetup& setup) {
   DihedralScanType dst;
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   Range actualRange;
   if (resRange_.Empty())
-    actualRange = currentParm->SoluteResidues();
+    actualRange = setup.Top().SoluteResidues();
   else 
     actualRange = resRange_;
   // Search for dihedrals
-  if (dihSearch_.FindDihedrals(*currentParm, actualRange))
+  if (dihSearch_.FindDihedrals(setup.Top(), actualRange))
     return Action::ERR;
   // For each found dihedral, set up mask of atoms that will move upon 
   // rotation. Also set up mask of atoms in this residue that will not
@@ -202,38 +202,38 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   {
     dst.checkAtoms.clear();
     // Set mask of atoms that will move during dihedral rotation.
-    dst.Rmask = DihedralSearch::MovingAtoms(*currentParm, (*dih).A1(), (*dih).A2());
+    dst.Rmask = DihedralSearch::MovingAtoms(setup.Top(), dih->A1(), dih->A2());
     // If randomly rotating angles, check for atoms that are in the same
     // residue as A1 but will not move. They need to be checked for clashes
     // since further rotations will not help them.
     if (mode_ == RANDOM && check_for_clashes_) {
       CharMask cMask( dst.Rmask.ConvertToCharMask(), dst.Rmask.Nselected() );
-      int a1res = (*currentParm)[(*dih).A1()].ResNum();
-      for (int maskatom = currentParm->Res(a1res).FirstAtom();
-               maskatom < currentParm->Res(a1res).LastAtom(); ++maskatom)
+      int a1res = setup.Top()[dih->A1()].ResNum();
+      for (int maskatom = setup.Top().Res(a1res).FirstAtom();
+               maskatom < setup.Top().Res(a1res).LastAtom(); ++maskatom)
         if (!cMask.AtomInCharMask(maskatom))
           dst.checkAtoms.push_back( maskatom );
-      dst.checkAtoms.push_back((*dih).A1()); // TODO: Does this need to be added first?
+      dst.checkAtoms.push_back(dih->A1()); // TODO: Does this need to be added first?
       // Since only the second atom and atoms it is bonded to move during 
       // rotation, base the check on the residue of the second atom.
       dst.resnum = a1res;
     }
-    dst.atom0 = (*dih).A0(); // FIXME: This duplicates info
-    dst.atom1 = (*dih).A1();
-    dst.atom2 = (*dih).A2();
-    dst.atom3 = (*dih).A3();
+    dst.atom0 = dih->A0(); // FIXME: This duplicates info
+    dst.atom1 = dih->A1();
+    dst.atom2 = dih->A2();
+    dst.atom3 = dih->A3();
     BB_dihedrals_.push_back(dst);
     // DEBUG: List dihedral info.
     if (debug_ > 0) {
       mprintf("\t%s-%s-%s-%s\n", 
-              currentParm->TruncResAtomName((*dih).A0()).c_str(),
-              currentParm->TruncResAtomName((*dih).A1()).c_str(),
-              currentParm->TruncResAtomName((*dih).A2()).c_str(),
-              currentParm->TruncResAtomName((*dih).A3()).c_str() );
+              setup.Top().TruncResAtomName(dih->A0()).c_str(),
+              setup.Top().TruncResAtomName(dih->A1()).c_str(),
+              setup.Top().TruncResAtomName(dih->A2()).c_str(),
+              setup.Top().TruncResAtomName(dih->A3()).c_str() );
       if (debug_ > 1 && mode_ == RANDOM && check_for_clashes_) {
         mprintf("\t\tCheckAtoms=");
-        for (std::vector<int>::iterator ca = dst.checkAtoms.begin();
-                                        ca != dst.checkAtoms.end(); ++ca)
+        for (std::vector<int>::const_iterator ca = dst.checkAtoms.begin();
+                                              ca != dst.checkAtoms.end(); ++ca)
           mprintf(" %i", *ca + 1);
         mprintf("\n");
       }
@@ -245,7 +245,8 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   }
 
   // Set up CheckStructure for this parm (false = nobondcheck)
-  if (checkStructure_.SeparateSetup(*currentParm, false) != Action::OK)
+  if (checkStructure_.SeparateSetup(setup.Top(),
+                                    setup.CoordInfo().TrajBox().Type(), false) != Action::OK)
     return Action::ERR;
 
   // Set the overall max number of rotations to try
@@ -259,21 +260,21 @@ Action::RetType Action_DihedralScan::Setup(Topology* currentParm, Topology** par
   if (check_for_clashes_) {
     ResidueCheckType rct;
     int res = 0;
-    for (Topology::res_iterator residue = currentParm->ResStart();
-                                residue != currentParm->ResEnd(); ++residue)
+    for (Topology::res_iterator residue = setup.Top().ResStart();
+                                residue != setup.Top().ResEnd(); ++residue)
     {
       rct.resnum = res++;
-      rct.start = (*residue).FirstAtom();
-      rct.stop = (*residue).LastAtom();
+      rct.start = residue->FirstAtom();
+      rct.stop = residue->LastAtom();
       rct.checkatom = rct.start;
       ResCheck_.push_back(rct);
     }
   }
 
   if (!outfilename_.empty() && CurrentParm_ == 0) // FIXME: Correct frames for # of rotations
-    outtraj_.SetupTrajWrite(currentParm, currentParm->ParmCoordInfo(), currentParm->Nframes());
+    outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
 
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;  
 }
 
@@ -480,7 +481,7 @@ void Action_DihedralScan::RandomizeAngles(Frame& currentFrame) {
         // Calculate rotation matrix for theta
         calcRotationMatrix(rotationMatrix, axisOfRotation, theta_in_radians);
         // Rotate back to best clash
-        currentFrame->RotateAroundAxis(rotationMatrix, theta_in_radians, dih->Rmask);
+        frm.Frm().RotateAroundAxis(rotationMatrix, theta_in_radians, dih->Rmask);
         // DEBUG
         DebugTraj.WriteFrame(debugframenum++,currentParm,*currentFrame);
         // Sanity check
@@ -539,15 +540,13 @@ void Action_DihedralScan::IntervalAngles(Frame& currentFrame) {
 }
 
 // Action_DihedralScan::DoAction()
-Action::RetType Action_DihedralScan::DoAction(int frameNum, Frame* currentFrame, 
-                                              Frame** frameAddress) 
-{
+Action::RetType Action_DihedralScan::DoAction(int frameNum, ActionFrame& frm) {
   switch (mode_) {
-    case RANDOM: RandomizeAngles(*currentFrame); break;
-    case INTERVAL: IntervalAngles(*currentFrame); break;
+    case RANDOM: RandomizeAngles(frm.ModifyFrm()); break;
+    case INTERVAL: IntervalAngles(frm.ModifyFrm()); break;
   }
   // Check the resulting structure
-  int n_problems = checkStructure_.CheckOverlap( frameNum+1, *currentFrame, *CurrentParm_ );
+  int n_problems = checkStructure_.CheckOverlap( frameNum+1, frm.Frm(), *CurrentParm_ );
   //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
   number_of_problems_->Add(frameNum, &n_problems);
 

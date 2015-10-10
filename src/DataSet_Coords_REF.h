@@ -2,7 +2,7 @@
 #define INC_DATASET_COORDS_REF_H
 #include "DataSet_Coords.h"
 #include "ArgList.h"
-///< Store a single reference frame in double precision.
+/// Store a single reference frame in double precision.
 class DataSet_Coords_REF : public DataSet_Coords {
   public:
     DataSet_Coords_REF() : DataSet_Coords(REF_FRAME) {}

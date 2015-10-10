@@ -26,7 +26,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int processReadArgs(ArgList&);
     // Reservoir functions
     inline int createReservoir(bool,double,int);
-    int writeReservoir(int, Frame&, double, int);
+    int writeReservoir(int, Frame const&, double, int);
   private:
     float *Coord_;
     FileName filename_;

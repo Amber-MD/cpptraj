@@ -18,16 +18,16 @@ void Action_GridFreeEnergy::Help() {
 }
 
 // Action_GridFreeEnergy::init()
-Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get output filename
-  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringNext(), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringNext(), actionArgs);
   if (outfile == 0) {
     mprinterr("Error: GridFreeEnergy: no output filename specified.\n");
     return Action::ERR;
   }
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
-  grid_ = GridInit( "GridFreeEnergy", actionArgs, *DSL );
+  grid_ = GridInit( "GridFreeEnergy", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
   outfile->AddDataSet( grid_ );
   //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
@@ -57,27 +57,25 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, TopologyList* P
 }
 
 // Action_GridFreeEnergy::setup()
-Action::RetType Action_GridFreeEnergy::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_GridFreeEnergy::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ ))
+  if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
-  mprintf("\t[%s] %i atoms selected.\n", mask_.MaskString(), mask_.Nselected());
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: GridFreeEnergy: No atoms selected for parm %s\n", currentParm->c_str());
-    return Action::ERR;
+    mprinterr("Warning: No atoms selected for parm %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;
 }
 
 // Action_GridFreeEnergy::action()
-Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, Frame* currentFrame, 
-                                                Frame** frameAddress) 
-{
-  GridFrame( *currentFrame, mask_, *grid_ );
+Action::RetType Action_GridFreeEnergy::DoAction(int frameNum, ActionFrame& frm) {
+  GridFrame( frm.Frm(), mask_, *grid_ );
   return Action::OK;
 }
 

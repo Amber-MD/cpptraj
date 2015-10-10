@@ -9,10 +9,10 @@ void Action_CreateCrd::Help() {
           "  specified topology.\n");
 }
 
-Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Keywords
-  Topology* parm = PFL->GetParm( actionArgs );
+  Topology* parm = init.DSL().GetTopology( actionArgs );
   if (parm == 0) {
     mprinterr("Error: createcrd: No parm files loaded.\n");
     return Action::ERR;
@@ -24,9 +24,9 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, D
   if (setname == "_DEFAULTCRD_") {
     // Special case: Creation of COORDS DataSet has been requested by an
     //               analysis and should already be present.
-    coords_ = (DataSet_Coords_CRD*)DSL->FindSetOfType(setname, DataSet::COORDS);
+    coords_ = (DataSet_Coords_CRD*)init.DSL().FindSetOfType(setname, DataSet::COORDS);
   } else 
-    coords_ = (DataSet_Coords_CRD*)DSL->AddSet(DataSet::COORDS, setname, "CRD");
+    coords_ = (DataSet_Coords_CRD*)init.DSL().AddSet(DataSet::COORDS, setname, "CRD");
   if (coords_ == 0) return Action::ERR;
   // Do not set topology here since it may be modified later.
 
@@ -37,33 +37,31 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, TopologyList* PFL, D
   return Action::OK;
 }
 
-Action::RetType Action_CreateCrd::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
   // Set COORDS topology now if not already set.
-  if (currentParm->Pindex() == pindex_ && coords_->Top().Natom() == 0) {
-    coords_->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
+  if (setup.Top().Pindex() == pindex_ && coords_->Top().Natom() == 0) {
+    coords_->CoordsSetup( setup.Top(), setup.CoordInfo() );
     // Estimate memory usage
     mprintf("\tEstimated memory usage (%i frames): %.2g MB\n",
-            currentParm->Nframes(),
-            coords_->SizeInMB(currentParm->Nframes()));
+            setup.Nframes(), coords_->SizeInMB(setup.Nframes()));
   }
   // If # atoms in currentParm does not match coords, warn user.
-  if (currentParm->Natom() != coords_->Top().Natom()) {
+  if (setup.Top().Natom() != coords_->Top().Natom()) {
     if (check_) {
       mprinterr("Error: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n",
-                currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
+                setup.Top().Natom(), coords_->legend(), coords_->Top().Natom());
       return Action::ERR;
     } else {
       mprintf("Warning: # atoms in current topology (%i) != # atoms in coords set \"%s\" (%i)\n"
               "Warning:   The resulting COORDS data set may have problems.\n",
-              currentParm->Natom(), coords_->legend(), coords_->Top().Natom());
+              setup.Top().Natom(), coords_->legend(), coords_->Top().Natom());
     }
   }
   return Action::OK;
 }
 
-Action::RetType Action_CreateCrd::DoAction(int frameNum, Frame* currentFrame, 
-                                           Frame** frameAddress) 
+Action::RetType Action_CreateCrd::DoAction(int frameNum, ActionFrame& frm) 
 {
-  coords_->AddFrame( *currentFrame );
+  coords_->AddFrame( frm.Frm() );
   return Action::OK;
 }

@@ -94,6 +94,8 @@ std::string MetaData::PrintName() const {
 
 bool MetaData::Match_Exact(MetaData const& In) const {
   if (In.name_        != name_       ) return false;
+  if (In.fileName_.Full() != fileName_.Full()) return false;
+  if (In.fileName_.Base() != fileName_.Base()) return false;
   if (In.aspect_      != aspect_     ) return false;
   if (In.idx_         != idx_        ) return false;
   if (In.ensembleNum_ != ensembleNum_) return false;

@@ -138,9 +138,9 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   Topology parm;
   if (pfile.ReadTopology(parm, topFiles[0], State_.Debug())) return 1;
   if (!refFiles.empty()) {
-    DataSet_Coords_REF refFrame;
-    if (refFrame.LoadRefFromFile( refFiles[0], parm, State_.Debug())) return 1;
-    parm.SetReferenceCoords( refFrame.RefFrame() );
+    DataSet_Coords_REF refCoords;
+    if (refCoords.LoadRefFromFile( refFiles[0], parm, State_.Debug())) return 1;
+    parm.SetDistMaskRef( refCoords.RefFrame() );
   }
   if (!verbose) {
     AtomMask tempMask( maskexpr );
@@ -274,7 +274,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   for (Sarray::const_iterator topFilename = topFiles.begin();
                               topFilename != topFiles.end();
                               ++topFilename)
-    if (State_.PFL()->AddParmFile( *topFilename )) return ERROR;
+    if (State_.AddTopology( *topFilename, ArgList() )) return ERROR;
   // Add all reference trajectories specified on command line.
   for (Sarray::const_iterator refName = refFiles.begin();
                               refName != refFiles.end();

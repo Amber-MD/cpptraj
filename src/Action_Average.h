@@ -2,7 +2,6 @@
 #define INC_ACTION_AVERAGE_H
 #include "Action.h"
 #include "ActionFrameCounter.h"
-// Class: Action_Average
 /// Sum up all coordinates and print the averaged coords in given format.
 class Action_Average: public Action, ActionFrameCounter {
   public:
@@ -11,9 +10,9 @@ class Action_Average: public Action, ActionFrameCounter {
     static void Help();
     ~Action_Average();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     int ensembleNum_;

@@ -8,9 +8,9 @@ class Action_DSSP : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DSSP(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     // Enum and static vars
     //enum SStype { ALPHA=0, ANTI, PARA, H3_10, HPI, TURN, BEND, NONE };

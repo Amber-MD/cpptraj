@@ -7,38 +7,22 @@ CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in rmsd.reftraj
 
 CheckNetcdf
 TOP="../tz2.truncoct.parm7"
+INPUT="rms.in"
 
-# Test 1
+# Test rmsd, mass-weighted rmsd, rmsd to reference traj.
 cat > rms.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
-rms first :2-11 out rmsd.dat
+
+rms Res2-11 first :2-11 out rmsd.dat
+rms Res2-11_mass first :2-11 out rmsd.mass.dat mass
+rms Res2_11_traj reftraj ../tz2.truncoct.nc :2-11 out rmsd.reftraj.dat
+
 EOF
-INPUT="rms.in"
-RunCpptraj "RMSD Test."
+RunCpptraj "RMSD Tests."
 DoTest rmsd.dat.save rmsd.dat
-
-# Test 2
-cat > rms.mass.in <<EOF
-noprogress
-trajin ../tz2.truncoct.nc
-rms first :2-11 out rmsd.mass.dat mass
-EOF
-INPUT="rms.mass.in"
-RunCpptraj "RMSD test with mass weighting."
 DoTest rmsd.mass.dat.save rmsd.mass.dat
-
-# Test 3
-cat > rms.reftraj.in <<EOF
-noprogress
-trajin ../tz2.truncoct.nc
-rms reftraj ../tz2.truncoct.nc :2-11 out rmsd.reftraj.dat
-EOF
-INPUT="rms.reftraj.in"
-RunCpptraj "RMSD test with reference trajectory."
 DoTest rmsd.reftraj.dat.save rmsd.reftraj.dat
-
-CheckTest
 
 EndTest
 

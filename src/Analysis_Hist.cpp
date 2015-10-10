@@ -174,7 +174,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 }
 
 // Analysis_Hist::Setup()
-Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& histname,
+Analysis::RetType Analysis_Hist::ExternalSetup(DataSet_1D* dsIn, std::string const& histname,
                                        int setidx, std::string const& outfilenameIn,
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
@@ -226,8 +226,7 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
 
 // Analysis_Hist::Setup()
 /** Set up histogram with specified data sets. */
-Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Keywords
@@ -479,8 +478,8 @@ Analysis::RetType Analysis_Hist::Analyze() {
       // Create pseudo-topology/trajectory
       if (!traj3dName_.empty()) {
         Topology pseudo;
-        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '), 0);
-        pseudo.CommonSetup(false);
+        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '));
+        pseudo.CommonSetup();
         if (!parmoutName_.empty()) {
           ParmFile pfile;
           if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
