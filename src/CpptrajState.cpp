@@ -103,7 +103,7 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
   if ( enabled[L_REF]      ) DSL_.ListReferenceFrames();
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
+  if ( enabled[L_TRAJOUT]  ) trajoutList_.List( trajinList_.PindexFrames() );
   if ( enabled[L_PARM]     ) DSL_.ListTopologies();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
   if ( enabled[L_DATAFILE] ) DFL_.List();
@@ -300,7 +300,7 @@ int CpptrajState::RunEnsemble() {
     mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
             " suffix corresponds to above map):\n");
     parallel_barrier();
-    ensembleOut.List();
+    ensembleOut.List( trajinList_.PindexFrames() );
     parallel_barrier();
   }
   // Allocate DataSets in the master DataSetList based on # frames to be read
@@ -555,7 +555,7 @@ int CpptrajState::RunNormal() {
   // Print reference information
   DSL_.ListReferenceFrames(); 
   // Output traj
-  trajoutList_.List();
+  trajoutList_.List( trajinList_.PindexFrames() );
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
   init_time.Stop();
@@ -803,6 +803,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
         if (exitOnError_) return 1;
       } else {
         if (ds->LoadTopFromFile(argIn, debug_)) {
+          DSL_.RemoveSet( ds );
           if (exitOnError_) return 1;
         }
         // If a mask expression was specified, strip to match the expression.

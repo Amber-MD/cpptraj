@@ -13,7 +13,7 @@ class EnsembleOutList {
     int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const, Topology array?
     int WriteEnsembleOut(int, FramePtrArray const&);
     void CloseEnsembleOut();
-    void List() const;
+    void List(std::vector<int> const&) const;
   private:
     typedef std::vector<Topology*> TopArray;
     typedef std::vector<EnsembleOut*> EnsArray;
@@ -46,7 +46,7 @@ class TrajoutList {
     /// Call end for all trajectories
     void CloseTrajout();
     /// List output trajectories.
-    void List() const;
+    void List(std::vector<int> const&) const;
     /// \return true if no args/trajectories present.
     bool Empty()     const { return trajout_.empty();     }
   private:

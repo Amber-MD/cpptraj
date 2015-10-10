@@ -61,9 +61,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
     return Action::ERR;
   isSetup_ = false;
 
-  mprintf("    OUTTRAJ:");
-  outtraj_.PrintInfo(1);
-  mprintf("\tWriting frames associated with topology '%s'\n", associatedParm_->c_str());
+  mprintf("    OUTTRAJ: Writing frames associated with topology '%s'\n", associatedParm_->c_str());
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
             Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
@@ -78,6 +76,7 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   if (!isSetup_) { // TODO: Trajout IsOpen?
     if (outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes()))
       return Action::ERR;
+    outtraj_.PrintInfo(0);
     isSetup_ = true;
   }
   return Action::OK;

@@ -171,8 +171,10 @@ int EnsembleOut_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
 }
 
 // EnsembleOut_Multi::PrintInfo()
-void EnsembleOut_Multi::PrintInfo(int showExtended) const {
-  mprintf("  '%s.X' (Ensemble,", Traj().Filename().base());
+void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
+  mprintf("  '%s.X' ", Traj().Filename().base());
+  if (expectedNframes > 0) mprintf("(%i frames) ", expectedNframes);
+  mprintf("(Ensemble,");
 # ifdef MPI
   // Since not every thread may be writing if 'onlymembers' specified,
   // determine total number being written.

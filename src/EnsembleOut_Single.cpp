@@ -102,8 +102,10 @@ int EnsembleOut_Single::WriteEnsemble(int set, FramePtrArray const& Farray) {
 }
 
 // EnsembleOut_Single::PrintInfo()
-void EnsembleOut_Single::PrintInfo(int showExtended) const {
-  mprintf("  '%s' (Single Ensemble, %i members) ",Traj().Filename().base(), ensembleSize_);
+void EnsembleOut_Single::PrintInfo(int expectedNframes) const {
+  mprintf("  '%s' (Single Ensemble, %i members",Traj().Filename().base(), ensembleSize_);
+  if (expectedNframes > 0) mprintf(", %i frames", expectedNframes);
+  mprintf(") ");
   eio_->Info();
   Traj().CommonInfo();
 }
