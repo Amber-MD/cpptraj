@@ -483,15 +483,6 @@ CpptrajState
 \end_layout
 
 \begin_layout Description
-TopologyList
-\begin_inset space ~
-\end_inset
-
-parmFileList_; Hold all Topology classes.
- These are designed to be shared between trajectories to save memory.
-\end_layout
-
-\begin_layout Description
 DataSetList
 \begin_inset space ~
 \end_inset
@@ -553,6 +544,140 @@ analysisList_; Hold all Analyses to be executed after a run or when a 'runanalys
 is' command is given.
  Similar to ActionList, whenever an Analysis command is issued the Analysis
  in question is initialized and queued up in the AnalysisList.
+\end_layout
+
+\begin_layout Section
+Actions
+\end_layout
+
+\begin_layout Standard
+Actions are how Cpptraj derives data from input trajectories.
+ There are two basic classes for Actions:
+\end_layout
+
+\begin_layout Subsection
+Action
+\end_layout
+
+\begin_layout Standard
+The abstract base class that defines the Action interface.
+ Consists of 4 functions:
+\end_layout
+
+\begin_layout Description
+Init(): Initialize Action, set up DataSets/DataFiles, etc.
+\end_layout
+
+\begin_layout Description
+Setup(): Set up Action for a given Topology.
+\end_layout
+
+\begin_layout Description
+DoAction(): Perform Action on given Frame.
+\end_layout
+
+\begin_layout Description
+Print(): Perform any post-processing or output that occurs outside the main
+ DataSet/DataFile framework.
+\end_layout
+
+\begin_layout Subsection
+ActionInit (ActionState.h)
+\end_layout
+
+\begin_layout Standard
+Used to interface with Init(); contains pointers to the master DataSetList
+ and DataFileList in CpptrajState.
+\end_layout
+
+\begin_layout Description
+DataSetList&
+\begin_inset space ~
+\end_inset
+
+DSL(),
+\begin_inset space ~
+\end_inset
+
+DataSetList
+\begin_inset space ~
+\end_inset
+
+const&
+\begin_inset space ~
+\end_inset
+
+DSL()
+\begin_inset space ~
+\end_inset
+
+const Reference to the master DataSetList.
+ The appropriate version should be used automatically.
+\end_layout
+
+\begin_layout Description
+DataSetList*
+\begin_inset space ~
+\end_inset
+
+DslPtr() For Actions that require access to the master DataSetList after
+ Init() (e.g.
+ hbond, which cannot set up hbond time series until hbonds are actually
+ detected in DoAction()), they can store a pointer to the master DataSetList
+ like so:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+(In header): DataSetList* masterDSL_;
+\end_layout
+
+\begin_layout Standard
+(In Action::Init): masterDSL_ = init.DslPtr();
+\end_layout
+
+\end_deeper
+\begin_layout Description
+DataFileList&
+\begin_inset space ~
+\end_inset
+
+DFL(),
+\begin_inset space ~
+\end_inset
+
+DataFileList
+\begin_inset space ~
+\end_inset
+
+const&
+\begin_inset space ~
+\end_inset
+
+DFL()
+\begin_inset space ~
+\end_inset
+
+const Reference to master DataFileList.
+ The appropriate version should be used automatically.
+\end_layout
+
+\begin_layout Subsection
+ActionSetup (ActionState.h) 
+\end_layout
+
+\begin_layout Standard
+Used to interface with Setup(); contains pointers to current Topology and
+ CoordinateInfo, as well as expected number of frames associated with current
+ Topology.
+\end_layout
+
+\begin_layout Subsection
+ActionFrame (ActionState.h)
+\end_layout
+
+\begin_layout Standard
+Used to interface with DoAction(); contains pointer to current Frame.
 \end_layout
 
 \begin_layout Section
