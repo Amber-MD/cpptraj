@@ -803,6 +803,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
         if (exitOnError_) return 1;
       } else {
         if (ds->LoadTopFromFile(argIn, debug_)) {
+          DSL_.RemoveSet( ds );
           if (exitOnError_) return 1;
         }
         // If a mask expression was specified, strip to match the expression.

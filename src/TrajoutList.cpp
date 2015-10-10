@@ -80,8 +80,12 @@ void EnsembleOutList::CloseEnsembleOut() {
 void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
   if (!ensout_.empty()) {
     mprintf("\nOUTPUT ENSEMBLE:\n");
-    for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
-      (*ens)->PrintInfo( PindexFrames[(*ens)->Traj().Parm()->Pindex()] );
+    if (PindexFrames.empty())
+      for (unsigned int i = 0; i != ensout_.size(); i++)
+        ensout_[i]->PrintInfo( 0 );
+    else
+      for (unsigned int i = 0; i != ensout_.size(); i++)
+        ensout_[i]->PrintInfo( PindexFrames[ensTops_[i]->Pindex()] );
   }
 }
 
@@ -208,7 +212,11 @@ void TrajoutList::CloseTrajout() {
 void TrajoutList::List(std::vector<int> const& PindexFrames) const {
   if (!trajout_.empty()) {
     mprintf("\nOUTPUT TRAJECTORIES:\n");
-    for (ListType::const_iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
-      (*traj)->PrintInfo( PindexFrames[(*traj)->Traj().Parm()->Pindex()] );
+    if (PindexFrames.empty())
+      for (unsigned int i = 0; i != trajout_.size(); i++)
+        trajout_[i]->PrintInfo( 0 );
+    else
+      for (unsigned int i = 0; i != trajout_.size(); i++)
+        trajout_[i]->PrintInfo( PindexFrames[trajoutTops_[i]->Pindex()] );
   }
 }

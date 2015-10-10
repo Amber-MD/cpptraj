@@ -61,9 +61,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
     return Action::ERR;
   isSetup_ = false;
 
-  mprintf("    OUTTRAJ:");
-  outtraj_.PrintInfo(0);
-  mprintf("\tWriting frames associated with topology '%s'\n", associatedParm_->c_str());
+  mprintf("    OUTTRAJ: Writing frames associated with topology '%s'\n", associatedParm_->c_str());
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
             Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
