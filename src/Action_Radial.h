@@ -2,20 +2,20 @@
 #define INC_ACTION_RADIAL_H
 #include "Action.h"
 #include "ImagedAction.h"
-// Class: Action_Radial
 /// Calculate the radial distribution (pair correlation) function.
-class Action_Radial: public Action, ImagedAction {
+class Action_Radial: public Action {
   public:
     Action_Radial();
     ~Action_Radial();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radial(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
+    ImagedAction image_;      ///< Image routines.
     int* RDF_;                ///< Hold bin counts.
     int** rdf_thread_;        ///< Hold bin count on each thread.
     AtomMask Mask1_;          ///< Atoms to calculate RDF for.

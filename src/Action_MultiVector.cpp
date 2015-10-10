@@ -23,11 +23,11 @@ inline static int SetName(NameType& name, std::string const& expr, const char* s
   return 0;
 }
 
-Action::RetType Action_MultiVector::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_MultiVector::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords
-  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   std::string resrange_arg = actionArgs.GetStringKey("resrange");
   if (!resrange_arg.empty())
     if (resRange_.SetRange( resrange_arg )) return Action::ERR;
@@ -48,18 +48,18 @@ Action::RetType Action_MultiVector::Init(ArgList& actionArgs, DataSetList* DSL, 
   if (!dsetname_.empty())
     mprintf("\tDataSet name: %s\n", dsetname_.c_str());
   if (outfile_ != 0) mprintf("\tOutput to %s\n", outfile_->DataFilename().base());
-  DSL->SetDataSetsPending(true);
-  masterDSL_ = DSL;
+  init.DSL().SetDataSetsPending(true);
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
 // Action_MultiVector::Setup();
-Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_MultiVector::Setup(ActionSetup& setup) {
   Range actualRange;
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   if (resRange_.Empty())
-    actualRange = currentParm->SoluteResidues();
+    actualRange = setup.Top().SoluteResidues();
   else {
     // If user range specified, create new range shifted by -1 since internal
     // resnums start from 0.
@@ -68,8 +68,8 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
   }
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: No residues specified for %s\n",currentParm->c_str());
-    return Action::ERR;
+    mprintf("Warning: No residues specified for %s\n",setup.Top().c_str());
+    return Action::SKIP;
   }
   // Set default DataSet name if not specified.
   if (dsetname_.empty())
@@ -79,8 +79,8 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
   CrdIdx2_.clear();
   for (Range::const_iterator res = actualRange.begin(); res != actualRange.end(); ++res)
   {
-    int atom1 = currentParm->FindAtomInResidue( *res, name1_ );
-    int atom2 = currentParm->FindAtomInResidue( *res, name2_ );
+    int atom1 = setup.Top().FindAtomInResidue( *res, name1_ );
+    int atom2 = setup.Top().FindAtomInResidue( *res, name2_ );
     if (atom1 != -1 && atom2 != -1) {
       MetaData md(dsetname_, atom1+1);
       md.SetScalarMode( MetaData::M_VECTOR );
@@ -90,8 +90,8 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
         // Create DataSet
         ds = (DataSet_Vector*)masterDSL_->AddSet( DataSet::VECTOR, md );
         if (ds == 0) return Action::ERR;
-        ds->SetLegend( "v" + currentParm->AtomMaskName(atom1) + "->" +
-                             currentParm->AtomMaskName(atom2) );
+        ds->SetLegend( "v" + setup.Top().AtomMaskName(atom1) + "->" +
+                             setup.Top().AtomMaskName(atom2) );
         if (outfile_ != 0) outfile_->AddDataSet( ds );
       }
       data_.push_back( ds );
@@ -115,11 +115,10 @@ Action::RetType Action_MultiVector::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_MultiVector::DoAction()
-Action::RetType Action_MultiVector::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_MultiVector::DoAction(int frameNum, ActionFrame& frm) {
   for (unsigned int nv = 0; nv < CrdIdx1_.size(); ++nv) {
-    Vec3 CXYZ( currentFrame->CRD( CrdIdx1_[nv] ) );
-    Vec3 VXYZ( currentFrame->CRD( CrdIdx2_[nv] ) );
+    Vec3 CXYZ( frm.Frm().CRD( CrdIdx1_[nv] ) );
+    Vec3 VXYZ( frm.Frm().CRD( CrdIdx2_[nv] ) );
     VXYZ -= CXYZ;
     data_[nv]->AddVxyz(VXYZ, CXYZ);
   }

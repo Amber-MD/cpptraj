@@ -114,7 +114,7 @@ createcrd MyCoords
 run
 crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 EOF
-  RunCpptraj "Grid generationg from bounds test."
+  RunCpptraj "Grid generation from 'bounds' test."
   DoTest bounds.dat.save bounds.dat
   DoTest bounds.xplor.save bounds.xplor 
 }

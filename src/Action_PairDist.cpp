@@ -28,7 +28,7 @@ void Action_PairDist::Help()
 }
 
 // Action_PairDist::init()
-Action::RetType Action_PairDist::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   InitImaging(true);
 
@@ -38,7 +38,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, DataSetList* DSL, Dat
     outfileName = "pairdist.dat";
   }
 
-  output_ = DFL->AddCpptrajFile(outfileName, "Pair Dist Fxn");
+  output_ = init.DFL().AddCpptrajFile(outfileName, "Pair Dist Fxn");
   if (output_ == 0) {
     mprinterr("Error: PairDist: Could not open output file %s\n",
 	      outfileName.c_str());
@@ -70,41 +70,40 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
 
-  Pr_ = DSL->AddSet(DataSet::XYMESH, "", "Pr");
-  std_ = DSL->AddSet(DataSet::XYMESH, "", "std");
+  Pr_ = init.DSL().AddSet(DataSet::XYMESH, "", "Pr");
+  std_ = init.DSL().AddSet(DataSet::XYMESH, "", "std");
 
   return Action::OK;
 }
 
 
 // Action_PairDist::Setup()
-Action::RetType Action_PairDist::Setup(Topology* currentParm, Topology** parmAddress)
-{
-  if (currentParm->SetupIntegerMask(mask1_) ) return Action::ERR;
+Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask(mask1_) ) return Action::ERR;
 
   mprintf("\t");
   mask1_.BriefMaskInfo();
 
   if (mask1_.None()) {
-    mprintf("    Error: PairDist::setup: Mask has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: Mask has no atoms.\n");
+    return Action::SKIP;
   }
 
-  if (currentParm->SetupIntegerMask(mask2_) ) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(mask2_) ) return Action::ERR;
 
   mask2_.BriefMaskInfo();
   mprintf("\n");
 
   if (mask2_.None()) {
-    mprintf("    Error: PairDist::setup: Mask2 has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: PairDist::setup: Mask2 has no atoms.\n");
+    return Action::SKIP;
   }
 
   if (mask1_.MaskExpression() != mask2_.MaskExpression() &&
       mask1_.NumAtomsInCommon(mask2_) > 0) {
-    mprintf("    Error: PairDist::setup: mask expressions must be either "
-	    "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
-	    "be non-overlapping.\n");
+    mprinterr("Error: mask expressions must be either "
+	      "exactly the same\n\t(equivalent to mask2 omitted) or masks must "
+	      "be non-overlapping.\n");
     return Action::ERR;
   }
 
@@ -116,15 +115,14 @@ Action::RetType Action_PairDist::Setup(Topology* currentParm, Topology** parmAdd
     ub2_ = mask2_.Nselected();
   }
 
-  SetupImaging(currentParm->BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
   return Action::OK;
 }
 
 
 // Action_PairDist::action()
-Action::RetType Action_PairDist::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   unsigned long bin, j;
   double Dist = 0.0;
   Matrix_3x3 ucell, recip;
@@ -136,16 +134,16 @@ Action::RetType Action_PairDist::DoAction(int frameNum, Frame* currentFrame, Fra
 
   for (unsigned long i = 0; i < ub1_; i++) {
     for (same_mask_ ? j = i + 1 : j = 0; j < ub2_; j++) {
-      a1 = currentFrame->XYZ(mask1_[i]);
-      a2 = currentFrame->XYZ(mask2_[j]);
+      a1 = frm.Frm().XYZ(mask1_[i]);
+      a2 = frm.Frm().XYZ(mask2_[j]);
 
       switch (ImageType() ) {
       case NONORTHO:
-	currentFrame->BoxCrd().ToRecip(ucell, recip);
+	frm.Frm().BoxCrd().ToRecip(ucell, recip);
 	Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
 	break;
       case ORTHO:
-	Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
+	Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
 	break;
       case NOIMAGE:
 	Dist = DIST2_NoImage(a1, a2);

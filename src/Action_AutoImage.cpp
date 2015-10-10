@@ -25,7 +25,7 @@ void Action_AutoImage::Help() {
 }
 
 // Action_AutoImage::Init()
-Action::RetType Action_AutoImage::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
@@ -68,19 +68,18 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, DataSetList* DSL, Da
   * \return A list of atom pairs that mark the beginning and end of each
   *         selected molecule.
   */
-Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( Topology* currentParm, 
-                                             std::string const& maskexpr )
+Action_AutoImage::pairList
+  Action_AutoImage::SetupAtomRanges( Topology const& currentParm, std::string const& maskexpr )
 {
   pairList imageList;
   CharMask Mask1( maskexpr.c_str() );
 
-  if (currentParm->SetupCharMask( Mask1 )) return imageList;
+  if (currentParm.SetupCharMask( Mask1 )) return imageList;
   if (Mask1.None()) return imageList;
-  for (Topology::mol_iterator mol = currentParm->MolStart();
-                              mol != currentParm->MolEnd(); mol++)
+  for (Topology::mol_iterator mol = currentParm.MolStart(); mol != currentParm.MolEnd(); mol++)
   {
-    int firstAtom = (*mol).BeginAtom();
-    int lastAtom = (*mol).EndAtom();
+    int firstAtom = mol->BeginAtom();
+    int lastAtom = mol->EndAtom();
     // Check that each atom in the range is in Mask1
     bool rangeIsValid = true;
     for (int atom = firstAtom; atom < lastAtom; ++atom) {
@@ -99,37 +98,36 @@ Action_AutoImage::pairList Action_AutoImage::SetupAtomRanges( Topology* currentP
 }
 
 // Action_AutoImage::Setup()
-Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   bool fixedauto = false;
   bool mobileauto = false;
 
-  if (currentParm->Nmol() < 1) {
-    mprintf("Warning: autoimage: Parm %s does not contain molecule information\n",
-            currentParm->c_str());
-    return Action::ERR;
+  if (setup.Top().Nmol() < 1) {
+    mprintf("Warning: Topology %s does not contain molecule information\n", setup.Top().c_str());
+    return Action::SKIP;
   }
   // Determine Box info
-  if (currentParm->BoxType()==Box::NOBOX) {
-    mprintf("Warning: autoimage: Parm %s does not contain box information.\n",
-            currentParm->c_str());
-    return Action::ERR;
+  Box::BoxType boxType = setup.CoordInfo().TrajBox().Type();
+  if (boxType == Box::NOBOX) {
+    mprintf("Warning: Topology %s does not contain box information.\n", setup.Top().c_str());
+    return Action::SKIP;
   }
   ortho_ = false;
-  if (currentParm->BoxType()==Box::ORTHO && triclinic_==OFF) ortho_=true;
+  if (boxType == Box::ORTHO && triclinic_ == OFF) ortho_ = true;
   // If box is originally truncated oct and not forcing triclinic, 
   // turn familiar on.
-  if (currentParm->BoxType()==Box::TRUNCOCT && triclinic_!=FORCE && triclinic_!=FAMILIAR) {
+  if (boxType == Box::TRUNCOCT && triclinic_ != FORCE && triclinic_ != FAMILIAR) {
     mprintf("\tOriginal box is truncated octahedron, turning on 'familiar'.\n");
-    triclinic_=FAMILIAR;
+    triclinic_ = FAMILIAR;
   }
 
   // Set up anchor region
   if (!anchor_.empty()) {
-    anchorList_ = SetupAtomRanges( currentParm, anchor_ );
+    anchorList_ = SetupAtomRanges( setup.Top(), anchor_ );
   } else {
     anchorList_.clear();
-    anchorList_.push_back( currentParm->Mol(0).BeginAtom() );
-    anchorList_.push_back( currentParm->Mol(0).EndAtom() );
+    anchorList_.push_back( setup.Top().Mol(0).BeginAtom() );
+    anchorList_.push_back( setup.Top().Mol(0).EndAtom() );
   }
   if (anchorList_.empty() || anchorList_.size() > 2) {
     mprinterr("Error: Anchor mask [%s] corresponds to %zu mols, should only be 1.\n",
@@ -139,18 +137,18 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
   // Set up mask for centering anchor
   anchorMask_.ResetMask();
   anchorMask_.AddAtomRange( anchorList_[0], anchorList_[1] );
-  int anchormolnum = (*currentParm)[ anchorList_[0] ].MolNum();
+  int anchormolnum = setup.Top()[ anchorList_[0] ].MolNum();
   mprintf("\tAnchor molecule is %i\n", anchormolnum+1);
   // Set up fixed region
   if (!fixed_.empty()) 
-    fixedList_ = SetupAtomRanges( currentParm, fixed_ );
+    fixedList_ = SetupAtomRanges( setup.Top(), fixed_ );
   else { 
     fixedauto = true;
     fixedList_.clear();
   }
   // Set up mobile region
   if (!mobile_.empty())
-    mobileList_ = SetupAtomRanges( currentParm, mobile_ );
+    mobileList_ = SetupAtomRanges( setup.Top(), mobile_ );
   else {
     mobileauto = true;
     mobileList_.clear();
@@ -158,8 +156,8 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
   // Automatic search through molecules for fixed/mobile
   if (fixedauto || mobileauto) {
     int molnum = 0;
-    for (Topology::mol_iterator mol = currentParm->MolStart();
-                                mol != currentParm->MolEnd(); mol++)
+    for (Topology::mol_iterator mol = setup.Top().MolStart();
+                                mol != setup.Top().MolEnd(); mol++)
     {
       // Skip the anchor molecule
       if (molnum != anchormolnum) { 
@@ -183,16 +181,16 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
   // DEBUG: Print fixed and mobile lists
   if (!fixedList_.empty()) {
     mprintf("\tThe following molecules are fixed to anchor:");
-    for (pairList::iterator atom = fixedList_.begin(); 
-                            atom != fixedList_.end(); atom += 2)
-      mprintf(" %i", (*currentParm)[ *atom ].MolNum()+1 );
+    for (pairList::const_iterator atom = fixedList_.begin();
+                                  atom != fixedList_.end(); atom += 2)
+      mprintf(" %i", setup.Top()[ *atom ].MolNum()+1 );
     mprintf("\n");
   }
   mprintf("\t%zu molecules are mobile.\n", mobileList_.size() / 2 );
   //mprintf("\tThe following molecules are mobile:\n");
-  //for (pairList::iterator atom = mobileList_.begin(); 
-  //                        atom != mobileList_.end(); atom += 2)
-  //  mprintf("\t\t%i\n", (*currentParm)[ *atom ].MolNum()+1 );
+  //for (pairList::const_iterator atom = mobileList_.begin();
+  //                              atom != mobileList_.end(); atom += 2)
+  //  mprintf("\t\t%i\n", setup.Top()[ *atom ].MolNum()+1 );
 
   truncoct_ = (triclinic_==FAMILIAR);
 
@@ -200,65 +198,65 @@ Action::RetType Action_AutoImage::Setup(Topology* currentParm, Topology** parmAd
 }
 
 // Action_AutoImage::DoAction()
-Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   Vec3 fcom;
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
-  if (!ortho_) currentFrame->BoxCrd().ToRecip(ucell, recip);
+  if (!ortho_) frm.Frm().BoxCrd().ToRecip(ucell, recip);
   // Center w.r.t. anchor
   if (useMass_)
-    fcom = currentFrame->VCenterOfMass( anchorMask_ );
+    fcom = frm.Frm().VCenterOfMass( anchorMask_ );
   else
-    fcom = currentFrame->VGeometricCenter( anchorMask_ );
+    fcom = frm.Frm().VGeometricCenter( anchorMask_ );
   if (origin_) {
     fcom.Neg(); // Shift to coordinate origin (0,0,0)
     anchorcenter.Zero();
   } else {
     if (ortho_ || truncoct_) // Center is box xyz over 2
-      anchorcenter = currentFrame->BoxCrd().Center();
+      anchorcenter = frm.Frm().BoxCrd().Center();
     else                     // Center in frac coords is (0.5,0.5,0.5)
       anchorcenter = ucell.TransposeMult(Vec3(0.5));
     fcom = anchorcenter - fcom;
   }
-  currentFrame->Translate(fcom);
+  frm.ModifyFrm().Translate(fcom);
 
   // Setup imaging, and image everything in currentFrame 
   // according to mobileList. 
   if (ortho_) {
-    if (Image::SetupOrtho(currentFrame->BoxCrd(), bp, bm, origin_)) {
-      mprintf("Warning: autoimage: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
+    if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
+      mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
-      return Action::OK;
+      return Action::OK; // FIXME return MODIFY_COORDS instead?
     }
-    Image::Ortho(*currentFrame, bp, bm, offset, usecom_, useMass_, mobileList_);
+    Image::Ortho(frm.ModifyFrm(), bp, bm, offset, usecom_, useMass_, mobileList_);
   } else {
     if (truncoct_)
-      fcom = Image::SetupTruncoct( *currentFrame, 0, useMass_, origin_ );
-    Image::Nonortho(*currentFrame, origin_, fcom, offset, ucell, recip, truncoct_,
+      fcom = Image::SetupTruncoct( frm.Frm(), 0, useMass_, origin_ );
+    Image::Nonortho(frm.ModifyFrm(), origin_, fcom, offset, ucell, recip, truncoct_,
                     usecom_, useMass_, mobileList_);
-  }  
+  }
 
   // For each molecule defined by atom pairs in fixedList, determine if the
   // imaged position is closer to anchor center than the current position.
   // Always use molecule center when imaging fixedList.
-  for (pairList::iterator atom1 = fixedList_.begin();
-                          atom1 != fixedList_.end(); ++atom1)
+  for (pairList::const_iterator atom1 = fixedList_.begin();
+                                atom1 != fixedList_.end(); ++atom1)
   {
     int firstAtom = *atom1;
     ++atom1;
     int lastAtom = *atom1;
     if (useMass_) 
-      framecenter = currentFrame->VCenterOfMass(firstAtom, lastAtom);
+      framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
     else
-      framecenter = currentFrame->VGeometricCenter(firstAtom, lastAtom);
+      framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
     // NOTE: imaging routines will modify input coords.
     //imagedcenter[0] = framecenter[0];
     //imagedcenter[1] = framecenter[1];
     //imagedcenter[2] = framecenter[2];
     if (ortho_)
-      Trans = Image::Ortho(framecenter, bp, bm, currentFrame->BoxCrd());
+      Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
     else
       Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
     // If molecule was imaged, determine whether imaged position is closer to anchor.
@@ -272,13 +270,11 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, Frame* currentFrame, Fr
       //        framedist2, imageddist2);
       if (imageddist2 < framedist2) {
         // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-        currentFrame->Translate(Trans, firstAtom, lastAtom);
+        frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
         //for (int idx = firstAtom*3; idx < lastAtom*3; ++idx)
         //  (*currentFrame)[idx] = fixedFrame[idx];
       }
     }
   }
-    
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }
-

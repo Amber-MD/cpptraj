@@ -19,7 +19,7 @@ Action_Grid::Action_Grid() :
 {}
 
 void Action_Grid::Help() {
-  mprintf("\t<filename>\n%s\n", GridAction::HelpText);
+  mprintf("\t[out <filename>]\n%s\n", GridAction::HelpText);
   mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
           "\t[pdb <pdbout> [max <fraction>]] \n"
           "\t[[smoothdensity <value>] [invert]] [madura <madura>]\n"
@@ -27,17 +27,13 @@ void Action_Grid::Help() {
 }
 
 // Action_Grid::Init()
-Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   nframes_ = 0;
   // Get output filename
-  std::string filename = actionArgs.GetStringNext();
-  if (filename.empty()) {
-    mprinterr("Error: GRID: no filename specified.\n");
-    return Action::ERR;
-  }
+  std::string filename = actionArgs.GetStringKey("out");
   // Get grid options
-  grid_ = GridInit( "GRID", actionArgs, *DSL );
+  grid_ = GridInit( "GRID", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
 
   // Get extra options
@@ -45,7 +41,7 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   madura_ = actionArgs.getKeyDouble("madura", 0);
   smooth_ = actionArgs.getKeyDouble("smoothdensity", 0);
   invert_ = actionArgs.hasKey("invert");
-  pdbfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("pdb"),"Grid PDB",DataFileList::PDB,true);
+  pdbfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("pdb"),"Grid PDB",DataFileList::PDB,true);
   density_ = actionArgs.getKeyDouble("density",0.033456);
   if (actionArgs.hasKey("normframe")) normalize_ = TO_FRAME;
   else if (actionArgs.hasKey("normdensity")) normalize_ = TO_DENSITY;
@@ -63,19 +59,17 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   mask_.SetMaskString(maskexpr);
 
   // Setup output file
-  DataFile* outfile = DFL->AddDataFile(filename, actionArgs);
-  if (outfile == 0) {
-    mprinterr("Error: grid: Could not set up output file %s\n", filename.c_str());
-    return Action::ERR;
-  }
-  outfile->AddDataSet((DataSet*)grid_);
-  // grid_.PrintXplor( filename_, "This line is ignored", 
-  //                      "rdparm generated grid density" );
+  // For backwards compat., if no 'out' assume next string is filename
+  if (filename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
+    filename = actionArgs.GetStringNext();
+  DataFile* outfile = init.DFL().AddDataFile(filename, actionArgs);
+  if (outfile != 0) outfile->AddDataSet((DataSet*)grid_);
 
   // Info
   mprintf("    GRID:\n");
   GridInfo( *grid_ );
-  mprintf("\tGrid will be printed to file %s\n",filename.c_str());
+  if (outfile != 0) mprintf("\tGrid will be printed to file %s\n", outfile->DataFilename().full());
+  mprintf("\tGrid data set: '%s'\n", grid_->legend());
   mprintf("\tMask expression: [%s]\n",mask_.MaskString());
   if (pdbfile_ != 0)
       mprintf("\tPseudo-PDB will be printed to %s\n", pdbfile_->Filename().full());
@@ -89,25 +83,25 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
 }
 
 // Action_Grid::Setup()
-Action::RetType Action_Grid::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Grid::Setup(ActionSetup& setup) {
   // Setup grid, checks box info.
-  if (GridSetup( *currentParm )) return Action::ERR;
+  if (GridSetup( setup.Top(), setup.CoordInfo() )) return Action::ERR;
 
   // Setup mask
-  if (currentParm->SetupIntegerMask( mask_ ))
+  if (setup.Top().SetupIntegerMask( mask_ ))
     return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: GRID: No atoms selected for parm %s\n", currentParm->c_str());
-    return Action::ERR;
+    mprintf("Warning: No atoms selected for topology %s\n", setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;
 }
 
 // Action_Grid::DoAction()
-Action::RetType Action_Grid::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  GridFrame( *currentFrame, mask_, *grid_ );
+Action::RetType Action_Grid::DoAction(int frameNum, ActionFrame& frm) {
+  GridFrame( frm.Frm(), mask_, *grid_ );
   ++nframes_;
   return Action::OK;
 }

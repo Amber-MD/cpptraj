@@ -1,23 +1,25 @@
 #include <cstdio> // for ProcessInput
 #include <cstdlib> // system
+#include <algorithm> // std::sort
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
 #include "TorsionRoutines.h" // GenerateAmberRst
 #include "Constants.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
-#include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 #include "ProgressBar.h"
+#include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
+#include "Action_Angle.h"
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
-#include "Action_Angle.h"
 #include "Action_AtomMap.h"
 #include "Action_Strip.h"
+#include "Action_Unstrip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
 #include "Action_Hbond.h"
@@ -607,16 +609,7 @@ static void Help_ActiveRef() {
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
-  if (!REF.error() && REF.empty()) {
-    // For backwards compat, see if there is a single integer arg.
-    ArgList refArg( "refindex " + argIn.GetStringNext() );
-    REF = State.DSL()->GetReferenceFrame( refArg );
-  }
-  if (REF.error() || REF.empty()) return Command::C_ERR;
-  mprintf("\tActive reference is '%s'\n", REF.refName());
-  State.SetActiveReference( REF.RefPtr() );
-  return Command::C_OK; 
+  return (Command::RetType)State.DSL()->SetActiveReference( argIn );
 }
 
 /// Clear data in specified lists
@@ -674,17 +667,19 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( tkn == 0 ) return Command::C_ERR;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return Command::C_ERR;
-  if ( act->Init( actionargs, State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
+  ActionInit state(*State.DSL(), *State.DFL());
+  if ( act->Init( actionargs, state, State.Debug() ) != Action::OK ) {
     delete act;
     return Command::C_ERR;
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  Topology originalParm = CRD->Top();
+  ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
+  ActionFrame frm( &originalFrame );
   // Set up for this topology
-  Topology* currentParm = &originalParm;
-  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
+  Action::RetType setup_ret = act->Setup( originalSetup );
+  if ( setup_ret == Action::ERR ) {
     delete act;
     return Command::C_ERR;
   }
@@ -696,21 +691,20 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   {
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
-    Frame* currentFrame = &originalFrame;
-    if (act->DoAction( set, currentFrame, &currentFrame ) == Action::ERR) {
+    Action::RetType ret = act->DoAction( set, frm );
+    if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
-    // TODO: Have actions indicate whether they will modify coords
-    //if ( currentFrame != &originalFrame ) 
-      CRD->SetCRD( frame, *currentFrame );
+    if ( ret == Action::MODIFY_COORDS ) 
+      CRD->SetCRD( frame, frm.Frm() );
   }
   // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != &originalParm ) {
+  if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
+    CRD->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -741,8 +735,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
-  Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast, ensure CoordInfo valid
-  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, CRD->CoordsInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
@@ -1321,7 +1314,8 @@ static void Help_DataFilter() {
 Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Action_FilterByData filterAction;
-  if (filterAction.Init(argIn, State.DSL(), State.DFL(), State.Debug()) != Action::OK)
+  ActionInit state(*State.DSL(), *State.DFL());
+  if (filterAction.Init(argIn, state, State.Debug()) != Action::OK)
     return Command::C_ERR;
   size_t nframes = filterAction.DetermineFrames();
   if (nframes < 1) {
@@ -1329,9 +1323,10 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
     return Command::C_ERR;
   }
   ProgressBar progress( nframes );
+  ActionFrame frm;
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );
-    filterAction.DoAction(frame, (Frame*)0, (Frame**)0); // Filter does not need frame.
+    filterAction.DoAction(frame, frm); // Filter does not need frame.
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
@@ -2040,6 +2035,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+  { ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },

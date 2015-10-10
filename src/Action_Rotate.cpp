@@ -10,7 +10,7 @@ void Action_Rotate::Help() {
           "  Rotate atoms in <mask> around x, y, and/or z axes.\n");
 }
 
-Action::RetType Action_Rotate::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
   inverse_ = actionArgs.hasKey("inverse");
@@ -25,7 +25,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, DataSetList* DSL, DataF
                                    zrot * Constants::DEGRAD );
   } else {
     // Check if DataSet exists
-    rmatrices_ = (DataSet_Mat3x3*)DSL->FindSetOfType( dsname, DataSet::MAT3X3 );
+    rmatrices_ = (DataSet_Mat3x3*)init.DSL().FindSetOfType( dsname, DataSet::MAT3X3 );
     if (rmatrices_ == 0) {
       mprinterr("Error: No 3x3 matrices data set '%s'\n", dsname.c_str());
       return Action::ERR;
@@ -44,31 +44,31 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   return Action::OK;
 };
 
-Action::RetType Action_Rotate::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
+Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: rotate: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
   return Action::OK;
 }
 
-Action::RetType Action_Rotate::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
   if (rmatrices_ == 0) {
     if (inverse_)
-      currentFrame->InverseRotate(RotMatrix_, mask_);
+      frm.ModifyFrm().InverseRotate(RotMatrix_, mask_);
     else
-      currentFrame->Rotate(RotMatrix_, mask_);
+      frm.ModifyFrm().Rotate(RotMatrix_, mask_);
   } else {
     if (frameNum >= (int)rmatrices_->Size()) {
       mprintf("Warning: Frame %i out of range for set '%s'\n", frameNum+1, rmatrices_->legend());
       return Action::ERR;
     }
     if (inverse_)
-      currentFrame->InverseRotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().InverseRotate((*rmatrices_)[frameNum], mask_);
     else
-      currentFrame->Rotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().Rotate((*rmatrices_)[frameNum], mask_);
   }
-  return Action::OK;
+  return Action::MODIFY_COORDS;
 }

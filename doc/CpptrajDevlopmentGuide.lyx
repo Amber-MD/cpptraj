@@ -2600,15 +2600,28 @@ Action::ERR Action is not successful.
 \end_layout
 
 \begin_layout Description
-Action::USEORIGINALFRAME Action requests that the original unmodified topology/f
-rame be used (see e.g.
+Action::USE_ORIGINAL_FRAME Action requests that the original unmodified
+ topology/frame be used (see e.g.
  Action_Unstrip in Action_Strip.h).
 \end_layout
 
 \begin_layout Description
-Action::SUPPRESSCOORDOUTPUT Action requests that further processing of the
- current coordinate frame be skipped (see e.g.
+Action::SUPPRESS_COORD_OUTPUT Action requests that further processing of
+ the current coordinate frame be skipped (see e.g.
  Action_RunningAvg).
+\end_layout
+
+\begin_layout Description
+Action::SKIP Non-fatal problem occurred during setup; skip Action until
+ next Setup call.
+\end_layout
+
+\begin_layout Description
+Action::MODIFY_TOPOLOGY Setup routine has modified the Topology/CoordinateInfo.
+\end_layout
+
+\begin_layout Description
+Action::MODIFY_COORDS DoAction routine has modified the Frame.
 \end_layout
 
 \begin_layout Standard
@@ -2628,9 +2641,9 @@ In addition to Action, there are currently two additional action-related
 \end_layout
 
 \begin_layout Standard
-As an example, we will go through the creation of the Action_Distance class
- for calculating distances; this will cover using the DataSet, DataFile,
- AtomMask, and ImagedAction classes as well.
+As an example, we will go through the creation of a simplified version of
+ the Action_Distance class for calculating distances; this will cover using
+ the DataSet, DataFile, AtomMask, and ImagedAction classes as well.
 \end_layout
 
 \begin_layout Subsection
@@ -2724,19 +2737,15 @@ The private section is where all functions and variables specific to the
 \end_layout
 
 \begin_layout LyX-Code
-  Action::RetType Init(ArgList&, TopologyList*, DataSetList*,
+  Action::RetType Init(ArgList&, ActionInit&, int);
 \end_layout
 
 \begin_layout LyX-Code
-                       DataFileList*, int);
+  Action::RetType Setup(ActionSetup&);
 \end_layout
 
 \begin_layout LyX-Code
-  Action::RetType Setup(Topology*, Topology**);
-\end_layout
-
-\begin_layout LyX-Code
-  Action::RetType DoAction(int, Frame*, Frame**);
+  Action::RetType DoAction(int, ActionFrame&);
 \end_layout
 
 \begin_layout LyX-Code
@@ -2880,15 +2889,7 @@ Action::RetType
 \end_layout
 
 \begin_layout LyX-Code
-  Action_Distance::Init(ArgList& actionArgs, TopologyList* PFL,
-\end_layout
-
-\begin_layout LyX-Code
-                        DataSetList* DSL, DataFileList* DFL,
-\end_layout
-
-\begin_layout LyX-Code
-                        int debugIn)
+  Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 \end_layout
 
 \begin_layout LyX-Code
@@ -2896,10 +2897,20 @@ Action::RetType
 \end_layout
 
 \begin_layout Standard
-The input arguments are as follows: actionArgs contains arguments from user
- input, PFL is the current list of Topology classes, DSL is the master DataSetLi
-st, DFL is the master DataFileList, and debugIn is the current debug level
- for actions.
+The input arguments are as follows: 
+\series bold
+actionArgs
+\series default
+ (ArgList class) contains arguments from user input, 
+\series bold
+init
+\series default
+ (ActionInit class) contains the master DataSetList and master DataFileList,
+ and 
+\series bold
+debugIn
+\series default
+ is the current debug level for all actions.
  It is up to the action implementation whether it wants to record the debug
  level or not.
 \end_layout
@@ -2949,8 +2960,8 @@ Next, we will try to create an output DataFile:
 \end_layout
 
 \begin_layout LyX-Code
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArg
-s );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"),
+ actionArgs );
 \end_layout
 
 \begin_layout Standard
@@ -3026,11 +3037,11 @@ Now we can use the mask expression strings to initialize the two AtomMask
 \end_layout
 
 \begin_layout Standard
-Next we will use the master DataSetList (DSL) to create a DataSet to store
- the calculated distances.
- We will set up a DataSet of type DOUBLE (for increased precision) using
- any string left in actionArgs, or if no strings are left a default name
- of 
+Next we will use the master DataSetList (init.DSL()) to create a DataSet
+ to store the calculated distances.
+ We will use a version of DataSetList::AddSet() that allows us to specify
+ the DataSet type, MetaData, and a default name if no name is specified
+ (
 \begin_inset Quotes eld
 \end_inset
 
@@ -3038,14 +3049,14 @@ Dis
 \begin_inset Quotes erd
 \end_inset
 
-.
- If any errors occur, NULL (0) will be returned.
+).
+ If any errors occur in creating the DataSet, NULL (0) will be returned.
  Note that the string returned by actionArgs.GetStringNext() is implicitly
  converted to a MetaData class.
 \end_layout
 
 \begin_layout LyX-Code
-  dist_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
+  dist_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
 \end_layout
 
 \begin_layout LyX-Code
@@ -3103,6 +3114,32 @@ n");
 }
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+IMPORTANT:
+\series default
+ Note that this is the only time in which the master DataSetList is passed
+ to the Action.
+ If the Action will need to set up DataSets later (because e.g.
+ they may depend on what's in the Topology, like in the case of the 
+\series bold
+\emph on
+multidihedral
+\series default
+\emph default
+ command), it should save a pointer to the master DataSetList using the
+ 
+\series bold
+init.DslPtr()
+\series default
+ function, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+masterDSL_ = init.DslPtr();
+\end_layout
+
 \begin_layout Subsubsection
 Setup() - Set up Topology-related parts of the Action
 \end_layout
@@ -3116,30 +3153,24 @@ Setup() is called whenever the action needs to be set up for a given Topology
 \end_layout
 
 \begin_layout LyX-Code
-Action::RetType
-\end_layout
-
-\begin_layout LyX-Code
-  Action_Distance::Setup(Topology* currentParm, Topology** parmAddress)
-\end_layout
-
-\begin_layout LyX-Code
-{
+Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 \end_layout
 
 \begin_layout Standard
-Note that both a pointer to the current Topology as well as the address
- of that pointer (Topology**) are given.
- This is for actions that may want to modify the current Topology (see e.g.
+Note that the 
+\series bold
+setup
+\series default
+ variable (ActionSetup class) contains a pointer to the current Topology
+ and current trajectory CoordinateInfo, as well as the number of expected
+ frames associated with this Topology during the current run.
+ Actions that want to modify the current Topology or CoordinateInfo for
+ subsequent Actions can do so using the 
+\series bold
+setup
+\series default
+ variable (see e.g.
  Action_Strip).
- 
-\end_layout
-
-\begin_layout Standard
-IMPORTANT: Note that this is the only time in which a Topology is passed
- to the Action.
- If the Action requires Topology information later (such as in DoAction()
- or Print()) it must be saved in the Action itself (usually through a pointer).
  
 \end_layout
 
@@ -3153,18 +3184,22 @@ First, we setup the AtomMasks.
 \end_layout
 
 \begin_layout LyX-Code
-  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
 \end_layout
 
 \begin_layout LyX-Code
-  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
 \end_layout
 
 \begin_layout Standard
 After this, we print some information about what atoms are selected (note
  we could also use the MaskInfo() function of AtomMask for this).
  For calculating distance, we need to make sure atoms were actually selected
- (using the None() function of AtomMask):
+ (using the None() function of AtomMask).
+ If no atoms were selected this may be because the mask is only valid for
+ certain Topologies during the run, so in that case make it a non-fatal
+ error (i.e.
+ a Warning) and return Action::SKIP:
 \end_layout
 
 \begin_layout LyX-Code
@@ -3190,7 +3225,7 @@ n");
 \end_layout
 
 \begin_layout LyX-Code
-    return Action::ERR;
+    return Action::SKIP;
 \end_layout
 
 \begin_layout LyX-Code
@@ -3199,15 +3234,15 @@ n");
 
 \begin_layout Standard
 Next we determine if imaging can actually be performed based on the box
- information present in the current Topology; if there is no box information
- imaging cannot be performed.
- We do this with the SetupImaging() function, inherited from ImagedAction.
- The ImagingEnabled() function (also inherited from ImagedAction) will let
- us know if imaging for this Topology is possible or not:
+ information present in the current trajectory's CoordinateInfo; if there
+ is no box information imaging cannot be performed.
+ We do this with the image_.SetupImaging() function (ImagedAction class).
+ The image_.ImagingEnabled() function will let us know if imaging for this
+ Topology is possible or not:
 \end_layout
 
 \begin_layout LyX-Code
-  image_.SetupImaging( currentParm->BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
 \end_layout
 
 \begin_layout LyX-Code
@@ -3245,6 +3280,24 @@ Now all Topology-dependent aspects of the action are set up.
 }
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+IMPORTANT:
+\series default
+ Note that this is the only time in which a Topology is passed to the Action.
+ If the Action requires Topology information later (such as in DoAction()
+ or Print()) it should save a pointer to the Topology using the 
+\series bold
+setup.TopAddress()
+\series default
+ function, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+currentParm_ = setup.TopAddress();
+\end_layout
+
 \begin_layout Subsubsection
 DoAction() - Process input Frame
 \end_layout
@@ -3257,27 +3310,31 @@ Coordinates are read in a frame at a time and stored in a Frame class, which
 \end_layout
 
 \begin_layout LyX-Code
-Action::RetType
-\end_layout
-
-\begin_layout LyX-Code
-  Action_Distance::DoAction(int frameNum, Frame* currentFrame,
-\end_layout
-
-\begin_layout LyX-Code
-                            Frame** frameAddress)
-\end_layout
-
-\begin_layout LyX-Code
-{
+Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm)
+ {
 \end_layout
 
 \begin_layout Standard
-The first argument is the current frame number (starting at 0).
- Note that like Setup(), both a pointer to the current Frame as well as
- the address of that pointer (Frame**) are given, again so that actions
- may modify the current Frame (see e.g.
- Action_Strip).
+The first argument 
+\series bold
+frameNum
+\series default
+ is the current frame number (starting at 0).
+ Note that the 
+\series bold
+frm
+\series default
+ variable (ActionFrame class) contains a pointer to the current Frame.
+ Actions that want to alter the current Frame beyond just manipulating coordinat
+es for subsequent Actions (e.g.
+ changing the Frame size or adding velocity info etc) can do so via the
+ 
+\series bold
+frm
+\series default
+ variable (see e.g.
+ Action_Closest).
+ 
 \end_layout
 
 \begin_layout Standard
@@ -3322,11 +3379,11 @@ In the first part of the actual calculation, we calculate the centers of
 \end_layout
 
 \begin_layout LyX-Code
-    a1 = currentFrame->VCenterOfMass( Mask1_ );
+    a1 = frm.Frm().VCenterOfMass( Mask1_ );
 \end_layout
 
 \begin_layout LyX-Code
-    a2 = currentFrame->VCenterOfMass( Mask2_ );
+    a2 = frm.Frm().VCenterOfMass( Mask2_ );
 \end_layout
 
 \begin_layout LyX-Code
@@ -3334,15 +3391,23 @@ In the first part of the actual calculation, we calculate the centers of
 \end_layout
 
 \begin_layout LyX-Code
-    a1 = currentFrame->VGeometricCenter( Mask1_ );
+    a1 = frm.Frm().VGeometricCenter( Mask1_ );
 \end_layout
 
 \begin_layout LyX-Code
-    a2 = currentFrame->VGeometricCenter( Mask2_ );
+    a2 = frm.Frm().VGeometricCenter( Mask2_ );
 \end_layout
 
 \begin_layout LyX-Code
   }
+\end_layout
+
+\begin_layout Standard
+Note that here we are using the Frm() function, which returns a constant
+ (i.e.
+ non-modifiable) reference to the current Frame; if we wanted to actually
+ manipulate the coordinates we would have to call ModifyFrm().
+ 
 \end_layout
 
 \begin_layout Standard
@@ -3365,7 +3430,7 @@ es (stored in the Frame class in double precision as 3 lengths and 3 angles)
 \end_layout
 
 \begin_layout LyX-Code
-      currentFrame->BoxCrd().ToRecip(ucell, recip);
+      frm.Frm().BoxCrd().ToRecip(ucell, recip);
 \end_layout
 
 \begin_layout LyX-Code
@@ -3381,7 +3446,7 @@ es (stored in the Frame class in double precision as 3 lengths and 3 angles)
 \end_layout
 
 \begin_layout LyX-Code
-      Dist = DIST2_ImageOrtho(a1, a2, currentFrame->BoxCrd());
+      Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
 \end_layout
 
 \begin_layout LyX-Code

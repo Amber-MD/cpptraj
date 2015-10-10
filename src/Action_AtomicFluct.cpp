@@ -24,18 +24,18 @@ void Action_AtomicFluct::Help() {
 }
 
 // Action_AtomicFluct::Init()
-Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get frame # keywords
   if (InitFrameCounter(actionArgs)) return Action::ERR;
   // Get other keywords
   bfactor_ = actionArgs.hasKey("bfactor");
   calc_adp_ = actionArgs.hasKey("calcadp");
-  adpoutfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("adpout"), "PDB w/ADP",
+  adpoutfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("adpout"), "PDB w/ADP",
                                     DataFileList::PDB);;
   if (adpoutfile_!=0) calc_adp_ = true; // adpout implies calcadp
   if (calc_adp_ && !bfactor_) bfactor_ = true;
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
   if (actionArgs.hasKey("byres"))
     outtype_ = BYRES;
   else if (actionArgs.hasKey("bymask"))
@@ -53,7 +53,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, DataSetList* DSL, 
     md.SetLegend("B-factors");
   else
     md.SetLegend("AtomicFlx");
-  dataout_ = DSL->AddSet( DataSet::XYMESH, md, "Fluct" );
+  dataout_ = init.DSL().AddSet( DataSet::XYMESH, md, "Fluct" );
   if (dataout_ == 0) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
@@ -81,35 +81,35 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, DataSetList* DSL, 
 }
 
 // Action_AtomicFluct::Setup()
-Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_AtomicFluct::Setup(ActionSetup& setup) {
 
   if (SumCoords_.Natom()==0) {
     // Set up frames if not already set
-    SumCoords_.SetupFrame(currentParm->Natom());
-    SumCoords2_.SetupFrame(currentParm->Natom());
+    SumCoords_.SetupFrame(setup.Top().Natom());
+    SumCoords2_.SetupFrame(setup.Top().Natom());
     SumCoords_.ZeroCoords();
     SumCoords2_.ZeroCoords();
     if (calc_adp_) {
-      Cross_.SetupFrame(currentParm->Natom());
+      Cross_.SetupFrame(setup.Top().Natom());
       Cross_.ZeroCoords();
     }
     // This is the parm that will be used for this calc
-    fluctParm_ = currentParm;
+    fluctParm_ = setup.TopAddress();
     // Set up atom mask
-    if (currentParm->SetupCharMask( Mask_ )) {
+    if (setup.Top().SetupCharMask( Mask_ )) {
       mprinterr("Error: Could not set up mask [%s]\n",Mask_.MaskString());
       return Action::ERR;
     }
     Mask_.MaskInfo();
     if (Mask_.None()) {
-      mprinterr("Error: AtomicFluct: No atoms selected [%s]\n",Mask_.MaskString());
-      return Action::ERR;
+      mprintf("Warning: No atoms selected [%s]\n",Mask_.MaskString());
+      return Action::SKIP;
     }
-  } else if (currentParm->Natom() != SumCoords_.Natom()) {
+  } else if (setup.Top().Natom() != SumCoords_.Natom()) {
     // Check that current #atoms matches
     mprinterr("Error: AtomicFluct not yet supported for mulitple topologies with different\n");
     mprinterr("       #s of atoms (set up for %i, this topology has %i\n",
-              SumCoords_.Natom(), currentParm->Natom());
+              SumCoords_.Natom(), setup.Top().Natom());
     return Action::ERR;
   } 
   // NOTE: Print warning here when setting up multiple topologies?
@@ -117,16 +117,15 @@ Action::RetType Action_AtomicFluct::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_AtomicFluct::DoAction()
-Action::RetType Action_AtomicFluct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
-{
+Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
-  SumCoords_ += *currentFrame;
-  SumCoords2_ += ( (*currentFrame) * (*currentFrame) ) ;
+  SumCoords_ += frm.Frm();
+  SumCoords2_ += ( frm.Frm() * frm.Frm() );
   if (calc_adp_) {
     for (int i = 0; i < SumCoords_.size(); i+=3) {
-      Cross_[i  ] += (*currentFrame)[i  ] * (*currentFrame)[i+1]; // U12
-      Cross_[i+1] += (*currentFrame)[i  ] * (*currentFrame)[i+2]; // U13
-      Cross_[i+2] += (*currentFrame)[i+1] * (*currentFrame)[i+2]; // U23
+      Cross_[i  ] += frm.Frm()[i  ] * frm.Frm()[i+1]; // U12
+      Cross_[i+1] += frm.Frm()[i  ] * frm.Frm()[i+2]; // U13
+      Cross_[i+2] += frm.Frm()[i+1] * frm.Frm()[i+2]; // U23
     }
   }
   ++sets_;

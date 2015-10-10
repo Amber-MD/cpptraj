@@ -1,9 +1,7 @@
-// Action_Pucker
 #include "Action_Pucker.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // RADDEG
 #include "TorsionRoutines.h"
-#include "DataSet_double.h"
 
 // CONSTRUCTOR
 Action_Pucker::Action_Pucker() :
@@ -25,10 +23,10 @@ void Action_Pucker::Help() {
 }
 
 // Action_Pucker::Init()
-Action::RetType Action_Pucker::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Pucker::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
   if      (actionArgs.hasKey("altona")) puckerMethod_=ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=CREMER;
   bool calc_amp = actionArgs.hasKey("amplitude");
@@ -67,17 +65,17 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, DataSetList* DSL, DataF
   MetaData md(actionArgs.GetStringNext());
   md.SetScalarMode( MetaData::M_PUCKER );
   md.SetScalarType( stype );
-  pucker_ = DSL->AddSet(DataSet::DOUBLE, md, "Pucker");
+  pucker_ = init.DSL().AddSet(DataSet::DOUBLE, md, "Pucker");
   if (pucker_ == 0) return Action::ERR;
   amplitude_ = 0;
   theta_ = 0;
   if (calc_amp)
-    amplitude_ = DSL->AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Amp"));
+    amplitude_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Amp"));
   if (calc_theta) {
     if ( Masks_.size() < 6 )
       mprintf("Warning: 'theta' calc. not supported for < 6 masks.\n");
     else
-      theta_ = DSL->AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Theta"));
+      theta_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(pucker_->Meta().Name(), "Theta"));
   }
   // Add dataset to datafile list
   if (outfile != 0) {
@@ -115,17 +113,17 @@ Action::RetType Action_Pucker::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 }
 
 // Action_Pucker::Setup()
-Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Pucker::Setup(ActionSetup& setup) {
   mprintf("\t");
   for (std::vector<AtomMask>::iterator MX = Masks_.begin();
                                        MX != Masks_.end(); ++MX)
   {
-    if ( currentParm->SetupIntegerMask( *MX ) ) return Action::ERR;
+    if ( setup.Top().SetupIntegerMask( *MX ) ) return Action::ERR;
     MX->BriefMaskInfo();
     if (MX->None()) {
       mprintf("\nWarning: Mask '%s' selects no atoms for topology '%s'\n",
-              MX->MaskString(), currentParm->c_str());
-      return Action::ERR;
+              MX->MaskString(), setup.Top().c_str());
+      return Action::SKIP;
     }
   }
   mprintf("\n");
@@ -134,18 +132,18 @@ Action::RetType Action_Pucker::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Pucker::DoAction()
-Action::RetType Action_Pucker::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Pucker::DoAction(int frameNum, ActionFrame& frm) {
   double pval, aval, tval;
   std::vector<Vec3>::iterator ax = AX_.begin(); 
 
   if (useMass_) {
     for (std::vector<AtomMask>::const_iterator MX = Masks_.begin();
                                                MX != Masks_.end(); ++MX, ++ax)
-      *ax = currentFrame->VCenterOfMass( *MX );
+      *ax = frm.Frm().VCenterOfMass( *MX );
   } else {
      for (std::vector<AtomMask>::const_iterator MX = Masks_.begin();
                                                MX != Masks_.end(); ++MX, ++ax)
-      *ax = currentFrame->VGeometricCenter( *MX );
+      *ax = frm.Frm().VGeometricCenter( *MX );
   }
 
   switch (puckerMethod_) {

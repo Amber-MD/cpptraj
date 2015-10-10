@@ -58,7 +58,7 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 }
 
 // Action_ClusterDihedral::Init()
-Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // # of phi and psi bins
@@ -77,11 +77,11 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, DataSetList* D
   // Cluster pop cutoff
   CUT_ = actionArgs.getKeyInt("cut",0);
   // Output files
-  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Dihedral Cluster Results",
+  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Dihedral Cluster Results",
                                  DataFileList::TEXT, true);
-  framefile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("framefile"), "Frame-Cluster data");
-  infofile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("clusterinfo"), "Cluster pop & ID");
-  DataFile* cvtfile = DFL->AddDataFile( actionArgs.GetStringKey("clustervtime"), actionArgs );
+  framefile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("framefile"), "Frame-Cluster data");
+  infofile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("clusterinfo"), "Cluster pop & ID");
+  DataFile* cvtfile = init.DFL().AddDataFile( actionArgs.GetStringKey("clustervtime"), actionArgs );
   // Input dihedral file or scan mask
   std::string dihedralIn = actionArgs.GetStringKey("dihedralfile");
   if (!dihedralIn.empty()) {
@@ -92,7 +92,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, DataSetList* D
 
   // CVT dataset
   if (cvtfile != 0) {
-    CVT_ = DSL->AddSet(DataSet::INTEGER, actionArgs.GetStringNext(), "DCVT");
+    CVT_ = init.DSL().AddSet(DataSet::INTEGER, actionArgs.GetStringNext(), "DCVT");
     if (CVT_ == 0) return Action::ERR;
     cvtfile->AddDataSet(CVT_);
   }
@@ -121,7 +121,7 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, DataSetList* D
 }
 
 // Action_ClusterDihedral::Setup()
-Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_ClusterDihedral::Setup(ActionSetup& setup) {
   // Currently setup can only be performed based on first prmtop
   if (dcparm_!=0) {
     mprintf("Warning: clusterdihedral is only setup based on the first prmtop\n");
@@ -131,7 +131,7 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
   // Set up backbone dihedral angles if none were read
   if (DCmasks_.empty()) {
     // Setup mask
-    if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
+    if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
     if ( mask_.None()) {
       mprinterr("Error clusterdihedral: No atoms selected by mask [%s]\n", mask_.MaskString());
       return Action::ERR;
@@ -146,7 +146,7 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
       if ( C2 > -1 ) {
         // If we have already found the last C in phi dihedral, this N is 
         // the last atom in psi dihedral - store both.
-        if ( (*currentParm)[*atom].Name() == "N   " ) {
+        if ( setup.Top()[*atom].Name() == "N   " ) {
           DCmasks_.push_back( DCmask(C1, N2, CA, C2,    phibins_, minimum_) ); // PHI
           DCmasks_.push_back( DCmask(N2, CA, C2, *atom, psibins_, minimum_) ); // PSI
           if (debug_ > 0)
@@ -162,10 +162,10 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
       } else if ( C1 > -1 ) {
         // If we've already found the first carbonyl, look for other atoms
         // in the dihedral pair.
-        if ( (*currentParm)[*atom].Name() == "N   " ) N2 = *atom;
-        if ( (*currentParm)[*atom].Name() == "CA  " ) CA = *atom;
-        if ( (*currentParm)[*atom].Name() == "C   " ) C2 = *atom;
-      } else if ( (*currentParm)[*atom].Name() == "C   " ) C1 = *atom; // 1st carbon
+        if ( setup.Top()[*atom].Name() == "N   " ) N2 = *atom;
+        if ( setup.Top()[*atom].Name() == "CA  " ) CA = *atom;
+        if ( setup.Top()[*atom].Name() == "C   " ) C2 = *atom;
+      } else if ( setup.Top()[*atom].Name() == "C   " ) C1 = *atom; // 1st carbon
     } // End loop over selected atoms
     mprintf("\tFound %zu dihedral angles.\n", DCmasks_.size());
   }
@@ -177,7 +177,7 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
 
   // Allocate space to hold Bin IDs each frame
   Bins_.resize( DCmasks_.size() );
-  dcparm_ = currentParm;
+  dcparm_ = setup.TopAddress();
 
   // DEBUG - Print bin ranges
   if (debug_ > 0) {
@@ -185,8 +185,8 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
                                              dih != DCmasks_.end(); ++dih)
     {
       mprintf("\tDihedral %s-%s-%s-%s[",
-              (*currentParm)[dih->A1()].c_str(), (*currentParm)[dih->A2()].c_str(),
-              (*currentParm)[dih->A3()].c_str(), (*currentParm)[dih->A4()].c_str());
+              setup.Top()[dih->A1()].c_str(), setup.Top()[dih->A2()].c_str(),
+              setup.Top()[dih->A3()].c_str(), setup.Top()[dih->A4()].c_str());
       for (int phibin = 0; phibin < dih->Bins(); ++phibin) {
         double PHI = ((double)phibin * dih->Step()) + dih->Min();
         mprintf("%6.2f] %3i [", PHI, phibin);
@@ -199,16 +199,16 @@ Action::RetType Action_ClusterDihedral::Setup(Topology* currentParm, Topology** 
 }
 
 // Action_ClusterDihedral::DoAction()
-Action::RetType Action_ClusterDihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_ClusterDihedral::DoAction(int frameNum, ActionFrame& frm) {
   // For each dihedral, calculate which bin it should go into and store bin#
   int bidx = 0;
   for (std::vector<DCmask>::const_iterator dih = DCmasks_.begin(); 
                                            dih != DCmasks_.end(); ++dih)
   {
-    double PHI = Torsion( currentFrame->XYZ(dih->A1()),
-                          currentFrame->XYZ(dih->A2()),
-                          currentFrame->XYZ(dih->A3()),
-                          currentFrame->XYZ(dih->A4()) );
+    double PHI = Torsion( frm.Frm().XYZ(dih->A1()),
+                          frm.Frm().XYZ(dih->A2()),
+                          frm.Frm().XYZ(dih->A3()),
+                          frm.Frm().XYZ(dih->A4()) );
     // NOTE: Torsion is in radians; should bins be converted to rads as well?
     PHI *= Constants::RADDEG;
     //mprintf("[%6i]Dihedral=%8.3f", dih->A1(), PHI); // DEBUG

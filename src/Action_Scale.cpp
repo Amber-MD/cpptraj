@@ -14,7 +14,7 @@ void Action_Scale::Help() {
 }
 
 // Action_Scale::init()
-Action::RetType Action_Scale::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Scale::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   sx_ = actionArgs.getKeyDouble("x", 1);
   sy_ = actionArgs.getKeyDouble("y", 1);
@@ -28,17 +28,17 @@ Action::RetType Action_Scale::Init(ArgList& actionArgs, DataSetList* DSL, DataFi
 }
 
 // Action_Scale::setup()
-Action::RetType Action_Scale::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
+Action::RetType Action_Scale::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   if ( mask_.None() ) {
     mprintf("Warning: scale: No atoms selected.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   return Action::OK;
 }
 
 // Action_Scale::action()
-Action::RetType Action_Scale::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
-  currentFrame->Scale(mask_, sx_, sy_, sz_);
-  return Action::OK;
+Action::RetType Action_Scale::DoAction(int frameNum, ActionFrame& frm) {
+  frm.ModifyFrm().Scale(mask_, sx_, sy_, sz_);
+  return Action::MODIFY_COORDS;
 }

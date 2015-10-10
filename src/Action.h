@@ -2,9 +2,7 @@
 #define INC_ACTION_H
 #include "DispatchObject.h"
 #include "ArgList.h"
-#include "DataFileList.h"
-#include "DataSetList.h"
-// Class: Action 
+#include "ActionState.h"
 /// The abstract base class that all other actions inherit. 
 /** By convention actions have 3 main phases: Init, Setup, and DoAction.
   * Init is used to initialize the action, make sure that all arguments
@@ -26,22 +24,25 @@ class Action : public DispatchObject {
     /// Enumerate potential return states from Init, Setup, and DoAction.
     enum RetType { OK=0, ///< Everything OK, normal return.
                    ERR,  ///< Problem occurred.
-                   USEORIGINALFRAME, ///< Return to unmodified frame/topology.
-                   SUPPRESSCOORDOUTPUT ///< Skip remaining actions and traj output.
+                   USE_ORIGINAL_FRAME, ///< Return to unmodified frame/topology.
+                   SUPPRESS_COORD_OUTPUT, ///< Skip remaining actions and traj output. TODO just SKIP?
+                   SKIP, ///< Non-fatal problem occurred, skip action until re-setup.
+                   MODIFY_TOPOLOGY, ///< Action has modified the topology.
+                   MODIFY_COORDS ///< Action has modified the frame.
     };
     /// Destructor - virtual since this class is inherited
     virtual ~Action() {}
     /// Initialize action
     /** Process input args, set up any DataSets or DataFiles, set debug level */
-    virtual RetType Init(ArgList&, DataSetList*, DataFileList*, int) = 0;
+    virtual RetType Init(ArgList&, ActionInit&, int) = 0;
     /// Set up action for given Topology
-    virtual RetType Setup(Topology*,Topology**) = 0;
+    virtual RetType Setup(ActionSetup&) = 0;
     /// Perform action for given frame number and Frame.
-    virtual RetType DoAction(int,Frame*,Frame**) = 0;
+    virtual RetType DoAction(int, ActionFrame&) = 0;
     /// Print anything besides datasets, called at end of execution
     /** Perform any output not related to master dataset output, or any 
       * necessary post-trajectory processing calculations.
       */
     virtual void Print() = 0;
 };
-#endif  
+#endif

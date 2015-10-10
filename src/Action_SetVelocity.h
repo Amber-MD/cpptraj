@@ -9,14 +9,16 @@ class Action_SetVelocity : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_SetVelocity(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     AtomMask Mask_;
     std::vector<double> SD_;
     double tempi_;
     Random_Number RN_;
+    CoordinateInfo cInfo_;
+    Frame newFrame_;
 };
 #endif

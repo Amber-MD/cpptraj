@@ -39,18 +39,18 @@ const char* Action_DSSP::SSchar[]    = { "0", "b", "B", "G", "H", "I", "T", "S" 
 const char* Action_DSSP::SSname[]={"None", "Para", "Anti", "3-10", "Alpha", "Pi", "Turn", "Bend"};
 
 // Action_DSSP::Init()
-Action::RetType Action_DSSP::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   Nframe_ = 0;
   // Get keywords
-  outfile_ = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   std::string temp = actionArgs.GetStringKey("sumout");
   if (temp.empty() && outfile_ != 0) 
     temp = outfile_->DataFilename().Full() + ".sum";
-  dsspFile_ = DFL->AddDataFile( temp );
-  DataFile* totalout = DFL->AddDataFile( actionArgs.GetStringKey("totalout"), actionArgs );
-  assignout_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("assignout"), "SS assignment");
+  dsspFile_ = init.DFL().AddDataFile( temp );
+  DataFile* totalout = init.DFL().AddDataFile( actionArgs.GetStringKey("totalout"), actionArgs );
+  assignout_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("assignout"), "SS assignment");
   printString_ = actionArgs.hasKey("ptrajformat");
   temp = actionArgs.GetStringKey("namen");
   if (!temp.empty()) BB_N_ = temp;
@@ -69,13 +69,13 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   dsetname_ = actionArgs.GetStringNext();
   // Set default name if none specified
   if (dsetname_.empty())
-    dsetname_ = DSL->GenerateDefaultName("DSSP");
+    dsetname_ = init.DSL().GenerateDefaultName("DSSP");
   // Set up Z labels
   if (outfile_ != 0)
     outfile_->ProcessArgs("zlabels None,Para,Anti,3-10,Alpha,Pi,Turn,Bend");
   // Create data sets for total fraction SS vs time.
   for (int i = 0; i < NSSTYPE; i++) {
-    totalDS_[i] = DSL->AddSet(DataSet::FLOAT, MetaData(dsetname_, SSname[i]));
+    totalDS_[i] = init.DSL().AddSet(DataSet::FLOAT, MetaData(dsetname_, SSname[i]));
     if (totalDS_[i] == 0) {
       mprinterr("Error: Could not create DSSP total frac v time data set.\n");
       return Action::ERR;
@@ -105,8 +105,8 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   mprintf("# Citation: Kabsch, W.; Sander, C.; \"Dictionary of Protein Secondary Structure:\n"
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
-  DSL->SetDataSetsPending(true);
-  masterDSL_ = DSL;
+  init.DSL().SetDataSetsPending(true);
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -119,12 +119,12 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, DataSetList* DSL, DataFil
   */
 // NOTE: Currently relatively memory-intensive. Eventually set up so that SecStruct and
 // CO_HN_Hbond members exist only for selected residues? Use Map?
-Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_DSSP::Setup(ActionSetup& setup) {
   // Set up mask for this parm
-  if ( currentParm->SetupIntegerMask( Mask_ ) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask( Mask_ ) ) return Action::ERR;
   if ( Mask_.None() ) {
     mprintf("Warning: DSSP: Mask has no atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
 
   // Initially mark all residues already set up as not selected and 
@@ -139,7 +139,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   }
 
   // Set up SecStruct for each solute residue
-  Range soluteRes = currentParm->SoluteResidues();
+  Range soluteRes = setup.Top().SoluteResidues();
   Nres_ = soluteRes.Back() + 1;
   if (debug_>0) mprintf("\tDSSP: Setting up for %i residues.\n", Nres_);
 
@@ -163,20 +163,20 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
   // O, N, or H atoms selected. Store the actual coordinate index 
   // (i.e. atom# * 3) instead of atom # for slight speed gain. 
   for (AtomMask::const_iterator atom = Mask_.begin(); atom!=Mask_.end(); ++atom) {
-    int res = (*currentParm)[*atom].ResNum();
+    int res = setup.Top()[*atom].ResNum();
     // If residue is out of bounds skip it
     if ( res < Nres_ ) {
       //fprintf(stdout,"DEBUG: Atom %i Res %i [%s]\n",*atom,res,P->names[*atom]);
       SecStruct_[res].isSelected = true;
-      if (      (*currentParm)[*atom].Name() == BB_C_)
+      if (      setup.Top()[*atom].Name() == BB_C_)
         SecStruct_[res].C = (*atom) * 3;
-      else if ( (*currentParm)[*atom].Name() == BB_O_)
+      else if ( setup.Top()[*atom].Name() == BB_O_)
         SecStruct_[res].O = (*atom) * 3;
-      else if ( (*currentParm)[*atom].Name() == BB_N_)
+      else if ( setup.Top()[*atom].Name() == BB_N_)
         SecStruct_[res].N = (*atom) * 3;
-      else if ( (*currentParm)[*atom].Name() == BB_H_)
+      else if ( setup.Top()[*atom].Name() == BB_H_)
         SecStruct_[res].H = (*atom) * 3;
-      else if ( (*currentParm)[*atom].Name() == BB_CA_)
+      else if ( setup.Top()[*atom].Name() == BB_CA_)
         SecStruct_[res].CA = (*atom) * 3;
     }
   }
@@ -197,7 +197,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
                                SecStruct_[res].H != -1);
       if (!SecStruct_[res].hasCO || !SecStruct_[res].hasNH || SecStruct_[res].CA == -1)
       {
-        missingResidues.push_back( currentParm->TruncResNameNum( res ) );
+        missingResidues.push_back( setup.Top().TruncResNameNum( res ) );
         if (debug_ > 0) {
           mprintf("Warning: Not all BB atoms found for res %s:", missingResidues.back().c_str());
           if (SecStruct_[res].N==-1) mprintf(" N");
@@ -211,7 +211,7 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
       // Set up dataset if necessary 
       if (SecStruct_[res].resDataSet == 0) {
         md.SetIdx( res+1 );
-        md.SetLegend( currentParm->TruncResNameNum(res) );
+        md.SetLegend( setup.Top().TruncResNameNum(res) );
         // Setup dataset for this residue
         SecStruct_[res].resDataSet = masterDSL_->AddSet( dt, md );
         if (SecStruct_[res].resDataSet == 0) {
@@ -242,13 +242,13 @@ Action::RetType Action_DSSP::Setup(Topology* currentParm, Topology** parmAddress
     if (SecStruct_[res].isSelected) {
       mprintf("DEBUG: Res %i", res + 1);
       if (SecStruct_[res].hasCO)
-        mprintf(" C=%s O=%s",currentParm->AtomMaskName(SecStruct_[res].C/3).c_str(),
-                             currentParm->AtomMaskName(SecStruct_[res].O/3).c_str());
+        mprintf(" C=%s O=%s",setup.Top().AtomMaskName(SecStruct_[res].C/3).c_str(),
+                             setup.Top().AtomMaskName(SecStruct_[res].O/3).c_str());
       if (SecStruct_[res].hasNH)
-        mprintf(" N=%s H=%s",currentParm->AtomMaskName(SecStruct_[res].N/3).c_str(),
-                             currentParm->AtomMaskName(SecStruct_[res].H/3).c_str());
+        mprintf(" N=%s H=%s",setup.Top().AtomMaskName(SecStruct_[res].N/3).c_str(),
+                             setup.Top().AtomMaskName(SecStruct_[res].H/3).c_str());
       if (SecStruct_[res].CA != -1)
-        mprintf(" CA=%s",currentParm->AtomMaskName(SecStruct_[res].CA/3).c_str());
+        mprintf(" CA=%s",setup.Top().AtomMaskName(SecStruct_[res].CA/3).c_str());
       mprintf("\n");
     }
   }
@@ -320,7 +320,7 @@ void Action_DSSP::SSassign(int res1, int res2, SStype typeIn, bool force) {
  
 // Action_DSSP::DoAction()
 /** Determine secondary structure by hydrogen bonding pattern. */    
-Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
   int resi, resj;
   const double *C, *O, *H, *N;
   double rON, rCH, rOH, rCN, E;
@@ -336,13 +336,13 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
       SecStruct_[resi].sstype = NONE;
       SecStruct_[resi].CO_HN_Hbond.assign( Nres_, 0 );
       if (SecStruct_[resi].hasCO) {
-        C = currentFrame->CRD(SecStruct_[resi].C);
-        O = currentFrame->CRD(SecStruct_[resi].O);
+        C = frm.Frm().CRD(SecStruct_[resi].C);
+        O = frm.Frm().CRD(SecStruct_[resi].O);
         for (resj = 0; resj < Nres_; resj++) {
           if (SecStruct_[resj].isSelected && resi != resj && SecStruct_[resj].hasNH)
           {
-            N = currentFrame->CRD(SecStruct_[resj].N);
-            H = currentFrame->CRD(SecStruct_[resj].H);
+            N = frm.Frm().CRD(SecStruct_[resj].N);
+            H = frm.Frm().CRD(SecStruct_[resj].H);
 
             rON = 1.0/sqrt(DIST2_NoImage(O, N));
             rCH = 1.0/sqrt(DIST2_NoImage(C, H));
@@ -441,9 +441,9 @@ Action::RetType Action_DSSP::DoAction(int frameNum, Frame* currentFrame, Frame**
             SecStruct_[resi  ].CA != -1 &&
             SecStruct_[resi+2].CA != -1)
         {
-          const double* CAm2 = currentFrame->CRD(SecStruct_[resi-2].CA);
-          const double* CA0  = currentFrame->CRD(SecStruct_[resi  ].CA);
-          const double* CAp2 = currentFrame->CRD(SecStruct_[resi+2].CA);
+          const double* CAm2 = frm.Frm().CRD(SecStruct_[resi-2].CA);
+          const double* CA0  = frm.Frm().CRD(SecStruct_[resi  ].CA);
+          const double* CAp2 = frm.Frm().CRD(SecStruct_[resi+2].CA);
           Vec3 CA1( CA0[0]-CAm2[0], CA0[1]-CAm2[1], CA0[2]-CAm2[2] );
           Vec3 CA2( CAp2[0]-CA0[0], CAp2[1]-CA0[1], CAp2[2]-CA0[2] );
           CA1.Normalize();

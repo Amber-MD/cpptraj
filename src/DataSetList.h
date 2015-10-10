@@ -104,6 +104,8 @@ class DataSetList {
     static const char* RefArgs;
     /// Get reference frame DataSet from args
     ReferenceFrame GetReferenceFrame(ArgList&) const;
+    /// Set active reference for distance-based masks.
+    int SetActiveReference( ArgList& );
     /// List all reference frames.
     void ListReferenceFrames() const;
     // TOPOLOGY functions ------------------------
@@ -121,7 +123,11 @@ class DataSetList {
     inline void PendingWarning() const;
     /// Wrapper around DataList_.push_back() that does extra bookkeeping.
     void Push_Back(DataSet*);
-    
+    DataSet* GetReferenceSet(ArgList&, int&) const;
+    int SetActiveReference(DataSet*);
+
+    /// Current active reference for distance-based masks.
+    DataSet* activeRef_;
     /// Hold number of frames from most recent AllocateSets() call.
     long int maxFrames_;
     /// DataSet debug level

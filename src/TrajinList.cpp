@@ -7,15 +7,9 @@
 #include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
-TrajinList::TrajinList() :
-  debug_(0),
-  maxframes_(0),
-  mode_(UNDEFINED) 
-{}
+TrajinList::TrajinList() : debug_(0), maxframes_(0), mode_(UNDEFINED) {}
 
-TrajinList::~TrajinList() {
-  Clear();
-}
+TrajinList::~TrajinList() { Clear(); }
 
 void TrajinList::Clear() {
   for (tListType::iterator traj = trajin_.begin(); traj != trajin_.end(); ++traj)
@@ -26,17 +20,24 @@ void TrajinList::Clear() {
   ensemble_.clear();
   mode_ = UNDEFINED;
   maxframes_ = 0;
+  topFrames_.clear();
 }
 
-// TODO: Get rid of the nonsense IncreaseFrames stuff.
+/** Update max # of frames in the list and # frames associated with Topologies
+  * used by Trajectories in the list.
+  */
 void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
   int trajFrames = traj.Counter().TotalReadFrames();
+  int pindex = traj.Parm()->Pindex();
+  if (pindex >= (int)topFrames_.size())
+    topFrames_.resize( pindex + 1 );
   // If < 0 frames this indicates the number of frames could not be determined. 
-  if (trajFrames < 0)
+  if (trajFrames < 0) {
     maxframes_ = -1;
-  else if (maxframes_ != -1) {
+    topFrames_[pindex] = 0; // TODO should be -1?
+  } else if (maxframes_ != -1) {
     // Only update # of frames if total # of frames so far is known.
-    traj.Parm()->IncreaseFrames( trajFrames );
+    topFrames_[pindex] += trajFrames;
     maxframes_ += trajFrames;
   }
 }
@@ -114,15 +115,12 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
 #   endif
     // Add to ensemble list and update # of frames.
     ensemble_.push_back( ensemble );
-    // NOTE: Cast to const* to ensure Traj() const& function used.
     UpdateMaxFrames( ensemble->Traj() );
-    // FIXME - Set Topology CoordInfo here so that any output trajectories
-    //         will have the correct ensemble size set when MakeEnsembleTrajout
-    //         is called.
-    ensemble->Traj().Parm()->SetParmCoordInfo( ensemble->EnsembleCoordInfo() );
     delete tio;
   }
   if (err > 0) return 1;
+  // FIXME: For backwards compat. overwrite Topology box info with traj box info.
+  topIn->SetBoxFromTraj( ensemble_.back()->EnsembleCoordInfo().TrajBox() );
   return 0;
 }
 
@@ -165,11 +163,10 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
     // Add to trajin list and update # of frames.
     trajin_.push_back( traj );
     UpdateMaxFrames( traj->Traj() );
-    // FIXME - Set Topology CoordInfo here so that topology box info etc
-    //         is consistent with input trajectories.
-    traj->Traj().Parm()->SetParmCoordInfo( traj->TrajCoordInfo() );
   }
   if (err > 0) return 1;
+  // FIXME: For backwards compat. overwrite Topology box info with traj box info.
+  topIn->SetBoxFromTraj( trajin_.back()->TrajCoordInfo().TrajBox() );
   return 0;
 }
 

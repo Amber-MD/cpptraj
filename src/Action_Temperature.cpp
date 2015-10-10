@@ -20,7 +20,7 @@ static const char* ShakeString[] = {
 };
 
 // Action_Temperature::Init()
-Action::RetType Action_Temperature::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Keywords
   if (actionArgs.hasKey("frame")) {
@@ -39,12 +39,12 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, DataSetList* DSL, 
     } else
       shakeType_ = OFF;
   }
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Masks
   if (!getTempFromFrame_)
     Mask_.SetMaskString( actionArgs.GetMaskNext() );
   // DataSet 
-  Tdata_ =  DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Tdata");
+  Tdata_ =  init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Tdata");
   if (Tdata_ == 0) return Action::ERR;
   if (outfile != 0) outfile->AddDataSet( Tdata_ );
   
@@ -59,15 +59,14 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, DataSetList* DSL, 
 }
 
 // Action_Temperature::Setup()
-Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parmAddress)
-{
+Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
   if (!getTempFromFrame_) {
     // Masks
-    if (currentParm->SetupIntegerMask( Mask_ )) return Action::ERR;
+    if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
     Mask_.MaskInfo();
     if (Mask_.None()) {
       mprintf("Warning: temperature: No atoms selected in [%s]\n", Mask_.MaskString());
-      return Action::ERR;
+      return Action::SKIP;
     }
     // Calculate degrees of freedom
     // If SHAKE is on, add up all bonds which cannot move because of SHAKE.
@@ -75,10 +74,10 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
     int constrained_bonds_to_h = 0;
     int constrained_heavy_bonds = 0;
     if (shakeType_ >= BONDS_TO_H) {
-      constrained_bonds_to_h = (int)currentParm->BondsH().size();
+      constrained_bonds_to_h = (int)setup.Top().BondsH().size();
       mprintf("\t%i bonds to hydrogen constrained.\n", constrained_bonds_to_h);
       if (shakeType_ >= ALL_BONDS) {
-        constrained_heavy_bonds = (int)currentParm->Bonds().size();
+        constrained_heavy_bonds = (int)setup.Top().Bonds().size();
         mprintf("\t%i bonds to heavy atoms constrained.\n", constrained_heavy_bonds);
       }
     }
@@ -91,13 +90,12 @@ Action::RetType Action_Temperature::Setup(Topology* currentParm, Topology** parm
 }
 
 // Action_Temperature::DoAction()
-Action::RetType Action_Temperature::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
-{
+Action::RetType Action_Temperature::DoAction(int frameNum, ActionFrame& frm) {
   double tdata;
   if (getTempFromFrame_)
-    tdata = currentFrame->Temperature();
+    tdata = frm.Frm().Temperature();
   else
-    tdata = currentFrame->CalcTemperature(Mask_, degrees_of_freedom_);
+    tdata = frm.Frm().CalcTemperature(Mask_, degrees_of_freedom_);
   Tdata_->Add(frameNum, &tdata);
   return Action::OK;
 }

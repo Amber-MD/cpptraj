@@ -9,7 +9,7 @@ void Action_Outtraj::Help() {
 }
 
 // Action_Outtraj::Init()
-Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Set up output traj
   outtraj_.SetDebug(debugIn);
@@ -19,7 +19,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, Data
     Help();
     return Action::ERR;
   }
-  associatedParm_ = DSL->GetTopology(actionArgs);
+  associatedParm_ = init.DSL().GetTopology(actionArgs);
   if (associatedParm_ == 0) {
     mprinterr("Error: Could not get associated topology for %s\n",trajfilename.c_str());
     return Action::ERR;
@@ -30,7 +30,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, Data
   while ( actionArgs.Contains("maxmin") ) {
     std::string datasetName = actionArgs.GetStringKey("maxmin");
     if (!datasetName.empty()) {
-      DataSet* dset = DSL->GetDataSet(datasetName);
+      DataSet* dset = init.DSL().GetDataSet(datasetName);
       if (dset==0) {
         mprintf("Error: maxmin: Could not get dataset %s\n",datasetName.c_str());
         return Action::ERR;
@@ -57,7 +57,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, Data
   }
   // Initialize output trajectory with remaining arguments
   if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
-                                      TrajectoryFile::UNKNOWN_TRAJ, DSL->EnsembleNum()) ) 
+                                      TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) ) 
     return Action::ERR;
   isSetup_ = false;
 
@@ -72,11 +72,11 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, DataSetList* DSL, Data
 } 
 
 // Action_Outtraj::Setup()
-Action::RetType Action_Outtraj::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (associatedParm_->Pindex() != currentParm->Pindex())
-    return Action::ERR;
+Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
+  if (associatedParm_->Pindex() != setup.Top().Pindex())
+    return Action::SKIP;
   if (!isSetup_) { // TODO: Trajout IsOpen?
-    if (outtraj_.SetupTrajWrite(currentParm, currentParm->ParmCoordInfo(), currentParm->Nframes()))
+    if (outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes()))
       return Action::ERR;
     isSetup_ = true;
   }
@@ -87,7 +87,7 @@ Action::RetType Action_Outtraj::Setup(Topology* currentParm, Topology** parmAddr
 /** If a dataset was specified for maxmin, check if this structure
   * satisfies the criteria; if so, write. Otherwise just write.
   */
-Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
   // If dataset defined, check if frame is within max/min
   if (!Dsets_.empty()) {
     for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
@@ -98,7 +98,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, Frame* currentFrame, Fram
       if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
   }
-  if ( outtraj_.WriteSingle(frameNum, *currentFrame) != 0 ) 
+  if ( outtraj_.WriteSingle(frameNum, frm.Frm()) != 0 ) 
     return Action::ERR;
   return Action::OK;
 }

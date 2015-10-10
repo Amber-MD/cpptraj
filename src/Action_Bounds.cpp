@@ -20,9 +20,9 @@ void Action_Bounds::Help() {
 }
 
 // Action_Bounds::Init()
-Action::RetType Action_Bounds::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  outfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("out"), "Bounds",
+  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Bounds",
                                  DataFileList::TEXT, true);
   dxyz_[0] = actionArgs.getKeyDouble("dx", -1.0);
   dxyz_[1] = actionArgs.getKeyDouble("dy", -1.0);
@@ -38,7 +38,7 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, DataSetList* DSL, DataF
     } 
     if (dxyz_[1] < 0.0) dxyz_[1] = dxyz_[0];
     if (dxyz_[2] < 0.0) dxyz_[2] = dxyz_[1];
-    grid_ = DSL->AddSet(DataSet::GRID_FLT, dsname, "Bounds");
+    grid_ = init.DSL().AddSet(DataSet::GRID_FLT, dsname, "Bounds");
     if (grid_ == 0) return Action::ERR;
   }
 
@@ -60,21 +60,21 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, DataSetList* DSL, DataF
 }
 
 // Action_Bounds::Setup()
-Action::RetType Action_Bounds::Setup(Topology* currentParm, Topology** parmAddress) {
-  if ( currentParm->SetupIntegerMask( mask_ ) ) return Action::ERR;
+Action::RetType Action_Bounds::Setup(ActionSetup& setup) {
+  if ( setup.Top().SetupIntegerMask( mask_ ) ) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: bounds: No atoms selected in mask.\n");
-    return Action::ERR;
+    mprintf("Warning: bounds: No atoms selected in mask.\n");
+    return Action::SKIP;
   }
   return Action::OK;
 }
 
 // Action_Bounds::DoAction()
-Action::RetType Action_Bounds::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Bounds::DoAction(int frameNum, ActionFrame& frm) {
   for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
   {
-    const double* xyz = currentFrame->XYZ( *atom );
+    const double* xyz = frm.Frm().XYZ( *atom );
     if (xyz[0] < min_[0]) min_[0] = xyz[0];
     if (xyz[0] > max_[0]) max_[0] = xyz[0];
     if (xyz[1] < min_[1]) min_[1] = xyz[1];

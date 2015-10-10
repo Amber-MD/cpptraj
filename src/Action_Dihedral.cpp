@@ -20,10 +20,10 @@ void Action_Dihedral::Help() {
 }
 
 // Action_Dihedral::Init()
-Action::RetType Action_Dihedral::Init(ArgList& actionArgs, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Dihedral::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   useMass_ = actionArgs.hasKey("mass");
   if (actionArgs.hasKey("range360"))
     minTorsion_ = 0.0;
@@ -46,7 +46,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   std::string mask3 = actionArgs.GetMaskNext();
   std::string mask4 = actionArgs.GetMaskNext();
   if (mask1.empty() || mask2.empty() || mask3.empty() || mask4.empty()) {
-    mprinterr("Error: dihedral: Requires 4 masks\n");
+    mprinterr("Error: dihedral requires 4 masks\n");
     return Action::ERR;
   }
   M1_.SetMaskString(mask1);
@@ -55,7 +55,7 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, DataSetList* DSL, Dat
   M4_.SetMaskString(mask4);
 
   // Setup dataset
-  dih_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), dsidx,
+  dih_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), dsidx,
                                                MetaData::M_TORSION, stype),"Dih");
   if (dih_==0) return Action::ERR;
   // Add dataset to datafile list
@@ -74,11 +74,11 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, DataSetList* DSL, Dat
 }
 
 // Action_Dihedral::Setup
-Action::RetType Action_Dihedral::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask(M1_)) return Action::ERR;
-  if (currentParm->SetupIntegerMask(M2_)) return Action::ERR;
-  if (currentParm->SetupIntegerMask(M3_)) return Action::ERR;
-  if (currentParm->SetupIntegerMask(M4_)) return Action::ERR;
+Action::RetType Action_Dihedral::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask(M1_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(M2_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(M3_)) return Action::ERR;
+  if (setup.Top().SetupIntegerMask(M4_)) return Action::ERR;
   mprintf("\t");
   M1_.BriefMaskInfo();
   M2_.BriefMaskInfo();
@@ -86,27 +86,27 @@ Action::RetType Action_Dihedral::Setup(Topology* currentParm, Topology** parmAdd
   M4_.BriefMaskInfo();
   mprintf("\n");
   if ( M1_.None() || M2_.None() || M3_.None() || M4_.None() ) {
-    mprintf("Warning: dihedral: One or more masks have no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: One or more masks have no atoms.\n");
+    return Action::SKIP;
   }
 
   return Action::OK;  
 }
 
 // Action_Dihedral::DoAction()
-Action::RetType Action_Dihedral::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Dihedral::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 a1, a2, a3, a4;
 
   if (useMass_) {
-    a1 = currentFrame->VCenterOfMass( M1_ );
-    a2 = currentFrame->VCenterOfMass( M2_ );
-    a3 = currentFrame->VCenterOfMass( M3_ );
-    a4 = currentFrame->VCenterOfMass( M4_ );
+    a1 = frm.Frm().VCenterOfMass( M1_ );
+    a2 = frm.Frm().VCenterOfMass( M2_ );
+    a3 = frm.Frm().VCenterOfMass( M3_ );
+    a4 = frm.Frm().VCenterOfMass( M4_ );
   } else {
-    a1 = currentFrame->VGeometricCenter( M1_ );
-    a2 = currentFrame->VGeometricCenter( M2_ );
-    a3 = currentFrame->VGeometricCenter( M3_ );
-    a4 = currentFrame->VGeometricCenter( M4_ );
+    a1 = frm.Frm().VGeometricCenter( M1_ );
+    a2 = frm.Frm().VGeometricCenter( M2_ );
+    a3 = frm.Frm().VGeometricCenter( M3_ );
+    a4 = frm.Frm().VGeometricCenter( M4_ );
   }
   double torsion = Torsion(a1.Dptr(), a2.Dptr(), a3.Dptr(), a4.Dptr());
 
