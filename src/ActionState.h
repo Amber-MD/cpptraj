@@ -9,6 +9,7 @@
   */
 class ActionInit {
   public:
+    ActionInit() : dsl_(0), dfl_(0) {} // NOTE: For pytraj/cython
     ActionInit(DataSetList& dslIn, DataFileList& dflIn) :
       dsl_(&dslIn), dfl_(&dflIn) {}
     DataSetList& DSL()              { return *dsl_; }
