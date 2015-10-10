@@ -78,7 +78,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
         return Action::ERR;
       if (lesTraj_.SetupEnsembleWrite(lesParm_, setup.CoordInfo(), setup.Nframes()))
          return Action::ERR;
-      lesTraj_.PrintInfo( 1 );
+      lesTraj_.PrintInfo(0);
     }
     if (lesAverage_) {
       // For average only care about coords.
@@ -87,7 +87,7 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
                                      CoordinateInfo(), setup.Nframes(),
                                      TrajectoryFile::UNKNOWN_TRAJ ))
         return Action::ERR;
-      avgTraj_.PrintInfo(1);
+      avgTraj_.PrintInfo(0);
     }
   } else {
     if (lesParm_->Pindex() != setup.Top().Pindex()) {

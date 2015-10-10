@@ -741,7 +741,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
   }
-  outtraj.PrintInfo( 1 );
+  outtraj.PrintInfo(0);
   Frame currentFrame = CRD->AllocateFrame(); 
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;

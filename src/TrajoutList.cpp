@@ -77,11 +77,11 @@ void EnsembleOutList::CloseEnsembleOut() {
   Clear();
 }
 
-void EnsembleOutList::List() const {
+void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
   if (!ensout_.empty()) {
     mprintf("\nOUTPUT ENSEMBLE:\n");
     for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
-      (*ens)->PrintInfo( 1 );
+      (*ens)->PrintInfo( PindexFrames[(*ens)->Traj().Parm()->Pindex()] );
   }
 }
 
@@ -205,10 +205,10 @@ void TrajoutList::CloseTrajout() {
 }
 
 // TrajoutList::List()
-void TrajoutList::List() const {
+void TrajoutList::List(std::vector<int> const& PindexFrames) const {
   if (!trajout_.empty()) {
     mprintf("\nOUTPUT TRAJECTORIES:\n");
     for (ListType::const_iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
-      (*traj)->PrintInfo( 1 );
+      (*traj)->PrintInfo( PindexFrames[(*traj)->Traj().Parm()->Pindex()] );
   }
 }
