@@ -41,7 +41,7 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
     Xdim.SetMax( maxIn );
   Xdim.SetStep( stepIn );
   Xdim.SetBins( binsIn );
-  if (Xdim.Step() < 0.0 && Xdim.Bins() < 0) {
+  if (Xdim.Step() == 0.0 && Xdim.Bins() < 0) {
     mprinterr("Error: Must set either bins or step.\n");
     return Analysis::ERR;
   }
@@ -75,9 +75,9 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
     Xdim.SetMin( analyzeArgs.getKeyDouble("min", 0.0) );
   if (analyzeArgs.Contains("max"))
     Xdim.SetMax( analyzeArgs.getKeyDouble("max", 0.0) );
-  Xdim.SetStep( analyzeArgs.getKeyDouble("step", -1.0) );
+  Xdim.SetStep( analyzeArgs.getKeyDouble("step", 0.0) );
   Xdim.SetBins( analyzeArgs.getKeyInt("bins", -1) );
-  if (Xdim.Step() < 0.0 && Xdim.Bins() < 0) {
+  if (Xdim.Step() == 0.0 && Xdim.Bins() < 0) {
     mprinterr("Error: Must set either bins or step.\n");
     return Analysis::ERR;
   }
