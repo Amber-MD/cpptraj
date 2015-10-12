@@ -34,7 +34,7 @@ void Action_Rmsd::Help() {
 
 // Action_Rmsd::Init()
 /** Called once before traj processing. Set up reference info. */
-Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Check for keywords
@@ -42,19 +42,19 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   if (fit_)
     rotate_ = !actionArgs.hasKey("norotate");
   useMass_ = actionArgs.hasKey("mass");
-  DataFile* outfile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   bool saveMatrices = actionArgs.hasKey("savematrices");
   // Reference keywords
   bool previous = actionArgs.hasKey("previous");
   bool first = actionArgs.hasKey("first");
-  ReferenceFrame refFrm = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame refFrm = init.DSL().GetReferenceFrame( actionArgs );
   std::string reftrajname = actionArgs.GetStringKey("reftraj");
   if (!reftrajname.empty())
-    RefParm_ = PFL->GetParm( actionArgs );
+    RefParm_ = init.DSL().GetTopology( actionArgs );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
-    perresout_ = DFL->AddDataFile( actionArgs.GetStringKey("perresout") );
+    perresout_ = init.DFL().AddDataFile( actionArgs.GetStringKey("perresout") );
     perresinvert_ = actionArgs.hasKey("perresinvert");
     TgtRange_.SetRange( actionArgs.GetStringKey("range") );
     RefRange_.SetRange( actionArgs.GetStringKey("refrange") );
@@ -67,7 +67,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
         perresmask_ = '&' + perresmask_;
     }
     perrescenter_ = actionArgs.hasKey("perrescenter");
-    perresavg_ = DFL->AddDataFile( actionArgs.GetStringKey("perresavg") );
+    perresavg_ = init.DFL().AddDataFile( actionArgs.GetStringKey("perresavg") );
   }
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
@@ -82,11 +82,11 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
     return Action::ERR;
   // Set RefParm for perres if not empty
   if (perres_ && RefParm_ == 0 && !refFrm.empty())
-    RefParm_ = (Topology*)(&refFrm.Parm()); // 
+    RefParm_ = refFrm.ParmPtr();
 
   // Set up the RMSD data set.
   MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
-  rmsd_ = DSL->AddSet(DataSet::DOUBLE, md, "RMSD");
+  rmsd_ = init.DSL().AddSet(DataSet::DOUBLE, md, "RMSD");
   if (rmsd_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( rmsd_ );
@@ -97,7 +97,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
       mprinterr("Error: Must be fitting in order to save rotation matrices.\n");
       return Action::ERR;
     }
-    rmatrices_ = DSL->AddSet(DataSet::MAT3X3, md);
+    rmatrices_ = init.DSL().AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
   }
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
@@ -134,8 +134,8 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
       mprintf("          perresinvert: Frames will be written in rows instead of columns.\n");
   }
   if (perres_)
-    DSL->SetDataSetsPending(true);
-  masterDSL_ = DSL;
+    init.DSL().SetDataSetsPending(true);
+  masterDSL_ = init.DslPtr();
   return Action::OK;
 }
 
@@ -146,13 +146,13 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, TopologyList* PFL, DataSe
   * NOTE: Residues in the range arguments from user start at 1, internal
   *       res nums start from 0.
   */
-int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
+int Action_Rmsd::perResSetup(Topology const& currentParm, Topology const& refParm) {
   Range tgt_range; // Selected target residues
   Range ref_range; // Selected reference residues
 
   // If no target range previously specified do all solute residues
   if (TgtRange_.Empty()) { 
-    tgt_range = currentParm->SoluteResidues();
+    tgt_range = currentParm.SoluteResidues();
     tgt_range.ShiftBy(1); // To match user range arg which would start from 1
   } else
     tgt_range = TgtRange_;
@@ -180,11 +180,11 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     int tgtRes = *tgt_it;
     int refRes = *ref_it;
     // Check if either the residue num or the reference residue num out of range.
-    if ( tgtRes < 1 || tgtRes > currentParm->Nres()) {
+    if ( tgtRes < 1 || tgtRes > currentParm.Nres()) {
       mprintf("Warning: Specified residue # %i is out of range.\n", tgtRes);
       continue;
     }
-    if ( refRes < 1 || refRes > RefParm->Nres() ) {
+    if ( refRes < 1 || refRes > refParm.Nres() ) {
       mprintf("Warning: Specified reference residue # %i is out of range.\n", refRes);
       continue;
     }
@@ -196,11 +196,11 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     if (PerRes == ResidueRMS_.end()) {
       perResType p;
       md.SetIdx( tgtRes );
-      md.SetLegend( currentParm->TruncResNameNum(tgtRes-1) );
+      md.SetLegend( currentParm.TruncResNameNum(tgtRes-1) );
       p.data_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::DOUBLE, md);
       if (p.data_ == 0) {
         mprinterr("Internal Error: Could not set up per residue data set.\n");
-        return 1;
+        return 2;
       }
       if (perresout_ != 0) perresout_->AddDataSet( p.data_ );
       // Setup mask strings. Note that masks are based off user residue nums
@@ -211,7 +211,7 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
     }
     PerRes->isActive_ = false;
     // Setup the reference mask
-    if (RefParm->SetupIntegerMask(PerRes->refResMask_)) {
+    if (refParm.SetupIntegerMask(PerRes->refResMask_)) {
       mprintf("Warning: Could not setup reference mask for residue %i\n",refRes);
       continue;
     }
@@ -220,7 +220,7 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
       continue;
     }
     // Setup the target mask
-    if (currentParm->SetupIntegerMask(PerRes->tgtResMask_)) {
+    if (currentParm.SetupIntegerMask(PerRes->tgtResMask_)) {
       mprintf("Warning: Could not setup target mask for residue %i\n",tgtRes);
       continue;
     }
@@ -236,11 +236,11 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
         mprintf("    Target Atoms:\n");
         for (AtomMask::const_iterator t = PerRes->tgtResMask_.begin();
                                       t != PerRes->tgtResMask_.end(); ++t)
-          mprintf("\t%s\n", currentParm->AtomMaskName(*t).c_str());
+          mprintf("\t%s\n", currentParm.AtomMaskName(*t).c_str());
         mprintf("    Ref Atoms:\n");
         for (AtomMask::const_iterator r = PerRes->refResMask_.begin();
                                       r != PerRes->refResMask_.end(); ++r)
-          mprintf("\t%s\n", RefParm->AtomMaskName(*r).c_str());
+          mprintf("\t%s\n", refParm.AtomMaskName(*r).c_str());
       }
       continue;
     }
@@ -269,33 +269,35 @@ int Action_Rmsd::perResSetup(Topology* currentParm, Topology* RefParm) {
 /** Called every time the trajectory changes. Set up FrameMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
-Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   // Target setup
-  if ( currentParm->SetupIntegerMask( tgtMask_ ) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask( tgtMask_ ) ) return Action::ERR;
   mprintf("\tTarget mask:");
   tgtMask_.BriefMaskInfo();
   mprintf("\n");
   if ( tgtMask_.None() ) {
     mprintf("Warning: No atoms in mask '%s'.\n", tgtMask_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
-  tgtFrame_.SetupFrameFromMask(tgtMask_, currentParm->Atoms());
+  tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());
   // Reference setup
-  if (REF_.SetupRef(*currentParm, tgtMask_.Nselected(), "rmsd"))
-    return Action::ERR;
+  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected(), "rmsd"))
+    return Action::SKIP;
  
   // Per residue rmsd setup
   if (perres_) {
     // If RefParm is still NULL probably 'first', set now.
     if (RefParm_ == 0)
-      RefParm_ = currentParm;
-    if (perResSetup(currentParm, RefParm_)) return Action::ERR;
+      RefParm_ = setup.TopAddress();
+    int err = perResSetup(setup.Top(), *RefParm_);
+    if      (err == 1) return Action::SKIP;
+    else if (err == 2) return Action::ERR;
   }
 
   // Warn if PBC and rotating
-  if (rotate_ && currentParm->BoxType() != Box::NOBOX) {
+  if (rotate_ && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
     mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
             "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
             "Warning:  after the RMS-fit is performed.\n");
@@ -305,24 +307,27 @@ Action::RetType Action_Rmsd::Setup(Topology* currentParm, Topology** parmAddress
 }
 
 // Action_Rmsd::DoAction()
-Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( *currentFrame, fit_, useMass_ );
+  REF_.ActionRef( frm.Frm(), fit_, useMass_ );
   // Calculate RMSD
   double rmsdval;
+  Action::RetType err;
   // Set selected frame atoms. Masses have already been set.
-  tgtFrame_.SetCoordinates(*currentFrame, tgtMask_);
-  if (!fit_)
+  tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
+  if (!fit_) {
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
-  else {
+    err = Action::OK;
+  } else {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
     if (rotate_)
-      currentFrame->Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+      frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
     else {
       tgtTrans_ += REF_.RefTrans();
-      currentFrame->Translate(tgtTrans_);
+      frm.ModifyFrm().Translate(tgtTrans_);
     }
+    err = Action::MODIFY_COORDS;
   }
   rmsd_->Add(frameNum, &rmsdval);
 
@@ -336,7 +341,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
     {
       if ( PerRes->isActive_ ) {
         ResRefFrame_.SetFrame(REF_.RefFrame(), PerRes->refResMask_);
-        ResTgtFrame_.SetFrame(*currentFrame,  PerRes->tgtResMask_);
+        ResTgtFrame_.SetFrame(frm.Frm(),       PerRes->tgtResMask_);
         if (perrescenter_) {
           ResTgtFrame_.CenterOnOrigin( useMass_ );
           ResRefFrame_.CenterOnOrigin( useMass_ );
@@ -348,9 +353,9 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, Frame* currentFrame, Frame**
   }
 
   if (REF_.Previous())
-    REF_.SetRefStructure( *currentFrame, fit_, useMass_ );
+    REF_.SetRefStructure( frm.Frm(), fit_, useMass_ );
 
-  return Action::OK;
+  return err;
 }
 
 // Action_Rmsd::Print()

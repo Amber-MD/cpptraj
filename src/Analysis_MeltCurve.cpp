@@ -9,8 +9,7 @@ void Analysis_MeltCurve::Help() {
 }
 
 // Analysis_MeltCurve::Setup()
-Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);

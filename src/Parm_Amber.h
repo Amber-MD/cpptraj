@@ -12,8 +12,6 @@ class Parm_Amber : public ParmIO {
     int ReadParm(FileName const&, Topology&);
     int processWriteArgs(ArgList&);
     int WriteParm(FileName const&, Topology const&);
-    void SetDebug(int debugIn) { debug_ = debugIn; }
-    bool NeedsBondSearch() const { return false; }
   private :
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
@@ -51,7 +49,6 @@ class Parm_Amber : public ParmIO {
     //       increase the size to handle non-standard files.
     static const size_t BUF_SIZE = 256;
     char lineBuffer_[BUF_SIZE];
-    int debug_;
     bool nochamber_; ///< For writes when true do not print chamber info
     enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
     ParmType ptype_;

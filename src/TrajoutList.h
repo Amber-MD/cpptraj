@@ -10,10 +10,10 @@ class EnsembleOutList {
     void Clear();
     int AddEnsembleOut(std::string const&, ArgList const&, Topology*,
                        int, TrajectoryFile::TrajFormatType);
-    int SetupEnsembleOut(Topology*); //TODO const, Topology array?
+    int SetupEnsembleOut(Topology*, CoordinateInfo const&, int); //TODO const, Topology array?
     int WriteEnsembleOut(int, FramePtrArray const&);
     void CloseEnsembleOut();
-    void List() const;
+    void List(std::vector<int> const&) const;
   private:
     typedef std::vector<Topology*> TopArray;
     typedef std::vector<EnsembleOut*> EnsArray;
@@ -40,13 +40,13 @@ class TrajoutList {
     /// \return Array with current output trajectories converted to ensemble output trajectories.
     int MakeEnsembleTrajout(EnsembleOutList&, int) const;
     /// Set up trajectories for given topology.
-    int SetupTrajout(Topology*);
+    int SetupTrajout(Topology*, CoordinateInfo const&, int);
     /// Write frame to normal output trajectories.
     int WriteTrajout(int, Frame const&);
     /// Call end for all trajectories
     void CloseTrajout();
     /// List output trajectories.
-    void List() const;
+    void List(std::vector<int> const&) const;
     /// \return true if no args/trajectories present.
     bool Empty()     const { return trajout_.empty();     }
   private:

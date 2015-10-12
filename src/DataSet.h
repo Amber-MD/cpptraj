@@ -23,7 +23,7 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3
+      MAT3X3, TOPOLOGY
     };
     /// Group DataSet belongs to.
     enum DataGroup {

@@ -141,8 +141,9 @@ int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
 }
 
 // Trajout_Single::PrintInfo()
-void Trajout_Single::PrintInfo(int showExtended) const {
+void Trajout_Single::PrintInfo(int expectedNframes) const {
   mprintf("  '%s' ", traj_.Filename().base());
+  if (expectedNframes > 0) mprintf("(%i frames) ", expectedNframes);
   trajio_->Info();
   traj_.CommonInfo();
 }

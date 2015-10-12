@@ -37,7 +37,7 @@ void Action_Volmap::RawHelp() {
 }
 
 // Action_Volmap::Init()
-Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
@@ -52,14 +52,14 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mprinterr("Error: Volmap: no filename specified.\n");
     return Action::ERR;
   }
-  DataFile* outfile = DFL->AddDataFile( filename, actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( filename, actionArgs );
   // Get grid resolutions
   dx_ = actionArgs.getNextDouble(0.0);
   dy_ = actionArgs.getNextDouble(0.0);
   dz_ = actionArgs.getNextDouble(0.0);
   // Get extra options
   peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
-  peakfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
+  peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
   radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
   std::string sizestr = actionArgs.GetStringKey("size");
   std::string center = actionArgs.GetStringKey("centermask");
@@ -70,7 +70,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
   std::string dsname = actionArgs.GetStringKey("data");
   if (!dsname.empty()) {
     // Get existing grid dataset
-    grid_ = (DataSet_GridFlt*)DSL->FindSetOfType( dsname, DataSet::GRID_FLT );
+    grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( dsname, DataSet::GRID_FLT );
     if (grid_ == 0) {
       mprinterr("Error: volmap: Could not find grid data set with name %s\n",
                 dsname.c_str());
@@ -78,7 +78,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
     }
   } else {
     // Create new grid.
-    grid_ = (DataSet_GridFlt*)DSL->AddSet(DataSet::GRID_FLT, actionArgs.GetStringKey("name"),
+    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, actionArgs.GetStringKey("name"),
                                          "VOLMAP");
     if (grid_ == 0) return Action::ERR;
     if (!sizestr.empty()) {
@@ -138,9 +138,9 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, TopologyList* PFL, Data
 }
 
 // Action_Volmap::Setup()
-Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   // Set up our density mask and make sure it's not empty
-  if (currentParm->SetupIntegerMask( densitymask_ ))
+  if (setup.Top().SetupIntegerMask( densitymask_ ))
     return Action::ERR;
   if (densitymask_.None()) {
     mprinterr("Error: Volmap: Density mask selection empty!\n");
@@ -150,7 +150,7 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
           densitymask_.Nselected());
   // If we did not specify a size, make sure we have a valid centermask_
   if (setupGridOnMask_) {
-    if (currentParm->SetupIntegerMask( centermask_ ))
+    if (setup.Top().SetupIntegerMask( centermask_ ))
       return Action::ERR;
     // The masks must be populated
     if (centermask_.None()) {
@@ -162,9 +162,9 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
   }
   // Set up our radii_
   halfradii_.clear();
-  halfradii_.reserve( currentParm->Natom() );
-  for (int i = 0; i < currentParm->Natom(); i++)
-    halfradii_.push_back( (float)(currentParm->GetVDWradius(i) * radscale_ / 2) );
+  halfradii_.reserve( setup.Top().Natom() );
+  for (int i = 0; i < setup.Top().Natom(); i++)
+    halfradii_.push_back( (float)(setup.Top().GetVDWradius(i) * radscale_ / 2) );
 
   // DEBUG
 //for (AtomMask::const_iterator it = densitymask_.begin(); it != densitymask_.end(); it++)
@@ -174,7 +174,7 @@ Action::RetType Action_Volmap::Setup(Topology* currentParm, Topology** parmAddre
 }
 
 // Action_Volmap::DoAction()
-Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
   // If this is our first frame, then we may have to set up our grid from our masks
   if (Nframes_ == 0) {
     if (setupGridOnMask_) {
@@ -182,13 +182,13 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
       // geometric center while doing this.
       double xmin, xmax, ymin, ymax, zmin, zmax;
       AtomMask::const_iterator it = centermask_.begin();
-      Vec3 cxyz = Vec3(currentFrame->XYZ(*it));
+      Vec3 cxyz = Vec3(frm.Frm().XYZ(*it));
       xmin = xmax = cxyz[0];
       ymin = ymax = cxyz[1];
       zmin = zmax = cxyz[2];
       ++it;
       for (; it != centermask_.end(); it++) {
-        Vec3 pt = Vec3(currentFrame->XYZ(*it));
+        Vec3 pt = Vec3(frm.Frm().XYZ(*it));
         cxyz += pt;
         xmin = std::min(xmin, pt[0]);
         xmax = std::max(xmax, pt[0]);
@@ -222,7 +222,7 @@ Action::RetType Action_Volmap::DoAction(int frameNum, Frame* currentFrame, Frame
   int nZ = (int)grid_->NZ();
   for (AtomMask::const_iterator atom = densitymask_.begin();
                                 atom != densitymask_.end(); ++atom) {
-    Vec3 pt = Vec3(currentFrame->XYZ(*atom));
+    Vec3 pt = Vec3(frm.Frm().XYZ(*atom));
     int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
     int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
     int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );

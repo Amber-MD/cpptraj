@@ -12,7 +12,7 @@ noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 10
 radgyr Res1-13 out radgyr.dat :1-13
-radgyr out radgyr.mass.dat :1-13 mass
+radgyr Res1-13_mass out radgyr.mass.dat :1-13 mass
 EOF
 INPUT="-i radgyr.in"
 RunCpptraj "Radius of gyration command test."

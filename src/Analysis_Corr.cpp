@@ -19,8 +19,7 @@ void Analysis_Corr::Help() {
 }
 
 // Analysis_Corr::Setup()
-Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   const char* calctype;
   // Keywords

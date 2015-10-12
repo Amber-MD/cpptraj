@@ -862,18 +862,18 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 // ----------------------------------------------------------------------------
 
 // Action_NAstruct::Init()
-Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   // Get keywords
   std::string outputsuffix = actionArgs.GetStringKey("naout");
   if (!outputsuffix.empty()) {
     // Set up output files.
     FileName FName( outputsuffix );
-    bpout_ = DFL->AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
-    stepout_ = DFL->AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
-    helixout_ = DFL->AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
+    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
+    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
+    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
     if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
   }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);
@@ -896,7 +896,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
   // Reference for setting up basepairs
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) 
     useReference_ = true;
@@ -970,7 +970,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
   // Use reference to determine base pairing
   if (useReference_) {
     mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
-    if (Setup((Topology*)(&REF.Parm()), 0)) return Action::ERR;
+    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
+    if (Setup( ref_setup )) return Action::ERR;
     // Set up base axes
     if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
     // Determine Base Pairing
@@ -982,7 +983,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, TopologyList* PFL, Da
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==NA_Base::CREMER)
     mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
-  DSL->SetDataSetsPending(true);
+  init.DSL().SetDataSetsPending(true);
   return Action::OK;
 }
 
@@ -1012,18 +1013,18 @@ int Action_NAstruct::TravelBackbone( Topology const& top, int atom, std::vector<
 // Action_NAstruct::Setup()
 /** Determine which bases to use in calculation and set up their reference frames.
   */
-Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   Range actualRange;
   if (resRange_.Empty()) 
-    actualRange = currentParm->SoluteResidues();
+    actualRange = setup.Top().SoluteResidues();
   else 
     actualRange = resRange_;
   // Exit if no residues specified
   if (actualRange.Empty()) {
-    mprinterr("Error: NAstruct::setup: No residues specified for %s\n",currentParm->c_str());
-    return Action::ERR;
+    mprintf("Warning: No residues specified for %s\n",setup.Top().c_str());
+    return Action::SKIP;
   }
   if (dataname_.empty())
     dataname_ = masterDSL_->GenerateDefaultName("NA");
@@ -1038,11 +1039,11 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
   {
     NA_Base::NAType baseType = NA_Base::UNKNOWN_BASE;
 #   ifdef NASTRUCTDEBUG
-    mprintf(" ----- Setting up %i:%s -----\n", *resnum+1, currentParm->Res(*resnum).c_str());
+    mprintf(" ----- Setting up %i:%s -----\n", *resnum+1, setup.Top().Res(*resnum).c_str());
 #   endif
     // Check if the residue at resnum matches any of the custom maps
     if (!CustomMap_.empty()) {
-      std::string resname( currentParm->Res(*resnum).c_str() );
+      std::string resname( setup.Top().Res(*resnum).c_str() );
       ResMapType::iterator customRes = CustomMap_.find( resname );
       if (customRes != CustomMap_.end()) {
         mprintf("\tCustom map found: %i [%s]\n",*resnum+1, customRes->first.c_str());
@@ -1051,29 +1052,29 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
     }
     // If not in custom map, attempt to identify base from name
     if (baseType == NA_Base::UNKNOWN_BASE)
-      baseType = NA_Base::ID_BaseFromName( currentParm->Res(*resnum).Name() );
+      baseType = NA_Base::ID_BaseFromName( setup.Top().Res(*resnum).Name() );
     // If still unknown skip to the next base
     if (baseType == NA_Base::UNKNOWN_BASE) {
       // Print a warning if the user specified this range.
       if (!resRange_.Empty()) {
         mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
-                *resnum+1, currentParm->Res(*resnum).c_str());
+                *resnum+1, setup.Top().Res(*resnum).c_str());
       }
       continue;
     }
     if (firstTimeSetup) {
       // Set up ref coords for this base type.
       NA_Base currentBase;
-      if (currentBase.Setup_Base( *currentParm, *resnum, baseType, *masterDSL_, dataname_ )) {
+      if (currentBase.Setup_Base( setup.Top(), *resnum, baseType, *masterDSL_, dataname_ )) {
         mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
-                  currentParm->TruncResNameNum(*resnum).c_str());
+                  setup.Top().TruncResNameNum(*resnum).c_str());
         return Action::ERR;
       }
       Bases_.push_back( currentBase );
       // Determine the largest residue for setting up frames for RMS fit later.
       maxResSize_ = std::max( maxResSize_, currentBase.InputFitMask().Nselected() );
       if (debug_>1) {
-        mprintf("\tNAstruct: Res %i:%s ", *resnum+1, currentParm->Res(*resnum).c_str());
+        mprintf("\tNAstruct: Res %i:%s ", *resnum+1, setup.Top().Res(*resnum).c_str());
         Bases_.back().PrintAtomNames();
         Bases_.back().InputFitMask().PrintMaskAtoms("InpMask");
         Bases_.back().RefFitMask().PrintMaskAtoms("RefMask");
@@ -1082,30 +1083,30 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
       // Ensure base type has not changed. //TODO: Re-set up reference?
       if (baseType != Bases_[idx].Type()) {
         mprinterr("Error: Residue %s base type has changed from %s\n",
-                  currentParm->TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str());
+                  setup.Top().TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str());
         return Action::ERR;
       }
     }
   } // End Loop over NA residues
   mprintf("\tSet up %zu bases.\n", Bases_.size());
   // Determine base connectivity.
-  std::vector<int> Visited( currentParm->Res(Bases_.back().ResNum()).LastAtom(), 0 );
+  std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
-    Residue const& res = currentParm->Res( base->ResNum() );
+    Residue const& res = setup.Top().Res( base->ResNum() );
     int c5neighbor = -1;
     int c3neighbor = -1;
     for (int ratom = res.FirstAtom(); ratom != res.LastAtom(); ++ratom) {
-      if ( (*currentParm)[ratom].Name() == "C5' " ||
-           (*currentParm)[ratom].Name() == "C5* " )
-        c5neighbor = TravelBackbone( *currentParm, ratom, Visited );
-      else if ( (*currentParm)[ratom].Name() == "C3' " ||
-                (*currentParm)[ratom].Name() == "C3* " )
-        c3neighbor = TravelBackbone( *currentParm, ratom, Visited ); 
+      if ( setup.Top()[ratom].Name() == "C5' " ||
+           setup.Top()[ratom].Name() == "C5* " )
+        c5neighbor = TravelBackbone( setup.Top(), ratom, Visited );
+      else if ( setup.Top()[ratom].Name() == "C3' " ||
+                setup.Top()[ratom].Name() == "C3* " )
+        c3neighbor = TravelBackbone( setup.Top(), ratom, Visited ); 
     }
     std::fill( Visited.begin()+res.FirstAtom(), Visited.begin()+res.LastAtom(), 0 );
     // Convert from atom #s to residue #s
-    if (c5neighbor != -1) c5neighbor = (*currentParm)[c5neighbor].ResNum();
-    if (c3neighbor != -1) c3neighbor = (*currentParm)[c3neighbor].ResNum();
+    if (c5neighbor != -1) c5neighbor = setup.Top()[c5neighbor].ResNum();
+    if (c3neighbor != -1) c3neighbor = setup.Top()[c3neighbor].ResNum();
     // Find residue #s in Bases_ and set indices.
     for (idx = 0; idx != Bases_.size(); idx++) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
@@ -1116,11 +1117,11 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
   if (debug_ > 0) {
     mprintf("\tBase Connectivity:\n");
     for (Barray::const_iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
-      mprintf("\t  Residue %s", currentParm->TruncResNameNum( base->ResNum() ).c_str());
+      mprintf("\t  Residue %s", setup.Top().TruncResNameNum( base->ResNum() ).c_str());
       if (base->C5resIdx() != -1)
-        mprintf(" (5'= %s)", currentParm->TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
+        mprintf(" (5'= %s)", setup.Top().TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
       if (base->C3resIdx() != -1)
-        mprintf(" (3'= %s)", currentParm->TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
+        mprintf(" (3'= %s)", setup.Top().TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
       mprintf("\n");
     }
   }
@@ -1128,9 +1129,9 @@ Action::RetType Action_NAstruct::Setup(Topology* currentParm, Topology** parmAdd
 }
 
 // Action_NAstruct::DoAction()
-Action::RetType Action_NAstruct::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   // Set up base axes
-  if ( SetupBaseAxes(*currentFrame) ) return Action::ERR;
+  if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
 
   if (!useReference_) {
     // Determine Base Pairing based on first frame

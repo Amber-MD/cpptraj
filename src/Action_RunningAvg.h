@@ -18,9 +18,9 @@ class Action_RunningAvg: public Action {
     Frame avgFrame_;            ///< Frame to hold sum of coords in window to be avgd.
     Frame resultFrame_;         ///< Frame to hold result of averaging coords.
 
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 };
 #endif  

@@ -76,8 +76,7 @@ void Analysis_Clustering::Help() {
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
-Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   if (analyzeArgs.hasKey("nocoords"))
@@ -647,7 +646,7 @@ void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFr
 // Analysis_Clustering::WriteClusterTraj()
 /** Write frames in each cluster to a trajectory file.  */
 void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
-  Topology* clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast
+  Topology* clusterparm = coords_->TopPtr();
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();
                                      C != CList.endcluster(); ++C)
@@ -682,7 +681,6 @@ void Analysis_Clustering::WriteClusterTraj( ClusterList const& CList ) {
 // Analysis_Clustering::WriteAvgStruct()
 void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
   Topology avgparm = coords_->Top();
-  avgparm.SetNframes( 1 );
   // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(avgfmt_);
   // Loop over all clusters
@@ -727,7 +725,7 @@ void Analysis_Clustering::WriteAvgStruct( ClusterList const& CList ) {
 void Analysis_Clustering::WriteSingleRepTraj( ClusterList const& CList ) {
   Trajout_Single clusterout;
   // Set up trajectory file. Use parm from COORDS DataSet. 
-  Topology *clusterparm = (Topology*)&(coords_->Top()); // TODO: fix cast, is CoordInfo valid?
+  Topology *clusterparm = coords_->TopPtr();
   if (clusterout.PrepareTrajWrite(singlerepfile_, ArgList(), clusterparm,
                                   coords_->CoordsInfo(), CList.Nclusters(),
                                   singlerepfmt_)) 
@@ -758,7 +756,7 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
   // Get extension for representative frame format 
   std::string tmpExt = TrajectoryFile::GetExtensionForType(reptrajfmt_);
   // Use Topology from COORDS DataSet to set up input frame
-  Topology* clusterparm = (Topology*)&(coords_->Top()); // TODO: Fix cast
+  Topology* clusterparm = coords_->TopPtr();
   Frame clusterframe = coords_->AllocateFrame();
   // Loop over all clusters
   for (ClusterList::cluster_iterator C = CList.begincluster();

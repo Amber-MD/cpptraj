@@ -7,8 +7,8 @@ class Analysis_Lifetime : public Analysis {
     Analysis_Lifetime();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
     static void Help();
-    Analysis::RetType Setup(Array1D const&, CpptrajFile*);
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType ExternalSetup(Array1D const&, CpptrajFile*);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     Array1D inputDsets_;

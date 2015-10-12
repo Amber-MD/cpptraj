@@ -23,6 +23,9 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
   if (SetList.empty()) return 1;
   // Create pseudo-topology for all vectors.
   Topology pseudo;
+  BondArray bonds;
+  // 1 pseudo bond type, Rk = 0.0, Req = 1.0 Ang.
+  BondParmArray bParm(1, BondParmType(0.0, 1.0));
   int nres = 1;
   int natom = 0;
   int vec_size = -1;
@@ -40,14 +43,15 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
         return 1;
       }
       Residue vec_res("VEC", nres, ' ', ' ');
-      pseudo.AddTopAtom(Atom("OXYZ", 0), vec_res, 0);
-      pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res, 0);
-      pseudo.AddBond(natom, natom+1);
+      pseudo.AddTopAtom(Atom("OXYZ", 0), vec_res);
+      pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res);
+      bonds.push_back( BondType(natom, natom+1, 0) ); // Bond parm index 0
       natom += 2;
       ++nres;
     }
   }
-  pseudo.CommonSetup(false);
+  pseudo.SetBondInfo( bonds, BondArray(), bParm );
+  pseudo.CommonSetup();
   if (!parmoutName_.empty()) {
     ParmFile pfile;
     if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 )) {

@@ -2,20 +2,20 @@
 #define INC_ACTION_CLOSEST_H
 #include "Action.h"
 #include "ImagedAction.h"
-// Class: Action_Closest
 /// Modify the state so that only the closest solvent molecules are kept.
-class Action_Closest: public Action, ImagedAction {
+class Action_Closest: public Action {
   public:
     Action_Closest();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Closest(); }
     static void Help();
     ~Action_Closest();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    ImagedAction image_;    ///< Imaging routines.
     DataFile *outFile_;     ///< Output file for data on closest molecules
     DataSet *framedata_;    ///< Frame number for each closest molecule.
     DataSet *moldata_;      ///< Mol# for each closest molecule.

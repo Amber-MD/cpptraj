@@ -11,45 +11,36 @@
 #include "Frame.h"
 #include "FileName.h"
 #include "Range.h"
-// Class: Topology
 /// Hold information for all atoms
 class Topology {
   public:
     Topology();
     // ----- Set internal variables --------------
-    void SetOffset(double oIn)               { if (oIn > 0.0) offset_ = oIn; }
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
     void SetPindex(int pIn)                  { pindex_ = pIn;                }
-    void IncreaseFrames(int fIn)             { nframes_ += fIn;              }
-    void SetNframes(int fIn)                 { nframes_ = fIn;               }
-    void SetTag(std::string const& t)        { parmTag_ = t;                 }
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
-    void SetParmCoordInfo(CoordinateInfo const& c);
     void SetParmName(std::string const&, FileName const&);
-    void SetReferenceCoords( Frame const& );
+    void SetDistMaskRef( Frame const& );
     // ----- Return internal variables -----------
-    std::string const& Tag()       const { return parmTag_;               }
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }
     int Natom()                    const { return (int)atoms_.size();     }
     int Nres()                     const { return (int)residues_.size();  }
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
-    int Nframes()                  const { return nframes_;               }
     int NextraPts()                const { return n_extra_pts_;           }
-    CoordinateInfo const& ParmCoordInfo() const { return coordInfo_;      }
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
-    bool NoRefCoords()                    const { return (refCoords_.empty()); }
-    const char *c_str() const;
+    const char *c_str() const; //FIXME rename
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
     atom_iterator begin()            const { return atoms_.begin(); }
     atom_iterator end()              const { return atoms_.end();   }
     const Atom &operator[](int idx)  const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms() const { return atoms_;         }
+    Atom& SetAtom(int idx)                 { return atoms_[idx];    }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -121,13 +112,14 @@ class Topology {
     void PrintShortResInfo(std::string const&, int) const;
     int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info --
-    inline Box const& ParmBox()   const { return coordInfo_.TrajBox();        }
-    inline Box::BoxType BoxType() const { return coordInfo_.TrajBox().Type(); }
-    void SetParmBox( Box const& bIn )   { coordInfo_.SetBox( bIn );           }
+    inline Box const& ParmBox()   const { return parmBox_;        }
+//    inline Box::BoxType BoxType() const { return parmBox_.Type(); }
+    void SetParmBox( Box const& bIn )   { parmBox_ = bIn;         }
+    void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
-    int AddTopAtom(Atom const&, Residue const&, const double*);
+    int AddTopAtom(Atom const&, Residue const&);
     void StartNewMol();
-    int CommonSetup(bool);
+    int CommonSetup();
     void ResetPDBinfo();
     int Setup_NoResInfo();
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
@@ -161,7 +153,6 @@ class Topology {
     typedef std::vector< std::set<Atom::AtomicElementType> > BP_mapType;
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
-    int GetBondsFromAtomCoords( Frame const& );
     void VisitAtom(int, int);
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&) const;
@@ -184,8 +175,8 @@ class Topology {
     std::vector<Atom> atoms_;
     std::vector<Residue> residues_;
     std::vector<Molecule> molecules_;
-    FileName fileName_;
-    std::string parmTag_;
+    // NOTE: Filename is stored to enable things like 'strip outprefix'
+    FileName fileName_; 
     std::string parmName_;
     std::string radius_set_;
 
@@ -206,15 +197,13 @@ class Topology {
     // Extra atom info
     std::vector<AtomExtra> extra_;
 
-    CoordinateInfo coordInfo_; ///< Coordinate metadata. TODO: Make completely separate from topology.
-    Frame refCoords_;
+    Box parmBox_;
+    Frame refCoords_;       ///< Internal reference coords for distance-based masks
 
-    double offset_;         ///< Offset used when searching for bonds
     int debug_;
     int ipol_;              ///< 0 if fixed charge, 1 if polarizable
     int NsolventMolecules_; ///< Number of molecules marked SOLVENT
-    int pindex_;            ///< Internal index used in TopologyList
-    int nframes_;           ///< Number of 'trajin' frames associated with topology.
+    int pindex_;            ///< Internal index used to ID Topology 
     int n_extra_pts_;       ///< Number of extra points.
     int n_atom_types_;      ///< Number of unique atom types.
 };

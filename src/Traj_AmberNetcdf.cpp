@@ -356,7 +356,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
 }  
 
 // Traj_AmberNetcdf::writeReservoir() TODO: Make Frame const&
-int Traj_AmberNetcdf::writeReservoir(int set, Frame& frame, double energy, int bin) {
+int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy, int bin) {
   start_[0] = ncframe_;
   start_[1] = 0;
   start_[2] = 0;

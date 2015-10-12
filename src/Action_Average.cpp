@@ -1,4 +1,3 @@
-// Action_Average
 #include "Action_Average.h"
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
@@ -29,9 +28,9 @@ Action_Average::~Action_Average() {
 }
 
 // Action_Average::Init()
-Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  ensembleNum_ = DSL->EnsembleNum();
+  ensembleNum_ = init.DSL().EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   std::string crdName = actionArgs.GetStringKey("crdset");
@@ -44,7 +43,7 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Dat
     }
   } else {
     // Create REF_FRAME data set.
-    crdset_ = DSL->AddSet(DataSet::REF_FRAME, crdName, "AVGSTRUCT");
+    crdset_ = init.DSL().AddSet(DataSet::REF_FRAME, crdName, "AVGSTRUCT");
     if (crdset_ == 0) {
       mprinterr("Error: Could not allocate average coordinate data set '%s'\n", crdName.c_str());
       return Action::ERR;
@@ -79,13 +78,13 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   * less than the original # atoms. Never calculate more than the original
   * # atoms.
   */
-Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Average::Setup(ActionSetup& setup) {
 
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask( Mask1_ ) ) return Action::ERR;
 
   if (Mask1_.None()) {
-    mprinterr("Error: Cannot create average: No Atoms in mask.\n");
-    return Action::ERR;
+    mprinterr("Warning: Cannot create average: No Atoms in mask.\n");
+    return Action::SKIP;
   }
 
   if (AvgFrame_==0) {
@@ -96,16 +95,16 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     // AvgParm will be used for coordinate output
     // If the number of selected atoms is less than the current parm, strip
     // the parm for output purposes.
-    if (Mask1_.Nselected()<currentParm->Natom()) {
+    if (Mask1_.Nselected()<setup.Top().Natom()) {
       mprintf("Warning: Atom selection < natom, stripping parm for averaging only:\n");
-      Topology* aparm = currentParm->modifyStateByMask(Mask1_);
+      Topology* aparm = setup.Top().modifyStateByMask(Mask1_);
       if (aparm == 0) return Action::ERR;
       AvgParm_ = *aparm;
       delete aparm;
       if (debug_ > 0)
         AvgParm_.Summary();
     } else 
-      AvgParm_ = *currentParm; 
+      AvgParm_ = setup.Top();
   } else {
     // If the frame is already set up, check to see if the current number
     // of atoms is bigger or smaller. If bigger, only average Natom coords.
@@ -113,45 +112,44 @@ Action::RetType Action_Average::Setup(Topology* currentParm, Topology** parmAddr
     if (Mask1_.Nselected() > AvgFrame_->Natom()) {
       Natom_ = AvgFrame_->Natom();
       mprintf("Warning: Parm '%s' selected # atoms (%i) > original parm '%s'\n",
-              currentParm->c_str(), Mask1_.Nselected(), AvgParm_.c_str());
+              setup.Top().c_str(), Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected# atoms (%i).\n",AvgFrame_->Natom());
     } else if (Mask1_.Nselected() < AvgFrame_->Natom()) {
       Natom_ = Mask1_.Nselected();
       mprintf("Warning: Parm '%s' selected # atoms (%i) < original parm '%s'\n",
-              currentParm->c_str(), Mask1_.Nselected(), AvgParm_.c_str());
+              setup.Top().c_str(), Mask1_.Nselected(), AvgParm_.c_str());
       mprintf("Warning:   selected # atoms (%i).\n",AvgFrame_->Natom());
     } else {
       Natom_ = AvgFrame_->Natom();
     }
-    mprintf("\t%i atoms will be averaged for '%s'.\n",Natom_, currentParm->c_str());
+    mprintf("\t%i atoms will be averaged for '%s'.\n",Natom_, setup.Top().c_str());
   }
         
   return Action::OK;  
 }
 
 // Action_Average::DoAction()
-Action::RetType Action_Average::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) 
-{
+Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
 
-  if (AvgFrame_->AddByMask(*currentFrame, Mask1_)) return Action::ERR;
+  if (AvgFrame_->AddByMask(frm.Frm(), Mask1_)) return Action::ERR;
   ++Nframes_; 
 
   return Action::OK;
-} 
+}
 
 // Action_Average::Print()
 void Action_Average::Print() {
   if (Nframes_ < 1) return;
   double d_Nframes = (double) Nframes_;
   AvgFrame_->Divide(d_Nframes);
-
+  // NOTE: AvgFrame_ has coordinates only, blank CoordinateInfo is fine.
   mprintf("    AVERAGE: %i frames,", Nframes_);
   if (crdset_ == 0) {
     Trajout_Single outfile;
     mprintf(" [%s %s]\n",avgfilename_.c_str(), trajArgs_.ArgLine());
     if (outfile.PrepareEnsembleTrajWrite(avgfilename_, trajArgs_, &AvgParm_,
-                                         AvgParm_.ParmCoordInfo(), 1, 
+                                         CoordinateInfo(), 1, 
                                          TrajectoryFile::UNKNOWN_TRAJ, ensembleNum_)) 
     {
       mprinterr("Error: AVERAGE: Could not set up %s for write.\n",avgfilename_.c_str());

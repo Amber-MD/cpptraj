@@ -23,7 +23,7 @@ void Action_Diffusion::Help() {
           "    <prefix>_a.xmgr: Total distance travelled (in Å).\n");
 }
 
-Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   printIndividual_ = !(actionArgs.hasKey("average"));
@@ -39,11 +39,11 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, D
     outputNameRoot.assign("diffusion");
   
   // Open output files
-  outputx_ = DFL->AddCpptrajFile(outputNameRoot+"_x.xmgr", "X MSD");
-  outputy_ = DFL->AddCpptrajFile(outputNameRoot+"_y.xmgr", "Y MSD");
-  outputz_ = DFL->AddCpptrajFile(outputNameRoot+"_z.xmgr", "Z MSD");
-  outputr_ = DFL->AddCpptrajFile(outputNameRoot+"_r.xmgr", "Overall MSD");
-  outputa_ = DFL->AddCpptrajFile(outputNameRoot+"_a.xmgr", "Total Distance");
+  outputx_ = init.DFL().AddCpptrajFile(outputNameRoot+"_x.xmgr", "X MSD");
+  outputy_ = init.DFL().AddCpptrajFile(outputNameRoot+"_y.xmgr", "Y MSD");
+  outputz_ = init.DFL().AddCpptrajFile(outputNameRoot+"_z.xmgr", "Z MSD");
+  outputr_ = init.DFL().AddCpptrajFile(outputNameRoot+"_r.xmgr", "Overall MSD");
+  outputa_ = init.DFL().AddCpptrajFile(outputNameRoot+"_a.xmgr", "Total Distance");
   if (outputx_ == 0 || outputy_ == 0 || outputz_ == 0 ||
       outputr_ == 0 || outputa_ == 0) return Action::ERR;
 
@@ -68,18 +68,18 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, TopologyList* PFL, D
   return Action::OK;
 }
 
-Action::RetType Action_Diffusion::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
-  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   if (mask_.None()) {
-    mprinterr("Error: diffusion: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
 
   // Check for box
-  if ( currentParm->BoxType() != Box::NOBOX ) {
+  if ( setup.CoordInfo().TrajBox().Type() != Box::NOBOX ) {
     // Currently only works for orthogonal boxes
-    if ( currentParm->BoxType() != Box::ORTHO ) {
+    if ( setup.CoordInfo().TrajBox().Type() != Box::ORTHO ) {
       mprintf("Warning: diffusion command currently only works with orthogonal boxes.\n");
       mprintf("Warning: imaging will be disabled for this command. This may result in\n");
       mprintf("Warning: large jumps if target molecule is imaged. To counter this please\n");
@@ -109,22 +109,22 @@ Action::RetType Action_Diffusion::Setup(Topology* currentParm, Topology** parmAd
 
   // If initial frame already set and current # atoms > # atoms in initial
   // frame this will probably cause an error.
-  if (!initial_.empty() && currentParm->Natom() > initial_.Natom()) {
+  if (!initial_.empty() && setup.Top().Natom() > initial_.Natom()) {
     mprintf("Warning: # atoms in current parm (%s, %i) > # atoms in initial frame (%i)\n",
-             currentParm->c_str(), currentParm->Natom(), initial_.Natom());
+             setup.Top().c_str(), setup.Top().Natom(), initial_.Natom());
     mprintf("Warning: This may lead to segmentation faults.\n");
   }
 
   return Action::OK;
 }
 
-Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   // Load initial frame if necessary
   if (initial_.empty()) {
-    initial_ = *currentFrame;
+    initial_ = frm.Frm();
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
-      const double* XYZ = currentFrame->XYZ(*atom);
+      const double* XYZ = frm.Frm().XYZ(*atom);
       //initial_.push_back( XYZ[0] );
       previousx_.push_back( XYZ[0] );
       //initial_.push_back( XYZ[1] );
@@ -134,8 +134,8 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Fr
     }
   } else {
     if (hasBox_) 
-      boxcenter_ = currentFrame->BoxCrd().Center();
-    Vec3 boxL = currentFrame->BoxCrd().Lengths();
+      boxcenter_ = frm.Frm().BoxCrd().Center();
+    Vec3 boxL = frm.Frm().BoxCrd().Lengths();
     // Set iterators
     std::vector<double>::iterator px = previousx_.begin();
     std::vector<double>::iterator py = previousy_.begin();
@@ -154,7 +154,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, Frame* currentFrame, Fr
     double avgz = 0;
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     { // Get current and initial coords for this atom.
-      const double* XYZ = currentFrame->XYZ(*atom);
+      const double* XYZ = frm.Frm().XYZ(*atom);
       const double* iXYZ = initial_.XYZ(*atom);
       // Calculate distance to previous frames coordinates.
       double delx = XYZ[0] - *px;

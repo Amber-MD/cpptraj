@@ -6,7 +6,6 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_integer.h"
-// Class: Action_Hbond
 /// Action to calculate the Hbonds present in each frame.
 class Action_Hbond : public Action {
   public:
@@ -14,9 +13,9 @@ class Action_Hbond : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Hbond(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     struct HbondType {

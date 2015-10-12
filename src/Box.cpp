@@ -141,11 +141,16 @@ static inline bool IsTruncOct(double angle) {
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
   btype_ = NONORTHO;
+  // No lengths, no box
+  if (box_[0] < Constants::SMALL && box_[1] < Constants::SMALL && box_[2] < Constants::SMALL) {
+    btype_ = NOBOX;
+    mprintf("Warning: Box length(s) <= 0.0; setting box to NONE.\n");
   // No angles, no box
-  if ( box_[3] <= 0 && box_[4] <= 0 && box_[5] <= 0)
+  } else if ( box_[3] <= 0 && box_[4] <= 0 && box_[5] <= 0) {
+    mprintf("Warning: Box angle(s) <= 0.0; setting box to NONE.\n");
     btype_ = NOBOX;
   // All 90, orthogonal 
-  else if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
+  } else if (box_[3] == 90.0 && box_[4] == 90.0 && box_[5] == 90.0)
     btype_ = ORTHO;
   // All 109.47, truncated octahedron
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )

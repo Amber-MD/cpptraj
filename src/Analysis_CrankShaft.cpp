@@ -25,8 +25,7 @@ void Analysis_CrankShaft::Help() {
 
 const char* Analysis_CrankShaft::CSstring[] = { "angle", "distance" };
 
-Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrankShaft::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   info_ = analyzeArgs.GetStringKey("info");

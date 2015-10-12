@@ -7,9 +7,9 @@ class Action_AutoImage : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_AutoImage(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     AtomMask anchorMask_; ///< Used to center anchor region.
@@ -29,6 +29,6 @@ class Action_AutoImage : public Action {
     pairList fixedList_;
     pairList mobileList_;
 
-    pairList SetupAtomRanges(Topology*,std::string const&);
+    static pairList SetupAtomRanges(Topology const&, std::string const&);
 };
 #endif

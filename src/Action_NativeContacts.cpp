@@ -219,9 +219,9 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 }
 // -----------------------------------------------------------------------------
 // Action_NativeContacts::Init()
-Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  masterDSL_ = DSL;
+  masterDSL_ = init.DslPtr();
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -236,22 +236,22 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   series_ = actionArgs.hasKey("series");
   distance_ = dist * dist; // Square the cutoff
   first_ = actionArgs.hasKey("first");
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   if (series_) {
-    seriesout_ = DFL->AddDataFile(actionArgs.GetStringKey("seriesout"), actionArgs);
-    DSL->SetDataSetsPending( true );
+    seriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("seriesout"), actionArgs);
+    init.DSL().SetDataSetsPending( true );
   }
-  cfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("writecontacts"), "Native Contacts",
+  cfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("writecontacts"), "Native Contacts",
                                DataFileList::TEXT, true);
-  pfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("contactpdb"), "Contact PDB",
+  pfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("contactpdb"), "Contact PDB",
                                DataFileList::PDB);
-  rfile_ = DFL->AddCpptrajFile(actionArgs.GetStringKey("resout"), "Contact Res Pairs",
+  rfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("resout"), "Contact Res Pairs",
                                DataFileList::TEXT, true);
   if (cfile_ == 0 || rfile_ == 0) return Action::ERR;
   pdbcut_ = (float)actionArgs.getKeyDouble("pdbcut", -1.0);
   usepdbcut_ = (pdbcut_ > -1.0);
   // Get reference
-  ReferenceFrame REF = DSL->GetReferenceFrame( actionArgs );
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (!first_) {
     if (REF.error()) return Action::ERR;
     if (REF.empty()) {
@@ -267,36 +267,36 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   // Create data sets
   std::string name = actionArgs.GetStringKey("name");
   if (name.empty())
-    name = DSL->GenerateDefaultName("Contacts");
-  numnative_ = DSL->AddSet(DataSet::INTEGER, MetaData(name, "native"));
-  nonnative_ = DSL->AddSet(DataSet::INTEGER, MetaData(name, "nonnative"));
+    name = init.DSL().GenerateDefaultName("Contacts");
+  numnative_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(name, "native"));
+  nonnative_ = init.DSL().AddSet(DataSet::INTEGER, MetaData(name, "nonnative"));
   if (outfile != 0) {
     outfile->AddDataSet(numnative_);
     outfile->AddDataSet(nonnative_);
   }
   if (numnative_ == 0 || nonnative_ == 0) return Action::ERR;
   if (actionArgs.hasKey("mindist")) {
-    mindist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(name, "mindist"));
+    mindist_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(name, "mindist"));
     if (mindist_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet(mindist_);
   }
   if (actionArgs.hasKey("maxdist")) {
-    maxdist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(name, "maxdist"));
+    maxdist_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(name, "maxdist"));
     if (maxdist_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet(maxdist_);
   }
   DataFile *natmapfile = 0, *nonmapfile = 0;
   if (actionArgs.hasKey("map")) {
-    nativeMap_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(name, "nativemap"));
+    nativeMap_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(name, "nativemap"));
     if (nativeMap_ == 0) return Action::ERR;
-    nonnatMap_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, MetaData(name, "nonnatmap"));
+    nonnatMap_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, MetaData(name, "nonnatmap"));
     if (nonnatMap_ == 0) return Action::ERR;
     FileName mapFilename;
     mapFilename.SetFileName( actionArgs.GetStringKey("mapout") );
     if (!mapFilename.empty()) {
-      natmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "native." + mapFilename.Base());
+      natmapfile = init.DFL().AddDataFile(mapFilename.DirPrefix() + "native." + mapFilename.Base());
       if (natmapfile != 0) natmapfile->AddDataSet(nativeMap_);
-      nonmapfile = DFL->AddDataFile(mapFilename.DirPrefix() + "nonnative." + mapFilename.Base());
+      nonmapfile = init.DFL().AddDataFile(mapFilename.DirPrefix() + "nonnative." + mapFilename.Base());
       if (nonmapfile != 0) nonmapfile->AddDataSet(nonnatMap_);
     }
   }
@@ -355,7 +355,7 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
   // Set up reference if necessary.
   if (!first_) {
     // Set up imaging info for ref parm
-    image_.SetupImaging( REF.Parm().BoxType() );
+    image_.SetupImaging( REF.CoordsInfo().TrajBox().Type() );
     if (image_.ImageType() == NONORTHO)
       REF.Coord().BoxCrd().ToRecip(ucell_, recip_);
     if (DetermineNativeContacts( REF.Parm(), REF.Coord() )) return Action::ERR;
@@ -364,20 +364,20 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, TopologyList* P
 }
 
 // Action_NativeContacts::Setup()
-Action::RetType Action_NativeContacts::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_NativeContacts::Setup(ActionSetup& setup) {
   // Setup potential contact lists for this topology
-  if (SetupContactLists( *currentParm, Frame()))
-    return Action::ERR;
+  if (SetupContactLists( setup.Top(), Frame()))
+    return Action::SKIP;
   mprintf("\t%zu potential contact sites for '%s'\n", Mask1_.Nselected(), Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
     mprintf("\t%zu potential contact sites for '%s'\n", Mask2_.Nselected(), Mask2_.MaskString());
   // Set up imaging info for this parm
-  image_.SetupImaging( currentParm->BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())
     mprintf("\tImaging enabled.\n");
   else
     mprintf("\tImaging disabled.\n");
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
   return Action::OK;
 }
 
@@ -395,8 +395,8 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
   */
 #define UpdateNativeContact(M1_, M2_, CI1_, CI2_) { \
         if (ValidContact(M1_[c1], M2_[c2], *CurrentParm_)) { \
-          double Dist2 = DIST2(currentFrame->XYZ(M1_[c1]), currentFrame->XYZ(M2_[c2]), \
-                               image_.ImageType(), currentFrame->BoxCrd(), ucell_, recip_); \
+          double Dist2 = DIST2(frm.Frm().XYZ(M1_[c1]), frm.Frm().XYZ(M2_[c2]), \
+                               image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -417,13 +417,11 @@ bool Action_NativeContacts::ValidContact(int a1, int a2, Topology const& parmIn)
 }
 
 // Action_NativeContacts::DoAction()
-Action::RetType Action_NativeContacts::DoAction(int frameNum, Frame* currentFrame,
-                                                Frame** frameAddress)
-{
-  if (image_.ImageType() == NONORTHO) currentFrame->BoxCrd().ToRecip(ucell_, recip_);
+Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) {
+  if (image_.ImageType() == NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   if (first_) {
     mprintf("\tUsing first frame to determine native contacts.\n");
-    if (DetermineNativeContacts( *CurrentParm_, *currentFrame )) return Action::ERR;
+    if (DetermineNativeContacts( *CurrentParm_, frm.Frm() )) return Action::ERR;
     first_ = false;
   }
   nframes_++;
