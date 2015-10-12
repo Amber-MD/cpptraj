@@ -48,7 +48,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // Separate input string by ','
   arglist.SetList(input, ",");
   if (arglist.Nargs()<1) {
-    mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input.c_str());
+    mprinterr("Error: No arguments found in histogram argument: %s\n",input.c_str());
     return 1;
   }
 
@@ -61,21 +61,13 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
     return 1;
   }
 
-  // For now only 1D data sets can be histogrammed
-  if (dset->Ndim() != 1) {
-    mprinterr("Error: Hist: dataset %s has %u dimensions.\n",
-              dset->legend(), dset->Ndim());
-    mprinterr("Error: Hist: Currently only 1D data sets can be histogrammed.\n");
+  // For now only 1D scalar data sets can be histogrammed
+  if (dset->Group() != DataSet::SCALAR_1D) {
+    mprinterr("Error: Cannot histogram data set '%s'\n", dset->legend());
+    mprinterr("Error: Currently only 1D scalar data sets can be histogrammed.\n");
     return 1;
   }
-
-  // Check that dataset is not string
-  if (dset->Type()==DataSet::STRING) {
-    mprinterr("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
-            dset->legend());
-    return 1;
-  }
-
+  // TODO parse remaining args here, create data structure.
   dimensionArgs_.push_back( arglist );
   histdata_.push_back( (DataSet_1D*)dset );
   return 0;
@@ -130,7 +122,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   }
   // Check that min < max
   if (dim.Min() >= dim.Max()) {
-    mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",
+    mprinterr("Error: Dimension %s: min (%g) must be less than max (%g).\n",
               dim.Label().c_str(), dim.Min(), dim.Max());
     return 1;
   }
@@ -565,7 +557,7 @@ int Analysis_Hist::Normalize() {
     mprintf("\tHistogram: Normalizing integral over bin populations to 1.0\n");
   for (std::vector<double>::const_iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
     sum += *bin;
-  mprintf("\t           Sum over all bins is %lf\n",sum);
+  mprintf("\t           Sum over all bins is %g\n",sum);
   if (sum == 0.0) {
     mprinterr("Error: Histogram::Normalize: Sum over bin populations is 0.0\n");
     return 1;
@@ -698,9 +690,9 @@ void Analysis_Hist::PrintBins() {
     long int index = BinIndicesToIndex(BinIndices);
     // If we dont care about zero bins or bin pop > 0, output
     for (unsigned int i=0; i < dimensions_.size(); ++i)
-      native_->Printf("%lf ",
+      native_->Printf("%f ",
                       ((double)BinIndices[i]*dimensions_[i].Step()) + dimensions_[i].Min() );
-    native_->Printf("%lf\n",Bins_[index]);
+    native_->Printf("%f\n",Bins_[index]);
 
     loop = IncrementBinIndices(BinIndices, isCircular, hasCycled);
     // If gnuplot, print extra space when highest order coord cycles
