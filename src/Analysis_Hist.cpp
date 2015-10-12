@@ -83,6 +83,8 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   Dimension dim;
   bool minArg = false;
   bool maxArg = false;
+  bool stepArg = false;
+  bool binsArg = false; 
 
   if (debug_>1)
     arglist.PrintList();
@@ -98,15 +100,14 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
     // Default explicitly requested
     if (arglist[i] == "*") continue;
     switch (i) {
-      case 1 : dim.SetMin(  convertToDouble( arglist[i]) ); minArg=true; break;
-      case 2 : dim.SetMax(  convertToDouble( arglist[i]) ); maxArg=true; break;
-      case 3 : dim.SetStep( convertToDouble( arglist[i]) ); break;
-      case 4 : dim.SetBins( convertToInteger(arglist[i]) ); break;
+      case 1 : dim.SetMin(  convertToDouble( arglist[i]) ); minArg = true; break;
+      case 2 : dim.SetMax(  convertToDouble( arglist[i]) ); maxArg = true; break;
+      case 3 : dim.SetStep( convertToDouble( arglist[i]) ); stepArg = true; break;
+      case 4 : dim.SetBins( convertToInteger(arglist[i]) ); binsArg = true; break;
     }
   }
 
   // If no min arg and no default min arg, get min from dataset
-  // TODO: Use Min/MaxIsSet
   if (!minArg) {
     if (!minArgSet_) 
       dim.SetMin( dset.Min() );
@@ -128,9 +129,9 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   }
 
   // If bins/step not specified, use default
-  if (dim.Bins()==-1)
+  if (!binsArg)
     dim.SetBins( default_dim_.Bins() );
-  if (dim.Step()==-1)
+  if (!stepArg)
     dim.SetStep( default_dim_.Step() );
 
   // Attempt to set up bins or step.
@@ -403,13 +404,13 @@ Analysis::RetType Analysis_Hist::Analyze() {
     {
       double dval = (*ds)->Dval( n );
       // Check if data is out of bounds for this dimension.
-      if (dval > (*dim).Max() || dval < (*dim).Min()) {
+      if (dval > dim->Max() || dval < dim->Min()) {
         index = -1L;
         break;
       }
       // Calculate index for this particular dimension (idx)
-      long int idx = (long int)((dval - (*dim).Min()) / (*dim).Step());
-      if (debug_>1) mprintf(" [%s:%f (%i)],",(*dim).Label().c_str(), dval, idx);
+      long int idx = (long int)((dval - dim->Min()) / dim->Step());
+      if (debug_>1) mprintf(" [%s:%f (%i)],",dim->Label().c_str(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
       index += (idx * (*bOff));
     }
@@ -565,7 +566,7 @@ int Analysis_Hist::Normalize() {
   if (normalize_ == NORM_INT) {
     double spacing = 1.0;
     for (HdimType::const_iterator dim = dimensions_.begin(); dim != dimensions_.end(); ++dim)
-      spacing *= ( (*dim).Step() );
+      spacing *= ( dim->Step() );
     sum = 1.0 / (sum * spacing);
   } else if (normalize_ == NORM_SUM)
     sum = 1.0 / sum;
