@@ -121,10 +121,6 @@ Analysis::RetType Analysis_Spline::Analyze() {
         Dimension(mmin, (mmax - mmin)/(double)msize, msize, ds.Dim(0).Label()) );
     output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
     mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
-    if (!ds.Dim(0).MinIsSet())
-      mprinterr("Internal Error: %s min is not set!\n", ds.legend());
-    if (ds.Dim(0).Step() < 0.0)
-      mprinterr("Internal Error: %s step is not set!\n", ds.legend());
     // Calculate mesh Y values.
     output_dsets_[idx]->SetSplinedMesh( ds );
     // DEBUG

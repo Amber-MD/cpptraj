@@ -64,9 +64,6 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
       mprintf("Warning: Set '%s' size is less than 2. Skipping.\n", data.legend());
     else {
       // If input data set X dim does not have default min/step, set them.
-      // FIXME: This should not be necessary!
-      if (!(*DS)->Dim(0).MinIsSet()) (*DS)->Dim(0).SetMin( 1.0 );
-      if ((*DS)->Dim(0).Step() < 0 ) (*DS)->Dim(0).SetStep( 1.0 );
       if (cumulative_) {
         // Cumulative running average.
         mprintf("\t\tCalculating Cumulative Running Average for set %s\n", data.legend());

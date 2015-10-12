@@ -352,6 +352,7 @@ void DataFile::WriteDataOut() {
                  ds.legend(), filename_.base());
       continue;
     }
+    // FIXME This should all be done in DataSetList
     // Set default min and step for all dimensions if not already set.
     for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
       Dimension& dim = ds.Dim(nd);
@@ -364,9 +365,9 @@ void DataFile::WriteDataOut() {
         step = 1.0;
       }
       if (!dim.MinIsSet()) dim.SetMin( min );
-      if (dim.Step() < 0 ) dim.SetStep( step );
+      if (dim.Step() == 0.0 ) dim.SetStep( step );
     }
-    // Set x label if not already set
+    // Set x label if not already set FIXME also done in DataSetList
     if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
     setsToWrite.AddCopyOfSet( SetList_[idx] );
   }

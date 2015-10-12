@@ -6,7 +6,7 @@
 Dimension::Dimension() :
   min_(0.0),
   max_(0.0),
-  step_(-1.0),
+  step_(0.0),
   bins_(-1),
   minIsSet_(false),
   maxIsSet_(false)

@@ -342,8 +342,11 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     return 0;
   }
   // If 1 dim set and time series status not set, set to true.
-  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) 
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
+    // Also set dimension default
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, -1, "Frame") );
+  }
   // Set up dataset 
   if ( DS->SetMeta( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
