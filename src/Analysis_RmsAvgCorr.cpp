@@ -216,7 +216,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     w_sizes.push_back( ws );
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES
   widx_end = (int)w_sizes.size();
-  Dimension Xdim(1, lagOffset_, widx_end + 1);
+  Dimension Xdim(1, lagOffset_);
   Ct_->SetDim(Dimension::X, Xdim);
   Csd_->SetDim(Dimension::X, Xdim);
   ParallelProgress progress(widx_end);

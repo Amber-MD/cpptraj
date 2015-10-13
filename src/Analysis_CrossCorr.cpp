@@ -30,7 +30,7 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
   // Setup output dataset
   matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
-    matrix_->Dim(Dimension::X).SetLabel("DataSets");
+    matrix_->SetDim(Dimension::X, Dimension(1.0, 1.0, "DataSets"));
     outfile_->AddDataSet( matrix_ );
   }
   

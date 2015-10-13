@@ -173,6 +173,8 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
   // Save in matrix, largest to smallest.
   DataSet_MatrixDbl kmatrix;
   kmatrix.Allocate2D( FramesToCluster.size(), Kvals.Size() );
+  kmatrix.SetDim(Dimension::X, Dimension(1.0, 1.0)); // TODO Set default dimensions on allocation?
+  kmatrix.SetDim(Dimension::Y, Dimension(1.0, 1.0));
   for (int y = 0; y != nvals; y++) {
     for (int x = nframes - 1; x != -1; x--)
       kmatrix.AddElement( KMAP[y][x] );

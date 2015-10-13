@@ -57,8 +57,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   }
 
   // Set up output datasets
-  Dimension Xdim( meshmin_, (meshmax_ - meshmin_) / (double)meshsize_,
-                  meshsize_ );
+  Dimension Xdim( meshmin_, (meshmax_ - meshmin_) / (double)meshsize_ );
   for (Array1D::const_iterator dsIn = input_dsets_.begin();
                                dsIn != input_dsets_.end(); ++dsIn)
   {
@@ -106,19 +105,19 @@ Analysis::RetType Analysis_Spline::Analyze() {
     if (useDefaultMin_)
       mmin = meshmin_;
     else
-      mmin = ds.Dim(0).Min();
+      mmin = ds.Min();
     if (useDefaultMax_)
       mmax = meshmax_;
     else
-      mmax = ds.Dim(0).Max();
+      mmax = ds.Max();
     if (meshfactor_ > 0)
       msize = (int)((double)ds.Size() * meshfactor_);
     else
       msize = meshsize_;
     // Set up output dimension
     mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.legend(), mmin, mmax, msize);
-    output_dsets_[idx]->SetDim( Dimension::X,
-        Dimension(mmin, (mmax - mmin)/(double)msize, msize, ds.Dim(0).Label()) );
+    output_dsets_[idx]->SetDim( Dimension::X, 
+                                Dimension(mmin, (mmax - mmin)/(double)msize, ds.Dim(0).Label()) );
     output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
     mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
     // Calculate mesh Y values.

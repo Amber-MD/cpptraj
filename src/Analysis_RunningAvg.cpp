@@ -100,7 +100,7 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
       //       output. Wont matter since mesh X values are correct.
       double xstep = (xmax - xmin) / (double)out.Size();
       //mprintf("DEBUG: xmin=%g xmax=%g xstep=%g size=%zu\n", xmin, xmax, xstep, out.Size());
-      out.SetDim(Dimension::X, Dimension(xmin, xstep, out.Size(), "X"));
+      out.SetDim(Dimension::X, Dimension(xmin, xstep, "X"));
     }
   }
 

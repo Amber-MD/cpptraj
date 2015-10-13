@@ -28,5 +28,11 @@ class Analysis_KDE : public Analysis {
     bool calcFreeE_;
     double Temp_;
     fxnptr Kernel_;    ///< Kernel to use.
+    double default_min_;
+    double default_max_;
+    double default_step_;
+    int default_bins_;
+    bool minArgSet_;
+    bool maxArgSet_;
 };
 #endif

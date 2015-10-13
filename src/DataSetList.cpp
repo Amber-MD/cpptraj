@@ -345,7 +345,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
   if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
     // Also set dimension default
-    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, -1, "Frame") );
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
   }
   // Set up dataset 
   if ( DS->SetMeta( meta ) ) {
@@ -392,18 +392,13 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         isMonotonic = false;
         break;
       }
-    if (isMonotonic) {
-      Xdim.SetMin( Xvals.front() );
-      Xdim.SetMax( Xvals.back() );
-      Xdim.SetStep( xstep );
-      Xdim.SetBins( Xvals.size() );
-    }
+    if (isMonotonic)
+      Xdim = Dimension( Xvals.front(), xstep );
   } else
     // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
+    Xdim = Dimension(1.0, 1.0);
   if (debug_ > 0) {
-    mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n",
-            Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
+    mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
   }
   for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {

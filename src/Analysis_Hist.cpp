@@ -23,6 +23,10 @@ Analysis_Hist::Analysis_Hist() :
   circular_(false),
   nativeOut_(false),
   N_dimensions_(0),
+  default_min_(0.0),
+  default_max_(0.0),
+  default_step_(0.0),
+  default_bins_(-1),
   minArgSet_(false),
   maxArgSet_(false),
   calcAMD_(false),
@@ -80,7 +84,6 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   * \return 1 if error occurs, 0 otherwise.
   */
 int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size_t& offset) {
-  Dimension dim;
   bool minArg = false;
   bool maxArg = false;
   bool stepArg = false;
@@ -91,53 +94,53 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 
   // Set up dimension name
   // NOTE: arglist[0] should be same as dset name from CheckDimension 
-  dim.SetLabel( arglist[0] );
+  std::string const& dLabel = arglist[0];
 
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
-  for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist[i].c_str());
-    // Default explicitly requested
+  double dMin = 0.0;
+  double dMax = 0.0;
+  double dStep = 0.0;
+  int dBins = -1;
+  for (int i = 1; i < arglist.Nargs(); i++) {
+    if (debug_>1) mprintf("DEBUG: setupCoord: Token %i (%s)\n", i, arglist[i].c_str());
+    // '*' means default explicitly requested
     if (arglist[i] == "*") continue;
     switch (i) {
-      case 1 : dim.SetMin(  convertToDouble( arglist[i]) ); minArg = true; break;
-      case 2 : dim.SetMax(  convertToDouble( arglist[i]) ); maxArg = true; break;
-      case 3 : dim.SetStep( convertToDouble( arglist[i]) ); stepArg = true; break;
-      case 4 : dim.SetBins( convertToInteger(arglist[i]) ); binsArg = true; break;
+      case 1 : dMin  = convertToDouble( arglist[i]); minArg = true; break;
+      case 2 : dMax  = convertToDouble( arglist[i]); maxArg = true; break;
+      case 3 : dStep = convertToDouble( arglist[i]); stepArg = true; break;
+      case 4 : dBins = convertToInteger(arglist[i]); binsArg = true; break;
     }
   }
 
   // If no min arg and no default min arg, get min from dataset
   if (!minArg) {
     if (!minArgSet_) 
-      dim.SetMin( dset.Min() );
+      dMin = dset.Min();
     else
-      dim.SetMin( default_dim_.Min() );
+      dMin = default_min_;
   }
   // If no max arg and no default max arg, get max from dataset
   if (!maxArg) {
     if (!maxArgSet_)
-      dim.SetMax( dset.Max() );
+      dMax = dset.Max();
     else
-      dim.SetMax( default_dim_.Max() );
+      dMax = default_max_;
   }
-  // Check that min < max
-  if (dim.Min() >= dim.Max()) {
-    mprinterr("Error: Dimension %s: min (%g) must be less than max (%g).\n",
-              dim.Label().c_str(), dim.Min(), dim.Max());
-    return 1;
-  }
-
   // If bins/step not specified, use default
   if (!binsArg)
-    dim.SetBins( default_dim_.Bins() );
+    dBins = default_bins_;
   if (!stepArg)
-    dim.SetStep( default_dim_.Step() );
+    dStep = default_step_;
 
-  // Attempt to set up bins or step.
-  if (dim.CalcBinsOrStep()!=0) return 1;
- 
-  dim.PrintDim();
+  // Calculate dimension from given args.
+  HistBin dim;
+  if (dim.CalcBinsOrStep( dMin, dMax, dStep, dBins, dLabel )) {
+    mprinterr("Error: Could not set up histogram dimension '%s'\n", dLabel.c_str());
+    return 1;
+  }
+  dim.PrintHistBin();
   dimensions_.push_back( dim );
 
   // Recalculate offsets for all dimensions starting at farthest coord. This
@@ -149,9 +152,9 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   for (HdimType::const_iterator rd = dimensions_.begin();
                                 rd != dimensions_.end(); ++rd, ++bOff)
   {
-    if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
+    if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n", rd->label(), offset);
     *bOff = (long int)offset;
-    offset *= (*rd).Bins();
+    offset *= rd->Bins();
     // Check for overflow.
     if ( offset < last_offset ) {
       mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
@@ -190,12 +193,12 @@ Analysis::RetType Analysis_Hist::ExternalSetup(DataSet_1D* dsIn, std::string con
   nativeOut_ = false;
   minArgSet_ = minArgSetIn;
   if (minArgSet_)
-    default_dim_.SetMin( minIn );
+    default_min_ = minIn;
   maxArgSet_ = maxArgSetIn;
   if (maxArgSet_)
-    default_dim_.SetMax( maxIn );
-  default_dim_.SetStep( stepIn );
-  default_dim_.SetBins( binsIn );
+    default_max_ = maxIn;
+  default_step_ = stepIn;
+  default_bins_ = binsIn;
   calcAMD_ = false;
   amddata_ = 0;
 
@@ -251,15 +254,19 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   circular_ = analyzeArgs.hasKey("circular");
   nativeOut_ = analyzeArgs.hasKey("nativeout");
   if ( analyzeArgs.Contains("min") ) {
-    default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
+    default_min_ = analyzeArgs.getKeyDouble("min", 0.0);
     minArgSet_ = true;
   }
   if ( analyzeArgs.Contains("max") ) {
-    default_dim_.SetMax( analyzeArgs.getKeyDouble("max",0.0) );
+    default_max_ = analyzeArgs.getKeyDouble("max", 0.0);
     maxArgSet_ = true;
   }
-  default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
-  default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
+  default_step_ = analyzeArgs.getKeyDouble("step", 0.0) ;
+  default_bins_ = analyzeArgs.getKeyInt("bins", -1);
+  if (default_step_ == 0.0 && default_bins_ < 1) {
+    mprinterr("Error: Must set either bins or step.\n");
+    return Analysis::ERR;
+  }
   calcAMD_ = false;
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
@@ -410,7 +417,7 @@ Analysis::RetType Analysis_Hist::Analyze() {
       }
       // Calculate index for this particular dimension (idx)
       long int idx = (long int)((dval - dim->Min()) / dim->Step());
-      if (debug_>1) mprintf(" [%s:%f (%i)],",dim->Label().c_str(), dval, idx);
+      if (debug_>1) mprintf(" [%s:%f (%i)],", dim->label(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
       index += (idx * (*bOff));
     }

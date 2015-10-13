@@ -310,7 +310,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
   DataSet_double& Plateau = static_cast<DataSet_double&>( *data_plateau_ );
   Plateau.Resize( modinfo_->Nmodes() ); // Sets all elements to 0.0
   CmtArray_.resize( modinfo_->Nmodes(), 0 );
-  Dimension Tdim(0.0, tstep_, nsteps);
+  Dimension Tdim(0.0, tstep_);
   std::vector<double>::const_iterator CF = cf_tmp.begin();
   for (int mode = 0; mode != modinfo_->Nmodes(); mode++)
   {

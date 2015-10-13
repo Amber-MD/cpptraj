@@ -159,8 +159,7 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
               "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
               "", Sets[0]->Dim(0).Label().c_str());
   // Setup set X coord format. 
-  Dimension Xdim;
-  Xdim.SetStep( 1 );
+  Dimension Xdim(0.0, 1.0);
   TextFormat xfmt;
   xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
   // Loop over frames
