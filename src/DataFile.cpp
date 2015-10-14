@@ -16,8 +16,6 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 
-// TODO: Support these args:
-//       - xlabel, xmin, xstep, time (all dimensions).
 // CONSTRUCTOR
 DataFile::DataFile() :
   debug_(0),
@@ -358,30 +356,13 @@ void DataFile::WriteDataOut() {
     }
     // Setup formats with a leading space initially. Maintains backwards compat. 
     ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
-    // Ensure current DataIO is valid for this set.
+    // Ensure current DataIO is valid for this set. May not be needed right now
+    // but useful in case file format can be changed later on.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
                  ds.legend(), filename_.base());
       continue;
     }
-    // FIXME This should all be done in DataSetList
-    // Set default min and step for all dimensions if not already set.
-    for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
-      Dimension const& dim = ds.Dim(nd);
-      mprintf("DEBUG:\t'%s' min=%g step=%g\n", dim.label(), dim.Min(), dim.Step());
-      /*double min, step;
-      if (nd < 3) {
-        min = defaultDim_[nd].Min();
-        step = defaultDim_[nd].Step();
-      } else {
-        min = 1.0;
-        step = 1.0;
-      }
-      if (!dim.MinIsSet()) dim.SetMin( min );
-      if (dim.Step() == 0.0 ) dim.SetStep( step );*/
-    }
-    // Set x label if not already set FIXME also done in DataSetList
-    //if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
     setsToWrite.AddCopyOfSet( SetList_[idx] );
   }
   if (setsToWrite.empty()) {

@@ -53,7 +53,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
         }
         // Should now be positioned 1 line after last data line.
         inputSets[0] = (DataSet*)Yvals;
-        if (datasetlist.AddOrAppendSets(Xvals, inputSets)) return 1;
+        if (datasetlist.AddOrAppendSets("", Xvals, inputSets)) return 1;
         ++setnum;
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
