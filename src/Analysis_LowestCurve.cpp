@@ -66,7 +66,7 @@ Analysis::RetType Analysis_LowestCurve::Analyze() {
     HistBin Xdim;
     double min = (*DS)->Xcrd(0);
     double max = (*DS)->Xcrd((*DS)->Size()-1);
-    if (Xdim.CalcBinsOrStep(min,max,step_,-1,"")) continue;
+    if (Xdim.CalcBinsOrStep(min,max,step_,-1,(*DS)->Dim(Dimension::X).Label())) continue;
     Larray bins_( Xdim.Bins() + 1 );
     mprintf("\tSet '%s' has %i bins (%g < %g, %g)\n", (*DS)->legend(),
             Xdim.Bins(), Xdim.Min(), Xdim.Max(), Xdim.Step());
