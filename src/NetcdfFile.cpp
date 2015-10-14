@@ -96,14 +96,14 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
   std::string attrOut;
   // Get attr length
   if ( checkNCerr(nc_inq_attlen(ncid_, vid, attribute, &attlen)) ) {
-    mprinterr("Error: Getting length for attribute %s\n",attribute); 
+    mprintf("Warning: Getting length for attribute '%s'\n",attribute);
     return attrOut;
   }
   // Allocate space for attr text, plus one for null char
   char *attrText = new char[ (attlen + 1) ];
   // Get attr text
   if ( checkNCerr(nc_get_att_text(ncid_, vid, attribute, attrText)) ) {
-    mprinterr("Error: Getting attribute text for %s\n",attribute);
+    mprintf("Warning: Getting attribute text for '%s'\n",attribute);
     delete[] attrText;
     return attrOut;
   }
@@ -202,12 +202,25 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   spatialDID_ = GetDimInfo(NCSPATIAL, &spatial);
   if (spatialDID_==-1) return 1;
   if (spatial!=3) {
-    mprinterr("Error: ncOpen: Expected 3 spatial dimensions, got %i\n",spatial);
+    mprinterr("Error: Expected 3 spatial dimensions, got %i\n",spatial);
     return 1;
   }
   if ( checkNCerr(nc_inq_varid(ncid_, NCSPATIAL, &spatialVID_)) ) {
-    mprinterr("Error: Getting spatial VID\n");
-    return 1;
+    mprintf("Warning: Could not get spatial VID. File may not be Amber NetCDF compliant.\n");
+    mprintf("Warning: Assuming spatial variables are 'x', 'y', 'z'\n");
+  } else {
+    start_[0] = 0;
+    count_[0] = 3;
+    char xyz[3];
+    if (checkNCerr(nc_get_vara_text(ncid_, spatialVID_, start_, count_, xyz))) {
+      mprinterr("Error: Getting spatial variables.\n");
+      return 1;
+    }
+    if (xyz[0] != 'x' || xyz[1] != 'y' || xyz[2] != 'z') {
+      mprinterr("Error: NetCDF spatial variables are '%c', '%c', '%c', not 'x', 'y', 'z'\n",
+                xyz[0], xyz[1], xyz[2]);
+      return 1;
+    }
   }
   // Get velocity info
   velocityVID_ = -1;
@@ -395,7 +408,7 @@ int NetcdfFile::SetupBox(double* boxIn, NCTYPE typeIn) {
 // NetcdfFile::checkNCerr()
 bool NetcdfFile::checkNCerr(int ncerr) {
   if ( ncerr != NC_NOERR ) {
-    mprinterr("NETCDF Error: %s\n",nc_strerror(ncerr));
+    mprintf("%s\n", nc_strerror(ncerr));
     return true;
   }
   return false;
