@@ -990,14 +990,17 @@ int Topology::DetermineMolecules() {
       molecule->SetFirst( atomNum );
       lastMol = atom->MolNum();
     } else if ( atom->MolNum()  < lastMol) {
-      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom. This can\n"
-                "Error:   happen if 1) bond information is incorrect or missing, or 2) if the\n"
-                "Error:   atom numbering in molecules is not sequential. If topology did not\n"
-                "Error:   originally contain bond info, 1) can potentially be fixed by\n"
-                "Error:   increasing the bondsearch cutoff offset. 2) can be\n"
-                "Error:   fixed by either using the 'fixatomorder' command, or using\n"
-                "Error:   the 'setMolecules' command in parmed.\n",
-                atom - atoms_.begin() + 1);
+      mprinterr("Error: Atom %u was assigned a lower molecule # than previous atom.\n"
+                "Error:   This can happen if bond information is incorrect or missing, or if the\n"
+                "Error:   atom numbering in molecules is not sequential. Try one of the\n"
+                "Error:   following:\n"
+                "Error: - If this is a PDB file, try using the 'noconect' keyword.\n"
+                "Error: - If this topology did not have bond info, try increasing the bond\n"
+                "Error:   search cutoff above 0.2 Ang. ('bondsearch <cutoff>').\n"
+                "Error: - Use the 'fixatomorder' command to reorder the topology and any\n"
+                "Error:   associated coordinates.\n"
+                "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
+                "Error:   topology.\n", atom - atoms_.begin() + 1);
       molecules_.clear();
       // Reset molecule info for each atom
       for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
