@@ -194,10 +194,10 @@ Analysis::RetType Analysis_KDE::Analyze() {
   }
   HistBin Xdim;
   if (Xdim.CalcBinsOrStep(default_min_, default_max_, default_step_,
-                          default_bins_, "")) // FIXME set label
+                          default_bins_, Pdata.Meta().Legend()))
     return Analysis::ERR;
   Xdim.PrintHistBin();
-  output_->SetDim( Dimension::X, Dimension(Xdim.Min(), Xdim.Step(), Xdim.Label()) );
+  output_->SetDim( Dimension::X, Xdim );
 
   // Allocate output set
   DataSet_double& P_hist = static_cast<DataSet_double&>( *output_ );
