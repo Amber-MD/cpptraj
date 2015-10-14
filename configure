@@ -306,7 +306,7 @@ while [[ ! -z $1 ]] ; do
       CC=clang
       CXX=clang++
       FC=gfortran
-      OPTFLAGS="-O3 -Weverything"
+      OPTFLAGS="-O3 -Wall"
       OMPFLAGS=""
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
