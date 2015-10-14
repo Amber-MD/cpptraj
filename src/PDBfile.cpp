@@ -150,17 +150,38 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
-void PDBfile::pdb_OccupanyAndBfactor(float& occ, float& bfac) {
+void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
   // Occupancy (54-59) | charge
   // B-factor (60-65) | radius
+  // NOTE: sscanf is used here since occupancy and B-factor could be different
+  //       widths if this is a PQR file - potentially bad?
   sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
 }
 
-void PDBfile::pdb_Box(double* box) const {
+void PDBfile::pdb_Box(double* box) {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
-  // A=6-15 B=15-24 C=24-33 alpha=33-40 beta=40-47 gamma=47-54
-  sscanf(linebuffer_, "%*6s%9lf%9lf%9lf%7lf%7lf%7lf", box, box+1, box+2,
-         box+3, box+4, box+5);
+  unsigned int lb_size = strlen(linebuffer_);
+  if (lb_size < 54) {
+    mprintf("Warning: Malformed CRYST1 record. Skipping.\n");
+    return;
+  }
+  // A=6-15 B=15-24 C=24-33
+  unsigned int lb = 6;
+  for (unsigned int ib = 0; ib != 3; ib++, lb += 9) {
+    unsigned int end = lb + 9;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    box[ib] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
+  // alpha=33-40 beta=40-47 gamma=47-54
+  for (unsigned int ib = 3; ib != 6; ib++, lb += 7) {
+    unsigned int end = lb + 7;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    box[ib] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
   mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
           box[0], box[1], box[2], box[3], box[4], box[5]);
   // Warn if the box looks strange.
@@ -169,10 +190,29 @@ void PDBfile::pdb_Box(double* box) const {
             " this usually indicates an invalid box.\n");
 }
 
-int PDBfile::pdb_Bonds(int* bnd) const {
-  int Nscan = sscanf(linebuffer_, "%*6s%5i%5i%5i%5i%5i", bnd, bnd+1, bnd+2, bnd+3, bnd+4);
+int PDBfile::pdb_Bonds(int* bnd) {
+  unsigned int lb_size = strlen(linebuffer_);
+  int Nscan = 0;
+  for (unsigned int lb = 6; lb < lb_size; lb += 5) {
+    // Check if final char is blank.
+    if (linebuffer_[lb + 4] == ' ') break;
+    // Safety valve
+    if (Nscan == 5) {
+      mprintf("Warning: CONECT record has more than 4 bonds. Only using first 4 bonds.\n");
+      break;
+    }
+    unsigned int end = lb + 5;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    bnd[Nscan++] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
   if (Nscan < 2)
     mprintf("Warning: Malformed CONECT record: %s", linebuffer_);
+  //mprintf("DEBUG: CONECT: Atom record %i to", bnd[0]);
+  //for (int i = 1; i < Nscan; i++)
+  //  mprintf(" %i", bnd[i]);
+  //mprintf("\n");
   return Nscan;
 }
 
