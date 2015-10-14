@@ -64,7 +64,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
-      infile.pdb_OccupanyAndBfactor(occupancy, bfactor);
+      infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
       if (readAsPQR_) {
         pdbAtom.SetCharge( occupancy );
         pdbAtom.SetGBradius( bfactor );

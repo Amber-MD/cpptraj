@@ -150,17 +150,38 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
-void PDBfile::pdb_OccupanyAndBfactor(float& occ, float& bfac) {
+void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
   // Occupancy (54-59) | charge
   // B-factor (60-65) | radius
+  // NOTE: sscanf is used here since occupancy and B-factor could be different
+  //       widths if this is a PQR file - potentially bad?
   sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
 }
 
-void PDBfile::pdb_Box(double* box) const {
+void PDBfile::pdb_Box(double* box) {
   // CRYST1 keyword. RECORD A B C ALPHA BETA GAMMA SGROUP Z
-  // A=6-15 B=15-24 C=24-33 alpha=33-40 beta=40-47 gamma=47-54
-  sscanf(linebuffer_, "%*6s%9lf%9lf%9lf%7lf%7lf%7lf", box, box+1, box+2,
-         box+3, box+4, box+5);
+  unsigned int lb_size = strlen(linebuffer_);
+  if (lb_size < 54) {
+    mprintf("Warning: Malformed CRYST1 record. Skipping.\n");
+    return;
+  }
+  // A=6-15 B=15-24 C=24-33
+  unsigned int lb = 6;
+  for (unsigned int ib = 0; ib != 3; ib++, lb += 9) {
+    unsigned int end = lb + 9;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    box[ib] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
+  // alpha=33-40 beta=40-47 gamma=47-54
+  for (unsigned int ib = 3; ib != 6; ib++, lb += 7) {
+    unsigned int end = lb + 7;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    box[ib] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
   mprintf("\tRead CRYST1 info from PDB: a=%g b=%g c=%g alpha=%g beta=%g gamma=%g\n",
           box[0], box[1], box[2], box[3], box[4], box[5]);
   // Warn if the box looks strange.
