@@ -131,16 +131,16 @@ TestMathlib() {
   if [[ ! -z $ARPACK ]] ; then # Assume BLAS and LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
-extern "C" { 
+extern "C" {
   void dsaupd_(int&, char&, int&, char*, int&, double&, double*,
                int&, double*, int&, int*, int*, double*, double*,
                int&, int&);
 }
 int main() {
-  int ival = 0; 
+  int ival = 0;
   double dval = 0.0;
-  char cval = 'I'; 
-  dsaupd_(ival, cval, ival, &cval, ival, dval, &dval, 
+  char cval = 'I';
+  dsaupd_(ival, cval, ival, &cval, ival, dval, &dval,
           ival, &dval, ival, &ival, &ival, &dval, &dval,
           ival, ival);
   printf("Testing\n"); return 0;
@@ -166,7 +166,7 @@ EOF
   fi
 }
 
-# Test C/C++/Fortran compilers 
+# Test C/C++/Fortran compilers
 TestCompile() {
   # C
   echo "Testing C compiler:"
@@ -174,7 +174,7 @@ TestCompile() {
 #include <stdio.h>
 int main() { printf("Testing\n"); return 0; }
 EOF
-  $CC $CFLAGS -o testp testp.c > /dev/null 2> compile.err 
+  $CC $CFLAGS -o testp testp.c > /dev/null 2> compile.err
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
@@ -312,7 +312,7 @@ while [[ ! -z $1 ]] ; do
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
       PICFLAG="-fPIC"
-      ;; 
+      ;;
     "intel" )
       echo "Using intel compilers"
       CC=icc
@@ -353,8 +353,8 @@ while [[ ! -z $1 ]] ; do
     "-cray" )
       echo "Using cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
-      ;; 
-    "-debug" ) 
+      ;;
+    "-debug" )
       echo "Turning on compiler debug info"
       DBGFLAGS="-g"
       ;;
@@ -363,17 +363,17 @@ while [[ ! -z $1 ]] ; do
       DBGFLAGS="-g"
       OPT=0
       ;;
-    "-debugon"      ) 
+    "-debugon"      )
       echo "Turning on cpptraj internal debug info"
-      DIRECTIVES="$DIRECTIVES -DDEBUG" 
+      DIRECTIVES="$DIRECTIVES -DDEBUG"
       ;;
     "-single-ensemble")
       echo "Enabling support for single ensemble trajectories."
       DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE"
       ;;
-    "-noopt"        ) 
+    "-noopt"        )
       echo "Turning off optimization"
-      OPT=0 
+      OPT=0
       ;;
     "-mpi"          )
       USEMPI=1
@@ -407,7 +407,7 @@ while [[ ! -z $1 ]] ; do
         exit 1
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
-      USE_AMBER_LIB=1 
+      USE_AMBER_LIB=1
       ;;
     "-sanderlib"    )
       if [[ -z $AMBERHOME ]] ; then
@@ -572,7 +572,7 @@ if [[ ! -z $PNETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHAS_PNETCDF"
 fi
 
-# Use libraries in AMBERHOME for stuff thats undefined 
+# Use libraries in AMBERHOME for stuff thats undefined
 if [[ $USE_AMBER_LIB -eq 1 ]] ; then
   INCLUDE="$INCLUDE -I$AMBERHOME/include"
   if [[ -z $BLAS_HOME && ! -z $BLAS ]] ; then
@@ -660,6 +660,14 @@ if [[ $USEMKL -eq 1 ]] ; then
   fi
   BLAS=""
   LAPACK=""
+fi
+
+if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
+    # Linking against fortran libraries (e.g. -lgfortran) is not required on
+    # Mac OS X using FFTW3, since the the Mac Accelerate blas/lapack/arpack
+    # doesn't require any extra fortran libs, and fftw3 does not require
+    # fortran.
+    FLIBS=""
 fi
 
 # Set up linking flags
