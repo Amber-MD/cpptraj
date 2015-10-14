@@ -82,7 +82,14 @@ class DataFile {
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
     DataIO* dataio_;           ///< DataIO object for this DataFormatType.
     FileName filename_;        ///< DataFile file name.
+    struct DimStruct {
+      std::string label_;
+      double min_;
+      double step_;
+    };
     /// Hold defaults for X, Y, and Z DataSet dimensions.
-    std::vector<Dimension> defaultDim_;
+    std::vector<DimStruct> defaultDim_;
+    /// True if min for X/Y/Z dim has been set.
+    std::vector<bool> minIsSet_;
 };
 #endif

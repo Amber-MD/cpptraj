@@ -639,7 +639,7 @@ void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFr
     }
   }
 */
-  clustersVtime_->SetDim(Dimension::X, Dimension(windowSize_, windowSize_, dataIdx));
+  clustersVtime_->SetDim(Dimension::X, Dimension(windowSize_, windowSize_, "Frame"));
 } 
 
 // ---------- Cluster Coordinate Output Routines -------------------------------

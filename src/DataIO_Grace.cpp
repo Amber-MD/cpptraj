@@ -53,7 +53,7 @@ int DataIO_Grace::ReadData(FileName const& fname,
         }
         // Should now be positioned 1 line after last data line.
         inputSets[0] = (DataSet*)Yvals;
-        if (datasetlist.AddOrAppendSets(Xvals, inputSets)) return 1;
+        if (datasetlist.AddOrAppendSets("", Xvals, inputSets)) return 1;
         ++setnum;
       } else if (dataline[0][0] == 's' || dataline[0][0] == 'S') {
         // Set command
@@ -159,8 +159,7 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
               "@  legend 0.2, 0.995\n@  legend char size 0.60\n",
               "", Sets[0]->Dim(0).Label().c_str());
   // Setup set X coord format. 
-  Dimension Xdim;
-  Xdim.SetStep( 1 );
+  Dimension Xdim(0.0, 1.0);
   TextFormat xfmt;
   xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
   // Loop over frames

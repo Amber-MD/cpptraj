@@ -379,12 +379,12 @@ void Action_Rmsd::Print() {
     DataSet_Mesh* PerResAvg = (DataSet_Mesh*)masterDSL_->AddSet(DataSet::XYMESH, 
                                                                 MetaData(rmsd_->Meta().Name(),
                                                                          "Avg"));
-    PerResAvg->Dim(Dimension::X).SetLabel("Residue");
+    PerResAvg->ModifyDim(Dimension::X).SetLabel("Residue");
     // another for stdev
     DataSet_Mesh* PerResStdev = (DataSet_Mesh*)masterDSL_->AddSet(DataSet::XYMESH, 
                                                                   MetaData(rmsd_->Meta().Name(),
                                                                            "Stdev"));
-    PerResStdev->Dim(Dimension::X).SetLabel("Residue");
+    PerResStdev->ModifyDim(Dimension::X).SetLabel("Residue");
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddDataSet(PerResAvg);
     perresavg_->AddDataSet(PerResStdev);

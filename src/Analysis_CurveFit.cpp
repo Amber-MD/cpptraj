@@ -411,7 +411,7 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
       Calc_.Evaluate( Params_, xval, yval );
       Yout.AddXY( xval, yval );
     }
-    Yout.SetDim(Dimension::X, Dimension(outXmin_, xstep, outXbins_));
+    Yout.SetDim(Dimension::X, Dimension(outXmin_, xstep, dset_->Dim(Dimension::X).Label()));
   } else {
     Yout.Allocate( DataSet::SizeArray(1, dset_->Size()) );
     CurveFit::Darray::const_iterator ny = fit.FinalY().begin();

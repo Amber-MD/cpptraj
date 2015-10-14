@@ -1,5 +1,6 @@
 #include "Analysis_LowestCurve.h"
 #include "CpptrajStdio.h"
+#include "HistBin.h"
 
 Analysis_LowestCurve::Analysis_LowestCurve() : points_(0), step_(0.0) {}
 
@@ -62,11 +63,10 @@ Analysis::RetType Analysis_LowestCurve::Analyze() {
                              ++DS, ++OUT)
   {
     // Determine an appropriate dimension based on the step size.
-    Dimension Xdim;
-    Xdim.SetMin( (*DS)->Xcrd(0) );
-    Xdim.SetMax( (*DS)->Xcrd((*DS)->Size()-1) );
-    Xdim.SetStep( step_ );
-    if (Xdim.CalcBinsOrStep()) continue;
+    HistBin Xdim;
+    double min = (*DS)->Xcrd(0);
+    double max = (*DS)->Xcrd((*DS)->Size()-1);
+    if (Xdim.CalcBinsOrStep(min,max,step_,-1,(*DS)->Dim(Dimension::X).Label())) continue;
     Larray bins_( Xdim.Bins() + 1 );
     mprintf("\tSet '%s' has %i bins (%g < %g, %g)\n", (*DS)->legend(),
             Xdim.Bins(), Xdim.Min(), Xdim.Max(), Xdim.Step());

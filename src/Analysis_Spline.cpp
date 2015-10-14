@@ -57,8 +57,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   }
 
   // Set up output datasets
-  Dimension Xdim( meshmin_, (meshmax_ - meshmin_) / (double)meshsize_,
-                  meshsize_ );
+  Dimension Xdim( meshmin_, (meshmax_ - meshmin_) / (double)meshsize_ );
   for (Array1D::const_iterator dsIn = input_dsets_.begin();
                                dsIn != input_dsets_.end(); ++dsIn)
   {
@@ -70,9 +69,6 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
     if (outfile_ != 0) outfile_->AddDataSet( ds );
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
-  /*outfile_->Dim(Dimension::X).SetMin( meshmin_ );
-  double meshstep = (meshmax_ - meshmin_) / (double)meshsize_;
-  outfile_->Dim(Dimension::X).SetStep( meshstep );*/
 
   mprintf("    SPLINE: Applying cubic splining to %u data sets\n", input_dsets_.size());
   if (meshfactor_ < 0)
@@ -106,25 +102,21 @@ Analysis::RetType Analysis_Spline::Analyze() {
     if (useDefaultMin_)
       mmin = meshmin_;
     else
-      mmin = ds.Dim(0).Min();
+      mmin = ds.Min();
     if (useDefaultMax_)
       mmax = meshmax_;
     else
-      mmax = ds.Dim(0).Max();
+      mmax = ds.Max();
     if (meshfactor_ > 0)
       msize = (int)((double)ds.Size() * meshfactor_);
     else
       msize = meshsize_;
     // Set up output dimension
     mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.legend(), mmin, mmax, msize);
-    output_dsets_[idx]->SetDim( Dimension::X,
-        Dimension(mmin, (mmax - mmin)/(double)msize, msize, ds.Dim(0).Label()) );
+    output_dsets_[idx]->SetDim( Dimension::X, 
+                                Dimension(mmin, (mmax - mmin)/(double)msize, ds.Dim(0).Label()) );
     output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
     mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
-    if (!ds.Dim(0).MinIsSet())
-      mprinterr("Internal Error: %s min is not set!\n", ds.legend());
-    if (ds.Dim(0).Step() < 0.0)
-      mprinterr("Internal Error: %s step is not set!\n", ds.legend());
     // Calculate mesh Y values.
     output_dsets_[idx]->SetSplinedMesh( ds );
     // DEBUG

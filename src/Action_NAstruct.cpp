@@ -798,7 +798,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           BS.b4idx_ = BP2.base2idx_;
           entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
 #         ifdef NASTRUCTDEBUG
-          mprintf("  New base pair step: %s\n", sname.c_str());
+          mprintf("  New base pair step: %s\n", md.Legend().c_str());
 #         endif
         }
         StepType& currentStep = entry->second;

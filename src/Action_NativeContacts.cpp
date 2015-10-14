@@ -180,7 +180,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
     int matrix_cols = matrix_max - matrix_min_ + 1;
     if (nativeMap_->AllocateHalf( matrix_cols )) return 1;
     if (nonnatMap_->AllocateHalf( matrix_cols )) return 1;
-    Dimension matrix_dim( matrix_min_+1, 1, matrix_cols, label );
+    Dimension matrix_dim( matrix_min_+1, 1, label );
     nativeMap_->SetDim(Dimension::X, matrix_dim);
     nativeMap_->SetDim(Dimension::Y, matrix_dim);
     nonnatMap_->SetDim(Dimension::X, matrix_dim);

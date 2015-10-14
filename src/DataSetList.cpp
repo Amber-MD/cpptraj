@@ -342,8 +342,11 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     return 0;
   }
   // If 1 dim set and time series status not set, set to true.
-  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) 
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
+    // Also set dimension default
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
+  }
   // Set up dataset 
   if ( DS->SetMeta( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
@@ -372,12 +375,19 @@ int DataSetList::AddSet( DataSet* dsIn ) {
   * and optional X values, add the sets to this list if they do not exist
   * or append any existing sets.
   */
-int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
+int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xvals,
+                                 DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values.\n",
-            Sets.size(), Xvals.size());
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+            Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
+  // If no X label assume 'Frame' for backwards compat.
+  std::string Xlabel;
+  if (XlabelIn.empty())
+    Xlabel.assign("Frame");
+  else
+    Xlabel = XlabelIn;
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
   bool isMonotonic = true;
@@ -389,18 +399,13 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         isMonotonic = false;
         break;
       }
-    if (isMonotonic) {
-      Xdim.SetMin( Xvals.front() );
-      Xdim.SetMax( Xvals.back() );
-      Xdim.SetStep( xstep );
-      Xdim.SetBins( Xvals.size() );
-    }
+    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
+    Xdim = Dimension( Xvals.front(), xstep, Xlabel );
   } else
     // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
+    Xdim = Dimension(1.0, 1.0, Xlabel);
   if (debug_ > 0) {
-    mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n",
-            Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
+    mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
   }
   for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
@@ -428,6 +433,7 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         DataSet_Mesh& xy = static_cast<DataSet_Mesh&>( *xyptr );
         for (unsigned int i = 0; i != set.Size(); i++)
           xy.AddXY( Xvals[i], set.Dval(i) );
+        xy.SetDim(Dimension::X, Xdim);
         if (debug_ > 0) mprintf(", New set, converted to XY-MESH\n");
         // Free memory since set has now been converted.
         delete *ds;

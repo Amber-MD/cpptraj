@@ -64,9 +64,6 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
       mprintf("Warning: Set '%s' size is less than 2. Skipping.\n", data.legend());
     else {
       // If input data set X dim does not have default min/step, set them.
-      // FIXME: This should not be necessary!
-      if (!(*DS)->Dim(0).MinIsSet()) (*DS)->Dim(0).SetMin( 1.0 );
-      if ((*DS)->Dim(0).Step() < 0 ) (*DS)->Dim(0).SetStep( 1.0 );
       if (cumulative_) {
         // Cumulative running average.
         mprintf("\t\tCalculating Cumulative Running Average for set %s\n", data.legend());
@@ -94,16 +91,8 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
           out.AddXY( sumx / dwindow, sumy / dwindow );
         }
       }
-      // Fix output data set X dimension.
-      // FIXME: This shouldnt be necessary, but is for DataIO_Std
-      double xmin = out.X(0);
-      double xmax = out.X(out.Size()-1);
-      // NOTE: The step calc is purposefully fudged (should be min-max+1)
-      //       to avoid getting perfect 1, which messes up standard IO
-      //       output. Wont matter since mesh X values are correct.
-      double xstep = (xmax - xmin) / (double)out.Size();
-      //mprintf("DEBUG: xmin=%g xmax=%g xstep=%g size=%zu\n", xmin, xmax, xstep, out.Size());
-      out.SetDim(Dimension::X, Dimension(xmin, xstep, out.Size(), "X"));
+      // Set output data set X dimension label.
+      out.ModifyDim(Dimension::X).SetLabel("X");
     }
   }
 
