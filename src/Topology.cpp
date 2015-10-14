@@ -876,6 +876,15 @@ void Topology::AssignBondParameters() {
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2) {
+  // Check if atoms are out of range.
+  if (atom1 < 0 || atom1 >= (int)atoms_.size()) {
+    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom1+1);
+    return;
+  }
+  if (atom2 < 0 || atom2 >= (int)atoms_.size()) {
+    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom2+1);
+    return;
+  }
   // Check for duplicate bond
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)

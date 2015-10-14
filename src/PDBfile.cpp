@@ -169,10 +169,29 @@ void PDBfile::pdb_Box(double* box) const {
             " this usually indicates an invalid box.\n");
 }
 
-int PDBfile::pdb_Bonds(int* bnd) const {
-  int Nscan = sscanf(linebuffer_, "%*6s%5i%5i%5i%5i%5i", bnd, bnd+1, bnd+2, bnd+3, bnd+4);
+int PDBfile::pdb_Bonds(int* bnd) {
+  unsigned int lb_size = strlen(linebuffer_);
+  int Nscan = 0;
+  for (unsigned int lb = 6; lb < lb_size; lb += 5) {
+    // Check if final char is blank.
+    if (linebuffer_[lb + 4] == ' ') break;
+    // Safety valve
+    if (Nscan == 5) {
+      mprintf("Warning: CONECT record has more than 4 bonds. Only using first 4 bonds.\n");
+      break;
+    }
+    unsigned int end = lb + 5;
+    char savechar = linebuffer_[end];
+    linebuffer_[end] = '\0';
+    bnd[Nscan++] = atof( linebuffer_ + lb );
+    linebuffer_[end] = savechar;
+  }
   if (Nscan < 2)
     mprintf("Warning: Malformed CONECT record: %s", linebuffer_);
+  //mprintf("DEBUG: CONECT: Atom record %i to", bnd[0]);
+  //for (int i = 1; i < Nscan; i++)
+  //  mprintf(" %i", bnd[i]);
+  //mprintf("\n");
   return Nscan;
 }
 

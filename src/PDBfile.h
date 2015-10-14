@@ -27,10 +27,10 @@ class PDBfile : public CpptrajFile {
     /// Set given XYZ array with A/B/C/alpha/beta/gamma from CRYST1 record.
     void pdb_Box(double*) const;
     /// Set given array with atom and #s of bonded atoms from CONECT record.
-    int pdb_Bonds(int*) const;
+    int pdb_Bonds(int*);
     /// \return current record type.
     PDB_RECTYPE RecType()         const { return recType_; }
-
+    // -------------------------------------------
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
                            NameType const&, char, int, char);
