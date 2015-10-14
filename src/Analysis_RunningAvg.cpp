@@ -91,16 +91,8 @@ Analysis::RetType Analysis_RunningAvg::Analyze() {
           out.AddXY( sumx / dwindow, sumy / dwindow );
         }
       }
-      // Fix output data set X dimension.
-      // FIXME: This shouldnt be necessary, but is for DataIO_Std
-      double xmin = out.X(0);
-      double xmax = out.X(out.Size()-1);
-      // NOTE: The step calc is purposefully fudged (should be min-max+1)
-      //       to avoid getting perfect 1, which messes up standard IO
-      //       output. Wont matter since mesh X values are correct.
-      double xstep = (xmax - xmin) / (double)out.Size();
-      //mprintf("DEBUG: xmin=%g xmax=%g xstep=%g size=%zu\n", xmin, xmax, xstep, out.Size());
-      out.SetDim(Dimension::X, Dimension(xmin, xstep, "X"));
+      // Set output data set X dimension label.
+      out.ModifyDim(Dimension::X).SetLabel("X");
     }
   }
 

@@ -69,9 +69,6 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
     if (outfile_ != 0) outfile_->AddDataSet( ds );
     output_dsets_.push_back( (DataSet_Mesh*)ds );
   }
-  /*outfile_->Dim(Dimension::X).SetMin( meshmin_ );
-  double meshstep = (meshmax_ - meshmin_) / (double)meshsize_;
-  outfile_->Dim(Dimension::X).SetStep( meshstep );*/
 
   mprintf("    SPLINE: Applying cubic splining to %u data sets\n", input_dsets_.size());
   if (meshfactor_ < 0)
