@@ -263,10 +263,6 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   }
   default_step_ = analyzeArgs.getKeyDouble("step", 0.0) ;
   default_bins_ = analyzeArgs.getKeyInt("bins", -1);
-  if (default_step_ == 0.0 && default_bins_ < 1) {
-    mprinterr("Error: Must set either bins or step.\n");
-    return Analysis::ERR;
-  }
   calcAMD_ = false;
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
