@@ -23,6 +23,10 @@ class Action_Molsurf: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    int debug_;
+    static const char* MODE_[];
+    enum Radii_Mode { GB = 0, PARSE, VDW };
+    Radii_Mode radiiMode_; ///< Radii to use
     DataSet* sasa_;
     AtomMask Mask1_;
     ATOM* atom_;
