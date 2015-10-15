@@ -42,7 +42,8 @@ UsageFull() {
   echo "    -nobzlib   : Do not use libbz2 (bzip2)"
   echo "    -nozlib    : Do not use zlib (gzip/zip)"
   echo "    -nonetcdf  : Do not use NetCDF"
-  echo "    -nomathlib : Do not include routines which require ARPACK, LAPACK, or BLAS"
+  echo "    -nomathlib : Do not include routines which require LAPACK or BLAS"
+  echo "    -noarpack  : Do not include routines which require ARPACK"
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
@@ -128,6 +129,28 @@ EOF
 }
 
 TestMathlib() {
+  if [[ ! -z $BLAS ]] ; then # ASSUME LAPACK also defined
+    cat > testp.cpp <<EOF
+#include <cstdio>
+extern "C" {
+  void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
+  void dgemm_(char*, char*, int&, int&, int&, double&,
+              double*, int&, double*, int&, double&, double*, int&);
+}
+int main() {
+  int n_cols = 3, lwork = 102, info;
+  double work[102], mat[9], vec[3], alpha = 1.0;
+  dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);
+  dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,
+         mat, n_cols, mat, n_cols, alpha, mat, n_cols);
+  printf("Testing\n"); return 0;
+}
+EOF
+    TestCxxProgram "Checking LAPACK/BLAS" "$LAPACK $BLAS $MKLLIB $FLIBS"
+  fi
+}
+
+TestArpack() {
   if [[ ! -z $ARPACK ]] ; then # Assume BLAS and LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
@@ -146,7 +169,7 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-    TestCxxProgram "Checking ARPACK/LAPACK/BLAS" "$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
+    TestCxxProgram "Checking ARPACK" "$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
   fi
 }
 
@@ -449,10 +472,15 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-nomathlib")
       echo "Not using BLAS/LAPACK/ARPACK routines."
-      DIRECTIVES="$DIRECTIVES -DNO_MATHLIB"
-      ARPACK=""
+      DIRECTIVES="$DIRECTIVES -DNO_MATHLIB -DNO_ARPACK"
       LAPACK=""
       BLAS=""
+      ARPACK=""
+      ;;
+    "-noarpack")
+      echo "Not using ARPACK routines."
+      DIRECTIVES="$DIRECTIVES -DNO_ARPACK"
+      ARPACK=""
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -784,6 +812,7 @@ TestBzlib
 TestZlib
 TestNetcdf
 TestMathlib
+TestArpack
 TestFFTW3
 
 # Write config.h
