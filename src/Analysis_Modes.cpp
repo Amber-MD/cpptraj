@@ -244,7 +244,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
-    mprintf("\n\tResults are written to %s", outfile_->Filename().full());
+    mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
     if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");
