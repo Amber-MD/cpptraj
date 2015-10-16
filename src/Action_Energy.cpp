@@ -94,6 +94,14 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   }
   Mask1_.MaskInfo();
   Imask_ = AtomMask(Mask1_.ConvertToIntMask(), Mask1_.Natom());
+  // Check for LJ terms
+  for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
+    if ((*calc == N14 || *calc == NBD) && !setup.Top().Nonbond().HasNonbond())
+    {
+      mprinterr("Error: Nonbonded energy calc requested but topology '%s'\n"
+                "Error:   does not have non-bonded parameters.\n", setup.Top().c_str());
+      return Action::ERR;
+    }
   currentParm_ = setup.TopAddress();
   return Action::OK;
 }

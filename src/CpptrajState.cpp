@@ -408,7 +408,7 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
-        if (ActionEnsemble[member]->SetupActions( EnsembleParm[member] )) {
+        if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   worldrank, EnsembleParm[member].Top().c_str());
@@ -602,7 +602,7 @@ int CpptrajState::RunNormal() {
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm
-      if (actionList_.SetupActions( currentParm )) {
+      if (actionList_.SetupActions( currentParm, exitOnError_ )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 currentParm.Top().c_str());
         continue;

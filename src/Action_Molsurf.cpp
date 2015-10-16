@@ -166,6 +166,10 @@ Action::RetType Action_Molsurf::Setup(ActionSetup& setup) {
     mprintf("Warning: Mask contains 0 atoms.\n");
     return Action::ERR;
   }
+  if (radiiMode_ == VDW && !setup.Top().Nonbond().HasNonbond()) {
+    mprinterr("Error: Topology '%s' does not have vdW radii info.\n", setup.Top().c_str());
+    return Action::ERR;
+  }
 
   mprintf("\tCalculating surface area for %i atoms.\n",Mask1_.Nselected());
   // NOTE: If Mask is * dont include any solvent?
