@@ -18,7 +18,7 @@ class ActionList {
     /// Add given action to the action list and initialize.
     int AddAction(DispatchObject::DispatchAllocatorType, ArgList&, ActionInit&);
     /// Set up Actions for the given Topology.
-    int SetupActions(ActionSetup&);
+    int SetupActions(ActionSetup&, bool);
     /// Perform Actions on the given Frame.
     bool DoActions(int, ActionFrame&);
     /// Call print for each Action.

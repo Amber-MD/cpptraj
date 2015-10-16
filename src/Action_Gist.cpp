@@ -168,6 +168,11 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
   NFRAME_ = 0;
   max_nwat_ = 0;
+  // Check for LJ info
+  if (!setup.Top().Nonbond().HasNonbond()) {
+    mprinterr("Error: Topology '%s' does not have LJ information.\n", setup.Top().c_str());
+    return Action::ERR;
+  }
 
   MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];
   Vvox_ = gridspacn_*gridspacn_*gridspacn_;
@@ -731,6 +736,7 @@ void Action_Gist::Order(Frame const& frameIn) {
 }
 
 void Action_Gist::Print() {
+  if (dTSorient_norm_.empty()) return; // In case Action was not Setup
   gist_print_.Start();
   // Implement NN to compute orientational entropy for each voxel
   double NNr, rx, ry, rz, rR, dbl;
