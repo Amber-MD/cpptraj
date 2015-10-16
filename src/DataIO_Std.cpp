@@ -34,7 +34,7 @@ void DataIO_Std::ReadHelp() {
           "\tread2d:      Read data as 2D square matrix.\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
-          "\tindex <col>: (1D) Use column # (starting from 1) as index column.\n");
+          "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
 
 }
 
