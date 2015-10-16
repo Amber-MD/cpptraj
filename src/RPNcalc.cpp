@@ -79,9 +79,14 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
             hasExponent = -1;
             ++ptr;
           }
+          else if (*ptr == '+')
+          {
+            hasExponent = 1;
+            ++ptr;
+          }
           else
             hasExponent = 1;
-        } 
+        }
       }
       if (debug_ > 0) mprintf("Number detected: %s\n", number.c_str());
       std::istringstream iss(number);
