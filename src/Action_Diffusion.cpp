@@ -4,12 +4,14 @@
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
+  avg_x_(0), avg_y_(0), avg_z_(0), avg_r_(0), avg_a_(0),
   printIndividual_(false),
-  time_(1),
+  time_(1.0),
   hasBox_(false),
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
-  boxcenter_(0.0)
+  boxcenter_(0.0),
+  masterDSL_(0)
 {}
 
 void Action_Diffusion::Help() {
@@ -39,13 +41,38 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     outputNameRoot.assign("diffusion");
   
   // Open output files
-  outputx_ = init.DFL().AddCpptrajFile(outputNameRoot+"_x.xmgr", "X MSD");
-  outputy_ = init.DFL().AddCpptrajFile(outputNameRoot+"_y.xmgr", "Y MSD");
-  outputz_ = init.DFL().AddCpptrajFile(outputNameRoot+"_z.xmgr", "Z MSD");
-  outputr_ = init.DFL().AddCpptrajFile(outputNameRoot+"_r.xmgr", "Overall MSD");
-  outputa_ = init.DFL().AddCpptrajFile(outputNameRoot+"_a.xmgr", "Total Distance");
-  if (outputx_ == 0 || outputy_ == 0 || outputz_ == 0 ||
-      outputr_ == 0 || outputa_ == 0) return Action::ERR;
+  outputx_ = init.DFL().AddDataFile(outputNameRoot+"_x.xmgr");//, "X MSD");
+  outputy_ = init.DFL().AddDataFile(outputNameRoot+"_y.xmgr");//, "Y MSD");
+  outputz_ = init.DFL().AddDataFile(outputNameRoot+"_z.xmgr");//, "Z MSD");
+  outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr");//, "Overall MSD");
+  outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr");//, "Total Distance");
+  //if (outputx_ == 0 || outputy_ == 0 || outputz_ == 0 ||
+  //    outputr_ == 0 || outputa_ == 0) return Action::ERR;
+  // AddData Sets
+  dsname_ = actionArgs.GetStringNext();
+  if (dsname_.empty())
+    dsname_ = init.DSL().GenerateDefaultName("Diff");
+  avg_x_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "X"));
+  avg_y_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Y"));
+  avg_z_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Z"));
+  avg_r_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "R"));
+  avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
+  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0)
+    return Action::ERR;
+  if (outputx_ != 0) outputx_->AddDataSet( avg_x_ );
+  if (outputy_ != 0) outputy_->AddDataSet( avg_y_ );
+  if (outputz_ != 0) outputz_->AddDataSet( avg_z_ );
+  if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
+  if (outputa_ != 0) outputa_->AddDataSet( avg_a_ );
+  // Set X dim
+  Xdim_ = Dimension(0.0, time_);
+  avg_x_->SetDim(Dimension::X, Xdim_);
+  avg_y_->SetDim(Dimension::X, Xdim_);
+  avg_z_->SetDim(Dimension::X, Xdim_);
+  avg_r_->SetDim(Dimension::X, Xdim_);
+  avg_a_->SetDim(Dimension::X, Xdim_);
+  // Save master data set list
+  masterDSL_ = init.DslPtr();
 
   mprintf("    DIFFUSION:\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
@@ -90,22 +117,11 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   } else
     hasBox_ = false;
 
-  // Allocate the distance arrays
-  distancex_.resize( mask_.Nselected() );
-  distancey_.resize( mask_.Nselected() );
-  distancez_.resize( mask_.Nselected() );
-  distance_.resize(  mask_.Nselected() );
+  // Allocate the delta array
+  delta_.assign( mask_.Nselected() * 3, 0.0 );
 
-  // Allocate the delta arrays
-  deltax_.assign( mask_.Nselected(), 0 );
-  deltay_.assign( mask_.Nselected(), 0 );
-  deltaz_.assign( mask_.Nselected(), 0 );
-
-  // Reserve space for the initial and previous frame arrays
-  //initial_.reserve( mask_.Nselected() );
-  previousx_.reserve( mask_.Nselected() );
-  previousy_.reserve( mask_.Nselected() );
-  previousz_.reserve( mask_.Nselected() );
+  // Reserve space for the previous coordinates array
+  previous_.reserve( mask_.Nselected() * 3 );
 
   // If initial frame already set and current # atoms > # atoms in initial
   // frame this will probably cause an error.
@@ -113,6 +129,38 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
     mprintf("Warning: # atoms in current parm (%s, %i) > # atoms in initial frame (%i)\n",
              setup.Top().c_str(), setup.Top().Natom(), initial_.Natom());
     mprintf("Warning: This may lead to segmentation faults.\n");
+  }
+
+  // Set up sets for individual atoms if necessary
+  if (printIndividual_) {
+    for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); at++)
+    {
+      if (*at >= (int)atom_x_.size()) {
+        int newSize = *at + 1;
+        atom_x_.resize( newSize, 0 );
+        atom_y_.resize( newSize, 0 );
+        atom_z_.resize( newSize, 0 );
+        atom_r_.resize( newSize, 0 );
+        atom_a_.resize( newSize, 0 );
+      }
+      if (atom_x_[*at] == 0) { // TODO: FLOAT?
+        atom_x_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aX", *at+1));
+        atom_y_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aY", *at+1));
+        atom_z_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aZ", *at+1));
+        atom_r_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aR", *at+1));
+        atom_a_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aA", *at+1));
+        if (outputx_ != 0) outputx_->AddDataSet(atom_x_[*at]);
+        if (outputy_ != 0) outputy_->AddDataSet(atom_y_[*at]);
+        if (outputz_ != 0) outputz_->AddDataSet(atom_z_[*at]);
+        if (outputr_ != 0) outputr_->AddDataSet(atom_r_[*at]);
+        if (outputa_ != 0) outputa_->AddDataSet(atom_a_[*at]);
+        atom_x_[*at]->SetDim(Dimension::X, Xdim_);
+        atom_y_[*at]->SetDim(Dimension::X, Xdim_);
+        atom_z_[*at]->SetDim(Dimension::X, Xdim_);
+        atom_r_[*at]->SetDim(Dimension::X, Xdim_);
+        atom_a_[*at]->SetDim(Dimension::X, Xdim_);
+      }
+    }
   }
 
   return Action::OK;
@@ -125,59 +173,46 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
       const double* XYZ = frm.Frm().XYZ(*atom);
-      //initial_.push_back( XYZ[0] );
-      previousx_.push_back( XYZ[0] );
-      //initial_.push_back( XYZ[1] );
-      previousy_.push_back( XYZ[1] );
-      //initial_.push_back( XYZ[2] );
-      previousz_.push_back( XYZ[2] );
+      previous_.push_back( XYZ[0] );
+      previous_.push_back( XYZ[1] );
+      previous_.push_back( XYZ[2] );
     }
   } else {
     if (hasBox_) 
       boxcenter_ = frm.Frm().BoxCrd().Center();
     Vec3 boxL = frm.Frm().BoxCrd().Lengths();
-    // Set iterators
-    std::vector<double>::iterator px = previousx_.begin();
-    std::vector<double>::iterator py = previousy_.begin();
-    std::vector<double>::iterator pz = previousz_.begin();
-    std::vector<double>::iterator dx = deltax_.begin();
-    std::vector<double>::iterator dy = deltay_.begin();
-    std::vector<double>::iterator dz = deltaz_.begin();
-    std::vector<double>::iterator distx = distancex_.begin();
-    std::vector<double>::iterator disty = distancey_.begin();
-    std::vector<double>::iterator distz = distancez_.begin();
-    std::vector<double>::iterator dist  = distance_.begin();
     // For averaging over selected atoms
-    double average = 0;
-    double avgx = 0;
-    double avgy = 0;
-    double avgz = 0;
-    for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+    double average2 = 0.0;
+    double avgx = 0.0;
+    double avgy = 0.0;
+    double avgz = 0.0;
+    unsigned int idx = 0;
+    for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
     { // Get current and initial coords for this atom.
-      const double* XYZ = frm.Frm().XYZ(*atom);
-      const double* iXYZ = initial_.XYZ(*atom);
+      const double* XYZ = frm.Frm().XYZ(*at);
+      const double* iXYZ = initial_.XYZ(*at);
       // Calculate distance to previous frames coordinates.
-      double delx = XYZ[0] - *px;
-      double dely = XYZ[1] - *py;
-      double delz = XYZ[2] - *pz;
+      double delx = XYZ[0] - previous_[idx  ];
+      double dely = XYZ[1] - previous_[idx+1];
+      double delz = XYZ[2] - previous_[idx+2];
       // If the particle moved more than half the box, assume
       // it was imaged and adjust the distance of the total
       // movement with respect to the original frame.
       if (hasBox_) {
-        if      (delx >  boxcenter_[0]) *dx -= boxL[0];
-        else if (delx < -boxcenter_[0]) *dx += boxL[0];
-        else if (dely >  boxcenter_[1]) *dy -= boxL[1];
-        else if (dely < -boxcenter_[1]) *dy += boxL[1];
-        else if (delz >  boxcenter_[2]) *dz -= boxL[2];
-        else if (delz < -boxcenter_[2]) *dz += boxL[2];
+        if      (delx >  boxcenter_[0]) delta_[idx  ] -= boxL[0];
+        else if (delx < -boxcenter_[0]) delta_[idx  ] += boxL[0];
+        else if (dely >  boxcenter_[1]) delta_[idx+1] -= boxL[1];
+        else if (dely < -boxcenter_[1]) delta_[idx+1] += boxL[1];
+        else if (delz >  boxcenter_[2]) delta_[idx+2] -= boxL[2];
+        else if (delz < -boxcenter_[2]) delta_[idx+2] += boxL[2];
       }
       // DEBUG
       if (debug_ > 2)
-        mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*atom,XYZ[0],delx,*dx);
+        mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*at,XYZ[0],delx,delta_[idx  ]);
       // Set the current x with reference to the un-imaged trajectory.
-      double xx = XYZ[0] + *dx; 
-      double yy = XYZ[1] + *dy; 
-      double zz = XYZ[2] + *dz;
+      double xx = XYZ[0] + delta_[idx  ]; 
+      double yy = XYZ[1] + delta_[idx+1]; 
+      double zz = XYZ[2] + delta_[idx+2];
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = xx - iXYZ[0];
@@ -186,38 +221,43 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       // DEBUG
       if (debug_ > 2)
         mprintf(" %10.3f\n", delx);
-      // Store distance for this atom
-      *distx = delx*delx;
-      *disty = dely*dely;
-      *distz = delz*delz;
-      *dist = *distx + *disty + *distz;
+      // Calc distances for this atom
+      double distx = delx * delx;
+      double disty = dely * dely;
+      double distz = delz * delz;
+      double dist2 = distx + disty + distz;
       // Accumulate averages
-      avgx += *distx;
-      avgy += *disty;
-      avgz += *distz;
-      average += *dist;
+      avgx += distx;
+      avgy += disty;
+      avgz += distz;
+      average2 += dist2;
+      // Store distances for this atom
+      if (printIndividual_) {
+        atom_x_[*at]->Add(frameNum, &distx);
+        atom_y_[*at]->Add(frameNum, &disty);
+        atom_z_[*at]->Add(frameNum, &distz);
+        atom_r_[*at]->Add(frameNum, &dist2);
+        dist2 = sqrt(dist2);
+        atom_a_[*at]->Add(frameNum, &dist2);
+      }
       // Update the previous coordinate set to match the current coordinates
-      *px = XYZ[0];
-      *py = XYZ[1];
-      *pz = XYZ[2];
-      // Increment iterators
-      ++px;
-      ++py;
-      ++pz;
-      ++dx;
-      ++dy;
-      ++dz;
-      ++distx;
-      ++disty;
-      ++distz;
-      ++dist;
+      previous_[idx  ] = XYZ[0];
+      previous_[idx+1] = XYZ[1];
+      previous_[idx+2] = XYZ[2];
     } // END loop over selected atoms
     double dNselected = (double)mask_.Nselected();
-    average /= dNselected;
     avgx /= dNselected;
     avgy /= dNselected;
     avgz /= dNselected;
+    average2 /= dNselected;
 
+    avg_x_->Add(frameNum, &avgx);
+    avg_y_->Add(frameNum, &avgy);
+    avg_z_->Add(frameNum, &avgz);
+    avg_r_->Add(frameNum, &average2);
+    average2 = sqrt(average2);
+    avg_a_->Add(frameNum, &average2);
+/*
     // ----- OUTPUT -----
     // Output averages
     double Time = time_ * (double)frameNum;
@@ -242,7 +282,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     outputz_->Printf("\n");
     outputr_->Printf("\n");
     outputa_->Printf("\n");
+*/
   }
-
   return Action::OK;
 }  
