@@ -62,10 +62,17 @@ Analysis::RetType Analysis_LowestCurve::Analyze() {
                                DS != input_dsets_.end();
                              ++DS, ++OUT)
   {
-    // Determine an appropriate dimension based on the step size.
+    // Determine an appropriate dimension based on the step size. Since there
+    // is no guarantee that X values are in order (e.g. in XY MESH), get
+    // min/max directly.
     HistBin Xdim;
     double min = (*DS)->Xcrd(0);
     double max = (*DS)->Xcrd((*DS)->Size()-1);
+    for (unsigned int n = 0; n != (*DS)->Size(); ++n) {
+      double xval = (*DS)->Xcrd( n );
+      min = std::min( min, xval );
+      max = std::max( max, xval );
+    }
     if (Xdim.CalcBinsOrStep(min,max,step_,-1,(*DS)->Dim(Dimension::X).Label())) continue;
     Larray bins_( Xdim.Bins() + 1 );
     mprintf("\tSet '%s' has %i bins (%g < %g, %g)\n", (*DS)->legend(),
