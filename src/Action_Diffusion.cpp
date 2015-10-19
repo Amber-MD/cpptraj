@@ -1,6 +1,7 @@
 #include <cmath> // sqrt
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // validDouble
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -14,41 +15,73 @@ Action_Diffusion::Action_Diffusion() :
   masterDSL_(0)
 {}
 
-void Action_Diffusion::Help() {
-  mprintf("\t<mask> <time per frame> [average] [<prefix>]\n"
-          "  Compute a mean square displacement plot for the atoms in the mask.\n"
-          "  The following files are produced:\n"
-          "    <prefix>_x.xmgr: Mean square displacement(s) in the X direction (in Å^2).\n"
-          "    <prefix>_y.xmgr: Mean square displacement(s) in the Y direction (in Å^2).\n"
-          "    <prefix>_z.xmgr: Mean square displacement(s) in the Z direction (in Å^2).\n"
-          "    <prefix>_r.xmgr: Overall mean square displacement(s) (in Å^2).\n"
-          "    <prefix>_a.xmgr: Total distance travelled (in Å).\n");
+static inline void ShortHelp() {
+  mprintf("\t[out <suffix>] [time <time per frame>] [<mask>] [<set name>] [individual]\n");
 }
 
+void Action_Diffusion::Help() {
+  ShortHelp();
+  mprintf("  Compute a mean square displacement plot for the atoms in the <mask>.\n"
+          "  The following files are produced:\n"
+          "    x_<suffix>: Mean square displacement(s) in the X direction (in Å^2).\n"
+          "    y_<suffix>: Mean square displacement(s) in the Y direction (in Å^2).\n"
+          "    z_<suffix>: Mean square displacement(s) in the Z direction (in Å^2).\n"
+          "    r_<suffix>: Overall mean square displacement(s) (in Å^2).\n"
+          "    a_<suffix>: Total distance travelled (in Å).\n");
+}
+
+static inline int CheckTimeArg(double dt) {
+  if (dt <= 0.0) {
+    mprinterr("Error: Diffusion time per frame incorrectly specified, must be > 0.0.\n");
+    return 1;
+  }
+  return 0;
+}
+
+// Action_Diffusion::Init()
 Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
-  printIndividual_ = !(actionArgs.hasKey("average"));
-  mask_.SetMaskString( actionArgs.GetMaskNext() );
-  time_ = actionArgs.getNextDouble(1.0);
-  if (time_ < 0) {
-    mprinterr("Error: diffusion: time per frame incorrectly specified\n");
-    return Action::ERR;
+  // Determine if this is old syntax or new.
+  if (actionArgs.Nargs() > 2 && actionArgs.ArgIsMask(1) && validDouble(actionArgs[2]))
+  {
+    // Old syntax: <mask> <time per frame> [average] [<prefix>]
+    printIndividual_ = !(actionArgs.hasKey("average"));
+    mprintf("Warning: Deprecated syntax for 'diffusion'. Consider using new syntax:\n");
+    ShortHelp();
+    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    time_ = actionArgs.getNextDouble(1.0);
+    if (CheckTimeArg(time_)) return Action::ERR;
+    std::string outputNameRoot = actionArgs.GetStringNext();
+    // Default filename: 'diffusion'
+    if (outputNameRoot.empty())
+      outputNameRoot.assign("diffusion");
+    // Open output files
+    ArgList oldArgs("prec 8.3 noheader");
+    DataFile::DataFormatType dft = DataFile::DATAFILE;
+    outputx_ = init.DFL().AddDataFile(outputNameRoot+"_x.xmgr", oldArgs, dft);
+    outputy_ = init.DFL().AddDataFile(outputNameRoot+"_y.xmgr", oldArgs, dft);
+    outputz_ = init.DFL().AddDataFile(outputNameRoot+"_z.xmgr", oldArgs, dft);
+    outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr", oldArgs, dft);
+    outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr", oldArgs, dft);
+  } else {
+    // New syntax: [out <suffix>] [time <time per frame>] [<mask>] [<set name>] [individual]
+    printIndividual_ = actionArgs.hasKey("individual");
+    std::string suffix = actionArgs.GetStringKey("out");
+    time_ = actionArgs.getKeyDouble("time", 1.0);
+    if (CheckTimeArg(time_)) return Action::ERR;
+    mask_.SetMaskString( actionArgs.GetMaskNext() );
+    // Open output files.
+    if (!suffix.empty()) {
+      FileName FName( suffix );
+      outputx_ = init.DFL().AddDataFile(FName.DirPrefix()+"x_"+FName.Base(), actionArgs);
+      outputy_ = init.DFL().AddDataFile(FName.DirPrefix()+"y_"+FName.Base(), actionArgs);
+      outputz_ = init.DFL().AddDataFile(FName.DirPrefix()+"z_"+FName.Base(), actionArgs);
+      outputr_ = init.DFL().AddDataFile(FName.DirPrefix()+"r_"+FName.Base(), actionArgs);
+      outputa_ = init.DFL().AddDataFile(FName.DirPrefix()+"a_"+FName.Base(), actionArgs);
+    }
   }
-  std::string outputNameRoot = actionArgs.GetStringNext();
-  // Default filename: 'diffusion'
-  if (outputNameRoot.empty()) 
-    outputNameRoot.assign("diffusion");
-  
-  // Open output files
-  outputx_ = init.DFL().AddDataFile(outputNameRoot+"_x.xmgr");//, "X MSD");
-  outputy_ = init.DFL().AddDataFile(outputNameRoot+"_y.xmgr");//, "Y MSD");
-  outputz_ = init.DFL().AddDataFile(outputNameRoot+"_z.xmgr");//, "Z MSD");
-  outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr");//, "Overall MSD");
-  outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr");//, "Total Distance");
-  //if (outputx_ == 0 || outputy_ == 0 || outputz_ == 0 ||
-  //    outputr_ == 0 || outputa_ == 0) return Action::ERR;
-  // AddData Sets
+  // Add DataSets
   dsname_ = actionArgs.GetStringNext();
   if (dsname_.empty())
     dsname_ = init.DSL().GenerateDefaultName("Diff");
@@ -77,27 +110,35 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   mprintf("    DIFFUSION:\n");
   mprintf("\tAtom Mask is [%s]\n", mask_.MaskString());
   if (printIndividual_)
-    mprintf("\tThe average and individual results will be printed to:\n");
+    mprintf("\tBoth average and individual diffusion will be calculated.\n");
   else
-    mprintf("\tOnly the average results will be printed to:\n");
-  const char* onr = outputNameRoot.c_str();
-  mprintf("\t  %s_x.xmgr: Mean square displacement(s) in the X direction (in Å^2).\n"
-          "\t  %s_y.xmgr: Mean square displacement(s) in the Y direction (in Å^2).\n"
-          "\t  %s_z.xmgr: Mean square displacement(s) in the Z direction (in Å^2).\n"
-          "\t  %s_r.xmgr: Overall mean square displacement(s) (in Å^2).\n"
-          "\t  %s_a.xmgr: Total distance travelled (in Å).\n",
-          onr, onr, onr, onr, onr);
-  mprintf("\tThe time between frames in ps is %.3f.\n", time_);
-  mprintf("\tTo calculate diffusion constants from a mean squared displacement plot\n"
-          "\t(i.e. {_x|_y|_z|_r}.xmgr), calculate the slope of the line and multiply\n"
-          "\tby 10.0/6.0; this will give units of 1x10^-5 cm^2/s\n");
+    mprintf("\tOnly average diffusion will be calculated.\n");
+  mprintf("\tData set base name: %s\n", avg_x_->Meta().Name().c_str());
+  // If one file defined, assume all are.
+  if (outputx_ != 0) {
+    mprintf("\tOutput files:\n"
+            "\t  %s: Mean square displacement(s) in the X direction (in Å^2).\n"
+            "\t  %s: Mean square displacement(s) in the Y direction (in Å^2).\n"
+            "\t  %s: Mean square displacement(s) in the Z direction (in Å^2).\n"
+            "\t  %s: Overall mean square displacement(s) (in Å^2).\n"
+            "\t  %s: Total distance travelled (in Å).\n",
+            outputx_->DataFilename().full(), outputy_->DataFilename().full(),
+            outputz_->DataFilename().full(), outputr_->DataFilename().full(),
+            outputa_->DataFilename().full());
+  }
+  mprintf("\tThe time between frames is %g ps.\n", time_);
+  mprintf("\tTo calculate diffusion constant from the total mean squared displacement plot,\n"
+          "\tcalculate the slope of MSD vs time and multiply by 10.0/6.0; this will give\n"
+          "\tunits of 1x10^-5 cm^2/s\n");
 
   return Action::OK;
 }
 
+// Action_Diffusion::Setup()
 Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
+  mask_.MaskInfo();
   if (mask_.None()) {
     mprintf("Warning: No atoms selected.\n");
     return Action::SKIP;
@@ -166,6 +207,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+// Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   // Load initial frame if necessary
   if (initial_.empty()) {
@@ -195,9 +237,9 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       double delx = XYZ[0] - previous_[idx  ];
       double dely = XYZ[1] - previous_[idx+1];
       double delz = XYZ[2] - previous_[idx+2];
-      // If the particle moved more than half the box, assume
-      // it was imaged and adjust the distance of the total
-      // movement with respect to the original frame.
+      // If the particle moved more than half the box, assume it was imaged
+      // and adjust the distance of the total movement with respect to the
+      // original frame.
       if (hasBox_) {
         if      (delx >  boxcenter_[0]) delta_[idx  ] -= boxL[0];
         else if (delx < -boxcenter_[0]) delta_[idx  ] += boxL[0];
@@ -207,8 +249,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
         else if (delz < -boxcenter_[2]) delta_[idx+2] += boxL[2];
       }
       // DEBUG
-      if (debug_ > 2)
-        mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*at,XYZ[0],delx,delta_[idx  ]);
+      //if (debug_ > 2) mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*at,XYZ[0],delx,delta_[idx  ]);
       // Set the current x with reference to the un-imaged trajectory.
       double xx = XYZ[0] + delta_[idx  ]; 
       double yy = XYZ[1] + delta_[idx+1]; 
@@ -218,9 +259,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       delx = xx - iXYZ[0];
       dely = yy - iXYZ[1];
       delz = zz - iXYZ[2];
-      // DEBUG
-      if (debug_ > 2)
-        mprintf(" %10.3f\n", delx);
+      //if (debug_ > 2) mprintf(" %10.3f\n", delx); // DEBUG
       // Calc distances for this atom
       double distx = delx * delx;
       double disty = dely * dely;
@@ -245,44 +284,19 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       previous_[idx+1] = XYZ[1];
       previous_[idx+2] = XYZ[2];
     } // END loop over selected atoms
+    // Calc averages
     double dNselected = (double)mask_.Nselected();
     avgx /= dNselected;
     avgy /= dNselected;
     avgz /= dNselected;
     average2 /= dNselected;
-
+    // Save averages
     avg_x_->Add(frameNum, &avgx);
     avg_y_->Add(frameNum, &avgy);
     avg_z_->Add(frameNum, &avgz);
     avg_r_->Add(frameNum, &average2);
     average2 = sqrt(average2);
     avg_a_->Add(frameNum, &average2);
-/*
-    // ----- OUTPUT -----
-    // Output averages
-    double Time = time_ * (double)frameNum;
-    outputx_->Printf("%8.3f  %8.3f", Time, avgx);
-    outputy_->Printf("%8.3f  %8.3f", Time, avgy);
-    outputz_->Printf("%8.3f  %8.3f", Time, avgz);
-    outputr_->Printf("%8.3f  %8.3f", Time, average);
-    outputa_->Printf("%8.3f  %8.3f", Time, sqrt(average));
-    // Individual values
-    if (printIndividual_) {
-      for (int i = 0; i < mask_.Nselected(); ++i) {
-        outputx_->Printf("  %8.3f", distancex_[i]);
-        outputy_->Printf("  %8.3f", distancey_[i]);
-        outputz_->Printf("  %8.3f", distancez_[i]);
-        outputr_->Printf("  %8.3f", distance_[i]);
-        outputa_->Printf("  %8.3f", sqrt(distance_[i]));
-      }
-    }
-    // Print newlines
-    outputx_->Printf("\n");
-    outputy_->Printf("\n");
-    outputz_->Printf("\n");
-    outputr_->Printf("\n");
-    outputa_->Printf("\n");
-*/
   }
   return Action::OK;
-}  
+}

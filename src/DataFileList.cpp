@@ -95,7 +95,9 @@ CpptrajFile* DataFileList::GetCpptrajFile(FileName const& nameIn) const {
 
 /** Create new DataFile, or return existing DataFile. */
 // TODO: Accept const ArgList so arguments are not reset?
-DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
+                                    DataFile::DataFormatType typeIn)
+{
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
   // Check if filename in use by CpptrajFile.
@@ -110,7 +112,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(nameIn, argIn, debug_)) {
+    if (Current->SetupDatafile(nameIn, argIn, typeIn, debug_)) {
       mprinterr("Error: Setting up data file %s\n", nameIn.full());
       delete Current;
       return 0;
@@ -119,6 +121,13 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   } else {
     // Set debug level
     Current->SetDebug(debug_);
+    // If a type was specified, make sure it matches.
+    if (typeIn != DataFile::UNKNOWN_DATA && typeIn != Current->Type()) {
+      mprinterr("Error: '%s' is type %s but has been requested as type %s.\n",
+                Current->DataFilename().full(), Current->FormatString(),
+                DataFile::FormatString( typeIn ));
+      return 0;
+    }
     // Check for keywords that do not match file type
     DataFile::DataFormatType kType = DataFile::GetFormatFromArg( argIn );
     if (kType != DataFile::UNKNOWN_DATA && kType != Current->Type())
@@ -132,10 +141,14 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
   return Current;
 }
 
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn) {
+  return AddDataFile( nameIn, argIn, DataFile::UNKNOWN_DATA );
+}
+
 // DataFileList::AddDataFile()
 DataFile* DataFileList::AddDataFile(FileName const& nameIn) {
   ArgList empty;
-  return AddDataFile( nameIn, empty );
+  return AddDataFile( nameIn, empty, DataFile::UNKNOWN_DATA );
 }
 
 // DataFileList::AddCpptrajFile()

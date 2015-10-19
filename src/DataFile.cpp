@@ -181,10 +181,19 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
 // -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
+  return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
+}
+
+int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
+                            DataFormatType typeIn, int debugIn)
+{
   SetDebug( debugIn );
   if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
   filename_ = fnameIn;
-  dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
+  dfType_ = typeIn;
+  // If unknown, first look for keyword, then guess from extension.
+  if (dfType_ == UNKNOWN_DATA)
+    dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
   if (dfType_ == UNKNOWN_DATA)
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(),
                                                               DATAFILE);
