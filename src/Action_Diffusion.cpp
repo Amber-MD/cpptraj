@@ -16,7 +16,8 @@ Action_Diffusion::Action_Diffusion() :
 {}
 
 static inline void ShortHelp() {
-  mprintf("\t[out <suffix>] [time <time per frame>] [<mask>] [<set name>] [individual]\n");
+  mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>]\n"
+          "\t[<mask>] [<set name>] [individual]\n");
 }
 
 void Action_Diffusion::Help() {
@@ -65,9 +66,15 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr", dft, oldArgs);
     outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr", dft, oldArgs);
   } else {
-    // New syntax: [out <suffix>] [time <time per frame>] [<mask>] [<set name>] [individual]
+    // New syntax: [{separateout <suffix> | out <filename>}] [time <time per frame>]
+    //             [<mask>] [<set name>] [individual]
     printIndividual_ = actionArgs.hasKey("individual");
-    std::string suffix = actionArgs.GetStringKey("out");
+    std::string suffix = actionArgs.GetStringKey("separateout");
+    std::string outname = actionArgs.GetStringKey("out");
+    if (!outname.empty() && !suffix.empty()) {
+      mprinterr("Error: Specify either 'out' or 'separateout', not both.\n");
+      return Action::ERR;
+    }
     time_ = actionArgs.getKeyDouble("time", 1.0);
     if (CheckTimeArg(time_)) return Action::ERR;
     mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -79,6 +86,9 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
       outputz_ = init.DFL().AddDataFile(FName.DirPrefix()+"z_"+FName.Base(), actionArgs);
       outputr_ = init.DFL().AddDataFile(FName.DirPrefix()+"r_"+FName.Base(), actionArgs);
       outputa_ = init.DFL().AddDataFile(FName.DirPrefix()+"a_"+FName.Base(), actionArgs);
+    } else if (!outname.empty()) {
+      outputr_ = init.DFL().AddDataFile( outname, actionArgs );
+      outputx_ = outputy_ = outputz_ = outputa_ = outputr_;
     }
   }
   // Add DataSets
@@ -92,13 +102,13 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
   if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0)
     return Action::ERR;
+  if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
   if (outputx_ != 0) outputx_->AddDataSet( avg_x_ );
   if (outputy_ != 0) outputy_->AddDataSet( avg_y_ );
   if (outputz_ != 0) outputz_->AddDataSet( avg_z_ );
-  if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
   if (outputa_ != 0) outputa_->AddDataSet( avg_a_ );
   // Set X dim
-  Xdim_ = Dimension(0.0, time_);
+  Xdim_ = Dimension(0.0, time_, "Time");
   avg_x_->SetDim(Dimension::X, Xdim_);
   avg_y_->SetDim(Dimension::X, Xdim_);
   avg_z_->SetDim(Dimension::X, Xdim_);
@@ -117,11 +127,11 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   // If one file defined, assume all are.
   if (outputx_ != 0) {
     mprintf("\tOutput files:\n"
-            "\t  %s: Mean square displacement(s) in the X direction (in Å^2).\n"
-            "\t  %s: Mean square displacement(s) in the Y direction (in Å^2).\n"
-            "\t  %s: Mean square displacement(s) in the Z direction (in Å^2).\n"
-            "\t  %s: Overall mean square displacement(s) (in Å^2).\n"
-            "\t  %s: Total distance travelled (in Å).\n",
+            "\t  %s: (x) Mean square displacement(s) in the X direction (in Å^2).\n"
+            "\t  %s: (y) Mean square displacement(s) in the Y direction (in Å^2).\n"
+            "\t  %s: (z) Mean square displacement(s) in the Z direction (in Å^2).\n"
+            "\t  %s: (r) Overall mean square displacement(s) (in Å^2).\n"
+            "\t  %s: (a) Total distance travelled (in Å).\n",
             outputx_->DataFilename().full(), outputy_->DataFilename().full(),
             outputz_->DataFilename().full(), outputr_->DataFilename().full(),
             outputa_->DataFilename().full());
