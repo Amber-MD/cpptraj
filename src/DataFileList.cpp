@@ -93,8 +93,15 @@ CpptrajFile* DataFileList::GetCpptrajFile(FileName const& nameIn) const {
   return cfList_[idx];
 }
 
+/** This version does not reset incoming arguments. */
+DataFile* DataFileList::AddDataFile(FileName const& nameIn, DataFile::DataFormatType typeIn,
+                                    ArgList const& argIn)
+{
+  ArgList args( argIn );
+  return AddDataFile( nameIn, args, typeIn );
+}
+
 /** Create new DataFile, or return existing DataFile. */
-// TODO: Accept const ArgList so arguments are not reset?
 DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
                                     DataFile::DataFormatType typeIn)
 {
