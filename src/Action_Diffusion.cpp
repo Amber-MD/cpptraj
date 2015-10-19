@@ -59,11 +59,11 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     // Open output files
     ArgList oldArgs("prec 8.3 noheader");
     DataFile::DataFormatType dft = DataFile::DATAFILE;
-    outputx_ = init.DFL().AddDataFile(outputNameRoot+"_x.xmgr", oldArgs, dft);
-    outputy_ = init.DFL().AddDataFile(outputNameRoot+"_y.xmgr", oldArgs, dft);
-    outputz_ = init.DFL().AddDataFile(outputNameRoot+"_z.xmgr", oldArgs, dft);
-    outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr", oldArgs, dft);
-    outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr", oldArgs, dft);
+    outputx_ = init.DFL().AddDataFile(outputNameRoot+"_x.xmgr", dft, oldArgs);
+    outputy_ = init.DFL().AddDataFile(outputNameRoot+"_y.xmgr", dft, oldArgs);
+    outputz_ = init.DFL().AddDataFile(outputNameRoot+"_z.xmgr", dft, oldArgs);
+    outputr_ = init.DFL().AddDataFile(outputNameRoot+"_r.xmgr", dft, oldArgs);
+    outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr", dft, oldArgs);
   } else {
     // New syntax: [out <suffix>] [time <time per frame>] [<mask>] [<set name>] [individual]
     printIndividual_ = actionArgs.hasKey("individual");
@@ -148,10 +148,10 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   if ( setup.CoordInfo().TrajBox().Type() != Box::NOBOX ) {
     // Currently only works for orthogonal boxes
     if ( setup.CoordInfo().TrajBox().Type() != Box::ORTHO ) {
-      mprintf("Warning: diffusion command currently only works with orthogonal boxes.\n");
-      mprintf("Warning: imaging will be disabled for this command. This may result in\n");
-      mprintf("Warning: large jumps if target molecule is imaged. To counter this please\n");
-      mprintf("Warning: use the 'unwrap' command prior to 'diffusion'.\n");
+      mprintf("Warning: Imaging currently only works with orthogonal boxes.\n"
+              "Warning:   Imaging will be disabled for this command. This may result in\n"
+              "Warning:   large jumps if target molecule is imaged. To counter this please\n"
+              "Warning:   use the 'unwrap' command prior to 'diffusion'.\n");
       hasBox_ = false;
     } else 
       hasBox_ = true;
