@@ -785,7 +785,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   MetaData md( trajin.Traj().Filename(), setname, -1 );
   // Check if set already present
   DataSet_Coords* coords = 0;
-  DataSet* ds = State.DSL()->CheckForSet(md);
+  DataSet* ds = State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (ds == 0) {
     // Create Set 
     coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
