@@ -10,7 +10,9 @@ class Action_Diffusion : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
+
+    double CalcDiffusionConst( DataSet*, int ) const;
 
     typedef std::vector<double> Darray;
     Frame initial_;   ///< Initial frame (all atoms)
@@ -29,6 +31,7 @@ class Action_Diffusion : public Action {
     bool printIndividual_; ///< If true print diffusion for individual atoms
     double time_;          ///< Time step between frames
     bool hasBox_;          ///< If true trajectory has box information
+    DataSet* diffConst_;   ///< Hold diffusion constants. 
     int debug_;
     Darray delta_;         ///< Hold current distances from initial frame for selected atoms
     AtomMask mask_;        ///< Selected atoms

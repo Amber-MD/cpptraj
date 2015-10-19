@@ -2,6 +2,7 @@
 #include "Action_Diffusion.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
+#include "DataSet_1D.h" // LinearRegression
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -9,6 +10,7 @@ Action_Diffusion::Action_Diffusion() :
   printIndividual_(false),
   time_(1.0),
   hasBox_(false),
+  diffConst_(0),
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
   boxcenter_(0.0),
@@ -100,7 +102,9 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_z_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Z"));
   avg_r_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "R"));
   avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
-  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0)
+  diffConst_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "D"));
+  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0 ||
+      diffConst_ == 0)
     return Action::ERR;
   if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
   if (outputx_ != 0) outputx_->AddDataSet( avg_x_ );
@@ -309,4 +313,30 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
     avg_a_->Add(frameNum, &average2);
   }
   return Action::OK;
+}
+
+void Action_Diffusion::Print() {
+  if (diffConst_ == 0) return;
+  mprintf("    DIFFUSION: Calculating diffusion constants from slopes.\n");
+  unsigned int set = 0;
+  double D0 = CalcDiffusionConst( avg_r_, 3 );
+  diffConst_->Add(set++, &D0);
+  D0 = CalcDiffusionConst( avg_x_, 1 );
+  diffConst_->Add(set++, &D0);
+  D0 = CalcDiffusionConst( avg_y_, 1 );
+  diffConst_->Add(set++, &D0);
+  D0 = CalcDiffusionConst( avg_z_, 1 );
+  diffConst_->Add(set++, &D0);
+}
+
+double Action_Diffusion::CalcDiffusionConst( DataSet* ds, int Ndim ) const {
+  DataSet_1D const& data = static_cast<DataSet_1D const&>( *ds );
+  double Factor = 10.0 / ((double)Ndim * 2.0);
+  double slope, intercept, corr;
+  double Dval = 0.0;
+  if (data.LinearRegression( slope, intercept, corr, 0 ) == 0)
+    Dval = slope * Factor;
+  mprintf("DEBUG: '%s' D= %g  Slope= %g  Int= %g  Corr= %g\n", data.legend(), Dval,
+          slope, intercept, corr);
+  return Dval;
 }

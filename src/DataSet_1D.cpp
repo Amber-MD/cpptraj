@@ -252,7 +252,11 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
 int DataSet_1D::LinearRegression( double& slope, double& intercept,
                                   double& correl, CpptrajFile* outfile ) const
 {
-  if (Size() < 2) return 1;
+  if (Size() < 2) {
+    mprinterr("Error: '%s' has less than 2 values, cannot calculate regression.\n",
+              legend());
+    return 1;
+  }
   double mesh_size = (double)Size();
   // Averages
   double xavg = 0.0, yavg = 0.0;
@@ -275,7 +279,8 @@ int DataSet_1D::LinearRegression( double& slope, double& intercept,
   double xsd = sqrt( sxx / (mesh_size - 1.0) );
   double ysd = sqrt( syy / (mesh_size - 1.0) );
   if (xsd < Constants::SMALL || ysd < Constants::SMALL) {
-    mprinterr("Error: All values of x or y are the same (SD cannot be zero).\n");
+    mprinterr("Error: '%s': All values of x or y are the same (SD cannot be zero).\n",
+              legend());
     return 1;
   }
   double covariance = sxy / (mesh_size - 1.0);
