@@ -6,7 +6,7 @@ INPUT="diffusion.in"
 TOP=../tz2.ortho.parm7
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
-           WAT_O.agr
+           WAT_O.agr DC.dat
 
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
@@ -26,10 +26,11 @@ EOF
 Test_diffusion_newSyntax() {
 cat > $INPUT <<EOF
 trajin ../tz2.ortho.nc
-diffusion :WAT@O out WAT_O.agr WAT_O
+diffusion :WAT@O out WAT_O.agr WAT_O diffout DC.dat
 EOF
   RunCpptraj "Diffusion test, new syntax."
   DoTest WAT_O.agr.save WAT_O.agr
+  DoTest DC.dat.save DC.dat
 }
 
 # ------------------------------------------------------------------------------
