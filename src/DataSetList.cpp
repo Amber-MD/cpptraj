@@ -316,6 +316,9 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   */ 
 DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 { // TODO Always generate default name if empty?
+# ifdef TIMER
+  time_total_.Start();
+# endif
   // Do not add to a list with copies
   if (hasCopies_) {
     mprinterr("Internal Error: Attempting to add DataSet (%s) to DataSetList with copies.\n",
@@ -324,8 +327,14 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
   }
   MetaData meta( metaIn );
   meta.SetEnsembleNum( ensembleNum_ );
+# ifdef TIMER
+  time_check_.Start();
+# endif
   // Check if DataSet with same attributes already present.
   DataSet* DS = CheckForSet(meta);
+# ifdef TIMER
+  time_check_.Stop();
+# endif
   if (DS != 0) {
     mprintf("Warning: DataSet '%s' already present.\n", DS->Meta().PrintName().c_str());
     // NOTE: Should return found dataset?
@@ -336,6 +345,9 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
     return 0;
   }
+# ifdef TIMER
+  time_setup_.Start();
+# endif
   DS = (DataSet*)token->Alloc();
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
@@ -353,9 +365,66 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     delete DS;
     return 0;
   }
-
-  Push_Back(DS); 
+# ifdef TIMER
+  time_setup_.Stop();
+  time_push_.Start();
+# endif
+  Push_Back(DS);
+# ifdef TIMER
+  time_push_.Stop();
+# endif
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  return DS;
+}
+
+#ifdef TIMER
+void DataSetList::Timing() const {
+  time_check_.WriteTiming(3,"DSL Check Set", time_total_.Total());
+  time_setup_.WriteTiming(3,"DSL Setup Set", time_total_.Total());
+  time_push_.WriteTiming(3,"DSL Push Set", time_total_.Total());
+  time_total_.WriteTiming(2,"DSL Total");
+}
+#endif
+// FIXME Should probably just make a more efficient search of DSL
+/** Special version of AddSet that does NOT check if set already exists.
+  * Intended for use in Action Setup/DoAction where it is assumed that
+  * the Action is setting up DataSets in such a way that there will not
+  * be name conflicts, i.e. the DataSet name at least is unique. 
+  * \param inType type of DataSet to add.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
+  */
+DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& metaIn)
+{ // TODO Pass in Nframes? 
+  // Assume list does NOT have copies.
+  MetaData meta( metaIn );
+  meta.SetEnsembleNum( ensembleNum_ );
+  // Allocate DataSet
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
+    return 0;
+  }
+  DataSet* DS = (DataSet*)token->Alloc();
+  if (DS==0) {
+    mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
+    return 0;
+  }
+  // If 1 dim set and time series status not set, set to true, allocate for frames.
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
+    meta.SetTimeSeries( MetaData::IS_TS );
+    // Also set dimension default
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
+    //DS->Allocate( DataSet::SizeArray(1, Nframes) );
+  }
+  // Set up DataSet MetaData 
+  if ( DS->SetMeta( meta ) ) {
+    mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
+    delete DS;
+    return 0;
+  }
+  // Add to list
+  Push_Back(DS);
   return DS;
 }
 

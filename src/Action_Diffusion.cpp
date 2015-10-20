@@ -3,6 +3,9 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
 #include "DataSet_1D.h" // LinearRegression
+#ifdef TIMER
+# include "Timer.h"
+#endif
 
 // CONSTRUCTOR
 Action_Diffusion::Action_Diffusion() :
@@ -192,6 +195,10 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
 
 // Action_Diffusion::Setup()
 Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
+# ifdef TIMER
+  Timer time_setup, time_addsets;
+  time_setup.Start();
+# endif
   // Setup atom mask
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
@@ -242,11 +249,17 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
     for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); at++)
     {
       if (atom_x_[*at] == 0) { // TODO: FLOAT?
-        atom_x_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aX", *at+1));
-        atom_y_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aY", *at+1));
-        atom_z_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aZ", *at+1));
-        atom_r_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aR", *at+1));
-        atom_a_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aA", *at+1));
+#       ifdef TIMER
+        time_addsets.Start();
+#       endif
+        atom_x_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aX", *at+1));
+        atom_y_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aY", *at+1));
+        atom_z_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aZ", *at+1));
+        atom_r_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aR", *at+1));
+        atom_a_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aA", *at+1));
+#       ifdef TIMER
+        time_addsets.Stop();
+#       endif
         if (outputx_ != 0) outputx_->AddDataSet(atom_x_[*at]);
         if (outputy_ != 0) outputy_->AddDataSet(atom_y_[*at]);
         if (outputz_ != 0) outputz_->AddDataSet(atom_z_[*at]);
@@ -260,7 +273,11 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
       }
     }
   }
-
+# ifdef TIMER
+  time_setup.Stop();
+  time_addsets.WriteTiming(3, "Diffusion Add Sets", time_setup.Total());
+  time_setup.WriteTiming(2, "Diffusion Setup");
+# endif
   return Action::OK;
 }
 

@@ -4,6 +4,9 @@
 #include "DataSet.h"
 #include "ArgList.h" // GetReferenceFrame, GetTopology
 #include "ReferenceFrame.h" // GetReferenceFrame
+#ifdef TIMER
+# include "Timer.h"
+#endif
 /// Hold list of DataSets.
 /** Main class for handling DataSets. All DataSet types can be allocated 
   * by DataSetList. There is a master DataSetList in CpptrajState that will
@@ -85,6 +88,8 @@ class DataSetList {
     DataSet* AddSet( DataSet::DataType, MetaData const&, const char*);
     /// Add DataSet to list with given MetaData.
     DataSet* AddSet( DataSet::DataType, MetaData const&);
+    /// Add DataSet, no check for already existing set.
+    DataSet* AddSet_NoCheck(DataSet::DataType, MetaData const&);
     /// Add an already set up DataSet to list; memory for DataSet will be freed.
     int AddSet( DataSet* );
     /// Add new sets or append to existing ones.
@@ -117,6 +122,9 @@ class DataSetList {
     Topology* GetTopByIndex(ArgList&) const;
     /// List all topologies
     void ListTopologies() const;
+#   ifdef TIMER
+    void Timing() const;
+#   endif
   private:
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
@@ -125,7 +133,12 @@ class DataSetList {
     void Push_Back(DataSet*);
     DataSet* GetReferenceSet(ArgList&, int&) const;
     int SetActiveReference(DataSet*);
-
+#   ifdef TIMER
+    Timer time_total_;
+    Timer time_check_;
+    Timer time_setup_;
+    Timer time_push_;
+#   endif
     /// Current active reference for distance-based masks.
     DataSet* activeRef_;
     /// Hold number of frames from most recent AllocateSets() call.
