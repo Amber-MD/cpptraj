@@ -12,6 +12,6 @@ class Analysis_Regression : public Analysis {
   private:
     Array1D input_dsets_;
     Array1D output_dsets_;
-    CpptrajFile outfile_;
+    CpptrajFile* statsout_;
 };
 #endif

@@ -65,6 +65,8 @@ class ArgList {
     bool CommandIs(const char*) const;
     /// \return the next unmarked string
     std::string const& GetStringNext();
+    /// \return true if argument at position is a potential mask.
+    bool ArgIsMask(unsigned int) const;
     /// \return the next unmarked mask
     std::string const& GetMaskNext();
     /// \return the next unmarked tag

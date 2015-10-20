@@ -675,6 +675,7 @@ int CpptrajState::RunNormal() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n", 
           (double)readSets / frames_time.Total());
 # ifdef TIMER
+  DSL_.Timing();
   trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
   setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());

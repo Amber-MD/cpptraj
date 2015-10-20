@@ -19,6 +19,8 @@ class DataSet_1D : public DataSet {
     double Max() const;
     int CrossCorr(DataSet_1D const&, DataSet_1D&, int, bool, bool) const;
     double CorrCoeff(DataSet_1D const&) const;
+    /// Calculate linear regression; report slope, intercept, and correlation.
+    int LinearRegression(double&, double&, double&, CpptrajFile*) const;
   private:
     double Avg(double*) const;
 };

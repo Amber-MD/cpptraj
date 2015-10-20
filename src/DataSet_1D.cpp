@@ -245,3 +245,87 @@ double DataSet_1D::CorrCoeff( DataSet_1D const& D2 ) const {
   //        D1_->c_str(), D2_->c_str(), corr_coeff );
   return corr_coeff;
 }
+
+/** This code (especially the error analysis) was adapted from grace 5.1.22
+  * fit.c:linear_regression().
+  */
+int DataSet_1D::LinearRegression( double& slope, double& intercept,
+                                  double& correl, CpptrajFile* outfile ) const
+{
+  if (Size() < 2) {
+    mprinterr("Error: '%s' has less than 2 values, cannot calculate regression.\n",
+              legend());
+    return 1;
+  }
+  double mesh_size = (double)Size();
+  // Averages
+  double xavg = 0.0, yavg = 0.0;
+  for (unsigned int i = 0; i < Size(); i++) {
+    xavg += Xcrd(i);
+    yavg += Dval(i);
+  }
+  xavg /= mesh_size;
+  yavg /= mesh_size;
+  // Sums of squares
+  double sxx = 0.0, sxy = 0.0, syy = 0.0;
+  for (unsigned int i = 0; i < Size(); i++) {
+    double xdiff = Xcrd(i) - xavg;
+    double ydiff = Dval(i) - yavg;
+    sxx += (xdiff * xdiff);
+    sxy += (xdiff * ydiff);
+    syy += (ydiff * ydiff);
+  }
+  // Standard deviation, covariance
+  double xsd = sqrt( sxx / (mesh_size - 1.0) );
+  double ysd = sqrt( syy / (mesh_size - 1.0) );
+  if (xsd < Constants::SMALL || ysd < Constants::SMALL) {
+    mprinterr("Error: '%s': All values of x or y are the same (SD cannot be zero).\n",
+              legend());
+    return 1;
+  }
+  double covariance = sxy / (mesh_size - 1.0);
+         correl = covariance / (xsd * ysd);
+         slope = sxy / sxx;
+         intercept = yavg - slope * xavg;
+  if (outfile != 0)
+    outfile->Printf("\tData points= %u\n"
+                    "\t<X>= %g\n\t<Y>= %g\n"
+                    "\tSDx= %g\n\tSDy= %g\n"
+                    "\tCorrelation coefficient= %g\n"
+                    "\tSlope= %g\n", Size(),
+                    xavg, yavg, xsd, ysd, correl, slope);
+  // Case N==2, no need for error analysis.
+  if (Size() == 2) {
+    slope = (Dval(1) - Dval(0)) / (Xcrd(1) - Xcrd(0));
+    intercept = Dval(0) - slope * Xcrd(0);
+    if (outfile != 0) outfile->Printf("\tIntercept= %g\n", intercept);
+    return 0;
+  }
+  // Error analysis
+  double residualSumSq = syy - slope * sxy;
+  double residualMeanSq = residualSumSq / (mesh_size - 2.0);
+  //double stdErrRegression = sqrt( residualMeanSq );
+  double stdErrIntercept = sqrt( residualMeanSq * (1.0 / mesh_size + xavg * xavg / sxx) );
+  double stdErrSlope = sqrt( residualMeanSq / sxx );
+  double sumSqRegression = syy - residualSumSq;
+  double Fval = sumSqRegression / residualMeanSq;
+  //double R2 = sumSqRegression / syy;
+  if (outfile != 0) {
+    outfile->Printf("\tStandard error of slope= %g\n"
+                    "\tt - value for slope= %g\n"
+                    "\tIntercept= %g\n"
+                    "\tStandard Error of intercept= %g\n"
+                    "\tt - value for intercept= %g\n",
+                    stdErrSlope, slope / stdErrSlope,
+                    intercept, stdErrIntercept, intercept / stdErrIntercept);
+    outfile->Printf("\tEquation: Y = %g * X + %g\n", slope, intercept);
+    outfile->Printf("\tVariance analysis:\n\t%-10s %5s %14s %14s %14s\n",
+            "Source", "d.f", "Sum of squares", "Mean square", "F");
+    outfile->Printf("\t%-10s %5d %14.7g %14.7g %14.7g\n", "Regression",
+            1, sumSqRegression, sumSqRegression, Fval);
+    outfile->Printf("\t%-10s %5u %14.7g %14.7g\n", "Residual",
+            Size() - 2, residualSumSq, residualMeanSq);
+    outfile->Printf("\t%-10s %5u %14.7g\n", "Total",  Size() - 1, syy);
+  }
+  return 0;
+}
