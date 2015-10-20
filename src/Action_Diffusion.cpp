@@ -277,7 +277,6 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   } else {
     if (hasBox_) 
       boxcenter_ = frm.Frm().BoxCrd().Center();
-    Vec3 boxL = frm.Frm().BoxCrd().Lengths();
     // For averaging over selected atoms
     double average2 = 0.0;
     double avgx = 0.0;
@@ -292,19 +291,19 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       double delx = XYZ[0] - previous_[idx  ];
       double dely = XYZ[1] - previous_[idx+1];
       double delz = XYZ[2] - previous_[idx+2];
+      //mprinterr("\tDeltaFromPrevious={ %g %g %g }\n", delx, dely, delz); // DEBUG
       // If the particle moved more than half the box, assume it was imaged
       // and adjust the distance of the total movement with respect to the
       // original frame.
       if (hasBox_) {
-        if      (delx >  boxcenter_[0]) delta_[idx  ] -= boxL[0];
-        else if (delx < -boxcenter_[0]) delta_[idx  ] += boxL[0];
-        else if (dely >  boxcenter_[1]) delta_[idx+1] -= boxL[1];
-        else if (dely < -boxcenter_[1]) delta_[idx+1] += boxL[1];
-        else if (delz >  boxcenter_[2]) delta_[idx+2] -= boxL[2];
-        else if (delz < -boxcenter_[2]) delta_[idx+2] += boxL[2];
+        if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
+        else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
+        if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
+        else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
+        if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
+        else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
       }
-      // DEBUG
-      //if (debug_ > 2) mprintf("ATOM: %5i %10.3f %10.3f %10.3f",*at,XYZ[0],delx,delta_[idx  ]);
+      //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
       // Set the current x with reference to the un-imaged trajectory.
       double xx = XYZ[0] + delta_[idx  ]; 
       double yy = XYZ[1] + delta_[idx+1]; 
@@ -314,7 +313,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       delx = xx - iXYZ[0];
       dely = yy - iXYZ[1];
       delz = zz - iXYZ[2];
-      //if (debug_ > 2) mprintf(" %10.3f\n", delx); // DEBUG
+      //mprinterr("\tDeltaFromInitial={ %g %g %g }\n", delx, dely, delz); // DEBUG
       // Calc distances for this atom
       double distx = delx * delx;
       double disty = dely * dely;
