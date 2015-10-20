@@ -324,8 +324,8 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       }
       //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
       // Set the current x with reference to the un-imaged trajectory.
-      double xx = XYZ[0] + delta_[idx  ]; 
-      double yy = XYZ[1] + delta_[idx+1]; 
+      double xx = XYZ[0] + delta_[idx  ];
+      double yy = XYZ[1] + delta_[idx+1];
       double zz = XYZ[2] + delta_[idx+2];
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.

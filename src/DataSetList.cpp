@@ -389,13 +389,13 @@ void DataSetList::Timing() const {
 /** Special version of AddSet that does NOT check if set already exists.
   * Intended for use in Action Setup/DoAction where it is assumed that
   * the Action is setting up DataSets in such a way that there will not
-  * be name conflicts, i.e. the DataSet name at least is unique. 
+  * be name conflicts, i.e. the DataSet name at least is unique.
   * \param inType type of DataSet to add.
   * \param metaIn DataSet MetaData.
   * \return pointer to successfully set-up DataSet or 0 if error.
   */
 DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& metaIn)
-{ // TODO Pass in Nframes? 
+{ // TODO Pass in Nframes?
   // Assume list does NOT have copies.
   MetaData meta( metaIn );
   meta.SetEnsembleNum( ensembleNum_ );
@@ -417,7 +417,7 @@ DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& m
     DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
     //DS->Allocate( DataSet::SizeArray(1, Nframes) );
   }
-  // Set up DataSet MetaData 
+  // Set up DataSet MetaData
   if ( DS->SetMeta( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
     delete DS;
