@@ -248,15 +248,15 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
     }
     for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); at++)
     {
-      if (atom_x_[*at] == 0) { // TODO: FLOAT?
+      if (atom_x_[*at] == 0) {
 #       ifdef TIMER
         time_addsets.Start();
 #       endif
-        atom_x_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aX", *at+1));
-        atom_y_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aY", *at+1));
-        atom_z_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aZ", *at+1));
-        atom_r_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aR", *at+1));
-        atom_a_[*at] = masterDSL_->AddSet_NoCheck(DataSet::DOUBLE, MetaData(dsname_, "aA", *at+1));
+        atom_x_[*at] = masterDSL_->AddSet_NoCheck(DataSet::FLOAT, MetaData(dsname_, "aX", *at+1));
+        atom_y_[*at] = masterDSL_->AddSet_NoCheck(DataSet::FLOAT, MetaData(dsname_, "aY", *at+1));
+        atom_z_[*at] = masterDSL_->AddSet_NoCheck(DataSet::FLOAT, MetaData(dsname_, "aZ", *at+1));
+        atom_r_[*at] = masterDSL_->AddSet_NoCheck(DataSet::FLOAT, MetaData(dsname_, "aR", *at+1));
+        atom_a_[*at] = masterDSL_->AddSet_NoCheck(DataSet::FLOAT, MetaData(dsname_, "aA", *at+1));
 #       ifdef TIMER
         time_addsets.Stop();
 #       endif
@@ -345,12 +345,17 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       average2 += dist2;
       // Store distances for this atom
       if (printIndividual_) {
-        atom_x_[*at]->Add(frameNum, &distx);
-        atom_y_[*at]->Add(frameNum, &disty);
-        atom_z_[*at]->Add(frameNum, &distz);
-        atom_r_[*at]->Add(frameNum, &dist2);
+        float fval = (float)distx;
+        atom_x_[*at]->Add(frameNum, &fval);
+        fval = (float)disty;
+        atom_y_[*at]->Add(frameNum, &fval);
+        fval = (float)distz;
+        atom_z_[*at]->Add(frameNum, &fval);
+        fval = (float)dist2;
+        atom_r_[*at]->Add(frameNum, &fval);
         dist2 = sqrt(dist2);
-        atom_a_[*at]->Add(frameNum, &dist2);
+        fval = (float)dist2;
+        atom_a_[*at]->Add(frameNum, &fval);
       }
       // Update the previous coordinate set to match the current coordinates
       previous_[idx  ] = XYZ[0];
