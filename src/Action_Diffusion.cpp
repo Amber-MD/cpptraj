@@ -8,18 +8,24 @@
 Action_Diffusion::Action_Diffusion() :
   avg_x_(0), avg_y_(0), avg_z_(0), avg_r_(0), avg_a_(0),
   printIndividual_(false),
+  calcDiffConst_(false),
   time_(1.0),
   hasBox_(false),
   diffConst_(0),
+  diffLabel_(0),
+  diffSlope_(0),
+  diffInter_(0),
+  diffCorrl_(0),
   debug_(0),
   outputx_(0), outputy_(0), outputz_(0), outputr_(0), outputa_(0),
+  diffout_(0),
   boxcenter_(0.0),
   masterDSL_(0)
 {}
 
 static inline void ShortHelp() {
   mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>]\n"
-          "\t[<mask>] [<set name>] [individual]\n");
+          "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n");
 }
 
 void Action_Diffusion::Help() {
@@ -50,6 +56,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   {
     // Old syntax: <mask> <time per frame> [average] [<prefix>]
     printIndividual_ = !(actionArgs.hasKey("average"));
+    calcDiffConst_ = false;
     mprintf("Warning: Deprecated syntax for 'diffusion'. Consider using new syntax:\n");
     ShortHelp();
     mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -69,14 +76,16 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     outputa_ = init.DFL().AddDataFile(outputNameRoot+"_a.xmgr", dft, oldArgs);
   } else {
     // New syntax: [{separateout <suffix> | out <filename>}] [time <time per frame>]
-    //             [<mask>] [<set name>] [individual]
+    //             [<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]
     printIndividual_ = actionArgs.hasKey("individual");
+    calcDiffConst_ = !(actionArgs.hasKey("nocalc"));
     std::string suffix = actionArgs.GetStringKey("separateout");
     std::string outname = actionArgs.GetStringKey("out");
     if (!outname.empty() && !suffix.empty()) {
       mprinterr("Error: Specify either 'out' or 'separateout', not both.\n");
       return Action::ERR;
     }
+    diffout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("diffout"));
     time_ = actionArgs.getKeyDouble("time", 1.0);
     if (CheckTimeArg(time_)) return Action::ERR;
     mask_.SetMaskString( actionArgs.GetMaskNext() );
@@ -88,11 +97,14 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
       outputz_ = init.DFL().AddDataFile(FName.DirPrefix()+"z_"+FName.Base(), actionArgs);
       outputr_ = init.DFL().AddDataFile(FName.DirPrefix()+"r_"+FName.Base(), actionArgs);
       outputa_ = init.DFL().AddDataFile(FName.DirPrefix()+"a_"+FName.Base(), actionArgs);
+      if (diffout_ == 0 && calcDiffConst_)
+        diffout_ = init.DFL().AddDataFile(FName.DirPrefix()+"diff_"+FName.Base(), actionArgs);
     } else if (!outname.empty()) {
       outputr_ = init.DFL().AddDataFile( outname, actionArgs );
       outputx_ = outputy_ = outputz_ = outputa_ = outputr_;
     }
   }
+  if (diffout_ != 0) calcDiffConst_ = true;
   // Add DataSets
   dsname_ = actionArgs.GetStringNext();
   if (dsname_.empty())
@@ -102,9 +114,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_z_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Z"));
   avg_r_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "R"));
   avg_a_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "A"));
-  diffConst_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "D"));
-  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0 ||
-      diffConst_ == 0)
+  if (avg_x_ == 0 || avg_y_ == 0 || avg_z_ == 0 || avg_r_ == 0 || avg_a_ == 0)
     return Action::ERR;
   if (outputr_ != 0) outputr_->AddDataSet( avg_r_ );
   if (outputx_ != 0) outputx_->AddDataSet( avg_x_ );
@@ -118,7 +128,31 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_z_->SetDim(Dimension::X, Xdim_);
   avg_r_->SetDim(Dimension::X, Xdim_);
   avg_a_->SetDim(Dimension::X, Xdim_);
-  // Save master data set list
+  // Add DataSets for diffusion constant calc
+  if (calcDiffConst_) {
+    diffConst_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "D"));
+    diffLabel_ = init.DSL().AddSet(DataSet::STRING, MetaData(dsname_, "Label"));
+    diffSlope_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Slope"));
+    diffInter_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Intercept"));
+    diffCorrl_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Corr"));
+    if (diffConst_ == 0 || diffLabel_ == 0 || diffSlope_ == 0 || diffInter_ == 0 ||
+        diffCorrl_ == 0)
+      return Action::ERR;
+    if (diffout_ != 0) {
+      diffout_->AddDataSet( diffConst_ );
+      diffout_->AddDataSet( diffSlope_ );
+      diffout_->AddDataSet( diffInter_ );
+      diffout_->AddDataSet( diffCorrl_ );
+      diffout_->AddDataSet( diffLabel_ );
+    }
+    Dimension Ddim( 1, 1, "Set" );
+    diffConst_->SetDim(Dimension::X, Ddim);
+    diffLabel_->SetDim(Dimension::X, Ddim);
+    diffSlope_->SetDim(Dimension::X, Ddim);
+    diffInter_->SetDim(Dimension::X, Ddim);
+    diffCorrl_->SetDim(Dimension::X, Ddim);
+  }
+  // Save master data set list, needed when printIndividual_
   masterDSL_ = init.DslPtr();
 
   mprintf("    DIFFUSION:\n");
@@ -141,10 +175,17 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
             outputa_->DataFilename().full());
   }
   mprintf("\tThe time between frames is %g ps.\n", time_);
-  mprintf("\tTo calculate diffusion constant from the total mean squared displacement plot,\n"
-          "\tcalculate the slope of MSD vs time and multiply by 10.0/6.0; this will give\n"
-          "\tunits of 1x10^-5 cm^2/s\n");
+  if (calcDiffConst_) {
+    mprintf("\tCalculating diffusion constants by fitting slope to MSD vs time\n"
+            "\t  and multiplying by 10.0/2*N (where N is # of dimensions), units\n"
+            "\t  are 1x10^-5 cm^2/s.\n");
+    if (diffout_ != 0)
+      mprintf("\tDiffusion constant output to '%s'\n", diffout_->DataFilename().full());
 
+  } else
+    mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
+            "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
+            "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
   return Action::OK;
 }
 
@@ -316,27 +357,42 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 void Action_Diffusion::Print() {
-  if (diffConst_ == 0) return;
+  if (!calcDiffConst_) return;
   mprintf("    DIFFUSION: Calculating diffusion constants from slopes.\n");
+  std::string const& name = avg_r_->Meta().Name();
   unsigned int set = 0;
-  double D0 = CalcDiffusionConst( avg_r_, 3 );
-  diffConst_->Add(set++, &D0);
-  D0 = CalcDiffusionConst( avg_x_, 1 );
-  diffConst_->Add(set++, &D0);
-  D0 = CalcDiffusionConst( avg_y_, 1 );
-  diffConst_->Add(set++, &D0);
-  D0 = CalcDiffusionConst( avg_z_, 1 );
-  diffConst_->Add(set++, &D0);
+  CalcDiffusionConst( set, avg_r_, 3, name + "_AvgDr" );
+  CalcDiffusionConst( set, avg_x_, 1, name + "_AvgDx" );
+  CalcDiffusionConst( set, avg_y_, 1, name + "_AvgDy" );
+  CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
+  if (printIndividual_) {
+    CalcDiffForSet( set, atom_r_, 3, name + "_dr" );
+  }
 }
 
-double Action_Diffusion::CalcDiffusionConst( DataSet* ds, int Ndim ) const {
+void Action_Diffusion::CalcDiffForSet(unsigned int& set, Dlist const& Sets, int Ndim,
+                                      std::string const& label) const
+{
+  for (Dlist::const_iterator ds = Sets.begin(); ds != Sets.end(); ds++)
+    if (*ds != 0)
+      CalcDiffusionConst(set, *ds, Ndim, label + "_" + integerToString( (*ds)->Meta().Idx() ));
+}
+
+void Action_Diffusion::CalcDiffusionConst(unsigned int& set, DataSet* ds, int Ndim,
+                                          std::string const& label) const
+{
   DataSet_1D const& data = static_cast<DataSet_1D const&>( *ds );
   double Factor = 10.0 / ((double)Ndim * 2.0);
   double slope, intercept, corr;
   double Dval = 0.0;
   if (data.LinearRegression( slope, intercept, corr, 0 ) == 0)
     Dval = slope * Factor;
-  mprintf("DEBUG: '%s' D= %g  Slope= %g  Int= %g  Corr= %g\n", data.legend(), Dval,
-          slope, intercept, corr);
-  return Dval;
+  if (diffout_ == 0)
+    mprintf("\t'%s' D= %g  Slope= %g  Int= %g  Corr= %g\n", data.legend(), Dval,
+            slope, intercept, corr);
+  diffConst_->Add(set  , &Dval);
+  diffSlope_->Add(set  , &slope);
+  diffInter_->Add(set  , &intercept);
+  diffCorrl_->Add(set  , &corr);
+  diffLabel_->Add(set++, label.c_str());
 }
