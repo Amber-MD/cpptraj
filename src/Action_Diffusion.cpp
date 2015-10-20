@@ -181,7 +181,8 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
             "\t  are 1x10^-5 cm^2/s.\n");
     if (diffout_ != 0)
       mprintf("\tDiffusion constant output to '%s'\n", diffout_->DataFilename().full());
-
+    else
+      mprintf("\tDiffusion constant output to STDOUT.\n");
   } else
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
