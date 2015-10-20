@@ -230,16 +230,17 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
   // Set up sets for individual atoms if necessary
   if (printIndividual_) {
+    // Create as many spots for sets as needed. All do not have to be used.
+    if (mask_.back() >= (int)atom_x_.size()) {
+      int newSize = mask_.back() + 1;
+      atom_x_.resize( newSize, 0 );
+      atom_y_.resize( newSize, 0 );
+      atom_z_.resize( newSize, 0 );
+      atom_r_.resize( newSize, 0 );
+      atom_a_.resize( newSize, 0 );
+    }
     for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); at++)
     {
-      if (*at >= (int)atom_x_.size()) {
-        int newSize = *at + 1;
-        atom_x_.resize( newSize, 0 );
-        atom_y_.resize( newSize, 0 );
-        atom_z_.resize( newSize, 0 );
-        atom_r_.resize( newSize, 0 );
-        atom_a_.resize( newSize, 0 );
-      }
       if (atom_x_[*at] == 0) { // TODO: FLOAT?
         atom_x_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aX", *at+1));
         atom_y_[*at] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "aY", *at+1));
@@ -340,11 +341,11 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       previous_[idx+2] = XYZ[2];
     } // END loop over selected atoms
     // Calc averages
-    double dNselected = (double)mask_.Nselected();
-    avgx /= dNselected;
-    avgy /= dNselected;
-    avgz /= dNselected;
-    average2 /= dNselected;
+    double dNselected = 1.0 / (double)mask_.Nselected();
+    avgx *= dNselected;
+    avgy *= dNselected;
+    avgz *= dNselected;
+    average2 *= dNselected;
     // Save averages
     avg_x_->Add(frameNum, &avgx);
     avg_y_->Add(frameNum, &avgy);
