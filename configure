@@ -45,6 +45,16 @@ UsageFull() {
   echo "    -nomathlib : Do not include routines which require LAPACK or BLAS"
   echo "    -noarpack  : Do not include routines which require ARPACK"
   echo ""
+  echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
+  echo "    CXX        : Name of the C++ compiler."
+  #echo "    CC         : Name of the C compiler."
+  #echo "    FC         : Name of the fortran compiler."
+  echo "    CXXFLAGS   : Flags to pass to the C++ compiler."
+  echo "    CFLAGS     : Flags to pass to the C compiler."
+  echo "    FFLAGS     : Flags to pass to the Fortran compiler."
+  echo "    LDFLAGS    : Flags to pass to the linker."
+  echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
+  echo ""
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
   echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)"
@@ -287,7 +297,7 @@ SetCompilerOptions() {
       CC=cc
       CXX=CC
       FC=ftn
-      OPTFLAGS=""
+      OPTFLAGS="-h gnu"
       OMPFLAGS=""
       FFLAGS="-f free -emf"
       FOPTFLAGS=""
@@ -350,6 +360,7 @@ LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 # Library flags
 STATIC=0
+#STATICFLAG="-static"
 NETCDF_HOME=""
 PNETCDF_HOME=""
 BZLIB_HOME=""
@@ -626,8 +637,7 @@ echo "Installing cpptraj binary to $CPPTRAJBIN"
 
 # Check for compilers
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then
-  echo "No compiler specified."
-  echo "Specify 'gnu', 'intel', or 'pgi' as an argument to ./configure"
+  echo "No compiler specified and CXX not set."
   UsageSimple
   exit 1
 fi
@@ -782,7 +792,7 @@ if [[ $USETIMER -eq 1 ]] ; then
 fi
 
 # For pgi on cray modify some flags
-if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
+if [[ $USECRAY -eq 1 && $COMPILERS = "pgi" ]] ; then
     OPTFLAGS="-fast"
     OMPFLAGS="-mp=nonuma"
     FOPTFLAGS="-fast"
@@ -790,7 +800,7 @@ fi
 
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
-  if [[ $CC = "clang" ]] ; then
+  if [[ $COMPILERS = "clang" ]] ; then
     echo "Error: clang compiler does not yet support OpenMP."
     exit 1
   fi
@@ -807,12 +817,9 @@ if [[ $OPT -eq 0 ]] ; then
   DEBUGFLAGS="$DEBUGFLAGS -O0"
 fi
 
-# Add cray-specific flags
-if [[ $CC = "cc" ]] ; then
-  OPTFLAGS="-h gnu "$OPTFLAGS
-  if [[ $USEOPENMP -eq 0 ]] ; then
-    DIRECTIVES="-h noomp "$DIRECTIVES
-  fi
+# Add flags specific to cray compilers
+if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
+  DIRECTIVES="-h noomp "$DIRECTIVES
 fi
 
 # Flags for libsander
@@ -850,25 +857,25 @@ if [[ $USESHARED -eq 1 ]] ; then
 fi
 
 # Add debug flags for non-PGI compilers if debug info on
-if [[ ! -z $DEBUGFLAGS && $CXX != "pgc++" ]] ; then
+if [[ ! -z $DEBUGFLAGS && $COMPILERS != "pgi" ]] ; then
   CFLAGS="-Wall $CFLAGS"
   CXXFLAGS="-Wall -fno-inline $CXXFLAGS"
   FFLAGS="-Wall $FFLAGS"
 fi
 
 # Turn on profiling for GNU if specified
-if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
+if [[ $PROFILE -eq 1 && $COMPILERS = "gnu" ]] ; then
   echo "Using $CXX profiling."
   CFLAGS="-pg $CFLAGS"
   CXXFLAGS="-pg $CXXFLAGS"
   LDFLAGS="-pg $LDFLAGS"
-elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
+elif [[ $PROFILE -eq 2 && $COMPILERS = "gnu" ]] ; then
   echo "Turning on GLIBC profiling for $CXX."
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
 elif [[ $PROFILE -eq 3 ]] ; then
   echo "Turning on flags for Intel Vtune"
   VTUNEFLAGS=""
-  if [[ $CXX = "icpc" ]] ; then
+  if [[ $COMPILERS = "intel" ]] ; then
     VTUNEFLAGS=$VTUNEFLAGS" -debug inline-debug-info"
   fi
   CFLAGS="-g $VTUNEFLAGS $CFLAGS"
