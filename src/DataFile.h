@@ -43,6 +43,8 @@ class DataFile {
     int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
     /// Set up DataFile for writing.
     int SetupDatafile(FileName const&, ArgList&, int);
+    /// Set up DataFile for writing with specific format.
+    int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
     int SetupStdout(ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
