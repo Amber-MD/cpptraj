@@ -199,6 +199,7 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.time_, second.time_);
   swap(first.X_, second.X_);
   swap(first.V_, second.V_);
+  swap(first.F_, second.F_);
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
@@ -420,6 +421,42 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   } else {
     if (V_ != 0) delete[] V_;
     V_ = 0;
+  }
+  // Mass 
+  if (reallocate || Mass_.empty())
+    Mass_.resize(maxnatom_);
+  Darray::iterator mass = Mass_.begin();
+  for (std::vector<Atom>::const_iterator atom = atoms.begin();
+                                         atom != atoms.end(); ++atom)
+    *(mass++) = (*atom).Mass();
+  // Replica indices
+  remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
+  return 0;
+}
+
+// Frame::SetupFrameVF()
+int Frame::SetupFrameVF(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
+  bool reallocate = ReallocateX( atoms.size() );
+  // Velocity
+  if (cinfo.HasVel()) {
+    if (reallocate || V_ == 0) {
+      if (V_ != 0) delete[] V_;
+      V_ = new double[ maxnatom_*3 ];
+      // Since velocity might not be read in, initialize it to 0.
+      memset(V_, 0, maxnatom_ * COORDSIZE_);
+    }
+  } else {
+    if (V_ != 0) delete[] V_;
+    V_ = 0;
+  }
+  // Force
+  if (cinfo.HasForce()) {
+    if (reallocate || F_ == 0) {
+      if (F_ != 0) delete[] F_;
+      F_ = new double [ maxnatom_*3 ];
+      // Since force might not be read in, initialize it to 0.
+      memset(F_, 0, maxnatom_ * COORDSIZE_);
+    }
   }
   // Mass 
   if (reallocate || Mass_.empty())

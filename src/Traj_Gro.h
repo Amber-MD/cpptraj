@@ -18,7 +18,8 @@ class Traj_Gro : public TrajectoryIO {
     int writeFrame(int,Frame const&) { return 1; }
     void Info();
     int processWriteArgs(ArgList&) { return 0; }
-    int readVelocity(int, Frame&) { return 1; }
+    int readVelocity(int, Frame&)  { return 1; }
+    int readForce(int, Frame&)     { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
 
     double GetTimeValue(const char*) const;

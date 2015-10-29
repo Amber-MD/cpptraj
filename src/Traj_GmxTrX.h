@@ -56,6 +56,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int writeFrame(int,Frame const&);
     void Info();
     int readVelocity(int, Frame&);
+    int readForce(int, Frame&)     { return 1; }  // TODO support this
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
 };

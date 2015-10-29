@@ -72,6 +72,7 @@ class Frame {
     const double& operator[](int idx) const { return X_[idx];        }
     bool empty()                      const { return (natom_ == 0);  }
     bool HasVelocity()                const { return (V_ != 0);      }
+    bool HasForce()                   const { return (F_ != 0);      }
     int Natom()                       const { return natom_;         }
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
@@ -83,6 +84,8 @@ class Frame {
     const double* CRD(int idx)        const { return X_ + idx;       }
     /// \return pointer to start of velocity XYZ for given atom.
     const double* VXYZ(int atnum)     const { return V_ + (atnum*3); }
+    /// \return pointer to start of force XYZ for given atom.
+    const double* FXYZ(int atnum)     const { return F_ + (atnum*3); }
     /// \return mass of specified atom.
     double Mass(int atnum)            const { return Mass_[atnum];   }
     /// \return Box information
@@ -102,12 +105,14 @@ class Frame {
     // ----- Access to internal data pointers ----
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
+    inline double* fAddress() { return F_;                }
     inline double* bAddress() { return box_.boxPtr();     }
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
+    inline const double* fAddress() const { return F_;                }
     inline const double* bAddress() const { return box_.boxPtr();     }
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
@@ -121,6 +126,8 @@ class Frame {
     int SetupFrameXM(std::vector<double> const&, std::vector<double> const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
+    /// Allocate frame for given # atoms with mass and opt. velocity, force/indices.
+    int SetupFrameVF(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     // ----- Frame coords set routines -----------

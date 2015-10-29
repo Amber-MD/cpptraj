@@ -179,7 +179,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
       mprintf("Warning: Cannot append velocity data to NetCDF file '%s'; no velocity dimension.\n",
               filename_.base());
     if (outputFrc_ && !CoordInfo().HasForce())
-      mprintf("Warning: Cannot append velocity data to NetCDF file '%s'; no force diemnsion.\n",
+      mprintf("Warning: Cannot append force data to NetCDF file '%s'; no force dimension.\n",
               filename_.base());
     if (debug_ > 0)
       mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe()); 
@@ -245,7 +245,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
     }
-    FloatToDouble(frameIn.vAddress(), Coord_);
+    FloatToDouble(frameIn.fAddress(), Coord_);
   }
 
   // Read indices. Input array must be allocated to be size remd_dimension.
@@ -306,8 +306,8 @@ int Traj_AmberNetcdf::readForce(int set, Frame& frameIn) {
   count_[0] = 1;
   count_[1] = Ncatom();
   count_[2] = 3;
-  // Read Velocities
-  if (velocityVID_ != -1) {
+  // Read forces
+  if (frcVID_ != -1) {
     if ( checkNCerr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
@@ -338,6 +338,15 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     DoubleToFloat(Coord_, frameOut.vAddress());
     if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
+      return 1;
+    }
+  }
+
+  // Write forces. FIXME: Should check in setup
+  if (CoordInfo().HasForce() && frameOut.HasForce()) {
+    DoubleToFloat(Coord_, frameOut.fAddress());
+    if (checkNCerr(nc_put_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Netcdf writing force frame %i\n", set+1);
       return 1;
     }
   }

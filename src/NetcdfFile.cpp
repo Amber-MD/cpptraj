@@ -183,7 +183,7 @@ int NetcdfFile::SetupEnsembleDim() {
 
 // NetcdfFile::SetupCoordsVelo()
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
-  * velocityVID. Check units and spatial dimensions.
+  * velocityVID, frcVID. Check units and spatial dimensions.
   */
 int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   int spatial;
@@ -226,7 +226,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   // Get velocity info
   velocityVID_ = -1;
   if ( nc_inq_varid(ncid_, NCVELO, &velocityVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("    Netcdf file has velocities.\n");
+    if (ncdebug_>0) mprintf("\tNetcdf file has velocities.\n");
   }
   // Return a error if no coords and no velocity
   if ( coordVID_ == -1 && velocityVID_ == -1 ) {
@@ -246,7 +246,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   // Get force info
   frcVID_ = -1;
   if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("    Netcdf file has forces.\n");
+    if (ncdebug_>0) mprintf("\tNetcdf file has forces.\n");
   }
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;
@@ -544,8 +544,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   nc_type dataType;
 
   if (ncdebug_>1)
-    mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
-            Name.c_str(),natomIn,(int)coordInfo.HasVel(),(int)coordInfo.HasBox(),
+    mprintf("DEBUG: NC_create: %s  natom=%i V=%i F=%i box=%i  temp=%i  time=%i\n",
+            Name.c_str(),natomIn,(int)coordInfo.HasVel(),
+            (int)coordInfo.HasForce(),(int)coordInfo.HasBox(),
             (int)coordInfo.HasTemp(),(int)coordInfo.HasTime());
 
   if ( checkNCerr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )

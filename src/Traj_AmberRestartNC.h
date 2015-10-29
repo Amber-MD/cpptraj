@@ -36,6 +36,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     FileName filename_;
 
     int readVelocity(int, Frame&) { return 1; }
+    int readForce(int, Frame&)    { return 1; }
 };
 #endif
 #endif  

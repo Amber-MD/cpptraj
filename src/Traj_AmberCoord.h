@@ -36,6 +36,7 @@ class Traj_AmberCoord: public TrajectoryIO {
     void Info();
     int processWriteArgs(ArgList&);
     int readVelocity(int, Frame&);
+    int readForce(int, Frame&)     { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
 };
 #endif
