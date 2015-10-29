@@ -312,7 +312,7 @@ int Traj_AmberNetcdf::readForce(int set, Frame& frameIn) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
     }
-    FloatToDouble(frameIn.vAddress(), Coord_);
+    FloatToDouble(frameIn.fAddress(), Coord_);
   }
   return 0;
 }
