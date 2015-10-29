@@ -2,19 +2,18 @@ CPPTRAJ
 =======
 
 CPPTRAJ is a program designed to load and analyze molecular dynamics
-trajectories and relevant data sets derived from their analysis.
+trajectories and relevant data sets derived from their analysis. It is 
+a C++ rewrite of the PTRAJ trajectory analysis code from Amber.
 
-*Note that the GitHub version of CPPTRAJ should be considered BETA.*
+*Note that the GitHub version of CPPTRAJ should be considered BETA.*  
 The official AmberTools release version of CPPTRAJ can be found
 at the [Amber website](http://ambermd.org).
 
-About CPPTRAJ
-=============
+For more information see the following publication:
 
-CPPTRAJ is a rewrite of the PTRAJ trajectory analysis code in C++ that is part
-of AmberTools. The intent is to make the code more readable, leak-free, and
-thread-safe. The biggest functional change from PTRAJ is the ability to load and
-process trajectories with different topology files in the same run.
+[Daniel R. Roe and Thomas E. Cheatham, III, "PTRAJ and CPPTRAJ: Software for
+  Processing and Analysis of Molecular Dynamics Trajectory Data". J. Chem.
+  Theory Comput., 2013, 9 (7), pp 3084-3095](http://pubs.acs.org/doi/abs/10.1021/ct400341p).
 
 Build Status
 =============
@@ -23,116 +22,118 @@ Build Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe. 
+CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe.   
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
-Contributors to CPPTRAJ
-=======================
-Lead Author: Daniel R. Roe (daniel.r.roe@gmail.com)
-             Department of Medicinal Chemistry
-             University of Utah, Salt Lake City, UT.
-
-  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (University of Utah,
-Salt Lake City, UT, USA) and many routines from PTRAJ have been adapted for 
-use by CPPTRAJ, including (but not limited to) code used in the following 
-classes:
-  - Analysis_CrankShaft
-  - Analysis_Statistics
-  - Action_DNAionTracker
-  - Action_RandomizeIons
-  - Action_Principal
-  - Action_Grid
-  - Grid
-  - Action_Image
-  - ImageRoutines
-
-Contributors
-============
-  - James Maier (Stony Brook University, Stony Brook, NY, USA)
-    Code for calculating J-couplings (used in Action_Jcoupling).
-
-  - Jason M. Swails (University of Florida, Gainesville, FL, USA)
-    Action_LIE, Analysis_RunningAvg, Action_Volmap, Grid OpenDX output.
-
-  - Jason M. Swails (University of Florida, Gainesville, FL, USA)
-  - Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)
-    Action_SPAM
-
-  - Mark J. Williamson (Unilever Centre for Molecular Informatics, 
-      Department of Chemistry, Cambridge, UK).
-    Action_GridFreeEnergy
-
-  - Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
-                        Warrington, WA4 4AD, UK)
-    Action_Density, Action_OrderParameter, Action_PairDist
-
-  - Crystal N. Nguyen (University of California, San Diego).
-  - Romelia F. Salomon (University of California, San Diego).
-    Action_Gist
-
-  - Pawel Janowski (Rutgers University, NJ, USA).
-    Normal mode wizard output for Analysis_Matrix, original code for ADP 
-    calculation in Action_AtomicFluct.
-
-
-  The following people wrote code in PTRAJ which was eventually adapted for
-use in CPPTRAJ:
-  - Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
-  - Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany) 
-    Original implementation of matrix/vector functionality in PTRAJ, including
-    matrix diagonalization, IRED analysis, eigenmode analysis, and vector time 
-    correlations.
-
-  - Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)
-    Original code for DSSP (secstruct).
-
-  - Michael Crowley (University of Southern California, Los Angeles, CA, USA)
-    Original code for dealing with truncated octahedral unit cells.
-
-  - Viktor Hornak (Merck, NJ, USA)
-    Original code for mask expression parser.
-
-  - John Mongan (UCSD, San Diego, CA, USA)
-    Original implementation of the Amber NetCDF trajectory format.
-
-  - Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department,
-                        Warrington, WA4 4AD, UK)
-    Diffusion calculation code adapted for use in Action_STFC_Diffusion.
-
-Documentation
-=============
-  The main documentation for CPPTRAJ usage is in the AmberTools user manual,
-available with any AmberTools distribution in `$AMBERHOME/doc`. There is also
-limited help for commands in interactive mode:
-```
-help [<command>]
-```
-`help` with no arguments lists all known commands.
-
-  Code documentation can be generated via Doxygen by typing `make docs`. This
-will install HTML and Latex documentation at doc/html/index.html and in 
-the `doc/latex` respectively. A limited developers guide is available in
-Lyx format in `doc/CpptrajDevlopmentGuide.lyx`.
-
-
 Installation & Testing
 ======================
-Run `./configure --help` for the complete list of configure options.
+Run `./configure --help` for a short list of configure options. `./configure --full-help`
+will list all available configure options. By default, CPPTRAJ requires the following
+libraries:
 
-  `./configure gnu` should be adequate to set up compilation for most systems.
+* NetCDF
+* BLAS
+* LAPACK
+* ARPACK
+* Bzip2
+* Gzip
+
+`./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NETCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
-'./configure -amberlib gnu'. For multicore systems, the `-openmp` flag can
+`./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
+An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag;
+currently MPI can only be used for `ensemble` processing (see the manual for
+further details).
 
 The configure script by default sets everything up to link dynamically. The
 `-static` flag can be used to force static linking. If linking errors are
 encountered you may need to specify library locations using the `--with-LIB=`
-options. For example, to use NetCDF compiled in /opt/netcdf use the option 
+options. For example, to use NetCDF compiled in `/opt/netcdf` use the option 
 `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be 
-disabled with the '-noLIB' options.
+disabled with the `-no<LIB>` options.
 
 After config.h has been successfully generated, `make install` will
 compile and place the cpptraj binary in the `bin/` subdirectory.
+
+CPPTRAJ Authors
+===============
+**Lead Author:** Daniel R. Roe (<daniel.r.roe@gmail.com>)  
+Department of Medicinal Chemistry  
+University of Utah, Salt Lake City, UT.
+
+  CPPTRAJ is based on PTRAJ by Thomas E. Cheatham, III (University of Utah,
+Salt Lake City, UT, USA) and many routines from PTRAJ have been adapted for 
+use in CPPTRAJ, including code used in the following classes:
+Analysis\_CrankShaft, Analysis\_Statistics, Action\_DNAionTracker,
+Action\_RandomizeIons, Action\_Principal, Action\_Grid, GridAction,
+Action\_Image, and ImageRoutines.
+
+## Contributors to CPPTRAJ
+
+* James Maier (Stony Brook University, Stony Brook, NY, USA)  
+Code for calculating J-couplings (used in Action\_Jcoupling).
+
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)  
+Action\_LIE, Analysis\_RunningAvg, Action\_Volmap, Grid OpenDX output.
+
+* Jason M. Swails (University of Florida, Gainesville, FL, USA)  
+Guanglei Cui (GlaxoSmithKline, Upper Providence, PA, USA)  
+Action\_SPAM.
+
+* Mark J. Williamson (Unilever Centre for Molecular Informatics, Department of Chemistry, Cambridge, UK)  
+Action\_GridFreeEnergy.
+
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
+Action\_Density, Action\_OrderParameter, Action\_PairDist.
+
+* Crystal N. Nguyen (University of California, San Diego)  
+Romelia F. Salomon (University of California, San Diego)  
+Action\_Gist.
+
+* Pawel Janowski (Rutgers University, NJ, USA)  
+Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_AtomicFluct.
+
+* Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)  
+Original code for Analysis\_Wavelet.
+
+#### Various Contributions
+* David A. Case (Rutgers University, Piscataway, NJ, USA)
+* Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
+* Robert T. McGibbon (Stanford University, Stanford, CA, USA)
+
+## Code in CPPTRAJ that originated in PTRAJ
+
+* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
+Alrun N. Koller (Heinrich-Heine-University, Düsseldorf, Germany) 
+Original implementation of matrix/vector functionality in PTRAJ, including matrix diagonalization, IRED analysis, eigenmode analysis, and vector time correlations.
+
+* Holger Gohlke (Heinrich-Heine-University, Düsseldorf, Germany)  
+Original code for DSSP (secstruct).
+
+* Michael Crowley (University of Southern California, Los Angeles, CA, USA)  
+Original code for dealing with truncated octahedral unit cells.
+
+* Viktor Hornak (Merck, NJ, USA)  
+Original code for mask expression parser.
+
+* John Mongan (UCSD, San Diego, CA, USA)  
+Original implementation of the Amber NetCDF trajectory format.
+
+* Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
+Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
+
+Documentation
+=============
+  The main documentation for CPPTRAJ usage is in the AmberTools user manual,
+available from the [Amber website](http://ambermd.org/doc12/) or from the AmberTools
+distribution in `$AMBERHOME/doc`. There is also limited help for commands in interactive mode via
+`help [<command>]`; `help` with no arguments lists all known commands.
+
+  Code documentation can be generated via Doxygen by typing `make docs`. This
+will install HTML and Latex documentation at `doc/html/index.html` and in 
+the `doc/latex` respectively. A limited developers guide is available in
+Lyx/PDF formats in the `doc/` subdirectory.
