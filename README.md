@@ -56,8 +56,10 @@ options. For example, to use NetCDF compiled in `/opt/netcdf` use the option
 `--with-netcdf=/opt/netcdf`. Alternatively, individual libraries can be 
 disabled with the `-no<LIB>` options.
 
-After config.h has been successfully generated, `make install` will
-compile and place the cpptraj binary in the `bin/` subdirectory.
+After `configure` has been successfully run, `make install` will
+compile and place the cpptraj binary in the `bin/` subdirectory. It is highly
+recommended that `make check` be run as well to test the basic functionality
+of CPPTRAJ.
 
 CPPTRAJ Authors
 ===============
