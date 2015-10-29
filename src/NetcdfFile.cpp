@@ -57,6 +57,7 @@ NetcdfFile::NetcdfFile() :
   TempVID_(-1),
   coordVID_(-1),
   velocityVID_(-1),
+  frcVID_(-1),
   cellAngleVID_(-1),
   cellLengthVID_(-1),
   timeVID_(-1),
@@ -241,6 +242,11 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
     mprintf("\tUsing velocities as coordinates.\n");
     coordVID_ = velocityVID_;
     velocityVID_ = -1;
+  }
+  // Get force info
+  frcVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
+    if (ncdebug_>0) mprintf("    Netcdf file has forces.\n");
   }
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;
@@ -902,9 +908,9 @@ void NetcdfFile::WriteIndices() const {
 }
 
 void NetcdfFile::WriteVIDs() const {
-  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i frcVID_=%i  cellAngleVID_=%i"
           "  cellLengthVID_=%i  indicesVID_=%i\n",
-          TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
+          TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
 
 void NetcdfFile::Sync() {

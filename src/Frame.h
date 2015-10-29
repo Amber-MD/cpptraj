@@ -217,6 +217,7 @@ class Frame {
     double time_;   ///< Time FIXME Should this be float?
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
+    double* F_;     ///< Frame (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.
     Darray Mass_;   ///< Masses.
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.
