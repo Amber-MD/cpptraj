@@ -390,6 +390,9 @@ void Action_Diffusion::Print() {
   CalcDiffusionConst( set, avg_z_, 1, name + "_AvgDz" );
   if (printIndividual_) {
     CalcDiffForSet( set, atom_r_, 3, name + "_dr" );
+    CalcDiffForSet( set, atom_x_, 3, name + "_dx" );
+    CalcDiffForSet( set, atom_y_, 3, name + "_dy" );
+    CalcDiffForSet( set, atom_z_, 3, name + "_dz" );
   }
 }
 
