@@ -603,7 +603,7 @@ int CpptrajState::RunNormal() {
         (TrajFrame.HasVelocity() != currentParm.CoordInfo().HasVel()) ||
         ((int)TrajFrame.RemdIndices().size() !=
               currentParm.CoordInfo().ReplicaDimensions().Ndims()))
-      TrajFrame.SetupFrameVF(currentParm.Top().Atoms(), currentParm.CoordInfo());
+      TrajFrame.SetupFrameV(currentParm.Top().Atoms(), currentParm.CoordInfo());
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm

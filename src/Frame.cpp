@@ -422,33 +422,6 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
     if (V_ != 0) delete[] V_;
     V_ = 0;
   }
-  // Mass 
-  if (reallocate || Mass_.empty())
-    Mass_.resize(maxnatom_);
-  Darray::iterator mass = Mass_.begin();
-  for (std::vector<Atom>::const_iterator atom = atoms.begin();
-                                         atom != atoms.end(); ++atom)
-    *(mass++) = (*atom).Mass();
-  // Replica indices
-  remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
-  return 0;
-}
-
-// Frame::SetupFrameVF()
-int Frame::SetupFrameVF(std::vector<Atom> const& atoms, CoordinateInfo const& cinfo) {
-  bool reallocate = ReallocateX( atoms.size() );
-  // Velocity
-  if (cinfo.HasVel()) {
-    if (reallocate || V_ == 0) {
-      if (V_ != 0) delete[] V_;
-      V_ = new double[ maxnatom_*3 ];
-      // Since velocity might not be read in, initialize it to 0.
-      memset(V_, 0, maxnatom_ * COORDSIZE_);
-    }
-  } else {
-    if (V_ != 0) delete[] V_;
-    V_ = 0;
-  }
   // Force
   if (cinfo.HasForce()) {
     if (reallocate || F_ == 0) {

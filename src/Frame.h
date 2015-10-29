@@ -126,8 +126,6 @@ class Frame {
     int SetupFrameXM(std::vector<double> const&, std::vector<double> const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
-    /// Allocate frame for given # atoms with mass and opt. velocity, force/indices.
-    int SetupFrameVF(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
     // ----- Frame coords set routines -----------
