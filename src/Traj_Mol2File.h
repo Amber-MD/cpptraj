@@ -21,6 +21,7 @@ class Traj_Mol2File : public TrajectoryIO {
     Topology* mol2Top_;
     int currentSet_;
     bool hasCharges_;
+    bool useSybylTypes_;
     Mol2File file_; 
 
     // Inherited functions

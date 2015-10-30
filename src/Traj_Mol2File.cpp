@@ -1,4 +1,4 @@
-// Traj_Mol2File
+#include <cstdlib> // getenv
 #include "Traj_Mol2File.h"
 #include "CpptrajStdio.h"
 
@@ -7,7 +7,8 @@ Traj_Mol2File::Traj_Mol2File() :
   mol2WriteMode_(NONE),
   mol2Top_(0),
   currentSet_(0),
-  hasCharges_(false)
+  hasCharges_(false),
+  useSybylTypes_(false)
 {}
 
 bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
@@ -87,8 +88,9 @@ int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
 }
 
 void Traj_Mol2File::WriteHelp() {
-  mprintf("\tsingle: Write to a single file.\n"
-          "\tmulti:  Write each frame to a separate file.\n");
+  mprintf("\tsingle   : Write to a single file.\n"
+          "\tmulti    : Write each frame to a separate file.\n"
+          "\tsybyltype: Convert Amber atom types (if present) to SYBYL types.\n");
 }
 
 // Traj_Mol2File::processWriteArgs()
@@ -96,6 +98,7 @@ int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
   mol2WriteMode_ = SINGLE; // Default to single writes
   if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
   if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;
+  useSybylTypes_ = argIn.hasKey("sybyltype");
   return 0;
 }
 
@@ -134,9 +137,33 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
   hasCharges_ = false;
   for (Topology::atom_iterator atom = mol2Top_->begin(); atom != mol2Top_->end(); atom++)
   {
-    if ( (*atom).Charge() != 0 ) {
+    if ( atom->Charge() != 0 ) {
       hasCharges_ = true;
       break;
+    }
+  }
+  // Set up SYBYL atom types if requested.
+  if (useSybylTypes_) {
+    // Make sure atom types exist in topology
+    if ((*mol2Top_)[0].Type() == "") {
+      mprintf("Warning: Amber to SYBYL atom type conversion requested but topology\n"
+              "Warning:   '%s' does not appear to have atom type information.\n",
+              mol2Top_->c_str());
+      useSybylTypes_ = false;
+    } else {
+      // Attempt to load information. AMBERHOME must be set. TODO allow specified path
+      const char* AMBERHOME = getenv("AMBERHOME");
+      if (AMBERHOME == 0) {
+        mprinterr("Error: Amber to SYBYL atom type conversion requires AMBERHOME be set.\n");
+        return 1;
+      }
+      std::string pathname(AMBERHOME);
+      if (file_.ReadAmberMapping(pathname+"/dat/antechamber/ATOMTYPE_CHECK.TAB",
+                                 pathname+"/dat/antechamber/BONDTYPE_CHECK.TAB"))
+      {
+        mprinterr("Error: Loading Amber -> SYBYL type maps failed.\n");
+        return 1;
+      }
     }
   }
   // Set Title
@@ -177,10 +204,14 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
     int bondnum = 1;
     for (BondArray::const_iterator bidx = mol2Top_->Bonds().begin();
                                    bidx != mol2Top_->Bonds().end(); ++bidx)
-      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
+                          (*mol2Top_)[bidx->A1()].Type(),
+                          (*mol2Top_)[bidx->A2()].Type());
     for (BondArray::const_iterator bidx = mol2Top_->BondsH().begin();
                                    bidx != mol2Top_->BondsH().end(); ++bidx)
-      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1);
+      file_.WriteMol2Bond(bondnum++, bidx->A1()+1, bidx->A2()+1,
+                          (*mol2Top_)[bidx->A1()].Type(),
+                          (*mol2Top_)[bidx->A2()].Type());
   }
   //@<TRIPOS>SUBSTRUCTURE section
   file_.WriteHeader(Mol2File::SUBSTRUCT);

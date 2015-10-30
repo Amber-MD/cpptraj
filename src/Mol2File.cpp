@@ -162,15 +162,16 @@ void Mol2File::WriteMol2Atom(int atnum, Atom const& atomIn,
 {
   NameType atype;
   // If mapping is defined, try to use it.
-  if (!Atype_to_Idx_.empty()) {
-    IdxMap::const_iterator it = Atype_to_Idx_.find( std::string( *(atomIn.Type()) ) );
-    if (it == Atype_to_Idx_.end())
+  if (!Atype_to_Sybyl_.empty()) {
+    AtypeMap::const_iterator it = Atype_to_Sybyl_.find( atomIn.Type() );
+    if (it == Atype_to_Sybyl_.end()) {
+      mprintf("Warning: SYBYL type for atom %i '%s' not found.\n", atnum, *atomIn.Type());
       atype = atomIn.Name();
-    else
-      atype = SybylType_[it->second];
+    } else
+      atype = it->second;
   } else {
     // If atom type is blank, set to atom name
-    NameType atype = atomIn.Type();
+    atype = atomIn.Type();
     if (atype == "")
       atype = atomIn.Name();
   }
@@ -181,9 +182,25 @@ void Mol2File::WriteMol2Atom(int atnum, Atom const& atomIn,
 
 const char* Mol2File::SYBYL_BOND_[] = {"1", "2", "3", "am", "ar"};
 
-void Mol2File::WriteMol2Bond(int bnum, int at1, int at2) {
+void Mol2File::WriteMol2Bond(int bnum, int at1, int at2,
+                             NameType const& type1, NameType const& type2)
+{
   int bidx = 0;
-  
+  // If mapping is defined, try to use it
+  if (!Apair_to_Bond_.empty()) {
+    // Always order the pair so first < second
+    AtomPair bp;
+    if (type1 < type2)
+      bp = AtomPair(type1, type2);
+    else
+      bp = AtomPair(type2, type1);
+    BndMap::const_iterator it = Apair_to_Bond_.find( bp );
+    if (it == Apair_to_Bond_.end())
+      mprintf("Warning: SYBYL bond for atom %i to %i (%s -- %s) not found.\n",
+              at1+1, at2+1, *type1, *type2);
+    else
+      bidx = it->second;
+  }
   Printf("%5d %5d %5d %s\n", bnum, at1, at2, SYBYL_BOND_[bidx]);
 }
 
@@ -193,50 +210,52 @@ void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom)
 
 int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFile)
 {
-  Atype_to_Idx_.clear();
-  SybylType_.clear();
+  Atype_to_Sybyl_.clear();
   Apair_to_Bond_.clear();
   CpptrajFile infile;
   // Expected format: <Amber Atom Type> <SYBYL Atom Type>
   if (infile.OpenRead( AtomFile )) return 1;
   const char* ptr = infile.NextLine();
-  char Atype[3]; // Amber Atom type: Max 2 letters
+  char Atype[6]; // Amber Atom type: Max 2 letters
   char Stype[6]; // SYBYL Atom type: Max 5 letters
-  std::pair<IdxMap::iterator, bool> ret;
-  typedef std::pair<std::string, int> Mpair;
+  std::pair<AtypeMap::iterator, bool> ret;
+  typedef std::pair<NameType, NameType> Mpair;
   while (ptr != 0) {
     sscanf(ptr, "%s %s", Atype, Stype);
-    ret = Atype_to_Idx_.insert( Mpair(std::string(Atype), SybylType_.size()) );
+    NameType amber_type(Atype);
+    NameType sybyl_type(Stype);
+    ret = Atype_to_Sybyl_.insert( Mpair(amber_type, sybyl_type) );
     if (!ret.second) {
-      mprinterr("Error: Duplicate Atom type '%s' in '%s'\n", Atype, AtomFile.full());
-      return 1;
+      if (sybyl_type != ret.first->second) {
+        mprinterr("Error: Duplicate Amber atom type '%s' in '%s' has different SYBYL\n"
+                  "Error:   has different SYBYL type '%s' than previous '%s'\n",
+                  *amber_type, AtomFile.full(), *sybyl_type, *(ret.first->second));
+        return 1;
+      }
+      mprintf("Warning: Duplicate Amber atom type '%s' in '%s'\n", *amber_type, AtomFile.full());
     }
-    SybylType_.push_back( NameType(Stype) );
     ptr = infile.NextLine();
   }
   infile.CloseFile();
+  mprintf("DEBUG: Atype_to_Sybyl has %zu values:\n", Atype_to_Sybyl_.size());
+  for (AtypeMap::const_iterator ix = Atype_to_Sybyl_.begin(); ix != Atype_to_Sybyl_.end(); ++ix)
+    mprintf("\t'%s' => '%s'\n", *(ix->first), *(ix->second));
   // Expected format: <Amber Atom1 Type> <Amber Atom2 Type> <SYBYL Bond Type>
   if (infile.OpenRead( BondFile )) return 1;
   ptr = infile.NextLine();
-  char Atype2[3]; // Amber Atom type: Max 2 letters
-  IdxMap::const_iterator it;
+  char Atype2[6]; // Amber Atom type: Max 2 letters
   std::pair<BndMap::iterator, bool> bret;
   typedef std::pair<AtomPair, int> Bpair;
   while (ptr != 0) {
     sscanf(ptr, "%s %s %s", Atype, Atype2, Stype);
-    // Get Amber indices
-    it = Atype_to_Idx_.find( std::string(Atype) );
-    if (it == Atype_to_Idx_.end()) {
-      mprinterr("Error: Atom type '%s' not found for bond to '%s'\n", Atype, Atype2);
-      return 1;
-    }
-    int idx1 = it->second;
-    it = Atype_to_Idx_.find( std::string(Atype2) );
-    if (it == Atype_to_Idx_.end()) {
-      mprinterr("Error: Atom type '%s' not found for bond to '%s'\n", Atype2, Atype);
-      return 1;
-    }
-    AtomPair bp(idx1, it->second);
+    NameType a1(Atype);
+    NameType a2(Atype2);
+    // Always order the pair so first < second
+    AtomPair bp;
+    if (a1 < a2)
+      bp = AtomPair(a1, a2);
+    else
+      bp = AtomPair(a2, a1);
     // Determine SYBYL bond type
     int btype = -1;
     if      (Stype[0] == '1') btype = 0;
@@ -253,11 +272,20 @@ int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFil
     }
     bret = Apair_to_Bond_.insert( Bpair(bp, btype) );
     if (!bret.second) {
-      mprinterr("Error: Duplicate bond '%s'-'%s' in '%s'\n",
-                Atype, Atype2, BondFile.full());
-      return 1;
+      // Only make this an error if the type does not match.
+      if (btype != bret.first->second) {
+        mprinterr("Error: Duplicate bond '%s'-'%s' in '%s'\n"
+                  "Error:   has different type %i than previous %i\n",
+                  *a1, *a2, BondFile.full(), btype, bret.first->second);
+        return 1;
+      }
+      mprintf("Warning: Duplicate bond '%s'-'%s' in '%s'\n", *a1, *a2, BondFile.full());
     }
     ptr = infile.NextLine();
-  } 
+  }
+  infile.CloseFile();
+  mprintf("DEBUG: Apair_to_Bond has %zu values:\n", Apair_to_Bond_.size());
+  for (BndMap::const_iterator ib = Apair_to_Bond_.begin(); ib != Apair_to_Bond_.end(); ++ib)
+    mprintf("'%s'--'%s' => %s\n", *(ib->first.first), *(ib->first.second), SYBYL_BOND_[ib->second]);
   return 0;
 }
