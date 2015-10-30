@@ -3,6 +3,7 @@
 #include "CpptrajFile.h"
 #include "Atom.h"
 #include "Residue.h"
+#include <map>
 /// Used to access mol2 files.
 class Mol2File : private CpptrajFile {
   public: 
@@ -31,9 +32,11 @@ class Mol2File : private CpptrajFile {
     /// Write mol2 atom line: at#, atom, res#, res, coords
     void WriteMol2Atom(int, Atom const&, int, const char*, const double*);
     /// Write mol2 bond line; bond#, atom1, atom2
-    void WriteMol2Bond(int, int, int);
+    void WriteMol2Bond(int, int, int, NameType const&, NameType const&);
     /// Write mol2 substructure line; res#, resname, firstatom
     void WriteMol2Substructure(int, const char*, int);
+    /// Read in mapping from Amber to SYBYL
+    int ReadAmberMapping(FileName const&, FileName const&, int);
 
     void SetMol2Natoms(int nIn)               { mol2atoms_ = nIn;  }
     void SetMol2Nbonds(int nIn)               { mol2bonds_ = nIn;  }
@@ -57,5 +60,12 @@ class Mol2File : private CpptrajFile {
     int mol2atoms_;
     int mol2bonds_;
     std::string mol2title_;
+    //typedef std::map<NameType, NameType, NameType::Compare> AtypeMap;
+    typedef std::map<NameType, NameType> AtypeMap;
+    AtypeMap Atype_to_Sybyl_; ///< Map Amber type name to SYBYL type name. 
+    typedef std::pair<NameType,NameType> AtomPair;
+    typedef std::map<AtomPair, int> BndMap;
+    BndMap Apair_to_Bond_; ///< Map pairs of Amber atom type names to SYBYL bond type
+    static const char* SYBYL_BOND_[]; ///< Hold SYBYL bond type text: 1, 2, 3, am, ar
 };
-#endif  
+#endif
