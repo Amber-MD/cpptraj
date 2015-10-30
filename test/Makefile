@@ -192,6 +192,9 @@ test.readdata:
 test.ambpdb:
 	@cd Test_AmbPDB && ./RunTest.sh $(OPT)
 
+test.systemVF:
+	@cd Test_systemVF && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 MAINTESTS=test.general \
           test.strip \
@@ -234,7 +237,8 @@ MAINTESTS=test.general \
           test.lipidorder \
           test.pairdist \
           test.readdata \
-          test.ambpdb
+          test.ambpdb \
+          test.systemVF
 # Every test should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -297,7 +301,8 @@ COMPLETETESTS=test.general \
               test.lipidorder \
               test.pairdist \
               test.gist \
-              test.ambpdb
+              test.ambpdb \
+              test.systemVF
 
 summary: Summary.sh MasterTest.sh
 	@./Summary.sh $(OPT) summary

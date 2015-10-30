@@ -32,6 +32,7 @@ Frame::Frame( ) :
   time_(0.0),
   X_(0),
   V_(0),
+  F_(0),
   memIsExternal_(false)
 {}
 
@@ -41,6 +42,7 @@ Frame::~Frame( ) {
   if (!memIsExternal_) {
     if (X_ != 0) delete[] X_;
     if (V_ != 0) delete[] V_;
+    if (F_ != 0) delete[] F_;
   }
 }
 
@@ -53,6 +55,7 @@ Frame::Frame(int natomIn) :
   time_(0.0),
   X_(0),
   V_(0),
+  F_(0),
   Mass_(natomIn, 1.0),
   memIsExternal_(false)
 {
@@ -69,6 +72,7 @@ Frame::Frame(std::vector<Atom> const& atoms) :
   time_(0.0),
   X_(0),
   V_(0),
+  F_(0),
   memIsExternal_(false)
 {
   if (ncoord_ > 0) {
@@ -89,6 +93,7 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
   time_( frameIn.time_ ),
   X_(0),
   V_(0),
+  F_(0),
   remd_indices_(frameIn.remd_indices_),
   memIsExternal_(false)
 {
@@ -96,27 +101,36 @@ Frame::Frame(Frame const& frameIn, AtomMask const& maskIn) :
     Mass_.reserve(natom_);
     X_ = new double[ ncoord_ ];
     double* newX = X_;
-    if ( frameIn.V_ != 0 ) {
-      // Copy coords/mass/velo
-      V_ = new double[ ncoord_ ];
-      double* newV = V_;
-      for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-      {
-        int oldcrd = ((*atom) * 3);
-        memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
-        newX += 3;
+    double* newV = NULL;
+    double* newF = NULL;
+    bool dupV = false;
+    bool dupF = false;
+   
+    // check if we should copy velocities
+    if ( frameIn.V_ != 0 ){
+      dupV = true;
+      newV = new double[ ncoord_ ];
+    }
+    // check if we should copy forces
+    if ( frameIn.F_ != 0 ){
+      dupF = true;
+      newF = new double[ ncoord_ ];
+    }
+
+    // do the copying
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom){
+      int oldcrd = ((*atom) * 3);
+      memcpy(newX, frameIn.X_ + oldcrd, COORDSIZE_);
+      newX += 3;
+      if ( dupV ){
         memcpy(newV, frameIn.V_ + oldcrd, COORDSIZE_);
         newV += 3;
-        Mass_.push_back( frameIn.Mass_[*atom] );
       }
-    } else {
-      // Copy coords/mass
-      for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-      {
-        memcpy(newX, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-        newX += 3;
-        Mass_.push_back( frameIn.Mass_[*atom] );
+      if ( dupF ){
+        memcpy(newF, frameIn.F_ + oldcrd, COORDSIZE_);
+        newF += 3;
       }
+      Mass_.push_back( frameIn.Mass_[*atom] );
     }
   }
 }
@@ -128,6 +142,7 @@ Frame::Frame(int natom, double* Xptr) :
   ncoord_(natom*3),
   X_(Xptr),
   V_(0),
+  F_(0),
   Mass_(natom, 1.0),
   memIsExternal_(true)
 {
@@ -147,6 +162,7 @@ Frame::Frame(const Frame& rhs) :
   time_(rhs.time_),
   X_(0),
   V_(0),
+  F_(0),
   remd_indices_(rhs.remd_indices_),
   Mass_(rhs.Mass_),
   memIsExternal_(rhs.memIsExternal_)
@@ -154,8 +170,9 @@ Frame::Frame(const Frame& rhs) :
   if (memIsExternal_) {
     X_ = rhs.X_;
     V_ = rhs.V_;
+    F_ = rhs.F_;
   } else {
-    // Copy coords/velo; allocate for maxnatom but copy natom
+    // Copy coords/velo/forces; allocate for maxnatom but copy natom
     int maxncoord = maxnatom_ * 3;
     if (rhs.X_!=0) {
       X_ = new double[ maxncoord ];
@@ -164,6 +181,10 @@ Frame::Frame(const Frame& rhs) :
     if (rhs.V_!=0) {
       V_ = new double[ maxncoord ];
       memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+    }
+    if (rhs.F_!=0) {
+      F_ = new double[ maxncoord ];
+      memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
     }
   }
 }
@@ -178,6 +199,7 @@ void Frame::swap(Frame &first, Frame &second) {
   swap(first.time_, second.time_);
   swap(first.X_, second.X_);
   swap(first.V_, second.V_);
+  swap(first.F_, second.F_);
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
@@ -399,6 +421,15 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   } else {
     if (V_ != 0) delete[] V_;
     V_ = 0;
+  }
+  // Force
+  if (cinfo.HasForce()) {
+    if (reallocate || F_ == 0) {
+      if (F_ != 0) delete[] F_;
+      F_ = new double [ maxnatom_*3 ];
+      // Since force might not be read in, initialize it to 0.
+      memset(F_, 0, maxnatom_ * COORDSIZE_);
+    }
   }
   // Mass 
   if (reallocate || Mass_.empty())
@@ -1150,6 +1181,8 @@ int Frame::SendFrame(int recvrank) {
   parallel_send( X_,                ncoord_, PARA_DOUBLE, recvrank, 1212 );
   if (V_ != 0)
     parallel_send( V_,              ncoord_, PARA_DOUBLE, recvrank, 1215 );
+  if (F_ != 0)
+    parallel_send( F_,              ncoord_, PARA_DOUBLE, recvrank, 1218 );
   parallel_send( box_.boxPtr(),     6,       PARA_DOUBLE, recvrank, 1213 );
   parallel_send( &T_,               1,       PARA_DOUBLE, recvrank, 1214 );
   parallel_send( &time_,            1,       PARA_DOUBLE, recvrank, 1217 );
@@ -1163,6 +1196,8 @@ int Frame::RecvFrame(int sendrank) {
   parallel_recv( X_,                ncoord_, PARA_DOUBLE, sendrank, 1212 );
   if (V_ != 0)
     parallel_recv( V_,              ncoord_, PARA_DOUBLE, sendrank, 1215 );
+  if (F_ != 0)
+    parallel_recv( F_,              ncoord_, PARA_DOUBLE, sendrank, 1218 );
   parallel_recv( box_.boxPtr(),     6,       PARA_DOUBLE, sendrank, 1213 );
   parallel_recv( &T_,               1,       PARA_DOUBLE, sendrank, 1214 );
   parallel_recv( &time_,            1,       PARA_DOUBLE, sendrank, 1217 );

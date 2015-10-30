@@ -20,6 +20,7 @@ class Traj_CharmmCor : public TrajectoryIO {
     void Info();
     int processWriteArgs(ArgList&) { return 0; }
     int readVelocity(int, Frame&)  { return 1; }
+    int readForce(int, Frame&)     { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
 
     CpptrajFile file_;

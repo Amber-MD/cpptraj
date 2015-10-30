@@ -28,6 +28,7 @@ class CoordinateInfo {
     void SetTime(bool m)        { hasTime_ = m; }
     void SetTemperature(bool t) { hasTemp_ = t; }
     void SetVelocity(bool v)    { hasVel_ = v;  }
+    void SetForce(bool f)       { hasFrc_ = f;  }
     void SetEnsembleSize(int s) { ensembleSize_ = s; }
     void SetBox(Box const& b)   { box_ = b;     }
     void SetReplicaDims(ReplicaDimArray const& r) { remdDim_ = r; }

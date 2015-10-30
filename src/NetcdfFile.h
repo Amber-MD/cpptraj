@@ -39,6 +39,7 @@ class NetcdfFile {
     inline int Ncatom3()  const { return ncatom3_; }
     inline int Ncframe()  const { return ncframe_; }
     inline int CoordVID() const { return coordVID_; }
+    bool HasForces()       { return (frcVID_ != -1); }
     bool HasVelocities()   { return (velocityVID_ != -1); }
     bool HasCoords()       { return (coordVID_ != -1);    }
     bool HasTemperatures() { return (TempVID_ != -1);     }
