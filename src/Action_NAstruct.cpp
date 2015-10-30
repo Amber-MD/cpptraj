@@ -850,6 +850,18 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           MGW = DIST2_NoImage( Bases_[P_m2].Pxyz(), Bases_[p_p2].Pxyz() );
         mprintf("DEBUG: Step '%s' P-2= %i, p+2= %i, MajorGroove= %4.1f\n",
                 currentStep.Zp_->legend(), P_m2+1, p_p2+1, sqrt(MGW));
+        // Minor groove
+        int p_m1 = -1;
+        int p_m2 = -1;
+        int P_p1 = GetBaseIdxStep( currentStep.b3idx_, +1 );
+        int P_p2 = GetBaseIdxStep( currentStep.b3idx_, +2 );
+        if (BP1.isAnti_) {
+          p_m1 = GetBaseIdxStep( currentStep.b2idx_, +1 );
+          p_m2 = GetBaseIdxStep( currentStep.b2idx_, +2 );
+        } else {
+          p_m1 = GetBaseIdxStep( currentStep.b4idx_, -1 );
+          p_m2 = GetBaseIdxStep( currentStep.b4idx_, -2 );
+        }
         // ---------------------------------------
         // Store data
         Param[3] *= Constants::RADDEG;
