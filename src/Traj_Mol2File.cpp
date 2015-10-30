@@ -228,6 +228,8 @@ int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
 // Traj_Mol2File::info()
 void Traj_Mol2File::Info() {
   mprintf("is a Tripos Mol2 file");
+  if (useSybylTypes_)
+    mprintf(" with SYBYL atom types");
   if (mol2WriteMode_==MULTI)
     mprintf(" (1 file per frame)");
   else if (mol2WriteMode_==MOL)
