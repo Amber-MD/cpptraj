@@ -45,6 +45,7 @@ class Action_NAstruct: public Action {
 
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
+    int GetBaseIdxStep(int, int) const;
     int DeterminePairParameters(int);
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
     int DetermineStepParameters(int);

@@ -628,6 +628,18 @@ int Action_NAstruct::helicalParameters(NA_Axis const& Axis1, NA_Axis const& Axis
   return 0;
 }
 
+/** Get index of base in Bases_ N steps away from base specified by idx.
+  * Positive value is towards 3', negative value is towards 5'.
+  */
+int Action_NAstruct::GetBaseIdxStep(int idx, int Nsteps) const {
+  if (Nsteps == 0 || idx == -1) return idx;
+  NA_Base const& base = Bases_[idx];
+  if (Nsteps > 0)
+    return GetBaseIdxStep( base.C3resIdx(), Nsteps - 1);
+  else // Nsteps < 0
+    return GetBaseIdxStep( base.C5resIdx(), Nsteps + 1);
+}
+
 // Action_NAstruct::DeterminePairParameters()
 /** For each base pair, get the values of buckle, propeller twist,
   * opening, shear, stretch, and stagger. Also determine the origin and 
@@ -663,7 +675,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       base2.Axis().FlipYZ();
     else
       base2.Axis().FlipXY();
-    // TEST - calc P--P distance
+    // Calc direct P--P distance
     float dPtoP = 0.0;
     //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
     if ( base1.HasPatom() && base2.HasPatom() ) {
@@ -731,6 +743,10 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 # endif
   if (BasePairs_.size() < 2) return 0;
   // Determine which base pairs are in step configuration.
+  // Step will be defined as:
+  //   base1 -- base2
+  //     |        |
+  //   base3 -- base4
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
     BPtype const& BP1 = bp1->second;
     NA_Base const& base1 = Bases_[BP1.base1idx_];
@@ -819,6 +835,22 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           Zp = (float)xyzP[2];
         }
         currentStep.Zp_->Add(frameNum, &Zp);
+        // TEST: Calculate major groove ----------
+        int p_p2 = -1;
+        int P_m2 = GetBaseIdxStep( currentStep.b3idx_, -2 );
+        if (BP1.isAnti_) {
+          // For anti, want base3 - 2 (to 5'), base2 - 2 (to 5')
+          p_p2 = GetBaseIdxStep( currentStep.b2idx_, -2 );
+        } else {
+          // For para, want base3 - 2 (to 5'), base4 + 2 (to 3')
+          p_p2 = GetBaseIdxStep( currentStep.b4idx_, +2 );
+        }
+        double MGW = 0.0;
+        if (P_m2 != -1 && p_p2 != -1 && Bases_[P_m2].HasPatom() && Bases_[p_p2].HasPatom())
+          MGW = DIST2_NoImage( Bases_[P_m2].Pxyz(), Bases_[p_p2].Pxyz() );
+        mprintf("DEBUG: Step '%s' P-2= %i, p+2= %i, MajorGroove= %4.1f\n",
+                currentStep.Zp_->legend(), P_m2+1, p_p2+1, sqrt(MGW));
+        // ---------------------------------------
         // Store data
         Param[3] *= Constants::RADDEG;
         Param[4] *= Constants::RADDEG;
