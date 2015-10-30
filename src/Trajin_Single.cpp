@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Trajin_Single::Trajin_Single() : trajio_(0), velio_(0) {}
+Trajin_Single::Trajin_Single() : trajio_(0), velio_(0), frcio_(0) {}
 
 // DESTRUCTOR
 Trajin_Single::~Trajin_Single() {
@@ -20,6 +20,7 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
 {
   if (trajio_ != 0) delete trajio_;
   if (velio_ != 0) delete velio_;
+  if (frcio_ != 0) delete frcio_;
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   // Detect file format
@@ -75,6 +76,8 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
     }
     cInfo_.SetVelocity( true );
   }
+
+  // TODO add in support for separate mdfrc file
   if (debug_ > 0)
     Frame::PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str(), cInfo_ );
   return 0;
@@ -91,6 +94,7 @@ int Trajin_Single::BeginTraj() {
     mprinterr("Error: Could not open mdvel file.\n");
     return 1;
   }
+  // TODO open mdfrc file if present
   // Initialize counter.
   SetTraj().Counter().Begin();
   return 0;
@@ -99,6 +103,7 @@ int Trajin_Single::BeginTraj() {
 void Trajin_Single::EndTraj() {
   trajio_->closeTraj();
   if (velio_ != 0) velio_->closeTraj();
+  // TODO close mdfrc file if present
 }
 
 // Trajin_Single::ReadTrajFrame()
@@ -106,6 +111,8 @@ int Trajin_Single::ReadTrajFrame( int idx, Frame& frameIn ) {
   if (trajio_->readFrame(idx, frameIn))
     return 1;
   if (velio_ != 0 && velio_->readVelocity(idx, frameIn))
+    return 1;
+  if (frcio_ != 0 && frcio_->readForce(idx, frameIn))
     return 1;
   //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,idx,targetSet);
   return 0;
@@ -125,6 +132,11 @@ void Trajin_Single::PrintInfo(int showExtended) const {
   if (velio_!=0) {
     mprintf("\tMDVEL: ");
     velio_->Info();
+    mprintf("\n");
+  }
+  if (frcio_!=0) {
+    mprintf("\tMDFRC: ");
+    frcio_->Info();
     mprintf("\n");
   }
 }

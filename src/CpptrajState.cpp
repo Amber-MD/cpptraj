@@ -361,6 +361,7 @@ int CpptrajState::RunEnsemble() {
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
+  bool hasForce = false;
 # ifdef TIMER
   Timer trajin_time;
   Timer setup_time;
@@ -399,6 +400,10 @@ int CpptrajState::RunEnsemble() {
     if (parmHasChanged || (hasVelocity != currentCoordInfo.HasVel()))
       FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
     hasVelocity = currentCoordInfo.HasVel();
+
+    if (parmHasChanged || (hasForce != currentCoordInfo.HasForce()))
+      FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
+    hasForce = currentCoordInfo.HasForce();
 
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
