@@ -195,10 +195,10 @@ void Mol2File::WriteMol2Bond(int bnum, int at1, int at2,
     else
       bp = AtomPair(type2, type1);
     BndMap::const_iterator it = Apair_to_Bond_.find( bp );
-    if (it == Apair_to_Bond_.end())
-      mprintf("Warning: SYBYL bond for atom %i to %i (%s -- %s) not found.\n",
-              at1+1, at2+1, *type1, *type2);
-    else
+    if (it != Apair_to_Bond_.end())
+    //  mprintf("Warning: SYBYL bond for atom %i to %i (%s -- %s) not found.\n",
+    //          at1+1, at2+1, *type1, *type2);
+    //else
       bidx = it->second;
   }
   Printf("%5d %5d %5d %s\n", bnum, at1, at2, SYBYL_BOND_[bidx]);
@@ -208,7 +208,7 @@ void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom)
   Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
-int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFile)
+int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFile, int debug)
 {
   Atype_to_Sybyl_.clear();
   Apair_to_Bond_.clear();
@@ -237,9 +237,11 @@ int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFil
     ptr = infile.NextLine();
   }
   infile.CloseFile();
-  mprintf("DEBUG: Atype_to_Sybyl has %zu values:\n", Atype_to_Sybyl_.size());
-  for (AtypeMap::const_iterator ix = Atype_to_Sybyl_.begin(); ix != Atype_to_Sybyl_.end(); ++ix)
-    mprintf("\t'%s' => '%s'\n", *(ix->first), *(ix->second));
+  if (debug > 0) {
+    mprintf("DEBUG: Atype_to_Sybyl has %zu values:\n", Atype_to_Sybyl_.size());
+    for (AtypeMap::const_iterator ix = Atype_to_Sybyl_.begin(); ix != Atype_to_Sybyl_.end(); ++ix)
+      mprintf("\t'%s' => '%s'\n", *(ix->first), *(ix->second));
+  }
   // Expected format: <Amber Atom1 Type> <Amber Atom2 Type> <SYBYL Bond Type>
   if (infile.OpenRead( BondFile )) return 1;
   ptr = infile.NextLine();
@@ -284,8 +286,11 @@ int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFil
     ptr = infile.NextLine();
   }
   infile.CloseFile();
-  mprintf("DEBUG: Apair_to_Bond has %zu values:\n", Apair_to_Bond_.size());
-  for (BndMap::const_iterator ib = Apair_to_Bond_.begin(); ib != Apair_to_Bond_.end(); ++ib)
-    mprintf("'%s'--'%s' => %s\n", *(ib->first.first), *(ib->first.second), SYBYL_BOND_[ib->second]);
+  if (debug > 0) {
+    mprintf("DEBUG: Apair_to_Bond has %zu values:\n", Apair_to_Bond_.size());
+    for (BndMap::const_iterator ib = Apair_to_Bond_.begin(); ib != Apair_to_Bond_.end(); ++ib)
+      mprintf("'%s'--'%s' => %s\n", *(ib->first.first), *(ib->first.second),
+              SYBYL_BOND_[ib->second]);
+  }
   return 0;
 }

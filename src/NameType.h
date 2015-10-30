@@ -20,18 +20,6 @@ class NameType {
     char operator[](int) const;
     std::string Truncated() const;
     void ReplaceAsterisk();
-    /*struct Compare {
-      bool operator()(NameType const& lhs, NameType const& rhs) const {
-        for (unsigned int i = 0; i != NameSize_; i++)
-        {
-          if      (lhs.c_array_[i] < rhs.c_array_[i]) return true;
-          else if (lhs.c_array_[i] > rhs.c_array_[i]) return false;
-          else if (lhs.c_array_[i] == '\0' && rhs.c_array_[i] != '\0') return true;
-          else if (lhs.c_array_[i] != '\0' && rhs.c_array_[i] == '\0') return false;
-        }
-        return false;
-      }
-    };*/
     bool operator<(NameType const& rhs) const {
       for (unsigned int i = 0; i != NameSize_; i++)
       {

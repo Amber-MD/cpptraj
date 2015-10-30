@@ -159,7 +159,7 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
       }
       std::string pathname(AMBERHOME);
       if (file_.ReadAmberMapping(pathname+"/dat/antechamber/ATOMTYPE_CHECK.TAB",
-                                 pathname+"/dat/antechamber/BONDTYPE_CHECK.TAB"))
+                                 pathname+"/dat/antechamber/BONDTYPE_CHECK.TAB", debug_))
       {
         mprinterr("Error: Loading Amber -> SYBYL type maps failed.\n");
         return 1;
