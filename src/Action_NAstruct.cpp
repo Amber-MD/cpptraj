@@ -839,8 +839,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
             {
               md.SetAspect("major");
               BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-              mprintf("DEBUG: Groove '%s' P-2= %i, p+2= %i\n",
-                      BS.majGroove_->legend(), BS.P_m2_+1, BS.p_p2_+1);
+              //mprintf("DEBUG: Groove '%s' P-2= %i, p+2= %i\n",
+              //        BS.majGroove_->legend(), BS.P_m2_+1, BS.p_p2_+1);
             }
             // Minor groove
             BS.p_m1_ = -1;
@@ -860,8 +860,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
             {
               md.SetAspect("minor");
               BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-              mprintf("DEBUG: Groove '%s' P+1= %i, P+2= %i, p-1= %i, p-2= %i\n",
-                      BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
+              //mprintf("DEBUG: Groove '%s' P+1= %i, P+2= %i, p-1= %i, p-2= %i\n",
+              //        BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
             }
           }
           entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
@@ -883,7 +883,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         }
         if (s2base != 0) {
           Vec3 xyzP = midFrame.Rot().TransposeMult((Vec3(base3.Pxyz()) - Vec3(s2base->Pxyz())) / 2);
-          //xyzP.Print("xyzP");
+          //xyzP.Print("xyzP"); // TODO: Check/fix Xp
           Zp = (float)xyzP[2];
         }
         currentStep.Zp_->Add(frameNum, &Zp);
