@@ -44,8 +44,8 @@ void Action_NAstruct::Help() {
 
 // Output Format Strings
 static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
-static const char* GROOVE_SIMP_FMT = " %10.4f %10.4f";
-static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
+static const char* GROOVE_FMT = " %10.4f %10.4f";
+static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
 #ifdef NASTRUCTDEBUG
@@ -821,6 +821,8 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           BS.b2idx_ = BP1.base2idx_;
           BS.b3idx_ = BP2.base1idx_;
           BS.b4idx_ = BP2.base2idx_;
+          BS.majGroove_ = 0;
+          BS.minGroove_ = 0;
           // H-C groove width calc setup
           if (grooveCalcType_ == HASSAN_CALLADINE) {
             // Major groove
@@ -839,8 +841,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
               mprintf("DEBUG: Groove '%s' P-2= %i, p+2= %i\n",
                       BS.majGroove_->legend(), BS.P_m2_+1, BS.p_p2_+1);
-            } else
-              BS.majGroove_ = 0;
+            }
             // Minor groove
             BS.p_m1_ = -1;
             BS.p_m2_ = -1;
@@ -861,8 +862,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
               BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
               mprintf("DEBUG: Groove '%s' P+1= %i, P+2= %i, p-1= %i, p-2= %i\n",
                       BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
-            } else
-              BS.minGroove_ = 0;
+            }
           }
           entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
 #         ifdef NASTRUCTDEBUG
@@ -892,7 +892,9 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           if (currentStep.majGroove_ != 0) {
             double MGW = DIST2_NoImage( Bases_[currentStep.P_m2_].Pxyz(),
                                         Bases_[currentStep.p_p2_].Pxyz() );
-            mprintf("DEBUG:\t\tMajorGroove= %4.1f\n", sqrt(MGW));
+            //mprintf("DEBUG:\t\tMajorGroove= %4.1f\n", sqrt(MGW));
+            float fval = (float)sqrt( MGW );
+            currentStep.majGroove_->Add(frameNum, &fval);
           }
           if (currentStep.minGroove_ != 0) {
             double d1 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p1_].Pxyz(),
@@ -900,7 +902,9 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
             double d2 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p2_].Pxyz(),
                                             Bases_[currentStep.p_m1_].Pxyz() ));
             double mGW = 0.5 * (d1 + d2);
-            mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
+            //mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
+            float fval = (float)mGW;
+            currentStep.minGroove_->Add(frameNum, &fval);
           }
         }
         // ---------------------------------------
@@ -1292,7 +1296,7 @@ void Action_NAstruct::Print() {
     }
     //  File header
     if (printheader_) {
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n",
+      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s",
                      "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
                      "Buckle","Propeller","Opening", "HB");
       if (grooveCalcType_ == PP_OO)
@@ -1312,7 +1316,7 @@ void Action_NAstruct::Print() {
                        BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
                        BP.hbonds_->Dval(frame));
         if (grooveCalcType_ == PP_OO) 
-          bpout_->Printf(GROOVE_SIMP_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+          bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
         bpout_->Printf("\n");
       }
       bpout_->Printf("\n");
@@ -1348,9 +1352,13 @@ void Action_NAstruct::Print() {
       UpdateTimeSeries( nframes_, BS.minGroove_ );
     }
     // Base pair step frames
-    if (printheader_)
-      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s\n","#Frame","BP1","BP2",
+    if (printheader_) {
+      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
                      "Shift","Slide","Rise","Tilt","Roll","Twist");
+      if (grooveCalcType_ == HASSAN_CALLADINE)
+        stepout_->Printf(" %10s %10s\n", "Major", "Minor");
+      stepout_->Printf("\n");
+    }
     for (int frame = 0; frame < nframes_; ++frame) {
       for (StepMap::const_iterator it = Steps_.begin(); it != Steps_.end(); ++it)
       {
@@ -1362,7 +1370,17 @@ void Action_NAstruct::Print() {
                        BS.shift_->Dval(frame), BS.slide_->Dval(frame),
                        BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
                        BS.roll_->Dval(frame),  BS.twist_->Dval(frame));
-
+        if (grooveCalcType_ == HASSAN_CALLADINE) {
+          if (BS.majGroove_ == 0)
+            stepout_->Printf(" %10s", "----");
+          else
+            stepout_->Printf(" %10.4f", BS.majGroove_->Dval(frame));
+          if (BS.minGroove_ == 0)
+            stepout_->Printf(" %10s", "----");
+          else
+            stepout_->Printf(" %10.4f", BS.minGroove_->Dval(frame));
+        }
+        stepout_->Printf("\n");
       }
       stepout_->Printf("\n");
     }
@@ -1381,6 +1399,7 @@ void Action_NAstruct::Print() {
                           BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
                           BS.hrise_->Dval(frame), BS.incl_->Dval(frame),
                           BS.tip_->Dval(frame),   BS.htwist_->Dval(frame));
+        helixout_->Printf("\n");
       }
       helixout_->Printf("\n");
     }
