@@ -862,6 +862,16 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           p_m1 = GetBaseIdxStep( currentStep.b4idx_, -1 );
           p_m2 = GetBaseIdxStep( currentStep.b4idx_, -2 );
         }
+        double mGW = 0.0;
+        if (P_p1 != -1 && P_p2 != -1 && p_m1 != -1 && p_m2 != -1 &&
+            Bases_[P_p1].HasPatom() && Bases_[P_p2].HasPatom() &&
+            Bases_[p_m1].HasPatom() && Bases_[p_m2].HasPatom())
+        {
+          double d1 = sqrt(DIST2_NoImage( Bases_[P_p1].Pxyz(), Bases_[p_m2].Pxyz() ));
+          double d2 = sqrt(DIST2_NoImage( Bases_[P_p2].Pxyz(), Bases_[p_m1].Pxyz() ));
+          mGW = 0.5 * (d1 + d2);
+        }
+        mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
         // ---------------------------------------
         // Store data
         Param[3] *= Constants::RADDEG;
