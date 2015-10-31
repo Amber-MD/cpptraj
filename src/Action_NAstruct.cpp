@@ -19,6 +19,7 @@ Action_NAstruct::Action_NAstruct() :
   maxResSize_(0),
   debug_(0),
   nframes_(0),
+  grooveCalcType_(PP_OO),
   printheader_(true),
   useReference_(false),
   bpout_(0), stepout_(0), helixout_(0),
@@ -32,7 +33,7 @@ void Action_NAstruct::Help() {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
-          "\t[zcut <zcut>] [zanglecut <zanglecut>]\n"
+          "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[ %s ]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
           "  from specified reference or first frame.\n"
@@ -42,7 +43,8 @@ void Action_NAstruct::Help() {
 }
 
 // Output Format Strings
-static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %10.4f %10.4f\n";
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
+static const char* GROOVE_SIMP_FMT = " %10.4f %10.4f";
 static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f\n";
 
 // ------------------------- PRIVATE FUNCTIONS ---------------------------------
@@ -299,10 +301,15 @@ int Action_NAstruct::DetermineBasePairing() {
                 BP.opening_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
                 md.SetAspect("hb");
                 BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
-                md.SetAspect("major");
-                BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("minor");
-                BP.minor_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                if (grooveCalcType_ == PP_OO) {
+                  md.SetAspect("major");
+                  BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                  md.SetAspect("minor");
+                  BP.minor_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+                } else {
+                  BP.major_ = 0;
+                  BP.minor_ = 0;
+                }
                 BP.bpidx_ = BasePairs_.size();
                 BP.base1idx_ = base1 - Bases_.begin();
                 BP.base2idx_ = base2 - Bases_.begin();
@@ -675,25 +682,29 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       base2.Axis().FlipYZ();
     else
       base2.Axis().FlipXY();
-    // Calc direct P--P distance
-    float dPtoP = 0.0;
-    //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
-    if ( base1.HasPatom() && base2.HasPatom() ) {
-      double DP = DIST2_NoImage( base1.Pxyz(), base2.Pxyz() );
-      //mprintf(" %i to %i P--P D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
-      //        sqrt(dPtoP) );
-      DP = sqrt(DP);
-      dPtoP = (float)DP;
-    }
-    //mprintf("\n");
-    float dOtoO = 0.0;
-    //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].O4idx(), BaseAxes[base2].O4idx() );
-    if ( base1.HasO4atom() && base2.HasO4atom() ) {
-      double DO4 = DIST2_NoImage( base1.O4xyz(), base2.O4xyz() );
-      //mprintf(" %i to %i O4'--O4' D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
-      //        sqrt(dOtoO) );
-      DO4 = sqrt(DO4);
-      dOtoO = (float)DO4;
+    if (grooveCalcType_ == PP_OO) {
+      // Calc direct P--P distance
+      float dPtoP = 0.0;
+      //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].Pidx(), BaseAxes[base2].Pidx() );
+      if ( base1.HasPatom() && base2.HasPatom() ) {
+        double DP = DIST2_NoImage( base1.Pxyz(), base2.Pxyz() );
+        //mprintf(" %i to %i P--P D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
+        //        sqrt(dPtoP) );
+        DP = sqrt(DP);
+        dPtoP = (float)DP;
+      }
+      //mprintf("\n");
+      float dOtoO = 0.0;
+      //mprintf("\tDEBUG: %i %i:", BaseAxes[base1].O4idx(), BaseAxes[base2].O4idx() );
+      if ( base1.HasO4atom() && base2.HasO4atom() ) {
+        double DO4 = DIST2_NoImage( base1.O4xyz(), base2.O4xyz() );
+        //mprintf(" %i to %i O4'--O4' D= %f", BaseAxes[base1].ResNum()+1, BaseAxes[base2].ResNum()+1,
+        //        sqrt(dOtoO) );
+        DO4 = sqrt(DO4);
+        dOtoO = (float)DO4;
+      }
+      BP.major_->Add(frameNum, &dPtoP);
+      BP.minor_->Add(frameNum, &dOtoO);
     }
     base1.CalcPucker( frameNum, puckerMethod_ );
     base2.CalcPucker( frameNum, puckerMethod_ );
@@ -721,8 +732,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
     BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
-    BP.major_->Add(frameNum, &dPtoP);
-    BP.minor_->Add(frameNum, &dOtoO);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
@@ -812,6 +821,49 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
           BS.b2idx_ = BP1.base2idx_;
           BS.b3idx_ = BP2.base1idx_;
           BS.b4idx_ = BP2.base2idx_;
+          // H-C groove width calc setup
+          if (grooveCalcType_ == HASSAN_CALLADINE) {
+            // Major groove
+            BS.p_p2_ = -1;
+            BS.P_m2_ = GetBaseIdxStep( BS.b3idx_, -2 );
+            if (BP1.isAnti_)
+              // For anti, want base3 - 2 (to 5'), base2 - 2 (to 5')
+              BS.p_p2_ = GetBaseIdxStep( BS.b2idx_, -2 );
+            else
+              // For para, want base3 - 2 (to 5'), base4 + 2 (to 3')
+              BS.p_p2_ = GetBaseIdxStep( BS.b4idx_, +2 );
+            if (BS.P_m2_ != -1 && BS.p_p2_ != -1 && 
+                Bases_[BS.P_m2_].HasPatom() && Bases_[BS.p_p2_].HasPatom())
+            {
+              md.SetAspect("major");
+              BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              mprintf("DEBUG: Groove '%s' P-2= %i, p+2= %i\n",
+                      BS.majGroove_->legend(), BS.P_m2_+1, BS.p_p2_+1);
+            } else
+              BS.majGroove_ = 0;
+            // Minor groove
+            BS.p_m1_ = -1;
+            BS.p_m2_ = -1;
+            BS.P_p1_ = GetBaseIdxStep( BS.b3idx_, +1 );
+            BS.P_p2_ = GetBaseIdxStep( BS.b3idx_, +2 );
+            if (BP1.isAnti_) {
+              BS.p_m1_ = GetBaseIdxStep( BS.b2idx_, +1 );
+              BS.p_m2_ = GetBaseIdxStep( BS.b2idx_, +2 );
+            } else {
+              BS.p_m1_ = GetBaseIdxStep( BS.b4idx_, -1 );
+              BS.p_m2_ = GetBaseIdxStep( BS.b4idx_, -2 );
+            }
+            if (BS.P_p1_ != -1 && BS.P_p2_ != -1 && BS.p_m1_ != -1 && BS.p_m2_ != -1 &&
+                Bases_[BS.P_p1_].HasPatom() && Bases_[BS.P_p2_].HasPatom() &&
+                Bases_[BS.p_m1_].HasPatom() && Bases_[BS.p_m2_].HasPatom())
+            {
+              md.SetAspect("minor");
+              BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              mprintf("DEBUG: Groove '%s' P+1= %i, P+2= %i, p-1= %i, p-2= %i\n",
+                      BS.minGroove_->legend(), BS.P_p1_+1, BS.P_p2_+1, BS.p_m1_+1, BS.p_m2_+1);
+            } else
+              BS.minGroove_ = 0;
+          }
           entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
 #         ifdef NASTRUCTDEBUG
           mprintf("  New base pair step: %s\n", md.Legend().c_str());
@@ -836,42 +888,21 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         }
         currentStep.Zp_->Add(frameNum, &Zp);
         // TEST: Calculate major groove ----------
-        int p_p2 = -1;
-        int P_m2 = GetBaseIdxStep( currentStep.b3idx_, -2 );
-        if (BP1.isAnti_) {
-          // For anti, want base3 - 2 (to 5'), base2 - 2 (to 5')
-          p_p2 = GetBaseIdxStep( currentStep.b2idx_, -2 );
-        } else {
-          // For para, want base3 - 2 (to 5'), base4 + 2 (to 3')
-          p_p2 = GetBaseIdxStep( currentStep.b4idx_, +2 );
+        if (grooveCalcType_ == HASSAN_CALLADINE) {
+          if (currentStep.majGroove_ != 0) {
+            double MGW = DIST2_NoImage( Bases_[currentStep.P_m2_].Pxyz(),
+                                        Bases_[currentStep.p_p2_].Pxyz() );
+            mprintf("DEBUG:\t\tMajorGroove= %4.1f\n", sqrt(MGW));
+          }
+          if (currentStep.minGroove_ != 0) {
+            double d1 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p1_].Pxyz(),
+                                            Bases_[currentStep.p_m2_].Pxyz() ));
+            double d2 = sqrt(DIST2_NoImage( Bases_[currentStep.P_p2_].Pxyz(),
+                                            Bases_[currentStep.p_m1_].Pxyz() ));
+            double mGW = 0.5 * (d1 + d2);
+            mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
+          }
         }
-        double MGW = 0.0;
-        if (P_m2 != -1 && p_p2 != -1 && Bases_[P_m2].HasPatom() && Bases_[p_p2].HasPatom())
-          MGW = DIST2_NoImage( Bases_[P_m2].Pxyz(), Bases_[p_p2].Pxyz() );
-        mprintf("DEBUG: Step '%s' P-2= %i, p+2= %i, MajorGroove= %4.1f\n",
-                currentStep.Zp_->legend(), P_m2+1, p_p2+1, sqrt(MGW));
-        // Minor groove
-        int p_m1 = -1;
-        int p_m2 = -1;
-        int P_p1 = GetBaseIdxStep( currentStep.b3idx_, +1 );
-        int P_p2 = GetBaseIdxStep( currentStep.b3idx_, +2 );
-        if (BP1.isAnti_) {
-          p_m1 = GetBaseIdxStep( currentStep.b2idx_, +1 );
-          p_m2 = GetBaseIdxStep( currentStep.b2idx_, +2 );
-        } else {
-          p_m1 = GetBaseIdxStep( currentStep.b4idx_, -1 );
-          p_m2 = GetBaseIdxStep( currentStep.b4idx_, -2 );
-        }
-        double mGW = 0.0;
-        if (P_p1 != -1 && P_p2 != -1 && p_m1 != -1 && p_m2 != -1 &&
-            Bases_[P_p1].HasPatom() && Bases_[P_p2].HasPatom() &&
-            Bases_[p_m1].HasPatom() && Bases_[p_m2].HasPatom())
-        {
-          double d1 = sqrt(DIST2_NoImage( Bases_[P_p1].Pxyz(), Bases_[p_m2].Pxyz() ));
-          double d2 = sqrt(DIST2_NoImage( Bases_[P_p2].Pxyz(), Bases_[p_m1].Pxyz() ));
-          mGW = 0.5 * (d1 + d2);
-        }
-        mprintf("DEBUG:\t\tMinorGroove= %4.1f\n", mGW);
         // ---------------------------------------
         // Store data
         Param[3] *= Constants::RADDEG;
@@ -942,6 +973,17 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
   if (zanglecut_deg > 0)
     z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
+  std::string groovecalc = actionArgs.GetStringKey("groovecalc");
+  if (!groovecalc.empty()) {
+    if (groovecalc == "simple") grooveCalcType_ = PP_OO;
+    else if (groovecalc == "3dna") grooveCalcType_ = HASSAN_CALLADINE;
+    else {
+      mprinterr("Error: Invalid value for 'groovecalc' %s; expected simple or 3dna.\n",
+                groovecalc.c_str());
+      return Action::ERR;
+    }
+  } else
+    grooveCalcType_ = PP_OO;
   if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
   else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
   // Get residue range
@@ -1037,6 +1079,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==NA_Base::CREMER)
     mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
+  if (grooveCalcType_ == PP_OO)
+    mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
+  else if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("\tUsing groove width calculation of ElHassan & Calladine.\n"); // TODO Reference
   init.DSL().SetDataSetsPending(true);
   return Action::OK;
 }
@@ -1245,10 +1291,14 @@ void Action_NAstruct::Print() {
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
     //  File header
-    if (printheader_)
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %10s %10s\n",
+    if (printheader_) {
+      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s\n",
                      "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                     "Buckle","Propeller","Opening", "HB", "Major", "Minor");
+                     "Buckle","Propeller","Opening", "HB");
+      if (grooveCalcType_ == PP_OO)
+        bpout_->Printf(" %10s %10s", "Major", "Minor");
+      bpout_->Printf("\n");
+    }
     // Loop over all frames
     for (int frame = 0; frame < nframes_; ++frame) {
       for (BPmap::const_iterator it = BasePairs_.begin();
@@ -1260,8 +1310,10 @@ void Action_NAstruct::Print() {
                        BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
                        BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
                        BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                       BP.hbonds_->Dval(frame), 
-                       BP.major_->Dval(frame),   BP.minor_->Dval(frame));
+                       BP.hbonds_->Dval(frame));
+        if (grooveCalcType_ == PP_OO) 
+          bpout_->Printf(GROOVE_SIMP_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
+        bpout_->Printf("\n");
       }
       bpout_->Printf("\n");
     }
@@ -1292,6 +1344,8 @@ void Action_NAstruct::Print() {
       UpdateTimeSeries( nframes_, BS.tip_ );
       UpdateTimeSeries( nframes_, BS.htwist_ );
       UpdateTimeSeries( nframes_, BS.Zp_ );
+      UpdateTimeSeries( nframes_, BS.majGroove_ );
+      UpdateTimeSeries( nframes_, BS.minGroove_ );
     }
     // Base pair step frames
     if (printheader_)
