@@ -1086,7 +1086,20 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if (grooveCalcType_ == PP_OO)
     mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
   else if (grooveCalcType_ == HASSAN_CALLADINE)
-    mprintf("\tUsing groove width calculation of ElHassan & Calladine.\n"); // TODO Reference
+    mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
+  mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
+          "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
+          "#             Parameters That Are Truly Comparable Between Structures\",\n"
+          "#             J. Mol. Biol. (1994) 237, 125-156.\n"
+          "#            Olson WK; Bansal M; Burley SK; Dickerson RE; Gerstein M;\n"
+          "#             Harvey SC; Heinemann U; Lu XJ; Neidle S; Shekked Z; Sklenar H;\n"
+          "#             Suzuki M; Tung CS; Westhof E; Wolberger C; Berman H; \"A Standard\n"
+          "#             Reference Frame for the Description of Nucleic Acid Base-pair\n"
+          "#             Geometry\", J. Mol. Biol. (2001) 313, 229-237.\n");
+  if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("#            El Hassan MA; Calladine CR; \"Two Distinct Modes of\n"
+            "#             Protein-induced Bending in DNA.\"\n"
+            "#             J. Mol. Biol. (1998) 282, 331-343.\n");
   init.DSL().SetDataSetsPending(true);
   return Action::OK;
 }
