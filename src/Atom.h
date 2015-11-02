@@ -60,6 +60,7 @@ class Atom {
     inline AtomicElementType Element() const { return element_; }
     inline int AtomicNumber()          const { return AtomicElementNum[element_];  }
     inline const char* ElementName()   const { return AtomicElementName[element_]; }
+    inline const double ElementRadius()const { return AtomicElementRadius[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
@@ -90,6 +91,7 @@ class Atom {
     static const int AtomicElementNum[];
     static const char* AtomicElementName[];
     static const double AtomicElementMass[];
+    static const double AtomicElementRadius[];
     double charge_;    ///< Charge in e-
     double polar_;     ///< Atomic polarizability in Ang^3
     double mass_;      ///< mass in amu
