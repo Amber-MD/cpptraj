@@ -39,6 +39,5 @@ class Action_Volmap : public Action {
     /// the scaling factor to divide all radii by
     double radscale_;
     static const double sqrt_8_pi_cubed;
-    static const double one_over_6;
 };
 #endif
