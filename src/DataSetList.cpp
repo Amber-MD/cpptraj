@@ -677,10 +677,7 @@ const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
 // DataSetList::GetTopology()
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No topologies loaded.\n");
-    return 0;
-  }
+  if (TopList_.empty()) return 0;
   DataSet* top = 0;
   std::string topname = argIn.GetStringKey("parm");
   if (!topname.empty()) {
@@ -703,10 +700,7 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
 
 // DataSetList::GetTopByIndex()
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No topologies loaded.\n");
-    return 0;
-  }
+  if (TopList_.empty()) return 0;
   Topology* top = GetTopology( argIn );
   if (top == 0) {
     int topindex = argIn.getNextInteger(-1);

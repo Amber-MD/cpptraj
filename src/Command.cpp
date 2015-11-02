@@ -1815,7 +1815,10 @@ static void Help_ScaleDihedralK() {
 Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopology( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) {
+    mprinterr("Error: No topologies loaded.\n");
+    return Command::C_ERR;
+  }
   double scale_factor = argIn.getNextDouble(1.0);
   std::string maskexpr = argIn.GetMaskNext();
   bool useAll = argIn.hasKey("useall");
