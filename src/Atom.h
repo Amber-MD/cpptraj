@@ -69,7 +69,7 @@ class Atom {
     inline AtomicElementType Element() const { return element_; }
     inline int AtomicNumber()          const { return AtomicElementNum[element_];  }
     inline const char* ElementName()   const { return AtomicElementName[element_]; }
-    inline const double ElementRadius()const { return AtomicElementRadius[element_]; }
+    inline double ElementRadius()      const { return AtomicElementRadius[element_]; }
     inline const NameType& Name()      const { return aname_; }
     inline const NameType& Type()      const { return atype_; }
     inline int TypeIndex()             const { return atype_index_; }
