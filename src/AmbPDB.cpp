@@ -30,6 +30,7 @@ static void Help(const char* prgname, bool showAdditional) {
             "                      (default: use prmtop title)\n"
             "    -aatm         Left-justified Amber atom names.\n"
             "    -sybyl        (MOL2 format only) Convert Amber atom types to SYBYL.\n"
+            "    -conect       Write CONECT records for all bonds.\n"
             "    -ep           Include extra points if present.\n"
             "    -bres         Brookhaven Residue names (HIE->HIS, etc.).\n"
             "    -ctr          Center molecule on (0,0,0).\n"
@@ -62,7 +63,7 @@ static void WriteVersion() {
 // ----- M A I N ---------------------------------------------------------------
 int main(int argc, char** argv) {
   SetWorldSilent(true); // No STDOUT output from cpptraj routines.
-  std::string topname, crdname, title, bres, pqr, sybyltype;
+  std::string topname, crdname, title, bres, pqr, sybyltype, writeconect;
   std::string aatm(" pdbatom"), ter_opt(" terbyres"), box(" sg \"P 1\"");
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::PDBFILE;
   bool ctr_origin = false;
@@ -92,6 +93,8 @@ int main(int argc, char** argv) {
       aatm.assign(" include_ep");
     else if (arg == "-sybyl") // Amber atom types to SYBYL
       sybyltype.assign(" sybyltype");
+    else if (arg == "-conect") // Write CONECT records from bond info
+      writeconect.assign(" conect");
     else if (arg == "-ep") // PDB atom names, include extra pts
       aatm.append(" include_ep");
     else if (arg == "-bres") // PDB residue names
@@ -184,7 +187,7 @@ int main(int argc, char** argv) {
     TrajFrame.CenterOnOrigin(false);
   // Output coords
   Trajout_Single trajout;
-  trajArgs.SetList( aatm + bres + pqr + title + ter_opt + box + sybyltype, " " );
+  trajArgs.SetList( aatm + bres + pqr + title + ter_opt + box + sybyltype + writeconect, " " );
   if ( trajout.PrepareStdoutTrajWrite(trajArgs, &parm, cInfo, 1, fmt) ) return 1;
   trajout.WriteSingle(0, TrajFrame);
   trajout.EndTraj();
