@@ -58,6 +58,8 @@ class PDBfile : public CpptrajFile {
     void WriteCRYST1(const double*, const char*);
     /// Write MODEL
     void WriteMODEL(int);
+    /// Write CONECT
+    void WriteCONECT(int, std::vector<int> const&, Atom const&);
     /// Write ENDMDL
     void WriteENDMDL();
     /// Write END
