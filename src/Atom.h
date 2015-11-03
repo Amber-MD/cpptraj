@@ -3,7 +3,6 @@
 #include <vector>
 #include <set> // For excluded 
 #include "NameType.h"
-// Class: AtomType
 /// Hold information for an atom
 class Atom {
   public:
@@ -23,7 +22,7 @@ class Atom {
       YTTRIUM,    LUTETIUM,
       EXTRAPT 
     };
-    // Constructors and assignment
+    // Constructors and assignment ---------------
     Atom();
     virtual ~Atom() {}
     /// Take atom name, and (optional) 2 character element name.
@@ -39,21 +38,31 @@ class Atom {
     Atom(const Atom &);
     void swap(Atom &, Atom &);
     Atom &operator=(Atom);
-    // Iterator over bonded atom #s
+    // Functions related to bonded atoms --------- 
     typedef std::vector<int>::const_iterator bond_iterator;
-    inline bond_iterator bondbegin() const { return bonds_.begin(); }
-    inline bond_iterator bondend()   const { return bonds_.end();   }
-    // Iterator over excluded atoms
+    inline bond_iterator bondbegin() const { return bonds_.begin();     }
+    inline bond_iterator bondend()   const { return bonds_.end();       }
+    inline int Bond(int idx)         const { return bonds_[idx];        }
+    /// Add atom index # to this atoms list of bonded atoms.
+    void AddBondToIdx(int idxIn)           { bonds_.push_back( idxIn ); }
+    void ClearBonds()                      { bonds_.clear() ;           }
+    void SortBonds();
+    // TODO: Use this routine in AtomMap etc
+    /// \return true if this atom is bonded to given atom index 
+    bool IsBondedTo(int) const;
+    // Excluded atoms ----------------------------
     typedef std::vector<int>::const_iterator excluded_iterator;
     inline excluded_iterator excludedbegin() const { return excluded_.begin(); }
     inline excluded_iterator excludedend()   const { return excluded_.end();   }
-    // Functions that set internal vars
+    /// Create exclusion list from input set.
+    void AddExclusionList(std::set<int> const&);
+    // Functions that set internal vars ----------
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
-    // Inline functions returning internal vars
+    // Internal vars -----------------------------
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
     inline int ResNum()                const { return resnum_; }
@@ -72,18 +81,9 @@ class Atom {
     inline double Polar()              const { return polar_; }
     inline double GBRadius()           const { return gb_radius_; }
     inline double Screen()             const { return gb_screen_; }
-    /// Add atom # to this atoms list of bonded atoms.
-    void AddBondToIdx(int idxIn) { bonds_.push_back( idxIn ); }
-    void ClearBonds()            { bonds_.clear() ; }
-    void SortBonds();
-    // TODO: Use this routine in AtomMap etc
-    /// \return true if this atom is bonded to given atom number
-    bool IsBondedTo(int) const;
-    /// Create exclusion list from input set.
-    void AddExclusionList(std::set<int> const&);
-    /// \return Optimal bond length based on element types
+    /// \return Optimal bond length in Ang. based on given element types.
     static double GetBondLength(AtomicElementType, AtomicElementType);
-    /// \return PARSE radius based on element.
+    /// \return PARSE radius in Ang. based on element.
     double ParseRadius() const;
   protected:
     static const size_t NUMELEMENTS = 76;

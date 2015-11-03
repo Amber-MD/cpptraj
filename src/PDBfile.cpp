@@ -194,8 +194,8 @@ int PDBfile::pdb_Bonds(int* bnd) {
   unsigned int lb_size = strlen(linebuffer_);
   int Nscan = 0;
   for (unsigned int lb = 6; lb < lb_size; lb += 5) {
-    // Check if final char is blank.
-    if (linebuffer_[lb + 4] == ' ') break;
+    // Check if first char is newline or final char is blank.
+    if (linebuffer_[lb] == '\n' || linebuffer_[lb + 4] == ' ') break;
     // Safety valve
     if (Nscan == 5) {
       mprintf("Warning: CONECT record has more than 4 bonds. Only using first 4 bonds.\n");
@@ -366,6 +366,22 @@ void PDBfile::WriteCRYST1(const double* box, const char* space_group) {
 void PDBfile::WriteMODEL(int model) {
   // Since num frames could be large, do not format the integer with width - OK?
   Printf("MODEL     %i\n", model);
+}
+
+/** Write CONECT record: 1-6 CONECT, 7-11 serial #, 12-16 serial # ... */
+void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& atomIn) {
+  if (atomIn.Nbonds() < 1) return;
+  // PDB V3.3 spec: target-atom serial #s carried on these records also occur in increasing order.
+  Atom atom(atomIn);
+  atom.SortBonds();
+  int nbond = 0;
+  while (nbond < atom.Nbonds()) {
+    if ((nbond % 4) == 0)
+      Printf("CONECT%5i", atnum);
+    Printf("%5i", atrec[atom.Bond(nbond++)]);
+    if ((nbond % 4) == 0 || nbond == atom.Nbonds())
+      Printf("\n");
+  }
 }
 
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
