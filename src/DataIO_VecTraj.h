@@ -16,5 +16,6 @@ class DataIO_VecTraj : public DataIO {
   private:
     TrajectoryFile::TrajFormatType trajoutFmt_;
     std::string parmoutName_;
+    bool includeOrigin_;
 };
 #endif
