@@ -11,7 +11,7 @@ int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const&
   top_ = topIn;
   cInfo_ = cInfoIn;
   numCrd_ = top_.Natom() * 3;
-  if (top_.ParmBox().HasBox())
+  if (cInfo_.TrajBox().HasBox())
     numBoxCrd_ = 6;
   else
     numBoxCrd_ = 0;
