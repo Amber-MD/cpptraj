@@ -5,30 +5,32 @@
 #include "Trajout_Single.h"
 
 // CONSTRUCTOR
-DataIO_VecTraj::DataIO_VecTraj() : trajoutFmt_(TrajectoryFile::UNKNOWN_TRAJ) {
+DataIO_VecTraj::DataIO_VecTraj() :
+  trajoutFmt_(TrajectoryFile::UNKNOWN_TRAJ),
+  includeOrigin_(true)
+{
   SetValid( DataSet::VECTOR );
 }
 
 void DataIO_VecTraj::WriteHelp() {
-  mprintf("\t[trajfmt <format>] [parmout <file>]\n");
+  mprintf("\t[trajfmt <format>] [parmout <file>] [noorigin]\n");
 }
 
 int DataIO_VecTraj::processWriteArgs(ArgList& argIn) {
   trajoutFmt_ = TrajectoryFile::GetFormatFromString( argIn.GetStringKey("trajfmt") );
   parmoutName_ = argIn.GetStringKey("parmout");
+  includeOrigin_ = !argIn.hasKey("noorigin");
   return 0;
 }
 
 int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList) {
   if (SetList.empty()) return 1;
-  // Create pseudo-topology for all vectors.
-  Topology pseudo;
-  BondArray bonds;
-  // 1 pseudo bond type, Rk = 0.0, Req = 1.0 Ang.
-  BondParmArray bParm(1, BondParmType(0.0, 1.0));
-  int nres = 1;
-  int natom = 0;
+  // Check input data sets
   int vec_size = -1;
+  unsigned int num_no_origins = 0;
+  typedef std::vector<DataSet_Vector*> Varray;
+  Varray VecSets;
+  VecSets.reserve( SetList.size() );
   for (DataSetList::const_iterator set = SetList.begin(); set != SetList.end(); ++set) {
     if ((*set)->Type() != DataSet::VECTOR)
       mprintf("Warning: Set '%s' is not a vector, skipping.\n", (*set)->legend());
@@ -42,13 +44,32 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
                   Vec.legend(), Vec.Size(), vec_size);
         return 1;
       }
-      Residue vec_res("VEC", nres, ' ', ' ');
+      if (!Vec.HasOrigins()) num_no_origins++;
+      VecSets.push_back( (DataSet_Vector*)*set );
+    }
+  }
+  if (VecSets.empty()) {
+    mprinterr("Error: No vector data sets.\n");
+    return 1;
+  }
+  if (num_no_origins == VecSets.size())
+    includeOrigin_ = false;
+  // Set up pseudo topology for all vectors
+  Topology pseudo;
+  BondArray bonds;
+  // 1 pseudo bond type, Rk = 0.0, Req = 1.0 Ang.
+  BondParmArray bParm(1, BondParmType(0.0, 1.0));
+  int natom = 0;
+  for (unsigned int nres = 1; nres <= VecSets.size(); nres++) {
+    Residue vec_res("VEC", nres, ' ', ' ');
+    if (includeOrigin_)
       pseudo.AddTopAtom(Atom("OXYZ", 0), vec_res);
-      pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res);
+    pseudo.AddTopAtom(Atom("VXYZ", 0), vec_res);
+    if (includeOrigin_) {
       bonds.push_back( BondType(natom, natom+1, 0) ); // Bond parm index 0
       natom += 2;
-      ++nres;
-    }
+    } else
+      natom++;
   }
   pseudo.SetBondInfo( bonds, BondArray(), bParm );
   pseudo.CommonSetup();
@@ -59,6 +80,7 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
       return 1;
     }
   }
+  // Write out vectors
   Trajout_Single out;
   if (out.PrepareTrajWrite(fname, ArgList(), &pseudo, CoordinateInfo(),
                            vec_size, trajoutFmt_) == 0)
@@ -66,13 +88,14 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
     Frame outFrame(pseudo.Natom());
     for (int i = 0; i != vec_size; ++i) {
       outFrame.ClearAtoms();
-      for (DataSetList::const_iterator set = SetList.begin(); set != SetList.end(); ++set) {
-        if ((*set)->Type() == DataSet::VECTOR) {
-          DataSet_Vector const& Vec = static_cast<DataSet_Vector const&>( *(*set) );
+      for (Varray::const_iterator set = VecSets.begin(); set != VecSets.end(); ++set) {
+        DataSet_Vector const& Vec = static_cast<DataSet_Vector const&>( *(*set) );
+        if (includeOrigin_) {
           Vec3 const& ovec = Vec.OXYZ(i);
           outFrame.AddVec3( ovec );
           outFrame.AddVec3( Vec[i] + ovec );
-        }
+        } else
+          outFrame.AddVec3( Vec[i] );
       }
       if (out.WriteSingle(i, outFrame)) return 1;
     }
@@ -82,4 +105,4 @@ int DataIO_VecTraj::WriteData(FileName const& fname, DataSetList const& SetList)
     return 1;
   }
   return 0;
-} 
+}
