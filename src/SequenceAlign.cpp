@@ -153,7 +153,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
         for (int qat = QR.FirstAtom(); qat != QR.LastAtom(); qat++)
         {
           if (qref.Parm()[qat].Element() != Atom::HYDROGEN)
-            sTop.AddTopAtom( qref.Parm()[qat], SR, qref.Coord().XYZ(qat) );
+            sTop.AddTopAtom( qref.Parm()[qat], SR );
             sFrame.AddXYZ( qref.Coord().XYZ(qat) );
             //sMask.AddAtom(qat);
         }
@@ -166,7 +166,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
                qref.Parm()[qat].Name().Match("C" ) ||
                qref.Parm()[qat].Name().Match("O" ) )
           {
-            sTop.AddTopAtom( qref.Parm()[qat], SR, qref.Coord().XYZ(qat) );
+            sTop.AddTopAtom( qref.Parm()[qat], SR );
             sFrame.AddXYZ( qref.Coord().XYZ(qat) );
           }
         }
@@ -175,11 +175,10 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
       // Residue in query does not exist for subject. Just put placeholder CA for now.
       Vec3 Zero(0.0);
       placeHolder.push_back( sTop.Natom() );
-      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', ' '), Zero.Dptr() );
+      sTop.AddTopAtom( Atom("CA", "C "), Residue(SresName, sres+1, ' ', ' ') );
       sFrame.AddXYZ( Zero.Dptr() );
     }
   }
-  sTop.SetRes(sTop.Nres()-1).SetLastAtom( sTop.Natom() ); // FIXME to not call CommonSetup
   //sTop.PrintAtomInfo("*");
   mprintf("\tPlaceholder residue indices:");
   for (Iarray::const_iterator p = placeHolder.begin(); p != placeHolder.end(); ++p)
@@ -228,8 +227,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
   Trajout_Single trajout;
-  if (trajout.InitTrajWrite(outfilename, argIn, &sTop, fmt)) return 1;
-  if (trajout.SetupTrajWrite(&sTop)) return 1;
+  if (trajout.PrepareTrajWrite(outfilename, argIn, &sTop, CoordinateInfo(), 1, fmt)) return 1;
   if (trajout.WriteSingle(0, sFrame)) return 1;
   trajout.EndTraj();
   return 0;

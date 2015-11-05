@@ -170,6 +170,7 @@ void Command::ListCommands(CommandType dtype) {
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
   {
     CommandType currentType = token->Type;
+    if (currentType == HIDDEN) continue;
     if (dtype != NONE && dtype != currentType) continue;
     // Command group type title
     if (currentType != lastType) {
@@ -1934,7 +1935,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
-  { GENERAL, "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
+  { HIDDEN,  "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
