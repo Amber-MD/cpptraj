@@ -14,7 +14,8 @@ class Command {
     enum RetType { C_OK = 0, C_ERR, C_QUIT };
     // TODO: Make below private, make commands part of Command class?
     /// Command categories.
-    enum CommandType { NONE=0, PARM, TRAJ, COORDS, ACTION, ANALYSIS, GENERAL, SYSTEM, DEPRECATED };
+    enum CommandType { NONE=0, PARM, TRAJ, COORDS, ACTION, ANALYSIS,
+                       GENERAL, SYSTEM, HIDDEN, DEPRECATED };
     /// Shorthand for DispatchAllocatorType
     typedef DispatchObject::DispatchAllocatorType AllocType;
     /// Function pointer to command function.

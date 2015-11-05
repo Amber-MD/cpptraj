@@ -230,6 +230,7 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
+        SequenceAlign.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \

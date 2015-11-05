@@ -10,6 +10,7 @@
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
+#include "SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
@@ -169,6 +170,7 @@ void Command::ListCommands(CommandType dtype) {
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
   {
     CommandType currentType = token->Type;
+    if (currentType == HIDDEN) continue;
     if (dtype != NONE && dtype != currentType) continue;
     // Command group type title
     if (currentType != lastType) {
@@ -600,6 +602,10 @@ static void Deprecate_AvgCoord() {
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
+/// Sequence align
+Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ return (Command::RetType)SequenceAlign(State, argIn); }
+
 static void Help_ActiveRef() {
   mprintf("\t%s\n", DataSetList::RefArgs);
   mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
@@ -1929,6 +1935,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { HIDDEN,  "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
