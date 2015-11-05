@@ -33,7 +33,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     // Get grid parameters from reference structure box.
     DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.FindSetOfType( refname, DataSet::REF_FRAME );
     if (REF == 0) return 0;
-    if (REF->Top().ParmBox().Type() == Box::NOBOX) {
+    if (REF->CoordsInfo().TrajBox().Type() == Box::NOBOX) {
       mprinterr("Error: Reference '%s' does not have box information.\n", refname.c_str());
       return 0;
     }
@@ -126,10 +126,10 @@ void GridAction::GridInfo(DataSet_GridFlt const& grid) {
 }
 
 // GridAction::GridSetup()
-int GridAction::GridSetup(Topology const& currentParm) {
+int GridAction::GridSetup(Topology const& currentParm, CoordinateInfo const& cInfo) {
   // Check box
   if (mode_ == BOX) {
-    if (currentParm.BoxType()!=Box::ORTHO) {
+    if (cInfo.TrajBox().Type() != Box::ORTHO) {
       mprintf("Warning: Code to shift to the box center is not yet\n");
       mprintf("Warning: implemented for non-orthorhomibic unit cells.\n");
       mprintf("Warning: Shifting to the origin instead.\n");

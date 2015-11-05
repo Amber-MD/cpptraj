@@ -1,6 +1,6 @@
-// Parm_Mol2.cpp
 #include "Parm_Mol2.h"
 #include "Mol2File.h"
+#include "BondSearch.h"
 #include "CpptrajStdio.h"
 
 // Parm_Mol2::ID_ParmFormat() 
@@ -21,9 +21,11 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
   // Get @<TRIPOS>ATOM information
   if (infile.ScanTo( Mol2File::ATOM)) return 1;
   double XYZ[3];
+  Frame Coords;
   for (int atom=0; atom < infile.Mol2Natoms(); atom++) {
     if ( infile.Mol2XYZ(XYZ) ) return 1;
-    parmOut.AddTopAtom( infile.Mol2Atom(), infile.Mol2Residue(), XYZ );
+    parmOut.AddTopAtom( infile.Mol2Atom(), infile.Mol2Residue() );
+    Coords.AddXYZ( XYZ );
   }
 
   // Get @<TRIPOS>BOND information [optional]
@@ -35,10 +37,9 @@ int Parm_Mol2::ReadParm(FileName const& fname, Topology &parmOut) {
       // mol2 atom #s start from 1
       parmOut.AddBond(at1-1, at2-1);
     }
-    needsBondSearch_ = false;
   } else {
     mprintf("      Mol2 file does not contain bond information.\n");
-    needsBondSearch_ = true;
+    BondSearch( parmOut, Coords, Offset_, debug_ );
   }
 
   // No box

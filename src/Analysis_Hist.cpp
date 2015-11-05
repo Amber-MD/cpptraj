@@ -23,6 +23,10 @@ Analysis_Hist::Analysis_Hist() :
   circular_(false),
   nativeOut_(false),
   N_dimensions_(0),
+  default_min_(0.0),
+  default_max_(0.0),
+  default_step_(0.0),
+  default_bins_(-1),
   minArgSet_(false),
   maxArgSet_(false),
   calcAMD_(false),
@@ -48,7 +52,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // Separate input string by ','
   arglist.SetList(input, ",");
   if (arglist.Nargs()<1) {
-    mprintf("Warning: Hist::CheckDimension: No arguments found in input: %s\n",input.c_str());
+    mprinterr("Error: No arguments found in histogram argument: %s\n",input.c_str());
     return 1;
   }
 
@@ -61,21 +65,13 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
     return 1;
   }
 
-  // For now only 1D data sets can be histogrammed
-  if (dset->Ndim() != 1) {
-    mprinterr("Error: Hist: dataset %s has %u dimensions.\n",
-              dset->legend(), dset->Ndim());
-    mprinterr("Error: Hist: Currently only 1D data sets can be histogrammed.\n");
+  // For now only 1D scalar data sets can be histogrammed
+  if (dset->Group() != DataSet::SCALAR_1D) {
+    mprinterr("Error: Cannot histogram data set '%s'\n", dset->legend());
+    mprinterr("Error: Currently only 1D scalar data sets can be histogrammed.\n");
     return 1;
   }
-
-  // Check that dataset is not string
-  if (dset->Type()==DataSet::STRING) {
-    mprinterr("Error: Hist: Cannot histogram dataset %s, type STRING.\n", 
-            dset->legend());
-    return 1;
-  }
-
+  // TODO parse remaining args here, create data structure.
   dimensionArgs_.push_back( arglist );
   histdata_.push_back( (DataSet_1D*)dset );
   return 0;
@@ -88,63 +84,63 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   * \return 1 if error occurs, 0 otherwise.
   */
 int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size_t& offset) {
-  Dimension dim;
   bool minArg = false;
   bool maxArg = false;
+  bool stepArg = false;
+  bool binsArg = false; 
 
   if (debug_>1)
     arglist.PrintList();
 
   // Set up dimension name
   // NOTE: arglist[0] should be same as dset name from CheckDimension 
-  dim.SetLabel( arglist[0] );
+  std::string const& dLabel = arglist[0];
 
   // Cycle through coordinate arguments. Any argument left blank will be 
   // assigned a default value later.
-  for (int i=1; i<arglist.Nargs(); i++) {
-    if (debug_>1) mprintf("    DEBUG: setupCoord: Token %i (%s)\n",i,arglist[i].c_str());
-    // Default explicitly requested
+  double dMin = 0.0;
+  double dMax = 0.0;
+  double dStep = 0.0;
+  int dBins = -1;
+  for (int i = 1; i < arglist.Nargs(); i++) {
+    if (debug_>1) mprintf("DEBUG: setupCoord: Token %i (%s)\n", i, arglist[i].c_str());
+    // '*' means default explicitly requested
     if (arglist[i] == "*") continue;
     switch (i) {
-      case 1 : dim.SetMin(  convertToDouble( arglist[i]) ); minArg=true; break;
-      case 2 : dim.SetMax(  convertToDouble( arglist[i]) ); maxArg=true; break;
-      case 3 : dim.SetStep( convertToDouble( arglist[i]) ); break;
-      case 4 : dim.SetBins( convertToInteger(arglist[i]) ); break;
+      case 1 : dMin  = convertToDouble( arglist[i]); minArg = true; break;
+      case 2 : dMax  = convertToDouble( arglist[i]); maxArg = true; break;
+      case 3 : dStep = convertToDouble( arglist[i]); stepArg = true; break;
+      case 4 : dBins = convertToInteger(arglist[i]); binsArg = true; break;
     }
   }
 
   // If no min arg and no default min arg, get min from dataset
-  // TODO: Use Min/MaxIsSet
   if (!minArg) {
     if (!minArgSet_) 
-      dim.SetMin( dset.Min() );
+      dMin = dset.Min();
     else
-      dim.SetMin( default_dim_.Min() );
+      dMin = default_min_;
   }
   // If no max arg and no default max arg, get max from dataset
   if (!maxArg) {
     if (!maxArgSet_)
-      dim.SetMax( dset.Max() );
+      dMax = dset.Max();
     else
-      dim.SetMax( default_dim_.Max() );
+      dMax = default_max_;
   }
-  // Check that min < max
-  if (dim.Min() >= dim.Max()) {
-    mprinterr("Error: Hist: Dimension %s: min (%lf) must be less than max (%lf).\n",
-              dim.Label().c_str(), dim.Min(), dim.Max());
+  // If bins/step not specified, use default
+  if (!binsArg)
+    dBins = default_bins_;
+  if (!stepArg)
+    dStep = default_step_;
+
+  // Calculate dimension from given args.
+  HistBin dim;
+  if (dim.CalcBinsOrStep( dMin, dMax, dStep, dBins, dLabel )) {
+    mprinterr("Error: Could not set up histogram dimension '%s'\n", dLabel.c_str());
     return 1;
   }
-
-  // If bins/step not specified, use default
-  if (dim.Bins()==-1)
-    dim.SetBins( default_dim_.Bins() );
-  if (dim.Step()==-1)
-    dim.SetStep( default_dim_.Step() );
-
-  // Attempt to set up bins or step.
-  if (dim.CalcBinsOrStep()!=0) return 1;
- 
-  dim.PrintDim();
+  dim.PrintHistBin();
   dimensions_.push_back( dim );
 
   // Recalculate offsets for all dimensions starting at farthest coord. This
@@ -156,9 +152,9 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
   for (HdimType::const_iterator rd = dimensions_.begin();
                                 rd != dimensions_.end(); ++rd, ++bOff)
   {
-    if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n",(*rd).Label().c_str(), offset);
+    if (debug_>0) mprintf("\tHistogram: %s offset is %zu\n", rd->label(), offset);
     *bOff = (long int)offset;
-    offset *= (*rd).Bins();
+    offset *= rd->Bins();
     // Check for overflow.
     if ( offset < last_offset ) {
       mprinterr("Error: Too many bins for histogram. Try reducing the number of bins and/or\n"
@@ -174,7 +170,7 @@ int Analysis_Hist::setupDimension(ArgList &arglist, DataSet_1D const& dset, size
 }
 
 // Analysis_Hist::Setup()
-Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& histname,
+Analysis::RetType Analysis_Hist::ExternalSetup(DataSet_1D* dsIn, std::string const& histname,
                                        int setidx, std::string const& outfilenameIn,
                                        bool minArgSetIn, double minIn,
                                        bool maxArgSetIn, double maxIn,
@@ -197,12 +193,12 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
   nativeOut_ = false;
   minArgSet_ = minArgSetIn;
   if (minArgSet_)
-    default_dim_.SetMin( minIn );
+    default_min_ = minIn;
   maxArgSet_ = maxArgSetIn;
   if (maxArgSet_)
-    default_dim_.SetMax( maxIn );
-  default_dim_.SetStep( stepIn );
-  default_dim_.SetBins( binsIn );
+    default_max_ = maxIn;
+  default_step_ = stepIn;
+  default_bins_ = binsIn;
   calcAMD_ = false;
   amddata_ = 0;
 
@@ -226,8 +222,7 @@ Analysis::RetType Analysis_Hist::Setup(DataSet_1D* dsIn, std::string const& hist
 
 // Analysis_Hist::Setup()
 /** Set up histogram with specified data sets. */
-Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   debug_ = debugIn;
   // Keywords
@@ -259,15 +254,15 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   circular_ = analyzeArgs.hasKey("circular");
   nativeOut_ = analyzeArgs.hasKey("nativeout");
   if ( analyzeArgs.Contains("min") ) {
-    default_dim_.SetMin( analyzeArgs.getKeyDouble("min",0.0) );
+    default_min_ = analyzeArgs.getKeyDouble("min", 0.0);
     minArgSet_ = true;
   }
   if ( analyzeArgs.Contains("max") ) {
-    default_dim_.SetMax( analyzeArgs.getKeyDouble("max",0.0) );
+    default_max_ = analyzeArgs.getKeyDouble("max", 0.0);
     maxArgSet_ = true;
   }
-  default_dim_.SetStep( analyzeArgs.getKeyDouble("step",-1.0) );
-  default_dim_.SetBins( analyzeArgs.getKeyInt("bins",-1) );
+  default_step_ = analyzeArgs.getKeyDouble("step", 0.0) ;
+  default_bins_ = analyzeArgs.getKeyInt("bins", -1);
   calcAMD_ = false;
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
@@ -412,13 +407,13 @@ Analysis::RetType Analysis_Hist::Analyze() {
     {
       double dval = (*ds)->Dval( n );
       // Check if data is out of bounds for this dimension.
-      if (dval > (*dim).Max() || dval < (*dim).Min()) {
+      if (dval > dim->Max() || dval < dim->Min()) {
         index = -1L;
         break;
       }
       // Calculate index for this particular dimension (idx)
-      long int idx = (long int)((dval - (*dim).Min()) / (*dim).Step());
-      if (debug_>1) mprintf(" [%s:%f (%i)],",(*dim).Label().c_str(), dval, idx);
+      long int idx = (long int)((dval - dim->Min()) / dim->Step());
+      if (debug_>1) mprintf(" [%s:%f (%i)],", dim->label(), dval, idx);
       // Calculate overall index in Bins, offset has already been calcd.
       index += (idx * (*bOff));
     }
@@ -479,8 +474,8 @@ Analysis::RetType Analysis_Hist::Analyze() {
       // Create pseudo-topology/trajectory
       if (!traj3dName_.empty()) {
         Topology pseudo;
-        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '), 0);
-        pseudo.CommonSetup(false);
+        pseudo.AddTopAtom(Atom("H3D", 0), Residue("H3D", 1, ' ', ' '));
+        pseudo.CommonSetup();
         if (!parmoutName_.empty()) {
           ParmFile pfile;
           if (pfile.WriteTopology( pseudo, parmoutName_, ParmFile::UNKNOWN_PARM, 0 ))
@@ -566,7 +561,7 @@ int Analysis_Hist::Normalize() {
     mprintf("\tHistogram: Normalizing integral over bin populations to 1.0\n");
   for (std::vector<double>::const_iterator bin = Bins_.begin(); bin != Bins_.end(); ++bin)
     sum += *bin;
-  mprintf("\t           Sum over all bins is %lf\n",sum);
+  mprintf("\t           Sum over all bins is %g\n",sum);
   if (sum == 0.0) {
     mprinterr("Error: Histogram::Normalize: Sum over bin populations is 0.0\n");
     return 1;
@@ -574,7 +569,7 @@ int Analysis_Hist::Normalize() {
   if (normalize_ == NORM_INT) {
     double spacing = 1.0;
     for (HdimType::const_iterator dim = dimensions_.begin(); dim != dimensions_.end(); ++dim)
-      spacing *= ( (*dim).Step() );
+      spacing *= ( dim->Step() );
     sum = 1.0 / (sum * spacing);
   } else if (normalize_ == NORM_SUM)
     sum = 1.0 / sum;
@@ -699,9 +694,9 @@ void Analysis_Hist::PrintBins() {
     long int index = BinIndicesToIndex(BinIndices);
     // If we dont care about zero bins or bin pop > 0, output
     for (unsigned int i=0; i < dimensions_.size(); ++i)
-      native_->Printf("%lf ",
+      native_->Printf("%f ",
                       ((double)BinIndices[i]*dimensions_[i].Step()) + dimensions_[i].Min() );
-    native_->Printf("%lf\n",Bins_[index]);
+    native_->Printf("%f\n",Bins_[index]);
 
     loop = IncrementBinIndices(BinIndices, isCircular, hasCycled);
     // If gnuplot, print extra space when highest order coord cycles

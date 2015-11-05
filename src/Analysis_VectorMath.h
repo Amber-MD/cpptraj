@@ -7,7 +7,7 @@ class Analysis_VectorMath : public Analysis {
     Analysis_VectorMath();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_VectorMath(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     enum ModeType {  DOTPRODUCT = 0, DOTANGLE, CROSSPRODUCT };

@@ -11,10 +11,11 @@ class Traj_SQM : public TrajectoryIO {
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&)               { return false; }
     int processReadArgs(ArgList&)                  { return 0;     }
-    int setupTrajin(FileName const&, Topology*) { return 1;     }
+    int setupTrajin(FileName const&, Topology*)    { return 1;     }
     int openTrajin()                               { return 1;     }
     int readFrame(int,Frame&)                      { return 1;     }
     int readVelocity(int, Frame&)                  { return 1;     }
+    int readForce(int, Frame&)                     { return 1;     }
     void closeTraj()                               { return;       }
     int processWriteArgs(ArgList&);
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);

@@ -21,6 +21,8 @@ class Traj_AmberRestart : public TrajectoryIO {
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int readVelocity(int, Frame&);
+    int readForce(int, Frame&)     { return 1; }
+
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
     void Info();

@@ -45,6 +45,8 @@ class TrajectoryIO : public BaseIOtype {
     virtual int readFrame(int,Frame&) = 0;
     /// Read only velocity information from a trajectory. 
     virtual int readVelocity(int, Frame&) = 0;
+    /// Read only force information from a trajectory.
+    virtual int readForce(int, Frame&) = 0;
     /// Write a frame to trajectory
     /** Write to output trajectory. This routine is called from
       * TrajectoryFile::WriteFrame with the current action set number, not the 

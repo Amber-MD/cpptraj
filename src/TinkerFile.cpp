@@ -235,13 +235,9 @@ int TinkerFile::ReadNextTinkerFrame(double* Xptr, double* box) {
 /* \return an array of Atoms from the current frame.
  * Assumes file has already been opened.
  */
-std::vector<Atom> TinkerFile::ReadTinkerAtoms(double* XYZ, std::vector<int>& bonds)
+std::vector<Atom> TinkerFile::ReadTinkerAtoms(Frame& Coords, std::vector<int>& bonds)
 {
   std::vector<Atom> atoms;
-  if (XYZ == 0) {
-    mprinterr("Internal Error: No space allocated for reading Tinker atom coordinates.\n");
-    return atoms;
-  }
   // Title line
   if (file_.Line() == 0) return atoms;
   if (CheckTitleLine()) return atoms;
@@ -250,6 +246,7 @@ std::vector<Atom> TinkerFile::ReadTinkerAtoms(double* XYZ, std::vector<int>& bon
     if (file_.Line() == 0) return atoms;
   }
   // Read atoms
+  double XYZ[3];
   atoms.reserve( natom_ );
   for (int atidx = 0; atidx < natom_; atidx++) {
     if (file_.Line() == 0) return std::vector<Atom>(0);
@@ -264,7 +261,7 @@ std::vector<Atom> TinkerFile::ReadTinkerAtoms(double* XYZ, std::vector<int>& bon
     XYZ[0] = atof( file_.NextToken() ); // X
     XYZ[1] = atof( file_.NextToken() ); // Y
     XYZ[2] = atof( file_.NextToken() ); // Z
-    XYZ += 3;
+    Coords.AddXYZ( XYZ );
     const char* at_type_ptr = file_.NextToken(); // Atom Type Index
     int atom_type_index = atoi( at_type_ptr );
     NameType atom_type( at_type_ptr );

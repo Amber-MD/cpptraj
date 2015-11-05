@@ -20,13 +20,14 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     void closeTraj();
     int readFrame(int,Frame&);
     int readVelocity(int, Frame&);
+    int readForce(int, Frame&);
     int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&);
     // Reservoir functions
     inline int createReservoir(bool,double,int);
-    int writeReservoir(int, Frame&, double, int);
+    int writeReservoir(int, Frame const&, double, int);
   private:
     float *Coord_;
     FileName filename_;
@@ -36,6 +37,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     bool readAccess_;
     bool outputTemp_;
     bool outputVel_;
+    bool outputFrc_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {

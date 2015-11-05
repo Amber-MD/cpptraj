@@ -31,7 +31,7 @@ trajin ../tz2.truncoct.nc
 autoimage origin
 rms first :1-13
 average avg.mol2 :1-13 
-grid out.xplor 20 0.5 20 0.5 20 0.5 :WAT@O  
+grid out.xplor 20 0.5 20 0.5 20 0.5 :WAT@O name XPLOR
 grid out.dx 20 0.5 20 0.5 20 0.5 :WAT@O
 EOF
   RunCpptraj "Grid test"
@@ -114,7 +114,7 @@ createcrd MyCoords
 run
 crdaction MyCoords grid bounds.xplor data MyGrid :WAT@O
 EOF
-  RunCpptraj "Grid generationg from bounds test."
+  RunCpptraj "Grid generation from 'bounds' test."
   DoTest bounds.dat.save bounds.dat
   DoTest bounds.xplor.save bounds.xplor 
 }

@@ -218,7 +218,7 @@ static int add_saddle_face (SADDLE_FACE saddle_face[], int *nface, int itorus, /
 }
 
 /***********************************************************************/
-void memory_usage ()
+void memory_usage(int natomIn)
 {
 
   long int total = 0;
@@ -226,48 +226,48 @@ void memory_usage ()
   printf ("size requirements in bytes\n");
 
   printf ("one atom              %ld\n", sizeof (ATOM));
-  printf ("atom            total %ld\n", natm_sel * sizeof (ATOM));
-  total += natm_sel * sizeof (ATOM);
+  printf ("atom            total %ld\n", natomIn * sizeof (ATOM));
+  total += natomIn * sizeof (ATOM);
 
   printf ("one NEIGHBOR_TORUS    %ld\n", sizeof (NEIGHBOR_TORUS));
-  printf ("NEIGHBOR_TORUS  total %ld\n", 60 * natm_sel * sizeof (NEIGHBOR_TORUS));
-  total += 60 * natm_sel * sizeof (NEIGHBOR_TORUS);
+  printf ("NEIGHBOR_TORUS  total %ld\n", 60 * natomIn * sizeof (NEIGHBOR_TORUS));
+  total += 60 * natomIn * sizeof (NEIGHBOR_TORUS);
 
   printf ("one NEIGHBOR          %ld\n", sizeof (NEIGHBOR));
-  printf ("NEIGHBOR        total %ld\n", 60 * natm_sel * sizeof (NEIGHBOR));
-  total += 60 * natm_sel * sizeof (NEIGHBOR);
+  printf ("NEIGHBOR        total %ld\n", 60 * natomIn * sizeof (NEIGHBOR));
+  total += 60 * natomIn * sizeof (NEIGHBOR);
 
   printf ("one TORUS             %ld\n", sizeof (TORUS));
-  printf ("TORUS           total %ld\n", 5 * natm_sel * sizeof (TORUS));
-  total += 5 * natm_sel * sizeof (TORUS);
+  printf ("TORUS           total %ld\n", 5 * natomIn * sizeof (TORUS));
+  total += 5 * natomIn * sizeof (TORUS);
 
   printf ("one PROBE             %ld\n", sizeof (PROBE));
-  printf ("PROBE           total %ld\n", 5 * natm_sel * sizeof (PROBE));
-  total += 5 * natm_sel * sizeof (PROBE);
+  printf ("PROBE           total %ld\n", 5 * natomIn * sizeof (PROBE));
+  total += 5 * natomIn * sizeof (PROBE);
 
   printf ("one VERTEX            %ld\n", sizeof (VERTEX));
-  printf ("VERTEX          total %ld\n", 10 * natm_sel * sizeof (VERTEX));
-  total += 10 * natm_sel * sizeof (VERTEX);
+  printf ("VERTEX          total %ld\n", 10 * natomIn * sizeof (VERTEX));
+  total += 10 * natomIn * sizeof (VERTEX);
 
   printf ("one EDGE      %ld\n", sizeof (EDGE));
-  printf ("EDGE    total %ld\n", 10 * natm_sel * sizeof (EDGE));
-  total += 10 * natm_sel * sizeof (EDGE);
+  printf ("EDGE    total %ld\n", 10 * natomIn * sizeof (EDGE));
+  total += 10 * natomIn * sizeof (EDGE);
 
   printf ("one CIRCLE            %ld\n", sizeof (CIRCLE));
-  printf ("CIRCLE          total %ld\n", 5 * natm_sel * sizeof (CIRCLE));
-  total += 5 * natm_sel * sizeof (CIRCLE);
+  printf ("CIRCLE          total %ld\n", 5 * natomIn * sizeof (CIRCLE));
+  total += 5 * natomIn * sizeof (CIRCLE);
 
   printf ("one CONCAVE_FACE      %ld\n", sizeof (CONCAVE_FACE));
-  printf ("CONCAVE_FACE    total %ld\n", 10 * natm_sel * sizeof (CONCAVE_FACE));
-  total += 10 * natm_sel * sizeof (CONCAVE_FACE);
+  printf ("CONCAVE_FACE    total %ld\n", 10 * natomIn * sizeof (CONCAVE_FACE));
+  total += 10 * natomIn * sizeof (CONCAVE_FACE);
 
   printf ("one SADDLE_FACE       %ld\n", sizeof (SADDLE_FACE));
-  printf ("SADDLE_FACE     total %ld\n", 10 * natm_sel * sizeof (SADDLE_FACE));
-  total += 10 * natm_sel * sizeof (SADDLE_FACE);
+  printf ("SADDLE_FACE     total %ld\n", 10 * natomIn * sizeof (SADDLE_FACE));
+  total += 10 * natomIn * sizeof (SADDLE_FACE);
 
   printf ("one CYCLE             %ld\n", sizeof (CYCLE));
-  printf ("CYCLE           total %ld\n", 10 * natm_sel * sizeof (CYCLE));
-  total += 10 * natm_sel * sizeof (CYCLE);
+  printf ("CYCLE           total %ld\n", 10 * natomIn * sizeof (CYCLE));
+  total += 10 * natomIn * sizeof (CYCLE);
 
   printf ("Sum total             %ld\n\n", total);
 

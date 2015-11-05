@@ -29,8 +29,7 @@ void Analysis_RmsAvgCorr::Help() {
           "  <crd set> can be created with the 'createcrd' command.\n", DataSetList::RefArgs);
 }
 
-Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
@@ -217,7 +216,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Analyze() {
     w_sizes.push_back( ws );
   // LOOP OVER DIFFERENT RUNNING AVG WINDOW SIZES
   widx_end = (int)w_sizes.size();
-  Dimension Xdim(1, lagOffset_, widx_end + 1);
+  Dimension Xdim(1, lagOffset_, "Frame");
   Ct_->SetDim(Dimension::X, Xdim);
   Csd_->SetDim(Dimension::X, Xdim);
   ParallelProgress progress(widx_end);

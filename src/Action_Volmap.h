@@ -8,9 +8,9 @@ class Action_Volmap : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Volmap(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     static void RawHelp();
 
@@ -39,6 +39,5 @@ class Action_Volmap : public Action {
     /// the scaling factor to divide all radii by
     double radscale_;
     static const double sqrt_8_pi_cubed;
-    static const double one_over_6;
 };
 #endif

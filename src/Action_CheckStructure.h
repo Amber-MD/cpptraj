@@ -10,13 +10,13 @@ class Action_CheckStructure : public Action {
     // Interface that can be used outside ActionList
     int SeparateInit(bool, std::string const&, std::string const&, std::string const&,
                      double, double, bool, DataFileList&);
-    int SeparateSetup(Topology const&, bool);
+    int SeparateSetup(Topology const&, Box::BoxType, bool);
     int CheckBonds(int, Frame const& currentFrame, Topology const&);
     int CheckOverlap(int, Frame const&, Topology const&);
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);

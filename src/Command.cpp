@@ -1,24 +1,26 @@
 #include <cstdio> // for ProcessInput
 #include <cstdlib> // system
+#include <algorithm> // std::sort
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
 #include "TorsionRoutines.h" // GenerateAmberRst
 #include "Constants.h" // GenerateAmberRst
 #include "DataSet_Coords_TRJ.h" // LoadTraj
-#include "DataSet_double.h" // DataSetCmd
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
 #include "SequenceAlign.h"
 #include "ProgressBar.h"
+#include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
+#include "Action_Angle.h"
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
 #include "Action_Dihedral.h"
-#include "Action_Angle.h"
 #include "Action_AtomMap.h"
 #include "Action_Strip.h"
+#include "Action_Unstrip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
 #include "Action_Hbond.h"
@@ -434,7 +436,7 @@ static void Help_SelectDS() {
 
 static void Help_Trajin() {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
-          "\t           %s\n", TopologyList::ParmArgs);
+          "\t           %s\n", DataSetList::TopArgs);
   mprintf("\t           [ <Format Options> ]\n"
           "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
@@ -444,7 +446,7 @@ static void Help_Trajin() {
 
 static void Help_Ensemble() {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
-          "\t        %s\n", TopologyList::ParmArgs);
+          "\t        %s\n", DataSetList::TopArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
           "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
           "  Load an ensemble of trajectories starting with <file0> that will be\n"
@@ -453,7 +455,7 @@ static void Help_Ensemble() {
 
 static void Help_Trajout() {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
-          "\t           %s [onlyframes <range>] [title <title>]\n", TopologyList::ParmArgs);
+          "\t           %s [onlyframes <range>] [title <title>]\n", DataSetList::TopArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n"
           "  Write frames after all actions have been processed to output trajectory\n"
@@ -463,7 +465,7 @@ static void Help_Trajout() {
 
 static void Help_Reference() {
   mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
-          "\t       %s\n", TopologyList::ParmArgs);
+          "\t       %s\n", DataSetList::TopArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
           "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
@@ -518,7 +520,7 @@ static void Help_AngleInfo() {
 }
 
 static void Help_DihedralInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
+  mprintf("\t[<parmindex>] [<mask>] [and]\n"
       "  Print dihedral information of atoms in <mask> for topology <parmindex> (0 by default).\n");
 }
 
@@ -542,7 +544,7 @@ static void Help_MolInfo() {
 }
 
 static void Help_LoadCrd() {
-  mprintf("\t<filename> %s [<trajin args>] [<name>]\n", TopologyList::ParmArgs);
+  mprintf("\t<filename> %s [<trajin args>] [name <name>]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 
@@ -612,16 +614,7 @@ static void Help_ActiveRef() {
 /// Set active reference for distance-based masks etc.
 Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  ReferenceFrame REF = State.DSL()->GetReferenceFrame( argIn );
-  if (!REF.error() && REF.empty()) {
-    // For backwards compat, see if there is a single integer arg.
-    ArgList refArg( "refindex " + argIn.GetStringNext() );
-    REF = State.DSL()->GetReferenceFrame( refArg );
-  }
-  if (REF.error() || REF.empty()) return Command::C_ERR;
-  mprintf("\tActive reference is '%s'\n", REF.refName());
-  State.SetActiveReference( REF.RefPtr() );
-  return Command::C_OK; 
+  return (Command::RetType)State.DSL()->SetActiveReference( argIn );
 }
 
 /// Clear data in specified lists
@@ -679,17 +672,19 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   if ( tkn == 0 ) return Command::C_ERR;
   Action* act = (Action*)tkn->Alloc();
   if (act == 0) return Command::C_ERR;
-  if ( act->Init( actionargs, State.PFL(), State.DSL(), State.DFL(), State.Debug() ) != Action::OK ) {
+  ActionInit state(*State.DSL(), *State.DFL());
+  if ( act->Init( actionargs, state, State.Debug() ) != Action::OK ) {
     delete act;
     return Command::C_ERR;
   }
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
-  Topology originalParm = CRD->Top();
+  ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
+  ActionFrame frm( &originalFrame );
   // Set up for this topology
-  Topology* currentParm = &originalParm;
-  if ( act->Setup( currentParm, &currentParm ) == Action::ERR ) {
+  Action::RetType setup_ret = act->Setup( originalSetup );
+  if ( setup_ret == Action::ERR ) {
     delete act;
     return Command::C_ERR;
   }
@@ -701,21 +696,20 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   {
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
-    Frame* currentFrame = &originalFrame;
-    if (act->DoAction( set, currentFrame, &currentFrame ) == Action::ERR) {
+    Action::RetType ret = act->DoAction( set, frm );
+    if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
     // Check if frame was modified. If so, update COORDS.
-    // TODO: Have actions indicate whether they will modify coords
-    //if ( currentFrame != &originalFrame ) 
-      CRD->SetCRD( frame, *currentFrame );
+    if ( ret == Action::MODIFY_COORDS ) 
+      CRD->SetCRD( frame, frm.Frm() );
   }
   // Check if parm was modified. If so, update COORDS.
-  if ( currentParm != &originalParm ) {
+  if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
-    CRD->CoordsSetup( *currentParm, currentParm->ParmCoordInfo() );
+    CRD->CoordsSetup( originalSetup.Top(), originalSetup.CoordInfo() );
   }
   act->Print();
   State.MasterDataFileWrite();
@@ -746,14 +740,13 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
   if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
-  Topology* currentParm = (Topology*)&(CRD->Top()); // TODO: Fix cast, ensure CoordInfo valid
-  if (outtraj.PrepareTrajWrite( setname, argIn, currentParm, CRD->CoordsInfo(),
+  if (outtraj.PrepareTrajWrite( setname, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
   }
-  outtraj.PrintInfo( 1 );
+  outtraj.PrintInfo(0);
   Frame currentFrame = CRD->AllocateFrame(); 
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
@@ -775,7 +768,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
 Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Get parm
-  Topology* parm = State.PFL()->GetParm( argIn );
+  Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: loadcrd: No parm files loaded.\n");
     return Command::C_ERR;
@@ -791,10 +784,13 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   Frame frameIn;
   frameIn.SetupFrameV(parm->Atoms(), trajin.TrajCoordInfo());
   // Set up metadata with file name and output set name
-  MetaData md( trajin.Traj().Filename(), argIn.GetStringNext(), -1 );
+  std::string setname = argIn.GetStringKey("name");
+  // NOTE: For backwards compat.
+  if (setname.empty()) setname = argIn.GetStringNext();
+  MetaData md( trajin.Traj().Filename(), setname, -1 );
   // Check if set already present
   DataSet_Coords* coords = 0;
-  DataSet* ds = State.DSL()->CheckForSet(md);
+  DataSet* ds = State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (ds == 0) {
     // Create Set 
     coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
@@ -868,7 +864,7 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
     // TODO: Clear input trajectories from trajinList?
   } else {
     // Add the named trajectory
-    if (trj->AddSingleTrajin( trajname, argIn, State.PFL()->GetParm(argIn) ))
+    if (trj->AddSingleTrajin( trajname, argIn, State.DSL()->GetTopology(argIn) ))
       return Command::C_ERR;
   }
   return Command::C_OK;
@@ -900,20 +896,25 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
     return Command::C_ERR;
   }
-  Topology* CombinedTop = new Topology();
-  if (CombinedTop == 0) return Command::C_ERR;
-  if (parmname.empty())
+  // Only add the topology to the list if parmname specified
+  bool addTop = true;
+  Topology CombinedTop;
+  if (parmname.empty()) {
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
-  CombinedTop->SetParmName( parmname, FileName() );
+    addTop = false;
+  }
+  CombinedTop.SetParmName( parmname, FileName() );
   // TODO: Check Parm box info.
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
-    CombinedTop->AppendTop( CRD[setnum]->Top() );
+    CombinedTop.AppendTop( CRD[setnum]->Top() );
   }
-  CombinedTop->Brief("Combined parm:");
-  State.PFL()->AddParm( CombinedTop );
+  CombinedTop.Brief("Combined parm:");
+  if (addTop) {
+    if (State.AddTopology( CombinedTop, parmname )) return Command::C_ERR;
+  }
   // Combine coordinates
   if (crdname.empty())
     crdname = CRD[0]->Meta().Legend() + "_" + CRD[1]->Meta().Legend();
@@ -924,8 +925,8 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     return Command::C_ERR;
   }
   // FIXME: Only copying coords for now
-  CombinedCrd->CoordsSetup( *CombinedTop, CoordinateInfo() );
-  Frame CombinedFrame( CombinedTop->Natom() * 3 );
+  CombinedCrd->CoordsSetup( CombinedTop, CoordinateInfo() );
+  Frame CombinedFrame( CombinedTop.Natom() * 3 );
   std::vector<Frame> InputFrames;
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
     InputFrames.push_back( CRD[setnum]->AllocateFrame() );
@@ -964,14 +965,14 @@ static void Help_GenerateAmberRst() {
           "\t[{%s} [offset <off>] [width <width>]]\n"
           "\t[out <outfile>]\n"
           "  Generate Amber-format restraint from 2 or more mask expressions.\n",
-          TopologyList::ParmArgs, DataSetList::RefArgs);
+          DataSetList::TopArgs, DataSetList::RefArgs);
 }
 
 /// Generate amber restraints from given masks.
 Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   // Get parm
-  Topology* parm = State.PFL()->GetParm( argIn );
+  Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No parm files loaded.\n");
     return Command::C_ERR;
@@ -1318,7 +1319,8 @@ static void Help_DataFilter() {
 Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Action_FilterByData filterAction;
-  if (filterAction.Init(argIn, State.PFL(), State.DSL(), State.DFL(), State.Debug()) != Action::OK)
+  ActionInit state(*State.DSL(), *State.DFL());
+  if (filterAction.Init(argIn, state, State.Debug()) != Action::OK)
     return Command::C_ERR;
   size_t nframes = filterAction.DetermineFrames();
   if (nframes < 1) {
@@ -1326,9 +1328,10 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
     return Command::C_ERR;
   }
   ProgressBar progress( nframes );
+  ActionFrame frm;
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );
-    filterAction.DoAction(frame, (Frame*)0, (Frame**)0); // Filter does not need frame.
+    filterAction.DoAction(frame, frm); // Filter does not need frame.
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
@@ -1492,8 +1495,7 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
   Timer total_time;
   total_time.Start();
   Command::RetType err = Command::C_ERR;
-  if ( ana->Setup( analyzeargs, State.DSL(), State.PFL(), State.DFL(), State.Debug() ) == 
-                   Analysis::OK )
+  if ( ana->Setup( analyzeargs, State.DSL(), State.DFL(), State.Debug() ) == Analysis::OK )
   {
     analyzeargs.CheckForMoreArgs();
     if (ana->Analyze() != Analysis::ERR) {
@@ -1511,7 +1513,7 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 Command::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   AtomMask tempMask( argIn.GetMaskNext() );
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
   mprintf("Selected %i atoms.\n", tempMask.Nselected());
@@ -1601,13 +1603,13 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Load topology to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  return (Command::RetType)State.PFL()->AddParmFile(argIn.GetStringNext(), argIn);
+  return (Command::RetType)State.AddTopology(argIn.GetStringNext(), argIn);
 }
 
 /// Print info for specified parm or atoms in specified parm.
 Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->Summary();
   return Command::C_OK;
@@ -1616,7 +1618,7 @@ Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 /// Print info for atoms in mask.
 Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->PrintAtomInfo( argIn.GetMaskNext() );
   return Command::C_OK;
@@ -1625,7 +1627,7 @@ Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 /// Print bond info for atoms in mask.
 Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->PrintBondInfo( argIn.GetMaskNext() );
   return Command::C_OK;
@@ -1634,7 +1636,7 @@ Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
 /// Print angle info for atoms in mask.
 Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->PrintAngleInfo( argIn.GetMaskNext() );
   return Command::C_OK;
@@ -1643,16 +1645,16 @@ Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocTy
 /// Print dihedral info for atoms in mask.
 Command::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
-  parm->PrintDihedralInfo( argIn.GetMaskNext() );
+  parm->PrintDihedralInfo( argIn.GetMaskNext(), !argIn.hasKey("and") );
   return Command::C_OK;
 }
 
 /// Print residue info for atoms in mask.
 Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   bool printShort = argIn.hasKey("short");
   if (printShort)
@@ -1665,7 +1667,7 @@ Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Print molecule info for atoms in mask.
 Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->PrintMoleculeInfo( argIn.GetMaskNext() );
   return Command::C_OK;
@@ -1674,7 +1676,7 @@ Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Print the total charge of atoms in mask
 Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return Command::C_ERR;
   return Command::C_OK;
@@ -1683,7 +1685,7 @@ Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocT
 /// Print the total charge of atoms in mask
 Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return Command::C_ERR;
   return Command::C_OK;
@@ -1704,7 +1706,7 @@ Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType
     pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
   }
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   if (nobox)
     mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
@@ -1718,7 +1720,7 @@ Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType
 /// Strip atoms from specified parm
 Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   // Check if this topology has already been used to set up an input
   // trajectory, as this will break the traj read.
@@ -1778,7 +1780,7 @@ Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocTy
   // Check if a COORDS data set was specified.
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
-    Topology* parm = State.PFL()->GetParmByIndex( argIn );
+    Topology* parm = State.DSL()->GetTopByIndex( argIn );
     if (parm == 0) return Command::C_ERR;
     err = pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() );
   } else {
@@ -1804,7 +1806,7 @@ Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::Alloc
     }
   }
   // Get parm index
-  Topology* parm = State.PFL()->GetParmByIndex( argIn );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
   if (parm == 0) return Command::C_ERR;
   parm->SetSolvent( maskexpr );
   return Command::C_OK;
@@ -1817,8 +1819,11 @@ static void Help_ScaleDihedralK() {
 /// Scale dihedral force constants in specfied parm by factor.
 Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm = State.PFL()->GetParm( argIn );
-  if (parm == 0) return Command::C_ERR;
+  Topology* parm = State.DSL()->GetTopology( argIn );
+  if (parm == 0) {
+    mprinterr("Error: No topologies loaded.\n");
+    return Command::C_ERR;
+  }
   double scale_factor = argIn.getNextDouble(1.0);
   std::string maskexpr = argIn.GetMaskNext();
   bool useAll = argIn.hasKey("useall");
@@ -1845,8 +1850,8 @@ static inline void PrintDih(Topology* parm, DihedralArray::const_iterator const&
 /// Compare two topologies.
 Command::RetType CompareTop(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
-  Topology* parm1 = State.PFL()->GetParm( argIn );
-  Topology* parm2 = State.PFL()->GetParm( argIn );
+  Topology* parm1 = State.DSL()->GetTopology( argIn );
+  Topology* parm2 = State.DSL()->GetTopology( argIn );
   if (parm1 == 0 || parm2 == 0) {
     mprinterr("Error: Specify two topologies.\n");
     return Command::C_ERR;
@@ -2039,9 +2044,11 @@ const Command::Token Command::Commands[] = {
   { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+  { ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
+  { ACTION, "rmsf", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },

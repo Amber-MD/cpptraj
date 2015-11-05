@@ -34,6 +34,7 @@ class DataSet_Vector : public DataSet {
         return ZERO;
       return origins_[i];
     }
+    bool HasOrigins()             const { return !origins_.empty(); }
     void ReserveVecs(size_t n)          { vectors_.reserve( n );   }
     void AddVxyz(Vec3 const& v)         { vectors_.push_back( v ); }
     void AddVxyz(Vec3 const& v, Vec3 const& c) {

@@ -30,6 +30,12 @@ char Residue::ConvertResName(std::string const& r) {
   if (r.compare(0,3,"TRP")==0) return 'W';
   if (r.compare(0,3,"TYR")==0) return 'Y';
   if (r.compare(0,3,"VAL")==0) return 'V';
+  // Nucleic acids
+  if (r.compare(0,2,"DA")==0 || r.compare(0,1,"A")==0) return 'A';
+  if (r.compare(0,2,"DG")==0 || r.compare(0,1,"G")==0) return 'G';
+  if (r.compare(0,2,"DC")==0 || r.compare(0,1,"C")==0) return 'C';
+  if (r.compare(0,2,"DT")==0 || r.compare(0,1,"T")==0) return 'T';
+  if (r.compare(0,1,"U")==0) return 'U';
   // Make lower case letter when unrecognized.
   if (!r.empty()) return tolower(r[0]);
   return ' ';

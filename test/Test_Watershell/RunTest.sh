@@ -9,7 +9,7 @@ TOP=../tz2.truncoct.parm7
 INPUT="ws.in"
 cat > ws.in <<EOF
 trajin ../tz2.truncoct.nc
-watershell !:WAT ws.agr
+watershell !:WAT ws.agr Tz2
 EOF
 RunCpptraj "Watershell Test"
 DoTest ws.agr.save ws.agr

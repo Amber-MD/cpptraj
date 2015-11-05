@@ -125,6 +125,12 @@ int FileName::AppendFileName( std::string const& suffix ) {
   return 0;
 }
 
+FileName FileName::PrependFileName( std::string const& prefix ) const {
+  FileName out;
+  out.SetFileName_NoExpansion(dirPrefix_ + prefix + baseName_);
+  return out;
+}
+
 // =============================================================================
 File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   NameArray fnames;

@@ -25,7 +25,7 @@ class Analysis_Rotdif: public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Rotdif(); }
     static void Help();
   private:
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
 
     int debug_;

@@ -14,9 +14,9 @@ class Action_DihedralScan: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_DihedralScan(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
     /// Scan types
     enum ModeType  { RANDOM = 0, INTERVAL };

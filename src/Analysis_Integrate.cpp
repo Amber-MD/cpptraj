@@ -8,8 +8,7 @@ void Analysis_Integrate::Help() {
           "  Integrate given data sets.\n");
 }
 
-Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
   outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);

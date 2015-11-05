@@ -1,8 +1,8 @@
 #ifndef INC_TINKERFILE_H
 #define INC_TINKERFILE_H
 #include "BufferedLine.h"
-#include "Box.h"
 #include "Atom.h"
+#include "Frame.h"
 /// Use to access Tinker XYZ/ARC files.
 class TinkerFile {
   public:
@@ -22,7 +22,7 @@ class TinkerFile {
     }
     void CloseFile() { file_.CloseFile(); }
     FileName const& Filename() { return file_.Filename(); }
-    std::vector<Atom> ReadTinkerAtoms(double*, std::vector<int>&);
+    std::vector<Atom> ReadTinkerAtoms(Frame&, std::vector<int>&);
   private:
     int CheckTitleLine();
 

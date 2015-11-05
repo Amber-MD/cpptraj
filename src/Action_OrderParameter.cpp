@@ -33,7 +33,7 @@ void Action_OrderParameter::Help()
 }
 
 // Action_OrderParameter::init()
-Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   size_t nGroups;
   std::string mask;
@@ -47,7 +47,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
     outfileName = "orderparam.dat";
   }
 
-  output_ = DFL->AddCpptrajFile(outfileName, "Lipid order");
+  output_ = init.DFL().AddCpptrajFile(outfileName, "Lipid order");
   if (output_ == 0) {
     mprinterr("Error: OrderParameter: Could not open output file %s\n",
 	      outfileName.c_str());
@@ -65,7 +65,7 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
   std::string taildistName = actionArgs.GetStringKey("taildist");
 
   if (!taildistName.empty()) {
-    taildist_ = DFL->AddCpptrajFile(taildistName, "Tail Dist");
+    taildist_ = init.DFL().AddCpptrajFile(taildistName, "Tail Dist");
     if (taildist_ == 0) {
       mprinterr("Error: OrderParameter: Could not open output file %s\n",
 		taildistName.c_str());
@@ -132,30 +132,28 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, TopologyList* P
 
 
 // Action_OrderParameter::Setup()
-Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
-					     Topology** parmAddress)
-{
+Action::RetType Action_OrderParameter::Setup(ActionSetup& setup) {
   int i, nlen1;
   int nlen2 = 0;
   std::vector<AtomMask>::iterator mask;
 
 
-  SetupImaging(currentParm->BoxType() );
+  SetupImaging(setup.CoordInfo().TrajBox().Type() );
 
 
   if (!scd_) {
     if (unsat_mask_.MaskStringSet() && 
-	currentParm->SetupIntegerMask(unsat_mask_) )
+	setup.Top().SetupIntegerMask(unsat_mask_) )
       return Action::ERR;
   }
 
   if (taildist_ != 0 ) {
     if (tailstart_mask_.MaskStringSet() &&
-	currentParm->SetupIntegerMask(tailstart_mask_) )
+	setup.Top().SetupIntegerMask(tailstart_mask_) )
       return Action::ERR;
 
     if (tailend_mask_.MaskStringSet() &&
-	currentParm->SetupIntegerMask(tailend_mask_) )
+	setup.Top().SetupIntegerMask(tailend_mask_) )
       return Action::ERR;
 
     if (tailstart_mask_.Nselected() != tailend_mask_.Nselected() ) {
@@ -170,7 +168,7 @@ Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
        mask != masks_.end();
        mask++, i++) {
 
-    if (currentParm->SetupIntegerMask(*mask) ) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(*mask) ) return Action::ERR;
 
     nlen1 = mask->Nselected();
 
@@ -204,10 +202,7 @@ Action::RetType Action_OrderParameter::Setup(Topology* currentParm,
 
 
 // Action_OrderParameter::action()
-Action::RetType Action_OrderParameter::DoAction(int frameNum,
-						Frame* currentFrame,
-						Frame** frameAddress)
-{
+Action::RetType Action_OrderParameter::DoAction(int frameNum, ActionFrame& frm) {
   int i, j, curr_atom, prev_atom, next_atom;
 
   unsigned long bin;
@@ -243,8 +238,8 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 	     C_atom++, H1_atom++, H2_atom++) {
 
 	// C-H1 unit vector
-	c = currentFrame->XYZ(*C_atom);
-	h1 = currentFrame->XYZ(*H1_atom);
+	c = frm.Frm().XYZ(*C_atom);
+	h1 = frm.Frm().XYZ(*H1_atom);
 
 	sx = c - h1;
 	len = sqrt(sx.Magnitude2() );
@@ -259,7 +254,7 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 	Sx += 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0);
 
 	// C-H2 unit vector
-	h2 = currentFrame->XYZ(*H2_atom);
+	h2 = frm.Frm().XYZ(*H2_atom);
 
 	sy = c - h2;
 	len = sqrt(sy.Magnitude2() );
@@ -290,11 +285,11 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 	next_atom = (*(C_mask+1))[j];
 
 	if (!unsat_mask_.None() && dbonds_[i][j]) {
-	  ca = currentFrame->XYZ(curr_atom);
-	  cb = currentFrame->XYZ(next_atom);
+	  ca = frm.Frm().XYZ(curr_atom);
+	  cb = frm.Frm().XYZ(next_atom);
 	} else {
-	  ca = currentFrame->XYZ(prev_atom);
-	  cb = currentFrame->XYZ(next_atom);
+	  ca = frm.Frm().XYZ(prev_atom);
+	  cb = frm.Frm().XYZ(next_atom);
 	}
 
 	sz = cb - ca;
@@ -307,12 +302,12 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 
 	sz /= len;
 
-	ca = currentFrame->XYZ(curr_atom);
-	cb = currentFrame->XYZ(prev_atom);
+	ca = frm.Frm().XYZ(curr_atom);
+	cb = frm.Frm().XYZ(prev_atom);
 
 	cc1 = ca - cb;
 
-	cb = currentFrame->XYZ(next_atom);
+	cb = frm.Frm().XYZ(next_atom);
 	cc2 = ca - cb;
 
 	sx = cc1.Cross(cc2);
@@ -340,8 +335,8 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum,
 	 start_atom != tailstart_mask_.end() && end_atom != tailend_mask_.end();
 	 start_atom++, end_atom++) {
 
-      ca = currentFrame->XYZ(*start_atom);
-      cb = currentFrame->XYZ(*end_atom);
+      ca = frm.Frm().XYZ(*start_atom);
+      cb = frm.Frm().XYZ(*end_atom);
 
       c = ca - cb;
       bin = (unsigned long) (sqrt(c.Magnitude2() ) / delta_);

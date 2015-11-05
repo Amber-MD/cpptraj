@@ -25,8 +25,8 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Dihedral.cpp \
         Action_DihedralScan.cpp \
         Action_Dipole.cpp \
-        Action_DistRmsd.cpp \
         Action_Distance.cpp \
+        Action_DistRmsd.cpp \
         Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
@@ -71,6 +71,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
         Action_Translate.cpp \
+        Action_Unstrip.cpp \
         Action_Unwrap.cpp \
         Action_Vector.cpp \
         Action_VelocityAutoCorr.cpp \
@@ -122,6 +123,7 @@ SOURCES=ActionFrameCounter.cpp \
         AtomMap.cpp \
         AtomMask.cpp \
         AxisType.cpp \
+        BondSearch.cpp \
         Box.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
@@ -174,13 +176,13 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_Mesh.cpp \
         DataSet_Modes.cpp \
         DataSet_RemLog.cpp \
+        DataSet_Topology.cpp \
         DataSet_Vector.cpp \
         DataSet_double.cpp \
         DataSet_float.cpp \
         DataSet_integer.cpp \
         DataSet_string.cpp \
         DihedralSearch.cpp \
-        Dimension.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -197,6 +199,7 @@ SOURCES=ActionFrameCounter.cpp \
         FileTypes.cpp \
         Frame.cpp \
         GridAction.cpp \
+        HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
         InputTrajCommon.cpp \
@@ -235,7 +238,6 @@ SOURCES=ActionFrameCounter.cpp \
         Timer.cpp \
         TinkerFile.cpp \
         Topology.cpp \
-        TopologyList.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp \
         Traj_AmberNetcdf.cpp \
@@ -267,3 +269,5 @@ SOURCES=ActionFrameCounter.cpp \
 
 CSOURCES=MpiRoutines.c \
          molsurf.c
+
+

@@ -28,6 +28,8 @@ class DataSet_Coords : public DataSet {
     Frame AllocateFrame() const;
     /// \return Topology associated with these COORDS.
     inline Topology const& Top() const { return top_; }
+    /// \return Pointer to Topology associated with these COORDS.
+    inline Topology* TopPtr() { return &top_; }
     /// \return CoordinateInfo associated with these COORDS
     inline CoordinateInfo const& CoordsInfo() const { return cInfo_; }
   protected:

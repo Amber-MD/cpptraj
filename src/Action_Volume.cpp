@@ -12,16 +12,16 @@ void Action_Volume::Help() {
 }
 
 // Action_Volume::Init()
-Action::RetType Action_Volume::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Volume::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   image_.InitImaging( true );
   // Get keywords
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   sum_ = 0.0;
   sum2_ = 0.0;
   nframes_ = 0;
   // Dataset
-  vol_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Vol");
+  vol_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"Vol");
   if (vol_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( vol_ );
@@ -37,27 +37,27 @@ Action::RetType Action_Volume::Init(ArgList& actionArgs, TopologyList* PFL, Data
 // Action_Volume::Setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
-Action::RetType Action_Volume::Setup(Topology* currentParm, Topology** parmAddress) {
-  image_.SetupImaging( currentParm->BoxType() );
+Action::RetType Action_Volume::Setup(ActionSetup& setup) {
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (!image_.ImagingEnabled()) {
     mprintf("Warning: No unit cell information, volume cannot be calculated for '%s'\n",
-            currentParm->c_str());
-    return Action::ERR;
+            setup.Top().c_str());
+    return Action::SKIP;
   }
 
   return Action::OK;  
 }
 
 // Action_Volume::DoAction()
-Action::RetType Action_Volume::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Volume::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   double volume = 0.0;
   if (image_.ImageType() == ORTHO)
-    volume = currentFrame->BoxCrd().BoxX() *
-             currentFrame->BoxCrd().BoxY() *
-             currentFrame->BoxCrd().BoxZ();
+    volume = frm.Frm().BoxCrd().BoxX() *
+             frm.Frm().BoxCrd().BoxY() *
+             frm.Frm().BoxCrd().BoxZ();
   else if (image_.ImageType() == NONORTHO)
-    volume = currentFrame->BoxCrd().ToRecip( ucell, recip );
+    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );
   vol_->Add(frameNum, &volume);
   sum_ += volume;
   sum2_ += (volume * volume);

@@ -1,4 +1,3 @@
-// Traj_PDBfile
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
 
@@ -15,6 +14,7 @@ Traj_PDBfile::Traj_PDBfile() :
   pdbatom_(false),
   write_cryst1_(false),
   include_ep_(false),
+  writeConect_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -170,7 +170,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tmulti:       Write each frame to separate files.\n"
           "\tchainid <c>: Write character 'c' in chain ID column.\n"
           "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep:  Include extra points.\n");
+          "\tinclude_ep:  Include extra points.\n"
+          "\tconect:      Write CONECT records using bond information.\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -202,6 +203,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
+  writeConect_ = argIn.hasKey("conect");
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
@@ -329,6 +331,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       mprintf(" %i", *idx + 1);
     mprintf("\n");
   }
+  // Allocate space to hold ATOM record #s if writing CONECT records
+  if (writeConect_) atrec_.resize( trajParm->Natom() );
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
   if (append || (pdbWriteMode_==SINGLE && NframesToWrite>1)) 
@@ -413,12 +417,14 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
       }
-      file_.WriteCoord(PDBfile::ATOM, anum++, atomName, altLoc, resNames_[res],
+      file_.WriteCoord(PDBfile::ATOM, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
+      if (writeConect_) atrec_[aidx] = anum; // Store ATOM record #
     }
+    anum++;
     // Check and see if a TER card should be written.
     if (aidx == *terIdx) {
       // FIXME: Should anum not be incremented until after? 
@@ -428,6 +434,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       anum += ter_num_;
       ++terIdx;
     }
+  }
+  // Write CONECT records for each ATOM
+  if (writeConect_) {
+    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
+      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
   }
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame, close output file
@@ -449,6 +460,7 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
+    if (writeConect_) mprintf(" with CONECT records");
     if (dumpq_) {
       mprintf(", writing charges to occupancy column and ");
       switch (radiiMode_) {

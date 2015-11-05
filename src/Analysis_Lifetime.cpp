@@ -27,7 +27,7 @@ void Analysis_Lifetime::Help() {
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(Array1D const& dsArray, CpptrajFile* outfile) {
+Analysis::RetType Analysis_Lifetime::ExternalSetup(Array1D const& dsArray, CpptrajFile* outfile) {
   if (dsArray.empty()) return Analysis::ERR;
   standalone_ = outfile;
   inputDsets_ = dsArray;
@@ -51,8 +51,7 @@ inline static int CheckDsetError(DataSet_1D* ds, const char* msg, const char* le
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Get Keywords
   FileName outfileName( analyzeArgs.GetStringKey("out") );
@@ -87,6 +86,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   if (setname.empty())
     setname = datasetlist->GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
+    Dimension Xdim(1.0, windowSize_, "Frame");
     outfile = DFLin->AddDataFile(outfileName, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
       maxfile = DFLin->AddDataFile(outfileName.DirPrefix() + "max." + 
@@ -102,6 +102,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSet( DataSet::FLOAT, md );
       if (CheckDsetError(outSet, "output", (*set)->legend())) 
         return Analysis::ERR;
+      outSet->SetDim(Dimension::X, Xdim);
       outputDsets_.push_back( outSet );
       if (outfile != 0) outfile->AddDataSet( outSet );
       if (!averageonly_) {
@@ -110,6 +111,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
         outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::INTEGER, md);
         if (CheckDsetError(outSet, "lifetime max", (*set)->legend()))
           return Analysis::ERR;
+        outSet->SetDim(Dimension::X, Xdim);
         maxDsets_.push_back( outSet );
         if (maxfile != 0) maxfile->AddDataSet( outSet );
         // AVG
@@ -117,6 +119,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
         outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::FLOAT, md);
         if (CheckDsetError(outSet, "lifetime avg", (*set)->legend()))
           return Analysis::ERR;
+        outSet->SetDim(Dimension::X, Xdim);
         avgDsets_.push_back( outSet );
         if (avgfile != 0) avgfile->AddDataSet( outSet );
       }

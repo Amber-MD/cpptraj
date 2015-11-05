@@ -259,7 +259,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   // Use X dimension of set 0 for all set dimensions.
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) ); 
-  Dimension Ydim( 1, 1, Sets.size() );
+  Dimension Ydim( 1.0, 1.0 );
   TextFormat x_format, y_format;
   x_format.SetCoordFormat( maxFrames,   Xdim.Min(), Xdim.Step(), 8, 3 );
   y_format.SetCoordFormat( Sets.size(), Ydim.Min(), Ydim.Step(), 8, 3 );

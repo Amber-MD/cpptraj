@@ -12,7 +12,7 @@ class GridAction {
     static const char* HelpText;
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
     void GridInfo(DataSet_GridFlt const&);
-    int GridSetup(Topology const&);
+    int GridSetup(Topology const&, CoordinateInfo const&);
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);
     GridModeType GridMode()      const { return mode_;       }
     AtomMask const& CenterMask() const { return centerMask_; }

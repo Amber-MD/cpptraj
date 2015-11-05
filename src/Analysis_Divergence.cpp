@@ -28,8 +28,7 @@ static inline bool check_type(DataSet* ds, int n_ds) {
 }
 
 // Analysis_Divergence::Setup()
-Analysis::RetType Analysis_Divergence::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Divergence::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Keywords
   ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds1") );

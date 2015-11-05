@@ -8,9 +8,9 @@ class Action_MakeStructure : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_MakeStructure(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
     Topology* CurrentParm_; // DEBUG
     int debug_;

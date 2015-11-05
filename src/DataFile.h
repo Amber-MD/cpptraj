@@ -43,6 +43,8 @@ class DataFile {
     int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
     /// Set up DataFile for writing.
     int SetupDatafile(FileName const&, ArgList&, int);
+    /// Set up DataFile for writing with specific format.
+    int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
     int SetupStdout(ArgList&, int);
     /// Add a previously set-up DataSet to DataFile.
@@ -82,7 +84,14 @@ class DataFile {
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.
     DataIO* dataio_;           ///< DataIO object for this DataFormatType.
     FileName filename_;        ///< DataFile file name.
+    struct DimStruct {
+      std::string label_;
+      double min_;
+      double step_;
+    };
     /// Hold defaults for X, Y, and Z DataSet dimensions.
-    std::vector<Dimension> defaultDim_;
+    std::vector<DimStruct> defaultDim_;
+    /// True if min for X/Y/Z dim has been set.
+    std::vector<bool> minIsSet_;
 };
 #endif

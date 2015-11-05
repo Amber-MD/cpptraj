@@ -23,7 +23,7 @@ class DataSet {
     enum DataType {
       UNKNOWN_DATA=0, DOUBLE, FLOAT, INTEGER, STRING, MATRIX_DBL, MATRIX_FLT, 
       COORDS, VECTOR, MODES, GRID_FLT, REMLOG, XYMESH, TRAJ, REF_FRAME,
-      MAT3X3
+      MAT3X3, TOPOLOGY
     };
     /// Group DataSet belongs to.
     enum DataGroup {
@@ -73,7 +73,8 @@ class DataSet {
     /// Set specific TextFormat part.
     TextFormat& SetupFormat() { return format_; }
     /// Set specified DataSet dimension.
-    void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i]=d; }
+    void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i] = d; }
+    void SetDim(int i, Dimension const& d)                   { dim_[i] = d;      }
     /// Check if name and/or index and aspect wildcard match this DataSet.
     bool Matches_WC(MetaData::SearchString const&, DataType) const;
     /// \return AssociateData of specified type.
@@ -96,9 +97,8 @@ class DataSet {
     /// \return number of dimensions.
     size_t Ndim()               const { return dim_.size();        }
     /// \return specified DataSet dimension. // TODO consolidate
-    Dimension& Dim(Dimension::DimIdxType i) { return dim_[(int)i]; }
-    Dimension&       Dim(int i)             { return dim_[i];      }
-    Dimension const& Dim(int i)       const { return dim_[i];      }
+    Dimension& ModifyDim(Dimension::DimIdxType i) { return dim_[(int)i]; }
+    Dimension const& Dim(int i)             const { return dim_[i];      }
 
     /// Comparison for sorting, name/aspect/idx
     inline bool operator<(const DataSet& rhs) const { return meta_ < rhs.meta_; }

@@ -1,8 +1,8 @@
 #ifndef INC_NAMETYPE_H
 #define INC_NAMETYPE_H
-#include <cstddef> // size_t
 #include <string>
 class NameType {
+    static const unsigned int NameSize_ = 6;
   public:
     NameType();
     NameType(const NameType&);
@@ -20,11 +20,20 @@ class NameType {
     char operator[](int) const;
     std::string Truncated() const;
     void ReplaceAsterisk();
-
+    bool operator<(NameType const& rhs) const {
+      for (unsigned int i = 0; i != NameSize_; i++)
+      {
+        if      (c_array_[i] == '\0' && rhs.c_array_[i] == '\0') return false;
+        else if (c_array_[i] == '\0' && rhs.c_array_[i] != '\0') return true;
+        else if (c_array_[i] != '\0' && rhs.c_array_[i] == '\0') return false;
+        else if (c_array_[i] < rhs.c_array_[i]) return true;
+        else if (c_array_[i] > rhs.c_array_[i]) return false;
+      }
+      return false;
+    }
   private:
-    const size_t NameSize_;
-    char c_array_[6];
+    char c_array_[NameSize_];
 
     void FormatName();
-};  
+};
 #endif

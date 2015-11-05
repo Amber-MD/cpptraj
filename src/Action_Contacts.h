@@ -9,9 +9,9 @@ class Action_Contacts : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     int SetupContacts(Frame const&, Topology const&);

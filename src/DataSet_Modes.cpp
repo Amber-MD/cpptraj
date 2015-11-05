@@ -84,36 +84,46 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
 #ifdef NO_MATHLIB
-  mprinterr("Error: modes: Compiled without ARPACK/LAPACK/BLAS routines.\n");
+  mprinterr("Error: Compiled without ARPACK/LAPACK/BLAS routines.\n");
   return 1;
 #else
   bool eigenvaluesOnly = false;
   int info = 0;
+  int ncols = (int)mIn.Ncols();
   if (mIn.MatrixKind() != DataSet_2D::HALF) {
-    mprinterr("Error: DataSet_Modes: Eigenvector/value calc only for symmetric matrices.\n");
+    mprinterr("Error: Eigenvector/value calc only for symmetric matrices.\n");
     return 1;
   }
   // If number to calc is 0, assume we want eigenvalues only
   if (n_to_calc < 1) {
     if (n_to_calc == 0) eigenvaluesOnly = true;
-    nmodes_ = (int)mIn.Ncols();
+    nmodes_ = ncols;
   } else
     nmodes_ = n_to_calc;
-  if (nmodes_ > (int)mIn.Ncols()) {
-    mprintf("Warning: Specified # of eigenvalues to calc (%i) > matrix dimension (%i).\n",
-            nmodes_, mIn.Ncols());
-    nmodes_ = mIn.Ncols();
-    mprintf("Warning: Only calculating %i eigenvalues.\n", nmodes_);
+  if (nmodes_ > ncols) {
+    mprintf("Warning: Specified # of eigenmodes to calc (%i) > matrix dimension (%i).\n",
+            nmodes_, ncols);
+    nmodes_ = ncols;
+    mprintf("Warning: Only calculating %i eigenmodes.\n", nmodes_);
   }
+  bool calcAll = (nmodes_ == ncols);
+# ifdef NO_ARPACK
+  if (!calcAll) {
+    mprintf("Warning: Compiled without ARPACK. All %i modes must be calculated, may be slow.\n",
+            ncols);
+    calcAll = true;
+  }
+# endif
   if (eigenvaluesOnly)
-    mprintf("\tCalculating %i eigenvalues only.\n", nmodes_);
+    mprintf("\tCalculating eigenvalues only.\n");
   else
-    mprintf("\tCalculating %i eigenvectors and eigenvalues.\n", nmodes_);
+    mprintf("\tCalculating eigenvectors and eigenvalues.\n");
   // -----------------------------------------------------------------
-  if (nmodes_ == (int)mIn.Ncols()) {
+  if (calcAll) {
+    mprintf("\tCalculating all eigenmodes.\n");
     // Calculate all eigenvalues (and optionally eigenvectors). 
     char jobz = 'V'; // Default: Calc both eigenvectors and eigenvalues
-    vecsize_ = mIn.Ncols();
+    vecsize_ = ncols;
     // Check if only calculating eigenvalues
     if (eigenvaluesOnly) {
       jobz = 'N';
@@ -122,23 +132,23 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     // Set up space to hold eigenvectors
     if (evectors_ != 0) delete[] evectors_;
     if (!eigenvaluesOnly)
-      evectors_ = new double[ nmodes_ * vecsize_ ];
+      evectors_ = new double[ ncols * vecsize_ ];
     else
       evectors_ = 0;
     // Set up space to hold eigenvalues
     if (evalues_ != 0) delete[] evalues_;
-    evalues_ = new double[ nmodes_ ];
+    evalues_ = new double[ ncols ];
     // Create copy of matrix since call to dspev destroys it
     double* mat = mIn.MatrixArray();
     // Lower triangle; not upper since fortran array layout is inverted w.r.t. C/C++
     char uplo = 'L'; 
     // Allocate temporary workspace
-    double* work = new double[ 3 * nmodes_ ];
+    double* work = new double[ 3 * ncols ];
     // NOTE: The call to dspev is supposed to store eigenvectors in columns. 
     //       However as mentioned above fortran array layout is inverted
     //       w.r.t. C/C++ so eigenvectors end up in rows.
     // NOTE: Eigenvalues/vectors are returned in ascending order.
-    dspev_(jobz, uplo, nmodes_, mat, evalues_, evectors_, vecsize_, work, info);
+    dspev_(jobz, uplo, ncols, mat, evalues_, evectors_, vecsize_, work, info);
     // If no eigenvectors calcd set vecsize to 0
     if (evectors_==0)
       vecsize_ = 0;
@@ -147,7 +157,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
     if (info != 0) {
       if (info < 0) {
         mprinterr("Internal Error: from dspev: Argument %i had illegal value.\n", -info);
-        mprinterr("Args: %c %c %i matrix %x %x %i work %i\n", jobz, uplo, nmodes_,  
+        mprinterr("Args: %c %c %i matrix %x %x %i work %i\n", jobz, uplo, ncols,
                   evalues_, evectors_, vecsize_, info);
       } else { // info > 0
         mprinterr("Internal Error: from dspev: The algorithm failed to converge.\n");
@@ -156,15 +166,36 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       }
       return 1;
     }
+#   ifdef NO_ARPACK
+    if (nmodes_ < ncols) {
+      mprintf("\tSaving only first %i eigenmodes\n", nmodes_);
+      int start_idx = ncols - nmodes_;
+      // Resize eigenvectors and eigenvalues
+      double *temp_vals = new double[ nmodes_ ];
+      std::copy( evalues_ + start_idx, evalues_ + ncols, temp_vals );
+      delete[] evalues_;
+      evalues_ = temp_vals;
+      if (!eigenvaluesOnly) {
+        double *temp_vecs = new double[ nmodes_ * vecsize_ ];
+        std::copy( evectors_ + (start_idx * vecsize_),
+                   evectors_ + (ncols * vecsize_), temp_vecs );
+        delete[] evectors_;
+        evectors_ = temp_vecs;
+      }
+    }
+#   endif
   // -----------------------------------------------------------------
-  } else {
+  }
+# ifndef NO_ARPACK
+  else {
+    mprintf("\tCalculating first %i eigenmodes.\n", nmodes_);
     // Calculate up to n-1 eigenvalues/vectors using the Implicitly Restarted
     // Arnoldi iteration.
     // FIXME: Eigenvectors obtained with this method appear to have signs
     //        flipped compared to full method - is dot product wrong?
-    int nelem = mIn.Ncols(); // Dimension of input matrix (N)
+    int nelem = ncols; // Dimension of input matrix (N)
     // Allocate memory to store eigenvectors
-    vecsize_ = mIn.Ncols();
+    vecsize_ = ncols;
     int ncv; // # of columns of the matrix V (evectors_), <= N (mIn.Ncols())
     if (evectors_!=0) delete[] evectors_;
     if (nmodes_*2 <= nelem) 
@@ -249,6 +280,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
       return 1;
     }
   }
+# endif
   // Eigenvalues and eigenvectors are in ascending order. Resort so that
   // they are in descending order (i.e. largest eigenvalue first).
   int pivot = nmodes_ / 2;
