@@ -51,7 +51,7 @@ int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& 
 /** Attempt to set up all actions in the action list with the given parm
   * If an action cannot be set up skip it.
   */
-int ActionList::SetupActions(ActionSetup& setup) {
+int ActionList::SetupActions(ActionSetup& setup, bool exitOnError) {
   if (actionList_.empty()) return 0;
   ActionSetup OriginalSetup = setup;
   mprintf(".....................................................\n");
@@ -66,7 +66,8 @@ int ActionList::SetupActions(ActionSetup& setup) {
       Action::RetType err = act->ptr_->Setup(setup);
       if (err == Action::ERR) {
         mprinterr("Error: Setup failed for [%s]\n", act->args_.Command());
-        return 1;
+        if (exitOnError) return 1;
+        act->status_ = INIT;
       } else if (err == Action::SKIP) {
         mprintf("Warning: Setup incomplete for [%s]: Skipping\n", act->args_.Command());
         // Reset action status to INIT (pre-setup)

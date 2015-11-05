@@ -114,6 +114,9 @@ std::string Cpptraj::Defines() {
 #ifdef NO_MATHLIB
   defined_str.append(" -DNO_MATHLIB");
 #endif
+#ifdef NO_ARPACK
+  defined_str.append(" -DNO_ARPACK");
+#endif
 #ifdef TIMER
   defined_str.append(" -DTIMER");
 #endif

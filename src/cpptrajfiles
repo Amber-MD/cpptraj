@@ -183,7 +183,6 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_integer.cpp \
         DataSet_string.cpp \
         DihedralSearch.cpp \
-        Dimension.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -200,6 +199,7 @@ SOURCES=ActionFrameCounter.cpp \
         FileTypes.cpp \
         Frame.cpp \
         GridAction.cpp \
+        HistBin.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
         InputTrajCommon.cpp \
@@ -230,6 +230,7 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
+        SequenceAlign.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \

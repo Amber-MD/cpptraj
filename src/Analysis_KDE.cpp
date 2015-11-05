@@ -1,9 +1,10 @@
 #include <cmath> // pow
+#include <limits> // Minimum double val for checking zero
 #include "Analysis_KDE.h"
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 #include "Constants.h" // TWOPI, GASK_KCAL
-#include <limits> // Minimum double val for checking zero
+#include "HistBin.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -12,7 +13,14 @@
 Analysis_KDE::Analysis_KDE() : 
   data_(0), q_data_(0), bandwidth_(0.0), output_(0), kldiv_(0),
   amddata_(0), calcFreeE_(false), Temp_(0.0),
-  Kernel_(&Analysis_KDE::GaussianKernel) {}
+  Kernel_(&Analysis_KDE::GaussianKernel),
+  default_min_(0.0),
+  default_max_(0.0),
+  default_step_(0.0),
+  default_bins_(-1),
+  minArgSet_(false),
+  maxArgSet_(false)
+{}
 
 void Analysis_KDE::Help() {
   mprintf("\t<dataset> [bandwidth <bw>] [out <file>] [name <dsname>]\n"
@@ -34,17 +42,14 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
   kldiv_ = 0;
   amddata_ = 0;
   bandwidth_ = -1.0;
-  Dimension Xdim;
-  if (minArgSetIn)
-    Xdim.SetMin( minIn );
-  if (maxArgSetIn)
-    Xdim.SetMax( maxIn );
-  Xdim.SetStep( stepIn );
-  Xdim.SetBins( binsIn );
-  if (Xdim.Step() < 0.0 && Xdim.Bins() < 0) {
-    mprinterr("Error: Must set either bins or step.\n");
-    return Analysis::ERR;
-  }
+  minArgSet_ = minArgSetIn;
+  if (minArgSet_)
+    default_min_ = minIn;
+  maxArgSet_ = maxArgSetIn;
+  if (maxArgSet_)
+    default_max_ = maxIn;
+  default_step_ = stepIn;
+  default_bins_ = binsIn;
   Temp_ = tempIn;
   if (Temp_ != -1.0)
     calcFreeE_ = true;
@@ -62,7 +67,6 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
   output_ = datasetlist.AddSet(DataSet::DOUBLE, MetaData(setname, dsIn->Meta().Aspect(), setidx));
   if (output_ == 0) return Analysis::ERR;
   output_->SetLegend(htype + dsIn->Meta().Legend());
-  output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddDataSet( output_ );
   return Analysis::OK;
 }
@@ -70,14 +74,17 @@ Analysis::RetType Analysis_KDE::ExternalSetup(DataSet_1D* dsIn, std::string cons
 // Analysis_KDE::Setup()
 Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
-  Dimension Xdim;
-  if (analyzeArgs.Contains("min"))
-    Xdim.SetMin( analyzeArgs.getKeyDouble("min", 0.0) );
-  if (analyzeArgs.Contains("max"))
-    Xdim.SetMax( analyzeArgs.getKeyDouble("max", 0.0) );
-  Xdim.SetStep( analyzeArgs.getKeyDouble("step", -1.0) );
-  Xdim.SetBins( analyzeArgs.getKeyInt("bins", -1) );
-  if (Xdim.Step() < 0.0 && Xdim.Bins() < 0) {
+  if (analyzeArgs.Contains("min")) {
+    default_min_ = analyzeArgs.getKeyDouble("min", 0.0);
+    minArgSet_ = true;
+  }
+  if (analyzeArgs.Contains("max")) {
+    default_max_ = analyzeArgs.getKeyDouble("max", 0.0);
+    maxArgSet_ = true;
+  }
+  default_step_ = analyzeArgs.getKeyDouble("step", 0.0);
+  default_bins_ = analyzeArgs.getKeyInt("bins", -1);
+  if (default_step_ == 0.0 && default_bins_ < 1) {
     mprinterr("Error: Must set either bins or step.\n");
     return Analysis::ERR;
   }
@@ -136,7 +143,6 @@ Analysis::RetType Analysis_KDE::Setup(ArgList& analyzeArgs, DataSetList* dataset
   // Output data set
   output_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "kde");
   if (output_ == 0) return Analysis::ERR;
-  output_->SetDim(Dimension::X, Xdim);
   if (outfile != 0) outfile->AddDataSet( output_ );
   // Output for KL divergence calc.
   if ( q_data_ != 0 ) {
@@ -169,26 +175,29 @@ double Analysis_KDE::GaussianKernel(double u) const {
 
 // Analysis_KDE::Analyze()
 Analysis::RetType Analysis_KDE::Analyze() {
-  Dimension& Xdim = output_->Dim(0);
   DataSet_1D const& Pdata = static_cast<DataSet_1D const&>( *data_ );
   int inSize = (int)Pdata.Size();
   // Set output set dimensions from input set if necessary.
-  if (!Xdim.MinIsSet()) {
+  if (!minArgSet_) {
     mprintf("\tNo minimum specified, determining from input data.\n");
     if (q_data_ != 0)
-      Xdim.SetMin( std::max(((DataSet_1D*)q_data_)->Min(), Pdata.Min()) );
+      default_min_ = std::max(((DataSet_1D*)q_data_)->Min(), Pdata.Min());
     else
-      Xdim.SetMin( Pdata.Min() );
+      default_min_ = Pdata.Min();
   }
-  if (!Xdim.MaxIsSet()) {
+  if (!maxArgSet_) {
     mprintf("\tNo maximum specified, determining from input data.\n");
     if (q_data_ != 0)
-      Xdim.SetMax( std::min(((DataSet_1D*)q_data_)->Max(), Pdata.Max()) );
+      default_max_ = std::min(((DataSet_1D*)q_data_)->Max(), Pdata.Max());
     else
-      Xdim.SetMax( Pdata.Max() );
+      default_max_ = Pdata.Max();
   }
-  if (Xdim.CalcBinsOrStep()) return Analysis::ERR;
-  Xdim.PrintDim();
+  HistBin Xdim;
+  if (Xdim.CalcBinsOrStep(default_min_, default_max_, default_step_,
+                          default_bins_, Pdata.Meta().Legend()))
+    return Analysis::ERR;
+  Xdim.PrintHistBin();
+  output_->SetDim( Dimension::X, Xdim );
 
   // Allocate output set
   DataSet_double& P_hist = static_cast<DataSet_double&>( *output_ );

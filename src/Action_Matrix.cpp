@@ -133,7 +133,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
   Mat_->SetMatrixKind( mkind );
   // Set default precision for backwards compat.
   Mat_->SetupFormat().SetFormatWidthPrecision(6, 3);
-  Mat_->Dim(Dimension::X).SetLabel("Atom");
+  Mat_->ModifyDim(Dimension::X).SetLabel("Atom");
   // Determine what will be output.
   matByRes_ = 0;
   outfile_ = 0;
@@ -151,7 +151,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       matByRes_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, md);
       if (matByRes_ == 0) return Action::ERR;
       matByRes_->SetupFormat().SetFormatWidthPrecision(6, 3);
-      matByRes_->Dim(Dimension::X).SetLabel("Res");
+      matByRes_->ModifyDim(Dimension::X).SetLabel("Res");
     } 
     outfile_ = init.DFL().AddDataFile(outfilename, actionArgs);
     if (outfile_ != 0) {

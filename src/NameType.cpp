@@ -1,7 +1,6 @@
 #include "NameType.h"
 
-NameType::NameType() :
-  NameSize_(6)
+NameType::NameType()
 {
   c_array_[0]=' ';
   c_array_[1]=' ';
@@ -11,8 +10,7 @@ NameType::NameType() :
   c_array_[5]='\0';
 }
 
-NameType::NameType(const NameType &rhs) :
- NameSize_(6)
+NameType::NameType(const NameType &rhs)
 {
   c_array_[0] = rhs.c_array_[0];
   c_array_[1] = rhs.c_array_[1];
@@ -23,8 +21,7 @@ NameType::NameType(const NameType &rhs) :
   c_array_[5]='\0';
 }
 
-NameType::NameType(const char *rhs) :
-  NameSize_(6)
+NameType::NameType(const char *rhs)
 {
   const char *ptr = rhs;
   for (unsigned int j = 0; j < NameSize_-1; j++) {
@@ -35,8 +32,7 @@ NameType::NameType(const char *rhs) :
   FormatName();
 }
 
-NameType::NameType(std::string const& str) :
-  NameSize_(6)
+NameType::NameType(std::string const& str)
 {
   unsigned int ns1 = NameSize_ - 1;
   unsigned int strend = (unsigned int)str.size();
@@ -169,7 +165,7 @@ void NameType::FormatName()
     c_array_[4]='\0';
   }
   // Remove leading whitespace.
-  if        (c_array_[0]==' ') { // Some leading whitespace
+  if (c_array_[0]==' ') { // Some leading whitespace
     if (c_array_[1]!=' ') {        // [_XXX]
       c_array_[0]=c_array_[1];
       c_array_[1]=c_array_[2];

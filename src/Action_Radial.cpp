@@ -126,7 +126,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   numBins_ = (int) temp_numbins;
   // Setup output datafile. Align on bin centers instead of left.
   // TODO: Use Rdim for binning?
-  Dimension Rdim( spacing_ / 2.0, spacing_, numBins_, "Distance (Ang)" ); 
+  Dimension Rdim( spacing_ / 2.0, spacing_, "Distance (Ang)" ); 
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (intrdfFile != 0) {

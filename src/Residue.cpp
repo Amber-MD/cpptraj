@@ -40,3 +40,37 @@ char Residue::ConvertResName(std::string const& r) {
   if (!r.empty()) return tolower(r[0]);
   return ' ';
 }
+
+const char* Residue::ConvertResName(char letter) {
+  switch (letter) {
+      case 'A': return "ALA";
+      case 'R': return "ARG";
+      case 'N': return "ASN";
+      case 'D': return "ASP";
+  //if (r.compare(0,3,"ASH")==0) return 'D'; // Protonated ASP
+      case 'C': return "CYS";
+  //if (r.compare(0,3,"CYM")==0) return 'C'; // Deprotonated CYS
+  //if (r.compare(0,3,"CYX")==0) return 'C';
+      case 'Q': return "GLN";
+      case 'E': return "GLU";
+  //if (r.compare(0,3,"GLH")==0) return 'E'; // Protonated GLU
+      case 'G': return "GLY";
+      case 'H': return "HIS";
+  //if (r.compare(0,3,"HIE")==0) return 'H'; // NE-protonated (HIS)
+  //if (r.compare(0,3,"HID")==0) return 'H'; // ND-protonated
+  //if (r.compare(0,3,"HIP")==0) return 'H'; // NE/ND protonated
+      case 'I': return "ILE";
+      case 'L': return "LEU";
+      case 'K': return "LYS";
+  //if (r.compare(0,3,"LYN")==0) return 'K'; // Deprotonated (neutral) LYS 
+      case 'M': return "MET";
+      case 'F': return "PHE";
+      case 'P': return "PRO";
+      case 'S': return "SER";
+      case 'T': return "THR";
+      case 'W': return "TRP";
+      case 'Y': return "TYR";
+      case 'V': return "VAL";
+  }
+  return 0;
+}

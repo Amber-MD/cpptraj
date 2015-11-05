@@ -193,7 +193,7 @@ typedef struct cusp_pair {
 
 // ---------- FUNCTIONS --------------------------------------------------------
 void Set_molsurf_debug(int);
-void memory_usage (); 
+void memory_usage(int);
 REAL_T molsurf(REAL_T, ATOM*, int,NEIGHBOR_TORUS *, NEIGHBOR *,
                TORUS *, PROBE *, CONCAVE_FACE *,
                SADDLE_FACE *, CONVEX_FACE *,

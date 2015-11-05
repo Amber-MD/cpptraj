@@ -104,7 +104,7 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
   if ( enabled[L_REF]      ) DSL_.ListReferenceFrames();
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.List();
+  if ( enabled[L_TRAJOUT]  ) trajoutList_.List( trajinList_.PindexFrames() );
   if ( enabled[L_PARM]     ) DSL_.ListTopologies();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
   if ( enabled[L_DATAFILE] ) DFL_.List();
@@ -296,7 +296,7 @@ int CpptrajState::RunEnsemble() {
     mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
             " suffix corresponds to above map):\n");
     parallel_barrier();
-    ensembleOut.List();
+    ensembleOut.List( trajinList_.PindexFrames() );
     parallel_barrier();
   }
   // Allocate DataSets in the master DataSetList based on # frames to be read
@@ -357,6 +357,7 @@ int CpptrajState::RunEnsemble() {
   int readSets = 0;
   int actionSet = 0;
   bool hasVelocity = false;
+  bool hasForce = false;
 # ifdef TIMER
   Timer trajin_time;
   Timer setup_time;
@@ -396,6 +397,10 @@ int CpptrajState::RunEnsemble() {
       FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
     hasVelocity = currentCoordInfo.HasVel();
 
+    if (parmHasChanged || (hasForce != currentCoordInfo.HasForce()))
+      FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
+    hasForce = currentCoordInfo.HasForce();
+
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm
@@ -404,7 +409,7 @@ int CpptrajState::RunEnsemble() {
         // Silence action output for all beyond first member.
         if (member > 0)
           SetWorldSilent( true );
-        if (ActionEnsemble[member]->SetupActions( EnsembleParm[member] )) {
+        if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   worldrank, EnsembleParm[member].Top().c_str());
@@ -696,7 +701,7 @@ int CpptrajState::RunNormal() {
   // Print reference information
   DSL_.ListReferenceFrames(); 
   // Output traj
-  trajoutList_.List();
+  trajoutList_.List( trajinList_.PindexFrames() );
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
   init_time.Stop();
@@ -743,7 +748,7 @@ int CpptrajState::RunNormal() {
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm
-      if (actionList_.SetupActions( currentParm )) {
+      if (actionList_.SetupActions( currentParm, exitOnError_ )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
                 currentParm.Top().c_str());
         continue;
@@ -816,6 +821,7 @@ int CpptrajState::RunNormal() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n", 
           (double)readSets / frames_time.Total());
 # ifdef TIMER
+  DSL_.Timing();
   trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
   setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
@@ -950,6 +956,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
         if (exitOnError_) return 1;
       } else {
         if (ds->LoadTopFromFile(argIn, debug_)) {
+          DSL_.RemoveSet( ds );
           if (exitOnError_) return 1;
         }
         // If a mask expression was specified, strip to match the expression.

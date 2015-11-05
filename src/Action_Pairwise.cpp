@@ -140,7 +140,7 @@ int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& Pa
   // Check if LJ parameters present - need at least 2 atoms for it to matter.
   if (ParmIn.Natom() > 1 && !ParmIn.Nonbond().HasNonbond()) {
     mprinterr("Error: Topology does not have LJ information.\n");
-    return 1;
+    return -1;
   }
 
   // Determine the actual number of pairwise interactions that will be calcd.
@@ -179,7 +179,7 @@ Action::RetType Action_Pairwise::Setup(ActionSetup& setup) {
 
   // Set up exclusion list and determine total # interactions.
   int N_interactions = SetupNonbondParm(Mask0_, setup.Top());
-
+  if (N_interactions == -1) return Action::ERR;
   // Allocate matrix memory
   int previous_size = (int)vdwMat_->Size();
   if (previous_size == 0) {
@@ -458,6 +458,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 void Action_Pairwise::Print() {
+  if (nframes_ < 1) return;
   // Divide matrices by # of frames
   double norm = 1.0 / (double)nframes_;
   for (unsigned int i = 0; i != vdwMat_->Size(); i++)

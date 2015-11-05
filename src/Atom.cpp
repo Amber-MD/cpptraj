@@ -55,7 +55,25 @@ const double Atom::AtomicElementMass[NUMELEMENTS] = { 1.0,
   180.94788,  204.3833,    50.9415,    183.84,     131.293,    91.224,
    88.90585,  174.9668,
     0.0
-};  
+};
+
+/** Values taken from parm10.dat and ion frcmod files as the average Rmin/2
+  * parameter for that element type. (HO types ignored in average, since
+  * they are 0). Unknown values set to 1.00
+  *
+  * Silicon radius taken from http://www.chem.hope.edu/~krieg/shorb/ (2.419)
+  */
+const double Atom::AtomicElementRadius[NUMELEMENTS] = { 1.0,
+  1.212, 1.000, 1.908, 1.824, 1.724, 1.750, 2.100, 2.000, 1.948, 2.220,
+  1.353, 1.649, 2.860, 1.360, 1.218, 1.025, 1.705, 1.813, 1.976, 1.271,
+  1.369, 1.297, 1.000, 1.000, 1.500, 1.000, 1.000, 0.956, 2.019, 1.000,
+  1.344, 1.299, 1.412, 1.000, 1.000, 1.000, 1.000, 1.000, 1.407, 1.000,
+  1.000, 1.000, 1.407, 1.000, 1.000, 1.255, 1.000, 1.000, 1.303, 1.266,
+  1.745, 1.000, 1.000, 1.000, 1.000, 1.000, 2.019, 2.419, 1.000, 1.000,
+  1.000, 1.666, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+  1.000, 1.000, 1.000,
+  0.000 /* extra point has no radius */
+};
 
 // CONSTRUCTOR
 Atom::Atom() : charge_(0.0), polar_(0.0), mass_(1.0), gb_radius_(0.0),

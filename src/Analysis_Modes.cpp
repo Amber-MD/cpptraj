@@ -130,8 +130,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
       mprinterr("Error: Require output trajectory filename, 'trajout <name>'\n");
       return Analysis::ERR;
     }
-    TrajectoryFile::TrajFormatType tOutFmt = 
-      TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
+    TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
+    if ( analyzeArgs.Contains("trajoutfmt") )
+      tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
     Topology* parm = DSLin->GetTopology( analyzeArgs ); // TODO include with modes
     if (parm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
@@ -243,7 +244,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
-    mprintf("\n\tResults are written to %s", outfile_->Filename().full());
+    mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
     if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");

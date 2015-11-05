@@ -34,7 +34,7 @@ void DataIO_Std::ReadHelp() {
           "\tread2d:      Read data as 2D square matrix.\n"
           "\tvector:      Read data as vector: VX VY VZ [OX OY OZ]\n"
           "\tmat3x3:      Read data as 3x3 matrices: M(1,1) M(1,2) ... M(3,2) M(3,3)\n"
-          "\tindex <col>: (1D) Use column # (starting from 1) as index column.\n");
+          "\tindex <col>: (1D) Use column # (starting from 1) as index (X) column.\n");
 
 }
 
@@ -189,10 +189,13 @@ int DataIO_Std::Read_1D(std::string const& fname,
       mySets.push_back( inputSets[idx] );
     else
       Xptr = (DataSet_double*)inputSets[idx];
+  std::string Xlabel;
+  if (indexcol_ != -1 && indexcol_ < labels.Nargs())
+    Xlabel = labels[indexcol_];
   if (Xptr == 0)
-    datasetlist.AddOrAppendSets(DataSetList::Darray(), mySets);
+    datasetlist.AddOrAppendSets(Xlabel, DataSetList::Darray(), mySets);
   else {
-    datasetlist.AddOrAppendSets(Xptr->Data(), mySets);
+    datasetlist.AddOrAppendSets(Xlabel, Xptr->Data(), mySets);
     delete Xptr;
   }
 
@@ -317,7 +320,7 @@ int DataIO_Std::Read_Vector(std::string const& fname,
     ds->Add( ndata++, vec ); 
     linebuffer = buffer.Line();
   }
-  return (datasetlist.AddOrAppendSets(DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+  return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
 }
 
 // DataIO_Std::Read_Mat3x3()
@@ -372,7 +375,7 @@ int DataIO_Std::Read_Mat3x3(std::string const& fname,
     ds->Add( ndata++, mat ); 
     linebuffer = buffer.Line();
   }
-  return (datasetlist.AddOrAppendSets(DataSetList::Darray(), DataSetList::DataListType(1, ds)));
+  return (datasetlist.AddOrAppendSets("", DataSetList::Darray(), DataSetList::DataListType(1, ds)));
 }
 
 // -----------------------------------------------------------------------------

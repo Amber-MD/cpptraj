@@ -7,7 +7,7 @@ DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC) {}
 /// CONSTRUCTOR - Take type, group, width, precision, and dimension
 DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, int dimIn) :
   format_(fmtIn),
-  dim_(dimIn),
+  dim_(dimIn, Dimension(1.0, 1.0)), // default min=1.0, step=1.0
   dType_(typeIn),
   dGroup_(groupIn)
 { }

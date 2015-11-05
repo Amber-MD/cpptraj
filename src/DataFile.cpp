@@ -16,8 +16,6 @@
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
 
-// TODO: Support these args:
-//       - xlabel, xmin, xstep, time (all dimensions).
 // CONSTRUCTOR
 DataFile::DataFile() :
   debug_(0),
@@ -29,20 +27,12 @@ DataFile::DataFile() :
   default_width_(-1),
   default_precision_(-1),
   dataio_(0),
-  defaultDim_(3) // default to X/Y/Z dims
-{
-  for (std::vector<Dimension>::iterator dim = defaultDim_.begin(); 
-                                        dim!=defaultDim_.end(); ++dim)
-  {
-    (*dim).SetMin(1.0);
-    (*dim).SetStep(1.0);
-  }
-}
+  defaultDim_(3), // default to X/Y/Z dims
+  minIsSet_(3, false)
+{}
 
 // DESTRUCTOR
-DataFile::~DataFile() {
-  if (dataio_ != 0) delete dataio_;
-}
+DataFile::~DataFile() { if (dataio_ != 0) delete dataio_; }
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------
 // NOTE: Must be in same order as DataFormatType
@@ -191,10 +181,19 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
 // -----------------------------------------------------------------------------
 // DataFile::SetupDatafile()
 int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn, int debugIn) {
+  return SetupDatafile(fnameIn, argIn, UNKNOWN_DATA, debugIn);
+}
+
+int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
+                            DataFormatType typeIn, int debugIn)
+{
   SetDebug( debugIn );
   if (fnameIn.empty()) return Error("Error: No data file name specified.\n");
   filename_ = fnameIn;
-  dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
+  dfType_ = typeIn;
+  // If unknown, first look for keyword, then guess from extension.
+  if (dfType_ == UNKNOWN_DATA)
+    dfType_ = (DataFormatType)FileTypes::GetFormatFromArg(DF_KeyArray, argIn, UNKNOWN_DATA );
   if (dfType_ == UNKNOWN_DATA)
     dfType_ = (DataFormatType)FileTypes::GetTypeFromExtension(DF_KeyArray, filename_.Ext(),
                                                               DATAFILE);
@@ -274,6 +273,15 @@ int DataFile::AddDataSet(DataSet* dataIn) {
   // Set default width.precision
   if (setDataSetPrecision_)
     dataIn->SetupFormat().SetFormatWidthPrecision( default_width_, default_precision_ );
+  // Set default label/min/step
+  for (unsigned int nd = 0; nd != std::min(defaultDim_.size(), dataIn->Ndim()); nd++) {
+    Dimension dim = dataIn->Dim(nd); 
+    if (!defaultDim_[nd].label_.empty()) dim.SetLabel( defaultDim_[nd].label_ );
+    if (defaultDim_[nd].step_ != 0.0)    dim.ChangeStep( defaultDim_[nd].step_ );
+    if (minIsSet_[nd])                   dim.ChangeMin( defaultDim_[nd].min_ );
+    dataIn->SetDim(nd, dim);
+  }
+  // Add copy of set to this DataFile
   SetList_.AddCopyOfSet( dataIn );
   // Reset dflWrite status
   dflWrite_ = true;
@@ -287,24 +295,35 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   return 0;
 }
 
-// DataFile::ProcessArgs()
+// DataFile::ProcessArgs() // FIXME make WriteArgs
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
-  // Axis args.
-  defaultDim_[0].SetLabel( argIn.GetStringKey("xlabel") );
-  defaultDim_[1].SetLabel( argIn.GetStringKey("ylabel") );
-  defaultDim_[2].SetLabel( argIn.GetStringKey("zlabel") );
-  // Axis min/step
-  defaultDim_[0].SetMin( argIn.getKeyDouble("xmin",1.0) );
-  defaultDim_[1].SetMin( argIn.getKeyDouble("ymin",1.0) );
-  defaultDim_[2].SetMin( argIn.getKeyDouble("zmin",1.0) );
-  defaultDim_[0].SetStep( argIn.getKeyDouble("xstep", 1.0) );
-  defaultDim_[1].SetStep( argIn.getKeyDouble("ystep", 1.0) );
-  defaultDim_[2].SetStep( argIn.getKeyDouble("zstep", 1.0) );
+  // Dimension labels 
+  defaultDim_[0].label_ = argIn.GetStringKey("xlabel");
+  defaultDim_[1].label_ = argIn.GetStringKey("ylabel");
+  defaultDim_[2].label_ = argIn.GetStringKey("zlabel");
+  // Dimension mins
+  if (argIn.Contains("xmin")) {
+    defaultDim_[0].min_ = argIn.getKeyDouble("xmin",1.0);
+    minIsSet_[0] = true;
+  }
+  if (argIn.Contains("ymin")) {
+    defaultDim_[1].min_ = argIn.getKeyDouble("ymin",1.0);
+    minIsSet_[1] = true;
+  }
+  if (argIn.Contains("zmin")) {
+    defaultDim_[2].min_ = argIn.getKeyDouble("zmin",1.0);
+    minIsSet_[2] = true;
+  }
+  // Dimension steps
+  defaultDim_[0].step_ = argIn.getKeyDouble("xstep", 0.0);
+  defaultDim_[1].step_ = argIn.getKeyDouble("ystep", 0.0);
+  defaultDim_[2].step_ = argIn.getKeyDouble("zstep", 0.0);
   // ptraj 'time' keyword
   if (argIn.Contains("time")) {
-    defaultDim_[0].SetStep( argIn.getKeyDouble("time", 1.0) );
-    defaultDim_[0].SetMin( defaultDim_[0].Step() );
+    defaultDim_[0].step_ = argIn.getKeyDouble("time", 1.0);
+    defaultDim_[0].min_ = defaultDim_[0].step_;;
+    minIsSet_[0] = true;
   }
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
@@ -347,28 +366,13 @@ void DataFile::WriteDataOut() {
     }
     // Setup formats with a leading space initially. Maintains backwards compat. 
     ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
-    // Ensure current DataIO is valid for this set.
+    // Ensure current DataIO is valid for this set. May not be needed right now
+    // but useful in case file format can be changed later on.
     if (!dataio_->CheckValidFor( ds )) {
       mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
                  ds.legend(), filename_.base());
       continue;
     }
-    // Set default min and step for all dimensions if not already set.
-    for (unsigned int nd = 0; nd < ds.Ndim(); ++nd) {
-      Dimension& dim = ds.Dim(nd);
-      double min, step;
-      if (nd < 3) {
-        min = defaultDim_[nd].Min();
-        step = defaultDim_[nd].Step();
-      } else {
-        min = 1.0;
-        step = 1.0;
-      }
-      if (!dim.MinIsSet()) dim.SetMin( min );
-      if (dim.Step() < 0 ) dim.SetStep( step );
-    }
-    // Set x label if not already set
-    if (ds.Ndim()==1 && ds.Dim(0).Label().empty()) ds.Dim(0).SetLabel("Frame");
     setsToWrite.AddCopyOfSet( SetList_[idx] );
   }
   if (setsToWrite.empty()) {

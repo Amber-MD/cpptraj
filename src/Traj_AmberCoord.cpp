@@ -163,41 +163,48 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Check for box coordinates. If present, update the frame size and
-  // reallocate the frame buffer.
+  // reallocate the frame buffer. If less than 3 atoms there is no way
+  // to tell if a line is a box line or coordinates, so skip.
   Box boxInfo;
-  std::string nextLine = file_.GetLine();
-  if ( !nextLine.empty() ) {
-    if (debug_>0) rprintf("DEBUG: Line after first frame: (%s)\n", nextLine.c_str());
-    if ( IsRemdHeader(nextLine.c_str()) || IsRxsgldHeader(nextLine.c_str()) ) {
-      // REMD header - no box coords
-      numBoxCoords_ = 0;
-    } else {
-      double box[8];
-      numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf%8lf%8lf",
-                             box, box+1, box+2, box+3, box+4, box+5, box+6, box+7);
-      if (numBoxCoords_ == -1) {
-        mprinterr("Error: Could not read Box coord line of trajectory %s.",file_.Filename().base());
-        return TRAJIN_ERR;
-      } else if (numBoxCoords_ == 8) {
-        // Full line of coords was read, no box coords.
+  if ( trajParm->Natom() < 3 ) {
+    mprintf("Warning: Less than 3 atoms, skipping box check.\n");
+    numBoxCoords_ = 0;
+  } else {
+    std::string nextLine = file_.GetLine();
+    if ( !nextLine.empty() ) {
+      if (debug_>0) rprintf("DEBUG: Line after first frame: (%s)\n", nextLine.c_str());
+      if ( IsRemdHeader(nextLine.c_str()) || IsRxsgldHeader(nextLine.c_str()) ) {
+        // REMD header - no box coords
         numBoxCoords_ = 0;
-      } else if (numBoxCoords_ == 3) {
-        // Box lengths only, ortho. or truncated oct. Use default parm angles.
-        if (trajParm->ParmBox().Type() == Box::NOBOX)
-          mprintf("Warning: Trajectory only contains box lengths and topology has no box info.\n"
-                  "Warning: To set box angles for topology use the 'parmbox' command.\n");
-        box[3] = boxAngle_[0] = trajParm->ParmBox().Alpha();
-        box[4] = boxAngle_[1] = trajParm->ParmBox().Beta();
-        box[5] = boxAngle_[2] = trajParm->ParmBox().Gamma();
-        boxInfo.SetBox( box );
-      } else if (numBoxCoords_ == 6) {
-        // General triclinic. Set lengths and angles.
-        boxInfo.SetBox( box );
       } else {
-        mprinterr("Error: In %s, expect only 3 or 6 box coords, got %i\n" 
-                  "Error:   Box line=[%s]\n", 
-                  file_.Filename().base(), numBoxCoords_, nextLine.c_str());
-        return TRAJIN_ERR;
+        double box[8];
+        numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf%8lf%8lf",
+                               box, box+1, box+2, box+3, box+4, box+5, box+6, box+7);
+        if (numBoxCoords_ == -1) {
+          mprinterr("Error: Could not read Box coord line of trajectory %s.",
+                   file_.Filename().base());
+          return TRAJIN_ERR;
+        } else if (numBoxCoords_ == 8) {
+          // Full line of coords was read, no box coords.
+          numBoxCoords_ = 0;
+        } else if (numBoxCoords_ == 3) {
+          // Box lengths only, ortho. or truncated oct. Use default parm angles.
+          if (trajParm->ParmBox().Type() == Box::NOBOX)
+            mprintf("Warning: Trajectory only contains box lengths and topology has no box info.\n"
+                    "Warning: To set box angles for topology use the 'parmbox' command.\n");
+          box[3] = boxAngle_[0] = trajParm->ParmBox().Alpha();
+          box[4] = boxAngle_[1] = trajParm->ParmBox().Beta();
+          box[5] = boxAngle_[2] = trajParm->ParmBox().Gamma();
+          boxInfo.SetBox( box );
+        } else if (numBoxCoords_ == 6) {
+          // General triclinic. Set lengths and angles.
+          boxInfo.SetBox( box );
+        } else {
+          mprinterr("Error: In %s, expect only 3 or 6 box coords, got %i\n"
+                    "Error:   Box line=[%s]\n",
+                    file_.Filename().base(), numBoxCoords_, nextLine.c_str());
+          return TRAJIN_ERR;
+        }
       }
     }
     // Reallocate frame buffer accordingly

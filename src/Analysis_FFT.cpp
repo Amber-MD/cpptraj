@@ -91,7 +91,7 @@ Analysis::RetType Analysis_FFT::Analyze() {
   double fnyquist = sr / 2.0;         // Nyquist frequency
   double total_time = dt_ * (double)maxsize_; // Total time (fundamental period)
   double f0 = 1.0 / total_time;       // Fundamental frequency (first harmonic)
-  Dimension Xdim(0.0, f0, maxsize_, "Freq.");
+  Dimension Xdim(0.0, f0, "Freq.");
   mprintf("\tReporting FFT magnitude, normalized by N/2.\n"
           "\tOnly data up to the Nyquist frequency will be used.\n");
   mprintf("\tSampling rate= %f ps^-1, Nyquist freq.= %f ps^-1\n", sr, fnyquist);

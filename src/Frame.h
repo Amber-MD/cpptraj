@@ -72,6 +72,7 @@ class Frame {
     const double& operator[](int idx) const { return X_[idx];        }
     bool empty()                      const { return (natom_ == 0);  }
     bool HasVelocity()                const { return (V_ != 0);      }
+    bool HasForce()                   const { return (F_ != 0);      }
     int Natom()                       const { return natom_;         }
     int size()                        const { return ncoord_;        }
     int NrepDims()                    const { return (int)remd_indices_.size(); } // TODO: deprecate
@@ -83,6 +84,8 @@ class Frame {
     const double* CRD(int idx)        const { return X_ + idx;       }
     /// \return pointer to start of velocity XYZ for given atom.
     const double* VXYZ(int atnum)     const { return V_ + (atnum*3); }
+    /// \return pointer to start of force XYZ for given atom.
+    const double* FXYZ(int atnum)     const { return F_ + (atnum*3); }
     /// \return mass of specified atom.
     double Mass(int atnum)            const { return Mass_[atnum];   }
     /// \return Box information
@@ -102,12 +105,14 @@ class Frame {
     // ----- Access to internal data pointers ----
     inline double* xAddress() { return X_;                }
     inline double* vAddress() { return V_;                }
+    inline double* fAddress() { return F_;                }
     inline double* bAddress() { return box_.boxPtr();     }
     inline double* tAddress() { return &T_;               }
     inline double* mAddress() { return &time_;            }
     inline int* iAddress()    { return &remd_indices_[0]; }
     inline const double* xAddress() const { return X_;                }
     inline const double* vAddress() const { return V_;                }
+    inline const double* fAddress() const { return F_;                }
     inline const double* bAddress() const { return box_.boxPtr();     }
     inline const double* tAddress() const { return &T_;               }
     inline const double* mAddress() const { return &time_;            }
@@ -217,6 +222,7 @@ class Frame {
     double time_;   ///< Time FIXME Should this be float?
     double* X_;     ///< Coord array, X0 Y0 Z0 X1 Y1 Z1 ...
     double* V_;     ///< Velocities (same arrangement as Coords).
+    double* F_;     ///< Frame (same arrangement as Coords).
     RemdIdxType remd_indices_; ///< replica indices.
     Darray Mass_;   ///< Masses.
     bool memIsExternal_; ///< True if Frame is not responsible for freeing memory.

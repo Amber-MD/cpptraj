@@ -57,6 +57,7 @@ NetcdfFile::NetcdfFile() :
   TempVID_(-1),
   coordVID_(-1),
   velocityVID_(-1),
+  frcVID_(-1),
   cellAngleVID_(-1),
   cellLengthVID_(-1),
   timeVID_(-1),
@@ -96,14 +97,14 @@ std::string NetcdfFile::GetAttrText(int vid, const char *attribute) {
   std::string attrOut;
   // Get attr length
   if ( checkNCerr(nc_inq_attlen(ncid_, vid, attribute, &attlen)) ) {
-    mprinterr("Error: Getting length for attribute %s\n",attribute); 
+    mprintf("Warning: Getting length for attribute '%s'\n",attribute);
     return attrOut;
   }
   // Allocate space for attr text, plus one for null char
   char *attrText = new char[ (attlen + 1) ];
   // Get attr text
   if ( checkNCerr(nc_get_att_text(ncid_, vid, attribute, attrText)) ) {
-    mprinterr("Error: Getting attribute text for %s\n",attribute);
+    mprintf("Warning: Getting attribute text for '%s'\n",attribute);
     delete[] attrText;
     return attrOut;
   }
@@ -182,7 +183,7 @@ int NetcdfFile::SetupEnsembleDim() {
 
 // NetcdfFile::SetupCoordsVelo()
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
-  * velocityVID. Check units and spatial dimensions.
+  * velocityVID, frcVID. Check units and spatial dimensions.
   */
 int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   int spatial;
@@ -202,17 +203,30 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   spatialDID_ = GetDimInfo(NCSPATIAL, &spatial);
   if (spatialDID_==-1) return 1;
   if (spatial!=3) {
-    mprinterr("Error: ncOpen: Expected 3 spatial dimensions, got %i\n",spatial);
+    mprinterr("Error: Expected 3 spatial dimensions, got %i\n",spatial);
     return 1;
   }
   if ( checkNCerr(nc_inq_varid(ncid_, NCSPATIAL, &spatialVID_)) ) {
-    mprinterr("Error: Getting spatial VID\n");
-    return 1;
+    mprintf("Warning: Could not get spatial VID. File may not be Amber NetCDF compliant.\n");
+    mprintf("Warning: Assuming spatial variables are 'x', 'y', 'z'\n");
+  } else {
+    start_[0] = 0;
+    count_[0] = 3;
+    char xyz[3];
+    if (checkNCerr(nc_get_vara_text(ncid_, spatialVID_, start_, count_, xyz))) {
+      mprinterr("Error: Getting spatial variables.\n");
+      return 1;
+    }
+    if (xyz[0] != 'x' || xyz[1] != 'y' || xyz[2] != 'z') {
+      mprinterr("Error: NetCDF spatial variables are '%c', '%c', '%c', not 'x', 'y', 'z'\n",
+                xyz[0], xyz[1], xyz[2]);
+      return 1;
+    }
   }
   // Get velocity info
   velocityVID_ = -1;
   if ( nc_inq_varid(ncid_, NCVELO, &velocityVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("    Netcdf file has velocities.\n");
+    if (ncdebug_>0) mprintf("\tNetcdf file has velocities.\n");
   }
   // Return a error if no coords and no velocity
   if ( coordVID_ == -1 && velocityVID_ == -1 ) {
@@ -228,6 +242,11 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
     mprintf("\tUsing velocities as coordinates.\n");
     coordVID_ = velocityVID_;
     velocityVID_ = -1;
+  }
+  // Get force info
+  frcVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
+    if (ncdebug_>0) mprintf("\tNetcdf file has forces.\n");
   }
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;
@@ -395,7 +414,7 @@ int NetcdfFile::SetupBox(double* boxIn, NCTYPE typeIn) {
 // NetcdfFile::checkNCerr()
 bool NetcdfFile::checkNCerr(int ncerr) {
   if ( ncerr != NC_NOERR ) {
-    mprinterr("NETCDF Error: %s\n",nc_strerror(ncerr));
+    mprintf("%s\n", nc_strerror(ncerr));
     return true;
   }
   return false;
@@ -525,8 +544,9 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
   nc_type dataType;
 
   if (ncdebug_>1)
-    mprintf("DEBUG: NC_create: %s  natom=%i V=%i  box=%i  temp=%i  time=%i\n",
-            Name.c_str(),natomIn,(int)coordInfo.HasVel(),(int)coordInfo.HasBox(),
+    mprintf("DEBUG: NC_create: %s  natom=%i V=%i F=%i box=%i  temp=%i  time=%i\n",
+            Name.c_str(),natomIn,(int)coordInfo.HasVel(),
+            (int)coordInfo.HasForce(),(int)coordInfo.HasBox(),
             (int)coordInfo.HasTemp(),(int)coordInfo.HasTime());
 
   if ( checkNCerr( nc_create( Name.c_str(), NC_64BIT_OFFSET, &ncid_) ) )
@@ -889,9 +909,9 @@ void NetcdfFile::WriteIndices() const {
 }
 
 void NetcdfFile::WriteVIDs() const {
-  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i  cellAngleVID_=%i"
+  rprintf("TempVID_=%i  coordVID_=%i  velocityVID_=%i frcVID_=%i  cellAngleVID_=%i"
           "  cellLengthVID_=%i  indicesVID_=%i\n",
-          TempVID_, coordVID_, velocityVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
+          TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
 
 void NetcdfFile::Sync() {

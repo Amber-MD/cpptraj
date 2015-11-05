@@ -316,6 +316,9 @@ DataSet* DataSetList::AddSet( DataSet::DataType inType, MetaData const& metaIn,
   */ 
 DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
 { // TODO Always generate default name if empty?
+# ifdef TIMER
+  time_total_.Start();
+# endif
   // Do not add to a list with copies
   if (hasCopies_) {
     mprinterr("Internal Error: Attempting to add DataSet (%s) to DataSetList with copies.\n",
@@ -324,8 +327,14 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
   }
   MetaData meta( metaIn );
   meta.SetEnsembleNum( ensembleNum_ );
+# ifdef TIMER
+  time_check_.Start();
+# endif
   // Check if DataSet with same attributes already present.
   DataSet* DS = CheckForSet(meta);
+# ifdef TIMER
+  time_check_.Stop();
+# endif
   if (DS != 0) {
     mprintf("Warning: DataSet '%s' already present.\n", DS->Meta().PrintName().c_str());
     // NOTE: Should return found dataset?
@@ -336,23 +345,86 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
     return 0;
   }
+# ifdef TIMER
+  time_setup_.Start();
+# endif
   DS = (DataSet*)token->Alloc();
   if (DS==0) {
     mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
     return 0;
   }
   // If 1 dim set and time series status not set, set to true.
-  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) 
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
     meta.SetTimeSeries( MetaData::IS_TS );
+    // Also set dimension default
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
+  }
   // Set up dataset 
   if ( DS->SetMeta( meta ) ) {
     mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
     delete DS;
     return 0;
   }
-
-  Push_Back(DS); 
+# ifdef TIMER
+  time_setup_.Stop();
+  time_push_.Start();
+# endif
+  Push_Back(DS);
+# ifdef TIMER
+  time_push_.Stop();
+# endif
   //fprintf(stderr,"ADDED dataset %s\n",dsetName);
+  return DS;
+}
+
+#ifdef TIMER
+void DataSetList::Timing() const {
+  time_check_.WriteTiming(3,"DSL Check Set", time_total_.Total());
+  time_setup_.WriteTiming(3,"DSL Setup Set", time_total_.Total());
+  time_push_.WriteTiming(3,"DSL Push Set", time_total_.Total());
+  time_total_.WriteTiming(2,"DSL Total");
+}
+#endif
+// FIXME Should probably just make a more efficient search of DSL
+/** Special version of AddSet that does NOT check if set already exists.
+  * Intended for use in Action Setup/DoAction where it is assumed that
+  * the Action is setting up DataSets in such a way that there will not
+  * be name conflicts, i.e. the DataSet name at least is unique.
+  * \param inType type of DataSet to add.
+  * \param metaIn DataSet MetaData.
+  * \return pointer to successfully set-up DataSet or 0 if error.
+  */
+DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& metaIn)
+{ // TODO Pass in Nframes?
+  // Assume list does NOT have copies.
+  MetaData meta( metaIn );
+  meta.SetEnsembleNum( ensembleNum_ );
+  // Allocate DataSet
+  TokenPtr token = &(DataArray[inType]);
+  if ( token->Alloc == 0) {
+    mprinterr("Internal Error: No allocator for DataSet type [%s]\n", token->Description);
+    return 0;
+  }
+  DataSet* DS = (DataSet*)token->Alloc();
+  if (DS==0) {
+    mprinterr("Internal Error: DataSet %s memory allocation failed.\n", meta.PrintName().c_str());
+    return 0;
+  }
+  // If 1 dim set and time series status not set, set to true, allocate for frames.
+  if (meta.TimeSeries() == MetaData::UNKNOWN_TS && DS->Ndim() == 1) {
+    meta.SetTimeSeries( MetaData::IS_TS );
+    // Also set dimension default
+    DS->SetDim(Dimension::X, Dimension(1.0, 1.0, "Frame") );
+    //DS->Allocate( DataSet::SizeArray(1, Nframes) );
+  }
+  // Set up DataSet MetaData
+  if ( DS->SetMeta( meta ) ) {
+    mprinterr("Error setting up data set %s.\n", meta.PrintName().c_str());
+    delete DS;
+    return 0;
+  }
+  // Add to list
+  Push_Back(DS);
   return DS;
 }
 
@@ -372,12 +444,19 @@ int DataSetList::AddSet( DataSet* dsIn ) {
   * and optional X values, add the sets to this list if they do not exist
   * or append any existing sets.
   */
-int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
+int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xvals,
+                                 DataListType const& Sets)
 {
   if (debug_ > 0)
-    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values.\n",
-            Sets.size(), Xvals.size());
+    mprintf("DEBUG: Calling AddOrAppendSets for %zu sets, %zu X values, Xlabel= %s.\n",
+            Sets.size(), Xvals.size(), XlabelIn.c_str());
   if (Sets.empty()) return 0; // No error for now.
+  // If no X label assume 'Frame' for backwards compat.
+  std::string Xlabel;
+  if (XlabelIn.empty())
+    Xlabel.assign("Frame");
+  else
+    Xlabel = XlabelIn;
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
   bool isMonotonic = true;
@@ -389,18 +468,13 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         isMonotonic = false;
         break;
       }
-    if (isMonotonic) {
-      Xdim.SetMin( Xvals.front() );
-      Xdim.SetMax( Xvals.back() );
-      Xdim.SetStep( xstep );
-      Xdim.SetBins( Xvals.size() );
-    }
+    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
+    Xdim = Dimension( Xvals.front(), xstep, Xlabel );
   } else
     // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Sets.front()->Size());
+    Xdim = Dimension(1.0, 1.0, Xlabel);
   if (debug_ > 0) {
-    mprintf("DEBUG: xstep %g xmin %g xmax %g xbins %i\n",
-            Xdim.Step(), Xdim.Min(), Xdim.Max(), Xdim.Bins());
+    mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
   }
   for (const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
@@ -428,6 +502,7 @@ int DataSetList::AddOrAppendSets(Darray const& Xvals, DataListType const& Sets)
         DataSet_Mesh& xy = static_cast<DataSet_Mesh&>( *xyptr );
         for (unsigned int i = 0; i != set.Size(); i++)
           xy.AddXY( Xvals[i], set.Dval(i) );
+        xy.SetDim(Dimension::X, Xdim);
         if (debug_ > 0) mprintf(", New set, converted to XY-MESH\n");
         // Free memory since set has now been converted.
         delete *ds;
@@ -602,10 +677,7 @@ const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
 // DataSetList::GetTopology()
 Topology* DataSetList::GetTopology(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No topologies loaded.\n");
-    return 0;
-  }
+  if (TopList_.empty()) return 0;
   DataSet* top = 0;
   std::string topname = argIn.GetStringKey("parm");
   if (!topname.empty()) {
@@ -628,10 +700,7 @@ Topology* DataSetList::GetTopology(ArgList& argIn) const {
 
 // DataSetList::GetTopByIndex()
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) {
-    mprinterr("Error: No topologies loaded.\n");
-    return 0;
-  }
+  if (TopList_.empty()) return 0;
   Topology* top = GetTopology( argIn );
   if (top == 0) {
     int topindex = argIn.getNextInteger(-1);

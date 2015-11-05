@@ -28,6 +28,10 @@ class DataFileList {
     DataFile* AddDataFile(FileName const&, ArgList&);
     /// \return DataFile specified by name, add if none exists, or 0 if no name specified.
     DataFile* AddDataFile(FileName const&);
+    /// \return DataFile specified by name with specific format, add if none exists.
+    DataFile* AddDataFile(FileName const&, ArgList&, DataFile::DataFormatType);
+    /// \return DataFile specified by name with specific format, add if none exists.
+    DataFile* AddDataFile(FileName const&, DataFile::DataFormatType, ArgList const&);
     /// Types of CpptrajFile that can be created.
     enum CFtype { TEXT = 0, PDB };
     /// \return CpptrajFile specified by name, add if none exists, or 0 if no name specified.

@@ -10,6 +10,7 @@
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
+#include "SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
@@ -169,6 +170,7 @@ void Command::ListCommands(CommandType dtype) {
   for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
   {
     CommandType currentType = token->Type;
+    if (currentType == HIDDEN) continue;
     if (dtype != NONE && dtype != currentType) continue;
     // Command group type title
     if (currentType != lastType) {
@@ -600,6 +602,10 @@ static void Deprecate_AvgCoord() {
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
+/// Sequence align
+Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ return (Command::RetType)SequenceAlign(State, argIn); }
+
 static void Help_ActiveRef() {
   mprintf("\t%s\n", DataSetList::RefArgs);
   mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
@@ -741,7 +747,7 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
     return Command::C_ERR;
   }
-  outtraj.PrintInfo( 1 );
+  outtraj.PrintInfo(0);
   Frame currentFrame = CRD->AllocateFrame(); 
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
@@ -785,7 +791,7 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   MetaData md( trajin.Traj().Filename(), setname, -1 );
   // Check if set already present
   DataSet_Coords* coords = 0;
-  DataSet* ds = State.DSL()->CheckForSet(md);
+  DataSet* ds = State.DSL()->FindSetOfType( setname, DataSet::COORDS );
   if (ds == 0) {
     // Create Set 
     coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
@@ -1815,7 +1821,10 @@ static void Help_ScaleDihedralK() {
 Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopology( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) {
+    mprinterr("Error: No topologies loaded.\n");
+    return Command::C_ERR;
+  }
   double scale_factor = argIn.getNextDouble(1.0);
   std::string maskexpr = argIn.GetMaskNext();
   bool useAll = argIn.hasKey("useall");
@@ -1926,6 +1935,7 @@ const Command::Token Command::Commands[] = {
   { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
   { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
   { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { HIDDEN,  "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
   { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
   { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
   { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
@@ -2039,6 +2049,7 @@ const Command::Token Command::Commands[] = {
   { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
   { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
   { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
+  { ACTION, "rmsf", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
   { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
   { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
   { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },

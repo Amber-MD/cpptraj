@@ -33,6 +33,8 @@ Action::RetType Action_Dihedral::Init(ArgList& actionArgs, ActionInit& init, int
   MetaData::scalarType stype = MetaData::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
   if (!stypename.empty()) {
+    // For backwards compat. with ptraj, convert 'chi' to 'chin'
+    if (stypename == "chi") stypename.assign("chin");
     stype = MetaData::TypeFromKeyword( stypename, MetaData::M_TORSION );
     if (stype == MetaData::UNDEFINED) {
       mprinterr("Error: Invalid torsion type keyword '%s'\n", stypename.c_str());

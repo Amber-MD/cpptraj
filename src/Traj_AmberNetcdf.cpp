@@ -15,7 +15,8 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   useVelAsCoords_(false),
   readAccess_(false),
   outputTemp_(false),
-  outputVel_(false)
+  outputVel_(false),
+  outputFrc_(false)
 { }
 
 // DESTRUCTOR
@@ -106,9 +107,8 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   // Replica Dimensions
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  // Set traj info: FIXME - no forces yet
   SetCoordInfo( CoordinateInfo(remdDim, Box(boxcrd), HasVelocities(),
-                               HasTemperatures(), HasTimes(), false) ); 
+                               HasTemperatures(), HasTimes(), HasForces()) ); 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
@@ -124,13 +124,15 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 
 void Traj_AmberNetcdf::WriteHelp() {
   mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
-          "\tvelocity: Write velocities to trajectory.\n");
+          "\tvelocity: Write velocities to trajectory.\n"
+          "\tforce: Write forces to trajectory.\n");
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
 int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
   outputVel_ = argIn.hasKey("velocity");
+  outputFrc_ = argIn.hasKey("force");
   return 0;
 }
 
@@ -150,6 +152,7 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     if (outputTemp_ && !cInfo.HasTemp()) cInfo.SetTemperature(true);
     // Explicitly write velocity - initial frames may not have velocity info.
     if (outputVel_ && !cInfo.HasVel()) cInfo.SetVelocity(true);
+    if (outputFrc_ && !cInfo.HasForce()) cInfo.SetForce(true);
     SetCoordInfo( cInfo );
     filename_ = fname;
     // Set up title
@@ -174,6 +177,9 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
               filename_.base());
     if (outputVel_ && !CoordInfo().HasVel())
       mprintf("Warning: Cannot append velocity data to NetCDF file '%s'; no velocity dimension.\n",
+              filename_.base());
+    if (outputFrc_ && !CoordInfo().HasForce())
+      mprintf("Warning: Cannot append force data to NetCDF file '%s'; no force dimension.\n",
               filename_.base());
     if (debug_ > 0)
       mprintf("\tNetCDF: Appending %s starting at frame %i\n", filename_.base(), Ncframe()); 
@@ -233,6 +239,15 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
     FloatToDouble(frameIn.vAddress(), Coord_);
   }
 
+  // Read Forces
+  if (frcVID_ != -1) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting forces for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.fAddress(), Coord_);
+  }
+
   // Read indices. Input array must be allocated to be size remd_dimension.
   if (indicesVID_!=-1) {
     count_[1] = remd_dimension_;
@@ -283,6 +298,25 @@ int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
   return 0;
 }
 
+// Traj_AmberNetcdf::readForce()
+int Traj_AmberNetcdf::readForce(int set, Frame& frameIn) {
+  start_[0] = set;
+  start_[1] = 0;
+  start_[2] = 0;
+  count_[0] = 1;
+  count_[1] = Ncatom();
+  count_[2] = 3;
+  // Read forces
+  if (frcVID_ != -1) {
+    if ( checkNCerr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Getting forces for frame %i\n", set+1);
+      return 1;
+    }
+    FloatToDouble(frameIn.fAddress(), Coord_);
+  }
+  return 0;
+}
+
 // Traj_AmberNetcdf::writeFrame() 
 int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   DoubleToFloat(Coord_, frameOut.xAddress());
@@ -304,6 +338,15 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     DoubleToFloat(Coord_, frameOut.vAddress());
     if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
+      return 1;
+    }
+  }
+
+  // Write forces. FIXME: Should check in setup
+  if (CoordInfo().HasForce() && frameOut.HasForce()) {
+    DoubleToFloat(Coord_, frameOut.fAddress());
+    if (checkNCerr(nc_put_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: Netcdf writing force frame %i\n", set+1);
       return 1;
     }
   }
@@ -415,6 +458,7 @@ void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
   if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
   if (CoordInfo().HasVel()) mprintf(" containing velocities");
+  if (CoordInfo().HasForce()) mprintf(" containing forces");
   if (CoordInfo().HasTemp()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 }

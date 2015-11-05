@@ -5,7 +5,6 @@
 #include "CpptrajStdio.h"
 
 const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
-const double Action_Volmap::one_over_6 = 1.0 / 6.0;
 // CONSTRUCTOR
 Action_Volmap::Action_Volmap() :
   dx_(0.0), dy_(0.0), dz_(0.0),
@@ -163,8 +162,15 @@ Action::RetType Action_Volmap::Setup(ActionSetup& setup) {
   // Set up our radii_
   halfradii_.clear();
   halfradii_.reserve( setup.Top().Natom() );
-  for (int i = 0; i < setup.Top().Natom(); i++)
-    halfradii_.push_back( (float)(setup.Top().GetVDWradius(i) * radscale_ / 2) );
+  if (setup.Top().Nonbond().HasNonbond()) {
+    for (int i = 0; i < setup.Top().Natom(); i++)
+      halfradii_.push_back( (float)(setup.Top().GetVDWradius(i) * radscale_ / 2) );
+  } else {
+    for (Topology::atom_iterator it = setup.Top().begin();
+            it != setup.Top().end(); it++) {
+      halfradii_.push_back( (float)(it->ElementRadius() * radscale_ / 2) );
+    }
+  }
 
   // DEBUG
 //for (AtomMask::const_iterator it = densitymask_.begin(); it != densitymask_.end(); it++)

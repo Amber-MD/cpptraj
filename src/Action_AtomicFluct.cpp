@@ -191,14 +191,14 @@ void Action_AtomicFluct::Print() {
   DataSet_Mesh& dset = static_cast<DataSet_Mesh&>( *dataout_ );
   if (outtype_ == BYATOM) {
     // By atom output
-    dset.Dim(Dimension::X).SetLabel("Atom");
+    dset.ModifyDim(Dimension::X).SetLabel("Atom");
     for (int atom = 0; atom < (int)Results.size(); atom++ ) {
       if (Mask_.AtomInCharMask(atom))
         dset.AddXY( atom+1, Results[atom] );
     }
   } else if (outtype_ == BYRES) { 
     // By residue output
-    dset.Dim(Dimension::X).SetLabel("Res");
+    dset.ModifyDim(Dimension::X).SetLabel("Res");
     for (Topology::res_iterator residue = fluctParm_->ResStart();
                                 residue != fluctParm_->ResEnd(); ++residue) {
       double xi = 0.0;
@@ -215,7 +215,7 @@ void Action_AtomicFluct::Print() {
     }
   } else if (outtype_ == BYMASK) {
     // By mask output
-    dset.Dim(Dimension::X).SetLabel( Mask_.MaskExpression() );
+    dset.ModifyDim(Dimension::X).SetLabel( Mask_.MaskExpression() );
     double xi = 0.0;
     double fluct = 0.0;
     for (int atom = 0; atom < (int)Results.size(); atom++) {

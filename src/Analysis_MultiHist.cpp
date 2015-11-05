@@ -30,8 +30,12 @@ Analysis::RetType Analysis_MultiHist::Setup(ArgList& analyzeArgs, DataSetList* d
   if (minArgSet) min = analyzeArgs.getKeyDouble("min", 0.0);
   bool maxArgSet = analyzeArgs.Contains("max");
   if (maxArgSet) max = analyzeArgs.getKeyDouble("max", 0.0);
-  double step = analyzeArgs.getKeyDouble("step", -1.0);
+  double step = analyzeArgs.getKeyDouble("step", 0.0);
   int bins = analyzeArgs.getKeyInt("bins", -1);
+  if (step == 0.0 && bins < 1) {
+    mprinterr("Error: Must set either bins or step.\n");
+    return Analysis::ERR;
+  }
   if (analyzeArgs.hasKey("norm"))
     normalize = Analysis_Hist::NORM_SUM;
   else if (analyzeArgs.hasKey("normint"))

@@ -88,5 +88,5 @@ int DataIO_XVG::ReadData(FileName const& fname,
     ptr = infile.Line();
   }
   infile.CloseFile();
-  return (datasetlist.AddOrAppendSets( Xvals, inputSets ));
+  return (datasetlist.AddOrAppendSets( "", Xvals, inputSets ));
 }

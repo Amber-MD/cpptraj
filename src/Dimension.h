@@ -5,45 +5,49 @@
 class Dimension {
   public:
     enum DimIdxType { X = 0, Y, Z };
-    Dimension();
-    /// CONSTRUCTOR - Min, step, bins
-    Dimension(double, double, int);
-    /// CONSTRUCTOR - Min, step, bins, label
-    Dimension(double, double, int, std::string const&);
-    Dimension(const Dimension&);
-    Dimension& operator=(const Dimension&);
- 
-    void SetLabel(std::string const& l) { label_ = l;  }
-    void SetMin(double m)               { min_ = m; minIsSet_ = true; }
-    void SetMax(double m)               { max_ = m; maxIsSet_ = true; }
-    void SetStep(double s)              { step_ = s;   }
-    void SetBins(int b)                 { bins_ = b;   }
+    /// DEFAULT CONSTRUCTOR
+    Dimension() : min_(0.0), step_(0.0) {}
+    /// CONSTRUCTOR - Min, step
+    Dimension(double m, double s) : min_(m), step_(s) {}
+    /// CONSTRUCTOR - Min, step, label
+    Dimension(double m, double s, std::string const& l) :
+      label_(l), min_(m), step_(s) {}
+    /// COPY CONSTRUCTOR
+    Dimension(const Dimension& rhs) :
+      label_(rhs.label_), min_(rhs.min_), step_(rhs.step_) {}
+    /// ASSIGNMENT OP
+    Dimension& operator=(const Dimension& rhs) {
+      if (this != &rhs) {
+        label_ = rhs.label_;
+        min_ = rhs.min_;
+        step_ = rhs.step_;
+      }
+      return *this;
+    }
+    /// \return true if this dim min/step not equal to given dim min/step.
+    bool operator!=(const Dimension& rhs) const {
+      if (min_ != rhs.min_ || step_ != rhs.step_) return true;
+      return false;
+    }
+    /// Set dimension with given min, step, and label.
+    void SetDimension(double m, double s, std::string const& l) {
+      label_ = l;
+      min_ = m;
+      step_ = s;
+    }
+    /// Only set dimension label FIXME is this needed? Useful for DataSet_Mesh
+    void SetLabel(std::string const& l) { label_ = l; }
+    void ChangeStep(double s) { step_ = s; } // Used by DataFile
+    void ChangeMin(double m) { min_ = m; } // Used by DataFile
 
-    std::string const& Label() const { return label_;    }
-    double Min()               const { return min_;      }
-    double Max()               const { return max_;      }
-    double Step()              const { return step_;     }
-    int Bins()                 const { return bins_;     }
-    bool MinIsSet()            const { return minIsSet_; }
-    bool MaxIsSet()            const { return maxIsSet_; }
+    std::string const& Label() const { return label_;         }
+    const char* label()        const { return label_.c_str(); }
+    double Min()               const { return min_;           }
+    double Step()              const { return step_;          }
     double Coord(size_t i)     const { return ((step_ * (double)i) + min_); }
-    inline bool operator!=(const Dimension&) const;
-    /// Attempt to set up bins or step.
-    int CalcBinsOrStep();
-    void PrintDim() const;
   private:
     std::string label_;
     double min_;
-    double max_;
     double step_;
-    int bins_;
-    bool minIsSet_;     ///< True if SetMin has been called.
-    bool maxIsSet_;     ///< True if SetMax has been called.
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-// FIXME: Check everything??
-bool Dimension::operator!=(const Dimension& rhs) const {
-  if (min_ != rhs.min_ || step_ != rhs.step_) return true;
-  return false;
-}
 #endif

@@ -204,11 +204,13 @@ void Action_AtomicCorr::Print() {
   } // END outer loop
 
   if (acorr_mode_ == ATOM) {
-    dset_->Dim(Dimension::X).SetLabel("Atom");
-    dset_->Dim(Dimension::Y).SetLabel("Atom");
+    Dimension dim(1.0, 1.0, "Atom");
+    dset_->SetDim(Dimension::X, dim);
+    dset_->SetDim(Dimension::Y, dim);
   } else {
-    dset_->Dim(Dimension::X).SetLabel("Residue");
-    dset_->Dim(Dimension::Y).SetLabel("Residue");
+    Dimension dim(1.0, 1.0, "Residue");
+    dset_->SetDim(Dimension::X, dim);
+    dset_->SetDim(Dimension::Y, dim);
   }
   std::string labels;
   for (ACvector::const_iterator atom = atom_vectors_.begin();
