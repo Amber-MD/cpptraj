@@ -42,7 +42,18 @@ UsageFull() {
   echo "    -nobzlib   : Do not use libbz2 (bzip2)"
   echo "    -nozlib    : Do not use zlib (gzip/zip)"
   echo "    -nonetcdf  : Do not use NetCDF"
-  echo "    -nomathlib : Do not include routines which require ARPACK, LAPACK, or BLAS"
+  echo "    -nomathlib : Do not include routines which require LAPACK or BLAS"
+  echo "    -noarpack  : Do not include routines which require ARPACK"
+  echo ""
+  echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
+  echo "    CXX        : Name of the C++ compiler."
+  #echo "    CC         : Name of the C compiler."
+  #echo "    FC         : Name of the fortran compiler."
+  echo "    CXXFLAGS   : Flags to pass to the C++ compiler."
+  echo "    CFLAGS     : Flags to pass to the C compiler."
+  echo "    FFLAGS     : Flags to pass to the Fortran compiler."
+  echo "    LDFLAGS    : Flags to pass to the linker."
+  echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
@@ -54,16 +65,6 @@ UsageFull() {
   echo ""
   echo "NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
   echo ""
-}
-
-# If arg is Key=Value, separate into Key and Value
-ParseArg() {
-  KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
-  VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
-  eval VALUE=$VALUE
-  if [[ $VALUE = $KEY ]] ; then
-    VALUE=""
-  fi
 }
 
 # CompileError "Compile Line"
@@ -128,25 +129,48 @@ EOF
 }
 
 TestMathlib() {
+  if [[ ! -z $BLAS ]] ; then # ASSUME LAPACK also defined
+    cat > testp.cpp <<EOF
+#include <cstdio>
+extern "C" {
+  void dsyev_(char*, char*, int&, double*, int&, double*,double*,int&,int&);
+  void dgemm_(char*, char*, int&, int&, int&, double&,
+              double*, int&, double*, int&, double&, double*, int&);
+}
+int main() {
+  int n_cols = 3, lwork = 102, info;
+  double work[102], mat[9], vec[3], alpha = 1.0;
+  mat[0] = 1.0; mat[4] = 1.0; mat[8] = 1.0;
+  dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);
+  dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,
+         mat, n_cols, mat, n_cols, alpha, mat, n_cols);
+  printf("Testing\n"); return 0;
+}
+EOF
+    TestCxxProgram "Checking LAPACK/BLAS" "$LAPACK $BLAS $MKLLIB $FLIBS"
+  fi
+}
+
+TestArpack() {
   if [[ ! -z $ARPACK ]] ; then # Assume BLAS and LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
-extern "C" { 
+extern "C" {
   void dsaupd_(int&, char&, int&, char*, int&, double&, double*,
                int&, double*, int&, int*, int*, double*, double*,
                int&, int&);
 }
 int main() {
-  int ival = 0; 
+  int ival = 0;
   double dval = 0.0;
-  char cval = 'I'; 
-  dsaupd_(ival, cval, ival, &cval, ival, dval, &dval, 
+  char cval = 'I';
+  dsaupd_(ival, cval, ival, &cval, ival, dval, &dval,
           ival, &dval, ival, &ival, &ival, &dval, &dval,
           ival, ival);
   printf("Testing\n"); return 0;
 }
 EOF
-    TestCxxProgram "Checking ARPACK/LAPACK/BLAS" "$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
+    TestCxxProgram "Checking ARPACK" "$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
   fi
 }
 
@@ -166,7 +190,7 @@ EOF
   fi
 }
 
-# Test C/C++/Fortran compilers 
+# Test C/C++/Fortran compilers
 TestCompile() {
   # C
   echo "Testing C compiler:"
@@ -174,7 +198,7 @@ TestCompile() {
 #include <stdio.h>
 int main() { printf("Testing\n"); return 0; }
 EOF
-  $CC $CFLAGS -o testp testp.c > /dev/null 2> compile.err 
+  $CC $CFLAGS -o testp testp.c > /dev/null 2> compile.err
   ./testp | grep "Testing" > /dev/null
   status=$?
   if [[ $status -gt 0 ]] ; then
@@ -215,80 +239,10 @@ EOF
   fi
 }
 
-#---------------------------------------------------------------------
-
-if [[ -z $1  || $1 = "--help"  || $1 = "-h" ]] ; then
-  UsageSimple
-  exit 0
-elif [[ ! -z $1 && $1 = "--full-help" ]] ; then
-  UsageSimple
-  UsageFull
-  exit 0
-fi
-
-CONFIGURECMD="./configure $*"
-
-KEY=""
-VALUE=""
-echo ""
-
-# Process Options
-ARCHITECTURE="x86_64" # TODO: Actually determine
-OPT=1
-USEMPI=0
-USEOPENMP=0
-USETIMER=0
-PROFILE=0
-USECRAY=0
-USESHARED=0
-CC=""
-CXX=""
-FC=""
-SFX=""
-CPPTRAJHOME=""
-CPPTRAJBIN=""
-CPPTRAJLIB=""
-DIRECTIVES=""
-DBGFLAGS=""
-OPTFLAGS=""
-OMPFLAGS=""
-FFLAGS=""
-FOPTFLAGS=""
-PICFLAG=""
-LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
-INCLUDE=""
-# Library flags
-LDFLAGS=""
-STATIC=0
-NETCDF_HOME=""
-PNETCDF_HOME=""
-BZLIB_HOME=""
-ZLIB_HOME=""
-BLAS_HOME=""
-LAPACK_HOME=""
-ARPACK_HOME=""
-READLINE_HOME="readline"
-NETCDFLIB="-lnetcdf"
-PNETCDFLIB=""
-BZLIB="-lbz2"
-ZLIB="-lz"
-BLAS="-lblas"
-LAPACK="-llapack"
-ARPACK="-larpack"
-FFT_LIB="pub_fft.o"
-FFT_LIBDIR=""
-FFT_DEPEND=$FFT_LIB
-LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
-SANDERLIB=""
-READLINE=$READLINE_HOME/libreadline.a
-USE_AMBER_LIB=0
-USEMKL=0
-FLIBS=""
-#HDF5LIB="-lhdf5_hl -lhdf5"
-HDF5LIB=""
-while [[ ! -z $1 ]] ; do
-  ParseArg $1
-  case "$KEY" in
+#-------------------------------------------------------------------------------
+# Usage: SetCompilerOptions <compilers>
+SetCompilerOptions() {
+  case "$1" in
     "gnu" )
       echo "Using gnu compilers"
       CC=gcc
@@ -306,13 +260,13 @@ while [[ ! -z $1 ]] ; do
       CC=clang
       CXX=clang++
       FC=gfortran
-      OPTFLAGS="-O3 -Weverything"
+      OPTFLAGS="-O3 -Wall"
       OMPFLAGS=""
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran -w"
       PICFLAG="-fPIC"
-      ;; 
+      ;;
     "intel" )
       echo "Using intel compilers"
       CC=icc
@@ -343,37 +297,156 @@ while [[ ! -z $1 ]] ; do
       CC=cc
       CXX=CC
       FC=ftn
-      OPTFLAGS=""
+      OPTFLAGS="-h gnu"
       OMPFLAGS=""
       FFLAGS="-f free -emf"
       FOPTFLAGS=""
       FLIBS=""
       PICFLAG="-fpic"
       ;;
+    * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
+  esac
+}
+
+#-------------------------------------------------------------------------------
+# Check if first arg is help arg
+if [[ $1 = "--help"  || $1 = "-h" ]] ; then
+  UsageSimple
+  exit 0
+elif [[ $1 = "--full-help" ]] ; then
+  UsageSimple
+  UsageFull
+  exit 0
+fi
+
+CONFIGURECMD="./configure $*"
+
+echo ""
+
+# Determine architecture
+ARCHITECTURE=`uname -m`
+if [[ "$ARCHITECTURE" = "x86_64" || "$ARCHITECTURE" = "em64t" ]] ; then
+  IS_64BIT=1
+  echo "Assuming 64 bit architecture."
+else
+  IS_64BIT=0
+  echo "Assuming 32 bit architecture."
+fi
+
+# System env variables. Do not clear these yet.
+#CC="" #CXX="" #FC=""
+#CFLAGS="" #CXXFLAGS="" #FFLAGS="" #LDFLAGS=""
+#DBGFLAGS=""
+# Configure Options
+COMPILERS=""
+OPT=1
+USEMPI=0
+USEOPENMP=0
+USETIMER=0
+PROFILE=0
+USECRAY=0
+USESHARED=0
+SFX=""
+CPPTRAJHOME=""
+CPPTRAJBIN=""
+CPPTRAJLIB=""
+DIRECTIVES=""
+DEBUGFLAGS=""
+OPTFLAGS=""
+OMPFLAGS=""
+FOPTFLAGS=""
+PICFLAG=""
+LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+INCLUDE=""
+# Library flags
+STATIC=0
+#STATICFLAG="-static"
+NETCDF_HOME=""
+PNETCDF_HOME=""
+BZLIB_HOME=""
+ZLIB_HOME=""
+BLAS_HOME=""
+LAPACK_HOME=""
+ARPACK_HOME=""
+READLINE_HOME="readline"
+NETCDFLIB="-lnetcdf"
+PNETCDFLIB=""
+BZLIB="-lbz2"
+ZLIB="-lz"
+BLAS="-lblas"
+LAPACK="-llapack"
+ARPACK="-larpack"
+FFT_LIB="pub_fft.o"
+FFT_LIBDIR=""
+FFT_DEPEND=$FFT_LIB
+LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
+SANDERLIB=""
+READLINE=$READLINE_HOME/libreadline.a
+USE_AMBER_LIB=0
+USEMKL=0
+FLIBS=""
+HDF5LIB="" #"-lhdf5_hl -lhdf5"
+
+# Parse command line options
+KEY=""
+VALUE=""
+while [[ ! -z $1 ]] ; do
+  # If arg is Key=Value, separate into Key and Value
+  VALUE=""
+  POS=`expr index "$1" '='`
+  if [[ $POS -eq 1 ]] ; then
+    echo "Error: '=' cannot be first character in an argument." > /dev/stderr ; exit 1
+  elif [[ $POS -gt 1 ]] ; then
+    ((PM1 = $POS - 1))
+    KEY=${1:0:$PM1}
+    VALUE=${1:$POS}
+    if [[ $VALUE = "" ]] ; then
+      echo "Error: '$1': Expected <var>=<value>, missing <value>." > /dev/stderr ; exit 1
+    fi
+    eval VALUE=$VALUE 2> /dev/null
+  else
+    KEY=$1
+  fi
+  #echo "KEY='$KEY',  VALUE='$VALUE'" #DEBUG
+  # Process KEY
+  case "$KEY" in
+    "gnu"   ) COMPILERS=$KEY ;;
+    "clang" ) COMPILERS=$KEY ;;
+    "intel" ) COMPILERS=$KEY ;;
+    "pgi"   ) COMPILERS=$KEY ;;
+    "cray"  ) COMPILERS=$KEY ;;
+    "CXX"   ) CXX="$VALUE" ;;
+    "CC"    ) echo "Warning: CC set but not used (use CXX to determine compilers)." ;;
+    "FC"    ) echo "Warning: FC set but not used (use CXX to determine compilers)." ;;
+    "CXXFLAGS" ) CXXFLAGS="$VALUE" ;;
+    "CFLAGS"   ) CFLAGS="$VALUE" ;;
+    "FFLAGS"   ) FFLAGS="$VALUE" ;;
+    "LDFLAGS"  ) LDFLAGS="$VALUE" ;;
+    "DBGFLAGS" ) DBGFLAGS="$VALUE" ;;
     "-cray" )
       echo "Using cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
-      ;; 
-    "-debug" ) 
+      ;;
+    "-debug" )
       echo "Turning on compiler debug info"
-      DBGFLAGS="-g"
+      DEBUGFLAGS="-g"
       ;;
     "-d" )
       echo "Turning on compiler debug info and disabling optimization"
-      DBGFLAGS="-g"
+      DEBUGFLAGS="-g"
       OPT=0
       ;;
-    "-debugon"      ) 
+    "-debugon"      )
       echo "Turning on cpptraj internal debug info"
-      DIRECTIVES="$DIRECTIVES -DDEBUG" 
+      DIRECTIVES="$DIRECTIVES -DDEBUG"
       ;;
     "-single-ensemble")
       echo "Enabling support for single ensemble trajectories."
       DIRECTIVES="$DIRECTIVES -DENABLE_SINGLE_ENSEMBLE"
       ;;
-    "-noopt"        ) 
+    "-noopt"        )
       echo "Turning off optimization"
-      OPT=0 
+      OPT=0
       ;;
     "-mpi"          )
       USEMPI=1
@@ -407,7 +480,7 @@ while [[ ! -z $1 ]] ; do
         exit 1
       fi
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
-      USE_AMBER_LIB=1 
+      USE_AMBER_LIB=1
       ;;
     "-sanderlib"    )
       if [[ -z $AMBERHOME ]] ; then
@@ -449,10 +522,15 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-nomathlib")
       echo "Not using BLAS/LAPACK/ARPACK routines."
-      DIRECTIVES="$DIRECTIVES -DNO_MATHLIB"
-      ARPACK=""
+      DIRECTIVES="$DIRECTIVES -DNO_MATHLIB -DNO_ARPACK"
       LAPACK=""
       BLAS=""
+      ARPACK=""
+      ;;
+    "-noarpack")
+      echo "Not using ARPACK routines."
+      DIRECTIVES="$DIRECTIVES -DNO_ARPACK"
+      ARPACK=""
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -515,6 +593,36 @@ while [[ ! -z $1 ]] ; do
   shift
 done
 
+# If compiler has not yet been specified, determine from CXX, otherwise default
+# to GNU
+if [[ -z $COMPILERS ]] ; then
+  if [[ ! -z $CXX ]] ; then
+    echo "Determining compilers from CXX ($CXX)"
+    case "$CXX" in
+      "g++"     ) COMPILERS='gnu' ;;
+      "clang++" ) COMPILERS='clang' ;;
+      "icpc"    ) COMPILERS='intel' ;;
+      "pgc++"   ) COMPILERS='pgi' ;;
+      "CC"      ) COMPILERS='cray' ;;
+      * ) echo "Error: Unrecognized compiler: $CXX" > /dev/stderr ; exit 1 ;;
+    esac
+  else
+    COMPILERS='gnu'
+    echo "No compilers specified; defaulting to GNU."
+  fi
+else
+  # Compiler was specified on command line. Ignore flags from outside.
+  if [[ ! -z $CFLAGS || ! -z $CXXFLAGS || ! -z $FFLAGS || ! -z $LDFLAGS ]] ; then
+    echo "Warning: Compiler specified on command line. Ignoring CFLAGS, CXXFLAGS,"
+    echo "         FFLAGS, and LDFLAGS from environment/command line."
+  fi
+  CFLAGS=""
+  CXXFLAGS=""
+  FFLAGS=""
+  LDFLAGS=""
+fi
+SetCompilerOptions $COMPILERS
+
 # Check install directory
 if [[ -z $CPPTRAJHOME ]] ; then
   # Default is to use current directory.
@@ -529,8 +637,7 @@ echo "Installing cpptraj binary to $CPPTRAJBIN"
 
 # Check for compilers
 if [[ -z $CC || -z $CXX || -z $FC ]] ; then
-  echo "No compiler specified."
-  echo "Specify 'gnu', 'intel', or 'pgi' as an argument to ./configure"
+  echo "No compiler specified and CXX not set."
   UsageSimple
   exit 1
 fi
@@ -572,7 +679,7 @@ if [[ ! -z $PNETCDFLIB ]] ; then
   DIRECTIVES="$DIRECTIVES -DHAS_PNETCDF"
 fi
 
-# Use libraries in AMBERHOME for stuff thats undefined 
+# Use libraries in AMBERHOME for stuff thats undefined
 if [[ $USE_AMBER_LIB -eq 1 ]] ; then
   INCLUDE="$INCLUDE -I$AMBERHOME/include"
   if [[ -z $BLAS_HOME && ! -z $BLAS ]] ; then
@@ -641,7 +748,7 @@ fi
 MKLLIB=""
 if [[ $USEMKL -eq 1 ]] ; then
   # Use MKL for LAPACK/BLAS
-  if [[ $ARCHITECTURE = "x86_64" ]] ; then
+  if [[ $IS_64BIT -eq 1 ]] ; then
     MKLINTERFACE=libmkl_intel_lp64.a
     MKLROOT="$MKLROOT/lib/intel64"
     BLAS="-lmkl_blas95_lp64"
@@ -662,8 +769,18 @@ if [[ $USEMKL -eq 1 ]] ; then
   LAPACK=""
 fi
 
-# Set up linking flags
-LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
+if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
+    # Linking against fortran libraries (e.g. -lgfortran) is not required on
+    # Mac OS X using FFTW3, since the the Mac Accelerate blas/lapack/arpack
+    # doesn't require any extra fortran libs, and fftw3 does not require
+    # fortran.
+    FLIBS=""
+fi
+
+# Set up linking flags if not already set
+if [[ -z $LDFLAGS ]] ; then
+  LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
+fi
 if [[ ! -z $FFT_LIBDIR ]] ; then
   FFT_LIB="$FFT_LIBDIR $FFT_LIB"
 fi
@@ -675,7 +792,7 @@ if [[ $USETIMER -eq 1 ]] ; then
 fi
 
 # For pgi on cray modify some flags
-if [[ $USECRAY -eq 1 && $CC = "pgcc" ]] ; then
+if [[ $USECRAY -eq 1 && $COMPILERS = "pgi" ]] ; then
     OPTFLAGS="-fast"
     OMPFLAGS="-mp=nonuma"
     FOPTFLAGS="-fast"
@@ -683,7 +800,7 @@ fi
 
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
-  if [[ $CC = "clang" ]] ; then
+  if [[ $COMPILERS = "clang" ]] ; then
     echo "Error: clang compiler does not yet support OpenMP."
     exit 1
   fi
@@ -697,15 +814,12 @@ fi
 if [[ $OPT -eq 0 ]] ; then
   OPTFLAGS=""
   FOPTFLAGS=""
-  DBGFLAGS="$DBGFLAGS -O0"
+  DEBUGFLAGS="$DEBUGFLAGS -O0"
 fi
 
-# Add cray-specific flags
-if [[ $CC = "cc" ]] ; then
-  OPTFLAGS="-h gnu "$OPTFLAGS
-  if [[ $USEOPENMP -eq 0 ]] ; then
-    DIRECTIVES="-h noomp "$DIRECTIVES
-  fi
+# Add flags specific to cray compilers
+if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
+  DIRECTIVES="-h noomp "$DIRECTIVES
 fi
 
 # Flags for libsander
@@ -724,10 +838,16 @@ if [[ $USEMPI -eq 1 ]] ; then
   SFX=".MPI"
 fi
 
-# Set up compiler flags
-CFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
-CXXFLAGS="$DBGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
-FFLAGS="$FFLAGS $DBGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+# Set up compiler flags if not already set
+if [[ -z $CFLAGS ]] ; then
+  CFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+fi
+if [[ -z $CXXFLAGS ]] ; then
+  CXXFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+fi
+if [[ -z $FFLAGS ]] ; then
+  FFLAGS="$FFLAGS $DEBUGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
+fi
 
 # Add position-independent code if necessary
 if [[ $USESHARED -eq 1 ]] ; then
@@ -737,25 +857,25 @@ if [[ $USESHARED -eq 1 ]] ; then
 fi
 
 # Add debug flags for non-PGI compilers if debug info on
-if [[ ! -z $DBGFLAGS && $CXX != "pgc++" ]] ; then
+if [[ ! -z $DEBUGFLAGS && $COMPILERS != "pgi" ]] ; then
   CFLAGS="-Wall $CFLAGS"
   CXXFLAGS="-Wall -fno-inline $CXXFLAGS"
   FFLAGS="-Wall $FFLAGS"
 fi
 
 # Turn on profiling for GNU if specified
-if [[ $PROFILE -eq 1 && $CXX = "g++" ]] ; then
+if [[ $PROFILE -eq 1 && $COMPILERS = "gnu" ]] ; then
   echo "Using $CXX profiling."
   CFLAGS="-pg $CFLAGS"
   CXXFLAGS="-pg $CXXFLAGS"
   LDFLAGS="-pg $LDFLAGS"
-elif [[ $PROFILE -eq 2 && $CXX = "g++" ]] ; then
+elif [[ $PROFILE -eq 2 && $COMPILERS = "gnu" ]] ; then
   echo "Turning on GLIBC profiling for $CXX."
   CXXFLAGS="-D_GLIBCXX_PROFILE $CXXFLAGS"
 elif [[ $PROFILE -eq 3 ]] ; then
   echo "Turning on flags for Intel Vtune"
   VTUNEFLAGS=""
-  if [[ $CXX = "icpc" ]] ; then
+  if [[ $COMPILERS = "intel" ]] ; then
     VTUNEFLAGS=$VTUNEFLAGS" -debug inline-debug-info"
   fi
   CFLAGS="-g $VTUNEFLAGS $CFLAGS"
@@ -776,6 +896,7 @@ TestBzlib
 TestZlib
 TestNetcdf
 TestMathlib
+TestArpack
 TestFFTW3
 
 # Write config.h
@@ -787,7 +908,7 @@ CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
 CPPTRAJLIB=$CPPTRAJLIB
 
-DBGFLAGS=
+DBGFLAGS=$DBGFLAGS
 CC=$CC
 CXX=$CXX
 FC=$FC

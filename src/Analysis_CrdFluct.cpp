@@ -18,8 +18,7 @@ void Analysis_CrdFluct::Help() {
 }
 
 // Analysis_CrdFluct::Setup()
-Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   bfactor_ = analyzeArgs.hasKey("bfactor");
   // Attempt to get coords dataset from datasetlist
@@ -63,7 +62,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, frame) );
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "F_" + integerToString( frame ) );
-      ds->Dim(Dimension::X).SetLabel("Atom");
+      ds->SetDim( Dimension::X, Dimension(1.0, 1.0, "Atom") );
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddDataSet( ds );
     }

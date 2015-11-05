@@ -10,11 +10,11 @@ void Action_FilterByData::Help() {
 }
 
 // Action_FilterByData::Init()
-Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  maxmin_ = DSL->AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
+  maxmin_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
   if (maxmin_ == 0) return Action::ERR;
-  DataFile* maxminfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* maxminfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   if (maxminfile != 0)
     maxminfile->AddDataSet( maxmin_ );
   // Get min and max args.
@@ -36,7 +36,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
     return Action::ERR;
   }
   // Get DataSets from remaining arguments
-  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), *DSL );
+  Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), init.DSL() );
 
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
@@ -71,8 +71,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, TopologyList* PFL
 }
 
 // Action_FilterByData::DoAction()
-Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
-                                              Frame** frameAddress)
+Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 {
   static int ONE = 1;
   static int ZERO = 0;
@@ -84,7 +83,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, Frame* currentFrame,
     // If value from dataset not within min/max, exit now.
     if (dVal < Min_[ds] || dVal > Max_[ds]) {
       maxmin_->Add( frameNum, &ZERO );
-      return Action::SUPPRESSCOORDOUTPUT;
+      return Action::SUPPRESS_COORD_OUTPUT;
     }
   }
   maxmin_->Add( frameNum, &ONE );

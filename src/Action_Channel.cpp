@@ -11,10 +11,10 @@ void Action_Channel::Help() {
   mprintf("\t<solute mask> [<solvent mask>] [out <file>] [dx <dx> [dy <dy>] [dz <dz>]]\n");
 }
 
-Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Channel::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Keywords.
-  DataFile* outfile = DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   dxyz_[0] = actionArgs.getKeyDouble("dx", 0.35);
   dxyz_[1] = actionArgs.getKeyDouble("dy", dxyz_[0]);
   dxyz_[2] = actionArgs.getKeyDouble("dz", dxyz_[1]);
@@ -32,7 +32,7 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   solventMask_.SetMaskString( sMask );
 
   // Grid Data Set
-  grid_ = DSL->AddSet(DataSet::GRID_FLT, actionArgs.GetStringNext(), "Channel");
+  grid_ = init.DSL().AddSet(DataSet::GRID_FLT, actionArgs.GetStringNext(), "Channel");
   if (grid_ == 0) return Action::ERR;
   if (outfile != 0) outfile->AddDataSet( grid_ );
 
@@ -43,11 +43,11 @@ Action::RetType Action_Channel::Init(ArgList& actionArgs, TopologyList* PFL, Dat
   return Action::OK;
 }
 
-Action::RetType Action_Channel::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Channel::Setup(ActionSetup& setup) {
   // Initial grid setup
   if (grid_->Size() == 0) {
     DataSet_3D& GRID = static_cast<DataSet_3D&>( *grid_ );
-    Box const& box = currentParm->ParmBox();
+    Box const& box = setup.CoordInfo().TrajBox();
     if (box.Type() == Box::NOBOX) {
       mprinterr("Error: No box information to set up grid.\n");
       return Action::ERR;
@@ -62,29 +62,28 @@ Action::RetType Action_Channel::Setup(Topology* currentParm, Topology** parmAddr
     GRID.GridInfo();
   }
   // Set up masks
-  if (currentParm->SetupIntegerMask( soluteMask_ ) ||
-      currentParm->SetupIntegerMask( solventMask_)   )
+  if (setup.Top().SetupIntegerMask( soluteMask_ ) ||
+      setup.Top().SetupIntegerMask( solventMask_)   )
     return Action::ERR;
   soluteMask_.MaskInfo();
   if (soluteMask_.None()) {
-    mprinterr("Error: channel: No solute atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No solute atoms selected.\n");
+    return Action::SKIP;
   }
   solventMask_.MaskInfo();
   if (solventMask_.None()) {
-    mprinterr("Error: channel: No solvent atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No solvent atoms selected.\n");
+    return Action::SKIP;
   }
   // Set up solute van der Waals. FIXME: Handle case where no LJ params
   radii_.clear();
   for (AtomMask::const_iterator uAtom = soluteMask_.begin();
                                 uAtom != soluteMask_.end(); ++uAtom)
-    radii_.push_back( currentParm->GetVDWradius( *uAtom ) );
+    radii_.push_back( setup.Top().GetVDWradius( *uAtom ) );
   return Action::OK;
 }
 
-Action::RetType Action_Channel::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
+Action::RetType Action_Channel::DoAction(int frameNum, ActionFrame& frm) {
   // TODO: Gridding should be a DataSet_3d routine.
   DataSet_GridFlt& GRID = static_cast<DataSet_GridFlt&>( *grid_ );
   const int nx = (int)GRID.NX();
@@ -102,7 +101,7 @@ Action::RetType Action_Channel::DoAction(int frameNum, Frame* currentFrame, Fram
   {
     // Super naive approach.
     //double r2 = (*radius) * (*radius);
-    Vec3 pt(currentFrame->XYZ(*uAtom));
+    Vec3 pt(frm.Frm().XYZ(*uAtom));
     mprintf("\nAtom %i  radius= %g Ang.\n", *uAtom + 1, *radius);
     pt.Print("   coords");
     // Minimum and maxmimum indicies

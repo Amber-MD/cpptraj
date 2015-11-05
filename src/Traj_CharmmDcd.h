@@ -49,6 +49,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int processWriteArgs(ArgList&);
 
     int readVelocity(int, Frame&) { return 1; }
+    int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

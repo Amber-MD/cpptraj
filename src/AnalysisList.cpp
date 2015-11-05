@@ -31,11 +31,11 @@ void AnalysisList::SetDebug(int debugIn) {
   * DataSetList.
   */
 int AnalysisList::AddAnalysis(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                              TopologyList* PFLin, DataSetList* DSLin, DataFileList* DFLin)
+                              DataSetList* DSLin, DataFileList* DFLin)
 {
   Analysis* ana = (Analysis*)Alloc();
   // Attempt to set up analysis
-  if (ana->Setup( argIn, DSLin, PFLin, DFLin, debug_) != Analysis::OK) {
+  if (ana->Setup( argIn, DSLin, DFLin, debug_) != Analysis::OK) {
     mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
     delete ana;
     return 1;

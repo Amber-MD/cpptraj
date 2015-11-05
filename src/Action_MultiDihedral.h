@@ -8,9 +8,9 @@ class Action_MultiDihedral : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_MultiDihedral(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     double minTorsion_;           ///< Values less than this will be shifted +360

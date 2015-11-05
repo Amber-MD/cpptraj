@@ -12,7 +12,7 @@ void Action_SetVelocity::Help() {
 }
 
 // Action_SetVelocity::Init()
-Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Keywords
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
@@ -29,14 +29,13 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, TopologyList* PFL,
 }
 
 // Action_SetVelocity::Setup()
-Action::RetType Action_SetVelocity::Setup(Topology* currentParm, Topology** parmAddress)
-{
+Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
   // Masks
-  if (currentParm->SetupIntegerMask( Mask_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
   Mask_.MaskInfo();
   if (Mask_.None()) {
     mprintf("Warning: No atoms selected in [%s]\n", Mask_.MaskString());
-    return Action::ERR;
+    return Action::SKIP;
   }
   SD_.clear();
   SD_.reserve( Mask_.Nselected() );
@@ -44,29 +43,31 @@ Action::RetType Action_SetVelocity::Setup(Topology* currentParm, Topology** parm
   for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
   {
     double mass_inv;
-    double mass = (*currentParm)[*atom].Mass();
+    double mass = setup.Top()[*atom].Mass();
     if ( mass < Constants::SMALL )
       mass_inv = 0.0;
     else
       mass_inv = 1.0 / mass;
     SD_.push_back( sqrt(boltz * mass_inv) );
   }
-  return Action::OK;
+  // Always add velocity info even if not strictly necessary
+  cInfo_ = setup.CoordInfo();
+  cInfo_.SetVelocity( true );
+  newFrame_.SetupFrameV( setup.Top().Atoms(), cInfo_ );
+  setup.SetCoordInfo( &cInfo_ );
+  return Action::MODIFY_TOPOLOGY;
 }
 
 // Action_SetVelocity::DoAction()
-Action::RetType Action_SetVelocity::DoAction(int frameNum, Frame* currentFrame, 
-                                             Frame** frameAddress) 
-{
-  // FIXME: Should be able to add V info when not present
-  if (!currentFrame->HasVelocity()) {
-    mprinterr("Error: Frame has no velocity information.\n");
-    return Action::ERR;
-  } 
+Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
+  std::copy( frm.Frm().xAddress(), frm.Frm().xAddress() + frm.Frm().size(), newFrame_.xAddress() );
+  if (frm.Frm().HasVelocity())
+    std::copy( frm.Frm().vAddress(), frm.Frm().vAddress() + frm.Frm().size(),
+               newFrame_.vAddress() );
   if (tempi_ < Constants::SMALL) {
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
     {
-      double* V = currentFrame->vAddress() + (*atom * 3);
+      double* V = newFrame_.vAddress() + (*atom * 3);
       V[0] = 0.0;
       V[1] = 0.0;
       V[2] = 0.0;
@@ -75,11 +76,12 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, Frame* currentFrame,
     std::vector<double>::const_iterator sd = SD_.begin(); 
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom, ++sd)
     {
-      double* V = currentFrame->vAddress() + (*atom * 3);
+      double* V = newFrame_.vAddress() + (*atom * 3);
       V[0] = RN_.rn_gauss(0.0, *sd);
       V[1] = RN_.rn_gauss(0.0, *sd);
       V[2] = RN_.rn_gauss(0.0, *sd);
     }
   }
-  return Action::OK;
+  frm.SetFrame( &newFrame_ );
+  return Action::MODIFY_COORDS;
 }

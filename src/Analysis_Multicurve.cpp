@@ -8,8 +8,7 @@ void Analysis_Multicurve::Help() {
 }
 
 
-Analysis::RetType Analysis_Multicurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Multicurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   masterDSL_ = datasetlist;
   masterDFL_ = DFLin;

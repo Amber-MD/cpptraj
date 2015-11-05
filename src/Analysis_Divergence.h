@@ -6,7 +6,7 @@ class Analysis_Divergence : public Analysis {
     Analysis_Divergence();
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Divergence(); }
     static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     /// Normalize sum over set to 1.0

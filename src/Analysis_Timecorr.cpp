@@ -89,8 +89,7 @@ void Analysis_Timecorr::Help() {
 }
 
 // Analysis_Timecorr::Setup()
-Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
   // Get Vectors
   std::string vec1name = analyzeArgs.GetStringKey("vec1");
@@ -249,7 +248,7 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
   // ----- Initialize PN output array memory -----
   DataSet_double& pncf_ = static_cast<DataSet_double&>( *tc_p_ );
   pncf_.Resize( nsteps );
-  Dimension Xdim(0.0, tstep_, nsteps, "Time");
+  Dimension Xdim(0.0, tstep_, "Time");
   pncf_.SetDim(Dimension::X, Xdim);
   // ----- Calculate PN --------------------------
   for (int midx = -order_; midx <= order_; ++midx) {

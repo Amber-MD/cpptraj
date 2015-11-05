@@ -118,7 +118,7 @@ void OutputTrajCommon::CommonInfo() const {
   if (nobox_) mprintf(" (no box info)");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
-  else {
+  else if (NframesToWrite_ > 0) {
     mprintf(": Writing %i frames", NframesToWrite_);
     frameCount_.FrameCounterBrief();
   }

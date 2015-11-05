@@ -248,6 +248,10 @@ int DataIO_Mdout::ReadData(FileName const& fname,
   }
   mprintf("\t%i frames\n", frame);
   buffer.CloseFile();
-  if (datasetlist.AddOrAppendSets( TimeVals, inputSets )) return 1;
+  std::string Xlabel;
+  if      (imin == 5) Xlabel.assign("Set");
+  else if (imin == 1) Xlabel.assign("Nstep");
+  else                Xlabel.assign("Time"); // imin == 0
+  if (datasetlist.AddOrAppendSets( Xlabel, TimeVals, inputSets )) return 1;
   return 0;
 }

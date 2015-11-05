@@ -28,12 +28,13 @@ class Action_NAstruct: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_NAstruct(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
     enum HbondType { WC = 0, HOOG, OTHER };
+    enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
     // Functions
     static int TravelBackbone(Topology const&, int, std::vector<int>&); 
     int SetupBaseAxes(Frame const&);
@@ -45,6 +46,7 @@ class Action_NAstruct: public Action {
 
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     int helicalParameters(NA_Axis const&, NA_Axis const&, double *);
+    int GetBaseIdxStep(int, int) const;
     int DeterminePairParameters(int);
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
     int DetermineStepParameters(int);
@@ -88,10 +90,19 @@ class Action_NAstruct: public Action {
       DataSet_1D* tip_;
       DataSet_1D* htwist_;
       DataSet_1D* Zp_;
+      DataSet_1D* majGroove_; ///< H-C major groove width
+      DataSet_1D* minGroove_; ///< H-C minor groove width
       unsigned int b1idx_; ///< Index of base pair 1 base 1 in Bases_
-      unsigned int b2idx_;
-      unsigned int b3idx_;
-      unsigned int b4idx_;
+      unsigned int b2idx_; ///< Index of base pair 1 base 2
+      unsigned int b3idx_; ///< Index of base pair 2 base 1
+      unsigned int b4idx_; ///< Index of base pair 2 base 2
+      // For Hassan-Calladine groove calc
+      int P_m2_; ///< Phosphate 2 towards 5', strand 1
+      int p_p2_; ///< Phosphate 2 towards (5' anti, 3' para), strand 2
+      int P_p1_; ///< Phosphate 1 towards 3'. strand 1
+      int P_p2_; ///< Phosphate 2 towards 3', strand 1
+      int p_m1_; ///< Phosphate 1 towards (3' anti, 5' para), strand 2
+      int p_m2_; ///< Phosphate 2 towards (3' anti, 5' para), strand 2
     };
     typedef std::map<Rpair,StepType> StepMap;
     StepMap Steps_;       ///< Hold base pair steps.
@@ -104,6 +115,7 @@ class Action_NAstruct: public Action {
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
     int debug_;
     int nframes_;
+    GrooveType grooveCalcType_;         ///< Type of groove calc to perform
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool useReference_;                 ///< If true, use reference to determine base pairing.

@@ -23,12 +23,11 @@ void Analysis_Matrix::Help() {
           "\t[ nmwiz [nmwizvecs <n>] [nmwizfile <file>] %s\n"
           "\t  nmwizmask <mask> ]\n"
           "  Diagonalize given symmetric matrix to obtain eigenvectors\n"
-          "  and eigenvalues.\n", TopologyList::ParmArgs);
+          "  and eigenvalues.\n", DataSetList::TopArgs);
 }
 
 // Analysis_Matrix::Setup()
-Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLin,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
 {
 #ifdef NO_MATHLIB
   mprinterr("Error: Compiled without LAPACK routines.\n");
@@ -64,7 +63,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     }
     nmwizfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("nmwizfile"), "NMwiz output",
                                        DataFileList::TEXT, true);
-    Topology* parmIn = PFLin ->GetParm( analyzeArgs);
+    Topology* parmIn = DSLin->GetTopology( analyzeArgs); // TODO: Include with matrix
     if (parmIn == 0) {
       mprinterr("Error: nmwiz: No topology specified.\n");
       return Analysis::ERR;

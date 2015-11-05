@@ -75,8 +75,7 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
 }
 
 // Analysis_TI::Setup()
-Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   int nq = analyzeArgs.getKeyInt("nq", 0);
   ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated

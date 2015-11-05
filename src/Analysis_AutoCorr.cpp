@@ -15,8 +15,7 @@ void Analysis_AutoCorr::Help() {
           "  Calculate autocorrelation functions for selected data set(s)\n");
 }
 
-Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   const char* calctype;
 
@@ -26,24 +25,32 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   calc_covar_ = !analyzeArgs.hasKey("nocovar");
   usefft_ = !analyzeArgs.hasKey("direct");
   // Select datasets from remaining args
+  dsets_.clear();
   ArgList dsetArgs = analyzeArgs.RemainingArgs();
-  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa)
-    dsets_ += datasetlist->GetMultipleSets( *dsa );
+  for (ArgList::const_iterator dsa = dsetArgs.begin(); dsa != dsetArgs.end(); ++dsa) {
+    DataSetList setsIn = datasetlist->GetMultipleSets( *dsa );
+    for (DataSetList::const_iterator ds = setsIn.begin(); ds != setsIn.end(); ++ds) {
+      if ( (*ds)->Group() != DataSet::SCALAR_1D && (*ds)->Type() != DataSet::VECTOR )
+        mprintf("Warning: Set '%s' type not supported in AUTOCORR - skipping.\n",
+                (*ds)->legend());
+      else
+        dsets_.push_back( *ds );
+    }
+  }
   if (dsets_.empty()) {
-    mprinterr("Error: autocorr: No data sets selected.\n");
+    mprinterr("Error: No data sets selected.\n");
     return Analysis::ERR;
   }
   // If setname is empty generate a default name
   if (setname.empty())
     setname = datasetlist->GenerateDefaultName( "autocorr" );
   // Setup output datasets
-  int idx = 0;
   MetaData md( setname );
-  for (DataSetList::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    md.SetIdx( idx++ );
+  for (unsigned int idx = 0; idx != dsets_.size(); idx++) {
+    md.SetIdx( idx );
     DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, md );
     if (dsout==0) return Analysis::ERR;
-    dsout->SetLegend( (*DS)->Meta().Legend() );
+    dsout->SetLegend( dsets_[idx]->Meta().Legend() );
     outputData_.push_back( dsout );
     // Add set to output file
     if (outfile != 0) outfile->AddDataSet( outputData_.back() );
@@ -54,8 +61,10 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
   else
     calctype = "correlation";
  
-  mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n", calctype, dsets_.size());
-  dsets_.List();
+  mprintf("    AUTOCORR: Calculating auto-%s for %i data sets:\n\t", calctype, dsets_.size());
+  for (unsigned int idx = 0; idx != dsets_.size(); ++idx)
+    mprintf(" %s", dsets_[idx]->legend());
+  mprintf("\n");
   if (lagmax_!=-1)
     mprintf("\tLag max= %i\n", lagmax_);
   if ( !setname.empty() )
@@ -71,7 +80,7 @@ Analysis::RetType Analysis_AutoCorr::Setup(ArgList& analyzeArgs, DataSetList* da
 }
 
 Analysis::RetType Analysis_AutoCorr::Analyze() {
-  for (unsigned int ids = 0; ids < dsets_.size(); ids++) {
+  for (unsigned int ids = 0; ids != dsets_.size(); ids++) {
     mprintf("\t\tCalculating AutoCorrelation for set %s\n", dsets_[ids]->legend());
     DataSet_1D& Ct = static_cast<DataSet_1D&>( *outputData_[ids] );
     if (dsets_[ids]->Type() == DataSet::VECTOR) {

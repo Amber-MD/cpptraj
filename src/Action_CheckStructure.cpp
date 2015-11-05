@@ -41,7 +41,7 @@ int Action_CheckStructure::SeparateInit(bool imageOn, std::string const& mask1,
 }
 
 // Action_CheckStructure::Init()
-Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
   std::string around = actionArgs.GetStringKey("around");
@@ -49,7 +49,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, TopologyList* P
                 around, actionArgs.GetStringKey("reportfile"),
                 actionArgs.getKeyDouble("cut",0.8),
                 actionArgs.getKeyDouble("offset",1.15),
-                actionArgs.hasKey("silent"), *DFL );
+                actionArgs.hasKey("silent"), init.DFL() );
   // DoAction-only keywords.
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
@@ -121,8 +121,9 @@ void Action_CheckStructure::SetupBondList(AtomMask const& iMask, Topology const&
 }
 
 // Action_CheckStructure::SeparateSetup()
-int Action_CheckStructure::SeparateSetup(Topology const& top, bool checkBonds) {
-  image_.SetupImaging( top.BoxType() );
+int Action_CheckStructure::SeparateSetup(Topology const& top, Box::BoxType btype, bool checkBonds)
+{
+  image_.SetupImaging( btype );
   bondList_.clear();
   // Set up masks
   if ( top.SetupIntegerMask( Mask1_ ) ) return 1;
@@ -157,9 +158,10 @@ int Action_CheckStructure::SeparateSetup(Topology const& top, bool checkBonds) {
 }
 
 // Action_CheckStructure::Setup()
-Action::RetType Action_CheckStructure::Setup(Topology* currentParm, Topology** parmAddress) {
-  CurrentParm_ = currentParm;
-  if (SeparateSetup( *currentParm, bondcheck_ )) return Action::ERR;
+Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
+  CurrentParm_ = setup.TopAddress();
+  if (SeparateSetup( setup.Top(), setup.CoordInfo().TrajBox().Type(),bondcheck_ ))
+    return Action::ERR;
   // Print imaging info for this parm
   if (bondcheck_)
     mprintf("\tChecking %u bonds.\n", bondList_.size());
@@ -295,13 +297,12 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
 }
 
 // Action_CheckStructure::DoAction()
-Action::RetType Action_CheckStructure::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress)
-{
-  int total_problems = CheckOverlap(frameNum+1, *currentFrame, *CurrentParm_);
+Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) {
+  int total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
   if (bondcheck_)
-    total_problems += CheckBonds(frameNum+1, *currentFrame, *CurrentParm_);
+    total_problems += CheckBonds(frameNum+1, frm.Frm(), *CurrentParm_);
 
   if (total_problems > 0 && skipBadFrames_)
-    return Action::SUPPRESSCOORDOUTPUT;
+    return Action::SUPPRESS_COORD_OUTPUT;
   return Action::OK;
 }

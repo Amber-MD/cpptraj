@@ -35,6 +35,8 @@ class Residue {
     }
     /// Convert 3-letter residue code to single letter.
     static char ConvertResName(std::string const&);
+    /// Convert 1-letter residue code to 3 letters.
+    static const char* ConvertResName(char);
     /// Convert this residue name to single letter.
     char SingleCharName() const { return ConvertResName( *resname_ ); }
   private:

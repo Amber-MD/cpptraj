@@ -22,7 +22,7 @@ void Action_LIE::Help() {
 }
 
 // Action_LIE::init()
-Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_LIE::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Always use imaged distances
   InitImaging(true);
@@ -31,7 +31,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   // Get Keywords
   doelec_ = !(actionArgs.hasKey("noelec"));
   dovdw_ = !(actionArgs.hasKey("novdw"));
-  DataFile* datafile = DFL->AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+  DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   dielc_ = actionArgs.getKeyDouble("diel", 1.0);
   cut = actionArgs.getKeyDouble("cutvdw", 12.0);
   cut2vdw_ = cut * cut; // store square of cut for computational efficiency
@@ -41,7 +41,7 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   bool has_mask2 = false;
 
   if (!doelec_ && !dovdw_) {
-    mprintf("    Error: LIE: Cannot skip both ELEC and VDW calcs\n");
+    mprinterr("Error: LIE: Cannot skip both ELEC and VDW calcs\n");
     return Action::ERR;
   }
 
@@ -60,16 +60,16 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
   // Get data set name
   std::string ds_name = actionArgs.GetStringNext();
   if (ds_name.empty())
-    ds_name = DSL->GenerateDefaultName("LIE");
+    ds_name = init.DSL().GenerateDefaultName("LIE");
 
   // Datasets
   if (doelec_) {
-    elec_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
+    elec_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EELEC"));
     if (elec_ == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet(elec_);
   }
   if (dovdw_) {
-    vdw_ = DSL->AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
+    vdw_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name, "EVDW"));
     if (vdw_ == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet(vdw_);
   }
@@ -92,28 +92,28 @@ Action::RetType Action_LIE::Init(ArgList& actionArgs, TopologyList* PFL, DataSet
 // Action_LIE::setup()
 /** Determine what atoms each mask pertains to for the current parm file.
   */
-Action::RetType Action_LIE::Setup(Topology* currentParm, Topology** parmAddress) {
-  if (currentParm->SetupIntegerMask( Mask1_ )) return Action::ERR;
-  if (currentParm->SetupIntegerMask( Mask2_ )) return Action::ERR;
+Action::RetType Action_LIE::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
 
   mprintf("\tLIE: %i Ligand Atoms, %i Surrounding Atoms\n",
           Mask1_.Nselected(), Mask2_.Nselected());
 
-  if (currentParm->BoxType() == Box::NOBOX) {
-    mprintf("Error: LIE: Must have explicit solvent system with box info\n");
+  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+    mprinterr("Error: LIE: Must have explicit solvent system with box info\n");
     return Action::ERR;
   }
 
   if (Mask1_.None() || Mask2_.None()) {
     mprintf("Warning: LIE: One or both masks have no atoms.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
 
-  if (SetupParms(*currentParm))
+  if (SetupParms(setup.Top()))
     return Action::ERR;
 
   // Back up the parm
-  CurrentParm_ = currentParm;
+  CurrentParm_ = setup.TopAddress();
 
   return Action::OK;
 }
@@ -136,7 +136,7 @@ int Action_LIE::SetupParms(Topology const& ParmIn) {
   return 0;
 }
 
-double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
+double Action_LIE::Calculate_LJ(Frame const& frameIn, Topology const& parmIn) const {
   double result = 0;
   // Loop over ligand atoms
   AtomMask::const_iterator mask1_end = Mask1_.end();
@@ -145,24 +145,24 @@ double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn->CRD(crdidx1));
+    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn->CRD(crdidx2));
+      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
       
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
       switch( ImageType() ) {
         case NONORTHO:
-          frameIn->BoxCrd().ToRecip(ucell, recip);
+          frameIn.BoxCrd().ToRecip(ucell, recip);
           dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
           break;
         case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn->BoxCrd());
+          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
           break;
         default:
           dist2 = DIST2_NoImage(atm1, atm2);
@@ -170,7 +170,7 @@ double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
 
       if (dist2 > cut2vdw_) continue;
       // Here we add to our nonbonded (VDW) energy
-      NonbondType const& LJ = parmIn->GetLJparam(*maskatom1, *maskatom2);
+      NonbondType const& LJ = parmIn.GetLJparam(*maskatom1, *maskatom2);
       double r2 = 1 / dist2;
       double r6 = r2 * r2 * r2;
       result += LJ.A() * r6 * r6 - LJ.B() * r6;
@@ -180,7 +180,7 @@ double Action_LIE::Calculate_LJ(Frame *frameIn, Topology *parmIn) {
   return result;
 }
 
-double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
+double Action_LIE::Calculate_Elec(Frame const& frameIn) const {
   double result = 0;
   // Loop over ligand atoms
   AtomMask::const_iterator mask1_end = Mask1_.end();
@@ -189,24 +189,24 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
        maskatom1 != mask1_end; maskatom1++) {
 
     int crdidx1 = (*maskatom1) * 3; // index into coordinate array
-    Vec3 atm1 = Vec3(frameIn->CRD(crdidx1));
+    Vec3 atm1 = Vec3(frameIn.CRD(crdidx1));
 
     for (AtomMask::const_iterator maskatom2 = Mask2_.begin();
          maskatom2 != mask2_end; maskatom2++) {
 
       int crdidx2 = (*maskatom2) * 3; // index into coordinate array
-      Vec3 atm2 = Vec3(frameIn->CRD(crdidx2));
+      Vec3 atm2 = Vec3(frameIn.CRD(crdidx2));
       
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
       switch( ImageType() ) {
         case NONORTHO:
-          frameIn->BoxCrd().ToRecip(ucell, recip);
+          frameIn.BoxCrd().ToRecip(ucell, recip);
           dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
           break;
         case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn->BoxCrd());
+          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
           break;
         default:
           dist2 = DIST2_NoImage(atm1, atm2);
@@ -224,20 +224,17 @@ double Action_LIE::Calculate_Elec(Frame *frameIn, Topology *parmIn) {
 }
 
 // Action_LIE::action()
-Action::RetType Action_LIE::DoAction(int frameNum, Frame* currentFrame,
-                                     Frame ** frameAddress)
-{
+Action::RetType Action_LIE::DoAction(int frameNum, ActionFrame& frm) {
   
   if (doelec_) {
-    double e = Calculate_Elec(currentFrame, CurrentParm_);
+    double e = Calculate_Elec(frm.Frm());
     elec_->Add(frameNum, &e);
   }
 
   if (dovdw_) {
-    double e = Calculate_LJ(currentFrame, CurrentParm_);
+    double e = Calculate_LJ(frm.Frm(), *CurrentParm_);
     vdw_->Add(frameNum, &e);
   }
 
   return Action::OK;
-
 }

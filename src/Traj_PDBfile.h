@@ -31,9 +31,11 @@ class Traj_PDBfile: public TrajectoryIO {
     bool pdbatom_; ///< If true convert Amber atom names to PDBV3 style.
     bool write_cryst1_; ///< If false write CRYST1 for first frame only.
     bool include_ep_;   ///< If true include extra points.
+    bool writeConect_;  ///< If true write CONECT records for each bond.
     std::string space_group_;
     std::vector<double> radii_; ///< Hold radii for PQR format.
     std::vector<int> TER_idxs_; ///< TER card indices.
+    std::vector<int> atrec_;    ///< Hold ATOM record #s for CONECT
     Topology *pdbTop_;
     PDBfile file_;
 
@@ -52,6 +54,7 @@ class Traj_PDBfile: public TrajectoryIO {
     void Info();
     int processWriteArgs(ArgList&);
     int readVelocity(int, Frame&) { return 1; }
+    int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }
 };
 #endif

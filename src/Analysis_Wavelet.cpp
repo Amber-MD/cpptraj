@@ -62,8 +62,7 @@ void Analysis_Wavelet::Help() {
 }
 
 // Analysis_Wavelet::Setup
-Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,
-                            TopologyList* PFLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
 {
   // Attempt to get COORDS DataSet from DataSetList. If none specified the
   // default COORDS set will be used.

@@ -7,9 +7,9 @@ class Action_ClusterDihedral : public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print();
     int ReadDihedrals(std::string const&);
     class DCnode;

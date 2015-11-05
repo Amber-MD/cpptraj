@@ -11,11 +11,13 @@ cat > nastruct.in <<EOF
 parm ../adh026.3.pdb
 trajin ../adh026.3.pdb 
 nastruct naout adh026.dat
+nastruct naout groove.dat groovecalc 3dna
 EOF
 RunCpptraj "NAstruct command test."
 DoTest BP.adh026.dat.save BP.adh026.dat
 DoTest BPstep.adh026.dat.save BPstep.adh026.dat
 DoTest Helix.adh026.dat.save Helix.adh026.dat
+DoTest BPstep.groove.dat.save BPstep.groove.dat
 CheckTest
 
 EndTest

@@ -13,9 +13,9 @@ class Action_Mask: public Action {
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_Mask(); }
     static void Help();
   private:
-    Action::RetType Init(ArgList&, TopologyList*, DataSetList*, DataFileList*, int);
-    Action::RetType Setup(Topology*, Topology**);
-    Action::RetType DoAction(int, Frame*, Frame**);
+    Action::RetType Init(ArgList&, ActionInit&, int);
+    Action::RetType Setup(ActionSetup&);
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
     int ensembleNum_;
@@ -23,6 +23,7 @@ class Action_Mask: public Action {
     CpptrajFile* outfile_;   ///< File to write selected atom info to
     std::string maskpdb_;    ///< Traj output file name
     Topology* CurrentParm_;
+    CoordinateInfo currentCoordInfo_;
     int debug_;
     TrajectoryFile::TrajFormatType trajFmt_; ///< Output trajectory format
     const char* trajOpt_;    ///< Output trajectory options

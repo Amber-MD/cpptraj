@@ -2,7 +2,6 @@
 #define INC_CPPTRAJSTATE_H
 #include "TrajinList.h"
 #include "TrajoutList.h"
-#include "TopologyList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
 #include "ActionList.h"
@@ -10,9 +9,8 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : activeRef_(0), debug_(0), showProgress_(true), exitOnError_(true) {}
+    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
-    TopologyList* PFL()      { return &parmFileList_; }
     DataSetList* DSL()       { return &DSL_;          }
     DataFileList* DFL()      { return &DFL_;          }
     void SetNoExitOnError()  { exitOnError_ = false;  }
@@ -23,7 +21,6 @@ class CpptrajState {
                                        analysisList_.Empty() &&
                                        trajoutList_.Empty()); }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
-    void SetActiveReference(DataSet_Coords_REF* rp) { activeRef_ = rp; }
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int AddOutputTrajectory( ArgList& );
@@ -32,6 +29,8 @@ class CpptrajState {
     TrajinList const& InputTrajList() const { return trajinList_; }
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
+    int AddTopology( std::string const&, ArgList const& );
+    int AddTopology( Topology const&, std::string const& );
     inline int AddReference( std::string const& );
     inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
     inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
@@ -58,15 +57,10 @@ class CpptrajState {
     };
     static ListKeyType ListKeys[];
     std::vector<bool> ListsFromArg(ArgList&, bool) const;
-    /// \return active reference structure or empty frame if no reference.
-    Frame ActiveReference() const;
-    void ReferenceInfo() const;
 
     int RunNormal();
     int RunEnsemble();
     // -------------------------------------------
-    /// List of parameter files 
-    TopologyList parmFileList_;
      /// List of generated data sets
     DataSetList DSL_;
     /// List of datafiles that data sets will be written to
@@ -82,8 +76,6 @@ class CpptrajState {
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;
     
-    /// Pointer to active reference structure for distance-based masks etc.
-    DataSet_Coords_REF* activeRef_;
     /// State debug level
     int debug_;
     /// Display Progress bar during run
@@ -95,12 +87,13 @@ class CpptrajState {
 // CpptrajState::AddAction()
 int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return actionList_.AddAction( Alloc, argIn, &parmFileList_, &DSL_, &DFL_ );
+  ActionInit init(DSL_, DFL_);
+  return actionList_.AddAction( Alloc, argIn, init );
 }
 // CpptrajState::AddAnalysis()
 int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return analysisList_.AddAnalysis( Alloc, argIn, &parmFileList_, &DSL_, &DFL_ );
+  return analysisList_.AddAnalysis( Alloc, argIn, &DSL_, &DFL_ );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {

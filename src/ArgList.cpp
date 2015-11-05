@@ -222,6 +222,12 @@ std::string const& ArgList::GetStringNext() {
   return emptystring;
 }
 
+/** \return true if argument at position is a potential mask. */
+bool ArgList::ArgIsMask(unsigned int pos) const {
+  size_t found = arglist_[pos].find_first_of(":@*");
+  return (found != std::string::npos);
+}
+
 // ArgList::GetMaskNext()
 /** Return next unmarked Mask. A mask MUST include one of the following: 
   *   ':' residue
@@ -232,8 +238,7 @@ std::string const& ArgList::GetStringNext() {
 std::string const& ArgList::GetMaskNext() {
   for (unsigned int arg = 0; arg < arglist_.size(); ++arg) {
     if (!marked_[arg]) {
-      size_t found = arglist_[arg].find_first_of(":@*");
-      if (found != std::string::npos) {
+      if (ArgIsMask( arg )) {
         marked_[arg] = true;
         return arglist_[arg];
       }

@@ -1,6 +1,7 @@
 #include "Parm_PDB.h"
 #include "PDBfile.h"
 #include "CpptrajStdio.h"
+#include "BondSearch.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -28,6 +29,7 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   int atnum;                    // Read in ATOM/HETATM serial number.
   int barray[5];                // Hold CONECT atom and bonds
   char altLoc = ' ';            // For reading in altLoc.
+  Frame Coords;
   if (infile.OpenRead(fname)) return 1;
   if (readAsPQR_)   mprintf("\tReading as PQR file.\n");
   if (readBox_)     mprintf("\tUnit cell info will be read from any CRYST1 record.\n");
@@ -62,13 +64,14 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
-      infile.pdb_OccupanyAndBfactor(occupancy, bfactor);
+      infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
       if (readAsPQR_) {
         pdbAtom.SetCharge( occupancy );
         pdbAtom.SetGBradius( bfactor );
       } else
         extra.push_back( AtomExtra(occupancy, bfactor, altLoc) );
-      TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue(), XYZ);
+      TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
+      Coords.AddXYZ( XYZ );
 #     ifdef TIMER
       time_atom.Stop();
 #     endif
@@ -82,7 +85,8 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   }
   // Add bonds. The bonds array actually contains ATOM/HETATM serial #s.
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
-    TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] ); 
+    TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
+  BondSearch( TopIn, Coords, Offset_, debug_ ); 
   if (TopIn.SetExtraAtomInfo(0, extra)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.

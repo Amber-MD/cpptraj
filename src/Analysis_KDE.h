@@ -8,10 +8,10 @@ class Analysis_KDE : public Analysis {
     static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_KDE(); }
     static void Help();
 
-    Analysis::RetType Setup(DataSet_1D*, std::string const&, int, std::string const&,
+    Analysis::RetType ExternalSetup(DataSet_1D*, std::string const&, int, std::string const&,
                             bool, double, bool, double, double, int, double,
                             DataSetList&, DataFileList&);
-    Analysis::RetType Setup(ArgList&,DataSetList*,TopologyList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
     Analysis::RetType Analyze();
   private:
     static const double ONE_OVER_ROOT_TWOPI;
@@ -28,5 +28,11 @@ class Analysis_KDE : public Analysis {
     bool calcFreeE_;
     double Temp_;
     fxnptr Kernel_;    ///< Kernel to use.
+    double default_min_;
+    double default_max_;
+    double default_step_;
+    int default_bins_;
+    bool minArgSet_;
+    bool maxArgSet_;
 };
 #endif

@@ -36,7 +36,7 @@ void Action_Matrix::Help() {
 }
 
 // Action_Matrix::Init()
-Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -91,7 +91,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
       mprinterr("Error: matrix: order parameter <= 0, ignoring command\n");
       return Action::ERR;
     }
-    for ( DataSetList::const_iterator DS = DSL->begin(); DS != DSL->end(); ++DS) {
+    for ( DataSetList::const_iterator DS = init.DSL().begin(); DS != init.DSL().end(); ++DS) {
       if ( (*DS)->Type() == DataSet::VECTOR && (*DS)->Meta().ScalarType() == MetaData::IREDVEC )
         IredVectors_.push_back( (DataSet_Vector*)*DS );
     }
@@ -102,7 +102,7 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   } else if (mtype == MetaData::DIHCOVAR) { // Dihedral Covariance
     // Get data set mask for dihedral covariance
     DihedralSets_.clear();
-    DihedralSets_.AddTorsionSets( DSL->GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
+    DihedralSets_.AddTorsionSets( init.DSL().GetMultipleSets( actionArgs.GetStringKey("dihedrals") ) );
     if ( DihedralSets_.empty() ) {
       mprinterr("Error: No valid data sets found.\n");
       return Action::ERR;
@@ -126,21 +126,21 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
   }
 
   // Create matrix BYATOM DataSet
-  Mat_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL,
+  Mat_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL,
                                          MetaData(name, MetaData::M_MATRIX, mtype), "Mat");
   if (Mat_ == 0) return Action::ERR;
   // NOTE: Type/Kind is set here so subsequent analyses/actions know about it.
   Mat_->SetMatrixKind( mkind );
   // Set default precision for backwards compat.
   Mat_->SetupFormat().SetFormatWidthPrecision(6, 3);
-  Mat_->Dim(Dimension::X).SetLabel("Atom");
+  Mat_->ModifyDim(Dimension::X).SetLabel("Atom");
   // Determine what will be output.
   matByRes_ = 0;
   outfile_ = 0;
   byMaskOut_ = 0;
   if (outtype_ == BYMASK) {
     // BYMASK output - no final data set, just write to file/STDOUT.
-    byMaskOut_ = DFL->AddCpptrajFile(outfilename, "Matrix by mask",
+    byMaskOut_ = init.DFL().AddCpptrajFile(outfilename, "Matrix by mask",
                                      DataFileList::TEXT, true);
     if (byMaskOut_ == 0) return Action::ERR;
   } else {
@@ -148,12 +148,12 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, TopologyList* PFL, Data
     if (outtype_ == BYRESIDUE) {
       MetaData md(Mat_->Meta().Name(), "ByRes");
       md.SetScalarMode(MetaData::M_MATRIX);
-      matByRes_ = (DataSet_MatrixDbl*)DSL->AddSet(DataSet::MATRIX_DBL, md);
+      matByRes_ = (DataSet_MatrixDbl*)init.DSL().AddSet(DataSet::MATRIX_DBL, md);
       if (matByRes_ == 0) return Action::ERR;
       matByRes_->SetupFormat().SetFormatWidthPrecision(6, 3);
-      matByRes_->Dim(Dimension::X).SetLabel("Res");
+      matByRes_->ModifyDim(Dimension::X).SetLabel("Res");
     } 
-    outfile_ = DFL->AddDataFile(outfilename, actionArgs);
+    outfile_ = init.DFL().AddDataFile(outfilename, actionArgs);
     if (outfile_ != 0) {
       if (outtype_ == BYATOM)
         outfile_->AddDataSet( Mat_ );
@@ -246,7 +246,7 @@ Action_Matrix::MatResArray Action_Matrix::MaskToMatResArray(Topology const& curr
 }
 
 // Action_Matrix::Setup()
-Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Matrix::Setup(ActionSetup& setup) {
   size_t mask1tot = 0; // Will be # of columns
   size_t mask2tot = 0; // Will be # of rows if not symmetric matrix
 
@@ -258,18 +258,18 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
     // Dihedral covariance - matrix # cols = # data sets
     mask1tot = DihedralSets_.size();
   } else {
-    if (currentParm->SetupIntegerMask(mask1_)) return Action::ERR;
+    if (setup.Top().SetupIntegerMask(mask1_)) return Action::ERR;
     mask1_.MaskInfo();
     if (mask1_.None()) {
-      mprinterr("Error: No atoms selected for mask1.\n");
-      return Action::ERR;
+      mprintf("Warning: No atoms selected for mask1.\n");
+      return Action::SKIP;
     }
     if (useMask2_) {
-      if (currentParm->SetupIntegerMask(mask2_)) return Action::ERR;
+      if (setup.Top().SetupIntegerMask(mask2_)) return Action::ERR;
       mask2_.MaskInfo(); 
       if (mask2_.None()) {
-        mprinterr("Error: No atoms selected for mask2.\n");
-        return Action::ERR;
+        mprintf("Warning: No atoms selected for mask2.\n");
+        return Action::SKIP;
       }
     }
     mask1tot = (size_t)mask1_.Nselected();
@@ -281,8 +281,8 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   }
   // Store mass info for MWCOVAR matrix or when output BYRESIDUE or BYMASK.
   if ( Mat_->Meta().ScalarType() == MetaData::MWCOVAR || (outtype_ != BYATOM && useMass_) ) {
-    mass1_ = FillMassArray(*currentParm, mask1_);
-    mass2_ = FillMassArray(*currentParm, mask2_);
+    mass1_ = FillMassArray(setup.Top(), mask1_);
+    mass2_ = FillMassArray(setup.Top(), mask2_);
     if (outtype_ != BYATOM && !useMass_)
       mprintf("Warning: Using mass-weighted covar matrix, byres/bymask output will be"
               "weighted by mass.\n");
@@ -295,8 +295,8 @@ Action::RetType Action_Matrix::Setup(Topology* currentParm, Topology** parmAddre
   // which residues, as well as how many residues are selected in mask1 (cols)
   // and mask2 (rows) to determine output matrix dimensions.
   if (outtype_ == BYRESIDUE) {
-    residues1_ = MaskToMatResArray( *currentParm, mask1_ );
-    residues2_ = MaskToMatResArray( *currentParm, mask2_ );
+    residues1_ = MaskToMatResArray( setup.Top(), mask1_ );
+    residues2_ = MaskToMatResArray( setup.Top(), mask2_ );
   }
   // Determine matrix/vector dimensions. 
   size_t vectsize = 0;
@@ -789,20 +789,20 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame const& currentFrame) {
 }
 
 // Action_Matrix::DoAction()
-Action::RetType Action_Matrix::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   // Check if this frame should be processed
   if ( CheckFrameCounter( frameNum ) ) return Action::OK;
   // Increment number of snapshots
   Mat_->IncrementSnapshots();
 
   switch (Mat_->Meta().ScalarType()) {
-    case MetaData::DIST     : CalcDistanceMatrix(*currentFrame); break;
+    case MetaData::DIST     : CalcDistanceMatrix(frm.Frm()); break;
     case MetaData::COVAR    :
-    case MetaData::MWCOVAR  : CalcCovarianceMatrix(*currentFrame); break;
-    case MetaData::CORREL   : CalcCorrelationMatrix(*currentFrame); break;
+    case MetaData::MWCOVAR  : CalcCovarianceMatrix(frm.Frm()); break;
+    case MetaData::CORREL   : CalcCorrelationMatrix(frm.Frm()); break;
     case MetaData::DIHCOVAR : CalcDihedralCovariance(frameNum); break;
-    case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(*currentFrame); break;
-    case MetaData::IDEA     : CalcIdeaMatrix(*currentFrame); break;
+    case MetaData::DISTCOVAR: CalcDistanceCovarianceMatrix(frm.Frm()); break;
+    case MetaData::IDEA     : CalcIdeaMatrix(frm.Frm()); break;
     case MetaData::IREDMAT  : CalcIredMatrix(frameNum); break;
     default: return Action::ERR; // Sanity check
   }

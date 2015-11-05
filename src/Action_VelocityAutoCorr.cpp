@@ -21,19 +21,18 @@ void Action_VelocityAutoCorr::Help() {
 }
 
 // Action_VelocityAutoCorr::Init()
-Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   useVelInfo_ = actionArgs.hasKey("usevelocity");
   mask_.SetMaskString( actionArgs.GetMaskNext() );
-  DataFile* outfile =  DFL->AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  DataFile* outfile =  init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
   useFFT_ = !actionArgs.hasKey("direct");
   normalize_ = actionArgs.hasKey("norm");
   // Set up output data set
-  VAC_ = DSL->AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
+  VAC_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
   if (VAC_ == 0) return Action::ERR;
-  VAC_->Dim(0).SetStep( tstep_ );
   if (outfile != 0) outfile->AddDataSet( VAC_ ); 
 
   mprintf("    VELOCITYAUTOCORR:\n"
@@ -62,19 +61,17 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, TopologyList*
 
 // Action_VelocityAutoCorr::Setup()
 /** For this to be valid the same # of atoms should be selected each time. */
-Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm,
-                                               Topology** parmAddress)
-{
-  if (currentParm->SetupIntegerMask( mask_ )) return Action::ERR;
+Action::RetType Action_VelocityAutoCorr::Setup(ActionSetup& setup) {
+  if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprintf("Warning: No atoms selected by mask.\n");
-    return Action::ERR;
+    return Action::SKIP;
   }
   // If using velocity info, check that it is present.
-  if (useVelInfo_ && !currentParm->ParmCoordInfo().HasVel()) {
+  if (useVelInfo_ && !setup.CoordInfo().HasVel()) {
     mprinterr("Error: 'usevelocity' specified but no velocity info assocated with %s\n",
-              currentParm->c_str());
+              setup.Top().c_str());
     return Action::ERR;
   }
   // If we have already started recording velocities, check that the current 
@@ -91,10 +88,7 @@ Action::RetType Action_VelocityAutoCorr::Setup(Topology* currentParm,
 }
 
 // Action_VelocityAutoCorr::DoAction()
-Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, 
-                                                  Frame* currentFrame,
-                                                  Frame** frameAddress)
-{
+Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm) {
   if (!useVelInfo_) {
     // Calculate pseudo-velocities between frames.
     if (!previousFrame_.empty()) {
@@ -103,9 +97,9 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
       for (AtomMask::const_iterator atom = mask_.begin();
                                     atom != mask_.end(); 
                                   ++atom, ++vel)
-        vel->AddVxyz( (Vec3(currentFrame->XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom))) / tstep_ );
+        vel->AddVxyz( (Vec3(frm.Frm().XYZ(*atom)) - Vec3(previousFrame_.XYZ(*atom))) / tstep_ );
     }
-    previousFrame_ = *currentFrame;
+    previousFrame_ = frm.Frm();
   } else {
     // Use velocity information in the frame.
     // FIXME: Eventually dont assume V is in Amber units.
@@ -113,7 +107,7 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum,
     for (AtomMask::const_iterator atom = mask_.begin();
                                   atom != mask_.end(); 
                                 ++atom, ++vel)
-      vel->AddVxyz( Vec3(currentFrame->VXYZ( *atom )) * Constants::AMBERTIME_TO_PS );
+      vel->AddVxyz( Vec3(frm.Frm().VXYZ( *atom )) * Constants::AMBERTIME_TO_PS );
   }
   return Action::OK;
 }
@@ -219,6 +213,7 @@ void Action_VelocityAutoCorr::Print() {
       //Ct[t] /= (double)Vel_.size();
   }
   // Integration to get diffusion coefficient.
+  VAC_->SetDim(Dimension::X, Dimension(1.0, tstep_, "Frame"));
   mprintf("\tIntegrating data set %s, step is %f\n", VAC_->legend(), VAC_->Dim(0).Step());
   DataSet_Mesh mesh;
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );

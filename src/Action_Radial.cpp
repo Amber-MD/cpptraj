@@ -31,7 +31,7 @@ Action_Radial::Action_Radial() :
 {} 
 
 void Action_Radial::Help() {
-  mprintf("\t<outfilename> <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
+  mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
           "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
           "\t[intrdf <file>] [rawrdf <file>]\n"
           "  Calculate the radial distribution function (RDF) of atoms in <solvent mask1>.\n"
@@ -56,11 +56,12 @@ inline Action::RetType RDF_ERR(const char* msg) {
 }
 
 // Action_Radial::Init()
-Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, DataSetList* DSL, DataFileList* DFL, int debugIn)
+Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
-  InitImaging( !(actionArgs.hasKey("noimage")) );
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  std::string outfilename = actionArgs.GetStringKey("out");
   // Default particle density (mols/Ang^3) for water based on 1.0 g/mL
   density_ = actionArgs.getKeyDouble("density",0.033456);
   if (actionArgs.hasKey("center1"))
@@ -72,16 +73,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   else
     rmode_ = NORMAL;
   useVolume_ = actionArgs.hasKey("volume");
-  DataFile* intrdfFile = DFL->AddDataFile(actionArgs.GetStringKey("intrdf"));
-  DataFile* rawrdfFile = DFL->AddDataFile(actionArgs.GetStringKey("rawrdf"));
-
-  // Get required args
-  std::string outfilename = actionArgs.GetStringNext();
-  if (outfilename.empty()) {
-    mprinterr("Error: Radial: No output filename given.\n");
-    Help();
-    return Action::ERR;
-  }
+  DataFile* intrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("intrdf"));
+  DataFile* rawrdfFile = init.DFL().AddDataFile(actionArgs.GetStringKey("rawrdf"));
   spacing_ = actionArgs.getNextDouble(-1.0);
   if (spacing_ < 0) {
     mprinterr("Error: Radial: No spacing argument or arg < 0.\n");
@@ -112,11 +105,14 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     Mask2_.SetMaskString(mask2);
   else
     Mask2_.SetMaskString(mask1);
+  // If filename not yet specified check for backwards compat.
+  if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
+    outfilename = actionArgs.GetStringNext();
 
   // Set up output dataset. 
-  Dset_ = DSL->AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
   if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
-  DataFile* outfile = DFL->AddDataFile(outfilename, actionArgs);
+  DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
   // Make default precision a little higher than normal
   Dset_->SetupFormat().SetFormatWidthPrecision(12,6);
@@ -130,11 +126,11 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   numBins_ = (int) temp_numbins;
   // Setup output datafile. Align on bin centers instead of left.
   // TODO: Use Rdim for binning?
-  Dimension Rdim( spacing_ / 2.0, spacing_, numBins_, "Distance (Ang)" ); 
+  Dimension Rdim( spacing_ / 2.0, spacing_, "Distance (Ang)" ); 
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (intrdfFile != 0) {
-    intrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
+    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
@@ -144,7 +140,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     intrdf_ = 0;
   // Set up output for raw rdf
   if (rawrdfFile != 0) {
-    rawrdf_ = DSL->AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
+    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
@@ -175,7 +171,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
   mprintf("    RADIAL: Calculating RDF for atoms in mask [%s]",Mask1_.MaskString());
   if (!mask2.empty()) 
     mprintf(" to atoms in mask [%s]",Mask2_.MaskString());
-  mprintf("\n            Output to %s.\n",outfilename.c_str());
+  mprintf("\n");
+  if (outfile != 0)
+    mprintf("            Output to %s.\n", outfile->DataFilename().full());
   if (intrdf_ != 0)
     mprintf("            Integral of mask2 atoms will be output to %s\n",
             intrdfFile->DataFilename().full());
@@ -192,7 +190,7 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
     mprintf("            Normalizing based on cell volume.\n");
   else
     mprintf("            Normalizing using particle density of %f molecules/Ang^3.\n",density_);
-  if (!UseImage()) 
+  if (!image_.UseImage()) 
     mprintf("            Imaging disabled.\n");
   if (numthreads_ > 1)
     mprintf("            Parallelizing RDF calculation with %i threads.\n",numthreads_);
@@ -204,19 +202,19 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, TopologyList* PFL, Data
 /** Determine what atoms each mask pertains to for the current parm file.
   * Also determine whether imaging should be performed.
   */
-Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddress) {
+Action::RetType Action_Radial::Setup(ActionSetup& setup) {
 
-  if ( currentParm->SetupIntegerMask( Mask1_ ) ) return Action::ERR;
+  if ( setup.Top().SetupIntegerMask( Mask1_ ) ) return Action::ERR;
   if (Mask1_.None()) {
-    mprintf("    Error: Radial: First mask has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: First mask has no atoms.\n");
+    return Action::SKIP;
   }
-  if (currentParm->SetupIntegerMask( Mask2_ ) ) return Action::ERR;
+  if (setup.Top().SetupIntegerMask( Mask2_ ) ) return Action::ERR;
   if (Mask2_.None()) {
-    mprintf("    Error: Radial: Second mask has no atoms.\n");
-    return Action::ERR;
+    mprintf("Warning: Second mask has no atoms.\n");
+    return Action::SKIP;
   }
-  SetupImaging( currentParm->BoxType() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
 
   // If not computing center for mask 1 or 2, make the outer loop for distance
   // calculation correspond to the mask with the most atoms.
@@ -244,28 +242,28 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
                                   atom1 != OuterMask_.end(); ++atom1)
       for (AtomMask::const_iterator atom2 = InnerMask_.begin();
                                     atom2 != InnerMask_.end(); ++atom2)
-        if ( (*currentParm)[*atom1].MolNum() == (*currentParm)[*atom2].MolNum() )
+        if ( setup.Top()[*atom1].MolNum() == setup.Top()[*atom2].MolNum() )
           ++ndist;
     if (currentParm_ != 0 && ndist != intramol_distances_)
       mprintf("Warning: # of intramolecular distances (%i) has changed from the last"
               " topology (%i).\nWarning: Normalization will not be correct.\n",
               ndist, intramol_distances_);
     intramol_distances_ = ndist;
-    currentParm_ = currentParm;
+    currentParm_ = setup.TopAddress();
     mprintf("\tIgnoring %i intra-molecular distances.\n", intramol_distances_);
   }
 
   // Check volume information
-  if (useVolume_ && currentParm->BoxType()==Box::NOBOX) {
-    mprintf("    Warning: Radial: 'volume' specified but no box information for %s, skipping.\n",
-            currentParm->c_str());
-    return Action::ERR;
+  if (useVolume_ && setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
+    mprintf("Warning: 'volume' specified but no box information for %s, skipping.\n",
+            setup.Top().c_str());
+    return Action::SKIP;
   }
 
   // Print mask and imaging info for this parm
   mprintf("    RADIAL: %i atoms in Mask1, %i atoms in Mask2, ",
           Mask1_.Nselected(), Mask2_.Nselected());
-  if (ImagingEnabled())
+  if (image_.ImagingEnabled())
     mprintf("Imaging on.\n");
   else
     mprintf("Imaging off.\n");
@@ -277,7 +275,7 @@ Action::RetType Action_Radial::Setup(Topology* currentParm, Topology** parmAddre
   * bin them.
   */
 // NOTE: Because of maximum2 not essential to check idx>numBins?
-Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame** frameAddress) {
+Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   double D;
   Matrix_3x3 ucell, recip;
   int atom1, atom2;
@@ -289,8 +287,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 
   // Set imaging information and store volume if specified
   // NOTE: Ucell and recip only needed for non-orthogonal boxes.
-  if (ImagingEnabled() || useVolume_) {
-    D = currentFrame->BoxCrd().ToRecip(ucell,recip);
+  if (image_.ImagingEnabled() || useVolume_) {
+    D = frm.Frm().BoxCrd().ToRecip(ucell,recip);
     if (useVolume_)  volume_ += D;
   }
 
@@ -310,8 +308,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if (atom1 != atom2) {
-          D = DIST2( currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                     ImageType(), currentFrame->BoxCrd(), ucell, recip);
+          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
+                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -347,8 +345,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
       for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
         atom2 = InnerMask_[nmask2];
         if ( (*currentParm_)[atom1].MolNum() != (*currentParm_)[atom2].MolNum() ) {
-          D = DIST2( currentFrame->XYZ(atom1), currentFrame->XYZ(atom2),
-                     ImageType(), currentFrame->BoxCrd(), ucell, recip);
+          D = DIST2( frm.Frm().XYZ(atom1), frm.Frm().XYZ(atom2),
+                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip);
           if (D <= maximum2_) {
             // NOTE: Can we modify the histogram to store D^2?
             D = sqrt(D);
@@ -369,7 +367,7 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #   endif
   } else { // CENTER1 || CENTER2
     // Calculation of center of one Mask to all atoms in other Mask
-    Vec3 coord_center = currentFrame->VGeometricCenter(OuterMask_);
+    Vec3 coord_center = frm.Frm().VGeometricCenter(OuterMask_);
     int mask2_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
 #   pragma omp parallel private(nmask2,atom2,D,idx,mythread)
@@ -379,8 +377,8 @@ Action::RetType Action_Radial::DoAction(int frameNum, Frame* currentFrame, Frame
 #   endif
     for (nmask2 = 0; nmask2 < mask2_max; nmask2++) {
       atom2 = InnerMask_[nmask2];
-      D = DIST2(coord_center.Dptr(), currentFrame->XYZ(atom2), ImageType(),
-                currentFrame->BoxCrd(), ucell, recip);
+      D = DIST2(coord_center.Dptr(), frm.Frm().XYZ(atom2), image_.ImageType(),
+                frm.Frm().BoxCrd(), ucell, recip);
       if (D <= maximum2_) {
         // NOTE: Can we modify the histogram to store D^2?
         D = sqrt(D);
