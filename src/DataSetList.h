@@ -114,8 +114,10 @@ class DataSetList {
     /// List all reference frames.
     void ListReferenceFrames() const;
     // TOPOLOGY functions ------------------------
-    /// topology arg help text
+    /// GetTopology arg help text
     static const char* TopArgs;
+    /// GetTopByIndex arg help text.
+    static const char* TopIdxArgs;
     /// Get topology from args
     Topology* GetTopology(ArgList&) const;
     /// Get topology from args; allow index specified without 'parmindex'
@@ -133,6 +135,7 @@ class DataSetList {
     void Push_Back(DataSet*);
     DataSet* GetReferenceSet(ArgList&, int&) const;
     int SetActiveReference(DataSet*);
+    DataSet* GetTopByKeyword(ArgList&, int&) const;
 #   ifdef TIMER
     Timer time_total_;
     Timer time_check_;
