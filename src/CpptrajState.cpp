@@ -800,9 +800,11 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
   {
     MetaData md(*fname, tag, -1);
     DataSet* set = DSL_.CheckForSet( md );
-    if (set != 0)
-      mprintf("Warning: Set '%s' already present.\n", set->legend());
-    else {
+    if (set != 0) {
+      mprintf("Warning: Topology '%s' already present.\n", set->legend());
+      mprintf("Warning:   To load the same topology file multiple times use tags,\n"
+              "Warning:   e.g. `parm <file> [tag]`.\n");
+    } else {
       // Create Topology DataSet
       DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, md);
       if (ds == 0) { 

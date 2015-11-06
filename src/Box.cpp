@@ -98,11 +98,10 @@ void Box::SetBox(Matrix_3x3 const& ucell) {
 }
 
 // Box::SetTruncOct()
-/** Set as truncated octahedron with no lengths. */
+/** Set as truncated octahedron with all lengths set to whatever X is. */
 void Box::SetTruncOct() {
-  box_[0] = 0;
-  box_[1] = 0;
-  box_[2] = 0;
+  box_[1] = box_[0];
+  box_[2] = box_[0];
   box_[3] = TRUNCOCTBETA;
   box_[4] = TRUNCOCTBETA;
   box_[5] = TRUNCOCTBETA;
@@ -237,4 +236,9 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   recip[8] = u12z*onevolume;
 
   return volume;
+}
+
+void Box::PrintInfo() const {
+  mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
+          BoxNames[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }

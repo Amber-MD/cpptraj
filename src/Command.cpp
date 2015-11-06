@@ -471,79 +471,6 @@ static void Help_Reference() {
           "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
-static void Help_Parm() {
-  mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
-          "  Add <filename> to the topology list.\n");
-  ParmFile::ReadOptions();
-}
-static void Help_ParmInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
-          "  Print information on topology <parmindex> (0 by default).\n");
-}
-
-static void Help_ParmWrite() {
-  mprintf("\tout <filename> [<parmindex>] [<fmt>] [nochamber]\n"
-          "  Write topology <parmindex> to <filename>.\n");
-  ParmFile::WriteOptions();
-}
-
-static void Help_ParmStrip() {
-  mprintf("\t<mask> [<parmindex>]\n"
-          "  Strip atoms in mask from topology <parmindex>.\n");
-}
-
-static void Help_ParmBox() {
-  mprintf("\t[<parmindex>] [x <xval>] [y <yval>] [z <zval>]\n"
-          "\t              [alpha <a>] [beta <b>] [gamma <g>] [nobox]\n"
-          "  Set the specified topology box info to what is specified. If nobox is\n"
-          "  specified, remove box info.\n");
-}
-
-static void Help_Solvent() {
-  mprintf("\t[<parmindex>] { <mask> | none }\n"
-          "  Set solvent for the specified topology (default 0) based on <mask>.\n"
-          "  If 'none' specified, remove all solvent information.\n");
-}
-
-static void Help_AtomInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
-          "  Print information on atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_BondInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
-          "  Print bond information of atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_AngleInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
-      "  Print angle information of atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_DihedralInfo() {
-  mprintf("\t[<parmindex>] [<mask>] [and]\n"
-      "  Print dihedral information of atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_ChargeInfo() {
-  mprintf("\t[<parmindex>] <mask>\n"
-          "  Print the total charge of atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_MassInfo() {
-  mprintf("\t[<parmindex>] <mask>\n"
-          "  Print the total mass of atoms in <mask> for topology <parmindex> (0 by default).\n");
-}
-
-static void Help_ResInfo() {
-  mprintf("\t[<parmindex>] [<mask>] [short]\n"
-          "  Print information for residues in <mask> for topology <parmindex> (0 by default).\n");
-}
-static void Help_MolInfo() {
-  mprintf("\t[<parmindex>] [<mask>]\n"
-          "  Print information for molecules in <mask> for topology <parmindex> (0 by default).\n");
-}
-
 static void Help_LoadCrd() {
   mprintf("\t<filename> %s [<trajin args>] [name <name>]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
@@ -1601,12 +1528,21 @@ Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocTy
 }
 
 // ---------- TOPOLOGY COMMANDS ------------------------------------------------
-/// Load topology to State
+static void Help_LoadParm() {
+  mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
+          "  Add <filename> to the topology list.\n");
+  ParmFile::ReadOptions();
+}
+/// Load topology from file into to State
 Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   return (Command::RetType)State.AddTopology(argIn.GetStringNext(), argIn);
 }
 
+static void Help_ParmInfo() {
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print information on specfied topology (first by default).\n");
+}
 /// Print info for specified parm or atoms in specified parm.
 Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1616,6 +1552,10 @@ Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   return Command::C_OK;
 }
 
+static void Help_AtomInfo() {
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print information on atoms in <mask> for specified topology (first by default).\n");
+}
 /// Print info for atoms in mask.
 Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1625,6 +1565,10 @@ Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   return Command::C_OK;
 }
 
+static void Help_BondInfo() {
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print bond info for atoms in <mask> for specified topology (first by default).\n");
+}
 /// Print bond info for atoms in mask.
 Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1634,6 +1578,10 @@ Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   return Command::C_OK;
 }
 
+static void Help_AngleInfo() {
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print angle info for atoms in <mask> for specified topology (first by default).\n");
+}
 /// Print angle info for atoms in mask.
 Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1643,6 +1591,11 @@ Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocTy
   return Command::C_OK;
 }
 
+static void Help_DihedralInfo() {
+  mprintf("\t[%s] [<mask>] [and]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print dihedral info for atoms in <mask> for specified topology (first by default).\n"
+          "  If 'and' is specified dihedral must include all atoms specfied by <mask>.\n");
+}
 /// Print dihedral info for atoms in mask.
 Command::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1652,6 +1605,11 @@ Command::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Command::Allo
   return Command::C_OK;
 }
 
+static void Help_ResInfo() {
+  mprintf("\t[%s] [<mask>] [short]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print info for residues in <mask> for specified topology (first by default).\n"
+          "  If 'short' is specified print residue info in shorter form.\n");
+}
 /// Print residue info for atoms in mask.
 Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1665,6 +1623,10 @@ Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType
   return Command::C_OK;
 }
 
+static void Help_MolInfo() {
+  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n");
+}
 /// Print molecule info for atoms in mask.
 Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1674,6 +1636,10 @@ Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType
   return Command::C_OK;
 }
 
+static void Help_ChargeInfo() {
+  mprintf("\t[%s] <mask>\n", DataSetList::TopIdxArgs);
+  mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
+}
 /// Print the total charge of atoms in mask
 Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1683,7 +1649,11 @@ Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocT
   return Command::C_OK;
 }
 
-/// Print the total charge of atoms in mask
+static void Help_MassInfo() {
+  mprintf("\t[%s] <mask>\n", DataSetList::TopIdxArgs);
+  mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
+}
+/// Print the total mass of atoms in mask
 Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
@@ -1692,6 +1662,13 @@ Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   return Command::C_OK;
 }
 
+static void Help_ParmBox() {
+  mprintf("\t[%s] [nobox] [truncoct]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]\n"
+          "  Set the box info for specified topology (currently only relevant for Amber\n"
+          "  Topology/ASCII coords). If 'nobox' is specified, remove box info. If\n"
+          "  'truncoct' specified, set truncated octahedron with lengths = <xval>.\n");
+}
 /// Modify specified parm box info
 Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1714,10 +1691,16 @@ Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType
   else
     // Fill in missing parm box information from specified parm
     pbox.SetMissingInfo( parm->ParmBox() );
+  if (argIn.hasKey("truncoct")) pbox.SetTruncOct();
   parm->SetParmBox( pbox );
+  parm->ParmBox().PrintInfo();
   return Command::C_OK;
 }
 
+static void Help_ParmStrip() {
+  mprintf("\t<mask> [%s]\n", DataSetList::TopIdxArgs);
+  mprintf("  Strip atoms in mask from specified topology (first by default).\n");
+}
 /// Strip atoms from specified parm
 Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1768,6 +1751,12 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
   return Command::C_OK;
 }
 
+static void Help_ParmWrite() {
+  mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>] [nochamber]\n",
+          DataSetList::TopIdxArgs);
+  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
+  ParmFile::WriteOptions();
+}
 /// Write parm to Amber Topology file.
 Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1795,6 +1784,11 @@ Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocTy
   return Command::C_OK;
 }
 
+static void Help_ParmSolvent() {
+  mprintf("\t[%s] { <mask> | none }\n", DataSetList::TopIdxArgs);
+  mprintf("  Set solvent for the specified topology (default first) based on <mask>.\n"
+          "  If 'none' specified, remove all solvent information.\n");
+}
 /// Modify parm solvent information
 Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1814,9 +1808,8 @@ Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::Alloc
 }
 
 static void Help_ScaleDihedralK() {
-  mprintf("\t<scale factor> [<mask> [useall]]\n");
+  mprintf("\t[%s] <scale factor> [<mask> [useall]]\n", DataSetList::TopArgs);
 }
-
 /// Scale dihedral force constants in specfied parm by factor.
 Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 {
@@ -1965,12 +1958,12 @@ const Command::Token Command::Commands[] = {
   { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
   { PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
   { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
-  { PARM,    "comparetop",    0, 0,                    CompareTop      },
+  { HIDDEN,  "comparetop",    0, 0,                    CompareTop      },
   { PARM,    "dihedralinfo",  0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "dihedrals",     0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "mass",          0, Help_MassInfo,        MassInfo        },
   { PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
-  { PARM,    "parm",          0, Help_Parm,            LoadParm        },
+  { PARM,    "parm",          0, Help_LoadParm,        LoadParm        },
   { PARM,    "parmbox",       0, Help_ParmBox,         ParmBox         },
   { PARM,    "parminfo",      0, Help_ParmInfo,        ParmInfo        },
   { PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
@@ -1981,7 +1974,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "printdihedrals",0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
   { PARM,    "scaledihedralk",0, Help_ScaleDihedralK,  ScaleDihedralK  },
-  { PARM,    "solvent",       0, Help_Solvent,         ParmSolvent     },
+  { PARM,    "solvent",       0, Help_ParmSolvent,     ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
   { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
   { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
