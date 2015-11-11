@@ -539,9 +539,9 @@ int CpptrajState::RunEnsemble() {
 /** Process trajectories in trajinList in parallel. */
 int CpptrajState::RunParallel() {
   // Print information.
-  parmFileList_.List();
+  DSL_.ListTopologies();
   trajinList_.List();
-  ReferenceInfo();
+  DSL_.ListReferenceFrames();
 
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
@@ -639,12 +639,13 @@ int CpptrajState::RunParallel() {
 
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
-  Topology* CurrentParm = (Topology*)&(input_traj.Top()); // TODO fix cast
-  CurrentParm->SetParmCoordInfo( currentCoordInfo );
-  CurrentParm->SetReferenceCoords( ActiveReference() );
-  err = actionList_.SetupActions( &CurrentParm );
+  Topology* top = input_traj.TopPtr();
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  int topFrames = trajinList_.TopFrames( top->Pindex() );
+  ActionSetup currentParm( top, currentCoordInfo, topFrames );
+  err = actionList_.SetupActions( currentParm, exitOnError_ );
   if (parallel_check_error( err )) {
-    mprinterr("Error: Could not set up actions for '%s'\n", CurrentParm->c_str());
+    mprinterr("Error: Could not set up actions for '%s'\n", top->c_str());
     return 1;
   }
   // TODO Set up output trajectories
@@ -659,9 +660,9 @@ int CpptrajState::RunParallel() {
     input_traj.GetFrame(set, TrajFrame);
     if (TrajFrame.CheckCoordsInvalid()) // TODO actual frame #
       rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
-    Frame* CurrentFrame = &TrajFrame;
+    ActionFrame currentFrame( &TrajFrame );
     //bool suppress_output =
-    actionList_.DoActions(&CurrentFrame, actionSet);
+    actionList_.DoActions(actionSet, currentFrame);
     // TODO trajout stuff
     if (showProgress_) progress.Update( actionSet );
   }

@@ -9,7 +9,7 @@ class DataSet_Topology : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Topology();}
     // ----- DataSet functions -------------------
     size_t Size()                  const { return (size_t)top_.Natom(); }
-    int Sync()                           { return 1;                    }
+    int Sync(size_t, std::vector<int> const&) { return 1;               }
     void Info()                    const { top_.Brief(0);               }
     int Allocate(SizeArray const&)       { return 0;                    }
     void Add( size_t, const void* ) {}
