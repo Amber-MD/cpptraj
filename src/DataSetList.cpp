@@ -675,41 +675,71 @@ void DataSetList::ListReferenceFrames() const {
 // -----------------------------------------------------------------------------
 const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
-// DataSetList::GetTopology()
-Topology* DataSetList::GetTopology(ArgList& argIn) const {
-  if (TopList_.empty()) return 0;
+// DataSetList::GetTopByKeyword()
+DataSet* DataSetList::GetTopByKeyword(ArgList& argIn, int& err) const {
   DataSet* top = 0;
+  err = 0;
   std::string topname = argIn.GetStringKey("parm");
   if (!topname.empty()) {
     top = FindSetOfType( topname, DataSet::TOPOLOGY );
-    if ( top == 0 )
+    if ( top == 0 ) {
       mprinterr("Error: Topology '%s' not found.\n", topname.c_str());
+      err = 1;
+    }
   } else {
     int topindex = argIn.getKeyInt("parmindex", -1);
     if (topindex > -1 && topindex < (int)TopList_.size())
       top = TopList_[topindex];
-    if (topindex != -1 && top == 0)
+    if (topindex != -1 && top == 0) {
       mprinterr("Error: Topology index %i not found.\n", topindex);
+      err = 1;
+    }
   }
-  if (top == 0)
-    // By default return first parm if nothing else specified.
+  return top;
+}
+
+// DataSetList::GetTopology()
+/** \return Topology specified by a keyword. If no keywords are specified, the
+  *         first loaded Topology is returned. If no Topology loaded or an
+  *         error happens, 0 is returned.
+  */
+Topology* DataSetList::GetTopology(ArgList& argIn) const {
+  if (TopList_.empty()) return 0;
+  int err;
+  DataSet* top = GetTopByKeyword( argIn, err );
+  if (err) return 0;
+  if (top == 0) // By default return first parm if nothing else specified.
     top = TopList_.front();
-  if (top == 0) return 0; // Sanity check
   return ((DataSet_Topology*)top)->TopPtr();
 }
 
+const char* DataSetList::TopIdxArgs = "parm <name> | parmindex <#> | <#>";
+
 // DataSetList::GetTopByIndex()
+/** \return Topology specfied by a keyword, or if no keywords specified
+  *         the Topology specified by a single integer argument (index).
+  *         If no Topology loaded, return 0 and print error message.
+  */
 Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
-  if (TopList_.empty()) return 0;
-  Topology* top = GetTopology( argIn );
-  if (top == 0) {
+  if (TopList_.empty()) {
+    mprinterr("Error: No Topologies are loaded.\n");
+    return 0;
+  }
+  int err;
+  DataSet* top = GetTopByKeyword( argIn, err );
+  if (err) return 0;
+  if (top == 0) { // For backwards compat., check for single integer arg.
     int topindex = argIn.getNextInteger(-1);
     if (topindex > -1 && topindex < (int)TopList_.size())
-      top = ((DataSet_Topology*)TopList_[topindex])->TopPtr();
+      top = TopList_[topindex];
+    if (topindex != -1 && top == 0) {
+      mprinterr("Error: Topology index %i not found.\n", topindex);
+      return 0;
+    }
   }
-  if (top == 0)
-    mprinterr("Error: Could not find specified topology.\n");
-  return top;
+  if (top == 0) // By default return first parm if nothing else specified.
+    top = TopList_.front();
+  return ((DataSet_Topology*)top)->TopPtr();
 }
 
 // DataSetList::ListTopologies()
