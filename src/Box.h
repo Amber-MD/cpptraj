@@ -51,13 +51,13 @@ class Box {
   private:
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
-    void SetTruncOctAngles();
     void SetBoxType();
 
     static const double TRUNCOCTBETA_;
     static const double TruncOctDelta_;
     static const double TruncOctMin_;
     static const double TruncOctMax_;
+    static const double TruncOctEps_;
     static const char* BoxNames_[];
     //int debug_; // TODO: Replace with ifdefs or just comment out?
     BoxType btype_; ///< Box type
