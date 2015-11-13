@@ -6,12 +6,14 @@ SUMMARY=0           # If 1, only summary of results needs to be performed.
 STANDALONE=0        # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 PROFILE=0           # If 1, end of test profiling with gprof performed
 FORCE_AMBERTOOLS=0  # FIXME: currently needed to get extended tests to work
+USEDACDIF=1         # If 0 do not use dacdif even if in AmberTools
 CPPTRAJ=""          # CPPTRAJ binary
 SFX=""              # CPPTRAJ binary suffix
 AMBPDB=""           # ambpdb binary
 TIME=""             # Set to the 'time' command if timing requested.
 VALGRIND=""         # Set to 'valgrind' command if memory check requested.
 DIFFCMD=""          # Command used to check for test differences
+DACDIF=""           # Set if using 'dacdif' to test differences
 REMOVE="/bin/rm -f" # Remove command
 NCDUMP=""           # ncdump command; needed for NcTest()
 OUTPUT="test.out"   # File to direct test STDOUT to.
@@ -39,9 +41,9 @@ PNETCDFLIB=""
 # DoTest(): Compare File1 to File2, print an error if they differ.
 #           Args 3 and 4 can be used to pass an option to diff
 DoTest() {
-  if [[ $STANDALONE -eq 0 ]] ; then
+  if [[ ! -z $DACDIF ]] ; then
     # AmberTools - will use dacdif.
-    $DIFFCMD $1 $2
+    $DACDIF $1 $2
   else
     # Standalone - will use diff.
     ((NUMTEST++))
@@ -96,8 +98,8 @@ NcTest() {
 # ------------------------------------------------------------------------------
 # CheckTest(): Report if the error counter is greater than 0. TODO Remove
 CheckTest() {
-  # Only use when STANDALONE 
-  if [[ $STANDALONE -eq 1 ]] ; then
+  # Only use when not using dacdif 
+  if [[ -z $DACDIF ]] ; then
     if [[ $ERR -gt 0 ]] ; then
       echo "  $ERR comparisons failed so far."
     fi
@@ -113,7 +115,7 @@ RunCpptraj() {
   fi
   echo ""
   echo "  CPPTRAJ: $1"
-  if [[ $STANDALONE -eq 1 ]] ; then
+  if [[ -z $DACDIF ]] ; then
     echo "  CPPTRAJ: $1" >> $TEST_RESULTS
   fi
   if [[ ! -z $DEBUG ]] ; then
@@ -125,8 +127,8 @@ RunCpptraj() {
 # ------------------------------------------------------------------------------
 # EndTest(): Called at the end of every test script if no errors found.
 EndTest() {
-  # Report only when standalone
-  if [[ $STANDALONE -eq 1 ]] ; then
+  # Report only when not using dacdif 
+  if [[ -z $DACDIF ]] ; then
     if [[ $ERRCOUNT -gt 0 ]] ; then
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed."
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_RESULTS
@@ -280,6 +282,7 @@ Help() {
   echo "  vgh        : Run test with valgrind helgrind."
   echo "  time       : Time the test."
   echo "  -at        : Force AmberTools tests."
+  echo "  -nodacdif  : Do not use dacdif for test comparisons."
   echo "  -d         : Run CPPTRAJ with global debug level 4."
   echo "  -debug <#> : Run CPPTRAJ with global debug level #."
   echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
@@ -303,6 +306,7 @@ CmdLineOpts() {
       "-at"      ) FORCE_AMBERTOOLS=1 ;;
       "-d"       ) DEBUG="-debug 4" ;;
       "-debug"   ) shift ; DEBUG="-debug $1" ;;
+      "-nodacdif") USEDACDIF=0 ;;
       "-cpptraj" ) shift ; CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "-ambpdb"  ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
       "-profile" ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
@@ -332,9 +336,6 @@ CmdLineOpts() {
     SFX=".MPI"
     MPI=1
   fi
-  # Set default command locations
-  DIFFCMD=`which diff`
-  NCDUMP=`which ncdump`
   # Figure out if we are a part of AmberTools
   if [[ -z $CPPTRAJ ]] ; then
     if [[ ! -z `pwd | grep AmberTools` || $FORCE_AMBERTOOLS -eq 1 ]] ; then
@@ -357,7 +358,7 @@ SetBinaries() {
   # Set CPPTRAJ binary location if not already set.
   if [[ -z $CPPTRAJ ]] ; then
     if [[ $STANDALONE -eq 0 ]] ; then
-      # AmberTools - use dacdif for comparison
+      # AmberTools
       if [[ -z $AMBERHOME ]] ; then
         echo "Warning: AMBERHOME is not set."
         # Assume we are running in $AMBERHOME/AmberTools/src/test/Test_X
@@ -365,7 +366,9 @@ SetBinaries() {
       else
         DIRPREFIX=$AMBERHOME
       fi
-      DIFFCMD=$DIRPREFIX/test/dacdif
+      if [[ $USEDACDIF -eq 1 ]] ; then
+        DACDIF=$DIRPREFIX/test/dacdif
+      fi
       NCDUMP=$DIRPREFIX/bin/ncdump
       CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
       AMBPDB=$DIRPREFIX/bin/ambpdb
@@ -391,6 +394,7 @@ SetBinaries() {
     echo "DEBUG: AMBPDB:  $AMBPDB"
     echo "DEBUG: NCDUMP:  $NCDUMP"
     echo "DEBUG: DIFFCMD: $DIFFCMD"
+    echo "DEBUG: DACDIF:  $DACDIF"
   fi
   # Check binaries
   if [[ ! -f "$NCDUMP" ]] ; then
@@ -400,11 +404,15 @@ SetBinaries() {
     echo "Error: diff command '$DIFFCMD' not found." > /dev/stderr
     exit 1
   fi
+  if [[ $STANDALONE -eq 0 && $USEDACDIF -eq 1 && ! -f "$DACDIF" ]] ; then
+    echo "Error: dacdiff command '$DACDIFF' not found." > /dev/stderr
+    exit 1
+  fi
   if [[ ! -f "$CPPTRAJ" ]] ; then
     echo "Error: cpptraj binary '$CPPTRAJ' not found." > /dev/stderr
     exit 1
   fi
-  if [[ ! -z $DEBUG || $STANDALONE -eq 1 ]] ; then
+  if [[ ! -z $DEBUG || -z $DACDIF ]] ; then
     ls -l $CPPTRAJ
   fi
   if [[ ! -f "$AMBPDB" ]] ; then
@@ -437,8 +445,8 @@ if [[ $1 = "clean" ]] ; then
   CLEAN=1
 else
   CmdLineOpts $*
-  # Set results files for STANDALONE
-  if [[ $STANDALONE -eq 1 ]] ; then
+  # Set results files if not using dacdif 
+  if [[ -z $DACDIF ]] ; then
     TEST_RESULTS=Test_Results.dat
     TEST_ERROR=Test_Error.dat
     if [[ -f "$TEST_RESULTS" ]] ; then
@@ -459,7 +467,7 @@ else
   # Start test results file
   echo "**************************************************************"
   echo "TEST: `pwd`"
-  if [[ $STANDALONE -eq 1 ]] ; then
+  if [[ -z $DACDIF ]] ; then
     echo "**************************************************************" > $TEST_RESULTS
     echo "TEST: `pwd`" >> $TEST_RESULTS
   fi
