@@ -355,26 +355,18 @@ COMPLETETESTS=test.general \
 summary: Summary.sh MasterTest.sh
 	@./Summary.sh $(OPT) summary
 
-test.standalone:
-	$(MAKE) test.complete OPT=standalone
-	@./Summary.sh standalone
-
-test.all:
-	$(MAKE) test.complete summary
-
 test.main: $(MAINTESTS)
+
+test.complete: $(COMPLETETESTS)
 
 test: 
 	$(MAKE) test.main
 
+test.all:
+	$(MAKE) test.complete summary
+
 test.vg:
-	$(MAKE) test.main OPT=vg
-
-test.vg.standalone:
-	$(MAKE) test.complete OPT="standalone vg"
-	@./Summary.sh standalone vg
-
-test.complete: $(COMPLETETESTS)
+	$(MAKE) test.main OPT="$(OPT) vg"
 
 clean:
 	@echo "Cleaning all test directories:"
