@@ -60,8 +60,8 @@ test.outtraj:
 test.datafile:
 	@-cd Test_Datafile && ./RunTest.sh $(OPT)
 
-#test.avgref:
-#	@cd Test_AvgRef && ./RunTest.sh $(OPT)
+test.avgref:
+	@cd Test_AvgRef && ./RunTest.sh $(OPT)
 
 test.mol2:
 	@-cd Test_Mol2 && ./RunTest.sh $(OPT)
@@ -195,6 +195,33 @@ test.ambpdb:
 test.systemVF:
 	@cd Test_systemVF && ./RunTest.sh $(OPT)
 
+test.atomiccorr:
+	@cd Test_AtomicCorr && ./RunTest.sh $(OPT)
+
+test.autocorr:
+	@cd Test_AutoCorr && ./RunTest.sh $(OPT)
+
+test.box:
+	@cd Test_Box && ./RunTest.sh $(OPT)
+
+test.atomtypeselect:
+	@cd Test_AtomTypeSelect && ./RunTest.sh $(OPT)
+
+test.crankstat:
+	@cd Test_Crank_Stat && ./RunTest.sh $(OPT)
+
+test.createcrd:
+	@cd Test_CreateCrd && ./RunTest.sh $(OPT)
+
+test.autoimage:
+	@cd Test_AutoImage && ./RunTest.sh $(OPT)
+
+test.loadcrd:
+	@cd Test_LoadCrd && ./RunTest.sh $(OPT)
+
+test.multivector:
+	@cd Test_MultiVector && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 MAINTESTS=test.general \
           test.strip \
@@ -238,7 +265,18 @@ MAINTESTS=test.general \
           test.pairdist \
           test.readdata \
           test.ambpdb \
-          test.systemVF
+          test.systemVF \
+          test.atomiccorr \
+          test.autocorr \
+          test.box \
+          test.atomtypeselect \
+          test.avgref \
+          test.crankstat \
+          test.createcrd \
+          test.autoimage \
+          test.loadcrd \
+          test.multivector
+
 # Every test should go here.
 COMPLETETESTS=test.general \
               test.strip \
@@ -302,14 +340,27 @@ COMPLETETESTS=test.general \
               test.pairdist \
               test.gist \
               test.ambpdb \
-              test.systemVF
+              test.systemVF \
+              test.atomiccorr \
+              test.autocorr \
+              test.box \
+              test.atomtypeselect \
+              test.avgref \
+              test.crankstat \
+              test.createcrd \
+              test.autoimage \
+              test.loadcrd \
+              test.multivector
 
 summary: Summary.sh MasterTest.sh
 	@./Summary.sh $(OPT) summary
 
-test.standalone: 
+test.standalone:
 	$(MAKE) test.complete OPT=standalone
-	@./Summary.sh standalone 
+	@./Summary.sh standalone
+
+test.all:
+	$(MAKE) test.complete summary
 
 test.main: $(MAINTESTS)
 
