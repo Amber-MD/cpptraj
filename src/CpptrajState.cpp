@@ -523,7 +523,7 @@ int CpptrajState::RunEnsemble() {
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
-    ActionEnsemble[member]->Print( );
+    ActionEnsemble[member]->PrintActions();
 # ifdef MPI
   // Sync DataSets across all threads. 
   //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
@@ -676,12 +676,14 @@ int CpptrajState::RunParallel() {
   Timer time_sync;
   time_sync.Start();
   DSL_.SynchronizeData( input_traj.Size(), rank_frames );
+  // Sync Actions to master thread
+  actionList_.SyncActions();
   time_sync.Stop();
-  time_sync.WriteTiming(1, "Data set sync");
+  time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");
   // Only call print for master
   if (worldrank == 0)
-    actionList_.Print( );
+    actionList_.PrintActions();
   parallel_barrier();
   return 0;
 }
@@ -838,7 +840,7 @@ int CpptrajState::RunNormal() {
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nACTION OUTPUT:\n");
-  actionList_.Print( );
+  actionList_.PrintActions();
 # ifdef MPI
   // Sync DataSets across all threads. 
   //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.

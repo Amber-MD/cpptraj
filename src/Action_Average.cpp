@@ -2,6 +2,9 @@
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_REF.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
@@ -137,6 +140,26 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
 
   return Action::OK;
 }
+
+int Action_Average::SyncAction() {
+# ifdef MPI
+  int total_frames = 0;
+  parallel_reduce( &total_frames, &Nframes_, 1, PARA_INT, PARA_SUM );
+  if (worldrank == 0) {
+    Nframes_ = total_frames;
+    rprintf("DEBUG: Total frames= %i\n", total_frames);
+    Frame frame_all = *AvgFrame_;
+    frame_all.ZeroCoords();
+    parallel_reduce( (double*)frame_all.xAddress(), (double*)AvgFrame_->xAddress(),
+                     AvgFrame_->size(), PARA_DOUBLE, PARA_SUM );
+    std::copy(frame_all.xAddress(), frame_all.xAddress() + frame_all.size(), AvgFrame_->xAddress());
+  } else
+    parallel_reduce( 0,                             (double*)AvgFrame_->xAddress(),
+                     AvgFrame_->size(), PARA_DOUBLE, PARA_SUM );
+# endif
+  return 0;
+}
+
 
 // Action_Average::Print()
 void Action_Average::Print() {

@@ -14,6 +14,7 @@ class Action_Average: public Action, ActionFrameCounter {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+    int SyncAction();
 
     int ensembleNum_;
     int debug_;

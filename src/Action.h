@@ -44,5 +44,7 @@ class Action : public DispatchObject {
       * necessary post-trajectory processing calculations.
       */
     virtual void Print() = 0;
+    /// Sync Action data to master when running in parallel across trajectories.
+    virtual int SyncAction() { return 0; } // TODO: pure virtual
 };
 #endif

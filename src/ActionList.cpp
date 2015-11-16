@@ -118,11 +118,22 @@ bool ActionList::DoActions(int frameNumIn, ActionFrame& frm) {
 }
 
 // ActionList::Print()
-void ActionList::Print() {
+void ActionList::PrintActions() {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE)
       act->ptr_->Print();
+  }
+}
+
+void ActionList::SyncActions() {
+  for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE) {
+      rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
+      if (act->ptr_->SyncAction())
+        rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
+    }
   }
 }
 
