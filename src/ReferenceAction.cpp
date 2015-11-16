@@ -1,5 +1,8 @@
 #include "ReferenceAction.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "MpiRoutines.h"
+#endif
 
 // ReferenceAction::SetRefMask()
 int ReferenceAction::SetRefMask(Topology const& topIn, const char* call) {
@@ -103,6 +106,18 @@ int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt, const char* call)
 void ReferenceAction::SetRefStructure(Frame const& frameIn, bool fitIn, bool useMassIn)
 {
   refFrame_ = frameIn;
+# ifdef MPI
+  // Ensure all threads are using the same reference
+  if (worldrank == 0) {
+    rprintf("DEBUG: Sending reference frame to children.\n");
+    for (int rank = 1; rank != worldsize; rank++)
+      refFrame_.SendFrame(rank);
+  } else {
+    rprintf("DEBUG: Receiving reference frame from master.\n");
+    refFrame_.RecvFrame(0);
+  }
+  parallel_barrier();
+# endif
   selectedRef_.SetCoordinates( refFrame_, refMask_ );
   if (fitIn)
     refTrans_ = selectedRef_.CenterOnOrigin( useMassIn );
