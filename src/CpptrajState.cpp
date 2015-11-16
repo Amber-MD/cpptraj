@@ -651,6 +651,8 @@ int CpptrajState::RunParallel() {
   // TODO Set up output trajectories
 
   // ----- ACTION PHASE --------------------------
+  Timer frames_time;
+  frames_time.Start();
   ProgressBar progress;
   if (showProgress_)
     progress.SetupProgress( my_frames );
@@ -666,7 +668,10 @@ int CpptrajState::RunParallel() {
     // TODO trajout stuff
     if (showProgress_) progress.Update( actionSet );
   }
+  frames_time.Stop();
   parallel_barrier();
+  rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)actionSet / frames_time.Total());
   // Sync data sets to master thread
   Timer time_sync;
   time_sync.Start();
