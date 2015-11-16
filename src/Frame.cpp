@@ -1234,4 +1234,16 @@ int Frame::RecvFrame(int sendrank) {
   parallel_recv( &remd_indices_[0], remd_indices_.size(), PARA_INT, sendrank, 1216 );
   return 0;
 }
+
+/** Sum across all ranks, store in master. */
+int Frame::SumToMaster() {
+  if (worldrank == 0) {
+    double* total = new double[ ncoord_ ];
+    parallel_reduce( total, X_, ncoord_, PARA_DOUBLE, PARA_SUM );
+    std::copy( total, total + ncoord_, X_ );
+    delete[] total;
+  } else
+    parallel_reduce( 0,     X_, ncoord_, PARA_DOUBLE, PARA_SUM );
+  return 0;
+}
 #endif

@@ -208,6 +208,7 @@ class Frame {
     // ----- Parallel Routines -------------------
     int SendFrame(int);
     int RecvFrame(int);
+    int SumToMaster();
 #   endif
   private:
     typedef std::vector<double> Darray;
