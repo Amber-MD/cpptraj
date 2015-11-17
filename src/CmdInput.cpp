@@ -31,6 +31,10 @@ int CmdInput::AddInput(const char* lineIn) {
     if (end == 0 || (end > 0 && line[end-1] != '\\'))
       line.erase( line.begin() + end, line.end() );
   }
+  if (line.empty()) {
+    if (needMoreInput) return 1;
+    return 0;
+  }
   // Add to current input, removing any consecutive whitespace.
   // TODO Convert all tabs to space?
   input_ += line[0];
