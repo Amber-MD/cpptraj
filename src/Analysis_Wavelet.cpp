@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "PubFFT.h"
 #include "DataSet_MatrixFlt.h"
+#include "StringRoutines.h"
 
 // CONSTRUCTOR
 Analysis_Wavelet::Analysis_Wavelet() :
@@ -147,8 +148,8 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
     return Analysis::ERR;
   }
   Matrix<double> d_matrix;
-  mprintf("\t%i frames, %i atoms, distance matrix will require %.2f MB\n",
-          (double)d_matrix.sizeInBytes(nframes, natoms) / (1024.0*1024.0));
+  mprintf("\t%i frames, %i atoms, distance matrix will require %s\n", nframes, natoms,
+          ByteString(d_matrix.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   d_matrix.resize(nframes, natoms);
   // Get initial frame.
   Frame currentFrame, lastFrame;
@@ -193,8 +194,8 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   // Step 2 - Get FFT of wavelet for each scale.
   PubFFT pubfft;
   pubfft.SetupFFTforN( nframes );
-  mprintf("\tMemory required for scaled wavelet array: %.2f MB\n",
-          (double)(2 * nframes * nb_ * sizeof(double)) / (1024 * 1024));
+  mprintf("\tMemory required for scaled wavelet array: %s\n",
+          ByteString(2 * nframes * nb_ * sizeof(double), BYTE_DECIMAL).c_str());
   typedef std::vector<ComplexArray> WaveletArray;
   WaveletArray FFT_of_Scaled_Wavelets;
   FFT_of_Scaled_Wavelets.reserve( nb_ );
@@ -244,12 +245,12 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   //          frequency domains, i.e. Fourier-transformed, followed by an
   //          inverse FT.
   DataSet_MatrixFlt& OUT = static_cast<DataSet_MatrixFlt&>( *output_ );
-  mprintf("\tMemory required for output matrix: %.2f MB\n",
-          (double)Matrix<float>::sizeInBytes(nframes, natoms)/(1024.0*1024.0));
+  mprintf("\tMemory required for output matrix: %s\n",
+          ByteString(Matrix<float>::sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   OUT.Allocate2D( nframes, natoms ); // Should initialize to zero
   Matrix<double> MAX;
-  mprintf("\tMemory required for Max array: %.2f MB\n", 
-          (double)MAX.sizeInBytes(nframes, natoms)/(1024.0*1024.0));
+  mprintf("\tMemory required for Max array: %s\n",
+          ByteString(MAX.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   MAX.resize( nframes, natoms );
   Darray magnitude( nframes ); // Scratch space for calculating magnitude across rows
   for (int at = 0; at != natoms; at++) {
