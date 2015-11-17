@@ -55,7 +55,7 @@ int AnalysisList::DoAnalyses() {
     if ( ana->status_ == SETUP ) {
       mprintf("  %u: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
       if (ana->ptr_->Analyze()==Analysis::ERR) {
-        mprinterr("Error: in Analysis [%s]\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
+        mprinterr("Error: In Analysis [%s]\n", ana->args_.Command()); // TODO exit? Set INACTIVE?
         ++err;
       }
     }
