@@ -140,6 +140,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
+        CmdInput.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
