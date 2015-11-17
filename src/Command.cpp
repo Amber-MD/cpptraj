@@ -242,9 +242,7 @@ Command::RetType Command::Dispatch(CpptrajState& State,
   return ret_val;
 }
 
-/** Read commands from an input file, or from STDIN if given filename
-  * is empty. '#' indicates the beginning of a comment, backslash at the 
-  * end of a line indicates continuation (otherwise indicates 'literal').
+/** Read commands from given input file.
   * \return 0 if successfully read, 1 on error.
   */
 Command::RetType Command::ProcessInput(CpptrajState& State, 

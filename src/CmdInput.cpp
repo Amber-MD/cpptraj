@@ -2,7 +2,9 @@
 #include "CmdInput.h"
 #include "StringRoutines.h" // RemoveTrailingWhitespace()
 
-/** \return 1 if more lines need to be read for this input.
+/** '#' indicates the beginning of a comment, backslash at the end of a line
+  * indicates continuation.
+  * \return 1 if more lines need to be read for this input.
   * \return 0 if no more input needed.
   * \return -1 if an error occurred.
   */
