@@ -7,6 +7,7 @@
 #include "CpptrajFile.h"
 #include "Constants.h"
 #include "ProgressBar.h"
+#include "StringRoutines.h"
 #ifdef _OPENMP
 #  include "omp.h"
 #endif
@@ -427,8 +428,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
     mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
     FrameDistances_.SaveFile( filename );
   }
-  mprintf("\tMemory used by pair-wise matrix and other cluster data: %.4f MB\n",
-          (double)FrameDistances_.DataSize() / 1048576);
+  mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
+          ByteString(FrameDistances_.DataSize(), BYTE_DECIMAL).c_str());
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
     mprintf("INITIAL FRAME DISTANCES:\n");
