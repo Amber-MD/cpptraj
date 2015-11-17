@@ -1,6 +1,6 @@
-#include <cstdio> // for ProcessInput
 #include <cstdlib> // system
 #include <algorithm> // std::sort
+#include "CmdInput.h" // ProcessInput()
 #include "Command.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h" // GenerateAmberRst
@@ -242,12 +242,6 @@ Command::RetType Command::Dispatch(CpptrajState& State,
   return ret_val;
 }
 
-/// Used by ProcessInput to determine when line ends.
-static inline bool EndChar(char ptr) {
-  if (ptr=='\n' || ptr=='\r' || ptr=='\0' || ptr==EOF) return true;
-  return false;
-}
-
 /** Read commands from an input file, or from STDIN if given filename
   * is empty. '#' indicates the beginning of a comment, backslash at the 
   * end of a line indicates continuation (otherwise indicates 'literal').
@@ -256,77 +250,41 @@ static inline bool EndChar(char ptr) {
 Command::RetType Command::ProcessInput(CpptrajState& State, 
                                        std::string const& inputFilename)
 {
-  FILE* infile; // TODO: CpptrajFile
-  if (inputFilename.empty()) {
-    mprintf("INPUT: Reading Input from STDIN\n");
-    infile = stdin;
-  } else {
-    FileName fname( inputFilename );
-    if (!File::Exists( fname )) {
-      mprinterr("Error: Input file '%s' does not exist.\n", fname.full());
-      return C_ERR;
-    }
-    mprintf("INPUT: Reading Input from file %s\n", fname.full());
-    if ( (infile=fopen(fname.full(), "r"))==0 ) {
-      rprinterr("Error: Could not open input file %s\n", fname.full());
-      return C_ERR;
-    }
+  BufferedLine infile;
+  if (infile.OpenFileRead( inputFilename )) {
+    if (!inputFilename.empty())
+      mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
+    return C_ERR;
   }
-  // Read in each line of input. Newline or null terminates. \ continues line.
-  std::string inputLine;
-  unsigned int idx = 0;
-  char lastchar = '0';
-  char ptr = 0;
+  mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
+  // Read in each line of input.
   int nInputErrors = 0;
   RetType cmode = C_OK;
-  while ( ptr != EOF ) {
-    ptr = (char)fgetc(infile);
-    // Skip leading whitespace
-    if (idx == 0 && isspace(ptr)) {
-      while ( (ptr = (char)fgetc(infile))!=EOF )
-        if ( !isspace(ptr) ) break;
+  CmdInput input;
+  const char* ptr = infile.Line();
+  while (ptr != 0) {
+    bool moreInput = input.AddInput( ptr );
+    while (moreInput) {
+      ptr = infile.Line();
+      moreInput = input.AddInput( ptr );
     }
-    // If '#' is encountered, skip the rest of the line
-    if (ptr=='#')
-      while (!EndChar(ptr)) ptr=(char)fgetc(infile);
-    // newline, null, or EOF terminates the line
-    if (EndChar(ptr)) {
-      // If no chars in string continue
-      if (inputLine.empty()) continue;
+    // Only attempt to execute if the command is not blank.
+    if (!input.Empty()) {
       // Print the input line that will be sent to dispatch
-      mprintf("  [%s]\n",inputLine.c_str());
-      // Call Dispatch to convert input to arglist and process.
-      cmode = Command::Dispatch(State, inputLine);
+      mprintf("  [%s]\n", input.str());
+      // Call Dispatch to convert input to ArgList and process.
+      cmode = Command::Dispatch(State, input.Str());
       if (cmode == C_ERR) {
         nInputErrors++;
         if (State.ExitOnError()) break;
       } else if (cmode == C_QUIT)
         break;
-      // Reset Input line
-      inputLine.clear();
-      idx = 0;
-      continue;
     }
-    // Any consecutive whitespace is skipped
-    if (idx > 0) lastchar = inputLine[idx-1];
-    if (isspace(ptr) && isspace(lastchar)) continue;
-    // Backslash followed by newline continues to next line. Otherwise backslash
-    // followed by next char will be inserted. 
-    if (ptr=='\\') {
-      ptr = (char)fgetc(infile);
-      if ( ptr == EOF ) break;
-      if (ptr == '\n' || ptr == '\r') continue;
-      inputLine += "\\";
-      inputLine += ptr;
-      idx += 2;
-      continue;
-    }
-    // Add character to input line
-    inputLine += ptr;
-    ++idx;
+    // Reset Input line
+    input.Clear();
+    ptr = infile.Line();
   }
-  if (!inputFilename.empty())
-    fclose(infile);
+  infile.CloseFile();
   if (nInputErrors > 0) {
     mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
     return C_ERR;
