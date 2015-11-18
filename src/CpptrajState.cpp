@@ -228,10 +228,12 @@ int CpptrajState::Run() {
   // Run Analyses if any are specified.
   if (err == 0)
     err = RunAnalyses();
-  DSL_.List();
-  // Print DataFile information and write DataFiles
-  DFL_.List();
-  MasterDataFileWrite();
+  if (err == 0 || !exitOnError_) {
+    DSL_.List();
+    // Print DataFile information and write DataFiles
+    DFL_.List();
+    MasterDataFileWrite();
+  }
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }

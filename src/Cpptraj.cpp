@@ -49,10 +49,10 @@ void Cpptraj::Intro() {
   mprintf("| Running on %i threads\n",CpptrajState::WorldSize());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
-  double available_mem = AvailableMemory_MB();
-  // If < 0 could not be calculated correctly.
-  if (available_mem > 0.0)
-    mprintf(  "| Available memory: %g MB\n", AvailableMemory_MB());
+  std::string available_mem = AvailableMemoryStr();
+  // If empty, available mem could not be calculated correctly.
+  if (!available_mem.empty())
+    mprintf(  "| Available memory: %s\n", available_mem.c_str());
   mprintf("\n");
 }
 
@@ -86,7 +86,10 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   total_time.Stop();
   if (cmode != INTERACTIVE)
     mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
-  if (err == 0) Cpptraj::Finalize();
+  if (err == 0)
+    Cpptraj::Finalize();
+  else
+    mprinterr("Error: Error(s) occurred during execution.\n");
   mprintf("\n");
   return err;
 }
