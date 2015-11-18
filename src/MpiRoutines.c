@@ -6,9 +6,11 @@
  * as int in the MpiRoutines header file.
  */
 #include "MpiRoutines.h"
-// If DEBUGMPI is defined stdio.h will be included in MpiRoutines.h
-#ifndef DEBUGMPI
+// If PARALLEL_DEBUG_VERBOSE is defined stdio.h will be included in MpiRoutines.h
+#ifndef PARALLEL_DEBUG_VERBOSE
 #  include <stdio.h>
+#else
+#  include <stdarg.h>
 #endif
 #include <stdlib.h>
 #ifdef MPI
@@ -66,7 +68,7 @@ int parallel_check_error(int err) {
 #endif
 
 /* ========== Routines that do not require MPI ========== */
-#ifdef DEBUGMPI
+#ifdef PARALLEL_DEBUG_VERBOSE
 // dbgprintf()
 /** Print to mpidebugfile */
 void dbgprintf(const char *format, ...) {
@@ -85,7 +87,7 @@ void dbgprintf(const char *format, ...) {
 int parallel_debug_init() {
   char outfilename[32];
 
-  // DEBUGMPI
+  // PARALLEL_DEBUG_VERBOSE
   sprintf(outfilename,"Thread.%03i",worldrank);
   mpidebugfile=fopen(outfilename,"w");
   if (mpidebugfile==NULL) {
@@ -120,7 +122,7 @@ int parallel_init(int argc, char **argv) {
   worldrank=0;
   worldsize=1;
 #endif
-#ifdef DEBUGMPI
+#ifdef PARALLEL_DEBUG_VERBOSE
   parallel_debug_init();
 #endif
   return 0;
@@ -129,7 +131,7 @@ int parallel_init(int argc, char **argv) {
 // parallel_end()
 /** Finalize MPI */
 int parallel_end() {
-#ifdef DEBUGMPI
+#ifdef PARALLEL_DEBUG_VERBOSE
   parallel_debug_end();
 #endif
 #ifdef MPI
@@ -218,7 +220,7 @@ int parallel_open_file_write(parallelType pfile, const char *filename) {
   // Remove file if present
   MPI_File_delete((char*)filename,MPI_INFO_NULL);
 
-#  ifdef DEBUGMPI 
+#  ifdef PARALLEL_DEBUG_VERBOSE 
     dbgprintf("\tparallel_open_file_write: Opening output file %s\n",filename);
 #  endif
   mfp = (MPI_File*) malloc(sizeof(MPI_File));
@@ -244,7 +246,7 @@ int parallel_closeFile(parallelType pfile) {
   int err;
   if (pfile->mfp==NULL) return 0;
   //MPI_Barrier(MPI_COMM_WORLD);
-#  ifdef DEBUGMPI
+#  ifdef PARALLEL_DEBUG_VERBOSE
     dbgprintf("\tparallel_closeFile: Closing file.\n");
 #  endif
   err=MPI_File_close(pfile->mfp);
@@ -290,9 +292,7 @@ int parallel_fwrite(parallelType pfile, const void *buffer, int count) {
   int err;
   MPI_Status status;
 
-#  ifdef DEBUGMPI
-  char *temp;
-  temp=(char*) buffer;
+#  ifdef PARALLEL_DEBUG_VERBOSE
   //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
   dbgprintf("Calling MPI write(%i):\n",count);
 #  endif
