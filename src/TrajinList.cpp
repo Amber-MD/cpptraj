@@ -172,7 +172,7 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
 
 void TrajinList::List() const {
   if (!trajin_.empty()) {
-    mprintf("\nINPUT TRAJECTORIES:\n");
+    mprintf("\nINPUT TRAJECTORIES (%zu total):\n", trajin_.size());
     unsigned int trajnum = 0;
     for (trajin_it traj = trajin_.begin(); traj != trajin_.end(); ++traj) {
       mprintf(" %u: ", trajnum++);
@@ -180,7 +180,7 @@ void TrajinList::List() const {
     }
   }
   if (!ensemble_.empty()) {
-    mprintf("\nINPUT ENSEMBLES:\n");
+    mprintf("\nINPUT ENSEMBLES (%zu total):\n", ensemble_.size());
     for (unsigned int en = 0; en != ensemble_.size(); ++en) {
       mprintf(" %u: ", en);
       ensemble_[en]->EnsembleInfo( 1 );

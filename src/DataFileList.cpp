@@ -238,7 +238,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 void DataFileList::List() const {
   parallel_barrier();
   if (!fileList_.empty() || !cfList_.empty()) {
-    mprintf("\nDATAFILES:\n");
+    mprintf("\nDATAFILES (%zu total):\n", fileList_.size() + cfList_.size());
     if (!fileList_.empty()) {
       for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it)
         rprintf("  %s (%s): %s\n",(*it)->DataFilename().base(), (*it)->FormatString(),
