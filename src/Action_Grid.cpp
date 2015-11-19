@@ -48,12 +48,14 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
   else normalize_ = NONE;
   if (normalize_ != NONE && (smooth_ > 0.0 || madura_ > 0.0)) {
     mprinterr("Error: Normalize options are not compatible with smoothdensity/madura options.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: GRID: No mask specified.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
