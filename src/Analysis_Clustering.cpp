@@ -72,6 +72,7 @@ void Analysis_Clustering::Help() {
           "\t[[drawgraph | drawgraph3d] [draw_tol <tolerance>] [draw_maxit <iterations]]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
           "  <crd set> can be created with the 'createcrd' command.\n");
+          /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
@@ -223,6 +224,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   avgfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("avgfmt") );
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
+
+  // Output option for cluster info
+  suppressInfo_ = analyzeArgs.hasKey("noinfo");
 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
@@ -412,9 +416,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       CList_->PrintClusters();
     }
 
-    // Print ptraj-like cluster info. If no filename is written some info will
-    // still be written to STDOUT.
-    CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+    // Print ptraj-like cluster info.
+    // If no filename is written and no noinfo, some info will still be written to STDOUT
+    if (!suppressInfo_) {
+      CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+    }
 
     // Calculate cluster silhouette
     if (!sil_file_.empty())
