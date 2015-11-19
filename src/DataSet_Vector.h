@@ -5,9 +5,9 @@
 #include "Vec3.h"
 #include "ComplexArray.h"
 class DataSet_Vector : public DataSet {
-    static const Vec3 ZERO;
     static const ComplexArray COMPLEXBLANK;
   public:
+    static const Vec3 ZERO; ///< Vector of {0,0,0}
     typedef std::vector<Vec3> Varray;
     DataSet_Vector();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Vector();}
