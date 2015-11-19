@@ -208,7 +208,7 @@ void Action_Grid::PrintPDB(double gridMax)
   for (size_t k = 0; k <= grid_->NZ(); k += grid_->NZ())
     for (size_t j = 0; j <= grid_->NY(); j += grid_->NY())
       for (size_t i = 0; i <= grid_->NX(); i += grid_->NX()) {
-        Vec3 cxyz = grid_->BinCenter(i,j,k);
+        Vec3 cxyz = grid_->BinCorner(i,j,k);
         pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
       }
 }
