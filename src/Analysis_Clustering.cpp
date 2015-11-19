@@ -75,7 +75,6 @@ void Analysis_Clustering::Help() {
           /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
 
-
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
 Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
