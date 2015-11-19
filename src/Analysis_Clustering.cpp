@@ -71,10 +71,10 @@ void Analysis_Clustering::Help() {
           "  Experimental options:\n"
           "\t[[drawgraph | drawgraph3d] [draw_tol <tolerance>] [draw_maxit <iterations]]\n"
           "  Cluster structures based on coordinates (RMSD/DME) or given data set(s).\n"
-          "  <crd set> can be created with the 'createcrd' command.\n"
-          "\t[ suppressoutput ]\n"
-          "  Not print cluster info to STDOUT\n");
+          "  <crd set> can be created with the 'createcrd' command.\n");
+          /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
+
 
 const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
 
@@ -227,10 +227,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
   // Output option for cluster info
-  if (analyzeArgs.hasKey("suppressoutput"))
-    suppressOutput_ = true;
-  else
-    suppressOutput_ = false;
+  suppressInfo_ = analyzeArgs.hasKey("noinfo");
 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
@@ -421,8 +418,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
 
     // Print ptraj-like cluster info.
-    // If no filename is written and no suppressoutput, some info will still be written to STDOUT
-    if (!suppressOutput_) {
+    // If no filename is written and no noinfo, some info will still be written to STDOUT
+    if (!suppressInfo_) {
       CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
     }
 
