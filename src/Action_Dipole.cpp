@@ -44,6 +44,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: Dipole: No mask specified.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);

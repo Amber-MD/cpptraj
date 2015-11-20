@@ -563,15 +563,11 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.
     if (DataList_.empty()) return;
-    mprintf("\nDATASETS:\n");
+    mprintf("\nDATASETS (%zu total):\n", DataList_.size());
   } else if (DataList_.empty()) {
     mprintf("  No data sets.");
     return;
   }
-  if (DataList_.size()==1)
-    mprintf("  1 data set:\n");
-  else
-    mprintf("  %zu data sets:\n", DataList_.size());
   for (unsigned int idx = 0; idx != DataList_.size(); idx++) {
     DataSet const& dset = static_cast<DataSet const&>( *DataList_[idx] );
     mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
@@ -745,11 +741,13 @@ Topology* DataSetList::GetTopByIndex(ArgList& argIn) const {
 // DataSetList::ListTopologies()
 void DataSetList::ListTopologies() const {
   if (!TopList_.empty()) {
-    mprintf("\nPARAMETER FILES:\n");
+    mprintf("\nPARAMETER FILES (%zu total):\n", TopList_.size());
     for (DataListType::const_iterator ds = TopList_.begin(); ds != TopList_.end(); ++ds)
     {
       Topology const& top = ((DataSet_Topology*)*ds)->Top();
       mprintf(" %i:", top.Pindex());
+      if ( (*ds)->Meta().Name() != (*ds)->Meta().Fname().Base() )
+        mprintf(" %s", (*ds)->Meta().Name().c_str());
       top.Brief(0);
       mprintf("\n");
     }

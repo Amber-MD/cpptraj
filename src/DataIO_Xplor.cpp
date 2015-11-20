@@ -109,6 +109,12 @@ int DataIO_Xplor::ReadData(FileName const& fname,
   return 0;
 }
 
+// -----------------------------------------------------------------------------
+int DataIO_Xplor::processWriteArgs(ArgList& argIn) {
+  title_ = argIn.GetStringKey("xplortitle");
+  return 0;
+}
+
 // DataIO_Xplor::WriteData()
 int DataIO_Xplor::WriteData(FileName const& fname, DataSetList const& setList)
                               
@@ -124,31 +130,43 @@ int DataIO_Xplor::WriteData(FileName const& fname, DataSetList const& setList)
     mprintf("Warning: %s: Writing multiple 3D sets in XPLOR format may result in unexpected behavior\n", fname.full());
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
-  {
-    if ( (*set)->Ndim() == 3)
-      err += WriteSet3D( *(*set), outfile );
-  }
+    err += WriteSet3D( *(*set), outfile );
   return err;
 }
 
+/** Header: Title, Remarks, XYZ { Num grid points, start point, stop point },
+  *         Cell x y z alpha beta gamma.
+  */
+void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
+                                    std::string const& legend,
+                                    int nx, int bx, int ex,
+                                    int ny, int by, int ey,
+                                    int nz, int bz, int ez,
+                                    Matrix_3x3 const& ucell) const
+{
+  // Title
+  outfile.Printf("%s\n", title_.c_str());
+  // Remarks - Use set legend if not defined.
+  if (remark_.empty())
+    outfile.Printf("%8i\n%s\n",1,legend.c_str());
+  else
+    outfile.Printf("%8i\n%s\n",1,remark_.c_str()); // FIXME check length
+  Box box( ucell );
+  outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n"
+                 "%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\nZYX\n",
+                 nx, bx, ex, ny, by, ey, nz, bz, ez,
+                 box[0], box[1], box[2], box[3], box[4], box[5]);
+}
+
 // DataIO_Xplor::WriteSet3D()
-int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
+int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
               setIn.legend(), outfile.Filename().full(), setIn.Ndim());
     return 1;
   }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
-  // Title
-  outfile.Printf("%s\n", title_.c_str());
-  // Remarks - Use set legend 
-  outfile.Printf("%8i\n%s\n",1,set.legend());
-  // Header - Num grid points, start grid point, stop grid point
-  // NOTE: The commented-out section is how grid was set up in ptraj/cpptraj
-  //       before. The new method gives maps that match DX output.
-  //outfile.Printf("%8i%8i%8i",   set.NX(), -set.NX()/2 + 1, set.NX()/2 );
-  //outfile.Printf("%8i%8i%8i",   set.NY(), -set.NY()/2 + 1, set.NY()/2 );
-  //outfile.Printf("%8i%8i%8i\n", set.NZ(), -set.NZ()/2 + 1, set.NZ()/2 );
+  // Write XPLOR header
   // Locate the indices of the absolute origin in order to find starting
   // indices for each axis. FIXME: Is this correct?
   int grid_min_x, grid_min_y, grid_min_z;
@@ -156,29 +174,25 @@ int DataIO_Xplor::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
   if (grid_min_x != 0) grid_min_x = -grid_min_x;
   if (grid_min_y != 0) grid_min_y = -grid_min_y;
   if (grid_min_z != 0) grid_min_z = -grid_min_z;
-  //int grid_min_x = (int)(set.OX()/set.DX());
-  outfile.Printf("%8i%8i%8i%8i%8i%8i%8i%8i%8i\n",
-    set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
-    set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
-    set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1);
-  // Header - cell x y z alpha beta gamma
-  Box box( set.Ucell() );
-  outfile.Printf("%12.5f%12.5f%12.5f%12.5f%12.5f%12.5f\n",
-                 box[0], box[1], box[2], box[3], box[4], box[5]);
-  outfile.Printf("ZYX\n");
+  WriteXplorHeader(outfile, set.Meta().Legend(),
+                   set.NX(), grid_min_x, grid_min_x + set.NX() - 1,
+                   set.NY(), grid_min_y, grid_min_y + set.NY() - 1,
+                   set.NZ(), grid_min_z, grid_min_z + set.NZ() - 1,
+                   set.Ucell());
   // Print grid bins
   for (size_t k = 0; k < set.NZ(); ++k) {
     outfile.Printf("%8i\n", k);
     for (size_t j = 0; j < set.NY(); ++j) {
-      int col = 1;
+      int nvals = 0; // Keep track of how many values printed on current line.
       for (size_t i = 0; i < set.NX(); ++i) {
         outfile.Printf("%12.5f", set.GetElement(i, j, k));
-        if ( (col % 6)==0 )
+        ++nvals;
+        if ( nvals == 6 ) {
           outfile.Printf("\n");
-        ++col;
+          nvals = 0;
+        }
       }
-      if ( (col-1) % 6 != 0 )
-        outfile.Printf("\n");
+      if ( nvals > 0 ) outfile.Printf("\n");
     }
   }
   outfile.Printf("%8i\n", -9999);
