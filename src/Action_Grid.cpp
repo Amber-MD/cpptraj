@@ -13,6 +13,7 @@ Action_Grid::Action_Grid() :
   madura_(0),
   smooth_(0),
   nframes_(0),
+  debug_(0),
   invert_(false),
   pdbfile_(0),
   grid_(0)
@@ -29,6 +30,7 @@ void Action_Grid::Help() {
 // Action_Grid::Init()
 Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   nframes_ = 0;
   // Get output filename
   std::string filename = actionArgs.GetStringKey("out");
@@ -212,11 +214,13 @@ void Action_Grid::PrintPDB(double gridMax)
         pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
       }
   // DEBUG: Write all grid bin corners
-  ++res;
-  for (size_t k = 0; k <= grid_->NZ(); k++)
-    for (size_t j = 0; j <= grid_->NY(); j++)
-      for (size_t i = 0; i <= grid_->NX(); i++) {
-        Vec3 cxyz = grid_->BinCorner(i,j,k);
-        pdbout.WriteATOM(res, cxyz[0], cxyz[1], cxyz[2], "BIN", 0.0);
-      }
+  if (debug_ > 1) {
+    ++res;
+    for (size_t k = 0; k <= grid_->NZ(); k++)
+      for (size_t j = 0; j <= grid_->NY(); j++)
+        for (size_t i = 0; i <= grid_->NX(); i++) {
+          Vec3 cxyz = grid_->BinCorner(i,j,k);
+          pdbout.WriteATOM(res, cxyz[0], cxyz[1], cxyz[2], "BIN", 0.0);
+        }
+  }
 }

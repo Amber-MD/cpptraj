@@ -23,6 +23,7 @@ class Action_Grid : public Action, private GridAction {
     double madura_;
     double smooth_;
     unsigned int nframes_;
+    int debug_;
     bool invert_;
     AtomMask mask_;
     CpptrajFile* pdbfile_;
