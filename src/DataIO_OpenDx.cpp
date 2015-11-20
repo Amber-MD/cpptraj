@@ -157,10 +157,17 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 }
 
 // -----------------------------------------------------------------------------
+void DataIO_OpenDx::WriteHelp() {
+  mprintf("\tbincenter: Center grid points on bin centers.\n"
+          "\tgridwrap:  Like 'bincenter', but also wrap grid density.\n"
+          "\t           Useful when grid encompasses unit cell.\n"
+          "\tgridext:   Like 'bincenter', but also print extra layer of empty bins.\n");
+}
+
 int DataIO_OpenDx::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("bincenter")) gridWriteMode_ = BIN_CENTER;
-  else if (argIn.hasKey("wrap")) gridWriteMode_ = WRAP;
-  else if (argIn.hasKey("extended")) gridWriteMode_ = EXTENDED;
+  else if (argIn.hasKey("gridwrap")) gridWriteMode_ = WRAP;
+  else if (argIn.hasKey("gridext")) gridWriteMode_ = EXTENDED;
   if (gridWriteMode_ == BIN_CORNER)
     mprintf("\tOpenDx: Grid will be created using bin corners.\n");
   else if (gridWriteMode_ == BIN_CENTER)

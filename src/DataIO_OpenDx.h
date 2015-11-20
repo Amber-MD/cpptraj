@@ -8,6 +8,7 @@ class DataIO_OpenDx : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_OpenDx(); }
     int processReadArgs(ArgList&) { return 0; }
     int ReadData(FileName const&, DataSetList&, std::string const&);
+    static void WriteHelp();
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
