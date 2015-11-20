@@ -25,6 +25,7 @@ Analysis_Clustering::Analysis_Clustering() :
   draw_tol_(0.0),
   cnumvtime_(0),
   clustersVtime_(0),
+  clustersRefFrame_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
   metric_(ClusterList::RMS),
@@ -227,6 +228,10 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, DataSetList* 
 
   // Output option for cluster info
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
+
+  // Dataset to store representative cluster frames
+  clustersRefFrame_ = (DataSet_integer*) datasetlist->AddSet(DataSet::INTEGER, "refframe", "refframe");
+  if (clustersRefFrame_==0) return Analysis::ERR;
 
   // Dataset to store cluster number v time
   cnumvtime_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
@@ -491,6 +496,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
   } else
     mprintf("\tNo clusters found.\n");
+
+  // save representative cluster frames to Dataset
+  if (clustersRefFrame_!=0) {
+    AddRefFrametoDataset( *CList_ );
+  }
   cluster_post.Stop();
   cluster_total.Stop();
   // Timing data
@@ -788,5 +798,16 @@ void Analysis_Clustering::WriteRepTraj( ClusterList const& CList ) {
     clusterout.WriteSingle(framenum, clusterframe);
     // Close traj
     clusterout.EndTraj();
+  }
+}
+
+void Analysis_Clustering::AddRefFrametoDataset( ClusterList const& CList ) {
+  // Loop over all clusters
+  for (ClusterList::cluster_iterator C = CList.begincluster();
+                                     C != CList.endcluster(); ++C)
+  {
+    // Get best rep frame # 
+    int framenum = C->BestRepFrame();
+    clustersRefFrame_->AddElement(framenum);
   }
 }
