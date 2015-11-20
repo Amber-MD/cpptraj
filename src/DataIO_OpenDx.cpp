@@ -159,6 +159,10 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 // -----------------------------------------------------------------------------
 int DataIO_OpenDx::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("bincenter")) gridWriteMode_ = BIN_CENTER;
+  if (gridWriteMode_ == BIN_CORNER)
+    mprintf("\tOpenDx: Grid will be created using bin corners.\n");
+  else if (gridWriteMode_ == BIN_CENTER)
+    mprintf("\tOpenDx: Grid will be created using bin centers.\n");
   return 0;
 }
 
@@ -185,18 +189,19 @@ void DataIO_OpenDx::WriteDxHeader(CpptrajFile& outfile,
                                   double LX, double LY, double LZ,
                                   Matrix_3x3 const& ucell, Vec3 const& oxyz) const
 {
-  outfile.Printf("object 1 class gridpositions counts %zu %zu %zu\n", NX, NY, NZ);
-  outfile.Printf("origin %g %g %g\n", oxyz[0], oxyz[1], oxyz[2]);
-  outfile.Printf("delta %g %g %g\n", ucell[0]/LX, ucell[1]/LX, ucell[2]/LX);
-  outfile.Printf("delta %g %g %g\n", ucell[3]/LY, ucell[4]/LY, ucell[5]/LY);
-  outfile.Printf("delta %g %g %g\n", ucell[6]/LZ, ucell[7]/LZ, ucell[8]/LZ);
-  outfile.Printf("object 2 class gridconnections counts %zu %zu %zu\n", NX, NY, NZ);
-  outfile.Printf("object 3 class array type double rank 0 items %zu data follows\n",
-                 NX*NY*NZ);
+  outfile.Printf("object 1 class gridpositions counts %zu %zu %zu\n"
+                 "origin %g %g %g\ndelta %g %g %g\ndelta %g %g %g\ndelta %g %g %g\n"
+                 "object 2 class gridconnections counts %zu %zu %zu\n"
+                 "object 3 class array type double rank 0 items %zu data follows\n",
+                 NX, NY, NZ, oxyz[0], oxyz[1], oxyz[2],
+                 ucell[0]/LX, ucell[1]/LX, ucell[2]/LX,
+                 ucell[3]/LY, ucell[4]/LY, ucell[5]/LY,
+                 ucell[6]/LZ, ucell[7]/LZ, ucell[8]/LZ,
+                 NX, NY, NZ, NX*NY*NZ);
 }
 
 
-int DataIO_OpenDx::WriteGridBinCenter( DataSet const& setIn, CpptrajFile& outfile) const {
+int DataIO_OpenDx::WriteGridBinCenter(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Need to construct a grid mesh around bins, with points centered on the bins.
   int mesh_x = set.NX();
@@ -231,7 +236,7 @@ int DataIO_OpenDx::WriteGridBinCenter( DataSet const& setIn, CpptrajFile& outfil
   return 0;
 }
 
-int DataIO_OpenDx::WriteGridBinCorner( DataSet const& setIn, CpptrajFile& outfile) const {
+int DataIO_OpenDx::WriteGridBinCorner(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Print the OpenDX header
   WriteDxHeader(outfile, set.NX(), set.NY(), set.NZ(), set.NX(), set.NY(), set.NZ(),
@@ -250,7 +255,7 @@ int DataIO_OpenDx::WriteGridBinCorner( DataSet const& setIn, CpptrajFile& outfil
 }
 
 // DataIO_OpenDx::WriteSet3D()
-int DataIO_OpenDx::WriteSet3D( DataSet const& setIn, CpptrajFile& outfile) {
+int DataIO_OpenDx::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) {
   if (setIn.Ndim() != 3) {
     mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
               setIn.legend(), outfile.Filename().full(), setIn.Ndim());
