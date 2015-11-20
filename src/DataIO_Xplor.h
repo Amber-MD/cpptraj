@@ -16,8 +16,6 @@ class DataIO_Xplor : public DataIO {
     void WriteXplorHeader(CpptrajFile&, std::string const&,
                           int, int, int, int, int, int, int, int, int,
                           Matrix_3x3 const&) const;
-    int WriteXplorBinCorner(DataSet const&, CpptrajFile&) const;
-
     std::string title_;
     std::string remark_;
 };

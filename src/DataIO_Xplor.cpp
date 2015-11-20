@@ -134,18 +134,6 @@ int DataIO_Xplor::WriteData(FileName const& fname, DataSetList const& setList)
   return err;
 }
 
-// DataIO_Xplor::WriteSet3D()
-int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
-  if (setIn.Ndim() != 3) {
-    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
-    return 1;
-  }
-  int err = WriteXplorBinCorner( setIn, outfile );;
-  if (err == 0) outfile.Printf("%8i\n", -9999);
-  return err;
-}
-
 /** Header: Title, Remarks, XYZ { Num grid points, start point, stop point },
   *         Cell x y z alpha beta gamma.
   */
@@ -170,7 +158,13 @@ void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
                  box[0], box[1], box[2], box[3], box[4], box[5]);
 }
 
-int DataIO_Xplor::WriteXplorBinCorner(DataSet const& setIn, CpptrajFile& outfile) const {
+// DataIO_Xplor::WriteSet3D()
+int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
+  if (setIn.Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
+    return 1;
+  }
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Write XPLOR header
   // Locate the indices of the absolute origin in order to find starting
@@ -201,5 +195,6 @@ int DataIO_Xplor::WriteXplorBinCorner(DataSet const& setIn, CpptrajFile& outfile
       if ( nvals > 0 ) outfile.Printf("\n");
     }
   }
+  outfile.Printf("%8i\n", -9999);
   return 0;
 }
