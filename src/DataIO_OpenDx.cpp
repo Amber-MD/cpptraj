@@ -159,10 +159,16 @@ int DataIO_OpenDx::LoadGrid(const char* filename, DataSet& ds)
 // -----------------------------------------------------------------------------
 int DataIO_OpenDx::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("bincenter")) gridWriteMode_ = BIN_CENTER;
+  else if (argIn.hasKey("wrap")) gridWriteMode_ = WRAP;
+  else if (argIn.hasKey("extended")) gridWriteMode_ = EXTENDED;
   if (gridWriteMode_ == BIN_CORNER)
     mprintf("\tOpenDx: Grid will be created using bin corners.\n");
   else if (gridWriteMode_ == BIN_CENTER)
     mprintf("\tOpenDx: Grid will be created using bin centers.\n");
+  else if (gridWriteMode_ == WRAP)
+    mprintf("\tOpenDx: Grid will be created using bin centers and wrapped.\n");
+  else if (gridWriteMode_ == EXTENDED)
+    mprintf("\tOpenDx: Grid will be created using bin centers and surrounded with empty bins.\n");
   return 0;
 }
 
@@ -193,8 +199,10 @@ int DataIO_OpenDx::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const 
   }
   int err = 0;
   switch ( gridWriteMode_ ) {
-    case BIN_CORNER: err = WriteGridBinCorner( setIn, outfile ); break;
-    case BIN_CENTER: err = WriteGridBinCenter( setIn, outfile ); break;
+    case BIN_CORNER:
+    case BIN_CENTER: err = WriteGrid( setIn, outfile ); break;
+    case WRAP:
+    case EXTENDED  : err = WriteGridWrap( setIn, outfile ); break;
   }
   // Print tail
   if (err == 0) {
@@ -224,7 +232,7 @@ void DataIO_OpenDx::WriteDxHeader(CpptrajFile& outfile,
                  NX, NY, NZ, NX*NY*NZ);
 }
 
-int DataIO_OpenDx::WriteGridBinCenter(DataSet const& setIn, CpptrajFile& outfile) const {
+int DataIO_OpenDx::WriteGridWrap(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Need to construct a grid mesh around bins, with points centered on the bins.
   int mesh_x = set.NX();
@@ -238,19 +246,44 @@ int DataIO_OpenDx::WriteGridBinCenter(DataSet const& setIn, CpptrajFile& outfile
                 set.Ucell(), oxyz);
   // Print out the data. Start at bin -1, end on bin N.
   int nvals = 0; // Keep track of how many values printed on current line.
-  for (int ii = -1; ii <= mesh_x; ++ii) {
-    bool zero_x = (ii < 0 || ii == mesh_x);
-    for (int ij = -1; ij <= mesh_y; ++ij) {
-      bool zero_y = (ij < 0 || ij == mesh_y);
-      for (int ik = -1; ik <= mesh_z; ++ik) {
-        if (zero_x || zero_y || ik < 0 || ik == mesh_z)
-          outfile.Printf(" 0");
-        else
-          outfile.Printf(" %g", set.GetElement(ii, ij, ik));
-        ++nvals;
-        if (nvals == 5) {
-          outfile.Printf("\n");
-          nvals = 0;
+  if (gridWriteMode_ == WRAP) {
+    int bi, bj, bk;
+    for (int ii = -1; ii <= mesh_x; ++ii) {
+      if      (ii < 0      ) bi = mesh_x - 1;
+      else if (ii == mesh_x) bi = 0;
+      else                   bi = ii;
+      for (int ij = -1; ij <= mesh_y; ++ij) {
+        if      (ij < 0      ) bj = mesh_y - 1;
+        else if (ij == mesh_y) bj = 0;
+        else                   bj = ij;
+        for (int ik = -1; ik <= mesh_z; ++ik) {
+          if      (ik < 0      ) bk = mesh_z - 1;
+          else if (ik == mesh_z) bk = 0;
+          else                   bk = ik;
+          outfile.Printf(" %g", set.GetElement(bi, bj, bk));
+          ++nvals;
+          if (nvals == 5) {
+            outfile.Printf("\n");
+            nvals = 0;
+          }
+        }
+      }
+    }
+  } else { // EXTENDED
+    for (int ii = -1; ii <= mesh_x; ++ii) {
+      bool zero_x = (ii < 0 || ii == mesh_x);
+      for (int ij = -1; ij <= mesh_y; ++ij) {
+        bool zero_y = (ij < 0 || ij == mesh_y);
+        for (int ik = -1; ik <= mesh_z; ++ik) {
+          if (zero_x || zero_y || ik < 0 || ik == mesh_z)
+            outfile.Printf(" 0");
+          else
+            outfile.Printf(" %g", set.GetElement(ii, ij, ik));
+          ++nvals;
+          if (nvals == 5) {
+            outfile.Printf("\n");
+            nvals = 0;
+          }
         }
       }
     }
@@ -259,11 +292,15 @@ int DataIO_OpenDx::WriteGridBinCenter(DataSet const& setIn, CpptrajFile& outfile
   return 0;
 }
 
-int DataIO_OpenDx::WriteGridBinCorner(DataSet const& setIn, CpptrajFile& outfile) const {
+int DataIO_OpenDx::WriteGrid(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
+  Vec3 oxyz = set.GridOrigin();
+  if (gridWriteMode_ == BIN_CENTER)
+    // Origin needs to be shifted to center of bin located at 0,0,0
+    oxyz = set.BinCenter(0,0,0);
   // Print the OpenDX header
   WriteDxHeader(outfile, set.NX(), set.NY(), set.NZ(), set.NX(), set.NY(), set.NZ(),
-                set.Ucell(), set.GridOrigin());
+                set.Ucell(), oxyz);
   // Now print out the data. It is already in row-major form (z-axis changes
   // fastest), so no need to do any kind of data adjustment
   size_t gridsize = set.Size();

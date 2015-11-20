@@ -12,13 +12,13 @@ class DataIO_OpenDx : public DataIO {
     int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
   private:
-    enum GridWriteType { BIN_CORNER = 0, BIN_CENTER };
+    enum GridWriteType { BIN_CORNER = 0, BIN_CENTER, WRAP, EXTENDED };
     int LoadGrid(const char*, DataSet&);
     int WriteSet3D(DataSet const&, CpptrajFile&) const;
     void WriteDxHeader(CpptrajFile&, size_t, size_t, size_t, double, double, double,
                        Matrix_3x3 const&, Vec3 const&) const;
-    int WriteGridBinCenter(DataSet const&, CpptrajFile&) const;
-    int WriteGridBinCorner(DataSet const&, CpptrajFile&) const;
+    int WriteGridWrap(DataSet const&, CpptrajFile&) const;
+    int WriteGrid(DataSet const&, CpptrajFile&) const;
 
     GridWriteType gridWriteMode_;
 };
