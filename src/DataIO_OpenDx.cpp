@@ -166,7 +166,7 @@ int DataIO_OpenDx::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
-// DataIO_OpenDx::WriteData3D()
+// DataIO_OpenDx::WriteData()
 int DataIO_OpenDx::WriteData(FileName const& fname, DataSetList const& setList)
 {
   // Open output file
@@ -181,6 +181,30 @@ int DataIO_OpenDx::WriteData(FileName const& fname, DataSetList const& setList)
   int err = 0;
   for (DataSetList::const_iterator set = setList.begin(); set != setList.end(); ++set)
     err += WriteSet3D( *(*set), outfile );
+  return err;
+}
+
+// DataIO_OpenDx::WriteSet3D()
+int DataIO_OpenDx::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
+  if (setIn.Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
+    return 1;
+  }
+  int err = 0;
+  switch ( gridWriteMode_ ) {
+    case BIN_CORNER: err = WriteGridBinCorner( setIn, outfile ); break;
+    case BIN_CENTER: err = WriteGridBinCenter( setIn, outfile ); break;
+  }
+  // Print tail
+  if (err == 0) {
+    // TODO: Make this an option
+    //if (mode_ == CENTER)
+    //  outfile.Printf("\nobject \"density (%s) [A^-3]\" class field\n",
+    //                 centerMask_.MaskString());
+    //else
+      outfile.Printf("\nobject \"density [A^-3]\" class field\n");
+  }
   return err;
 }
 
@@ -199,7 +223,6 @@ void DataIO_OpenDx::WriteDxHeader(CpptrajFile& outfile,
                  ucell[6]/LZ, ucell[7]/LZ, ucell[8]/LZ,
                  NX, NY, NZ, NX*NY*NZ);
 }
-
 
 int DataIO_OpenDx::WriteGridBinCenter(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
@@ -252,28 +275,4 @@ int DataIO_OpenDx::WriteGridBinCorner(DataSet const& setIn, CpptrajFile& outfile
     case 1: outfile.Printf("%g\n", set[gridsize-1]); break;
   }
   return 0;
-}
-
-// DataIO_OpenDx::WriteSet3D()
-int DataIO_OpenDx::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) {
-  if (setIn.Ndim() != 3) {
-    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
-              setIn.legend(), outfile.Filename().full(), setIn.Ndim());
-    return 1;
-  }
-  int err = 0;
-  switch ( gridWriteMode_ ) {
-    case BIN_CORNER: err = WriteGridBinCorner( setIn, outfile ); break;
-    case BIN_CENTER: err = WriteGridBinCenter( setIn, outfile ); break;
-  }
-  // Print tail
-  if (err == 0) {
-    // TODO: Make this an option
-    //if (mode_ == CENTER)
-    //  outfile.Printf("\nobject \"density (%s) [A^-3]\" class field\n",
-    //                 centerMask_.MaskString());
-    //else
-      outfile.Printf("\nobject \"density [A^-3]\" class field\n");
-  }
-  return err;
 }

@@ -14,7 +14,7 @@ class DataIO_OpenDx : public DataIO {
   private:
     enum GridWriteType { BIN_CORNER = 0, BIN_CENTER };
     int LoadGrid(const char*, DataSet&);
-    int WriteSet3D(DataSet const&, CpptrajFile&);
+    int WriteSet3D(DataSet const&, CpptrajFile&) const;
     void WriteDxHeader(CpptrajFile&, size_t, size_t, size_t, double, double, double,
                        Matrix_3x3 const&, Vec3 const&) const;
     int WriteGridBinCenter(DataSet const&, CpptrajFile&) const;
