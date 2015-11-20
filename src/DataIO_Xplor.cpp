@@ -112,11 +112,6 @@ int DataIO_Xplor::ReadData(FileName const& fname,
 // -----------------------------------------------------------------------------
 int DataIO_Xplor::processWriteArgs(ArgList& argIn) {
   title_ = argIn.GetStringKey("xplortitle");
-  if (argIn.hasKey("bincenter")) gridWriteMode_ = BIN_CENTER;
-  if (gridWriteMode_ == BIN_CORNER)
-    mprintf("\tXPLOR: Grid will be created using bin corners.\n");
-  else if (gridWriteMode_ == BIN_CENTER)
-    mprintf("\tXPLOR: Grid will be created using bin centers.\n");
   return 0;
 }
 
@@ -146,11 +141,7 @@ int DataIO_Xplor::WriteSet3D(DataSet const& setIn, CpptrajFile& outfile) const {
               setIn.legend(), outfile.Filename().full(), setIn.Ndim());
     return 1;
   }
-  int err = 0;
-  switch ( gridWriteMode_ ) {
-    case BIN_CORNER: err = WriteXplorBinCorner( setIn, outfile ); break;
-    case BIN_CENTER: err = WriteXplorBinCenter( setIn, outfile ); break;
-  }
+  int err = WriteXplorBinCorner( setIn, outfile );;
   if (err == 0) outfile.Printf("%8i\n", -9999);
   return err;
 }
@@ -179,11 +170,6 @@ void DataIO_Xplor::WriteXplorHeader(CpptrajFile& outfile,
                  box[0], box[1], box[2], box[3], box[4], box[5]);
 }
 
-int DataIO_Xplor::WriteXplorBinCenter(DataSet const& setIn, CpptrajFile& outfile) const {
-
-  return 0;
-}
-
 int DataIO_Xplor::WriteXplorBinCorner(DataSet const& setIn, CpptrajFile& outfile) const {
   DataSet_3D const& set = static_cast<DataSet_3D const&>( setIn );
   // Write XPLOR header
@@ -203,15 +189,16 @@ int DataIO_Xplor::WriteXplorBinCorner(DataSet const& setIn, CpptrajFile& outfile
   for (size_t k = 0; k < set.NZ(); ++k) {
     outfile.Printf("%8i\n", k);
     for (size_t j = 0; j < set.NY(); ++j) {
-      int col = 1;
+      int nvals = 0; // Keep track of how many values printed on current line.
       for (size_t i = 0; i < set.NX(); ++i) {
         outfile.Printf("%12.5f", set.GetElement(i, j, k));
-        if ( (col % 6)==0 )
+        ++nvals;
+        if ( nvals == 6 ) {
           outfile.Printf("\n");
-        ++col;
+          nvals = 0;
+        }
       }
-      if ( (col-1) % 6 != 0 )
-        outfile.Printf("\n");
+      if ( nvals > 0 ) outfile.Printf("\n");
     }
   }
   return 0;
