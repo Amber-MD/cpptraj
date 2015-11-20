@@ -211,4 +211,12 @@ void Action_Grid::PrintPDB(double gridMax)
         Vec3 cxyz = grid_->BinCorner(i,j,k);
         pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
       }
+  // DEBUG: Write all grid bin corners
+  ++res;
+  for (size_t k = 0; k <= grid_->NZ(); k++)
+    for (size_t j = 0; j <= grid_->NY(); j++)
+      for (size_t i = 0; i <= grid_->NX(); i++) {
+        Vec3 cxyz = grid_->BinCorner(i,j,k);
+        pdbout.WriteATOM(res, cxyz[0], cxyz[1], cxyz[2], "BIN", 0.0);
+      }
 }
