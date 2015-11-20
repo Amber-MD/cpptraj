@@ -67,7 +67,7 @@ int AnalysisList::DoAnalyses() {
 // AnalysisList::List()
 void AnalysisList::List() const {
   if (!analysisList_.empty()) {
-    mprintf("\nANALYSES:\n");
+    mprintf("\nANALYSES (%zu total):\n", analysisList_.size());
     for (Aarray::const_iterator ana = analysisList_.begin(); ana != analysisList_.end(); ++ana)
       mprintf("  %u: [%s]\n", ana - analysisList_.begin(), ana->args_.ArgLine());
   }

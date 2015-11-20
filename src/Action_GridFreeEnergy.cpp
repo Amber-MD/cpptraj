@@ -29,19 +29,20 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
   grid_ = GridInit( "GridFreeEnergy", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
-  outfile->AddDataSet( grid_ );
   //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
 
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: GridFreeEnergy: No mask specified.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
 
   // Get extra args
   tempInKevin_ = actionArgs.getKeyDouble("temp", 293.0);
+  outfile->AddDataSet( grid_ );
 
   // Info
   mprintf("    GridFreeEnergy\n");
