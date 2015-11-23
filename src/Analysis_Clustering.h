@@ -4,6 +4,7 @@
 #include "ClusterList.h"
 #include "TrajectoryFile.h"
 #include "DataSet_Coords.h"
+#include "DataSet_integer.h"
 // Class: Analysis_Clustering
 /// Used to perform clustering of frames, currently by RMSD only.
 class Analysis_Clustering: public Analysis {
@@ -29,6 +30,7 @@ class Analysis_Clustering: public Analysis {
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.
+    DataSet_integer* clustersRefFrame_;    /// Reprsentative frame numbers for clusters.
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
@@ -69,5 +71,6 @@ class Analysis_Clustering: public Analysis {
     void WriteAvgStruct( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );
     void WriteRepTraj( ClusterList const& );
+    void AddRefFrametoDataset( ClusterList const& CList );
 };
 #endif
