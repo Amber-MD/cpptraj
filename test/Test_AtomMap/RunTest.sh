@@ -34,7 +34,20 @@ DoTest reordered.pdb.save reordered.pdb
 DoTest reordered.mol2.save reordered.mol2
 DoTest rmsd.dat.save rmsd.dat
 DoTest fit.mol2.save fit.mol2
-CheckTest
+
+cat > atommap.in <<EOF
+parm xtallig.mol2
+reference xtallig.mol2
+
+parm start.mol2
+reference start.mol2 parm start.mol2
+
+atommap xtallig.mol2 start.mol2 rmsfit rmsout rmsout.dat 1g9v
+
+trajin xtallig.mol2
+EOF
+RunCpptraj "AtomMap with 'rmsfit'"
+DoTest rmsd.dat.save rmsout.dat
 
 EndTest
 
