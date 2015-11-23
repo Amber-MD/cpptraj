@@ -139,7 +139,7 @@ void ActionList::SyncActions() {
 
 void ActionList::List() const {
   if (!actionList_.empty()) {
-    mprintf("\nACTIONS:\n");
+    mprintf("\nACTIONS (%zu total):\n", actionList_.size());
     for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
       mprintf("  %u: [%s]\n", act - actionList_.begin(), act->args_.ArgLine());
   }
