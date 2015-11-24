@@ -3,7 +3,7 @@
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
-#include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // CONSTRUCTOR
@@ -161,7 +161,7 @@ int EnsembleIn_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     mpi_allgather_timer_.Start();
 #   endif
     // TODO: Put this in Traj_NcEnsemble
-    if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+    if (Parallel::World().AllGather( &my_idx, 1, MPI_INT, &frameidx_[0])) {
       rprinterr("Error: Gathering frame indices.\n");
       badEnsemble_ = true;
       return 0; // TODO: Better parallel error check
@@ -179,9 +179,9 @@ int EnsembleIn_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       for (int sendrank = 0; sendrank != ensembleSize_; sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          if (sendrank == worldrank)
+          if (sendrank == Parallel::World().Rank())
             f_ensemble[0].SendFrame( recvrank );
-          else if (recvrank == worldrank) {
+          else if (recvrank == Parallel::World().Rank()) {
             f_ensemble[1].RecvFrame( sendrank );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1;

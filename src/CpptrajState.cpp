@@ -1,12 +1,12 @@
 #include "CpptrajState.h"
 #include "CpptrajStdio.h"
-#include "MpiRoutines.h" // worldrank
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
 #include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
 #ifdef MPI
+# include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
 # ifdef TIMER
 #   include "EnsembleIn.h"
@@ -44,7 +44,7 @@ int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
   return trajoutList_.AddTrajout( fname, blank, DSL_.GetTopology(blank) );
 }
 // -----------------------------------------------------------------------------
-int CpptrajState::WorldSize() { return worldsize; }
+int CpptrajState::WorldSize() { return Parallel::World().Size(); }
 
 CpptrajState::ListKeyType CpptrajState::ListKeys[] = {
   {L_ACTION,   "actions" }, {L_ACTION,   "action"   },
@@ -256,9 +256,9 @@ int CpptrajState::RunEnsemble() {
       ensembleSize = (*traj)->EnsembleCoordInfo().EnsembleSize();
 #     ifdef MPI
       // TODO: Eventually try to divide ensemble among MPI threads?
-      if (worldsize != ensembleSize) {
+      if (Parallel::World().Size() != ensembleSize) {
         mprinterr("Error: Ensemble size (%i) does not match # of MPI threads (%i).\n",
-                  ensembleSize, worldsize);
+                  ensembleSize, Parallel::World().Size());
         return 1;
       }
 #     endif
@@ -297,9 +297,9 @@ int CpptrajState::RunEnsemble() {
       return 1;
     mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
             " suffix corresponds to above map):\n");
-    parallel_barrier();
+    Parallel::World().Barrier();
     ensembleOut.List( trajinList_.PindexFrames() );
-    parallel_barrier();
+    Parallel::World().Barrier();
   }
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
@@ -323,9 +323,9 @@ int CpptrajState::RunEnsemble() {
   FramePtrArray CurrentFrames( ensembleSize );
 # ifdef MPI
   // Make all sets not in an ensemble a member of this thread.
-  DSL_.MakeDataSetsEnsemble( worldrank );
+  DSL_.MakeDataSetsEnsemble( Parallel::World().Rank() ); // FIXME create MPI ensemble comm
   // This tells all DataFiles to append member number.
-  DFL_.MakeDataFilesEnsemble( worldrank );
+  DFL_.MakeDataFilesEnsemble( Parallel::World().Rank() );
   // Actions have already been set up for this ensemble.
 # else
   // Make all sets not in an ensemble part of member 0.
@@ -414,7 +414,7 @@ int CpptrajState::RunEnsemble() {
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
-                  worldrank, EnsembleParm[member].Top().c_str());
+                  Parallel::World().Rank(), EnsembleParm[member].Top().c_str());
 #         else
           mprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   member, EnsembleParm[member].Top().c_str());
@@ -558,7 +558,7 @@ int CpptrajState::RunParallel() {
         break;
       }
   }
-  if (parallel_check_error( err )) {
+  if (Parallel::World().CheckError( err )) {
     mprinterr("Error: 'trajin' in parallel currently requires all trajectories use"
               " the same topology file.\n");
     return 1;
@@ -570,29 +570,29 @@ int CpptrajState::RunParallel() {
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
     if (input_traj.AddInputTraj( *traj )) { err = 1; break; }
-  if (parallel_check_error( err )) return 1;
+  if (Parallel::World().CheckError( err )) return 1;
 
   // Divide frames among threads.
   int my_start = 0;
   int my_stop = 0;
 //  int my_frames = 0;
   int maxFrames = (int)input_traj.Size();
-  int frames_per_thread = maxFrames / worldsize;
-  int remainder         = maxFrames % worldsize;
-  int my_frames         = frames_per_thread + (int)(worldrank < remainder);
+  int frames_per_thread = maxFrames / Parallel::World().Size();
+  int remainder         = maxFrames % Parallel::World().Size();
+  int my_frames         = frames_per_thread + (int)(Parallel::World().Rank() < remainder);
   // Figure out where this thread starts and stops
-  for (int rank = 0; rank != worldrank; rank++)
+  for (int rank = 0; rank != Parallel::World().Rank(); rank++)
     if (rank < remainder)
       my_start += (frames_per_thread + 1);
     else
       my_start += (frames_per_thread);
   my_stop = my_start + my_frames;
   // Store how many frames each rank will process (only needed by master).
-  std::vector<int> rank_frames( worldsize, frames_per_thread );
-  for (int i = 0; i != worldsize; i++)
+  std::vector<int> rank_frames( Parallel::World().Size(), frames_per_thread );
+  for (int i = 0; i != Parallel::World().Size(); i++)
     if (i < remainder) rank_frames[i]++;
-  if (worldrank == 0) {
-    for (int i = 0; i != worldsize; i++)
+  if (Parallel::World().Master()) {
+    for (int i = 0; i != Parallel::World().Size(); i++)
       mprintf("Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
 /*  if (worldrank == 0) {
@@ -628,7 +628,7 @@ int CpptrajState::RunParallel() {
     parallel_recv( &my_frames, 1, PARA_INT, 0, 1002 );
   }*/
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
-  parallel_barrier();
+  Parallel::World().Barrier();
 
   // Disable trajectory output for now. FIXME
   if (!trajoutList_.Empty()) {
@@ -646,7 +646,7 @@ int CpptrajState::RunParallel() {
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
-  if (parallel_check_error( err )) {
+  if (Parallel::World().CheckError( err )) {
     mprinterr("Error: Could not set up actions for '%s'\n", top->c_str());
     return 1;
   }
@@ -671,7 +671,7 @@ int CpptrajState::RunParallel() {
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
-  parallel_barrier();
+  Parallel::World().Barrier();
   rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
   // Sync data sets to master thread
@@ -684,9 +684,9 @@ int CpptrajState::RunParallel() {
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");
   // Only call print for master
-  if (worldrank == 0)
+  if (Parallel::World().Master())
     actionList_.PrintActions();
-  parallel_barrier();
+  Parallel::World().Barrier();
   return 0;
 }
 #endif
@@ -867,11 +867,11 @@ int CpptrajState::RunAnalyses() {
   analysis_time.Start();
   // Only master performs analyses currently.
   int err = 0;
-  if (worldrank == 0)
+  if (Parallel::World().Master() == 0)
     err = analysisList_.DoAnalyses();
   analysis_time.Stop();
 # ifdef MPI
-  if (parallel_check_error( err )) err = 1;
+  if (Parallel::World().CheckError( err )) err = 1;
 # endif
   mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
   // If all Analyses completed successfully, clean up analyses.

@@ -6,7 +6,7 @@
 #include "Constants.h"
 #include "Version.h"
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // NetcdfFile::GetNetcdfConventions()
@@ -916,29 +916,29 @@ void NetcdfFile::WriteVIDs() const {
 
 void NetcdfFile::Sync() {
 # ifdef MPI
-  parallel_bcastMaster(&ncframe_, 1, PARA_INT);
-  parallel_bcastMaster(&TempVID_, 1, PARA_INT);
-  parallel_bcastMaster(&coordVID_, 1, PARA_INT);
-  parallel_bcastMaster(&velocityVID_, 1, PARA_INT);
-  parallel_bcastMaster(&frcVID_, 1, PARA_INT);
-  parallel_bcastMaster(&cellAngleVID_, 1, PARA_INT);
-  parallel_bcastMaster(&cellLengthVID_, 1, PARA_INT);
-  parallel_bcastMaster(&timeVID_, 1, PARA_INT);
-  parallel_bcastMaster(&remd_dimension_, 1, PARA_INT);
-  parallel_bcastMaster(&indicesVID_, 1, PARA_INT);
-  parallel_bcastMaster(&ncdebug_, 1, PARA_INT);
-  parallel_bcastMaster(&ensembleDID_, 1, PARA_INT);
-  parallel_bcastMaster(&frameDID_, 1, PARA_INT);
-  parallel_bcastMaster(&atomDID_, 1, PARA_INT);
-  parallel_bcastMaster(&ncatom_, 1, PARA_INT);
-  parallel_bcastMaster(&ncatom3_, 1, PARA_INT);
-  parallel_bcastMaster(&spatialDID_, 1, PARA_INT);
-  parallel_bcastMaster(&labelDID_, 1, PARA_INT);
-  parallel_bcastMaster(&cell_spatialDID_, 1, PARA_INT);
-  parallel_bcastMaster(&cell_angularDID_, 1, PARA_INT);
-  parallel_bcastMaster(&spatialVID_, 1, PARA_INT);
-  parallel_bcastMaster(&cell_spatialVID_, 1, PARA_INT);
-  parallel_bcastMaster(&cell_angularVID_, 1, PARA_INT);
+  Parallel::World().MasterBcast(&ncframe_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&TempVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&coordVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&velocityVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&frcVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cellAngleVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cellLengthVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&timeVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&remd_dimension_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&indicesVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&ncdebug_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&ensembleDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&frameDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&atomDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&ncatom_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&ncatom3_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&spatialDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&labelDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cell_spatialDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cell_angularDID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&spatialVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cell_spatialVID_, 1, MPI_INT);
+  Parallel::World().MasterBcast(&cell_angularVID_, 1, MPI_INT);
 # endif
 }
 #endif

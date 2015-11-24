@@ -5,8 +5,9 @@
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
   // MPI cannot be defined for C++ when including mpi.h since it is reserved for the MPI namespace
+  // FIXME wrap in another include file.
 # undef MPI
 # define USE_MPI
 # ifdef HAS_PNETCDF
@@ -160,8 +161,8 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   NC_close();
   // Set up local ensemble parameters
 # ifdef USE_MPI
-  ensembleStart_ = worldrank;
-  ensembleEnd_ = worldrank + 1;
+  ensembleStart_ = Parallel::World().Rank();
+  ensembleEnd_ = Parallel::World().Rank() + 1;
 # else
   ensembleStart_ = 0;
   ensembleEnd_ = ensembleSize;
@@ -189,8 +190,8 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     // TODO: File output modifications
     SetCoordInfo( cInfo );
 #   ifdef USE_MPI
-    ensembleStart_ = worldrank;
-    ensembleEnd_ = worldrank + 1;
+    ensembleStart_ = Parallel::World().Rank();
+    ensembleEnd_ = Parallel::World().Rank() + 1;
 #   else
     ensembleStart_ = 0;
     ensembleEnd_ = cInfo.EnsembleSize();;
@@ -200,7 +201,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
 #   ifdef USE_MPI
-    if (worldrank == 0) { // Only master creates file.
+    if (Parallel::World().Master()) { // Only master creates file.
 #   endif
       // Create NetCDF file.
       err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(), Title());
@@ -209,7 +210,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
       NC_close();
 #   ifdef USE_MPI
     }
-    parallel_bcastMaster(&err, 1, PARA_INT);
+    Parallel::World().MasterBcast(&err, 1, MPI_INT);
 #   endif
     if (err != 0) return 1;
 #   ifdef USE_MPI
@@ -262,7 +263,7 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
 inline int checkPNCerr(int err) {
   if (err != NC_NOERR) {
     rprinterr("PnetCDF Error: %s\n", ncmpi_strerror(err));
-    parallel_abort( err );
+    Parallel::Abort( err );
     return 1;
   }
   return 0;

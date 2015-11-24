@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // AppendNumber
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // CONSTRUCTOR
@@ -56,11 +56,11 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   fileNames_.clear();
 # ifdef MPI
   // In MPI each thread writes a single member.
-  if (members_to_write.InRange( worldrank ))
-    fileNames_.push_back( AppendNumber(Traj().Filename().Full(), worldrank) );
+  if (members_to_write.InRange( Parallel::World().Rank() ))
+    fileNames_.push_back( AppendNumber(Traj().Filename().Full(), Parallel::World().Rank()) );
   else
     rprintf("Warning: Skipping member '%s'\n", 
-            AppendNumber(Traj().Filename().Full(), worldrank).c_str());
+            AppendNumber(Traj().Filename().Full(), Parallel::World().Rank()).c_str());
 # else
   // In serial single process writes each member.
   // Create a map: tIndex[ pos ] = <ioarray_index>
@@ -180,7 +180,7 @@ void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
   // determine total number being written.
   int mysize = (int)ioarray_.size();
   int total;
-  parallel_reduce(&total, &mysize, 1, PARA_INT, PARA_SUM);
+  Parallel::World().Reduce(&total, &mysize, 1, MPI_INT, MPI_SUM);
   mprintf(" %i members written) ", total);
   // Since first member may be skipped, do not print if empty. 
   if (ioarray_.empty())

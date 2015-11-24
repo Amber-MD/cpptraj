@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdarg>
 #ifdef MPI
-#  include "MpiRoutines.h"
+#  include "Parallel.h"
 #endif
 
 static bool worldsilent = false; // If true suppress all mprintf output.
@@ -11,7 +11,7 @@ static bool supressErrorMsg = false; // If true supress all mprinterr output.
 /** Call flush on STDOUT only if this is the master thread */
 void mflush() {
 # ifdef MPI
-  if (worldrank!=0) return;
+  if (!Parallel::World().Master()) return;
 # endif
   fflush(stdout);
 }
@@ -19,7 +19,7 @@ void mflush() {
 /** Print message to STDOUT even if worldsilent */
 void loudPrintf(const char* format, ...) {
 # ifdef MPI
-  if (worldrank!=0) return;
+  if (!Parallel::World().Master()) return;
 # endif
   va_list args;
   va_start(args,format);
@@ -30,7 +30,7 @@ void loudPrintf(const char* format, ...) {
 /** Print message to STDERR even if supressErrorMsg */
 void loudPrinterr(const char *format, ...) {
 # ifdef MPI
-  if (worldrank!=0) return; 
+  if (!Parallel::World().Master()) return;
 # endif
   va_list args;
   va_start(args,format);
@@ -38,15 +38,16 @@ void loudPrinterr(const char *format, ...) {
   va_end(args);
 }
 #ifdef PARALLEL_DEBUG_VERBOSE
+// -----------------------------------------------------------------------------
 /** Master prints message to STDOUT, others to mpidebugfile. */
 void mprintf(const char*format, ...) {
   va_list args;
   va_start(args,format);
-  if (worldrank == 0) {
-    vfprintf(stdout,format,args);
-    vfprintf(mpidebugfile,format,args);
+  if (Parallel::World().Master()) {
+    vfprintf(stdout, format, args);
+    vfprintf(Parallel::mpidebugfile_, format, args);
   } else
-    vfprintf(mpidebugfile,format,args);
+    vfprintf(Parallel::mpidebugfile_, format, args);
   va_end(args);
 }
 
@@ -54,19 +55,20 @@ void mprintf(const char*format, ...) {
 void mprinterr(const char *format, ...) {
   va_list args;
   va_start(args,format);
-  if (worldrank == 0) {
+  if (Parallel::World().Master()) {
     vfprintf(stderr,format,args);
-    vfprintf(mpidebugfile,format,args);
+    vfprintf(Parallel::mpidebugfile_, format, args);
   } else
-    vfprintf(mpidebugfile,format,args);
+    vfprintf(Parallel::mpidebugfile_, format, args);
   va_end(args);
 }
+// -----------------------------------------------------------------------------
 #else
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
   if (worldsilent) return;
 # ifdef MPI
-  if (worldrank!=0) return;
+  if (!Parallel::World().Master()) return;
 # endif
   va_list args;
   va_start(args,format);
@@ -78,7 +80,7 @@ void mprintf(const char *format, ...) {
 void mprinterr(const char *format, ...) {
   if (supressErrorMsg) return;
 # ifdef MPI
-  if (worldrank!=0) return; 
+  if (!Parallel::World().Master()) return;
 # endif
   va_list args;
   va_start(args,format);
@@ -94,14 +96,13 @@ void rprintf(const char *format, ...) {
   va_start(args, format);
 # ifdef MPI
   char buffer[1024];
-  int nc = sprintf(buffer, "[%i]\t", worldrank);
+  int nc = sprintf(buffer, "[%i]\t", Parallel::World().Rank());
   nc += vsprintf(buffer + nc, format, args);
   fwrite(buffer, 1, nc, stdout);
 # else
   vfprintf(stdout,format,args);
 # endif
   va_end(args);
-  return;
 }
 
 // rprinterr()
@@ -112,14 +113,13 @@ void rprinterr(const char *format, ...) {
   va_start(args,format);
 # ifdef MPI
   char buffer[1024];
-  int nc = sprintf(buffer, "[%i]\t", worldrank);
+  int nc = sprintf(buffer, "[%i]\t", Parallel::World().Rank());
   nc += vsprintf(buffer + nc, format, args);
   fwrite(buffer, 1, nc, stderr);
 # else
   vfprintf(stderr,format,args);
 # endif
   va_end(args);
-  return;
 }
 
 void SetWorldSilent(bool silentIn)   { worldsilent = silentIn;      }
@@ -138,7 +138,6 @@ void SupressErrorMsg(bool supressIn) { supressErrorMsg = supressIn; }
   vfprintf(stdout,format,args);
   va_end(args);
   fprintf(stdout,"\n");
-  return;
 }*/
 
 // printwar()
@@ -153,5 +152,4 @@ void SupressErrorMsg(bool supressIn) { supressErrorMsg = supressIn; }
   vfprintf(stdout,format,args);
   va_end(args);
   fprintf(stdout,"\n");
-  return;
 }*/

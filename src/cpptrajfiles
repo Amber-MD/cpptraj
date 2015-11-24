@@ -213,6 +213,7 @@ SOURCES=ActionFrameCounter.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
+        Parallel.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
@@ -268,7 +269,6 @@ SOURCES=ActionFrameCounter.cpp \
         Vec3.cpp \
         main.cpp
 
-CSOURCES=MpiRoutines.c \
-         molsurf.c
+CSOURCES= molsurf.c
 
 

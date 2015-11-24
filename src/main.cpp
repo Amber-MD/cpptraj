@@ -8,17 +8,17 @@
 #include <fftw3.h>
 #endif
 #include "Cpptraj.h"
-#include "MpiRoutines.h"
+#include "Parallel.h"
 // ----------========== CPPTRAJ MAIN ROUTINE ==========----------
 /// Main routine.
 int main(int argc, char **argv) {
-  if (parallel_init(argc,argv) != 0) return 1;
+  if (Parallel::Init(argc,argv) != 0) return 1;
   Cpptraj Program;
   int err = Program.RunCpptraj(argc, argv);
 # ifdef FFTW_FFT
   // Ensure no debris from FFTW is left over.
   fftw_cleanup();
 # endif
-  parallel_end();
+  Parallel::End();
   return err;
 }

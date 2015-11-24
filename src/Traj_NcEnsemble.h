@@ -20,6 +20,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     void closeTraj();
     int readFrame(int,Frame&);
     int readVelocity(int, Frame&);
+    int readForce(int, Frame&) { return 1; } //FIXME implement
     int writeFrame(int,Frame const&);
     void Info();
     int processWriteArgs(ArgList&);

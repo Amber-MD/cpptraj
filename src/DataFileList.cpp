@@ -1,10 +1,9 @@
 // DataFileList
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
-#include "MpiRoutines.h" // parallel_barrier
 #include "PDBfile.h"
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
 # include "StringRoutines.h" // integerToString
 #endif
 #ifdef TIMER
@@ -188,7 +187,7 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
     // FIXME: Unlike DataFiles, CpptrajFiles are opened immediately so append
     //        worldrank to filename now. This will have to change if MPI does
     //        not necessarily mean ensemble mode in the future.
-    name.SetFileName( AppendNumber(nameIn.Full(), worldrank) );
+    name.SetFileName( AppendNumber(nameIn.Full(), Parallel::World().Rank()) );
 #   else
     name = nameIn;
 #   endif
@@ -237,7 +236,9 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::List() const {
-  parallel_barrier();
+# ifdef MPI
+  Parallel::World().Barrier();
+# endif
   if (!fileList_.empty() || !cfList_.empty()) {
     mprintf("\nDATAFILES (%zu total):\n", fileList_.size() + cfList_.size());
     if (!fileList_.empty()) {
@@ -265,7 +266,10 @@ void DataFileList::WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-      if (worldrank == 0) (*df)->WriteDataOut();
+#     ifdef MPI
+      if (Parallel::World().Master()) // Only master writes
+#     endif
+        (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }
   }

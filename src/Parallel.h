@@ -31,6 +31,7 @@ class Parallel {
     /// Stop parallel environment
     static int End();
 #   ifdef CPPTRAJ_MPI
+    static int Abort(int);
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif
@@ -39,7 +40,6 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
-    static int Abort(int);
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static void dbgprintf(const char*, ...);
     static int debug_init();

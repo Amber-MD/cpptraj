@@ -1,7 +1,6 @@
-// DataSet_double
 #include "DataSet_double.h"
 #ifdef MPI
-#include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // DataSet_double::Allocate()
@@ -52,70 +51,20 @@ int DataSet_double::Append(DataSet* dsIn) {
 // DataSet_double::Sync()
 int DataSet_double::Sync(size_t total, std::vector<int> const& rank_frames) {
 # ifdef MPI
-  if (worldsize==1) return 0;
-  if (worldrank == 0) {
+  if (Parallel::World().Size()==1) return 0;
+  if (Parallel::World().Master()) {
     size_t pos = Data_.size();
     // Need to increase size of Data on master by number of frames on each other rank.
     int additional_frames = (int)total - rank_frames[0];
     Data_.resize( Data_.size() + additional_frames );
     double* endptr = &(Data_[0]) + pos;
     // Receive data from each rank.
-    for (int rank = 1; rank < worldsize; rank++) {
-      parallel_sendMaster( endptr, rank_frames[rank], rank, PARA_DOUBLE );
+    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+      Parallel::World().SendMaster( endptr, rank_frames[rank], rank, MPI_DOUBLE );
       endptr += rank_frames[rank];
     }
   } else // Send data to master //TODO adjust for repeated additions?
-    parallel_sendMaster( &(Data_[0]), Data_.size(), worldrank, PARA_DOUBLE );
-/*
-  unsigned int dataSize;
-  unsigned int masterSize = 0;
-  double* values = 0;
-
-
-  for ( int rank = 1; rank < worldsize; ++rank) {
-    if ( worldrank == rank ) {
-      // ----- RANK -------
-      // Get size of data on rank.
-      dataSize = Data_.size();
-      // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size is 0 on rank, skip this rank.
-      if (dataSize == 0) continue;
-      // Allocate space for temp array on rank, put Data_ into values.
-      values = new double[ dataSize ];
-      std::copy(Data_.begin(), Data_.end(), values);
-      //frames = new int[ dataSize ];
-      // Send arrays to master
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
-      // Free arrays on rank
-      delete[] values;
-    } else if (worldrank == 0) {
-      // ----- MASTER -----
-      // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size was 0 on rank, skip rank.
-      if (dataSize == 0) continue;
-      // Reallocate temp array on master if necessary
-      if (dataSize > masterSize) {
-        if ( values != 0 ) delete[] values;
-        values = new double[ dataSize ];
-        masterSize = dataSize;
-      }
-      // Master receives arrays
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, dataSize, rank, PARA_DOUBLE);
-      // Insert frames and values to master arrays
-      for (unsigned int i = 0; i < dataSize; ++i) {
-        //Frames_.push_back( frames[i] );
-        Data_.push_back( values[i] );
-      }
-    }
-  } // End loop over ranks > 0
-
-  // Free master array
-  if (worldrank == 0 && values != 0 ) delete[] values;
-*/
+    Parallel::World().SendMaster( &(Data_[0]), Data_.size(), Parallel::World().Rank(), MPI_DOUBLE );
 # endif
   return 0;
 }

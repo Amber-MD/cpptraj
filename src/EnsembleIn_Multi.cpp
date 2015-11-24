@@ -3,7 +3,7 @@
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
 #ifdef MPI
-#  include "MpiRoutines.h"
+#  include "Parallel.h"
 #endif
 
 // EnsembleIn_Multi::SetupEnsembleRead()
@@ -98,19 +98,19 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       allIndices.resize( REMDtraj_.size() );
 #   ifdef MPI
     int err = 0;
-    if (REMDtraj_[worldrank]->openTrajin()) {
-      rprinterr("Error: Opening %s\n", REMDtraj_.f_name(worldrank));
+    if (REMDtraj_[Parallel::World().Rank()]->openTrajin()) {
+      rprinterr("Error: Opening %s\n", REMDtraj_.f_name(Parallel::World().Rank()));
       err = 1;
     }
     if (err == 0) {
-      if (REMDtraj_[worldrank]->readFrame( Traj().Counter().Start(), frameIn )) {
-        rprinterr("Error: Reading %s\n", REMDtraj_.f_name(worldrank));
+      if (REMDtraj_[Parallel::World().Rank()]->readFrame( Traj().Counter().Start(), frameIn )) {
+        rprinterr("Error: Reading %s\n", REMDtraj_.f_name(Parallel::World().Rank()));
         err = 2;
       }
-      REMDtraj_[worldrank]->closeTraj();
+      REMDtraj_[Parallel::World().Rank()]->closeTraj();
     }
     int total_error;
-    parallel_allreduce( &total_error, &err, 1, PARA_INT, PARA_SUM );
+    Parallel::World().AllReduce( &total_error, &err, 1, MPI_INT, MPI_SUM );
     if (total_error != 0) {
       mprinterr("Error: Cannot setup ensemble trajectories.\n");
       return 1;
@@ -152,10 +152,10 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   // Read in all replicas
   //mprintf("DBG: Ensemble frame %i:",currentFrame+1); // DEBUG
 # ifdef MPI
-  int repIdx = worldrank; // for targetType==CRDIDX
+  int repIdx = Parallel::World().Rank(); // for targetType==CRDIDX
   unsigned int member = 0;
   // Read REMDtraj for this rank
-  if ( REMDtraj_[worldrank]->readFrame( currentFrame, f_ensemble[0]) )
+  if ( REMDtraj_[Parallel::World().Rank()]->readFrame( currentFrame, f_ensemble[0]) )
     return 1;
 # else
   int repIdx = 0; // for targetType==CRDIDX
@@ -191,7 +191,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 #   ifdef TIMER
     mpi_allgather_timer_.Start();
 #   endif
-    if (parallel_allgather( &fidx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+    if (Parallel::World().AllGather( &fidx, 1, MPI_INT, &frameidx_[0])) {
       rprinterr("Error: Gathering frame indices.\n");
       return 0; // TODO: Better parallel error check
     }
@@ -209,9 +209,9 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       for (int sendrank = 0; sendrank != (int)REMDtraj_.size(); sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          if (sendrank == worldrank)
+          if (sendrank == Parallel::World().Rank())
             f_ensemble[0].SendFrame( recvrank ); 
-          else if (recvrank == worldrank) {
+          else if (recvrank == Parallel::World().Rank()) {
             f_ensemble[1].RecvFrame( sendrank );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1; 
@@ -234,9 +234,9 @@ int EnsembleIn_Multi::BeginEnsemble() {
   mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
   // Open the trajectory this thread will be dealing with.
-  if (REMDtraj_[worldrank]->openTrajin()) {
+  if (REMDtraj_[Parallel::World().Rank()]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
-              REMDtraj_.f_name(worldrank));
+              REMDtraj_.f_name(Parallel::World().Rank()));
     return 1;
   }
 # else
@@ -257,7 +257,7 @@ int EnsembleIn_Multi::BeginEnsemble() {
 
 void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
-  REMDtraj_[worldrank]->closeTraj();
+  REMDtraj_[Parallel::World().Rank()]->closeTraj();
 # ifdef TIMER
   total_mpi_allgather_ += mpi_allgather_timer_.Total();
   total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();

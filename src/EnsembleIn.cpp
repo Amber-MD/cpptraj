@@ -1,10 +1,10 @@
 #include "EnsembleIn.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
-#include "MpiRoutines.h"
+#include "Parallel.h"
 
 int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) {
-  if (parallel_allgather(tAddress, 1, PARA_DOUBLE, &allTemps[0], 1, PARA_DOUBLE)) {
+  if (Parallel::World().AllGather(tAddress, 1, MPI_DOUBLE, &allTemps[0])) {
     rprinterr("Error: Gathering temperatures.\n");
     return 1; // TODO: Better parallel error check
   }
@@ -13,7 +13,7 @@ int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTem
 
 int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) {
   std::vector<int> all_indices(allIndices.size() * Ndims, 0);
-  if (parallel_allgather(iAddress, Ndims, PARA_INT, &all_indices[0], Ndims, PARA_INT)) {
+  if (Parallel::World().AllGather(iAddress, Ndims, MPI_INT, &all_indices[0])) {
     rprinterr("Error: Gathering replica indices\n");
     return 1; // TODO: Better parallel error check
   }

@@ -1,7 +1,7 @@
 #include "ReferenceAction.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // ReferenceAction::SetRefMask()
@@ -108,15 +108,15 @@ void ReferenceAction::SetRefStructure(Frame const& frameIn, bool fitIn, bool use
   refFrame_ = frameIn;
 # ifdef MPI
   // Ensure all threads are using the same reference
-  if (worldrank == 0) {
+  if (Parallel::World().Master()) { // TODO MasterBcast
     rprintf("DEBUG: Sending reference frame to children.\n");
-    for (int rank = 1; rank != worldsize; rank++)
+    for (int rank = 1; rank != Parallel::World().Size(); rank++)
       refFrame_.SendFrame(rank);
   } else {
     rprintf("DEBUG: Receiving reference frame from master.\n");
     refFrame_.RecvFrame(0);
   }
-  parallel_barrier();
+  Parallel::World().Barrier();
 # endif
   selectedRef_.SetCoordinates( refFrame_, refMask_ );
   if (fitIn)

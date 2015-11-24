@@ -1,7 +1,6 @@
-// DataSet_string
 #include "DataSet_string.h"
 #ifdef MPI
-#include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // DataSet_string::Allocate()
@@ -57,8 +56,8 @@ int DataSet_string::Append(DataSet* dsIn) {
 // DataSet_string::Sync()
 int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
 # ifdef MPI
-  if (worldsize == 1) return 0;
-  if (worldrank == 0) {
+  if (Parallel::World().Size() == 1) return 0;
+  if (Parallel::World().Master()) {
     // MASTER
     char* block = 0;
     int currentBlockSize = 0;
@@ -67,17 +66,17 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
     int additional_frames = (int)total - rank_frames[0];
     Data_.resize( Data_.size() + additional_frames );
     // Receive data from each rank.
-    for (int rank = 1; rank < worldsize; rank++) {
+    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
       // Need the size of the char* block
       int blockSize = 0;
-      parallel_sendMaster( &blockSize, 1, rank, PARA_INT );
+      Parallel::World().SendMaster( &blockSize, 1, rank, MPI_INT );
       if (blockSize > currentBlockSize) {
         if (block != 0) delete[] block;
         block = new char[ blockSize ];
         currentBlockSize = blockSize;
       }
       // Receive the block of text
-      parallel_sendMaster( block, blockSize, rank, PARA_CHAR );
+      Parallel::World().SendMaster( block, blockSize, rank, MPI_CHAR );
       // Convert text block into strings
       const char* ptr = block;
       const char* endptr = block + blockSize;
@@ -94,6 +93,7 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)
       blockSize += (it->size() + 1); // +1 for null char.
     char* block = new char[ blockSize ];
+    Parallel::World().SendMaster( &blockSize, 1, Parallel::World().Rank(), MPI_INT );
     // Copy each string (including null char) to array
     char* ptr = block;
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)
@@ -103,82 +103,9 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
       ptr += (len + 1);
     }
     // Send array to master
-    parallel_sendMaster( block, blockSize, worldrank, PARA_CHAR );
+    Parallel::World().SendMaster( block, blockSize, Parallel::World().Rank(), MPI_CHAR );
     delete[] block;
   }
-/*
-  unsigned int dataSize;
-  unsigned int masterStringSize = 0;
-  unsigned int stringSize;
-  char* values = 0;
-
-  if (worldsize==1) return 0;
-
-  for ( int rank = 1; rank < worldsize; ++rank) {
-    if ( worldrank == rank ) {
-      // ----- RANK -------
-      // Get size of data on rank.
-      dataSize = Data_.size();
-      // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size is 0 on rank, skip this rank.
-      if (dataSize == 0) continue;
-      // Get sum size of each string on rank (incl. null char).
-      stringSize = 0;
-      for ( std::vector<std::string>::iterator str_it = Data_.begin(); 
-                                          str_it != Data_.end(); ++str_it)
-        stringSize += ( (*str_it).size() + 1 ); // +1 for null char.
-      // Send sum string size to master
-      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
-      // Allocate space on rank
-      values = new char[ stringSize ];
-      // Copy each string (incl. null char) to the char array
-      char* ptr = values;
-      for ( std::vector<std::string>::iterator str_it = Data_.begin(); 
-                                          str_it != Data_.end(); ++str_it) 
-      {
-        size_t length = (*str_it).copy( ptr, (*str_it).size() + 1 );
-        ptr += length;
-      }
-      // Send arrays to master
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
-      // Free arrays on rank
-      delete[] values;
-    } else if (worldrank == 0) {
-      // ----- MASTER -----
-      // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size was 0 on rank, skip rank.
-      if (dataSize == 0) continue;
-      // Master receives sum string size from rank
-      parallel_sendMaster(&stringSize, 1, rank, PARA_INT);
-      // Reallocate if necessary
-      //if (dataSize > masterSize) {
-      //  if ( frames != 0 ) delete[] frames;
-      //  frames = new int[ dataSize ];
-      //  masterSize = dataSize;
-      //}
-      if (stringSize > masterStringSize) {
-        if ( values != 0 ) delete[] values;
-        values = new char[ stringSize ];
-        masterStringSize = stringSize;
-      }
-      // Master receives arrays
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, stringSize, rank, PARA_CHAR);
-      // Insert frames and values to master arrays
-      char* ptr = values;
-      for (unsigned int i = 0; i < dataSize; ++i) {
-        Data_.push_back( ptr );
-        ptr += ( Data_.back().size() + 1 );
-      }
-    }
-  } // End loop over ranks > 0
-
-  // Free master array
-  if (worldrank == 0 && values != 0 ) delete[] values;
-*/
 # endif
   return 0;
 }
