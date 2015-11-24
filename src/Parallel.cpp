@@ -184,4 +184,163 @@ int Parallel::Comm::MasterBcast(void* buffer, int count, MPI_Datatype datatype) 
   }
   return 0;
 }
+
+/** \param err Rank error value.
+  * \return Sum of errors on all ranks.
+  */
+int Parallel::Comm::CheckError(int err) const {
+  int errtotal = 0;
+  AllReduce(&err, &errtotal, 1, MPI_INT, MPI_SUM);
+  return errtotal;
+}
+
+// ===== Parallel::File ========================================================
+/** Open specified file in parallel, read only, using given Comm. */
+int Parallel::File::OpenFile_Read(const char* filename, Comm const& commIn) {
+  comm_ = commIn;
+  fprintf(stdout,"[%i]\tparallel_openFile_read: Opening input file %s\n", comm_.Rank(), filename);
+  int err = MPI_File_open(comm_.MPIcomm(), (char*)filename, MPI_MODE_RDONLY, MPI_INFO_NULL, &file_);
+  if (err != MPI_SUCCESS)
+    printMPIerr(err, "parallel_openFile_read()", comm_.Rank());
+  // Check that everyone opened the file.
+  if (comm_.CheckError(err) != 0) {
+    return 1;
+  }
+  return 0;
+}
+
+/** Flush the file. */
+int Parallel::File::Flush() { return MPI_File_sync( file_ ); }
+
+/** \return the position of this rank in the file. */
+off_t Parallel::File::Position() {
+  MPI_Offset offset;
+  int err = MPI_File_get_position( file_, &offset );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_position()", comm_.Rank());
+    return 0;
+  }
+  return (off_t)offset;
+}
+
+/** Open specified file in parallel for write using given Comm; delete if present. */
+int Parallel::File::OpenFile_Write(const char* filename, Comm const& commIn) {
+  comm_ = commIn;
+  // Remove file if present
+  MPI_File_delete((char*)filename, MPI_INFO_NULL);
+# ifdef PARALLEL_DEBUG_VERBOSE
+  dbgprintf("\tparallel_open_file_write: Opening output file %s\n",filename);
+# endif
+  int err = MPI_File_open(comm_.MPIcomm(), (char*)filename, MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                          MPI_INFO_NULL, &file_);
+  if (err != MPI_SUCCESS)
+    printMPIerr(err, "parallel_open_file_write()", comm_.Rank());
+  // Check that everyone opened the file.
+  if (comm_.CheckError(err) !=0 ) {
+    return 1;
+  }
+  return 0;
+}
+
+/** Close file. */
+int Parallel::File::CloseFile() {
+  // TODO: Check that file is open?
+  //MPI_Barrier(MPI_COMM_WORLD);
+# ifdef PARALLEL_DEBUG_VERBOSE
+  dbgprintf("\tparallel_closeFile: Closing file.\n");
+# endif
+  int err = MPI_File_close( &file_ );
+  if (err != MPI_SUCCESS)
+    printMPIerr(err, "parallel_closeFile", comm_.Rank());
+  return 0;
+}
+
+/** Read data in parallel. */
+int Parallel::File::Fread(void* buffer, int count, MPI_Datatype datatype) {
+  int actualCount;
+  MPI_Status status;
+
+  int err = MPI_File_read( file_, buffer, count, datatype, &status);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fread", comm_.Rank());
+    return -1;
+  }
+  err = MPI_Get_count(&status, datatype, &actualCount);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fread", comm_.Rank());
+    return -1;
+  }
+  if (actualCount == MPI_UNDEFINED) {
+    fprintf(stderr,"[%i] Error in parallel read: Number of bytes read was undefined.\n",
+            comm_.Rank());
+    return -1;
+  }
+  return actualCount;
+}
+
+/** Write data in parallel. */
+int Parallel::File::Fwrite(void* buffer, int count, MPI_Datatype datatype) {
+  MPI_Status status;
+# ifdef PARALLEL_DEBUG_VERBOSE
+  //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);
+  dbgprintf("Calling MPI write(%i):\n",count);
+# endif
+  // NOTE: Some MPI implementations require the void* cast
+  int err = MPI_File_write( file_, (void*)buffer, count, datatype, &status);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fwrite", comm_.Rank());
+    return 1;
+  }
+  return 0;
+}
+
+/** Seek to offset from specified origin. */
+int Parallel::File::Fseek(off_t offsetIn, int origin) {
+  int org = MPI_SEEK_SET;
+  switch ( origin ) {
+    case SEEK_SET : org = MPI_SEEK_SET; break;
+    case SEEK_CUR : org = MPI_SEEK_CUR; break;
+    case SEEK_END : org = MPI_SEEK_END; break;
+    default: return 1;
+  }
+  int err = MPI_File_seek( file_, (MPI_Offset)offsetIn, org);
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "parallel_fseek", comm_.Rank());
+    return 1;
+  }
+  return 0;
+}
+
+/** Like fgets, use mpi file routines to get all chars up to and including
+  * null or newline. Returns buffer, or 0 on error.
+  */
+char* Parallel::File::Fgets(char* buffer, int num) {
+  int idx = 0;
+  for (; idx < num - 1; idx++) {
+    int err = MPI_File_read( file_, buffer+idx, 1, MPI_CHAR, MPI_STATUS_IGNORE);
+    if (err != MPI_SUCCESS) {
+      printMPIerr(err, "parallel_fgets", comm_.Rank());
+      return 0;
+    }
+    if (buffer[idx]=='\n' || buffer[idx]=='\0') {
+      idx++; // Always have idx be 1 more char ahead
+      break;
+    }
+  }
+  // NOTE: Uncommenting the next 3 lines replaces newlines with NULL
+  //if (i==num && buffer[i-1]=='\n')
+  //  buffer[i-1]='\0';
+  //else
+    buffer[idx] = '\0';
+  return buffer;
+}
+
+int Parallel::File::SetSize(long int offset) {
+  int err = MPI_File_set_size( file_, (MPI_Offset)offset);
+  if (err != MPI_SUCCESS)
+    printMPIerr(err, "parallel_setSize", comm_.Rank());
+  if (comm_.CheckError(err) != 0)
+    return 1;
+  return 0;
+}
 #endif

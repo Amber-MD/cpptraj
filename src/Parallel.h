@@ -18,6 +18,8 @@ class Parallel {
   public:
     /// C++ class wrapper around MPI comm routines.
     class Comm;
+    /// C++ class wrapper around MPI file routines.
+    class File;
     /// \return MPI_WORLD_COMM Comm
     static Comm const& World() { return world_; }
     /// Initialize parallel environment
@@ -41,6 +43,8 @@ class Parallel::Comm {
     bool Master() const { return rank_ == 0; }
 #   ifdef CPPTRAJ_MPI
     Comm(MPI_Comm);
+    /// \return Internal MPI_Comm
+    MPI_Comm MPIcomm() const { return comm_; }
     void Barrier() const;
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
     int SendMaster(void*, int, int, MPI_Datatype) const;
@@ -49,6 +53,7 @@ class Parallel::Comm {
     int Send(void*, int, MPI_Datatype, int, int) const;
     int Recv(void*, int, MPI_Datatype, int, int) const;
     int MasterBcast(void*, int, MPI_Datatype) const;
+    int CheckError(int) const;
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI
@@ -57,6 +62,29 @@ class Parallel::Comm {
     int rank_;
     int size_;
 };
+
+class Parallel::File {
+  public:
+    File() {}
+#   ifdef CPPTRAJ_MPI
+    int OpenFile_Read(const char*, Comm const&);
+    int Flush();
+    off_t Position();
+    int OpenFile_Write(const char*, Comm const&);
+    int CloseFile();
+    int Fread(void*, int, MPI_Datatype);
+    int Fwrite(void*, int, MPI_Datatype);
+    int Fseek(off_t, int);
+    char* Fgets(char*, int);
+    int SetSize(long int);
+#   endif
+  private:
+#   ifdef CPPTRAJ_MPI
+    MPI_File file_;
+    Comm comm_;
+#   endif
+};
+// Restore MPI definition
 #ifdef CPPTRAJ_MPI
 # undef CPPTRAJ_MPI
 # define MPI
