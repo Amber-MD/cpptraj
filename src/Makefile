@@ -7,7 +7,7 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
 
 include ambpdbfiles
 
-AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
+AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
 all: cpptraj$(SFX)
 
