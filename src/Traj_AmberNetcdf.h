@@ -28,6 +28,12 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     // Reservoir functions
     inline int createReservoir(bool,double,int);
     int writeReservoir(int, Frame const&, double, int);
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin();
+    int parallelReadFrame(int, Frame&);
+    void parallelCloseTraj();
+#   endif
   private:
     float *Coord_;
     FileName filename_;

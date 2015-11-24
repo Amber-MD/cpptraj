@@ -462,4 +462,17 @@ void Traj_AmberNetcdf::Info() {
   if (CoordInfo().HasTemp()) mprintf(" with replica temperatures");
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 }
+#ifdef MPI
+int Traj_AmberNetcdf::parallelOpenTrajin() {
+  return 1;
+}
+
+int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
+  return 1;
+}
+
+void Traj_AmberNetcdf::parallelCloseTraj() {
+
+}
+#endif /* MPI */
 #endif
