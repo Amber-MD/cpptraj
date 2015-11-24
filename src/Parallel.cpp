@@ -175,7 +175,7 @@ const
 }
 
 /** Broadcast data from master to all ranks. */
-int Parallel::Comm::BcastMaster(void* buffer, int count, MPI_Datatype datatype) const
+int Parallel::Comm::MasterBcast(void* buffer, int count, MPI_Datatype datatype) const
 {
   int err = MPI_Bcast( buffer, count, datatype, 0, comm_ );
   if (err != MPI_SUCCESS) {
