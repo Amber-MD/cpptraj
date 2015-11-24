@@ -8,6 +8,10 @@
 # undef MPI
 # define CPPTRAJ_MPI
 # include <mpi.h>
+# include <sys/types.h> // off_t FIXME necessary?
+# ifdef PARALLEL_DEBUG_VERBOSE
+#   include <cstdio> // for FILE
+# endif
 #endif
 /// Static class, Cpptraj C++ interface to C MPI routines.
 /** NOTE: I have decided to use a class instead of a namespace to have the
@@ -31,6 +35,12 @@ class Parallel {
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
     static int Abort(int);
+#   ifdef PARALLEL_DEBUG_VERBOSE
+    static void dbgprintf(const char*, ...);
+    static int debug_init();
+    static int debug_end();
+    static FILE* mpidebugfile_;
+#   endif
 #   endif
     static Comm world_;
 };

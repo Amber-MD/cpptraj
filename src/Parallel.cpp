@@ -1,5 +1,8 @@
 #include <cstdio>
 #include "Parallel.h"
+#ifdef PARALLEL_DEBUG_VERBOSE
+# include <stdarg.h>
+#endif
 
 /** MPI world communicator. */
 Parallel::Comm Parallel::world_ = Parallel::Comm();
@@ -31,6 +34,45 @@ int Parallel::checkMPIerr(int err, const char *routineName, int rank) {
   return 0;
 }
 
+#ifdef PARALLEL_DEBUG_VERBOSE
+// ----- Debug routines --------------------------------------------------------
+FILE* Parallel::mpidebugfile_ = 0;
+
+void Parallel::dbgprintf(const char* format, ...) {
+  va_list args;
+  va_start(args,format);
+  //fprintf(mpidebugfile,"[%i] ",worldrank);
+  vfprintf(mpidebugfile_, format, args);
+  fflush(mpidebugfile_);
+  va_end(args);
+  return;
+}
+
+/** Open a file named Thread.worldrank for this thread */
+int Parallel::debug_init() {
+  char outfilename[32];
+  sprintf(outfilename, "Thread.%03i", world_.Rank());
+  mpidebugfile_ = fopen(outfilename, "w");
+  if (mpidebugfile_ == NULL) {
+    fprintf(stderr,"[%i]\tCould not open debug file:\n", world_.Rank());
+    perror("");
+    return 1;
+  } /*else {
+    dbgprintf("MPI DEBUG: %s %p\n",outfilename,mpidebugfile);
+    fprintf(stdout,"MPI DEBUG: %s %p\n",outfilename,mpidebugfile);
+  }*/
+  return 0;
+}
+
+/** Close Thread.worldrank file.  */
+int Parallel::debug_end() {
+  if (mpidebugfile_ != 0)
+    fclose(mpidebugfile_);
+  return 0;
+}
+// -----------------------------------------------------------------------------
+#endif
+
 // Parallel::Init()
 int Parallel::Init(int argc, char** argv) {
   if ( MPI_Init(&argc, &argv) != MPI_SUCCESS ) {
@@ -38,16 +80,16 @@ int Parallel::Init(int argc, char** argv) {
     return 1;
   }
   world_ = Comm(MPI_COMM_WORLD);
-//# ifdef PARALLEL_DEBUG_VERBOSE
-//  parallel_debug_init();
-//# endif
+# ifdef PARALLEL_DEBUG_VERBOSE
+  debug_init();
+# endif
   return 0;
 }
 
 int Parallel::End() {
-//# ifdef PARALLEL_DEBUG_VERBOSE
-//  parallel_debug_end();
-//# endif
+# ifdef PARALLEL_DEBUG_VERBOSE
+  debug_end();
+# endif
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;
