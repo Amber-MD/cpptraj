@@ -134,4 +134,54 @@ int Parallel::Comm::AllReduce(void *Return, void *input, int count,
   return 0;
 }
 
+/** Perform an mpi allgather. Assumes send/recv data type and count are same. */
+int Parallel::Comm::AllGather(void* sendbuffer, int count, MPI_Datatype datatype, void* recvbuffer)
+const
+{
+  int err = MPI_Allgather( sendbuffer, count, datatype, recvbuffer, count, datatype, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing allgather.\n", rank_);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+}
+
+/** Send data to specified rank. */
+int Parallel::Comm::Send(void* sendbuffer, int sendcount, MPI_Datatype sendtype, int dest, int tag)
+const
+{
+  int err = MPI_Send( sendbuffer, sendcount, sendtype, dest, tag, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing send.\n", rank_);
+    fprintf(stderr,"[%i]\tError: send of %i elements failed to rank %i\n", rank_, sendcount, dest);
+    return Parallel::Abort(err);
+  }
+  return 0;
+}
+
+/** Receive data from specified rank. */
+int Parallel::Comm::Recv(void* recvbuffer, int recvcount, MPI_Datatype recvtype, int src, int tag)
+const
+{
+  int err = MPI_Recv( recvbuffer, recvcount, recvtype, src, tag, comm_, MPI_STATUS_IGNORE );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing receive.\n", rank_);
+    fprintf(stderr,"[%i]\tError: receive of %i elements failed from rank %i\n",
+            rank_, recvcount, src);
+    return Parallel::Abort(err);
+  }
+  return 0;
+}
+
+/** Broadcast data from master to all ranks. */
+int Parallel::Comm::BcastMaster(void* buffer, int count, MPI_Datatype datatype) const
+{
+  int err = MPI_Bcast( buffer, count, datatype, 0, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing broadcast from master to all ranks.\n", rank_);
+    return Parallel::Abort(err);
+  }
+  return 0;
+}
 #endif

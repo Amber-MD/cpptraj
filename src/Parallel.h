@@ -45,6 +45,10 @@ class Parallel::Comm {
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
     int SendMaster(void*, int, int, MPI_Datatype) const;
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    int AllGather(void*, int, MPI_Datatype, void*) const;
+    int Send(void*, int, MPI_Datatype, int, int) const;
+    int Recv(void*, int, MPI_Datatype, int, int) const;
+    int BcastMaster(void*, int, MPI_Datatype) const;
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI
