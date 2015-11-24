@@ -10,6 +10,10 @@
 # include <mpi.h>
 #endif
 /// Static class, Cpptraj C++ interface to C MPI routines.
+/** NOTE: I have decided to use a class instead of a namespace to have the
+  *       option of making things private. Not sure if that is really
+  *       necessary.
+  */
 class Parallel {
   public:
     /// C++ class wrapper around MPI comm routines.
@@ -24,6 +28,7 @@ class Parallel {
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
     static int checkMPIerr(int, const char*, int);
+    static int Abort(int);
 #   endif
     static Comm world_;
 };
@@ -31,10 +36,15 @@ class Parallel {
 class Parallel::Comm {
   public:
     Comm() : rank_(0), size_(1) {}
-    int Rank() const { return rank_; }
-    int Size() const { return size_; }
+    int Rank()    const { return rank_;      }
+    int Size()    const { return size_;      }
+    bool Master() const { return rank_ == 0; }
 #   ifdef CPPTRAJ_MPI
     Comm(MPI_Comm);
+    void Barrier() const;
+    int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    int SendMaster(void*, int, int, MPI_Datatype) const;
+    int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI
