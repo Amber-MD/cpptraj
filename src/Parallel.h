@@ -68,6 +68,8 @@ class Parallel::Comm {
     int Recv(void*, int, MPI_Datatype, int, int) const;
     int MasterBcast(void*, int, MPI_Datatype) const;
     int CheckError(int) const;
+#   else
+    void Barrier() const {}
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI
