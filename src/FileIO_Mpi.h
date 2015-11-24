@@ -1,13 +1,12 @@
 #ifndef INC_FILEIO_MPI_H
 #define INC_FILEIO_MPI_H
+#ifdef MPI
 #include "FileIO.h" 
-#include "MpiRoutines.h"
-// Class: FileIO_Mpi
-/// MPI file IO, wrappers for the MPI routines in MpiRoutines.h
+#include "Parallel.h"
+/// MPI file IO
 class FileIO_Mpi : public FileIO {
   public:
-    FileIO_Mpi(); 
-    ~FileIO_Mpi(); 
+    FileIO_Mpi() {}
     int OpenStream(StreamType) { return 1; } 
     int Open(const char *, const char *);    
     int Close();
@@ -21,6 +20,7 @@ class FileIO_Mpi : public FileIO {
     int SetSize(long int);
     off_t Size(const char*) { return 0; }
   private:
-    parallelType pfile_; 
+    Parallel::File pfile_; 
 };
+#endif
 #endif

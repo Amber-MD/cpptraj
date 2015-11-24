@@ -321,7 +321,7 @@ int Parallel::File::Fread(void* buffer, int count, MPI_Datatype datatype) {
 }
 
 /** Write data in parallel. */
-int Parallel::File::Fwrite(void* buffer, int count, MPI_Datatype datatype) {
+int Parallel::File::Fwrite(const void* buffer, int count, MPI_Datatype datatype) {
   MPI_Status status;
 # ifdef PARALLEL_DEBUG_VERBOSE
   //dbgprintf("Calling MPI write(%i): [%s]\n",count,temp);

@@ -3,7 +3,7 @@
 #include "Trajout_Single.h"
 #include "DataSet_Coords_REF.h"
 #ifdef MPI
-# include "MpiRoutines.h"
+# include "Parallel.h"
 #endif
 
 // CONSTRUCTOR
@@ -144,9 +144,9 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
 int Action_Average::SyncAction() {
 # ifdef MPI
   int total_frames = 0;
-  parallel_reduce( &total_frames, &Nframes_, 1, PARA_INT, PARA_SUM );
+  Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   AvgFrame_->SumToMaster();
-  if (worldrank == 0) {
+  if (Parallel::World().Master()) {
     Nframes_ = total_frames;
     rprintf("DEBUG: Total frames= %i\n", Nframes_);
   }
