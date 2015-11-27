@@ -206,7 +206,7 @@ int CpptrajState::Run() {
   mprintf("---------- RUN BEGIN -------------------------------------------------\n");
   if (trajinList_.empty()) 
     mprintf("Warning: No input trajectories specified.\n");
-  else if (actionList_.Empty() && trajoutList_.Empty())
+  else if (actionList_.Empty() && trajoutList_.Empty() && noEmptyRun_)
     mprintf("Warning: No actions/output trajectories specified.\n");
   else {
     switch ( trajinList_.Mode() ) {

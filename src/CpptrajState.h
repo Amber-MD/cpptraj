@@ -9,7 +9,7 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
+    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true), noEmptyRun_(false) {}
     // TODO: Change to &
     DataSetList* DSL()       { return &DSL_;          }
     DataFileList* DFL()      { return &DFL_;          }
@@ -85,6 +85,8 @@ class CpptrajState {
     bool showProgress_;
     /// If true cpptraj will exit if errors are encountered instead of trying to continue
     bool exitOnError_;
+    /// If true do not process input trajectories when no actions/output trajectories.
+    bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddAction()
