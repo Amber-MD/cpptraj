@@ -916,29 +916,58 @@ void NetcdfFile::WriteVIDs() const {
 
 void NetcdfFile::Sync() {
 # ifdef MPI
-  Parallel::World().MasterBcast(&ncframe_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&TempVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&coordVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&velocityVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&frcVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cellAngleVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cellLengthVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&timeVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&remd_dimension_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&indicesVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&ncdebug_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&ensembleDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&frameDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&atomDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&ncatom_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&ncatom3_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&spatialDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&labelDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cell_spatialDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cell_angularDID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&spatialVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cell_spatialVID_, 1, MPI_INT);
-  Parallel::World().MasterBcast(&cell_angularVID_, 1, MPI_INT);
+  int nc_vars[23];
+  if (Parallel::World().Master()) {
+    nc_vars[0] = ncframe_;
+    nc_vars[1] = TempVID_;
+    nc_vars[2] = coordVID_;
+    nc_vars[3] = velocityVID_;
+    nc_vars[4] = frcVID_;
+    nc_vars[5] = cellAngleVID_;
+    nc_vars[6] = cellLengthVID_;
+    nc_vars[7] = timeVID_;
+    nc_vars[8] = remd_dimension_;
+    nc_vars[9] = indicesVID_;
+    nc_vars[10] = ncdebug_;
+    nc_vars[11] = ensembleDID_;
+    nc_vars[12] = frameDID_;
+    nc_vars[13] = atomDID_;
+    nc_vars[14] = ncatom_;
+    nc_vars[15] = ncatom3_;
+    nc_vars[16] = spatialDID_;
+    nc_vars[17] = labelDID_;
+    nc_vars[18] = cell_spatialDID_;
+    nc_vars[19] = cell_angularDID_;
+    nc_vars[20] = spatialVID_;
+    nc_vars[21] = cell_spatialVID_;
+    nc_vars[22] = cell_angularVID_;
+  }
+  Parallel::World().MasterBcast( nc_vars, 23, MPI_INT );
+  if (!Parallel::World().Master()) {
+    ncframe_ = nc_vars[0];
+    TempVID_ = nc_vars[1];
+    coordVID_ = nc_vars[2];
+    velocityVID_ = nc_vars[3];
+    frcVID_ = nc_vars[4];
+    cellAngleVID_ = nc_vars[5];
+    cellLengthVID_ = nc_vars[6];
+    timeVID_ = nc_vars[7];
+    remd_dimension_ = nc_vars[8];
+    indicesVID_ = nc_vars[9];
+    ncdebug_ = nc_vars[10];
+    ensembleDID_ = nc_vars[11];
+    frameDID_ = nc_vars[12];
+    atomDID_ = nc_vars[13];
+    ncatom_ = nc_vars[14];
+    ncatom3_ = nc_vars[15];
+    spatialDID_ = nc_vars[16];
+    labelDID_ = nc_vars[17];
+    cell_spatialDID_ = nc_vars[18];
+    cell_angularDID_ = nc_vars[19];
+    spatialVID_ = nc_vars[20];
+    cell_spatialVID_ = nc_vars[21];
+    cell_angularVID_ = nc_vars[22];
+  }
 # endif
 }
 #endif
