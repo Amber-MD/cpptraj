@@ -3,7 +3,7 @@
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by John Mongan.
-#include "netcdf.h"
+#include <netcdf.h>
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
 
@@ -463,16 +463,136 @@ void Traj_AmberNetcdf::Info() {
   if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
 }
 #ifdef MPI
-int Traj_AmberNetcdf::parallelOpenTrajin() {
-  return 1;
+#ifdef HAS_PNETCDF
+int Traj_AmberNetcdf::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  if (Ncid() != -1) return 0;
+  int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
+  if (err != 0) {
+    mprinterr("Error: Opening NetCDF file %s for reading in parallel.\n", filename_.full());
+    return 1;
+  }
+  return 0;
+}
+
+int Traj_AmberNetcdf::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  if (Ncid() != -1) return 0;
+  int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_WRITE, MPI_INFO_NULL, &ncid_);
+  if (err != 0) {
+    mprinterr("Error: Opening NetCDF file %s for writing in parallel.\n", filename_.full());
+    return 1;
+  }
+  return 0;
+}
+
+int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  int err = 0;
+  if (commIn.Master())
+    err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+  commIn.MasterBcast(&err, 1, MPI_INT);
+  if (err != 0) return 1;
+  // Synchronize netcdf info on non-master threads.
+  Sync();
+  return 0;
 }
 
 int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
-  return 1;
+  MPI_Offset pstart_[3];
+  MPI_Offset pcount_[3];
+  pstart_[0] = set;
+  pstart_[1] = 0;
+  pstart_[2] = 0;
+  pcount_[0] = 1;
+  pcount_[1] = Ncatom();
+  pcount_[2] = 3;
+  // TODO check error better
+  int err = ncmpi_get_vara_float_all(ncid_, coordVID_, pstart_, pcount_, Coord_);
+  if (err != NC_NOERR) return Parallel::Abort(err);
+  FloatToDouble(frameIn.xAddress(), Coord_);
+  if (velocityVID_ != -1) {
+    err = ncmpi_get_vara_float_all(ncid_, velocityVID_, pstart_, pcount_, Coord_);
+    if (err != NC_NOERR) return Parallel::Abort(err);
+    FloatToDouble(frameIn.vAddress(), Coord_);
+  }
+  // TODO force
+
+  pcount_[2] = 0;
+  if (cellLengthVID_ != -1) {
+    pcount_[1] = 3;
+    err = ncmpi_get_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+    err = ncmpi_get_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
+  }
+  if (TempVID_ != -1) {
+    err = ncmpi_get_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+  }
+  if (indicesVID_ != -1) {
+    pcount_[1] = remd_dimension_;
+    err = ncmpi_get_vara_int_all(ncid_, indicesVID_, pstart_, pcount_, frameIn.iAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+  }
+  return 0;
+}
+
+int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
+  MPI_Offset pstart_[3];
+  MPI_Offset pcount_[3];
+  pstart_[0] = set;
+  pstart_[1] = 0;
+  pstart_[2] = 0;
+  pcount_[0] = 1;
+  pcount_[1] = Ncatom();
+  pcount_[2] = 3;
+  // TODO check error better
+  DoubleToFloat(Coord_, frameOut.xAddress());
+  int err = ncmpi_put_vara_float_all(ncid_, coordVID_, pstart_, pcount_, Coord_);
+  if (err != NC_NOERR) return Parallel::Abort(err);
+  if (velocityVID_ != -1) {
+    DoubleToFloat(Coord_, frameOut.vAddress());
+    err = ncmpi_put_vara_float_all(ncid_, velocityVID_, pstart_, pcount_, Coord_);
+    if (err != NC_NOERR) return Parallel::Abort(err);
+  }
+  // TODO force
+
+  pcount_[2] = 0;
+  if (cellLengthVID_ != -1) {
+    pcount_[1] = 3;
+    err = ncmpi_put_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+    err = ncmpi_put_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
+  }
+  if (TempVID_ != -1) {
+    err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+  }
+  if (indicesVID_ != -1) {
+    pcount_[1] = remd_dimension_;
+    err = ncmpi_put_vara_int_all(ncid_, indicesVID_, pstart_, pcount_, frameOut.iAddress());
+    if (err != NC_NOERR) return Parallel::Abort(err);
+  }
+  return 0;
 }
 
 void Traj_AmberNetcdf::parallelCloseTraj() {
-
+  if (ncid_ == -1) return;
+  ncmpi_close( ncid_ );
+  ncid_ = -1;
 }
+#else /* HAS_PNETCDF */
+int Traj_AmberNetcdf::parallelOpenTrajin(Parallel::Comm const& commIn) { return 1; }
+int Traj_AmberNetcdf::parallelOpenTrajout(Parallel::Comm const& commIn) { return 1; } 
+int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) { return 1; }
+void Traj_AmberNetcdf::parallelCloseTraj() { return; }
+int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{ return 1; }
+#endif /* HAS_PNETCDF */
 #endif /* MPI */
-#endif
+#endif /* BINTRAJ */

@@ -6,13 +6,6 @@
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "Parallel.h"
-  // MPI cannot be defined for C++ when including mpi.h since it is reserved for the MPI namespace
-  // FIXME wrap in another include file.
-# undef MPI
-# define USE_MPI
-# ifdef HAS_PNETCDF
-#   include "pnetcdf.h"
-# endif
 #endif
 
 // CONSTRUCTOR
@@ -85,7 +78,7 @@ void Traj_NcEnsemble::closeTraj() {
 # endif
 }
 
-#ifdef USE_MPI
+#ifdef MPI
 static int NoPnetcdf() {
 # ifndef HAS_PNETCDF
   mprinterr("Error: Compiled without pnetcdf. Netcdf Ensemble requires pnetcdf in parallel.\n");
@@ -99,7 +92,7 @@ static int NoPnetcdf() {
 // Traj_NcEnsemble::setupTrajin()
 int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-# ifdef USE_MPI
+# ifdef MPI
   if (NoPnetcdf()) return TRAJIN_ERR;
 # endif
   readAccess_ = true;
@@ -160,7 +153,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   // Close single thread for now
   NC_close();
   // Set up local ensemble parameters
-# ifdef USE_MPI
+# ifdef MPI
   ensembleStart_ = Parallel::World().Rank();
   ensembleEnd_ = Parallel::World().Rank() + 1;
 # else
@@ -181,7 +174,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
   int err = 0;
-# ifdef USE_MPI
+# ifdef MPI
   if (NoPnetcdf()) return 1;
 # endif
   readAccess_ = false;
@@ -189,7 +182,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     CoordinateInfo cInfo = cInfoIn;
     // TODO: File output modifications
     SetCoordInfo( cInfo );
-#   ifdef USE_MPI
+#   ifdef MPI
     ensembleStart_ = Parallel::World().Rank();
     ensembleEnd_ = Parallel::World().Rank() + 1;
 #   else
@@ -200,7 +193,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
-#   ifdef USE_MPI
+#   ifdef MPI
     if (Parallel::World().Master()) { // Only master creates file.
 #   endif
       // Create NetCDF file.
@@ -208,12 +201,12 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
       if (debug_ > 1 && err == 0) NetcdfDebug();
       // Close Netcdf file. It will be reopened write.
       NC_close();
-#   ifdef USE_MPI
+#   ifdef MPI
     }
     Parallel::World().MasterBcast(&err, 1, MPI_INT);
 #   endif
     if (err != 0) return 1;
-#   ifdef USE_MPI
+#   ifdef MPI
     // Synchronize netcdf info on non-master threads
     Sync();
     // DEBUG: Print info for all ranks
@@ -286,7 +279,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   count_[3] = 3;        // XYZ
   //rprintf("DEBUG: Reading frame %i\n", set+1);
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
-#   ifdef USE_MPI
+#   ifdef MPI
     Frame& frm = f_ensemble[0];
 #   else
     Frame& frm = f_ensemble[member];
@@ -399,7 +392,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   count_[3] = 3; // XYZ
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
     //rprintf("DEBUG: Writing set %i, member %i\n", set+1, member); 
-#   ifdef USE_MPI
+#   ifdef MPI
     Frame* frm = Farray[0];
 #   else
     Frame* frm = Farray[member];

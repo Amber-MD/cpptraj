@@ -3,7 +3,9 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
-// Class: Traj_AmberNetcdf
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Reads and writes Amber Netcdf format trajectories. 
 class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:
@@ -30,8 +32,12 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int writeReservoir(int, Frame const&, double, int);
 #   ifdef MPI
     // Parallel functions
-    int parallelOpenTrajin();
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
     int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj();
 #   endif
   private:
