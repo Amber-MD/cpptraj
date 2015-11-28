@@ -551,6 +551,7 @@ while [[ ! -z $1 ]] ; do
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
       echo "Using parallel NETCDF in $PNETCDF_HOME"
+      USEMPI=1
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
