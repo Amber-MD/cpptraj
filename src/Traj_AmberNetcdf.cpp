@@ -478,7 +478,8 @@ int Traj_AmberNetcdf::parallelOpenTrajout(Parallel::Comm const& commIn) {
   if (Ncid() != -1) return 0;
   int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_WRITE, MPI_INFO_NULL, &ncid_);
   if (err != 0) {
-    mprinterr("Error: Opening NetCDF file %s for writing in parallel.\n", filename_.full());
+    mprinterr("Error: Opening NetCDF file '%s' for writing in parallel.\n", filename_.full());
+    rprinterr("PNetCDF Error: %s\n", ncmpi_strerror(err));
     return 1;
   }
   return 0;
@@ -490,12 +491,21 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
                                            Parallel::Comm const& commIn)
 {
   int err = 0;
-  if (commIn.Master())
+  if (commIn.Master()) {
     err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    NC_close();
+  }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
   // Synchronize netcdf info on non-master threads.
   Sync();
+  rprintf("coordVID= %i\n", coordVID_);
+  if (!commIn.Master()) {
+    // Non masters need filename and allocate Coord
+    filename_ = fname;
+    if (Coord_ != 0) delete[] Coord_;
+    Coord_ = new float[ Ncatom3() ];
+  }
   return 0;
 }
 
