@@ -7,24 +7,24 @@ void Help_CompareTop() {
 }
 
 /// Function for printing DihedralType
-static inline void PrintDihT(CpptrajFile& output, Topology* parm,
+static inline void PrintDihT(CpptrajFile& output, Topology const& parm,
                              DihedralType const& first, char dir)
 {
   output.Printf("%c %s - %s - %s - %s\n", dir,
-                parm->AtomMaskName(first.A1()).c_str(),
-                parm->AtomMaskName(first.A2()).c_str(),
-                parm->AtomMaskName(first.A3()).c_str(),
-                parm->AtomMaskName(first.A4()).c_str());
+                parm.AtomMaskName(first.A1()).c_str(),
+                parm.AtomMaskName(first.A2()).c_str(),
+                parm.AtomMaskName(first.A3()).c_str(),
+                parm.AtomMaskName(first.A4()).c_str());
 }
 
 /// Function for printing AngleType
-static inline void PrintAngT(CpptrajFile& output, Topology* parm,
+static inline void PrintAngT(CpptrajFile& output, Topology const& parm,
                              AngleType const& first, char dir)
 {
   output.Printf("%c %s - %s - %s\n", dir,
-                parm->AtomMaskName(first.A1()).c_str(),
-                parm->AtomMaskName(first.A2()).c_str(),
-                parm->AtomMaskName(first.A3()).c_str());
+                parm.AtomMaskName(first.A1()).c_str(),
+                parm.AtomMaskName(first.A2()).c_str(),
+                parm.AtomMaskName(first.A3()).c_str());
 }
 
 /// Class template for comparing two arrays of a given parameter type
@@ -33,14 +33,14 @@ template <class T> class Diff {
     /// Parameter type array
     typedef std::vector< T > ArrayType;
     /// Function pointer for printing parameter type
-    typedef void (*PrintFxnType)(CpptrajFile&, Topology*, T const&, char);
+    typedef void (*PrintFxnType)(CpptrajFile&, Topology const&, T const&, char);
     Diff() {}
     /** Compare two parameter arrays and report differences.
       * \param a1_in First parameter array ('<').
       * \param a2_in Second parameter array ('>').
       */
     void Compare(const ArrayType& a1_in, const ArrayType& a2_in, PrintFxnType fxnIn,
-                 CpptrajFile& output, Topology* parm1, Topology* parm2)
+                 CpptrajFile& output, Topology const& parm1, Topology const& parm2)
     {
       ArrayType a1 = a1_in;
       ArrayType a2 = a2_in;
@@ -72,19 +72,22 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: Specify two topologies.\n");
     return 1;
   }
+  Topology const& p1 = static_cast<Topology const&>( *parm1 );
+  Topology const& p2 = static_cast<Topology const&>( *parm2 );
   CpptrajFile output;
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
-  output.Printf("#< %s\n#> %s\n", parm1->c_str(), parm2->c_str());
+  output.Printf("#< %s\n#> %s\n", p1.c_str(), p2.c_str());
   // Angles
   output.Printf("# Angles\n");
   Diff<AngleType> diff_ang;
-  diff_ang.Compare( parm1->Angles(), parm2->Angles(), PrintAngT, output, parm1, parm2 );
+  diff_ang.Compare( p1.Angles(), p2.Angles(), PrintAngT, output, p1, p2 );
+  diff_ang.Compare( p1.AnglesH(), p2.AnglesH(), PrintAngT, output, p1, p2 );
   // Dihedrals
   output.Printf("# Dihedrals\n");
   Diff<DihedralType> diff_dih;
-  diff_dih.Compare( parm1->Dihedrals(), parm2->Dihedrals(), PrintDihT, output, parm1, parm2 );
-  diff_dih.Compare( parm1->DihedralsH(), parm2->DihedralsH(), PrintDihT, output, parm1, parm2 );
+  diff_dih.Compare( p1.Dihedrals(), p2.Dihedrals(), PrintDihT, output, p1, p2 );
+  diff_dih.Compare( p1.DihedralsH(), p2.DihedralsH(), PrintDihT, output, p1, p2 );
 
   output.CloseFile();
   return 0;
