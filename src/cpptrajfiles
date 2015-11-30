@@ -141,6 +141,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
         CmdInput.cpp \
+        Cmd_SequenceAlign.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
@@ -231,7 +232,6 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
-        SequenceAlign.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \

@@ -1,5 +1,5 @@
 #include <cstring>
-#include "SequenceAlign.h"
+#include "Cmd_SequenceAlign.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "Trajout_Single.h"

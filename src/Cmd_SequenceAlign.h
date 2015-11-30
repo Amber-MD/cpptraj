@@ -1,5 +1,5 @@
-#ifndef INC_SEQUENCEALIGN_H
-#define INC_SEQUENCEALIGN_H
+#ifndef INC_CMD_SEQUENCEALIGN_H
+#define INC_CMD_SEQUENCEALIGN_H
 #include "CpptrajState.h"
 // EXPERIMENTAL ALPHA CODE
 void Help_SequenceAlign();

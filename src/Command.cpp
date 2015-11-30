@@ -10,7 +10,7 @@
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
-#include "SequenceAlign.h"
+#include "Cmd_SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
 // INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
