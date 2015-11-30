@@ -1,5 +1,5 @@
 #ifdef BINTRAJ
-#  include "netcdf.h"
+#  include <netcdf.h>
 #endif
 #include "NetcdfFile.h"
 #include "CpptrajStdio.h"

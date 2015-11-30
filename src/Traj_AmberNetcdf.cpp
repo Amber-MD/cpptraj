@@ -6,6 +6,9 @@
 #include <netcdf.h>
 #include "Traj_AmberNetcdf.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "ParallelNetcdf.h"
+#endif
 
 // CONSTRUCTOR
 Traj_AmberNetcdf::Traj_AmberNetcdf() :
@@ -468,7 +471,7 @@ void Traj_AmberNetcdf::Info() {
 int Traj_AmberNetcdf::parallelOpenTrajin(Parallel::Comm const& commIn) {
   if (Ncid() != -1) return 0;
   int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
-  if (err != 0) {
+  if (checkPNCerr(err)) {
     mprinterr("Error: Opening NetCDF file %s for reading in parallel.\n", filename_.full());
     return 1;
   }
@@ -478,9 +481,8 @@ int Traj_AmberNetcdf::parallelOpenTrajin(Parallel::Comm const& commIn) {
 int Traj_AmberNetcdf::parallelOpenTrajout(Parallel::Comm const& commIn) {
   if (Ncid() != -1) return 0;
   int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_WRITE, MPI_INFO_NULL, &ncid_);
-  if (err != 0) {
+  if (checkPNCerr(err)) {
     mprinterr("Error: Opening NetCDF file '%s' for writing in parallel.\n", filename_.full());
-    rprinterr("PNetCDF Error: %s\n", ncmpi_strerror(err));
     return 1;
   }
   err = ncmpi_begin_indep_data( ncid_ ); // Independent data mode
@@ -523,13 +525,13 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
   pcount_[0] = 1;
   pcount_[1] = Ncatom();
   pcount_[2] = 3;
-  // TODO check error better
+
   int err = ncmpi_get_vara_float_all(ncid_, coordVID_, pstart_, pcount_, Coord_);
-  if (err != NC_NOERR) return Parallel::Abort(err);
+  if (checkPNCerr(err)) return Parallel::Abort(err);
   FloatToDouble(frameIn.xAddress(), Coord_);
   if (velocityVID_ != -1) {
     err = ncmpi_get_vara_float_all(ncid_, velocityVID_, pstart_, pcount_, Coord_);
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
     FloatToDouble(frameIn.vAddress(), Coord_);
   }
   // TODO force
@@ -538,17 +540,17 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
   if (cellLengthVID_ != -1) {
     pcount_[1] = 3;
     err = ncmpi_get_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameIn.bAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
     err = ncmpi_get_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameIn.bAddress()+3);
   }
   if (TempVID_ != -1) {
     err = ncmpi_get_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   if (indicesVID_ != -1) {
     pcount_[1] = remd_dimension_;
     err = ncmpi_get_vara_int_all(ncid_, indicesVID_, pstart_, pcount_, frameIn.iAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   return 0;
 }
@@ -566,12 +568,12 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
   DoubleToFloat(Coord_, frameOut.xAddress());
   //int err = ncmpi_put_vara_float_all(ncid_, coordVID_, pstart_, pcount_, Coord_);
   int err = ncmpi_put_vara_float(ncid_, coordVID_, pstart_, pcount_, Coord_);
-  if (err != NC_NOERR) return Parallel::Abort(err);
+  if (checkPNCerr(err)) return Parallel::Abort(err);
   if (velocityVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.vAddress());
     //err = ncmpi_put_vara_float_all(ncid_, velocityVID_, pstart_, pcount_, Coord_);
     err = ncmpi_put_vara_float(ncid_, velocityVID_, pstart_, pcount_, Coord_);
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   // TODO force
 
@@ -580,20 +582,20 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
     pcount_[1] = 3;
     //err = ncmpi_put_vara_double_all(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
     err = ncmpi_put_vara_double(ncid_, cellLengthVID_, pstart_, pcount_, frameOut.bAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
     //err = ncmpi_put_vara_double_all(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
     err = ncmpi_put_vara_double(ncid_, cellAngleVID_, pstart_, pcount_, frameOut.bAddress()+3);
   }
   if (TempVID_ != -1) {
     //err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
     err = ncmpi_put_vara_double(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   if (indicesVID_ != -1) {
     pcount_[1] = remd_dimension_;
     //err = ncmpi_put_vara_int_all(ncid_, indicesVID_, pstart_, pcount_, frameOut.iAddress());
     err = ncmpi_put_vara_int(ncid_, indicesVID_, pstart_, pcount_, frameOut.iAddress());
-    if (err != NC_NOERR) return Parallel::Abort(err);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   return 0;
 }

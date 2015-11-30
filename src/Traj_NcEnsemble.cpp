@@ -1,11 +1,11 @@
 #ifdef BINTRAJ
 #ifdef ENABLE_SINGLE_ENSEMBLE
-//#include <cstdio> // DEBUG
-#include "netcdf.h"
+#include <netcdf.h>
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "Parallel.h"
+# include "ParallelNetcdf.h"
 #endif
 
 // CONSTRUCTOR
@@ -251,17 +251,6 @@ int Traj_NcEnsemble::readVelocity(int set, Frame& frameIn) {
 int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
   return 1;
 }
-
-#ifdef HAS_PNETCDF
-inline int checkPNCerr(int err) {
-  if (err != NC_NOERR) {
-    rprinterr("PnetCDF Error: %s\n", ncmpi_strerror(err));
-    Parallel::Abort( err );
-    return 1;
-  }
-  return 0;
-}
-#endif
 
 // Traj_NcEnsemble::readArray()
 int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
