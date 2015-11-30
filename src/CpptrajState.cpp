@@ -646,6 +646,8 @@ int CpptrajState::RunParallel() {
   rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
   Parallel::World().Barrier();
+  mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
   // Sync data sets to master thread
   Timer time_sync;
