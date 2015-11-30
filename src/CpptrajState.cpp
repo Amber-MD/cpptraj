@@ -596,38 +596,6 @@ int CpptrajState::RunParallel() {
     for (int i = 0; i != Parallel::World().Size(); i++)
       mprintf("Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
-/*  if (worldrank == 0) {
-    mprintf("Max frames is %zu\n", input_traj.Size());
-    int maxFrames = (int)input_traj.Size();
-    int frames_per_thread = maxFrames / worldsize;
-    int remainder         = maxFrames % worldsize;
-    int* rank_frames = new int[ worldsize * 3 ];
-    std::fill( rank_frames, rank_frames + worldsize, frames_per_thread );
-    int* rank_start = rank_frames + worldsize;
-    int* rank_stop  = rank_start  + worldsize;
-    std::fill( rank_start, rank_start + (2*worldsize), 0 ); // TODO Necessary?
-    for (int rank = 0; rank != worldsize; rank++) {
-      if (rank > 0)
-        rank_start[rank] = rank_stop[rank-1];
-      if (rank < remainder)
-        rank_frames[rank]++;
-      rank_stop[rank] = rank_start[rank] + rank_frames[rank];
-      //rprintf("Start %i Stop %i\n", rank_start[rank], rank_stop[rank]);
-      if (rank > 0) {
-        parallel_send( rank_start  + rank, 1, PARA_INT, rank, 1000 );
-        parallel_send( rank_stop   + rank, 1, PARA_INT, rank, 1001 );
-        parallel_send( rank_frames + rank, 1, PARA_INT, rank, 1002 );
-      }
-    }
-    my_stop = rank_stop[0];
-    my_frames = rank_frames[0];
-    delete[] rank_frames;
-  } else {
-    // Get start, stop, and total frames from master
-    parallel_recv( &my_start,  1, PARA_INT, 0, 1000 );
-    parallel_recv( &my_stop,   1, PARA_INT, 0, 1001 );
-    parallel_recv( &my_frames, 1, PARA_INT, 0, 1002 );
-  }*/
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
   Parallel::World().Barrier();
 

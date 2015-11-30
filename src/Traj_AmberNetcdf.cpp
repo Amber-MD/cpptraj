@@ -464,6 +464,7 @@ void Traj_AmberNetcdf::Info() {
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF
+// =============================================================================
 int Traj_AmberNetcdf::parallelOpenTrajin(Parallel::Comm const& commIn) {
   if (Ncid() != -1) return 0;
   int err = ncmpi_open(commIn.MPIcomm(), filename_.full(), NC_NOWRITE, MPI_INFO_NULL, &ncid_);
@@ -486,6 +487,8 @@ int Traj_AmberNetcdf::parallelOpenTrajout(Parallel::Comm const& commIn) {
   return 0;
 }
 
+/** First master performs all necessary setup, then sends info to all children.
+  */
 int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
                                            CoordinateInfo const& cInfoIn,
                                            int NframesToWrite, bool append,
@@ -494,13 +497,14 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
   int err = 0;
   if (commIn.Master()) {
     err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    // NOTE: setupTrajout leaves file open. Should this change?
     NC_close();
   }
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
   // Synchronize netcdf info on non-master threads.
   Sync();
-  rprintf("coordVID= %i\n", coordVID_);
+  rprintf("DEBUG: coordVID= %i\n", coordVID_);
   if (!commIn.Master()) {
     // Non masters need filename and allocate Coord
     filename_ = fname;
