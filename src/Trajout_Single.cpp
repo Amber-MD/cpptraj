@@ -163,6 +163,7 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
                                     traj_.NframesToWrite(), traj_.Append(), commIn))
   {
     mprinterr("Error: Could not set up parallel trajout.\n");
+    mprinterr("Error: Problem with set up or format may be unsupported in parallel.\n");
     return 1;
   }
   //if (debug_ > 0)

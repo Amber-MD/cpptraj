@@ -615,7 +615,10 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
                                            CoordinateInfo const& cInfoIn,
                                            int NframesToWrite, bool append,
                                            Parallel::Comm const& commIn)
-{ return 1; }
+{ 
+  mprinterr("Error: NetCDF single trajectory output in parallel requires Pnetcdf.\n");
+  return 1;
+}
 #endif /* HAS_PNETCDF */
 #endif /* MPI */
 #endif /* BINTRAJ */
