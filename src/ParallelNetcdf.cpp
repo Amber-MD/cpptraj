@@ -1,4 +1,6 @@
 #include "ParallelNetcdf.h"
+#ifdef MPI
+#ifdef HAS_PNETCDF
 #include "Parallel.h"
 #include "CpptrajStdio.h"
 
@@ -10,3 +12,5 @@ int checkPNCerr(int err) {
   }
   return 0;
 }
+#endif
+#endif
