@@ -10,6 +10,7 @@
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
 #include "RPNcalc.h" // Calc
+#include "Cmd_CompareTop.h"
 #include "Cmd_SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
@@ -488,6 +489,10 @@ static void Deprecate_AvgCoord() {
 /// Sequence align
 Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
 { return (Command::RetType)SequenceAlign(State, argIn); }
+
+/// Compare topologies
+Command::RetType CompareTopCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+{ return (Command::RetType)CompareTop(State, argIn); }
 
 static void Help_ActiveRef() {
   mprintf("\t%s\n", DataSetList::RefArgs);
@@ -1788,47 +1793,6 @@ Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::Al
   return Command::C_OK;
 }
 
-static inline void PrintDih(Topology* parm, DihedralArray::const_iterator const& first, char dir)
-{
-  mprintf("%c %s - %s - %s - %s\n", dir,
-              parm->AtomMaskName(first->A1()).c_str(),
-              parm->AtomMaskName(first->A2()).c_str(),
-              parm->AtomMaskName(first->A3()).c_str(),
-              parm->AtomMaskName(first->A4()).c_str());
-}
-
-/// Compare two topologies.
-Command::RetType CompareTop(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{
-  Topology* parm1 = State.DSL()->GetTopology( argIn );
-  Topology* parm2 = State.DSL()->GetTopology( argIn );
-  if (parm1 == 0 || parm2 == 0) {
-    mprinterr("Error: Specify two topologies.\n");
-    return Command::C_ERR;
-  }
-  // Dihedrals
-  DihedralArray d1 = parm1->Dihedrals();
-  DihedralArray d2 = parm2->Dihedrals();
-  std::sort( d1.begin(), d1.end() );
-  std::sort( d2.begin(), d2.end() );
-  DihedralArray::const_iterator first1 = d1.begin();
-  DihedralArray::const_iterator first2 = d2.begin();
-  while (first1 != d1.end() && first2 != d2.end()) {
-    if (*first1 < *first2) {
-      PrintDih(parm1, first1, '<');
-      ++first1;
-    } else if (*first2 < *first1) {
-      PrintDih(parm2, first2, '>');
-      ++first2;
-    } else { ++first1; ++first2; }
-  }
-  while (first1 != d1.end())
-    PrintDih(parm1, first1++, '<');
-  while (first2 != d2.end())
-    PrintDih(parm2, first2++, '>');
-  return Command::C_OK;
-}
-
 // ---------- DISPATCHABLE COMMANDS --------------------------------------------
 /// Add an action to the State ActionList
 Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
@@ -1914,7 +1878,7 @@ const Command::Token Command::Commands[] = {
   { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
   { PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
   { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
-  { HIDDEN,  "comparetop",    0, 0,                    CompareTop      },
+  { HIDDEN,  "comparetop",    0, Help_CompareTop,      CompareTopCmd   },
   { PARM,    "dihedralinfo",  0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "dihedrals",     0, Help_DihedralInfo,    DihedralInfo    },
   { PARM,    "mass",          0, Help_MassInfo,        MassInfo        },

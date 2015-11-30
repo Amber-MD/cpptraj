@@ -141,6 +141,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
         CmdInput.cpp \
+        Cmd_CompareTop.cpp \
         Cmd_SequenceAlign.cpp \
         Command.cpp \
         ComplexArray.cpp \
