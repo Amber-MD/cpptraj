@@ -43,6 +43,13 @@ class Trajout_Single {
     int PrepareEnsembleTrajWrite(FileName const&, ArgList const&, Topology*,
                                  CoordinateInfo const&, int,
                                  TrajectoryFile::TrajFormatType, int);
+#   ifdef MPI
+    // -------------------------------------------
+    /// Peform Topology-related setup for trajectory and open in parallel.
+    int ParallelSetupTrajWrite(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
+    int ParallelWriteSingle(int, Frame const&);
+    void ParallelEndTraj();
+#   endif
   private:
     int InitTrajout(FileName const&, ArgList const&, TrajectoryFile::TrajFormatType);
 

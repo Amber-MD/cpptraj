@@ -8,7 +8,6 @@
 #include "Parallel.h" // Not inside ifdef for Parallel::World.Size()
 #ifdef MPI
 # include "DataSet_Coords_TRJ.h"
-# include "Traj_AmberNetcdf.h" // DEBUG
 # ifdef TIMER
 #   include "EnsembleIn.h"
 # endif
@@ -545,6 +544,7 @@ int CpptrajState::RunParallel() {
   DSL_.ListTopologies();
   trajinList_.List();
   DSL_.ListReferenceFrames();
+  trajoutList_.List( trajinList_.PindexFrames() );
 
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
@@ -593,28 +593,12 @@ int CpptrajState::RunParallel() {
   for (int i = 0; i != Parallel::World().Size(); i++)
     if (i < remainder) rank_frames[i]++;
   if (Parallel::World().Master()) {
+    mprintf("\nPARALLEL INFO:\n");
     for (int i = 0; i != Parallel::World().Size(); i++)
-      mprintf("Thread %i will process %i frames.\n", i, rank_frames[i]);
+      mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
   Parallel::World().Barrier();
-
-  // Disable trajectory output for now. FIXME
-  if (!trajoutList_.Empty())
-    mprintf("Warning: trajout not yet supported in parallel.\n");
-  // DEBUG: Test Netcdf output in parallel
-  Traj_AmberNetcdf trajout;
-  if (trajout.parallelSetupTrajout("test.nc", input_traj.TopPtr(), input_traj.CoordsInfo(),
-                                   input_traj.Size(), false, Parallel::World()))
-  {
-    mprinterr("Error: Could not set up parallel trajout.\n");
-    return 1;
-  }
-  if (trajout.parallelOpenTrajout( Parallel::World() ))
-  {
-    mprinterr("Error: Could not open parallel trajout.\n");
-    return 1;
-  }
 
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
@@ -630,7 +614,11 @@ int CpptrajState::RunParallel() {
     mprinterr("Error: Could not set up actions for '%s'\n", top->c_str());
     return 1;
   }
-  // TODO Set up output trajectories
+
+  // Set up any related output trajectories. 
+  if (trajoutList_.ParallelSetupTrajout( top, currentCoordInfo,
+                                         input_traj.Size(), Parallel::World() ))
+    return 1;
 
   // ----- ACTION PHASE --------------------------
   Timer frames_time;
@@ -646,17 +634,19 @@ int CpptrajState::RunParallel() {
       rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
     ActionFrame currentFrame( &TrajFrame );
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
-    // DEBUG trajectory output
-    if (!suppress_output)
-      trajout.parallelWriteFrame(set, currentFrame.Frm());
-    // TODO trajout stuff
+    // Trajectory output
+    if (!suppress_output) {
+      if (trajoutList_.ParallelWriteTrajout(set, currentFrame.Frm())) {
+        if (exitOnError_) return 1;
+      }
+    }
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
   rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
   Parallel::World().Barrier();
-  trajout.parallelCloseTraj();
+  trajoutList_.ParallelCloseTrajout();
   // Sync data sets to master thread
   Timer time_sync;
   time_sync.Start();

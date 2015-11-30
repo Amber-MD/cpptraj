@@ -220,3 +220,53 @@ void TrajoutList::List(std::vector<int> const& PindexFrames) const {
         trajout_[i]->PrintInfo( PindexFrames[trajoutTops_[i]->Pindex()] );
   }
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
+                                      CoordinateInfo const& cInfo, int Nframes,
+                                      Parallel::Comm const& commIn)
+{
+  active_.clear();
+  for (unsigned int i = 0; i != trajout_.size(); i++) {
+    // Check that input parm matches setup parm - if not, skip
+    if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
+      if (!open_[i]) { // Only set up if not already open.
+        if ( trajout_[i]->ParallelSetupTrajWrite( CurrentParm, cInfo, Nframes, commIn) )
+        {
+          mprinterr("Error: Setting up output trajectory '%s' in parallel.\n",
+                    trajoutNames_[i].c_str());
+          return 1;
+        }
+        open_[i] = true;
+      }
+      active_.push_back( trajout_[i] );
+    } else {
+      mprintf("Warning: Output traj '%s' was set up for topology '%s', but\n"
+              "Warning:   parallel run topology is '%s' - skipping.\n",
+              trajout_[i]->Traj().Filename().full(), trajoutTops_[i]->c_str(),
+              CurrentParm->c_str());
+    }
+  }
+  return 0;
+}
+
+int TrajoutList::ParallelWriteTrajout(int set, Frame const& CurrentFrame)
+{
+  for (ListType::const_iterator traj = active_.begin();
+                                traj != active_.end(); ++traj)
+  {
+    if ( (*traj)->ParallelWriteSingle(set, CurrentFrame) ) {
+      mprinterr("Error writing output trajectory in parallel, frame %i.\n", set+1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void TrajoutList::ParallelCloseTrajout() {
+  for (ListType::const_iterator traj = trajout_.begin();
+                                traj != trajout_.end(); ++traj)
+    (*traj)->ParallelEndTraj();
+  Clear();
+}
+#endif

@@ -147,3 +147,43 @@ void Trajout_Single::PrintInfo(int expectedNframes) const {
   trajio_->Info();
   traj_.CommonInfo();
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                           int nFrames, Parallel::Comm const& commIn)
+{
+  // Set up topology and coordinate info.
+  if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
+    return 1;
+  //if (debug_ > 0)
+    rprintf("\tSetting up '%s' for WRITE in parallel, topology '%s' (%i atoms).\n",
+            traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom());
+  // Set up TrajectoryIO in parallel.
+  if (trajio_->parallelSetupTrajout(traj_.Filename(), traj_.Parm(), traj_.CoordInfo(),
+                                    traj_.NframesToWrite(), traj_.Append(), commIn))
+  {
+    mprinterr("Error: Could not set up parallel trajout.\n");
+    return 1;
+  }
+  //if (debug_ > 0)
+  //  Frame::PrintCoordInfo(traj_.Filename().base(), traj_.Parm()->c_str(), trajio_->CoordInfo());
+  // Open TrajectoryIO in parallel.
+  if (trajio_->parallelOpenTrajout( commIn ))
+  {
+    mprinterr("Error: Could not open parallel trajout.\n");
+    return 1;
+  }
+  return 0;
+}
+
+int Trajout_Single::ParallelWriteSingle(int set, Frame const& FrameOut) {
+  // Check that set should be written
+  if (traj_.CheckFrameRange(set)) return 0;
+  if (trajio_->parallelWriteFrame(set, FrameOut)) return 1;
+  return 0;
+}
+
+void Trajout_Single::ParallelEndTraj() {
+  trajio_->parallelCloseTraj();
+}
+#endif

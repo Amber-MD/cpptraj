@@ -49,6 +49,11 @@ class TrajoutList {
     void List(std::vector<int> const&) const;
     /// \return true if no args/trajectories present.
     bool Empty()     const { return trajout_.empty();     }
+#   ifdef MPI
+    int ParallelSetupTrajout(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
+    int ParallelWriteTrajout(int, Frame const&);
+    void ParallelCloseTrajout();
+#   endif
   private:
     int debug_;
     typedef std::vector<Trajout_Single*> ListType;
