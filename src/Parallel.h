@@ -12,9 +12,6 @@
 # ifdef PARALLEL_DEBUG_VERBOSE
 #   include <cstdio> // for FILE
 # endif
-# ifdef HAS_PNETCDF
-#   include <pnetcdf.h>
-# endif
 #endif
 /// Static class, Cpptraj C++ interface to C MPI routines.
 /** NOTE: I have decided to use a class instead of a namespace to have the

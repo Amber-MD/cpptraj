@@ -214,6 +214,7 @@ SOURCES=ActionFrameCounter.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
         Parallel.cpp \
+        ParallelNetcdf.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
