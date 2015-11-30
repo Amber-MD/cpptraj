@@ -1,8 +1,11 @@
-#include <wordexp.h>
+#ifndef __WIN32
+#   include <wordexp.h>
+#endif
 #include <cstdio> // FILE, fopen
 #include "FileName.h"
 #include "CpptrajStdio.h"
 
+#ifndef __WIN32
 static void WexpErr(int err) {
   switch ( err ) {
     case WRDE_BADCHAR :
@@ -20,6 +23,7 @@ static void WexpErr(int err) {
       break;
   }
 }
+#endif /* __WIN32 */
 
 // COPY CONSTRUCTOR
 FileName::FileName( const FileName& rhs ) : fullPathName_(rhs.fullPathName_),
@@ -62,6 +66,7 @@ int FileName::SetFileName(std::string const& nameIn) {
     clear();
     return 0;
   }
+#ifndef __WIN32
   wordexp_t expanded;
   int err = wordexp( nameIn.c_str(), &expanded, WRDE_NOCMD );
   WexpErr( err );
@@ -74,6 +79,10 @@ int FileName::SetFileName(std::string const& nameIn) {
     wordfree( &expanded );
   }
   return err;
+#else
+  SetFileName_NoExpansion(nameIn);
+  return 0;
+#endif
 }
 
 int FileName::SetFileName_NoExpansion(std::string const& nameIn) {
@@ -134,6 +143,9 @@ FileName FileName::PrependFileName( std::string const& prefix ) const {
 // =============================================================================
 File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   NameArray fnames;
+#ifdef __WIN32
+  fnames.push_back( fnameArg );
+#else
   if (fnameArg.empty()) return fnames;
   wordexp_t expanded;
   int err = wordexp( fnameArg.c_str(), &expanded, WRDE_NOCMD );
@@ -150,6 +162,7 @@ File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
     }
     wordfree( &expanded );
   }
+#endif /* __WIN32 */
   return fnames;
 }
 
