@@ -6,15 +6,63 @@ void Help_CompareTop() {
   mprintf("\t{%s} {%s} [out <file>]\n", DataSetList::TopArgs, DataSetList::TopArgs);
 }
 
-static inline void PrintDih(CpptrajFile& output, Topology* parm,
-                            DihedralArray::const_iterator const& first, char dir)
+/// Function for printing DihedralType
+static inline void PrintDihT(CpptrajFile& output, Topology* parm,
+                             DihedralType const& first, char dir)
 {
   output.Printf("%c %s - %s - %s - %s\n", dir,
-                parm->AtomMaskName(first->A1()).c_str(),
-                parm->AtomMaskName(first->A2()).c_str(),
-                parm->AtomMaskName(first->A3()).c_str(),
-                parm->AtomMaskName(first->A4()).c_str());
+                parm->AtomMaskName(first.A1()).c_str(),
+                parm->AtomMaskName(first.A2()).c_str(),
+                parm->AtomMaskName(first.A3()).c_str(),
+                parm->AtomMaskName(first.A4()).c_str());
 }
+
+/// Function for printing AngleType
+static inline void PrintAngT(CpptrajFile& output, Topology* parm,
+                             AngleType const& first, char dir)
+{
+  output.Printf("%c %s - %s - %s\n", dir,
+                parm->AtomMaskName(first.A1()).c_str(),
+                parm->AtomMaskName(first.A2()).c_str(),
+                parm->AtomMaskName(first.A3()).c_str());
+}
+
+/// Class template for comparing two arrays of a given parameter type
+template <class T> class Diff {
+  public:
+    /// Parameter type array
+    typedef std::vector< T > ArrayType;
+    /// Function pointer for printing parameter type
+    typedef void (*PrintFxnType)(CpptrajFile&, Topology*, T const&, char);
+    Diff() {}
+    /** Compare two parameter arrays and report differences.
+      * \param a1_in First parameter array ('<').
+      * \param a2_in Second parameter array ('>').
+      */
+    void Compare(const ArrayType& a1_in, const ArrayType& a2_in, PrintFxnType fxnIn,
+                 CpptrajFile& output, Topology* parm1, Topology* parm2)
+    {
+      ArrayType a1 = a1_in;
+      ArrayType a2 = a2_in;
+      std::sort( a1.begin(), a1.end() );
+      std::sort( a2.begin(), a2.end() );
+      typename ArrayType::const_iterator first1 = a1.begin();
+      typename ArrayType::const_iterator first2 = a2.begin();
+      while (first1 != a1.end() && first2 != a2.end()) {
+        if (*first1 < *first2) {
+          fxnIn(output, parm1, *first1, '<');
+          ++first1;
+        } else if (*first2 < *first1) {
+          fxnIn(output, parm2, *first2, '>');
+          ++first2;
+        } else { ++first1; ++first2; }
+      }
+      while (first1 != a1.end())
+        fxnIn(output, parm1, *(first1++), '<');
+      while (first2 != a2.end())
+        fxnIn(output, parm2, *(first2++), '<');
+    }
+};
 
 int CompareTop(CpptrajState& State, ArgList& argIn)
 {
@@ -28,26 +76,16 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
   output.Printf("#< %s\n#> %s\n", parm1->c_str(), parm2->c_str());
+  // Angles
+  output.Printf("# Angles\n");
+  Diff<AngleType> diff_ang;
+  diff_ang.Compare( parm1->Angles(), parm2->Angles(), PrintAngT, output, parm1, parm2 );
   // Dihedrals
-  DihedralArray d1 = parm1->Dihedrals();
-  DihedralArray d2 = parm2->Dihedrals();
-  std::sort( d1.begin(), d1.end() );
-  std::sort( d2.begin(), d2.end() );
-  DihedralArray::const_iterator first1 = d1.begin();
-  DihedralArray::const_iterator first2 = d2.begin();
-  while (first1 != d1.end() && first2 != d2.end()) {
-    if (*first1 < *first2) {
-      PrintDih(output, parm1, first1, '<');
-      ++first1;
-    } else if (*first2 < *first1) {
-      PrintDih(output, parm2, first2, '>');
-      ++first2;
-    } else { ++first1; ++first2; }
-  }
-  while (first1 != d1.end())
-    PrintDih(output, parm1, first1++, '<');
-  while (first2 != d2.end())
-    PrintDih(output, parm2, first2++, '>');
+  output.Printf("# Dihedrals\n");
+  Diff<DihedralType> diff_dih;
+  diff_dih.Compare( parm1->Dihedrals(), parm2->Dihedrals(), PrintDihT, output, parm1, parm2 );
+  diff_dih.Compare( parm1->DihedralsH(), parm2->DihedralsH(), PrintDihT, output, parm1, parm2 );
+
   output.CloseFile();
   return 0;
 }
