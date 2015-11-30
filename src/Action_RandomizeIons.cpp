@@ -1,7 +1,11 @@
 #include <cmath> // sqrt
-#include <cstdlib> // random, srandom
+#include <cstdlib> // srandom, random
 #include "Action_RandomizeIons.h"
 #include "CpptrajStdio.h"
+#ifdef __WIN32
+#   define srandom srand
+#   define random  rand
+#endif
 
 // CONSTRUCTOR
 Action_RandomizeIons::Action_RandomizeIons() :
