@@ -10,21 +10,28 @@ void Help_CompareTop() {
 static inline void PrintDihT(CpptrajFile& output, Topology const& parm,
                              DihedralType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s - %s\n", dir,
+  output.Printf("%c %s - %s - %s - %s {%s - %s - %s - %s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
-                parm.AtomMaskName(first.A4()).c_str());
+                parm.AtomMaskName(first.A4()).c_str(),
+                *(parm[first.A1()].Type()),
+                *(parm[first.A2()].Type()),
+                *(parm[first.A3()].Type()),
+                *(parm[first.A4()].Type()));
 }
 
 /// Function for printing AngleType
 static inline void PrintAngT(CpptrajFile& output, Topology const& parm,
                              AngleType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s\n", dir,
+  output.Printf("%c %s - %s - %s {%s - %s - %s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
-                parm.AtomMaskName(first.A3()).c_str());
+                parm.AtomMaskName(first.A3()).c_str(),
+                *(parm[first.A1()].Type()),
+                *(parm[first.A2()].Type()),
+                *(parm[first.A3()].Type()));
 }
 
 /// Class template for comparing two arrays of a given parameter type
