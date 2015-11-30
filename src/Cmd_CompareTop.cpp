@@ -6,9 +6,14 @@ void Help_CompareTop() {
   mprintf("\t{%s} {%s} [out <file>]\n", DataSetList::TopArgs, DataSetList::TopArgs);
 }
 
+static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const& name, char dir)
+{
+  output.Printf("%c %s\n", dir, *name);
+}
+
 /// Function for printing DihedralType
-static inline void PrintDihT(CpptrajFile& output, Topology const& parm,
-                             DihedralType const& first, char dir)
+static void PrintDihT(CpptrajFile& output, Topology const& parm,
+                      DihedralType const& first, char dir)
 {
   output.Printf("%c %s - %s - %s - %s {%s - %s - %s - %s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
@@ -21,9 +26,16 @@ static inline void PrintDihT(CpptrajFile& output, Topology const& parm,
                 *(parm[first.A4()].Type()));
 }
 
+static void PrintDihP(CpptrajFile& output, Topology const& parm,
+                      DihedralParmType const& first, char dir)
+{
+  output.Printf("%c Pk= %g  Pn= %g  Phase= %g  SCEE= %g  SCNB= %g\n", dir,
+                first.Pk(), first.Pn(), first.Phase(), first.SCEE(), first.SCNB());
+}
+
 /// Function for printing AngleType
-static inline void PrintAngT(CpptrajFile& output, Topology const& parm,
-                             AngleType const& first, char dir)
+static void PrintAngT(CpptrajFile& output, Topology const& parm,
+                      AngleType const& first, char dir)
 {
   output.Printf("%c %s - %s - %s {%s - %s - %s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
@@ -52,7 +64,15 @@ template <class T> class Diff {
       ArrayType a1 = a1_in;
       ArrayType a2 = a2_in;
       std::sort( a1.begin(), a1.end() );
+      //output.Printf("'%s': %zu parameters.\n", parm1.c_str(), a1.size());
+      //for (typename ArrayType::const_iterator it = a1.begin(); it != a1.end(); ++it)
+      //  fxnIn(output, parm1, *it, '1');
+
       std::sort( a2.begin(), a2.end() );
+      //output.Printf("'%s': %zu parameters.\n", parm2.c_str(), a2.size());
+      //for (typename ArrayType::const_iterator it = a2.begin(); it != a2.end(); ++it)
+      //  fxnIn(output, parm2, *it, '2');
+
       typename ArrayType::const_iterator first1 = a1.begin();
       typename ArrayType::const_iterator first2 = a2.begin();
       while (first1 != a1.end() && first2 != a2.end()) {
@@ -67,9 +87,19 @@ template <class T> class Diff {
       while (first1 != a1.end())
         fxnIn(output, parm1, *(first1++), '<');
       while (first2 != a2.end())
-        fxnIn(output, parm2, *(first2++), '<');
+        fxnIn(output, parm2, *(first2++), '>');
     }
 };
+
+static std::vector<NameType> AtypeArray( Topology const& parm ) {
+  std::set<NameType> atypes;
+  for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom)
+    atypes.insert( atom->Type() );
+  std::vector<NameType> out;
+  for (std::set<NameType>::const_iterator it = atypes.begin(); it != atypes.end(); ++it)
+    out.push_back( *it );
+  return out;
+}
 
 int CompareTop(CpptrajState& State, ArgList& argIn)
 {
@@ -85,6 +115,10 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
   output.Printf("#< %s\n#> %s\n", p1.c_str(), p2.c_str());
+  // Atom Types
+  output.Printf("# Atom types\n");
+  Diff<NameType> diff_atype;
+  diff_atype.Compare( AtypeArray(p1), AtypeArray(p2), PrintAtype, output, p1, p2 );
   // Angles
   output.Printf("# Angles\n");
   Diff<AngleType> diff_ang;
@@ -95,6 +129,10 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
   Diff<DihedralType> diff_dih;
   diff_dih.Compare( p1.Dihedrals(), p2.Dihedrals(), PrintDihT, output, p1, p2 );
   diff_dih.Compare( p1.DihedralsH(), p2.DihedralsH(), PrintDihT, output, p1, p2 );
+  // Dihedral parameters
+  output.Printf("# Dihedral Parameters\n");
+  Diff<DihedralParmType> diff_dihP;
+  diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
 
   output.CloseFile();
   return 0;

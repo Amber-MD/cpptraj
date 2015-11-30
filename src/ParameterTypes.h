@@ -81,6 +81,17 @@ class DihedralParmType {
     inline double SCNB()  const { return scnb_;  }
     void SetSCEE(double s)      { scee_ = s;     }
     void SetSCNB(double s)      { scnb_ = s;     }
+    bool operator<(DihedralParmType const& rhs) const {
+      if (pk_ == rhs.pk_) {
+        if (pn_ == rhs.pn_) {
+          if (phase_ == rhs.phase_) {
+            if (scee_ == rhs.scee_) {
+              return (scnb_ < rhs.scnb_);
+            } else return (scee_ < rhs.scee_);
+          } else return (phase_ < rhs.phase_);
+        } else return (pn_ < rhs.pn_);
+      } else return (pk_ < rhs.pk_);
+    }
   private:
     double pk_;
     double pn_;
