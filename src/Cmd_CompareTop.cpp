@@ -27,6 +27,7 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
   CpptrajFile output;
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
+  output.Printf("#< %s\n#> %s\n", parm1->c_str(), parm2->c_str());
   // Dihedrals
   DihedralArray d1 = parm1->Dihedrals();
   DihedralArray d2 = parm2->Dihedrals();
@@ -47,5 +48,6 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
     PrintDih(output, parm1, first1++, '<');
   while (first2 != d2.end())
     PrintDih(output, parm2, first2++, '>');
+  output.CloseFile();
   return 0;
 }
