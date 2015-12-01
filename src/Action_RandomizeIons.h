@@ -13,20 +13,17 @@ class Action_RandomizeIons : public Action, ImagedAction {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    AtomMask ions_;    ///< the list of ions to be moved.
-    double overlap_;   ///< darg1: the minimum distance between ions
-    double min_;       ///< darg2: the minimum distance to the around mask
-    AtomMask around_;  ///< carg1: the around mask (region of space to avoid)
-    std::string aroundmask_; ///< empty if no around mask specified.
-    int seed_;         ///< iarg2: random seed
+    ImagedAction image_; ///< Imaging routines.
+    AtomMask ions_;      ///< Mask of ions to be moved.
+    double overlap_;     ///< The minimum allowed distance between ions
+    double min_;         ///< The minimum distance to the 'around' mask
+    AtomMask around_;    ///< The 'around' mask (region of space for ions to avoid)
+    int seed_;           ///< random seed
     int debug_;
     int n_solvent_;
     // TODO: Combine the below 3 into a struct?
-    /// Hold solvent molecule start atoms.
-    std::vector<int> solventStart_;
-    /// Hold solvent molecule end atoms.
-    std::vector<int> solventEnd_;
-    /// True is solvent mol being considered for swap.
-    std::vector<bool> solvent_;
+    std::vector<int> solventStart_; ///< Solvent molecule start atoms.
+    std::vector<int> solventEnd_;   ///< Solvent molecule end atoms.
+    std::vector<bool> solvent_;     ///< True if solvent mol begin considered for swap.
 };
 #endif
