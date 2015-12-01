@@ -14,7 +14,7 @@
 #include "Cmd_SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
-// INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
+// INC_Cmd::ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Angle.h"
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -94,7 +94,7 @@
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
 
-// INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
+// INC_Cmd::ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
 #include "Analysis_Matrix.h"
@@ -134,7 +134,7 @@
 #include "Analysis_TI.h"
 // ---- Command Functions ------------------------------------------------------
 /// Warn about deprecated commands.
-void Command::WarnDeprecated(TokenPtr token)
+void Command::WarnDeprecated(Cmd::TokenPtr token)
 {
   mprinterr("Error: '%s' is deprecated.\n", token->Cmd);
   if (token->Help != 0)
@@ -142,12 +142,12 @@ void Command::WarnDeprecated(TokenPtr token)
 }
 
 /** Search Commands list for a specific type of command. */
-Command::TokenPtr Command::SearchTokenType(CommandType dtype,
+Cmd::TokenPtr Command::SearchTokenType(Cmd::Ctype dtype,
                                            ArgList const& argIn)
 {
-  for (TokenPtr token = Commands; token->Type != NONE; ++token)
+  for (Cmd::TokenPtr token = Commands; token->Type != Cmd::NONE; ++token)
   {
-    if (token->Type == DEPRECATED && argIn.CommandIs( token->Cmd )) {
+    if (token->Type == Cmd::DEPRECATED && argIn.CommandIs( token->Cmd )) {
       WarnDeprecated( token );
       return 0;
     }
@@ -158,21 +158,21 @@ Command::TokenPtr Command::SearchTokenType(CommandType dtype,
   return 0;
 }
 
-/// Strings that correspond to CommandType
+/// Strings that correspond to Cmd::Ctype
 const char* Command::CommandTitle[] = { 0, "Topology", "Trajectory", "Coords",
   "Action", "Analysis", "General", "System", "Deprecated" };
 
 /** List all commands of the given type, or all commands if type
-  * is NONE.
+  * is Cmd::NONE.
   */
-void Command::ListCommands(CommandType dtype) {
+void Command::ListCommands(Cmd::Ctype dtype) {
   std::string Line;
-  CommandType lastType = NONE;
-  for (TokenPtr token = Commands; token->Type != DEPRECATED; ++token)
+  Cmd::Ctype lastType = Cmd::NONE;
+  for (Cmd::TokenPtr token = Commands; token->Type != Cmd::DEPRECATED; ++token)
   {
-    CommandType currentType = token->Type;
-    if (currentType == HIDDEN) continue;
-    if (dtype != NONE && dtype != currentType) continue;
+    Cmd::Ctype currentType = token->Type;
+    if (currentType == Cmd::HIDDEN) continue;
+    if (dtype != Cmd::NONE && dtype != currentType) continue;
     // Command group type title
     if (currentType != lastType) {
       if (!Line.empty()) {
@@ -198,17 +198,17 @@ void Command::ListCommands(CommandType dtype) {
 /** Search the Commands list for given command.
   * \return the token if found, 0 if not.
   */
-Command::TokenPtr Command::SearchToken(ArgList& argIn) {
+Cmd::TokenPtr Command::SearchToken(ArgList& argIn) {
   // SPECIAL CASE: For backwards compat. remove analyze prefix
   if (argIn.CommandIs("analyze")) {
     argIn.RemoveFirstArg();
     argIn.MarkArg(0); // Mark new first arg as command
-    return (SearchTokenType(ANALYSIS, argIn));
+    return (SearchTokenType(Cmd::ANALYSIS, argIn));
   }
   // Search for command.
-  for (TokenPtr token = Commands; token->Type != NONE; ++token)
+  for (Cmd::TokenPtr token = Commands; token->Type != Cmd::NONE; ++token)
     if (argIn.CommandIs( token->Cmd )) {
-      if (token->Type == DEPRECATED) {
+      if (token->Type == Cmd::DEPRECATED) {
         WarnDeprecated( token );
         return 0; 
       } else
@@ -219,24 +219,24 @@ Command::TokenPtr Command::SearchToken(ArgList& argIn) {
 }
 
 /** Search for the given command and execute it. */
-Command::RetType Command::Dispatch(CpptrajState& State,
+Cmd::RetType Command::Dispatch(CpptrajState& State,
                                    std::string const& commandIn)
 {
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
-  TokenPtr cmdToken = SearchToken( cmdArg );
-  Command::RetType ret_val = Command::C_OK;
+  Cmd::TokenPtr cmdToken = SearchToken( cmdArg );
+  Cmd::RetType ret_val = Cmd::OK;
   if (cmdToken == 0) {
     // Try to evaluate the expression.
     RPNcalc calc;
     calc.SetDebug( State.Debug() );
     if (calc.ProcessExpression( commandIn ))
-      ret_val = Command::C_ERR;
+      ret_val = Cmd::ERR;
     else {
       if (calc.Evaluate(*State.DSL()))
-        ret_val = Command::C_ERR;
+        ret_val = Cmd::ERR;
     }
-    if (ret_val == Command::C_ERR)
+    if (ret_val == Cmd::ERR)
       mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
   } else
     ret_val = cmdToken->Fxn( State, cmdArg, cmdToken->Alloc );
@@ -246,19 +246,19 @@ Command::RetType Command::Dispatch(CpptrajState& State,
 /** Read commands from given input file.
   * \return 0 if successfully read, 1 on error.
   */
-Command::RetType Command::ProcessInput(CpptrajState& State, 
+Cmd::RetType Command::ProcessInput(CpptrajState& State, 
                                        std::string const& inputFilename)
 {
   BufferedLine infile;
   if (infile.OpenFileRead( inputFilename )) {
     if (!inputFilename.empty())
       mprinterr("Error: Could not open input file '%s'\n", inputFilename.c_str());
-    return C_ERR;
+    return Cmd::ERR;
   }
   mprintf("INPUT: Reading input from '%s'\n", infile.Filename().full());
   // Read in each line of input.
   int nInputErrors = 0;
-  RetType cmode = C_OK;
+  Cmd::RetType cmode = Cmd::OK;
   CmdInput input;
   const char* ptr = infile.Line();
   while (ptr != 0) {
@@ -273,10 +273,10 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
       mprintf("  [%s]\n", input.str());
       // Call Dispatch to convert input to ArgList and process.
       cmode = Command::Dispatch(State, input.Str());
-      if (cmode == C_ERR) {
+      if (cmode == Cmd::ERR) {
         nInputErrors++;
         if (State.ExitOnError()) break;
-      } else if (cmode == C_QUIT)
+      } else if (cmode == Cmd::QUIT)
         break;
     }
     // Reset Input line
@@ -286,7 +286,7 @@ Command::RetType Command::ProcessInput(CpptrajState& State,
   infile.CloseFile();
   if (nInputErrors > 0) {
     mprinterr("\t%i errors encountered reading input.\n", nInputErrors);
-    return C_ERR;
+    return Cmd::ERR;
   }
   return cmode;
 }
@@ -310,7 +310,7 @@ static void Help_Run() {
           "  list will be run after trajectory processing.\n");
 }
 
-static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
+static void Help_Quit() { mprintf("  Exit CPPCmd::TRAJ\n"); }
 
 static void Help_List() {
   mprintf("\t[<type>] (<type> =%s)\n"
@@ -425,29 +425,29 @@ static void Help_Reference() {
   mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
           "\t       [%s]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
-          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
+          "  If 'crdset' is specified use Cmd::COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_LoadCrd() {
   mprintf("\t<filename> [%s] [<trajin args>] [name <name>]\n", DataSetList::TopArgs);
-  mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
+  mprintf("  Load trajectory <filename> as a Cmd::COORDS data set named <name> (default <filename>).\n");
 }
 
 static void Help_LoadTraj() {
   mprintf("\tname <setname> [<filename>]\n"
-          "  Create/add to TRAJ data set named <setname>. If no <filename> given, convert\n"
-          "  currently loaded input trajectories to TRAJ data set; otherwise add <filename>\n"
-          "  to TRAJ data set <setname>\n");
+          "  Create/add to Cmd::TRAJ data set named <setname>. If no <filename> given, convert\n"
+          "  currently loaded input trajectories to Cmd::TRAJ data set; otherwise add <filename>\n"
+          "  to Cmd::TRAJ data set <setname>\n");
 }
 
 static void Help_CrdAction() {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
-          "  Perform action <actioncmd> on COORDS data set <crd set>.\n");
+          "  Perform action <actioncmd> on Cmd::COORDS data set <crd set>.\n");
 }
 
 static void Help_CrdOut() {
   mprintf("\t<crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n"
-          "  Write COORDS data set <crd set> to trajectory file <filename>\n");
+          "  Write Cmd::COORDS data set <crd set> to trajectory file <filename>\n");
 }
 
 static void Help_RunAnalysis() {
@@ -486,14 +486,6 @@ static void Deprecate_AvgCoord() {
 }
 
 // ---------- GENERAL COMMANDS -------------------------------------------------
-/// Sequence align
-Command::RetType SequenceAlignCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{ return (Command::RetType)SequenceAlign(State, argIn); }
-
-/// Compare topologies
-Command::RetType CompareTopCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{ return (Command::RetType)CompareTop(State, argIn); }
-
 static void Help_ActiveRef() {
   mprintf("\t%s\n", DataSetList::RefArgs);
   mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
@@ -501,51 +493,51 @@ static void Help_ActiveRef() {
 }
 
 /// Set active reference for distance-based masks etc.
-Command::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.DSL()->SetActiveReference( argIn );
+  return (Cmd::RetType)State.DSL()->SetActiveReference( argIn );
 }
 
 /// Clear data in specified lists
-Command::RetType ClearList(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ClearList(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.ClearList( argIn );
+  return (Cmd::RetType)State.ClearList( argIn );
 }
 
-Command::RetType RemoveData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType RemoveData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.RemoveDataSet( argIn );
+  return (Cmd::RetType)State.RemoveDataSet( argIn );
 }
 
 /// Set debug value for specified list(s)
-Command::RetType SetListDebug(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType SetListDebug(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.SetListDebug( argIn );
+  return (Cmd::RetType)State.SetListDebug( argIn );
 }
 
 /// List all members of specified list(s)
-Command::RetType ListAll(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ListAll(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.ListAll( argIn );
+  return (Cmd::RetType)State.ListAll( argIn );
 }
 
 static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\n"); }
 /// Silence Actions Init/Setup output.
-Command::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
-{ State.SetActionSilence( true ); return Command::C_OK; }
+Cmd::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{ State.SetActionSilence( true ); return Cmd::OK; }
 
-/// Perform action on given COORDS dataset
-Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+/// Perform action on given Cmd::COORDS dataset
+Cmd::RetType CrdAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
-    return Command::C_ERR;
+    mprinterr("Error: %s: Specify Cmd::COORDS dataset name.\n", argIn.Command());
+    return Cmd::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
-    mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-    return Command::C_ERR;
+    mprinterr("Error: %s: No Cmd::COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
+    return Cmd::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
   Timer total_time;
@@ -553,21 +545,21 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   // Start, stop, offset
   TrajFrameCounter frameCount;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
+  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Cmd::ERR;
   frameCount.PrintInfoLine(CRD->legend());
   ArgList actionargs = argIn.RemainingArgs();
   actionargs.MarkArg(0);
-  Command::TokenPtr tkn = Command::SearchTokenType( Command::ACTION, actionargs);
-  if ( tkn == 0 ) return Command::C_ERR;
+  Cmd::TokenPtr tkn = Command::SearchTokenType( Cmd::ACTION, actionargs);
+  if ( tkn == 0 ) return Cmd::ERR;
   Action* act = (Action*)tkn->Alloc();
-  if (act == 0) return Command::C_ERR;
+  if (act == 0) return Cmd::ERR;
   ActionInit state(*State.DSL(), *State.DFL());
   if ( act->Init( actionargs, state, State.Debug() ) != Action::OK ) {
     delete act;
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   actionargs.CheckForMoreArgs();
-  // Set up frame and parm for COORDS.
+  // Set up frame and parm for Cmd::COORDS.
   ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
   ActionFrame frm( &originalFrame );
@@ -575,9 +567,9 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   Action::RetType setup_ret = act->Setup( originalSetup );
   if ( setup_ret == Action::ERR ) {
     delete act;
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
-  // Loop over all frames in COORDS.
+  // Loop over all frames in Cmd::COORDS.
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
   for (int frame = frameCount.Start(); frame < frameCount.Stop();
@@ -590,11 +582,11 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
-    // Check if frame was modified. If so, update COORDS.
+    // Check if frame was modified. If so, update Cmd::COORDS.
     if ( ret == Action::MODIFY_COORDS ) 
       CRD->SetCRD( frame, frm.Frm() );
   }
-  // Check if parm was modified. If so, update COORDS.
+  // Check if parm was modified. If so, update Cmd::COORDS.
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
@@ -605,35 +597,35 @@ Command::RetType CrdAction(CpptrajState& State, ArgList& argIn, Command::AllocTy
   delete act;
   total_time.Stop();
   mprintf("TIME: Total action execution time: %.4f seconds.\n", total_time.Total());
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
-/// Write out COORDS dataset
-Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+/// Write out Cmd::COORDS dataset
+Cmd::RetType CrdOut(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: crdout: Specify COORDS dataset name.\n");
-    return Command::C_ERR;
+    mprinterr("Error: crdout: Specify Cmd::COORDS dataset name.\n");
+    return Cmd::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
-    mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
-    return Command::C_ERR;
+    mprinterr("Error: crdout: No Cmd::COORDS set with name %s found.\n", setname.c_str());
+    return Cmd::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
   setname = argIn.GetStringNext(); // Output traj file name
   // Start, stop, offset
   TrajFrameCounter frameCount;
   ArgList crdarg( argIn.GetStringKey("crdframes"), "," );
-  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Command::C_ERR;
+  if (frameCount.CheckFrameArgs( CRD->Size(), crdarg )) return Cmd::ERR;
   frameCount.PrintInfoLine( CRD->legend() );
   Trajout_Single outtraj;
   if (outtraj.PrepareTrajWrite( setname, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
                                 CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
   {
     mprinterr("Error: crdout: Could not set up output trajectory.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   outtraj.PrintInfo(0);
   Frame currentFrame = CRD->AllocateFrame(); 
@@ -650,24 +642,24 @@ Command::RetType CrdOut(CpptrajState& State, ArgList& argIn, Command::AllocType 
       break;
     }
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 /// Load single trajectory as DataSet_Coords
-Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Get parm
   Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: loadcrd: No parm files loaded.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // Load trajectory
   Trajin_Single trajin;
   trajin.SetDebug( State.Debug() );
   if (trajin.SetupTrajRead(argIn.GetStringNext(), argIn, parm)) {
     mprinterr("Error: loadcrd: Could not set up input trajectory.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // Create input frame
   Frame frameIn;
@@ -684,8 +676,8 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
     // Create Set 
     coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
     if (coords == 0) {
-      mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
-      return Command::C_ERR;
+      mprinterr("Error: loadcrd: Could not set up Cmd::COORDS data set.\n");
+      return Cmd::ERR;
     }
     coords->CoordsSetup( *parm, trajin.TrajCoordInfo() );
     mprintf("\tLoading trajectory '%s' as '%s'\n", trajin.Traj().Filename().full(),
@@ -693,18 +685,18 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   } else {
     // Check that set is actually coords.
     if (ds->Type() != DataSet::COORDS) {
-      mprinterr("Error: Set %s present but is not of type COORDS.\n", ds->legend());
-      return Command::C_ERR;
+      mprinterr("Error: Set %s present but is not of type Cmd::COORDS.\n", ds->legend());
+      return Cmd::ERR;
     }
     coords = (DataSet_Coords*)ds;
     // Check that topology matches. For now just check # atoms.
     if (parm->Natom() != coords->Top().Natom()) {
-      mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
+      mprinterr("Error: Trajectory '%s' # atoms %i does not match Cmd::COORDS data set '%s' (%i)\n",
                 trajin.Traj().Filename().full(), parm->Natom(),
                 coords->legend(), coords->Top().Natom());
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
-    mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
+    mprintf("\tAppending trajectory '%s' to Cmd::COORDS data set '%s'\n", 
             trajin.Traj().Filename().full(), coords->legend());
   }
   // Read trajectory TODO progress bar
@@ -713,17 +705,17 @@ Command::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Command::AllocType
   while (trajin.GetNextFrame( frameIn ))
     coords->AddFrame( frameIn );
   trajin.EndTraj();
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
-/// Convert input traj list to TRAJ data set
-Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+/// Convert input traj list to Cmd::TRAJ data set
+Cmd::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Get Keywords
   std::string setname = argIn.GetStringKey("name");
   if (setname.empty()) {
     mprinterr("Error: Must provide data set name ('name <setname>')\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   DataSet_Coords_TRJ* trj = (DataSet_Coords_TRJ*)
                             State.DSL()->FindSetOfType(setname, DataSet::TRAJ);
@@ -731,59 +723,59 @@ Command::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Command::AllocTyp
     trj = (DataSet_Coords_TRJ*)
           State.DSL()->AddSet(DataSet::TRAJ, setname, "__DTRJ__");
   if (trj == 0) {
-    mprinterr("Error: Could not set up TRAJ data set.\n");
-    return Command::C_ERR;
+    mprinterr("Error: Could not set up Cmd::TRAJ data set.\n");
+    return Cmd::ERR;
   }
   std::string trajname = argIn.GetStringNext();
   if (trajname.empty()) {
     // Add all existing input trajectories
     if (State.InputTrajList().empty()) {
       mprinterr("Error: No input trajectories loaded.\n");
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
     if (State.InputTrajList().Mode() != TrajinList::NORMAL) {
       mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
     mprintf("\tSaving currently loaded input trajectories as data set with name '%s'\n",
             setname.c_str());
     for (TrajinList::trajin_it Trajin = State.InputTrajList().trajin_begin();
                                Trajin != State.InputTrajList().trajin_end(); ++Trajin)
-      if (trj->AddInputTraj( *Trajin )) return Command::C_ERR;
+      if (trj->AddInputTraj( *Trajin )) return Cmd::ERR;
     // TODO: Clear input trajectories from trajinList?
   } else {
     // Add the named trajectory
     if (trj->AddSingleTrajin( trajname, argIn, State.DSL()->GetTopology(argIn) ))
-      return Command::C_ERR;
+      return Cmd::ERR;
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 // -----------------------------------------------------------------------------
 static void Help_CombineCoords() {
   mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
-          "  Combined two COORDS data sets.\n");
+          "  Combined two Cmd::COORDS data sets.\n");
 }
 
-/// Combine two COORDS DataSets
-Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+/// Combine two Cmd::COORDS DataSets
+Cmd::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
-  // Get COORDS DataSets.
+  // Get Cmd::COORDS DataSets.
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
   while (!setname.empty()) {
     DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
     if (ds == 0) {
-      mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
-      return Command::C_ERR;
+      mprinterr("Error: %s: No Cmd::COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
+      return Cmd::ERR;
     }
     CRD.push_back( ds );
     setname = argIn.GetStringNext();
   }
   if (CRD.size() < 2) {
-    mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
-    return Command::C_ERR;
+    mprinterr("Error: %s: Must specify at least 2 Cmd::COORDS data sets\n", argIn.Command());
+    return Cmd::ERR;
   }
   // Only add the topology to the list if parmname specified
   bool addTop = true;
@@ -802,7 +794,7 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
   }
   CombinedTop.Brief("Combined parm:");
   if (addTop) {
-    if (State.AddTopology( CombinedTop, parmname )) return Command::C_ERR;
+    if (State.AddTopology( CombinedTop, parmname )) return Cmd::ERR;
   }
   // Combine coordinates
   if (crdname.empty())
@@ -810,8 +802,8 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
   mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
   DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, crdname, "CRD");
   if (CombinedCrd == 0) {
-    mprinterr("Error: Could not create COORDS data set.\n");
-    return Command::C_ERR;
+    mprinterr("Error: Could not create Cmd::COORDS data set.\n");
+    return Cmd::ERR;
   }
   // FIXME: Only copying coords for now
   CombinedCrd->CoordsSetup( CombinedTop, CoordinateInfo() );
@@ -843,7 +835,7 @@ Command::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Command::All
     CombinedCrd->AddCRD( CombinedFrame );
   }
 */
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -858,13 +850,13 @@ static void Help_GenerateAmberRst() {
 }
 
 /// Generate amber restraints from given masks.
-Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Get parm
   Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No parm files loaded.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // Get optional reference coords
   ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
@@ -884,7 +876,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
                                                      DataFileList::TEXT, true);
   if (outfile == 0) {
     mprinterr("Error: Could not open output file.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // TODO: else if (strcmp(pch,"nobb")==0) nobb=1;
   // Assume everything else is a mask
@@ -902,12 +894,12 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
         maskerr = parm->SetupIntegerMask( tmpmask );
       if ( maskerr != 0 ) {
         mprinterr("Error: Could not set up mask '%s'\n", tmpmask.MaskString());
-        return Command::C_ERR;
+        return Cmd::ERR;
       }
       tmpmask.MaskInfo();
       if ( tmpmask.None() ) {
         mprinterr("Error: '%s' corresponds to no atoms.\n", tmpmask.MaskString());
-        return Command::C_ERR;
+        return Cmd::ERR;
       }
       rstMasks.push_back( tmpmask );
     }
@@ -916,7 +908,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   if (State.Debug() > 0) mprintf("\tDefined %zu rst masks.\n", rstMasks.size());
   if (rstMasks.size() < 2) {
     mprinterr("Error: Must specify at least 2 masks for restraint.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // TODO: Remove backbone atoms for 'nobb'?
   // If a reference frame was specified and distance restraint, use center of
@@ -972,7 +964,7 @@ Command::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Command::
   }
   // Finish restraint
   outfile->Printf("   nstep1=0, nstep2=0,\n &end\n");
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -999,46 +991,46 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
 }
 
 /// Add a new DataFile to DFL with specified DataSets, to be written later.
-Command::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename given.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   DataFile* df = State.DFL()->AddDataFile(name1, argIn);
-  if (df == 0) return Command::C_ERR;
-  return (Command::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
+  if (df == 0) return Cmd::ERR;
+  return (Cmd::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
 }
 
 /// Write DataFile with specified DataSets immediately, or force write of all DataFiles in State
-Command::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     State.DFL()->ResetWriteStatus();
     State.MasterDataFileWrite();
-    return Command::C_OK;
+    return Cmd::OK;
   }
   DataFile* df = new DataFile();
-  if (df == 0) return Command::C_ERR;
+  if (df == 0) return Cmd::ERR;
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   mprintf("\tWriting sets to %s, format '%s'\n", df->DataFilename().full(), df->FormatString());
   int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
   if (err == 0) df->WriteDataOut();
   delete df;
-  return (Command::RetType)err;
+  return (Cmd::RetType)err;
 }
 
 /// Process DataFile-specific command
-Command::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType DataFileCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
+  return (Cmd::RetType)( State.DFL()->ProcessDataFileArgs( argIn ) );
 }
 
 // -----------------------------------------------------------------------------
@@ -1062,12 +1054,12 @@ static void Help_DataSetCmd() {
 }
 
 /// Process DataSet-specific command
-Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   if (argIn.Contains("legend")) { // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
     DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
-    if (ds == 0) return Command::C_ERR;
+    if (ds == 0) return Cmd::ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
@@ -1075,13 +1067,13 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     std::string name = argIn.GetStringKey("name");
     DataSet* ds1 = State.DSL()->GetDataSet( argIn.GetStringNext() );
     DataSet* ds2 = State.DSL()->GetDataSet( argIn.GetStringNext() );
-    if (ds1 == 0 || ds2 == 0) return Command::C_ERR;
+    if (ds1 == 0 || ds2 == 0) return Cmd::ERR;
     if (ds1->Ndim() != 1 || ds2->Ndim() != 1) {
       mprinterr("Error: makexy only works for 1D data sets.\n");
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
     DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "XY" );
-    if (ds3 == 0) return Command::C_ERR;
+    if (ds3 == 0) return Cmd::ERR;
     mprintf("\tUsing values from '%s' as X, values from '%s' as Y, output set '%s'\n",
             ds1->legend(), ds2->legend(), ds3->legend());
     DataSet_1D const& ds_x = static_cast<DataSet_1D const&>( *ds1 );
@@ -1101,7 +1093,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     std::string name = argIn.GetStringKey("name");
     bool use_offset = !argIn.hasKey("nooffset");
     DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "CAT" );
-    if (ds3 == 0) return Command::C_ERR;
+    if (ds3 == 0) return Cmd::ERR;
     DataSet_1D& out = static_cast<DataSet_1D&>( *ds3 );
     mprintf("\tConcatenating sets into '%s'\n", out.legend());
     if (use_offset)
@@ -1141,7 +1133,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
     std::string typeKey = argIn.GetStringKey("type");
     if (modeKey.empty() && typeKey.empty()) {
       mprinterr("Error: No valid keywords specified.\n");
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
     // First determine mode if specified.
     MetaData::scalarMode dmode = MetaData::UNKNOWN_MODE;
@@ -1149,7 +1141,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       dmode = MetaData::ModeFromKeyword( modeKey );
       if (dmode == MetaData::UNKNOWN_MODE) {
         mprinterr("Error: Invalid mode keyword '%s'\n", modeKey.c_str());
-        return Command::C_ERR;
+        return Cmd::ERR;
       }
     }
     // Next determine type if specified.
@@ -1158,14 +1150,14 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       dtype = MetaData::TypeFromKeyword( typeKey, dmode );
       if (dtype == MetaData::UNDEFINED) {
         mprinterr("Error: Invalid type keyword '%s'\n", typeKey.c_str());
-        return Command::C_ERR;
+        return Cmd::ERR;
       }
     }
     // Additional options for type 'noe'
     AssociatedData_NOE noeData;
     if (dtype == MetaData::NOE) {
       if (noeData.NOE_Args(argIn))
-        return Command::C_ERR;
+        return Cmd::ERR;
     }
     if (dmode != MetaData::UNKNOWN_MODE)
       mprintf("\tDataSet mode = %s\n", MetaData::ModeString(dmode));
@@ -1192,7 +1184,7 @@ Command::RetType DataSetCmd(CpptrajState& State, ArgList& argIn, Command::AllocT
       ds_arg = argIn.GetStringNext();
     }
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -1205,16 +1197,16 @@ static void Help_DataFilter() {
 }
 
 /// Use the filter command on DataSets outside trajectory processing.
-Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType DataFilter(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Action_FilterByData filterAction;
   ActionInit state(*State.DSL(), *State.DFL());
   if (filterAction.Init(argIn, state, State.Debug()) != Action::OK)
-    return Command::C_ERR;
+    return Cmd::ERR;
   size_t nframes = filterAction.DetermineFrames();
   if (nframes < 1) {
     mprinterr("Error: No data to filter. All sets must contain some data.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   ProgressBar progress( nframes );
   ActionFrame frm;
@@ -1224,12 +1216,12 @@ Command::RetType DataFilter(CpptrajState& State, ArgList& argIn, Command::AllocT
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();
-  return Command::C_OK;
+  return Cmd::OK;
 }
 // -----------------------------------------------------------------------------
 
 /// Read data from file into master DataSetList
-Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ReadData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   DataFile dataIn;
   dataIn.SetDebug( State.DFL()->Debug() );
@@ -1237,7 +1229,7 @@ Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocTyp
   File::NameArray fnames = File::ExpandToFilenames( filenameIn );
   if (fnames.empty()) {
     mprinterr("Error: '%s' matches no files.\n", filenameIn.c_str());
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   int err = 0;
   for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
@@ -1246,28 +1238,28 @@ Command::RetType ReadData(CpptrajState& State, ArgList& argIn, Command::AllocTyp
       err++;
     }
   }
-  if (err > 0) return Command::C_ERR;
-  return Command::C_OK;
+  if (err > 0) return Cmd::ERR;
+  return Cmd::OK;
 }
 
 /// Exit
-Command::RetType Quit(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Quit(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return Command::C_QUIT;
+  return Cmd::QUIT;
 }
 
 /// Run a system command
-Command::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   int err = system( argIn.ArgLine() );
   if (err != 0) mprintf("Warning: '%s' returned %i\n", argIn.Command(), err);
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
 static void Help_Help() {
   mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
-  for (int i = 1; i != (int)Command::DEPRECATED; i++)
+  for (int i = 1; i != (int)Cmd::DEPRECATED; i++)
     mprintf(" %s", Command::CommandCategoryKeyword(i));
   mprintf("\n");
   mprintf("  With no arguments list all known commands, otherwise display help for specified\n"
@@ -1275,78 +1267,78 @@ static void Help_Help() {
 }
 
 /// Find help for command/topic
-Command::RetType Help(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Help(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   ArgList arg = argIn;
   arg.RemoveFirstArg();
   if (arg.empty())
-    // NONE in this context means list all commands
-    Command::ListCommands(Command::NONE);
+    // Cmd::NONE in this context means list all commands
+    Command::ListCommands(Cmd::NONE);
   else {
-    for (int i = 1; i != (int)Command::DEPRECATED; i++) {
+    for (int i = 1; i != (int)Cmd::DEPRECATED; i++) {
       if (arg.CommandIs(Command::CommandCategoryKeyword(i))) {
-        Command::ListCommands((Command::CommandType)i);
-        return Command::C_OK;
+        Command::ListCommands((Cmd::Ctype)i);
+        return Cmd::OK;
       }
     }
     // Find help for specified command.
-    Command::TokenPtr dispatchToken = Command::SearchToken( arg );
+    Cmd::TokenPtr dispatchToken = Command::SearchToken( arg );
     if (dispatchToken == 0 || dispatchToken->Help == 0)
       mprinterr("No help found for %s\n", arg.Command());
     else
       dispatchToken->Help();
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 /// Run the current State
-Command::RetType RunState(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType RunState(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.Run();
+  return (Cmd::RetType)State.Run();
 }
 
 /// Read input from a file.
-Command::RetType ReadInput(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ReadInput(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Next arg should be a filename. Not allowed to be blank in command.
   std::string inputFilename = argIn.GetStringNext();
   if (inputFilename.empty()) {
     mprinterr("Error: No input filename given.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   return Command::ProcessInput(State, inputFilename);
 }
 
 /// Tell CpptrajState to ignore errors if possible
-Command::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   State.SetNoExitOnError();
   mprintf("\tAttempting to ignore errors if possible.\n");
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 /// Tell CpptrajState not to use a progress bar during Run.
-Command::RetType NoProgress(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType NoProgress(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   State.SetNoProgress();
   mprintf("\tProgress bar will not be used during Run.\n");
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 ///  Set precision for specific set or all sets in specified DataFile
-Command::RetType Precision(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Precision(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Next string is DataSet(s)/DataFile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
     mprinterr("Error: No filename/setname given.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   // This will break if dataset name starts with a digit...
   int width = argIn.getNextInteger(12);
   if (width < 1) {
     mprintf("Error: Cannot set width < 1 (%i).\n", width);
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   int precision = argIn.getNextInteger(4);
   if (precision < 0) precision = 0;
@@ -1358,37 +1350,37 @@ Command::RetType Precision(CpptrajState& State, ArgList& argIn, Command::AllocTy
   } else {
     State.DSL()->SetPrecisionOfDataSets( name1, width, precision );
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 /// Run specified analysis or all analyses in State.
-Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // If only 1 arg (the command) run all analyses in list
   if (argIn.Nargs() == 1) {
     int eval = State.RunAnalyses();
     State.MasterDataFileWrite();
     if (eval == 0)
-      return Command::C_OK;
+      return Cmd::OK;
     else
-      return Command::C_ERR;
+      return Cmd::ERR;
   }
   // Run specified analysis
   // FIXME: Use RemoveFirstArg
   ArgList analyzeargs = argIn.RemainingArgs();
   analyzeargs.MarkArg(0);
-  Command::TokenPtr tkn = Command::SearchTokenType( Command::ANALYSIS, analyzeargs );
-  if ( tkn == 0 ) return Command::C_ERR;
+  Cmd::TokenPtr tkn = Command::SearchTokenType( Cmd::ANALYSIS, analyzeargs );
+  if ( tkn == 0 ) return Cmd::ERR;
   Analysis* ana = (Analysis*)tkn->Alloc();
-  if (ana == 0) return Command::C_ERR;
+  if (ana == 0) return Cmd::ERR;
   Timer total_time;
   total_time.Start();
-  Command::RetType err = Command::C_ERR;
+  Cmd::RetType err = Cmd::ERR;
   if ( ana->Setup( analyzeargs, State.DSL(), State.DFL(), State.Debug() ) == Analysis::OK )
   {
     analyzeargs.CheckForMoreArgs();
     if (ana->Analyze() != Analysis::ERR) {
-      err = Command::C_OK;
+      err = Cmd::OK;
       State.MasterDataFileWrite();
     }
   }
@@ -1399,20 +1391,20 @@ Command::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
 }
 
 /// Show results of mask expression
-Command::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   AtomMask tempMask( argIn.GetMaskNext() );
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
-  if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
+  if (parm->SetupIntegerMask( tempMask )) return Cmd::ERR;
   mprintf("Selected %i atoms.\n", tempMask.Nselected());
   if (!argIn.hasKey("total"))
     tempMask.PrintMaskAtoms("Selected");
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 /// Show results of DataSet expression
-Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
@@ -1420,7 +1412,7 @@ Command::RetType SelectDataSets(CpptrajState& State, ArgList& argIn, Command::Al
     mprintf("SelectDS: Arg '%s':", dsarg.c_str());
     dsets.List();
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -1429,7 +1421,7 @@ static void Help_PrintData() {
           "  Print data from data set to screen.\n");
 }
 
-Command::RetType PrintData(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType PrintData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   DataFile ToStdout;
   ToStdout.SetupStdout(argIn, State.Debug());
@@ -1442,7 +1434,7 @@ Command::RetType PrintData(CpptrajState& State, ArgList& argIn, Command::AllocTy
   for (DataSetList::const_iterator ds = selected.begin(); ds != selected.end(); ++ds)
     ToStdout.AddDataSet( *ds );
   ToStdout.WriteDataOut();
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -1452,40 +1444,40 @@ static void Help_Calc() {
 }
 
 /// Parse a mathematical expression.
-Command::RetType Calc(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Calc(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   RPNcalc calc;
   calc.SetDebug( State.Debug() );
   // Do NOT include command in expression.
   if (calc.ProcessExpression( argIn.ArgString().substr(argIn[0].size()) ))
-    return Command::C_ERR;
-  if (calc.Evaluate(*State.DSL())) return Command::C_ERR;
-  return Command::C_OK;
+    return Cmd::ERR;
+  if (calc.Evaluate(*State.DSL())) return Cmd::ERR;
+  return Cmd::OK;
 }
   
 // ---------- TRAJECTORY COMMANDS ----------------------------------------------
 /// Add output trajectory to State
-Command::RetType Trajout(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Trajout(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.AddOutputTrajectory( argIn );
+  return (Cmd::RetType)State.AddOutputTrajectory( argIn );
 }
 
 /// Add input trajectory to State
-Command::RetType Trajin(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Trajin(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.AddTrajin( argIn, false );
+  return (Cmd::RetType)State.AddTrajin( argIn, false );
 }
 
 /// Add ensemble of input trajectories to State.
-Command::RetType Ensemble(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Ensemble(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.AddTrajin( argIn, true );
+  return (Cmd::RetType)State.AddTrajin( argIn, true );
 }
 
 /// Add reference trajectory to State
-Command::RetType Reference(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType Reference(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.AddReference( argIn.GetStringNext(), argIn );
+  return (Cmd::RetType)State.AddReference( argIn.GetStringNext(), argIn );
 }
 
 // ---------- TOPOLOGY COMMANDS ------------------------------------------------
@@ -1495,9 +1487,9 @@ static void Help_LoadParm() {
   ParmFile::ReadOptions();
 }
 /// Load topology from file into to State
-Command::RetType LoadParm(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType LoadParm(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return (Command::RetType)State.AddTopology(argIn.GetStringNext(), argIn);
+  return (Cmd::RetType)State.AddTopology(argIn.GetStringNext(), argIn);
 }
 
 static void Help_ParmInfo() {
@@ -1505,12 +1497,12 @@ static void Help_ParmInfo() {
   mprintf("  Print information on specfied topology (first by default).\n");
 }
 /// Print info for specified parm or atoms in specified parm.
-Command::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ParmInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->Summary();
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_AtomInfo() {
@@ -1518,12 +1510,12 @@ static void Help_AtomInfo() {
   mprintf("  Print information on atoms in <mask> for specified topology (first by default).\n");
 }
 /// Print info for atoms in mask.
-Command::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType AtomInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->PrintAtomInfo( argIn.GetMaskNext() );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_BondInfo() {
@@ -1531,12 +1523,12 @@ static void Help_BondInfo() {
   mprintf("  Print bond info for atoms in <mask> for specified topology (first by default).\n");
 }
 /// Print bond info for atoms in mask.
-Command::RetType BondInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType BondInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->PrintBondInfo( argIn.GetMaskNext() );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_AngleInfo() {
@@ -1544,12 +1536,12 @@ static void Help_AngleInfo() {
   mprintf("  Print angle info for atoms in <mask> for specified topology (first by default).\n");
 }
 /// Print angle info for atoms in mask.
-Command::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType AngleInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->PrintAngleInfo( argIn.GetMaskNext() );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_DihedralInfo() {
@@ -1558,12 +1550,12 @@ static void Help_DihedralInfo() {
           "  If 'and' is specified dihedral must include all atoms specfied by <mask>.\n");
 }
 /// Print dihedral info for atoms in mask.
-Command::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType DihedralInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->PrintDihedralInfo( argIn.GetMaskNext(), !argIn.hasKey("and") );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_ResInfo() {
@@ -1572,16 +1564,16 @@ static void Help_ResInfo() {
           "  If 'short' is specified print residue info in shorter form.\n");
 }
 /// Print residue info for atoms in mask.
-Command::RetType ResInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ResInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   bool printShort = argIn.hasKey("short");
   if (printShort)
     parm->PrintShortResInfo( argIn.GetMaskNext(), argIn.getKeyInt("maxwidth",50) );
   else
     parm->PrintResidueInfo( argIn.GetMaskNext() );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_MolInfo() {
@@ -1589,12 +1581,12 @@ static void Help_MolInfo() {
   mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n");
 }
 /// Print molecule info for atoms in mask.
-Command::RetType MolInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType MolInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->PrintMoleculeInfo( argIn.GetMaskNext() );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_ChargeInfo() {
@@ -1602,12 +1594,12 @@ static void Help_ChargeInfo() {
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 /// Print the total charge of atoms in mask
-Command::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ChargeInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
-  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return Command::C_ERR;
-  return Command::C_OK;
+  if (parm == 0) return Cmd::ERR;
+  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return Cmd::ERR;
+  return Cmd::OK;
 }
 
 static void Help_MassInfo() {
@@ -1615,12 +1607,12 @@ static void Help_MassInfo() {
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 /// Print the total mass of atoms in mask
-Command::RetType MassInfo(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType MassInfo(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
-  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return Command::C_ERR;
-  return Command::C_OK;
+  if (parm == 0) return Cmd::ERR;
+  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return Cmd::ERR;
+  return Cmd::OK;
 }
 
 static void Help_ParmBox() {
@@ -1631,7 +1623,7 @@ static void Help_ParmBox() {
           "  'truncoct' specified, set truncated octahedron with lengths = <xval>.\n");
 }
 /// Modify specified parm box info
-Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ParmBox(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Box pbox;
   bool nobox = false;
@@ -1646,7 +1638,7 @@ Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
   }
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   if (nobox)
     mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());
   else
@@ -1655,7 +1647,7 @@ Command::RetType ParmBox(CpptrajState& State, ArgList& argIn, Command::AllocType
   if (argIn.hasKey("truncoct")) pbox.SetTruncOct();
   parm->SetParmBox( pbox );
   parm->ParmBox().PrintInfo();
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_ParmStrip() {
@@ -1663,10 +1655,10 @@ static void Help_ParmStrip() {
   mprintf("  Strip atoms in mask from specified topology (first by default).\n");
 }
 /// Strip atoms from specified parm
-Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   // Check if this topology has already been used to set up an input
   // trajectory, as this will break the traj read.
   bool topology_in_use = false;
@@ -1691,58 +1683,58 @@ Command::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Command::AllocTy
     mprinterr("Error: Topology '%s' has already been used to set up trajectory '%s'.\n"
               "Error:   To strip this topology use the 'strip' action.\n",
               parm->c_str(), fname);
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   AtomMask tempMask( argIn.GetMaskNext() );
   // Since want to keep atoms outside mask, invert selection
   tempMask.InvertMaskExpression();
-  if (parm->SetupIntegerMask( tempMask )) return Command::C_ERR;
+  if (parm->SetupIntegerMask( tempMask )) return Cmd::ERR;
   mprintf("\tStripping atoms in mask [%s] (%i) from %s\n",tempMask.MaskString(),
            parm->Natom() - tempMask.Nselected(), parm->c_str());
   Topology* tempParm = parm->modifyStateByMask(tempMask);
   if (tempParm==0) {
     mprinterr("Error: %s: Could not strip parm.\n", argIn.Command());
-    return Command::C_ERR;
+    return Cmd::ERR;
   } else {
     // Replace parm with stripped version
     *parm = *tempParm;
     parm->Brief("Stripped parm:");
     delete tempParm;
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_ParmWrite() {
   mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>] [nochamber]\n",
           DataSetList::TopIdxArgs);
-  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
+  mprintf("  Write specified topology or topology from Cmd::COORDS set to <filename>.\n");
   ParmFile::WriteOptions();
 }
 /// Write parm to Amber Topology file.
-Command::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string outfilename = argIn.GetStringKey("out");
   if (outfilename.empty()) {
     mprinterr("Error: No output filename specified (use 'out <filename>').\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   int err = 0;
   ParmFile pfile;
-  // Check if a COORDS data set was specified.
+  // Check if a Cmd::COORDS data set was specified.
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
     Topology* parm = State.DSL()->GetTopByIndex( argIn );
-    if (parm == 0) return Command::C_ERR;
+    if (parm == 0) return Cmd::ERR;
     err = pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() );
   } else {
     DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet(crdset);
-    if (ds == 0) return Command::C_ERR;
+    if (ds == 0) return Cmd::ERR;
     mprintf("\tUsing topology from data set '%s'\n", ds->legend());
     err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());
   }
   if (err != 0)
-    return Command::C_ERR;
-  return Command::C_OK;
+    return Cmd::ERR;
+  return Cmd::OK;
 }
 
 static void Help_ParmSolvent() {
@@ -1751,33 +1743,33 @@ static void Help_ParmSolvent() {
           "  If 'none' specified, remove all solvent information.\n");
 }
 /// Modify parm solvent information
-Command::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ParmSolvent(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string maskexpr;
   if (!argIn.hasKey("none")) {
     maskexpr = argIn.GetMaskNext();
     if ( maskexpr.empty() ) {
       mprinterr("Error: solvent: No mask specified.\n");
-      return Command::C_ERR;
+      return Cmd::ERR;
     }
   }
   // Get parm index
   Topology* parm = State.DSL()->GetTopByIndex( argIn );
-  if (parm == 0) return Command::C_ERR;
+  if (parm == 0) return Cmd::ERR;
   parm->SetSolvent( maskexpr );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 static void Help_ScaleDihedralK() {
   mprintf("\t[%s] <scale factor> [<mask> [useall]]\n", DataSetList::TopArgs);
 }
 /// Scale dihedral force constants in specfied parm by factor.
-Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No topologies loaded.\n");
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
   double scale_factor = argIn.getNextDouble(1.0);
   std::string maskexpr = argIn.GetMaskNext();
@@ -1790,18 +1782,18 @@ Command::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Command::Al
       mprintf("\tAny atom in mask '%s' will select a dihedral.\n",maskexpr.c_str());
   }
   parm->ScaleDihedralK( scale_factor, maskexpr, useAll );
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // ---------- DISPATCHABLE COMMANDS --------------------------------------------
 /// Add an action to the State ActionList
-Command::RetType AddAction(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType AddAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
-  return ( (Command::RetType)State.AddAction( Alloc, argIn ) );
+  return ( (Cmd::RetType)State.AddAction( Alloc, argIn ) );
 }
 
 /// Add an action to the State AnalysisList
-Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::AllocType Alloc)
+Cmd::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   if (State.AddAnalysis( Alloc, argIn )) {
 #   ifndef MPI
@@ -1811,236 +1803,236 @@ Command::RetType AddAnalysis(CpptrajState& State, ArgList& argIn, Command::Alloc
                 "Info:   or errors related to missing data sets, try entering a 'run' command\n"
                 "Info:   prior to any analysis commands.\n");
 #   endif
-    return Command::C_ERR;
+    return Cmd::ERR;
   }
-  return Command::C_OK;
+  return Cmd::OK;
 }
 
 // ================ LIST OF ALL COMMANDS =======================================
 /** Ideally keep this array first sorted by type (1st field), then 
   * alphabetically by command string (2nd field).
   */
-const Command::Token Command::Commands[] = {
+const Cmd::Token Command::Commands[] = {
   // GENERAL COMMANDS
-  { GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
-  { GENERAL, "calc",          0, Help_Calc,            Calc            },
-  { GENERAL, "clear",         0, Help_Clear,           ClearList       },
-  { GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
-  { GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
-  { GENERAL, "datafilter",    0, Help_DataFilter,      DataFilter      },
-  { GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
-  { GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
-  { GENERAL, "exit" ,         0, Help_Quit,            Quit            },
-  { GENERAL, "go",            0, Help_Run,             RunState        },
-  { GENERAL, "help",          0, Help_Help,            Help            },
-  { GENERAL, "list",          0, Help_List,            ListAll         },
-  { GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
-  { GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
-  { GENERAL, "precision",     0, Help_Precision,       Precision       },
-  { GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
-  { GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
-  { GENERAL, "quit" ,         0, Help_Quit,            Quit            },
-  { GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
-  { GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
-  { GENERAL, "removedata",    0, Help_RemoveData,      RemoveData      },
-  { GENERAL, "rst"   ,        0, Help_GenerateAmberRst,GenerateAmberRst},
-  { GENERAL, "run"   ,        0, Help_Run,             RunState        },
-  { GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
-  { GENERAL, "select",        0, Help_Select,          SelectAtoms     },
-  { GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
-  { HIDDEN,  "sequencealign", 0, Help_SequenceAlign,   SequenceAlignCmd},
-  { GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
-  { GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
-  { GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
+  { Cmd::GENERAL, "activeref",     0, Help_ActiveRef,       ActiveRef       },
+  { Cmd::GENERAL, "calc",          0, Help_Calc,            Calc            },
+  { Cmd::GENERAL, "clear",         0, Help_Clear,           ClearList       },
+  { Cmd::GENERAL, "create",        0, Help_Create_DataFile, Create_DataFile },
+  { Cmd::GENERAL, "datafile",      0, Help_DataFile,        DataFileCmd     },
+  { Cmd::GENERAL, "datafilter",    0, Help_DataFilter,      DataFilter      },
+  { Cmd::GENERAL, "dataset",       0, Help_DataSetCmd,      DataSetCmd      },
+  { Cmd::GENERAL, "debug",         0, Help_Debug,           SetListDebug    },
+  { Cmd::GENERAL, "exit" ,         0, Help_Quit,            Quit            },
+  { Cmd::GENERAL, "go",            0, Help_Run,             RunState        },
+  { Cmd::GENERAL, "help",          0, Help_Help,            Help            },
+  { Cmd::GENERAL, "list",          0, Help_List,            ListAll         },
+  { Cmd::GENERAL, "noexitonerror", 0, Help_NoExitOnError,   NoExitOnError   },
+  { Cmd::GENERAL, "noprogress",    0, Help_NoProgress,      NoProgress      },
+  { Cmd::GENERAL, "precision",     0, Help_Precision,       Precision       },
+  { Cmd::GENERAL, "printdata",     0, Help_PrintData,       PrintData       },
+  { Cmd::GENERAL, "prnlev",        0, Help_Debug,           SetListDebug    },
+  { Cmd::GENERAL, "quit" ,         0, Help_Quit,            Quit            },
+  { Cmd::GENERAL, "readdata",      0, Help_ReadData,        ReadData        },
+  { Cmd::GENERAL, "readinput",     0, Help_ReadInput,       ReadInput       },
+  { Cmd::GENERAL, "removedata",    0, Help_RemoveData,      RemoveData      },
+  { Cmd::GENERAL, "rst"   ,        0, Help_GenerateAmberRst,GenerateAmberRst},
+  { Cmd::GENERAL, "run"   ,        0, Help_Run,             RunState        },
+  { Cmd::GENERAL, "runanalysis",   0, Help_RunAnalysis,     RunAnalysis     },
+  { Cmd::GENERAL, "select",        0, Help_Select,          SelectAtoms     },
+  { Cmd::GENERAL, "selectds",      0, Help_SelectDS,        SelectDataSets  },
+  { Cmd::HIDDEN,  "sequencealign", 0, Help_SequenceAlign,   SequenceAlign   },
+  { Cmd::GENERAL, "silenceactions",0, Help_SilenceActions,  SilenceActions  },
+  { Cmd::GENERAL, "write",         0, Help_Write_DataFile,  Write_DataFile  },
+  { Cmd::GENERAL, "writedata",     0, Help_Write_DataFile,  Write_DataFile  },
   // SYSTEM COMMANDS
-  { SYSTEM, "gnuplot",        0, Help_System,          SystemCmd       },
-  { SYSTEM, "head",           0, Help_System,          SystemCmd       },
-  { SYSTEM, "less",           0, Help_System,          SystemCmd       },
-  { SYSTEM, "ls",             0, Help_System,          SystemCmd       },
-  { SYSTEM, "pwd",            0, Help_System,          SystemCmd       },
-  { SYSTEM, "xmgrace",        0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "gnuplot",        0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "head",           0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "less",           0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "ls",             0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "pwd",            0, Help_System,          SystemCmd       },
+  { Cmd::SYSTEM, "xmgrace",        0, Help_System,          SystemCmd       },
   // COORDS COMMANDS
-  { COORDS,  "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
-  { COORDS,  "crdaction",     0, Help_CrdAction,       CrdAction       },
-  { COORDS,  "crdout",        0, Help_CrdOut,          CrdOut          },
-  { COORDS,  "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
-  { COORDS,  "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
+  { Cmd::COORDS,  "combinecrd",    0, Help_CombineCoords,   CombineCoords   },
+  { Cmd::COORDS,  "crdaction",     0, Help_CrdAction,       CrdAction       },
+  { Cmd::COORDS,  "crdout",        0, Help_CrdOut,          CrdOut          },
+  { Cmd::COORDS,  "loadcrd",       0, Help_LoadCrd,         LoadCrd         },
+  { Cmd::COORDS,  "loadtraj",      0, Help_LoadTraj,        LoadTraj        },
   // TRAJECTORY COMMANDS
-  { TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
-  { TRAJ,    "reference",     0, Help_Reference,       Reference       },
-  { TRAJ,    "trajin",        0, Help_Trajin,          Trajin          },
-  { TRAJ,    "trajout",       0, Help_Trajout,         Trajout         },
+  { Cmd::TRAJ,    "ensemble",      0, Help_Ensemble,        Ensemble        },
+  { Cmd::TRAJ,    "reference",     0, Help_Reference,       Reference       },
+  { Cmd::TRAJ,    "trajin",        0, Help_Trajin,          Trajin          },
+  { Cmd::TRAJ,    "trajout",       0, Help_Trajout,         Trajout         },
   // TOPOLOGY COMMANDS
-  { PARM,    "angleinfo",     0, Help_AngleInfo,       AngleInfo       },
-  { PARM,    "angles",        0, Help_AngleInfo,       AngleInfo       },
-  { PARM,    "atominfo",      0, Help_AtomInfo,        AtomInfo        },
-  { PARM,    "atoms",         0, Help_AtomInfo,        AtomInfo        },
-  { PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
-  { PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
-  { PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
-  { HIDDEN,  "comparetop",    0, Help_CompareTop,      CompareTopCmd   },
-  { PARM,    "dihedralinfo",  0, Help_DihedralInfo,    DihedralInfo    },
-  { PARM,    "dihedrals",     0, Help_DihedralInfo,    DihedralInfo    },
-  { PARM,    "mass",          0, Help_MassInfo,        MassInfo        },
-  { PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
-  { PARM,    "parm",          0, Help_LoadParm,        LoadParm        },
-  { PARM,    "parmbox",       0, Help_ParmBox,         ParmBox         },
-  { PARM,    "parminfo",      0, Help_ParmInfo,        ParmInfo        },
-  { PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
-  { PARM,    "parmwrite",     0, Help_ParmWrite,       ParmWrite       },
-  { PARM,    "printangles",   0, Help_AngleInfo,       AngleInfo       },
-  { PARM,    "printatoms",    0, Help_AtomInfo,        AtomInfo        },
-  { PARM,    "printbonds",    0, Help_BondInfo,        BondInfo        },
-  { PARM,    "printdihedrals",0, Help_DihedralInfo,    DihedralInfo    },
-  { PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
-  { PARM,    "scaledihedralk",0, Help_ScaleDihedralK,  ScaleDihedralK  },
-  { PARM,    "solvent",       0, Help_ParmSolvent,     ParmSolvent     },
+  { Cmd::PARM,    "angleinfo",     0, Help_AngleInfo,       AngleInfo       },
+  { Cmd::PARM,    "angles",        0, Help_AngleInfo,       AngleInfo       },
+  { Cmd::PARM,    "atominfo",      0, Help_AtomInfo,        AtomInfo        },
+  { Cmd::PARM,    "atoms",         0, Help_AtomInfo,        AtomInfo        },
+  { Cmd::PARM,    "bondinfo",      0, Help_BondInfo,        BondInfo        },
+  { Cmd::PARM,    "bonds",         0, Help_BondInfo,        BondInfo        },
+  { Cmd::PARM,    "charge",        0, Help_ChargeInfo,      ChargeInfo      },
+  { Cmd::HIDDEN,  "comparetop",    0, Help_CompareTop,      CompareTop      },
+  { Cmd::PARM,    "dihedralinfo",  0, Help_DihedralInfo,    DihedralInfo    },
+  { Cmd::PARM,    "dihedrals",     0, Help_DihedralInfo,    DihedralInfo    },
+  { Cmd::PARM,    "mass",          0, Help_MassInfo,        MassInfo        },
+  { Cmd::PARM,    "molinfo",       0, Help_MolInfo,         MolInfo         },
+  { Cmd::PARM,    "parm",          0, Help_LoadParm,        LoadParm        },
+  { Cmd::PARM,    "parmbox",       0, Help_ParmBox,         ParmBox         },
+  { Cmd::PARM,    "parminfo",      0, Help_ParmInfo,        ParmInfo        },
+  { Cmd::PARM,    "parmstrip",     0, Help_ParmStrip,       ParmStrip       },
+  { Cmd::PARM,    "parmwrite",     0, Help_ParmWrite,       ParmWrite       },
+  { Cmd::PARM,    "printangles",   0, Help_AngleInfo,       AngleInfo       },
+  { Cmd::PARM,    "printatoms",    0, Help_AtomInfo,        AtomInfo        },
+  { Cmd::PARM,    "printbonds",    0, Help_BondInfo,        BondInfo        },
+  { Cmd::PARM,    "printdihedrals",0, Help_DihedralInfo,    DihedralInfo    },
+  { Cmd::PARM,    "resinfo",       0, Help_ResInfo,         ResInfo         },
+  { Cmd::PARM,    "scaledihedralk",0, Help_ScaleDihedralK,  ScaleDihedralK  },
+  { Cmd::PARM,    "solvent",       0, Help_ParmSolvent,     ParmSolvent     },
   // INC_ACTION: ACTION COMMANDS
-  { ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
-  { ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
-  { ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
-  { ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
-  { ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
-  { ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, AddAction },
-  { ACTION, "average", Action_Average::Alloc, Action_Average::Help, AddAction },
-  { ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, AddAction },
-  { ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
-  { ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
-  { ACTION, "channel", Action_Channel::Alloc, Action_Channel::Help, AddAction },
-  { ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
-  { ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
-  { ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
-  { ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
-  { ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
-  { ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
-  { ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
-  { ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
-  { ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, AddAction },
-  { ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, AddAction },
-  { ACTION, "density", Action_Density::Alloc, Action_Density::Help, AddAction },
-  { ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, AddAction },
-  { ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, AddAction },
-  { ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, AddAction },
-  { ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction },
-  { ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction },
-//  { ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
-  { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
-  { ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
-  { ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
-  { ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
-  { ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
-  { ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
-  { ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
-//  { ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
-  { ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
-  { ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
-  { ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
-  { ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
-  { ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
-  { ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, AddAction },
-  { ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
-  { ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
-  { ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
-  { ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
-  { ACTION, "minimage", Action_MinImage::Alloc, Action_MinImage::Help, AddAction },
-  { ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
-  { ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
-  { ACTION, "multivector", Action_MultiVector::Alloc, Action_MultiVector::Help, AddAction },
-  { ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
-  { ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
-  { ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
-  { ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
-  { ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
-  { ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
-  { ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, AddAction },
-  { ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, AddAction },
-  { ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, AddAction },
-  { ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
-  { ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
-  { ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
-  { ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
-  { ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
-  { ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
-  { ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
-  { ACTION, "rmsf", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
-  { ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
-  { ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
-  { ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
-  { ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
-  { ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
-  { ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
-  { ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
-  { ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
-  { ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
-  { ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
-  { ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, AddAction },
-  { ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, AddAction },
-  { ACTION, "temperature", Action_Temperature::Alloc, Action_Temperature::Help, AddAction },
-  { ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, AddAction },
-  { ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, AddAction },
-  { ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
-  { ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
-  { ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
-  { ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
-  { ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
-  { ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
-  { ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
+  { Cmd::ACTION, "angle", Action_Angle::Alloc, Action_Angle::Help, AddAction },
+  { Cmd::ACTION, "areapermol", Action_AreaPerMol::Alloc, Action_AreaPerMol::Help, AddAction },
+  { Cmd::ACTION, "atomiccorr", Action_AtomicCorr::Alloc, Action_AtomicCorr::Help, AddAction },
+  { Cmd::ACTION, "atomicfluct", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
+  { Cmd::ACTION, "atommap", Action_AtomMap::Alloc, Action_AtomMap::Help, AddAction },
+  { Cmd::ACTION, "autoimage", Action_AutoImage::Alloc, Action_AutoImage::Help, AddAction },
+  { Cmd::ACTION, "average", Action_Average::Alloc, Action_Average::Help, AddAction },
+  { Cmd::ACTION, "bounds", Action_Bounds::Alloc, Action_Bounds::Help, AddAction },
+  { Cmd::ACTION, "box", Action_Box::Alloc, Action_Box::Help, AddAction },
+  { Cmd::ACTION, "center", Action_Center::Alloc, Action_Center::Help, AddAction },
+  { Cmd::ACTION, "channel", Action_Channel::Alloc, Action_Channel::Help, AddAction },
+  { Cmd::ACTION, "check", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { Cmd::ACTION, "checkchirality", Action_CheckChirality::Alloc, Action_CheckChirality::Help, AddAction },
+  { Cmd::ACTION, "checkoverlap", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { Cmd::ACTION, "checkstructure", Action_CheckStructure::Alloc, Action_CheckStructure::Help, AddAction },
+  { Cmd::ACTION, "closest", Action_Closest::Alloc, Action_Closest::Help, AddAction },
+  { Cmd::ACTION, "closestwaters", Action_Closest::Alloc, Action_Closest::Help, AddAction },
+  { Cmd::ACTION, "clusterdihedral", Action_ClusterDihedral::Alloc, Action_ClusterDihedral::Help, AddAction },
+  { Cmd::ACTION, "contacts", Action_Contacts::Alloc, Action_Contacts::Help, AddAction },
+  { Cmd::ACTION, "createcrd", Action_CreateCrd::Alloc, Action_CreateCrd::Help, AddAction },
+  { Cmd::ACTION, "createreservoir", Action_CreateReservoir::Alloc, Action_CreateReservoir::Help, AddAction },
+  { Cmd::ACTION, "density", Action_Density::Alloc, Action_Density::Help, AddAction },
+  { Cmd::ACTION, "diffusion", Action_Diffusion::Alloc, Action_Diffusion::Help, AddAction },
+  { Cmd::ACTION, "dihedral", Action_Dihedral::Alloc, Action_Dihedral::Help, AddAction },
+  { Cmd::ACTION, "dihedralscan", Action_DihedralScan::Alloc, Action_DihedralScan::Help, AddAction },
+  { Cmd::ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction },
+  { Cmd::ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction },
+//  { Cmd::ACTION, "dnaiontracker", Action_DNAionTracker::Alloc, Action_DNAionTracker::Help, AddAction },
+  { Cmd::ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { Cmd::ACTION, "drmsd", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction },
+  { Cmd::ACTION, "dssp", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { Cmd::ACTION, "energy", Action_Energy::Alloc, Action_Energy::Help, AddAction },
+  { Cmd::ACTION, "filter", Action_FilterByData::Alloc, Action_FilterByData::Help, AddAction },
+  { Cmd::ACTION, "fixatomorder", Action_FixAtomOrder::Alloc, Action_FixAtomOrder::Help, AddAction },
+  { Cmd::ACTION, "gist", Action_Gist::Alloc, Action_Gist::Help, AddAction },
+//  { Cmd::ACTION, "gfe", Action_GridFreeEnergy::Alloc, Action_GridFreeEnergy::Help, AddAction },
+  { Cmd::ACTION, "grid", Action_Grid::Alloc, Action_Grid::Help, AddAction },
+  { Cmd::ACTION, "hbond", Action_Hbond::Alloc, Action_Hbond::Help, AddAction },
+  { Cmd::ACTION, "image", Action_Image::Alloc, Action_Image::Help, AddAction },
+  { Cmd::ACTION, "jcoupling", Action_Jcoupling::Alloc, Action_Jcoupling::Help, AddAction },
+  { Cmd::ACTION, "lessplit", Action_LESsplit::Alloc, Action_LESsplit::Help, AddAction },
+  { Cmd::ACTION, "lie", Action_LIE::Alloc, Action_LIE::Help, AddAction },
+  { Cmd::ACTION, "lipidorder", Action_OrderParameter::Alloc, Action_OrderParameter::Help, AddAction },
+  { Cmd::ACTION, "makestructure", Action_MakeStructure::Alloc, Action_MakeStructure::Help, AddAction },
+  { Cmd::ACTION, "mask", Action_Mask::Alloc, Action_Mask::Help, AddAction },
+  { Cmd::ACTION, "matrix", Action_Matrix::Alloc, Action_Matrix::Help, AddAction },
+  { Cmd::ACTION, "minimage", Action_MinImage::Alloc, Action_MinImage::Help, AddAction },
+  { Cmd::ACTION, "molsurf", Action_Molsurf::Alloc, Action_Molsurf::Help, AddAction },
+  { Cmd::ACTION, "multidihedral", Action_MultiDihedral::Alloc, Action_MultiDihedral::Help, AddAction },
+  { Cmd::ACTION, "multivector", Action_MultiVector::Alloc, Action_MultiVector::Help, AddAction },
+  { Cmd::ACTION, "nastruct", Action_NAstruct::Alloc, Action_NAstruct::Help, AddAction },
+  { Cmd::ACTION, "nativecontacts", Action_NativeContacts::Alloc, Action_NativeContacts::Help, AddAction },
+  { Cmd::ACTION, "nmrrst", Action_NMRrst::Alloc, Action_NMRrst::Help, AddAction },
+  { Cmd::ACTION, "outtraj", Action_Outtraj::Alloc, Action_Outtraj::Help, AddAction },
+  { Cmd::ACTION, "pairdist", Action_PairDist::Alloc, Action_PairDist::Help, AddAction },
+  { Cmd::ACTION, "pairwise", Action_Pairwise::Alloc, Action_Pairwise::Help, AddAction },
+  { Cmd::ACTION, "principal", Action_Principal::Alloc, Action_Principal::Help, AddAction },
+  { Cmd::ACTION, "projection", Action_Projection::Alloc, Action_Projection::Help, AddAction },
+  { Cmd::ACTION, "pucker", Action_Pucker::Alloc, Action_Pucker::Help, AddAction },
+  { Cmd::ACTION, "radgyr", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
+  { Cmd::ACTION, "radial", Action_Radial::Alloc, Action_Radial::Help, AddAction },
+  { Cmd::ACTION, "randomizeions", Action_RandomizeIons::Alloc, Action_RandomizeIons::Help, AddAction },
+  { Cmd::ACTION, "rdf", Action_Radial::Alloc, Action_Radial::Help, AddAction },
+  { Cmd::ACTION, "replicatecell", Action_ReplicateCell::Alloc, Action_ReplicateCell::Help, AddAction },
+  { Cmd::ACTION, "rms", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
+  { Cmd::ACTION, "rmsd", Action_Rmsd::Alloc, Action_Rmsd::Help, AddAction },
+  { Cmd::ACTION, "rmsf", Action_AtomicFluct::Alloc, Action_AtomicFluct::Help, AddAction },
+  { Cmd::ACTION, "rog", Action_Radgyr::Alloc, Action_Radgyr::Help, AddAction },
+  { Cmd::ACTION, "rotate", Action_Rotate::Alloc, Action_Rotate::Help, AddAction },
+  { Cmd::ACTION, "runavg", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
+  { Cmd::ACTION, "runningaverage", Action_RunningAvg::Alloc, Action_RunningAvg::Help, AddAction },
+  { Cmd::ACTION, "scale", Action_Scale::Alloc, Action_Scale::Help, AddAction },
+  { Cmd::ACTION, "secstruct", Action_DSSP::Alloc, Action_DSSP::Help, AddAction },
+  { Cmd::ACTION, "setvelocity", Action_SetVelocity::Alloc, Action_SetVelocity::Help, AddAction },
+  { Cmd::ACTION, "spam", Action_Spam::Alloc, Action_Spam::Help, AddAction },
+  { Cmd::ACTION, "stfcdiffusion", Action_STFC_Diffusion::Alloc, Action_STFC_Diffusion::Help, AddAction },
+  { Cmd::ACTION, "strip", Action_Strip::Alloc, Action_Strip::Help, AddAction },
+  { Cmd::ACTION, "surf", Action_Surf::Alloc, Action_Surf::Help, AddAction },
+  { Cmd::ACTION, "symmrmsd", Action_SymmetricRmsd::Alloc, Action_SymmetricRmsd::Help, AddAction },
+  { Cmd::ACTION, "temperature", Action_Temperature::Alloc, Action_Temperature::Help, AddAction },
+  { Cmd::ACTION, "trans", Action_Translate::Alloc, Action_Translate::Help, AddAction },
+  { Cmd::ACTION, "translate", Action_Translate::Alloc, Action_Translate::Help, AddAction },
+  { Cmd::ACTION, "unstrip", Action_Unstrip::Alloc, Action_Unstrip::Help, AddAction },
+  { Cmd::ACTION, "unwrap", Action_Unwrap::Alloc, Action_Unwrap::Help, AddAction },
+  { Cmd::ACTION, "vector", Action_Vector::Alloc, Action_Vector::Help, AddAction },
+  { Cmd::ACTION, "velocityautocorr", Action_VelocityAutoCorr::Alloc, Action_VelocityAutoCorr::Help, AddAction },
+  { Cmd::ACTION, "volmap", Action_Volmap::Alloc, Action_Volmap::Help, AddAction},
+  { Cmd::ACTION, "volume", Action_Volume::Alloc, Action_Volume::Help, AddAction},
+  { Cmd::ACTION, "watershell", Action_Watershell::Alloc, Action_Watershell::Help, AddAction },
   // INC_ANALYSIS: ANALYSIS COMMANDS
-  { ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
-  { ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
-  { ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, AddAnalysis },
-  { ANALYSIS, "avg", Analysis_Average::Alloc, Analysis_Average::Help, AddAnalysis },
-  { ANALYSIS, "calcstate", Analysis_State::Alloc, Analysis_State::Help, AddAnalysis },
-  { ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, AddAnalysis },
-  { ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
-  { ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
-  { ANALYSIS, "crank", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
-  { ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
-  { ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, AddAnalysis },
-  { ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
-  { ANALYSIS, "curvefit", Analysis_CurveFit::Alloc, Analysis_CurveFit::Help, AddAnalysis },
-  { ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
-  { ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
-  { ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
-  { ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
-  { ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
-  { ANALYSIS, "integrate", Analysis_Integrate::Alloc, Analysis_Integrate::Help, AddAnalysis },
-  { ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
-  { ANALYSIS, "kde", Analysis_KDE::Alloc, Analysis_KDE::Help, AddAnalysis },
-  { ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
-  { ANALYSIS, "lowestcurve", Analysis_LowestCurve::Alloc, Analysis_LowestCurve::Help, AddAnalysis },
-  { ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
-  { ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
-  { ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
-  { ANALYSIS, "multicurve", Analysis_Multicurve::Alloc, Analysis_Multicurve::Help, AddAnalysis },
-  { ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
-  { ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
-  { ANALYSIS, "phipsi", Analysis_PhiPsi::Alloc, Analysis_PhiPsi::Help, AddAnalysis },
-  { ANALYSIS, "regress", Analysis_Regression::Alloc, Analysis_Regression::Help, AddAnalysis },
-  { ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
-  { ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
-  { ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
-  { ANALYSIS, "rotdif", Analysis_Rotdif::Alloc, Analysis_Rotdif::Help, AddAnalysis },
-  { ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
-  { ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
-  { ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
-  { ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
-  { ANALYSIS, "ti", Analysis_TI::Alloc, Analysis_TI::Help, AddAnalysis },
-  { ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
-  { ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
-  { ANALYSIS, "wavelet", Analysis_Wavelet::Alloc, Analysis_Wavelet::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "2drms", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "amdbias", Analysis_AmdBias::Alloc, Analysis_AmdBias::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "autocorr", Analysis_AutoCorr::Alloc, Analysis_AutoCorr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "avg", Analysis_Average::Alloc, Analysis_Average::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "calcstate", Analysis_State::Alloc, Analysis_State::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "cluster", Analysis_Clustering::Alloc, Analysis_Clustering::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "corr", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "correlationcoe", Analysis_Corr::Alloc, Analysis_Corr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "crank", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "crankshaft", Analysis_CrankShaft::Alloc, Analysis_CrankShaft::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "crdfluct", Analysis_CrdFluct::Alloc, Analysis_CrdFluct::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "crosscorr", Analysis_CrossCorr::Alloc, Analysis_CrossCorr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "curvefit", Analysis_CurveFit::Alloc, Analysis_CurveFit::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "diagmatrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "divergence", Analysis_Divergence::Alloc, Analysis_Divergence::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "fft", Analysis_FFT::Alloc, Analysis_FFT::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "hist", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "histogram", Analysis_Hist::Alloc, Analysis_Hist::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "integrate", Analysis_Integrate::Alloc, Analysis_Integrate::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "ired", Analysis_IRED::Alloc, Analysis_IRED::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "kde", Analysis_KDE::Alloc, Analysis_KDE::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "lifetime", Analysis_Lifetime::Alloc, Analysis_Lifetime::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "lowestcurve", Analysis_LowestCurve::Alloc, Analysis_LowestCurve::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "matrix", Analysis_Matrix::Alloc, Analysis_Matrix::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "meltcurve", Analysis_MeltCurve::Alloc, Analysis_MeltCurve::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "modes", Analysis_Modes::Alloc, Analysis_Modes::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "multicurve", Analysis_Multicurve::Alloc, Analysis_Multicurve::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "multihist", Analysis_MultiHist::Alloc, Analysis_MultiHist::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "overlap", Analysis_Overlap::Alloc, Analysis_Overlap::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "phipsi", Analysis_PhiPsi::Alloc, Analysis_PhiPsi::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "regress", Analysis_Regression::Alloc, Analysis_Regression::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "remlog", Analysis_RemLog::Alloc, Analysis_RemLog::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "rms2d", Analysis_Rms2d::Alloc, Analysis_Rms2d::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "rmsavgcorr", Analysis_RmsAvgCorr::Alloc, Analysis_RmsAvgCorr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "rotdif", Analysis_Rotdif::Alloc, Analysis_Rotdif::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "runningavg", Analysis_RunningAvg::Alloc, Analysis_RunningAvg::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "spline", Analysis_Spline::Alloc, Analysis_Spline::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "stat", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "statistics", Analysis_Statistics::Alloc, Analysis_Statistics::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "ti", Analysis_TI::Alloc, Analysis_TI::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "timecorr", Analysis_Timecorr::Alloc, Analysis_Timecorr::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "vectormath", Analysis_VectorMath::Alloc, Analysis_VectorMath::Help, AddAnalysis },
+  { Cmd::ANALYSIS, "wavelet", Analysis_Wavelet::Alloc, Analysis_Wavelet::Help, AddAnalysis },
   // DEPRECATED COMMANDS
-  { DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
-  { DEPRECATED, "avgcoord",     0, Deprecate_AvgCoord,     0 },
-  { DEPRECATED, "bondsearch",   0, Deprecate_TopSearch,    0 },
-  { DEPRECATED, "donor",        0, Deprecate_Hbond,        0 },
-  { DEPRECATED, "maxdist",      0, Deprecate_MinDist,      0 },
-  { DEPRECATED, "mindist",      0, Deprecate_MinDist,      0 },
-  { DEPRECATED, "molsearch",    0, Deprecate_TopSearch,    0 },
-  { DEPRECATED, "nobondsearch", 0, Deprecate_TopSearch,    0 },
-  { DEPRECATED, "nomolsearch",  0, Deprecate_TopSearch,    0 },
-  { DEPRECATED, "parmbondinfo", 0, Deprecate_ParmBondInfo, 0 },
-  { DEPRECATED, "parmmolinfo",  0, Deprecate_ParmMolInfo,  0 },
-  { DEPRECATED, "parmresinfo",  0, Deprecate_ParmResInfo,  0 },
-  { NONE      , 0,              0, 0,                      0 }
+  { Cmd::DEPRECATED, "acceptor",     0, Deprecate_Hbond,        0 },
+  { Cmd::DEPRECATED, "avgcoord",     0, Deprecate_AvgCoord,     0 },
+  { Cmd::DEPRECATED, "bondsearch",   0, Deprecate_TopSearch,    0 },
+  { Cmd::DEPRECATED, "donor",        0, Deprecate_Hbond,        0 },
+  { Cmd::DEPRECATED, "maxdist",      0, Deprecate_MinDist,      0 },
+  { Cmd::DEPRECATED, "mindist",      0, Deprecate_MinDist,      0 },
+  { Cmd::DEPRECATED, "molsearch",    0, Deprecate_TopSearch,    0 },
+  { Cmd::DEPRECATED, "nobondsearch", 0, Deprecate_TopSearch,    0 },
+  { Cmd::DEPRECATED, "nomolsearch",  0, Deprecate_TopSearch,    0 },
+  { Cmd::DEPRECATED, "parmbondinfo", 0, Deprecate_ParmBondInfo, 0 },
+  { Cmd::DEPRECATED, "parmmolinfo",  0, Deprecate_ParmMolInfo,  0 },
+  { Cmd::DEPRECATED, "parmresinfo",  0, Deprecate_ParmResInfo,  0 },
+  { Cmd::NONE      , 0,              0, 0,                      0 }
 };

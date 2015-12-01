@@ -1,7 +1,7 @@
 #ifndef INC_CMD_SEQUENCEALIGN_H
 #define INC_CMD_SEQUENCEALIGN_H
-#include "CpptrajState.h"
+#include "Cmd.h"
 // EXPERIMENTAL ALPHA CODE
 void Help_SequenceAlign();
-int SequenceAlign(CpptrajState&, ArgList&);
+Cmd::RetType SequenceAlign(CpptrajState&, ArgList&, Cmd::AllocType);
 #endif

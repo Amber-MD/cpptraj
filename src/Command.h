@@ -1,8 +1,6 @@
 #ifndef INC_COMMAND_H
 #define INC_COMMAND_H
-#include "CpptrajState.h"
-#include "ArgList.h"
-#include "DispatchObject.h"
+#include "Cmd.h"
 /// This is a static class that determines how commands are handled.
 /** To add a new Action/Analysis command, add the appropriate '#include'
   * to the top of Command.cpp and add an entry to Commands[] (search for 
@@ -10,44 +8,17 @@
   */
 class Command {
   public:
-    /// Possible command return types.
-    enum RetType { C_OK = 0, C_ERR, C_QUIT };
-    // TODO: Make below private, make commands part of Command class?
-    /// Command categories.
-    enum CommandType { NONE=0, PARM, TRAJ, COORDS, ACTION, ANALYSIS,
-                       GENERAL, SYSTEM, HIDDEN, DEPRECATED };
-    /// Shorthand for DispatchAllocatorType
-    typedef DispatchObject::DispatchAllocatorType AllocType;
-    /// Function pointer to command function.
-    typedef RetType (*CommandFxnType)(CpptrajState&, ArgList&, AllocType);
-    /// Function pointer to help function.
-    typedef void (*CommandHelpType)();
-    /// Keyword type.
-    typedef const char* CommandKeywordType;
-    /// Struct that describes how a command is called.
-    struct Token {
-      CommandType Type;       ///< Command type
-      CommandKeywordType Cmd; ///< Command keyword
-      AllocType Alloc;        ///< Allocator (Action/Analysis only)
-      CommandHelpType Help;   ///< Help text function.
-      CommandFxnType Fxn;     ///< Command function.
-    };
-    /// Pointer to command token.
-    typedef const Token* TokenPtr;
-
-    static void ListCommands(CommandType);
-    static TokenPtr SearchTokenType(CommandType, ArgList const& argIn);
-    static TokenPtr SearchToken(ArgList&);
-    static RetType Dispatch(CpptrajState&, std::string const&);
-    static RetType ProcessInput(CpptrajState&, std::string const&);
-    static Token const& CmdToken(int idx) { return Commands[idx]; }
+    static void ListCommands(Cmd::Ctype);
+    static Cmd::TokenPtr SearchTokenType(Cmd::Ctype, ArgList const& argIn);
+    static Cmd::TokenPtr SearchToken(ArgList&);
+    static Cmd::RetType Dispatch(CpptrajState&, std::string const&);
+    static Cmd::RetType ProcessInput(CpptrajState&, std::string const&);
+    static Cmd::Token const& CmdToken(int idx)       { return Commands[idx]; }
     static const char* CommandCategoryKeyword(int i) { return CommandTitle[i]; }
   private:
-    static void WarnDeprecated(TokenPtr);
+    static void WarnDeprecated(Cmd::TokenPtr);
     static const char* CommandTitle[];
     /// Master list of commands.
-    static const Token Commands[];
-
-    int debug_;
+    static const Cmd::Token Commands[];
 };
 #endif

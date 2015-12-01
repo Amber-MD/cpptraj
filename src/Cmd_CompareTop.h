@@ -1,7 +1,7 @@
 #ifndef INC_CMD_COMPARETOP_H
 #define INC_CMD_COMPARETOP_H
-#include "CpptrajState.h"
+#include "Cmd.h"
 // EXPERIMENTAL ALPHA CODE
 void Help_CompareTop();
-int CompareTop(CpptrajState&, ArgList&);
+Cmd::RetType CompareTop(CpptrajState&, ArgList&, Cmd::AllocType);
 #endif

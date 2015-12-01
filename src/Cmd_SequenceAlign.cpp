@@ -22,21 +22,21 @@ void Help_SequenceAlign() {
           DataSetList::RefArgs);
 }
     
-int SequenceAlign(CpptrajState& State, ArgList& argIn) {
+Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType alloc) {
   std::string blastfile = argIn.GetStringKey("blastfile");
   if (blastfile.empty()) {
     mprinterr("Error: 'blastfile' must be specified.\n");
-    return 1;
+    return Cmd::ERR;
   }
   ReferenceFrame qref = State.DSL()->GetReferenceFrame(argIn);
   if (qref.error() || qref.empty()) {
     mprinterr("Error: Must specify reference structure for query.\n");
-    return 1;
+    return Cmd::ERR;
   }
   std::string outfilename = argIn.GetStringKey("out");
   if (outfilename.empty()) {
     mprinterr("Error: Must specify output file.\n");
-    return 1;
+    return Cmd::ERR;
   }
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::GetFormatFromArg(argIn);
   if (fmt != TrajectoryFile::PDBFILE && fmt != TrajectoryFile::MOL2FILE)
@@ -47,7 +47,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   // Load blast file
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
-  if (infile.OpenFileRead( blastfile )) return 1;
+  if (infile.OpenFileRead( blastfile )) return Cmd::ERR;
   // Seek down to first Query line.
   const char* ptr = infile.Line();
   bool atFirstQuery = false;
@@ -62,7 +62,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
   }
   if (!atFirstQuery) {
     mprinterr("Error: 'Query' not found.\n");
-    return 1;
+    return Cmd::ERR;
   }
 
   // Read alignment. Replacing query with subject.
@@ -78,7 +78,7 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     if (aline == 0 || sline == 0) {
       mprinterr("Error: Missing alignment line or subject line after Query:\n");
       mprinterr("Error:  %s", qline);
-      return 1;
+      return Cmd::ERR;
     }
     for (int idx = 12; qline[idx] != ' '; idx++) {
       if (qline[idx] == '-') {
@@ -223,12 +223,13 @@ int SequenceAlign(CpptrajState& State, ArgList& argIn) {
     }
   }
   //Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
-  //if (sTop == 0) return 1;
+  //if (sTop == 0) return Cmd::ERR;
   //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
   Trajout_Single trajout;
-  if (trajout.PrepareTrajWrite(outfilename, argIn, &sTop, CoordinateInfo(), 1, fmt)) return 1;
-  if (trajout.WriteSingle(0, sFrame)) return 1;
+  if (trajout.PrepareTrajWrite(outfilename, argIn, &sTop, CoordinateInfo(), 1, fmt))
+    return Cmd::ERR;
+  if (trajout.WriteSingle(0, sFrame)) return Cmd::ERR;
   trajout.EndTraj();
-  return 0;
+  return Cmd::OK;
 }

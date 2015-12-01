@@ -101,13 +101,13 @@ static std::vector<NameType> AtypeArray( Topology const& parm ) {
   return out;
 }
 
-int CompareTop(CpptrajState& State, ArgList& argIn)
+Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allocIn)
 {
   Topology* parm1 = State.DSL()->GetTopology( argIn );
   Topology* parm2 = State.DSL()->GetTopology( argIn );
   if (parm1 == 0 || parm2 == 0) {
     mprinterr("Error: Specify two topologies.\n");
-    return 1;
+    return Cmd::ERR;
   }
   Topology const& p1 = static_cast<Topology const&>( *parm1 );
   Topology const& p2 = static_cast<Topology const&>( *parm2 );
@@ -135,5 +135,5 @@ int CompareTop(CpptrajState& State, ArgList& argIn)
   diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
 
   output.CloseFile();
-  return 0;
+  return Cmd::OK;
 }
