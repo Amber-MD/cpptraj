@@ -151,6 +151,7 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
   if (image_.ImageType()==NONORTHO)
     frm.Frm().BoxCrd().ToRecip(ucell, recip);
   // Loop over all solvent molecules and mark those that are too close to the solute
+  int n_active_solvent = 0;
   for (int idx = 0; idx != n_solvent_; idx++) {
     solvent_[idx] = true;
     if (around_.MaskStringSet()) {
@@ -168,6 +169,12 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
         }
       }
     }
+    if (solvent_[idx]) ++n_active_solvent;
+  }
+  if (n_active_solvent < ions_.Nselected()) {
+    mprinterr("Error: Fewer active solvent molecules (%i) than ions (%i)\n",
+              n_active_solvent, ions_.Nselected());
+    return Action::ERR;
   }
 
   // DEBUG - print solvent molecule mask
