@@ -3,9 +3,11 @@
 #include "CpptrajStdio.h"
 
 void Help_CompareTop() {
-  mprintf("\t{%s} {%s} [out <file>]\n", DataSetList::TopArgs, DataSetList::TopArgs);
+  mprintf("\t{%s} {%s} [out <file>] [atype] [lj] [bnd] [ang] [dih]\n",
+          DataSetList::TopArgs, DataSetList::TopArgs);
 }
 
+/// Function for printing NameType
 static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const& name, char dir)
 {
   output.Printf("%c %s\n", dir, *name);
@@ -15,7 +17,7 @@ static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const
 static void PrintDihT(CpptrajFile& output, Topology const& parm,
                       DihedralType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s - %s {%2s-%2s-%2s-%2s}", dir,
+  output.Printf("%c %s - %s - %s - %s {%s-%s-%s-%s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
@@ -24,12 +26,9 @@ static void PrintDihT(CpptrajFile& output, Topology const& parm,
                 *(parm[first.A2()].Type()),
                 *(parm[first.A3()].Type()),
                 *(parm[first.A4()].Type()));
-  if (first.Idx() > -1) {
-    DihedralParmType const& dpt = parm.DihedralParm()[first.Idx()];
-    output.Printf(" Pk= %6.3f  Phase= %4.2f  Pn= %3.1f\n", dpt.Pk(), dpt.Phase(), dpt.Pn());
-  }
 }
 
+/// Function for printing DihedralParmType
 static void PrintDihP(CpptrajFile& output, Topology const& parm,
                       DihedralParmType const& first, char dir)
 {
@@ -41,13 +40,24 @@ static void PrintDihP(CpptrajFile& output, Topology const& parm,
 static void PrintAngT(CpptrajFile& output, Topology const& parm,
                       AngleType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s {%2s-%2s-%2s}\n", dir,
+  output.Printf("%c %s - %s - %s {%s-%s-%s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
                 *(parm[first.A1()].Type()),
                 *(parm[first.A2()].Type()),
                 *(parm[first.A3()].Type()));
+}
+
+/// Function for printing BondType
+static void PrintBndT(CpptrajFile& output, Topology const& parm,
+                      BondType const& first, char dir)
+{
+  output.Printf("%c %s - %s {%s-%s}\n", dir,
+                parm.AtomMaskName(first.A1()).c_str(),
+                parm.AtomMaskName(first.A2()).c_str(),
+                *(parm[first.A1()].Type()),
+                *(parm[first.A2()].Type()));
 }
 
 /// Class template for comparing two arrays of a given parameter type
@@ -95,6 +105,7 @@ template <class T> class Diff {
     }
 };
 
+/// \return An array of unique atom types
 static std::vector<NameType> AtypeArray( Topology const& parm ) {
   std::set<NameType> atypes;
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom)
@@ -105,6 +116,7 @@ static std::vector<NameType> AtypeArray( Topology const& parm ) {
   return out;
 }
 
+/// Hold LJ params for an atom
 class LJatom {
   public:
     LJatom() : rmin_(0.0), eps_(0.0) {}
@@ -121,13 +133,19 @@ class LJatom {
     }
 };
 
+/// Array of LJatom
 typedef std::vector<LJatom> LJarrayType;
 
+/// \return Array containing LJ params for each atom.
 static LJarrayType LJarray( Topology const& parm ) {
   std::set<LJatom> temp;
   for (int idx = 0; idx != parm.Natom(); idx++) {
     NonbondType const& NB = parm.GetLJparam(idx, idx);
-    double eps = (NB.B() * NB.B()) / (4.0 * NB.A());
+    double eps;
+    if (NB.A() > 0.0)
+      eps = (NB.B() * NB.B()) / (4.0 * NB.A());
+    else
+      eps = 0.0;
     temp.insert( LJatom( parm[idx].Type(), parm.GetVDWradius(idx), eps ) );
   }
   LJarrayType out;
@@ -136,12 +154,14 @@ static LJarrayType LJarray( Topology const& parm ) {
   return out;
 }
 
+/// Function for printing LJatom
 static void PrintLJatom(CpptrajFile& output, Topology const& parm,
                         LJatom const& first, char dir)
 {
   output.Printf("%c %s Rmin= %g  Eps= %g\n", dir, *(first.name_), first.rmin_, first.eps_);
 }
 
+/// Compare two topologies, find differences
 Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allocIn)
 {
   Topology* parm1 = State.DSL()->GetTopology( argIn );
@@ -156,29 +176,51 @@ Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allo
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
   output.Printf("#< %s\n#> %s\n", p1.c_str(), p2.c_str());
-  // Atom Types
-  output.Printf("# Atom types\n");
-  Diff<NameType> diff_atype;
-  diff_atype.Compare( AtypeArray(p1), AtypeArray(p2), PrintAtype, output, p1, p2 );
-  // LJ params
-  output.Printf("# LJ params\n");
-  Diff<LJatom> diff_lj;
-  diff_lj.Compare( LJarray(p1), LJarray(p2), PrintLJatom, output, p1, p2 );
-  // Angles
-  output.Printf("# Angles\n");
-  Diff<AngleType> diff_ang;
-  diff_ang.Compare( p1.Angles(), p2.Angles(), PrintAngT, output, p1, p2 );
-  diff_ang.Compare( p1.AnglesH(), p2.AnglesH(), PrintAngT, output, p1, p2 );
-  // Dihedrals
-  output.Printf("# Dihedrals\n");
-  Diff<DihedralType> diff_dih;
-  diff_dih.Compare( p1.Dihedrals(), p2.Dihedrals(), PrintDihT, output, p1, p2 );
-  diff_dih.Compare( p1.DihedralsH(), p2.DihedralsH(), PrintDihT, output, p1, p2 );
-  // Dihedral parameters
-  output.Printf("# Dihedral Parameters\n");
-  Diff<DihedralParmType> diff_dihP;
-  diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
-
+  bool cmp_atype = argIn.hasKey("atype");
+  bool cmp_lj = argIn.hasKey("lj");
+  bool cmp_bnd = argIn.hasKey("bnd");
+  bool cmp_ang = argIn.hasKey("ang");
+  bool cmp_dih = argIn.hasKey("dih");
+  if (!cmp_atype && !cmp_lj && !cmp_bnd && !cmp_ang && !cmp_dih) {
+    cmp_atype = cmp_lj = cmp_bnd = cmp_ang = cmp_dih = true;
+  }
+  if (cmp_atype) {
+    // Atom Types
+    output.Printf("# Atom types\n");
+    Diff<NameType> diff_atype;
+    diff_atype.Compare( AtypeArray(p1), AtypeArray(p2), PrintAtype, output, p1, p2 );
+  }
+  if (cmp_lj) {
+    // LJ params
+    output.Printf("# LJ params\n");
+    Diff<LJatom> diff_lj;
+    diff_lj.Compare( LJarray(p1), LJarray(p2), PrintLJatom, output, p1, p2 );
+  }
+  if (cmp_bnd) {
+    // Bonds
+    output.Printf("# Bonds\n");
+    Diff<BondType> diff_bnd;
+    diff_bnd.Compare( p1.Bonds(), p2.Bonds(), PrintBndT, output, p1, p2 );
+    diff_bnd.Compare( p1.BondsH(), p2.BondsH(), PrintBndT, output, p1, p2 );
+  }
+  if (cmp_ang) {
+    // Angles
+    output.Printf("# Angles\n");
+    Diff<AngleType> diff_ang;
+    diff_ang.Compare( p1.Angles(), p2.Angles(), PrintAngT, output, p1, p2 );
+    diff_ang.Compare( p1.AnglesH(), p2.AnglesH(), PrintAngT, output, p1, p2 );
+  }
+  if (cmp_dih) {
+    // Dihedrals
+    output.Printf("# Dihedrals\n");
+    Diff<DihedralType> diff_dih;
+    diff_dih.Compare( p1.Dihedrals(), p2.Dihedrals(), PrintDihT, output, p1, p2 );
+    diff_dih.Compare( p1.DihedralsH(), p2.DihedralsH(), PrintDihT, output, p1, p2 );
+    // Dihedral parameters
+    output.Printf("# Dihedral Parameters\n");
+    Diff<DihedralParmType> diff_dihP;
+    diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
+  }
   output.CloseFile();
   return Cmd::OK;
 }

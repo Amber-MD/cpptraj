@@ -22,6 +22,11 @@ class BondType {
     inline int A2()  const { return a2_;  }
     inline int Idx() const { return idx_; }
     void SetIdx(int i)     { idx_ = i;    }
+    bool operator<(const BondType& rhs) const {
+      if (a1_ == rhs.a1_) {
+        return (a2_ < rhs.a2_);
+      } else return (a1_ < rhs.a1_);
+    }
   private:
     int a1_;
     int a2_;
