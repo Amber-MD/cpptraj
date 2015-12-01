@@ -38,7 +38,6 @@ nolibcpptraj:
 cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)
 
-
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
 
