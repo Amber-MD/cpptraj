@@ -624,11 +624,11 @@ if [[ -z $COMPILERS ]] ; then
     echo "Determining compilers from CXX ($CXX)"
     COMPILERS='gnu'
     case "$CXX" in
-      "g++"     ) COMPILERS='gnu' ;;
-      "clang++" ) COMPILERS='clang' ;;
-      "icpc"    ) COMPILERS='intel' ;;
-      "pgc++"   ) COMPILERS='pgi' ;;
-      "CC"      ) COMPILERS='cray' ;;
+      *g++*     ) COMPILERS='gnu' ;;
+      *clang++* ) COMPILERS='clang' ;;
+      *icpc*    ) COMPILERS='intel' ;;
+      *pgc++*   ) COMPILERS='pgi' ;;
+      *CC*      ) COMPILERS='cray' ;;
       * ) echo "Warning: Could not detect compiler type ($CXX); assuming gnu" > /dev/stderr;;
     esac
   else
