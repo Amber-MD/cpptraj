@@ -306,9 +306,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                                 inputFilename != inputFiles.end();
                                 ++inputFilename)
     {
-      Command::RetType c_err = Command::ProcessInput( State_, *inputFilename );
-      if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
-      if (c_err == Command::C_QUIT) return QUIT;
+      Cmd::RetType c_err = Command::ProcessInput( State_, *inputFilename );
+      if (c_err == Cmd::ERR && State_.ExitOnError()) return ERROR;
+      if (c_err == Cmd::QUIT) return QUIT;
     }
   }
   // Determine whether to enter interactive mode
@@ -318,9 +318,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      Command::RetType c_err = Command::ProcessInput( State_, "" ); 
-      if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
-      if (c_err == Command::C_QUIT) return QUIT;
+      Cmd::RetType c_err = Command::ProcessInput( State_, "" ); 
+      if (c_err == Cmd::ERR && State_.ExitOnError()) return ERROR;
+      if (c_err == Cmd::QUIT) return QUIT;
     }
   }
   return BATCH;
@@ -356,8 +356,8 @@ int Cpptraj::Interactive() {
   logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen())
     logfile_.Printf("# %s\n", TimeString().c_str());
-  Command::RetType readLoop = Command::C_OK;
-  while ( readLoop != Command::C_QUIT ) {
+  Cmd::RetType readLoop = Cmd::OK;
+  while ( readLoop != Cmd::QUIT ) {
     if (inputLine.GetInput()) {
       // EOF (Ctrl-D) specified. If state is not empty, ask before exiting.
       if (!State_.EmptyState()) {
@@ -369,21 +369,21 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen() && readLoop != Command::C_ERR) {
+      if (logfile_.IsOpen() && readLoop != Cmd::ERR) {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
     }
     // If state is not empty, ask before exiting.
-    if (readLoop == Command::C_QUIT && !State_.EmptyState()) {
+    if (readLoop == Cmd::QUIT && !State_.EmptyState()) {
       if (inputLine.YesNoPrompt("There are actions/analyses/trajectories queued. "
                                 "Really quit? [y/n]> "))
         break;
       else
-        readLoop = Command::C_OK;
+        readLoop = Cmd::OK;
     }
   }
   logfile_.CloseFile();
-  if (readLoop == Command::C_ERR) return 1;
+  if (readLoop == Cmd::ERR) return 1;
   return 0;
 }
