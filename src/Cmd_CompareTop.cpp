@@ -15,7 +15,7 @@ static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const
 static void PrintDihT(CpptrajFile& output, Topology const& parm,
                       DihedralType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s - %s {%s - %s - %s - %s}\n", dir,
+  output.Printf("%c %s - %s - %s - %s {%2s-%2s-%2s-%2s}", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
@@ -24,6 +24,10 @@ static void PrintDihT(CpptrajFile& output, Topology const& parm,
                 *(parm[first.A2()].Type()),
                 *(parm[first.A3()].Type()),
                 *(parm[first.A4()].Type()));
+  if (first.Idx() > -1) {
+    DihedralParmType const& dpt = parm.DihedralParm()[first.Idx()];
+    output.Printf(" Pk= %6.3f  Phase= %4.2f  Pn= %3.1f\n", dpt.Pk(), dpt.Phase(), dpt.Pn());
+  }
 }
 
 static void PrintDihP(CpptrajFile& output, Topology const& parm,
@@ -37,7 +41,7 @@ static void PrintDihP(CpptrajFile& output, Topology const& parm,
 static void PrintAngT(CpptrajFile& output, Topology const& parm,
                       AngleType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s {%s - %s - %s}\n", dir,
+  output.Printf("%c %s - %s - %s {%2s-%2s-%2s}\n", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
@@ -101,6 +105,43 @@ static std::vector<NameType> AtypeArray( Topology const& parm ) {
   return out;
 }
 
+class LJatom {
+  public:
+    LJatom() : rmin_(0.0), eps_(0.0) {}
+    LJatom(NameType const& n, double r, double e) : name_(n), rmin_(r), eps_(e) {}
+    NameType name_;
+    double rmin_;
+    double eps_;
+    bool operator<(const LJatom& rhs) const {
+      if (name_ == rhs.name_) {
+        if (rmin_ == rhs.rmin_) {
+          return (eps_ < rhs.eps_);
+        } else return (rmin_ < rhs.rmin_);
+      } else return (name_ < rhs.name_);
+    }
+};
+
+typedef std::vector<LJatom> LJarrayType;
+
+static LJarrayType LJarray( Topology const& parm ) {
+  std::set<LJatom> temp;
+  for (int idx = 0; idx != parm.Natom(); idx++) {
+    NonbondType const& NB = parm.GetLJparam(idx, idx);
+    double eps = (NB.B() * NB.B()) / (4.0 * NB.A());
+    temp.insert( LJatom( parm[idx].Type(), parm.GetVDWradius(idx), eps ) );
+  }
+  LJarrayType out;
+  for (std::set<LJatom>::const_iterator it = temp.begin(); it != temp.end(); ++it)
+    out.push_back( *it );
+  return out;
+}
+
+static void PrintLJatom(CpptrajFile& output, Topology const& parm,
+                        LJatom const& first, char dir)
+{
+  output.Printf("%c %s Rmin= %g  Eps= %g\n", dir, *(first.name_), first.rmin_, first.eps_);
+}
+
 Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allocIn)
 {
   Topology* parm1 = State.DSL()->GetTopology( argIn );
@@ -119,6 +160,10 @@ Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allo
   output.Printf("# Atom types\n");
   Diff<NameType> diff_atype;
   diff_atype.Compare( AtypeArray(p1), AtypeArray(p2), PrintAtype, output, p1, p2 );
+  // LJ params
+  output.Printf("# LJ params\n");
+  Diff<LJatom> diff_lj;
+  diff_lj.Compare( LJarray(p1), LJarray(p2), PrintLJatom, output, p1, p2 );
   // Angles
   output.Printf("# Angles\n");
   Diff<AngleType> diff_ang;
