@@ -2,7 +2,8 @@
 #define INC_ACTION_RANDOMIZEIONS_H
 #include "Action.h"
 #include "ImagedAction.h"
-class Action_RandomizeIons : public Action, ImagedAction {
+#include "Random.h"
+class Action_RandomizeIons : public Action {
   public:
     Action_RandomizeIons();
     static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
@@ -14,16 +15,16 @@ class Action_RandomizeIons : public Action, ImagedAction {
     void Print() {}
 
     ImagedAction image_; ///< Imaging routines.
+    Random_Number RN_;   ///< Random number generator.
     AtomMask ions_;      ///< Mask of ions to be moved.
+    AtomMask around_;    ///< The 'around' mask (region of space for ions to avoid)
     double overlap_;     ///< The minimum allowed distance between ions
     double min_;         ///< The minimum distance to the 'around' mask
-    AtomMask around_;    ///< The 'around' mask (region of space for ions to avoid)
-    int seed_;           ///< random seed
+    int n_solvent_;      ///< Total number of solvent molecules.
     int debug_;
-    int n_solvent_;
     // TODO: Combine the below 3 into a struct?
     std::vector<int> solventStart_; ///< Solvent molecule start atoms.
     std::vector<int> solventEnd_;   ///< Solvent molecule end atoms.
-    std::vector<bool> solvent_;     ///< True if solvent mol begin considered for swap.
+    std::vector<bool> solvent_;     ///< True if solvent mol being considered for swap.
 };
 #endif
