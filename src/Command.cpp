@@ -1,6 +1,6 @@
 #include <cstdlib> // system
-#include "CmdInput.h" // ProcessInput()
 #include "Command.h"
+#include "CmdInput.h" // ProcessInput()
 #include "CpptrajStdio.h"
 #include "ParmFile.h" // ReadOptions, WriteOptions
 #include "Timer.h"
@@ -287,150 +287,7 @@ Cmd::RetType Command::ProcessInput(CpptrajState& State,
   return cmode;
 }
 
-// ====================== CPPTRAJ COMMANDS HELP ================================
-static void Help_System() { mprintf("  Call command from system.\n"); }
-
-static void Help_NoProgress() {
-  mprintf("  Do not print progress while reading in trajectories.\n");
-}
-
-static void Help_NoExitOnError() {
-  mprintf("  Do not exit when errors are encountered. This is the default\n"
-          "  in interactive mode.\n");
-}
-
-static void Help_Run() {
-  mprintf("  Process all trajectories currently in input trajectory list.\n"
-          "  All actions in action list will be run on each frame.\n"
-          "  If not processing ensemble input, all analyses in analysis\n"
-          "  list will be run after trajectory processing.\n");
-}
-
-static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
-
-static void Help_List() {
-  mprintf("\t[<type>] (<type> =%s)\n"
-          "  List currently loaded objects of the specified type. If no type is given\n"
-          "  then list all loaded objects.\n", CpptrajState::PrintListKeys().c_str());
-}
-
-static void Help_Debug() {
-  mprintf("\t[<type>] <#> (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
-  mprintf("  Set debug level for new objects of the specified type. If no type is given\n"
-          "  then set debug level for all new objects. Does not affect current objects.\n");
-}
-
-static void Help_Clear() {
-  mprintf("\t[ {all | <type>} ] (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
-  mprintf("  Clear currently loaded objects of the specified type. If 'all' is specified\n"
-          "  then clear all loaded objects.\n");
-}
-
-static void Help_RemoveData() {
-  mprintf("\t[<arg>]\n"
-          "  Remove data sets(s) corresponding to <arg> from data set list.\n");
-}
-
-static void Help_Create_DataFile() {
-  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
-          "  Add a file with specified data sets to the data file list. Does not\n"
-          "  immediately write the data.\n");
-  DataFile::WriteHelp();
-  DataFile::WriteOptions();
-}
-
-static void Help_DataFile() {
-  mprintf("\t<data filename> <datafile cmd>\n"
-          "  Pass <datafile cmd> to specified data file currently in data file list.\n");
-  DataFile::WriteHelp();
-  DataFile::WriteOptions();
-}
-
-static void Help_ReadData() {
-  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
-          "  Read data from <filename> into data sets.\n");
-  DataFile::ReadOptions();
-}
-
-static void Help_ReadInput() {
-  mprintf("\t<filename>\n"
-          "  Read commands from input file <filename>\n");
-}
-
-static void Help_Write_DataFile() {
-  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
-  DataFile::WriteHelp();
-  mprintf("  With no arguments, write all files currently in the data file list.\n"
-          "  Otherwise, write specified data sets to <filename> immediately.\n");
-  DataFile::WriteOptions();
-}
-
-static void Help_Precision() {
-  mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n"
-          "  Set precision for all datasets in datafile <filename> or dataset(s)\n"
-          "  specified by <dataset arg> to <width>.<precision>. If width/precision\n"
-          "  is not specified then default to 12.4\n");
-}
-
-static void Help_Select() {
-  mprintf("\t[<parmindex>] <mask>\n"
-          "  Show atom numbers selected by <mask> for parm <parmindex>\n"
-          "  (default first parm)\n");
-}
-
-static void Help_SelectDS() {
-  mprintf("\t<dataset selection>\n"
-          "  Show results of data set selection. Data set selection format is:\n"
-          "\t<name>[<aspect]:<idx range>\n"
-          "  Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n"
-          "  and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n"
-          "  The aspect and index portions may be optional. An asterisk '*' may be used as\n"
-          "  a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
-}
-
-static void Help_Trajin() {
-  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
-          "\t           [%s]\n", DataSetList::TopArgs);
-  mprintf("\t           [ <Format Options> ]\n"
-          "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
-          "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
-          "  Load trajectory specified by <filename> to the input trajectory list.\n");
-  TrajectoryFile::ReadOptions();
-}
-
-static void Help_Ensemble() {
-  mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
-          "\t        [%s]\n", DataSetList::TopArgs);
-  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
-          "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
-          "  Load an ensemble of trajectories starting with <file0> that will be\n"
-          "  processed together as an ensemble.\n");
-}
-
-static void Help_Trajout() {
-  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
-          "\t           [%s] [onlyframes <range>] [title <title>]\n", DataSetList::TopArgs);
-  mprintf("\t           %s\n", ActionFrameCounter::HelpText);
-  mprintf("\t           [ <Format Options> ]\n"
-          "  Write frames after all actions have been processed to output trajectory\n"
-          "  specified by <filename>.\n");
-  TrajectoryFile::WriteOptions();
-}
-
-static void Help_Reference() {
-  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
-          "\t       [%s]\n", DataSetList::TopArgs);
-  mprintf("  Load trajectory file <name> as a reference frame.\n"
-          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
-}
-
-static void Help_RunAnalysis() {
-  mprintf("\t[<analysis> [<analysis args>]]\n"
-          "  If specified alone, run all analyses in the analysis list.\n"
-          "  Otherwise run the specified analysis immediately.\n");
-}
-
-// ---------- Information on Deprecated commands -------------------------------
+// ========== Information on Deprecated commands ===============================
 static void Deprecate_MinDist() {
   mprinterr("  Use the 'nativecontacts' action instead.\n");
 }
@@ -459,48 +316,7 @@ static void Deprecate_AvgCoord() {
   mprinterr("  Use 'vector center' (optionally with keyword 'magnitude') instead.\n");
 }
 
-// ---------- GENERAL COMMANDS -------------------------------------------------
-static void Help_ActiveRef() {
-  mprintf("\t%s\n", DataSetList::RefArgs);
-  mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
-          "  <#> starts from 0 (first reference structure).\n");
-}
-
-/// Set active reference for distance-based masks etc.
-Cmd::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{
-  return (Cmd::RetType)State.DSL()->SetActiveReference( argIn );
-}
-
-/// Clear data in specified lists
-Cmd::RetType ClearList(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{
-  return (Cmd::RetType)State.ClearList( argIn );
-}
-
-Cmd::RetType RemoveData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{
-  return (Cmd::RetType)State.RemoveDataSet( argIn );
-}
-
-/// Set debug value for specified list(s)
-Cmd::RetType SetListDebug(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{
-  return (Cmd::RetType)State.SetListDebug( argIn );
-}
-
-/// List all members of specified list(s)
-Cmd::RetType ListAll(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{
-  return (Cmd::RetType)State.ListAll( argIn );
-}
-
-static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\n"); }
-/// Silence Actions Init/Setup output.
-Cmd::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
-{ State.SetActionSilence( true ); return Cmd::OK; }
-
-// ========== COORDS ===========================================================
+// ========== COORDS COMMANDS ==================================================
 /// Perform action on given COORDS dataset
 Cmd::RetType CrdActionCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
@@ -529,6 +345,72 @@ Cmd::RetType CrdActionCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Al
   return CrdAction(State, actionargs, CRD, act, frameCount);
 }
 
+// ========== GENERAL COMMANDS =================================================
+static void Help_ActiveRef() {
+  mprintf("\t%s\n", DataSetList::RefArgs);
+  mprintf("  Set the reference structure to be used for coordinate-based mask parsing.\n"
+          "  <#> starts from 0 (first reference structure).\n");
+}
+
+/// Set active reference for distance-based masks etc.
+Cmd::RetType ActiveRef(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{
+  return (Cmd::RetType)State.DSL()->SetActiveReference( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Clear() {
+  mprintf("\t[ {all | <type>} ] (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
+  mprintf("  Clear currently loaded objects of the specified type. If 'all' is specified\n"
+          "  then clear all loaded objects.\n");
+}
+/// Clear data in specified lists
+Cmd::RetType ClearList(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{
+  return (Cmd::RetType)State.ClearList( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_RemoveData() {
+  mprintf("\t[<arg>]\n"
+          "  Remove data sets(s) corresponding to <arg> from data set list.\n");
+}
+
+Cmd::RetType RemoveData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{
+  return (Cmd::RetType)State.RemoveDataSet( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Debug() {
+  mprintf("\t[<type>] <#> (<type> =%s)\n", CpptrajState::PrintListKeys().c_str());
+  mprintf("  Set debug level for new objects of the specified type. If no type is given\n"
+          "  then set debug level for all new objects. Does not affect current objects.\n");
+}
+/// Set debug value for specified list(s)
+Cmd::RetType SetListDebug(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{
+  return (Cmd::RetType)State.SetListDebug( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_List() {
+  mprintf("\t[<type>] (<type> =%s)\n"
+          "  List currently loaded objects of the specified type. If no type is given\n"
+          "  then list all loaded objects.\n", CpptrajState::PrintListKeys().c_str());
+}
+/// List all members of specified list(s)
+Cmd::RetType ListAll(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{
+  return (Cmd::RetType)State.ListAll( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\n"); }
+/// Silence Actions Init/Setup output.
+Cmd::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+{ State.SetActionSilence( true ); return Cmd::OK; }
+
 // -----------------------------------------------------------------------------
 /// Add DataSets specified by arguments to given DataFile.
 // NOTE: Used by Create_DataFile and Write_DataFile
@@ -552,6 +434,15 @@ static int AddSetsToDataFile(DataFile& df, ArgList const& dsetArgs, DataSetList&
   return err;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Create_DataFile() {
+  mprintf("\t<filename> <dataset0> [<dataset1> ...]\n"
+          "  Add a file with specified data sets to the data file list. Does not\n"
+          "  immediately write the data.\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
+}
+
 /// Add a new DataFile to DFL with specified DataSets, to be written later.
 Cmd::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
@@ -564,6 +455,15 @@ Cmd::RetType Create_DataFile(CpptrajState& State, ArgList& argIn, Cmd::AllocType
   DataFile* df = State.DFL()->AddDataFile(name1, argIn);
   if (df == 0) return Cmd::ERR;
   return (Cmd::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Write_DataFile() {
+  mprintf("\t[<filename> <dataset0> [<dataset1> ...]]\n");
+  DataFile::WriteHelp();
+  mprintf("  With no arguments, write all files currently in the data file list.\n"
+          "  Otherwise, write specified data sets to <filename> immediately.\n");
+  DataFile::WriteOptions();
 }
 
 /// Write DataFile with specified DataSets immediately, or force write of all DataFiles in State
@@ -587,6 +487,14 @@ Cmd::RetType Write_DataFile(CpptrajState& State, ArgList& argIn, Cmd::AllocType 
   if (err == 0) df->WriteDataOut();
   delete df;
   return (Cmd::RetType)err;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_DataFile() {
+  mprintf("\t<data filename> <datafile cmd>\n"
+          "  Pass <datafile cmd> to specified data file currently in data file list.\n");
+  DataFile::WriteHelp();
+  DataFile::WriteOptions();
 }
 
 /// Process DataFile-specific command
@@ -780,7 +688,13 @@ Cmd::RetType DataFilter(CpptrajState& State, ArgList& argIn, Cmd::AllocType Allo
   State.MasterDataFileWrite();
   return Cmd::OK;
 }
+
 // -----------------------------------------------------------------------------
+static void Help_ReadData() {
+  mprintf("\t<filename> [name <dsname>] [as <fmt>] [<format options>]\n"
+          "  Read data from <filename> into data sets.\n");
+  DataFile::ReadOptions();
+}
 
 /// Read data from file into master DataSetList
 Cmd::RetType ReadData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
@@ -804,12 +718,16 @@ Cmd::RetType ReadData(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   return Cmd::OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
 /// Exit
 Cmd::RetType Quit(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   return Cmd::QUIT;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_System() { mprintf("  Call command from system.\n"); }
 /// Run a system command
 Cmd::RetType SystemCmd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
@@ -853,10 +771,23 @@ Cmd::RetType Help(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   return Cmd::OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Run() {
+  mprintf("  Process all trajectories currently in input trajectory list.\n"
+          "  All actions in action list will be run on each frame.\n"
+          "  If not processing ensemble input, all analyses in analysis\n"
+          "  list will be run after trajectory processing.\n");
+}
 /// Run the current State
 Cmd::RetType RunState(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   return (Cmd::RetType)State.Run();
+}
+
+// -----------------------------------------------------------------------------
+static void Help_ReadInput() {
+  mprintf("\t<filename>\n"
+          "  Read commands from input file <filename>\n");
 }
 
 /// Read input from a file.
@@ -871,6 +802,11 @@ Cmd::RetType ReadInput(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
   return Command::ProcessInput(State, inputFilename);
 }
 
+// -----------------------------------------------------------------------------
+static void Help_NoExitOnError() {
+  mprintf("  Do not exit when errors are encountered. This is the default\n"
+          "  in interactive mode.\n");
+}
 /// Tell CpptrajState to ignore errors if possible
 Cmd::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
@@ -879,12 +815,25 @@ Cmd::RetType NoExitOnError(CpptrajState& State, ArgList& argIn, Cmd::AllocType A
   return Cmd::OK;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_NoProgress() {
+  mprintf("  Do not print progress while reading in trajectories.\n");
+}
+
 /// Tell CpptrajState not to use a progress bar during Run.
 Cmd::RetType NoProgress(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   State.SetNoProgress();
   mprintf("\tProgress bar will not be used during Run.\n");
   return Cmd::OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Precision() {
+  mprintf("\t{<filename> | <dataset arg>} [<width>] [<precision>]\n"
+          "  Set precision for all datasets in datafile <filename> or dataset(s)\n"
+          "  specified by <dataset arg> to <width>.<precision>. If width/precision\n"
+          "  is not specified then default to 12.4\n");
 }
 
 ///  Set precision for specific set or all sets in specified DataFile
@@ -913,6 +862,13 @@ Cmd::RetType Precision(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
     State.DSL()->SetPrecisionOfDataSets( name1, width, precision );
   }
   return Cmd::OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_RunAnalysis() {
+  mprintf("\t[<analysis> [<analysis args>]]\n"
+          "  If specified alone, run all analyses in the analysis list.\n"
+          "  Otherwise run the specified analysis immediately.\n");
 }
 
 /// Run specified analysis or all analyses in State.
@@ -952,6 +908,13 @@ Cmd::RetType RunAnalysis(CpptrajState& State, ArgList& argIn, Cmd::AllocType All
   return err;
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Select() {
+  mprintf("\t[<parmindex>] <mask>\n"
+          "  Show atom numbers selected by <mask> for parm <parmindex>\n"
+          "  (default first parm)\n");
+}
+
 /// Show results of mask expression
 Cmd::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
@@ -963,6 +926,17 @@ Cmd::RetType SelectAtoms(CpptrajState& State, ArgList& argIn, Cmd::AllocType All
   if (!argIn.hasKey("total"))
     tempMask.PrintMaskAtoms("Selected");
   return Cmd::OK;
+}
+
+// -----------------------------------------------------------------------------
+static void Help_SelectDS() {
+  mprintf("\t<dataset selection>\n"
+          "  Show results of data set selection. Data set selection format is:\n"
+          "\t<name>[<aspect]:<idx range>\n"
+          "  Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n"
+          "  and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n"
+          "  The aspect and index portions may be optional. An asterisk '*' may be used as\n"
+          "  a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
 }
 
 /// Show results of DataSet expression
@@ -1017,11 +991,32 @@ Cmd::RetType Calc(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   return Cmd::OK;
 }
   
-// ---------- TRAJECTORY COMMANDS ----------------------------------------------
+// ========== TRAJECTORY COMMANDS ==============================================
+static void Help_Trajout() {
+  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
+          "\t           [%s] [onlyframes <range>] [title <title>]\n", DataSetList::TopArgs);
+  mprintf("\t           %s\n", ActionFrameCounter::HelpText);
+  mprintf("\t           [ <Format Options> ]\n"
+          "  Write frames after all actions have been processed to output trajectory\n"
+          "  specified by <filename>.\n");
+  TrajectoryFile::WriteOptions();
+}
+
 /// Add output trajectory to State
 Cmd::RetType Trajout(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   return (Cmd::RetType)State.AddOutputTrajectory( argIn );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Trajin() {
+  mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+          "\t           [%s]\n", DataSetList::TopArgs);
+  mprintf("\t           [ <Format Options> ]\n"
+          "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
+          "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
+          "  Load trajectory specified by <filename> to the input trajectory list.\n");
+  TrajectoryFile::ReadOptions();
 }
 
 /// Add input trajectory to State
@@ -1030,10 +1025,28 @@ Cmd::RetType Trajin(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   return (Cmd::RetType)State.AddTrajin( argIn, false );
 }
 
+// -----------------------------------------------------------------------------
+static void Help_Ensemble() {
+  mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
+          "\t        [%s]\n", DataSetList::TopArgs);
+  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
+          "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
+          "  Load an ensemble of trajectories starting with <file0> that will be\n"
+          "  processed together as an ensemble.\n");
+}
+
 /// Add ensemble of input trajectories to State.
 Cmd::RetType Ensemble(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   return (Cmd::RetType)State.AddTrajin( argIn, true );
+}
+
+// -----------------------------------------------------------------------------
+static void Help_Reference() {
+  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
+          "\t       [%s]\n", DataSetList::TopArgs);
+  mprintf("  Load trajectory file <name> as a reference frame.\n"
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 /// Add reference trajectory to State
@@ -1042,7 +1055,7 @@ Cmd::RetType Reference(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
   return (Cmd::RetType)State.AddReference( argIn.GetStringNext(), argIn );
 }
 
-// ---------- TOPOLOGY COMMANDS ------------------------------------------------
+// ========== TOPOLOGY COMMANDS ================================================
 static void Help_LoadParm() {
   mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
           "  Add <filename> to the topology list.\n");
@@ -1347,7 +1360,7 @@ Cmd::RetType ScaleDihedralK(CpptrajState& State, ArgList& argIn, Cmd::AllocType 
   return Cmd::OK;
 }
 
-// ---------- DISPATCHABLE COMMANDS --------------------------------------------
+// ========== DISPATCHABLE COMMANDS ============================================
 /// Add an action to the State ActionList
 Cmd::RetType AddAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
