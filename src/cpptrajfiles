@@ -142,6 +142,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_ReadInfo.cpp \
         CmdInput.cpp \
         Cmd_CompareTop.cpp \
+        Cmd_Coords.cpp \
         Cmd_GenerateAmberRst.cpp \
         Cmd_SequenceAlign.cpp \
         Command.cpp \
