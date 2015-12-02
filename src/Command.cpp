@@ -11,7 +11,7 @@
 #include "Cmd_SequenceAlign.h"
 #include "ProgressBar.h"
 #include "Trajin_Single.h" // LoadCrd
-// INC_Cmd::ACTION==================== ALL ACTION CLASSES GO HERE ===================
+// INC_ACTION==================== ALL ACTION CLASSES GO HERE ===================
 #include "Action_Angle.h"
 #include "Action_Distance.h"
 #include "Action_Rmsd.h"
@@ -91,7 +91,7 @@
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
 
-// INC_Cmd::ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
+// INC_ANALYSIS================= ALL ANALYSIS CLASSES GO HERE ==================
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
 #include "Analysis_Matrix.h"
@@ -307,7 +307,7 @@ static void Help_Run() {
           "  list will be run after trajectory processing.\n");
 }
 
-static void Help_Quit() { mprintf("  Exit CPPCmd::TRAJ\n"); }
+static void Help_Quit() { mprintf("  Exit CPPTRAJ\n"); }
 
 static void Help_List() {
   mprintf("\t[<type>] (<type> =%s)\n"
@@ -422,29 +422,29 @@ static void Help_Reference() {
   mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
           "\t       [%s]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
-          "  If 'crdset' is specified use Cmd::COORDS data set specified by <name> as reference.\n");
+          "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
 }
 
 static void Help_LoadCrd() {
   mprintf("\t<filename> [%s] [<trajin args>] [name <name>]\n", DataSetList::TopArgs);
-  mprintf("  Load trajectory <filename> as a Cmd::COORDS data set named <name> (default <filename>).\n");
+  mprintf("  Load trajectory <filename> as a COORDS data set named <name> (default <filename>).\n");
 }
 
 static void Help_LoadTraj() {
   mprintf("\tname <setname> [<filename>]\n"
-          "  Create/add to Cmd::TRAJ data set named <setname>. If no <filename> given, convert\n"
-          "  currently loaded input trajectories to Cmd::TRAJ data set; otherwise add <filename>\n"
-          "  to Cmd::TRAJ data set <setname>\n");
+          "  Create/add to TRAJ data set named <setname>. If no <filename> given, convert\n"
+          "  currently loaded input trajectories to TRAJ data set; otherwise add <filename>\n"
+          "  to TRAJ data set <setname>\n");
 }
 
 static void Help_CrdAction() {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
-          "  Perform action <actioncmd> on Cmd::COORDS data set <crd set>.\n");
+          "  Perform action <actioncmd> on COORDS data set <crd set>.\n");
 }
 
 static void Help_CrdOut() {
   mprintf("\t<crd set> <filename> [<trajout args>] [crdframes <start>,<stop>,<offset>]\n"
-          "  Write Cmd::COORDS data set <crd set> to trajectory file <filename>\n");
+          "  Write COORDS data set <crd set> to trajectory file <filename>\n");
 }
 
 static void Help_RunAnalysis() {
@@ -523,17 +523,17 @@ static void Help_SilenceActions() { mprintf("Silence Actions Init/Setup output.\
 Cmd::RetType SilenceActions(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 { State.SetActionSilence( true ); return Cmd::OK; }
 
-/// Perform action on given Cmd::COORDS dataset
+/// Perform action on given COORDS dataset
 Cmd::RetType CrdAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: %s: Specify Cmd::COORDS dataset name.\n", argIn.Command());
+    mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return Cmd::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
-    mprinterr("Error: %s: No Cmd::COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
+    mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return Cmd::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
@@ -566,7 +566,7 @@ Cmd::RetType CrdAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
     delete act;
     return Cmd::ERR;
   }
-  // Loop over all frames in Cmd::COORDS.
+  // Loop over all frames in COORDS.
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
   for (int frame = frameCount.Start(); frame < frameCount.Stop();
@@ -579,11 +579,11 @@ Cmd::RetType CrdAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
       break;
     }
-    // Check if frame was modified. If so, update Cmd::COORDS.
+    // Check if frame was modified. If so, update COORDS.
     if ( ret == Action::MODIFY_COORDS ) 
       CRD->SetCRD( frame, frm.Frm() );
   }
-  // Check if parm was modified. If so, update Cmd::COORDS.
+  // Check if parm was modified. If so, update COORDS.
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
             CRD->legend(), actionargs.Command());
@@ -597,17 +597,17 @@ Cmd::RetType CrdAction(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
   return Cmd::OK;
 }
 
-/// Write out Cmd::COORDS dataset
+/// Write out COORDS dataset
 Cmd::RetType CrdOut(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
-    mprinterr("Error: crdout: Specify Cmd::COORDS dataset name.\n");
+    mprinterr("Error: crdout: Specify COORDS dataset name.\n");
     return Cmd::ERR;
   }
   DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
   if (CRD == 0) {
-    mprinterr("Error: crdout: No Cmd::COORDS set with name %s found.\n", setname.c_str());
+    mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return Cmd::ERR;
   }
   mprintf("\tUsing set '%s'\n", CRD->legend());
@@ -673,7 +673,7 @@ Cmd::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
     // Create Set 
     coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
     if (coords == 0) {
-      mprinterr("Error: loadcrd: Could not set up Cmd::COORDS data set.\n");
+      mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
       return Cmd::ERR;
     }
     coords->CoordsSetup( *parm, trajin.TrajCoordInfo() );
@@ -682,18 +682,18 @@ Cmd::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   } else {
     // Check that set is actually coords.
     if (ds->Type() != DataSet::COORDS) {
-      mprinterr("Error: Set %s present but is not of type Cmd::COORDS.\n", ds->legend());
+      mprinterr("Error: Set %s present but is not of type COORDS.\n", ds->legend());
       return Cmd::ERR;
     }
     coords = (DataSet_Coords*)ds;
     // Check that topology matches. For now just check # atoms.
     if (parm->Natom() != coords->Top().Natom()) {
-      mprinterr("Error: Trajectory '%s' # atoms %i does not match Cmd::COORDS data set '%s' (%i)\n",
+      mprinterr("Error: Trajectory '%s' # atoms %i does not match COORDS data set '%s' (%i)\n",
                 trajin.Traj().Filename().full(), parm->Natom(),
                 coords->legend(), coords->Top().Natom());
       return Cmd::ERR;
     }
-    mprintf("\tAppending trajectory '%s' to Cmd::COORDS data set '%s'\n", 
+    mprintf("\tAppending trajectory '%s' to COORDS data set '%s'\n", 
             trajin.Traj().Filename().full(), coords->legend());
   }
   // Read trajectory TODO progress bar
@@ -705,7 +705,7 @@ Cmd::RetType LoadCrd(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
   return Cmd::OK;
 }
 
-/// Convert input traj list to Cmd::TRAJ data set
+/// Convert input traj list to TRAJ data set
 Cmd::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   // Get Keywords
@@ -720,7 +720,7 @@ Cmd::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
     trj = (DataSet_Coords_TRJ*)
           State.DSL()->AddSet(DataSet::TRAJ, setname, "__DTRJ__");
   if (trj == 0) {
-    mprinterr("Error: Could not set up Cmd::TRAJ data set.\n");
+    mprinterr("Error: Could not set up TRAJ data set.\n");
     return Cmd::ERR;
   }
   std::string trajname = argIn.GetStringNext();
@@ -750,10 +750,10 @@ Cmd::RetType LoadTraj(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 // -----------------------------------------------------------------------------
 static void Help_CombineCoords() {
   mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
-          "  Combined two Cmd::COORDS data sets.\n");
+          "  Combined two COORDS data sets.\n");
 }
 
-/// Combine two Cmd::COORDS DataSets
+/// Combine two COORDS DataSets
 Cmd::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
 {
   std::string parmname = argIn.GetStringKey("parmname");
@@ -764,14 +764,14 @@ Cmd::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Cmd::AllocType A
   while (!setname.empty()) {
     DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
     if (ds == 0) {
-      mprinterr("Error: %s: No Cmd::COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
+      mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
       return Cmd::ERR;
     }
     CRD.push_back( ds );
     setname = argIn.GetStringNext();
   }
   if (CRD.size() < 2) {
-    mprinterr("Error: %s: Must specify at least 2 Cmd::COORDS data sets\n", argIn.Command());
+    mprinterr("Error: %s: Must specify at least 2 COORDS data sets\n", argIn.Command());
     return Cmd::ERR;
   }
   // Only add the topology to the list if parmname specified
@@ -799,7 +799,7 @@ Cmd::RetType CombineCoords(CpptrajState& State, ArgList& argIn, Cmd::AllocType A
   mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
   DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, crdname, "CRD");
   if (CombinedCrd == 0) {
-    mprinterr("Error: Could not create Cmd::COORDS data set.\n");
+    mprinterr("Error: Could not create COORDS data set.\n");
     return Cmd::ERR;
   }
   // FIXME: Only copying coords for now
@@ -1575,7 +1575,7 @@ Cmd::RetType ParmStrip(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
 static void Help_ParmWrite() {
   mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>] [nochamber]\n",
           DataSetList::TopIdxArgs);
-  mprintf("  Write specified topology or topology from Cmd::COORDS set to <filename>.\n");
+  mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
   ParmFile::WriteOptions();
 }
 /// Write parm to Amber Topology file.
@@ -1588,7 +1588,7 @@ Cmd::RetType ParmWrite(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc
   }
   int err = 0;
   ParmFile pfile;
-  // Check if a Cmd::COORDS data set was specified.
+  // Check if a COORDS data set was specified.
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
     Topology* parm = State.DSL()->GetTopByIndex( argIn );
