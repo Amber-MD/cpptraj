@@ -61,7 +61,9 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
+    std::vector<int> DivideFramesAmongThreads(int&, int&, int&, int, int, int, bool);
     int RunParallel();
+    int RunSingleTrajParallel();
 #   endif
     // -------------------------------------------
      /// List of generated data sets

@@ -32,6 +32,7 @@ class TrajinList {
     TrajModeType Mode()  const { return mode_; }
     int MaxFrames()      const { return maxframes_; }
     int TopFrames(int i) const { return topFrames_[i]; }
+    unsigned int Size()  const { return trajin_.size() + ensemble_.size(); }
     std::vector<int> const& PindexFrames() const { return topFrames_; }
     void List() const;
   private:

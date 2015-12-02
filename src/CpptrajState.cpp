@@ -211,7 +211,13 @@ int CpptrajState::Run() {
   else {
     switch ( trajinList_.Mode() ) {
 #     ifdef MPI
-      case TrajinList::NORMAL   : err = RunParallel(); break;
+      case TrajinList::NORMAL:
+        // TEST - single traj parallel
+        if (trajinList_.Size() == 1)
+          err = RunSingleTrajParallel();
+        else
+          err = RunParallel();
+        break;
 #     else
       case TrajinList::NORMAL   : err = RunNormal(); break;
 #     endif
@@ -538,6 +544,36 @@ int CpptrajState::RunEnsemble() {
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
+std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop,
+                                                        int& my_frames,
+                                                        int maxFrames, int worldsize,
+                                                        int worldrank, bool master)
+{
+  int frames_per_thread = maxFrames / worldsize;
+  int remainder         = maxFrames % worldsize;
+  my_frames             = frames_per_thread + (int)(worldrank < remainder);
+  // Figure out where this thread starts and stops
+  my_start = 0;
+  for (int rank = 0; rank != worldrank; rank++)
+    if (rank < remainder)
+      my_start += (frames_per_thread + 1);
+    else
+      my_start += (frames_per_thread);
+  my_stop = my_start + my_frames;
+  // Store how many frames each rank will process (only needed by master).
+  std::vector<int> rank_frames( worldsize, frames_per_thread );
+  for (int i = 0; i != worldsize; i++)
+    if (i < remainder) rank_frames[i]++;
+  if (master) {
+    mprintf("\nPARALLEL INFO:\n");
+    for (int i = 0; i != worldsize; i++)
+      mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
+  }
+  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+  return rank_frames;
+}
+
+// -----------------------------------------------------------------------------
 /** Process trajectories in trajinList in parallel. */
 int CpptrajState::RunParallel() {
   // Print information.
@@ -574,6 +610,13 @@ int CpptrajState::RunParallel() {
   if (Parallel::World().CheckError( err )) return 1;
 
   // Divide frames among threads.
+  int my_start, my_stop, my_frames;
+  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
+                                                          input_traj.Size(),
+                                                          Parallel::World().Size(),
+                                                          Parallel::World().Rank(),
+                                                          Parallel::World().Master());
+/*
   int my_start = 0;
   int my_stop = 0;
 //  int my_frames = 0;
@@ -598,6 +641,7 @@ int CpptrajState::RunParallel() {
       mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+*/
   Parallel::World().Barrier();
 
   // Allocate DataSets in DataSetList based on # frames read by this thread.
@@ -664,6 +708,103 @@ int CpptrajState::RunParallel() {
   Parallel::World().Barrier();
   return 0;
 }
+
+// -----------------------------------------------------------------------------
+int CpptrajState::RunSingleTrajParallel() {
+  mprintf("DEBUG: Experimental: Opening single trajectory in parallel.\n");
+  // Print information.
+  DSL_.ListTopologies();
+  trajinList_.List();
+  DSL_.ListReferenceFrames();
+  trajoutList_.List( trajinList_.PindexFrames() );
+  // Set up single trajectory for parallel read.
+  Trajin* trajin = *(trajinList_.trajin_begin());
+  trajin->ParallelBeginTraj( Parallel::World() );
+  // Divide frames among threads.
+  int total_read_frames = trajin->Traj().Counter().TotalReadFrames();
+  int my_start, my_stop, my_frames;
+  std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
+                                                          total_read_frames,
+                                                          Parallel::World().Size(),
+                                                          Parallel::World().Rank(),
+                                                          Parallel::World().Master());
+  // Update my start and stop based on offset.
+  int traj_offset = trajin->Traj().Counter().Offset();
+  int traj_start  = my_start * traj_offset + trajin->Traj().Counter().Start();
+  int traj_stop   = my_stop  * traj_offset + trajin->Traj().Counter().Start();
+  rprintf("Start and stop adjusted for offset: %i to %i\n", traj_start, traj_stop);
+  Parallel::World().Barrier();
+
+  // Allocate DataSets in DataSetList based on # frames read by this thread.
+  DSL_.AllocateSets( my_frames );
+
+  // ----- SETUP PHASE ---------------------------
+  CoordinateInfo const& currentCoordInfo = trajin->TrajCoordInfo();
+  Topology* top = trajin->Traj().Parm();
+  top->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+  int topFrames = trajinList_.TopFrames( top->Pindex() );
+  ActionSetup currentParm( top, currentCoordInfo, topFrames );
+  int err = actionList_.SetupActions( currentParm, exitOnError_ );
+  if (Parallel::World().CheckError( err )) {
+    mprinterr("Error: Could not set up actions for '%s'\n", top->c_str());
+    return 1;
+  }
+
+  // Set up any related output trajectories. 
+  if (trajoutList_.ParallelSetupTrajout( top, currentCoordInfo,
+                                         total_read_frames, Parallel::World() ))
+    return 1;
+
+  // ----- ACTION PHASE --------------------------
+  Timer frames_time;
+  frames_time.Start();
+  ProgressBar progress;
+  if (showProgress_)
+    progress.SetupProgress( my_frames );
+  Frame TrajFrame;
+  TrajFrame.SetupFrameV(top->Atoms(), currentCoordInfo);
+  int actionSet = 0; // Internal data frame
+  int trajoutSet = my_start; // Trajout index
+  for (int trajinSet = traj_start; trajinSet < traj_stop; trajinSet += traj_offset,
+                                                          actionSet++, trajoutSet++)
+  {
+    trajin->ParallelReadTrajFrame(trajinSet, TrajFrame);
+    if (TrajFrame.CheckCoordsInvalid())
+      rprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n", trajinSet + 1);
+    ActionFrame currentFrame( &TrajFrame );
+    bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
+    // Trajectory output
+    if (!suppress_output) {
+      if (trajoutList_.ParallelWriteTrajout(trajoutSet, currentFrame.Frm())) {
+        if (exitOnError_) return 1;
+      }
+    }
+    if (showProgress_) progress.Update( actionSet );
+  }
+  frames_time.Stop();
+  rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)actionSet / frames_time.Total());
+  Parallel::World().Barrier();
+  trajin->ParallelEndTraj();
+  mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)total_read_frames / frames_time.Total());
+  trajoutList_.ParallelCloseTrajout();
+  // Sync data sets to master thread
+  Timer time_sync;
+  time_sync.Start();
+  DSL_.SynchronizeData( total_read_frames, rank_frames );
+  // Sync Actions to master thread
+  actionList_.SyncActions();
+  time_sync.Stop();
+  time_sync.WriteTiming(1, "Data set/actions sync");
+  mprintf("\nACTION OUTPUT:\n");
+  // Only call print for master
+  if (Parallel::World().Master())
+    actionList_.PrintActions();
+  Parallel::World().Barrier();
+  return 0;
+}
+
 #endif
 // -----------------------------------------------------------------------------
 // CpptrajState::RunNormal()
