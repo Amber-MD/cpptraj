@@ -212,10 +212,10 @@ int CpptrajState::Run() {
     switch ( trajinList_.Mode() ) {
 #     ifdef MPI
       case TrajinList::NORMAL:
-        // TEST - single traj parallel
+/*        // TEST - single traj parallel
         if (trajinList_.Size() == 1)
           err = RunSingleTrajParallel();
-        else
+        else*/
           err = RunParallel();
         break;
 #     else
@@ -710,6 +710,7 @@ int CpptrajState::RunParallel() {
 }
 
 // -----------------------------------------------------------------------------
+/*
 int CpptrajState::RunSingleTrajParallel() {
   mprintf("DEBUG: Experimental: Opening single trajectory in parallel.\n");
   // Print information.
@@ -804,7 +805,7 @@ int CpptrajState::RunSingleTrajParallel() {
   Parallel::World().Barrier();
   return 0;
 }
-
+*/
 #endif
 // -----------------------------------------------------------------------------
 // CpptrajState::RunNormal()
