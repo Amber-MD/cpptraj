@@ -56,7 +56,7 @@ DoTest() {
       echo "  $2 not found." >> $TEST_ERROR
       ((ERRCOUNT++))
     else
-      $DIFFCMD $1 $2 $3 $4 > temp.diff 2>&1
+      $DIFFCMD --strip-trailing-cr $1 $2 $3 $4 > temp.diff 2>&1
       if [[ -s temp.diff ]] ; then
         echo "  $1 $2 are different." >> $TEST_RESULTS
         echo "  $1 $2 are different." >> $TEST_ERROR
