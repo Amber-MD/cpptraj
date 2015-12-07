@@ -47,6 +47,7 @@ UsageFull() {
   echo "    -nomathlib  : Do not include routines which require LAPACK or BLAS"
   echo "    -noarpack   : Do not include routines which require ARPACK"
   echo "    -noreadline : Do not include support for readline in the interpreter"
+  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate blas/lapack"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -556,6 +557,10 @@ while [[ ! -z $1 ]] ; do
       WINDOWS="yes"
       CROSS_COMPILE="yes" # TODO: Figure out a better way to detect
       SFX=".exe"
+      ;;
+    "-openblas")
+      BLAS="-lopenblas"
+      LAPACK=""
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
