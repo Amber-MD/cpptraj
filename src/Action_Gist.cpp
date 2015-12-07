@@ -186,9 +186,9 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   mprintf("\tGIST number of voxels: %d, voxel volume: %f A^3\n",  MAX_GRID_PT_, Vvox_);
 
   // Set up grid origin
-  gridorig_[0] = gridcntr_[0] - 0.5*griddim_[0]*gridspacn_ - 0.5*gridspacn_;
-  gridorig_[1] = gridcntr_[1] - 0.5*griddim_[1]*gridspacn_ - 0.5*gridspacn_;
-  gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_ - 0.5*gridspacn_;
+  gridorig_[0] = gridcntr_[0] - 0.5*griddim_[0]*gridspacn_;
+  gridorig_[1] = gridcntr_[1] - 0.5*griddim_[1]*gridspacn_;
+  gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_;
   mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", 
           gridorig_[0], gridorig_[1], gridorig_[2]);
 
