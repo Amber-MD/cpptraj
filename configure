@@ -621,7 +621,7 @@ while [[ ! -z $1 ]] ; do
     "--with-readline")
       echo "Using external readline"
       READLINE_TARGET="noreadline"
-      READLINE="-L$VALUE/lib -lreadline"
+      READLINE="-L$VALUE/lib -lreadline -lncurses"
       ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
