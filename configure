@@ -549,10 +549,8 @@ while [[ ! -z $1 ]] ; do
       READLINE=""
       ;;
     "-windows")
-      echo "WINDOWS support requested. Implies -static, -noreadline"
-      DIRECTIVES="$DIRECTIVES -DNO_READLINE"
+      echo "WINDOWS support requested. Implies -static"
       READLINE_TARGET="noreadline"
-      READLINE=""
       STATIC=1
       WINDOWS="yes"
       CROSS_COMPILE="yes" # TODO: Figure out a better way to detect
