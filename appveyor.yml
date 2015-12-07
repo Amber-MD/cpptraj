@@ -1,0 +1,58 @@
+os: Windows Server 2012
+
+install:
+  - set HOME=.
+  - set MSYSTEM=MINGW64
+  - set PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%
+  - "sh -lc \"pacman -S --noconfirm --needed
+      mingw-w64-x86_64-openblas
+      mingw-w64-x86_64-arpack
+      mingw-w64-x86_64-gcc
+      mingw-w64-x86_64-gcc-fortran
+      mingw-w64-x86_64-ncurses
+      mingw-w64-x86_64-readline
+      diffutils
+    \""
+  - "sh -lc \"
+     if [ ! -f /usr/local/lib/libnetcdf.a ]; then
+       curl -fsS -o netcdf-4.3.3.zip ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.zip &&
+       7z x netcdf-4.3.3.zip -o$APPVEYOR_BUILD_FOLDER > /dev/null &&
+       cd $APPVEYOR_BUILD_FOLDER/netcdf-4.3.3 &&
+       exec 0</dev/null &&
+       ./configure --enable-static --disable-netcdf-4 --prefix=/usr/local/ --disable-dap &&
+       make -r install;
+     else
+       echo 'Have Cached NetCDF';
+     fi
+  \""
+
+build_script:
+  - sh -lc "mkdir bin/"
+  - sh -lc "echo \"CPPTRAJBIN=$(pwd)/bin\" > config.h"
+  - echo DBGFLAGS= >> config.h
+  - echo CC=gcc >> config.h
+  - echo CXX=g++ >> config.h
+  - echo FC=gfortran >> config.h
+  - echo CFLAGS=   -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include $(DBGFLAGS) >> config.h
+  - echo CXXFLAGS= -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include $(DBGFLAGS) >> config.h
+  - echo FFLAGS=   -O3       -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include -ffree-form $(DBGFLAGS) >> config.h
+  - echo READLINE_TARGET=/mingw64/lib/libreadline.a >> config.h
+  - echo READLINE_HOME=/mingw64/include/readline/ >> config.h
+  - echo LIBCPPTRAJ=nolibcpptraj >> config.h
+  - echo FFT_DEPEND=pub_fft.o >> config.h
+  - echo FFT_LIB=pub_fft.o >> config.h
+  - echo LDFLAGS=-lreadline -lncurses -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz  -lgfortran -lquadmath -w  -static >> config.h
+  - echo SFX=.exe>> config.h
+  - sh -lc "cat config.h"
+  - sh -lc "make -j2 install"
+
+
+after_build:
+  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe
+  - find C:/msys64/usr/local
+
+test_script:
+  - sh -lc "cd test; make test OPT=-cpptraj $(pwd)/../bin/cpptraj.exe"
+
+artifacts:
+  - path: cpptraj-$(APPVEYOR_BUILD_ID).zip

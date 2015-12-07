@@ -10,7 +10,6 @@ CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
 READLINE_HOME=readline
-READLINE=$(READLINE_HOME)/libreadline.a
 EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE)
 
 include cpptrajfiles
@@ -71,7 +70,7 @@ $(LIBDIR)/liblapack.a:
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
 
-$(READLINE):
+$(READLINE_HOME)/libreadline.a:
 	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at 
 
 pub_fft.o:  pub_fft.F90
