@@ -259,7 +259,7 @@ SetCompilerOptions() {
       OMPFLAGS="-fopenmp"
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran -w"
+      FLIBS="$FLIBS -lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
    "clang" )
@@ -271,7 +271,7 @@ SetCompilerOptions() {
       OMPFLAGS=""
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran -w"
+      FLIBS="$FLIBS -lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
     "intel" )
@@ -396,6 +396,9 @@ FLIBS=""
 HDF5LIB="" #"-lhdf5_hl -lhdf5"
 WINDOWS="no"
 CROSS_COMPILE="no"
+
+# Private variables
+quadmath=""
 
 # Parse command line options
 KEY=""
@@ -549,11 +552,18 @@ while [[ ! -z $1 ]] ; do
       READLINE=""
       ;;
     "-windows")
-      echo "WINDOWS support requested. Implies -static"
+      printf "WINDOWS support requested. Implies -static."
       READLINE_TARGET="noreadline"
       STATIC=1
       WINDOWS="yes"
-      CROSS_COMPILE="yes" # TODO: Figure out a better way to detect
+      uname | grep -i linux > /dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        echo " Detected cross-compilation."
+        CROSS_COMPILE="yes"
+      else
+        echo " Native windows build."
+        quadmath="-lquadmath"
+      fi
       SFX=".exe"
       ;;
     "-openblas")
