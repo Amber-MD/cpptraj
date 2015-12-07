@@ -37,6 +37,7 @@ UsageFull() {
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
   echo "    --with-fftw3=<DIR>"
+  echo "    --with-readline=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static     : Use static linking."
   echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
@@ -604,6 +605,11 @@ while [[ ! -z $1 ]] ; do
 #      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
 #      echo "Using HDF5LIB: $HDF5LIB"
 #      ;;
+    "--with-readline")
+      echo "Using external readline"
+      READLINE_TARGET="noreadline"
+      READLINE="-L$VALUE/lib -lreadline"
+      ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
