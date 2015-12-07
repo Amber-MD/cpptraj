@@ -75,6 +75,7 @@ class Topology {
     NonbondParmType   const& Nonbond()      const { return nonbond_;      }
     int SetNonbondInfo(NonbondParmType const&);
     double GetVDWradius(int) const;
+    double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     // ----- Water Cap Info ----------------------
