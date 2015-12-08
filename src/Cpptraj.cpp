@@ -314,8 +314,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   // Determine whether to enter interactive mode
   if (!hasInput || interactive) {
     // Test if input is really from a console
-    if ( isatty(fileno(stdin)) )
+    if ( isatty(fileno(stdin)) ) {
       return INTERACTIVE;
+    }
+#ifdef _WIN32
+    else if (true) {
+      return INTERACTIVE;
+    }
+#endif
     else {
       // "" means read from STDIN
       Command::RetType c_err = Command::ProcessInput( State_, "" ); 
