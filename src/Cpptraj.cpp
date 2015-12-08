@@ -311,23 +311,19 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (c_err == Command::C_QUIT) return QUIT;
     }
   }
-  // Determine whether to enter interactive mode
-  if (!hasInput || interactive) {
-    // Test if input is really from a console
-    if ( isatty(fileno(stdin)) ) {
-      return INTERACTIVE;
-    }
-#ifdef _WIN32
-    else if (true) {
-      return INTERACTIVE;
-    }
-#endif
-    else {
-      // "" means read from STDIN
-      Command::RetType c_err = Command::ProcessInput( State_, "" ); 
-      if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
-      if (c_err == Command::C_QUIT) return QUIT;
-    }
+  // Determine whether to enter interactive mode.
+  if (interactive) {
+    // User explicitly requested ``--interactive``. Do not check isatty.
+    return INTERACTIVE;
+  }
+  if (!hasInput && isatty(fileno(stdin))) {
+     // No input and stdin is a console tty
+    return INTERACTIVE;
+  } else {
+    // "" means read from STDIN
+    Command::RetType c_err = Command::ProcessInput( State_, "" );
+    if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
+    if (c_err == Command::C_QUIT) return QUIT;
   }
   return BATCH;
 }
