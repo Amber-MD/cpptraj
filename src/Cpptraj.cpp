@@ -315,15 +315,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   if (interactive) {
     // User explicitly requested ``--interactive``. Do not check isatty.
     return INTERACTIVE;
-  }
-  if (!hasInput && isatty(fileno(stdin))) {
-     // No input and stdin is a console tty
-    return INTERACTIVE;
-  } else {
-    // "" means read from STDIN
-    Command::RetType c_err = Command::ProcessInput( State_, "" );
-    if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
-    if (c_err == Command::C_QUIT) return QUIT;
+  } else if (!hasInput) {
+    if (isatty(fileno(stdin)))
+      return INTERACTIVE;
+    else {
+      Cmd::RetType c_err = Command::ProcessInput( State_, "" );
+      if (c_err == Cmd::ERR && State_.ExitOnError()) return ERROR;
+      if (c_err == Cmd::QUIT) return QUIT;
+    }
   }
   return BATCH;
 }
