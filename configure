@@ -399,6 +399,7 @@ CROSS_COMPILE="no"
 
 # Private variables
 quadmath=""
+external_readline="no"
 
 # Parse command line options
 KEY=""
@@ -621,7 +622,8 @@ while [[ ! -z $1 ]] ; do
     "--with-readline")
       echo "Using external readline"
       READLINE_TARGET="noreadline"
-      READLINE="-L$VALUE/lib -lreadline -lncurses"
+      READLINE="-L$VALUE/lib -lreadline"
+      external_readline="yes"
       ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
@@ -635,6 +637,16 @@ while [[ ! -z $1 ]] ; do
   esac
   shift
 done
+
+# For external readline, we need to link libtermcap for windows and libncurses
+# for Linux
+if [ "$external_readline" = "yes" ]; then
+    if [ "$WINDOWS" = "yes" ]; then
+        READLINE="$READLINE -ltermcap"
+    else
+        READLINE="$READLINE -lncurses"
+    fi
+fi
 
 # If compiler has not yet been specified, determine from CXX, otherwise default
 # to GNU
