@@ -33,7 +33,7 @@ Analysis_Hist::Analysis_Hist() :
   amddata_(0)
 {}
 
-void Analysis_Hist::Help() {
+void Analysis_Hist::Help() const {
   mprintf("\t<dataset_name>[,min,max,step,bins] ...\n"
           "\t[free <temperature>] [norm | normint] [gnu] [circular] out <filename>\n"
           "\t[amd <amdboost_data>] [name <outputset name>]\n"
@@ -47,7 +47,7 @@ void Analysis_Hist::Help() {
   * that DataSet_Name exists and is valid. Add the argument to 
   * dimensionArgs and the corresponding dataset to histdata.
   */
-int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *datasetlist) {
+int Analysis_Hist::CheckDimension(std::string const& input, DataSetList& DSLin) {
   ArgList arglist;
   // Separate input string by ','
   arglist.SetList(input, ",");
@@ -59,7 +59,7 @@ int Analysis_Hist::CheckDimension(std::string const& input, DataSetList *dataset
   // First argument should specify dataset name
   if (debug_>0) mprintf("\tHist: Setting up histogram dimension using dataset %s\n",
                        arglist.Command());
-  DataSet* dset = datasetlist->GetDataSet( arglist[0] );
+  DataSet* dset = DSLin.GetDataSet( arglist[0] );
   if (dset == 0) {
     mprinterr("Error: Dataset %s not found.\n",arglist.Command());
     return 1;
@@ -222,7 +222,7 @@ Analysis::RetType Analysis_Hist::ExternalSetup(DataSet_1D* dsIn, std::string con
 
 // Analysis_Hist::Setup()
 /** Set up histogram with specified data sets. */
-Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
   // Keywords
@@ -237,7 +237,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   parmoutName_ = analyzeArgs.GetStringKey("parmout");
   // Create a DataFile here so any DataFile arguments can be processed. If it
   // turns out later that native output is needed the DataFile will be removed.
-  outfile_ = DFLin->AddDataFile(outfilename_, analyzeArgs);
+  outfile_ = setup.DFL().AddDataFile(outfilename_, analyzeArgs);
   if (outfile_==0) return Analysis::ERR;
   Temp_ = analyzeArgs.getKeyDouble("free",-1.0);
   if (Temp_!=-1.0) 
@@ -266,7 +266,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   calcAMD_ = false;
   std::string amdname = analyzeArgs.GetStringKey("amd");
   if (!amdname.empty()) {
-    DataSet* ds = datasetlist->GetDataSet( amdname );
+    DataSet* ds = setup.DSL().GetDataSet( amdname );
     if (ds == 0) {
       mprinterr("Error: AMD data set %s not found.\n", amdname.c_str());
       return Analysis::ERR;
@@ -285,7 +285,7 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   for ( ArgList::const_iterator setname = dsetNames.begin(); 
                                 setname != dsetNames.end(); ++setname)
   { 
-    if (CheckDimension( *setname, datasetlist )) return Analysis::ERR;
+    if (CheckDimension( *setname, setup.DSL() )) return Analysis::ERR;
   }
   // histdata contains the DataSets to be histogrammed
   if (histdata_.empty()) {
@@ -296,10 +296,10 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
   N_dimensions_ = histdata_.size();
   if (!nativeOut_) {
     switch ( N_dimensions_ ) {
-      case 1: hist_ = datasetlist->AddSet( DataSet::DOUBLE,     histname, "Hist"); break;
-      case 2: hist_ = datasetlist->AddSet( DataSet::MATRIX_DBL, histname, "Hist"); break;
+      case 1: hist_ = setup.DSL().AddSet( DataSet::DOUBLE,     histname, "Hist"); break;
+      case 2: hist_ = setup.DSL().AddSet( DataSet::MATRIX_DBL, histname, "Hist"); break;
       // TODO: GRID_DBL
-      case 3: hist_ = datasetlist->AddSet( DataSet::GRID_FLT,   histname, "Hist"); break;
+      case 3: hist_ = setup.DSL().AddSet( DataSet::GRID_FLT,   histname, "Hist"); break;
       default: // FIXME: GET N DIMENSION CASE!
         mprintf("Warning: Histogram dimension > 3. DataSet/DataFile output not supported.\n");
         nativeOut_ = true;
@@ -320,8 +320,8 @@ Analysis::RetType Analysis_Hist::Setup(ArgList& analyzeArgs, DataSetList* datase
     outfile_->AddDataSet( hist_ );
   } else {
     // Native output. Remove DataFile from DataFileList
-    outfile_ = DFLin->RemoveDataFile( outfile_ );
-    native_ = DFLin->AddCpptrajFile( outfilename_, "Histogram output" );
+    outfile_ = setup.DFL().RemoveDataFile( outfile_ );
+    native_ = setup.DFL().AddCpptrajFile( outfilename_, "Histogram output" );
     if (native_ == 0) return Analysis::ERR; 
   }
 

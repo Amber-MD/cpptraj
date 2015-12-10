@@ -3,13 +3,13 @@
 
 Analysis_PhiPsi::Analysis_PhiPsi() {}
 
-void Analysis_PhiPsi::Help() {
+void Analysis_PhiPsi::Help() const {
   mprintf("\t<dsarg0> [<dsarg1> ...] resrange <range> [out <file>]\n"
           "  Calculate the average and standard deviation for phi/psi pairs.\n");
 }
 
 // Analysis_PhiPsi::Setup()
-Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string outname = analyzeArgs.GetStringKey("out");
   std::string rangearg = analyzeArgs.GetStringKey("resrange");
@@ -23,7 +23,7 @@ Analysis::RetType Analysis_PhiPsi::Setup(ArgList& analyzeArgs, DataSetList* data
   DataSetList sets;
   std::string dsarg = analyzeArgs.GetStringNext();
   while (!dsarg.empty()) {
-    sets += datasetlist->GetMultipleSets( dsarg );
+    sets += setup.DSL().GetMultipleSets( dsarg );
     dsarg = analyzeArgs.GetStringNext();
   }
   //std::string dsname = analyzeArgs.GetStringKey("name");

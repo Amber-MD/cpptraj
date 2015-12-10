@@ -12,16 +12,16 @@ Analysis_Spline::Analysis_Spline() :
   useDefaultMax_(false)
 {}
 
-void Analysis_Spline::Help() {
+void Analysis_Spline::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [meshsize <n> | meshfactor <x>]\n"
           "\t[meshmin <mmin>] [meshmax <mmax>]\n"
           "  Cubic spline the given data sets.\n");
 }
 
-Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  outfile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   meshsize_ = analyzeArgs.getKeyInt("meshsize", 0);
   meshfactor_ = -1.0;
   if (meshsize_ < 3) {
@@ -47,7 +47,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
     return Analysis::ERR;
   }
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -61,7 +61,7 @@ Analysis::RetType Analysis_Spline::Setup(ArgList& analyzeArgs, DataSetList* data
   for (Array1D::const_iterator dsIn = input_dsets_.begin();
                                dsIn != input_dsets_.end(); ++dsIn)
   {
-    DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, setname, "Spline");
+    DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, setname, "Spline");
     if (ds == 0) return Analysis::ERR;
     ds->SetLegend( "Spline(" + (*dsIn)->Meta().Legend() + ")" );
     // TODO: Set individually based on input_dsets_

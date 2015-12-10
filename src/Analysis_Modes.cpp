@@ -21,7 +21,7 @@ Analysis_Modes::Analysis_Modes() :
   pcmax_(0.0)
 {}
 
-void Analysis_Modes::Help() {
+void Analysis_Modes::Help() const {
   mprintf("\t{fluct|displ|corr|eigenval|trajout|rmsip} name <modesname> [name2 <modesname>]\n"
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
@@ -80,7 +80,7 @@ void Analysis_Modes::CheckDeprecated(ArgList& analyzeArgs, std::string& modesnam
 }
 
 // Analysis_Modes::Setup()
-Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
   // Analysis type
@@ -133,7 +133,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
     TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
     if ( analyzeArgs.Contains("trajoutfmt") )
       tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
-    Topology* parm = DSLin->GetTopology( analyzeArgs ); // TODO include with modes
+    Topology* parm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with modes
     if (parm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
       return Analysis::ERR;
@@ -173,13 +173,13 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   end_ = analyzeArgs.getKeyInt("end", 50);
 
   // Check if modes name exists on the stack
-  modinfo_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile, DataSet::MODES );
+  modinfo_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesfile, DataSet::MODES );
   if (modinfo_ == 0) {
     mprinterr("Error: '%s' not found: %s\n", modesfile.c_str(), DataSet_Modes::DeprecateFileMsg);
     return Analysis::ERR;
   }
   if (!modesfile2.empty()) {
-    modinfo2_ = (DataSet_Modes*)DSLin->FindSetOfType( modesfile2, DataSet::MODES );
+    modinfo2_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesfile2, DataSet::MODES );
     if (modinfo2_ == 0) {
       mprinterr("Error: Set %s not found.\n", modesfile2.c_str());
       return Analysis::ERR;
@@ -198,13 +198,13 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, DataSetList* DSLin
   }
 
   // Get output filename
-  outfile_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("out"), "Modes analysis",
+  outfile_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("out"), "Modes analysis",
                                     DataFileList::TEXT, true );
   if (outfile_ == 0) return Analysis::ERR;
 
   // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
   if ( type_ == CORR ) {
-    Topology* analyzeParm = DSLin->GetTopology( analyzeArgs ); // TODO include with above?
+    Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with above?
     if (analyzeParm == 0) {
       mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
       return Analysis::ERR;

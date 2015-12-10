@@ -11,7 +11,7 @@ const char* Analysis_VectorMath::ModeString[] = {
 Analysis_VectorMath::Analysis_VectorMath() :
   mode_(DOTPRODUCT), vinfo1_(0), vinfo2_(0), DataOut_(0), norm_(false) {}
 
-void Analysis_VectorMath::Help() {
+void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
           "\t[ dotproduct | dotangle | crossproduct ]\n"
           "  Calculate dot product, angle from dot product (degrees), or cross product\n"
@@ -19,12 +19,12 @@ void Analysis_VectorMath::Help() {
 }
 
 // Analysis_VectorMath::Setup()
-Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Vectors
-  vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( analyzeArgs.GetStringKey("vec1"),
+  vinfo1_ = (DataSet_Vector*)setup.DSL().FindSetOfType( analyzeArgs.GetStringKey("vec1"),
                                                    DataSet::VECTOR );
-  vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( analyzeArgs.GetStringKey("vec2"),
+  vinfo2_ = (DataSet_Vector*)setup.DSL().FindSetOfType( analyzeArgs.GetStringKey("vec2"),
                                                    DataSet::VECTOR );
   if (vinfo1_ == 0 ) {
     mprinterr("Error: 'vec1' not found.\n");
@@ -40,18 +40,18 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, DataSetList* 
   DataOut_ = 0;
   if (analyzeArgs.hasKey("dotproduct")) {
     mode_ = DOTPRODUCT;
-    if ((DataOut_ = DSLin->AddSet(DataSet::DOUBLE, setname, "Dot")) == 0) return Analysis::ERR;
+    if ((DataOut_ = setup.DSL().AddSet(DataSet::DOUBLE, setname, "Dot")) == 0) return Analysis::ERR;
   } else if (analyzeArgs.hasKey("dotangle")) {
     mode_ = DOTANGLE;
     norm_ = true; // Vecs must be normalized for angle calc to work
-    if ((DataOut_ = DSLin->AddSet(DataSet::DOUBLE, setname, "Angle")) == 0) return Analysis::ERR;
+    if ((DataOut_ = setup.DSL().AddSet(DataSet::DOUBLE, setname, "Angle")) == 0) return Analysis::ERR;
   } else if (analyzeArgs.hasKey("crossproduct")) {
     mode_ = CROSSPRODUCT;
-    if ((DataOut_ = DSLin->AddSet(DataSet::VECTOR, setname, "Cross")) == 0) return Analysis::ERR;
+    if ((DataOut_ = setup.DSL().AddSet(DataSet::VECTOR, setname, "Cross")) == 0) return Analysis::ERR;
   } else
     mode_ = DOTPRODUCT;
   // Set up output file in DataFileList if necessary
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   if (outfile != 0) outfile->AddDataSet( DataOut_ );
 
   // Print Status

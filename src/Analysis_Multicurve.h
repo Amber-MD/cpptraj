@@ -5,10 +5,10 @@
 class Analysis_Multicurve : public Analysis {
   public:
     Analysis_Multicurve() : masterDSL_(0), masterDFL_(0), debug_(0) {}
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Multicurve(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Multicurve(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     Array1D inputDsets_;

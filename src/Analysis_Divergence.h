@@ -4,9 +4,9 @@
 class Analysis_Divergence : public Analysis {
   public:
     Analysis_Divergence();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Divergence(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Divergence(); }
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     /// Normalize sum over set to 1.0

@@ -6,10 +6,10 @@
 class Analysis_Integrate : public Analysis {
   public:
     Analysis_Integrate();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Integrate(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Integrate(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataFile* outfile_; // FIXME: May not need to be class var

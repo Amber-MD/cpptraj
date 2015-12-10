@@ -19,6 +19,7 @@ class ActionInit {
     DataFileList const& DFL() const { return *dfl_; }
     /// Can be used by Actions that want to set up DataSets in Setup/DoAction/Print.
     DataSetList* DSL_Ptr()          { return dsl_;  }
+    DataFileList* DFL_Ptr()         { return dfl_;  }
   private:
     DataSetList* dsl_;
     DataFileList* dfl_;

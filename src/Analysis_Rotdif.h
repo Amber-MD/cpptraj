@@ -22,10 +22,10 @@
 class Analysis_Rotdif: public Analysis {
   public:
     Analysis_Rotdif();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Rotdif(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Rotdif(); }
+    void Help() const;
   private:
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
 
     int debug_;

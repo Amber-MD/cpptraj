@@ -3,17 +3,17 @@
 
 Analysis_Integrate::Analysis_Integrate() : outfile_(0) {}
 
-void Analysis_Integrate::Help() {
+void Analysis_Integrate::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>]\n"
           "  Integrate given data sets.\n");
 }
 
-Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  outfile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -27,7 +27,7 @@ Analysis::RetType Analysis_Integrate::Setup(ArgList& analyzeArgs, DataSetList* d
     for (Array1D::const_iterator dsIn = input_dsets_.begin();
                                  dsIn != input_dsets_.end(); ++dsIn)
     {
-      DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, setname, "Int");
+      DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, setname, "Int");
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "Int(" + (*dsIn)->Meta().Legend() + ")" );
       outfile_->AddDataSet( ds );

@@ -4,16 +4,16 @@
 
 Analysis_LowestCurve::Analysis_LowestCurve() : points_(0), step_(0.0) {}
 
-void Analysis_LowestCurve::Help() {
+void Analysis_LowestCurve::Help() const {
   mprintf("\tpoints <# lowest> [step <stepsize>] <dset0> [<dset1> ...]\n"
           "\t[out <file>] [name <setname>]\n"
           "  Calculate a curve of the average of the # lowest points in bins of stepsize.\n");
 }
 
 // Analysis_LowestCurve::Setup()
-Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   points_ = analyzeArgs.getKeyInt("points", -1);
   if (points_ < 1) {
     mprinterr("Error: 'points' must be specified and > 0\n");
@@ -22,7 +22,7 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   step_ = analyzeArgs.getKeyDouble("step", 1.0);
   std::string setname = analyzeArgs.GetStringKey("name");
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -32,9 +32,9 @@ Analysis::RetType Analysis_LowestCurve::Setup(ArgList& analyzeArgs, DataSetList*
   }
   // Create output data sets
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName("LOWCURVE");
+    setname = setup.DSL().GenerateDefaultName("LOWCURVE");
   for (Array1D::const_iterator DS = input_dsets_.begin(); DS != input_dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSet(DataSet::DOUBLE,
+    DataSet* dsout = setup.DSL().AddSet(DataSet::DOUBLE,
                                          MetaData(setname, DS - input_dsets_.begin()));
     if (dsout == 0)
       return Analysis::ERR;
