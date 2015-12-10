@@ -195,6 +195,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        Exec_Commands.cpp \
         Exec_CompareTop.cpp \
         Exec_CrdAction.cpp \
         Exec_GenerateAmberRst.cpp \

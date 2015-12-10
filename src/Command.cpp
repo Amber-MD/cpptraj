@@ -6,6 +6,7 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "Exec.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_Commands.h"
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -103,6 +104,7 @@ void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ReadInput(), Cmd::EXE, 1, "readinput" );
+  Command::AddCmd( new Exec_Run(),       Cmd::EXE, 2, "go", "run" );
   // COORDS
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
   // ACTION
