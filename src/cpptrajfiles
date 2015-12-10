@@ -140,7 +140,9 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
+        Cmd.cpp \
         CmdInput.cpp \
+        CmdList.cpp \
         Cmd_CompareTop.cpp \
         Cmd_Coords.cpp \
         Cmd_GenerateAmberRst.cpp \
@@ -188,6 +190,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_integer.cpp \
         DataSet_string.cpp \
         DihedralSearch.cpp \
+        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -196,6 +199,9 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        Exec_CrdAction.cpp \
+        Exec_Help.cpp \
+        Exec_ReadInput.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \

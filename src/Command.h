@@ -1,24 +1,28 @@
 #ifndef INC_COMMAND_H
 #define INC_COMMAND_H
-#include "Cmd.h"
-/// This is a static class that determines how commands are handled.
-/** To add a new Action/Analysis command, add the appropriate '#include'
-  * to the top of Command.cpp and add an entry to Commands[] (search for 
-  * INC_ACTION/INC_ANALYSIS respectively).
-  */
+#include "CmdList.h"
+#include "CpptrajState.h"
 class Command {
   public:
-    static void ListCommands(Cmd::Ctype);
-    static Cmd::TokenPtr SearchTokenType(Cmd::Ctype, ArgList const& argIn);
-    static Cmd::TokenPtr SearchToken(ArgList&);
-    static Cmd::RetType Dispatch(CpptrajState&, std::string const&);
-    static Cmd::RetType ProcessInput(CpptrajState&, std::string const&);
-    static Cmd::Token const& CmdToken(int idx)       { return Commands[idx]; }
-    static const char* CommandCategoryKeyword(int i) { return CommandTitle[i]; }
+    static void Init();
+    static void Free();
+    /// List commands of given type, or all if type is NONE
+    static void ListCommands(DispatchObject::Otype);
+    /// Add a command to the list of commands
+    static void AddCmd(DispatchObject*, Cmd::DestType, int, ...);
+    /// \return command corresponding to first argument in ArgList.
+    static Cmd const& SearchToken(ArgList&);
+    /// \return command of given type corresponding to given command key. 
+    static Cmd const& SearchTokenType(DispatchObject::Otype, const char*);
+    /// Execute command, modifies given CpptrajState
+    static CpptrajState::RetType Dispatch(CpptrajState&, std::string const&);
+    /// Read input commands from given file, modifies given CpptrajState.
+    static CpptrajState::RetType ProcessInput(CpptrajState&, std::string const&);
   private:
-    static void WarnDeprecated(Cmd::TokenPtr);
-    static const char* CommandTitle[];
-    /// Master list of commands.
-    static const Cmd::Token Commands[];
+    static void WarnDeprecated(const char*, Cmd const&);
+    static void ListCommandsForType(DispatchObject::Otype);
+
+    static CmdList commands_; ///< Master list of commands.
+    static const Cmd EMPTY_;  ///< Empty command.
 };
 #endif

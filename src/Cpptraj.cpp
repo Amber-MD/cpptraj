@@ -9,6 +9,12 @@
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 
+/// CONSTRUCTOR - initializes all commands
+Cpptraj::Cpptraj() { Command::Init(); }
+
+/// DESTRUCTOR - free all commands
+Cpptraj::~Cpptraj() { Command::Free(); }
+
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
@@ -306,9 +312,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
                                 inputFilename != inputFiles.end();
                                 ++inputFilename)
     {
-      Cmd::RetType c_err = Command::ProcessInput( State_, *inputFilename );
-      if (c_err == Cmd::ERR && State_.ExitOnError()) return ERROR;
-      if (c_err == Cmd::QUIT) return QUIT;
+      CpptrajState::RetType c_err = Command::ProcessInput( State_, *inputFilename );
+      if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
   // Determine whether to enter interactive mode
@@ -318,9 +324,9 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return INTERACTIVE;
     else {
       // "" means read from STDIN
-      Cmd::RetType c_err = Command::ProcessInput( State_, "" ); 
-      if (c_err == Cmd::ERR && State_.ExitOnError()) return ERROR;
-      if (c_err == Cmd::QUIT) return QUIT;
+      CpptrajState::RetType c_err = Command::ProcessInput( State_, "" ); 
+      if (c_err == CpptrajState::ERR && State_.ExitOnError()) return ERROR;
+      if (c_err == CpptrajState::QUIT) return QUIT;
     }
   }
   return BATCH;
@@ -356,8 +362,8 @@ int Cpptraj::Interactive() {
   logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen())
     logfile_.Printf("# %s\n", TimeString().c_str());
-  Cmd::RetType readLoop = Cmd::OK;
-  while ( readLoop != Cmd::QUIT ) {
+  CpptrajState::RetType readLoop = CpptrajState::OK;
+  while ( readLoop != CpptrajState::QUIT ) {
     if (inputLine.GetInput()) {
       // EOF (Ctrl-D) specified. If state is not empty, ask before exiting.
       if (!State_.EmptyState()) {
@@ -369,21 +375,21 @@ int Cpptraj::Interactive() {
     }
     if (!inputLine.empty()) {
       readLoop = Command::Dispatch( State_, *inputLine );
-      if (logfile_.IsOpen() && readLoop != Cmd::ERR) {
+      if (logfile_.IsOpen() && readLoop != CpptrajState::ERR) {
         logfile_.Printf("%s\n", inputLine.c_str());
         logfile_.Flush();
       }
     }
     // If state is not empty, ask before exiting.
-    if (readLoop == Cmd::QUIT && !State_.EmptyState()) {
+    if (readLoop == CpptrajState::QUIT && !State_.EmptyState()) {
       if (inputLine.YesNoPrompt("There are actions/analyses/trajectories queued. "
                                 "Really quit? [y/n]> "))
         break;
       else
-        readLoop = Cmd::OK;
+        readLoop = CpptrajState::OK;
     }
   }
   logfile_.CloseFile();
-  if (readLoop == Cmd::ERR) return 1;
+  if (readLoop == CpptrajState::ERR) return 1;
   return 0;
 }
