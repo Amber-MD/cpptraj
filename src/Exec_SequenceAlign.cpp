@@ -1,11 +1,11 @@
 #include <cstring>
-#include "Cmd_SequenceAlign.h"
+#include "Exec_SequenceAlign.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
 #include "Trajout_Single.h"
 #include "StringRoutines.h"
 // EXPERIMENTAL ALPHA CODE
-void Help_SequenceAlign() {
+void Exec_SequenceAlign::Help() const {
   mprintf("\t%s blastfile <file> out <file>\n"
           "\t[{pdb | mol2}] [<trajout args>] [smaskoffset <#>] [qmaskoffset <#>]\n"
           "  blastfile: File containing sequence alignment.\n"
@@ -22,21 +22,21 @@ void Help_SequenceAlign() {
           DataSetList::RefArgs);
 }
     
-Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType alloc) {
+Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
   std::string blastfile = argIn.GetStringKey("blastfile");
   if (blastfile.empty()) {
     mprinterr("Error: 'blastfile' must be specified.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   ReferenceFrame qref = State.DSL()->GetReferenceFrame(argIn);
   if (qref.error() || qref.empty()) {
     mprinterr("Error: Must specify reference structure for query.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   std::string outfilename = argIn.GetStringKey("out");
   if (outfilename.empty()) {
     mprinterr("Error: Must specify output file.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   TrajectoryFile::TrajFormatType fmt = TrajectoryFile::GetFormatFromArg(argIn);
   if (fmt != TrajectoryFile::PDBFILE && fmt != TrajectoryFile::MOL2FILE)
@@ -47,7 +47,7 @@ Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType a
   // Load blast file
   mprintf("\tReading BLAST alignment from '%s'\n", blastfile.c_str());
   BufferedLine infile;
-  if (infile.OpenFileRead( blastfile )) return Cmd::ERR;
+  if (infile.OpenFileRead( blastfile )) return CpptrajState::ERR;
   // Seek down to first Query line.
   const char* ptr = infile.Line();
   bool atFirstQuery = false;
@@ -62,7 +62,7 @@ Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType a
   }
   if (!atFirstQuery) {
     mprinterr("Error: 'Query' not found.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
 
   // Read alignment. Replacing query with subject.
@@ -78,7 +78,7 @@ Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType a
     if (aline == 0 || sline == 0) {
       mprinterr("Error: Missing alignment line or subject line after Query:\n");
       mprinterr("Error:  %s", qline);
-      return Cmd::ERR;
+      return CpptrajState::ERR;
     }
     for (int idx = 12; qline[idx] != ' '; idx++) {
       if (qline[idx] == '-') {
@@ -223,13 +223,13 @@ Cmd::RetType SequenceAlign(CpptrajState& State, ArgList& argIn, Cmd::AllocType a
     }
   }
   //Topology* sTop = qref.Parm().partialModifyStateByMask( sMask );
-  //if (sTop == 0) return Cmd::ERR;
+  //if (sTop == 0) return CpptrajState::ERR;
   //Frame sFrame(qref.Coord(), sMask);
   // Write output traj
   Trajout_Single trajout;
   if (trajout.PrepareTrajWrite(outfilename, argIn, &sTop, CoordinateInfo(), 1, fmt))
-    return Cmd::ERR;
-  if (trajout.WriteSingle(0, sFrame)) return Cmd::ERR;
+    return CpptrajState::ERR;
+  if (trajout.WriteSingle(0, sFrame)) return CpptrajState::ERR;
   trajout.EndTraj();
-  return Cmd::OK;
+  return CpptrajState::OK;
 }

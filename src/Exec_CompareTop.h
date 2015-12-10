@@ -4,7 +4,7 @@
 // EXPERIMENTAL ALPHA CODE
 class Exec_CompareTop : public Exec {
   public:
-    Exec_CompareTop() : Exec(PARM) {}
+    Exec_CompareTop() : Exec(HIDDEN) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CompareTop(); }
     RetType Execute(CpptrajState&, ArgList&);
