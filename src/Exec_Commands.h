@@ -10,7 +10,7 @@ class Exec_Run : public Exec {
     Exec_Run() : Exec(GENERAL) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Run(); }
-    RetType Execute(CpptrajState& State, ArgList&) { return (CpptrajState::RetType)State.Run(); }
+    RetType Execute(CpptrajState& State, ArgList&) { return (RetType)State.Run(); }
 };
 
 /// Tell CpptrajState to ignore errors if possible
@@ -38,6 +38,72 @@ class Exec_Quit : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Quit(); }
     RetType Execute(CpptrajState&, ArgList&) { return CpptrajState::QUIT; }
+};
+
+/// Set active reference for distance-based masks etc.
+class Exec_ActiveRef : public Exec {
+  public:
+    Exec_ActiveRef() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ActiveRef(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.DSL()->SetActiveReference( argIn );
+    }
+};
+
+/// Clear data in specified lists
+class Exec_Clear : public Exec {
+  public:
+    Exec_Clear() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Clear(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.ClearList( argIn );
+    }
+};
+
+/// Remove specified data set(s)
+class Exec_RemoveData : public Exec {
+  public:
+    Exec_RemoveData() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_RemoveData(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.RemoveDataSet( argIn );
+    }
+};
+
+/// Set debug value for specified list(s)
+class Exec_SetListDebug : public Exec {
+  public:
+    Exec_SetListDebug() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SetListDebug(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.SetListDebug( argIn );
+    }
+};
+
+/// List all members of specified list(s)
+class Exec_ListAll : public Exec {
+  public:
+    Exec_ListAll() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ListAll(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.ListAll( argIn );
+    }
+};
+
+/// Silence Actions Init/Setup output.
+class Exec_SilenceActions : public Exec {
+  public:
+    Exec_SilenceActions() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SilenceActions(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      State.SetActionSilence( true ); return CpptrajState::OK;
+    }
 };
 
 #endif
