@@ -18,6 +18,8 @@ CmdList Command::commands_ = CmdList();
 
 const Cmd Command::EMPTY_ = Cmd();
 
+Command::Carray Command::names_ = Command::Carray();
+
 void Command::Init() {
   Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
@@ -25,6 +27,8 @@ void Command::Init() {
 
   Command::AddCmd( new Action_Unstrip(),   Cmd::ACT, 1, "unstrip" );
   Command::AddCmd( new Action_CreateCrd(), Cmd::ACT, 1, "createcrd" );
+  // Add null ptr to indicate end of command key addresses for ReadLine
+  names_.push_back( 0 );
 }
 
 void Command::Free() {
@@ -41,6 +45,10 @@ void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...) {
   }
   va_end(args);
   commands_.Add( Cmd(oIn, keys, dIn) );
+  // Store memory addresses of command keys for ReadLine
+  for (Cmd::key_iterator key = commands_.Back().keysBegin();
+                         key != commands_.Back().keysEnd(); ++key)
+    names_.push_back( key->c_str() );
 }
 
 /// Warn about deprecated commands.

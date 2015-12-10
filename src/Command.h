@@ -18,11 +18,15 @@ class Command {
     static CpptrajState::RetType Dispatch(CpptrajState&, std::string const&);
     /// Read input commands from given file, modifies given CpptrajState.
     static CpptrajState::RetType ProcessInput(CpptrajState&, std::string const&);
+    /// \return Pointer to command name address.
+    static const char* CmdToken(int idx) { return names_[idx]; }
   private:
     static void WarnDeprecated(const char*, Cmd const&);
     static void ListCommandsForType(DispatchObject::Otype);
 
     static CmdList commands_; ///< Master list of commands.
     static const Cmd EMPTY_;  ///< Empty command.
+    typedef std::vector<const char*> Carray;
+    static Carray names_; ///< Array of pointers to all command names, for ReadLine
 };
 #endif

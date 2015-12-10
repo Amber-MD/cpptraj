@@ -11,6 +11,7 @@ class CmdList {
     typedef Carray::const_iterator const_iterator;
     const_iterator begin() const { return cList_.begin(); }
     const_iterator end()   const { return cList_.end();   }
+    Cmd const& Back()      const { return cList_.back();  }
   private:
     Carray cList_;
 };

@@ -107,8 +107,8 @@ SOURCES=ActionFrameCounter.cpp \
         CmdInput.cpp \
         CmdList.cpp \
         Exec_CompareTop.cpp \
-        Cmd_GenerateAmberRst.cpp \
-        Cmd_SequenceAlign.cpp \
+        Exec_GenerateAmberRst.cpp \
+        Exec_SequenceAlign.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
