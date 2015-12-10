@@ -102,9 +102,12 @@ Command::Carray Command::names_ = Command::Carray();
 /** Initialize all commands. */
 void Command::Init() {
   // GENERAL
-  Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
-  Command::AddCmd( new Exec_ReadInput(), Cmd::EXE, 1, "readinput" );
-  Command::AddCmd( new Exec_Run(),       Cmd::EXE, 2, "go", "run" );
+  Command::AddCmd( new Exec_Help(),         Cmd::EXE, 1, "help" );
+  Command::AddCmd( new Exec_NoExitOnError(),Cmd::EXE, 1, "noexitonerror" );
+  Command::AddCmd( new Exec_NoProgress(),   Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_Quit(),         Cmd::EXE, 2, "exit", "quit" );
+  Command::AddCmd( new Exec_ReadInput(),    Cmd::EXE, 1, "readinput" );
+  Command::AddCmd( new Exec_Run(),          Cmd::EXE, 2, "go", "run" );
   // COORDS
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
   // ACTION
