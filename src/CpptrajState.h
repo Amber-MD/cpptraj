@@ -9,6 +9,9 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
+    /// Possible command return types.
+    enum RetType { OK = 0, ERR, QUIT };
+    /// CONSTRUCTOR
     CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
     // TODO: Change to &
     DataSetList* DSL()       { return &DSL_;          }
@@ -32,8 +35,8 @@ class CpptrajState {
     int AddTopology( std::string const&, ArgList const& );
     int AddTopology( Topology const&, std::string const& );
     inline int AddReference( std::string const& );
-    inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
-    inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
+    inline int AddToActionQueue( Action*, ArgList& );
+    inline int AddToAnalysisQueue( Analysis*, ArgList& );
     static int WorldSize();
     static std::string PrintListKeys();
     int ListAll(ArgList&) const;
@@ -84,16 +87,16 @@ class CpptrajState {
     bool exitOnError_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-// CpptrajState::AddAction()
-int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+// CpptrajState::AddToActionQueue()
+int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   ActionInit init(DSL_, DFL_);
-  return actionList_.AddAction( Alloc, argIn, init );
+  return actionList_.AddAction( actIn, argIn, init );
 }
-// CpptrajState::AddAnalysis()
-int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+// CpptrajState::AddToAnalysisQueue()
+int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return analysisList_.AddAnalysis( Alloc, argIn, &DSL_, &DFL_ );
+  return analysisList_.AddAnalysis( anaIn, argIn, &DSL_, &DFL_ );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {
