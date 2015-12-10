@@ -9,7 +9,7 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
-    /// Possible command return types.
+    /// Possible command return types. Put here because both Command and Exec need this.
     enum RetType { OK = 0, ERR, QUIT };
     /// CONSTRUCTOR
     CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}

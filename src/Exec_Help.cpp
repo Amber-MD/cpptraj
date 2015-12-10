@@ -2,8 +2,6 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 
-Exec_Help::Exec_Help() : Exec(GENERAL) { }
-
 void Exec_Help::Help() const {
   mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
   for (int i = 0; i != (int)DEPRECATED; i++) {

@@ -2,8 +2,6 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 
-Exec_CrdAction::Exec_CrdAction() : Exec(COORDS) { }
-
 void Exec_CrdAction::Help() const {
   mprintf("\t<crd set> <actioncmd> [<action args>] [crdframes <start>,<stop>,<offset>]\n"
           "  Perform action <actioncmd> on COORDS data set <crd set>.\n");

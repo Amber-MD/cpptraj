@@ -4,7 +4,7 @@
 /// Read input commands from a file.
 class Exec_ReadInput : public Exec {
   public:
-    Exec_ReadInput();
+    Exec_ReadInput() : Exec(GENERAL) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ReadInput(); }
     RetType Execute(CpptrajState&, ArgList&);

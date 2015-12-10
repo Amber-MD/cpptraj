@@ -2,8 +2,6 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 
-Exec_ReadInput::Exec_ReadInput() : Exec(GENERAL) { }
-
 void Exec_ReadInput::Help() const {
   mprintf("\t<filename>\n"
           "  Read commands from input file <filename>\n");
