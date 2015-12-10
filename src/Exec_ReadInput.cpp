@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 
-Exec_ReadInput::Exec_ReadInput() : Exec(GENERAL) { AddKeyword("readinput"); }
+Exec_ReadInput::Exec_ReadInput() : Exec(GENERAL) { }
 
 void Exec_ReadInput::Help() const {
   mprintf("\t<filename>\n"

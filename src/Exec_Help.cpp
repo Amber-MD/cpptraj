@@ -2,10 +2,7 @@
 #include "CpptrajStdio.h"
 #include "Command.h"
 
-Exec_Help::Exec_Help() : Exec(GENERAL) {
-  AddKeyword("help");
-  AddKeyword("man");
-}
+Exec_Help::Exec_Help() : Exec(GENERAL) { }
 
 void Exec_Help::Help() const {
   mprintf("\t[{ <cmd> | <category>}]\n\tCategories:");
