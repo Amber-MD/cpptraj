@@ -13,6 +13,7 @@
 #include "Exec_CrdAction.h"
 #include "Exec_CrdOut.h"
 #include "Exec_LoadCrd.h"
+#include "Exec_LoadTraj.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -120,6 +121,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_CrdOut(),    Cmd::EXE, 1, "crdout" );
   Command::AddCmd( new Exec_LoadCrd(),   Cmd::EXE, 1, "loadcrd" );
+  Command::AddCmd( new Exec_LoadTraj(),  Cmd::EXE, 1, "loadtraj" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
