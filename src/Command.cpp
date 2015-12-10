@@ -11,6 +11,7 @@
 #include "Exec_ReadInput.h"
 // ----- COORDS ----------------------------------------------------------------
 #include "Exec_CrdAction.h"
+#include "Exec_CrdOut.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -116,6 +117,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SetListDebug(),  Cmd::EXE, 2, "debug", "prnlev" );
   // COORDS
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
+  Command::AddCmd( new Exec_CrdOut(),    Cmd::EXE, 1, "crdout" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
