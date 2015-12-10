@@ -8,8 +8,8 @@
 class Action_Projection : public Action, ActionFrameCounter {
   public:
     Action_Projection();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Projection(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Projection(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

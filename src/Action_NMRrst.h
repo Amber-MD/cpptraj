@@ -7,8 +7,8 @@
 class Action_NMRrst: public Action {
   public:
     Action_NMRrst();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_NMRrst(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_NMRrst(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

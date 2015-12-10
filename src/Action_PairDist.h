@@ -16,11 +16,9 @@ class Action_PairDist : public Action, ImagedAction {
  public:
   Action_PairDist();
 
-  static DispatchObject* Alloc() {
-    return (DispatchObject*)new Action_PairDist();
-  }
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_PairDist(); }
 
-  static void Help();
+    void Help() const;
 
  private:
   Action::RetType Init(ArgList&, ActionInit&, int);

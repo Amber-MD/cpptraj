@@ -8,8 +8,8 @@
 class Action_ReplicateCell: public Action {
   public:
     Action_ReplicateCell();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ReplicateCell(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_ReplicateCell(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

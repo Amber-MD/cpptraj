@@ -6,8 +6,8 @@
 class Action_CheckChirality: public Action {
   public:
     Action_CheckChirality();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckChirality(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_CheckChirality(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

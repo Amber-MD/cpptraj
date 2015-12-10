@@ -10,7 +10,7 @@ Action_Unwrap::Action_Unwrap() :
   center_(false)
 { }
 
-void Action_Unwrap::Help() {
+void Action_Unwrap::Help() const {
   mprintf("\t[center] [{bymol | byres | byatom}]\n"
           "\t[ %s ] [<mask>]\n", DataSetList::RefArgs);
   mprintf("  Reverse of 'image'; unwrap coordinates in <mask> according\n"

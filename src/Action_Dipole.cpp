@@ -12,7 +12,7 @@ Action_Dipole::Action_Dipole() :
   CurrentParm_(0)
 {}
 
-void Action_Dipole::Help() {
+void Action_Dipole::Help() const {
   mprintf("\t<filename>\n%s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }

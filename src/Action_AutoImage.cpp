@@ -13,7 +13,7 @@ Action_AutoImage::Action_AutoImage() :
   triclinic_(OFF)
 {}
 
-void Action_AutoImage::Help() {
+void Action_AutoImage::Help() const {
   mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
           "\t[origin] [firstatom] [familiar | triclinic]\n"
           "  Automatically center and image periodic trajectory.\n"

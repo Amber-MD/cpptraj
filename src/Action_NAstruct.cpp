@@ -29,7 +29,7 @@ Action_NAstruct::Action_NAstruct() :
 # endif
 {}
 
-void Action_NAstruct::Help() {
+void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"

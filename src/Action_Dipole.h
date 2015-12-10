@@ -6,8 +6,8 @@
 class Action_Dipole : public Action, private GridAction {
   public:
     Action_Dipole();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Dipole(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Dipole(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

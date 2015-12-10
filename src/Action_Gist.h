@@ -11,8 +11,8 @@
 class Action_Gist: public Action, ImagedAction  {
   public:
     Action_Gist();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Gist(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

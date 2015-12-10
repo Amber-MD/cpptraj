@@ -10,8 +10,8 @@
 class Action_Mask: public Action {
   public:
     Action_Mask();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Mask(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Mask(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

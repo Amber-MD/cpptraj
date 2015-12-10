@@ -16,7 +16,7 @@ Action_AtomMap::Action_AtomMap() :
   rmsdata_(0)
 {}
 
-void Action_AtomMap::Help() {
+void Action_AtomMap::Help() const {
   mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
           "\t[rmsfit [ rmsout <rmsout> ]]\n"
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"

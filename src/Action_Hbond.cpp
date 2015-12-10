@@ -33,7 +33,7 @@ Action_Hbond::Action_Hbond() :
   masterDSL_(0)
 {}
 
-void Action_Hbond::Help() {
+void Action_Hbond::Help() const {
   mprintf("\t[<dsname>] [out <filename>] [<mask>] [angle <acut>] [dist <dcut>]\n"
           "\t[donormask <dmask> [donorhmask <dhmask>]] [acceptormask <amask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"

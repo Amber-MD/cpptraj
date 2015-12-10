@@ -18,7 +18,7 @@ Action_Jcoupling::Action_Jcoupling() :
   setcount_(1)
 {} 
 
-void Action_Jcoupling::Help() {
+void Action_Jcoupling::Help() const {
   mprintf("\t<mask1> [outfile <filename>] [kfile <param file>] [out <filename>]\n"
           "\t[name <dsname>]\n"
           "  Calculate J-coupling values for all dihedrals found in <mask1>.\n");

@@ -5,8 +5,8 @@
 class Action_DSSP : public Action {
   public:
     Action_DSSP();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DSSP(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_DSSP(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

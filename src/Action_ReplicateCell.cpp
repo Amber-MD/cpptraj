@@ -6,7 +6,7 @@
 Action_ReplicateCell::Action_ReplicateCell() : 
   coords_(0), ncopies_(0), ensembleNum_(-1) {} 
 
-void Action_ReplicateCell::Help() {
+void Action_ReplicateCell::Help() const {
   mprintf("\t[out <traj filename>] [parmout <parm filename>] [name <dsname>]\n"
           "\t{ all | dir <XYZ> [dir <XYZ> ...] } [<mask>]\n"
           "  Replicate unit cell in specified (or all) directions for atoms in <mask>.\n"

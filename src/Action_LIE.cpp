@@ -15,7 +15,7 @@ Action_LIE::Action_LIE() :
   onecut2_(0.0)
 { }
 
-void Action_LIE::Help() {
+void Action_LIE::Help() const {
   mprintf("\t[<name>] <Ligand Mask> [<Surroundings Mask>] [out filename]\n"
           "\t[noelec] [novdw] [cutvdw <cutoff>] [cutelec <cutoff>] [diel <dielc>]\n"
           "  Calculate linear interaction energy between <Ligand Mask> and <Surroundings Mask>\n");

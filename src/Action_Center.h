@@ -5,8 +5,8 @@
 class Action_Center: public Action {
   public:
     Action_Center();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Center(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Center(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

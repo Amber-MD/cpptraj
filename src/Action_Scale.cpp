@@ -8,7 +8,7 @@ Action_Scale::Action_Scale() :
   sz_(1)
 {}
 
-void Action_Scale::Help() {
+void Action_Scale::Help() const {
   mprintf("\t[x <sx>] [y <sy>] [z <sz>] [<mask>]\n"
           "\tScale the position of atoms in <mask>\n");
 }

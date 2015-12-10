@@ -5,8 +5,8 @@
 class Action_Pucker: public Action {
   public:
     Action_Pucker();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pucker(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Pucker(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

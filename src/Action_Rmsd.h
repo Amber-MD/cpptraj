@@ -8,8 +8,8 @@
 class Action_Rmsd: public Action {
   public:
     Action_Rmsd();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Rmsd(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Rmsd(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

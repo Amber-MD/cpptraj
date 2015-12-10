@@ -5,8 +5,8 @@
 class Action_Unwrap : public Action {
   public:
     Action_Unwrap();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Unwrap(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Unwrap(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

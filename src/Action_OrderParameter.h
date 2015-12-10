@@ -16,11 +16,9 @@ class Action_OrderParameter : public Action, ImagedAction {
 public:
   Action_OrderParameter();
 
-  static DispatchObject* Alloc() {
-    return (DispatchObject*)new Action_OrderParameter();
-  }
+    DispatchObject* Alloc() const {  return (DispatchObject*)new Action_OrderParameter(); }
 
-  static void Help();
+    void Help() const;
 
 private:
   Action::RetType Init(ArgList&, ActionInit&, int);

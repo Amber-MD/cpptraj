@@ -5,7 +5,7 @@
 // DESTRUCTOR
 Action_LESsplit::~Action_LESsplit() { if (lesParm_ != 0) delete lesParm_; }
 
-void Action_LESsplit::Help() {
+void Action_LESsplit::Help() const {
   mprintf("\t[out <filename prefix>] [average <avg filename>] <trajout args>\n"
           "  Split and/or average LES trajectory. At least one of 'out' or 'average'\n"
           "  must be specified. If both are specified they share <trajout args>.\n");

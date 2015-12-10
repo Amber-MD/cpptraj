@@ -5,8 +5,8 @@
 class Action_Temperature : public Action {
   public:
     Action_Temperature();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Temperature(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Temperature(); }
+    void Help() const;
   private:
     enum ShakeType {OFF = 0, BONDS_TO_H, ALL_BONDS};
     Action::RetType Init(ArgList&, ActionInit&, int);

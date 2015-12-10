@@ -7,8 +7,8 @@
 class Action_DistRmsd: public Action {
   public:
     Action_DistRmsd();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DistRmsd(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_DistRmsd(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

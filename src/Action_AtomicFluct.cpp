@@ -16,7 +16,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
   dataout_(0)
 {}
 
-void Action_AtomicFluct::Help() {
+void Action_AtomicFluct::Help() const {
   mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n"
           "\t[calcadp [adpout <file>]]\n"
           "\t%s\n"

@@ -13,7 +13,7 @@ Action_GridFreeEnergy::Action_GridFreeEnergy() :
   grid_(0)
 {}
 
-void Action_GridFreeEnergy::Help() {
+void Action_GridFreeEnergy::Help() const {
   mprintf("\t<filename>\n%s\n\t<mask>\n", GridAction::HelpText);
 }
 

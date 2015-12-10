@@ -5,7 +5,7 @@
 // CONSTRUCTOR
 Action_DistRmsd::Action_DistRmsd() : drmsd_(0) {}
 
-void Action_DistRmsd::Help() {
+void Action_DistRmsd::Help() const {
   mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"

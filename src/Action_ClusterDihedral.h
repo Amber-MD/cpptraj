@@ -4,8 +4,8 @@
 class Action_ClusterDihedral : public Action {
   public:
     Action_ClusterDihedral();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_ClusterDihedral(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_ClusterDihedral(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

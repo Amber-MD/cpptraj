@@ -11,8 +11,8 @@ class Action_MRT : public Action {
   public:
     Action_MRT();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MRT(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_MRT(); }
+    void Help() const;
 
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

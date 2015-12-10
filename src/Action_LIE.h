@@ -9,8 +9,8 @@
 class Action_LIE: public Action, ImagedAction {
   public:
     Action_LIE();
-    static DispatchObject* Alloc() { return (DispatchObject*) new Action_LIE(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_LIE(); }
+    void Help() const;
   private:
     DataSet *elec_;  //< EEL data set
     DataSet *vdw_;   //< VDW data set

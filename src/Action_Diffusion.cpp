@@ -31,7 +31,7 @@ static inline void ShortHelp() {
           "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n");
 }
 
-void Action_Diffusion::Help() {
+void Action_Diffusion::Help() const {
   ShortHelp();
   mprintf("  Compute a mean square displacement plot for the atoms in the <mask>.\n"
           "  The following files are produced:\n"

@@ -12,7 +12,7 @@ Action_Mask::Action_Mask() :
   trajOpt_(0)
 { } 
 
-void Action_Mask::Help() {
+void Action_Mask::Help() const {
   mprintf("\t<mask1> [maskout <filename>] [maskpdb <filename> | maskmol2 <filename>]\n"
           "  Print atoms selected by <mask1> to file specified by 'maskout' and/or\n"
           "  the PDB or Mol2 file specified by 'maskpdb' or 'maskmol2'. Good for\n"

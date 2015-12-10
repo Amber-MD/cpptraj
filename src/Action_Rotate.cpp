@@ -5,7 +5,7 @@
 // CONSTRUCTOR
 Action_Rotate::Action_Rotate() : rmatrices_(0), inverse_(false) { }
 
-void Action_Rotate::Help() {
+void Action_Rotate::Help() const {
   mprintf("\t[<mask>] {[x <xdeg>] [y <ydeg>] [z <zdeg>] | usedata <set name>} [inverse]\n"
           "  Rotate atoms in <mask> around x, y, and/or z axes.\n");
 }

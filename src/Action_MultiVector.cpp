@@ -8,7 +8,7 @@ Action_MultiVector::Action_MultiVector() :
   ired_(false)
 {}
 
-void Action_MultiVector::Help() {
+void Action_MultiVector::Help() const {
   mprintf("\t[<name>] [resrange <range>] name1 <name1> name2 <name2> [out <filename>]\n"
           "\t[ired]\n"
           "  Calculate vectors between named atoms for residues in given <range>.\n");

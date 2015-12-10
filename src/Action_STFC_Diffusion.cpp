@@ -17,7 +17,7 @@ Action_STFC_Diffusion::Action_STFC_Diffusion() :
   elapsedFrames_(0)
 {}
 
-void Action_STFC_Diffusion::Help() {
+void Action_STFC_Diffusion::Help() const {
   mprintf("\tmask <mask> [out <file>] [time <time per frame>]\n"
           "\t[mask2 <mask>] [lower <distance>] [upper <distance>]\n"
           "\t[nwout <file>]) [avout <file>] [distances] [com]\n"

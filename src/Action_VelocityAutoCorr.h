@@ -5,8 +5,8 @@
 class Action_VelocityAutoCorr : public Action {
   public:
     Action_VelocityAutoCorr();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_VelocityAutoCorr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_VelocityAutoCorr(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
