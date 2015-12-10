@@ -1,10 +1,10 @@
-#include "Cmd_GenerateAmberRst.h"
+#include "Exec_GenerateAmberRst.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h"
 
-void Help_GenerateAmberRst() {
+void Exec_GenerateAmberRst::Help() const {
   mprintf("\t<mask1> <mask2> [<mask3>] [<mask4>]\n"
           "\tr1 <r1> r2 <r2> r3 <r3> r4 <r4> rk2 <rk2> rk3 <rk3>\n"
           "\t{%s}\n"
@@ -15,13 +15,13 @@ void Help_GenerateAmberRst() {
 }
 
 /// Generate amber restraints from given masks.
-Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocType Alloc)
+Exec::RetType Exec_GenerateAmberRst::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Get parm
   Topology* parm = State.DSL()->GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No parm files loaded.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   // Get optional reference coords
   ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
@@ -41,7 +41,7 @@ Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocTyp
                                                      DataFileList::TEXT, true);
   if (outfile == 0) {
     mprinterr("Error: Could not open output file.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   // TODO: else if (strcmp(pch,"nobb")==0) nobb=1;
   // Assume everything else is a mask
@@ -59,12 +59,12 @@ Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocTyp
         maskerr = parm->SetupIntegerMask( tmpmask );
       if ( maskerr != 0 ) {
         mprinterr("Error: Could not set up mask '%s'\n", tmpmask.MaskString());
-        return Cmd::ERR;
+        return CpptrajState::ERR;
       }
       tmpmask.MaskInfo();
       if ( tmpmask.None() ) {
         mprinterr("Error: '%s' corresponds to no atoms.\n", tmpmask.MaskString());
-        return Cmd::ERR;
+        return CpptrajState::ERR;
       }
       rstMasks.push_back( tmpmask );
     }
@@ -73,7 +73,7 @@ Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocTyp
   if (State.Debug() > 0) mprintf("\tDefined %zu rst masks.\n", rstMasks.size());
   if (rstMasks.size() < 2) {
     mprinterr("Error: Must specify at least 2 masks for restraint.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   // TODO: Remove backbone atoms for 'nobb'?
   // If a reference frame was specified and distance restraint, use center of
@@ -129,5 +129,5 @@ Cmd::RetType GenerateAmberRst(CpptrajState& State, ArgList& argIn, Cmd::AllocTyp
   }
   // Finish restraint
   outfile->Printf("   nstep1=0, nstep2=0,\n &end\n");
-  return Cmd::OK;
+  return CpptrajState::OK;
 }
