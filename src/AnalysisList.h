@@ -9,7 +9,7 @@ class AnalysisList {
     void Clear(); 
     void SetDebug(int);
     int Debug() const { return debug_; }
-    int AddAnalysis(Analysis*, ArgList&, DataSetList*, DataFileList*);
+    int AddAnalysis(Analysis*, ArgList&, AnalysisSetup&);
     int DoAnalyses();
     void List() const;
     bool Empty() const { return analysisList_.empty(); }

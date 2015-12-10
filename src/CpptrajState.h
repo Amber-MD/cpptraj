@@ -96,7 +96,8 @@ int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
 // CpptrajState::AddToAnalysisQueue()
 int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return analysisList_.AddAnalysis( anaIn, argIn, &DSL_, &DFL_ );
+  AnalysisSetup setup(DSL_, DFL_);
+  return analysisList_.AddAnalysis( anaIn, argIn, setup );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {

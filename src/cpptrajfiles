@@ -79,6 +79,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \
+        Analysis_AmdBias.cpp \
         ArgList.cpp \
         Array1D.cpp \
         AssociatedData.cpp \

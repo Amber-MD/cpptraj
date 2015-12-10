@@ -26,8 +26,7 @@ void AnalysisList::SetDebug(int debugIn) {
 /** Add specified analysis to the analysis list with given args and 
   * DataSetList.
   */
-int AnalysisList::AddAnalysis(Analysis* anaIn, ArgList& argIn,
-                              DataSetList* DSLin, DataFileList* DFLin)
+int AnalysisList::AddAnalysis(Analysis* anaIn, ArgList& argIn, AnalysisSetup& setup)
 {
   if (anaIn == 0) {
     mprinterr("Internal Error: AddAnalysis() called with null Analysis.\n");
@@ -37,7 +36,7 @@ int AnalysisList::AddAnalysis(Analysis* anaIn, ArgList& argIn,
   ana.ptr_ = anaIn; 
   ana.args_ = argIn;
   // Attempt to set up analysis
-  if (ana.ptr_->Setup( argIn, DSLin, DFLin, debug_) != Analysis::OK) {
+  if (ana.ptr_->Setup( argIn, setup, debug_) != Analysis::OK) {
     mprinterr("Error: Could not setup analysis [%s]\n", argIn.Command());
     delete ana.ptr_;
     return 1;

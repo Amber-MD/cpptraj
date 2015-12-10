@@ -9,14 +9,14 @@ Analysis_AmdBias::Analysis_AmdBias() :
   bias_(0)
 {}
 
-void Analysis_AmdBias::Help() {
+void Analysis_AmdBias::Help() const {
   mprintf("\tds <Edata> ethresh <Ethresh> alpha <alpha> out <filename>\n");
 }
 
-Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Keywords
-  ds1_ = datasetlist->GetDataSet( analyzeArgs.GetStringKey("ds") );
+  ds1_ = setup.DSL().GetDataSet( analyzeArgs.GetStringKey("ds") );
   if (ds1_ == 0) {
     mprinterr("Error: data set not found ('ds <dsname>')\n");
     return Analysis::ERR;
@@ -37,9 +37,9 @@ Analysis::RetType Analysis_AmdBias::Setup(ArgList& analyzeArgs, DataSetList* dat
     mprinterr("Error: alpha must be > 0.0 (%f)\n", alpha_);
     return Analysis::ERR;
   }
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Set up bias data set
-  bias_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(), "bias");
+  bias_ = setup.DSL().AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(), "bias");
   if (bias_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( bias_ );
 

@@ -5,14 +5,16 @@
 #include "BufferedLine.h" // ProcessInput()
 #include "CmdInput.h"     // ProcessInput()
 #include "Exec.h"
-// ----------------------
+// ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
-// ----------------------
+// ----- COORDS ----------------------------------------------------------------
 #include "Exec_CrdAction.h"
-// ----------------------
+// ----- ACTION ----------------------------------------------------------------
 #include "Action_CreateCrd.h"
 #include "Action_Unstrip.h"
+// ----- ANALYSIS --------------------------------------------------------------
+#include "Analysis_AmdBias.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -22,11 +24,15 @@ Command::Carray Command::names_ = Command::Carray();
 
 void Command::Init() {
   Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
-  Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
   Command::AddCmd( new Exec_ReadInput(), Cmd::EXE, 1, "readinput" );
 
-  Command::AddCmd( new Action_Unstrip(),   Cmd::ACT, 1, "unstrip" );
+  Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
+
   Command::AddCmd( new Action_CreateCrd(), Cmd::ACT, 1, "createcrd" );
+  Command::AddCmd( new Action_Unstrip(),   Cmd::ACT, 1, "unstrip" );
+
+  Command::AddCmd( new Analysis_AmdBias(), Cmd::ANA, 1, "amdbias" );
+
   // Add null ptr to indicate end of command key addresses for ReadLine
   names_.push_back( 0 );
 }
