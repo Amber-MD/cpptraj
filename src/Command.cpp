@@ -10,6 +10,7 @@
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
 // ----- COORDS ----------------------------------------------------------------
+#include "Exec_CombineCoords.h"
 #include "Exec_CrdAction.h"
 #include "Exec_CrdOut.h"
 #include "Exec_LoadCrd.h"
@@ -118,10 +119,11 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SetListDebug(),  Cmd::EXE, 2, "debug", "prnlev" );
   // COORDS
-  Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
-  Command::AddCmd( new Exec_CrdOut(),    Cmd::EXE, 1, "crdout" );
-  Command::AddCmd( new Exec_LoadCrd(),   Cmd::EXE, 1, "loadcrd" );
-  Command::AddCmd( new Exec_LoadTraj(),  Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_CombineCoords(),Cmd::EXE, 1, "combinecrd" ); 
+  Command::AddCmd( new Exec_CrdAction(),    Cmd::EXE, 1, "crdaction" );
+  Command::AddCmd( new Exec_CrdOut(),       Cmd::EXE, 1, "crdout" );
+  Command::AddCmd( new Exec_LoadCrd(),      Cmd::EXE, 1, "loadcrd" );
+  Command::AddCmd( new Exec_LoadTraj(),     Cmd::EXE, 1, "loadtraj" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
