@@ -79,43 +79,6 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Volume.cpp \
         Action_Watershell.cpp \
         AnalysisList.cpp \
-        Analysis_AmdBias.cpp \
-        Analysis_AutoCorr.cpp \
-        Analysis_Average.cpp \
-        Analysis_Clustering.cpp \
-        Analysis_Corr.cpp \
-        Analysis_CrankShaft.cpp \
-        Analysis_CrdFluct.cpp \
-        Analysis_CrossCorr.cpp \
-        Analysis_CurveFit.cpp \
-        Analysis_Divergence.cpp \
-        Analysis_FFT.cpp \
-        Analysis_Hist.cpp \
-        Analysis_Integrate.cpp \
-        Analysis_IRED.cpp \
-        Analysis_KDE.cpp \
-        Analysis_Lifetime.cpp \
-        Analysis_LowestCurve.cpp \
-        Analysis_Matrix.cpp \
-        Analysis_MeltCurve.cpp \
-        Analysis_Modes.cpp \
-        Analysis_Multicurve.cpp \
-        Analysis_MultiHist.cpp \
-        Analysis_Overlap.cpp \
-        Analysis_PhiPsi.cpp \
-        Analysis_Regression.cpp \
-        Analysis_RemLog.cpp \
-        Analysis_Rms2d.cpp \
-        Analysis_RmsAvgCorr.cpp \
-        Analysis_Rotdif.cpp \
-        Analysis_RunningAvg.cpp \
-        Analysis_Spline.cpp \
-        Analysis_State.cpp \
-        Analysis_Statistics.cpp \
-        Analysis_TI.cpp \
-        Analysis_Timecorr.cpp \
-        Analysis_VectorMath.cpp \
-        Analysis_Wavelet.cpp \
         ArgList.cpp \
         Array1D.cpp \
         AssociatedData.cpp \
@@ -143,8 +106,7 @@ SOURCES=ActionFrameCounter.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
-        Cmd_CompareTop.cpp \
-        Cmd_Coords.cpp \
+        Exec_CompareTop.cpp \
         Cmd_GenerateAmberRst.cpp \
         Cmd_SequenceAlign.cpp \
         Command.cpp \

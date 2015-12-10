@@ -1,8 +1,8 @@
 #include <algorithm> // sort
-#include "Cmd_CompareTop.h"
+#include "Exec_CompareTop.h"
 #include "CpptrajStdio.h"
 
-void Help_CompareTop() {
+void Exec_CompareTop::Help() const {
   mprintf("\t{%s} {%s} [out <file>] [atype] [lj] [bnd] [ang] [dih]\n",
           DataSetList::TopArgs, DataSetList::TopArgs);
 }
@@ -162,13 +162,13 @@ static void PrintLJatom(CpptrajFile& output, Topology const& parm,
 }
 
 /// Compare two topologies, find differences
-Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allocIn)
+Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
 {
   Topology* parm1 = State.DSL()->GetTopology( argIn );
   Topology* parm2 = State.DSL()->GetTopology( argIn );
   if (parm1 == 0 || parm2 == 0) {
     mprinterr("Error: Specify two topologies.\n");
-    return Cmd::ERR;
+    return CpptrajState::ERR;
   }
   Topology const& p1 = static_cast<Topology const&>( *parm1 );
   Topology const& p2 = static_cast<Topology const&>( *parm2 );
@@ -222,5 +222,5 @@ Cmd::RetType CompareTop(CpptrajState& State, ArgList& argIn, Cmd::AllocType allo
     diff_dihP.Compare( p1.DihedralParm(), p2.DihedralParm(), PrintDihP, output, p1, p2 );
   }
   output.CloseFile();
-  return Cmd::OK;
+  return CpptrajState::OK;
 }
