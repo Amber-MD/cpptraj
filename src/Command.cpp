@@ -100,35 +100,105 @@ Command::Carray Command::names_ = Command::Carray();
 
 /** Initialize all commands. */
 void Command::Init() {
+  // GENERAL
   Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ReadInput(), Cmd::EXE, 1, "readinput" );
-
+  // COORDS
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
-
-  Command::AddCmd( new Action_Angle(),       Cmd::ACT, 1, "angle" );
-  Command::AddCmd( new Action_AreaPerMol(),  Cmd::ACT, 1, "areapermol" );
-  Command::AddCmd( new Action_AtomicCorr(),  Cmd::ACT, 1, "atomiccorr" );
-  Command::AddCmd( new Action_AtomicFluct(), Cmd::ACT, 2, "atomicfluct", "rmsf" );
-  Command::AddCmd( new Action_AtomMap(),     Cmd::ACT, 1, "atommap" );
-  Command::AddCmd( new Action_AutoImage(),   Cmd::ACT, 1, "autoimage" );
-  Command::AddCmd( new Action_Average(),     Cmd::ACT, 1, "average" );
-  Command::AddCmd( new Action_Bounds(),      Cmd::ACT, 1, "bounds" );
-  Command::AddCmd( new Action_Box(),         Cmd::ACT, 1, "box" );
-  Command::AddCmd( new Action_Center(),      Cmd::ACT, 1, "center" );
-  Command::AddCmd( new Action_Channel(),     Cmd::ACT, 1, "channel" );
-  Command::AddCmd( new Action_CreateCrd(),   Cmd::ACT, 1, "createcrd" );
-  Command::AddCmd( new Action_Unstrip(),     Cmd::ACT, 1, "unstrip" );
-
+  // ACTION
+  Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
+  Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
+  Command::AddCmd( new Action_AtomicCorr(),    Cmd::ACT, 1, "atomiccorr" );
+  Command::AddCmd( new Action_AtomicFluct(),   Cmd::ACT, 2, "atomicfluct", "rmsf" );
+  Command::AddCmd( new Action_AtomMap(),       Cmd::ACT, 1, "atommap" );
+  Command::AddCmd( new Action_AutoImage(),     Cmd::ACT, 1, "autoimage" );
+  Command::AddCmd( new Action_Average(),       Cmd::ACT, 1, "average" );
+  Command::AddCmd( new Action_Bounds(),        Cmd::ACT, 1, "bounds" );
+  Command::AddCmd( new Action_Box(),           Cmd::ACT, 1, "box" );
+  Command::AddCmd( new Action_Center(),        Cmd::ACT, 1, "center" );
+  Command::AddCmd( new Action_Channel(),       Cmd::ACT, 1, "channel" ); // HIDDEN
+  Command::AddCmd( new Action_CheckStructure(),Cmd::ACT, 3,"check","checkoverlap","checkstructure");
+  Command::AddCmd( new Action_CheckChirality(),Cmd::ACT, 1, "checkchirality" );
+  Command::AddCmd( new Action_Closest(),       Cmd::ACT, 2, "closest", "closestwaters" );
+  Command::AddCmd( new Action_ClusterDihedral(),Cmd::ACT,1, "clusterdihedral" );
+  Command::AddCmd( new Action_Contacts(),      Cmd::ACT, 1, "contacts" );
+  Command::AddCmd( new Action_CreateCrd(),     Cmd::ACT, 1, "createcrd" );
+  Command::AddCmd( new Action_CreateReservoir(),Cmd::ACT,1, "createreservoir" );
+  Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
+  Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
+  Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
+  Command::AddCmd( new Action_DihedralScan(),  Cmd::ACT, 1, "dihedralscan" );
+  Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
+  Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
+  Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
+  Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
+  Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
+  Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
+  Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
+  Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
+  Command::AddCmd( new Action_Gist(),          Cmd::ACT, 1, "gist" );
+  Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
+  Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
+  Command::AddCmd( new Action_Hbond(),         Cmd::ACT, 1, "hbond" );
+  Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
+  Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
+  Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
+  Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
+  Command::AddCmd( new Action_OrderParameter(),Cmd::ACT, 1, "lipidorder" );
+  Command::AddCmd( new Action_MakeStructure(), Cmd::ACT, 1, "makestructure" );
+  Command::AddCmd( new Action_Mask(),          Cmd::ACT, 1, "mask" );
+  Command::AddCmd( new Action_Matrix(),        Cmd::ACT, 1, "matrix" );
+  Command::AddCmd( new Action_MinImage(),      Cmd::ACT, 1, "minimage" );
+  Command::AddCmd( new Action_Molsurf(),       Cmd::ACT, 1, "molsurf" );
+  Command::AddCmd( new Action_MultiDihedral(), Cmd::ACT, 1, "multidihedral" );
+  Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
+  Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
+  Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" );
+  Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
+  Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
+  Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
+  Command::AddCmd( new Action_Principal(),     Cmd::ACT, 1, "principal" );
+  Command::AddCmd( new Action_Projection(),    Cmd::ACT, 1, "projection" );
+  Command::AddCmd( new Action_Pucker(),        Cmd::ACT, 1, "pucker" );
+  Command::AddCmd( new Action_Radgyr(),        Cmd::ACT, 2, "radgyr", "rog" );
+  Command::AddCmd( new Action_Radial(),        Cmd::ACT, 2, "radial", "rdf" );
+  Command::AddCmd( new Action_RandomizeIons(), Cmd::ACT, 1, "randomizeions" );
+  Command::AddCmd( new Action_ReplicateCell(), Cmd::ACT, 1, "replicatecell" );
+  Command::AddCmd( new Action_Rmsd(),          Cmd::ACT, 2, "rms", "rmsd" );
+  Command::AddCmd( new Action_Rotate(),        Cmd::ACT, 1, "rotate" );
+  Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
+  Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
+  Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
+  Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
+  Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
+  Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
+  Command::AddCmd( new Action_SymmetricRmsd(), Cmd::ACT, 1, "symmrmsd" );
+  Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
+  Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
+  Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
+  Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );
+  Command::AddCmd( new Action_Vector(),        Cmd::ACT, 1, "vector" );
+  Command::AddCmd( new Action_VelocityAutoCorr(),Cmd::ACT,1,"velocityautocorr" );
+  Command::AddCmd( new Action_Volmap(),        Cmd::ACT, 1, "volmap" );
+  Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
+  Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
+  // ANALYSIS
   Command::AddCmd( new Analysis_AmdBias(), Cmd::ANA, 1, "amdbias" );
 
   // Add null ptr to indicate end of command key addresses for ReadLine
   names_.push_back( 0 );
 }
 
-void Command::Free() {
-  commands_.Clear();
-}
+/** Free all commands. Should only be called just before program exit. */
+void Command::Free() { commands_.Clear(); }
 
+/** \param oIn Pointer to DispatchObject to add as command.
+  * \param dIn Command destination
+  * \param nKeys Number of command keywords associated with this command.
+  * The remaining arguments are the nKeys command keywords.
+  */
 void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...) {
   Cmd::Sarray keys;
   va_list args;

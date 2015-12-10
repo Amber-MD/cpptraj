@@ -7,7 +7,7 @@
 #include "Constants.h" // GASK_KCAL, SMALL
 
 // CONSTRUCTOR
-Action_GridFreeEnergy::Action_GridFreeEnergy() :
+Action_GridFreeEnergy::Action_GridFreeEnergy() : Action(HIDDEN),
   maxVoxelOccupancyCount_(600), // NOTE: See header for comments.
   tempInKevin_(293.0),
   grid_(0)
@@ -45,6 +45,7 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
   outfile->AddDataSet( grid_ );
 
   // Info
+  mprintf("Warning: DNAIONTRACKER is experimental code!\n");
   mprintf("    GridFreeEnergy\n");
   GridInfo( *grid_ );
   mprintf("\tGrid will be printed to file %s\n",outfile->DataFilename().full());

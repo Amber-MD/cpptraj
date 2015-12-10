@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_DNAionTracker::Action_DNAionTracker() :
+Action_DNAionTracker::Action_DNAionTracker() : Action(HIDDEN), 
   distance_(0),
   bintype_(COUNT),
   poffset_(0),
@@ -54,6 +54,7 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init
     outfile->AddDataSet( distance_ );
 
   // INFO
+  mprintf("Warning: DNAIONTRACKER is experimental code!\n");
   mprintf("    DNAIONTRACKER: Data representing the ");
   switch (bintype_) {
     case COUNT : 
