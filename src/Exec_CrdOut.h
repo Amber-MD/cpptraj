@@ -3,7 +3,7 @@
 #include "Exec.h"
 class Exec_CrdOut : public Exec {
   public:
-    Exec_CrdOut() : Exec(GENERAL) {}
+    Exec_CrdOut() : Exec(COORDS) {}
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdOut(); }
     RetType Execute(CpptrajState&, ArgList&);
