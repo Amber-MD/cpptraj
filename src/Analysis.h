@@ -11,6 +11,7 @@
   */
 class Analysis : public DispatchObject {
   public:
+    Analysis() : DispatchObject(ANALYSIS) {}
     /// Enumerate potential return stats from Setup and Analyze.
     enum RetType { OK = 0, ERR };
     /// Destructor - virtual since this class is inherited

@@ -21,6 +21,8 @@
   */
 class Action : public DispatchObject {
   public:
+    /// Constructor
+    Action() : DispatchObject(ACTION) {}
     /// Enumerate potential return states from Init, Setup, and DoAction.
     enum RetType { OK=0, ///< Everything OK, normal return.
                    ERR,  ///< Problem occurred.
