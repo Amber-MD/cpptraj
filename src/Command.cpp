@@ -11,8 +11,84 @@
 // ----- COORDS ----------------------------------------------------------------
 #include "Exec_CrdAction.h"
 // ----- ACTION ----------------------------------------------------------------
-#include "Action_CreateCrd.h"
+#include "Action_Angle.h"
+#include "Action_Distance.h"
+#include "Action_Rmsd.h"
+#include "Action_Dihedral.h"
+#include "Action_AtomMap.h"
+#include "Action_Strip.h"
 #include "Action_Unstrip.h"
+#include "Action_DSSP.h"
+#include "Action_Center.h"
+#include "Action_Hbond.h"
+#include "Action_Image.h"
+#include "Action_Surf.h"
+#include "Action_Radgyr.h"
+#include "Action_Mask.h"
+#include "Action_Closest.h"
+#include "Action_NAstruct.h"
+#include "Action_Pucker.h"
+#include "Action_Outtraj.h"
+#include "Action_Average.h"
+#include "Action_Radial.h"
+#include "Action_DistRmsd.h"
+#include "Action_Jcoupling.h"
+#include "Action_Pairwise.h"
+#include "Action_Molsurf.h"
+#include "Action_CheckStructure.h"
+#include "Action_DihedralScan.h"
+#include "Action_RunningAvg.h"
+#include "Action_AtomicFluct.h"
+#include "Action_Watershell.h"
+#include "Action_Contacts.h"
+#include "Action_Vector.h"
+#include "Action_Principal.h"
+#include "Action_Matrix.h"
+#include "Action_LIE.h"
+#include "Action_Grid.h"
+#include "Action_GridFreeEnergy.h"
+#include "Action_Dipole.h"
+#include "Action_Projection.h"
+#include "Action_ClusterDihedral.h"
+#include "Action_Unwrap.h"
+#include "Action_Diffusion.h"
+#include "Action_DNAionTracker.h"
+#include "Action_Scale.h"
+#include "Action_RandomizeIons.h"
+#include "Action_AutoImage.h"
+#include "Action_STFC_Diffusion.h"
+#include "Action_AtomicCorr.h"
+#include "Action_Bounds.h"
+#include "Action_Rotate.h"
+#include "Action_Translate.h"
+#include "Action_Box.h"
+#include "Action_CreateCrd.h"
+#include "Action_MultiDihedral.h"
+#include "Action_MakeStructure.h"
+#include "Action_SymmetricRmsd.h"
+#include "Action_Volmap.h"
+#include "Action_Spam.h"
+#include "Action_Temperature.h"
+#include "Action_Gist.h"
+#include "Action_CreateReservoir.h"
+#include "Action_Density.h"
+#include "Action_PairDist.h"
+#include "Action_OrderParameter.h"
+#include "Action_FixAtomOrder.h"
+#include "Action_NMRrst.h"
+#include "Action_FilterByData.h"
+#include "Action_LESsplit.h"
+#include "Action_NativeContacts.h"
+#include "Action_VelocityAutoCorr.h"
+#include "Action_SetVelocity.h"
+#include "Action_MultiVector.h"
+#include "Action_MinImage.h"
+#include "Action_ReplicateCell.h"
+#include "Action_AreaPerMol.h"
+#include "Action_Energy.h"
+#include "Action_CheckChirality.h"
+#include "Action_Channel.h" // EXPERIMENTAL
+#include "Action_Volume.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_AmdBias.h"
 
@@ -22,14 +98,26 @@ const Cmd Command::EMPTY_ = Cmd();
 
 Command::Carray Command::names_ = Command::Carray();
 
+/** Initialize all commands. */
 void Command::Init() {
   Command::AddCmd( new Exec_Help(),      Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ReadInput(), Cmd::EXE, 1, "readinput" );
 
   Command::AddCmd( new Exec_CrdAction(), Cmd::EXE, 1, "crdaction" );
 
-  Command::AddCmd( new Action_CreateCrd(), Cmd::ACT, 1, "createcrd" );
-  Command::AddCmd( new Action_Unstrip(),   Cmd::ACT, 1, "unstrip" );
+  Command::AddCmd( new Action_Angle(),       Cmd::ACT, 1, "angle" );
+  Command::AddCmd( new Action_AreaPerMol(),  Cmd::ACT, 1, "areapermol" );
+  Command::AddCmd( new Action_AtomicCorr(),  Cmd::ACT, 1, "atomiccorr" );
+  Command::AddCmd( new Action_AtomicFluct(), Cmd::ACT, 2, "atomicfluct", "rmsf" );
+  Command::AddCmd( new Action_AtomMap(),     Cmd::ACT, 1, "atommap" );
+  Command::AddCmd( new Action_AutoImage(),   Cmd::ACT, 1, "autoimage" );
+  Command::AddCmd( new Action_Average(),     Cmd::ACT, 1, "average" );
+  Command::AddCmd( new Action_Bounds(),      Cmd::ACT, 1, "bounds" );
+  Command::AddCmd( new Action_Box(),         Cmd::ACT, 1, "box" );
+  Command::AddCmd( new Action_Center(),      Cmd::ACT, 1, "center" );
+  Command::AddCmd( new Action_Channel(),     Cmd::ACT, 1, "channel" );
+  Command::AddCmd( new Action_CreateCrd(),   Cmd::ACT, 1, "createcrd" );
+  Command::AddCmd( new Action_Unstrip(),     Cmd::ACT, 1, "unstrip" );
 
   Command::AddCmd( new Analysis_AmdBias(), Cmd::ANA, 1, "amdbias" );
 

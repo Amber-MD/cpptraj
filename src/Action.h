@@ -23,6 +23,8 @@ class Action : public DispatchObject {
   public:
     /// Constructor
     Action() : DispatchObject(ACTION) {}
+    /// Constructor - override ACTION (e.g. HIDDEN)
+    Action(DispatchObject::Otype o) : DispatchObject(o) {}
     /// Enumerate potential return states from Init, Setup, and DoAction.
     enum RetType { OK=0, ///< Everything OK, normal return.
                    ERR,  ///< Problem occurred.
