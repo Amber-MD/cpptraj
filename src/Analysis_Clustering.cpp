@@ -244,7 +244,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     clustersvtimefile->AddDataSet( clustersVtime_ );
   }
   // Save master DSL for Cpopvtime
-  masterDSL_ = setup.DSL_Ptr();
+  masterDSL_ = setup.DslPtr();
 
   mprintf("    CLUSTER:");
   if (coords_ != 0) mprintf(" Using coords dataset %s,", coords_->legend());

@@ -11,7 +11,7 @@ void Analysis_State::Help() const {
 Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
-  masterDSL_ = setup.DSL_Ptr();
+  masterDSL_ = setup.DslPtr();
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   curveOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
   stateOut_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("stateout"), "State Output",

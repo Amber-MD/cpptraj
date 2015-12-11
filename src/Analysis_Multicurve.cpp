@@ -10,8 +10,7 @@ void Analysis_Multicurve::Help() const {
 
 Analysis::RetType Analysis_Multicurve::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  masterDSL_ = setup.DSL_Ptr();
-  masterDFL_ = setup.DFL_Ptr();
+  master_ = setup;
   debug_ = debugIn;
   // Parse all 'set' arguments.
   std::string set_arg = analyzeArgs.GetStringKey("set");
@@ -35,7 +34,7 @@ Analysis::RetType Analysis_Multicurve::Analyze() {
   for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set) {
     ArgList argIn = args_;
     Analysis_CurveFit fit( (DataSet*)*set, set - inputDsets_.begin(), argIn,
-                           *masterDSL_, *masterDFL_, debug_ );
+                           master_.DSL(), master_.DFL(), debug_ );
     if (fit.Analyze()) ++err;
     mprintf("\n");
   }

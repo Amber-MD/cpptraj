@@ -175,7 +175,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
           "#          studying the dynamics of folded and nonfolded proteins by\n"
           "#          NMR relaxation spectroscopy and MD simulation\"\n"
           "#          J. Am. Chem. Soc. (2002) V.124 pp.4522-4534\n");
-  masterDSL_ = setup.DSL_Ptr();
+  masterDSL_ = setup.DslPtr();
   return Analysis::OK;
 }
 
