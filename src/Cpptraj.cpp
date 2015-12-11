@@ -70,7 +70,7 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   total_time.Start();
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
-    // If State is not empty, run now. 
+    // If State is not empty, run now.
     if (!State_.EmptyState())
       err = State_.Run();
   } else if ( cmode == INTERACTIVE ) {
@@ -127,7 +127,7 @@ std::string Cpptraj::Defines() {
 #ifdef USE_SANDERLIB
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
-  return defined_str; 
+  return defined_str;
 }
 
 /** Process a mask from the command line. */
@@ -154,7 +154,7 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
     loudPrintf("Selected=");
     if (residue) {
       int res = -1;
-      for (AtomMask::const_iterator atom = tempMask.begin(); 
+      for (AtomMask::const_iterator atom = tempMask.begin();
                                     atom != tempMask.end(); ++atom)
       {
         if (parm[*atom].ResNum() > res) {
@@ -293,7 +293,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     if (State_.AddTrajin( *trajinName )) return ERROR;
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
-    hasInput = true; // This allows direct traj conversion with no other input 
+    hasInput = true; // This allows direct traj conversion with no other input
     for (Sarray::const_iterator trajoutName = trajoutFiles.begin();
                                 trajoutName != trajoutFiles.end();
                                 ++trajoutName)
@@ -311,14 +311,15 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       if (c_err == Command::C_QUIT) return QUIT;
     }
   }
-  // Determine whether to enter interactive mode
-  if (!hasInput || interactive) {
-    // Test if input is really from a console
-    if ( isatty(fileno(stdin)) )
+  // Determine whether to enter interactive mode.
+  if (interactive) {
+    // User explicitly requested ``--interactive``. Do not check isatty.
+    return INTERACTIVE;
+  } else if (!hasInput) {
+    if (isatty(fileno(stdin)))
       return INTERACTIVE;
     else {
-      // "" means read from STDIN
-      Command::RetType c_err = Command::ProcessInput( State_, "" ); 
+      Command::RetType c_err = Command::ProcessInput( State_, "" );
       if (c_err == Command::C_ERR && State_.ExitOnError()) return ERROR;
       if (c_err == Command::C_QUIT) return QUIT;
     }
