@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "BufferedLine.h" // ProcessInput()
 #include "CmdInput.h"     // ProcessInput()
-#include "Exec.h"
+#include "RPNcalc.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
@@ -364,26 +364,19 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   ArgList cmdArg( commandIn );
   cmdArg.MarkArg(0); // Always mark the first arg as the command 
   Cmd const& cmd = SearchToken( cmdArg );
-/*  Cmd::RetType ret_val = Cmd::OK;
-  if (cmdToken == 0) {
-    // Try to evaluate the expression.
+  CpptrajState::RetType ret_val = CpptrajState::OK;
+  if (cmd.Empty()) {
+    // Try to evaluate the expression
     RPNcalc calc;
     calc.SetDebug( State.Debug() );
     if (calc.ProcessExpression( commandIn ))
-      ret_val = Cmd::ERR;
+      ret_val = CpptrajState::ERR;
     else {
-      if (calc.Evaluate(*State.DSL()))
-        ret_val = Cmd::ERR;
+      if (calc.Evaluate( *State.DSL() ))
+        ret_val = CpptrajState::ERR;
     }
-    if (ret_val == Cmd::ERR)
+    if (ret_val == CpptrajState::ERR)
       mprinterr("'%s': Invalid command or expression.\n", commandIn.c_str());
-  } else
-    ret_val = cmdToken->Fxn( State, cmdArg, cmdToken->Alloc );
-*/
-  CpptrajState::RetType ret_val = CpptrajState::OK;
-  if (cmd.Empty()) {
-    mprinterr("Command '%s' not found.\n", cmdArg.Command());
-    ret_val = CpptrajState::ERR;
   } else {
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
