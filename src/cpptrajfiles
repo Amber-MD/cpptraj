@@ -211,6 +211,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
         Exec_ReadInput.cpp \
+        Exec_RunAnalysis.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
         FileIO_Bzip2.cpp \

@@ -16,6 +16,7 @@
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
 #include "Exec_ReadInput.h"
+#include "Exec_RunAnalysis.h"
 #include "Exec_SequenceAlign.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
@@ -137,6 +138,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
   Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
   Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
+  Command::AddCmd( new Exec_RunAnalysis(),     Cmd::EXE, 1, "runanalysis" );
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
