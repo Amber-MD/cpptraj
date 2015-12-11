@@ -21,7 +21,6 @@ class Command {
     /// \return Pointer to command name address.
     static const char* CmdToken(int idx) { return names_[idx]; }
   private:
-    static void WarnDeprecated(const char*, Cmd const&);
     static void ListCommandsForType(DispatchObject::Otype);
 
     static CmdList commands_; ///< Master list of commands.

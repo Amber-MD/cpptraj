@@ -5,6 +5,7 @@
 #include "BufferedLine.h" // ProcessInput()
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
+#include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Calc.h"
 #include "Exec_Commands.h"
@@ -338,6 +339,12 @@ void Command::Init() {
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // DEPRECATED COMMANDS
+  Command::AddCmd( new Deprecated_Hbond(),       Cmd::DEP, 2, "acceptor", "donor" );
+  Command::AddCmd( new Deprecated_MinDist(),     Cmd::DEP, 2, "mindist", "maxdist" );
+  Command::AddCmd( new Deprecated_ParmBondInfo(),Cmd::DEP, 1, "parmbondinfo" );
+  Command::AddCmd( new Deprecated_ParmMolInfo(), Cmd::DEP, 1, "parmmolinfo" );
+  Command::AddCmd( new Deprecated_ParmResInfo(), Cmd::DEP, 1, "parmresinfo" );
+  Command::AddCmd( new Deprecated_TopSearch(),   Cmd::DEP, 4, "bondsearch", "molsearch", "nobondsearch", "nomolsearch" );
 
   // Add null ptr to indicate end of command key addresses for ReadLine
   names_.push_back( 0 );
@@ -367,25 +374,13 @@ void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys, ...) {
     names_.push_back( key->c_str() );
 }
 
-/// Warn about deprecated commands.
-void Command::WarnDeprecated(const char* keyIn, Cmd const& cmdIn)
-{
-  mprinterr("Error: '%s' is deprecated.\n", keyIn);
-  cmdIn.Help();
-}
-
 /** Search Commands list for command with given keyword and object type. */
 Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* keyIn)
 {
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
-    bool match = cmd->KeyMatches(keyIn);
-    if (cmd->Obj().Type() == DispatchObject::DEPRECATED && match) {
-      WarnDeprecated( keyIn, *cmd );
-      return EMPTY_;
-    }
     if (catIn != cmd->Obj().Type()) continue;
-    if (match) return *cmd;
+    if (cmd->KeyMatches(keyIn)) return *cmd;
   }
   mprinterr("'%s': Command not found.\n", keyIn);
   return EMPTY_;
@@ -404,13 +399,8 @@ Cmd const& Command::SearchToken(ArgList& argIn) {
   // Search for command.
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
-    if ( cmd->KeyMatches( argIn.Command() ) ) {
-      if ( cmd->Obj().Type() == DispatchObject::DEPRECATED) {
-        WarnDeprecated( argIn.Command(), *cmd );
-        return EMPTY_;
-      } else
-        return *cmd;
-    }
+    if ( cmd->KeyMatches( argIn.Command() ) )
+      return *cmd;
   }
   //mprinterr("'%s': Command not found.\n", argIn.Command());
   return EMPTY_;
@@ -485,7 +475,11 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         delete obj;
         break;
       case Cmd::ACT: State.AddToActionQueue( (Action*)obj, cmdArg ); break;
-      case Cmd::ANA: State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break; 
+      case Cmd::ANA: State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
+      case Cmd::DEP:
+        mprinterr("Error: '%s' is deprecated.\n", cmdArg.Command());
+        cmd.Help();
+        break;
     }
   }
   return ret_val;

@@ -31,8 +31,11 @@ Exec::RetType Exec_Help::Execute(CpptrajState& State, ArgList& argIn) {
     Cmd const& cmd = Command::SearchToken( arg );
     if (cmd.Empty())
       mprintf("No help found for '%s'\n", arg.Command());
-    else
+    else {
+      if (cmd.Obj().Type() == DispatchObject::DEPRECATED)
+        mprintf("Warning: '%s' is deprecated.\n", arg.Command());
       cmd.Help();
+    }
   }
   return CpptrajState::OK;
 }

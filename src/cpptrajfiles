@@ -185,6 +185,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_float.cpp \
         DataSet_integer.cpp \
         DataSet_string.cpp \
+        Deprecated.cpp \
         DihedralSearch.cpp \
         DispatchObject.cpp \
         DistRoutines.cpp \
