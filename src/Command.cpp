@@ -117,7 +117,43 @@
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
 // ----- ANALYSIS --------------------------------------------------------------
+#include "Analysis_Hist.h"
+#include "Analysis_Corr.h"
+#include "Analysis_Matrix.h"
+#include "Analysis_Timecorr.h"
+#include "Analysis_IRED.h"
+#include "Analysis_Modes.h"
+#include "Analysis_CrankShaft.h"
+#include "Analysis_Statistics.h"
+#include "Analysis_CrossCorr.h"
+#include "Analysis_AutoCorr.h"
+#include "Analysis_Lifetime.h"
+#include "Analysis_FFT.h"
+#include "Analysis_CrdFluct.h"
+#include "Analysis_RmsAvgCorr.h"
+#include "Analysis_Rms2d.h"
+#include "Analysis_Clustering.h"
+#include "Analysis_RunningAvg.h"
+#include "Analysis_MeltCurve.h"
+#include "Analysis_Overlap.h"
 #include "Analysis_AmdBias.h"
+#include "Analysis_RemLog.h"
+#include "Analysis_Integrate.h"
+#include "Analysis_Spline.h"
+#include "Analysis_Average.h"
+#include "Analysis_KDE.h"
+#include "Analysis_MultiHist.h"
+#include "Analysis_Divergence.h"
+#include "Analysis_VectorMath.h"
+#include "Analysis_Regression.h"
+#include "Analysis_LowestCurve.h"
+#include "Analysis_CurveFit.h"
+#include "Analysis_PhiPsi.h"
+#include "Analysis_Rotdif.h"
+#include "Analysis_Wavelet.h"
+#include "Analysis_State.h"
+#include "Analysis_Multicurve.h"
+#include "Analysis_TI.h"
 
 CmdList Command::commands_ = CmdList();
 
@@ -264,7 +300,43 @@ void Command::Init() {
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
   // ANALYSIS
-  Command::AddCmd( new Analysis_AmdBias(), Cmd::ANA, 1, "amdbias" );
+  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" );
+  Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
+  Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
+  Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
+  Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
+  Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
+  Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
+  Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
+  Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
+  Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
+  Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
+  Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
+  Command::AddCmd( new Analysis_Integrate(),   Cmd::ANA, 1, "integrate" );
+  Command::AddCmd( new Analysis_IRED(),        Cmd::ANA, 1, "ired" );
+  Command::AddCmd( new Analysis_KDE(),         Cmd::ANA, 1, "kde" );
+  Command::AddCmd( new Analysis_Lifetime(),    Cmd::ANA, 1, "lifetime" );
+  Command::AddCmd( new Analysis_LowestCurve(), Cmd::ANA, 1, "lowestcurve" );
+  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
+  Command::AddCmd( new Analysis_MeltCurve(),   Cmd::ANA, 1, "meltcurve" );
+  Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
+  Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
+  Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" );
+  Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
+  Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
+  Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
+  Command::AddCmd( new Analysis_Rms2d(),       Cmd::ANA, 2, "2drms", "rms2d" );
+  Command::AddCmd( new Analysis_RmsAvgCorr(),  Cmd::ANA, 1, "rmsavgcorr" );
+  Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
+  Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
+  Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
+  Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
+  Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
+  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
+  Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
+  Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
+  Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // DEPRECATED COMMANDS
 
   // Add null ptr to indicate end of command key addresses for ReadLine
