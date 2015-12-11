@@ -201,6 +201,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_CrdAction.cpp \
         Exec_CrdOut.cpp \
         Exec_DataFile.cpp \
+        Exec_DataFilter.cpp \
         Exec_GenerateAmberRst.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \

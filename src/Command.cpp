@@ -8,6 +8,7 @@
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
+#include "Exec_DataFilter.h"
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
 // ----- SYSTEM ----------------------------------------------------------------
@@ -113,6 +114,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Clear(),         Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_CreateDataFile(),Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),   Cmd::EXE, 1, "datafile" );
+  Command::AddCmd( new Exec_DataFilter(),    Cmd::EXE, 1, "datafilter" );
   Command::AddCmd( new Exec_Help(),          Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),       Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(), Cmd::EXE, 1, "noexitonerror" );
