@@ -79,7 +79,7 @@ void Exec_SelectAtoms::Help() const {
 
 Exec::RetType Exec_SelectAtoms::Execute(CpptrajState& State, ArgList& argIn) {
   AtomMask tempMask( argIn.GetMaskNext() );
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   if (parm->SetupIntegerMask( tempMask )) return CpptrajState::ERR;
   mprintf("Selected %i atoms.\n", tempMask.Nselected());
@@ -100,7 +100,7 @@ void Exec_SelectDS::Help() const {
 
 Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
   std::string dsarg = argIn.GetStringNext();
-  DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
+  DataSetList dsets = State.DSL().GetMultipleSets( dsarg );
   if (!dsets.empty()) {
     mprintf("SelectDS: Arg '%s':", dsarg.c_str());
     dsets.List();

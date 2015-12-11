@@ -39,9 +39,9 @@ Exec::RetType Exec_CreateDataFile::Execute(CpptrajState& State, ArgList& argIn)
     mprinterr("Error: No filename given.\n");
     return CpptrajState::ERR;
   }
-  DataFile* df = State.DFL()->AddDataFile(name1, argIn);
+  DataFile* df = State.DFL().AddDataFile(name1, argIn);
   if (df == 0) return CpptrajState::ERR;
-  return (CpptrajState::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL())) );
+  return (CpptrajState::RetType)( AddSetsToDataFile(*df, argIn.RemainingArgs(), State.DSL()) );
 }
 // -----------------------------------------------------------------------------
 void Exec_WriteDataFile::Help() const {
@@ -57,7 +57,7 @@ Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
   // Next string is datafile that command pertains to.
   std::string name1 = argIn.GetStringNext();
   if (name1.empty()) {
-    State.DFL()->ResetWriteStatus();
+    State.DFL().ResetWriteStatus();
     State.MasterDataFileWrite();
     return CpptrajState::OK;
   }
@@ -68,7 +68,7 @@ Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
     return CpptrajState::ERR;
   }
   mprintf("\tWriting sets to %s, format '%s'\n", df->DataFilename().full(), df->FormatString());
-  int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), *(State.DSL()));
+  int err = AddSetsToDataFile(*df, argIn.RemainingArgs(), State.DSL());
   if (err == 0) df->WriteDataOut();
   delete df;
   return (CpptrajState::RetType)err;

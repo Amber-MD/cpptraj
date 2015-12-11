@@ -17,10 +17,10 @@ Exec::RetType Exec_LoadTraj::Execute(CpptrajState& State, ArgList& argIn) {
     return CpptrajState::ERR;
   }
   DataSet_Coords_TRJ* trj = (DataSet_Coords_TRJ*)
-                            State.DSL()->FindSetOfType(setname, DataSet::TRAJ);
+                            State.DSL().FindSetOfType(setname, DataSet::TRAJ);
   if (trj == 0)
     trj = (DataSet_Coords_TRJ*)
-          State.DSL()->AddSet(DataSet::TRAJ, setname, "__DTRJ__");
+          State.DSL().AddSet(DataSet::TRAJ, setname, "__DTRJ__");
   if (trj == 0) {
     mprinterr("Error: Could not set up TRAJ data set.\n");
     return CpptrajState::ERR;
@@ -44,7 +44,7 @@ Exec::RetType Exec_LoadTraj::Execute(CpptrajState& State, ArgList& argIn) {
     // TODO: Clear input trajectories from trajinList?
   } else {
     // Add the named trajectory
-    if (trj->AddSingleTrajin( trajname, argIn, State.DSL()->GetTopology(argIn) ))
+    if (trj->AddSingleTrajin( trajname, argIn, State.DSL().GetTopology(argIn) ))
       return CpptrajState::ERR;
   }
   return CpptrajState::OK;

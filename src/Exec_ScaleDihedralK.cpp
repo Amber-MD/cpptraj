@@ -6,7 +6,7 @@ void Exec_ScaleDihedralK::Help() const {
 }
 
 Exec::RetType Exec_ScaleDihedralK::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopology( argIn );
+  Topology* parm = State.DSL().GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No topologies loaded.\n");
     return CpptrajState::ERR;

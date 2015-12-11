@@ -28,7 +28,7 @@ Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: 'blastfile' must be specified.\n");
     return CpptrajState::ERR;
   }
-  ReferenceFrame qref = State.DSL()->GetReferenceFrame(argIn);
+  ReferenceFrame qref = State.DSL().GetReferenceFrame(argIn);
   if (qref.error() || qref.empty()) {
     mprinterr("Error: Must specify reference structure for query.\n");
     return CpptrajState::ERR;

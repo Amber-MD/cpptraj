@@ -30,7 +30,7 @@ Exec::RetType Exec_RunAnalysis::Execute(CpptrajState& State, ArgList& argIn) {
   Timer total_time;
   total_time.Start();
   CpptrajState::RetType err = CpptrajState::ERR;
-  AnalysisSetup setup(*State.DSL(), *State.DFL());
+  AnalysisSetup setup(State.DSL(), State.DFL());
   if ( ana->Setup( analyzeargs, setup, State.Debug() ) == Analysis::OK )
   {
     analyzeargs.CheckForMoreArgs();

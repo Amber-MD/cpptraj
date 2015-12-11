@@ -7,7 +7,7 @@ void Exec_ParmStrip::Help() const {
 }
 
 Exec::RetType Exec_ParmStrip::Execute(CpptrajState& State, ArgList& argIn) {
-    Topology* parm = State.DSL()->GetTopByIndex( argIn );
+    Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   // Check if this topology has already been used to set up an input
   // trajectory, as this will break the traj read.

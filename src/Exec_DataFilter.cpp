@@ -13,7 +13,7 @@ void Exec_DataFilter::Help() const {
 
 Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
   Action_FilterByData filterAction;
-  ActionInit state(*State.DSL(), *State.DFL());
+  ActionInit state(State.DSL(), State.DFL());
   if (filterAction.Init(argIn, state, State.Debug()) != Action::OK)
     return CpptrajState::ERR;
   size_t nframes = filterAction.DetermineFrames();

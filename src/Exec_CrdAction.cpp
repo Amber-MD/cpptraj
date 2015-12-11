@@ -15,7 +15,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
 {
   Timer total_time;
   total_time.Start();
-  ActionInit state(*State.DSL(), *State.DFL());
+  ActionInit state(State.DSL(), State.DFL());
   if ( act->Init( actionargs, state, State.Debug() ) != Action::OK )
     return CpptrajState::ERR;
   actionargs.CheckForMoreArgs();
@@ -63,7 +63,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
   if (CRD == 0) {
     mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
     return CpptrajState::ERR;

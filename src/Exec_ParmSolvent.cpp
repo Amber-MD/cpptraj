@@ -17,7 +17,7 @@ Exec::RetType Exec_ParmSolvent::Execute(CpptrajState& State, ArgList& argIn) {
     }
   }
   // Get parm index
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->SetSolvent( maskexpr );
   return CpptrajState::OK;

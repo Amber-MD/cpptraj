@@ -24,21 +24,21 @@ void Exec_DataSetCmd::Help() const {
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   if (argIn.Contains("legend")) { // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
-    DataSet* ds = State.DSL()->GetDataSet( argIn.GetStringNext() );
+    DataSet* ds = State.DSL().GetDataSet( argIn.GetStringNext() );
     if (ds == 0) return CpptrajState::ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
   } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
     std::string name = argIn.GetStringKey("name");
-    DataSet* ds1 = State.DSL()->GetDataSet( argIn.GetStringNext() );
-    DataSet* ds2 = State.DSL()->GetDataSet( argIn.GetStringNext() );
+    DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
+    DataSet* ds2 = State.DSL().GetDataSet( argIn.GetStringNext() );
     if (ds1 == 0 || ds2 == 0) return CpptrajState::ERR;
     if (ds1->Ndim() != 1 || ds2->Ndim() != 1) {
       mprinterr("Error: makexy only works for 1D data sets.\n");
       return CpptrajState::ERR;
     }
-    DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "XY" );
+    DataSet* ds3 = State.DSL().AddSet( DataSet::XYMESH, name, "XY" );
     if (ds3 == 0) return CpptrajState::ERR;
     mprintf("\tUsing values from '%s' as X, values from '%s' as Y, output set '%s'\n",
             ds1->legend(), ds2->legend(), ds3->legend());
@@ -58,7 +58,7 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (argIn.hasKey("cat")) { // Concatenate two or more data sets
     std::string name = argIn.GetStringKey("name");
     bool use_offset = !argIn.hasKey("nooffset");
-    DataSet* ds3 = State.DSL()->AddSet( DataSet::XYMESH, name, "CAT" );
+    DataSet* ds3 = State.DSL().AddSet( DataSet::XYMESH, name, "CAT" );
     if (ds3 == 0) return CpptrajState::ERR;
     DataSet_1D& out = static_cast<DataSet_1D&>( *ds3 );
     mprintf("\tConcatenating sets into '%s'\n", out.legend());
@@ -69,7 +69,7 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     std::string dsarg = argIn.GetStringNext();
     double offset = 0.0;
     while (!dsarg.empty()) {
-      DataSetList dsl = State.DSL()->GetMultipleSets( dsarg );
+      DataSetList dsl = State.DSL().GetMultipleSets( dsarg );
       double XY[2];
       for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
       {
@@ -132,7 +132,7 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     // Loop over all DataSet arguments 
     std::string ds_arg = argIn.GetStringNext();
     while (!ds_arg.empty()) {
-      DataSetList dsl = State.DSL()->GetMultipleSets( ds_arg );
+      DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
       for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
       {
         if ( (*ds)->Ndim() != 1 ) // TODO remove restriction

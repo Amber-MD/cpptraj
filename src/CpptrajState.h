@@ -13,28 +13,31 @@ class CpptrajState {
     enum RetType { OK = 0, ERR, QUIT };
     /// CONSTRUCTOR
     CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true) {}
-    // TODO: Change to &
-    DataSetList* DSL()       { return &DSL_;          }
-    DataFileList* DFL()      { return &DFL_;          }
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
-    int Debug()        const { return debug_;         }
-    bool ExitOnError() const { return exitOnError_;   }
-    bool EmptyState()  const { return (actionList_.Empty() && 
-                                       analysisList_.Empty() &&
-                                       trajoutList_.Empty()); }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
+
+    DataSetList const& DSL()  const { return DSL_;         }
+    DataSetList&       DSL()        { return DSL_;         }
+    DataFileList const& DFL() const { return DFL_;         }
+    DataFileList&       DFL()       { return DFL_;         }
+    int Debug()               const { return debug_;       }
+    bool ExitOnError()        const { return exitOnError_; }
+    bool EmptyState()         const { return (actionList_.Empty() && 
+                                              analysisList_.Empty() &&
+                                              trajoutList_.Empty()); }
+    TrajinList const& InputTrajList() const { return trajinList_; }
+
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int AddOutputTrajectory( ArgList& );
     int AddOutputTrajectory( std::string const& );
     int RunAnalyses();
-    TrajinList const& InputTrajList() const { return trajinList_; }
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
+    inline int AddReference( std::string const& );
     int AddTopology( std::string const&, ArgList const& );
     int AddTopology( Topology const&, std::string const& );
-    inline int AddReference( std::string const& );
     inline int AddToActionQueue( Action*, ArgList& );
     inline int AddToAnalysisQueue( Analysis*, ArgList& );
     static int WorldSize();

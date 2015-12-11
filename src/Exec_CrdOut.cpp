@@ -13,7 +13,7 @@ Exec::RetType Exec_CrdOut::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");
     return CpptrajState::ERR;
   }
-  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
+  DataSet_Coords* CRD = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
   if (CRD == 0) {
     mprinterr("Error: crdout: No COORDS set with name %s found.\n", setname.c_str());
     return CpptrajState::ERR;

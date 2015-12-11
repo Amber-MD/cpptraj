@@ -9,7 +9,7 @@ void Exec_ReadData::Help() const {
 
 Exec::RetType Exec_ReadData::Execute(CpptrajState& State, ArgList& argIn) {
   DataFile dataIn;
-  dataIn.SetDebug( State.DFL()->Debug() );
+  dataIn.SetDebug( State.DFL().Debug() );
   std::string filenameIn = argIn.GetStringNext();
   File::NameArray fnames = File::ExpandToFilenames( filenameIn );
   if (fnames.empty()) {
@@ -18,7 +18,7 @@ Exec::RetType Exec_ReadData::Execute(CpptrajState& State, ArgList& argIn) {
   }
   int err = 0;
   for (File::NameArray::const_iterator fn = fnames.begin(); fn != fnames.end(); ++fn) {
-    if (dataIn.ReadDataIn( *fn, argIn, *State.DSL() )!=0) {
+    if (dataIn.ReadDataIn( *fn, argIn, State.DSL() )!=0) {
       mprinterr("Error: Could not read data file '%s'.\n", fn->full());
       err++;
     }

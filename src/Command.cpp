@@ -463,7 +463,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
     if (calc.ProcessExpression( commandIn ))
       ret_val = CpptrajState::ERR;
     else {
-      if (calc.Evaluate( *State.DSL() ))
+      if (calc.Evaluate( State.DSL() ))
         ret_val = CpptrajState::ERR;
     }
     if (ret_val == CpptrajState::ERR)

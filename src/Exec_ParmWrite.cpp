@@ -20,11 +20,11 @@ Exec::RetType Exec_ParmWrite::Execute(CpptrajState& State, ArgList& argIn) {
   // Check if a COORDS data set was specified.
   std::string crdset = argIn.GetStringKey("crdset");
   if (crdset.empty()) {
-    Topology* parm = State.DSL()->GetTopByIndex( argIn );
+    Topology* parm = State.DSL().GetTopByIndex( argIn );
     if (parm == 0) return CpptrajState::ERR;
     err = pfile.WriteTopology( *parm, outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug() );
   } else {
-    DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet(crdset);
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindCoordsSet(crdset);
     if (ds == 0) return CpptrajState::ERR;
     mprintf("\tUsing topology from data set '%s'\n", ds->legend());
     err = pfile.WriteTopology(ds->Top(), outfilename, argIn, ParmFile::UNKNOWN_PARM, State.Debug());

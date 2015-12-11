@@ -164,8 +164,8 @@ static void PrintLJatom(CpptrajFile& output, Topology const& parm,
 /// Compare two topologies, find differences
 Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
 {
-  Topology* parm1 = State.DSL()->GetTopology( argIn );
-  Topology* parm2 = State.DSL()->GetTopology( argIn );
+  Topology* parm1 = State.DSL().GetTopology( argIn );
+  Topology* parm2 = State.DSL().GetTopology( argIn );
   if (parm1 == 0 || parm2 == 0) {
     mprinterr("Error: Specify two topologies.\n");
     return CpptrajState::ERR;

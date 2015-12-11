@@ -14,7 +14,7 @@ void Exec_ParmInfo::Help() const {
 }
 
 Exec::RetType Exec_ParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->Summary();
   return CpptrajState::OK;
@@ -26,7 +26,7 @@ void Exec_BondInfo::Help() const {
 }
 
 Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->PrintBondInfo( argIn.GetMaskNext() );
   return CpptrajState::OK;
@@ -38,7 +38,7 @@ void Exec_AngleInfo::Help() const {
 }
 
 Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->PrintAngleInfo( argIn.GetMaskNext() );
   return CpptrajState::OK;
@@ -51,7 +51,7 @@ void Exec_DihedralInfo::Help() const {
 }
 
 Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->PrintDihedralInfo( argIn.GetMaskNext(), !argIn.hasKey("and") );
   return CpptrajState::OK;
@@ -63,7 +63,7 @@ void Exec_AtomInfo::Help() const {
 }
 
 Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->PrintAtomInfo( argIn.GetMaskNext() );
   return CpptrajState::OK;
@@ -76,7 +76,7 @@ void Exec_ResInfo::Help() const {
 }
 
 Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   bool printShort = argIn.hasKey("short");
   if (printShort)
@@ -92,7 +92,7 @@ void Exec_MolInfo::Help() const {
 }
 
 Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   parm->PrintMoleculeInfo( argIn.GetMaskNext() );
   return CpptrajState::OK;
@@ -104,7 +104,7 @@ void Exec_ChargeInfo::Help() const {
 }
 
 Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return CpptrajState::ERR;
   return CpptrajState::OK;
@@ -116,7 +116,7 @@ void Exec_MassInfo::Help() const {
 }
 
 Exec::RetType Exec_MassInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return CpptrajState::ERR;
   return CpptrajState::OK;

@@ -23,13 +23,13 @@ Exec::RetType Exec_Precision::Execute(CpptrajState& State, ArgList& argIn) {
   }
   int precision = argIn.getNextInteger(4);
   if (precision < 0) precision = 0;
-  DataFile* df = State.DFL()->GetDataFile(name1);
+  DataFile* df = State.DFL().GetDataFile(name1);
   if (df != 0) {
     mprintf("\tSetting precision for all sets in %s to %i.%i\n", df->DataFilename().base(),
             width, precision);
     df->SetDataFilePrecision(width, precision);
   } else {
-    State.DSL()->SetPrecisionOfDataSets( name1, width, precision );
+    State.DSL().SetPrecisionOfDataSets( name1, width, precision );
   }
   return CpptrajState::OK;
 }

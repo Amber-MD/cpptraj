@@ -13,7 +13,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
   while (!setname.empty()) {
-    DataSet_Coords* ds = (DataSet_Coords*)State.DSL()->FindCoordsSet( setname );
+    DataSet_Coords* ds = (DataSet_Coords*)State.DSL().FindCoordsSet( setname );
     if (ds == 0) {
       mprinterr("Error: %s: No COORDS set with name %s found.\n", argIn.Command(), setname.c_str());
       return CpptrajState::ERR;
@@ -48,7 +48,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   if (crdname.empty())
     crdname = CRD[0]->Meta().Legend() + "_" + CRD[1]->Meta().Legend();
   mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
-  DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, crdname, "CRD");
+  DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, crdname, "CRD");
   if (CombinedCrd == 0) {
     mprinterr("Error: Could not create COORDS data set.\n");
     return CpptrajState::ERR;

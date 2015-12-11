@@ -12,7 +12,7 @@ Exec::RetType Exec_PrintData::Execute(CpptrajState& State, ArgList& argIn) {
   DataSetList selected;
   std::string ds_arg = argIn.GetStringNext();
   while (!ds_arg.empty()) {
-    selected += State.DSL()->GetMultipleSets( ds_arg );
+    selected += State.DSL().GetMultipleSets( ds_arg );
     ds_arg = argIn.GetStringNext();
   }
   for (DataSetList::const_iterator ds = selected.begin(); ds != selected.end(); ++ds)

@@ -47,7 +47,7 @@ class Exec_ActiveRef : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ActiveRef(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
-      return (RetType)State.DSL()->SetActiveReference( argIn );
+      return (RetType)State.DSL().SetActiveReference( argIn );
     }
 };
 
@@ -113,7 +113,7 @@ class Exec_DataFileCmd : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_DataFileCmd(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
-      return (RetType)State.DFL()->ProcessDataFileArgs( argIn );
+      return (RetType)State.DFL().ProcessDataFileArgs( argIn );
     }
 };
 

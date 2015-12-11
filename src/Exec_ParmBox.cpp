@@ -22,7 +22,7 @@ Exec::RetType Exec_ParmBox::Execute(CpptrajState& State, ArgList& argIn) {
     pbox.SetBeta(  argIn.getKeyDouble("beta",0)  );
     pbox.SetGamma( argIn.getKeyDouble("gamma",0) );
   }
-  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
   if (nobox)
     mprintf("\tRemoving box information from parm %i:%s\n", parm->Pindex(), parm->c_str());

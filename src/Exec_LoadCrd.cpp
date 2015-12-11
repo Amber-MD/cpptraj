@@ -9,7 +9,7 @@ void Exec_LoadCrd::Help() const {
 
 Exec::RetType Exec_LoadCrd::Execute(CpptrajState& State, ArgList& argIn) {
   // Get parm
-  Topology* parm = State.DSL()->GetTopology( argIn );
+  Topology* parm = State.DSL().GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: loadcrd: No parm files loaded.\n");
     return CpptrajState::ERR;
@@ -31,10 +31,10 @@ Exec::RetType Exec_LoadCrd::Execute(CpptrajState& State, ArgList& argIn) {
   MetaData md( trajin.Traj().Filename(), setname, -1 );
   // Check if set already present
   DataSet_Coords* coords = 0;
-  DataSet* ds = State.DSL()->FindSetOfType( setname, DataSet::COORDS );
+  DataSet* ds = State.DSL().FindSetOfType( setname, DataSet::COORDS );
   if (ds == 0) {
     // Create Set 
-    coords = (DataSet_Coords*)State.DSL()->AddSet(DataSet::COORDS, md);
+    coords = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, md);
     if (coords == 0) {
       mprinterr("Error: loadcrd: Could not set up COORDS data set.\n");
       return CpptrajState::ERR;

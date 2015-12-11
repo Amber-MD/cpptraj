@@ -18,13 +18,13 @@ void Exec_GenerateAmberRst::Help() const {
 Exec::RetType Exec_GenerateAmberRst::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Get parm
-  Topology* parm = State.DSL()->GetTopology( argIn );
+  Topology* parm = State.DSL().GetTopology( argIn );
   if (parm == 0) {
     mprinterr("Error: No parm files loaded.\n");
     return CpptrajState::ERR;
   }
   // Get optional reference coords
-  ReferenceFrame RefCrd = State.DSL()->GetReferenceFrame(argIn);
+  ReferenceFrame RefCrd = State.DSL().GetReferenceFrame(argIn);
   // Get arguments
   if (argIn.hasKey("overwrite"))
     mprintf("Warning: 'overwrite' keyword no longer necessary and is deprecated.\n");
@@ -37,8 +37,8 @@ Exec::RetType Exec_GenerateAmberRst::Execute(CpptrajState& State, ArgList& argIn
   // crddist will be !RefCrd.empty()
   double offset = argIn.getKeyDouble("offset", 0.0);
   double width = argIn.getKeyDouble("width", 0.5);
-  CpptrajFile* outfile = State.DFL()->AddCpptrajFile(argIn.GetStringKey("out"), "Amber Rst",
-                                                     DataFileList::TEXT, true);
+  CpptrajFile* outfile = State.DFL().AddCpptrajFile(argIn.GetStringKey("out"), "Amber Rst",
+                                                    DataFileList::TEXT, true);
   if (outfile == 0) {
     mprinterr("Error: Could not open output file.\n");
     return CpptrajState::ERR;
