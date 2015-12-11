@@ -162,7 +162,7 @@ const Cmd Command::EMPTY_ = Cmd();
 
 Command::Carray Command::names_ = Command::Carray();
 
-/** Initialize all commands. */
+/** Initialize all commands. Should only be called once as program starts. */
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
@@ -486,6 +486,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
   return ret_val;
 }
 
+/** Read command input from file. */
 CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string const& inputFilename)
 {
   BufferedLine infile;

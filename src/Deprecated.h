@@ -8,25 +8,11 @@ class Deprecated : public DispatchObject {
     DispatchObject* Alloc() const { return 0; }
 };
 
-class Deprecated_MinDist : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_Hbond : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_TopSearch : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_ParmBondInfo : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_ParmResInfo : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_ParmMolInfo : public Deprecated {
-  public: void Help() const;
-};
-class Deprecated_AvgCoord : public Deprecated {
-  public: void Help() const;
-};
+class Deprecated_MinDist      : public Deprecated { public: void Help() const; };
+class Deprecated_Hbond        : public Deprecated { public: void Help() const; };
+class Deprecated_TopSearch    : public Deprecated { public: void Help() const; };
+class Deprecated_ParmBondInfo : public Deprecated { public: void Help() const; };
+class Deprecated_ParmResInfo  : public Deprecated { public: void Help() const; };
+class Deprecated_ParmMolInfo  : public Deprecated { public: void Help() const; };
+class Deprecated_AvgCoord     : public Deprecated { public: void Help() const; };
 #endif

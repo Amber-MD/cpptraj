@@ -1,6 +1,7 @@
 #ifndef INC_CMDLIST_H
 #define INC_CMDLIST_H
 #include "Cmd.h"
+/// Hold an array of commands which cannot be modified.
 class CmdList {
     typedef std::vector<Cmd> Carray;
   public:

@@ -3,7 +3,8 @@
 #include <vector>
 #include <string>
 #include "DispatchObject.h"
-/** NOTE: This class does NOT contain a destructor because otherwise object_
+/** Class for holding a command and associated keywords.
+  * NOTE: This class does NOT contain a destructor because otherwise object_
   *       might be freed when copying or assigning. Currently CmdList is
   *       responsible for freeing object_ memory.
   */
