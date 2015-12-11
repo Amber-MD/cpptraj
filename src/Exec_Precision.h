@@ -1,5 +1,5 @@
-#ifndef INC_EXEC__H
-#define INC_EXEC__H
+#ifndef INC_EXEC_PRECISION_H
+#define INC_EXEC_PRECISION_H
 #include "Exec.h"
 class Exec_Precision : public Exec {
   public:

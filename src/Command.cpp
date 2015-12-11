@@ -12,6 +12,7 @@
 #include "Exec_DataSetCmd.h"
 #include "Exec_Help.h"
 #include "Exec_Precision.h"
+#include "Exec_PrintData.h"
 #include "Exec_ReadInput.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
@@ -123,6 +124,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_NoExitOnError(), Cmd::EXE, 1, "noexitonerror" );
   Command::AddCmd( new Exec_NoProgress(),    Cmd::EXE, 1, "noprogress" );
   Command::AddCmd( new Exec_Precision(),     Cmd::EXE, 1, "precision" );
+  Command::AddCmd( new Exec_PrintData(),     Cmd::EXE, 1, "printdata" );
   Command::AddCmd( new Exec_Quit(),          Cmd::EXE, 2, "exit", "quit" );
   Command::AddCmd( new Exec_ReadInput(),     Cmd::EXE, 1, "readinput" );
   Command::AddCmd( new Exec_RemoveData(),    Cmd::EXE, 1, "removedata" );
