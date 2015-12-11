@@ -4,8 +4,8 @@
 class DispatchObject {
   public:
     /// Object categories. HIDDEN and DEPRECATED should always be last.
-    enum Otype { NONE=0,  PARM,   TRAJ,   COORDS, ACTION, ANALYSIS,
-                 GENERAL, SYSTEM, HIDDEN, DEPRECATED };
+    enum Otype { NONE=0, GENERAL,  SYSTEM, COORDS, TRAJ, PARM, ACTION, ANALYSIS,
+                 HIDDEN, DEPRECATED };
     /// CONSTRUCTOR
     DispatchObject() : type_(NONE) {}
     /// CONSTRUCTOR - take object type
