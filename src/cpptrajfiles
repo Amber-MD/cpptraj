@@ -207,6 +207,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_Precision.cpp \
         Exec_ReadInput.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
