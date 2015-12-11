@@ -182,6 +182,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ParmSolvent(),   Cmd::EXE, 1, "solvent" );
   Command::AddCmd( new Exec_ParmStrip(),     Cmd::EXE, 1, "parmstrip" );
   Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
+  Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
