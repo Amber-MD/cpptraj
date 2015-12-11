@@ -7,6 +7,7 @@
 #include "Exec.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Commands.h"
+#include "Exec_DataFile.h"
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
 // ----- SYSTEM ----------------------------------------------------------------
@@ -110,6 +111,7 @@ void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),     Cmd::EXE, 1, "activeref" );
   Command::AddCmd( new Exec_Clear(),         Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_CreateDataFile(),Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_Help(),          Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),       Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(), Cmd::EXE, 1, "noexitonerror" );
@@ -120,6 +122,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_Run(),           Cmd::EXE, 2, "go", "run" );
   Command::AddCmd( new Exec_SilenceActions(),Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SetListDebug(),  Cmd::EXE, 2, "debug", "prnlev" );
+  Command::AddCmd( new Exec_WriteDataFile(), Cmd::EXE, 2, "write", "writedata" );
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
