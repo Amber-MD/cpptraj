@@ -208,6 +208,10 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_Help.cpp \
         Exec_LoadCrd.cpp \
         Exec_LoadTraj.cpp \
+        Exec_ParmBox.cpp \
+        Exec_ParmSolvent.cpp \
+        Exec_ParmStrip.cpp \
+        Exec_ParmWrite.cpp \
         Exec_Precision.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \

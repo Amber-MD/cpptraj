@@ -31,6 +31,10 @@
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
 #include "Exec_CompareTop.h"
+#include "Exec_ParmBox.h"
+#include "Exec_ParmSolvent.h"
+#include "Exec_ParmStrip.h"
+#include "Exec_ParmWrite.h"
 #include "Exec_Top.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
@@ -172,11 +176,11 @@ void Command::Init() {
   Command::AddCmd( new Exec_MassInfo(),    Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),     Cmd::EXE, 1, "molinfo" );
   Command::AddCmd( new Exec_LoadParm(),    Cmd::EXE, 1, "parm" );
-  //Command::AddCmd( new Exec_ParmBox(),    Cmd::EXE, 1, "parmbox" );
+  Command::AddCmd( new Exec_ParmBox(),     Cmd::EXE, 1, "parmbox" );
   Command::AddCmd( new Exec_ParmInfo(),    Cmd::EXE, 1, "parminfo" );
-  //Command::AddCmd( new Exec_ParmSolvent(),Cmd::EXE, 1, "solvent" );
-  //Command::AddCmd( new Exec_ParmStrip(),    Cmd::EXE, 1, "parmstrip" );
-  //Command::AddCmd( new Exec_ParmWrite(),    Cmd::EXE, 1, "parmwrite" );
+  Command::AddCmd( new Exec_ParmSolvent(), Cmd::EXE, 1, "solvent" );
+  Command::AddCmd( new Exec_ParmStrip(),   Cmd::EXE, 1, "parmstrip" );
+  Command::AddCmd( new Exec_ParmWrite(),   Cmd::EXE, 1, "parmwrite" );
   //Command::AddCmd( new Exec_ScaleDihedralK(),    Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
