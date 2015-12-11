@@ -9,6 +9,8 @@
 #include "Exec_Commands.h"
 #include "Exec_Help.h"
 #include "Exec_ReadInput.h"
+// ----- SYSTEM ----------------------------------------------------------------
+#include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
 #include "Exec_CombineCoords.h"
 #include "Exec_CrdAction.h"
@@ -118,6 +120,8 @@ void Command::Init() {
   Command::AddCmd( new Exec_Run(),           Cmd::EXE, 2, "go", "run" );
   Command::AddCmd( new Exec_SilenceActions(),Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SetListDebug(),  Cmd::EXE, 2, "debug", "prnlev" );
+  // SYSTEM
+  Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
   Command::AddCmd( new Exec_CombineCoords(),Cmd::EXE, 1, "combinecrd" ); 
   Command::AddCmd( new Exec_CrdAction(),    Cmd::EXE, 1, "crdaction" );
