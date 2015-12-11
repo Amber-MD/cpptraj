@@ -6,6 +6,7 @@
 #include "CmdInput.h"     // ProcessInput()
 #include "RPNcalc.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_Calc.h"
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -27,6 +28,7 @@
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
 // ----- TRAJECTORY ------------------------------------------------------------
+#include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
 #include "Exec_CompareTop.h"
 // ----- ACTION ----------------------------------------------------------------
@@ -121,6 +123,7 @@ Command::Carray Command::names_ = Command::Carray();
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
@@ -154,6 +157,10 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadCrd(),      Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),     Cmd::EXE, 1, "loadtraj" );
   // TRAJECTORY
+  Command::AddCmd( new Exec_Ensemble(),  Cmd::EXE, 1, "ensemble" );
+  Command::AddCmd( new Exec_Reference(), Cmd::EXE, 1, "reference" );
+  Command::AddCmd( new Exec_Trajin(),    Cmd::EXE, 1, "trajin" );
+  Command::AddCmd( new Exec_Trajout(),   Cmd::EXE, 1, "trajout" );
   // TOPOLOGY COMMANDS
   Command::AddCmd( new Exec_CompareTop(),   Cmd::EXE, 1, "comparetop" );
   // ACTION

@@ -195,6 +195,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        Exec_Calc.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareTop.cpp \
@@ -214,6 +215,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_RunAnalysis.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
+        Exec_Traj.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
