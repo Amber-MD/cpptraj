@@ -106,4 +106,14 @@ class Exec_SilenceActions : public Exec {
     }
 };
 
+/// Process DataFile-specific command
+class Exec_DataFileCmd : public Exec {
+  public:
+    Exec_DataFileCmd() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_DataFileCmd(); }
+    RetType Execute(CpptrajState& State, ArgList& argIn) {
+      return (RetType)State.DFL()->ProcessDataFileArgs( argIn );
+    }
+};
 #endif

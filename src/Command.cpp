@@ -112,6 +112,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ActiveRef(),     Cmd::EXE, 1, "activeref" );
   Command::AddCmd( new Exec_Clear(),         Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_CreateDataFile(),Cmd::EXE, 1, "create" );
+  Command::AddCmd( new Exec_DataFileCmd(),   Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_Help(),          Cmd::EXE, 1, "help" );
   Command::AddCmd( new Exec_ListAll(),       Cmd::EXE, 1, "list" );
   Command::AddCmd( new Exec_NoExitOnError(), Cmd::EXE, 1, "noexitonerror" );
