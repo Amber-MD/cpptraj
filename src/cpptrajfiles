@@ -215,6 +215,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_RunAnalysis.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
+        Exec_Top.cpp \
         Exec_Traj.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
