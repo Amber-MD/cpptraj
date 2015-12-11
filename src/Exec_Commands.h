@@ -116,4 +116,22 @@ class Exec_DataFileCmd : public Exec {
       return (RetType)State.DFL()->ProcessDataFileArgs( argIn );
     }
 };
+
+/// Show results of mask expression
+class Exec_SelectAtoms : public Exec {
+  public:
+    Exec_SelectAtoms() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SelectAtoms(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
+
+/// Show results of DataSet expression
+class Exec_SelectDS : public Exec {
+  public:
+    Exec_SelectDS() : Exec(GENERAL) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_SelectDS(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 #endif

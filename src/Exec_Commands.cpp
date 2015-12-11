@@ -70,4 +70,40 @@ void Exec_DataFileCmd::Help() const {
   DataFile::WriteHelp();
   DataFile::WriteOptions();
 }
+// -----------------------------------------------------------------------------
+void Exec_SelectAtoms::Help() const {
+  mprintf("\t[%s] <mask>\n"
+          "  Show atom numbers selected by <mask> for parm <parmindex>\n"
+          "  (default first parm)\n", DataSetList::TopIdxArgs);
+}
 
+Exec::RetType Exec_SelectAtoms::Execute(CpptrajState& State, ArgList& argIn) {
+  AtomMask tempMask( argIn.GetMaskNext() );
+  Topology* parm = State.DSL()->GetTopByIndex( argIn );
+  if (parm == 0) return CpptrajState::ERR;
+  if (parm->SetupIntegerMask( tempMask )) return CpptrajState::ERR;
+  mprintf("Selected %i atoms.\n", tempMask.Nselected());
+  if (!argIn.hasKey("total"))
+    tempMask.PrintMaskAtoms("Selected");
+  return CpptrajState::OK;
+}
+// -----------------------------------------------------------------------------
+void Exec_SelectDS::Help() const {
+  mprintf("\t<dataset selection>\n"
+          "  Show results of data set selection. Data set selection format is:\n"
+          "\t<name>[<aspect]:<idx range>\n"
+          "  Where '<name>' is the data set name, '[<aspect>]' is the data set aspect,\n"
+          "  and <idx range> is a numerical range specifying data set indices (i.e. 2-5,7 etc).\n"
+          "  The aspect and index portions may be optional. An asterisk '*' may be used as\n"
+          "  a wildcard. E.g. 'selectds R2', 'selectds RoG[Max]', 'selectds PR[res]:2-12'\n");
+}
+
+Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
+  std::string dsarg = argIn.GetStringNext();
+  DataSetList dsets = State.DSL()->GetMultipleSets( dsarg );
+  if (!dsets.empty()) {
+    mprintf("SelectDS: Arg '%s':", dsarg.c_str());
+    dsets.List();
+  }
+  return CpptrajState::OK;
+}

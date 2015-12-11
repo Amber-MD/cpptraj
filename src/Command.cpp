@@ -139,8 +139,10 @@ void Command::Init() {
   Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
   Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
   Command::AddCmd( new Exec_RunAnalysis(),     Cmd::EXE, 1, "runanalysis" );
-  Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
+  Command::AddCmd( new Exec_SelectAtoms(),     Cmd::EXE, 1, "select" );
+  Command::AddCmd( new Exec_SelectDS(),        Cmd::EXE, 1, "selectds" );
   Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
+  Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   // SYSTEM
