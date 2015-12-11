@@ -10,11 +10,13 @@
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
 #include "Exec_DataSetCmd.h"
+#include "Exec_GenerateAmberRst.h"
 #include "Exec_Help.h"
 #include "Exec_Precision.h"
 #include "Exec_PrintData.h"
 #include "Exec_ReadData.h"
 #include "Exec_ReadInput.h"
+#include "Exec_SequenceAlign.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -23,6 +25,9 @@
 #include "Exec_CrdOut.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
+// ----- TRAJECTORY ------------------------------------------------------------
+// ----- TOPOLOGY --------------------------------------------------------------
+#include "Exec_CompareTop.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
 #include "Action_Distance.h"
@@ -114,26 +119,28 @@ Command::Carray Command::names_ = Command::Carray();
 /** Initialize all commands. */
 void Command::Init() {
   // GENERAL
-  Command::AddCmd( new Exec_ActiveRef(),     Cmd::EXE, 1, "activeref" );
-  Command::AddCmd( new Exec_Clear(),         Cmd::EXE, 1, "clear" );
-  Command::AddCmd( new Exec_CreateDataFile(),Cmd::EXE, 1, "create" );
-  Command::AddCmd( new Exec_DataFileCmd(),   Cmd::EXE, 1, "datafile" );
-  Command::AddCmd( new Exec_DataFilter(),    Cmd::EXE, 1, "datafilter" );
-  Command::AddCmd( new Exec_DataSetCmd(),    Cmd::EXE, 1, "dataset" );
-  Command::AddCmd( new Exec_Help(),          Cmd::EXE, 1, "help" );
-  Command::AddCmd( new Exec_ListAll(),       Cmd::EXE, 1, "list" );
-  Command::AddCmd( new Exec_NoExitOnError(), Cmd::EXE, 1, "noexitonerror" );
-  Command::AddCmd( new Exec_NoProgress(),    Cmd::EXE, 1, "noprogress" );
-  Command::AddCmd( new Exec_Precision(),     Cmd::EXE, 1, "precision" );
-  Command::AddCmd( new Exec_PrintData(),     Cmd::EXE, 1, "printdata" );
-  Command::AddCmd( new Exec_Quit(),          Cmd::EXE, 2, "exit", "quit" );
-  Command::AddCmd( new Exec_ReadData(),      Cmd::EXE, 1, "readdata" );
-  Command::AddCmd( new Exec_ReadInput(),     Cmd::EXE, 1, "readinput" );
-  Command::AddCmd( new Exec_RemoveData(),    Cmd::EXE, 1, "removedata" );
-  Command::AddCmd( new Exec_Run(),           Cmd::EXE, 2, "go", "run" );
-  Command::AddCmd( new Exec_SilenceActions(),Cmd::EXE, 1, "silenceactions" );
-  Command::AddCmd( new Exec_SetListDebug(),  Cmd::EXE, 2, "debug", "prnlev" );
-  Command::AddCmd( new Exec_WriteDataFile(), Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
+  Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
+  Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
+  Command::AddCmd( new Exec_DataSetCmd(),      Cmd::EXE, 1, "dataset" );
+  Command::AddCmd( new Exec_GenerateAmberRst(),Cmd::EXE, 1, "rst" );
+  Command::AddCmd( new Exec_Help(),            Cmd::EXE, 1, "help" );
+  Command::AddCmd( new Exec_ListAll(),         Cmd::EXE, 1, "list" );
+  Command::AddCmd( new Exec_NoExitOnError(),   Cmd::EXE, 1, "noexitonerror" );
+  Command::AddCmd( new Exec_NoProgress(),      Cmd::EXE, 1, "noprogress" );
+  Command::AddCmd( new Exec_Precision(),       Cmd::EXE, 1, "precision" );
+  Command::AddCmd( new Exec_PrintData(),       Cmd::EXE, 1, "printdata" );
+  Command::AddCmd( new Exec_Quit(),            Cmd::EXE, 2, "exit", "quit" );
+  Command::AddCmd( new Exec_ReadData(),        Cmd::EXE, 1, "readdata" );
+  Command::AddCmd( new Exec_ReadInput(),       Cmd::EXE, 1, "readinput" );
+  Command::AddCmd( new Exec_RemoveData(),      Cmd::EXE, 1, "removedata" );
+  Command::AddCmd( new Exec_Run(),             Cmd::EXE, 2, "go", "run" );
+  Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
+  Command::AddCmd( new Exec_SetListDebug(),    Cmd::EXE, 2, "debug", "prnlev" );
+  Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
+  Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
@@ -142,6 +149,9 @@ void Command::Init() {
   Command::AddCmd( new Exec_CrdOut(),       Cmd::EXE, 1, "crdout" );
   Command::AddCmd( new Exec_LoadCrd(),      Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),     Cmd::EXE, 1, "loadtraj" );
+  // TRAJECTORY
+  // TOPOLOGY COMMANDS
+  Command::AddCmd( new Exec_CompareTop(),   Cmd::EXE, 1, "comparetop" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
@@ -223,6 +233,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
   // ANALYSIS
   Command::AddCmd( new Analysis_AmdBias(), Cmd::ANA, 1, "amdbias" );
+  // DEPRECATED COMMANDS
 
   // Add null ptr to indicate end of command key addresses for ReadLine
   names_.push_back( 0 );
