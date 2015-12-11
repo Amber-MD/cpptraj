@@ -35,6 +35,7 @@
 #include "Exec_ParmSolvent.h"
 #include "Exec_ParmStrip.h"
 #include "Exec_ParmWrite.h"
+#include "Exec_ScaleDihedralK.h"
 #include "Exec_Top.h"
 // ----- ACTION ----------------------------------------------------------------
 #include "Action_Angle.h"
@@ -167,21 +168,21 @@ void Command::Init() {
   Command::AddCmd( new Exec_Trajin(),    Cmd::EXE, 1, "trajin" );
   Command::AddCmd( new Exec_Trajout(),   Cmd::EXE, 1, "trajout" );
   // TOPOLOGY COMMANDS
-  Command::AddCmd( new Exec_AngleInfo(),   Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
-  Command::AddCmd( new Exec_AtomInfo(),    Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
-  Command::AddCmd( new Exec_BondInfo(),    Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
-  Command::AddCmd( new Exec_ChargeInfo(),  Cmd::EXE, 1, "charge" );
-  Command::AddCmd( new Exec_CompareTop(),  Cmd::EXE, 1, "comparetop" );
+  Command::AddCmd( new Exec_AngleInfo(),     Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
+  Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
+  Command::AddCmd( new Exec_BondInfo(),      Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
+  Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
+  Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
-  Command::AddCmd( new Exec_MassInfo(),    Cmd::EXE, 1, "mass" );
-  Command::AddCmd( new Exec_MolInfo(),     Cmd::EXE, 1, "molinfo" );
-  Command::AddCmd( new Exec_LoadParm(),    Cmd::EXE, 1, "parm" );
-  Command::AddCmd( new Exec_ParmBox(),     Cmd::EXE, 1, "parmbox" );
-  Command::AddCmd( new Exec_ParmInfo(),    Cmd::EXE, 1, "parminfo" );
-  Command::AddCmd( new Exec_ParmSolvent(), Cmd::EXE, 1, "solvent" );
-  Command::AddCmd( new Exec_ParmStrip(),   Cmd::EXE, 1, "parmstrip" );
-  Command::AddCmd( new Exec_ParmWrite(),   Cmd::EXE, 1, "parmwrite" );
-  //Command::AddCmd( new Exec_ScaleDihedralK(),    Cmd::EXE, 1, "scaledihedralk" );
+  Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
+  Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
+  Command::AddCmd( new Exec_LoadParm(),      Cmd::EXE, 1, "parm" );
+  Command::AddCmd( new Exec_ParmBox(),       Cmd::EXE, 1, "parmbox" );
+  Command::AddCmd( new Exec_ParmInfo(),      Cmd::EXE, 1, "parminfo" );
+  Command::AddCmd( new Exec_ParmSolvent(),   Cmd::EXE, 1, "solvent" );
+  Command::AddCmd( new Exec_ParmStrip(),     Cmd::EXE, 1, "parmstrip" );
+  Command::AddCmd( new Exec_ParmWrite(),     Cmd::EXE, 1, "parmwrite" );
+  Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );

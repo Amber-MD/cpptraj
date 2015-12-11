@@ -217,6 +217,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_ReadData.cpp \
         Exec_ReadInput.cpp \
         Exec_RunAnalysis.cpp \
+        Exec_ScaleDihedralK.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
