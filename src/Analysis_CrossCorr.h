@@ -6,10 +6,10 @@ class Analysis_CrossCorr : public Analysis {
   public:
     Analysis_CrossCorr();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrossCorr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_CrossCorr(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
 
   private:

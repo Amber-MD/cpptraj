@@ -4,10 +4,10 @@
 class Analysis_AmdBias : public Analysis {
   public:
     Analysis_AmdBias();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AmdBias(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_AmdBias(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataSet* ds1_;

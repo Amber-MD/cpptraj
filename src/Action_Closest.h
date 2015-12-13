@@ -6,8 +6,8 @@
 class Action_Closest: public Action {
   public:
     Action_Closest();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Closest(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Closest(); }
+    void Help() const;
     ~Action_Closest();
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

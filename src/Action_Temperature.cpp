@@ -8,7 +8,7 @@ Action_Temperature::Action_Temperature() :
   degrees_of_freedom_(0)
 {}
 
-void Action_Temperature::Help() {
+void Action_Temperature::Help() const {
   mprintf("\t[<name>] {frame | [<mask>] [ntc <#>]} [out <filename>]\n"
           "  Calculate temperature in frame based on velocity information.\n"
           "  If 'frame' is specified just use frame temperature (read in from\n"

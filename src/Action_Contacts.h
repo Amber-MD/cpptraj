@@ -6,8 +6,8 @@
 class Action_Contacts : public Action {
   public:
     Action_Contacts();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Contacts(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Contacts(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

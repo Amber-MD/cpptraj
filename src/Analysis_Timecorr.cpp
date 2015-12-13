@@ -81,7 +81,7 @@ void Analysis_Timecorr::CalcCorr(int frame) {
   }
 }
 
-void Analysis_Timecorr::Help() {
+void Analysis_Timecorr::Help() const {
   mprintf("\tvec1 <vecname1> [vec2 <vecname2>] out <filename> [name <dsname>]\n"
           "\t[order <order>] [tstep <tstep>] [tcorr <tcorr>]\n"
           "\t[dplr] [norm] [drct] [dplrout <dplrfile>] [ptrajformat]\n"
@@ -89,7 +89,7 @@ void Analysis_Timecorr::Help() {
 }
 
 // Analysis_Timecorr::Setup()
-Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Vectors
   std::string vec1name = analyzeArgs.GetStringKey("vec1");
@@ -97,7 +97,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
     mprinterr("Error: no vec1 given, ignoring command\n");
     return Analysis::ERR;
   }
-  vinfo1_ = (DataSet_Vector*)DSLin->FindSetOfType( vec1name, DataSet::VECTOR );
+  vinfo1_ = (DataSet_Vector*)setup.DSL().FindSetOfType( vec1name, DataSet::VECTOR );
   if (vinfo1_==0) {
     mprinterr("Error: vec1: no vector with name %s found.\n", 
               vec1name.c_str());
@@ -105,7 +105,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   }
   std::string vec2name = analyzeArgs.GetStringKey("vec2");
   if (!vec2name.empty()) {
-    vinfo2_ = (DataSet_Vector*)DSLin->FindSetOfType( vec2name, DataSet::VECTOR );
+    vinfo2_ = (DataSet_Vector*)setup.DSL().FindSetOfType( vec2name, DataSet::VECTOR );
     if (vinfo2_==0) {
       mprinterr("Error: vec2: no vector with name %s found.\n", 
                 vec2name.c_str());
@@ -116,7 +116,7 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   // Get output DataSet name
   std::string setname = analyzeArgs.GetStringKey("name");
   if (setname.empty())
-    setname = DSLin->GenerateDefaultName("TC");
+    setname = setup.DSL().GenerateDefaultName("TC");
   // Determine auto or cross correlation 
   if (vinfo2_ == 0)
     mode_ = AUTOCORR;
@@ -147,27 +147,27 @@ Analysis::RetType Analysis_Timecorr::Setup(ArgList& analyzeArgs, DataSetList* DS
   }
   DataFile* dataout = 0;
   if (!ptrajformat_) {
-    dataout = DFLin->AddDataFile( filename, analyzeArgs );
+    dataout = setup.DFL().AddDataFile( filename, analyzeArgs );
     if (dplr_) {
       if (!dplrname.empty() && dplrname == filename) {
         mprinterr("Error: 'dplrname' cannot be the same file as 'out' when 'ptrajformat' not specified.\n");
         return Analysis::ERR;
       }
-      outfile_ = DFLin->AddCpptrajFile( dplrname, "Timecorr dipolar", DataFileList::TEXT, true );
+      outfile_ = setup.DFL().AddCpptrajFile( dplrname, "Timecorr dipolar", DataFileList::TEXT, true );
       if (outfile_ == 0) return Analysis::ERR;
     }
   } else {
-    outfile_ = DFLin->AddCpptrajFile( filename, "Timecorr output" );
+    outfile_ = setup.DFL().AddCpptrajFile( filename, "Timecorr output" );
     if (outfile_ == 0) return Analysis::ERR;
   }
   // Set up output DataSets
-  tc_p_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "P"));
+  tc_p_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "P"));
   if (tc_p_ == 0) return Analysis::ERR;
   tc_p_->SetLegend( Plegend_[order_] );
   if (dataout != 0) dataout->AddDataSet( tc_p_ );
   if (dplr_) {
-    tc_c_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "C"));
-    tc_r3r3_ = DSLin->AddSet( DataSet::DOUBLE, MetaData(setname, "R3R3"));
+    tc_c_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "C"));
+    tc_r3r3_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, "R3R3"));
     if (tc_c_ == 0 || tc_r3r3_ == 0) return Analysis::ERR;
     tc_c_->SetLegend("<C>");
     tc_r3r3_->SetLegend( "<1/(r^3*r^3)>" );

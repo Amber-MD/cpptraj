@@ -12,7 +12,7 @@ Action_Principal::Action_Principal() :
   valData_(0)
 { }
 
-void Action_Principal::Help() {
+void Action_Principal::Help() const {
   mprintf("\t[<mask>] [dorotation] [out <filename>] [name <dsname>]\n"
           "  Calculate principal axes of atoms in <mask>. Align the system along\n"
           "  principal axes if 'dorotation' specified.\n");

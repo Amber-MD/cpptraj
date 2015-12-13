@@ -15,7 +15,7 @@ Action_CreateReservoir::Action_CreateReservoir() :
   nframes_(0)
 {}
 
-void Action_CreateReservoir::Help() {
+void Action_CreateReservoir::Help() const {
   mprintf("\t<filename> ene <energy data set> [bin <cluster bin data set>]\n"
           "\ttemp0 <temp0> iseed <iseed> [velocity]\n"
           "\t[parm <parmfile> | parmindex <#>] [title <title>]\n"

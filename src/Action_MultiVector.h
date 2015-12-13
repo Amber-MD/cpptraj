@@ -6,8 +6,8 @@
 class Action_MultiVector : public Action {
   public:
     Action_MultiVector();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MultiVector(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_MultiVector(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

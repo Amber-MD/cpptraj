@@ -7,7 +7,7 @@
 // CONSTRUCTOR
 Action_Angle::Action_Angle() : ang_(0), useMass_(false) {} 
 
-void Action_Angle::Help() {
+void Action_Angle::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> [out <filename>] [mass]\n"
           "  Calculate the angle between atoms in masks 1-3.\n");
 }

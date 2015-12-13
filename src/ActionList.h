@@ -16,7 +16,7 @@ class ActionList {
     /// Set whether to supress Action Init/Setup output.
     void SetSilent(bool b) { actionsAreSilent_ = b; }
     /// Add given action to the action list and initialize.
-    int AddAction(DispatchObject::DispatchAllocatorType, ArgList&, ActionInit&);
+    int AddAction(Action*, ArgList&, ActionInit&);
     /// Set up Actions for the given Topology.
     int SetupActions(ActionSetup&, bool);
     /// Perform Actions on the given Frame.
@@ -36,15 +36,12 @@ class ActionList {
     int Naction()                    const { return (int)actionList_.size(); }
     /// \return Arguments for corresponding Action.
     ArgList const& ActionArgs(int i) const { return actionList_[i].args_;    }
-    /// \return Allocator corresponding to existing Action.
-    DispatchObject::DispatchAllocatorType
-      ActionAlloc(int i)             const { return actionList_[i].alloc_;   }
+    /// \return Uninitialized copy of existing Action (for ensemble).
+    Action* ActionAlloc(int i)       const { return (Action*)actionList_[i].ptr_->Alloc(); }
   private:
     /// Action initialization and setup status.
     enum ActionStatusType { NO_INIT=0, INIT, SETUP, INACTIVE };
     struct ActHolder {
-      /// Action allocator (for ensemble)
-      DispatchObject::DispatchAllocatorType alloc_;
       Action* ptr_;             ///< Pointer to Action.
       ArgList args_;            ///< Arguments associated with Action.
       ActionStatusType status_; ///< Current Action status.

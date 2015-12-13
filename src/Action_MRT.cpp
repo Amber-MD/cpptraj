@@ -12,7 +12,7 @@ Action_MRT::Action_MRT() :
   idxMaxWin_(0)
 {}
 
-void Action_MRT::Help() {
+void Action_MRT::Help() const {
 
 }
 

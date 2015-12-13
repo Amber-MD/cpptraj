@@ -23,16 +23,17 @@ void ActionList::SetDebug(int debugIn) {
 }
 
 // ActionList::AddAction()
-int ActionList::AddAction(DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn,
-                          ActionInit& init)
+int ActionList::AddAction(Action* actIn, ArgList& argIn, ActionInit& init)
 {
+  if (actIn == 0) {
+    mprinterr("Internal Error: AddAction() called with null Action.\n");
+    return 1;
+  }
   int err = 0;
   if (actionsAreSilent_) SetWorldSilent( true );
   ActHolder act;
-  act.alloc_ = Alloc;
-  act.ptr_ = (Action*)Alloc();
+  act.ptr_ = actIn;
   act.args_ = argIn;
-  if (act.ptr_ == 0) return 1;
   // Attempt to initialize action
   if ( act.ptr_->Init( argIn, init, debug_ ) != Action::OK ) {
     mprinterr("Error: Could not initialize action [%s]\n", argIn.Command());

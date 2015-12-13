@@ -9,9 +9,9 @@
 class Analysis_Wavelet : public Analysis {
   public:
     Analysis_Wavelet();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Wavelet(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Wavelet(); }
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     enum WaveletType { W_MORLET = 0, W_PAUL, W_NONE };

@@ -8,7 +8,7 @@ Action_Center::Action_Center() :
   useMass_(false)
 { } 
 
-void Action_Center::Help() {
+void Action_Center::Help() const {
   mprintf("\t<mask> [origin] [mass]\n"
           "\t [ %s [<refmask>]]\n  Center coordinates in <mask>.\n", DataSetList::RefArgs);
 }

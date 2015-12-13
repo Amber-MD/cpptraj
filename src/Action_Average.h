@@ -6,8 +6,8 @@
 class Action_Average: public Action, ActionFrameCounter {
   public:
     Action_Average();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Average(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Average(); }
+    void Help() const;
     ~Action_Average();
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

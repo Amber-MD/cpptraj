@@ -1,22 +1,22 @@
 #include "Analysis_State.h"
 #include "CpptrajStdio.h"
 
-void Analysis_State::Help() {
+void Analysis_State::Help() const {
   mprintf("\t{state <ID>,<dataset>,<min>,<max>} [out <state v time file>] [name <setname>]\n"
           "\t[curveout <curve file>] [stateout <states file>] [transout <transitions file>]\n"
           "  Data for the specified data set(s) that matches the given criteria\n"
           "  will be assigned state <#>.\n");
 }
 
-Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
-  masterDSL_ = datasetlist;
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
-  curveOut_ = DFLin->AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
-  stateOut_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("stateout"), "State Output",
+  masterDSL_ = setup.DslPtr();
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  curveOut_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("curveout"), analyzeArgs );
+  stateOut_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("stateout"), "State Output",
                                      DataFileList::TEXT, true);
-  transOut_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("transout"), "Transitions Output",
+  transOut_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("transout"), "Transitions Output",
                                      DataFileList::TEXT, true);
   normalize_ = analyzeArgs.hasKey("norm");
   // Get definitions of states if present.
@@ -37,7 +37,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
         mprinterr("Error: In state argument, could not get ID.\n");
         return Analysis::ERR;
       }
-      DataSet* ds = datasetlist->GetDataSet( argtmp.GetStringNext() );
+      DataSet* ds = setup.DSL().GetDataSet( argtmp.GetStringNext() );
       if (ds == 0) return Analysis::ERR;
       if (ds->Ndim() != 1) {
         mprinterr("Error: Only 1D data sets allowed.\n");
@@ -57,7 +57,7 @@ Analysis::RetType Analysis_State::Setup(ArgList& analyzeArgs, DataSetList* datas
     mprinterr("Error: No states defined.\n");
     return Analysis::ERR;
   }
-  state_data_ = datasetlist->AddSet(DataSet::INTEGER, analyzeArgs.GetStringKey("name"), "State");
+  state_data_ = setup.DSL().AddSet(DataSet::INTEGER, analyzeArgs.GetStringKey("name"), "State");
   if (state_data_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( state_data_ );
 

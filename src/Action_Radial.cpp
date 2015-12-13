@@ -30,7 +30,7 @@ Action_Radial::Action_Radial() :
   debug_(0)
 {} 
 
-void Action_Radial::Help() {
+void Action_Radial::Help() const {
   mprintf("\t[out <outfilename>] <spacing> <maximum> <solvent mask1> [<solute mask2>] [noimage]\n"
           "\t[density <density> | volume] [center1 | center2 | nointramol] [<name>]\n"
           "\t[intrdf <file>] [rawrdf <file>]\n"

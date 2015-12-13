@@ -33,7 +33,7 @@ Action_NativeContacts::Action_NativeContacts() :
   masterDSL_(0)
 {}
 // TODO: mapout, avg contacts over traj, 1=native, -1=nonnative
-void Action_NativeContacts::Help() {
+void Action_NativeContacts::Help() const {
   mprintf("\t[<mask1> [<mask2>]] [writecontacts <outfile>] [resout <resfile>]\n"
           "\t[noimage] [distance <cut>] [out <filename>] [includesolvent]\n"
           "\t[ first | %s ]\n"

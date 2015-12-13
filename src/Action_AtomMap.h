@@ -8,8 +8,8 @@
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomMap(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_AtomMap(); }
+    void Help() const;
     ~Action_AtomMap();
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

@@ -16,7 +16,7 @@ Action_CheckStructure::Action_CheckStructure() :
   bondcheck_(true)
 {}
 
-void Action_CheckStructure::Help() {
+void Action_CheckStructure::Help() const {
   mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]\n"
           "\t[offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
           "  Check frames for atomic overlaps and unusual bond lengths\n");

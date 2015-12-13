@@ -1,7 +1,7 @@
 #include "Action_FilterByData.h"
 #include "CpptrajStdio.h"
 
-void Action_FilterByData::Help() {
+void Action_FilterByData::Help() const {
   mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
           "  For all following actions, only allow frames that are between <min>\n"
           "  and <max> of data sets in <dataset arg>. There must be at least\n"

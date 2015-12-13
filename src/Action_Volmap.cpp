@@ -18,7 +18,7 @@ Action_Volmap::Action_Volmap() :
   radscale_(1.0)
 {}
 
-void Action_Volmap::Help() {
+void Action_Volmap::Help() const {
   RawHelp();
   mprintf("    filename  : Output file name\n"
           "    dx, dy, dz: grid spacing in the x-, y-, and z-dimensions, respectively.\n"
@@ -29,7 +29,7 @@ void Action_Volmap::Help() {
           "  centermask if provided, or the required mask if not.\n");
 }
 
-void Action_Volmap::RawHelp() {
+void Action_Volmap::RawHelp() const {
   mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n"
           "\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n"
           "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");

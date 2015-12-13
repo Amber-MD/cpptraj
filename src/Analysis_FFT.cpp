@@ -6,19 +6,19 @@
 // CONSTRUCTOR
 Analysis_FFT::Analysis_FFT() : dt_(0.0) {}
 
-void Analysis_FFT::Help() {
+void Analysis_FFT::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] [dt <samp_int>]\n"
           "  Perform forward fast-Fourier transformation of data set(s)\n");
 }
 
 // Analysis_FFT::Setup()
-Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   dt_ = analyzeArgs.getKeyDouble("dt",1.0);
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -28,7 +28,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   }
   // If setname is empty generate a default name
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName( "FFT" );
+    setname = setup.DSL().GenerateDefaultName( "FFT" );
   // Setup output datasets.
   int idx = 0;
   if ( input_dsets_.size() == 1 )
@@ -36,7 +36,7 @@ Analysis::RetType Analysis_FFT::Setup(ArgList& analyzeArgs, DataSetList* dataset
   for ( Array1D::const_iterator DS = input_dsets_.begin(); 
                                 DS != input_dsets_.end(); ++DS) 
   {
-    DataSet* dsout = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, idx++) );
+    DataSet* dsout = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( (*DS)->Meta().Legend() );
     output_dsets_.push_back( (DataSet_1D*)dsout );

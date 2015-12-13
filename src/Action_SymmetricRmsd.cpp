@@ -8,7 +8,7 @@
 Action_SymmetricRmsd::Action_SymmetricRmsd() :
   rmsd_(0), action_return_(Action::OK), remap_(false) {}
 
-void Action_SymmetricRmsd::Help() {
+void Action_SymmetricRmsd::Help() const {
   mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit] [mass] [remap]\n"
           "\t[ first | %s |\n"
           "\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n"

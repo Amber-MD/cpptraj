@@ -20,7 +20,7 @@ Action_Rmsd::Action_Rmsd() :
   rmatrices_(0)
 { }
 
-void Action_Rmsd::Help() {
+void Action_Rmsd::Help() const {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
           "\t[mass] [savematrices]\n"
           "\t[ first | %s |\n"

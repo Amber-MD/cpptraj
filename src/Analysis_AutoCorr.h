@@ -5,10 +5,10 @@ class Analysis_AutoCorr : public Analysis {
   public:
     Analysis_AutoCorr();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_AutoCorr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_AutoCorr(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataSetList::DataListType dsets_;

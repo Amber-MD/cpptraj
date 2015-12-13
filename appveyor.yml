@@ -41,7 +41,7 @@ build_script:
   - echo LIBCPPTRAJ=nolibcpptraj >> config.h
   - echo FFT_DEPEND=pub_fft.o >> config.h
   - echo FFT_LIB=pub_fft.o >> config.h
-  - echo LDFLAGS=-lreadline -lncurses -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz  -lgfortran -lquadmath -w  -static >> config.h
+  - echo LDFLAGS=-lreadline -ltermcap -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz  -lgfortran -lquadmath -w  -static >> config.h
   - echo SFX=.exe>> config.h
   - sh -lc "cat config.h"
   - sh -lc "make -j2 install"

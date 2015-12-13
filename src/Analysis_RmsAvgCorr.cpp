@@ -19,7 +19,7 @@ Analysis_RmsAvgCorr::Analysis_RmsAvgCorr() :
   useFirst_(false)
 { } 
 
-void Analysis_RmsAvgCorr::Help() {
+void Analysis_RmsAvgCorr::Help() const {
   mprintf("\t[crdset <crd set>] [<name>] [<mask>] [out <filename>] [mass]\n"
           "\t[stop <maxwindow>] [offset <offset>]\n"
           "\t{%s | first}\n"
@@ -29,11 +29,11 @@ void Analysis_RmsAvgCorr::Help() {
           "  <crd set> can be created with the 'createcrd' command.\n", DataSetList::RefArgs);
 }
 
-Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+  coords_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: rmsavgcorr: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
@@ -42,7 +42,7 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   // Get Keywords
   lagOffset_ = analyzeArgs.getKeyInt("offset", 1);
   if (lagOffset_ < 1) lagOffset_ = 1;
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
 # ifdef _OPENMP
   if (analyzeArgs.hasKey("output")) {
     mprinterr("Error: 'output' keyword not supported in OpenMP version of rmsavgcorr.\n");
@@ -50,12 +50,12 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   }
   separate_ = 0;
 # else
-  separate_ = DFLin->AddCpptrajFile( analyzeArgs.GetStringKey("output"), "RMS avg corr." );
+  separate_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("output"), "RMS avg corr." );
 # endif
   useMass_ = analyzeArgs.hasKey("mass");
   maxwindow_ = analyzeArgs.getKeyInt("stop",-1);
   useFirst_ = analyzeArgs.hasKey("first");
-  ReferenceFrame REF = datasetlist->GetReferenceFrame( analyzeArgs );
+  ReferenceFrame REF = setup.DSL().GetReferenceFrame( analyzeArgs );
   if (REF.empty()) {
     if (!useFirst_) {
       mprintf("Warning: No reference specified; using first running-averaged frame for\n"
@@ -88,9 +88,9 @@ Analysis::RetType Analysis_RmsAvgCorr::Setup(ArgList& analyzeArgs, DataSetList* 
   }
 
   // Set up dataset to hold correlation 
-  Ct_ = datasetlist->AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
+  Ct_ = setup.DSL().AddSet(DataSet::DOUBLE, analyzeArgs.GetStringNext(),"RACorr");
   if (Ct_==0) return Analysis::ERR;
-  Csd_ = datasetlist->AddSet(DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "SD"));
+  Csd_ = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "SD"));
   if (Csd_==0) return Analysis::ERR;
   if (outfile != 0) {
     outfile->AddDataSet( Ct_ );

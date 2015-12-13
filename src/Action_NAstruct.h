@@ -25,8 +25,8 @@
 class Action_NAstruct: public Action {
   public:
     Action_NAstruct();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_NAstruct(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_NAstruct(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

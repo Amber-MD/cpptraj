@@ -13,9 +13,9 @@
 class Analysis_Rms2d: public Analysis {
   public:
     Analysis_Rms2d();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Rms2d(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Rms2d(); }
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     int CalcRmsToTraj();

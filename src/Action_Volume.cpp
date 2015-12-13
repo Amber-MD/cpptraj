@@ -7,7 +7,7 @@ Action_Volume::Action_Volume() :
   vol_(0), sum_(0.0), sum2_(0.0), nframes_(0)
 { } 
 
-void Action_Volume::Help() {
+void Action_Volume::Help() const {
   mprintf("\t[<name>] [out <filename>]\n  Calculate unit cell volume.\n");
 }
 

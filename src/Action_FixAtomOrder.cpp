@@ -10,7 +10,7 @@ Action_FixAtomOrder::~Action_FixAtomOrder() {
   if (newParm_!=0) delete newParm_;
 }
 
-void Action_FixAtomOrder::Help() {
+void Action_FixAtomOrder::Help() const {
   mprintf("\t[outprefix <name>]\n"
           "  Fix atom ordering so that all atoms in molecules are sequential.\n");
 }

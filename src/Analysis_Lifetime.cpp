@@ -16,7 +16,7 @@ Analysis_Lifetime::Analysis_Lifetime() :
   Compare_(Compare_GreaterThan)
 {}
 
-void Analysis_Lifetime::Help() {
+void Analysis_Lifetime::Help() const {
   mprintf("\t[out <filename>] <dsetarg0> [ <dsetarg1> ... ]\n"
           "\t[window <windowsize> [name <setname>]] [averageonly]\n"
           "\t[cumulative] [delta] [cut <cutoff>] [greater | less] [rawcurve]\n"
@@ -51,7 +51,7 @@ inline static int CheckDsetError(DataSet_1D* ds, const char* msg, const char* le
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Get Keywords
   FileName outfileName( analyzeArgs.GetStringKey("out") );
@@ -72,7 +72,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   else
     Compare_ = Compare_GreaterThan;
   // Select datasets from remaining args
-  if (inputDsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (inputDsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: lifetime: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -84,14 +84,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName( "lifetime" );
+    setname = setup.DSL().GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
     Dimension Xdim(1.0, windowSize_, "Frame");
-    outfile = DFLin->AddDataFile(outfileName, analyzeArgs);
+    outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
-      maxfile = DFLin->AddDataFile(outfileName.DirPrefix() + "max." + 
+      maxfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "max." + 
                                    outfileName.Base(), analyzeArgs);
-      avgfile = DFLin->AddDataFile(outfileName.DirPrefix() + "avg." + 
+      avgfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "avg." + 
                                    outfileName.Base(), analyzeArgs);
     }
     int didx = 0;
@@ -99,7 +99,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
     {
       MetaData md(setname, didx);
       md.SetLegend( (*set)->Meta().Legend() );
-      DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSet( DataSet::FLOAT, md );
+      DataSet_1D* outSet = (DataSet_1D*)setup.DSL().AddSet( DataSet::FLOAT, md );
       if (CheckDsetError(outSet, "output", (*set)->legend())) 
         return Analysis::ERR;
       outSet->SetDim(Dimension::X, Xdim);
@@ -108,7 +108,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
       if (!averageonly_) {
         // MAX
         md.SetAspect("max");
-        outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::INTEGER, md);
+        outSet = (DataSet_1D*)setup.DSL().AddSet(DataSet::INTEGER, md);
         if (CheckDsetError(outSet, "lifetime max", (*set)->legend()))
           return Analysis::ERR;
         outSet->SetDim(Dimension::X, Xdim);
@@ -116,7 +116,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
         if (maxfile != 0) maxfile->AddDataSet( outSet );
         // AVG
         md.SetAspect("avg");
-        outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::FLOAT, md);
+        outSet = (DataSet_1D*)setup.DSL().AddSet(DataSet::FLOAT, md);
         if (CheckDsetError(outSet, "lifetime avg", (*set)->legend()))
           return Analysis::ERR;
         outSet->SetDim(Dimension::X, Xdim);
@@ -135,14 +135,14 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   DataFile* crvfile = 0;
   if (!averageonly_) {
     if (!outfileName.empty()) {
-      crvfile = DFLin->AddDataFile(outfileName.DirPrefix() + "crv." + 
+      crvfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "crv." + 
                                    outfileName.Base(), analyzeArgs);
     }
     MetaData md(setname, "curve");
     for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
     {
       md.SetIdx(didx);
-      DataSet_1D* outSet = (DataSet_1D*)datasetlist->AddSet(DataSet::DOUBLE, md);
+      DataSet_1D* outSet = (DataSet_1D*)setup.DSL().AddSet(DataSet::DOUBLE, md);
       if (CheckDsetError(outSet, "lifetime curve", inputDsets_[didx]->legend()))
         return Analysis::ERR;
       curveSets_.push_back( outSet );
@@ -151,7 +151,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, DataSetList* da
   }
   // Non-window output file
   if (!averageonly_ && windowSize_ == -1) {
-    standalone_ = DFLin->AddCpptrajFile( outfileName, "Lifetimes", DataFileList::TEXT, true );
+    standalone_ = setup.DFL().AddCpptrajFile( outfileName, "Lifetimes", DataFileList::TEXT, true );
     if (standalone_ == 0) return Analysis::ERR;
   } else
     standalone_ = 0; 

@@ -27,7 +27,7 @@ Action_Watershell::~Action_Watershell() {
 }
 #endif
 
-void Action_Watershell::Help() {
+void Action_Watershell::Help() const {
   mprintf("\t<solutemask> [out <filename>] [lower <lower cut>] [upper <upper cut>]\n"
           "\t[noimage] [<solventmask>] [<set name>]\n"
           "  Calculate # of waters in 1st and 2nd solvation shells (defined by\n"

@@ -10,8 +10,8 @@
 class Action_GridFreeEnergy : public Action, private GridAction {
   public:
     Action_GridFreeEnergy();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_GridFreeEnergy(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_GridFreeEnergy(); }
+    void Help() const;
   private:
     // Action members
     Action::RetType Init(ArgList&, ActionInit&, int);

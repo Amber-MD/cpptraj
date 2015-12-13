@@ -6,8 +6,8 @@
 class Action_Principal : public Action {
   public:
     Action_Principal();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Principal(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Principal(); }
+    void Help() const;
   private:
     bool doRotation_;
     bool useMass_;

@@ -28,8 +28,8 @@ and was rewritten by Jason Swails for the current cpptraj version.
 class Action_Spam: public Action, ImagedAction {
   public:
     Action_Spam();
-    static DispatchObject* Alloc() { return (DispatchObject*) new Action_Spam(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Spam(); }
+    void Help() const;
   private:
     /** \brief Name of the solvent residues */
     std::string solvname_;

@@ -140,7 +140,9 @@ SOURCES=ActionFrameCounter.cpp \
         Cluster_HierAgglo.cpp \
         Cluster_Kmeans.cpp \
         Cluster_ReadInfo.cpp \
+        Cmd.cpp \
         CmdInput.cpp \
+        CmdList.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
@@ -183,7 +185,9 @@ SOURCES=ActionFrameCounter.cpp \
         DataSet_float.cpp \
         DataSet_integer.cpp \
         DataSet_string.cpp \
+        Deprecated.cpp \
         DihedralSearch.cpp \
+        DispatchObject.cpp \
         DistRoutines.cpp \
         Energy.cpp \
         EnsembleIn.cpp \
@@ -192,6 +196,33 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        Exec_Calc.cpp \
+        Exec_CombineCoords.cpp \
+        Exec_Commands.cpp \
+        Exec_CompareTop.cpp \
+        Exec_CrdAction.cpp \
+        Exec_CrdOut.cpp \
+        Exec_DataFile.cpp \
+        Exec_DataFilter.cpp \
+        Exec_DataSetCmd.cpp \
+        Exec_GenerateAmberRst.cpp \
+        Exec_Help.cpp \
+        Exec_LoadCrd.cpp \
+        Exec_LoadTraj.cpp \
+        Exec_ParmBox.cpp \
+        Exec_ParmSolvent.cpp \
+        Exec_ParmStrip.cpp \
+        Exec_ParmWrite.cpp \
+        Exec_Precision.cpp \
+        Exec_PrintData.cpp \
+        Exec_ReadData.cpp \
+        Exec_ReadInput.cpp \
+        Exec_RunAnalysis.cpp \
+        Exec_ScaleDihedralK.cpp \
+        Exec_SequenceAlign.cpp \
+        Exec_System.cpp \
+        Exec_Top.cpp \
+        Exec_Traj.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -233,7 +264,6 @@ SOURCES=ActionFrameCounter.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
-        SequenceAlign.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
         SymmetricRmsdCalc.cpp \

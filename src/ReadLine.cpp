@@ -32,7 +32,7 @@ static char* command_generator(const char* text, int state) {
   }
 
   // Return the next name which partially matches from the command list.
-  while ( (name = Command::CmdToken(list_index).Cmd) != 0 )
+  while ( (name = Command::CmdToken(list_index)) != 0 )
   {
     list_index++;
     if (strncmp(name, text, len) == 0)

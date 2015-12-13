@@ -8,10 +8,10 @@ class Analysis_RmsAvgCorr: public Analysis {
   public:
     Analysis_RmsAvgCorr();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_RmsAvgCorr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_RmsAvgCorr(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     AtomMask tgtMask_;

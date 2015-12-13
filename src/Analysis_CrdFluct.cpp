@@ -10,7 +10,7 @@ Analysis_CrdFluct::Analysis_CrdFluct() :
   windowSize_(-1)
 {}
 
-void Analysis_CrdFluct::Help() {
+void Analysis_CrdFluct::Help() const {
   mprintf("\t[crdset <crd set>] [<mask>] [out <filename>] [window <size>] [bfactor]\n"
           "  Calculate atomic positional fluctuations for atoms in <mask>\n"
           "  over windows of specified size.\n"
@@ -18,18 +18,18 @@ void Analysis_CrdFluct::Help() {
 }
 
 // Analysis_CrdFluct::Setup()
-Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   bfactor_ = analyzeArgs.hasKey("bfactor");
   // Attempt to get coords dataset from datasetlist
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+  coords_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: crdfluct: Could not locate COORDS set corresponding to %s\n",
               setname.c_str());
     return Analysis::ERR;
   }
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   windowSize_ = analyzeArgs.getKeyInt("window", -1);
   // Get mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
@@ -43,7 +43,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
   setname = analyzeArgs.GetStringNext();
   if (windowSize_ < 1) {
     // Only one data set for total B-factors
-    DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, setname, "fluct" );
+    DataSet* ds = setup.DSL().AddSet( DataSet::DOUBLE, setname, "fluct" );
     if (ds == 0) return Analysis::ERR;
     outSets_.push_back( ds );
     if (outfile != 0) outfile->AddDataSet( ds );
@@ -54,12 +54,12 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       mprinterr("Error: Cannot predict how many window data sets will be needed.\n");
       return Analysis::ERR;
     }
-    if (setname.empty()) setname = datasetlist->GenerateDefaultName("fluct");
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("fluct");
     // Determine how many windows will be needed
     int nwindows = coords_->Size() / windowSize_;
     for (int win = 0; win < nwindows; ++win) {
       int frame = (win + 1) * windowSize_;
-      DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, frame) );
+      DataSet* ds = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, frame) );
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( "F_" + integerToString( frame ) );
       ds->SetDim( Dimension::X, Dimension(1.0, 1.0, "Atom") );
@@ -67,7 +67,7 @@ Analysis::RetType Analysis_CrdFluct::Setup(ArgList& analyzeArgs, DataSetList* da
       if (outfile != 0) outfile->AddDataSet( ds );
     }
     if ( (coords_->Size() % windowSize_) != 0 ) {
-      DataSet* ds = datasetlist->AddSet( DataSet::DOUBLE, MetaData(setname, coords_->Size()) );
+      DataSet* ds = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(setname, coords_->Size()) );
       ds->SetLegend("Final");
       outSets_.push_back( ds );
       if (outfile != 0) outfile->AddDataSet( ds );

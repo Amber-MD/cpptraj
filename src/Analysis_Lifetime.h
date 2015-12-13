@@ -5,10 +5,10 @@
 class Analysis_Lifetime : public Analysis {
   public:
     Analysis_Lifetime();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Lifetime(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Lifetime(); }
+    void Help() const;
     Analysis::RetType ExternalSetup(Array1D const&, CpptrajFile*);
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     Array1D inputDsets_;

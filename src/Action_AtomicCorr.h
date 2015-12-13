@@ -4,8 +4,8 @@
 class Action_AtomicCorr : public Action {
   public:
     Action_AtomicCorr();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicCorr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_AtomicCorr(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

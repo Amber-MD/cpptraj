@@ -9,8 +9,8 @@ class Action_Watershell : public Action, ImagedAction {
 #   ifdef _OPENMP
     ~Action_Watershell();
 #   endif
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Watershell(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Watershell(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

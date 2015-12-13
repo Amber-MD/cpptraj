@@ -4,7 +4,7 @@
 
 Action_CreateCrd::Action_CreateCrd() : pindex_(-1), check_(true) {}
 
-void Action_CreateCrd::Help() {
+void Action_CreateCrd::Help() const {
   mprintf("\t[<name>] [ parm <name> | parmindex <#> ] [nocheck]\n"
           "  Create a COORDS data set named <name> for frames associated with the\n"
           "  specified topology.\n");

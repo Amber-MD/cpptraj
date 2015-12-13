@@ -10,10 +10,10 @@ class Analysis_IRED : public Analysis {
   public:
     Analysis_IRED();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_IRED(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_IRED(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     double Jw(int, double, std::vector<double>) const;

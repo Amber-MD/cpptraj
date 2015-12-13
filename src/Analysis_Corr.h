@@ -7,10 +7,10 @@ class Analysis_Corr : public Analysis {
   public:
     Analysis_Corr();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Corr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Corr(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataSet *D1_;

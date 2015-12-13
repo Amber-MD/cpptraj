@@ -23,7 +23,7 @@ Action_Pairwise::Action_Pairwise() :
   Eout_(0)
 {} 
 
-void Action_Pairwise::Help() {
+void Action_Pairwise::Help() const {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cut mol2 prefix>]\n"
           "\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"

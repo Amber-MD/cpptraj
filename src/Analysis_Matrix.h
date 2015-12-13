@@ -7,10 +7,10 @@ class Analysis_Matrix : public Analysis {
   public:
     Analysis_Matrix();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Matrix(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Matrix(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     int NMWizOutput() const;

@@ -6,8 +6,8 @@
 class Action_Distance: public Action {
   public:
     Action_Distance();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Distance(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

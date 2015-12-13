@@ -34,7 +34,7 @@ int Action_MakeStructure::FindSStype(std::string const& typeIn)
   return SS_EMPTY;
 } 
 
-void Action_MakeStructure::Help() {
+void Action_MakeStructure::Help() const {
   mprintf("\t<List of Args>\n"
           "  Apply dihedrals to specified residues using arguments found in <List of Args>,\n"
           "  where an argument is 1 or more of the following arg types:\n"

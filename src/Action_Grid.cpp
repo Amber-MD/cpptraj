@@ -19,7 +19,7 @@ Action_Grid::Action_Grid() :
   grid_(0)
 {}
 
-void Action_Grid::Help() {
+void Action_Grid::Help() const {
   mprintf("\t[out <filename>]\n%s\n", GridAction::HelpText);
   mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
           "\t[pdb <pdbout> [max <fraction>]] \n"

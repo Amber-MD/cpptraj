@@ -11,7 +11,7 @@ Action_RunningAvg::Action_RunningAvg() :
   windowNatom_(0)
 {} 
 
-void Action_RunningAvg::Help() {
+void Action_RunningAvg::Help() const {
   mprintf("\t[window <value>]\n"
           "  Calculate the running average of coordinates over windows of specified size.\n");
 }

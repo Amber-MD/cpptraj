@@ -13,7 +13,7 @@ Action_MinImage::Action_MinImage() :
   calcUsingMask_(false)
 {} 
 
-void Action_MinImage::Help() {
+void Action_MinImage::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [maskcenter]\n"
           "  Calculate minimum non-self imaged distance between atoms in <mask1> and <mask2>\n");
 }

@@ -5,8 +5,8 @@
 class Action_Box : public Action {
   public:
     Action_Box();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Box(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Box(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

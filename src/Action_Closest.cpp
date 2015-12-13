@@ -24,7 +24,7 @@ Action_Closest::Action_Closest() :
   debug_(0)
 {} 
 
-void Action_Closest::Help() {
+void Action_Closest::Help() const {
   mprintf("\t<# to keep> <mask> [noimage] [first | oxygen] [center]\n"
           "\t[closestout <filename> [name <setname>]] [outprefix <parmprefix>]\n"
           "\t[parmout <file>]\n"

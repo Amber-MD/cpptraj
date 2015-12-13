@@ -54,7 +54,7 @@ Analysis_Rotdif::Analysis_Rotdif() :
   Rmatrices_(0)
 { } 
 
-void Analysis_Rotdif::Help() {
+void Analysis_Rotdif::Help() const {
   mprintf("\t[outfile <outfilename>] [usefft]\n"
           "  Options for generating random vectors:\n"
           "\t[nvecs <nvecs>] [rvecin <randvecIn>] [rseed <random seed>]\n"
@@ -83,7 +83,7 @@ void Analysis_Rotdif::Help() {
 }
 
 // Analysis_Rotdif::Setup()
-Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
   // Get Keywords
@@ -132,7 +132,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL,
   }
   // Rotation matrices data set. TODO: Make optional
   std::string rm_name = analyzeArgs.GetStringKey("rmatrix");
-  Rmatrices_ = (DataSet_Mat3x3*)DSL->FindSetOfType( rm_name, DataSet::MAT3X3 );
+  Rmatrices_ = (DataSet_Mat3x3*)setup.DSL().FindSetOfType( rm_name, DataSet::MAT3X3 );
   if (Rmatrices_ == 0) {
     mprinterr("Error: Must specify data set containing rotation matrices.\n"
               "Error: These can be generated with the 'rms' command and the 'savematrices'\n"
@@ -146,7 +146,7 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, DataSetList* DSL,
   RNgen_.rn_set( rseed_ );
 
   // Open output file. Defaults to stdout if no name specified
-  outfile_ = DFLin->AddCpptrajFile(outfilename, "Rotational diffusion",
+  outfile_ = setup.DFL().AddCpptrajFile(outfilename, "Rotational diffusion",
                                  DataFileList::TEXT, true);
   if (outfile_ == 0) {
     mprinterr("Error: Could not open Rotdif output file %s.\n", outfilename.c_str());

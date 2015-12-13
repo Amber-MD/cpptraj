@@ -9,31 +9,37 @@
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
+    /// Possible command return types. Put here because both Command and Exec need this.
+    enum RetType { OK = 0, ERR, QUIT };
+    /// CONSTRUCTOR
     CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true), noEmptyRun_(false) {}
-    // TODO: Change to &
-    DataSetList* DSL()       { return &DSL_;          }
-    DataFileList* DFL()      { return &DFL_;          }
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
-    int Debug()        const { return debug_;         }
-    bool ExitOnError() const { return exitOnError_;   }
-    bool EmptyState()  const { return (actionList_.Empty() && 
-                                       analysisList_.Empty() &&
-                                       trajoutList_.Empty()); }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
+
+    DataSetList const& DSL()  const { return DSL_;         }
+    DataSetList&       DSL()        { return DSL_;         }
+    DataFileList const& DFL() const { return DFL_;         }
+    DataFileList&       DFL()       { return DFL_;         }
+    int Debug()               const { return debug_;       }
+    bool ExitOnError()        const { return exitOnError_; }
+    bool EmptyState()         const { return (actionList_.Empty() && 
+                                              analysisList_.Empty() &&
+                                              trajoutList_.Empty()); }
+    TrajinList const& InputTrajList() const { return trajinList_; }
+
     int AddTrajin( ArgList&, bool );
     int AddTrajin( std::string const& );
     int AddOutputTrajectory( ArgList& );
     int AddOutputTrajectory( std::string const& );
     int RunAnalyses();
-    TrajinList const& InputTrajList() const { return trajinList_; }
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
+    inline int AddReference( std::string const& );
     int AddTopology( std::string const&, ArgList const& );
     int AddTopology( Topology const&, std::string const& );
-    inline int AddReference( std::string const& );
-    inline int AddAction( DispatchObject::DispatchAllocatorType, ArgList& );
-    inline int AddAnalysis( DispatchObject::DispatchAllocatorType, ArgList& );
+    inline int AddToActionQueue( Action*, ArgList& );
+    inline int AddToAnalysisQueue( Analysis*, ArgList& );
     static int WorldSize();
     static std::string PrintListKeys();
     int ListAll(ArgList&) const;
@@ -91,16 +97,17 @@ class CpptrajState {
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
-// CpptrajState::AddAction()
-int CpptrajState::AddAction( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+// CpptrajState::AddToActionQueue()
+int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   ActionInit init(DSL_, DFL_);
-  return actionList_.AddAction( Alloc, argIn, init );
+  return actionList_.AddAction( actIn, argIn, init );
 }
-// CpptrajState::AddAnalysis()
-int CpptrajState::AddAnalysis( DispatchObject::DispatchAllocatorType Alloc, ArgList& argIn ) {
+// CpptrajState::AddToAnalysisQueue()
+int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
-  return analysisList_.AddAnalysis( Alloc, argIn, &DSL_, &DFL_ );
+  AnalysisSetup setup(DSL_, DFL_);
+  return analysisList_.AddAnalysis( anaIn, argIn, setup );
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {

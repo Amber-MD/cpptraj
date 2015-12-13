@@ -8,7 +8,8 @@
  */
 class Cpptraj {
   public:
-    Cpptraj() {}
+    Cpptraj();
+    ~Cpptraj();
     int RunCpptraj(int, char**);
     static std::string Defines();
   private:
