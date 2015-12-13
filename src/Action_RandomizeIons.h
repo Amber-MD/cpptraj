@@ -6,8 +6,8 @@
 class Action_RandomizeIons : public Action {
   public:
     Action_RandomizeIons();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_RandomizeIons(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

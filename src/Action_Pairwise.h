@@ -15,8 +15,8 @@
 class Action_Pairwise: public Action {
   public:
     Action_Pairwise();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Pairwise(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Pairwise(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

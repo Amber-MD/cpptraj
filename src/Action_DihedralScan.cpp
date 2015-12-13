@@ -33,7 +33,7 @@ Action_DihedralScan::~Action_DihedralScan() {
   outtraj_.EndTraj();
 }
 
-void Action_DihedralScan::Help() {
+void Action_DihedralScan::Help() const {
   mprintf("\tresrange <range> [{interval*|random}]");
   DihedralSearch::ListKnownTypes();
   mprintf("\t'*' denotes default.\n"

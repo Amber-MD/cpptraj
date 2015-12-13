@@ -11,8 +11,8 @@ class Action_DihedralScan: public Action {
   public:
     Action_DihedralScan();
     ~Action_DihedralScan();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DihedralScan(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_DihedralScan(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

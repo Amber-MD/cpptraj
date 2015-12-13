@@ -14,7 +14,7 @@ Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
   useVelInfo_(false), useFFT_(false), normalize_(false), VAC_(0), tstep_(0.0),
   maxLag_(0) {}
 
-void Action_VelocityAutoCorr::Help() {
+void Action_VelocityAutoCorr::Help() const {
   mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>]\n"
           "\t[maxlag <time>] [tstep <timestep>] [direct] [norm]\n"
           "  Calculate velocity auto-correlation function for atoms in <mask>\n");

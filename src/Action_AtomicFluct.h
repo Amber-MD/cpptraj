@@ -5,8 +5,8 @@
 class Action_AtomicFluct : public Action, ActionFrameCounter {
   public :
     Action_AtomicFluct();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AtomicFluct(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_AtomicFluct(); }
+    void Help() const;
   private :
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

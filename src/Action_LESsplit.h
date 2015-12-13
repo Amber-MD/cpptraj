@@ -8,8 +8,8 @@ class Action_LESsplit : public Action {
   public:
     Action_LESsplit() : lesAverage_(false), lesSplit_(false), lesParm_(0) {}
     ~Action_LESsplit();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_LESsplit(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_LESsplit(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

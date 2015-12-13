@@ -6,10 +6,10 @@ class Analysis_Average : public Analysis {
   public:
     Analysis_Average() : outfile_(0), avgOfSets_(0), sdOfSets_(0),
                          writeHeader_(true), calcAvgOverSets_(false) {}
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Average(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Average(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;

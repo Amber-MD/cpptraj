@@ -15,7 +15,7 @@ Action_NMRrst::Action_NMRrst() :
    resOffset_(0), debug_(0), nframes_(0), useMass_(false),
    findNOEs_(false), series_(false) {} 
 
-void Action_NMRrst::Help() {
+void Action_NMRrst::Help() const {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
           "  Calculate distances based on entries in the given NMR restraint file.\n");
 }

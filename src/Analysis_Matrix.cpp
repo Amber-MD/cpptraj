@@ -17,7 +17,7 @@ Analysis_Matrix::Analysis_Matrix() :
   nmwizfile_(0)
 {}
 
-void Analysis_Matrix::Help() {
+void Analysis_Matrix::Help() const {
   mprintf("\t<name> [out <filename>] [thermo [outthermo <filename>] [temp <T>]]\n"
           "\t[vecs <#>] [name <modesname>] [reduce]\n"
           "\t[ nmwiz [nmwizvecs <n>] [nmwizfile <file>] %s\n"
@@ -27,7 +27,7 @@ void Analysis_Matrix::Help() {
 }
 
 // Analysis_Matrix::Setup()
-Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
 #ifdef NO_MATHLIB
   mprinterr("Error: Compiled without LAPACK routines.\n");
@@ -40,9 +40,9 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
     return Analysis::ERR;
   }
   // Find matrix in DataSetList.
-  matrix_ = (DataSet_2D*)DSLin->FindSetOfType( mname, DataSet::MATRIX_DBL );
+  matrix_ = (DataSet_2D*)setup.DSL().FindSetOfType( mname, DataSet::MATRIX_DBL );
   if (matrix_ == 0)
-    matrix_ = (DataSet_2D*)DSLin->FindSetOfType( mname, DataSet::MATRIX_FLT );
+    matrix_ = (DataSet_2D*)setup.DSL().FindSetOfType( mname, DataSet::MATRIX_FLT );
   if (matrix_ == 0) {
     mprinterr("Error: Could not find matrix named %s\n",mname.c_str());
     return Analysis::ERR;
@@ -61,9 +61,9 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
       mprinterr("Error: nmwizvecs must be >= 1\n");
       return Analysis::ERR;
     }
-    nmwizfile_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("nmwizfile"), "NMwiz output",
+    nmwizfile_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("nmwizfile"), "NMwiz output",
                                        DataFileList::TEXT, true);
-    Topology* parmIn = DSLin->GetTopology( analyzeArgs); // TODO: Include with matrix
+    Topology* parmIn = setup.DSL().GetTopology( analyzeArgs); // TODO: Include with matrix
     if (parmIn == 0) {
       mprinterr("Error: nmwiz: No topology specified.\n");
       return Analysis::ERR;
@@ -79,11 +79,11 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   }
   
   // Filenames
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Thermo flag
   thermopt_ = analyzeArgs.hasKey("thermo");
   if (thermopt_) {
-    outthermo_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("outthermo"), "'thermo' output",
+    outthermo_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("outthermo"), "'thermo' output",
                                        DataFileList::TEXT, true);
     if (outthermo_ == 0) return Analysis::ERR;
   }
@@ -104,7 +104,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, DataSetList* DSLi
   // Set up DataSet_Modes. Set Modes DataSet type to be same as input matrix. 
   MetaData md( analyzeArgs.GetStringKey("name") );
   md.SetScalarType( matrix_->Meta().ScalarType() );
-  modes_ = (DataSet_Modes*)DSLin->AddSet( DataSet::MODES, md, "Modes" );
+  modes_ = (DataSet_Modes*)setup.DSL().AddSet( DataSet::MODES, md, "Modes" );
   if (modes_==0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( modes_ );
 

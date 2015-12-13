@@ -198,7 +198,7 @@ int CpptrajState::Run() {
       }
       ArgList crdcmd("createcrd _DEFAULTCRD_");
       crdcmd.MarkArg(0);
-      if (AddAction( Action_CreateCrd::Alloc, crdcmd ))
+      if (AddToActionQueue( new Action_CreateCrd(), crdcmd ))
         return 1;
     }
   }

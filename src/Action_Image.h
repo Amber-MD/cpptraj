@@ -6,8 +6,8 @@
 class Action_Image: public Action {
   public:
     Action_Image();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Image(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Image(); }
+    void Help() const;
     ~Action_Image();
   private:
     Image::Mode imageMode_;

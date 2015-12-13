@@ -8,8 +8,8 @@
 class Action_Outtraj: public Action {
   public:
     Action_Outtraj() : associatedParm_(0), isSetup_(false) {}
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Outtraj(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Outtraj(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

@@ -8,8 +8,8 @@
 class Action_CreateReservoir : public Action {
   public:
     Action_CreateReservoir();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CreateReservoir(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_CreateReservoir(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

@@ -5,8 +5,8 @@
 class Action_DNAionTracker : public Action, ImagedAction {
   public:
     Action_DNAionTracker();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_DNAionTracker(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_DNAionTracker(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

@@ -7,8 +7,8 @@
 class Action_MinImage: public Action {
   public:
     Action_MinImage();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MinImage(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_MinImage(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

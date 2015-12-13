@@ -5,8 +5,8 @@
 class Action_Strip: public Action {
   public:
     Action_Strip();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Strip(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Strip(); }
+    void Help() const;
     ~Action_Strip();
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

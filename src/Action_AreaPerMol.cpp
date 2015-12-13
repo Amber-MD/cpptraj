@@ -9,7 +9,7 @@ Action_AreaPerMol::Action_AreaPerMol() :
   areaType_(XY)
 {}
 
-void Action_AreaPerMol::Help() {
+void Action_AreaPerMol::Help() const {
   mprintf("\t[<name>] {[<mask1>] [nlayers <#>] | nmols <#>} [out <filename>] [{xy | xz | yz}]\n"
           "  Calculate the specified area per molecule for molecules in <mask1>.\n");
 }

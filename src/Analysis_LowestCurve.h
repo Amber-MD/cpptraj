@@ -5,10 +5,10 @@
 class Analysis_LowestCurve : public Analysis {
   public:
     Analysis_LowestCurve();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_LowestCurve(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_LowestCurve(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     Array1D input_dsets_;

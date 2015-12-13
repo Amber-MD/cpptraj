@@ -10,7 +10,7 @@ Action_RandomizeIons::Action_RandomizeIons() :
   debug_(0)
 {}
 
-void Action_RandomizeIons::Help() {
+void Action_RandomizeIons::Help() const {
   mprintf("\t<mask> [around <mask> by <distance>] [overlap <value>]\n"
           "\t[noimage] [seed <value>]\n"
           "  Swap positions of ions in <mask> with randomly selected solvent molecules.\n");

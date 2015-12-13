@@ -6,8 +6,8 @@
 class Action_Grid : public Action, private GridAction {
   public:
     Action_Grid();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Grid(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Grid(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

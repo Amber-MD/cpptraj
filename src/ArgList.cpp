@@ -207,6 +207,7 @@ const char *ArgList::Command() const {
   * \return true if first argument matches key
   */
 bool ArgList::CommandIs(const char *key) const {
+  if (key == 0) return false;
   if (arglist_.empty()) return false;
   if (arglist_[0].compare( key )==0) return true;
   return false;

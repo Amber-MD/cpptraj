@@ -13,7 +13,7 @@ Analysis_Statistics::Analysis_Statistics() :
   ignore_negative_violations_(true)
 {}
 
-void Analysis_Statistics::Help() {
+void Analysis_Statistics::Help() const {
   mprintf("\t{<name> | all} [shift <value>] [out <filename>] [noeout <filename>]\n"
           "\t [ignorenv] [name <noe setname>]\n"
           "  Calculate various statistical quantities for data in specified data set(s)\n"
@@ -21,24 +21,24 @@ void Analysis_Statistics::Help() {
 }
 
 // Analysis_Statistics::Setup()
-Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* DSLin, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
   // Get keywords.
   shift_ = analyzeArgs.getKeyDouble("shift", 0);
   filename_ = analyzeArgs.GetStringKey("out");
   ignore_negative_violations_ = analyzeArgs.hasKey("ignorenv");
-  DataFile* NOE_out = DFLin->AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
+  DataFile* NOE_out = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("noeout"), analyzeArgs);
   // Get dataset or all datasets
   bool useAllSets = false;
   if (analyzeArgs.hasKey("all")) {
     useAllSets = true;
-    for (DataSetList::const_iterator ds = DSLin->begin(); ds != DSLin->end(); ++ds)
+    for (DataSetList::const_iterator ds = setup.DSL().begin(); ds != setup.DSL().end(); ++ds)
       if ( (*ds)->Ndim() == 1)
         datasets_.push_back( ((DataSet_1D*)*ds) );
   } else {
     // Select datasets from remaining args
-    if (datasets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *DSLin )) {
+    if (datasets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
       mprinterr("Error: statistics: Could not add data sets\n");
       return Analysis::ERR;
     }
@@ -56,13 +56,13 @@ Analysis::RetType Analysis_Statistics::Setup(ArgList& analyzeArgs, DataSetList* 
   if (numNOEsets > 0) {
     std::string dsetName = analyzeArgs.GetStringKey("name");
     if (dsetName.empty())
-      dsetName = DSLin->GenerateDefaultName("NOE");
-    NOE_r6_ = (DataSet_float*)DSLin->AddSet(DataSet::FLOAT, MetaData(dsetName, "R6"));
-    NOE_violations_ = (DataSet_integer*)DSLin->AddSet(DataSet::INTEGER,
+      dsetName = setup.DSL().GenerateDefaultName("NOE");
+    NOE_r6_ = (DataSet_float*)setup.DSL().AddSet(DataSet::FLOAT, MetaData(dsetName, "R6"));
+    NOE_violations_ = (DataSet_integer*)setup.DSL().AddSet(DataSet::INTEGER,
                                                       MetaData(dsetName, "NViolations"));
-    NOE_avgViolations_ = (DataSet_float*)DSLin->AddSet(DataSet::FLOAT,
+    NOE_avgViolations_ = (DataSet_float*)setup.DSL().AddSet(DataSet::FLOAT,
                                                        MetaData( dsetName, "AvgViolation"));
-    NOE_names_ = (DataSet_string*)DSLin->AddSet(DataSet::STRING,
+    NOE_names_ = (DataSet_string*)setup.DSL().AddSet(DataSet::STRING,
                                                 MetaData(dsetName, "NOEnames"));
     if (NOE_r6_==0 || NOE_violations_==0 || NOE_avgViolations_==0 || NOE_names_==0) {
       mprinterr("Error: Could not set up NOE data sets.\n");

@@ -13,7 +13,7 @@ Action_Contacts::Action_Contacts() :
   outfile_(0), outfile2_(0)
 { }
 
-void Action_Contacts::Help() {
+void Action_Contacts::Help() const {
   mprintf("\t[ first | reference | ref <ref> | refindex <#> ] [byresidue]\n"
           "\t[out <filename>] [time <interval>] [distance <cutoff>] [<mask>]\n"
           "  Calculate contacts for each frame based on a reference.\n"

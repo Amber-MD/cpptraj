@@ -6,8 +6,8 @@
 class Action_RunningAvg: public Action {
   public:
     Action_RunningAvg();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RunningAvg(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_RunningAvg(); }
+    void Help() const;
   private:
     int Nwindow_;               ///< Size of the running average
     double d_Nwindow_;          ///< For frame division (avoids constant recasting)

@@ -5,8 +5,8 @@
 class Action_CheckStructure : public Action {
   public:
     Action_CheckStructure();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CheckStructure(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_CheckStructure(); }
+    void Help() const;
     // Interface that can be used outside ActionList
     int SeparateInit(bool, std::string const&, std::string const&, std::string const&,
                      double, double, bool, DataFileList&);

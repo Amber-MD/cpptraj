@@ -7,19 +7,19 @@
 // CONSTRUCTOR
 Analysis_CrossCorr::Analysis_CrossCorr() : outfile_(0), matrix_(0) {}
 
-void Analysis_CrossCorr::Help() {
+void Analysis_CrossCorr::Help() const {
   mprintf("\t[name <dsetname>] <dsetarg0> [<dsetarg1> ...] [out <filename>]\n"
           "  Calculate matrix of Pearson product-moment correlation\n"
           "  coefficients between selected data sets.\n");
 }
 
 // Analysis_CrossCorr::Setup()
-Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  outfile_ = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  outfile_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -28,7 +28,7 @@ Analysis::RetType Analysis_CrossCorr::Setup(ArgList& analyzeArgs, DataSetList* d
     return Analysis::ERR;
   }
   // Setup output dataset
-  matrix_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
+  matrix_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, setname, "crosscorr" );
   if (outfile_ != 0) {
     matrix_->SetDim(Dimension::X, Dimension(1.0, 1.0, "DataSets"));
     outfile_->AddDataSet( matrix_ );

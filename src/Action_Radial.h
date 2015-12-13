@@ -7,8 +7,8 @@ class Action_Radial: public Action {
   public:
     Action_Radial();
     ~Action_Radial();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radial(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Radial(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

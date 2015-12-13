@@ -5,8 +5,8 @@
 class Action_Radgyr: public Action {
   public:
     Action_Radgyr();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Radgyr(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Radgyr(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

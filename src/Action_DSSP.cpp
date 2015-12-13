@@ -25,7 +25,7 @@ Action_DSSP::Action_DSSP() :
   BB_CA_("CA")
 {}
 
-void Action_DSSP::Help() {
+void Action_DSSP::Help() const {
   mprintf("\t[<name>] [out <filename>] [<mask>] [sumout <filename>]\n"
           "\t[assignout <filename>] [totalout <filename> [ptrajformat]\n"
           "\t[namen <N name>] [nameh <H name>] [nameca <CA name>]\n"

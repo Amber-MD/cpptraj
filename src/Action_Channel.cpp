@@ -4,10 +4,10 @@
 #include "DataSet_GridFlt.h"
 
 // CONSTRUCTOR
-Action_Channel::Action_Channel() :
+Action_Channel::Action_Channel() : Action(HIDDEN),
   grid_(0), dxyz_(-1.0) {}
 
-void Action_Channel::Help() {
+void Action_Channel::Help() const {
   mprintf("\t<solute mask> [<solvent mask>] [out <file>] [dx <dx> [dy <dy>] [dz <dz>]]\n");
 }
 

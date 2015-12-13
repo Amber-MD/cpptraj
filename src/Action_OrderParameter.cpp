@@ -24,8 +24,7 @@ Action_OrderParameter::Action_OrderParameter() :
   maxbin_(0)
 {}
 
-void Action_OrderParameter::Help()
-{
+void Action_OrderParameter::Help() const {
   mprintf("\tout <filename> [unsat <mask>] [scd] [unsat]\n"
 	  "\t[taildist <filename> delta <resolution>\n"
 	  "\ttailstart <mask> tailend <mask>]\n"

@@ -19,7 +19,7 @@ Action_ClusterDihedral::Action_ClusterDihedral() :
   debug_(0)
 {}
 
-void Action_ClusterDihedral::Help() {
+void Action_ClusterDihedral::Help() const {
   mprintf("\t[phibins <N>] [psibins <M>] [out <outfile>]\n"
           "\t[framefile <framefile>] [clusterinfo <infofile>]\n"
           "\t[clustervtime <cvtfile>] [cut <CUT>]\n"

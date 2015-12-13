@@ -25,7 +25,7 @@ Action_Spam::Action_Spam() :
   overflow_(false)
 { }
 
-void Action_Spam::Help() {
+void Action_Spam::Help() const {
   mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>] [bulk <value>]\n"
           "\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n"
           "\t[site_size <size>] [sphere] [out <datafile>]\n\n"

@@ -34,7 +34,7 @@ Action_Gist::Action_Gist() :
  } 
 
 
-void Action_Gist::Help() {
+void Action_Gist::Help() const {
 //  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [Temp <tval>] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"

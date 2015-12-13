@@ -422,7 +422,7 @@ $AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
  to see the class heirarchy and descriptions.
 \end_layout
 
-\begin_layout Section
+\begin_layout Part
 General Layout and Concepts
 \end_layout
 
@@ -470,7 +470,7 @@ Cpptraj
  The file Command.cpp also contains all of the logic for executing commands.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 CpptrajState
 \end_layout
 
@@ -516,6 +516,15 @@ e in question is added to this list.
 \end_layout
 
 \begin_layout Description
+TrajoutList
+\begin_inset space ~
+\end_inset
+
+trajoutList_; Hold output trajectories to be written during a run.
+ This output occurs after all Actions have been processed.
+\end_layout
+
+\begin_layout Description
 ActionList
 \begin_inset space ~
 \end_inset
@@ -524,15 +533,6 @@ actionList_; Hold all Actions to be executed during a run.
  By default, whenver an Action command is issued the Action in question
  is initialized and queued up in the ActionList, to be processed during
  the next run.
-\end_layout
-
-\begin_layout Description
-TrajoutList
-\begin_inset space ~
-\end_inset
-
-trajoutList_; Hold output trajectories to be written during a run.
- This output occurs after all Actions have been processed.
 \end_layout
 
 \begin_layout Description
@@ -680,6 +680,10 @@ ActionFrame (ActionState.h)
 Used to interface with DoAction(); contains pointer to current Frame.
 \end_layout
 
+\begin_layout Part
+Key Classes And Functions
+\end_layout
+
 \begin_layout Section
 Math-related Classes
 \end_layout
@@ -743,138 +747,6 @@ The following is a brief list of some of the more commonly-used classes
  and functions in Cpptraj.
  Classes are more or less self-documented to a certain extent; this section
  will be focused on how these classes are/should be used.
-\end_layout
-
-\begin_layout Subsection
-Output to STDOUT/STDERR: CpptrajStdio.h
-\end_layout
-
-\begin_layout Standard
-The file CpptrajStdio.cpp contains functions used to write output to standard
- output (STDOUT) and standard error (STDERR).
- This is accomplished with the C printf-like functions mprintf() and mprinterr()
- respectively:
-\end_layout
-
-\begin_layout LyX-Code
-mprintf(const char* format, ...); // STDOUT
-\end_layout
-
-\begin_layout LyX-Code
-mprinterr(const char* format, ...); // STDERR
-\end_layout
-
-\begin_layout Standard
-The 'm' prefix stands for 
-\begin_inset Quotes eld
-\end_inset
-
-master
-\begin_inset Quotes erd
-\end_inset
-
-, and ensures that when CPPTRAJ is running via MPI that only the master
- thread is able to write with these functions (note the same does NOT apply
- for OpenMP).
- The syntax is the same as basic printf - a format string followed by any
- variables.
- There are numerous resources that describe printf syntax in detail.
- Some useful syntax is listed here:
-\end_layout
-
-\begin_layout Description
-%i Integer
-\end_layout
-
-\begin_layout Description
-%f Floating point number
-\end_layout
-
-\begin_layout Description
-%g Use scientific or floating point representation, whichever is shorter.
-\end_layout
-
-\begin_layout Description
-%s Character string
-\end_layout
-
-\begin_layout Description
-%c Single character
-\end_layout
-
-\begin_layout Description
-
-\backslash
-n Newline
-\end_layout
-
-\begin_layout Description
-
-\backslash
-t Tab
-\end_layout
-
-\begin_layout Standard
-For example:
-\end_layout
-
-\begin_layout LyX-Code
-#include 
-\begin_inset Quotes eld
-\end_inset
-
-CpptrajStdio.h
-\begin_inset Quotes erd
-\end_inset
-
-
-\end_layout
-
-\begin_layout LyX-Code
-int myInteger = 3;
-\end_layout
-
-\begin_layout LyX-Code
-double myDouble = 5.43;
-\end_layout
-
-\begin_layout LyX-Code
-string myString = 
-\begin_inset Quotes eld
-\end_inset
-
-easy
-\begin_inset Quotes erd
-\end_inset
-
-;
-\end_layout
-
-\begin_layout LyX-Code
-mprintf(
-\begin_inset Quotes eld
-\end_inset
-
-Using printf is %s; %i is an integer and %f is a double.
-\backslash
-n
-\begin_inset Quotes erd
-\end_inset
-
-,
-\end_layout
-
-\begin_layout LyX-Code
-        myString.c_str(), myInteger, myDouble);
-\end_layout
-
-\begin_layout Standard
-Note that the string function c_str() must be used to print C++ strings.
- Output:
-\end_layout
-
-\begin_layout LyX-Code
-Using printf is easy; 3 is an integer and 5.430000 is a double.
 \end_layout
 
 \begin_layout Subsection
@@ -1968,7 +1840,139 @@ rmsd = selectedTgt.RMSD_CenteredRef( selectedRef, ...
 \end_layout
 
 \begin_layout Section
-Basic File Input/Output
+Console and File Input/Output
+\end_layout
+
+\begin_layout Subsection
+Output to STDOUT/STDERR: CpptrajStdio.h
+\end_layout
+
+\begin_layout Standard
+The file CpptrajStdio.cpp contains functions used to write output to standard
+ output (STDOUT) and standard error (STDERR).
+ This is accomplished with the C printf-like functions mprintf() and mprinterr()
+ respectively:
+\end_layout
+
+\begin_layout LyX-Code
+mprintf(const char* format, ...); // STDOUT
+\end_layout
+
+\begin_layout LyX-Code
+mprinterr(const char* format, ...); // STDERR
+\end_layout
+
+\begin_layout Standard
+The 'm' prefix stands for 
+\begin_inset Quotes eld
+\end_inset
+
+master
+\begin_inset Quotes erd
+\end_inset
+
+, and ensures that when CPPTRAJ is running via MPI that only the master
+ thread is able to write with these functions (note the same does NOT apply
+ for OpenMP).
+ The syntax is the same as basic printf - a format string followed by any
+ variables.
+ There are numerous resources that describe printf syntax in detail.
+ Some useful syntax is listed here:
+\end_layout
+
+\begin_layout Description
+%i Integer
+\end_layout
+
+\begin_layout Description
+%f Floating point number
+\end_layout
+
+\begin_layout Description
+%g Use scientific or floating point representation, whichever is shorter.
+\end_layout
+
+\begin_layout Description
+%s Character string
+\end_layout
+
+\begin_layout Description
+%c Single character
+\end_layout
+
+\begin_layout Description
+
+\backslash
+n Newline
+\end_layout
+
+\begin_layout Description
+
+\backslash
+t Tab
+\end_layout
+
+\begin_layout Standard
+For example:
+\end_layout
+
+\begin_layout LyX-Code
+#include 
+\begin_inset Quotes eld
+\end_inset
+
+CpptrajStdio.h
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+int myInteger = 3;
+\end_layout
+
+\begin_layout LyX-Code
+double myDouble = 5.43;
+\end_layout
+
+\begin_layout LyX-Code
+string myString = 
+\begin_inset Quotes eld
+\end_inset
+
+easy
+\begin_inset Quotes erd
+\end_inset
+
+;
+\end_layout
+
+\begin_layout LyX-Code
+mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Using printf is %s; %i is an integer and %f is a double.
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+,
+\end_layout
+
+\begin_layout LyX-Code
+        myString.c_str(), myInteger, myDouble);
+\end_layout
+
+\begin_layout Standard
+Note that the string function c_str() must be used to print C++ strings.
+ Output:
+\end_layout
+
+\begin_layout LyX-Code
+Using printf is easy; 3 is an integer and 5.430000 is a double.
 \end_layout
 
 \begin_layout Subsection
@@ -3651,36 +3655,75 @@ Add the Action to the Command class
 \begin_layout Standard
 Now that the class implementation is complete, we need to let cpptraj know
  how to call it.
- This is currently done using a static array in Command.cpp called Commands.
- An entry in Commands is called a Command::Token and consists of 5 fields:
+ This is currently done using a 
+\begin_inset Quotes eld
+\end_inset
+
+static
+\begin_inset Quotes erd
+\end_inset
+
+ Class, Command (Command.cpp), which is initialized by the Cpptraj class
+ via Command::Init() when the program starts.
+ Command::Init() makes use of the Command::AddCmd() function to add the
+ Command, set its destination, and any associated keywords.
+ The Command::AddCmd() function looks like:
 \end_layout
 
-\begin_layout Enumerate
-Type: The CommandType (enumerated type), in this case ACTION.
-\end_layout
-
-\begin_layout Enumerate
-Cmd: The keyword (const character string) that will call this action.
-\end_layout
-
-\begin_layout Enumerate
-Alloc: The Allocator, which we previously defined in the header as Alloc().
-\end_layout
-
-\begin_layout Enumerate
-Help: The help function, which we defined in the header and implemented
- as a static void function.
-\end_layout
-
-\begin_layout Enumerate
-Fxn: A function pointer to the static function in Command.cpp which will
- handle this command; all Actions are handled by AddAction.
+\begin_layout LyX-Code
+void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys,
+ ...)
 \end_layout
 
 \begin_layout Standard
-To make navigation of Commands.cpp easier, you can search for INC_ACTION
- (or INC_ANALYSIS if adding an Analysis) to go where things need to be added.
+where 
+\series bold
+oIn
+\series default
+ is a pointer to the DispatchObject (Exec-, Action-, Analysis-, or Deprecated-de
+rived class), 
+\series bold
+dIn
+\series default
+ determines how the Command will be processed, 
+\series bold
+nKeys
+\series default
+ is the number of keywords associated with the command, and the remaining
+ arguments are the command keywords.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+Command::AddCmd( new Action_Rmsd(), Cmd::ACT, 2, "rms", "rmsd" );
+\end_layout
+
+\begin_layout Standard
+Adds a new instance of the Action-derived class Action_Rmsd, sets its destinatio
+n as Action (Cmd::ACT), and sets 2 associated command keys, 
+\begin_inset Quotes eld
+\end_inset
+
+rms
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+To make navigation of Commands.cpp easier, you can search for ACTION (or
+ ANALYSIS if adding an Analysis) to go where things need to be added.
  First add the class to Commands.cpp with the appropriate '#include'.
+ Includes should be in alphabetical order within their given section.
 \end_layout
 
 \begin_layout LyX-Code
@@ -3688,6 +3731,8 @@ To make navigation of Commands.cpp easier, you can search for INC_ACTION
 \end_layout
 
 \begin_layout LyX-Code
+
+\series bold
 #include "Action_Distance.h"
 \end_layout
 
@@ -3696,32 +3741,22 @@ To make navigation of Commands.cpp easier, you can search for INC_ACTION
 \end_layout
 
 \begin_layout Standard
-Then will add the command entry to commands in the appropriate section (in
- this case DispatchObject::ACTION) alphabetically by keyword.
- The final array can look like e.g.:
+Then add the command to Command::Init() using Command::AddCmd(), e.g.:
 \end_layout
 
 \begin_layout LyX-Code
-const DispatchObject::Token Command::Commands[] = {
+Command::AddCmd( new Action_Dipole(), Cmd::ACT, 1, "dipole" );
 \end_layout
 
 \begin_layout LyX-Code
-  { ACTION, "dipole", Action_Dipole::Alloc, Action_Dipole::Help, AddAction
- },
+
+\series bold
+Command::AddCmd( new Action_Distance(), Cmd::ACT, 1, "distance" );
 \end_layout
 
 \begin_layout LyX-Code
-  { ACTION, "distance", Action_Distance::Alloc, Action_Distance::Help, AddAction
- },
-\end_layout
-
-\begin_layout LyX-Code
-  { ACTION, "drms", Action_DistRmsd::Alloc, Action_DistRmsd::Help, AddAction
- },
-\end_layout
-
-\begin_layout LyX-Code
-};
+Command::AddCmd( new Action_DistRmsd(), Cmd::ACT, 2, "drms", "drmsd" );
+ 
 \end_layout
 
 \begin_layout Standard

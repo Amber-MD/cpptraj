@@ -3,7 +3,7 @@
 
 Action_Box::Action_Box() : nobox_(false) {}
 
-void Action_Box::Help() {
+void Action_Box::Help() const {
   mprintf("\t[x <xval>] [y <yval>] [z <zval>] [alpha <a>] [beta <b>] [gamma <g>]\n"
           "\t[nobox] [truncoct]\n"
           "  For each input frame, replace any box information with the information given.\n");

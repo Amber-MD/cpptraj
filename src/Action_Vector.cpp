@@ -16,7 +16,7 @@ Action_Vector::Action_Vector() :
   outfile_(0)
 {}
 
-void Action_Vector::Help() {
+void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
           "\t<Type> = { mask | minimage  | dipole | center | corrplane | \n"

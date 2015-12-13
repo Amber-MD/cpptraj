@@ -7,8 +7,8 @@ class Action_FixAtomOrder: public Action {
   public:
     Action_FixAtomOrder();
     ~Action_FixAtomOrder();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_FixAtomOrder(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_FixAtomOrder(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

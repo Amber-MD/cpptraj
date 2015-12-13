@@ -7,7 +7,7 @@
 Action_Strip::Action_Strip() :
   newParm_(0), newCinfo_(0), masterDSL_(0), removeBoxInfo_(false) {}
 
-void Action_Strip::Help() {
+void Action_Strip::Help() const {
   mprintf("\t<mask> [outprefix <name>] [parmout <file>] [nobox]\n"
           "  Strip atoms in <mask> from the system.\n");
 }

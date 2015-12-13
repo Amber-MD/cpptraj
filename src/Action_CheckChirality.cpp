@@ -5,7 +5,7 @@
 // CONSTRUCTOR
 Action_CheckChirality::Action_CheckChirality() : outfile_(0) {}
 
-void Action_CheckChirality::Help() {
+void Action_CheckChirality::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
           "  Check the chirality of AA residues in <mask1>.\n");
 }

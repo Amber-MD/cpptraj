@@ -11,8 +11,8 @@
 class Action_NativeContacts : public Action {
   public:
     Action_NativeContacts();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_NativeContacts(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_NativeContacts(); }
+    void Help() const;
   private:
     typedef std::vector<int> Iarray;
     Action::RetType Init(ArgList&, ActionInit&, int);

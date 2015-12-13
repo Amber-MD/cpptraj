@@ -4,8 +4,8 @@
 class Action_AutoImage : public Action {
   public:
     Action_AutoImage();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_AutoImage(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_AutoImage(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

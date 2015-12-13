@@ -1,7 +1,7 @@
 #include "Analysis_MeltCurve.h"
 #include "CpptrajStdio.h"
 
-void Analysis_MeltCurve::Help() {
+void Analysis_MeltCurve::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [out <outfile>] [name <outsetname>] cut <cut>\n"
           "  Calculate melting curve from input data sets assuming a simple 2-state\n"
           "  transition model, using data below <cut>as 'folded' and data above <cut>\n"
@@ -9,23 +9,23 @@ void Analysis_MeltCurve::Help() {
 }
 
 // Analysis_MeltCurve::Setup()
-Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_MeltCurve::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   std::string setname = analyzeArgs.GetStringKey("name");
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   cut_ = analyzeArgs.getKeyDouble("cut", -1.0);
   if (cut_ < 0.0) {
     mprinterr("Error: meltcurve: 'cut <cut>' must be specified and > 0.0\n");
     return Analysis::ERR;
   }
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: meltcurve: could not add data sets.\n");
     return Analysis::ERR;
   }
 
   // Set up output dataset
-  mcurve_ = datasetlist->AddSet(DataSet::DOUBLE, setname, "Melt");
+  mcurve_ = setup.DSL().AddSet(DataSet::DOUBLE, setname, "Melt");
   if (mcurve_ == 0) return Analysis::ERR;
   // Add dataset to datafile
   if (outfile != 0) outfile->AddDataSet( mcurve_ );

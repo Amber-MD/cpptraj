@@ -13,7 +13,7 @@ Action_Radgyr::Action_Radgyr() :
   useMass_(false)
 { } 
 
-void Action_Radgyr::Help() {
+void Action_Radgyr::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>] [mass] [nomax] [tensor]\n"
           "  Calculate radius of gyration of atoms in <mask>\n");
 }

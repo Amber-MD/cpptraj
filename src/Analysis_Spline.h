@@ -6,10 +6,10 @@
 class Analysis_Spline : public Analysis {
   public:
     Analysis_Spline();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Spline(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Spline(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataFile* outfile_; // FIXME: May not need to be class var
