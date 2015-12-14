@@ -103,6 +103,7 @@ test.cluster:
 	@-cd Test_Cluster_DataSet && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_DBSCAN && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Kmeans && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_SymmRMSD && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_TrajWrites && ./RunTest.sh $(OPT)
 
 test.ired:
@@ -240,6 +241,9 @@ test.timecorr:
 test.crosscorr:
 	@-cd Test_CrossCorr && ./RunTest.sh $(OPT)
 
+test.symmrmsd:
+	@-cd Test_SymmRmsd && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -297,7 +301,8 @@ SHORT_TESTS=test.general \
           test.lifetime \
           test.fft \
           test.timecorr \
-          test.crosscorr
+          test.crosscorr \
+          test.symmrmsd
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -376,7 +381,8 @@ COMPLETETESTS=test.general \
               test.lifetime \
               test.fft \
               test.timecorr \
-              test.crosscorr
+              test.crosscorr \
+              test.symmrmsd
 
 test: test.all 
 
