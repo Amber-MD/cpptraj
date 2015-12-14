@@ -223,7 +223,7 @@ test.multivector:
 	@cd Test_MultiVector && ./RunTest.sh $(OPT)
 
 # Only crucial/non-time-consuming tests should go here.
-MAINTESTS=test.general \
+SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
           test.traj \
@@ -352,21 +352,23 @@ COMPLETETESTS=test.general \
               test.loadcrd \
               test.multivector
 
-summary: Summary.sh MasterTest.sh
-	@./Summary.sh $(OPT) summary
-
-test.main: $(MAINTESTS)
-
-test.complete: $(COMPLETETESTS)
-
-test: 
-	$(MAKE) test.main
+test: test.all 
 
 test.all:
 	$(MAKE) test.complete summary
 
+test.complete: $(COMPLETETESTS)
+
+test.short:
+	$(MAKE) test.shorttests summary
+
+test.shorttests: $(SHORT_TESTS)
+
+summary: Summary.sh MasterTest.sh
+	@./Summary.sh $(OPT) summary
+
 test.vg:
-	$(MAKE) test.main OPT="$(OPT) vg"
+	$(MAKE) test.complete summary OPT="$(OPT) vg"
 
 clean:
 	@echo "Cleaning all test directories:"
