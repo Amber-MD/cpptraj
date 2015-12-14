@@ -225,6 +225,9 @@ test.multivector:
 test.lifetime:
 	@cd Test_Lifetime && ./RunTest.sh $(OPT)
 
+test.fft:
+	@cd Test_FFT && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -279,7 +282,8 @@ SHORT_TESTS=test.general \
           test.autoimage \
           test.loadcrd \
           test.multivector \
-          test.lifetime
+          test.lifetime \
+          test.fft
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -355,7 +359,8 @@ COMPLETETESTS=test.general \
               test.autoimage \
               test.loadcrd \
               test.multivector \
-              test.lifetime
+              test.lifetime \
+              test.fft
 
 test: test.all 
 

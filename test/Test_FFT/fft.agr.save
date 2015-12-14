@@ -1,0 +1,11 @@
+@with g0
+@  xaxis label "Freq."
+@  yaxis label ""
+@  legend 0.2, 0.995
+@  legend char size 0.60
+@  s0 legend "sin_4pt.agr:0"
+@target G0.S0
+@type xy
+   0.000       0.0000
+  10.000       1.0000
+  20.000       0.0000
