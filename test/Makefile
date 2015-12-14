@@ -244,6 +244,9 @@ test.crosscorr:
 test.symmrmsd:
 	@-cd Test_SymmRmsd && ./RunTest.sh $(OPT)
 
+test.multidihedral:
+	@-cd Test_Multidihedral && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -302,7 +305,8 @@ SHORT_TESTS=test.general \
           test.fft \
           test.timecorr \
           test.crosscorr \
-          test.symmrmsd
+          test.symmrmsd \
+          test.multidihedral
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -382,7 +386,8 @@ COMPLETETESTS=test.general \
               test.fft \
               test.timecorr \
               test.crosscorr \
-              test.symmrmsd
+              test.symmrmsd \
+              test.multidihedral
 
 test: test.all 
 
