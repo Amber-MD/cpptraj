@@ -102,6 +102,7 @@ test.cluster:
 	@-cd Test_Cluster_DataSet && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_DBSCAN && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Kmeans && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_TrajWrites && ./RunTest.sh $(OPT)
 
 test.ired:
 	@-cd Test_IRED && ./RunTest.sh $(OPT)
