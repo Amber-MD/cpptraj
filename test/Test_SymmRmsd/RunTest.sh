@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles rms.in rmsd?.dat rmsd.dat rotate.in
+CleanFiles rms.in rmsd?.dat rmsd.dat rotate.in srms.in *.rmsd.dat \
+           TYR.remap.crd ASP.remap.crd GLU.remap.crd
 
 Rotate() {
   INPUT="-i rotate.in"
@@ -33,8 +34,25 @@ EOF
   DoTest rmsd.dat.save rmsd.dat
 }
 
+STest() {
+  INPUT="-i srms.in"
+  cat > srms.in <<EOF
+parm $1.parm7
+trajin $1.nc
+rms first out $1.rmsd.dat NOSYMM
+symmrmsd first out $1.rmsd.dat SYMM remap
+trajout $1.remap.crd
+EOF
+  RunCpptraj "$1 symm rmsd test."
+  DoTest $1.rmsd.dat.save $1.rmsd.dat
+  DoTest $1.remap.crd.save $1.remap.crd
+}
+
 #Rotate
 Rms
+STest ASP
+STest GLU
+STest TYR
 
 EndTest
 exit 0
