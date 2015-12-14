@@ -30,6 +30,18 @@ RunCpptraj "Partial Surface calculation test."
 DoTest tsurf.dat.save tsurf.dat
 CheckTest
 
+# Test 3
+INPUT="-i cpptraj.in"
+TOP=""
+cat > cpptraj.in <<EOF
+parm RAL.sol.top
+trajin RAL.crd
+surf S0 out ral.surf.dat
+EOF
+RunCpptraj "LCPO test with GAFF atom types."
+DoTest ral.surf.dat.save ral.surf.dat
+
+
 EndTest
 
 exit 0
