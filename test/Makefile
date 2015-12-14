@@ -98,6 +98,7 @@ test.jcoupling:
 
 test.cluster:
 	@-cd Test_Cluster && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_Sieve && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_DataSet && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_DBSCAN && ./RunTest.sh $(OPT)
 	@-cd Test_Cluster_Kmeans && ./RunTest.sh $(OPT)
