@@ -52,7 +52,7 @@ after_build:
   - find C:/msys64/usr/local
 
 test_script:
-  - sh -lc "cd test; make test OPT=-cpptraj $(pwd)/../bin/cpptraj.exe"
+  - sh -lc "cd test; make test"
 
 artifacts:
   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip

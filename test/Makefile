@@ -402,7 +402,7 @@ test.short:
 test.shorttests: $(SHORT_TESTS)
 
 summary: Summary.sh MasterTest.sh
-	@./Summary.sh $(OPT) summary
+	@./Summary.sh summary $(OPT)
 
 test.vg:
 	$(MAKE) test.complete summary OPT="$(OPT) vg"
