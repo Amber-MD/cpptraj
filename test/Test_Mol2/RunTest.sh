@@ -37,13 +37,18 @@ EOF
 RunCpptraj "Amber Top/Rst => Mol2"
 DoTest test1.mol2.save test1.mol2
 
-cat > mol2.in <<EOF
+# SYBYL atom type conversion requires data in AMBERHOME
+if [[ ! -z $AMBERHOME ]] ; then
+  cat > mol2.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.rst7
 trajout test2.mol2 sybyltype
 EOF
-RunCpptraj "Amber Top/Rst => Mol2, SYBYL atom types"
-DoTest test2.mol2.save test2.mol2
+  RunCpptraj "Amber Top/Rst => Mol2, SYBYL atom types"
+  DoTest test2.mol2.save test2.mol2
+else
+  echo "Amber to SYBYL atom type conversion test requires AMBERHOME be set."
+fi
 
 EndTest
 
