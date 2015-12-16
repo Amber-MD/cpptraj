@@ -5,14 +5,15 @@
 class Analysis_CurveFit : public Analysis {
   public:
     Analysis_CurveFit();
-    Analysis_CurveFit(DataSet*, int, ArgList&, DataSetList*, DataFileList*, int);
+    Analysis_CurveFit(DataSet*, int, ArgList&, DataSetList&, DataFileList&, int);
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CurveFit(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_CurveFit(); }
+    static void HelpText(); ///< For use in Analysis_MultiCurve
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    Analysis::RetType Internal_setup(std::string const&, ArgList&, DataSetList*, DataFileList*, int);
+    Analysis::RetType Internal_setup(std::string const&, ArgList&, DataSetList&, DataFileList&, int);
 
     enum EqFormType { GENERAL = 0, MEXP, MEXP_K, MEXP_K_PENALTY, GAUSS };
     std::string equation_; ///< Equation to fit.

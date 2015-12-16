@@ -259,18 +259,24 @@ void Topology::PrintAtomInfo(std::string const& maskString) const {
   else {
     int width = DigitWidth(atoms_.size());
     if (width < 5) width = 5;
-    loudPrintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s\n", 
+    loudPrintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s",
                width, "#Atom", "Name", 
                width, "#Res",  "Name",
                width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
+    if (nonbond_.HasNonbond())
+      loudPrintf(" %8s %8s", "rVDW", "eVDW");
+    loudPrintf("\n");
     for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
       const Atom& atom = atoms_[*atnum];
       int resnum = atom.ResNum();
-      loudPrintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s\n", 
+      loudPrintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s",
                  width, *atnum+1, atom.c_str(), 
                  width, resnum+1, residues_[resnum].c_str(),
                  width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
                  atom.Mass(), atom.GBRadius(), atom.ElementName());
+      if (nonbond_.HasNonbond())
+        loudPrintf(" %8.4f %8.4f", GetVDWradius(*atnum), GetVDWdepth(*atnum));
+      loudPrintf("\n");
     }
   }
 }
@@ -819,6 +825,14 @@ double Topology::GetVDWradius(int a1) const {
   NonbondType const& LJ = GetLJparam(a1, a1);
   if (LJ.B() > 0.0)
     return ( 0.5 * pow(2.0 * LJ.A() / LJ.B(), (1.0/6.0)) );
+  else
+    return 0.0;
+}
+
+double Topology::GetVDWdepth(int a1) const {
+  NonbondType const& LJ = GetLJparam(a1, a1);
+  if (LJ.A() > 0.0)
+    return ( (LJ.B() * LJ.B()) / (4.0 * LJ.A()) );
   else
     return 0.0;
 }

@@ -4,8 +4,8 @@
 class Action_Translate : public Action {
   public:
     Action_Translate();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Translate(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Translate(); }
+    void Help() const;
   private:
     Vec3 Trans_;
     AtomMask mask_;

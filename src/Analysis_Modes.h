@@ -7,12 +7,12 @@ class Analysis_Modes : public Analysis {
   public:
     Analysis_Modes();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Modes(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Modes(); }
+    void Help() const;
 
     ~Analysis_Modes();
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     static const double CONSQ;

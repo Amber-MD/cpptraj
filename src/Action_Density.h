@@ -23,11 +23,9 @@ class Action_Density : public Action, ImagedAction {
 public:
   Action_Density();
 
-  static DispatchObject* Alloc() {
-    return (DispatchObject*) new Action_Density();
-  }
+    DispatchObject* Alloc() const { return (DispatchObject*) new Action_Density(); }
     
-  static void Help();
+    void Help() const;
 
 private:
   Action::RetType Init(ArgList&, ActionInit&, int);

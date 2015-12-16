@@ -6,8 +6,8 @@
 class Action_Grid : public Action, private GridAction {
   public:
     Action_Grid();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Grid(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Grid(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -23,6 +23,7 @@ class Action_Grid : public Action, private GridAction {
     double madura_;
     double smooth_;
     unsigned int nframes_;
+    int debug_;
     bool invert_;
     AtomMask mask_;
     CpptrajFile* pdbfile_;

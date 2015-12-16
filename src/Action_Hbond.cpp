@@ -33,7 +33,7 @@ Action_Hbond::Action_Hbond() :
   masterDSL_(0)
 {}
 
-void Action_Hbond::Help() {
+void Action_Hbond::Help() const {
   mprintf("\t[<dsname>] [out <filename>] [<mask>] [angle <acut>] [dist <dcut>]\n"
           "\t[donormask <dmask> [donorhmask <dhmask>]] [acceptormask <amask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
@@ -406,13 +406,13 @@ Action::RetType Action_Hbond::Setup(ActionSetup& setup) {
   // If calculating solvent every U acceptor can have V donor etc.
   if (calcSolvent_)
     nPairs += (Acceptor_.size() + Donor_.size()/2);
-  mprintf("\tEstimated max potential memory usage: %.2f MB\n", 
-          MemoryUsage(nPairs, masterDSL_->MaxFrames()));
+  mprintf("\tEstimated max potential memory usage: %s\n",
+          MemoryUsage(nPairs, masterDSL_->MaxFrames()).c_str());
 
   return Action::OK;
 }
 
-double Action_Hbond::MemoryUsage(size_t nPairs, size_t nFrames) const {
+std::string Action_Hbond::MemoryUsage(size_t nPairs, size_t nFrames) const {
   static const size_t HBmapTypeElt = 32 + sizeof(int) + 
                                      (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
   static const size_t BridgeTypeElt = 32 + sizeof(std::set<int>) + sizeof(int);
@@ -427,7 +427,7 @@ double Action_Hbond::MemoryUsage(size_t nPairs, size_t nFrames) const {
   for (BridgeType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (it->first.size() * sizeof(int));
   memTotal += (BridgeMap_.size() * BridgeTypeElt);
-  return (double)memTotal / (1024*1024);
+  return ByteString( memTotal, BYTE_DECIMAL );
 }
 
 double Action_Hbond::ImagedAngle(const double* xyz_a, const double* xyz_h, const double* xyz_d) const
@@ -778,8 +778,8 @@ void Action_Hbond::Print() {
   std::string Aname, Hname, Dname;
 
   // Final memory usage
-  mprintf("    HBOND: Actual memory usage is %.2f MB\n",
-          MemoryUsage(HbondMap_.size()+SolventMap_.size(), Nframes_));
+  mprintf("    HBOND: Actual memory usage is %s\n",
+          MemoryUsage(HbondMap_.size()+SolventMap_.size(), Nframes_).c_str());
   mprintf("\t%zu solute-solute hydrogen bonds.\n", HbondMap_.size());
   if (calcSolvent_) {
    mprintf("\t%zu solute-solvent hydrogen bonds.\n", SolventMap_.size());

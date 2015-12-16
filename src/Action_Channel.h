@@ -5,8 +5,8 @@
 class Action_Channel : public Action {
   public:
     Action_Channel();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Channel(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Channel(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

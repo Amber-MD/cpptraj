@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "Constants.h" // ELECTOAMBER
+#include "StringRoutines.h" // ByteString()
 
 // CONSTRUCTOR
 Action_Pairwise::Action_Pairwise() :
@@ -22,7 +23,7 @@ Action_Pairwise::Action_Pairwise() :
   Eout_(0)
 {} 
 
-void Action_Pairwise::Help() {
+void Action_Pairwise::Help() const {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
           "\t[ %s ] [cutout <cut mol2 prefix>]\n"
           "\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
@@ -116,9 +117,9 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   if (nb_calcType_ == COMPARE_REF) { 
     mprintf("\tReference %s, mask [%s]\n", REF.refName(), RefMask_.MaskString());
     mprintf("\tReference energy (kcal/mol): EVDW= %12.5e  EELEC= %12.5e\n", ELJ_, Eelec_);
-    mprintf("\tSize of reference energy array is %zu elements (%.4f MB)\n",
+    mprintf("\tSize of reference energy array is %zu elements (%s)\n",
             ref_nonbondEnergy_.size(),
-            (double)(ref_nonbondEnergy_.size() * 2 * sizeof(double)) / 1024000.0);
+            ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
   mprintf("\tEelec absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
   mprintf("\tEvdw absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);

@@ -5,7 +5,7 @@
 
 Action_SetVelocity::Action_SetVelocity() : tempi_(0.0) {}
 
-void Action_SetVelocity::Help() {
+void Action_SetVelocity::Help() const {
   mprintf("\t[<mask>] [tempi <temperature>] [ig <random seed>]\n"
           "  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
           "  based on given temperature.\n");

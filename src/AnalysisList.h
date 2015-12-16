@@ -1,7 +1,7 @@
 #ifndef INC_ANALYSISLIST_H
 #define INC_ANALYSISLIST_H
 #include "Analysis.h"
-/// Hold all analyses to be performed.
+/// Hold all Analyses to be performed.
 class AnalysisList {
   public:
     AnalysisList();
@@ -9,22 +9,20 @@ class AnalysisList {
     void Clear(); 
     void SetDebug(int);
     int Debug() const { return debug_; }
-    int AddAnalysis(DispatchObject::DispatchAllocatorType, ArgList&,
-                    DataSetList*, DataFileList*);
+    int AddAnalysis(Analysis*, ArgList&, AnalysisSetup&);
     int DoAnalyses();
     void List() const;
     bool Empty() const { return analysisList_.empty(); }
   private:
     /// Analysis setup status
     enum AnalysisStatusType { NO_SETUP = 0, SETUP, INACTIVE };
-    typedef std::vector<Analysis*> aListType;
-    /// List of analyses
-    aListType analysisList_;
-    /// List of analysis commands
-    std::vector<std::string> analysisCmd_;
-    /// List of analysis statuses
-    std::vector<AnalysisStatusType> analysisStatus_;
-    /// Default debug level for analyses
-    int debug_;
+    struct AnaHolder {
+      Analysis* ptr_;             ///< Pointer to Analysis
+      ArgList args_;              ///< Arguments associated with Analysis
+      AnalysisStatusType status_; ///< Current Analysis status.
+    };
+    typedef std::vector<AnaHolder> Aarray;
+    Aarray analysisList_; ///< List of Analyses
+    int debug_;           ///< Default debug level for new Analyses
 };
 #endif

@@ -3,7 +3,7 @@
 #include "DataSet_Mesh.h"
 #include "StringRoutines.h" // integerToString
 
-void Analysis_TI::Help() {
+void Analysis_TI::Help() const {
   mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>} [nskip <# to skip>]\n"
           "\t[name <set name>] [out <file>]\n" 
           "  Calculate free energy from Amber TI output.\n");
@@ -75,7 +75,7 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
 }
 
 // Analysis_TI::Setup()
-Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   int nq = analyzeArgs.getKeyInt("nq", 0);
   ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
@@ -95,10 +95,10 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
       xval_.push_back( xArgs.getNextDouble(0.0) );
   }
   std::string setname = analyzeArgs.GetStringKey("name");
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* curveout = DFLin->AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -118,14 +118,13 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, DataSetList* datasetl
                input_dsets_.size(), xval_.size());
     return Analysis::ERR;
   }
-
-  dAout_ = datasetlist->AddSet(DataSet::XYMESH, setname, "TI");
+  dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( dAout_ );
   MetaData md(dAout_->Meta().Name(), "TIcurve");
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
     md.SetIdx( *it );
-    DataSet* ds = datasetlist->AddSet(DataSet::XYMESH, md);
+    DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
     if (ds == 0) return Analysis::ERR;
     ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
     if (curveout != 0) curveout->AddDataSet( ds );

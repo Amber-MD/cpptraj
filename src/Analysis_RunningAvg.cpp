@@ -5,33 +5,33 @@
 // CONSTRUCTOR
 Analysis_RunningAvg::Analysis_RunningAvg() : cumulative_(false), window_(5) {}
 
-void Analysis_RunningAvg::Help() {
+void Analysis_RunningAvg::Help() const {
   mprintf("\t<dset1> [<dset2> ...] [name <dsetname>] [out <filename>]\n"
           "\t[ [cumulative] | [window <window>] ]\n"
           "  Calculate running average of data in selected data set(s)\n");
 }
 
 // Analysis_RunningAvg::Setup()
-Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, DataSetList* datasetlist,  DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_RunningAvg::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   std::string setname = analyzeArgs.GetStringKey("name");
   cumulative_ = analyzeArgs.hasKey("cumulative");
   window_ = analyzeArgs.getKeyDouble("window", 5);
 
   // The remaining arguments are the data sets to take running averages of
-  if (dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: runningavg: Could not add data sets.\n");
     return Analysis::ERR;
   }
 
   // If setname is empty, generate a default name
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName( "runningavg" );
+    setname = setup.DSL().GenerateDefaultName( "runningavg" );
   // Setup output datasets. Use XY Mesh so X can be avgd as well.
   int idx = 0;
   for (Array1D::const_iterator DS = dsets_.begin(); DS != dsets_.end(); ++DS) {
-    DataSet* dsout = datasetlist->AddSet(DataSet::XYMESH, MetaData(setname, idx++));
+    DataSet* dsout = setup.DSL().AddSet(DataSet::XYMESH, MetaData(setname, idx++));
     if (dsout == 0)
       return Analysis::ERR;
     dsout->SetLegend( "RunAvg(" + (*DS)->Meta().Legend() + ")" );

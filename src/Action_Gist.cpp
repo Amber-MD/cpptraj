@@ -34,9 +34,9 @@ Action_Gist::Action_Gist() :
  } 
 
 
-void Action_Gist::Help() {
+void Action_Gist::Help() const {
 //  mprintf("<watermodel>[{tip3p|tip4p|tip4pew}] [doorder] [doeij] [gridcntr <xval> <yval> <zval>] [griddim <xval> <yval> <zval>] [gridspacn <spaceval>] [out <filename>] \n");
-  mprintf("\t[doorder] [doeij] [refdens <rdval>] [gridcntr <xval> <yval> <zval>]\n"
+  mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [Temp <tval>] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
           "\t[out <filename>]\n");
 /*  mprintf("\tGIST needs the specification of the water model being used. Supported water models are: \n");
@@ -86,6 +86,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
 */
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
+  skipE_ = actionArgs.hasKey("skipE");
   gridspacn_ = actionArgs.getKeyDouble("gridspacn", 0.50);
   // Set Bulk Energy based on water model
 /*  if (useTIP3P_) BULK_E_ = -19.0653;
@@ -100,6 +101,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
 */  
   // Set Bulk Density 55.5M
   BULK_DENS_ = actionArgs.getKeyDouble("refdens", -1);
+  Temp = actionArgs.getKeyDouble("temp", -1);
   // Grid center
   if ( actionArgs.hasKey("gridcntr") ) {
     gridcntr_[0] = actionArgs.getNextDouble(-1);
@@ -148,6 +150,10 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
     else if ( BULK_DENS_ < (0.0334*0.8) )
       mprintf("Warning: water reference density is low, consider using 0.0334 for 1g/cc water density\n");
   }
+  if (Temp < 0) {
+    Temp = 300.0;
+    mprintf("\tNo simulation temperature specified, using default: %6.4f\n", Temp);
+  }
   mprintf("\tGIST grid center: %5.3f %5.3f %5.3f\n", gridcntr_[0],gridcntr_[1],gridcntr_[2]);
   mprintf("\tGIST grid dimension: %d %d %d \n", griddim_[0],griddim_[1],griddim_[2]);
   mprintf("\tGIST grid spacing: %5.3f A^3\n", gridspacn_);
@@ -168,11 +174,6 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
   NFRAME_ = 0;
   max_nwat_ = 0;
-  // Check for LJ info
-  if (!setup.Top().Nonbond().HasNonbond()) {
-    mprinterr("Error: Topology '%s' does not have LJ information.\n", setup.Top().c_str());
-    return Action::ERR;
-  }
 
   MAX_GRID_PT_ = griddim_[0] * griddim_[1] * griddim_[2];
   Vvox_ = gridspacn_*gridspacn_*gridspacn_;
@@ -185,9 +186,9 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   mprintf("\tGIST number of voxels: %d, voxel volume: %f A^3\n",  MAX_GRID_PT_, Vvox_);
 
   // Set up grid origin
-  gridorig_[0] = gridcntr_[0] - 0.5*griddim_[0]*gridspacn_ - 0.5*gridspacn_;
-  gridorig_[1] = gridcntr_[1] - 0.5*griddim_[1]*gridspacn_ - 0.5*gridspacn_;
-  gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_ - 0.5*gridspacn_;
+  gridorig_[0] = gridcntr_[0] - 0.5*griddim_[0]*gridspacn_;
+  gridorig_[1] = gridcntr_[1] - 0.5*griddim_[1]*gridspacn_;
+  gridorig_[2] = gridcntr_[2] - 0.5*griddim_[2]*gridspacn_;
   mprintf("\tGIST grid origin: %5.3f %5.3f %5.3f\n", 
           gridorig_[0], gridorig_[1], gridorig_[2]);
 
@@ -247,13 +248,22 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
     for (int a=1; a<MAX_GRID_PT_; a++)
       for (int l=0; l<a; l++) ww_Eij_[a][l]=0.0;  
   }
-  the_vox_.clear();
-  the_vox_.resize(MAX_GRID_PT_);
-  phi_vox_.clear();
-  phi_vox_.resize(MAX_GRID_PT_);
-  psi_vox_.clear();
-  psi_vox_.resize(MAX_GRID_PT_);
-
+  x_vox_.clear();
+  x_vox_.resize(MAX_GRID_PT_);
+  y_vox_.clear();
+  y_vox_.resize(MAX_GRID_PT_);
+  z_vox_.clear();
+  z_vox_.resize(MAX_GRID_PT_);
+  q0_vox_.clear();
+  q0_vox_.resize(MAX_GRID_PT_);
+  q1_vox_.clear();
+  q1_vox_.resize(MAX_GRID_PT_);
+  q2_vox_.clear();
+  q2_vox_.resize(MAX_GRID_PT_);
+  q3_vox_.clear();
+  q3_vox_.resize(MAX_GRID_PT_);
+  
+  
   dTStrans_dens_.clear();
   dTStrans_dens_.resize(MAX_GRID_PT_, 0.0);
   dTStrans_norm_.clear();
@@ -262,6 +272,10 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
   dTSorient_dens_.resize(MAX_GRID_PT_, 0.0);
   dTSorient_norm_.clear();
   dTSorient_norm_.resize(MAX_GRID_PT_, 0.0);
+  dTSsix_norm_.clear();
+  dTSsix_norm_.resize(MAX_GRID_PT_, 0.0);
+  dTSsix_dens_.clear();
+  dTSsix_dens_.resize(MAX_GRID_PT_, 0.0);
 
   nwat_.clear();
   nwat_.resize(MAX_GRID_PT_, 0);
@@ -326,23 +340,41 @@ Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
   for (solvmol_ = CurrentParm_->MolStart();
        solvmol_ != CurrentParm_->MolEnd(); ++solvmol_)
   {
-    resindex1_++;
-    if (!solvmol_->IsSolvent()) continue;
-    gist_grid_.Start();
-    Grid( frm.Frm() );
-    gist_grid_.Stop();
-    voxel_ = gridwat_[resnum_];
-    resnum_++;
-    gist_nonbond_.Start();
-    NonbondEnergy( frm.Frm() );
-    gist_nonbond_.Stop();
-    if (voxel_ >= MAX_GRID_PT_) continue;
-    gist_euler_.Start();
-    EulerAngle( frm.Frm() );
-    gist_euler_.Stop();
-    gist_dipole_.Start();
-    Dipole( frm.Frm() );
-    gist_dipole_.Stop();
+    if (skipE_) {
+      resindex1_++;
+      if (!solvmol_->IsSolvent()) continue;
+      gist_grid_.Start();
+      Grid( frm.Frm() );
+      gist_grid_.Stop();
+      voxel_ = gridwat_[resnum_];
+      resnum_++;
+      if (voxel_ >= MAX_GRID_PT_) continue;
+      gist_euler_.Start();
+      EulerAngle( frm.Frm() );
+      gist_euler_.Stop();
+      gist_dipole_.Start();
+      Dipole( frm.Frm() );
+      gist_dipole_.Stop();
+    }
+    else {
+      resindex1_++;
+      if (!solvmol_->IsSolvent()) continue;
+      gist_grid_.Start();
+      Grid( frm.Frm() );
+      gist_grid_.Stop();
+      voxel_ = gridwat_[resnum_];
+      resnum_++;
+      gist_nonbond_.Start();
+      NonbondEnergy( frm.Frm() );
+      gist_nonbond_.Stop();
+      if (voxel_ >= MAX_GRID_PT_) continue;
+      gist_euler_.Start();
+      EulerAngle( frm.Frm() );
+      gist_euler_.Stop();
+      gist_dipole_.Start();
+      Dipole( frm.Frm() );
+      gist_dipole_.Stop();
+    }
   }
   if(doOrder_) Order( frm.Frm() );
   
@@ -520,97 +552,108 @@ void Action_Gist::Grid(Frame const& frameIn) {
 // Action_Gist::EulerAngle()
 void Action_Gist::EulerAngle(Frame const& frameIn) {
   //if (NFRAME_==1) mprintf("GIST Euler Angles \n");
-  Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v;
-  double dp;
+  Vec3 x_lab, y_lab, z_lab, O_wat, H1_wat, H2_wat, x_wat, y_wat, z_wat, node, v, ar1, ar2, ar3;
+  //double dp; double w1, w2, w3, w4, w5, x1, x2, x3, x4, x5, y1, y2, y3, y4, y5, z1, z2, z3, z4, z5;
+  double w1, w2, w3, w4, x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4;
+  //double dp1, dp2, dp3, sign; Vec3 sar, H_temp, H_temp2;
+  double dp1, dp2, sign; Vec3 sar, H_temp, H_temp2;
 
   int i = solvmol_->BeginAtom();
   O_wat = Vec3(frameIn.XYZ(i));
+  x_vox_[voxel_].push_back(O_wat[0]); y_vox_[voxel_].push_back(O_wat[1]); z_vox_[voxel_].push_back(O_wat[2]);
   H1_wat = Vec3(frameIn.XYZ(i+1)) - O_wat;
   H2_wat = Vec3(frameIn.XYZ(i+2)) - O_wat;
-  
+  //Steve
+  O_wat = O_wat - O_wat;
+
   // make sure the first three atoms are oxygen followed by two hydrogen
   if ((*CurrentParm_)[i].Element() != Atom::OXYGEN) {
     mprintf("Warning: GIST: First coordinates do not belong to oxygen atom (%s)\n",
             (*CurrentParm_)[i].ElementName());
   }
-  if ((*CurrentParm_)[i+1].Element() != Atom::HYDROGEN || 
+  if ((*CurrentParm_)[i+1].Element() != Atom::HYDROGEN ||
       (*CurrentParm_)[i+2].Element() != Atom::HYDROGEN)
   {
     mprintf("Warning: GIST: second and third coordinates do not belong to hydrogen atoms (%s, %s)\n",
             (*CurrentParm_)[i+1].ElementName(), (*CurrentParm_)[i+2].ElementName());
-  } 
-  
+  }
+
   // Define lab frame of reference
   x_lab[0]=1.0; x_lab[1]=0;   x_lab[2]=0;
   y_lab[0]=0;   y_lab[1]=1.0; y_lab[2]=0;
-  z_lab[0]=0;   z_lab[1]=0;   z_lab[2]=1.0;     
-  
-  // Define the water frame of reference - all axes must be normalized
-  // make h1 the water x-axis (but first need to normalized)
-  x_wat = H1_wat;
-  x_wat.Normalize();
-  // the normalized z-axis is the cross product of h1 and h2 
-  z_wat = x_wat.Cross( H2_wat );
-  z_wat.Normalize();
-  // make y-axis as the cross product of h1 and z-axis
-  y_wat = z_wat.Cross( x_wat );
-  y_wat.Normalize();
-  
-  // Find the X-convention Z-X'-Z'' Euler angles between the water frame and the lab/host frame
-  // First, theta = angle between the water z-axis of the two frames
-  dp = z_lab*( z_wat);
-  theta_ = acos(dp);
-  //  if (theta>0 && theta<PI) {
-  if (theta_>1E-5 && theta_<Constants::PI-1E-5) {
-    // phi = angle between the projection of the water x-axis and the node
-    // line of node is where the two xy planes meet = must be perpendicular to both z axes
-    // direction of the lines of node = cross product of two normals (z axes)
-    // acos of x always gives the angle between 0 and pi, which is okay for theta since theta ranges from 0 to pi
-    node = z_lab.Cross( z_wat );
-    node.Normalize();
-    
-    // Second, find the angle phi, which is between x_lab and the node
-    dp = node*( x_lab );
-    if (dp <= -1.0)     phi_ = Constants::PI;
-    else if (dp >= 1.0) phi_ = Constants::PI;
-    else                phi_ = acos(dp);
-    // check angle phi
-    if (phi_>0 && phi_<(Constants::TWOPI)) {
-      // method 2
-      v = x_lab.Cross( node );
-      dp = v*( z_lab );
-      if (dp<0) phi_ = Constants::TWOPI - phi_;
-    }
-    
-    // Third, rotate the node to x_wat about the z_wat axis by an angle psi
-    // psi = angle between x_wat and the node 
-    dp = x_wat*( node );
-    if (dp<=-1.0)     psi_ = Constants::PI;
-    else if (dp>=1.0) psi_ = 0;
-    else              psi_ = acos(dp);
-    // check angle psi
-    if (psi_>0 && psi_<(Constants::TWOPI)) {
-      // method 2
-      Vec3 v = node.Cross( x_wat );
-      dp = v*( z_wat );
-      if (dp<0) psi_ = Constants::TWOPI - psi_;
-    }
-    
-    if (!(theta_<=Constants::PI && theta_>=0 && 
-          phi_<=Constants::TWOPI && phi_>=0 && psi_<=Constants::TWOPI && psi_>=0))
-    {
-//      mprintf("GIST: angles: %f %f %f\n", theta_, phi_, psi_);
-//      H1_wat.Print("H1_wat");
-//      H2_wat.Print("H2_wat");
-      mprinterr("Error: Euler: angles don't fall into range.\n");
-      //break; 
-    }
-    
-    the_vox_[voxel_].push_back(theta_);
-    phi_vox_[voxel_].push_back(phi_);
-    psi_vox_[voxel_].push_back(psi_);
-    nw_angle_[voxel_]++;
-  }
+  z_lab[0]=0;   z_lab[1]=0;   z_lab[2]=1.0;
+
+  //Steve
+  H1_wat.Normalize();
+  H2_wat.Normalize();
+  ar1 = H1_wat.Cross(x_lab);
+  ar1.Normalize();
+  dp1 = x_lab*H1_wat;
+  theta_ = acos(dp1);
+  sar = H1_wat.Cross(x_lab);
+  sign = sar*H1_wat;
+  if (sign > 0) theta_/=2;
+  else theta_/=-2;
+  w1 = cos(theta_);
+  x1 = ar1[0]*sin(theta_);
+  y1 = ar1[1]*sin(theta_);
+  z1 = ar1[2]*sin(theta_);
+  w2 = w1; x2 = x1; y2 = y1; z2 = z1;
+  H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
+  H_temp[0] = (2*(x2*y2 - w2*z2)*H1_wat[1]) + H_temp[0];
+  H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
+
+  H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
+  H_temp[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H1_wat[1]) + H_temp[1];
+  H_temp[1] = (2*(y2*z2+w2*x2)*H1_wat[2]) +H_temp[1];
+
+  H_temp[2] = 2*(x2*z2+w2*y2) *H1_wat[0];
+  H_temp[2] = (2*(y2*z2-w2*x2)*H1_wat[1]) + H_temp[2];
+  H_temp[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H1_wat[2]) + H_temp[2];
+
+  H1_wat = H_temp;
+
+  H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
+  H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
+  H_temp2[0] = (2*(x2*z2-w2*y2)+H2_wat[2]) +H_temp2[0];
+
+  H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
+  H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
+  H_temp2[1] = (2*(y2*z2+w2*x2)*H2_wat[2]) +H_temp2[1];
+
+  H_temp2[2] = 2*(x2*z2+w2*y2)*H2_wat[0];
+  H_temp2[2] = (2*(y2*z2-w2*x2)*H2_wat[1]) +H_temp2[2];
+  H_temp2[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H2_wat[2]) + H_temp2[2];
+
+  H2_wat = H_temp2;
+
+  ar2 = H_temp.Cross(H_temp2);
+  ar2.Normalize();
+  dp2 = ar2*z_lab;
+  theta_ = acos(dp2);
+
+  sar = ar2.Cross(z_lab);
+  sign = sar*H_temp;
+
+  if (sign < 0) theta_/=2;
+  else theta_/=-2;
+
+  w3 = cos(theta_);
+  x3 = x_lab[0]*sin(theta_);
+  y3 = x_lab[1]*sin(theta_);
+  z3 = x_lab[2]*sin(theta_);
+
+  w4 = w1*w3 - x1*x3 - y1*y3 - z1*z3;
+  x4 = w1*x3 + x1*w3 + y1*z3 - z1*y3;
+  y4 = w1*y3 - x1*z3 + y1*w3 + z1*x3;
+  z4 = w1*z3 + x1*y3 - y1*x3 + z1*w3;
+
+  q0_vox_[voxel_].push_back(w4);
+  q1_vox_[voxel_].push_back(x4);
+  q2_vox_[voxel_].push_back(y4);
+  q3_vox_[voxel_].push_back(z4);
+  nw_angle_[voxel_]++;
+  //}
   //else mprintf("%i: gimbal lock problem, two z_wat paralell\n", resnum-1);
 } 
 
@@ -736,60 +779,499 @@ void Action_Gist::Order(Frame const& frameIn) {
 }
 
 void Action_Gist::Print() {
-  if (dTSorient_norm_.empty()) return; // In case Action was not Setup
   gist_print_.Start();
+  int addx = griddim_[2]*griddim_[1]; int addy = griddim_[2]; int addz = 1;
+  int subx = -1*griddim_[2]*griddim_[1]; int suby = -1*griddim_[2]; int subz = -1; int exc = 0;
   // Implement NN to compute orientational entropy for each voxel
-  double NNr, rx, ry, rz, rR, dbl;
-  dTSorienttot_=0;
-  for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
-    dTSorient_dens_[gr_pt]=0; dTSorient_norm_[gr_pt]=0;  
-    int nwtot = nw_angle_[gr_pt];
-    if (nwtot<=1) continue;
-    for (int n=0; n<nwtot; n++) {
-      NNr=10000;
-      for (int l=0; l<nwtot; l++) {
-        if (l==n) continue;
-        rx = cos(the_vox_[gr_pt][l]) - cos(the_vox_[gr_pt][n]);
-        ry = phi_vox_[gr_pt][l] - phi_vox_[gr_pt][n];
-        rz = psi_vox_[gr_pt][l] - psi_vox_[gr_pt][n];
-        if      (ry>Constants::PI) ry = Constants::TWOPI-ry;
-        else if (ry<-Constants::PI) ry = Constants::TWOPI+ry;
-        if      (rz>Constants::PI) rz = Constants::TWOPI-rz;
-        else if (rz<-Constants::PI) rz = Constants::TWOPI+rz;
-        rR = sqrt(rx*rx + ry*ry + rz*rz);
-        if (rR>0 && rR<NNr) NNr = rR;
-      }
-      if (NNr<9999 && NNr>0) {
-        dbl = log(NNr*NNr*NNr*nwtot/(3.0*Constants::TWOPI));
-        dTSorient_norm_[gr_pt] += dbl;
-      }  
-    }
-    dTSorient_norm_[gr_pt] = Constants::GASK_KCAL*300*(dTSorient_norm_[gr_pt]/nwtot+0.5772);
-    dTSorient_dens_[gr_pt] = dTSorient_norm_[gr_pt]*nwat_[gr_pt]/(NFRAME_*Vvox_);
-    dTSorienttot_ += dTSorient_dens_[gr_pt];
-  }
-  dTSorienttot_ *= Vvox_;
-  mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
-  mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
-          dTSorienttot_, NFRAME_);
+  //double NNr, rx, ry, rz, rR, dbl;
+  double NNr, rR, dbl; double dTSs = 0, dTSst = 0; int nwtt = 0;
+  dTSorienttot_=0; //NFRAME_ /= 8;
   
-  // Compute translational entropy for each voxel
-  dTStranstot_=0;
-  for (int a=0; a<MAX_GRID_PT_; a++) {
-    dens_[a] = 1.0*nwat_[a]/(NFRAME_*Vvox_);
-    g_[a] = dens_[a]/BULK_DENS_;
-    gH_[a] = 1.0*nH_[a]/(NFRAME_*Vvox_*2*BULK_DENS_);
-    if (nwat_[a]>1) {
-       dTStrans_dens_[a] = -Constants::GASK_KCAL*BULK_DENS_*300*g_[a]*log(g_[a]);
-       dTStrans_norm_[a] = dTStrans_dens_[a]/dens_[a];
-       dTStranstot_ += dTStrans_dens_[a];
-    } else {
-       dTStrans_dens_[a]=0; dTStrans_norm_[a]=0;
+    dTSs = 0, dTSst = 0; nwtt = 0; float NNs = 10000; float ds = 0; float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
+    double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0; int nwts = 0;
+    for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
+        //int numplane = gr_pt/(griddim_[1]*griddim_[2]); int nwj = 0;
+        dTSorient_dens_[gr_pt]=0; dTSorient_norm_[gr_pt]=0;
+        int nwtot = nw_angle_[gr_pt]; int bound = 0; nwtt += nwtot;
+        if (nwtot<=1) continue;
+        for (int n=0; n<nwtot; n++) {
+        	NNr=10000; NNs = 10000; ds = 0; NNd = 10000; dd = 0;
+        	for (int l=0; l<nwtot; l++) {
+           		if (l==n) continue;
+            		rR = 2*acos(q0_vox_[gr_pt][l]*q0_vox_[gr_pt][n]
+                	        +q1_vox_[gr_pt][l]*q1_vox_[gr_pt][n]
+                	        +q2_vox_[gr_pt][l]*q2_vox_[gr_pt][n]
+                	        +q3_vox_[gr_pt][l]*q3_vox_[gr_pt][n]
+            		);
+            		if (rR>0 && rR < NNr) NNr = rR;
+            
+
+        	}
+
+	        if (bound == 1) {dbl = 0; dTSorient_norm_[gr_pt] += dbl; continue;}
+	        else if (NNr<9999 && NNr>0 && NNs > 0) {
+	        	dbl = log(NNr*NNr*NNr*nwtot/(3.0*Constants::TWOPI));
+            		dTSorient_norm_[gr_pt] += dbl;
+            		dTSo += dbl;
+            
+
+        	}
+    	}
+        //NFRAME_ *= 0.5;
+        dTSorient_norm_[gr_pt] = Constants::GASK_KCAL*Temp*((dTSorient_norm_[gr_pt]/nwtot)+0.5772156649);
+        dTSorient_dens_[gr_pt] = dTSorient_norm_[gr_pt]*nwat_[gr_pt]/(NFRAME_*Vvox_);
+        dTSorienttot_ += dTSorient_dens_[gr_pt];
     }
-  }
-  dTStranstot_ *= Vvox_;
-  mprintf("Total referenced translational entropy of the grid: dTStrans = %9.5f kcal/mol, Nf=%d\n",
-          dTStranstot_, NFRAME_);
+    dTSorienttot_ *= Vvox_;
+    mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
+    mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
+            dTSorienttot_, NFRAME_);
+
+    // Compute translational entropy for each voxel
+    dTStranstot_=0;
+    for (int a=0; a<MAX_GRID_PT_; a++) {
+        int numplane = a/(griddim_[1]*griddim_[2]); int nwj = 0;
+        dens_[a] = 1.0*nwat_[a]/(NFRAME_*Vvox_);
+        g_[a] = dens_[a]/BULK_DENS_;
+        gH_[a] = 1.0*nH_[a]/(NFRAME_*Vvox_*2*BULK_DENS_);
+        int nwi = 0;  int bound = 0;
+
+        //first do own voxel
+        nwi = nwat_[a];
+        for (int i = 0; i < nwi; i++) {
+            NNd = 10000; bound = 0;
+            NNs = 10000; ds = 0;
+            for (int j = 0; j < nwi; j++) {
+                if (j!=i) {
+                    //cout << "doing self: " << a << endl;
+                    dx = x_vox_[a][i] - x_vox_[a][j];
+                    dy = y_vox_[a][i] - y_vox_[a][j];
+                    dz = z_vox_[a][i] - z_vox_[a][j];
+                    dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                    rR = 2*acos(q0_vox_[a][i]*q0_vox_[a][j]
+                    +q1_vox_[a][i]*q1_vox_[a][j]
+                    +q2_vox_[a][i]*q2_vox_[a][j]
+                    +q3_vox_[a][i]*q3_vox_[a][j]);
+                    ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                }
+            }
+
+            try {
+                //if (a+addz > MAX_GRID_PT_ || a+addz < 0) {throw exc;}
+                if (a%griddim_[2] == griddim_[2]-1) {throw exc;}
+                else {
+                    //cout << "doing addz: " << a << endl;
+                    //mprintf("else bound, addz: %d\n", a);
+                    nwj = nwat_[a+addz];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addz][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addz][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addz][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addz][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addz][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addz][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addy > MAX_GRID_PT_ || a+addy < 0) {throw exc;}
+                if (a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1]))< griddim_[2]) {throw exc;}
+                else {
+                    //cout << "doing addy: " << a << endl;
+                    //mprintf("else bound, addy: %d\n", a);
+                    nwj = nwat_[a+addy];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addy][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addy][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addy][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addy][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addy][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addy][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addy][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addx > MAX_GRID_PT_ || a+addx < 0) {throw exc;}
+                if (a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0]) {throw exc;}
+                else {
+                    //cout << "doing addx: " << a << endl;
+                    //mprintf("else bound, addx: %d\n", a);
+                    nwj = nwat_[a+addx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subz > MAX_GRID_PT_ || a+subz < 0) {throw exc;}
+                if (a%griddim_[2] == 0) {throw exc;}
+                else {
+                    //cout << "doing subz: " << a << endl;
+                    //mprintf("else bound, subz: %d\n", a);
+                    nwj = nwat_[a+subz];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subz][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subz][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subz][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subz][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subz][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subz][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subz][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+suby > MAX_GRID_PT_ || a+suby < 0) {throw exc;}
+                if (a%(griddim_[2]*griddim_[1]) < griddim_[2]) {throw exc;}
+                else {
+                    //cout << "doing suby: " << a << endl;
+                    //mprintf("else bound, suby: %d\n", a);
+                    nwj = nwat_[a+suby];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+suby][j];
+                        dy = y_vox_[a][i] - y_vox_[a+suby][j];
+                        dz = z_vox_[a][i] - z_vox_[a+suby][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+suby][j]
+                        +q1_vox_[a][i]*q1_vox_[a+suby][j]
+                        +q2_vox_[a][i]*q2_vox_[a+suby][j]
+                        +q3_vox_[a][i]*q3_vox_[a+suby][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subx > MAX_GRID_PT_ || a+subx < 0) {throw exc;}
+                if (a >= 0 && a < griddim_[2]*griddim_[1]) {throw exc;}
+                else {
+                    //cout << "doing subx: " << a << endl;
+                    //mprintf("else bound, subx: %d\n", a);
+                    nwj = nwat_[a+subx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addz+addy > MAX_GRID_PT_ || a+addz+addy < 0) {throw exc;}
+                if ((a%griddim_[2] == griddim_[2]-1) || (a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1])) < griddim_[2])) {throw exc;}
+                else {
+                    //cout << "doing addz addy: " << a << endl;
+                    //mprintf("else bound, addz+addy: %d\n", a);
+                    nwj = nwat_[a+addz+addy];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addz+addy][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addz+addy][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addz+addy][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz+addy][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addz+addy][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addz+addy][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addz+addy][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addz+suby > MAX_GRID_PT_ || a+addz+suby < 0) {throw exc;}
+                if ((a%griddim_[2] == griddim_[2]-1)||(a%(griddim_[2]*griddim_[1]) < griddim_[2])) {throw exc;}
+                else {
+                    //cout << "doing addz suby: " << a << endl;
+                    //mprintf("else bound, addz+suby: %d\n", a);
+                    nwj = nwat_[a+addz+suby];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addz+suby][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addz+suby][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addz+suby][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz+suby][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addz+suby][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addz+suby][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addz+suby][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subz+addy > MAX_GRID_PT_ || a+subz+addy < 0) {throw exc;}
+                if ((a%griddim_[2] == 0)||(a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1]))< griddim_[2])) {throw exc;}
+                else {
+                    //cout << "doing subz addy: " << a << endl;
+                    //mprintf("else bound, subz+addy: %d\n", a);
+                    nwj = nwat_[a+subz+addy];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subz+addy][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subz+addy][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subz+addy][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subz+addy][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subz+addy][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subz+addy][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subz+addy][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subz+suby > MAX_GRID_PT_ || a+subz+suby < 0) {throw exc;}
+                if ((a%griddim_[2] == 0)||(a%(griddim_[2]*griddim_[1]) < griddim_[2])) {throw exc;}
+                else {
+                    //cout << "doing subz suby: " << a << endl;
+                    //mprintf("else bound, subz+suby: %d\n", a);
+                    nwj = nwat_[a+subz+suby];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subz+suby][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subz+suby][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subz+suby][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subz+suby][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subz+suby][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subz+suby][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subz+suby][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addz+addx > MAX_GRID_PT_ || a+addz+addx < 0) {throw exc;}
+                if ((a%griddim_[2] == griddim_[2]-1)||(a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0])) {throw exc;}
+                else {
+                    //cout << "doing addz addx: " << a << endl;
+                    //mprintf("else bound, addz+addx: %d\n", a);
+                    nwj = nwat_[a+addz+addx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addz+addx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addz+addx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addz+addx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz+addx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addz+addx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addz+addx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addz+addx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addz+subx > MAX_GRID_PT_ || a+addz+subx < 0) {throw exc;}
+                if ((a%griddim_[2] == griddim_[2]-1)||(a >= 0 && a < griddim_[2]*griddim_[1])) {throw exc;}
+                else {
+                    //cout << "doing addz subx: " << a << endl;
+                    //mprintf("else bound, addz+subx: %d\n", a);
+                    nwj = nwat_[a+addz+subx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addz+subx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addz+subx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addz+subx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz+subx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addz+subx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addz+subx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addz+subx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subz+addx > MAX_GRID_PT_ || a+subz+addx < 0) {throw exc;}
+                if ((a%griddim_[2] == 0)||(a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0])) {throw exc;}
+                else {
+                    //cout << "doing subz addx: " << a << endl;
+                    //mprintf("else bound, subz+addx: %d\n", a);
+                    nwj = nwat_[a+subz+addx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subz+addx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subz+addx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subz+addx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subz+addx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subz+addx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subz+addx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subz+addx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+subz+subx > MAX_GRID_PT_ || a+subz+subx < 0) {throw exc;}
+                if ((a%griddim_[2] == 0)||(a >= 0 && a < griddim_[2]*griddim_[1])) {throw exc;}
+                else {
+                    //cout << "doing subz subx: " << a << endl;
+                    //mprintf("else bound, subz+subx: %d\n", a);
+                    nwj = nwat_[a+subz+subx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+subz+subx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+subz+subx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+subz+subx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+subz+subx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+subz+subx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+subz+subx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+subz+subx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addy+addx > MAX_GRID_PT_ || a+addy+addx < 0) {throw exc;}
+                if ((a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1]))< griddim_[2])||(a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0])) {throw exc;}
+                else {
+                    //cout << "doing addy addx: " << a << endl;
+                    //mprintf("else bound, addy+addx: %d\n", a);
+                    nwj = nwat_[a+addy+addx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addy+addx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addy+addx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addy+addx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addy+addx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addy+addx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addy+addx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addy+addx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+addy+subx > MAX_GRID_PT_ || a+addy+subx < 0) {throw exc;}
+                if ((a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1]))< griddim_[2])||(a >= 0 && a < griddim_[2]*griddim_[1])) {throw exc;}
+                else {
+                    //cout << "doing addy subx: " << a << endl;
+                    //mprintf("else bound, addy+subx: %d\n", a);
+                    nwj = nwat_[a+addy+subx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+addy+subx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+addy+subx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+addy+subx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addy+subx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+addy+subx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+addy+subx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+addy+subx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+suby+addx > MAX_GRID_PT_ || a+suby+addx < 0) {throw exc;}
+                if ((a%(griddim_[2]*griddim_[1]) < griddim_[2])||(a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0])) {throw exc;}
+                else {
+                    //cout << "doing suby addx: " << a << endl;
+                    //mprintf("else bound, suby+addx: %d\n", a);
+                    nwj = nwat_[a+suby+addx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+suby+addx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+suby+addx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+suby+addx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+suby+addx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+suby+addx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+suby+addx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+suby+addx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            try {
+                //if (a+suby+subx > MAX_GRID_PT_ || a+suby+subx < 0) {throw exc;}
+                if ((a%(griddim_[2]*griddim_[1]) < griddim_[2])||(a >= 0 && a < griddim_[2]*griddim_[1])) {throw exc;}
+                else {
+                    //cout << "doing suby subx: " << a << endl;
+                    //mprintf("else bound, suby+subx: %d\n", a);
+                    nwj = nwat_[a+suby+subx];
+                    for (int j = 0; j < nwj; j++) {
+                        dx = x_vox_[a][i] - x_vox_[a+suby+subx][j];
+                        dy = y_vox_[a][i] - y_vox_[a+suby+subx][j];
+                        dz = z_vox_[a][i] - z_vox_[a+suby+subx][j];
+                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
+                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+suby+subx][j]
+                        +q1_vox_[a][i]*q1_vox_[a+suby+subx][j]
+                        +q2_vox_[a][i]*q2_vox_[a+suby+subx][j]
+                        +q3_vox_[a][i]*q3_vox_[a+suby+subx][j]);
+                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
+                    }
+                }
+            }
+            catch (int exc) {bound = 1;}
+            NNd = sqrt(NNd);
+            NNs = sqrt(NNs);
+            if (bound == 1) {dbl = 0; dTStrans_norm_[a] += dbl; continue;}// dTSsix_norm_[a] += dbl; continue;}
+            else if (NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
+                //cout << "calc dbl: " << a << endl;
+                dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+                dTStrans_norm_[a] += dbl;
+                dTSt += dbl;
+                dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
+                dTSsix_norm_[a] += dbl;
+                dTSs += dbl;
+            }
+        }
+        if (dTStrans_norm_[a] != 0) {
+            //cout << "doing norm: " << a << endl;
+            nwts += nwi;
+            dTStrans_norm_[a] = Constants::GASK_KCAL*Temp*((dTStrans_norm_[a]/nwi)+0.5772156649);
+            dTSsix_norm_[a] = Constants::GASK_KCAL*Temp*((dTSsix_norm_[a]/nwi)+0.5772156649);
+
+        }
+        //cout << "doing dens: " << a << endl;
+        dTStrans_dens_[a] = dTStrans_norm_[a]*nwat_[a]/(NFRAME_*Vvox_);
+        dTSsix_dens_[a] = dTSsix_norm_[a]*nwat_[a]/(NFRAME_*Vvox_);
+        dTStranstot_ += dTStrans_dens_[a];
+    }
+
+    dTStranstot_ *= Vvox_;
+    dTSst = Constants::GASK_KCAL*Temp*((dTSs/nwts) + 0.5772156649);
+    dTSot = Constants::GASK_KCAL*Temp*((dTSo/nwtt) + 0.5772156649);
+    dTStt = Constants::GASK_KCAL*Temp*((dTSt/nwts) + 0.5772156649);
+    mprintf("watcount in vol = %d\n", nwtt);
+    mprintf("watcount in subvol = %d\n", nwts);
+    mprintf("Total referenced translational entropy of the grid: dTStrans = %9.5f kcal/mol, Nf=%d\n",
+            dTStranstot_, NFRAME_);
+    mprintf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
+    mprintf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
+    mprintf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
 
   // Compute average voxel energy
   double Eswtot = 0.0;
@@ -799,13 +1281,13 @@ void Action_Gist::Print() {
        Esw_dens_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
        Esw_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
        Eww_dens_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_);
-       Eww_norm_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]); 
+       Eww_norm_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]);
        Eswtot += Esw_dens_[a];
        Ewwtot += Eww_dens_[a];
     } else {
        Esw_dens_[a]=0; Esw_norm_[a]=0; Eww_norm_[a]=0; Eww_dens_[a]=0;
     }
-    // Compute the average number of water neighbor, average order parameter, and average dipole density 
+    // Compute the average number of water neighbor, average order parameter, and average dipole density
     if (nwat_[a]>0) {
       qtet_[a] /= nwat_[a];
       neighbor_norm_[a] = 1.0*neighbor_[a]/nwat_[a];
@@ -831,9 +1313,9 @@ void Action_Gist::Print() {
   for (int i = 0; i < myDSL_.size(); i++) {
   dfl.AddSet(myDSL_[i]);
   }
-  
+
   dfl.Write();
-  
+
   }*/
   //stored as float
   PrintDX("gist-gO.dx", g_);
@@ -841,8 +1323,10 @@ void Action_Gist::Print() {
   PrintDX("gist-Esw-dens.dx", Esw_dens_);
   PrintDX("gist-Eww-dens.dx", Eww_dens_);
   PrintDX("gist-dTStrans-dens.dx", dTStrans_dens_);
+  //PrintDX("gist-dTStrans-norm.dx", dTStrans_norm_);
   PrintDX("gist-dTSorient-dens.dx", dTSorient_dens_);
-  PrintDX("gist-neighbor-norm.dx", neighbor_norm_); 
+  PrintDX("gist-dTSsix-dens.dx", dTSsix_dens_);
+  PrintDX("gist-neighbor-norm.dx", neighbor_norm_);
   PrintDX("gist-dipole-dens.dx", pol_);
   //stored as doubles
   PrintDX_double("gist-order-norm.dx", qtet_);
@@ -855,9 +1339,9 @@ void Action_Gist::Print() {
   else
     PrintOutput("gist-output.dat");
   gist_print_.Stop();
-  double total = gist_grid_.Total() + gist_nonbond_.Total() + 
+  double total = gist_grid_.Total() + gist_nonbond_.Total() +
                  gist_euler_.Total() + gist_dipole_.Total() +
-                 gist_init_.Total() + gist_setup_.Total() + 
+                 gist_init_.Total() + gist_setup_.Total() +
                  gist_print_.Total();
   mprintf("\tGIST timings:\n");
   gist_init_.WriteTiming(1,    "Init: ", total);
@@ -951,14 +1435,14 @@ void Action_Gist::PrintOutput(string const& filename)
   //myfile.open(filename);  
   outfile.Printf("GIST Output, information printed per voxel\n");
   outfile.Printf("voxel xcoord ycoord zcoord population g_O g_H ");
-  outfile.Printf("dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol) dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol) ");
+  outfile.Printf("dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol) dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol) dTSsix-dens(kcal/mol/A^3) dTSsix-norm (kcal/mol) ");
   outfile.Printf("Esw-dens(kcal/mol/A^3) Esw-norm(kcal/mol) ");
   outfile.Printf("Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol) ");
   outfile.Printf("Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3) Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
   // Now print out the data. 
   for (int i=0; i<MAX_GRID_PT_; i++){
     outfile.Printf( "%d %g %g %g %d %g %g ",i , grid_x_[i] , grid_y_[i], grid_z_[i], nwat_[i] , g_[i], gH_[i] );
-    outfile.Printf( "%g %g %g %g ",dTStrans_dens_[i], dTStrans_norm_[i], dTSorient_dens_[i] , dTSorient_norm_[i]);
+    outfile.Printf( "%g %g %g %g %g %g ",dTStrans_dens_[i], dTStrans_norm_[i], dTSorient_dens_[i] , dTSorient_norm_[i] , dTSsix_dens_[i] , dTSsix_norm_[i] );
     outfile.Printf( "%g %g ",Esw_dens_[i], Esw_norm_[i] );
     outfile.Printf( "%g %g ",Eww_dens_[i] , Eww_norm_[i] );
     outfile.Printf( "%g %g %g %g ",dipolex_[i] , dipoley_[i] , dipolez_[i] , pol_[i] );

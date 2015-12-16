@@ -6,8 +6,8 @@
 class Action_FilterByData : public Action {
   public:
     Action_FilterByData() : maxmin_(0) {}
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_FilterByData(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_FilterByData(); }
+    void Help() const;
     /// For running as a separate command.
     size_t DetermineFrames() const;
     Action::RetType Init(ArgList&, ActionInit&, int);

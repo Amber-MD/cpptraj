@@ -10,10 +10,10 @@ TOP="../tz2.parm7"
 
 # Test 1
 cat > rmsavg.in <<EOF
-noprogress
-reference ../tz2.nc average  
+loadcrd ../tz2.nc name TZ2
+crdaction TZ2 average crdset Avg_TZ2
 trajin ../tz2.nc
-rms reference :2-11 out rmsavg.dat
+rms R0 reference :2-11 out rmsavg.dat
 EOF
 INPUT="rmsavg.in"
 RunCpptraj "RMSD Test with averaged reference coordinates."

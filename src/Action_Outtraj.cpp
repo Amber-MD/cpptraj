@@ -2,7 +2,7 @@
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
 
-void Action_Outtraj::Help() {
+void Action_Outtraj::Help() const {
   mprintf("\t<filename> [ trajout args ]\n"
           "\t[maxmin <dataset> min <min> max <max>] ...\n"
           "  Like 'trajout', but coordinate output occurs during actions rather than at the end.\n");

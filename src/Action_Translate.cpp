@@ -4,7 +4,7 @@
 // CONSTRUCTOR
 Action_Translate::Action_Translate() { }
 
-void Action_Translate::Help() {
+void Action_Translate::Help() const {
   mprintf("\t[<mask>] [x <dx>] [y <dy>] [z <dz>]\n"
           "  Translate atoms in <mask>\n");
 }

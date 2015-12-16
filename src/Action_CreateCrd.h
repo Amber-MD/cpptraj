@@ -5,8 +5,8 @@
 class Action_CreateCrd : public Action {
   public:
     Action_CreateCrd();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_CreateCrd(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_CreateCrd(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

@@ -42,9 +42,9 @@ int DataSet_Vector::Append(DataSet* dsIn) {
   vectors_.resize( oldsize + vIn.size() );
   std::copy( vIn.begin(), vIn.end(), vectors_.begin() + oldsize );
   if (oIn.empty() && !origins_.empty()) // Need vIn.size empty origin vectors
-    origins_.resize( oldsize + vIn.size(), Vec3(0.0) );
+    origins_.resize( oldsize + vIn.size(), ZERO );
   else if (!oIn.empty() && origins_.empty()) // Need vectors_.size empty origin vecs
-    origins_.resize( vectors_.size(), Vec3(0.0) );
+    origins_.resize( vectors_.size(), ZERO );
   if (!oIn.empty()) {
     oldsize = origins_.size();
     origins_.resize( oldsize + oIn.size() );

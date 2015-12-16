@@ -17,7 +17,7 @@ Action_Image::Action_Image() :
   debug_(0)
 { } 
 
-void Action_Image::Help() {
+void Action_Image::Help() const {
   mprintf("\t[origin] [center] [triclinic | familiar [com <commask>]] <mask>\n" 
           "\t[ bymol | byres | byatom ] [xoffset <x>] [yoffset <y>] [zoffset <z>]\n"
           "  Image atoms in <mask> into the primary unit cell.\n"

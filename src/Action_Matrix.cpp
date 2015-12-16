@@ -17,7 +17,7 @@ Action_Matrix::Action_Matrix() :
   useMass_(false)
 {}
 
-void Action_Matrix::Help() {
+void Action_Matrix::Help() const {
   mprintf("\t[out <filename>] %s\n", ActionFrameCounter::HelpText);
   mprintf("\t[name <name>] [ byatom | byres [mass] | bymask [mass] ]\n"
           "\t[ ired [order <#>] ]\n"

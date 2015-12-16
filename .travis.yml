@@ -25,4 +25,4 @@ install:
       # Hack to get ambpdb installed with OpenMP
     - make -C src ambpdb && mv src/ambpdb bin/
 script:
-    - cd test && make test
+    - cd test && make test.showerrors

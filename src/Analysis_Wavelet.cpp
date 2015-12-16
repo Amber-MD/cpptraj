@@ -6,6 +6,7 @@
 #include "Constants.h"
 #include "PubFFT.h"
 #include "DataSet_MatrixFlt.h"
+#include "StringRoutines.h"
 
 // CONSTRUCTOR
 Analysis_Wavelet::Analysis_Wavelet() :
@@ -54,7 +55,7 @@ const Analysis_Wavelet::WaveletToken Analysis_Wavelet::Tokens_[] = {
 };
 
 /// Provide keywords
-void Analysis_Wavelet::Help() {
+void Analysis_Wavelet::Help() const {
   mprintf("\t[crdset <set name>] nb <n scaling vals> [s0 <s0>] [ds <ds>]\n"
           "\t[correction <correction>] [chival <chival>] [type <wavelet>]\n"
           "\t[out <filename>] [name <setname>]\n"
@@ -62,18 +63,18 @@ void Analysis_Wavelet::Help() {
 }
 
 // Analysis_Wavelet::Setup
-Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   // Attempt to get COORDS DataSet from DataSetList. If none specified the
   // default COORDS set will be used.
   std::string setname = analyzeArgs.GetStringKey("crdset");
-  coords_ = (DataSet_Coords*)datasetlist->FindCoordsSet( setname );
+  coords_ = (DataSet_Coords*)setup.DSL().FindCoordsSet( setname );
   if (coords_ == 0) {
     mprinterr("Error: Could not locate COORDS set corresponding to %s\n", setname.c_str());
     return Analysis::ERR;
   }
   // Get keywords
-  DataFile* outfile = DFLin->AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
+  DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   setname = analyzeArgs.GetStringKey("name");
   // TODO: Check defaults
   nb_ = analyzeArgs.getKeyInt("nb", 0); // FIXME: Should be more descriptive? nscale?
@@ -104,7 +105,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, DataSetList* dat
   // Atom mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
   // Set up output data set
-  output_ = datasetlist->AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
+  output_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( output_ );
 
@@ -147,8 +148,8 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
     return Analysis::ERR;
   }
   Matrix<double> d_matrix;
-  mprintf("\t%i frames, %i atoms, distance matrix will require %.2f MB\n",
-          (double)d_matrix.sizeInBytes(nframes, natoms) / (1024.0*1024.0));
+  mprintf("\t%i frames, %i atoms, distance matrix will require %s\n", nframes, natoms,
+          ByteString(d_matrix.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   d_matrix.resize(nframes, natoms);
   // Get initial frame.
   Frame currentFrame, lastFrame;
@@ -193,8 +194,8 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   // Step 2 - Get FFT of wavelet for each scale.
   PubFFT pubfft;
   pubfft.SetupFFTforN( nframes );
-  mprintf("\tMemory required for scaled wavelet array: %.2f MB\n",
-          (double)(2 * nframes * nb_ * sizeof(double)) / (1024 * 1024));
+  mprintf("\tMemory required for scaled wavelet array: %s\n",
+          ByteString(2 * nframes * nb_ * sizeof(double), BYTE_DECIMAL).c_str());
   typedef std::vector<ComplexArray> WaveletArray;
   WaveletArray FFT_of_Scaled_Wavelets;
   FFT_of_Scaled_Wavelets.reserve( nb_ );
@@ -244,12 +245,12 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   //          frequency domains, i.e. Fourier-transformed, followed by an
   //          inverse FT.
   DataSet_MatrixFlt& OUT = static_cast<DataSet_MatrixFlt&>( *output_ );
-  mprintf("\tMemory required for output matrix: %.2f MB\n",
-          (double)Matrix<float>::sizeInBytes(nframes, natoms)/(1024.0*1024.0));
+  mprintf("\tMemory required for output matrix: %s\n",
+          ByteString(Matrix<float>::sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   OUT.Allocate2D( nframes, natoms ); // Should initialize to zero
   Matrix<double> MAX;
-  mprintf("\tMemory required for Max array: %.2f MB\n", 
-          (double)MAX.sizeInBytes(nframes, natoms)/(1024.0*1024.0));
+  mprintf("\tMemory required for Max array: %s\n",
+          ByteString(MAX.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   MAX.resize( nframes, natoms );
   Darray magnitude( nframes ); // Scratch space for calculating magnitude across rows
   for (int at = 0; at != natoms; at++) {

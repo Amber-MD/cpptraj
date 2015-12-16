@@ -14,8 +14,8 @@
 class Action_Molsurf: public Action {
   public:
     Action_Molsurf();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Molsurf(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Molsurf(); }
+    void Help() const;
     ~Action_Molsurf();
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);

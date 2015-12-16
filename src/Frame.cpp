@@ -216,7 +216,37 @@ void Frame::swap(Frame &first, Frame &second) {
 Frame &Frame::operator=(Frame rhs) {
   if (memIsExternal_)
     mprinterr("Internal Error: Attempting to assign to Frame with external memory.\n");
-  else
+  else if (rhs.memIsExternal_) {
+    // Do not use copy/swap here since we do not want to free external mem.
+    // FIXME: seems like this could be pretty inefficient. Should assignment
+    //        not use copy/swap?
+    natom_ = rhs.natom_;
+    maxnatom_ = rhs.maxnatom_;
+    ncoord_ = rhs.ncoord_;
+    box_ = rhs.box_;
+    T_ = rhs.T_;
+    time_ = rhs.time_;
+    remd_indices_ = rhs.remd_indices_;
+    Mass_ = rhs.Mass_;
+    memIsExternal_ = false;
+    if (X_ != 0) delete[] X_;
+    if (V_ != 0) delete[] V_;
+    if (F_ != 0) delete[] F_;
+    F_ = V_ = X_ = 0;
+    if (maxnatom_ > 0) {
+      int maxncoord = maxnatom_ * 3;
+      X_ = new double[ maxncoord ];
+      std::copy( rhs.X_, rhs.X_ + ncoord_, X_ );
+      if (rhs.V_ != 0) {
+        V_ = new double[ maxncoord ];
+        std::copy( rhs.V_, rhs.V_ + ncoord_, V_ );
+      }
+      if (rhs.F_ != 0) {
+        F_ = new double[ maxncoord ];
+        std::copy( rhs.F_, rhs.F_ + ncoord_, F_ );
+      }
+    }
+  } else
     swap(*this, rhs);
   return *this;
 }

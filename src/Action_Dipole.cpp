@@ -12,7 +12,7 @@ Action_Dipole::Action_Dipole() :
   CurrentParm_(0)
 {}
 
-void Action_Dipole::Help() {
+void Action_Dipole::Help() const {
   mprintf("\t<filename>\n%s\n", GridAction::HelpText);
   mprintf("\t<mask1> {origin | box} [max <max_percent>]\n");
 }
@@ -44,6 +44,7 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: Dipole: No mask specified.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);

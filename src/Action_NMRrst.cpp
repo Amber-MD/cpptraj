@@ -15,7 +15,7 @@ Action_NMRrst::Action_NMRrst() :
    resOffset_(0), debug_(0), nframes_(0), useMass_(false),
    findNOEs_(false), series_(false) {} 
 
-void Action_NMRrst::Help() {
+void Action_NMRrst::Help() const {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
           "  Calculate distances based on entries in the given NMR restraint file.\n");
 }
@@ -408,11 +408,10 @@ Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
                        + sizeof(NOEtype);
       if (series_) noeSize += sizeof(std::vector<float>);
       size_t noeArraySize = (noeSize * numNoePairs_) + siteArraySize;
-      mprintf("\t%zu potential NOE pairs. Estimated memory usage is %g MB",
-              numNoePairs_, (double)noeArraySize / 1048576.0);
       if (series_)
-        mprintf(" + %g MB per frame", (double)(numNoePairs_ * sizeof(float)) / 1048576.0);
-      mprintf(".\n");
+        noeArraySize += (setup.Nframes() * numNoePairs_ * sizeof(float));
+      mprintf("\t%zu potential NOE pairs. Estimated memory usage is %s\n",
+              numNoePairs_, ByteString(noeArraySize, BYTE_DECIMAL).c_str());
     } else if (numNoePairs_ != potentialSites.size()) {
       mprinterr("Warning: Found NOE matrix has already been set up for %zu potential\n"
                 "Warning:   NOEs, but %zu NOEs currently found.\n", numNoePairs_,

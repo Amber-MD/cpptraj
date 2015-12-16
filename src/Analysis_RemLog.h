@@ -6,9 +6,9 @@
 class Analysis_RemLog : public Analysis {
   public:
     Analysis_RemLog();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_RemLog(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_RemLog(); }
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     enum ModeType { NONE = 0, CRDIDX, REPIDX };

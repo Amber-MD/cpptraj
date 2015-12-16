@@ -6,10 +6,10 @@ class Analysis_CrankShaft : public Analysis {
   public: 
     Analysis_CrankShaft();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_CrankShaft(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_CrankShaft(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     enum CStype { ANGLE=0, DISTANCE };

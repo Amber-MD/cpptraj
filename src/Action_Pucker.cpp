@@ -15,7 +15,7 @@ Action_Pucker::Action_Pucker() :
   useMass_(true)
 { } 
 
-void Action_Pucker::Help() {
+void Action_Pucker::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> <mask5> [<mask6>] [geom]\n"
           "\t[out <filename>] [altona | cremer] [amplitude] [theta]\n"
           "\t[range360] [offset <offset>]\n"

@@ -4,10 +4,10 @@
 class Analysis_Overlap : public Analysis {
   public:
     Analysis_Overlap();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Overlap(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Overlap(); }
+    void Help() const;
   
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataSet* ds1_;

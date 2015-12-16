@@ -5,14 +5,14 @@
 class Action_Volmap : public Action {
   public:
     Action_Volmap();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Volmap(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Volmap(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
-    static void RawHelp();
+    void RawHelp() const;
 
     /// grid resolutions
     double dx_, dy_, dz_;

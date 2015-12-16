@@ -5,7 +5,7 @@
 // CONSTRUCTOR
 Action_Distance::Action_Distance() : dist_(0), useMass_(true) {} 
 
-void Action_Distance::Help() {
+void Action_Distance::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"
           "\tOptions for 'type noe':\n"
           "\t  %s\n"

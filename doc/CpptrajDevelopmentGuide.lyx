@@ -1,0 +1,3773 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+CPPTRAJ Development Notes
+\end_layout
+
+\begin_layout Author
+Daniel R.
+ Roe (daniel.r.roe@gmail.com)
+\begin_inset Newline newline
+\end_inset
+
+Jason M.
+ Swails (Code Docs)
+\end_layout
+
+\begin_layout Date
+2010-07-21
+\begin_inset Newline newline
+\end_inset
+
+Last Updated: 2015-09-10
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Abstract
+CPPTRAJ is code used for processing MD trajectory data as well as other
+ types of data, derived from trajectories or otherwise.
+ CPPTRAJ is a complete rewrite of the PTRAJ code in primarily C++, with
+ the intent being to make the code more readable, leak-free, and thread-safe.
+ The biggest functional change from PTRAJ is the ability to load and process
+ trajectories with different topology files in the same run.
+\end_layout
+
+\begin_layout Abstract
+This guide assumes that the reader has at least a basic familiarity with
+ C and C++ object-oriented programming.
+ If you aren't sure what a constructor is or how pointers work you may have
+ a difficult time coding in Cpptraj.
+ There are several good introduction to C/C++ tutorials on the web that
+ may be helpful.
+ 
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Abstract
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Part
+Introduction
+\begin_inset CommandInset label
+LatexCommand label
+name "part:Coding-Conventions"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Coding Conventions
+\end_layout
+
+\begin_layout Standard
+It is important to maintain a consistent coding style within cpptraj so
+ that it remains easy to modify and understand.
+ By following code conventions, it will be easier to read code written by
+ anybody and determine what is happening.
+\end_layout
+
+\begin_layout Itemize
+Code blocks are indented using 2 spaces.
+ 
+\series bold
+DO NOT USE TABS
+\series default
+ since these are in general not portable between different editors.
+\end_layout
+
+\begin_layout Itemize
+Try to keep lines between 80 and 100 characters long.
+\end_layout
+
+\begin_layout Itemize
+C++ files have '.cpp' suffix, C files have '.c' suffix, header files have
+ '.h' suffix.
+\end_layout
+
+\begin_layout Itemize
+All header files should have a '#define' guard to prevent multiple inclusion.
+ The define guard has format:
+\end_layout
+
+\begin_layout LyX-Code
+#ifndef INC_<basefilename>_H
+\end_layout
+
+\begin_layout LyX-Code
+#define INC_<basefilename>_H
+\end_layout
+
+\begin_layout LyX-Code
+...
+\end_layout
+
+\begin_layout LyX-Code
+#endif
+\end_layout
+
+\begin_layout Itemize
+'using namespace' should be used sparingly and NEVER in a header file.
+\end_layout
+
+\begin_layout Itemize
+The order of #include directives should be (in general): C includes, C++
+ includes, class definition, any other Cpptraj includes.
+\end_layout
+
+\begin_layout Itemize
+Use of STL classes/methods is acceptable; use C99 conventions to maximize
+ portability.
+ The only external libraries that should be used are NetCDF and ARPACK/LAPACK/BL
+AS (both included with AmberTools), i.e.
+ no Boost etc.
+\end_layout
+
+\begin_layout Itemize
+Do not use iostream for basic IO.
+ All console output should be performed with the functions in CpptrajStdio.h
+ (chiefly mprintf() and mprinterr() for STDOUT and STDERR respectively).
+ All file IO should be performed with CpptrajFile or the derived classes
+ BufferedLine and BufferedFrame.
+ This choice has been made mainly for performance reasons (C file routines
+ are in general much faster than iostream), but also so that all IO is centraliz
+ed (e.g.
+ CpptrajFile will automatically detect if an input file is compressed).
+ This is also so output can be easily controlled; for example, using mprintf
+ will make sure that during MPI only the master writes.
+\end_layout
+
+\begin_layout Itemize
+Warnings should be written to STDOUT with mprintf with prefix 'Warning:';
+ errors should be written to STDERR with mprinterr with prefix 'Error:'.
+\end_layout
+
+\begin_layout Itemize
+Classes:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Class types are named using 
+\emph on
+CapWords
+\emph default
+ (no spaces or underscores, start of each word is a capital letter).
+\end_layout
+
+\begin_layout Itemize
+Files containing a class should be named after the class (e.g.
+ 'class TrajectoryFile {};' in TrajectoryFile.cpp).
+\end_layout
+
+\begin_layout Itemize
+Classes which inherit should be named after their base class (e.g.
+ 'class Action_Distance : public Action { };').
+\end_layout
+
+\begin_layout Itemize
+Public class methods should be listed first; protected methods/variables
+ second; private methods/variables last.
+ All class member variables should be private if possible.
+\end_layout
+
+\begin_layout Itemize
+Public class methods are named using 
+\emph on
+CapWords
+\emph default
+.
+\end_layout
+
+\begin_layout Itemize
+Private class methods are named using 
+\emph on
+mixedCase.
+\end_layout
+
+\begin_layout Itemize
+Class variables that are 
+\family typewriter
+private
+\family default
+ or 
+\family typewriter
+protected
+\family default
+ are named using 
+\emph on
+mixedCase_
+\emph default
+ (with a trailing underscore).
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Abbreviations: 1st letter in each word is capitalized.
+ For instance, 
+\family typewriter
+Data File List
+\family default
+ may be abbreviated 
+\family typewriter
+DatFilList
+\family default
+ or 
+\family typewriter
+DFL.
+\end_layout
+
+\begin_layout Itemize
+Variables that have function scope (or lower) and all public variables for
+ classes are named using 
+\emph on
+mixedCase
+\emph default
+ (same as 
+\emph on
+CapWords
+\emph default
+ except the first letter is lower-case).
+\end_layout
+
+\begin_layout Itemize
+No one-letter variable names except in loop scopes (e.g.
+ for (int i = 0; i < N; ++i) { } ), and even then they should be short loops
+ (no more than 10 lines or so).
+\end_layout
+
+\begin_layout Itemize
+All identifiers in an enumerated type are named using all 
+\emph on
+CAPS
+\emph default
+, and the first identifier should be explicitly initialized (e.g.
+ enum DirectionType { DX = 0, DY, DZ };).
+\end_layout
+
+\begin_layout Itemize
+There is a 
+\emph on
+doxygen
+\emph default
+ rule file to automatically generate code documentation using 
+\emph on
+doxygen
+\emph default
+, so please construct comments in such a doxygen-compatible manner (e.g.
+ JavaDoc etc).
+ See http://www.stack.nl/~dimitri/doxygen/manual.html for instructions.
+\end_layout
+
+\begin_layout Section
+Building Cpptraj and Documentation
+\end_layout
+
+\begin_layout Standard
+Cpptraj is automatically built as part of AmberTools, or it can be built
+ standalone using the configure script in the 
+\family typewriter
+$AMBERHOME/AmberTools/src/cpptraj
+\family default
+ or 
+\family typewriter
+$CPPTRAJHOME
+\family default
+ directory.
+ The standalone build is particularly useful for development and testing.
+ Type './configure --help' for a list of configure options.
+ In order to build Cpptraj standalone one needs to specify the location
+ of the NetCDF, zlib, bzlib2, and BLAS/LAPACK/ARPACK libraries if they aren't
+ in your system path; configure will use the ones in $AMBERHOME if 
+\family typewriter
+'-amberlib'
+\family default
+ is specified.
+ The -noX options can be used to disable use of certain libraries.
+ 
+\end_layout
+
+\begin_layout Standard
+For example, to build cpptraj standalone:
+\end_layout
+
+\begin_layout LyX-Code
+./configure -amberlib gnu
+\end_layout
+
+\begin_layout LyX-Code
+make install OR cd src && make install
+\end_layout
+
+\begin_layout Standard
+To build the documentation using 
+\emph on
+doxygen
+\emph default
+, you must have 
+\emph on
+doxygen
+\emph default
+ installed, and you must have configured AmberTools.
+ Run the command:
+\end_layout
+
+\begin_layout LyX-Code
+make docs
+\end_layout
+
+\begin_layout Standard
+to build the documentation.
+ PDF files and HTML files are generated during this process, showing class
+ inheritance and descriptions from comments written in doxy-format.
+ Open the file 
+\family typewriter
+$AMBERHOME/AmberTools/src/cpptraj/doc/html/index.html
+\family default
+ to see the class heirarchy and descriptions.
+\end_layout
+
+\begin_layout Part
+General Layout and Concepts
+\end_layout
+
+\begin_layout Standard
+Cpptraj currently lives in 3 key classes:
+\end_layout
+
+\begin_layout Description
+
+\series bold
+Cpptraj
+\series default
+ Defined in main.cpp, controls overall flow (e.g.
+ it is responsible for deciding whether to execute in batch mode or interactive
+ mode).
+\end_layout
+
+\begin_layout Description
+
+\series bold
+CpptrajState
+\series default
+ Defined in 
+\series bold
+Cpptraj
+\series default
+, holds all of the data, Actions, Analyses, etc.
+ 
+\end_layout
+
+\begin_layout Description
+Command 
+\begin_inset Quotes eld
+\end_inset
+
+Static
+\begin_inset Quotes erd
+\end_inset
+
+ class used by 
+\series bold
+Cpptraj
+\series default
+ to process user input.
+ The file Command.cpp also contains all of the logic for executing commands.
+\end_layout
+
+\begin_layout Section
+CpptrajState
+\end_layout
+
+\begin_layout Standard
+The main components of 
+\series bold
+CpptrajState
+\series default
+ are:
+\end_layout
+
+\begin_layout Description
+DataSetList
+\begin_inset space ~
+\end_inset
+
+DSL_; Hold all DataSets.
+ This is essentially how different components can talk to each other, e.g.
+ an Action creates a DataSet in the DataSetList, which can then be used
+ by a subsequent Analysis.
+\end_layout
+
+\begin_layout Description
+DataFileList
+\begin_inset space ~
+\end_inset
+
+DFL_; Hold all DataFiles.
+ These are either for writing out DataSets or general text output, primarily
+ from Actions/Analyses.
+\end_layout
+
+\begin_layout Description
+TrajinList
+\begin_inset space ~
+\end_inset
+
+trajinList_; Hold all input trajectories to be processed during a run.
+ Whenever a user inputs a 'trajin' or 'ensemble' command, the trajectory/ensembl
+e in question is added to this list.
+ When a 'run' command is executed, these are the trajectories that are read
+ in a frame at a time so that Actions in the ActionList can process them.
+\end_layout
+
+\begin_layout Description
+TrajoutList
+\begin_inset space ~
+\end_inset
+
+trajoutList_; Hold output trajectories to be written during a run.
+ This output occurs after all Actions have been processed.
+\end_layout
+
+\begin_layout Description
+ActionList
+\begin_inset space ~
+\end_inset
+
+actionList_; Hold all Actions to be executed during a run.
+ By default, whenver an Action command is issued the Action in question
+ is initialized and queued up in the ActionList, to be processed during
+ the next run.
+\end_layout
+
+\begin_layout Description
+AnalysisList
+\begin_inset space ~
+\end_inset
+
+analysisList_; Hold all Analyses to be executed after a run or when a 'runanalys
+is' command is given.
+ Similar to ActionList, whenever an Analysis command is issued the Analysis
+ in question is initialized and queued up in the AnalysisList.
+\end_layout
+
+\begin_layout Section
+Actions
+\end_layout
+
+\begin_layout Standard
+Actions are how Cpptraj derives data from input trajectories.
+ There are two basic classes for Actions:
+\end_layout
+
+\begin_layout Subsection
+Action
+\end_layout
+
+\begin_layout Standard
+The abstract base class that defines the Action interface.
+ Consists of 4 functions:
+\end_layout
+
+\begin_layout Description
+Init(): Initialize Action, set up DataSets/DataFiles, etc.
+\end_layout
+
+\begin_layout Description
+Setup(): Set up Action for a given Topology.
+\end_layout
+
+\begin_layout Description
+DoAction(): Perform Action on given Frame.
+\end_layout
+
+\begin_layout Description
+Print(): Perform any post-processing or output that occurs outside the main
+ DataSet/DataFile framework.
+\end_layout
+
+\begin_layout Subsection
+ActionInit (ActionState.h)
+\end_layout
+
+\begin_layout Standard
+Used to interface with Init(); contains pointers to the master DataSetList
+ and DataFileList in CpptrajState.
+\end_layout
+
+\begin_layout Description
+DataSetList&
+\begin_inset space ~
+\end_inset
+
+DSL(),
+\begin_inset space ~
+\end_inset
+
+DataSetList
+\begin_inset space ~
+\end_inset
+
+const&
+\begin_inset space ~
+\end_inset
+
+DSL()
+\begin_inset space ~
+\end_inset
+
+const Reference to the master DataSetList.
+ The appropriate version should be used automatically.
+\end_layout
+
+\begin_layout Description
+DataSetList*
+\begin_inset space ~
+\end_inset
+
+DslPtr() For Actions that require access to the master DataSetList after
+ Init() (e.g.
+ hbond, which cannot set up hbond time series until hbonds are actually
+ detected in DoAction()), they can store a pointer to the master DataSetList
+ like so:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+(In header): DataSetList* masterDSL_;
+\end_layout
+
+\begin_layout Standard
+(In Action::Init): masterDSL_ = init.DslPtr();
+\end_layout
+
+\end_deeper
+\begin_layout Description
+DataFileList&
+\begin_inset space ~
+\end_inset
+
+DFL(),
+\begin_inset space ~
+\end_inset
+
+DataFileList
+\begin_inset space ~
+\end_inset
+
+const&
+\begin_inset space ~
+\end_inset
+
+DFL()
+\begin_inset space ~
+\end_inset
+
+const Reference to master DataFileList.
+ The appropriate version should be used automatically.
+\end_layout
+
+\begin_layout Subsection
+ActionSetup (ActionState.h) 
+\end_layout
+
+\begin_layout Standard
+Used to interface with Setup(); contains pointers to current Topology and
+ CoordinateInfo, as well as expected number of frames associated with current
+ Topology.
+\end_layout
+
+\begin_layout Subsection
+ActionFrame (ActionState.h)
+\end_layout
+
+\begin_layout Standard
+Used to interface with DoAction(); contains pointer to current Frame.
+\end_layout
+
+\begin_layout Part
+Key Classes And Functions
+\end_layout
+
+\begin_layout Section
+Math-related Classes
+\end_layout
+
+\begin_layout Subsection
+Vec3
+\end_layout
+
+\begin_layout Standard
+An array of 3 doubles, used to hold XYZ coords.
+ Used for vector math.
+\end_layout
+
+\begin_layout Subsection
+Matrix_3x3
+\end_layout
+
+\begin_layout Standard
+A 3x3 array of doubles, useful for performing rotations etc.
+ Used for basic matrix math.
+ Can be diagonalized via an internal routine (no need for external math
+ library).
+\end_layout
+
+\begin_layout Subsection
+ComplexArray
+\end_layout
+
+\begin_layout Standard
+Used to hold an array of complex numbers.
+ Implemented as a double array instead of using the STL Complex class so
+ that it easily interface with external routines.
+\end_layout
+
+\begin_layout Subsection
+PubFFT
+\end_layout
+
+\begin_layout Standard
+Interface to FFT routines (either pubfft, which are the FFT routines used
+ by Amber, or FFTW depending on how CPPTRAJ is configured).
+ Currently only 1D forward and backwards FFTs are supported.
+ Makes use of ComplexArray.
+\end_layout
+
+\begin_layout Subsection
+Corr.h: CorrF_Direct, CorrF_FFT
+\end_layout
+
+\begin_layout Standard
+Classes used to calculate auto/cross correlation functions from arrays of
+ complex numbers (ComplexArray).
+\end_layout
+
+\begin_layout Section
+Some Key Classes and Functions
+\end_layout
+
+\begin_layout Standard
+The following is a brief list of some of the more commonly-used classes
+ and functions in Cpptraj.
+ Classes are more or less self-documented to a certain extent; this section
+ will be focused on how these classes are/should be used.
+\end_layout
+
+\begin_layout Subsection
+ArgList
+\end_layout
+
+\begin_layout Standard
+The ArgList class is used throughout Cpptraj.
+ It is the main way that user input is translated to actions, analyses,
+ trajectory IO, etc.
+ Basically, the ArgList class takes a string and separates it into tokens
+ based on a given delimiter or delimiters.
+ For example, the string:
+\end_layout
+
+\begin_layout LyX-Code
+myString = 
+\begin_inset Quotes eld
+\end_inset
+
+trajin mytraj.nc 1 100 10
+\begin_inset Quotes erd
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Standard
+can be separated via a space (' ') delimeter (the default) into 5 tokens
+ like so:
+\end_layout
+
+\begin_layout LyX-Code
+ArgList myArgs(myString);
+\end_layout
+
+\begin_layout Standard
+The resulting ArgList internally looks something like:
+\end_layout
+
+\begin_layout LyX-Code
+0: trajin
+\end_layout
+
+\begin_layout LyX-Code
+1: mytraj.nc
+\end_layout
+
+\begin_layout LyX-Code
+2: 1
+\end_layout
+
+\begin_layout LyX-Code
+3: 100
+\end_layout
+
+\begin_layout LyX-Code
+4: 10
+\end_layout
+
+\begin_layout Standard
+A custom delimeter string containing 1 or more characters can also be used.
+ For example, the following string:
+\end_layout
+
+\begin_layout LyX-Code
+myString = 
+\begin_inset Quotes eld
+\end_inset
+
+d01,d02,d03,d04
+\begin_inset Quotes erd
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Standard
+can be separated via a comma (',') delimiter into 4 tokens like so:
+\end_layout
+
+\begin_layout LyX-Code
+ArgList myArgs(myString, 
+\begin_inset Quotes eld
+\end_inset
+
+,
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Standard
+The resulting ArgList internall lookws something like:
+\end_layout
+
+\begin_layout LyX-Code
+0: d01
+\end_layout
+
+\begin_layout LyX-Code
+1: d02
+\end_layout
+
+\begin_layout LyX-Code
+2: d03
+\end_layout
+
+\begin_layout LyX-Code
+3: d04
+\end_layout
+
+\begin_layout Standard
+These tokens (or arguments) are stored internally as an STL vector of strings.
+ ArgList provides many functions to access user arguments.
+ A second array of boolean values records whether an argument has been accessed.
+ This concept is functionally similar to the argumentStack in Ptraj; however,
+ it avoids the constant memory allocation/deallocation when arguments are
+ added/accessed, and allows an argument list to be re-used if desired.
+ The two main ways arguments are usually accessed are through 
+\begin_inset Quotes eld
+\end_inset
+
+GetNextX
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+GetKeyX
+\begin_inset Quotes erd
+\end_inset
+
+ functions.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Quotes eld
+\end_inset
+
+GetNext
+\begin_inset Quotes erd
+\end_inset
+
+ functions return the next argument of the desired type.
+ For example, using the ArgList created in the first example from 
+\begin_inset Quotes eld
+\end_inset
+
+trajin mytraj.nc 1 100 10
+\begin_inset Quotes erd
+\end_inset
+
+ and assuming all arguments are unmarked, GetStringNext() would return 
+\begin_inset Quotes eld
+\end_inset
+
+trajin
+\begin_inset Quotes erd
+\end_inset
+
+, while getNextInteger() would return 
+\begin_inset Quotes eld
+\end_inset
+
+1
+\begin_inset Quotes erd
+\end_inset
+
+; in both cases the argument returned would be marked, so that a subsequent
+ call to GetStringNext() would return 
+\begin_inset Quotes eld
+\end_inset
+
+mytraj.nc
+\begin_inset Quotes erd
+\end_inset
+
+ and so on.
+ Another very commonly used 
+\begin_inset Quotes eld
+\end_inset
+
+GetNext
+\begin_inset Quotes erd
+\end_inset
+
+ function is the 
+\begin_inset Quotes eld
+\end_inset
+
+GetMaskNext()
+\begin_inset Quotes erd
+\end_inset
+
+ function, which returns the next atom mask expression (so noted because
+ it will begin with ':', '@', '*'); an example of this will be shown below.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Quotes eld
+\end_inset
+
+GetKey
+\begin_inset Quotes erd
+\end_inset
+
+ functions return an argument next to a specified 
+\begin_inset Quotes eld
+\end_inset
+
+key
+\begin_inset Quotes erd
+\end_inset
+
+ string.
+ Take for example the argument list created from 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd R1 @CA ref [myref] out rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+:
+\end_layout
+
+\begin_layout LyX-Code
+0: rmsd
+\end_layout
+
+\begin_layout LyX-Code
+1: R1
+\end_layout
+
+\begin_layout LyX-Code
+2: @CA
+\end_layout
+
+\begin_layout LyX-Code
+2: ref
+\end_layout
+
+\begin_layout LyX-Code
+3: [myref]
+\end_layout
+
+\begin_layout LyX-Code
+4: out
+\end_layout
+
+\begin_layout LyX-Code
+5: rmsd.dat
+\end_layout
+
+\begin_layout Standard
+If we want to access a specific argument, we use a 
+\begin_inset Quotes eld
+\end_inset
+
+GetKey
+\begin_inset Quotes erd
+\end_inset
+
+ function.
+ For example, if we want to know the filename specified by 'out', we would
+ use GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+); this would return 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+, and mark both 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd.dat
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Similarly, GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+ref
+\begin_inset Quotes erd
+\end_inset
+
+) would return 
+\begin_inset Quotes eld
+\end_inset
+
+[myref]
+\begin_inset Quotes erd
+\end_inset
+
+.
+ At this point we could also use the GetMaskNext() function to get the atom
+ mask expression 
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+ArgList Example
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout LyX-Code
+ArgList myArgs(
+\begin_inset Quotes eld
+\end_inset
+
+test_command cutoff 2.0 nval 3 name MyTest :2-30@CA extra
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+double Cut = myArgs.getKeyDouble(
+\begin_inset Quotes eld
+\end_inset
+
+cutoff
+\begin_inset Quotes erd
+\end_inset
+
+, 0.0); // Value 2.0
+\end_layout
+
+\begin_layout LyX-Code
+int Nval = myArgs.getKeyInteger(
+\begin_inset Quotes eld
+\end_inset
+
+nval
+\begin_inset Quotes erd
+\end_inset
+
+, 0);      // Value 3
+\end_layout
+
+\begin_layout LyX-Code
+int Ntypes = myArgs.getKeyInteger(
+\begin_inset Quotes eld
+\end_inset
+
+ntypes
+\begin_inset Quotes erd
+\end_inset
+
+, 0);  // Value 0
+\end_layout
+
+\begin_layout LyX-Code
+std::string Name = myArgs.GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+name
+\begin_inset Quotes erd
+\end_inset
+
+);  // Value 
+\begin_inset Quotes eld
+\end_inset
+
+MyTest
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+std::string Out = myArgs.GetStringKey(
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+);    // Empty
+\end_layout
+
+\begin_layout LyX-Code
+std::string maskExp = myArgs.GetMaskNext();      // Value 
+\begin_inset Quotes eld
+\end_inset
+
+:2-30@CA
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+std::string mask2Exp = myArgs.GetMaskNext();     // Empty
+\end_layout
+
+\begin_layout LyX-Code
+// At this point only 
+\begin_inset Quotes eld
+\end_inset
+
+extra
+\begin_inset Quotes erd
+\end_inset
+
+ will be unmarked.
+\end_layout
+
+\begin_layout Subsection
+Topology
+\end_layout
+
+\begin_layout Standard
+The Topology class describes how a system is laid out in terms of Atoms,
+ Residues, and Molecules (all of which are classes themselves).
+ It may also hold parameters which describe interactions between Atoms (e.g.
+ bonds, angles, dihedrals, etc).
+ The Topology class is chiefly used in Trajectory input/output and setting
+ up atom masks (see below).
+\end_layout
+
+\begin_layout Standard
+The Topology class has several routines that return strings of atom and
+ residue names:
+\end_layout
+
+\begin_layout Description
+std::string
+\begin_inset space ~
+\end_inset
+
+TruncResAtomName(int
+\begin_inset space ~
+\end_inset
+
+atom) Format: 
+\begin_inset Quotes eld
+\end_inset
+
+<res name><res num>@<atom name>
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+std::string
+\begin_inset space ~
+\end_inset
+
+AtomMaskName(int
+\begin_inset space ~
+\end_inset
+
+atom) Format: 
+\begin_inset Quotes eld
+\end_inset
+
+:<res num>@<atom name>
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+std::string
+\begin_inset space ~
+\end_inset
+
+TruncAtomNameNum(int
+\begin_inset space ~
+\end_inset
+
+atom) Format: 
+\begin_inset Quotes eld
+\end_inset
+
+<atom name>_<atom num>
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Description
+std::string
+\begin_inset space ~
+\end_inset
+
+TruncResNameNum(int
+\begin_inset space ~
+\end_inset
+
+residue) Format: 
+\begin_inset Quotes eld
+\end_inset
+
+<res name>:<res num>
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Examples
+\end_layout
+
+\begin_layout Standard
+Iterate over all atoms in a certain residue.
+ This can be accomplished like so:
+\end_layout
+
+\begin_layout LyX-Code
+// Iterate over all atoms in residue 4, print charge.
+\end_layout
+
+\begin_layout LyX-Code
+for (int atom_index = Top.Res(4).FirstAtom;
+\end_layout
+
+\begin_layout LyX-Code
+         atom_index != Top.Res(4).LastAtom;
+\end_layout
+
+\begin_layout LyX-Code
+       ++atom_index)
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Atom %i charge= %g
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+, atom_index+1, Top[atom_index].Charge());
+\end_layout
+
+\begin_layout Standard
+Iterate over all atoms bonded to a certain atom and pick out the hydrogens:
+\end_layout
+
+\begin_layout LyX-Code
+// Iterate over all atoms bonded to atom 66
+\end_layout
+
+\begin_layout LyX-Code
+for (Atom::bond_iterator bond_atom = Top[66].bondbegin();
+\end_layout
+
+\begin_layout LyX-Code
+                         bond_atom != Top[66].bondend();
+\end_layout
+
+\begin_layout LyX-Code
+                       ++bond_atom)
+\end_layout
+
+\begin_layout LyX-Code
+  if (Top[*bond_atom].Element() == Atom::HYDROGEN)
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Hydrogen %s bonded to atom %s
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+,
+\end_layout
+
+\begin_layout LyX-Code
+            Top.AtomMaskName(*bond_atom).c_str(),
+\end_layout
+
+\begin_layout LyX-Code
+            Top.AtomMaskName(66).c_str());
+\end_layout
+
+\begin_layout Subsection
+AtomMask/CharMask
+\end_layout
+
+\begin_layout Standard
+The AtomMask and CharMask classes keep track of what atoms for a given Topology
+ are selected based on a given mask expression.
+ The AtomMask class holds information on selected atoms only, while CharMask
+ has the state of all atoms (selected/not selected).
+ AtomMask is as an integer mask, where the atom numbers currently selected
+ are stored as an array of integers.
+ Since one is usually only interested in selected atoms, most times AtomMask
+ is all that is needed and so is the most used mask class in Cpptraj; for
+ example, all routines that take masks in the Frame class use the AtomMask
+ class.
+ 
+\end_layout
+
+\begin_layout Standard
+The CharMask class has an internal character array where the state of each
+ atom is stored.
+ It has functions that can then be used to interrogate if a certain atom
+ or atoms are selected or not.
+\end_layout
+
+\begin_layout Standard
+In typical use, there are 3 phases to using AtomMask or CharMask: 1) initializat
+ion with a mask expression, 2) setup via a Topology class, and 3) iteration
+ over the mask/interrogation of the mask.
+ Initialization with a mask expression performs all necessary tokenization
+ of the mask expression string and prepares the mask to be set up, but does
+ not actually select atoms.
+ The mask expression can be used during AtomMask construction or passed
+ in via SetMaskString():
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask* Mask = new AtomMask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask Mask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask Mask; Mask.SetMaskString(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Standard
+Setup occurs via a Topology class (since in order to set up a mask you need
+ to know atom names/numbers, residue name/number/types etc).
+ This can be done using SetupIntegerMask() or SetupCharMask() to set up
+ an integer mask (more common) or a char mask:
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask iMask(
+\begin_inset Quotes eld
+\end_inset
+
+@CA
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+Top.SetupIntegerMask( iMask );
+\end_layout
+
+\begin_layout LyX-Code
+CharMask cMask(
+\begin_inset Quotes eld
+\end_inset
+
+:1-20
+\begin_inset Quotes erd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout LyX-Code
+Top.SetupCharMask( Mask );
+\end_layout
+
+\begin_layout Standard
+Once a mask has been setup the Nselected() function returns the number of
+ selected atoms, while the None() function returns true if no atoms were
+ selected.
+ If necessary, one can convert between the mask types post-setup by using
+ AtomMask::ConvertToCharMask() / CharMask::ConvertToIntMask() routines:
+\end_layout
+
+\begin_layout LyX-Code
+AtomMask mask( CharMask.ConvertToIntMask(), CharMask.Natom() )
+\end_layout
+
+\begin_layout LyX-Code
+CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
+\end_layout
+
+\begin_layout Standard
+The final stage is to make use of the atom mask.
+ One can iterate over selected atoms in an integer atom mask using the STL-like
+ const_iterator variable and begin() and end() functions - this is the recommend
+ed way to use atom masks:
+\end_layout
+
+\begin_layout LyX-Code
+for (AtomMask::const_iterator atomnum = Mask.begin();
+\end_layout
+
+\begin_layout LyX-Code
+                              atomnum != Mask.end(); 
+\end_layout
+
+\begin_layout LyX-Code
+                            ++atomnum)
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Selected atom %i
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+, *atomnum);
+\end_layout
+
+\begin_layout Standard
+One can also access members of the integer array directly via the bracket
+ ('[]') operator:
+\end_layout
+
+\begin_layout LyX-Code
+for (int maskidx = 0; maskidx < Mask.Nselected(); ++maskidx)
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Selected atom %i
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+, Mask[atomidx]);
+\end_layout
+
+\begin_layout Standard
+To see if atom(s) are selected in a CharMask, use the AtomInCharMask() and
+ AtomsInCharMask() functions.
+ The former returns true if a specified atom is selected, the latter returns
+ true if any atoms within a given range are selected.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+for (int atom = 0; atom < Top.Natom(); ++atom)
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask.AtomInCharMask(atom)) 
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Selected Atom %i
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+, atom);
+\end_layout
+
+\begin_layout LyX-Code
+for (int rnum = 0; rnum < Top.Nres(); ++res)
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask.AtomsInCharMask( Top.Res(rnum).FirstAtom(),
+\end_layout
+
+\begin_layout LyX-Code
+                            Top.Res(rnum).LastAtom() ))
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Selected Residue %i
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+, rnum);
+\end_layout
+
+\begin_layout Subsection
+Frame
+\end_layout
+
+\begin_layout Standard
+The Frame class is in many ways the workhorse of Cpptraj, as it holds all
+ XYZ coordinates for a given input frame, and optionally box coordinates,
+ masses, replica indices, temperature, time, and/or velocities.
+ Note that although mass is stored in Topology, it is also stored in Frame
+ since many calculations require it (center of mass, mass-weighted RMSD,
+ etc).
+ Coordinates and velocities are stored with double precision.
+ Many routines are available to do things like calculate the center of mass
+ of atoms, rotate, translate, scale, and so on.
+ A major use of the Frame class is to perform RMSD calculations.
+\end_layout
+
+\begin_layout Standard
+Frames are typically set up in two phases.
+ The first phase is memory allocation, which occurs via constructors or
+ the SetupFrameX routines.
+ This should be done as little as possible since memory allocation is relatively
+ expensive.
+ The second phase is actually setting the coordinates, which occurs via
+ the SetX routines.
+ For example, the following code will set up a Frame (newFrame) with the
+ coordinates from another Frame (oldFrame) based on a previously set up
+ AtomMask (mask) and Topology (top) corresponding to oldFrame:
+\end_layout
+
+\begin_layout LyX-Code
+Frame newFrame;
+\end_layout
+
+\begin_layout LyX-Code
+// Allocate memory, copy in masses based on mask.
+\end_layout
+
+\begin_layout LyX-Code
+newFrame.SetupFrameFromMask( mask, top.Atoms() );
+\end_layout
+
+\begin_layout LyX-Code
+// Set only coordinates from oldFrame based on mask.
+\end_layout
+
+\begin_layout LyX-Code
+newFrame.SetCoordinates( oldFrame, mask );
+\end_layout
+
+\begin_layout Standard
+Alternatively, this can be done in one step with a constructor:
+\end_layout
+
+\begin_layout LyX-Code
+Frame newFrame( oldFrame, mask );
+\end_layout
+
+\begin_layout Standard
+The advantage of separating out Setup and Set is that memory reallocation
+ is kept to a minimum.
+ For example, if we wanted to use newFrame to hold a different set of coordinate
+s (of the same size as newFrame or smaller) we might do something like:
+\end_layout
+
+\begin_layout LyX-Code
+newFrame.SetCoordinates( differentFrame );
+\end_layout
+
+\begin_layout Standard
+If the new coordinates might be bigger than the current size of newFrame,
+ we could explicitly call a SetupFrameX routine; this will only reallocate
+ if the new size is greater than the current maximum size.
+ A Frame remembers the largest size it was ever allocated for, so reallocation
+ is kept to a minimum.
+\end_layout
+
+\begin_layout Standard
+There are two basic ways to access coordinates within Frame:
+\end_layout
+
+\begin_layout Description
+const
+\begin_inset space ~
+\end_inset
+
+double*
+\begin_inset space ~
+\end_inset
+
+XYZ(atom) return pointer to beginning of XYZ coordinates for given atom
+ (max Natom()).
+\end_layout
+
+\begin_layout Description
+const
+\begin_inset space ~
+\end_inset
+
+double*
+\begin_inset space ~
+\end_inset
+
+CRD(coord) return pointer to given coordinate (max size()).
+\end_layout
+
+\begin_layout Standard
+Note that you can get pointers to the raw coordinates, but it is not recommened
+ to use these in general.
+\end_layout
+
+\begin_layout Subsubsection
+Using Frame for RMSD calculations
+\end_layout
+
+\begin_layout Standard
+Unlike some of the other functions of Frame, the RMSD functions do not take
+ a mask - it is assumed all atoms in the Frame are involved in the RMSD
+ calculation.
+ This is done for performance reasons.
+ If a subset of atoms is desired for an RMSD calculation the reference and
+ target Frames should be modified beforehand.
+ Since the reference structure usually does not change it is often beneficial
+ to pre-center the reference at the origin.
+ For example, given a reference Frame (Ref), a Farget frame (Tgt), and an
+ AtomMask (mask):
+\end_layout
+
+\begin_layout LyX-Code
+bool useMass = false;
+\end_layout
+
+\begin_layout LyX-Code
+top.SetupIntegerMask( mask );
+\end_layout
+
+\begin_layout LyX-Code
+Frame selectedRef, selectedTgt;
+\end_layout
+
+\begin_layout LyX-Code
+// Set up and pre-center reference.
+\end_layout
+
+\begin_layout LyX-Code
+selectedRef.SetupFrameFromMask( mask, top.Atoms() );
+\end_layout
+
+\begin_layout LyX-Code
+selectedRef.SetCoordinates( Ref, mask );
+\end_layout
+
+\begin_layout LyX-Code
+// refTrans will contain translation from origin to reference.
+\end_layout
+
+\begin_layout LyX-Code
+Vec3 refTrans = selectedRef.CenterOnOrigin( useMass );
+\end_layout
+
+\begin_layout LyX-Code
+// Set up target.
+\end_layout
+
+\begin_layout LyX-Code
+selectedTgt.SetupFrameFromMask( mask, top.Atoms() );
+\end_layout
+
+\begin_layout LyX-Code
+selectedTgt.SetCoordinates( Tgt, mask );
+\end_layout
+
+\begin_layout LyX-Code
+// Calculate RMSD.
+ tgtTrans is translation from target to origin.
+\end_layout
+
+\begin_layout LyX-Code
+Vec3 tgtTrans;
+\end_layout
+
+\begin_layout LyX-Code
+Matrix_3x3 rot_matrix;
+\end_layout
+
+\begin_layout LyX-Code
+double rmsd = selectedTgt.RMSD_CenteredRef( selectedRef,
+\end_layout
+
+\begin_layout LyX-Code
+                                            rot_matrix,
+\end_layout
+
+\begin_layout LyX-Code
+                                            tgtTrans,
+\end_layout
+
+\begin_layout LyX-Code
+                                            useMass );
+\end_layout
+
+\begin_layout LyX-Code
+// Best-fit rotate/translate current Target to Reference.
+\end_layout
+
+\begin_layout LyX-Code
+Tgt.Trans_Rot_Trans( tgtTrans, rot_matrix, refTrans );
+\end_layout
+
+\begin_layout Standard
+Now for subsequent RMS calculations to the same Reference, only the selected
+ Target frame needs to have its coordinates set:
+\end_layout
+
+\begin_layout LyX-Code
+selectedTgt.SetCoordinates( Tgt2, mask );
+\end_layout
+
+\begin_layout LyX-Code
+rmsd = selectedTgt.RMSD_CenteredRef( selectedRef, ...
+\end_layout
+
+\begin_layout Section
+Console and File Input/Output
+\end_layout
+
+\begin_layout Subsection
+Output to STDOUT/STDERR: CpptrajStdio.h
+\end_layout
+
+\begin_layout Standard
+The file CpptrajStdio.cpp contains functions used to write output to standard
+ output (STDOUT) and standard error (STDERR).
+ This is accomplished with the C printf-like functions mprintf() and mprinterr()
+ respectively:
+\end_layout
+
+\begin_layout LyX-Code
+mprintf(const char* format, ...); // STDOUT
+\end_layout
+
+\begin_layout LyX-Code
+mprinterr(const char* format, ...); // STDERR
+\end_layout
+
+\begin_layout Standard
+The 'm' prefix stands for 
+\begin_inset Quotes eld
+\end_inset
+
+master
+\begin_inset Quotes erd
+\end_inset
+
+, and ensures that when CPPTRAJ is running via MPI that only the master
+ thread is able to write with these functions (note the same does NOT apply
+ for OpenMP).
+ The syntax is the same as basic printf - a format string followed by any
+ variables.
+ There are numerous resources that describe printf syntax in detail.
+ Some useful syntax is listed here:
+\end_layout
+
+\begin_layout Description
+%i Integer
+\end_layout
+
+\begin_layout Description
+%f Floating point number
+\end_layout
+
+\begin_layout Description
+%g Use scientific or floating point representation, whichever is shorter.
+\end_layout
+
+\begin_layout Description
+%s Character string
+\end_layout
+
+\begin_layout Description
+%c Single character
+\end_layout
+
+\begin_layout Description
+
+\backslash
+n Newline
+\end_layout
+
+\begin_layout Description
+
+\backslash
+t Tab
+\end_layout
+
+\begin_layout Standard
+For example:
+\end_layout
+
+\begin_layout LyX-Code
+#include 
+\begin_inset Quotes eld
+\end_inset
+
+CpptrajStdio.h
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+int myInteger = 3;
+\end_layout
+
+\begin_layout LyX-Code
+double myDouble = 5.43;
+\end_layout
+
+\begin_layout LyX-Code
+string myString = 
+\begin_inset Quotes eld
+\end_inset
+
+easy
+\begin_inset Quotes erd
+\end_inset
+
+;
+\end_layout
+
+\begin_layout LyX-Code
+mprintf(
+\begin_inset Quotes eld
+\end_inset
+
+Using printf is %s; %i is an integer and %f is a double.
+\backslash
+n
+\begin_inset Quotes erd
+\end_inset
+
+,
+\end_layout
+
+\begin_layout LyX-Code
+        myString.c_str(), myInteger, myDouble);
+\end_layout
+
+\begin_layout Standard
+Note that the string function c_str() must be used to print C++ strings.
+ Output:
+\end_layout
+
+\begin_layout LyX-Code
+Using printf is easy; 3 is an integer and 5.430000 is a double.
+\end_layout
+
+\begin_layout Subsection
+CpptrajFile
+\end_layout
+
+\begin_layout Standard
+The CpptrajFile class provides basic file input and output operations.
+ It can handle reading and writing both Gzip and Bzip2 compressed files,
+ and through the FileName class performs tilde-expansion on file names (via
+ globbing) as well as separates the file name into its base name, extension,
+ and compressed extension.
+ The file can be opened immediately, or set up first and then opened later.
+ Once it has been set up it can be opened or closed multiple times.
+ The CpptrajFile class destructor will automatically close the file if it
+ is open at time of destruction.
+ 
+\end_layout
+
+\begin_layout Subsection
+BufferedLine
+\end_layout
+
+\begin_layout Standard
+The BufferedLine class is a child of CpptrajFile used for text files that
+ will be read in line by line (note that writing is not possible with this
+ class).
+ The class has an internal buffer, which chunks of the input file are read
+ into.
+ The Line() routine can be used to read that chunk line by line; this avoids
+ potentially expensive file IO.
+ When the chunk is empty a new chunk is read in.
+ The line can be further split into Tokens (similar to ArgList) and read
+ one token at a time; this can be useful for e.g.
+ determining the number of columns in a file.
+\end_layout
+
+\begin_layout Subsection
+BufferedFrame
+\end_layout
+
+\begin_layout Standard
+The BufferedFrame class is a child of CpptrajFile used for highly-formatted
+ text files that will be read/written multiple lines at a time (such as
+ the Amber ASCII trajectory format).
+ This class is set up for a certain total number of elements of a certain
+ character width with a certain number of elements per line, which can then
+ be read to or written from a character buffer in one entire chunk.
+ 
+\end_layout
+
+\begin_layout Subsection
+FileName, FileName.h
+\end_layout
+
+\begin_layout Standard
+The FileName class is used by all file-related classes.
+ It is more powerful than a string and will automatically do tilde expansion
+ and split the name into path, base name, extension, etc.
+ FileName.h also contains the File namespace which includes File::Exists()
+ for testing whether a file can be opened and File::NameArray and File::ExpandTo
+Filenames() for getting an array of files using wildcard matching.
+\end_layout
+
+\begin_layout Section
+Trajectory Input/Output
+\end_layout
+
+\begin_layout Standard
+Trajectory input and output (IO) is handled via high-level and low-level
+ classes.
+ At the highest level trajectory input is provided by Trajin-derived classes
+ (Trajin_Single and Trajin_Multi) for reading one frame at a time (i.e.
+ during 'trajin' runs) and EnsembleIn-derived classes (EnsembleIn_Single,
+ which is experimental currently, and EnsembleIn_Multi) for reading multiple
+ frames at a time (i.e.
+ during 'ensemble' runs).
+ Trajectory output is currently handled by Trajout_Single for writing one
+ frame at a time to a single file, and EnsembleOut-dervived classes for
+ writing multiple frames out at a time.
+ At the lower level IO is handled by format-specific classes which inherit
+ from TrajectoryIO (TrajectoryIO.h), which are called Traj_X by convention
+ (e.g.
+ Traj_AmberNetcdf for Amber NetCDF trajectories).
+ TrajectoryIO classes are contained and set up within the higher level classes.
+ Note that there is currently no Trajout_Multi (write a single frame to
+ multiple files) since this functionality is already handled by TrajoutList.
+\end_layout
+
+\begin_layout Subsection
+Trajin_Single
+\end_layout
+
+\begin_layout Standard
+This is for reading in a single frame at a time from a single file.
+\end_layout
+
+\begin_layout Subsection
+Trajin_Multi
+\end_layout
+
+\begin_layout Standard
+This is for reading in a single frame at a time from multiple files (e.g.
+ getting a frame at a specifed temperature from a T-REMD ensemble).
+\end_layout
+
+\begin_layout Subsection
+EnsembleIn_Single
+\end_layout
+
+\begin_layout Standard
+For reading in multiple frames at a time from a single file.
+ Currently experimental.
+\end_layout
+
+\begin_layout Subsection
+EnsembleIn_Multi
+\end_layout
+
+\begin_layout Standard
+For reading in multiple frames at a time from multiple files, optionally
+ sort the frames.
+\end_layout
+
+\begin_layout Subsection
+Trajout_Single
+\end_layout
+
+\begin_layout Standard
+For writing out a single frame at a time to a single file.
+\end_layout
+
+\begin_layout Subsection
+EnsembleOut_Single
+\end_layout
+
+\begin_layout Standard
+For writing out multiple frames at a time to a single file.
+ Currently experimental.
+\end_layout
+
+\begin_layout Subsection
+EnsembleOut_Multi
+\end_layout
+
+\begin_layout Standard
+For writing out multiple frames at a time to multiple files.
+ Used for 'ensemble' run trajectory output and LES trajectory splitting.
+\end_layout
+
+\begin_layout Section
+Topology Input/Output
+\end_layout
+
+\begin_layout Standard
+The 
+\emph on
+ParmIO
+\emph default
+ class is a base class for all topology file formats.
+ This provides an easy mechanism for extracting the system topology from
+ any number of file formats.
+ The 
+\emph on
+ParmFile
+\emph default
+ class is a wrapper around the 
+\emph on
+ParmIO
+\emph default
+ classes that hides the implementation details for each data file type from
+ you.
+ You should interact with 
+\emph on
+ParmIO
+\emph default
+ objects through 
+\emph on
+ParmFile
+\emph default
+ handlers.
+ 
+\emph on
+ParmFile
+\emph default
+ provides the ability to both read and write topology file objects of any
+ class.
+\end_layout
+
+\begin_layout Standard
+One thing that sets 
+\emph on
+ParmIO
+\emph default
+ and 
+\emph on
+ParmFile
+\emph default
+ apart from 
+\emph on
+TrajectoryIO/TrajectoryFile
+\emph default
+ and 
+\emph on
+DataIO/DataFile
+\emph default
+ is its connection with the 
+\emph on
+Topology
+\emph default
+ class.
+ 
+\emph on
+Topology
+\emph default
+ objects contain as much of the information in the Amber topology file as
+ can be parsed from the information present in the ParmIO object (and figured
+ out based on atomic arrangements).
+ A 
+\emph on
+Topology
+\emph default
+ instance is the first argument passed to the 
+\emph on
+ParmFile::Read
+\emph default
+ function, followed by the name of the topology file.
+ Unlike the 
+\emph on
+DataFile
+\emph default
+ and 
+\emph on
+TrajectoryFile
+\emph default
+ classes, 
+\emph on
+ParmFile
+\emph default
+ does not have a reference to the 
+\emph on
+ParmIO
+\emph default
+ object to forward read/write information to.
+ It exists simply to fill the 
+\emph on
+Topology
+\emph default
+ class with the relevant data structures and inform it how to do the rest.
+ The 
+\emph on
+Topology
+\emph default
+ class is format-independent, providing a layer of abstraction to make other
+ parts of the code that require topology information less error-prone while
+ coding.
+\end_layout
+
+\begin_layout Standard
+Every 
+\emph on
+ParmIO
+\emph default
+ subclass implements a 
+\emph on
+ReadParm
+\emph default
+ method that takes a 
+\emph on
+Topology
+\emph default
+ instance as the first argument and fills as much of the information there
+ as possible.
+ Afterwards, the CommonSetup method of the Topology class is called to finish
+ setup and determine bond information (from atom distances if not present
+ directly in the file format) and molecule information (based on the bonded
+ structure).
+ The currently available types of topologies are summarized in 
+\begin_inset CommandInset ref
+LatexCommand formatted
+reference "tbl:Cpptraj-Parm-Formats"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Topology file formats currently implemented in Cpptraj.
+ The first column has the 
+\emph on
+ParmIO
+\emph default
+ class name as well as the 
+\emph on
+ParmFormatType
+\emph default
+ enumeration type that corresponds to that class inside 
+\emph on
+ParmFile
+\emph default
+ in parentheses.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="5" columns="2">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\emph on
+ParmIO
+\emph default
+ Subclass (
+\emph on
+ParmFormatType
+\emph default
+)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Description
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_Amber (AMBERPARM)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Amber style topology file (OLD and NEW styles)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_CharmmPsf (CHARMMPSF)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+CHARMM PSF topology file format (used by NAMD, too)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_Mol2 (MOL2FILE)
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+TRIPOS Mol2 file
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Parm_PDB
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+PDB File
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tbl:Cpptraj-Parm-Formats"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+The DataSet and DataFile Framework
+\end_layout
+
+\begin_layout Standard
+One of the goals in writing cpptraj was to try and generalize data collection
+ and output, so that any action could output any generated data in any format
+ known to cpptraj without having to write any extra code.
+ For example, data generated by a distance calculation can be output in
+ columns, as a Grace file, as a Gnuplot file, or as all three.
+ To that end Actions and Analyses have access to the main DataSetList in
+ CpptrajState (usually named DSL inside Actions) and the main DataFileList
+ (usually named DFL inside actions).
+ A DataSet can be generated by an Action, but because it is held outside
+ the Action in the master DataSetList it can persist after the Action that
+ generated it has been destroyed and be used in subsequent Analyses etc.
+ DataSets have a base type which determines what kind of data it can hold,
+ and can also belong to a group; DataSets in the same group behave in a
+ similar fashion.
+ For example, all DataSets in the COORDINATES group hold coordinates, etc.
+\end_layout
+
+\begin_layout Subsection
+The MetaData class
+\end_layout
+
+\begin_layout Standard
+DataSets are associated with meta data which is used to both describe and
+ categorize the data.
+ DataSet selection uses meta data; meta data is also used to sort DataSets.
+ This information is contained within the MetaData class.
+ A DataSet can have a name, aspect, index, type etc.
+ This allows for DataSets to e.g.
+ be marked as an alpha torsion (M_TORSION, ALPHA).
+ There are currently 9 MetaData variables:
+\end_layout
+
+\begin_layout Description
+name_ The DataSet name; this is the most general level of classification.
+ Used in searches.
+\end_layout
+
+\begin_layout Description
+fileName_ If the data was read in from a file, the name of that file.
+ Used in searches; both the full path and base name can be used to match
+ (e.g.
+ for reference frame data sets).
+\end_layout
+
+\begin_layout Description
+aspect_ A 
+\begin_inset Quotes eld
+\end_inset
+
+sub-name
+\begin_inset Quotes erd
+\end_inset
+
+, used to differentiate between different aspects of similar data.
+ For example, DataSets generated by the 'nastruct' Action have different
+ aspects for nucleic acid 
+\begin_inset Quotes eld
+\end_inset
+
+stretch
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+shear
+\begin_inset Quotes erd
+\end_inset
+
+, 
+\begin_inset Quotes eld
+\end_inset
+
+stagger
+\begin_inset Quotes erd
+\end_inset
+
+, etc.
+ Used in searches.
+\end_layout
+
+\begin_layout Description
+legend_ This is the name that will be used when writing data out to a file.
+ Not used in searches.
+ A default one is created if one is not provided.
+\end_layout
+
+\begin_layout Description
+idx_ (Index) A number which can be used to further differentiate data.
+ It could correspond to residue, atom, etc.
+ Used in searches.
+\end_layout
+
+\begin_layout Description
+ensembleNum_ (Ensemble number) For use during ensemble processing; this
+ is set by the DataSetList to differentiate data from different ensembles.
+\end_layout
+
+\begin_layout Description
+scalarmode_ Internal categorization of the type of data, e.g.
+ a distance, angle, torsion, etc.
+ Certain functions will use this data - for example data sets marked as
+ angle, torsion, or pucker will take periodicity into account when averaging
+ (DataSet_1D::Avg()).
+\end_layout
+
+\begin_layout Description
+scalartype_ Internal sub-type; so in the case of a torison what type of
+ torsion it is (phi, psi etc) or in the case of a matrix what kind of matrix,
+ etc.
+\end_layout
+
+\begin_layout Description
+timeSeries_ Whether the DataSet is a time series; used by DataSetList to
+ determine whether to call the Allocate() function.
+\end_layout
+
+\begin_layout Standard
+MetaData can be set using the DataSet::SetMeta() routine, but it is recommended
+ that this be done sparingly once a DataSet is part of the master DataSetList
+ since this could create conflicts.
+\end_layout
+
+\begin_layout Subsection
+The TextFormat class
+\end_layout
+
+\begin_layout Standard
+This class is used when writing the data set out to text files.
+ It creates a printf-like format string of a given type with specified width
+ and precision.
+\end_layout
+
+\begin_layout Subsection
+Brief DataSet/DataFile Example
+\end_layout
+
+\begin_layout Standard
+A simple usage example is given here.
+ Say for example we want to track a distance in an Action.
+ The first step is to create the DataSet in the Init() routine.
+\end_layout
+
+\begin_layout LyX-Code
+dist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
+ MetaData::M_DISTANCE), "Dis");
+\end_layout
+
+\begin_layout LyX-Code
+if (dist_==0) return 1;
+\end_layout
+
+\begin_layout Standard
+In the first line a DataSet class of type DOUBLE is added to the master
+ DataSetList.
+ The various types are enumerated in DataSet::DataType (DataSet.h).
+ The DataSet will be named whatever the next string is in the actionArgs
+ ArgList.
+ If there is no name, a default one will be created based on the given default
+ "Dis" and the DataSet's overall position in the DataSetList (so in this
+ case the default could be something like Dis_00000).
+ The DataSet is also given the scalarMode M_DISTANCE, which is information
+ that other Actions/Analyses can use (like Analysis_Statistics).
+ What is returned is a pointer to the DataSet; DataSet is actually a base
+ class that specific DataSet types inherit (in this case DataSet_double).
+ In this way the interface is generalized.
+\end_layout
+
+\begin_layout Standard
+The next step is to add the DataSet to the DataFileList.
+\end_layout
+
+\begin_layout LyX-Code
+DataFile* outfile = DFL->AddFile(distanceFile, actionArgs);
+\end_layout
+
+\begin_layout LyX-Code
+if (outfile != 0) outfile->AddDataSet( dist_ );
+\end_layout
+
+\begin_layout Standard
+In the first line a pointer to a new or exsiting (if already created somewhere
+ else) DataFile is returned only if the string distanceFile is not empty;
+ this allows specification of output files to be optional.
+ The actionsArgs ArgList is passed in so that the DataFile outfile can process
+ any DataFile-related arguments.
+ In the second line the DataSet is added to the DataFile.
+ In this way output from multiple actions can be combined rather than overwritte
+n.
+ The machinery of the DataFileList takes care of output (formatting etc)
+ from there.
+\end_layout
+
+\begin_layout Standard
+The final phase is actually adding data to the DataSet.
+ So for example in the action() routine you could have:
+\end_layout
+
+\begin_layout LyX-Code
+double distance = sqrt( DIST2_NoImage( V1, V2 ) );
+\end_layout
+
+\begin_layout LyX-Code
+dist_->Add(frameNum, &distance);
+\end_layout
+
+\begin_layout Standard
+In the first line the value 'distance' is being calculated.
+ In the next line the value from 'distance' is being added to DataSet dist_
+ with frame number 'frameNum' (automatically set within Action).
+ Notice that the address of 'distance' is passed rather than the value;
+ this is a necessity from the generalization of the DataSet interface.
+ DataSet has no idea a prior what the data type might be, so in the Add
+ routine the value is cast to what the underlying DataSet implementation
+ expects.
+ This allows the Add routine to be used for double, float, int, string,
+ etc.
+ This DataSet could also be cast back to it's actual type to access other
+ routines, e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+DataSet_double& ds_dist = static_cast<DataSet_double&>( *dist_ );
+\end_layout
+
+\begin_layout Subsection
+DataSet_1D / SCALAR_1D
+\end_layout
+
+\begin_layout Standard
+Base class for 1D scalar data sets (like DataSet_double, DataSet_Mesh, etc).
+ Basically hold a series of numbers.
+\end_layout
+
+\begin_layout Subsection
+DataSet_2D / MATRIX_2D
+\end_layout
+
+\begin_layout Standard
+Base class for 2D matrices.
+\end_layout
+
+\begin_layout Subsection
+DataSet_3D / GRID_3D
+\end_layout
+
+\begin_layout Standard
+Base class for 3D grids.
+\end_layout
+
+\begin_layout Subsection
+DataSet_Coords / COORDINATES
+\end_layout
+
+\begin_layout Standard
+Base class for DataSets which hold coordinates.
+\end_layout
+
+\begin_layout Part
+Adding New Functionality
+\end_layout
+
+\begin_layout Standard
+Most development for Cpptraj will likely be in adding new functionality;
+ actions, analyses, and trajectory/topology/data file formats.
+ This part of the manual will provide guidance and some helpful hints to
+ this end.
+ In general, adding new functionality is done by writing an implementation
+ of the desired class type (e.g.
+ for actions, inherit from the Action class) and then adding that class
+ to the container for that specific functionality (e,g, in the case of actions,
+ ActionList).
+\end_layout
+
+\begin_layout Section
+Adding Actions - Example
+\end_layout
+
+\begin_layout Standard
+All actions inherit from the Action abstract base class.
+ The Action class itself inherits from the DispatchObject class so that
+ it can be associated with an allocator (to create the action) and a help
+ function.
+ There are four functions that every action must implement: Init(), Setup(),
+ DoAction(), and Print().
+ Init() is called when the action is first created, and processes input
+ arguments, sets up DataSets/DataFiles, deals with reference frames, and
+ sets the debug level.
+ Setup() is called to set the action up for a specific topology, and so
+ handles anything Topology-related (such as parsing atom masks).
+ The DoAction() function is called to actually perform the action on input
+ coordinate frames.
+ The Init(), Setup(), and DoAction() functions return a special type of
+ integer, Action::RetType, which described the result of the action:
+\end_layout
+
+\begin_layout Description
+Action::OK Action is successful.
+\end_layout
+
+\begin_layout Description
+Action::ERR Action is not successful.
+\end_layout
+
+\begin_layout Description
+Action::USE_ORIGINAL_FRAME Action requests that the original unmodified
+ topology/frame be used (see e.g.
+ Action_Unstrip in Action_Strip.h).
+\end_layout
+
+\begin_layout Description
+Action::SUPPRESS_COORD_OUTPUT Action requests that further processing of
+ the current coordinate frame be skipped (see e.g.
+ Action_RunningAvg).
+\end_layout
+
+\begin_layout Description
+Action::SKIP Non-fatal problem occurred during setup; skip Action until
+ next Setup call.
+\end_layout
+
+\begin_layout Description
+Action::MODIFY_TOPOLOGY Setup routine has modified the Topology/CoordinateInfo.
+\end_layout
+
+\begin_layout Description
+Action::MODIFY_COORDS DoAction routine has modified the Frame.
+\end_layout
+
+\begin_layout Standard
+The final function is Print(), which is called after all trajectory processing
+ is complete and performs any additional calculation or output necessary.
+ This function can be blank if such functionality is not needed, but it
+ still must be implemented.
+\end_layout
+
+\begin_layout Standard
+In addition to Action, there are currently two additional action-related
+ classes that actions may want to inherit from.
+ The ImagedAction class is for classes that may need to calculate imaged
+ distances, and the ActionFrameCounter class is for actions that may want
+ to process subsets of input frames (see e.g.
+ the Action_Matrix action).
+\end_layout
+
+\begin_layout Standard
+As an example, we will go through the creation of a simplified version of
+ the Action_Distance class for calculating distances; this will cover using
+ the DataSet, DataFile, AtomMask, and ImagedAction classes as well.
+\end_layout
+
+\begin_layout Subsection
+Create the Class Header
+\end_layout
+
+\begin_layout Standard
+As mentioned in the style guide, header files should be named after the
+ class, so the Action_Distance class will go in a file named 
+\begin_inset Quotes eld
+\end_inset
+
+Action_Distance.h
+\begin_inset Quotes erd
+\end_inset
+
+.
+ The first thing to do is create a 
+\begin_inset Quotes eld
+\end_inset
+
+header guard
+\begin_inset Quotes erd
+\end_inset
+
+ - this will prevent issues with multiple inclusion.
+ The header guard should be named after the class and header file, so for
+ Action_Distance.h:
+\end_layout
+
+\begin_layout LyX-Code
+#ifndef INC_ACTION_DISTANCE_H
+\end_layout
+
+\begin_layout LyX-Code
+#define INC_ACTION_DISTANCE_H
+\end_layout
+
+\begin_layout Standard
+Next comes the class description.
+ Since distance calculations may involve imaging we also include the ImagedActio
+n class as a variable to simplify image handling:
+\end_layout
+
+\begin_layout LyX-Code
+class Action_Distance: public Action {
+\end_layout
+
+\begin_layout Standard
+Following the style guide, we first implement any public methods.
+ For actions this is at least the constructor, the allocator (named Alloc()
+ by convention), and the Help() function.
+ The allocator and help functions need to be static so that they can be
+ called without instantiating the class.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+public:
+\end_layout
+
+\begin_layout LyX-Code
+  Action_Distance();  ///< Constructor
+\end_layout
+
+\begin_layout LyX-Code
+  /// Allocator
+\end_layout
+
+\begin_layout LyX-Code
+  static DispatchObject* Alloc() { return (DispatchObject*)new Action_Distance()
+; }
+\end_layout
+
+\begin_layout LyX-Code
+  static void Help(); ///< Help function
+\end_layout
+
+\begin_layout Standard
+The implemented functions Init(), Setup(), DoAction(), and Print() can be
+ either public or private, although the preference is private.
+\end_layout
+
+\begin_layout Standard
+The private section is where all functions and variables specific to the
+ class will go.
+ First, we add entries for the functions inherited from the Action base
+ class which must be implemented.
+ Since we will not need to do any post-processing for this action, the Print()
+ function is empty:
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType Init(ArgList&, ActionInit&, int);
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType Setup(ActionSetup&);
+\end_layout
+
+\begin_layout LyX-Code
+  Action::RetType DoAction(int, ActionFrame&);
+\end_layout
+
+\begin_layout LyX-Code
+  void Print() {}
+\end_layout
+
+\begin_layout Standard
+Next we define the class variables.
+ For Action_Distance we will want a DataSet to hold the calculated distances,
+ two AtomMasks to describe the points between which the distance should
+ be calculated, and a variable to indicate whether the distance should be
+ mass-weighted.
+\end_layout
+
+\begin_layout LyX-Code
+private:
+\end_layout
+
+\begin_layout LyX-Code
+  DataSet* dist_;      ///< Will hold DataSet of calculated distances.
+\end_layout
+
+\begin_layout LyX-Code
+  bool useMass_;       ///< If true, mass-weight distances.
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask1_;     ///< First atom selection.
+\end_layout
+
+\begin_layout LyX-Code
+  AtomMask Mask2_;     ///< Second atom selection
+\end_layout
+
+\begin_layout LyX-Code
+  ImagedAction image_; ///< Holds imaging info
+\end_layout
+
+\begin_layout Standard
+All variables related to imaging are already include via the ImagedAction
+ class.
+ 
+\end_layout
+
+\begin_layout Standard
+Last, end the class definition and finish the header guard:
+\end_layout
+
+\begin_layout LyX-Code
+};
+\end_layout
+
+\begin_layout LyX-Code
+#endif
+\end_layout
+
+\begin_layout Subsection
+Create the Class Implementation
+\end_layout
+
+\begin_layout Standard
+Following the naming scheme, the class implementation will go into Action_Distan
+ce.cpp.
+ The first part of this file will have the necessary #include directives.
+ We need <cmath> for the square root function, Action_Distance.h for the
+ class definition, and CpptrajStdio.h for wiriting to the console.
+ 
+\end_layout
+
+\begin_layout LyX-Code
+#include <cmath>
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Distance.h"
+\end_layout
+
+\begin_layout LyX-Code
+#include "CpptrajStdio.h"
+\end_layout
+
+\begin_layout Standard
+First we will need to create the class constructor.
+ It is encouraged that users make use of initalizer lists (which tend to
+ be more efficient) for this purpose.
+ In this case we have two non-class variables: dist_, which is a pointer
+ to a DataSet, and useMass_, which is boolean:
+\end_layout
+
+\begin_layout LyX-Code
+Action_Distance::Action_Distance() : dist_(0), useMass_(true) {}
+\end_layout
+
+\begin_layout Standard
+Next, ensure that the Help() function has an implementation.
+ Note that in cpptraj 
+\begin_inset Quotes eld
+\end_inset
+
+mprintf
+\begin_inset Quotes erd
+\end_inset
+
+ is used over 
+\begin_inset Quotes eld
+\end_inset
+
+printf
+\begin_inset Quotes erd
+\end_inset
+
+ for making any future IO modifications easier:
+\end_layout
+
+\begin_layout LyX-Code
+void Action_Distance::Help() {
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("distance [<name>] <mask1> <mask2> [out <filename>] [geom] [noimage]
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsubsection
+Init() - Parse user arguments, set up DataSets/DataFiles etc
+\end_layout
+
+\begin_layout Standard
+Init() is called when the action is created and is responsible for parsing
+ the Argument list (ArgList) and inital setup.
+ Init() has the same input arguments for every action:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType 
+\end_layout
+
+\begin_layout LyX-Code
+  Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+\end_layout
+
+\begin_layout LyX-Code
+{
+\end_layout
+
+\begin_layout Standard
+The input arguments are as follows: 
+\series bold
+actionArgs
+\series default
+ (ArgList class) contains arguments from user input, 
+\series bold
+init
+\series default
+ (ActionInit class) contains the master DataSetList and master DataFileList,
+ and 
+\series bold
+debugIn
+\series default
+ is the current debug level for all actions.
+ It is up to the action implementation whether it wants to record the debug
+ level or not.
+\end_layout
+
+\begin_layout Standard
+Typical order of argument processing is keywords, masks, DataSet name.
+ First we will process the keywords 'noimage', 'geom', and 'out <filename>'.
+\end_layout
+
+\begin_layout Standard
+In order to determine whether the action will try to use imaging we call
+ the InitImaging() function (inherited from the ImagedAction class).
+ If the ArgList actionArgs contains the string 
+\begin_inset Quotes eld
+\end_inset
+
+noimage
+\begin_inset Quotes erd
+\end_inset
+
+, false will be sent to InitImaging to disable imaging:
+\end_layout
+
+\begin_layout LyX-Code
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+\end_layout
+
+\begin_layout Standard
+Next we set useMass_.
+ If actionArgs contains the string 
+\begin_inset Quotes eld
+\end_inset
+
+geom
+\begin_inset Quotes erd
+\end_inset
+
+, useMass_ will be set to false:
+\end_layout
+
+\begin_layout LyX-Code
+  useMass_ = !(actionArgs.hasKey("geom"));
+\end_layout
+
+\begin_layout Standard
+Next, we will try to create an output DataFile:
+\end_layout
+
+\begin_layout LyX-Code
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"),
+ actionArgs );
+\end_layout
+
+\begin_layout Standard
+The behavior of AddDataFile() depends on the result from actionArgs.GetStringKey(
+); if 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ is present in actionArgs, the next string (presumably <filename>) is returned
+ and passed to AddDataFile(), and a DataFile will be returned corresponding
+ to <filename>.
+ If 
+\begin_inset Quotes eld
+\end_inset
+
+out
+\begin_inset Quotes erd
+\end_inset
+
+ is not present nothing will be returned, no file will be set up, and outfile
+ will be null (0).
+ 
+\end_layout
+
+\begin_layout Standard
+Next, we will get two atom mask expressions.
+ We will require that the user must specify two masks, so if either of the
+ strings is empty return an error:
+\end_layout
+
+\begin_layout LyX-Code
+  std::string mask1 = actionArgs.GetMaskNext();
+\end_layout
+
+\begin_layout LyX-Code
+  std::string mask2 = actionArgs.GetMaskNext();
+\end_layout
+
+\begin_layout LyX-Code
+  if (mask1.empty() || mask2.empty()) {
+\end_layout
+
+\begin_layout LyX-Code
+    mprinterr("Error: distance: Requires 2 masks
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+    return Action::ERR;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Now we can use the mask expression strings to initialize the two AtomMask
+ classes (note that this tokenizes the mask expressions but does not yet
+ set them up since we need topology information to do that):
+\end_layout
+
+\begin_layout LyX-Code
+  Mask1_.SetMaskString(mask1);
+\end_layout
+
+\begin_layout LyX-Code
+  Mask2_.SetMaskString(mask2);
+\end_layout
+
+\begin_layout Standard
+Next we will use the master DataSetList (init.DSL()) to create a DataSet
+ to store the calculated distances.
+ We will use a version of DataSetList::AddSet() that allows us to specify
+ the DataSet type, MetaData, and a default name if no name is specified
+ (
+\begin_inset Quotes eld
+\end_inset
+
+Dis
+\begin_inset Quotes erd
+\end_inset
+
+).
+ If any errors occur in creating the DataSet, NULL (0) will be returned.
+ Note that the string returned by actionArgs.GetStringNext() is implicitly
+ converted to a MetaData class.
+\end_layout
+
+\begin_layout LyX-Code
+  dist_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "Dis");
+\end_layout
+
+\begin_layout LyX-Code
+  if (dist_==0) return Action::ERR;
+\end_layout
+
+\begin_layout Standard
+If a DataFile was previously set up, we now add the DataSet to this DataFile:
+\end_layout
+
+\begin_layout LyX-Code
+  if (outfile != 0) outfile->AddDataSet( dist_ );
+\end_layout
+
+\begin_layout Standard
+Last, we print out some information regarding how the Action has been initialize
+d and return Action::OK to indicate successful intialization:
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("    DISTANCE: %s to %s",Mask1_.MaskString(), Mask2_.MaskString());
+\end_layout
+
+\begin_layout LyX-Code
+  if (!image_.UseImage())
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", non-imaged");
+\end_layout
+
+\begin_layout LyX-Code
+  if (useMass_)
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", center of mass");
+\end_layout
+
+\begin_layout LyX-Code
+  else 
+\end_layout
+
+\begin_layout LyX-Code
+   mprintf(", geometric center");   mprintf(".
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+IMPORTANT:
+\series default
+ Note that this is the only time in which the master DataSetList is passed
+ to the Action.
+ If the Action will need to set up DataSets later (because e.g.
+ they may depend on what's in the Topology, like in the case of the 
+\series bold
+\emph on
+multidihedral
+\series default
+\emph default
+ command), it should save a pointer to the master DataSetList using the
+ 
+\series bold
+init.DslPtr()
+\series default
+ function, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+masterDSL_ = init.DslPtr();
+\end_layout
+
+\begin_layout Subsubsection
+Setup() - Set up Topology-related parts of the Action
+\end_layout
+
+\begin_layout Standard
+Setup() is called whenever the action needs to be set up for a given Topology
+ file.
+ Any component of the action that depends on Topology (in this case the
+ AtomMasks and the Imaging) is handled here.
+ The arguments to Setup() are:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType Action_Distance::Setup(ActionSetup& setup) {
+\end_layout
+
+\begin_layout Standard
+Note that the 
+\series bold
+setup
+\series default
+ variable (ActionSetup class) contains a pointer to the current Topology
+ and current trajectory CoordinateInfo, as well as the number of expected
+ frames associated with this Topology during the current run.
+ Actions that want to modify the current Topology or CoordinateInfo for
+ subsequent Actions can do so using the 
+\series bold
+setup
+\series default
+ variable (see e.g.
+ Action_Strip).
+ 
+\end_layout
+
+\begin_layout Standard
+First, we setup the AtomMasks.
+ Each AtomMask is passed to the current topology using the SetupIntegerMask()
+ function, which will create an integer array containing only the selected
+ atoms based on the mask expression.
+ If we needed to know both selected and unselected atoms we could use the
+ SetupCharMask() function instead.
+\end_layout
+
+\begin_layout LyX-Code
+  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+\end_layout
+
+\begin_layout LyX-Code
+  if (setup.Top().SetupIntegerMask( Mask2_ )) return Action::ERR;
+\end_layout
+
+\begin_layout Standard
+After this, we print some information about what atoms are selected (note
+ we could also use the MaskInfo() function of AtomMask for this).
+ For calculating distance, we need to make sure atoms were actually selected
+ (using the None() function of AtomMask).
+ If no atoms were selected this may be because the mask is only valid for
+ certain Topologies during the run, so in that case make it a non-fatal
+ error (i.e.
+ a Warning) and return Action::SKIP:
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf("
+\backslash
+t%s (%i atoms) to %s (%i atoms)",Mask1_.MaskString(), Mask1_.Nselected(),
+\end_layout
+
+\begin_layout LyX-Code
+          Mask2_.MaskString(),Mask2_.Nselected());
+\end_layout
+
+\begin_layout LyX-Code
+  if (Mask1_.None() || Mask2_.None()) {
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf("
+\backslash
+nWarning: distance: One or both masks have no atoms.
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+    return Action::SKIP;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Next we determine if imaging can actually be performed based on the box
+ information present in the current trajectory's CoordinateInfo; if there
+ is no box information imaging cannot be performed.
+ We do this with the image_.SetupImaging() function (ImagedAction class).
+ The image_.ImagingEnabled() function will let us know if imaging for this
+ Topology is possible or not:
+\end_layout
+
+\begin_layout LyX-Code
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+\end_layout
+
+\begin_layout LyX-Code
+  if (image_.ImagingEnabled())
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", imaged");
+\end_layout
+
+\begin_layout LyX-Code
+  else
+\end_layout
+
+\begin_layout LyX-Code
+    mprintf(", imaging off");
+\end_layout
+
+\begin_layout LyX-Code
+  mprintf(".
+\backslash
+n");
+\end_layout
+
+\begin_layout Standard
+Now all Topology-dependent aspects of the action are set up.
+ Return Action::OK.
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+IMPORTANT:
+\series default
+ Note that this is the only time in which a Topology is passed to the Action.
+ If the Action requires Topology information later (such as in DoAction()
+ or Print()) it should save a pointer to the Topology using the 
+\series bold
+setup.TopAddress()
+\series default
+ function, e.g.
+\end_layout
+
+\begin_layout LyX-Code
+currentParm_ = setup.TopAddress();
+\end_layout
+
+\begin_layout Subsubsection
+DoAction() - Process input Frame
+\end_layout
+
+\begin_layout Standard
+Coordinates are read in a frame at a time and stored in a Frame class, which
+ is then passed to each action in the ActionList.
+ The DoAction() function is called to process a coordinate Frame.
+ The arguments are:
+\end_layout
+
+\begin_layout LyX-Code
+Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm)
+ {
+\end_layout
+
+\begin_layout Standard
+The first argument 
+\series bold
+frameNum
+\series default
+ is the current frame number (starting at 0).
+ Note that the 
+\series bold
+frm
+\series default
+ variable (ActionFrame class) contains a pointer to the current Frame.
+ Actions that want to alter the current Frame beyond just manipulating coordinat
+es for subsequent Actions (e.g.
+ changing the Frame size or adding velocity info etc) can do so via the
+ 
+\series bold
+frm
+\series default
+ variable (see e.g.
+ Action_Closest).
+ 
+\end_layout
+
+\begin_layout Standard
+There are several variables needed for calculating the distance.
+ First, we have two Vec3 classes (Vec3.h, which is already included from
+ other headers) to store the XYZ coordinates of the points:
+\end_layout
+
+\begin_layout LyX-Code
+  Vec3 a1, a2;
+\end_layout
+
+\begin_layout Standard
+If we are performing non-orthorhombic imaging we need to store the matrices
+ which perform conversion from Cartesian to fractional coordinates and vice
+ versa (using Matrix_3x3 classes, Matrix_3x3.h).
+ Note that these are called 'ucell' and 'recip' respectively throughout
+ CPPTRAJ, as these were the names used for the analogous structures in PTRAJ.
+\end_layout
+
+\begin_layout LyX-Code
+  Matrix_3x3 ucell, recip;
+\end_layout
+
+\begin_layout Standard
+Finally, we need a double to store the actual result of the distance calculation
+:
+\end_layout
+
+\begin_layout LyX-Code
+  double Dist;
+\end_layout
+
+\begin_layout Standard
+In the first part of the actual calculation, we calculate the centers of
+ the coordinates in Mask1_ and Mask2_, either mass-weighted or not depending
+ on useMass_, using the appropriate functions from the Frame class (Frame.h):
+\end_layout
+
+\begin_layout LyX-Code
+  if (useMass_) {
+\end_layout
+
+\begin_layout LyX-Code
+    a1 = frm.Frm().VCenterOfMass( Mask1_ );
+\end_layout
+
+\begin_layout LyX-Code
+    a2 = frm.Frm().VCenterOfMass( Mask2_ );
+\end_layout
+
+\begin_layout LyX-Code
+  } else {
+\end_layout
+
+\begin_layout LyX-Code
+    a1 = frm.Frm().VGeometricCenter( Mask1_ );
+\end_layout
+
+\begin_layout LyX-Code
+    a2 = frm.Frm().VGeometricCenter( Mask2_ );
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout Standard
+Note that here we are using the Frm() function, which returns a constant
+ (i.e.
+ non-modifiable) reference to the current Frame; if we wanted to actually
+ manipulate the coordinates we would have to call ModifyFrm().
+ 
+\end_layout
+
+\begin_layout Standard
+Next, we get the distance between the coordinates stored in a1 and a2.
+ For non-orthorhombic imaging we first need to convert the current box coordinat
+es (stored in the Frame class in double precision as 3 lengths and 3 angles)
+ into the coordinate conversion matrices using the ToRecip() function of
+ the Box class (Box.h).
+ Then, depending on the type of imaging that needs to be performed we call
+ the appropriate distance calculation routine (DIST2_XXX, found in DistRoutines.h
+):
+\end_layout
+
+\begin_layout LyX-Code
+  switch ( image_.ImageType() ) {
+\end_layout
+
+\begin_layout LyX-Code
+    case NONORTHO:
+\end_layout
+
+\begin_layout LyX-Code
+      frm.Frm().BoxCrd().ToRecip(ucell, recip);
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+\end_layout
+
+\begin_layout LyX-Code
+      break;
+\end_layout
+
+\begin_layout LyX-Code
+    case ORTHO:
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
+\end_layout
+
+\begin_layout LyX-Code
+      break;
+\end_layout
+
+\begin_layout LyX-Code
+    case NOIMAGE:
+\end_layout
+
+\begin_layout LyX-Code
+      Dist = DIST2_NoImage(a1, a2);       break;
+\end_layout
+
+\begin_layout LyX-Code
+  }
+\end_layout
+
+\begin_layout LyX-Code
+  Dist = sqrt(Dist);
+\end_layout
+
+\begin_layout Standard
+Last, we add the result to the DataSet and return Action::OK.
+ Since DataSet is just an interface we pass in the address of Dist (&Dist)
+ to let the underlying DataSet framework take care of the fact that it is
+ a double.
+\end_layout
+
+\begin_layout LyX-Code
+  dist_->Add(frameNum, &Dist);
+\end_layout
+
+\begin_layout LyX-Code
+  return Action::OK;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsubsection
+Print() - Any post-processing
+\end_layout
+
+\begin_layout Standard
+The Print() function is called once all input frames have been read in,
+ and is used if there is anything that should be printed outside the normal
+ DataFile/DataSet framework (e.g.
+ hydrogen bond averages in the hbond action) or if there are any additional
+ calculations that need to be performed (e.g.
+ finishing up matrix calculations in the matrix action).
+ In this example we're only calculating a simple distance; the output is
+ handled by the DataFile/DataSet framework, so we implement a blank Print()
+ function in the header:
+\end_layout
+
+\begin_layout LyX-Code
+void Print() {}
+\end_layout
+
+\begin_layout Subsection
+Add the Action to the Command class
+\end_layout
+
+\begin_layout Standard
+Now that the class implementation is complete, we need to let cpptraj know
+ how to call it.
+ This is currently done using a 
+\begin_inset Quotes eld
+\end_inset
+
+static
+\begin_inset Quotes erd
+\end_inset
+
+ Class, Command (Command.cpp), which is initialized by the Cpptraj class
+ via Command::Init() when the program starts.
+ Command::Init() makes use of the Command::AddCmd() function to add the
+ Command, set its destination, and any associated keywords.
+ The Command::AddCmd() function looks like:
+\end_layout
+
+\begin_layout LyX-Code
+void Command::AddCmd(DispatchObject* oIn, Cmd::DestType dIn, int nKeys,
+ ...)
+\end_layout
+
+\begin_layout Standard
+where 
+\series bold
+oIn
+\series default
+ is a pointer to the DispatchObject (Exec-, Action-, Analysis-, or Deprecated-de
+rived class), 
+\series bold
+dIn
+\series default
+ determines how the Command will be processed, 
+\series bold
+nKeys
+\series default
+ is the number of keywords associated with the command, and the remaining
+ arguments are the command keywords.
+ For example:
+\end_layout
+
+\begin_layout LyX-Code
+Command::AddCmd( new Action_Rmsd(), Cmd::ACT, 2, "rms", "rmsd" );
+\end_layout
+
+\begin_layout Standard
+Adds a new instance of the Action-derived class Action_Rmsd, sets its destinatio
+n as Action (Cmd::ACT), and sets 2 associated command keys, 
+\begin_inset Quotes eld
+\end_inset
+
+rms
+\begin_inset Quotes erd
+\end_inset
+
+ and 
+\begin_inset Quotes eld
+\end_inset
+
+rmsd
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+To make navigation of Commands.cpp easier, you can search for ACTION (or
+ ANALYSIS if adding an Analysis) to go where things need to be added.
+ First add the class to Commands.cpp with the appropriate '#include'.
+ Includes should be in alphabetical order within their given section.
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Dihedral.h"
+\end_layout
+
+\begin_layout LyX-Code
+
+\series bold
+#include "Action_Distance.h"
+\end_layout
+
+\begin_layout LyX-Code
+#include "Action_Hbond.h"
+\end_layout
+
+\begin_layout Standard
+Then add the command to Command::Init() using Command::AddCmd(), e.g.:
+\end_layout
+
+\begin_layout LyX-Code
+Command::AddCmd( new Action_Dipole(), Cmd::ACT, 1, "dipole" );
+\end_layout
+
+\begin_layout LyX-Code
+
+\series bold
+Command::AddCmd( new Action_Distance(), Cmd::ACT, 1, "distance" );
+\end_layout
+
+\begin_layout LyX-Code
+Command::AddCmd( new Action_DistRmsd(), Cmd::ACT, 2, "drms", "drmsd" );
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset index_print
+LatexCommand printindex
+type "idx"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

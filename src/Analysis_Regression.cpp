@@ -4,21 +4,21 @@
 
 Analysis_Regression::Analysis_Regression() : statsout_(0) {}
 
-void Analysis_Regression::Help() {
+void Analysis_Regression::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [name <name>] [out <filename>] [statsout <filename>]\n"
           "  Calculate linear regression lines for given data sets.\n");
 }
 
 // Analysis_Regression::Setup()
-Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* datasetlist, DataFileList* DFLin, int debugIn)
+Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
-  DataFile* outfile = DFLin->AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  statsout_ = DFLin->AddCpptrajFile(analyzeArgs.GetStringKey("statsout"),
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  statsout_ = setup.DFL().AddCpptrajFile(analyzeArgs.GetStringKey("statsout"),
                                     "Linear regression stats", DataFileList::TEXT, true);
   if (statsout_ == 0) return Analysis::ERR;
   std::string setname = analyzeArgs.GetStringKey("name");
   // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), *datasetlist )) {
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
     return Analysis::ERR;
   }
@@ -32,11 +32,11 @@ Analysis::RetType Analysis_Regression::Setup(ArgList& analyzeArgs, DataSetList* 
     idx = -1; // Only one input set, no need to refer to it by index
   // If setname is empty generate a default name
   if (setname.empty())
-    setname = datasetlist->GenerateDefaultName( "LR" );
+    setname = setup.DSL().GenerateDefaultName( "LR" );
   for ( Array1D::const_iterator DS = input_dsets_.begin();
                                 DS != input_dsets_.end(); ++DS)
   {
-    DataSet* dsout = datasetlist->AddSet( DataSet::XYMESH, MetaData(setname, idx++) );
+    DataSet* dsout = setup.DSL().AddSet( DataSet::XYMESH, MetaData(setname, idx++) );
     if (dsout==0) return Analysis::ERR;
     dsout->SetLegend( "LR(" + (*DS)->Meta().Legend() + ")" );
     output_dsets_.push_back( (DataSet_1D*)dsout );

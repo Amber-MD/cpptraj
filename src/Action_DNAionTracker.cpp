@@ -4,14 +4,14 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_DNAionTracker::Action_DNAionTracker() :
+Action_DNAionTracker::Action_DNAionTracker() : Action(HIDDEN), 
   distance_(0),
   bintype_(COUNT),
   poffset_(0),
   useMass_(true)
 { }
 
-void Action_DNAionTracker::Help() {
+void Action_DNAionTracker::Help() const {
   mprintf("\tname mask_p1 mask_p2 mask_base mask_ions\n"
           "\t[poffset <value>] [out <filename>] [time <interval>] [noimage]\n"
           "\t[shortest | counttopcone| countbottomcone | count]\n");
@@ -54,6 +54,7 @@ Action::RetType Action_DNAionTracker::Init(ArgList& actionArgs, ActionInit& init
     outfile->AddDataSet( distance_ );
 
   // INFO
+  mprintf("Warning: DNAIONTRACKER is experimental code!\n");
   mprintf("    DNAIONTRACKER: Data representing the ");
   switch (bintype_) {
     case COUNT : 

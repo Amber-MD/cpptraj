@@ -13,7 +13,7 @@ Action_Average::Action_Average() :
   crdset_(0)
 { } 
 
-void Action_Average::Help() {
+void Action_Average::Help() const {
   mprintf("\t{crdset <set name> | <filename>} [<mask>]\n\t%s\n\t[TRAJOUT ARGS]\n"
           "  Calculate the average structure of atoms in <mask> over specified input frames.\n"
           "  If 'crdset' is specified a reference COORDS data set will be created with name\n"

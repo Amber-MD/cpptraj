@@ -1,45 +1,110 @@
-# This should be sourced from Test run scripts
+# This should be sourced at the top of CPPTRAJ test run scripts.
 
-# If arg is Key=Value, separate into Key and Value
-ParseArg() {
-  KEY=`echo "$1" | awk 'BEGIN{FS = "=";}{print $1;}'`
-  VALUE=`echo "$1" | awk 'BEGIN{FS = "=";}{print $2;}'`
-  if [[ $VALUE = $KEY ]] ; then
-    VALUE=""
-  fi
-}
+# Environment variables
+# TEST_OS: Operating system on which tests are being run. If blank assume linux
 
-# DoTest(): Compare File1 to File2, print an error if they differ.
-#           Args 3 and 4 can be used to pass an option to diff
+# MasterTest.sh command line options
+CLEAN=0             # If 1, only file cleaning needs to be performed.
+SUMMARY=0           # If 1, only summary of results needs to be performed.
+SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
+STANDALONE=0        # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
+PROFILE=0           # If 1, end of test profiling with gprof performed
+FORCE_AMBERTOOLS=0  # FIXME: currently needed to get extended tests to work
+USEDACDIF=1         # If 0 do not use dacdif even if in AmberTools
+CPPTRAJ=""          # CPPTRAJ binary
+SFX=""              # CPPTRAJ binary suffix
+AMBPDB=""           # ambpdb binary
+TIME=""             # Set to the 'time' command if timing requested.
+VALGRIND=""         # Set to 'valgrind' command if memory check requested.
+DIFFCMD=""          # Command used to check for test differences
+DACDIF=""           # Set if using 'dacdif' to test differences
+REMOVE="/bin/rm -f" # Remove command
+NCDUMP=""           # ncdump command; needed for NcTest()
+OUTPUT="test.out"   # File to direct test STDOUT to.
+ERROR="/dev/stderr" # File to direct test STDERR to.
+TEST_RESULTS=""     # For standalone, file to record test results to.
+TEST_ERROR=""       # For standalone, file to record test errors to.
+DEBUG=""            # Can be set to pass global debug flag to CPPTRAJ.
+NUMTEST=0           # Total number of times DoTest has been called this test.
+ERRCOUNT=0          # Total number of errors detected by DoTest this test.
+WARNCOUNT=0         # Total number of warnings detected by DoTest this test.
+
+# Options used in tests
+TOP=""   # CPPTRAJ topology file/command line arg
+INPUT="" # CPPTRAJ input file/command line arg
+
+# Variables that describe how CPPTRAJ was compiled
+ZLIB=""
+BZLIB=""
+NETCDFLIB=""
+MPILIB=""
+NOMATHLIB=""
+OPENMP=""
+PNETCDFLIB=""
+
+# ------------------------------------------------------------------------------
+# DoTest() <File1> <File2> [allowfail <OS>] [<arg1>] ... [<argN>]
+#   Compare File1 (the 'save' file) to File2 (test output), print an error if
+#   they differ. The 'allowfail' keyword allows test to fail with just a
+#   warning, and is currently intended for tests with known failures on given
+#   <OS>. The remaining args can be used to pass options to DIFFCMD.
 DoTest() {
-  # AmberTools - Use dacdif if defined.
   if [[ ! -z $DACDIF ]] ; then
+    # AmberTools - will use dacdif.
     $DACDIF $1 $2
   else
-    if [[ $NOTEST -eq 0 ]] ; then
-      ((NUMTEST++))
-      if [[ ! -e $1 ]] ; then
-        echo "  $1 not found." >> $TEST_RESULTS
-        echo "  $1 not found." >> $TEST_ERROR
-        ((ERR++))
-      elif [[ ! -e $2 ]] ; then
-        echo "  $2 not found." >> $TEST_RESULTS
-        echo "  $2 not found." >> $TEST_ERROR
-        ((ERR++))
-      elif [[ `$DIFFCMD $1 $2 $3 $4 | wc -l` -gt 0 ]] ; then
-        #echo "------------------------------------------------------------" >> $TEST_ERROR
-        echo "  $1 $2 are different." >> $TEST_RESULTS
-        #diff $1 $2 $3 $4 >> $TEST_RESULTS 2>&1
-        echo "  $1 $2 are different." >> $TEST_ERROR
-        $DIFFCMD $1 $2 $3 $4 >> $TEST_ERROR 2>&1
-        ((ERR++))
+    # Standalone - will use diff.
+    ((NUMTEST++))
+    DIFFARGS="--strip-trailing-cr"
+    # First two arguments are files to compare.
+    F1=$1 ; shift
+    F2=$1 ; shift
+    # Process remaining arguments.
+    ALLOW_FAIL=0
+    FAIL_OS=""
+    while [[ ! -z $1 ]] ; do
+      case "$1" in
+        "allowfail" ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
+        *           ) DIFFARGS=$DIFFARGS" $1" ;;
+      esac
+      shift
+    done
+    if [[ ! -f "$F1" ]] ; then
+      echo "  $F1 not found." >> $TEST_RESULTS
+      echo "  $F1 not found." >> $TEST_ERROR
+      ((ERRCOUNT++))
+    elif [[ ! -f "$F2" ]] ; then
+      echo "  $F2 not found." >> $TEST_RESULTS
+      echo "  $F2 not found." >> $TEST_ERROR
+      ((ERRCOUNT++))
+    else
+      $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
+      if [[ -s temp.diff ]] ; then
+        if [[ $ALLOW_FAIL -eq 1 && $TEST_OS = $FAIL_OS ]] ; then
+          echo "  Warning: Differences between $F1 and $F2 detected."
+          echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
+          echo "           This test is known to fail on $TEST_OS."
+          echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
+          echo "           The differences below should be carefully inspected."
+          echo "--------------------------------------------------------------------------------"
+          cat temp.diff
+          echo "--------------------------------------------------------------------------------"
+          ((WARNCOUNT++))
+        else
+          echo "  $F1 $F2 are different." >> $TEST_RESULTS
+          echo "  $F1 $F2 are different." >> $TEST_ERROR
+          cat temp.diff >> $TEST_ERROR
+          ((ERRCOUNT++))
+        fi
       else
-        echo "  $2 OK." >> $TEST_RESULTS
+        echo "  $F2 OK." >> $TEST_RESULTS
       fi
+      $REMOVE temp.diff
     fi
   fi
 }
 
+# ------------------------------------------------------------------------------
 # NcTest(): Compare NetCDF files <1> and <2>. Use NCDUMP to convert to ASCII
 # first, removing ==> line and :programVersion attribute.
 NcTest() {
@@ -60,48 +125,23 @@ NcTest() {
     $NCDUMP -n nctest $1 | grep -v "==>\|:programVersion" > nc0
     $NCDUMP -n nctest $2 | grep -v "==>\|:programVersion" > nc1
     DoTest nc0 nc1
-    /bin/rm -f nc0 nc1
+    $REMOVE nc0 nc1
   fi
 }
 
-# TestFileExists(): Test that specified file exists.
-TestFileExists() {
-  ((NUMTEST++))
-  if [[ ! -e $1 ]] ; then
-    ((ERR++))
-    if [[ ! -z $DACDIF ]] ; then
-      echo "possible FAILURE: $1 not found."
-      echo "=============================================================="
-    else
-      echo "  $1 not found." >> $TEST_RESULTS
-      echo "  $1 not found." >> $TEST_ERROR
-    fi
-  else
-     if [[ -z $DACDIF ]] ; then
-       echo "  $1 OK." >> $TEST_RESULTS
-     fi
-  fi
-}
-
-# CheckTest(): Report if the error counter is greater than 0.
+# ------------------------------------------------------------------------------
+# CheckTest(): Report if the error counter is greater than 0. TODO Remove
 CheckTest() {
-  # AmberTools - Dont do this if dacdif defined.
+  # Only use when not using dacdif 
   if [[ -z $DACDIF ]] ; then
     if [[ $ERR -gt 0 ]] ; then
       echo "  $ERR comparisons failed so far."
-      #echo "  $ERR out of $NUMTEST comparisons failed."
-      #echo "  $ERR out of $NUMTEST comparisons failed." >> $TEST_RESULTS
-      #echo "---------------------------------------------------------"
-      #echo "---------------------------------------------------------" >> $TEST_RESULTS
-      #exit 1
-    #else
-    # echo "  $NUMTEST comparisons ok."
-    # echo "  $NUMTEST comparisons ok." >> $TEST_RESULTS
     fi
   fi
 }
 
-# RunCpptraj(): Run cpptraj with the given options. Start and stop MPI if requested.
+# ------------------------------------------------------------------------------
+# RunCpptraj(): Run cpptraj with the given options.
 RunCpptraj() {
   # If only cleaning requested no run needed, exit now
   if [[ $CLEAN -eq 1 ]] ; then
@@ -112,45 +152,25 @@ RunCpptraj() {
   if [[ -z $DACDIF ]] ; then
     echo "  CPPTRAJ: $1" >> $TEST_RESULTS
   fi
-  #$STARTMPI
   if [[ ! -z $DEBUG ]] ; then
     echo "$TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR"
   fi
   $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR
-  #$STOPMPI
 }
 
-# RunBench() <description> [<# runs>]
-# Run with high priority to hopefully avoid context switching.
-RunBench() {
-  if [[ -z $1 ]] ; then exit 1; fi
-  if [[ $CLEAN -eq 1 ]] ; then exit 0; fi
-  NBENCH=$2
-  if [[ -z $NBENCH ]] ; then NBENCH=1 ; fi
-  echo ""
-  echo "  CPPTRAJ BENCH ($NBENCH): $1"
-  B_TOTAL_TIME="0.0"
-  for ((i=0; i < $NBENCH; i++)) ; do
-    sudo chrt -f 99 /usr/bin/time -f "\n***\nBenchTime: %e\ncontext switches: %c\nwaits: %w" $CPPTRAJ $TOP $INPUT > bench.out 2> time.out
-    BTIME=`grep "BenchTime: " time.out`
-    CONTEXT=`grep "context switches: " time.out`
-    WAITS=`grep "waits: " time.out`
-    echo "  $i: $BTIME  $CONTEXT  $WAITS"
-    B_THIS_TIME=`echo "$BTIME" | awk '{printf("%f", $2);}'`
-    B_TOTAL_TIME=`echo "$B_TOTAL_TIME + $B_THIS_TIME" | bc -l`
-  done
-  AVG_TIME=`echo "$B_TOTAL_TIME / $NBENCH" | bc -l`
-  echo "`date +%c` $CPPTRAJ AvgTime: $AVG_TIME" 
-}
-
+# ------------------------------------------------------------------------------
 # EndTest(): Called at the end of every test script if no errors found.
 EndTest() {
-  # AmberTools - Dont do this if dacdif defined.
+  # Report only when not using dacdif 
   if [[ -z $DACDIF ]] ; then
-    if [[ $ERR -gt 0 ]] ; then
-      echo "  $ERR out of $NUMTEST comparisons failed."
-      echo "  $ERR out of $NUMTEST comparisons failed." >> $TEST_RESULTS
-      echo "  $ERR out of $NUMTEST comparisons failed." >> $TEST_ERROR
+    if [[ $ERRCOUNT -gt 0 ]] ; then
+      echo "  $ERRCOUNT out of $NUMTEST comparisons failed."
+      echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_RESULTS
+      echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_ERROR
+    elif [[ $WARNCOUNT -gt 0 ]] ; then
+      ((PASSCOUNT = $NUMTEST - $WARNCOUNT))
+      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings."
+      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings." >> $TEST_RESULTS
     else 
       echo "All $NUMTEST comparisons passed." 
       echo "All $NUMTEST comparisons passed." >> $TEST_RESULTS 
@@ -173,20 +193,16 @@ EndTest() {
         gprof $CPPTRAJ > profiledata.txt
       fi
     fi
-    #echo "---------------------------------------------------------"
-    #echo "---------------------------------------------------------" >> $TEST_RESULTS
   fi
 }
 
+# ------------------------------------------------------------------------------
 # CleanFiles(): For every arg passed to the function, check for the file and rm it
 CleanFiles() {
   while [[ ! -z $1 ]] ; do
-    #for RMFILE in `find . -name "$1"` ; do
     if [[ -e $1 ]] ; then
-      #echo "  Cleaning $1"
-      rm $1
+      $REMOVE $1
     fi
-    #done
     shift
   done
   # If only cleaning requested no run needed, exit now
@@ -194,66 +210,7 @@ CleanFiles() {
     exit 0
   fi
 }
-# ------------------------------------------------------------------------------
-# OpenMP_Bench(): Run test repeatedly on different # of threads.
-# OpenMP_Bench <title> <timing grep> <column>
-OpenMP_Bench() {
-  # OpenMP Benchmarks
-  OUTSAVE=$OUTPUT
-  OUTPUT=omp.bench
-  if [[ -e omp.bench ]] ; then rm omp.bench ; fi
-  printf "\n  OpenMP Benchmark: $1\n"
-  i=0
-  for THREADS in 1 2 4 8 ; do
-    export OMP_NUM_THREADS=$THREADS
-    RunCpptraj "$1 benchmark, $THREADS threads."
-    T[$i]=$THREADS
-    ((i++))
-  done
 
-  T1_TIME=""
-  printf "%-8s %8s %6s %6s\n" "#Threads" "Time" "Spdup" "Eff."
-  i=0
-  for ANALYSISTIME1 in `grep "$2" omp.bench | awk -v tcol=$3 '{print $tcol}'` ; do
-    if [[ -z $T1_TIME ]] ; then
-      T1_TIME=$ANALYSISTIME1
-    fi
-    SPEEDUP=`echo "$T1_TIME / $ANALYSISTIME1" | bc -l`
-    EFF=`echo "$SPEEDUP / ${T[$i]}" | bc -l`
-    printf "%8i %8.4f %6.2f %6.2f\n" ${T[$i]} $ANALYSISTIME1 $SPEEDUP $EFF
-    ((i++))
-  done
-  OUTPUT=$OUTSAVE
-  rm omp.bench
-}
-
-# TotalBench(): Get timing data from ERROR (run with 'time').
-# TotalBench <reference time>
-TotalBench() {
-  # Only grab the last time in case of multiple runs
-  awk -v time0=$1 'BEGIN{ total_time = -1.0; }{
-    if ($1=="real") total_time = $2;
-  }END{
-    if (total_time > 0.0) {
-      printf("%-8s %8s %6s\n", "#Time0", "Time1", "Spdup");
-      printf("%8.4f %8.4f %6.2f\n", time0, total_time, time0 / total_time);
-    }
-  }' $ERROR
-}
-
-# ActionBench(): Get Action timing data from output.
-ActionBench() {
-  if [[ $OUTPUT != "/dev/stdout" ]] ; then
-    ACTIONTIME0=$1
-    # Only grab the last time in case of multiple runs
-    ACTIONTIME1=`grep "Action frame" $OUTPUT | tail -1 | awk '{print $5;}'`
-    if [[ ! -z $ACTIONTIME1 ]] ; then
-      echo "#Action time: $ACTIONTIME1"
-      ACTIONSPEED=`echo "$ACTIONTIME0 / $ACTIONTIME1" | bc -l`
-      printf "%8.4f %8.4f %6.2f\n" $ACTIONTIME0 $ACTIONTIME1 $ACTIONSPEED
-    fi
-  fi
-}
 # ------------------------------------------------------------------------------
 # Library Checks - Tests that depend on certain libraries like Zlib can run
 # these to make sure cpptraj was compiled with that library - exit gracefully
@@ -263,7 +220,6 @@ CheckZlib() {
   if [[ -z $ZLIB ]] ; then
     echo "This test requires zlib. Cpptraj was compiled without zlib support."
     echo "Skipping test."
-    #echo "---------------------------------------------------------"
     exit 0
   fi
 }
@@ -272,7 +228,6 @@ CheckBzlib() {
   if [[ -z $BZLIB ]] ; then
     echo "This test requires bzlib. Cpptraj was compiled without bzlib support."
     echo "Skipping test."
-    #echo "---------------------------------------------------------"
     exit 0
   fi
 }
@@ -281,7 +236,6 @@ CheckNetcdf() {
   if [[ -z $NETCDFLIB ]] ; then
     echo "This test requires Netcdf. Cpptraj was compiled without Netcdf support."
     echo "Skipping test."
-    #echo "---------------------------------------------------------"
     exit 0
   fi
 }
@@ -290,7 +244,6 @@ CheckPtrajAnalyze() {
   if [[ ! -z $NOMATHLIB ]] ; then
     echo "This test requires LAPACK/ARPACK/BLAS routines from AmberTools."
     echo "Cpptraj was compiled with -DNO_MATHLIB. Skipping test."
-    #echo "---------------------------------------------------------"
     exit 0
   fi
 }
@@ -300,7 +253,7 @@ CheckPtrajAnalyze() {
 Summary() {
   RESULTFILES=""
   if [[ ! -z $TEST_RESULTS ]] ; then
-    RESULTFILES=`ls */$TEST_RESULTS`
+    RESULTFILES=`ls */$TEST_RESULTS 2> /dev/null`
   else
     exit 0
   fi
@@ -309,6 +262,8 @@ Summary() {
     cat $RESULTFILES > $TEST_RESULTS
     # DoTest - Number of comparisons OK
     OK=`cat $TEST_RESULTS | grep OK | wc -l`
+    # DoTest - Number of warnings
+    WARN=`cat $TEST_RESULTS | grep Warning | wc -l`
     # DoTest - Number of comparisons different
     ERR=`cat $TEST_RESULTS | grep different | wc -l`
     NOTFOUND=`cat $TEST_RESULTS | grep "not found" | wc -l`
@@ -317,15 +272,10 @@ Summary() {
     NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
     # Number of tests successfully finished
     PASSED=`cat $TEST_RESULTS | grep "comparisons passed" | wc -l`
-    #CERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$1;}END{print sum}'`
-    #NOERR=`cat $RESULTFILES | grep failed | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum}'`
-    #PASSED=`cat $RESULTFILES | grep passed | wc -l`
-    ((NCOMPS = $OK + $ERR))
-    echo "  $OK out of $NCOMPS comparisons OK ($ERR failed)."
+    ((NCOMPS = $OK + $ERR + $WARN))
+    echo "  $OK out of $NCOMPS comparisons OK ($ERR failed, $WARN warnings)."
     echo "  $PASSED out of $NTESTS tests completed with no issues."
-    #echo "  $PASSED tests passed."
-    #echo "  $ERR tests failed."
-    RESULTFILES=`ls */$TEST_ERROR`
+    RESULTFILES=`ls */$TEST_ERROR 2> /dev/null`
     if [[ ! -z $RESULTFILES ]] ; then
       cat $RESULTFILES > $TEST_ERROR
     fi 
@@ -333,7 +283,7 @@ Summary() {
     echo "No Test Results files (./*/$TEST_RESULTS) found."
   fi
 
-  if [[ $ERR -gt 0 ]]; then
+  if [[ $SHOWERRORS -eq 1 && $ERR -gt 0 ]]; then
     echo "Obtained the following errors:"
     echo "---------------------------------------------------------"
     cat $TEST_ERROR
@@ -341,7 +291,7 @@ Summary() {
   fi
 
   if [[ ! -z $VALGRIND ]] ; then
-    RESULTFILES=`ls */$ERROR`
+    RESULTFILES=`ls */$ERROR 2> /dev/null`
     if [[ ! -z $RESULTFILES ]] ; then
       echo "---------------------------------------------------------"
       echo "Valgrind summary:"
@@ -351,7 +301,6 @@ Summary() {
       echo "    $NUMVGOK memory leak checks OK."
       NUMVGLEAK=`cat $RESULTFILES | grep LEAK | wc -l`
       echo "    $NUMVGLEAK memory leak reports."
-#      echo "---------------------------------------------------------"
     else
       echo "No valgrind test results found."
       exit $ERR
@@ -361,172 +310,112 @@ Summary() {
   exit $ERR
 }
 
-#===============================================================================
-# If the first argument is "clean" then no set-up is required. Script will
-# exit when either CleanFiles or RunCpptraj is called from sourcing script.
-CLEAN=0
-if [[ $1 = "clean" ]] ; then
-  CLEAN=1
-fi
+#-------------------------------------------------------------------------------
+# Help(): Print help
+Help() {
+  echo "Command line flags:"
+  echo "  summary    : Print summary of test results only."
+  echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
+  echo "  stdout     : Print CPPTRAJ test output to STDOUT."
+  echo "  mpi        : Use MPI version of CPPTRAJ."
+  echo "  openmp     : Use OpenMP version of CPPTRAJ."
+  echo "  vg         : Run test with valgrind memcheck."
+  echo "  vgh        : Run test with valgrind helgrind."
+  echo "  time       : Time the test."
+  echo "  -at        : Force AmberTools tests."
+  echo "  -nodacdif  : Do not use dacdif for test comparisons."
+  echo "  -d         : Run CPPTRAJ with global debug level 4."
+  echo "  -debug <#> : Run CPPTRAJ with global debug level #."
+  echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
+  echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
+  echo "  -profile        : Profile results with 'gprof' (requires special compile)."
+}
 
-# If not cleaning, determine which binary to test. By default we are
-# running tests with AmberTools, in which case AMBERHOME/bin/cpptraj 
-# will be tested. If AMBERHOME is not defined or if standalone is
-# specified then CPPTRAJHOME/bin/cpptraj will be tested. 
-DACDIF=""
-NCDUMP=""
-if [[ $CLEAN -eq 0 ]] ; then
-  # Option defaults
-  DIFFCMD=`which diff`
-  if [[ ! -z $DIFFOPTS ]] ; then
-    echo "Using diff options: $DIFFOPTS"
-    DIFFCMD=$DIFFCMD" $DIFFOPTS "
-  fi
-  SUMMARY=0
-  NODACDIF=0
-  STANDALONE=0
-  FORCE_AMBERTOOLS=0 # FIXME: currently needed to get extended tests to work
-  CPPTRAJ=""
-  AMBPDB=""
-  SFX=""
-  TIME=""
-  VALGRIND=""
-  STARTMPI=""
-  STOPMPI=""
-  NP=1
-  MPI=0
-  TOP=
-  INPUT=
-  NOTEST=0
-  OUTPUT="test.out"
-  PROFILE=0
-  if [[ -e $OUTPUT ]] ; then
-    rm $OUTPUT
-  fi
-  #OUTPUT="/dev/stdout"
-  ERROR="/dev/stderr"
-  DEBUG=""
+#-------------------------------------------------------------------------------
+# CmdLineOpts(): Process test script command line options
+CmdLineOpts() {
+  VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
   while [[ ! -z $1 ]] ; do
     case "$1" in
-      "summary") SUMMARY=1 ;;
-      "stdout" ) OUTPUT="/dev/stdout" ;;
-      "nodacdif" ) NODACDIF=1 ;;
-      "standalone" ) STANDALONE=1 ;;
-      "vg"  ) 
-        VG=`which valgrind`
-        if [[ -z $VG ]] ; then
-          echo "vg: Valgrind not found."
-          echo "    Make sure valgrind is installed and in your PATH"
-          exit 1
-        fi
-        echo "  Using Valgrind."
-        VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes" 
-        ERROR="valgrind.out"
-        if [[ -e $ERROR ]] ; then
-          rm $ERROR
-        fi
-      ;;
-      "vgh" )
-        VG=`which valgrind`
-        if [[ -z $VG ]] ; then
-          echo "vg: Valgrind not found."
-          echo "    Make sure valgrind is installed and in your PATH"
-          exit 1
-        fi
-        echo "  Using Valgrind."
-        VALGRIND="valgrind --tool=helgrind"
-        ERROR="valgrind.out"
-        if [[ -e $ERROR ]] ; then
-          rm $ERROR
-        fi
-        ;;
-      "mpi"    ) MPI=1 ; SFX=".MPI" ;;
-      "openmp" ) SFX=".OMP" ;;
-      "time") TIME="time" ;;
-      "np"  ) 
-        shift
-        NP=$1
-      ;;
-      "-at" ) FORCE_AMBERTOOLS=1 ;;
-      "-i" )
-        shift
-        INPUT=$1
-        echo "Using input file: $INPUT"
-        NOTEST=1
-      ;;
-      "-p" )
-        shift
-        TOP="$TOP -p $1"
-        echo "Using top file: $1"
-        NOTEST=1
-      ;;
-      "notest" )
-        echo "End of run tests will be skipped."
-        NOTEST=1
-      ;;
-      "-d"    ) DEBUG="-debug 4" ;;
-      "-debug" )
-        shift
-        DEBUG="-debug $1"
-        ;;
-      "-cpptraj" )
-        shift
-        CPPTRAJ=$1
-        echo "Using cpptraj: $CPPTRAJ"
-        ;;
-      "-ambpdb" )
-        shift
-        AMBPDB=$1
-        echo "Using ambdpb: $AMBPDB"
-        ;;
-      "-profile" )
-        PROFILE=1
-        echo "Performing gnu profiling during EndTest."
-        ;;
-      * ) echo "Unknown opt: $1" ; exit 1 ;;
+      "summary"   ) SUMMARY=1 ;;
+      "showerrors") SHOWERRORS=1 ;;
+      "stdout"    ) OUTPUT="/dev/stdout" ;;
+      "mpi"       ) SFX=".MPI" ;;
+      "openmp"    ) SFX=".OMP" ;;
+      "vg"        ) VGMODE=1 ;;
+      "vgh"       ) VGMODE=2 ;;
+      "time"      ) TIME=`which time` ;;
+      "-at"       ) FORCE_AMBERTOOLS=1 ;;
+      "-d"        ) DEBUG="-debug 4" ;;
+      "-debug"    ) shift ; DEBUG="-debug $1" ;;
+      "-nodacdif" ) USEDACDIF=0 ;;
+      "-cpptraj"  ) shift ; CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
+      "-ambpdb"   ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
+      "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+      "-h" | "--help" ) Help ; exit 0 ;;
+      *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
   done
-
+  # Set up valgrind if necessary
+  if [[ $VGMODE -ne 0 ]] ; then
+    VG=`which valgrind`
+    if [[ -z $VG ]] ; then
+      echo "Error: Valgrind not found." > /dev/stderr
+      echo "Error:    Make sure valgrind is installed and in your PATH" > /dev/stderr
+      exit 1
+    fi
+    echo "  Using Valgrind."
+    ERROR="valgrind.out"
+    if [[ $VGMODE -eq 1 ]] ; then
+      VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes"
+    elif [[ $VGMODE -eq 2 ]] ; then
+      VALGRIND="valgrind --tool=helgrind"
+    fi
+  fi
   # If DO_PARALLEL has been set force MPI
   if [[ ! -z $DO_PARALLEL ]] ; then
     SFX=".MPI"
     MPI=1
   fi
-
-  # Check for binary. If not defined, first check AMBERHOME/bin, then
-  # CPPTRAJHOME/bin, then $AMBERHOME/AmberTools/src/cpptraj/bin.
-  # If using AMBERHOME/bin binary use DACDIF for test comparisons,
-  # otherwise diff will be used.
-  DACDIF=""
+  # Figure out if we are a part of AmberTools
   if [[ -z $CPPTRAJ ]] ; then
-    # Are we in an AmberTools installation?
     if [[ ! -z `pwd | grep AmberTools` || $FORCE_AMBERTOOLS -eq 1 ]] ; then
-      # AmberTools
-      if [[ $STANDALONE -eq 0 && ! -z $AMBERHOME ]] ; then
-        DACDIF=$AMBERHOME/AmberTools/test/dacdif
-        NCDUMP=$AMBERHOME/bin/ncdump
-        if [[ ! -e $DACDIF ]] ; then
-          echo "$DACDIF not found."
-          exit 1
-        fi
-        CPPTRAJ=$AMBERHOME/bin/cpptraj$SFX
-        AMBPDB=$AMBERHOME/bin/ambpdb
-      elif [[ ! -z $CPPTRAJHOME ]] ; then
-        CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
-        AMBPDB=$CPPTRAJHOME/bin/ambpdb
-      elif [[ $STANDALONE -eq 1 && ! -z $AMBERHOME ]] ; then
-        CPPTRAJ=$AMBERHOME/AmberTools/src/cpptraj/bin/cpptraj$SFX
-        AMBPDB=$AMBERHOME/AmberTools/src/cpptraj/bin/ambpdb
-        NCDUMP=$AMBERHOME/bin/ncdump
-      else
-        echo "Tests require CPPTRAJHOME or AMBERHOME to be defined, or specify"
-        echo "cpptraj binary location with '-cpptraj <filename>'"
-        exit 0
-      fi
+      STANDALONE=0
     else
-      # Assume GitHub
       STANDALONE=1
+    fi
+  else
+    # CPPTRAJ was specified. Assume standalone.
+    STANDALONE=1
+  fi
+}
+
+#-------------------------------------------------------------------------------
+# SetBinaries(): Set and check CPPTRAJ etc binaries
+SetBinaries() {
+  # Set default command locations
+  DIFFCMD=`which diff`
+  NCDUMP=`which ncdump`
+  # Set CPPTRAJ binary location if not already set.
+  if [[ -z $CPPTRAJ ]] ; then
+    if [[ $STANDALONE -eq 0 ]] ; then
+      # AmberTools
+      if [[ -z $AMBERHOME ]] ; then
+        echo "Warning: AMBERHOME is not set."
+        # Assume we are running in $AMBERHOME/AmberTools/src/test/Test_X
+        DIRPREFIX=../../../../
+      else
+        DIRPREFIX=$AMBERHOME
+      fi
+      if [[ $USEDACDIF -eq 1 ]] ; then
+        DACDIF=$DIRPREFIX/test/dacdif
+      fi
+      NCDUMP=$DIRPREFIX/bin/ncdump
+      CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
+      AMBPDB=$DIRPREFIX/bin/ambpdb
+    else
+      # Standalone: GitHub etc
       if [[ ! -z $CPPTRAJHOME ]] ; then
         CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
         AMBPDB=$CPPTRAJHOME/bin/ambpdb
@@ -536,54 +425,51 @@ if [[ $CLEAN -eq 0 ]] ; then
       fi
     fi
   fi
-
-  if [[ -z $NCDUMP || ! -e $NCDUMP ]] ; then
-    NCDUMP=`which ncdump`
+  # Print DEBUG info
+  if [[ ! -z $DEBUG ]] ; then
+    if [[ $STANDALONE -eq 1 ]] ; then
+      echo "DEBUG: Standalone mode."
+    else
+      echo "DEBUG: AmberTools mode."
+    fi
+    echo "DEBUG: CPPTRAJ: $CPPTRAJ"
+    echo "DEBUG: AMBPDB:  $AMBPDB"
+    echo "DEBUG: NCDUMP:  $NCDUMP"
+    echo "DEBUG: DIFFCMD: $DIFFCMD"
+    echo "DEBUG: DACDIF:  $DACDIF"
   fi
-  if [[ $NODACDIF -eq 1 ]] ; then
-    DACDIF=""
+  # Check binaries
+  if [[ ! -f "$NCDUMP" ]] ; then
+    echo "Warning: 'ncdump' not found; NetCDF file comparisons cannot be performed."
   fi
-  if [[ -z $DACDIF && -z $DIFFCMD ]] ; then
-    echo "Error: no diff command found." > /dev/stderr
+  if [[ ! -f "$DIFFCMD" ]] ; then
+    echo "Error: diff command '$DIFFCMD' not found." > /dev/stderr
     exit 1
   fi
-
-  # If not doing AmberTools tests, record results of each test to a file
-  TEST_RESULTS=""
-  if [[ -z $DACDIF ]] ; then
-    TEST_RESULTS=Test_Results.dat
-    TEST_ERROR=Test_Error.dat
-    if [[ -e $TEST_RESULTS ]] ; then
-      rm $TEST_RESULTS
-    fi
-    if [[ -e $TEST_ERROR ]] ; then
-      rm $TEST_ERROR
-    fi
-  fi
-
-  # Only a summary of previous results has been requested.
-  if [[ $SUMMARY -eq 1 ]] ; then
-    Summary
-  fi
-
-  # Check for existance of binary file
-  if [[ ! -e $CPPTRAJ ]] ; then
-    echo "CPPTRAJ not found ($CPPTRAJ)."
+  if [[ $STANDALONE -eq 0 && $USEDACDIF -eq 1 && ! -f "$DACDIF" ]] ; then
+    echo "Error: dacdiff command '$DACDIFF' not found." > /dev/stderr
     exit 1
   fi
-  if [[ ! -z $DEBUG || $STANDALONE -eq 1 ]] ; then
-    ls -l -t $CPPTRAJ
+  if [[ ! -f "$CPPTRAJ" ]] ; then
+    echo "Error: cpptraj binary '$CPPTRAJ' not found." > /dev/stderr
+    exit 1
   fi
+  if [[ ! -z $DEBUG || -z $DACDIF ]] ; then
+    ls -l $CPPTRAJ
+  fi
+  if [[ ! -f "$AMBPDB" ]] ; then
+    # Try to locate it based on the location of CPPTRAJ
+    DIRPREFIX=`dirname $CPPTRAJ`
+    AMBPDB=$DIRPREFIX/ambpdb
+    if [[ ! -f "$AMBPDB" ]] ; then
+      echo "Warning: ambpdb binary '$AMBPDB' not found."
+    fi
+  fi
+}
 
-  # Check how cpptraj was configured to determine whether it includes 
-  # netcdf, zlib, etc
-  ZLIB=""
-  BZLIB=""
-  NETCDFLIB=""
-  MPILIB=""
-  NOMATHLIB=""
-  OPENMP=""
-  PNETCDFLIB=""
+#-------------------------------------------------------------------------------
+# CheckDefines(): Check how CPPTRAJ was compiled.
+CheckDefines() {
   DEFINES=`$CPPTRAJ --defines | grep Compiled`
   ZLIB=`echo $DEFINES | grep DHASGZ`
   BZLIB=`echo $DEFINES | grep DHASBZ2`
@@ -592,41 +478,50 @@ if [[ $CLEAN -eq 0 ]] ; then
   NOMATHLIB=`echo $DEFINES | grep DNO_MATHLIB`
   OPENMP=`echo $DEFINES | grep D_OPENMP`
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
+}
 
+#===============================================================================
+# If the first argument is "clean" then no set-up is required. Script will
+# exit when either CleanFiles or RunCpptraj is called from sourcing script.
+if [[ $1 = "clean" ]] ; then
+  CLEAN=1
+else
+  CmdLineOpts $*
+  # Set results files if not using dacdif 
+  if [[ -z $DACDIF ]] ; then
+    TEST_RESULTS=Test_Results.dat
+    TEST_ERROR=Test_Error.dat
+    if [[ -f "$TEST_RESULTS" ]] ; then
+      $REMOVE $TEST_RESULTS
+    fi
+    if [[ -f "$TEST_ERROR" ]] ; then
+      $REMOVE $TEST_ERROR
+    fi
+  fi
+  # Only a summary of previous results has been requested.
+  if [[ $SUMMARY -eq 1 ]] ; then
+    Summary
+  fi
+  # If TEST_OS is not set, assume linux
+  if [[ -z $TEST_OS ]] ; then
+    TEST_OS="linux"
+  fi
+  # Set binary locations
+  SetBinaries
+  # Check how CPPTRAJ was compiled
+  CheckDefines
   # Start test results file
   echo "**************************************************************"
   echo "TEST: `pwd`"
-  if [[ -z $DACDIF ]] ; then 
+  if [[ -z $DACDIF ]] ; then
     echo "**************************************************************" > $TEST_RESULTS
     echo "TEST: `pwd`" >> $TEST_RESULTS
   fi
-
-  # Set up MPI environment if specified or if >1 processor requested.
-  if [[ $MPI -eq 1 || $NP -gt 1 ]] ; then
-    # Check that cpptraj was compiled mpi, but dont abort
-    if [[ -z $MPILIB ]] ; then
-      echo "Warning: $CPPTRAJ was not compiled with -DMPI"
-    fi
-    if [[ -z $DO_PARALLEL ]] ; then 
-      MPIEXEC=`which mpiexec`
-      if [[ -z $MPIEXEC ]] ; then
-        echo "mpiexec not found in path"
-        exit 1
-      fi
-      # Check that mpi is active and in path
-      #mpdringtest > /dev/null
-      #if [[ $? -ne 0 ]] ; then
-      #  echo "  Error: No MPI daemon is running. Aborting parallel test."
-      #  exit 1
-      #fi
-      #STARTMPI="mpdboot -n 1"
-      #STOPMPI="mpdallexit"
-      echo "  Using MPI with $NP processors."
-      DO_PARALLEL="$MPIEXEC -n $NP"
-    fi
-  fi
-fi # END if CLEAN==0
-
-NUMTEST=0
-ERR=0
-
+fi
+# Always clean up OUTPUT and ERROR
+if [[ $OUTPUT != "/dev/stdout" && -f "$OUTPUT" ]] ; then
+  $REMOVE $OUTPUT
+fi
+if [[ $ERROR != "/dev/stderr" && -f "$ERROR" ]] ; then
+  $REMOVE $ERROR
+fi

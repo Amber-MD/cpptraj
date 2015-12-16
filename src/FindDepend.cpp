@@ -38,7 +38,7 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
 
   // Safety valve
   if (indent > 100) {
-    fprintf(stdout,"Recursion > 100! Bailing out!\n");
+    fprintf(stderr,"Recursion > 100! Bailing out!\n");
     return NULL;
   }
 

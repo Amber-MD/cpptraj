@@ -13,12 +13,13 @@ Action_Grid::Action_Grid() :
   madura_(0),
   smooth_(0),
   nframes_(0),
+  debug_(0),
   invert_(false),
   pdbfile_(0),
   grid_(0)
 {}
 
-void Action_Grid::Help() {
+void Action_Grid::Help() const {
   mprintf("\t[out <filename>]\n%s\n", GridAction::HelpText);
   mprintf("\t<mask> [normframe | normdensity [density <density>]]\n"
           "\t[pdb <pdbout> [max <fraction>]] \n"
@@ -29,6 +30,7 @@ void Action_Grid::Help() {
 // Action_Grid::Init()
 Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
   nframes_ = 0;
   // Get output filename
   std::string filename = actionArgs.GetStringKey("out");
@@ -48,12 +50,14 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
   else normalize_ = NONE;
   if (normalize_ != NONE && (smooth_ > 0.0 || madura_ > 0.0)) {
     mprinterr("Error: Normalize options are not compatible with smoothdensity/madura options.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   // Get mask
   std::string maskexpr = actionArgs.GetMaskNext();
   if (maskexpr.empty()) {
     mprinterr("Error: GRID: No mask specified.\n");
+    init.DSL().RemoveSet( grid_ );
     return Action::ERR;
   }
   mask_.SetMaskString(maskexpr);
@@ -206,7 +210,17 @@ void Action_Grid::PrintPDB(double gridMax)
   for (size_t k = 0; k <= grid_->NZ(); k += grid_->NZ())
     for (size_t j = 0; j <= grid_->NY(); j += grid_->NY())
       for (size_t i = 0; i <= grid_->NX(); i += grid_->NX()) {
-        Vec3 cxyz = grid_->BinCenter(i,j,k);
+        Vec3 cxyz = grid_->BinCorner(i,j,k);
         pdbout.WriteHET(res, cxyz[0], cxyz[1], cxyz[2]);
       }
+  // DEBUG: Write all grid bin corners
+  if (debug_ > 1) {
+    ++res;
+    for (size_t k = 0; k <= grid_->NZ(); k++)
+      for (size_t j = 0; j <= grid_->NY(); j++)
+        for (size_t i = 0; i <= grid_->NX(); i++) {
+          Vec3 cxyz = grid_->BinCorner(i,j,k);
+          pdbout.WriteATOM(res, cxyz[0], cxyz[1], cxyz[2], "BIN", 0.0);
+        }
+  }
 }

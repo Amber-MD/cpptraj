@@ -211,7 +211,7 @@ void TrajoutList::CloseTrajout() {
 // TrajoutList::List()
 void TrajoutList::List(std::vector<int> const& PindexFrames) const {
   if (!trajout_.empty()) {
-    mprintf("\nOUTPUT TRAJECTORIES:\n");
+    mprintf("\nOUTPUT TRAJECTORIES (%zu total):\n", trajout_.size());
     if (PindexFrames.empty())
       for (unsigned int i = 0; i != trajout_.size(); i++)
         trajout_[i]->PrintInfo( 0 );

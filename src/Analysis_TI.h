@@ -6,10 +6,10 @@ class Analysis_TI : public Analysis {
     enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
   public:
     Analysis_TI() : nskip_(0), dAout_(0), mode_(GAUSSIAN_QUAD) {}
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_TI(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_TI(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     int SetQuadAndWeights(int);

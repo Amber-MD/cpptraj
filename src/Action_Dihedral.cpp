@@ -12,7 +12,7 @@ Action_Dihedral::Action_Dihedral() :
   useMass_(false)
 { } 
 
-void Action_Dihedral::Help() {
+void Action_Dihedral::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> <mask3> <mask4> [out filename] [mass]\n"
           "\t[type {alpha|beta|gamma|delta|epsilon|zeta|chi|c2p|h1p|phi|psi|pchi}]\n"
           "\t[range360] [idx <index>]\n"

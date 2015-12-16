@@ -8,11 +8,14 @@ class DataIO_Xplor : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Xplor(); }
     int processReadArgs(ArgList&) { return 0; }
     int ReadData(FileName const&, DataSetList&, std::string const&);
-    int processWriteArgs(ArgList&)                 { return 0; }
+    int processWriteArgs(ArgList&);
     int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&) { return false; }
   private:
-    int WriteSet3D(DataSet const&, CpptrajFile&);
+    int WriteSet3D(DataSet const&, CpptrajFile&) const;
+    void WriteXplorHeader(CpptrajFile&, std::string const&,
+                          int, int, int, int, int, int, int, int, int,
+                          Matrix_3x3 const&) const;
     std::string title_;
     std::string remark_;
 };

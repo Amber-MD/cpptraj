@@ -46,16 +46,24 @@ Box &Box::operator=(const Box& rhs) {
   return *this;
 }
 
-const double Box::TRUNCOCTBETA = 2.0*acos(1.0/sqrt(3.0))*Constants::RADDEG; 
+const double Box::TRUNCOCTBETA_ = 2.0*acos(1.0/sqrt(3.0))*Constants::RADDEG;
 
-const char* Box::BoxNames[] = {
+/** This value is chosen so that TRUNCOCTBETA_ - TruncOctDelta_ is just
+  * less than 109.47, about 109.4699, since 109.47 is probably the lowest
+  * precision angle we can accept. +0.000000703 to avoid FP round-down.
+  */
+const double Box::TruncOctDelta_ = 0.001220703;
+
+const double Box::TruncOctMin_ = Box::TRUNCOCTBETA_ - Box::TruncOctDelta_;
+
+const double Box::TruncOctMax_ = Box::TRUNCOCTBETA_ + Box::TruncOctDelta_;
+
+/** Used to detect low precision trunc. oct. angles (e.g. 109.47). */
+const double Box::TruncOctEps_ = 0.001;
+
+const char* Box::BoxNames_[] = {
   "None", "Orthogonal", "Trunc. Oct.", "Rhombic Dodec.", "Non-orthogonal"
 };
-
-// Box::TypeName()
-const char* Box::TypeName() const {
-  return BoxNames[btype_];
-}
 
 // Box::SetBetaLengths()
 void Box::SetBetaLengths(double beta, double xin, double yin, double zin) {
@@ -98,15 +106,15 @@ void Box::SetBox(Matrix_3x3 const& ucell) {
 }
 
 // Box::SetTruncOct()
-/** Set as truncated octahedron with no lengths. */
+/** Set as truncated octahedron with all lengths set to whatever X is. */
 void Box::SetTruncOct() {
-  box_[0] = 0;
-  box_[1] = 0;
-  box_[2] = 0;
-  box_[3] = TRUNCOCTBETA;
-  box_[4] = TRUNCOCTBETA;
-  box_[5] = TRUNCOCTBETA;
+  box_[1] = box_[0];
+  box_[2] = box_[0];
+  box_[3] = TRUNCOCTBETA_;
+  box_[4] = TRUNCOCTBETA_;
+  box_[5] = TRUNCOCTBETA_;
   btype_ = TRUNCOCT;
+  mprintf("Info: Setting box to be perfect truncated octahedron (a=b=g=%g)\n", box_[3]);
 }
 
 // Box::SetNoBox()
@@ -132,9 +140,12 @@ void Box::SetMissingInfo(const Box& rhs) {
   SetBoxType();
 }
 
-static inline bool IsTruncOct(double angle) {
-  if (angle > 109.47 && angle < 109.48) return true;
-  return false;
+bool Box::IsTruncOct(double angle) {
+  return (angle > TruncOctMin_ && angle < TruncOctMax_);
+}
+
+bool Box::BadTruncOctAngle(double angle) {
+  return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
 // Box::SetBoxType()
@@ -169,7 +180,6 @@ void Box::SetBoxType() {
       //if (debug_>0) mprintf("\tSetting box to be orthogonal\n");
     } else if ( IsTruncOct( box_[4] ) ) {
       btype_ = TRUNCOCT;
-      //Box[3] = TRUNCOCTBETA;
       box_[3] = box_[4];
       box_[5] = box_[4];
       //if (debug_>0) mprintf("\tSetting box to be a truncated octahedron, angle is %lf\n",box_[3]);
@@ -184,8 +194,15 @@ void Box::SetBoxType() {
       box_[3] = box_[4];
       box_[5] = box_[4];
     }
-  } 
+  }
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
+  // Check for low-precision truncated octahedron angles.
+  if (btype_ == TRUNCOCT) {
+    if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
+      mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
+              "Warning:   If desired, the 'box' command can be used during processing\n"
+              "Warning:   to set higher-precision angles.\n", box_[4], TRUNCOCTBETA_);
+  }
 }
 
 // Box::ToRecip()
@@ -237,4 +254,9 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   recip[8] = u12z*onevolume;
 
   return volume;
+}
+
+void Box::PrintInfo() const {
+  mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
+          BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }

@@ -11,8 +11,8 @@
 class Action_Surf: public Action {
   public:
     Action_Surf();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Surf(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Surf(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

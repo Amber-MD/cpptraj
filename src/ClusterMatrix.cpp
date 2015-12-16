@@ -2,6 +2,7 @@
 #include "ClusterMatrix.h"
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 // NOTES:
 //   Version 1: Add write of ignore array when reduced. Write nrows and
@@ -13,6 +14,12 @@
 //                     value is random sieve. Variable is same #
 //                     of bytes so should be backwards-compatible.
 const unsigned char ClusterMatrix::Magic_[4] = {'C', 'T', 'M', 2};
+
+static inline int MatrixMemError() {
+  mprinterr("Error: Not enough memory to allocate pair-wise matrix.\n"
+            "Error: Consider using the 'sieve' keyword to reduce memory usage.\n");
+  return 1;
+}
 
 // CONSTRUCTOR
 /** Intended for use with cluster pairwise distance calculations
@@ -35,15 +42,17 @@ int ClusterMatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
         ++actual_nrows;
       }
     // Set up underlying TriangleMatrix for sieved frames.
-    mprintf("\tEstimated pair-wise matrix memory usage: > %.4f MB\n",
-            (double)Mat_.sizeInBytes( 0L, actual_nrows ) / (1024 * 1024));
-    Mat_.resize( 0L, actual_nrows );
+    mprintf("\tEstimated pair-wise matrix memory usage: > %s\n",
+            ByteString(Mat_.sizeInBytes( 0L, actual_nrows ), BYTE_DECIMAL).c_str());
+    try { Mat_.resize( 0L, actual_nrows ); }
+    catch (const std::bad_alloc&) { return MatrixMemError(); }
     mprintf("\tPair-wise matrix set up with sieve, %zu frames, %zu sieved frames.\n",
             sizeIn, actual_nrows);
   } else {
-    mprintf("\tEstimated pair-wise matrix memory usage: > %.4f MB\n",
-            (double)Mat_.sizeInBytes( 0L, sizeIn ) / (1024 * 1024));
-    Mat_.resize( 0L, sizeIn );
+    mprintf("\tEstimated pair-wise matrix memory usage: > %s\n",
+            ByteString(Mat_.sizeInBytes( 0L, sizeIn ), BYTE_DECIMAL).c_str());
+    try { Mat_.resize( 0L, sizeIn ); }
+    catch (const std::bad_alloc&) { return MatrixMemError(); }
     ignore_.assign(sizeIn, false);
     mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);
   }

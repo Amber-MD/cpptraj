@@ -29,7 +29,7 @@ Action_NAstruct::Action_NAstruct() :
 # endif
 {}
 
-void Action_NAstruct::Help() {
+void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
@@ -1206,6 +1206,10 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     }
   } // End Loop over NA residues
   mprintf("\tSet up %zu bases.\n", Bases_.size());
+  if (Bases_.empty()) {
+    mprintf("Warning: No NA bases. Skipping.\n");
+    return Action::SKIP;
+  }
   // Determine base connectivity.
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {

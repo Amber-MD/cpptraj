@@ -19,7 +19,7 @@ Action_AtomicCorr::Action_AtomicCorr() :
   outfile_(0)
 {}
 
-void Action_AtomicCorr::Help() {
+void Action_AtomicCorr::Help() const {
   mprintf("\t[<mask>] [out <filename>] [cut <cutoff>] [min <min spacing>]\n"
           "\t[byatom | byres]\n"
           "  Calculate average correlations between the motion of atoms in <mask>.\n");

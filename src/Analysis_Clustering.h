@@ -11,9 +11,9 @@ class Analysis_Clustering: public Analysis {
     Analysis_Clustering();
     ~Analysis_Clustering();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Clustering(); }
-    static void Help();
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Clustering(); }
+    void Help() const;
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.
@@ -37,7 +37,7 @@ class Analysis_Clustering: public Analysis {
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
     std::string avgfile_;       ///< Cluster traj average structure filename.
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
-    FileName pairdistfile_;  ///< Name of pairwise-distances file.
+    FileName pairdistfile_;     ///< Name of pairwise-distances file.
     std::string sil_file_;      ///< Prefix name of file for cluster silhouette.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
     ClusterList::DistMetricType metric_;
@@ -48,6 +48,7 @@ class Analysis_Clustering: public Analysis {
     bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
+    bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
     ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
     /// Cluster trajectory format.
     TrajectoryFile::TrajFormatType clusterfmt_;

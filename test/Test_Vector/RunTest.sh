@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles vector.in vtest.dat.? v8.mol2 corr.v0.v8.dat
+CleanFiles vector.in vtest.dat.? v8.mol2 corr.v0.v8.dat avgcoord.out res5.out
 
 CheckNetcdf
 
@@ -34,7 +34,17 @@ DoTest vtest.dat.5.save vtest.dat.5
 DoTest vtest.dat.6.save vtest.dat.6
 DoTest vtest.dat.7.save vtest.dat.7
 DoTest v8.mol2.save v8.mol2
-CheckTest
+
+# Test vector center with magnitude
+cat > vector.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc 1 10
+vector VC_A1 center @1 out avgcoord.out magnitude
+vector VC_R5 center :5 out res5.out magnitude
+EOF
+RunCpptraj "AvgCoord test."
+DoTest avgcoord.out.save avgcoord.out
+DoTest res5.out.save res5.out
 
 EndTest
   

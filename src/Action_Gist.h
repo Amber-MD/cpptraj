@@ -11,8 +11,8 @@
 class Action_Gist: public Action, ImagedAction  {
   public:
     Action_Gist();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Gist(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Gist(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -35,6 +35,7 @@ class Action_Gist: public Action, ImagedAction  {
     bool useSPCFW_;*/
     bool doOrder_;
     bool doEij_;
+    bool skipE_;
     // Timing data
     Timer gist_init_;
     Timer gist_setup_;
@@ -48,6 +49,7 @@ class Action_Gist: public Action, ImagedAction  {
     double BULK_DENS_;             ///< bulk water density
 //    double BULK_E_;                ///< bulk water energy
 
+    double Temp;
     //Grid Stuff   
     Vec3 gridcntr_;                ///< coordiantes of grid center
     std::vector <int> griddim_;    ///< grid dimension (bin number in each direction)
@@ -114,13 +116,19 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> dTSorient_norm_;
     std::vector <float> dTStrans_dens_;
     std::vector <float> dTStrans_norm_;
+    std::vector <double> dTSsix_norm_;
+    std::vector <float> dTSsix_dens_;
     double dTSorienttot_;
     int max_nwat_;
     double dTStranstot_;
     double Ewwtot_;
-    std::vector < std::vector <float> > the_vox_;
-    std::vector < std::vector <float> > phi_vox_;
-    std::vector < std::vector <float> > psi_vox_;
+    std::vector < std::vector <float> > x_vox_;
+    std::vector < std::vector <float> > y_vox_;
+    std::vector < std::vector <float> > z_vox_;
+    std::vector < std::vector <float> > q0_vox_;
+    std::vector < std::vector <float> > q1_vox_;
+    std::vector < std::vector <float> > q2_vox_;
+    std::vector < std::vector <float> > q3_vox_;
 
     // dipole stuffs
     std::vector <double> dipolex_;

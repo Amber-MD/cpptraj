@@ -5,8 +5,8 @@
 class Action_MultiDihedral : public Action {
   public:
     Action_MultiDihedral();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MultiDihedral(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_MultiDihedral(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

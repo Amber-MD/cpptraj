@@ -1,18 +1,16 @@
 #include <cmath> // sqrt
-#include <cstdlib> // random, srandom
 #include "Action_RandomizeIons.h"
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
 Action_RandomizeIons::Action_RandomizeIons() :
-  overlap_(0),
-  min_(0),
-  seed_(1),
-  debug_(0),
-  n_solvent_(0)
+  overlap_(0.0),
+  min_(0.0),
+  n_solvent_(0),
+  debug_(0)
 {}
 
-void Action_RandomizeIons::Help() {
+void Action_RandomizeIons::Help() const {
   mprintf("\t<mask> [around <mask> by <distance>] [overlap <value>]\n"
           "\t[noimage] [seed <value>]\n"
           "  Swap positions of ions in <mask> with randomly selected solvent molecules.\n");
@@ -31,42 +29,38 @@ Action::RetType Action_RandomizeIons::Init(ArgList& actionArgs, ActionInit& init
   ions_.SetMaskString( ionmask );
 
   // Get Keywords
-  InitImaging( !actionArgs.hasKey("noimage") );
-  seed_ = actionArgs.getKeyInt("seed", -1);
+  image_.InitImaging( !actionArgs.hasKey("noimage") );
+  int seed = actionArgs.getKeyInt("seed", -1);
   overlap_ = actionArgs.getKeyDouble("overlap", 3.5);
   min_ = actionArgs.getKeyDouble("by", 3.5);
   // Pre-square overlap and min
   overlap_ *= overlap_;
   min_ *= min_;
   // If no around mask specified, leave blank
-  aroundmask_ = actionArgs.GetStringKey("around");
-  if (!aroundmask_.empty())
-    around_.SetMaskString( aroundmask_ );
+  std::string aroundmask = actionArgs.GetStringKey("around");
+  if (!aroundmask.empty())
+    around_.SetMaskString( aroundmask );
   
   // INFO
-  mprintf("    RANDOMIZEIONS: swapping the postions of the ions in mask [%s]\n", 
+  mprintf("    RANDOMIZEIONS: Swapping postions of ions in mask '%s' with solvent.\n",
           ions_.MaskString());
-  mprintf("                   with the solvent. No ions can get closer than %.2f angstroms\n",
-          sqrt( overlap_ ));
-  mprintf("                   to another ion.\n");
-  if (!aroundmask_.empty()) {
-    mprintf("                   No ion can get closer than %.2f angstroms to mask [%s]\n",
+  mprintf("\tNo ion can get closer than %.2f angstroms to another ion.\n", sqrt( overlap_ ));
+  if (around_.MaskStringSet())
+    mprintf("\tNo ion can get closer than %.2f angstroms to atoms in mask '%s'\n",
             sqrt( min_ ), around_.MaskString());
-  }
-  if (!UseImage())
-    mprintf("                   Imaging of the coordinates will not be performed.\n");
-  if (seed_ > 0) {
-    mprintf("                   Random number generator seed is %i\n", seed_);
-    srandom((unsigned) seed_);
-  }
+  if (!image_.UseImage())
+    mprintf("\tImaging of the coordinates will not be performed.\n");
+  if (seed > 0)
+    mprintf("\tRandom number generator seed is %i\n", seed);
+  RN_.rn_set( seed );
 
   return Action::OK;
 }
 
-// Action_RandomizeIons::setup()
+// Action_RandomizeIons::Setup()
 Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   n_solvent_ = setup.Top().Nsolvent();
-  if (n_solvent_ == 0) {
+  if (n_solvent_ < 1) {
     mprinterr("Error: This command only works if solvent information has been specified.\n");
     return Action::ERR;
   }
@@ -74,18 +68,18 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
   // Set up ion mask
   if (setup.Top().SetupIntegerMask( ions_ )) return Action::ERR;
   if ( ions_.None() ) {
-    mprintf("Warning: Mask [%s] has no atoms.\n", ions_.MaskString());
+    mprintf("Warning: Ion mask '%s' has no atoms.\n", ions_.MaskString());
     return Action::SKIP;
   }
-  mprintf("\tIon mask is [%s] (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
+  mprintf("\tIon mask is '%s' (%i atoms)\n", ions_.MaskString(), ions_.Nselected());
 
   // Set up the around mask if necessary
-  if (!aroundmask_.empty()) {
+  if (around_.MaskStringSet()) {
     if (setup.Top().SetupIntegerMask( around_ )) return Action::ERR;
     if ( around_.None() ) {
-      mprintf("Warning: Around mask [%s] has no atoms.\n", around_.MaskString());
+      mprintf("Warning: Around mask '%s' has no atoms.\n", around_.MaskString());
     } else {
-      mprintf("\tAround mask is [%s] (%i atoms)\n", around_.MaskString(),
+      mprintf("\tAround mask is '%s' (%i atoms)\n", around_.MaskString(),
               around_.Nselected());
     }
   }
@@ -132,82 +126,78 @@ Action::RetType Action_RandomizeIons::Setup(ActionSetup& setup) {
       solventEnd_.push_back( Mol->EndAtom() );
     }
   }
-  SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   // Allocate solvent molecule mask
   solvent_.resize( n_solvent_ );
 
   return Action::OK;
 }
 
-// Action_RandomizeIons::action()
+// Action_RandomizeIons::DoAction()
 Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
-  Vec3 trans;
 
-  if (ImageType()==NONORTHO)
+  if (image_.ImageType() == NONORTHO)
     frm.Frm().BoxCrd().ToRecip(ucell, recip);
-  // loop over all solvent molecules and mark those that are too close to the solute
-  std::vector<bool>::iterator smask = solvent_.begin();
-  //int smolnum = 1; // DEBUG
-  for (std::vector<int>::iterator beginatom = solventStart_.begin();
-                                  beginatom != solventStart_.end(); ++beginatom)
-  {
-    *smask = true;
-    // is solvent molecule to near any atom in the around mask?
-    if (!aroundmask_.empty()) {
+  // Loop over all solvent molecules and mark those that are too close to the solute
+  int n_active_solvent = 0;
+  for (int idx = 0; idx != n_solvent_; idx++) {
+    solvent_[idx] = true;
+    if (around_.MaskStringSet()) {
+      const double* solventXYZ = frm.Frm().XYZ( solventStart_[idx] );
+      // Is solvent molecule too close to any atom in the around mask?
       for (AtomMask::const_iterator atom = around_.begin(); atom != around_.end(); ++atom)
       {
-        double dist = DIST2( frm.Frm().XYZ(*beginatom), frm.Frm().XYZ(*atom), 
-                             ImageType(), frm.Frm().BoxCrd(), ucell, recip);
-        //mprintf("CDBG: @%i to @%i = %lf\n", *beginatom+1,
-        //        *atom+1, sqrt(dist));
+        double dist = DIST2( solventXYZ, frm.Frm().XYZ(*atom), image_.ImageType(),
+                             frm.Frm().BoxCrd(), ucell, recip);
         if (dist < min_) {
-          *smask = false;
+          solvent_[idx] = false;
           //mprintf("RANDOMIZEIONS: water %i only %.2f ang from around @%i\n",
           //        smolnum, sqrt(dist), *atom+1);
           break;
         }
       }
     }
-    ++smask;
-    //++smolnum; // DEBUG
+    if (solvent_[idx]) ++n_active_solvent;
+  }
+  if (n_active_solvent < ions_.Nselected()) {
+    mprinterr("Error: Fewer active solvent molecules (%i) than ions (%i)\n",
+              n_active_solvent, ions_.Nselected());
+    return Action::ERR;
   }
 
   // DEBUG - print solvent molecule mask
-  //mprintf("RANDOMIZEIONS: The following waters are ACTIVE so far:\n");
-  //smolnum = 1; // DEBUG
-  int smoltot = 0;
-  for (smask = solvent_.begin(); smask != solvent_.end(); ++smask) {
-    if (*smask) {
-      //mprintf(" %5i ", smolnum);
-      ++smoltot;
-      //if (smoltot%10 == 0) mprintf("\n");
+  if (debug_ > 2) {
+    mprintf("RANDOMIZEIONS: The following waters are ACTIVE so far:\n");
+    int smoltot = 0;
+    for (int idx = 0; idx != n_solvent_; idx++) {
+      if (solvent_[idx]) {
+        mprintf(" %5i ", solventStart_[idx]+1 );
+        ++smoltot;
+        if (smoltot%10 == 0) mprintf("\n");
+      }
     }
-    //++smolnum; // DEBUG
-  }
-  if (debug_ > 2)
     mprintf("RANDOMIZEIONS: A total of %i waters (out of %zu) are active\n",
             smoltot, solvent_.size());
+  }
 
   // Outer loop over all ions
-  for (AtomMask::const_iterator ion = ions_.begin(); ion != ions_.end(); ++ion)
+  for (AtomMask::const_iterator ion1 = ions_.begin(); ion1 != ions_.end(); ++ion1)
   {
-    //mprintf("RANDOMIZEIONS: Processing ion atom %i\n", *ion+1);
-    // is a potential solvent molecule close to any of the ions (except this one)?
-    smask = solvent_.begin();
-    //smolnum = 1; // DEBUG
-    for (std::vector<int>::iterator beginatom = solventStart_.begin();
-                                    beginatom != solventStart_.end(); ++beginatom)
-    {
-      if (*smask) {
-        // if this solvent is active, check distance to all other ions
+    //mprintf("RANDOMIZEIONS: Processing ion atom %i\n", *ion1+1);
+    // Is a potential solvent molecule close to any of the ions (except this one)?
+    for (int idx = 0; idx != n_solvent_; idx++) {
+      if (solvent_[idx]) {
+        const double* solventXYZ = frm.Frm().XYZ( solventStart_[idx] );
+        // This solvent is active; check distance to all other ions
         for (AtomMask::const_iterator ion2 = ions_.begin(); ion2 != ions_.end(); ++ion2)
         {
-          if (*ion != *ion2) {
-            double dist = DIST2( frm.Frm().XYZ(*beginatom), frm.Frm().XYZ(*ion2), 
-                                 ImageType(), frm.Frm().BoxCrd(), ucell, recip);
+          if (*ion1 != *ion2) {
+            double dist = DIST2( solventXYZ, frm.Frm().XYZ(*ion2), image_.ImageType(),
+                                 frm.Frm().BoxCrd(), ucell, recip);
             if (dist < overlap_) {
-              *smask = false;
+              // This solvent mol is too close to another ion.
+              solvent_[idx] = false;
               //mprintf("RANDOMIZEIONS: water %i only %.2f ang from ion @%i\n",
               //        smolnum, sqrt(dist), *ion2+1);
               break;
@@ -215,18 +205,15 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
           }
         } // END inner loop over ions
       }
-      ++smask;
-      //++smolnum; // DEBUG
     } // END loop over solvent molecules
-
-    // solvent should now be true for all solvent molecules eligible to
-    // swap with ion.
+    // The solvent_ array should now be true for all solvent molecules eligible
+    // to swap with ion.
     int loop = 1;
     int swapMol = 0;
     while (loop > 0 && loop < 10000) {
       // Run the random number generator so that the same number is not produced
       // when the seed was set manually.
-      swapMol = random() % n_solvent_;
+      swapMol = (int)(RN_.rn_gen() * (double)n_solvent_);
       if ( solvent_[swapMol] ) 
         loop = -1;
       else 
@@ -235,20 +222,21 @@ Action::RetType Action_RandomizeIons::DoAction(int frameNum, ActionFrame& frm) {
 
     // If a suitable solvent molecule was found, swap it.
     if (loop > 0) {
-      mprintf("Warning: Tried to swap ion @%i with %i random waters\n",*ion+1,loop);
+      mprintf("Warning: Tried to swap ion @%i with %i random waters\n",*ion1+1,loop);
       mprintf("Warning: and couldn't meet criteria; skipping.\n");
     } else {
       if (debug_ > 2)
-        mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion+1);
-      const double* ionXYZ = frm.Frm().XYZ( *ion );
+        mprintf("RANDOMIZEIONS: Swapping solvent mol %i for ion @%i\n", swapMol+1, *ion1+1);
+      const double* ionXYZ = frm.Frm().XYZ( *ion1 );
       int sbegin = solventStart_[ swapMol ];
       const double* watXYZ = frm.Frm().XYZ( sbegin );
-      Vec3 trans( ionXYZ[0]-watXYZ[0], ionXYZ[1]-watXYZ[1], ionXYZ[2]-watXYZ[2]);
+      Vec3 trans( ionXYZ[0] - watXYZ[0],
+                  ionXYZ[1] - watXYZ[1],
+                  ionXYZ[2] - watXYZ[2]);
       frm.ModifyFrm().Translate( trans, sbegin, solventEnd_[ swapMol ] );
       trans.Neg();
-      frm.ModifyFrm().Translate( trans, *ion );
+      frm.ModifyFrm().Translate( trans, *ion1 );
     }
-
   } // END outer loop over all ions
 
   return Action::MODIFY_COORDS;

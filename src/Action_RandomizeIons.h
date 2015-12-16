@@ -2,31 +2,29 @@
 #define INC_ACTION_RANDOMIZEIONS_H
 #include "Action.h"
 #include "ImagedAction.h"
-class Action_RandomizeIons : public Action, ImagedAction {
+#include "Random.h"
+class Action_RandomizeIons : public Action {
   public:
     Action_RandomizeIons();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_RandomizeIons(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_RandomizeIons(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    AtomMask ions_;    ///< the list of ions to be moved.
-    double overlap_;   ///< darg1: the minimum distance between ions
-    double min_;       ///< darg2: the minimum distance to the around mask
-    AtomMask around_;  ///< carg1: the around mask (region of space to avoid)
-    std::string aroundmask_; ///< empty if no around mask specified.
-    int seed_;         ///< iarg2: random seed
+    ImagedAction image_; ///< Imaging routines.
+    Random_Number RN_;   ///< Random number generator.
+    AtomMask ions_;      ///< Mask of ions to be moved.
+    AtomMask around_;    ///< The 'around' mask (region of space for ions to avoid)
+    double overlap_;     ///< The minimum allowed distance between ions
+    double min_;         ///< The minimum distance to the 'around' mask
+    int n_solvent_;      ///< Total number of solvent molecules.
     int debug_;
-    int n_solvent_;
     // TODO: Combine the below 3 into a struct?
-    /// Hold solvent molecule start atoms.
-    std::vector<int> solventStart_;
-    /// Hold solvent molecule end atoms.
-    std::vector<int> solventEnd_;
-    /// True is solvent mol being considered for swap.
-    std::vector<bool> solvent_;
+    std::vector<int> solventStart_; ///< Solvent molecule start atoms.
+    std::vector<int> solventEnd_;   ///< Solvent molecule end atoms.
+    std::vector<bool> solvent_;     ///< True if solvent mol being considered for swap.
 };
 #endif

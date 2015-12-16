@@ -6,8 +6,8 @@
 class Action_SetVelocity : public Action {
   public:
     Action_SetVelocity();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_SetVelocity(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_SetVelocity(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

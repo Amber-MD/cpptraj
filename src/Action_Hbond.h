@@ -10,8 +10,8 @@
 class Action_Hbond : public Action {
   public:
     Action_Hbond();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Hbond(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Hbond(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
@@ -103,7 +103,7 @@ class Action_Hbond : public Action {
 
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
-    double MemoryUsage(size_t, size_t) const;
+    std::string MemoryUsage(size_t, size_t) const;
     inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;

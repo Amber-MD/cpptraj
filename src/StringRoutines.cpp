@@ -215,7 +215,43 @@ std::string TimeString() {
 }
 
 // -----------------------------------------------------------------------------
-long long AvailableMemory() {
+std::string ByteString(unsigned long long sizeInBytes, ByteType bt) {
+  static const char* BytePrefix[] = { " kB", " MB", " GB", " TB", " PB", " EB" };
+  unsigned int idx = 0;    // Index into BytePrefix
+  unsigned long long base; // Base of the size classes
+  if (bt == BYTE_BINARY)
+    base = 1024UL; // BINARY
+  else
+    base = 1000UL; // DECIMAL
+  unsigned long long den = base;        // Number to divide input size by; matches idx
+  unsigned long long cut = base * base; // Next size class
+  while (sizeInBytes >= cut) {
+    ++idx;
+    den *= base;
+    if (idx == 5) break; // NOTE: Must be max value of BytePrefix array.
+    cut *= base;
+  }
+  double newSize = (double)sizeInBytes / (double)den;
+  std::ostringstream oss;
+  oss.setf( std::ios::fixed, std::ios::floatfield );
+  oss.precision(3);
+  oss << newSize;
+  return oss.str() + std::string( BytePrefix[idx] );
+}
+
+// -----------------------------------------------------------------------------
+#ifdef __APPLE__
+static long long TotalGlobalMemory() {
+    int mib[] = {CTL_HW, HW_MEMSIZE};
+    int64_t size = 0;
+    size_t len = sizeof(size);
+    if (sysctl(mib, 2, &size, &len, NULL, 0) == 0)
+        return (long long) size;
+    return 0ll;
+}
+#endif
+
+static long long AvailableMemory() {
 #ifdef _MSC_VER
   MEMORYSTATUS status;
   GlobalMemoryStatus(&status);
@@ -243,21 +279,10 @@ long long AvailableMemory() {
 #endif
 }
 
-double AvailableMemory_MB() { 
-  double avail_in_bytes = AvailableMemory();
-  if (avail_in_bytes < 0.0) 
-    return -1.0;
+std::string AvailableMemoryStr() {
+  long long avail_in_bytes = AvailableMemory();
+  if (avail_in_bytes < 0)
+    return std::string("");
   else
-    return (double)AvailableMemory() / (1024 * 1024);
+    return ByteString(avail_in_bytes, BYTE_DECIMAL);
 }
-
-#ifdef __APPLE__
-long long TotalGlobalMemory() {
-    int mib[] = {CTL_HW, HW_MEMSIZE};
-    int64_t size = 0;
-    size_t len = sizeof(size);
-    if (sysctl(mib, 2, &size, &len, NULL, 0) == 0)
-        return (long long) size;
-    return 0ll;
-}
-#endif

@@ -6,8 +6,8 @@
 class Action_Volume: public Action {
   public:
     Action_Volume();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Volume(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Volume(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

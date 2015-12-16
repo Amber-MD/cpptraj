@@ -9,8 +9,8 @@
 class Action_Matrix : public Action, ActionFrameCounter {
   public:
     Action_Matrix();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_Matrix(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Matrix(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

@@ -41,7 +41,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Grace File",         0,                       DataIO_Grace::WriteHelp,  DataIO_Grace::Alloc  },
   { "Gnuplot File",       0,                       DataIO_Gnuplot::WriteHelp,DataIO_Gnuplot::Alloc},
   { "Xplor File",         0,                       0,                        DataIO_Xplor::Alloc  },
-  { "OpenDX File",        0,                       0,                        DataIO_OpenDx::Alloc },
+  { "OpenDX File",        0,                       DataIO_OpenDx::WriteHelp, DataIO_OpenDx::Alloc },
   { "Amber REM log",      DataIO_RemLog::ReadHelp, 0,                        DataIO_RemLog::Alloc },
   { "Amber MDOUT file",   0,                       0,                        DataIO_Mdout::Alloc  },
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },

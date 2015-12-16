@@ -13,8 +13,8 @@ all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) ambpdb$(SFX) 
 	mv cpptraj$(SFX) $(CPPTRAJBIN)
-	(if [ -e "ambpdb" ]; then \
-	   mv ambpdb $(CPPTRAJBIN); \
+	(if [ -e "ambpdb$(SFX)" ]; then \
+	   mv ambpdb$(SFX) $(CPPTRAJBIN); \
 	 fi;) 
 
 findDepend: FindDepend.o 
@@ -28,19 +28,22 @@ dependclean:
 
 libcpptraj: $(LIBCPPTRAJ)
 
-libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE)
+libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) $(FFT_LIB) $(LDFLAGS) $(READLINE)
 	/bin/mv libcpptraj.so $(CPPTRAJLIB)
 
 nolibcpptraj:
 	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
 
-cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE)
+cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)
 
 
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
+
+ambpdb.exe: $(AMBPDB_OBJECTS)
+	$(CXX) -o ambpdb.exe $(AMBPDB_OBJECTS) $(LDFLAGS)
 
 ambpdb.OMP:
 	@echo ""
@@ -52,7 +55,7 @@ ambpdb.MPI:
 	@echo "INFO: ambpdb is not MPI-enabled. Skipping."
 	@echo ""
 
-$(READLINE): $(READLINE_HOME)/Makefile
+readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
 $(FFT_DEPEND):  pub_fft.F90

@@ -21,8 +21,7 @@ Action_PairDist::Action_PairDist() :
   ub2_(0)
 {}
 
-void Action_PairDist::Help()
-{
+void Action_PairDist::Help() const {
   mprintf("\tout <filename> mask <mask> [mask2 <mask>] [<resolution> delta]\n"
           "  Calculate pair distribution function P(r) between two masks.\n");
 }

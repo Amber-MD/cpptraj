@@ -7,7 +7,7 @@
 // CONSTRUCTOR
 Action_Bounds::Action_Bounds() : outfile_(0), offset_(1), grid_(0) {}
 
-void Action_Bounds::Help() {
+void Action_Bounds::Help() const {
   mprintf("\t[<mask>] [out <filename>]\n"
           "\t[dx <dx> [dy <dy>] [dz <dz>] name <gridname> [offset <bin offset>]]\n"
           "  Calcuate the max/min coordinates (X,Y,Z) of atoms in <mask>.\n"

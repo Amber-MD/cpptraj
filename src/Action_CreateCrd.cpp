@@ -1,9 +1,10 @@
 #include "Action_CreateCrd.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // ByteString
 
 Action_CreateCrd::Action_CreateCrd() : pindex_(-1), check_(true) {}
 
-void Action_CreateCrd::Help() {
+void Action_CreateCrd::Help() const {
   mprintf("\t[<name>] [ parm <name> | parmindex <#> ] [nocheck]\n"
           "  Create a COORDS data set named <name> for frames associated with the\n"
           "  specified topology.\n");
@@ -42,8 +43,9 @@ Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
   if (setup.Top().Pindex() == pindex_ && coords_->Top().Natom() == 0) {
     coords_->CoordsSetup( setup.Top(), setup.CoordInfo() );
     // Estimate memory usage
-    mprintf("\tEstimated memory usage (%i frames): %.2g MB\n",
-            setup.Nframes(), coords_->SizeInMB(setup.Nframes()));
+    mprintf("\tEstimated memory usage (%i frames): %s\n",
+            setup.Nframes(),
+            ByteString(coords_->SizeInBytes(setup.Nframes()), BYTE_DECIMAL).c_str());
   }
   // If # atoms in currentParm does not match coords, warn user.
   if (setup.Top().Natom() != coords_->Top().Natom()) {

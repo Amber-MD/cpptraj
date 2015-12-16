@@ -16,7 +16,7 @@ Action_Vector::Action_Vector() :
   outfile_(0)
 {}
 
-void Action_Vector::Help() {
+void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
           "\t<Type> = { mask | minimage  | dipole | center | corrplane | \n"
@@ -383,9 +383,9 @@ void Action_Vector::UnitCell(Box const& box) {
   Matrix_3x3 ucell, recip;
   box.ToRecip( ucell, recip );
   switch ( mode_ ) {
-    case BOX_X: Vec_->AddVxyz( ucell.Row1() ); break;
-    case BOX_Y: Vec_->AddVxyz( ucell.Row2() ); break;
-    case BOX_Z: Vec_->AddVxyz( ucell.Row3() ); break;
+    case BOX_X: Vec_->AddVxyz( ucell.Row1(), DataSet_Vector::ZERO ); break;
+    case BOX_Y: Vec_->AddVxyz( ucell.Row2(), DataSet_Vector::ZERO ); break;
+    case BOX_Z: Vec_->AddVxyz( ucell.Row3(), DataSet_Vector::ZERO ); break;
     case BOX_CTR: Vec_->AddVxyz( ucell.TransposeMult(Vec3(0.5)) ); break;
     default: return;
   }

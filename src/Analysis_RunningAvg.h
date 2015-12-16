@@ -6,10 +6,10 @@ class Analysis_RunningAvg : public Analysis {
   public:
     Analysis_RunningAvg();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_RunningAvg(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_RunningAvg(); }
+    void Help() const;
 
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     Array1D dsets_;

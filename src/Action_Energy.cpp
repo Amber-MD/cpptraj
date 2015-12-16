@@ -5,7 +5,7 @@
 Action_Energy::Action_Energy() : currentParm_(0) {}
 
 
-void Action_Energy::Help() {
+void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
           "\t[bond] [angle] [dihedral] [nb14] [nonbond]\n"
           "  Calculate energy for atoms in mask.\n");

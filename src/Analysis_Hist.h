@@ -11,15 +11,15 @@ class Analysis_Hist : public Analysis {
     enum NormMode { NO_NORM = 0, NORM_SUM, NORM_INT };
     Analysis_Hist();
 
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_Hist(); }
-    static void Help();
-    Analysis::RetType ExternalSetup(DataSet_1D*, std::string const&, int, std::string const&,
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Hist(); }
+    void Help() const;
+    Analysis::RetType ExternalSetup(DataSet_1D*, std::string const&, int, std::string const&, 
                             bool, double, bool, double, double, int, double, NormMode,
                             DataSetList&, DataFileList&);
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    int CheckDimension(std::string const&, DataSetList*);
+    int CheckDimension(std::string const&, DataSetList&);
     int setupDimension(ArgList&, DataSet_1D const&, size_t&);
     int CalcFreeE();
     int Normalize();

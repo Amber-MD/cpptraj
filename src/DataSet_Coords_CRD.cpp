@@ -1,5 +1,6 @@
 #include "DataSet_Coords_CRD.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // ByteString
 
 int DataSet_Coords_CRD::Allocate(SizeArray const& sizeIn) {
   if (!sizeIn.empty())
@@ -32,17 +33,13 @@ int DataSet_Coords_CRD::CoordsSetup(Topology const& topIn, CoordinateInfo const&
   return 0;
 }
 
-double DataSet_Coords_CRD::sizeInMB(size_t nframes, size_t natom, size_t nbox) {
+size_t DataSet_Coords_CRD::sizeInBytes(size_t nframes, size_t natom, size_t nbox) {
   size_t frame_size_bytes = ((natom * 3UL) + nbox) * sizeof(float);
-  double sze = (double)((nframes * frame_size_bytes) + sizeof(CRDarray));
-  return (sze / (1024 * 1024));
+  return ((nframes * frame_size_bytes) + sizeof(CRDarray));
 }
 
 void DataSet_Coords_CRD::Info() const {
-  double sze = sizeInMB(coords_.size(), top_.Natom(), numBoxCrd_);
-  if (sze < 1.0)
-    mprintf(" (<1 MB)");
-  else
-    mprintf(" (%.2f MB)", sze);
+  mprintf(" (%s)",
+          ByteString(sizeInBytes(coords_.size(), top_.Natom(), numBoxCrd_), BYTE_DECIMAL).c_str());
   CommonInfo();
 }

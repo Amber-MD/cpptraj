@@ -95,7 +95,7 @@ int Action_Molsurf::AllocateMemory() {
   return error_status;
 }
 
-void Action_Molsurf::Help() {
+void Action_Molsurf::Help() const {
   mprintf("\t[<name>] [<mask1>] [out filename] [probe <probe_rad>]\n"
           "\t[radii {gb | parse | vdw}] [offset <rad_offset>]\n"
           "  Calculate Connolly surface area of atoms in <mask1>.\n");

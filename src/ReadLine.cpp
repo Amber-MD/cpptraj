@@ -32,7 +32,7 @@ static char* command_generator(const char* text, int state) {
   }
 
   // Return the next name which partially matches from the command list.
-  while ( (name = Command::CmdToken(list_index).Cmd) != 0 )
+  while ( (name = Command::CmdToken(list_index)) != 0 )
   {
     list_index++;
     if (strncmp(name, text, len) == 0)
@@ -63,35 +63,17 @@ ReadLine::ReadLine() {
   * will be concatenated. Comments will be ignored.
   */
 int ReadLine::GetInput() {
-  input_.clear();
+  input_.Clear();
   char* line = readline("> ");
   if (line == 0) return 1; // EOF
-  input_ += line;
-  // Terminal backslash requests a continuation of the line
-  size_t end = strlen( line );
-  while (end > 1 && line[end - 1] == '\\') {
-    // Remove that backlash
-    size_t bs_pos = input_.find_last_of('\\');
-    input_.erase( bs_pos, 1 );
+  bool moreInput = input_.AddInput( line );
+  while ( moreInput ) {
     free( line );
     line = readline("");
-    if (line == 0) break;
-    input_ += line;
-    end = strlen( line );
-  }
-  // Remove leading whitespace.
-  std::string::iterator beg = input_.begin();
-  while ( beg != input_.end() && isspace(*beg) )
-    beg = input_.erase(beg);
-  // Find '#' not preceded by blackslash; indicates comment.
-  // Remove it and all after.
-  end = input_.find_first_of('#');
-  if (end != std::string::npos) {
-    if (end == 0 || (end > 0 && input_[end-1] != '\\'))
-      input_.erase( input_.begin() + end, input_.end() );
+    moreInput = input_.AddInput( line );
   }
   // Add line to history
-  if (!input_.empty()) AddHistory(input_.c_str());
+  if (!input_.Empty()) AddHistory(input_.str());
   if (line != 0) free( line );
   return 0;
 }

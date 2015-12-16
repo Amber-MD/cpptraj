@@ -5,13 +5,13 @@
 class Analysis_KDE : public Analysis {
   public:
     Analysis_KDE();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Analysis_KDE(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_KDE(); }
+    void Help() const;
 
     Analysis::RetType ExternalSetup(DataSet_1D*, std::string const&, int, std::string const&,
                             bool, double, bool, double, double, int, double,
                             DataSetList&, DataFileList&);
-    Analysis::RetType Setup(ArgList&,DataSetList*,DataFileList*,int);
+    Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
     static const double ONE_OVER_ROOT_TWOPI;

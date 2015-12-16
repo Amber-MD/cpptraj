@@ -22,6 +22,11 @@ class BondType {
     inline int A2()  const { return a2_;  }
     inline int Idx() const { return idx_; }
     void SetIdx(int i)     { idx_ = i;    }
+    bool operator<(const BondType& rhs) const {
+      if (a1_ == rhs.a1_) {
+        return (a2_ < rhs.a2_);
+      } else return (a1_ < rhs.a1_);
+    }
   private:
     int a1_;
     int a2_;
@@ -51,6 +56,13 @@ class AngleType {
     inline int A3()  const { return a3_;  }
     inline int Idx() const { return idx_; }
     void SetIdx(int i)     { idx_ = i;    }
+    bool operator<(AngleType const& rhs) const {
+      if (a1_ == rhs.a1_) {
+        if (a2_ == rhs.a2_) {
+          return (a3_ < rhs.a3_);
+        } else return (a2_ < rhs.a2_);
+      } else return (a1_ < rhs.a1_);
+    }
   private:
     int a1_;
     int a2_;
@@ -74,6 +86,17 @@ class DihedralParmType {
     inline double SCNB()  const { return scnb_;  }
     void SetSCEE(double s)      { scee_ = s;     }
     void SetSCNB(double s)      { scnb_ = s;     }
+    bool operator<(DihedralParmType const& rhs) const {
+      if (pk_ == rhs.pk_) {
+        if (pn_ == rhs.pn_) {
+          if (phase_ == rhs.phase_) {
+            if (scee_ == rhs.scee_) {
+              return (scnb_ < rhs.scnb_);
+            } else return (scee_ < rhs.scee_);
+          } else return (phase_ < rhs.phase_);
+        } else return (pn_ < rhs.pn_);
+      } else return (pk_ < rhs.pk_);
+    }
   private:
     double pk_;
     double pn_;

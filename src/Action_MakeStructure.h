@@ -5,8 +5,8 @@
 class Action_MakeStructure : public Action {
   public:
     Action_MakeStructure();
-    static DispatchObject* Alloc() { return (DispatchObject*)new Action_MakeStructure(); }
-    static void Help();
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_MakeStructure(); }
+    void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);

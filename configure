@@ -122,6 +122,7 @@ TestNetcdf() {
     cat > testp.cpp <<EOF
 #include <cstdio>
 #include "netcdf.h"
+void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
     TestCxxProgram "Checking NetCDF" "$NETCDFLIB"
@@ -140,7 +141,9 @@ extern "C" {
 int main() {
   int n_cols = 3, lwork = 102, info;
   double work[102], mat[9], vec[3], alpha = 1.0;
-  mat[0] = 1.0; mat[4] = 1.0; mat[8] = 1.0;
+  mat[0] = 1.0; mat[1] = 1.0; mat[2] = 1.0;
+  mat[3] = 1.0; mat[4] = 1.0; mat[5] = 1.0;
+  mat[6] = 1.0; mat[7] = 1.0; mat[8] = 1.0;
   dsyev_((char*)"V", (char*)"U", n_cols, mat, n_cols, vec, work, lwork, info);
   dgemm_((char*)"N",(char*)"N", n_cols, n_cols, n_cols, alpha,
          mat, n_cols, mat, n_cols, alpha, mat, n_cols);
@@ -369,6 +372,7 @@ BLAS_HOME=""
 LAPACK_HOME=""
 ARPACK_HOME=""
 READLINE_HOME="readline"
+READLINE_TARGET="$READLINE_HOME/libreadline.a"
 NETCDFLIB="-lnetcdf"
 PNETCDFLIB=""
 BZLIB="-lbz2"
@@ -381,7 +385,7 @@ FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
 LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
 SANDERLIB=""
-READLINE=$READLINE_HOME/libreadline.a
+READLINE=$READLINE_TARGET
 USE_AMBER_LIB=0
 USEMKL=0
 FLIBS=""
@@ -918,6 +922,7 @@ FFLAGS=$FFLAGS \$(DBGFLAGS)
 
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
+READLINE_TARGET=$READLINE_TARGET
 
 LIBCPPTRAJ=$LIBCPPTRAJ
 

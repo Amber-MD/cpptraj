@@ -32,7 +32,10 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.
     DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.FindSetOfType( refname, DataSet::REF_FRAME );
-    if (REF == 0) return 0;
+    if (REF == 0) {
+      mprinterr("Error: Reference '%s' not found.\n", refname.c_str());
+      return 0;
+    }
     if (REF->CoordsInfo().TrajBox().Type() == Box::NOBOX) {
       mprinterr("Error: Reference '%s' does not have box information.\n", refname.c_str());
       return 0;
