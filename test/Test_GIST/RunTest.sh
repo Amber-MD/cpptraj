@@ -32,7 +32,9 @@ DoTest gist-gH.dx.save gist-gH.dx
 DoTest gist-gO.dx.save gist-gO.dx
 DoTest gist-neighbor-norm.dx.save gist-neighbor-norm.dx
 DoTest gist-order-norm.dx.save gist-order-norm.dx
-DoTest gist.out.save gist.out
+# NOTE: gist.out allowed to fail on windows; differences due to slightly
+#       difference implementation of printf '%g' (manifests as round-off).
+DoTest gist.out.save gist.out allowfail windows
 
 EndTest
 exit 0
