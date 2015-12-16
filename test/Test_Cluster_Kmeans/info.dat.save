@@ -1,0 +1,15 @@
+#Clustering: 5 clusters 101 frames
+#Cluster 0 has average-distance-to-centroid 1.262084
+#Cluster 1 has average-distance-to-centroid 1.055150
+#Cluster 2 has average-distance-to-centroid 1.535737
+#Cluster 3 has average-distance-to-centroid 1.853548
+#Cluster 4 has average-distance-to-centroid 1.385415
+#DBI: 1.124436
+#pSF: 83.064999
+#Algorithm: Kmeans nclusters 5 maxit 100
+..............XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX......................................
+.............................................................................XXXXXXXXXXXXXXXXXXXXXXXX
+...............................................................XXXXXXXXXXXXXX........................
+XXXXX......XXX.......................................................................................
+.....XXXXXX..........................................................................................
+#Representative frames: 24 101 76 13 9

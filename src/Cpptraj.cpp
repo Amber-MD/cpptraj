@@ -10,7 +10,17 @@
 #include "StringRoutines.h" // TimeString
 
 /// CONSTRUCTOR - initializes all commands
-Cpptraj::Cpptraj() { Command::Init(); }
+Cpptraj::Cpptraj() {
+# ifdef _MSC_VER
+  // To make sure output format on windows matches C specification, force
+  // 2 digit exponents when the compiler version number is less than 1900
+  // (Visual Studio 2015).
+# if _MSC_VER < 1900
+  _set_output_format(_TWO_DIGIT_EXPONENT);
+# endif
+# endif
+  Command::Init();
+}
 
 /// DESTRUCTOR - free all commands
 Cpptraj::~Cpptraj() { Command::Free(); }

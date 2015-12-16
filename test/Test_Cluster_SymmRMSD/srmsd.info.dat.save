@@ -1,0 +1,9 @@
+#Clustering: 2 clusters 40 frames
+#Cluster 0 has average-distance-to-centroid 0.000001
+#Cluster 1 has average-distance-to-centroid 0.000001
+#DBI: 0.000003
+#pSF: 3850225318614.458008
+#Algorithm: HierAgglo linkage average-linkage nclusters 1 epsilon 0.8
+XXXXXXXXXXXXXXXXXXXX....................
+....................XXXXXXXXXXXXXXXXXXXX
+#Representative frames: 11 21
