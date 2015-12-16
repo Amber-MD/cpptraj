@@ -503,7 +503,6 @@ else
   if [[ -z $TEST_OS ]] ; then
     TEST_OS="linux"
   fi
-  echo "DEBUG: TEST_OS=$TEST_OS"
   # Set binary locations
   SetBinaries
   # Check how CPPTRAJ was compiled
