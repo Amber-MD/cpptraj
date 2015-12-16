@@ -61,7 +61,7 @@ test.datafile:
 	@-cd Test_Datafile && ./RunTest.sh $(OPT)
 
 test.avgref:
-	@cd Test_AvgRef && ./RunTest.sh $(OPT)
+	@-cd Test_AvgRef && ./RunTest.sh $(OPT)
 
 test.mol2:
 	@-cd Test_Mol2 && ./RunTest.sh $(OPT)
@@ -98,6 +98,13 @@ test.jcoupling:
 
 test.cluster:
 	@-cd Test_Cluster && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_Sieve && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_RandomSieve && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_DataSet && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_DBSCAN && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_Kmeans && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_SymmRMSD && ./RunTest.sh $(OPT)
+	@-cd Test_Cluster_TrajWrites && ./RunTest.sh $(OPT)
 
 test.ired:
 	@-cd Test_IRED && ./RunTest.sh $(OPT)
@@ -112,118 +119,136 @@ test.rotdif:
 	@-cd Test_Rotdif && ./RunTest.sh $(OPT)
 
 test.corr:
-	@cd Test_Corr && ./RunTest.sh $(OPT)
+	@-cd Test_Corr && ./RunTest.sh $(OPT)
 
 test.checkstructure:
-	@cd Test_CheckStructure && ./RunTest.sh $(OPT)
+	@-cd Test_CheckStructure && ./RunTest.sh $(OPT)
 
 test.runavg:
-	@cd Test_Runavg && ./RunTest.sh $(OPT)
+	@-cd Test_Runavg && ./RunTest.sh $(OPT)
 
 test.analrunavg:
-	@cd Test_AnalysisRunAvg && ./RunTest.sh $(OPT)
+	@-cd Test_AnalysisRunAvg && ./RunTest.sh $(OPT)
 
 test.rmsavgcorr:
-	@cd Test_RmsAvgCorr && ./RunTest.sh $(OPT)
+	@-cd Test_RmsAvgCorr && ./RunTest.sh $(OPT)
 
 test.contacts:
-	@cd Test_Contacts && ./RunTest.sh $(OPT)
+	@-cd Test_Contacts && ./RunTest.sh $(OPT)
 
 test.principal:
-	@cd Test_Principal && ./RunTest.sh $(OPT)
+	@-cd Test_Principal && ./RunTest.sh $(OPT)
 
 test.clusterdihedral:
-	@cd Test_ClusterDihedral && ./RunTest.sh $(OPT)
+	@-cd Test_ClusterDihedral && ./RunTest.sh $(OPT)
 
 test.vector:
-	@cd Test_Vector && ./RunTest.sh $(OPT)
+	@-cd Test_Vector && ./RunTest.sh $(OPT)
 
 test.matrix:
-	@cd Test_Matrix && ./RunTest.sh $(OPT)
+	@-cd Test_Matrix && ./RunTest.sh $(OPT)
 
 test.atomicfluct:
-	@cd Test_AtomicFluct && ./RunTest.sh $(OPT)
+	@-cd Test_AtomicFluct && ./RunTest.sh $(OPT)
 
 test.grid:
-	@cd Test_Grid && ./RunTest.sh $(OPT)
+	@-cd Test_Grid && ./RunTest.sh $(OPT)
 
 test.unwrap:
-	@cd Test_Unwrap && ./RunTest.sh $(OPT)
+	@-cd Test_Unwrap && ./RunTest.sh $(OPT)
 
 test.project:
-	@cd Test_Project && ./RunTest.sh $(OPT)
+	@-cd Test_Project && ./RunTest.sh $(OPT)
 
 test.analyzemodes:
-	@cd Test_Analyze_Modes && ./RunTest.sh $(OPT)
+	@-cd Test_Analyze_Modes && ./RunTest.sh $(OPT)
 
 test.watershell:
-	@cd Test_Watershell && ./RunTest.sh $(OPT)
+	@-cd Test_Watershell && ./RunTest.sh $(OPT)
 
 test.diffusion:
-	@cd Test_Diffusion && ./RunTest.sh $(OPT)
+	@-cd Test_Diffusion && ./RunTest.sh $(OPT)
 
 test.volmap:
-	@cd Test_Volmap && ./RunTest.sh $(OPT)
+	@-cd Test_Volmap && ./RunTest.sh $(OPT)
 
 test.lie:
-	@cd Test_LIE && ./RunTest.sh $(OPT)
+	@-cd Test_LIE && ./RunTest.sh $(OPT)
 
 test.spam:
-	@cd Test_SPAM && ./RunTest.sh $(OPT)
+	@-cd Test_SPAM && ./RunTest.sh $(OPT)
 
 test.randomizeions:
-	@cd Test_RandomizeIons && ./RunTest.sh $(OPT)
+	@-cd Test_RandomizeIons && ./RunTest.sh $(OPT)
 
 test.density:
-	@cd Test_Density && ./RunTest.sh $(OPT)
+	@-cd Test_Density && ./RunTest.sh $(OPT)
 
 test.lipidorder:
-	@cd Test_LipidOrder && ./RunTest.sh $(OPT)
+	@-cd Test_LipidOrder && ./RunTest.sh $(OPT)
 
 test.pairdist:
-	@cd Test_PairDist && ./RunTest.sh $(OPT)
+	@-cd Test_PairDist && ./RunTest.sh $(OPT)
 
 test.gist:
-	@cd Test_GIST && ./RunTest.sh $(OPT)
+	@-cd Test_GIST && ./RunTest.sh $(OPT)
 
 test.readdata:
-	@cd Test_ReadData && ./RunTest.sh $(OPT)
+	@-cd Test_ReadData && ./RunTest.sh $(OPT)
 
 test.ambpdb:
-	@cd Test_AmbPDB && ./RunTest.sh $(OPT)
+	@-cd Test_AmbPDB && ./RunTest.sh $(OPT)
 
 test.systemVF:
-	@cd Test_systemVF && ./RunTest.sh $(OPT)
+	@-cd Test_systemVF && ./RunTest.sh $(OPT)
 
 test.atomiccorr:
-	@cd Test_AtomicCorr && ./RunTest.sh $(OPT)
+	@-cd Test_AtomicCorr && ./RunTest.sh $(OPT)
 
 test.autocorr:
-	@cd Test_AutoCorr && ./RunTest.sh $(OPT)
+	@-cd Test_AutoCorr && ./RunTest.sh $(OPT)
 
 test.box:
-	@cd Test_Box && ./RunTest.sh $(OPT)
+	@-cd Test_Box && ./RunTest.sh $(OPT)
 
 test.atomtypeselect:
-	@cd Test_AtomTypeSelect && ./RunTest.sh $(OPT)
+	@-cd Test_AtomTypeSelect && ./RunTest.sh $(OPT)
 
 test.crankstat:
-	@cd Test_Crank_Stat && ./RunTest.sh $(OPT)
+	@-cd Test_Crank_Stat && ./RunTest.sh $(OPT)
 
 test.createcrd:
-	@cd Test_CreateCrd && ./RunTest.sh $(OPT)
+	@-cd Test_CreateCrd && ./RunTest.sh $(OPT)
 
 test.autoimage:
-	@cd Test_AutoImage && ./RunTest.sh $(OPT)
+	@-cd Test_AutoImage && ./RunTest.sh $(OPT)
 
 test.loadcrd:
-	@cd Test_LoadCrd && ./RunTest.sh $(OPT)
+	@-cd Test_LoadCrd && ./RunTest.sh $(OPT)
 
 test.multivector:
-	@cd Test_MultiVector && ./RunTest.sh $(OPT)
+	@-cd Test_MultiVector && ./RunTest.sh $(OPT)
+
+test.lifetime:
+	@-cd Test_Lifetime && ./RunTest.sh $(OPT)
+
+test.fft:
+	@-cd Test_FFT && ./RunTest.sh $(OPT)
+
+test.timecorr:
+	@-cd Test_Timecorr && ./RunTest.sh $(OPT)
+
+test.crosscorr:
+	@-cd Test_CrossCorr && ./RunTest.sh $(OPT)
+
+test.symmrmsd:
+	@-cd Test_SymmRmsd && ./RunTest.sh $(OPT)
+
+test.multidihedral:
+	@-cd Test_Multidihedral && ./RunTest.sh $(OPT)
 
 # Only crucial/non-time-consuming tests should go here.
-MAINTESTS=test.general \
+SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
           test.traj \
@@ -275,7 +300,13 @@ MAINTESTS=test.general \
           test.createcrd \
           test.autoimage \
           test.loadcrd \
-          test.multivector
+          test.multivector \
+          test.lifetime \
+          test.fft \
+          test.timecorr \
+          test.crosscorr \
+          test.symmrmsd \
+          test.multidihedral
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -350,23 +381,34 @@ COMPLETETESTS=test.general \
               test.createcrd \
               test.autoimage \
               test.loadcrd \
-              test.multivector
+              test.multivector \
+              test.lifetime \
+              test.fft \
+              test.timecorr \
+              test.crosscorr \
+              test.symmrmsd \
+              test.multidihedral
 
-summary: Summary.sh MasterTest.sh
-	@./Summary.sh $(OPT) summary
-
-test.main: $(MAINTESTS)
-
-test.complete: $(COMPLETETESTS)
-
-test: 
-	$(MAKE) test.main
+test: test.all 
 
 test.all:
 	$(MAKE) test.complete summary
 
+test.complete: $(COMPLETETESTS)
+
+test.showerrors:
+	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
+
+test.short:
+	$(MAKE) test.shorttests summary
+
+test.shorttests: $(SHORT_TESTS)
+
+summary: Summary.sh MasterTest.sh
+	@./Summary.sh summary $(OPT)
+
 test.vg:
-	$(MAKE) test.main OPT="$(OPT) vg"
+	$(MAKE) test.complete summary OPT="$(OPT) vg"
 
 clean:
 	@echo "Cleaning all test directories:"

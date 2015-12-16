@@ -1,0 +1,75 @@
+#Desired Clusters: 5
+#Clustering Algorithm: Means(1)
+#Distance Metric: RMS
+#Matrix Calculation Time: 0 seconds
+#Total Calculation Time: 0 seconds
+#Cluster 0 has average-distance-to-centroid 1.262266
+#Cluster 1 has average-distance-to-centroid 1.054992
+#Cluster 2 has average-distance-to-centroid 1.534600
+#Cluster 3 has average-distance-to-centroid 1.851709
+#Cluster 4 has average-distance-to-centroid 1.385099
+#DBI: 1.12633
+#pSF: 86.01192
+#SSR/SST: 0.78184
+#Clustering: 5 clusters
+..............XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX......................................
+.............................................................................XXXXXXXXXXXXXXXXXXXXXXXX
+...............................................................XXXXXXXXXXXXXX........................
+XXXXX......XXX.......................................................................................
+.....XXXXXX..........................................................................................
+##################################################################################
+#Clustering: divide 101 points into 5 clusters
+#Cluster    0: has    49 points, occurence 0.485
+#Cluster    1: has    24 points, occurence 0.238
+#Cluster    2: has    14 points, occurence 0.139
+#Cluster    3: has     8 points, occurence 0.079
+#Cluster    4: has     6 points, occurence 0.059
+#Cluster    0 (0)      1   ..............XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#Cluster    1 (1)      1   ..................................................
+#Cluster    2 (2)      1   ..................................................
+#Cluster    3 (3)      1   XXXXX......XXX....................................
+#Cluster    4 (4)      1   .....XXXXXX.......................................
+#Consensus             1   33333444444333000000000000000000000000000000000000
+
+#Cluster    0 (0)     51   XXXXXXXXXXXXX.....................................
+#Cluster    1 (1)     51   ...........................XXXXXXXXXXXXXXXXXXXXXXX
+#Cluster    2 (2)     51   .............XXXXXXXXXXXXXX.......................
+#Cluster    3 (3)     51   ..................................................
+#Cluster    4 (4)     51   ..................................................
+#Consensus            51   00000000000002222222222222211111111111111111111111
+
+#Cluster    0 (0)    101   .
+#Cluster    1 (1)    101   X
+#Cluster    2 (2)    101   .
+#Cluster    3 (3)    101   .
+#Cluster    4 (4)    101   .
+#Consensus           101   1
+
+############################################################################################
+#                                     Condensed Map                                         
+#                                                                                                   
+#    101 points divided into 50 windows, each window contains 2 or 3 points.          
+#              occurence == 0.0                                                            
+#       0.0 <= occurence <  0.1     .                                                      
+#       0.1 <= occurence <  0.2     1                                                      
+#       0.2 <= occurence <  0.3     2                                                      
+#       0.3 <= occurence <  0.4     3                                                      
+#       0.4 <= occurence <  0.5     4                                                      
+#       0.5 <= occurence <  0.6     5                                                      
+#       0.6 <= occurence <  0.7     6                                                      
+#       0.7 <= occurence <  0.8     7                                                      
+#       0.8 <= occurence <  0.9     8                                                      
+#       0.9 <= occurence <  1.0     9                                                      
+#       1.0 == occurence            X                                                      
+#                                                                                          
+#Clustering: divide 101 points into 5 clusters
+#Cluster    0: has    49 points, occurence 0.485
+#Cluster    1: has    24 points, occurence 0.238
+#Cluster    2: has    14 points, occurence 0.139
+#Cluster    3: has     8 points, occurence 0.079
+#Cluster    4: has     6 points, occurence 0.059
+#Cluster    0         5XXXXXXXXXXXXXXXXXXXXXXXX                   
+#Cluster    1                                         XXXXXXXXXXXX
+#Cluster    2                                  XXXXXXX            
+#Cluster    3   XX   X5                                           
+#Cluster    4     XXX                                             

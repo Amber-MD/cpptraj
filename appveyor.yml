@@ -1,5 +1,12 @@
 os: Windows Server 2012
 
+# We need printf exponents to have 2 digits like the C standard says,
+# or tests will fail. Set environment variable for mingw-w64:
+# https://github.com/Alexpux/mingw-w64/blob/master/mingw-w64-crt/stdio/mingw_pformat.c#L223
+environment:
+  matrix:
+  - PRINTF_EXPONENT_DIGITS: "2"
+
 install:
   - set HOME=.
   - set MSYSTEM=MINGW64
@@ -52,7 +59,8 @@ after_build:
   - find C:/msys64/usr/local
 
 test_script:
-  - sh -lc "cd test; make test OPT=-cpptraj $(pwd)/../bin/cpptraj.exe"
+  - set TEST_OS=windows
+  - sh -lc "cd test; make test.showerrors"
 
 artifacts:
   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip

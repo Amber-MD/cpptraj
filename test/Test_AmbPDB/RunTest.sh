@@ -13,9 +13,12 @@ else
 
   $VALGRIND $AMBPDB -p ../tz2.parm7 < ../tz2.rst7 > out.pdb 2>> $ERROR
   DoTest out.pdb.save out.pdb
-
-  $VALGRIND $AMBPDB -p ../tz2.parm7 -mol2 -sybyl < ../tz2.rst7 > out.mol2 2>> $ERROR
-  DoTest ../Test_Mol2/test2.mol2.save out.mol2
+  if [[ ! -z $AMBERHOME ]] ; then
+    $VALGRIND $AMBPDB -p ../tz2.parm7 -mol2 -sybyl < ../tz2.rst7 > out.mol2 2>> $ERROR
+    DoTest ../Test_Mol2/test2.mol2.save out.mol2
+  else
+    echo "Amber to SYBYL atom type conversion test requires AMBERHOME be set."
+  fi
 fi
 
 EndTest
