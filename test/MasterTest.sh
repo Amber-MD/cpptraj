@@ -6,6 +6,7 @@
 # MasterTest.sh command line options
 CLEAN=0             # If 1, only file cleaning needs to be performed.
 SUMMARY=0           # If 1, only summary of results needs to be performed.
+SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 STANDALONE=0        # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 PROFILE=0           # If 1, end of test profiling with gprof performed
 FORCE_AMBERTOOLS=0  # FIXME: currently needed to get extended tests to work
@@ -282,7 +283,7 @@ Summary() {
     echo "No Test Results files (./*/$TEST_RESULTS) found."
   fi
 
-  if [[ $ERR -gt 0 ]]; then
+  if [[ $SHOWERRORS -eq 1 && $ERR -gt 0 ]]; then
     echo "Obtained the following errors:"
     echo "---------------------------------------------------------"
     cat $TEST_ERROR
@@ -314,6 +315,7 @@ Summary() {
 Help() {
   echo "Command line flags:"
   echo "  summary    : Print summary of test results only."
+  echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout     : Print CPPTRAJ test output to STDOUT."
   echo "  mpi        : Use MPI version of CPPTRAJ."
   echo "  openmp     : Use OpenMP version of CPPTRAJ."
@@ -335,22 +337,23 @@ CmdLineOpts() {
   VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
   while [[ ! -z $1 ]] ; do
     case "$1" in
-      "summary"  ) SUMMARY=1 ;;
-      "stdout"   ) OUTPUT="/dev/stdout" ;;
-      "mpi"      ) SFX=".MPI" ;;
-      "openmp"   ) SFX=".OMP" ;;
-      "vg"       ) VGMODE=1 ;;
-      "vgh"      ) VGMODE=2 ;;
-      "time"     ) TIME=`which time` ;;
-      "-at"      ) FORCE_AMBERTOOLS=1 ;;
-      "-d"       ) DEBUG="-debug 4" ;;
-      "-debug"   ) shift ; DEBUG="-debug $1" ;;
-      "-nodacdif") USEDACDIF=0 ;;
-      "-cpptraj" ) shift ; CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
-      "-ambpdb"  ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
-      "-profile" ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+      "summary"   ) SUMMARY=1 ;;
+      "showerrors") SHOWERRORS=1 ;;
+      "stdout"    ) OUTPUT="/dev/stdout" ;;
+      "mpi"       ) SFX=".MPI" ;;
+      "openmp"    ) SFX=".OMP" ;;
+      "vg"        ) VGMODE=1 ;;
+      "vgh"       ) VGMODE=2 ;;
+      "time"      ) TIME=`which time` ;;
+      "-at"       ) FORCE_AMBERTOOLS=1 ;;
+      "-d"        ) DEBUG="-debug 4" ;;
+      "-debug"    ) shift ; DEBUG="-debug $1" ;;
+      "-nodacdif" ) USEDACDIF=0 ;;
+      "-cpptraj"  ) shift ; CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
+      "-ambpdb"   ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
+      "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
-      *          ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
+      *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
   done

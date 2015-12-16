@@ -396,6 +396,9 @@ test.all:
 
 test.complete: $(COMPLETETESTS)
 
+test.showerrors:
+	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
+
 test.short:
 	$(MAKE) test.shorttests summary
 
