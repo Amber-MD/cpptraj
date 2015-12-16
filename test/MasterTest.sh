@@ -1,5 +1,8 @@
 # This should be sourced at the top of CPPTRAJ test run scripts.
 
+# Environment variables
+# TEST_OS: Operating system on which tests are being run. If blank assume linux
+
 # MasterTest.sh command line options
 CLEAN=0             # If 1, only file cleaning needs to be performed.
 SUMMARY=0           # If 1, only summary of results needs to be performed.
@@ -23,6 +26,7 @@ TEST_ERROR=""       # For standalone, file to record test errors to.
 DEBUG=""            # Can be set to pass global debug flag to CPPTRAJ.
 NUMTEST=0           # Total number of times DoTest has been called this test.
 ERRCOUNT=0          # Total number of errors detected by DoTest this test.
+WARNCOUNT=0         # Total number of warnings detected by DoTest this test.
 
 # Options used in tests
 TOP=""   # CPPTRAJ topology file/command line arg
@@ -38,8 +42,11 @@ OPENMP=""
 PNETCDFLIB=""
 
 # ------------------------------------------------------------------------------
-# DoTest(): Compare File1 to File2, print an error if they differ.
-#           Args 3 and 4 can be used to pass an option to diff
+# DoTest() <File1> <File2> [allowfail <OS>] [<arg1>] ... [<argN>]
+#   Compare File1 (the 'save' file) to File2 (test output), print an error if
+#   they differ. The 'allowfail' keyword allows test to fail with just a
+#   warning, and is currently intended for tests with known failures on given
+#   <OS>. The remaining args can be used to pass options to DIFFCMD.
 DoTest() {
   if [[ ! -z $DACDIF ]] ; then
     # AmberTools - will use dacdif.
@@ -47,23 +54,47 @@ DoTest() {
   else
     # Standalone - will use diff.
     ((NUMTEST++))
-    if [[ ! -f "$1" ]] ; then
-      echo "  $1 not found." >> $TEST_RESULTS
-      echo "  $1 not found." >> $TEST_ERROR
+    DIFFARGS="--strip-trailing-cr"
+    # First two arguments are files to compare.
+    F1=$1 ; shift
+    F2=$1 ; shift
+    # Process remaining arguments.
+    ALLOW_FAIL=0
+    FAIL_OS=""
+    while [[ ! -z $1 ]] ; do
+      case "$1" in
+        "allowfail" ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
+        *           ) DIFFARGS=$DIFFARGS" $1" ;;
+      esac
+      shift
+    done
+    if [[ ! -f "$F1" ]] ; then
+      echo "  $F1 not found." >> $TEST_RESULTS
+      echo "  $F1 not found." >> $TEST_ERROR
       ((ERRCOUNT++))
-    elif [[ ! -f "$2" ]] ; then
-      echo "  $2 not found." >> $TEST_RESULTS
-      echo "  $2 not found." >> $TEST_ERROR
+    elif [[ ! -f "$F2" ]] ; then
+      echo "  $F2 not found." >> $TEST_RESULTS
+      echo "  $F2 not found." >> $TEST_ERROR
       ((ERRCOUNT++))
     else
-      $DIFFCMD --strip-trailing-cr $1 $2 $3 $4 > temp.diff 2>&1
+      $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
       if [[ -s temp.diff ]] ; then
-        echo "  $1 $2 are different." >> $TEST_RESULTS
-        echo "  $1 $2 are different." >> $TEST_ERROR
-        cat temp.diff >> $TEST_ERROR
-        ((ERRCOUNT++))
+        if [[ $ALLOW_FAIL -eq 1 && $TEST_OS = $FAIL_OS ]] ; then
+          echo "  Warning: Differences between $F1 and $F2 detected."
+          echo "  Warning: This test is known to fail on $TEST_OS."
+          echo "  Warning: The differences below should be carefully inspected."
+          echo "--------------------------------------------------------------------------------"
+          cat temp.diff
+          echo "--------------------------------------------------------------------------------"
+          ((WARNCOUNT++))
+        else
+          echo "  $F1 $F2 are different." >> $TEST_RESULTS
+          echo "  $F1 $F2 are different." >> $TEST_ERROR
+          cat temp.diff >> $TEST_ERROR
+          ((ERRCOUNT++))
+        fi
       else
-        echo "  $2 OK." >> $TEST_RESULTS
+        echo "  $F2 OK." >> $TEST_RESULTS
       fi
       $REMOVE temp.diff
     fi
@@ -133,6 +164,9 @@ EndTest() {
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed."
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_RESULTS
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_ERROR
+    elif [[ $WARNCOUNT -gt 0 ]] ; then
+      ((PASSCOUNT = $NUMTEST - $WARNCOUNT))
+      echo "  $PASSCOUNT out of $NUMTEST comparisons passed. $WARNCOUNT warnings."
     else 
       echo "All $NUMTEST comparisons passed." 
       echo "All $NUMTEST comparisons passed." >> $TEST_RESULTS 
@@ -460,6 +494,11 @@ else
   if [[ $SUMMARY -eq 1 ]] ; then
     Summary
   fi
+  # If TEST_OS is not set, assume linux
+  if [[ -z $TEST_OS ]] ; then
+    TEST_OS="linux"
+  fi
+  echo "DEBUG: TEST_OS=$TEST_OS"
   # Set binary locations
   SetBinaries
   # Check how CPPTRAJ was compiled
