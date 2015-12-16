@@ -81,8 +81,10 @@ DoTest() {
       if [[ -s temp.diff ]] ; then
         if [[ $ALLOW_FAIL -eq 1 && $TEST_OS = $FAIL_OS ]] ; then
           echo "  Warning: Differences between $F1 and $F2 detected."
-          echo "  Warning: This test is known to fail on $TEST_OS."
-          echo "  Warning: The differences below should be carefully inspected."
+          echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
+          echo "           This test is known to fail on $TEST_OS."
+          echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
+          echo "           The differences below should be carefully inspected."
           echo "--------------------------------------------------------------------------------"
           cat temp.diff
           echo "--------------------------------------------------------------------------------"
@@ -166,7 +168,8 @@ EndTest() {
       echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $TEST_ERROR
     elif [[ $WARNCOUNT -gt 0 ]] ; then
       ((PASSCOUNT = $NUMTEST - $WARNCOUNT))
-      echo "  $PASSCOUNT out of $NUMTEST comparisons passed. $WARNCOUNT warnings."
+      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings."
+      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings." >> $TEST_RESULTS
     else 
       echo "All $NUMTEST comparisons passed." 
       echo "All $NUMTEST comparisons passed." >> $TEST_RESULTS 
@@ -258,6 +261,8 @@ Summary() {
     cat $RESULTFILES > $TEST_RESULTS
     # DoTest - Number of comparisons OK
     OK=`cat $TEST_RESULTS | grep OK | wc -l`
+    # DoTest - Number of warnings
+    WARN=`cat $TEST_RESULTS | grep Warning | wc -l`
     # DoTest - Number of comparisons different
     ERR=`cat $TEST_RESULTS | grep different | wc -l`
     NOTFOUND=`cat $TEST_RESULTS | grep "not found" | wc -l`
@@ -266,8 +271,8 @@ Summary() {
     NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
     # Number of tests successfully finished
     PASSED=`cat $TEST_RESULTS | grep "comparisons passed" | wc -l`
-    ((NCOMPS = $OK + $ERR))
-    echo "  $OK out of $NCOMPS comparisons OK ($ERR failed)."
+    ((NCOMPS = $OK + $ERR + $WARN))
+    echo "  $OK out of $NCOMPS comparisons OK ($ERR failed, $WARN warnings)."
     echo "  $PASSED out of $NTESTS tests completed with no issues."
     RESULTFILES=`ls */$TEST_ERROR 2> /dev/null`
     if [[ ! -z $RESULTFILES ]] ; then
