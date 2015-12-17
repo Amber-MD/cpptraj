@@ -81,7 +81,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
   if (actionArgs.hasKey("atomindex")) {
-    AHDIndices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomIndices");
+    AHDIndices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomindex");
   }
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
