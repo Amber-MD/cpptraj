@@ -247,6 +247,9 @@ test.symmrmsd:
 test.multidihedral:
 	@-cd Test_Multidihedral && ./RunTest.sh $(OPT)
 
+test.mremd:
+	@-cd Test_Ensemble_MREMD && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -387,7 +390,8 @@ COMPLETETESTS=test.general \
               test.timecorr \
               test.crosscorr \
               test.symmrmsd \
-              test.multidihedral
+              test.multidihedral \
+              test.mremd
 
 test: test.all 
 
