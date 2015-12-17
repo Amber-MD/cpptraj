@@ -256,6 +256,14 @@ CheckPnetcdf() {
   fi
   return 0
 }
+
+NotParallel() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    echo "This test cannot be run in parallel. Skipping test."
+    echo ""
+    exit 0
+  fi
+}
 #-------------------------------------------------------------------------------
 # Summary(): Print a summary of the tests.
 Summary() {

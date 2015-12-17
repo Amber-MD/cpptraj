@@ -5,6 +5,7 @@
 # Clean
 CleanFiles dummy.rst7 dummy.pdb strip.in *.tz2.truncoct.parm7 Complex.crd Receptor.crd Ligand.crd
 
+NotParallel
 # Strip Test
 cat > strip.in <<EOF
 noprogress
