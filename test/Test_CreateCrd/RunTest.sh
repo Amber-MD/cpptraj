@@ -57,60 +57,6 @@ EOF
 RunCpptraj "TRAJ data set creation with velocities test."
 DoTest crd1.rst7.save crd2.rst7
 
-Disable() {
-cat > create.in <<EOF
-parm ../tz2.parm7
-trajin ../tz2.nc
-atomicfluct out crd1.dat byatom bfactor
-createcrd crd1
-crdfluct crd1 out crd1.gnu window 20
-#list
-run
-#gnuplot crd1.gnu
-#list analysis
-clear analysis
-crdfluct crd1 out crd2.gnu window 5
-runanalysis
-list datafile
-EOF
-#RunCpptraj
-
-cat > create.in <<EOF
-parm ../dna30.parm7 
-trajin ../dna30.fs11.0.nc 
-parminfo  
-molinfo !:WAT
-strip :WAT,@Na+  
-select :WAT,@Na+
-list actions
-clear actions
-strip :WAT
-strip @Na+
-select @Na+
-list actions
-createcrd dna
-run
-list datasets
-help nastruct
-reference ../dna30.fs11.0.nc 1 
-list
-help nastruct
-crdaction dna nastruct reference
-EOF
-#RunCpptraj "DNA"
-
-cat > create.in <<EOF
-parm ../tz2.truncoct.parm7
-trajin ../tz2.truncoct.nc
-#strip :WAT outprefix nowat
-createcrd crd1
-run
-crdout crd1 tz2.nowat.rst7 restart onlyframes 1
-crdaction crd1 autoimage
-crdout crd1 tz2.nowat.nc netcdf
-EOF
-#RunCpptraj "CRD with box"
-}
 EndTest
 
 exit 0
