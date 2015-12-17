@@ -799,6 +799,12 @@ void Action_Hbond::Print() {
     {
       if ((int)hb->second.data_->Size() < Nframes_)
         hb->second.data_->Add( Nframes_-1, &ZERO );
+
+      if (Indices_ != 0) {
+        Indices_->AddElement(hb->second.A);
+        Indices_->AddElement(hb->second.H);
+        Indices_->AddElement(hb->second.D);
+      }
     }
     for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
     {
@@ -815,7 +821,7 @@ void Action_Hbond::Print() {
   if (useAtomNum_) NUM += ( DigitWidth( CurrentParm_->Natom() ) + 1 );
 
   // Solute Hbonds 
-  if (avgout_ != 0 || Indices_ != 0) { 
+  if (avgout_ != 0) { 
     // Place all detected Hbonds in a list and sort.
     for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
@@ -838,11 +844,6 @@ void Action_Hbond::Print() {
         Aname.append("_" + integerToString((*hbond).A+1));
         Hname.append("_" + integerToString((*hbond).H+1));
         Dname.append("_" + integerToString((*hbond).D+1));
-      }
-      if (Indices_ != 0) {
-        Indices_->AddElement((*hbond).A);
-        Indices_->AddElement((*hbond).H);
-        Indices_->AddElement((*hbond).D);
       }
       avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
