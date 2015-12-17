@@ -40,6 +40,7 @@ void Action_Hbond::Help() const {
           "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "\t[atomindex]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
           "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
@@ -53,6 +54,8 @@ void Action_Hbond::Help() const {
           "  If donorhmask is specified atoms in that mask will be paired with atoms in\n"
           "  donormask instead of automatically searching for hydrogen atoms.\n");
 }
+
+// Add atomindex to get atom indices for pytraj (hide from cpptraj man)
 
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -76,6 +79,9 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
+  if (actionArgs.hasKey("atomindex")) {
+    Indices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomIndices");
+  }
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
@@ -809,7 +815,7 @@ void Action_Hbond::Print() {
   if (useAtomNum_) NUM += ( DigitWidth( CurrentParm_->Natom() ) + 1 );
 
   // Solute Hbonds 
-  if (avgout_ != 0) { 
+  if (avgout_ != 0 || Indices_ != 0) { 
     // Place all detected Hbonds in a list and sort.
     for (HBmapType::const_iterator it = HbondMap_.begin(); it!=HbondMap_.end(); ++it) {
       HbondList.push_back( (*it).second );
@@ -832,6 +838,11 @@ void Action_Hbond::Print() {
         Aname.append("_" + integerToString((*hbond).A+1));
         Hname.append("_" + integerToString((*hbond).H+1));
         Dname.append("_" + integerToString((*hbond).D+1));
+      }
+      if (Indices_ != 0) {
+        Indices_->AddElement((*hbond).A);
+        Indices_->AddElement((*hbond).H);
+        Indices_->AddElement((*hbond).D);
       }
       avgout_->Printf("%-*s %*s %*s %8i %12.4f %12.4f %12.4f\n",
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),

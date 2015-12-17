@@ -70,7 +70,8 @@ class Action_Hbond : public Action {
     DataSet* NumHbonds_;
     DataSet* NumSolvent_;
     DataSet* NumBridge_;
-    DataSet* BridgeID_;
+    DataSet* BridgeID_; 
+    DataSet_integer* Indices_; // store atom indices
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     /// Return true if the first hbond has more frames than the second.
