@@ -248,6 +248,14 @@ CheckPtrajAnalyze() {
   fi
 }
 
+CheckPnetcdf() {
+  if [[ -z $PNETCDFLIB ]] ; then
+    echo "This test requires compilation with Pnetcdf."
+    echo "Cpptraj was compiled without Pnetcdf support. Skipping test."
+    return 1
+  fi
+  return 0
+}
 #-------------------------------------------------------------------------------
 # Summary(): Print a summary of the tests.
 Summary() {
