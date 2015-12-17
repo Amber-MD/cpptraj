@@ -30,7 +30,7 @@ Action_Hbond::Action_Hbond() :
   NumSolvent_(0),
   NumBridge_(0),
   BridgeID_(0),
-  Indices_(0),
+  AHDIndices_(0),
   masterDSL_(0)
 {}
 
@@ -81,7 +81,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
   if (actionArgs.hasKey("atomindex")) {
-    Indices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomIndices");
+    AHDIndices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomIndices");
   }
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
@@ -801,10 +801,10 @@ void Action_Hbond::Print() {
       if ((int)hb->second.data_->Size() < Nframes_)
         hb->second.data_->Add( Nframes_-1, &ZERO );
 
-      if (Indices_ != 0) {
-        Indices_->AddElement(hb->second.A);
-        Indices_->AddElement(hb->second.H);
-        Indices_->AddElement(hb->second.D);
+      if (AHDIndices_ != 0) {
+        AHDIndices_->AddElement(hb->second.A);
+        AHDIndices_->AddElement(hb->second.H);
+        AHDIndices_->AddElement(hb->second.D);
       }
     }
     for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
