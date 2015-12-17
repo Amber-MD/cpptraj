@@ -30,6 +30,7 @@ Action_Hbond::Action_Hbond() :
   NumSolvent_(0),
   NumBridge_(0),
   BridgeID_(0),
+  Indices_(0),
   masterDSL_(0)
 {}
 
