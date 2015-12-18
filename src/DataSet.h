@@ -75,6 +75,10 @@ class DataSet {
     /// Set specified DataSet dimension.
     void SetDim(Dimension::DimIdxType i, Dimension const& d) { dim_[(int)i] = d; }
     void SetDim(int i, Dimension const& d)                   { dim_[i] = d;      }
+#   ifdef MPI
+    void SetSynced()       { needsSync_ = false; }
+    bool NeedsSync() const { return needsSync_;  }
+#   endif
     /// Check if name and/or index and aspect wildcard match this DataSet.
     bool Matches_WC(MetaData::SearchString const&, DataType) const;
     /// \return AssociateData of specified type.
@@ -121,5 +125,8 @@ class DataSet {
     DataType dType_;            ///< The DataSet type
     DataGroup dGroup_;          ///< The DataSet group
     MetaData meta_;             ///< DataSet metadata
+#   ifdef MPI
+    bool needsSync_;            ///< True if DataSet needs sync. Should only be true once after run
+#   endif
 };
 #endif 

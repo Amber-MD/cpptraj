@@ -582,12 +582,13 @@ void DataSetList::List() const {
 /** Synchronize timeseries data from child ranks to master. */
 void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames) {
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS ) {
-      mprintf("DEBUG: Syncing '%s'\n", (*ds)->legend());
+    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS && (*ds)->NeedsSync() ) {
+      mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->legend(), (*ds)->Size(), total);
       if ( (*ds)->Sync(total, rank_frames) ) {
         rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
         //return;
       }
+      (*ds)->SetSynced();
     }
   }
 }

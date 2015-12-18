@@ -296,7 +296,7 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frameNum, frm.Frm() );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate RMSD
   double rmsdval;
   Action::RetType err;

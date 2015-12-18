@@ -458,7 +458,7 @@ int CpptrajState::RunEnsemble() {
         bool suppress_output = false;
         for (int member = 0; member != ensembleSize; ++member) {
           // Since Frame can be modified by actions, save original and use currentFrame
-          ActionFrame currentFrame( SortedFrames[member] );
+          ActionFrame currentFrame( SortedFrames[member], actionSet );
           //rprintf("DEBUG: currentFrame=%x SortedFrames[0]=%x\n",currentFrame, SortedFrames[0]);
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
@@ -676,7 +676,7 @@ int CpptrajState::RunParallel() {
     input_traj.GetFrame(set, TrajFrame);
     if (TrajFrame.CheckCoordsInvalid()) // TODO actual frame #
       rprintf("Warning: Set %i coords 1 & 2 overlap at origin; may be corrupt.\n", set + 1);
-    ActionFrame currentFrame( &TrajFrame );
+    ActionFrame currentFrame( &TrajFrame, set );
     bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
     // Trajectory output
     if (!suppress_output) {
@@ -901,7 +901,7 @@ int CpptrajState::RunNormal() {
 #   endif
     {
         // Since Frame can be modified by actions, save original and use currentFrame
-      ActionFrame currentFrame( &TrajFrame );
+      ActionFrame currentFrame( &TrajFrame, actionSet );
       // Check that coords are valid.
       if ( currentFrame.Frm().CheckCoordsInvalid() )
         mprintf("Warning: Frame %i coords 1 & 2 overlap at origin; may be corrupt.\n",

@@ -22,7 +22,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   // Set up frame and parm for COORDS.
   ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
-  ActionFrame frm( &originalFrame );
+  ActionFrame frm( &originalFrame, 0 );
   // Set up for this topology 
   Action::RetType setup_ret = act->Setup( originalSetup );
   if ( setup_ret == Action::ERR )
@@ -35,6 +35,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   { 
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
+    frm.SetTrajoutNum( set );
     Action::RetType ret = act->DoAction( set, frm );
     if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
