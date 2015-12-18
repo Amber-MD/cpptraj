@@ -1,52 +1,71 @@
 #ifndef INC_REFERENCEACTION_H
 #define INC_REFERENCEACTION_H
-#include "Trajin_Single.h"
-#include "ReferenceFrame.h"
-/// Class that can be used by Actions to hold reference structure/trajectory.
+#include "DataSetList.h"
+#include "DataSet_Coords.h"
+/// Class that can be used by Actions to hold a COORDS DataSet to use as reference.
 class ReferenceAction {
   public:
-    ReferenceAction() {}
-    /// Set up selected ref coordinates base on given frame and ref mask.
-    void SetRefStructure(Frame const&, bool, bool);
-    /// Initialize
-    int InitRef(bool, bool, bool, bool, std::string const&, ReferenceFrame const&,
-                Topology*, std::string const&, ArgList&, const char*);
-    /// Setup
-    int SetupRef(Topology const&, int, const char*);
-    /// Perform necessary reference action based on mode
-    inline void ActionRef(Frame const&, bool, bool);
-
-    bool Previous()             const { return previous_;           } 
-    const char* RefModeString() const { return modeString_.c_str(); }
-    Frame const& RefFrame()     const { return refFrame_;           }
-    Frame const& SelectedRef()  const { return selectedRef_;        }
-    Vec3 const& RefTrans()      const { return refTrans_;           }
+    ReferenceAction();
+    ~ReferenceAction();
+    /// Process all reference-related arguments, figure out reference mode.
+    int InitRef(ArgList&, DataSetList const&, bool, bool);
+    /// Set reference mask string.
+    int SetRefMask(std::string const& m) { return refMask_.SetMaskString( m ); }
+    /// \return String describing current reference mode.
+    std::string RefModeString() const;
+    /// Setup reference mask. Check that # selected reference atoms matches given # target atoms.
+    int SetupRef(Topology const&, int);
+    /// Peform necessary reference action based on mode
+    inline void ActionRef(int, Frame const&);
+    /// Store frame for previous if necessary
+    inline void PreviousRef(Frame const&);
+    /// \return Current entire reference frame.
+    Frame const& CurrentReference() const { return refFrame_;    }
+    /// \return Current reference frame, selected atoms only.
+    Frame const& SelectedRef()      const { return selectedRef_; }
+    /// \return Translation vector from origin to original ref center.
+    Vec3 const& RefTrans()          const { return refTrans_;    }
+    /// \return Pointer to reference COORDS topology if possible.
+    Topology* RefCrdTopPtr() const {
+      if (refCrd_ != 0) return refCrd_->TopPtr();
+      return 0;
+    }
   private:
-    enum RefModeType { UNKNOWN_REF=0, FIRST, REFFRAME, REFTRAJ };
+    /// Set up refFrame_ and selectedRef_ coordinates base on given frame and current mask.
+    void SelectRefAtoms(Frame const&);
     /// Set up ref mask for given topology. Allocate space for selected ref atoms.
-    int SetRefMask(Topology const&, const char*);
+    int SetupRefMask(Topology const&);
+    /// Modes: FIRST=first frame, FRAME=given frame, TRAJ=reference traj
+    enum RefModeType { FIRST = 0, FRAME, TRAJ };
 
-    RefModeType refmode_;
-    Frame refFrame_;         ///< Reference frame
-    Frame selectedRef_;      ///< Atoms from reference frame selected by mask.
-    AtomMask refMask_;       ///< Atoms to use from reference
-    Vec3 refTrans_;          ///< If fitting, translation from origin to original ref center
-    Trajin_Single refTraj_;  ///< Reference trajectory. TODO replace with DataSet_Coords
+    RefModeType refMode_;    ///< Reference mode.
+    DataSet_Coords* refCrd_; ///< Reference COORDS DataSet.
+    DataSet_Coords* traj_;   ///< Allocated reference COORDS if not present in DataSetList
+    AtomMask refMask_;       ///< Atoms to use from refCrd_.
+    Frame refFrame_;         ///< Current reference frame.
+    Frame selectedRef_;      ///< Atoms from reference frame selected by refMask_.
+    Vec3 refTrans_;          ///< If fitting, translation from origin to original ref center.
     bool previous_;          ///< True if current reference is previous frame (only RMSD now)
-    std::string modeString_; ///< Information on current reference mode.
+    bool needsSetup_;        ///< True if ref from COORDS needs to be set up during SetupRef()
+    bool fitRef_;            ///< If true, move reference to origin for RMS fitting
+    bool useMass_;           ///< (If fitRef_) If true, move COM, otherwise geometric center.
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // ReferenceAction::ActionRef()
-void ReferenceAction::ActionRef(Frame const& frameIn, bool fitIn, bool useMassIn)
+void ReferenceAction::ActionRef(int frameNum, Frame const& frameIn)
 {
-  if (refmode_ == FIRST) {
-    SetRefStructure( frameIn, fitIn, useMassIn );
-    refmode_ = REFFRAME;
-  } else if (refmode_ == REFTRAJ) {
-    refTraj_.GetNextFrame( refFrame_ );
+  if (refMode_ == FIRST) {
+    SelectRefAtoms( frameIn );
+    refMode_ = FRAME;
+  } else if (refMode_ == TRAJ) {
+    refCrd_->GetFrame( frameNum, refFrame_ );
     selectedRef_.SetCoordinates(refFrame_, refMask_);
-    if (fitIn)
-      refTrans_ = selectedRef_.CenterOnOrigin(useMassIn);
+    if (fitRef_)
+      refTrans_ = selectedRef_.CenterOnOrigin(useMass_);
   }
+}
+
+void ReferenceAction::PreviousRef(Frame const& frameIn) {
+  if (previous_) SelectRefAtoms( frameIn );
 }
 #endif

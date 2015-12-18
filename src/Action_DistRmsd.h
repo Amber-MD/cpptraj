@@ -15,7 +15,7 @@ class Action_DistRmsd: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    ReferenceAction refHolder_;
+    ReferenceAction REF_;
     DataSet *drmsd_;    ///< DRMSD DataSet
     AtomMask TgtMask_;  ///< Target mask.
     Frame SelectedTgt_; ///< Hold only target coords selected by TgtMask

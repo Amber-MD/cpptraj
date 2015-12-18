@@ -37,12 +37,11 @@ class Action_Rmsd: public Action {
     DataFile* perresavg_;              ///< Hold per residue average filename
     Frame ResTgtFrame_;                ///< Hold residue target coords
     Frame ResRefFrame_;                ///< Hold residue reference coords.
-    Topology* RefParm_;                ///< Needed for mask setup in PerResSetup
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     // ------------------------
     int debug_;
-    ReferenceAction REF_;              ///< Hold reference frame/traj/options
+    ReferenceAction REF_; ///< Hold reference frame/traj/options
     AtomMask tgtMask_; ///< Mask of selected target atoms.
     bool fit_;         ///< If true, best-fit RMS.
     bool rotate_;      ///< If true, rotate coordinates according to best-fit.
