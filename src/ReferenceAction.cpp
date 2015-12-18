@@ -33,6 +33,10 @@ std::string ReferenceAction::RefModeString() const {
   return modeString;
 }
 
+std::string ReferenceAction::help_ =
+  "\t[ first | " + std::string(DataSetList::RefArgs) + " | previous |\n" +
+  "\t  reftraj <filename> [" + std::string(DataSetList::TopArgs) + "] ]\n";
+
 // ReferenceAction::InitRef()
 int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
                              bool fitRefIn, bool useMassIn)

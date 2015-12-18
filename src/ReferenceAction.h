@@ -25,6 +25,8 @@ class ReferenceAction {
     Frame const& SelectedRef()      const { return selectedRef_; }
     /// \return Translation vector from origin to original ref center.
     Vec3 const& RefTrans()          const { return refTrans_;    }
+    /// \return Help text
+    static const char* Help() { return help_.c_str(); }
     /// \return Pointer to reference COORDS topology if possible.
     Topology* RefCrdTopPtr() const {
       if (refCrd_ != 0) return refCrd_->TopPtr();
@@ -45,6 +47,7 @@ class ReferenceAction {
     Frame refFrame_;         ///< Current reference frame.
     Frame selectedRef_;      ///< Atoms from reference frame selected by refMask_.
     Vec3 refTrans_;          ///< If fitting, translation from origin to original ref center.
+    static std::string help_;///< Help text.
     bool previous_;          ///< True if current reference is previous frame (only RMSD now)
     bool needsSetup_;        ///< True if ref from COORDS needs to be set up during SetupRef()
     bool fitRef_;            ///< If true, move reference to origin for RMS fitting

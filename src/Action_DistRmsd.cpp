@@ -5,10 +5,8 @@
 Action_DistRmsd::Action_DistRmsd() : drmsd_(0) {}
 
 void Action_DistRmsd::Help() const {
-  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
-          "  Calculate distance RMSD (DME) for specified atoms.\n", DataSetList::RefArgs);
+  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n%s"
+          "  Calculate distance RMSD (DME) for specified atoms.\n", ReferenceAction::Help());
 }
 
 // Action_DistRmsd::Init()

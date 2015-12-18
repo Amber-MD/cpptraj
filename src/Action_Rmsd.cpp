@@ -21,13 +21,11 @@ Action_Rmsd::Action_Rmsd() :
 
 void Action_Rmsd::Help() const {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
-          "\t[mass] [savematrices]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
+          "\t[mass] [savematrices]\n%s"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
           "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n",
-          DataSetList::RefArgs);
+          ReferenceAction::Help());
   mprintf("  Calculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
