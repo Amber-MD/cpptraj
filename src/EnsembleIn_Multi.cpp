@@ -31,6 +31,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
   // Set up TrajectoryIO classes for all file names.
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+# ifdef MPI
+  // FIXME currently for ensemble processing need same # threads as replicas.
+  if ((int)REMDtraj_.size() != Parallel::World().Size()) {
+    mprinterr("Error: For ensemble processing # of threads (%i) must equal # replicas (%zu)\n",
+              Parallel::World().Size(), REMDtraj_.size());
+    return 1;
+  }
+# endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
