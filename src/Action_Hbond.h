@@ -61,6 +61,7 @@ class Action_Hbond : public Action {
     bool hasSolventAcceptor_;
     bool calcSolvent_;
     bool noIntramol_;
+    bool useAtomIndex_;
     double acut_;
     double dcut2_;
     Topology* CurrentParm_;

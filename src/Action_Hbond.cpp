@@ -22,6 +22,7 @@ Action_Hbond::Action_Hbond() :
   hasSolventAcceptor_(false),
   calcSolvent_(false),
   noIntramol_(false),
+  useAtomIndex_(false),
   acut_(0),
   dcut2_(0),
   CurrentParm_(0),
@@ -80,9 +81,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
-  if (actionArgs.hasKey("atomindex")) {
-    AHDIndices_ = (DataSet_integer*) init.DSL().AddSet(DataSet::INTEGER, "atomindex");
-  }
+  useAtomIndex_ = actionArgs.hasKey("atomindex");
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
@@ -143,6 +142,10 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
     if (DF != 0) DF->AddDataSet( BridgeID_ );
     solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
+  }
+
+  if (useAtomIndex_) {
+    AHDIndices_ = (DataSet_integer*)init.DSL().AddSet(DataSet::INTEGER, MetaData(hbsetname_,"atomindex"));
   }
 
   mprintf( "  HBOND: ");
@@ -801,7 +804,7 @@ void Action_Hbond::Print() {
       if ((int)hb->second.data_->Size() < Nframes_)
         hb->second.data_->Add( Nframes_-1, &ZERO );
 
-      if (AHDIndices_ != 0) {
+      if (useAtomIndex_) {
         AHDIndices_->AddElement(hb->second.A);
         AHDIndices_->AddElement(hb->second.H);
         AHDIndices_->AddElement(hb->second.D);
