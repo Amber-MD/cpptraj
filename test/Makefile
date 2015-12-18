@@ -9,7 +9,7 @@ test.strip:
 test.brokentraj:
 	@-cd Test_BrokenTraj && ./RunTest.sh $(OPT)
 
-test.traj:
+test.trajinoffset:
 	@-cd Test_TrajinOffset && ./RunTest.sh $(OPT)
 
 test.remdnetcdf:
@@ -251,7 +251,7 @@ test.multidihedral:
 SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
-          test.traj \
+          test.trajinoffset \
           test.remdnetcdf \
           test.framerange \
           test.perres \
@@ -312,7 +312,7 @@ SHORT_TESTS=test.general \
 COMPLETETESTS=test.general \
               test.strip \
               test.brokentraj \
-              test.traj \
+              test.trajinoffset \
               test.remdnetcdf \
               test.framerange \
               test.perres \

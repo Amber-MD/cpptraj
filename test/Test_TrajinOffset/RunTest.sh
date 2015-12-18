@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles cpptraj.offset.in rem.crd.combined gzip.rem.crd.combined bzip2.rem.crd.combined
-
+NotParallel # Traj output in parallel currently only netcdf
 # Test 1
 cat > cpptraj.offset.in <<EOF
 noprogress

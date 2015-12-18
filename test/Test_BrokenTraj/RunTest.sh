@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles goodrmsd.dat badrmsd.dat goodtraj.in brokentraj.in zip.gz zip.in ziprmsd.dat
-
+NotParallel
 # Test 1
 cat > goodtraj.in <<EOF
 noprogress
