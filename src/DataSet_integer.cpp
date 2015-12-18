@@ -52,10 +52,11 @@ int DataSet_integer::Sync(size_t total, std::vector<int> const& rank_frames) {
 # ifdef MPI
   if (Parallel::World().Size()==1) return 0;
   if (Parallel::World().Master()) {
-    int* endptr = &(Data_[0]) + Data_.size();
+    size_t pos = Data_.size();
     // Need to increase size of Data on master by number of frames on each other rank.
     int additional_frames = (int)total - rank_frames[0];
     Data_.resize( Data_.size() + additional_frames );
+    int* endptr = &(Data_[0]) + pos;
     // Receive data from each rank.
     for (int rank = 1; rank < Parallel::World().Size(); rank++) {
       Parallel::World().SendMaster( endptr, rank_frames[rank], rank, MPI_INT );
