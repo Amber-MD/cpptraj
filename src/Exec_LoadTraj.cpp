@@ -44,7 +44,12 @@ Exec::RetType Exec_LoadTraj::Execute(CpptrajState& State, ArgList& argIn) {
     // TODO: Clear input trajectories from trajinList?
   } else {
     // Add the named trajectory
-    if (trj->AddSingleTrajin( trajname, argIn, State.DSL().GetTopology(argIn) ))
+    Topology* top = State.DSL().GetTopology(argIn);
+    if (top == 0) {
+      mprinterr("Error: No topologies loaded.\n");
+      return CpptrajState::ERR;
+    }
+    if (trj->AddSingleTrajin( trajname, argIn, top ))
       return CpptrajState::ERR;
   }
   return CpptrajState::OK;
