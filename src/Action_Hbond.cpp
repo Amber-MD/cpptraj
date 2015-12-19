@@ -7,6 +7,9 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG, DEGRAD
+#ifdef MPI
+# include "Parallel.h"
+#endif
 
 // CONSTRUCTOR
 Action_Hbond::Action_Hbond() :
@@ -761,6 +764,79 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   ++Nframes_;
 
   return Action::OK;
+}
+
+#ifdef MPI
+void Action_Hbond::SyncMap(HBmapType& mapIn) const {
+  // Need to know how many hbonds on each thread.
+  int num_hb = (int)mapIn.size();
+  int* nhb_on_rank = 0;
+  if (Parallel::World().Master())
+    nhb_on_rank = new int[ Parallel::World().Size() ];
+  Parallel::World().GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
+  std::vector<double> dArray;
+  std::vector<int> iArray;
+  if (Parallel::World().Master()) {
+    for (int rank = 1; rank != Parallel::World().Size(); rank++) {
+      mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
+      dArray.resize( 2 * nhb_on_rank[rank] );
+      iArray.resize( 5 * nhb_on_rank[rank] );
+      Parallel::World().Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
+      Parallel::World().Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
+      HbondType HB;
+      int ii = 0, id = 0;
+      for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
+        HBmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
+        if (it == mapIn.end() ) {
+          // Hbond on rank that has not been found on master
+          HB.dist  = dArray[id  ];
+          HB.angle = dArray[id+1];
+          HB.data_ = 0;
+          HB.A      = iArray[ii+1];
+          HB.H      = iArray[ii+2];
+          HB.D      = iArray[ii+3];
+          HB.Frames = iArray[ii+4];
+          mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames\n", HB.A+1, HB.H+1, HB.D+1, HB.dist,
+                  HB.angle, HB.Frames);
+          mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
+        } else {
+          // Hbond on rank and master. Update on master.
+          mprintf("\tEXISTING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
+                  it->second.A+1, it->second.H+1, it->second.D+1, it->second.dist,
+                  it->second.angle, it->second.Frames);
+          it->second.dist  += dArray[id  ];
+          it->second.angle += dArray[id+1];
+          it->second.Frames += iArray[ii+4];
+        }
+      }
+    }
+    delete[] nhb_on_rank;
+  } else {
+    dArray.clear();
+    dArray.reserve( 2 * mapIn.size() );
+    iArray.clear();
+    iArray.reserve( 5 * mapIn.size() );
+    for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+      dArray.push_back( hb->second.dist );
+      dArray.push_back( hb->second.angle );
+      iArray.push_back( hb->first );
+      iArray.push_back( hb->second.A );
+      iArray.push_back( hb->second.H );
+      iArray.push_back( hb->second.D );
+      iArray.push_back( hb->second.Frames );
+    }
+    Parallel::World().Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
+    Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
+  }
+}
+#endif
+
+int Action_Hbond::SyncAction() {
+# ifdef MPI
+  // Need to send hbond data from all ranks to master.
+  SyncMap( HbondMap_ );
+# endif
+  return 0;
 }
 
 /** Calculate average distance and angle for hbond. */
