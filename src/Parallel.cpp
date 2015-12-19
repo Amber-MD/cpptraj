@@ -176,6 +176,19 @@ int Parallel::Comm::AllReduce(void *Return, void *input, int count,
   return 0;
 }
 
+/** Perform an mpi gather to master. Assumes send/recv data type and count are same. */
+int Parallel::Comm::GatherMaster(void* sendbuffer, int count, MPI_Datatype datatype,
+                                 void* recvbuffer) const
+{
+  int err = MPI_Gather( sendbuffer, count, datatype, recvbuffer, count, datatype, 0, comm_ );
+  if (err != MPI_SUCCESS) {
+    printMPIerr(err, "Performing gather.\n", rank_);
+    return Parallel::Abort(err);
+  }
+  //if (parallel_check_error(err)!=0) return 1;
+  return 0;
+}
+
 /** Perform an mpi allgather. Assumes send/recv data type and count are same. */
 int Parallel::Comm::AllGather(void* sendbuffer, int count, MPI_Datatype datatype, void* recvbuffer)
 const
