@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles general.in *.rst7.? framerange.in framerange.crd
-
+NotParallel
 CheckNetcdf
 # Test 1
 cat > general.in <<EOF
