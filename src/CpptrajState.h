@@ -28,8 +28,8 @@ class CpptrajState {
                                               trajoutList_.Empty()); }
     TrajinList const& InputTrajList() const { return trajinList_; }
 
-    int AddTrajin( ArgList&, bool );
-    int AddTrajin( std::string const& );
+    int AddInputTrajectory( ArgList&, bool );
+    int AddInputTrajectory( std::string const& );
     int AddOutputTrajectory( ArgList& );
     int AddOutputTrajectory( std::string const& );
     int RunAnalyses();

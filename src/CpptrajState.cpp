@@ -13,8 +13,8 @@
 # endif
 #endif
 
-// CpptrajState::AddTrajin()
-int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
+// CpptrajState::AddInputTrajectory()
+int CpptrajState::AddInputTrajectory( ArgList& argIn, bool isEnsemble ) {
   std::string fname = argIn.GetStringNext();
   Topology* tempParm = DSL_.GetTopology( argIn );
   if (isEnsemble) {
@@ -25,8 +25,8 @@ int CpptrajState::AddTrajin( ArgList& argIn, bool isEnsemble ) {
   return 0;
 }
 
-// CpptrajState::AddTrajin()
-int CpptrajState::AddTrajin( std::string const& fname ) {
+// CpptrajState::AddInputTrajectory()
+int CpptrajState::AddInputTrajectory( std::string const& fname ) {
   ArgList blank;
   if ( trajinList_.AddTrajin( fname, DSL_.GetTopology(blank), blank ) ) return 1;
   return 0;
@@ -173,7 +173,7 @@ int CpptrajState::TrajLength( std::string const& topname,
   for (std::vector<std::string>::const_iterator trajinName = trajinFiles.begin();
                                                 trajinName != trajinFiles.end();
                                                 ++trajinName)
-    if (AddTrajin( *trajinName )) return 1;
+    if (AddInputTrajectory( *trajinName )) return 1;
   loudPrintf("Frames: %i\n", trajinList_.MaxFrames());
   return 0;
 }
