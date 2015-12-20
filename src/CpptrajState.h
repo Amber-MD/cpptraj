@@ -35,11 +35,11 @@ class CpptrajState {
     int RunAnalyses();
     // TODO: Move AddReference() to DataSetList?
     int AddReference( std::string const&, ArgList const& );
-    inline int AddReference( std::string const& );
+    int AddReference( std::string const& );
     int AddTopology( std::string const&, ArgList const& );
     int AddTopology( Topology const&, std::string const& );
-    inline int AddToActionQueue( Action*, ArgList& );
-    inline int AddToAnalysisQueue( Analysis*, ArgList& );
+    int AddToActionQueue( Action*, ArgList& );
+    int AddToAnalysisQueue( Analysis*, ArgList& );
     static int WorldSize();
     static std::string PrintListKeys();
     int ListAll(ArgList&) const;
@@ -96,21 +96,4 @@ class CpptrajState {
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
 };
-// ----- INLINE FUNCTIONS ------------------------------------------------------
-// CpptrajState::AddToActionQueue()
-int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
-  argIn.MarkArg(0);
-  ActionInit init(DSL_, DFL_);
-  return actionList_.AddAction( actIn, argIn, init );
-}
-// CpptrajState::AddToAnalysisQueue()
-int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
-  argIn.MarkArg(0);
-  AnalysisSetup setup(DSL_, DFL_);
-  return analysisList_.AddAnalysis( anaIn, argIn, setup );
-}
-// CpptrajState::AddReference()
-int CpptrajState::AddReference( std::string const& fname ) {
-  return AddReference( fname, ArgList() );
-}
 #endif

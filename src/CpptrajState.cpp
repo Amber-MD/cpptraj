@@ -43,6 +43,26 @@ int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
   ArgList blank;
   return trajoutList_.AddTrajout( fname, blank, DSL_.GetTopology(blank) );
 }
+
+// CpptrajState::AddToActionQueue()
+int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
+  argIn.MarkArg(0);
+  ActionInit init(DSL_, DFL_);
+  return actionList_.AddAction( actIn, argIn, init );
+}
+
+// CpptrajState::AddToAnalysisQueue()
+int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
+  argIn.MarkArg(0);
+  AnalysisSetup setup(DSL_, DFL_);
+  return analysisList_.AddAnalysis( anaIn, argIn, setup );
+}
+
+// CpptrajState::AddReference()
+int CpptrajState::AddReference( std::string const& fname ) {
+  return AddReference( fname, ArgList() );
+}
+
 // -----------------------------------------------------------------------------
 int CpptrajState::WorldSize() { return Parallel::World().Size(); }
 
