@@ -11,8 +11,10 @@ class CpptrajState {
   public:
     /// Possible command return types. Put here because both Command and Exec need this.
     enum RetType { OK = 0, ERR, QUIT };
+    /// Trajectory mode
+    enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
     /// CONSTRUCTOR
-    CpptrajState() : debug_(0), showProgress_(true), exitOnError_(true), noEmptyRun_(false) {}
+    CpptrajState();
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
@@ -21,6 +23,7 @@ class CpptrajState {
     DataSetList&       DSL()        { return DSL_;         }
     DataFileList const& DFL() const { return DFL_;         }
     DataFileList&       DFL()       { return DFL_;         }
+    TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
     bool ExitOnError()        const { return exitOnError_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
@@ -96,5 +99,7 @@ class CpptrajState {
     bool exitOnError_;
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
+    /// Current trajectory mode
+    TrajModeType mode_;
 };
 #endif

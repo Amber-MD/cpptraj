@@ -13,21 +13,39 @@
 # endif
 #endif
 
+/// CONSTRUCTOR
+CpptrajState::CpptrajState() :
+  debug_(0),
+  showProgress_(true),
+  exitOnError_(true),
+  noEmptyRun_(false),
+  mode_(UNDEFINED)
+{}
+
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( std::string const& fname ) {
-  ArgList blank;
-  if ( trajinList_.AddTrajin( fname, DSL_.GetTopology(blank), blank ) ) return 1;
-  return 0;
+  ArgList args( fname );
+  return AddInputTrajectory( args );
 }
 
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
+  if (mode_ == ENSEMBLE) {
+    mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
+    return 1;
+  }
+  mode_ = NORMAL;
   Topology* top = DSL_.GetTopology( argIn );
   return trajinList_.AddTrajin( argIn.GetStringNext(), top, argIn );
 }
 
 // CpptrajState::AddInputEnsemble()
 int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
+  if (mode_ == NORMAL) {
+    mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
+    return 1;
+  }
+  mode_ = ENSEMBLE;
   Topology* top = DSL_.GetTopology( argIn );
   return trajinList_.AddEnsemble( argIn.GetStringNext(), top, argIn );
 }
@@ -153,7 +171,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
 int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
-  if ( enabled[L_TRAJIN]   ) trajinList_.Clear();
+  if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); mode_ = UNDEFINED; }
 //  if ( enabled[L_REF]      ) refFrames_.Clear();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
 //  if ( enabled[L_PARM]     ) parmFileList_.Clear();
@@ -231,9 +249,9 @@ int CpptrajState::Run() {
   else if (actionList_.Empty() && trajoutList_.Empty() && noEmptyRun_)
     mprintf("Warning: No actions/output trajectories specified.\n");
   else {
-    switch ( trajinList_.Mode() ) {
+    switch ( mode_ ) {
 #     ifdef MPI
-      case TrajinList::NORMAL:
+      case NORMAL:
 /*        // TEST - single traj parallel
         if (trajinList_.Size() == 1)
           err = RunSingleTrajParallel();
@@ -241,10 +259,10 @@ int CpptrajState::Run() {
           err = RunParallel();
         break;
 #     else
-      case TrajinList::NORMAL   : err = RunNormal(); break;
+      case NORMAL   : err = RunNormal(); break;
 #     endif
-      case TrajinList::ENSEMBLE : err = RunEnsemble(); break;
-      case TrajinList::UNDEFINED: break;
+      case ENSEMBLE : err = RunEnsemble(); break;
+      case UNDEFINED: break;
     }
     // Clean up Actions if run completed successfully.
     if (err == 0) {
@@ -1006,7 +1024,7 @@ int CpptrajState::RunAnalyses() {
   analysis_time.Start();
   // Only master performs analyses currently.
   int err = 0;
-  if (Parallel::World().Master() == 0)
+  if (Parallel::World().Master())
     err = analysisList_.DoAnalyses();
   analysis_time.Stop();
 # ifdef MPI

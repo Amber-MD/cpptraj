@@ -32,7 +32,7 @@ Exec::RetType Exec_LoadTraj::Execute(CpptrajState& State, ArgList& argIn) {
       mprinterr("Error: No input trajectories loaded.\n");
       return CpptrajState::ERR;
     }
-    if (State.InputTrajList().Mode() != TrajinList::NORMAL) {
+    if (State.Mode() != CpptrajState::NORMAL) {
       mprinterr("Error: Cannot convert ensemble input trajectories to data.\n");
       return CpptrajState::ERR;
     }

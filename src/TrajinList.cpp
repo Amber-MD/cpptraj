@@ -7,7 +7,7 @@
 #include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
-TrajinList::TrajinList() : debug_(0), maxframes_(0), mode_(UNDEFINED) {}
+TrajinList::TrajinList() : debug_(0), maxframes_(0) {}
 
 TrajinList::~TrajinList() { Clear(); }
 
@@ -18,7 +18,6 @@ void TrajinList::Clear() {
   for (eListType::iterator ens = ensemble_.begin(); ens != ensemble_.end(); ++ens)
     delete *ens;
   ensemble_.clear();
-  mode_ = UNDEFINED;
   maxframes_ = 0;
   topFrames_.clear();
 }
@@ -49,11 +48,6 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
     mprinterr("Error: No topology for input ensemble '%s'\n", fname.c_str());
     return 1;
   }
-  if (mode_ == NORMAL) {
-    mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = ENSEMBLE;
   int err = 0;
   File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
@@ -130,11 +124,6 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
     mprinterr("Error: No topology for input trajectory '%s'\n", fname.c_str());
     return 1;
   }
-  if (mode_ == ENSEMBLE) {
-    mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = NORMAL;
   // CRDIDXARG
   finalCrdIndicesArg_.clear();
   ArgList trajin_args = argIn;

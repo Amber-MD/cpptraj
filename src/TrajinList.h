@@ -7,7 +7,6 @@ class TrajinList {
     typedef std::vector<Trajin*> tListType;
     typedef std::vector<EnsembleIn*> eListType;
   public:
-    enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
     TrajinList();
     ~TrajinList();
     void Clear();
@@ -29,7 +28,6 @@ class TrajinList {
     }
 
     bool empty()         const { return trajin_.empty() && ensemble_.empty(); }
-    TrajModeType Mode()  const { return mode_; }
     int MaxFrames()      const { return maxframes_; }
     int TopFrames(int i) const { return topFrames_[i]; }
     unsigned int Size()  const { return trajin_.size() + ensemble_.size(); }
@@ -42,7 +40,6 @@ class TrajinList {
     eListType ensemble_;
     int debug_;
     int maxframes_;
-    TrajModeType mode_;
     typedef std::vector<int> Iarray;
     Iarray topFrames_; ///< Record how many frames currently associated with each topology.
     /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
