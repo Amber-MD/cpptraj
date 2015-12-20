@@ -311,7 +311,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   for (Sarray::const_iterator trajinName = trajinFiles.begin();
                               trajinName != trajinFiles.end();
                               ++trajinName)
-    if (State_.AddTrajin( *trajinName )) return ERROR;
+    if (State_.AddInputTrajectory( *trajinName )) return ERROR;
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input

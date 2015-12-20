@@ -14,30 +14,32 @@
 #endif
 
 // CpptrajState::AddInputTrajectory()
-int CpptrajState::AddInputTrajectory( ArgList& argIn, bool isEnsemble ) {
-  std::string fname = argIn.GetStringNext();
-  Topology* tempParm = DSL_.GetTopology( argIn );
-  if (isEnsemble) {
-    if ( trajinList_.AddEnsemble( fname, tempParm, argIn ) ) return 1;
-  } else {
-    if ( trajinList_.AddTrajin( fname, tempParm, argIn ) ) return 1;
-  }
-  return 0;
-}
-
-// CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( std::string const& fname ) {
   ArgList blank;
   if ( trajinList_.AddTrajin( fname, DSL_.GetTopology(blank), blank ) ) return 1;
   return 0;
 }
 
+// CpptrajState::AddInputTrajectory()
+int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
+  Topology* top = DSL_.GetTopology( argIn );
+  return trajinList_.AddTrajin( argIn.GetStringNext(), top, argIn );
+}
+
+// CpptrajState::AddInputEnsemble()
+int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
+  Topology* top = DSL_.GetTopology( argIn );
+  return trajinList_.AddEnsemble( argIn.GetStringNext(), top, argIn );
+}
+
+// CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
   std::string fname = argIn.GetStringNext();
   Topology* top = DSL_.GetTopology( argIn );
   return trajoutList_.AddTrajout( fname, argIn, top );
 }
 
+// CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
   // FIXME Should this use the last Topology instead?
   ArgList blank;
