@@ -1028,7 +1028,20 @@ int CpptrajState::RunNormal() {
   * each member of the ensemble will write data to separate files with 
   * numeric extensions.
   */
-void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
+void CpptrajState::MasterDataFileWrite() {
+# ifdef MPI
+  if (mode_ == ENSEMBLE)
+    DFL_.WriteAllDF(true); // Ensemble mode; every thread writes.
+  else {
+    if (Parallel::World().Master()) // Trajin or undefined; only master writes.
+      DFL_.WriteAllDF(true);
+    else
+      DFL_.WriteAllDF(false);
+  }
+# else
+  DFL_.WriteAllDF(true);
+# endif
+}
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {

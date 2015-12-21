@@ -41,7 +41,7 @@ class DataFileList {
     /// List DataFiles and CpptrajFiles.
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
-    void WriteAllDF();
+    void WriteAllDF(bool);
     void ResetWriteStatus();
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }

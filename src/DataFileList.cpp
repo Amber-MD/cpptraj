@@ -250,8 +250,9 @@ void DataFileList::List() const {
 /** Call write for all DataFiles in list for which writeFile is true. Once
   * a file has been written set writeFile to false; it can be reset to
   * true if new DataSets are added to it.
+  * \param performWrite If true, mark files as written but do not actually write.
   */
-void DataFileList::WriteAllDF() {
+void DataFileList::WriteAllDF(bool performWrite) {
   if (fileList_.empty()) return;
 # ifdef TIMER
   Timer datafile_time;
@@ -259,9 +260,7 @@ void DataFileList::WriteAllDF() {
 # endif
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df) {
     if ( (*df)->DFLwrite() ) {
-#     ifdef MPI
-      if (Parallel::World().Master()) // Only master writes
-#     endif
+      if (performWrite)
         (*df)->WriteDataOut();
       (*df)->SetDFLwrite( false );
     }
