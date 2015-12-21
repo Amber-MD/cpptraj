@@ -27,7 +27,7 @@ DoTest avg.rst7.save avg.rst7
 }
 
 Test2() {
-  CheckPnetcdf
+  CheckPnetcdf "Parallel test with trajectory offset"
   if [[ $? -eq 0 ]] ; then
     cat > para.in <<EOF
 noprogress

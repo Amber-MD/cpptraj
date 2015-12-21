@@ -249,8 +249,12 @@ CheckPtrajAnalyze() {
 }
 
 CheckPnetcdf() {
+  DESCRIP="This test"
+  if [[ ! -z $1 ]] ; then
+    DESCRIP="Test '$1'"
+  fi
   if [[ -z $PNETCDFLIB ]] ; then
-    echo "This test requires compilation with Pnetcdf."
+    echo "$DESCRIP requires compilation with Pnetcdf."
     echo "Cpptraj was compiled without Pnetcdf support. Skipping test."
     return 1
   fi
