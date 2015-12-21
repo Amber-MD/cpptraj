@@ -740,19 +740,19 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     {
       // If solvent molecule is bound to 2 or more different residues,
       // it is bridging. 
-      if ( (*bridge).second.size() > 1) {
+      if ( bridge->second.size() > 1) {
         ++numHB;
-        bridgeID.append(integerToString( (*bridge).first+1 ) + "("); // Bridging Solvent res 
-        for (std::set<int>::iterator res = (*bridge).second.begin();
-                                     res != (*bridge).second.end(); ++res)
+        bridgeID.append(integerToString( bridge->first+1 ) + "("); // Bridging Solvent res 
+        for (std::set<int>::iterator res = bridge->second.begin();
+                                     res != bridge->second.end(); ++res)
           bridgeID.append( integerToString( *res+1 ) + "+" ); // Solute res being bridged
         bridgeID.append("),");
         // Find bridge in map based on this combo of residues (bridge.second)
-        BridgeType::iterator b_it = BridgeMap_.find( (*bridge).second );
+        BridgeType::iterator b_it = BridgeMap_.find( bridge->second );
         if (b_it == BridgeMap_.end() ) // New Bridge 
-          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>((*bridge).second, 1) );
+          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
         else                           // Increment bridge #frames
-          (*b_it).second++;
+          b_it->second++;
       }
     }
     if (bridgeID.empty())
@@ -777,7 +777,7 @@ void Action_Hbond::SyncMap(HBmapType& mapIn) const {
   std::vector<double> dArray;
   std::vector<int> iArray;
   if (Parallel::World().Master()) {
-    for (int rank = 1; rank != Parallel::World().Size(); rank++) {
+    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
       mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
       dArray.resize( 2 * nhb_on_rank[rank] );
       iArray.resize( 5 * nhb_on_rank[rank] );
@@ -833,8 +833,55 @@ void Action_Hbond::SyncMap(HBmapType& mapIn) const {
 
 int Action_Hbond::SyncAction() {
 # ifdef MPI
+  // Get total number of frames.
+  int total_frames = 0;
+  Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  if (Parallel::World().Master())
+    Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
   SyncMap( HbondMap_ );
+  if (calcSolvent_) {
+    SyncMap( SolventMap_ );
+    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
+    std::vector<int> iArray;
+    int iSize;
+    if (Parallel::World().Master()) {
+      for (int rank = 1; rank < Parallel::World().Size(); rank++)
+      {
+        // Receive size of iArray
+        Parallel::World().Recv( &iSize,           1, MPI_INT, rank, 1302 );
+        iArray.resize( iSize );
+        Parallel::World().Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
+        unsigned int idx = 0;
+        while (idx < iArray.size()) {
+          std::set<int> residues;
+          unsigned int i2 = idx + 1;
+          for (int ir = 0; ir != iArray[idx]; ir++, i2++)
+            residues.insert( iArray[i2] );
+          BridgeType::iterator b_it = BridgeMap_.find( residues );
+          if (b_it == BridgeMap_.end() ) // New Bridge 
+            BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(residues, iArray[i2]) );
+          else                           // Increment bridge #frames
+            b_it->second++;
+          idx = i2 + 1;
+        }
+      }
+    } else {
+       // Construct bridge info array.
+       for (BridgeType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
+       {
+         iArray.push_back( b->first.size() ); // # of bridging res
+         for ( std::set<int>::const_iterator r = b->first.begin(); r != b->first.end(); ++r)
+           iArray.push_back( *r ); // Bridging res
+         iArray.push_back( b->second ); // # frames
+      }
+      // Since the size of each bridge can be different (i.e. differing #s of
+      // residues may be bridged), first send size of the transport array.
+      iSize = (int)iArray.size();
+      Parallel::World().Send( &iSize,           1, MPI_INT, 0, 1302 );
+      Parallel::World().Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
+    }
+  }
 # endif
   return 0;
 }
