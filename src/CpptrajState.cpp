@@ -23,6 +23,12 @@ CpptrajState::CpptrajState() :
 {}
 
 int CpptrajState::SetTrajMode(TrajModeType modeIn) {
+  if (modeIn == UNDEFINED) {
+    mode_ = modeIn;
+    DSL_.SetEnsembleNum( -1 );
+    DFL_.SetEnsembleNum( -1 );
+    return 0;
+  }
   if (mode_ != UNDEFINED) {
     if (mode_ != modeIn) {
       mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
@@ -190,7 +196,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
 int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
-  if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); mode_ = UNDEFINED; }
+  if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); SetTrajMode( UNDEFINED ); }
   if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
   if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
