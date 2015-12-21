@@ -17,9 +17,7 @@ class DataFileList {
     DataFile* RemoveDataFile(DataFile*);
     void RemoveDataSet(DataSet*);
     void SetDebug(int);
-#   ifdef MPI
-    void MakeDataFilesEnsemble(int);
-#   endif
+    void SetEnsembleNum(int i) { ensembleNum_ = i; }
     /// \return DataFile whose full path matches given string or 0.
     DataFile* GetDataFile(FileName const&) const;
     /// \return CpptrajFile whose full path matches given string or 0.
@@ -47,6 +45,7 @@ class DataFileList {
     void ResetWriteStatus();
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }
+    int EnsembleNum() const { return ensembleNum_; }
   private:
     int GetCpptrajFileIdx(FileName const&) const;
 
@@ -62,6 +61,7 @@ class DataFileList {
     MDarray cfData_;
 
     int debug_;
+    int ensembleNum_; ///< Ensemble member number.
 };
 // ----- INTERNAL CLASS DEFINITIONS --------------------------------------------
 class DataFileList::CFstruct {

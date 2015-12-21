@@ -22,6 +22,30 @@ CpptrajState::CpptrajState() :
   mode_(UNDEFINED)
 {}
 
+int CpptrajState::SetTrajMode(TrajModeType modeIn) {
+  if (mode_ != UNDEFINED) {
+    if (mode_ != modeIn) {
+      mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
+      return 1;
+    }
+    return 0;
+  }
+  // Mode not yet set. Set DataSetList / DataFileList mode if necessary.
+  mode_ = modeIn;
+  if (mode_ == ENSEMBLE) {
+#   ifdef MPI
+    // Make all sets not in an ensemble a member of this thread.
+    DSL_.SetEnsembleNum( Parallel::World().Rank() ); // FIXME create MPI ensemble comm
+    // This tells all DataFiles to append member number.
+    DFL_.SetEnsembleNum( Parallel::World().Rank() );
+#   else
+    // Ensemble 0 is set up first. All others are setup in RunEnsemble.
+    DSL_.SetEnsembleNum( 0 );
+#   endif
+  }
+  return 0;
+}
+
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( std::string const& fname ) {
   ArgList args( fname );
@@ -30,22 +54,14 @@ int CpptrajState::AddInputTrajectory( std::string const& fname ) {
 
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
-  if (mode_ == ENSEMBLE) {
-    mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = NORMAL;
+  SetTrajMode( NORMAL );
   Topology* top = DSL_.GetTopology( argIn );
   return trajinList_.AddTrajin( argIn.GetStringNext(), top, argIn );
 }
 
 // CpptrajState::AddInputEnsemble()
 int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
-  if (mode_ == NORMAL) {
-    mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = ENSEMBLE;
+  SetTrajMode( ENSEMBLE );
   Topology* top = DSL_.GetTopology( argIn );
   return trajinList_.AddEnsemble( argIn.GetStringNext(), top, argIn );
 }
@@ -158,9 +174,7 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
   if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
-//  if ( enabled[L_REF]      ) refFrames_.SetDebug( debug_ );
   if ( enabled[L_TRAJOUT]  ) trajoutList_.SetDebug( debug_ );
-//  if ( enabled[L_PARM]     ) parmFileList_.SetDebug( debug_ );
   if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
   if ( enabled[L_DATAFILE] ) DFL_.SetDebug( debug_ );
   if ( enabled[L_DATASET]  ) DSL_.SetDebug( debug_ );
@@ -172,9 +186,7 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
   if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); mode_ = UNDEFINED; }
-//  if ( enabled[L_REF]      ) refFrames_.Clear();
   if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
-//  if ( enabled[L_PARM]     ) parmFileList_.Clear();
   if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
   if ( enabled[L_DATASET]  ) DSL_.Clear();
@@ -324,8 +336,6 @@ int CpptrajState::RunEnsemble() {
   SortedFrames.resize( ensembleSize );
   FrameEnsemble.resize( ensembleSize );
 # endif
-  //FrameEnsemble.SetupFrames( TrajParm()->Atoms(), cInfo_ );
-
   // At this point all ensembles should match (i.e. same map etc.)
   trajinList_.FirstEnsembleReplicaInfo();
 
@@ -367,15 +377,7 @@ int CpptrajState::RunEnsemble() {
   // Give each member its own copy of current frame address. This way if 
   // frame is modified by a member things like trajout know about it.
   FramePtrArray CurrentFrames( ensembleSize );
-# ifdef MPI
-  // Make all sets not in an ensemble a member of this thread.
-  DSL_.MakeDataSetsEnsemble( Parallel::World().Rank() ); // FIXME create MPI ensemble comm
-  // This tells all DataFiles to append member number.
-  DFL_.MakeDataFilesEnsemble( Parallel::World().Rank() );
-  // Actions have already been set up for this ensemble.
-# else
-  // Make all sets not in an ensemble part of member 0.
-  DSL_.MakeDataSetsEnsemble( 0 );
+# ifndef MPI
   // Silence action output for members > 0.
   if (debug_ == 0) SetWorldSilent( true ); 
   // Set up Actions for each ensemble member > 0.

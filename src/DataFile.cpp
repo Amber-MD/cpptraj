@@ -3,7 +3,6 @@
 #endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -213,20 +212,6 @@ int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   if (!argIn.empty())
     ProcessArgs( argIn );
   return 0;
-}
-
-/** Assumes file has been already created by e.g. an Action, but we are now
-  * in CpptrajState::RunEnsemble() and this file needs to be set up for a
-  * particular member (only if not already done).
-  */
-void DataFile::SetMember(int memberIn) {
-  if (member_ == -1) { // Not yet designated member of ensemble.
-    member_ = memberIn;
-    if (filename_.AppendFileName( "." + integerToString(member_) ))
-      rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
-  } else if (member_ != memberIn) // Another sanity check.
-    rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
-              member_, memberIn);
 }
 
 // DataFile::AddDataSet()

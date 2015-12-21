@@ -55,6 +55,7 @@ class CpptrajState {
     /// Write all DataFiles
     void MasterDataFileWrite();
   private:
+    int SetTrajMode(TrajModeType);
     /// Types of lists
     enum ListType {
       L_ACTION = 0, L_TRAJIN, L_REF, L_TRAJOUT, L_PARM, L_ANALYSIS,

@@ -98,6 +98,7 @@ void DataSetList::SetDebug(int debugIn) {
 }
 
 // DataSetList::MakeDataSetsEnsemble()
+/*
 void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
   ensembleNum_ = ensembleNumIn;
   for (DataListType::const_iterator ds = DataList_.begin();
@@ -105,6 +106,7 @@ void DataSetList::MakeDataSetsEnsemble(int ensembleNumIn) {
     if ( (*ds)->Meta().EnsembleNum() == -1 )
       (*ds)->SetEnsemble( ensembleNum_ );
 }
+*/
 
 /** Call Allocate for each time series in the list. */
 void DataSetList::AllocateSets(long int maxFrames) {

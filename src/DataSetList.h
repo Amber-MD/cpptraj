@@ -50,7 +50,7 @@ class DataSetList {
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
-    void MakeDataSetsEnsemble(int);
+    //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.

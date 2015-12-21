@@ -2,16 +2,16 @@
 #include "DataFileList.h"
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
+#include "StringRoutines.h" // integerToString
 #ifdef MPI
 # include "Parallel.h"
-# include "StringRoutines.h" // integerToString
 #endif
 #ifdef TIMER
 # include "Timer.h"
 #endif
 
 // CONSTRUCTOR
-DataFileList::DataFileList() : debug_(0) {}
+DataFileList::DataFileList() : debug_(0), ensembleNum_(-1) {}
 
 // DESTRUCTOR
 DataFileList::~DataFileList() { Clear(); }
@@ -57,13 +57,6 @@ void DataFileList::SetDebug(int debugIn) {
     (*df)->SetDebug( debug_ );
 }
 
-#ifdef MPI
-void DataFileList::MakeDataFilesEnsemble(int memberIn) {
-  for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
-    (*df)->SetMember( memberIn );
-}
-#endif
-
 // DataFileList::GetDataFile()
 /** \return DataFile specified by given file name if it exists in the list,
   *         otherwise return 0. Must match full path.
@@ -107,20 +100,24 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
 {
   // If no filename, no output desired
   if (nameIn.empty()) return 0;
+  FileName fname( nameIn );
+  // Append ensemble number if set.
+  if (ensembleNum_ != -1)
+    fname.AppendFileName( "." + integerToString(ensembleNum_) );
   // Check if filename in use by CpptrajFile.
-  CpptrajFile* cf = GetCpptrajFile(nameIn);
+  CpptrajFile* cf = GetCpptrajFile(fname);
   if (cf != 0) {
     mprinterr("Error: Data file name '%s' already in use by text output file '%s'.\n",
-              nameIn.full(), cf->Filename().full());
+              fname.full(), cf->Filename().full());
     return 0;
   }
   // Check if this filename already in use
-  DataFile* Current = GetDataFile(nameIn);
+  DataFile* Current = GetDataFile(fname);
   // If no DataFile associated with name, create new DataFile
   if (Current==0) {
     Current = new DataFile();
-    if (Current->SetupDatafile(nameIn, argIn, typeIn, debug_)) {
-      mprinterr("Error: Setting up data file %s\n", nameIn.full());
+    if (Current->SetupDatafile(fname, argIn, typeIn, debug_)) {
+      mprinterr("Error: Setting up data file %s\n", fname.full());
       delete Current;
       return 0;
     }
@@ -183,14 +180,10 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   CpptrajFile* Current = 0;
   int currentIdx = -1;
   if (!nameIn.empty()) {
-#   ifdef MPI
-    // FIXME: Unlike DataFiles, CpptrajFiles are opened immediately so append
-    //        worldrank to filename now. This will have to change if MPI does
-    //        not necessarily mean ensemble mode in the future.
-    name.SetFileName( AppendNumber(nameIn.Full(), Parallel::World().Rank()) );
-#   else
     name = nameIn;
-#   endif
+    // Append ensemble number if set.
+    if (ensembleNum_ != -1)
+      name.AppendFileName( "." + integerToString(ensembleNum_) );
     // Check if filename in use by DataFile.
     DataFile* df = GetDataFile(name);
     if (df != 0) {
