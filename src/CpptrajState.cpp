@@ -83,6 +83,11 @@ int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
 // CpptrajState::AddToActionQueue()
 int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
   argIn.MarkArg(0);
+  // Default to NORMAL if not set.
+  if (mode_ == UNDEFINED) {
+    mprintf("Warning: Action specified before trajin/ensemble. Assuming trajin.\n");
+    SetTrajMode( NORMAL );
+  }
   ActionInit init(DSL_, DFL_);
   return actionList_.AddAction( actIn, argIn, init );
 }
