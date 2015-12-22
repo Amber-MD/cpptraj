@@ -250,6 +250,9 @@ test.multidihedral:
 test.mremd:
 	@-cd Test_Ensemble_MREMD && ./RunTest.sh $(OPT)
 
+test.makestructure:
+	@-cd Test_MakeStructure && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -309,7 +312,8 @@ SHORT_TESTS=test.general \
           test.timecorr \
           test.crosscorr \
           test.symmrmsd \
-          test.multidihedral
+          test.multidihedral \
+          test.makestructure
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -391,7 +395,8 @@ COMPLETETESTS=test.general \
               test.crosscorr \
               test.symmrmsd \
               test.multidihedral \
-              test.mremd
+              test.mremd \
+              test.makestructure
 
 test: test.all 
 
