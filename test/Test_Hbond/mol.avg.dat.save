@@ -1,0 +1,6 @@
+#Acceptor            DonorH         Donor   Frames         Frac      AvgDist       AvgAng
+SER_90@O        NDP_269@H77   NDP_269@O12        9       0.9000       2.7756     164.7023
+ALA_92@O        NDP_269@H64    NDP_269@N3        7       0.7000       2.8582     166.0444
+NDP_269@O14       ILE_192@H     ILE_192@N        5       0.5000       2.8994     162.3388
+NDP_269@O9      THR_194@HG1   THR_194@OG1        4       0.4000       2.8991     153.2596
+NDP_269@O8      THR_194@HG1   THR_194@OG1        1       0.1000       2.7866     159.5320
