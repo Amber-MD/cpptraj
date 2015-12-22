@@ -3,7 +3,8 @@
 . ../MasterTest.sh
 
 CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
-           nhbond.dat hbavg.dat
+           nhbond.dat nhbond.dat.? all.nhbond.dat \
+           hbavg.dat hbavg.dat.? all.hbavg.dat
 
 INPUT="-i mremd.in"
 
@@ -34,12 +35,13 @@ EOF
   RunCpptraj "M-REMD actions test."
   if [[ -z $DO_PARALLEL ]] ; then
     DoTest rmsd.dat.save rmsd.dat
+    DoTest nhbond.dat.save nhbond.dat
+    DoTest hbavg.dat.save hbavg.dat
   else
-    cat rmsd.dat.? > all.rmsd.dat
-    DoTest all.rmsd.dat.save all.rmsd.dat
+    cat rmsd.dat.? > all.rmsd.dat     && DoTest all.rmsd.dat.save all.rmsd.dat
+    cat nhbond.dat.? > all.nhbond.dat && DoTest all.nhbond.dat.save all.nhbond.dat
+    cat hbavg.dat.? > all.hbavg.dat   && DoTest all.hbavg.dat.save all.hbavg.dat
   fi
-  DoTest nhbond.dat.save nhbond.dat
-  DoTest hbavg.dat.save hbavg.dat
 }
 
 TrajSort
