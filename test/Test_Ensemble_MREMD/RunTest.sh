@@ -22,7 +22,7 @@ EOF
   done
 }
 
-# Test M-REMD traj sort, rms calc
+# Test M-REMD traj sort, actions 
 ActionsTest() {
   cat > mremd.in <<EOF
 noprogress
