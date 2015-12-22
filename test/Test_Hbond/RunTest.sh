@@ -5,7 +5,7 @@
 # Clean
 CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
-           crv.lifehb.gnu hb?.dat
+           crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
@@ -53,6 +53,17 @@ EOF
 RunCpptraj "Hbond with imaging"
 DoTest hb1.dat.save hb1.dat
 DoTest hb2.dat.save hb2.dat
+
+# Nointramol test
+cat > hbond.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+trajin ../FtuFabI.NAD.TCL.nc
+hbond IntraMol out hbond.mol.dat
+hbond NoIntraMol out hbond.mol.dat nointramol avgout mol.avg.dat
+EOF
+RunCpptraj "Hbond, no intramolecular hydrogen bonds test."
+DoTest hbond.mol.dat.save hbond.mol.dat
+DoTest mol.avg.dat.save mol.avg.dat
 
 EndTest
 
