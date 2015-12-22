@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles gist.in gist-order-norm.dx gistout.dat
+CleanFiles gist.in gist-*.dx gistout.dat
 
 INPUT="-i gist.in"
 
