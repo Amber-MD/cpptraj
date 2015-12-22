@@ -5,7 +5,7 @@
 # Clean
 CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
-           crv.lifehb.gnu
+           crv.lifehb.gnu hb?.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
@@ -42,6 +42,17 @@ EOF
 RunCpptraj "Solvent Hbond test."
 DoTest solvhb.dat.save solvhb.dat
 DoTest solvavg.dat.save solvavg.dat
+
+# Imaged hbond test
+cat > hbond.in <<EOF
+parm strip.4lztSc_nowat.parm7
+trajin strip.4lztSc.rst7
+hbond donormask :3@ND2 acceptormask :1@O avgout hb1.dat image
+hbond donormask :2@ND2 acceptormask :4@O avgout hb2.dat image
+EOF
+RunCpptraj "Hbond with imaging"
+DoTest hb1.dat.save hb1.dat
+DoTest hb2.dat.save hb2.dat
 
 EndTest
 
