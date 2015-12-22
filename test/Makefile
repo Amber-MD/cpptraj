@@ -253,6 +253,9 @@ test.mremd:
 test.makestructure:
 	@-cd Test_MakeStructure && ./RunTest.sh $(OPT)
 
+test.rotate:
+	@-cd Test_Rotate && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -313,7 +316,8 @@ SHORT_TESTS=test.general \
           test.crosscorr \
           test.symmrmsd \
           test.multidihedral \
-          test.makestructure
+          test.makestructure \
+          test.rotate
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -396,7 +400,8 @@ COMPLETETESTS=test.general \
               test.symmrmsd \
               test.multidihedral \
               test.mremd \
-              test.makestructure
+              test.makestructure \
+              test.rotate
 
 test: test.all 
 
