@@ -2,23 +2,20 @@
 #ifdef MPI
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
+  if (comm_ == MPI_COMM_NULL) return 1;
   if (filename == 0) return 1;
   int err=0;
   switch( mode[0] ) { // FIXME: Always use world comm?
-    case 'r' : err = pfile_.OpenFile_Read(filename, Parallel::World()); break;
-    case 'w' : err = pfile_.OpenFile_Write(filename, Parallel::World()); break;
+    case 'r' : err = pfile_.OpenFile_Read(filename, comm_); break;
+    case 'w' : err = pfile_.OpenFile_Write(filename, comm_); break;
     case 'a' : err=1; break; // NOTE: No MPI append for now
     default  : err=1; break;
   }
-
   return err;
 }
 
 // FileIO_Mpi::Close()
-int FileIO_Mpi::Close() {
-  pfile_.CloseFile();
-  return 0;
-}
+int FileIO_Mpi::Close() { return (pfile_.CloseFile()); }
 
 // FileIO_Mpi::Read()
 int FileIO_Mpi::Read(void *buffer, size_t num_bytes) {
@@ -47,9 +44,7 @@ int FileIO_Mpi::Rewind() {
 }
 
 // FileIO_Mpi::Tell()
-off_t FileIO_Mpi::Tell() {
-  return ( pfile_.Position() );
-}
+off_t FileIO_Mpi::Tell() { return ( pfile_.Position() ); }
 
 // FileIO_Mpi::Gets()
 int FileIO_Mpi::Gets(char *str, int num) {

@@ -380,3 +380,85 @@ void Traj_AmberCoord::Info() {
     mprintf("is an AMBER trajectory");
   if (highPrecision_) mprintf(" (high precision)");
 }
+#ifdef MPI
+// =============================================================================
+int Traj_AmberCoord::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  mprinterr("Error: Parallel read not supported for Amber ASCII coords.\n");
+  return 1;
+}
+
+int Traj_AmberCoord::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  return (file_.ParallelOpenFile( commIn ));
+}
+
+/** First master performs all necessary setup, then sends info to all children.
+  */
+int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  int err = 0;
+  // In parallel MUST know # of frames to write in order to correctly set size
+  if (NframesToWrite < 1) {
+    mprinterr("Error: # frames to write must be known for Amber Coords output in parallel.\n");
+    err = 1;
+  } else if (commIn.Master()) {
+    // NOTE: This writes the title.
+    err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    // NOTE: setupTrajout leaves file open. Should this change?
+    file_.CloseFile();
+  }
+  commIn.MasterBcast(&err, 1, MPI_INT);
+  if (err != 0) return 1;
+  // Synchronize info on non-master threads.
+  // TODO For simplicity convert everything to double. Is this just lazy?
+  double tmpArray[8];
+  if (commIn.Master()) {
+    tmpArray[0] = (double)natom3_;
+    tmpArray[1] = (double)headerSize_;
+    tmpArray[2] = (double)tStart_;
+    tmpArray[3] = (double)tEnd_;
+    tmpArray[4] = (double)numBoxCoords_;
+    tmpArray[5] = boxAngle_[0];
+    tmpArray[6] = boxAngle_[1];
+    tmpArray[7] = boxAngle_[2];
+    commIn.MasterBcast(tmpArray, 8, MPI_DOUBLE);
+  } else {
+    commIn.MasterBcast(tmpArray, 8, MPI_DOUBLE);
+    natom3_       = (int)tmpArray[0];
+    headerSize_   = (size_t)tmpArray[1];
+    tStart_       = (size_t)tmpArray[2];
+    tEnd_         = (size_t)tmpArray[3];
+    numBoxCoords_ = (int)tmpArray[4];
+    boxAngle_[0]  = tmpArray[5];
+    boxAngle_[1]  = tmpArray[6];
+    boxAngle_[2]  = tmpArray[7];
+    if (append)
+      file_.SetupAppend( fname, debug_ );
+    else
+      file_.SetupWrite( fname, debug_ );
+  }
+  // For parallel output we will need to seek. Set up the buffer again with correct offsets.
+  // Figure out the size of the written title.
+  unsigned int titleSize = (unsigned int)Title().size() + 1; // +1 for newline
+  titleSize = std::min(81U, titleSize);
+  file_.SetupFrameBuffer( natom3_, 8, 10, headerSize_, titleSize );
+  file_.ResizeBuffer( numBoxCoords_ );
+  //if (debug_>0)
+    rprintf("'%s'(Parallel): Each frame has %lu bytes.\n", file_.Filename().base(),
+            file_.FrameSize());
+  // TODO set file size
+  return 0;
+}
+
+int Traj_AmberCoord::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+
+int Traj_AmberCoord::parallelWriteFrame(int set, Frame const& frameOut) {
+  // Seek to given frame.
+  file_.SeekToFrame( set );
+  return ( writeFrame(set, frameOut) );
+}
+
+void Traj_AmberCoord::parallelCloseTraj() { closeTraj(); }
+#endif
