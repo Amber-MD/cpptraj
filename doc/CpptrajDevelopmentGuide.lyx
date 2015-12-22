@@ -97,7 +97,7 @@ Jason M.
 \begin_inset Newline newline
 \end_inset
 
-Last Updated: 2015-09-10
+Last Updated: 2015-12-22
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -173,6 +173,40 @@ DO NOT USE TABS
 
 \begin_layout Itemize
 Try to keep lines between 80 and 100 characters long.
+\end_layout
+
+\begin_layout Itemize
+Whenever possible, put separate code on separate lines.
+ Exceptions can be made for very simple statements such as logic evaluations
+ and simple initializations.
+ For example,
+\begin_inset Newline newline
+\end_inset
+
+
+\series bold
+double x1 = 0.0, x2 = 0.0, x3 = 0.0;
+\series default
+
+\begin_inset Newline newline
+\end_inset
+
+is OK, but
+\begin_inset Newline newline
+\end_inset
+
+
+\series bold
+double x1 = var1 * var2; double x2 = var3 / var4;
+\series default
+
+\begin_inset Newline newline
+\end_inset
+
+is not.
+ There are two reasons: 1) When separate statements share a line it makes
+ using debuggers more difficult, and 2) when separate statements share a
+ line it is harder to read.
 \end_layout
 
 \begin_layout Itemize
@@ -2580,7 +2614,10 @@ A simple usage example is given here.
 
 \begin_layout LyX-Code
 dist_ = DSL->AddSet(DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(),
- MetaData::M_DISTANCE), "Dis");
+\end_layout
+
+\begin_layout LyX-Code
+                                              MetaData::M_DISTANCE), "Dis");
 \end_layout
 
 \begin_layout LyX-Code
@@ -3101,7 +3138,10 @@ Next, we will try to create an output DataFile:
 
 \begin_layout LyX-Code
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"),
- actionArgs );
+\end_layout
+
+\begin_layout LyX-Code
+                                              actionArgs );
 \end_layout
 
 \begin_layout Standard
