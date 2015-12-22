@@ -192,6 +192,7 @@ test.pairdist:
 
 test.gist:
 	@-cd Test_GIST && ./RunTest.sh $(OPT)
+	@-cd Test_GIST_Order && ./RunTest.sh $(OPT)
 
 test.readdata:
 	@-cd Test_ReadData && ./RunTest.sh $(OPT)
