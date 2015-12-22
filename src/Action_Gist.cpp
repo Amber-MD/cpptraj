@@ -791,17 +791,21 @@ void Action_Gist::Print() {
   double NNr, rR, dbl;
   double dTSs = 0.0, dTSst = 0.0;
   int nwtt = 0;
-  double dTSorienttot_ = 0; //NFRAME_ /= 8;
   float NNs = 10000;
   float ds = 0;
   float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
   double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0;
   int nwts = 0;
+  int exc=0;
 
+  double dTSorienttot_ = 0; //NFRAME_ /= 8;
   for (int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     //int numplane = gr_pt/(griddim_[1]*griddim_[2]); int nwj = 0;
-    dTSorient_dens_[gr_pt]=0; dTSorient_norm_[gr_pt]=0;
-    int nwtot = nw_angle_[gr_pt]; int bound = 0; nwtt += nwtot;
+    dTSorient_dens_[gr_pt]=0;
+    dTSorient_norm_[gr_pt]=0;
+    int nwtot = nw_angle_[gr_pt];
+    int bound = 0;
+    nwtt += nwtot;
     if (nwtot <= 1) continue;
     for (int n = 0; n < nwtot; n++) {
       NNr = 10000;
@@ -810,110 +814,116 @@ void Action_Gist::Print() {
       NNd = 10000;
       dd = 0;
       for (int l = 0; l < nwtot; l++) {
-           		if (l==n) continue;
-            		rR = 2*acos(q0_vox_[gr_pt][l]*q0_vox_[gr_pt][n]
-                	        +q1_vox_[gr_pt][l]*q1_vox_[gr_pt][n]
-                	        +q2_vox_[gr_pt][l]*q2_vox_[gr_pt][n]
-                	        +q3_vox_[gr_pt][l]*q3_vox_[gr_pt][n]
-            		);
-            		if (rR>0 && rR < NNr) NNr = rR;
-            
+        if (l == n) continue;
+        rR = 2 * acos(  q0_vox_[gr_pt][l] * q0_vox_[gr_pt][n]
+                      + q1_vox_[gr_pt][l] * q1_vox_[gr_pt][n]
+                      + q2_vox_[gr_pt][l] * q2_vox_[gr_pt][n]
+                      + q3_vox_[gr_pt][l] * q3_vox_[gr_pt][n] );
+        if (rR>0 && rR < NNr) NNr = rR;
+      }
 
-        	}
+      if (bound == 1) {
+        dbl = 0;
+        dTSorient_norm_[gr_pt] += dbl;
+        continue;
+      } else if (NNr < 9999 && NNr > 0 && NNs > 0) {
+        dbl = log(NNr*NNr*NNr*nwtot / (3.0*Constants::TWOPI));
+        dTSorient_norm_[gr_pt] += dbl;
+        dTSo += dbl;
+      }
+    } // END loop over nwtot
+    //NFRAME_ *= 0.5;
+    dTSorient_norm_[gr_pt] = Constants::GASK_KCAL * Temp * // FIXME what is this constant?
+                             ((dTSorient_norm_[gr_pt]/nwtot)+0.5772156649);
+    dTSorient_dens_[gr_pt] = dTSorient_norm_[gr_pt] * nwat_[gr_pt] / (NFRAME_ * Vvox_);
+    dTSorienttot_ += dTSorient_dens_[gr_pt];
+  } // END loop over MAX_GRID_PT_
+  dTSorienttot_ *= Vvox_;
+  mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
+  mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
+          dTSorienttot_, NFRAME_);
 
-	        if (bound == 1) {dbl = 0; dTSorient_norm_[gr_pt] += dbl; continue;}
-	        else if (NNr<9999 && NNr>0 && NNs > 0) {
-	        	dbl = log(NNr*NNr*NNr*nwtot/(3.0*Constants::TWOPI));
-            		dTSorient_norm_[gr_pt] += dbl;
-            		dTSo += dbl;
-            
+  // Compute translational entropy for each voxel
+  double dTStranstot_ = 0.0;
+    for (int a = 0; a < MAX_GRID_PT_; a++) {
+      int numplane = a / (griddim_[1]*griddim_[2]);
+      int nwj = 0;
+      dens_[a] = 1.0*nwat_[a]/(NFRAME_*Vvox_);
+      g_[a] = dens_[a] / BULK_DENS_;
+      gH_[a] = 1.0 * nH_[a] / (NFRAME_*Vvox_*2*BULK_DENS_);
+      int nwi = 0, bound = 0;
 
-        	}
-    	}
-        //NFRAME_ *= 0.5;
-        dTSorient_norm_[gr_pt] = Constants::GASK_KCAL*Temp*((dTSorient_norm_[gr_pt]/nwtot)+0.5772156649);
-        dTSorient_dens_[gr_pt] = dTSorient_norm_[gr_pt]*nwat_[gr_pt]/(NFRAME_*Vvox_);
-        dTSorienttot_ += dTSorient_dens_[gr_pt];
-    }
-    dTSorienttot_ *= Vvox_;
-    mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
-    mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
-            dTSorienttot_, NFRAME_);
+      //first do own voxel
+      nwi = nwat_[a];
+      for (int i = 0; i < nwi; i++) {
+        NNd = 10000;
+        bound = 0;
+        NNs = 10000;
+        ds = 0;
+        for (int j = 0; j < nwi; j++) {
+          if ( j!= i) {
+            //cout << "doing self: " << a << endl;
+            dx = x_vox_[a][i] - x_vox_[a][j];
+            dy = y_vox_[a][i] - y_vox_[a][j];
+            dz = z_vox_[a][i] - z_vox_[a][j];
+            dd = dx*dx+dy*dy+dz*dz;
+            if (dd < NNd && dd > 0) { NNd = dd; }
+            rR = 2 * acos( q0_vox_[a][i]*q0_vox_[a][j]
+                          +q1_vox_[a][i]*q1_vox_[a][j]
+                          +q2_vox_[a][i]*q2_vox_[a][j]
+                          +q3_vox_[a][i]*q3_vox_[a][j] );
+            ds = rR*rR + dd;
+            if (ds < NNs && ds > 0) { NNs = ds; }
+          }
+        } // END loop over nwi
 
-    // Compute translational entropy for each voxel
-    dTStranstot_=0;
-    for (int a=0; a<MAX_GRID_PT_; a++) {
-        int numplane = a/(griddim_[1]*griddim_[2]); int nwj = 0;
-        dens_[a] = 1.0*nwat_[a]/(NFRAME_*Vvox_);
-        g_[a] = dens_[a]/BULK_DENS_;
-        gH_[a] = 1.0*nH_[a]/(NFRAME_*Vvox_*2*BULK_DENS_);
-        int nwi = 0;  int bound = 0;
+        //if (a+addz > MAX_GRID_PT_ || a+addz < 0) {throw exc;}
+        if (griddim_[2] == 0 || (a%griddim_[2] == griddim_[2]-1))
+          bound = 1;
+        else {
+          //cout << "doing addz: " << a << endl;
+          //mprintf("else bound, addz: %d\n", a);
+          nwj = nwat_[a+addz];
+          for (int j = 0; j < nwj; j++) {
+            dx = x_vox_[a][i] - x_vox_[a+addz][j];
+            dy = y_vox_[a][i] - y_vox_[a+addz][j];
+            dz = z_vox_[a][i] - z_vox_[a+addz][j];
+            dd = dx*dx+dy*dy+dz*dz;
+            if (dd < NNd && dd > 0) { NNd = dd; }
+            rR = 2 * acos( q0_vox_[a][i]*q0_vox_[a+addz][j]
+                          +q1_vox_[a][i]*q1_vox_[a+addz][j]
+                          +q2_vox_[a][i]*q2_vox_[a+addz][j]
+                          +q3_vox_[a][i]*q3_vox_[a+addz][j]);
+            ds = rR*rR + dd;
+            if (ds < NNs && ds > 0) { NNs = ds; }
+          }
+        }
 
-        //first do own voxel
-        nwi = nwat_[a];
-        for (int i = 0; i < nwi; i++) {
-            NNd = 10000; bound = 0;
-            NNs = 10000; ds = 0;
-            for (int j = 0; j < nwi; j++) {
-                if (j!=i) {
-                    //cout << "doing self: " << a << endl;
-                    dx = x_vox_[a][i] - x_vox_[a][j];
-                    dy = y_vox_[a][i] - y_vox_[a][j];
-                    dz = z_vox_[a][i] - z_vox_[a][j];
-                    dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
-                    rR = 2*acos(q0_vox_[a][i]*q0_vox_[a][j]
-                    +q1_vox_[a][i]*q1_vox_[a][j]
-                    +q2_vox_[a][i]*q2_vox_[a][j]
-                    +q3_vox_[a][i]*q3_vox_[a][j]);
-                    ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
-                }
-            }
+        //if (a+addy > MAX_GRID_PT_ || a+addy < 0) {throw exc;}
+        if (griddim_[2] == 0 ||
+            (a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1])) < griddim_[2]))
+          bound = 1;
+        else {
+          //cout << "doing addy: " << a << endl;
+          //mprintf("else bound, addy: %d\n", a);
+          nwj = nwat_[a+addy];
+          for (int j = 0; j < nwj; j++) {
+            dx = x_vox_[a][i] - x_vox_[a+addy][j];
+            dy = y_vox_[a][i] - y_vox_[a+addy][j];
+            dz = z_vox_[a][i] - z_vox_[a+addy][j];
+            dd = dx*dx+dy*dy+dz*dz;
+            if (dd < NNd && dd > 0) { NNd = dd; }
+            rR = 2 * acos( q0_vox_[a][i]*q0_vox_[a+addy][j]
+                          +q1_vox_[a][i]*q1_vox_[a+addy][j]
+                          +q2_vox_[a][i]*q2_vox_[a+addy][j]
+                          +q3_vox_[a][i]*q3_vox_[a+addy][j]);
+            ds = rR*rR + dd;
+            if (ds < NNs && ds > 0) {NNs = ds;}
+          }
+        }
 
-            try {
-                //if (a+addz > MAX_GRID_PT_ || a+addz < 0) {throw exc;}
-                if (a%griddim_[2] == griddim_[2]-1) {throw exc;}
-                else {
-                    //cout << "doing addz: " << a << endl;
-                    //mprintf("else bound, addz: %d\n", a);
-                    nwj = nwat_[a+addz];
-                    for (int j = 0; j < nwj; j++) {
-                        dx = x_vox_[a][i] - x_vox_[a+addz][j];
-                        dy = y_vox_[a][i] - y_vox_[a+addz][j];
-                        dz = z_vox_[a][i] - z_vox_[a+addz][j];
-                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
-                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addz][j]
-                        +q1_vox_[a][i]*q1_vox_[a+addz][j]
-                        +q2_vox_[a][i]*q2_vox_[a+addz][j]
-                        +q3_vox_[a][i]*q3_vox_[a+addz][j]);
-                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
-                    }
-                }
-            }
-            catch (int exc) {bound = 1;}
-            try {
-                //if (a+addy > MAX_GRID_PT_ || a+addy < 0) {throw exc;}
-                if (a%(griddim_[2]*(griddim_[1]-1)+(numplane*griddim_[2]*griddim_[1]))< griddim_[2]) {throw exc;}
-                else {
-                    //cout << "doing addy: " << a << endl;
-                    //mprintf("else bound, addy: %d\n", a);
-                    nwj = nwat_[a+addy];
-                    for (int j = 0; j < nwj; j++) {
-                        dx = x_vox_[a][i] - x_vox_[a+addy][j];
-                        dy = y_vox_[a][i] - y_vox_[a+addy][j];
-                        dz = z_vox_[a][i] - z_vox_[a+addy][j];
-                        dd = dx*dx+dy*dy+dz*dz; if (dd < NNd && dd > 0) {NNd = dd;}
-                        rR = 2*acos(q0_vox_[a][i]*q0_vox_[a+addy][j]
-                        +q1_vox_[a][i]*q1_vox_[a+addy][j]
-                        +q2_vox_[a][i]*q2_vox_[a+addy][j]
-                        +q3_vox_[a][i]*q3_vox_[a+addy][j]);
-                        ds = rR*rR + dd; if (ds < NNs && ds > 0) {NNs = ds;}
-                    }
-                }
-            }
-            catch (int exc) {bound = 1;}
-            try {
-                //if (a+addx > MAX_GRID_PT_ || a+addx < 0) {throw exc;}
-                if (a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0]) {throw exc;}
+        //if (a+addx > MAX_GRID_PT_ || a+addx < 0) {throw exc;}
+        if (a >= griddim_[2]*griddim_[1]*(griddim_[0]-1) && a < griddim_[2]*griddim_[1]*griddim_[0]) {throw exc;}
                 else {
                     //cout << "doing addx: " << a << endl;
                     //mprintf("else bound, addx: %d\n", a);
