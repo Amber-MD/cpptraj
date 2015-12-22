@@ -118,7 +118,6 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <float> dTStrans_norm_;
     std::vector <double> dTSsix_norm_;
     std::vector <float> dTSsix_dens_;
-    double dTSorienttot_;
     int max_nwat_;
     double dTStranstot_;
     double Ewwtot_;

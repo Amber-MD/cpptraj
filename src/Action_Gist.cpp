@@ -780,23 +780,36 @@ void Action_Gist::Order(Frame const& frameIn) {
 
 void Action_Gist::Print() {
   gist_print_.Start();
-  int addx = griddim_[2]*griddim_[1]; int addy = griddim_[2]; int addz = 1;
-  int subx = -1*griddim_[2]*griddim_[1]; int suby = -1*griddim_[2]; int subz = -1; int exc = 0;
+  int addx = griddim_[2]*griddim_[1];
+  int addy = griddim_[2];
+  int addz = 1;
+  int subx = -1*griddim_[2]*griddim_[1];
+  int suby = -1*griddim_[2];
+  int subz = -1;
   // Implement NN to compute orientational entropy for each voxel
   //double NNr, rx, ry, rz, rR, dbl;
-  double NNr, rR, dbl; double dTSs = 0, dTSst = 0; int nwtt = 0;
-  dTSorienttot_=0; //NFRAME_ /= 8;
-  
-    dTSs = 0, dTSst = 0; nwtt = 0; float NNs = 10000; float ds = 0; float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
-    double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0; int nwts = 0;
-    for (int gr_pt=0; gr_pt<MAX_GRID_PT_; gr_pt++) {
-        //int numplane = gr_pt/(griddim_[1]*griddim_[2]); int nwj = 0;
-        dTSorient_dens_[gr_pt]=0; dTSorient_norm_[gr_pt]=0;
-        int nwtot = nw_angle_[gr_pt]; int bound = 0; nwtt += nwtot;
-        if (nwtot<=1) continue;
-        for (int n=0; n<nwtot; n++) {
-        	NNr=10000; NNs = 10000; ds = 0; NNd = 10000; dd = 0;
-        	for (int l=0; l<nwtot; l++) {
+  double NNr, rR, dbl;
+  double dTSs = 0.0, dTSst = 0.0;
+  int nwtt = 0;
+  double dTSorienttot_ = 0; //NFRAME_ /= 8;
+  float NNs = 10000;
+  float ds = 0;
+  float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
+  double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0;
+  int nwts = 0;
+
+  for (int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+    //int numplane = gr_pt/(griddim_[1]*griddim_[2]); int nwj = 0;
+    dTSorient_dens_[gr_pt]=0; dTSorient_norm_[gr_pt]=0;
+    int nwtot = nw_angle_[gr_pt]; int bound = 0; nwtt += nwtot;
+    if (nwtot <= 1) continue;
+    for (int n = 0; n < nwtot; n++) {
+      NNr = 10000;
+      NNs = 10000;
+      ds = 0;
+      NNd = 10000;
+      dd = 0;
+      for (int l = 0; l < nwtot; l++) {
            		if (l==n) continue;
             		rR = 2*acos(q0_vox_[gr_pt][l]*q0_vox_[gr_pt][n]
                 	        +q1_vox_[gr_pt][l]*q1_vox_[gr_pt][n]
