@@ -1,6 +1,4 @@
-// Gist 
 #include <cmath>
-//#include <ctime>
 using namespace std;
 #include "Action_Gist.h"
 #include "CpptrajStdio.h"
