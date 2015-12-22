@@ -74,8 +74,14 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   if (associatedParm_->Pindex() != setup.Top().Pindex())
     return Action::SKIP;
   if (!isSetup_) { // TODO: Trajout IsOpen?
-    if (outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes()))
-      return Action::ERR;
+    int err = 0;
+#   ifdef MPI
+    err = outtraj_.ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
+                                          setup.Nframes(), Parallel::World());
+#   else
+    err = outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
+#   endif
+    if (err) return Action::ERR;
     outtraj_.PrintInfo(0);
     isSetup_ = true;
   }
@@ -97,8 +103,13 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
       if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
   }
-  if ( outtraj_.WriteSingle(frameNum, frm.Frm()) != 0 ) 
-    return Action::ERR;
+  int err = 0;
+# ifdef MPI
+  err = outtraj_.ParallelWriteSingle(frameNum, frm.Frm());
+# else
+  err = outtraj_.WriteSingle(frameNum, frm.Frm());
+# endif
+  if (err) return Action::ERR;
   return Action::OK;
 }
 
@@ -108,5 +119,9 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 void Action_Outtraj::Print() {
   mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
           outtraj_.Traj().NframesWritten());
+# ifdef MPI
+  outtraj_.ParallelEndTraj();
+# else
   outtraj_.EndTraj();
+# endif
 }
