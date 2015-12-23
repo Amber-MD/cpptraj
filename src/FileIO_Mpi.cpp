@@ -4,14 +4,7 @@
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
   if (comm_ == MPI_COMM_NULL) return 1;
   if (filename == 0) return 1;
-  int err=0;
-  switch( mode[0] ) { // FIXME: Always use world comm?
-    case 'r' : err = pfile_.OpenFile_Read(filename, comm_); break;
-    case 'w' : err = pfile_.OpenFile_Write(filename, comm_); break;
-    case 'a' : err=1; break; // NOTE: No MPI append for now
-    default  : err=1; break;
-  }
-  return err;
+  return pfile_.OpenFile(filename, mode, comm_);
 }
 
 // FileIO_Mpi::Close()

@@ -387,8 +387,11 @@ int Traj_AmberCoord::parallelOpenTrajin(Parallel::Comm const& commIn) {
   return 1;
 }
 
+/** This assumes file has been previously set up with parallelSetupTrajout
+  * and title has been written, so open append.
+  */
 int Traj_AmberCoord::parallelOpenTrajout(Parallel::Comm const& commIn) {
-  return (file_.ParallelOpenFile( commIn ));
+  return (file_.ParallelOpenFile( CpptrajFile::APPEND, commIn ));
 }
 
 /** First master performs all necessary setup, then sends info to all children.

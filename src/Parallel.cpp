@@ -250,17 +250,43 @@ int Parallel::Comm::CheckError(int err) const {
 }
 
 // ===== Parallel::File ========================================================
-/** Open specified file in parallel, read only, using given Comm. */
-int Parallel::File::OpenFile_Read(const char* filename, Comm const& commIn) {
+/** Open file in parallel using specified comm.
+  * \param mode File access mode: r, r+, w, a
+  */
+int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const& commIn)
+{
+  if (filename == 0 || mode == 0) return 1;
   comm_ = commIn;
-  fprintf(stdout,"[%i]\tparallel_openFile_read: Opening input file %s\n", comm_.Rank(), filename);
-  int err = MPI_File_open(comm_.MPIcomm(), (char*)filename, MPI_MODE_RDONLY, MPI_INFO_NULL, &file_);
+//# ifdef PARALLEL_DEBUG_VERBOSE
+  fprintf(stdout,"[%i]\tOpening file '%s' in parallel with mode '%s'\n",
+          comm_.Rank(), filename, mode);
+//# endif
+  int amode;
+  bool needs_seek = false;
+  switch (mode[0]) {
+    case 'r':
+      if (mode[1] == '+')
+        amode = MPI_MODE_RDWR;
+      else
+        amode = MPI_MODE_RDONLY;
+      break;
+    case 'w': amode = (MPI_MODE_WRONLY | MPI_MODE_CREATE); break;
+    case 'a':
+      amode = MPI_MODE_WRONLY;
+      needs_seek = true;
+      break;
+    default:
+      fprintf(stderr,"Error: Illegal mode specified for MPI_File_open: %s\n", mode);
+      return 1;
+  }
+  int err = MPI_File_open(comm_.MPIcomm(), (char*)filename, amode, MPI_INFO_NULL, &file_);
   if (err != MPI_SUCCESS)
-    printMPIerr(err, "parallel_openFile_read()", comm_.Rank());
+    printMPIerr(err, "Parallel::File::OpenFile()", comm_.Rank());
   // Check that everyone opened the file.
   if (comm_.CheckError(err) != 0) {
     return 1;
   }
+  if (needs_seek) Fseek(SEEK_END, 0);
   return 0;
 }
 
@@ -276,25 +302,6 @@ off_t Parallel::File::Position() {
     return 0;
   }
   return (off_t)offset;
-}
-
-/** Open specified file in parallel for write using given Comm; delete if present. */
-int Parallel::File::OpenFile_Write(const char* filename, Comm const& commIn) {
-  comm_ = commIn;
-  // Remove file if present
-  MPI_File_delete((char*)filename, MPI_INFO_NULL);
-# ifdef PARALLEL_DEBUG_VERBOSE
-  dbgprintf("\tparallel_open_file_write: Opening output file %s\n",filename);
-# endif
-  int err = MPI_File_open(comm_.MPIcomm(), (char*)filename, MPI_MODE_WRONLY | MPI_MODE_CREATE,
-                          MPI_INFO_NULL, &file_);
-  if (err != MPI_SUCCESS)
-    printMPIerr(err, "parallel_open_file_write()", comm_.Rank());
-  // Check that everyone opened the file.
-  if (comm_.CheckError(err) !=0 ) {
-    return 1;
-  }
-  return 0;
 }
 
 /** Close file. */

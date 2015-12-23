@@ -101,7 +101,6 @@ int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& com
     mprinterr("Internal Error: CpptrajFile has not been set up.\n");
     return 1;
   }
-  if (isOpen_) CloseFile();
   // This will currently only work for fileType_ STANDARD
   if (fileType_ != STANDARD) {
     mprinterr("Error: Parallel file access not supported for file type '%s'\n",
@@ -113,6 +112,7 @@ int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& com
     mprinterr("Error: Parallel file access not supported for streams.\n");
     return 1;
   }
+  if (isOpen_) CloseFile();
   // TODO Save serial IO object?
   fileType_ = MPIFILE;
   IO_ = SetupFileIO( fileType_ );

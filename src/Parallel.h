@@ -84,10 +84,9 @@ class Parallel::File {
   public:
     File() {}
 #   ifdef CPPTRAJ_MPI
-    int OpenFile_Read(const char*, Comm const&);
+    int OpenFile(const char*, const char*, Comm const&);
     int Flush();
     off_t Position();
-    int OpenFile_Write(const char*, Comm const&);
     int CloseFile();
     int Fread(void*, int, MPI_Datatype);
     int Fwrite(const void*, int, MPI_Datatype);
