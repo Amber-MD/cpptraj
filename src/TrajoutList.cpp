@@ -133,6 +133,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   }
   // Create Trajout_Single
   Trajout_Single* to = new Trajout_Single();
+  to->SetDebug( debug_ );
   // Initialize output trajectory
   ArgList args = argIn;
   if (to->InitTrajWrite(filename, args, TrajectoryFile::UNKNOWN_TRAJ)) {

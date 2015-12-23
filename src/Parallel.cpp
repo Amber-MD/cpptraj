@@ -270,7 +270,11 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
       else
         amode = MPI_MODE_RDONLY;
       break;
-    case 'w': amode = (MPI_MODE_WRONLY | MPI_MODE_CREATE); break;
+    case 'w':
+      amode = (MPI_MODE_WRONLY | MPI_MODE_CREATE);
+      // Remove file if present
+      MPI_File_delete((char*)filename, MPI_INFO_NULL);
+      break;
     case 'a':
       amode = MPI_MODE_WRONLY;
       needs_seek = true;
@@ -286,7 +290,8 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
   if (comm_.CheckError(err) != 0) {
     return 1;
   }
-  if (needs_seek) Fseek(SEEK_END, 0);
+  if (needs_seek) Fseek(0, SEEK_END);
+  fprintf(stdout,"[%i]\tPosition= %li\n", comm_.Rank(), Position());
   return 0;
 }
 

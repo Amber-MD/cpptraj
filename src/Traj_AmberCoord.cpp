@@ -337,6 +337,7 @@ int Traj_AmberCoord::setupTrajout(FileName const& fname, Topology* trajParm,
       // Set up default title
       title.assign("Cpptraj Generated trajectory");
       title.resize(80,' ');
+      SetTitle( title );
     } else {
       // Check title length
       if (title.size() > 80) {
