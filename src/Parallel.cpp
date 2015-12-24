@@ -291,7 +291,6 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
     return 1;
   }
   if (needs_seek) Fseek(0, SEEK_END);
-  fprintf(stdout,"[%i]\tPosition= %li\n", comm_.Rank(), Position());
   return 0;
 }
 

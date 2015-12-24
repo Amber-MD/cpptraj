@@ -127,7 +127,6 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   */
 // NOTE: The output frame size is calcd here - should it just be precalcd?
 int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
-  rprintf("DEBUG: Traj_AmberCoord::writeFrame set %i file position %li\n", file_.Tell());
   if (headerSize_ != 0) 
     file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, frameOut.Temperature());
 
@@ -462,7 +461,6 @@ int Traj_AmberCoord::parallelReadFrame(int set, Frame& frameIn) { return 1; }
 
 int Traj_AmberCoord::parallelWriteFrame(int set, Frame const& frameOut) {
   // Seek to given frame.
-  rprintf("Seek to frame %i\n", set);
   file_.SeekToFrame( set );
   return ( writeFrame(set, frameOut) );
 }

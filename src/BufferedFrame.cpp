@@ -86,7 +86,6 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
 }
 
 int BufferedFrame::SeekToFrame(size_t set) {
-  rprintf("DEBUG: %s: Seeking to %li\n", Filename().base(), (off_t)((set * frameSize_) + offset_) );
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
