@@ -7,19 +7,6 @@
 # include "Parallel.h"
 #endif
 
-// DEBUG
-void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo const& cInfo) {
-  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, cInfo.TrajBox().TypeName());
-  if (cInfo.ReplicaDimensions().Ndims() > 0) mprintf(", %i rep dims", cInfo.ReplicaDimensions().Ndims());
-  if (cInfo.HasVel()) mprintf(", velocities");
-  if (cInfo.HasTemp()) mprintf(", temps");
-  if (cInfo.HasTime()) mprintf(", times");
-  if (cInfo.HasForce()) mprintf(", forces");
-  if (cInfo.EnsembleSize() > 0) mprintf(", ensemble size %i", cInfo.EnsembleSize());
-  mprintf(" }\n");
-}
-// DEBUG
-
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 
 // ---------- CONSTRUCTION/DESTRUCTION/ASSIGNMENT ------------------------------

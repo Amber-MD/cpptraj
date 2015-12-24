@@ -143,7 +143,7 @@ int EnsembleOut_Multi::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo cons
     }
   //}
   if (debug_ > 0)
-    Frame::PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str(), Traj().CoordInfo());
+    Traj().CoordInfo().PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str());
   return 0;
 }
 

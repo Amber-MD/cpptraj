@@ -122,7 +122,7 @@ int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInf
                             traj_.NframesToWrite(), traj_.Append()))
     return 1;
   if (debug_ > 0)
-    Frame::PrintCoordInfo(traj_.Filename().base(), traj_.Parm()->c_str(), trajio_->CoordInfo());
+    trajio_->CoordInfo().PrintCoordInfo(traj_.Filename().base(), traj_.Parm()->c_str());
   // First frame setup
   //if (!TrajIsOpen()) { //}
   return 0;

@@ -30,7 +30,6 @@
   */
 class Frame {
   public:
-    static void PrintCoordInfo( const char*, const char*, CoordinateInfo const&);
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();

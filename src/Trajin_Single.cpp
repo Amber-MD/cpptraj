@@ -79,7 +79,7 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
 
   // TODO add in support for separate mdfrc file
   if (debug_ > 0)
-    Frame::PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str(), cInfo_ );
+    cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
   return 0;
 }
 
