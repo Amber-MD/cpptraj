@@ -145,6 +145,7 @@ SOURCES=ActionFrameCounter.cpp \
         CmdList.cpp \
         Command.cpp \
         ComplexArray.cpp \
+        CoordinateInfo.cpp \
         Corr.cpp \
         Cpptraj.cpp \
         CpptrajFile.cpp \
@@ -290,6 +291,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
         TrajectoryFile.cpp \
+        TrajectoryIO.cpp \
         TrajFrameCounter.cpp \
         TrajinList.cpp \
         Trajin_Multi.cpp \

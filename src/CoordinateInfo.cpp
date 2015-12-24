@@ -1,4 +1,17 @@
 #include "CoordinateInfo.h"
+#include "CpptrajStdio.h"
+
+void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
+  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, box_.TypeName());
+  if (remdDim_.Ndims() > 0) mprintf(", %i rep dims", remdDim_.Ndims());
+  if (hasVel_) mprintf(", velocities");
+  if (hasTemp_) mprintf(", temps");
+  if (hasTime_) mprintf(", times");
+  if (hasFrc_) mprintf(", forces");
+  if (ensembleSize_ > 0) mprintf(", ensemble size %i", ensembleSize_);
+  mprintf(" }\n");
+}
+
 #ifdef MPI
 int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 

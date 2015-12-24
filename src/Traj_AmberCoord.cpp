@@ -416,6 +416,7 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
   commIn.MasterBcast(&err, 1, MPI_INT);
   if (err != 0) return 1;
   // Synchronize info on non-master threads.
+  SyncTrajIO( commIn );
   // TODO For simplicity convert everything to double. Is this just lazy?
   double tmpArray[8];
   if (commIn.Master()) {
@@ -460,6 +461,7 @@ int Traj_AmberCoord::parallelReadFrame(int set, Frame& frameIn) { return 1; }
 
 int Traj_AmberCoord::parallelWriteFrame(int set, Frame const& frameOut) {
   // Seek to given frame.
+  rprintf("Seek to frame %i\n", set);
   file_.SeekToFrame( set );
   return ( writeFrame(set, frameOut) );
 }

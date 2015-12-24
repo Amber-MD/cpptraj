@@ -2,6 +2,9 @@
 #define INC_COORDINATEINFO_H
 #include "ReplicaDimArray.h"
 #include "Box.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// All metadata associated with a Frame.
 class CoordinateInfo {
   public:
@@ -32,6 +35,11 @@ class CoordinateInfo {
     void SetEnsembleSize(int s) { ensembleSize_ = s; }
     void SetBox(Box const& b)   { box_ = b;     }
     void SetReplicaDims(ReplicaDimArray const& r) { remdDim_ = r; }
+    /// Print coordinate info to STDOUT
+    void PrintCoordInfo(const char*, const char*) const;
+#   ifdef MPI
+    int SyncCoordInfo(Parallel::Comm const&);
+#   endif
   private:
     ReplicaDimArray remdDim_; ///< Hold info on any replica dimensions.
     Box box_;                 ///< Hold box information.

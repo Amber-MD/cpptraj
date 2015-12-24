@@ -260,3 +260,10 @@ void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }
+#ifdef MPI
+int Box::SyncBox(Parallel::Comm const& commIn) {
+  commIn.MasterBcast( &btype_, 1, MPI_INT );
+  commIn.MasterBcast( box_,    6, MPI_DOUBLE );
+  return 0;
+}
+#endif

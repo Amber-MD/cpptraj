@@ -100,6 +100,10 @@ class TrajectoryIO : public BaseIOtype {
   protected:
     void SetCoordInfo(CoordinateInfo const& cIn) { coordInfo_ = cIn; }
     int debug_;               ///< Trajectory debug level.
+#   ifdef MPI
+    /// Sync up coordinate info etc.
+    int SyncTrajIO(Parallel::Comm const&);
+#   endif
   private:
     CoordinateInfo coordInfo_; ///< Metadata associated with coordinate Frame
     std::string title_;        ///< Set to trajectory title.
