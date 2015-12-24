@@ -43,12 +43,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   if (frameSize_ < 1) 
     buffer_ = 0;
   else {
-    buffer_ = new char[ frameSize_ ];
+    buffer_ = new char[ frameSize_ + 1 ]; // +1 for null, TODO not necessary for read?
     std::fill(buffer_, buffer_ + frameSize_, 0);
   }
   bufferPosition_ = buffer_;
-  rprintf("DEBUG: BufferedFrame %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu\n",
-          Ncols_, eltWidth_, offset_, frameSize_);
+  rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+          Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
 
@@ -64,9 +64,6 @@ size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   if (readingFile && IsDos()) frame_lines *= 2;
   // Calculate total frame size
   size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines);
-  // If writing, add +1 for null 
-  if (!readingFile)
-    ++fsize;
   return fsize;
 }
 
@@ -89,7 +86,7 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
 }
 
 int BufferedFrame::SeekToFrame(size_t set) {
-  rprintf("DEBUG: Seeking to %li\n", (off_t)((set * frameSize_) + offset_) );
+  rprintf("DEBUG: %s: Seeking to %li\n", Filename().base(), (off_t)((set * frameSize_) + offset_) );
   return Seek( (off_t)((set * frameSize_) + offset_) );
 }
 
