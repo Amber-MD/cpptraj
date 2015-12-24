@@ -85,7 +85,7 @@ int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo con
                          Traj().NframesToWrite(), Traj().Append()))
     return 1;
   if (debug_ > 0)
-    Frame::PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str(), eio_->CoordInfo());
+    eio_->CoordInfo().PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str());
   // First frame setup
   //if (!TrajIsOpen()) { //}
   return 0;
