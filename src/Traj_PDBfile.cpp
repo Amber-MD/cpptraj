@@ -478,3 +478,23 @@ void Traj_PDBfile::Info() {
       mprintf(", using PDB V3 atom names");
   }
 }
+#ifdef MPI
+/// Not valid for MODEL (checked in setup) so no need to do anything.
+int Traj_PDBfile::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+int Traj_PDBfile::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  if (pdbWriteMode_ != MULTI) {
+    mprinterr("Error: PDB write in parallel requires 'multi' keyword.\n");
+    return 1;
+  }
+  return setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+}
+
+int Traj_PDBfile::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif

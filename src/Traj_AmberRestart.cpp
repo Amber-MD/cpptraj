@@ -378,3 +378,22 @@ void Traj_AmberRestart::Info() {
     if (!outputTime_) mprintf(", no time");
   }
 }
+#ifdef MPI
+/// Since files are opened on write this does not need to do anything
+int Traj_AmberRestart::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+/** No file access during setupTrajout, so have all threads call it.
+  * No need to sync.
+  */
+int Traj_AmberRestart::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  return (setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append));
+}
+
+int Traj_AmberRestart::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif
