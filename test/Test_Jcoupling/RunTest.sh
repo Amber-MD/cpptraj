@@ -3,8 +3,9 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles jcoupling.in Jcoupling.dat
+CleanFiles jcoupling.in Jcoupling.dat jc.dat
 
+INPUT="-i jcoupling.in"
 # Test 1
 CheckNetcdf
 cat > jcoupling.in <<EOF
@@ -13,11 +14,16 @@ parm ../tz2.parm7
 trajin ../tz2.nc 1 1
 jcoupling outfile Jcoupling.dat kfile Karplus.txt
 EOF
-INPUT="-i jcoupling.in"
 RunCpptraj "J-Coupling command test."
 DoTest Jcoupling.dat.save Jcoupling.dat
 
-CheckTest
+cat > jcoupling.in <<EOF
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+jcoupling out jc.dat kfile Karplus.txt :2
+EOF
+RunCpptraj "J-Coupling extended test."
+DoTest jc.dat.save jc.dat
 
 EndTest
 
