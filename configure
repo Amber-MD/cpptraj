@@ -397,7 +397,7 @@ VALUE=""
 while [[ ! -z $1 ]] ; do
   # If arg is Key=Value, separate into Key and Value
   VALUE=""
-  POS=`expr index "$1" '='`
+  POS=`echo $1 | awk 'match($0,"="){print RSTART}'`
   if [[ $POS -eq 1 ]] ; then
     echo "Error: '=' cannot be first character in an argument." > /dev/stderr ; exit 1
   elif [[ $POS -gt 1 ]] ; then
