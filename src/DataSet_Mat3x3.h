@@ -10,7 +10,7 @@ class DataSet_Mat3x3 : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mat3x3(); }
     // ----- DataSet functions -------------------
     size_t Size()                       const { return data_.size(); }
-    int Sync(size_t, std::vector<int> const&) { return 1;            }
+    int Sync(size_t, std::vector<int> const&);
     void Info()                         const { return;              }
     int Allocate(SizeArray const&);
     inline void Add(size_t, const void*);
