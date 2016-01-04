@@ -23,21 +23,9 @@ EOF
   DoTest dummy.rst7.save dummy.rst7
   # Tell diff to ignore the VERSION line
   DoTest strip.tz2.truncoct.parm7.save strip.tz2.truncoct.parm7 -I %VERSION
-fi
 
-# Strip test that will work in parallel
-cat > strip.in <<EOF
-noprogress
-parm ../tz2.parm7
-trajin ../tz2.nc
-strip !(:1) nobox
-trajout res1.tz2.crd
-EOF
-RunCpptraj "Multi frame strip command test."
-DoTest res1.tz2.crd.save res1.tz2.crd
-
-# Unstrip Test
-cat > strip.in <<EOF
+  # Unstrip Test
+  cat > strip.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.crd 1 1 parm ../tz2.truncoct.parm7
@@ -58,15 +46,27 @@ unstrip
 strip !(:17) outprefix ligand
 outtraj Ligand.crd
 EOF
-INPUT="-i strip.in"
-RunCpptraj "Unstrip (Lig/Rec/Complex) command test."
-# Tell diff to ignore the VERSION line
-DoTest strip.tz2.truncoct.parm7.save complex.tz2.truncoct.parm7 -I %VERSION
-DoTest receptor.tz2.truncoct.parm7.save receptor.tz2.truncoct.parm7 -I %VERSION
-DoTest ligand.tz2.truncoct.parm7.save ligand.tz2.truncoct.parm7 -I %VERSION
-DoTest Ligand.crd.save Ligand.crd
-DoTest Receptor.crd.save Receptor.crd
-DoTest Complex.crd.save Complex.crd
+  INPUT="-i strip.in"
+  RunCpptraj "Unstrip (Lig/Rec/Complex) command test."
+  # Tell diff to ignore the VERSION line
+  DoTest strip.tz2.truncoct.parm7.save complex.tz2.truncoct.parm7 -I %VERSION
+  DoTest receptor.tz2.truncoct.parm7.save receptor.tz2.truncoct.parm7 -I %VERSION
+  DoTest ligand.tz2.truncoct.parm7.save ligand.tz2.truncoct.parm7 -I %VERSION
+  DoTest Ligand.crd.save Ligand.crd
+  DoTest Receptor.crd.save Receptor.crd
+  DoTest Complex.crd.save Complex.crd
+fi
+
+# Strip test that will work in parallel
+cat > strip.in <<EOF
+noprogress
+parm ../tz2.parm7
+trajin ../tz2.nc
+strip !(:1) nobox
+trajout res1.tz2.crd
+EOF
+RunCpptraj "Multi frame strip command test."
+DoTest res1.tz2.crd.save res1.tz2.crd
 
 EndTest
 
