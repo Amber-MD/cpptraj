@@ -35,6 +35,9 @@ class Parallel {
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif
+    static int Trajin()       { return trajin_; }
+    static void SetTrajin()   { trajin_ = 1; }
+    static void SetEnsemble() { trajin_ = 0; }
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI
@@ -45,6 +48,7 @@ class Parallel {
     static int debug_init();
     static int debug_end();
 #   endif
+    static int trajin_; ///< If 1, single trajectories are being processed in parallel.
 #   endif
     static Comm world_;
 };

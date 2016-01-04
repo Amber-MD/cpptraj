@@ -8,6 +8,8 @@
 Parallel::Comm Parallel::world_ = Parallel::Comm();
 
 #ifdef MPI
+int Parallel::trajin_ = 1;
+
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
 void Parallel::printMPIerr(int err, const char *routineName, int rank) {
