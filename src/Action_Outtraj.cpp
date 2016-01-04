@@ -2,6 +2,15 @@
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
 
+Action_Outtraj::~Action_Outtraj() {
+# ifdef MPI
+  // NOTE: Must close in destructor since Print() is only called by master.
+  outtraj_.ParallelEndTraj();
+# else
+  outtraj_.EndTraj();
+# endif
+}
+
 void Action_Outtraj::Help() const {
   mprintf("\t<filename> [ trajout args ]\n"
           "\t[maxmin <dataset> min <min> max <max>] ...\n"
@@ -105,7 +114,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
   }
   int err = 0;
 # ifdef MPI
-  err = outtraj_.ParallelWriteSingle(frameNum, frm.Frm());
+  err = outtraj_.ParallelWriteSingle(frm.TrajoutNum(), frm.Frm());
 # else
   err = outtraj_.WriteSingle(frameNum, frm.Frm());
 # endif
@@ -119,9 +128,4 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 void Action_Outtraj::Print() {
   mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
           outtraj_.Traj().NframesWritten());
-# ifdef MPI
-  outtraj_.ParallelEndTraj();
-# else
-  outtraj_.EndTraj();
-# endif
 }
