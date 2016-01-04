@@ -5,7 +5,7 @@ CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
-# containe -lnetcdf / -larpack etc this avoids triggering an unnecessary build 
+# contain -lnetcdf / -larpack etc this avoids triggering an unnecessary build 
 # of these libraries each time 'make' is invoked.
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
