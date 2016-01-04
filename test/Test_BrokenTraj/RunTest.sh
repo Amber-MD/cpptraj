@@ -4,7 +4,11 @@
 
 # Clean
 CleanFiles goodrmsd.dat badrmsd.dat goodtraj.in brokentraj.in zip.gz zip.in ziprmsd.dat
-NotParallel
+NotParallel "Broken Traj"
+if [[ $? -eq 1 ]] ; then
+  echo ""
+  exit 0;
+fi
 # Test 1
 cat > goodtraj.in <<EOF
 noprogress
@@ -39,8 +43,6 @@ EOF
 INPUT="-i zip.in"
 RunCpptraj "Broken Traj: Running compressed broken trajectory."
 DoTest goodrmsd.dat ziprmsd.dat
-
-CheckTest
 
 EndTest
 

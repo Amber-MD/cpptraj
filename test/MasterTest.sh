@@ -264,10 +264,12 @@ CheckPnetcdf() {
 
 NotParallel() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    echo "This test cannot be run in parallel. Skipping test."
     echo ""
-    exit 0
-  fi
+    echo "  CPPTRAJ: $1"
+    echo "  This test cannot be run in parallel. Skipping test."
+    return 1
+ fi
+ return 0
 }
 
 RequiresThreads() {

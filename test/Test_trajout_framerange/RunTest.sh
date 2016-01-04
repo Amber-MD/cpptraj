@@ -4,7 +4,11 @@
 
 # Clean
 CleanFiles general.in *.rst7.? framerange.in framerange.crd
-NotParallel
+NotParallel "Trajout Frame Range"
+if [[ $? -eq 1 ]] ; then
+  echo ""
+  exit 0
+fi
 CheckNetcdf
 # Test 1
 cat > general.in <<EOF
