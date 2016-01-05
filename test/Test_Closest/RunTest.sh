@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
-           closest.tz2.truncoct.parm7 all.Closest.pdb.1 closest10.center2_4.crd
+           closest.tz2.truncoct.parm7 all.Closest.pdb.1 \
+           closest10.center2_4.crd closest10.mols.dat
 
 INPUT="-i closest.in"
 CheckNetcdf
@@ -36,11 +37,12 @@ DoTest all.Closest.pdb.save all.Closest.pdb.1
 cat > closest.in <<EOF
 parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc
-closest 10 :2,4 center
+closest 10 :2,4 center closestout closest10.mols.dat name C10
 trajout closest10.center2_4.crd nobox
 EOF
 RunCpptraj "Closest command test, using mask center"
 DoTest closest10.center2_4.crd.save closest10.center2_4.crd
+DoTest closest10.mols.dat.save closest10.mols.dat
 
 EndTest
 
