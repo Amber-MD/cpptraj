@@ -339,7 +339,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     stripMask_.AddMaskAtPosition( solvent->mask, *katom );
     // Record which water molecules are closest if requested
     if (outFile_!=0) {
-      int fnum = frameNum + 1;
+      int fnum = frm.TrajoutNum() + 1;
       framedata_->Add(Nclosest_, &fnum);
       moldata_->Add(Nclosest_, &(solvent->mol));
       Dist = sqrt( solvent->D );
@@ -360,4 +360,32 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   frm.SetFrame( &newFrame_ );
 
   return Action::MODIFY_COORDS;
+}
+
+/** Since datasets are actually # frames * closestWaters_ in length, need to
+  * sync here.
+  */
+int Action_Closest::SyncAction() {
+# ifdef MPI
+  if (outFile_ == 0) return 0;
+  // Get total number of closest entries.
+  std::vector<int> rank_frames( Parallel::World().Size() );
+  Parallel::World().GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
+  mprintf("DEBUG: Master= %i frames\n", Nclosest_);
+  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+    mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+    Nclosest_ += rank_frames[ rank ];
+  }
+  mprintf("DEBUG: Total= %i frames.\n", Nclosest_);
+  framedata_->Sync( Nclosest_, rank_frames );
+  framedata_->SetSynced();
+  mprintf("DEBUG: framedata_ size is %zu\n", framedata_->Size());
+  moldata_->Sync( Nclosest_, rank_frames );
+  moldata_->SetSynced();
+  distdata_->Sync( Nclosest_, rank_frames );
+  distdata_->SetSynced();
+  atomdata_->Sync( Nclosest_, rank_frames );
+  atomdata_->SetSynced();
+# endif
+  return 0;
 }
