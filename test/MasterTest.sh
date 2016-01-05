@@ -281,6 +281,7 @@ RequiresThreads() {
     fi
     N_THREADS=`$DO_PARALLEL $NPROC`
     if [[ $N_THREADS -ne $1 ]] ; then
+      echo ""
       echo "Warning: Test requires $1 threads. Skipping."
       return 1
     fi
