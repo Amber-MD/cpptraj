@@ -746,12 +746,12 @@ int CpptrajState::RunParallel() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
-  // Sync data sets to master thread
   Timer time_sync;
   time_sync.Start();
-  DSL_.SynchronizeData( input_traj.Size(), rank_frames );
   // Sync Actions to master thread
   actionList_.SyncActions();
+  // Sync data sets to master thread
+  DSL_.SynchronizeData( input_traj.Size(), rank_frames );
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");

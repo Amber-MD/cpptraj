@@ -29,6 +29,7 @@ class DataSet_integer : public DataSet_1D {
     typedef std::vector<int>::iterator iterator;
     iterator begin()                  { return Data_.begin();      }
     iterator end()                    { return Data_.end();        }
+    int* Ptr()                        { return &(Data_[0]);        }
   private:
     std::vector<int> Data_;
 };

@@ -29,6 +29,7 @@ Action_Hbond::Action_Hbond() :
   dcut2_(0),
   CurrentParm_(0),
   series_(false),
+  seriesUpdated_(false),
   NumHbonds_(0),
   NumSolvent_(0),
   NumBridge_(0),
@@ -767,7 +768,7 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-void Action_Hbond::SyncMap(HBmapType& mapIn) const {
+void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames) const {
   // Need to know how many hbonds on each thread.
   int num_hb = (int)mapIn.size();
   int* nhb_on_rank = 0;
@@ -791,11 +792,16 @@ void Action_Hbond::SyncMap(HBmapType& mapIn) const {
           // Hbond on rank that has not been found on master
           HB.dist  = dArray[id  ];
           HB.angle = dArray[id+1];
-          HB.data_ = 0;
           HB.A      = iArray[ii+1];
           HB.H      = iArray[ii+2];
           HB.D      = iArray[ii+3];
           HB.Frames = iArray[ii+4];
+          HB.data_ = 0;
+          if (series_) {
+            HB.data_ = (DataSet_integer*)
+                       masterDSL_->AddSet( DataSet::INTEGER,
+                                           MetaData(hbsetname_, "solutehb", iArray[ii]) ); // TODO fix
+          }
           mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames\n", HB.A+1, HB.H+1, HB.D+1, HB.dist,
                   HB.angle, HB.Frames);
           mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
@@ -807,6 +813,14 @@ void Action_Hbond::SyncMap(HBmapType& mapIn) const {
           it->second.dist  += dArray[id  ];
           it->second.angle += dArray[id+1];
           it->second.Frames += iArray[ii+4];
+          if (series_)
+            HB.data_ = it->second.data_;
+        }
+        if (series_) {
+          HB.data_->Resize( Nframes_ );
+          int* d_beg = HB.data_->Ptr() + rank_frames[ rank-1 ];
+          Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1302 );
+          HB.data_->SetSynced();
         }
       }
     }
@@ -826,22 +840,40 @@ void Action_Hbond::SyncMap(HBmapType& mapIn) const {
       iArray.push_back( hb->second.Frames );
     }
     Parallel::World().Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
-    Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
+    Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 ); 
+    // Send series data to master
+    if (series_) {
+      for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+        Parallel::World().Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
+                                MPI_INT, 0, 1302 );
+        hb->second.data_->SetSynced();
+      }
+    }
   }
 }
 #endif
 
 int Action_Hbond::SyncAction() {
 # ifdef MPI
+  // Make sure all time series are updated at this point.
+  UpdateSeries();
   // Get total number of frames.
-  int total_frames = 0;
-  Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  if (Parallel::World().Master())
-    Nframes_ = total_frames;
+  int* rank_frames = new int[ Parallel::World().Size() ];
+  Parallel::World().GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
+  mprintf("DEBUG: Master= %i frames\n", Nframes_);
+  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+    mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+    Nframes_ += rank_frames[ rank ];
+  }
+  mprintf("DEBUG: Total= %i frames.\n", Nframes_);
+  //int total_frames = 0;
+  //Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  //if (Parallel::World().Master())
+  //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
-  SyncMap( HbondMap_ );
+  SyncMap( HbondMap_, rank_frames );
   if (calcSolvent_) {
-    SyncMap( SolventMap_ );
+    SyncMap( SolventMap_, rank_frames );
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
@@ -882,6 +914,7 @@ int Action_Hbond::SyncAction() {
       Parallel::World().Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
     }
   }
+  delete[] rank_frames;
 # endif
   return 0;
 }
@@ -893,6 +926,25 @@ void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
   hb.angle /= dFrames;
   hb.angle *= Constants::RADDEG;
 }
+
+void Action_Hbond::UpdateSeries() {
+  if (seriesUpdated_) return;
+  if (series_ && Nframes_ > 0) {
+    const int ZERO = 0;
+    for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
+    {
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
+    }
+    for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
+    {
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
+    }
+  }
+  // Should only be called once.
+  seriesUpdated_ = true;
+} 
 
 // Action_Hbond::Print()
 /** Print average occupancies over all frames for all detected Hbonds. */
@@ -910,19 +962,7 @@ void Action_Hbond::Print() {
   }
 
   // Ensure all series have been updated for all frames.
-  if (series_ && Nframes_ > 0) {
-    const int ZERO = 0;
-    for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
-    {
-      if ((int)hb->second.data_->Size() < Nframes_)
-        hb->second.data_->Add( Nframes_-1, &ZERO );
-    }
-    for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
-    {
-      if ((int)hb->second.data_->Size() < Nframes_)
-        hb->second.data_->Add( Nframes_-1, &ZERO );
-    }
-  } 
+  UpdateSeries();
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.

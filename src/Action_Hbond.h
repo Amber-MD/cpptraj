@@ -67,6 +67,7 @@ class Action_Hbond : public Action {
     Topology* CurrentParm_;
 
     bool series_;
+    bool seriesUpdated_;
     std::string hbsetname_;
     DataSet* NumHbonds_;
     DataSet* NumSolvent_;
@@ -105,11 +106,12 @@ class Action_Hbond : public Action {
     void SearchAcceptor(HBlistType&,AtomMask&,bool);
     void SearchDonor(HBlistType&,AtomMask&,bool,bool);
     std::string MemoryUsage(size_t, size_t) const;
+    void UpdateSeries();
     inline int AtomsAreHbonded(Frame const&, int, int, int, int, int,bool);
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;
 #   ifdef MPI
-    void SyncMap(HBmapType&) const;
+    void SyncMap(HBmapType&, const int*) const;
 #   endif
 };
 #endif
