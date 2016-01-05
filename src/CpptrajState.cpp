@@ -718,7 +718,7 @@ int CpptrajState::RunParallel() {
   }
 
   // Set up any related output trajectories. 
-  if (trajoutList_.ParallelSetupTrajout( currentParm.TopAddress(), currentCoordInfo,
+  if (trajoutList_.ParallelSetupTrajout( currentParm.TopAddress(), currentParm.CoordInfo(),
                                          input_traj.Size(), Parallel::World() ))
     return 1;
 
