@@ -53,13 +53,13 @@ EOF
 
 # Test ensemble mode with outtraj output
 OuttrajTest() {
-  RequiresThreads 2
+  RequiresThreads 8
   if [[ $? -eq 0 ]] ; then
     cat > mremd.in <<EOF
 noprogress
 parm rGACC.nowat.parm7
-ensemble rGACC.nowat.001 trajnames rGACC.nowat.002 nosort
-outtraj Outtraj.crd
+ensemble rGACC.nowat.001 nosort
+outtraj Outtraj.crd onlymembers 0,1
 EOF
     RunCpptraj "M-REMD ensemble outtraj test."
     if [[ -e Outtraj.crd ]] ; then
