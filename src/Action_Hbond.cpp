@@ -369,12 +369,12 @@ Action::RetType Action_Hbond::Setup(ActionSetup& setup) {
   // Print acceptor/donor information
   mprintf("\tSet up %zu acceptors:\n", Acceptor_.size() );
   if (debug_>0) {
-    for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
+    for (HBlistType::const_iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
       mprintf("        %8i: %4s\n",*accept+1,setup.Top()[*accept].c_str());
   }
   mprintf("\tSet up %zu donors:\n", Donor_.size()/2 );
   if (debug_>0) {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
       int atom = (*donor);
       ++donor;
       int a2   = (*donor);
@@ -645,13 +645,13 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   int hbidx = 0; 
   int numHB=0;
   if (noIntramol_) {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
       D = (*donor);
       ++donor;
       H = (*donor);
       int mol1 = (*CurrentParm_)[D].MolNum();
-      for (HBlistType::iterator accept = Acceptor_.begin(); 
-                                accept != Acceptor_.end(); ++accept, ++hbidx) 
+      for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                      accept != Acceptor_.end(); ++accept, ++hbidx)
       {
         if (*accept == D || mol1 == (*CurrentParm_)[*accept].MolNum()) continue;
         // The following macro handles hbond determination.
@@ -659,12 +659,12 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
       }
     }
   } else {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
       D = (*donor);
       ++donor;
       H = (*donor);
-      for (HBlistType::iterator accept = Acceptor_.begin(); 
-                                accept != Acceptor_.end(); ++accept, ++hbidx) 
+      for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                accept != Acceptor_.end(); ++accept, ++hbidx)
       {
         if (*accept == D) continue;
         // The following macro handles hbond determination.
@@ -684,14 +684,14 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Index by solute H atom. 
     if (hasSolventAcceptor_) {
       numHB = 0;
-      for (HBlistType::iterator donor = Donor_.begin(); 
-                                donor != Donor_.end(); ++donor) 
+      for (HBlistType::const_iterator donor = Donor_.begin();
+                                      donor != Donor_.end(); ++donor)
       {
         D = (*donor);
         ++donor;
         H = (*donor);
-        for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
-                                  accept != SolventAcceptor_.end(); ++accept)
+        for (HBlistType::const_iterator accept = SolventAcceptor_.begin();
+                                        accept != SolventAcceptor_.end(); ++accept)
         { 
           if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, H, true )) {
             ++numHB;
@@ -709,14 +709,14 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Index by solute acceptor atom
     if (hasSolventDonor_) {
       numHB = 0;
-      for (HBlistType::iterator donor = SolventDonor_.begin();
-                                donor != SolventDonor_.end(); ++donor)
+      for (HBlistType::const_iterator donor = SolventDonor_.begin();
+                                      donor != SolventDonor_.end(); ++donor)
       {
         D = (*donor);
         ++donor;
         H = (*donor);
-        for (HBlistType::iterator accept = Acceptor_.begin();
-                                  accept != Acceptor_.end(); ++accept)
+        for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                        accept != Acceptor_.end(); ++accept)
         {
           if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, *accept, false )) {
             ++numHB;
@@ -735,17 +735,17 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Determine number of bridging waters.
     numHB = 0;
     std::string bridgeID;
-    for (std::map< int, std::set<int> >::iterator bridge = solvent2solute.begin();
-                                                  bridge != solvent2solute.end();
-                                                  ++bridge)
+    for (std::map< int, std::set<int> >::const_iterator bridge = solvent2solute.begin();
+                                                        bridge != solvent2solute.end();
+                                                      ++bridge)
     {
       // If solvent molecule is bound to 2 or more different residues,
       // it is bridging. 
       if ( bridge->second.size() > 1) {
         ++numHB;
         bridgeID.append(integerToString( bridge->first+1 ) + "("); // Bridging Solvent res 
-        for (std::set<int>::iterator res = bridge->second.begin();
-                                     res != bridge->second.end(); ++res)
+        for (std::set<int>::const_iterator res = bridge->second.begin();
+                                           res != bridge->second.end(); ++res)
           bridgeID.append( integerToString( *res+1 ) + "+" ); // Solute res being bridged
         bridgeID.append("),");
         // Find bridge in map based on this combo of residues (bridge.second)
@@ -924,6 +924,7 @@ int Action_Hbond::SyncAction() {
       {
         // Receive size of iArray
         Parallel::World().Recv( &iSize,           1, MPI_INT, rank, 1302 );
+        mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
         iArray.resize( iSize );
         Parallel::World().Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
         unsigned int idx = 0;
@@ -936,7 +937,7 @@ int Action_Hbond::SyncAction() {
           if (b_it == BridgeMap_.end() ) // New Bridge 
             BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(residues, iArray[i2]) );
           else                           // Increment bridge #frames
-            b_it->second++;
+            b_it->second += iArray[i2];
           idx = i2 + 1;
         }
       }
@@ -1093,18 +1094,19 @@ void Action_Hbond::Print() {
     bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
     std::vector<std::pair< std::set<int>, int> > bridgevector;
-    for (BridgeType::iterator it = BridgeMap_.begin(); 
-                              it != BridgeMap_.end(); ++it) 
+    for (BridgeType::const_iterator it = BridgeMap_.begin();
+                                    it != BridgeMap_.end(); ++it)
       bridgevector.push_back( *it );
     std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
-    for (std::vector<std::pair< std::set<int>, int> >::iterator bv = bridgevector.begin();
-                                                                bv != bridgevector.end(); ++bv)
+    for (std::vector<std::pair< std::set<int>, int> >::const_iterator bv = bridgevector.begin();
+                                                                      bv != bridgevector.end();
+                                                                    ++bv)
     {
       bridgeout_->Printf("Bridge Res");
-      for (std::set<int>::iterator res = (*bv).first.begin();
-                                   res != (*bv).first.end(); ++res)
+      for (std::set<int>::const_iterator res = bv->first.begin();
+                                         res != bv->first.end(); ++res)
         bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
-      bridgeout_->Printf(", %i frames.\n", (*bv).second);
+      bridgeout_->Printf(", %i frames.\n", bv->second);
     } 
   } 
 }
