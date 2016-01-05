@@ -185,6 +185,6 @@ int Trajout_Single::ParallelWriteSingle(int set, Frame const& FrameOut) {
 }
 
 void Trajout_Single::ParallelEndTraj() {
-  trajio_->parallelCloseTraj();
+  if (trajio_ != 0) trajio_->parallelCloseTraj();
 }
 #endif

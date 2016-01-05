@@ -7,7 +7,8 @@ all: install
 
 # Create cpptraj binary and move to ./bin/
 install: config.h
-	cd src && $(MAKE) install 
+	cd src && $(MAKE) install
+	cd util && $(MAKE)
 
 # Create libcpptraj.so
 libcpptraj: config.h

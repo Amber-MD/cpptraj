@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
-           rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat
+           rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
+           rmsd.refcoords.dat
 
 CheckNetcdf
 TOP="../tz2.truncoct.parm7"

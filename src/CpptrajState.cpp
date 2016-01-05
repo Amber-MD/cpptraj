@@ -27,6 +27,9 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn) {
     mode_ = modeIn;
     DSL_.SetEnsembleNum( -1 );
     DFL_.SetEnsembleNum( -1 );
+#   ifdef MPI
+    Parallel::SetTrajin();
+#   endif
     return 0;
   }
   if (mode_ != UNDEFINED) {
@@ -40,6 +43,8 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn) {
   mode_ = modeIn;
   if (mode_ == ENSEMBLE) {
 #   ifdef MPI
+    // Let everything know individual trajectories are not being processed in parallel
+    Parallel::SetEnsemble();
     // Make all sets not in an ensemble a member of this thread.
     DSL_.SetEnsembleNum( Parallel::World().Rank() ); // FIXME create MPI ensemble comm
     // This tells all DataFiles to append member number.

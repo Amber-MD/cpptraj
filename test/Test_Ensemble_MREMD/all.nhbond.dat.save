@@ -1,15 +1,15 @@
-#Frame         HB[UU]       HB[UV]   HB[Bridge] HB[ID]
-       1            3            0            0   None
-       2            4            0            0   None
-       3            4            0            0   None
-       4            2            0            0   None
-       5            3            0            0   None
-       6            3            0            0   None
-       7            4            0            0   None
-       8            5            0            0   None
-       9            4            0            0   None
-      10            4            0            0   None
-#Frame         HB[UU]       HB[UV]   HB[Bridge]   HB[ID]
+#Frame       HB[UU]%0     HB[UV]%0 HB[Bridge]%0 HB[ID]%0
+       1            3            0            0     None
+       2            4            0            0     None
+       3            4            0            0     None
+       4            2            0            0     None
+       5            3            0            0     None
+       6            3            0            0     None
+       7            4            0            0     None
+       8            5            0            0     None
+       9            4            0            0     None
+      10            4            0            0     None
+#Frame       HB[UU]%1     HB[UV]%1 HB[Bridge]%1 HB[ID]%1
        1            5            3            1 7(1+4+),
        2            6            3            1 7(1+4+),
        3            4            3            1 7(1+4+),
@@ -20,7 +20,7 @@
        8            6            0            0     None
        9            3            0            0     None
       10            5            0            0     None
-#Frame         HB[UU]       HB[UV]   HB[Bridge]   HB[ID]
+#Frame       HB[UU]%2     HB[UV]%2 HB[Bridge]%2 HB[ID]%2
        1            5            0            0     None
        2            6            0            0     None
        3            6            0            0     None
@@ -31,7 +31,7 @@
        8            6            0            0     None
        9            4            0            0     None
       10            5            3            1 7(1+4+),
-#Frame         HB[UU]       HB[UV]   HB[Bridge]   HB[ID]
+#Frame       HB[UU]%3     HB[UV]%3 HB[Bridge]%3 HB[ID]%3
        1            3            0            0     None
        2            4            0            0     None
        3            6            0            0     None
@@ -42,47 +42,47 @@
        8            5            3            1 7(1+4+),
        9            5            3            1 7(1+4+),
       10            4            0            0     None
-#Frame         HB[UU]       HB[UV]   HB[Bridge] HB[ID]
-       1            1            0            0   None
-       2            1            0            0   None
-       3            1            0            0   None
-       4            1            0            0   None
-       5            1            0            0   None
-       6            1            0            0   None
-       7            1            0            0   None
-       8            1            0            0   None
-       9            1            0            0   None
-      10            1            0            0   None
-#Frame         HB[UU]       HB[UV]   HB[Bridge] HB[ID]
-       1            3            0            0   None
-       2            7            0            0   None
-       3            4            0            0   None
-       4            6            0            0   None
-       5            6            0            0   None
-       6            7            0            0   None
-       7            3            0            0   None
-       8            5            0            0   None
-       9            5            0            0   None
-      10            5            0            0   None
-#Frame         HB[UU]       HB[UV]   HB[Bridge] HB[ID]
-       1            2            0            0   None
-       2            5            0            0   None
-       3            2            0            0   None
-       4            2            0            0   None
-       5            3            0            0   None
-       6            2            0            0   None
-       7            4            0            0   None
-       8            3            0            0   None
-       9            3            0            0   None
-      10            4            0            0   None
-#Frame         HB[UU]       HB[UV]   HB[Bridge] HB[ID]
-       1            4            0            0   None
-       2            3            0            0   None
-       3            1            0            0   None
-       4            3            0            0   None
-       5            2            0            0   None
-       6            2            0            0   None
-       7            1            0            0   None
-       8            3            0            0   None
-       9            3            0            0   None
-      10            2            0            0   None
+#Frame       HB[UU]%4     HB[UV]%4 HB[Bridge]%4 HB[ID]%4
+       1            1            0            0     None
+       2            1            0            0     None
+       3            1            0            0     None
+       4            1            0            0     None
+       5            1            0            0     None
+       6            1            0            0     None
+       7            1            0            0     None
+       8            1            0            0     None
+       9            1            0            0     None
+      10            1            0            0     None
+#Frame       HB[UU]%5     HB[UV]%5 HB[Bridge]%5 HB[ID]%5
+       1            3            0            0     None
+       2            7            0            0     None
+       3            4            0            0     None
+       4            6            0            0     None
+       5            6            0            0     None
+       6            7            0            0     None
+       7            3            0            0     None
+       8            5            0            0     None
+       9            5            0            0     None
+      10            5            0            0     None
+#Frame       HB[UU]%6     HB[UV]%6 HB[Bridge]%6 HB[ID]%6
+       1            2            0            0     None
+       2            5            0            0     None
+       3            2            0            0     None
+       4            2            0            0     None
+       5            3            0            0     None
+       6            2            0            0     None
+       7            4            0            0     None
+       8            3            0            0     None
+       9            3            0            0     None
+      10            4            0            0     None
+#Frame       HB[UU]%7     HB[UV]%7 HB[Bridge]%7 HB[ID]%7
+       1            4            0            0     None
+       2            3            0            0     None
+       3            1            0            0     None
+       4            3            0            0     None
+       5            2            0            0     None
+       6            2            0            0     None
+       7            1            0            0     None
+       8            3            0            0     None
+       9            3            0            0     None
+      10            2            0            0     None

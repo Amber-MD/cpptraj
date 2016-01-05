@@ -14,6 +14,7 @@ USEDACDIF=1         # If 0 do not use dacdif even if in AmberTools
 CPPTRAJ=""          # CPPTRAJ binary
 SFX=""              # CPPTRAJ binary suffix
 AMBPDB=""           # ambpdb binary
+NPROC=""            # nproc binary for counting threads in parallel tests.
 TIME=""             # Set to the 'time' command if timing requested.
 VALGRIND=""         # Set to 'valgrind' command if memory check requested.
 DIFFCMD=""          # Command used to check for test differences
@@ -263,10 +264,28 @@ CheckPnetcdf() {
 
 NotParallel() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    echo "This test cannot be run in parallel. Skipping test."
     echo ""
-    exit 0
+    echo "  CPPTRAJ: $1"
+    echo "  This test cannot be run in parallel. Skipping test."
+    return 1
+ fi
+ return 0
+}
+
+RequiresThreads() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    if [[ ! -f "$NPROC" ]] ; then
+      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Test requires $1 threads. Attempting to run test anyway." > /dev/stderr
+      return 0
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+    if [[ $N_THREADS -ne $1 ]] ; then
+      echo "Warning: Test requires $1 threads. Skipping."
+      return 1
+    fi
   fi
+  return 0
 }
 #-------------------------------------------------------------------------------
 # Summary(): Print a summary of the tests.
@@ -434,14 +453,17 @@ SetBinaries() {
       NCDUMP=$DIRPREFIX/bin/ncdump
       CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
       AMBPDB=$DIRPREFIX/bin/ambpdb
+      NPROC=$DIRPREFIX/AmberTools/test/numprocs
     else
       # Standalone: GitHub etc
       if [[ ! -z $CPPTRAJHOME ]] ; then
         CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
         AMBPDB=$CPPTRAJHOME/bin/ambpdb
+        NPROC=$CPPTRAJHOME/test/nproc
       else
         CPPTRAJ=../../bin/cpptraj$SFX
         AMBPDB=../../bin/ambpdb
+        NPROC=../../test/nproc
       fi
     fi
   fi
@@ -454,6 +476,7 @@ SetBinaries() {
     fi
     echo "DEBUG: CPPTRAJ: $CPPTRAJ"
     echo "DEBUG: AMBPDB:  $AMBPDB"
+    echo "DEBUG: NPROC:   $NPROC"
     echo "DEBUG: NCDUMP:  $NCDUMP"
     echo "DEBUG: DIFFCMD: $DIFFCMD"
     echo "DEBUG: DACDIF:  $DACDIF"

@@ -1,6 +1,18 @@
-// Action_Outtraj 
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
+
+Action_Outtraj::~Action_Outtraj() {
+# ifdef MPI
+  // NOTE: Must close in destructor since Print() is only called by master.
+  if (Parallel::Trajin())
+    outtraj_.ParallelEndTraj();
+  else
+# endif
+    outtraj_.EndTraj();
+}
 
 void Action_Outtraj::Help() const {
   mprintf("\t<filename> [ trajout args ]\n"
@@ -76,11 +88,12 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   if (!isSetup_) { // TODO: Trajout IsOpen?
     int err = 0;
 #   ifdef MPI
-    err = outtraj_.ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
-                                          setup.Nframes(), Parallel::World());
-#   else
-    err = outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
+    if (Parallel::Trajin())
+      err = outtraj_.ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
+                                            setup.Nframes(), Parallel::World());
+    else
 #   endif
+      err = outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());
     if (err) return Action::ERR;
     outtraj_.PrintInfo(0);
     isSetup_ = true;
@@ -105,10 +118,11 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
   }
   int err = 0;
 # ifdef MPI
-  err = outtraj_.ParallelWriteSingle(frameNum, frm.Frm());
-# else
-  err = outtraj_.WriteSingle(frameNum, frm.Frm());
+  if (Parallel::Trajin())
+    err = outtraj_.ParallelWriteSingle(frm.TrajoutNum(), frm.Frm());
+  else
 # endif
+    err = outtraj_.WriteSingle(frameNum, frm.Frm());
   if (err) return Action::ERR;
   return Action::OK;
 }
@@ -119,9 +133,4 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 void Action_Outtraj::Print() {
   mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
           outtraj_.Traj().NframesWritten());
-# ifdef MPI
-  outtraj_.ParallelEndTraj();
-# else
-  outtraj_.EndTraj();
-# endif
 }

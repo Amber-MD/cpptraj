@@ -33,16 +33,20 @@ DoTest dssp.dat.sum.save dssp.dat.sum
 CheckTest
 
 # Test 3
-cat > cpptraj.in <<EOF
+TITLE="Secstruct (DSSP) command with changing number of residues."
+NotParallel "$TITLE"
+if [[ $? -eq 0 ]] ; then
+  cat > cpptraj.in <<EOF
 noprogress
 parm ../tz2.nhe.parm7
 trajin ../tz2.nhe.nc parmindex 1
 trajin ../DPDP.nc
 secstruct out dssp2.gnu sumout dssp2.sum.agr nostring
 EOF
-RunCpptraj "Secstruct (DSSP) command with changing number of residues."
-DoTest dssp2.gnu.save dssp2.gnu
-DoTest dssp2.sum.agr.save dssp2.sum.agr
+  RunCpptraj "$TITLE"
+  DoTest dssp2.gnu.save dssp2.gnu
+  DoTest dssp2.sum.agr.save dssp2.sum.agr
+fi
 
 # Test 4
 TOP=""
