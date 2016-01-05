@@ -768,7 +768,22 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets)
+// TODO Use in other hbond functions
+static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int h_atom, int d_atom)
+{
+  if (a_atom == -1)
+    return (topIn.TruncResAtomName(h_atom) + "-V");
+  else if (d_atom == -1)
+    return (topIn.TruncResAtomName(a_atom) + "-V");
+  else
+    return (topIn.TruncResAtomName(a_atom) + "-" +
+            topIn.TruncResAtomName(d_atom) + "-" +
+            topIn[h_atom].Name().Truncated());
+}
+
+
+void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets,
+                           const char* aspect)
 const
 {
   // Need to know how many hbonds on each thread.
@@ -799,19 +814,23 @@ const
           HB.D      = iArray[ii+3];
           HB.Frames = iArray[ii+4];
           HB.data_ = 0;
+          mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames", HB.A+1, HB.H+1, HB.D+1, HB.dist,
+                  HB.angle, HB.Frames);
           if (series_) {
             HB.data_ = (DataSet_integer*)
                        masterDSL_->AddSet( DataSet::INTEGER,
-                                           MetaData(hbsetname_, "solutehb", iArray[ii]) ); // TODO fix
+                                           MetaData(hbsetname_, aspect, iArray[ii]) );
+            // FIXME: This may be incorrect if CurrentParm_ has changed
+            HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
+            mprintf(" \"%s\"", HB.data_->legend());
           }
-          mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames\n", HB.A+1, HB.H+1, HB.D+1, HB.dist,
-                  HB.angle, HB.Frames);
+          mprintf("\n");
           mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
         } else {
           // Hbond on rank and master. Update on master.
-          mprintf("\tEXISTING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
-                  it->second.A+1, it->second.H+1, it->second.D+1, it->second.dist,
-                  it->second.angle, it->second.Frames);
+          mprintf("\tAPPENDING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
+                  it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
+                  dArray[id+1], iArray[ii+4]);
           it->second.dist  += dArray[id  ];
           it->second.angle += dArray[id+1];
           it->second.Frames += iArray[ii+4];
@@ -882,9 +901,9 @@ int Action_Hbond::SyncAction() {
   //if (Parallel::World().Master())
   //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
-  SyncMap( HbondMap_, rank_frames, rank_offsets );
+  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb" );
   if (calcSolvent_) {
-    SyncMap( SolventMap_, rank_frames, rank_offsets );
+    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb" );
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
