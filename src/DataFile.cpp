@@ -1,8 +1,11 @@
-#ifdef TIMER
-#include "Timer.h" 
-#endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#ifdef TIMER
+# include "Timer.h" 
+#endif
+#ifdef MPI
+# include "Parallel.h"
+#endif
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -336,6 +339,12 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
+# ifdef MPI
+  if (Parallel::Trajin() && !Parallel::World().Master()) {
+    rprintf("DEBUG: Parallel 'trajin' mode: skipping data file write on this rank.\n");
+    return;
+  }
+# endif
   rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);

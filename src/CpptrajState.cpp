@@ -1028,25 +1028,11 @@ int CpptrajState::RunNormal() {
 
 // -----------------------------------------------------------------------------
 // CpptrajState::MasterDataFileWrite()
-// FIXME: If MPI ever used for trajin mode this may have to be protected.
 /** Trigger write of all pending DataFiles. When in parallel ensemble mode,
   * each member of the ensemble will write data to separate files with 
   * numeric extensions.
   */
-void CpptrajState::MasterDataFileWrite() {
-# ifdef MPI
-  if (mode_ == ENSEMBLE)
-    DFL_.WriteAllDF(true); // Ensemble mode; every thread writes.
-  else {
-    if (Parallel::World().Master()) // Trajin or undefined; only master writes.
-      DFL_.WriteAllDF(true);
-    else
-      DFL_.WriteAllDF(false);
-  }
-# else
-  DFL_.WriteAllDF(true);
-# endif
-}
+void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
