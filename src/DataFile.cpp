@@ -1,7 +1,7 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 #ifdef TIMER
-# include "Timer.h" 
+# include "Timer.h"
 #endif
 #ifdef MPI
 # include "Parallel.h"
