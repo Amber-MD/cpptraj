@@ -796,80 +796,82 @@ const
   std::vector<int> iArray;
   if (Parallel::World().Master()) {
     for (int rank = 1; rank < Parallel::World().Size(); rank++) {
-      mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
-      dArray.resize( 2 * nhb_on_rank[rank] );
-      iArray.resize( 5 * nhb_on_rank[rank] );
-      Parallel::World().Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
-      Parallel::World().Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
-      HbondType HB;
-      int ii = 0, id = 0;
-      for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
-        HBmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
-        if (it == mapIn.end() ) {
-          // Hbond on rank that has not been found on master
-          HB.dist  = dArray[id  ];
-          HB.angle = dArray[id+1];
-          HB.A      = iArray[ii+1];
-          HB.H      = iArray[ii+2];
-          HB.D      = iArray[ii+3];
-          HB.Frames = iArray[ii+4];
-          HB.data_ = 0;
-          mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames", HB.A+1, HB.H+1, HB.D+1, HB.dist,
-                  HB.angle, HB.Frames);
-          if (series_) {
-            HB.data_ = (DataSet_integer*)
-                       masterDSL_->AddSet( DataSet::INTEGER,
-                                           MetaData(hbsetname_, aspect, iArray[ii]) );
-            // FIXME: This may be incorrect if CurrentParm_ has changed
-            HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
-            mprintf(" \"%s\"", HB.data_->legend());
+      if (nhb_on_rank[rank] > 0) {
+        mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
+        dArray.resize( 2 * nhb_on_rank[rank] );
+        iArray.resize( 5 * nhb_on_rank[rank] );
+        Parallel::World().Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
+        Parallel::World().Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
+        HbondType HB;
+        int ii = 0, id = 0;
+        for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
+          HBmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
+          if (it == mapIn.end() ) {
+            // Hbond on rank that has not been found on master
+            HB.dist  = dArray[id  ];
+            HB.angle = dArray[id+1];
+            HB.A      = iArray[ii+1];
+            HB.H      = iArray[ii+2];
+            HB.D      = iArray[ii+3];
+            HB.Frames = iArray[ii+4];
+            HB.data_ = 0;
+            mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames", HB.A+1, HB.H+1, HB.D+1, HB.dist,
+                    HB.angle, HB.Frames);
+            if (series_) {
+              HB.data_ = (DataSet_integer*)
+                         masterDSL_->AddSet( DataSet::INTEGER,
+                                             MetaData(hbsetname_, aspect, iArray[ii]) );
+              // FIXME: This may be incorrect if CurrentParm_ has changed
+              HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
+              mprintf(" \"%s\"", HB.data_->legend());
+            }
+            mprintf("\n");
+            mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
+          } else {
+            // Hbond on rank and master. Update on master.
+            mprintf("\tAPPENDING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
+                    it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
+                    dArray[id+1], iArray[ii+4]);
+            it->second.dist  += dArray[id  ];
+            it->second.angle += dArray[id+1];
+            it->second.Frames += iArray[ii+4];
+            if (series_)
+              HB.data_ = it->second.data_;
           }
-          mprintf("\n");
-          mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
-        } else {
-          // Hbond on rank and master. Update on master.
-          mprintf("\tAPPENDING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
-                  it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
-                  dArray[id+1], iArray[ii+4]);
-          it->second.dist  += dArray[id  ];
-          it->second.angle += dArray[id+1];
-          it->second.Frames += iArray[ii+4];
-          if (series_)
-            HB.data_ = it->second.data_;
-        }
-        if (series_) {
-          HB.data_->Resize( Nframes_ );
-          int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
-          mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
-                  Nframes_, rank_offsets[rank], rank_frames[rank]);
-          Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1302 );
-          HB.data_->SetSynced();
-        }
+          if (series_) {
+            HB.data_->Resize( Nframes_ );
+            int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
+            mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
+                    Nframes_, rank_offsets[rank], rank_frames[rank]);
+            Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1302 );
+            HB.data_->SetSynced();
+          }
+        } // END master loop over hbonds from rank
       }
-    }
+    } // END master loop over ranks
     delete[] nhb_on_rank;
   } else {
-    dArray.clear();
-    dArray.reserve( 2 * mapIn.size() );
-    iArray.clear();
-    iArray.reserve( 5 * mapIn.size() );
-    for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
-      dArray.push_back( hb->second.dist );
-      dArray.push_back( hb->second.angle );
-      iArray.push_back( hb->first );
-      iArray.push_back( hb->second.A );
-      iArray.push_back( hb->second.H );
-      iArray.push_back( hb->second.D );
-      iArray.push_back( hb->second.Frames );
-    }
-    Parallel::World().Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
-    Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 ); 
-    // Send series data to master
-    if (series_) {
+    if (mapIn.size() > 0) {
+      dArray.reserve( 2 * mapIn.size() );
+      iArray.reserve( 5 * mapIn.size() );
       for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
-        Parallel::World().Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
-                                MPI_INT, 0, 1302 );
-        hb->second.data_->SetSynced();
+        dArray.push_back( hb->second.dist );
+        dArray.push_back( hb->second.angle );
+        iArray.push_back( hb->first );
+        iArray.push_back( hb->second.A );
+        iArray.push_back( hb->second.H );
+        iArray.push_back( hb->second.D );
+        iArray.push_back( hb->second.Frames );
+      }
+      Parallel::World().Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
+      Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
+      // Send series data to master
+      if (series_) {
+        for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+          Parallel::World().Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
+                                  MPI_INT, 0, 1302 );
+          hb->second.data_->SetSynced();
+        }
       }
     }
   }
