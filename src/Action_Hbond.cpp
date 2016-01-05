@@ -843,7 +843,7 @@ const
             int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
             mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
                     Nframes_, rank_offsets[rank], rank_frames[rank]);
-            Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1302 );
+            Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
             HB.data_->SetSynced();
           }
         } // END master loop over hbonds from rank
@@ -867,9 +867,10 @@ const
       Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
       // Send series data to master
       if (series_) {
-        for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+        int in = 0; // For tag
+        for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
           Parallel::World().Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
-                                  MPI_INT, 0, 1302 );
+                                  MPI_INT, 0, 1304 + in );
           hb->second.data_->SetSynced();
         }
       }
@@ -878,6 +879,14 @@ const
 }
 #endif
 
+/** PARALLEL NOTES:
+  * The following tags are used for MPI send/receive:
+  *   1300  : Array containing hbond double info on rank.
+  *   1301  : Array containing hbond integer info on rank.
+  *   1302  : Number of bridges to expect from rank.
+  *   1303  : Array containing bridge integer info on rank.
+  *   1304+X: Array of hbond X series info from rank.
+  */
 int Action_Hbond::SyncAction() {
 # ifdef MPI
   // Make sure all time series are updated at this point.
