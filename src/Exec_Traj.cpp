@@ -29,7 +29,8 @@ void Exec_Reference::Help() const {
 // -----------------------------------------------------------------------------
 void Exec_Trajout::Help() const {
   mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
-          "\t           [%s] [onlyframes <range>] [title <title>]\n", DataSetList::TopArgs);
+          "\t           [%s] [onlyframes <range>] [title <title>]\n"
+          "\t           [onlymembers <memberlist>]\n", DataSetList::TopArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);
   mprintf("\t           [ <Format Options> ]\n"
           "  Write frames after all actions have been processed to output trajectory\n"
