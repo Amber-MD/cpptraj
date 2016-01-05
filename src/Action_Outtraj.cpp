@@ -36,6 +36,14 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
     mprinterr("Error: Could not get associated topology for %s\n",trajfilename.c_str());
     return Action::ERR;
   }
+  std::string rangeArg = actionArgs.GetStringKey("onlymembers");
+  if (rangeArg.empty())
+    isActive_ = true;
+  else {
+    Range members;
+    if (members.SetRange( rangeArg )) return Action::ERR;
+    isActive_ = members.InRange( init.DSL().EnsembleNum() );
+  }
   // If maxmin, get the name of the dataset as well as the max and min values.
   double lastmin = 0.0;
   double lastmax = 0.0;
@@ -68,12 +76,16 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
     }
   }
   // Initialize output trajectory with remaining arguments
-  if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
-                                      TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) ) 
-    return Action::ERR;
+  if (isActive_) {
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+                                        TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
+      return Action::ERR;
+  }
   isSetup_ = false;
 
   mprintf("    OUTTRAJ: Writing frames associated with topology '%s'\n", associatedParm_->c_str());
+  if (!rangeArg.empty())
+    mprintf("\tonlymembers: Only writing members %s\n", rangeArg.c_str());
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
             Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
@@ -83,7 +95,7 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
 
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
-  if (associatedParm_->Pindex() != setup.Top().Pindex())
+  if (!isActive_ || associatedParm_->Pindex() != setup.Top().Pindex())
     return Action::SKIP;
   if (!isSetup_) { // TODO: Trajout IsOpen?
     int err = 0;
