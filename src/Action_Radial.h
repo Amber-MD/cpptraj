@@ -13,6 +13,7 @@ class Action_Radial: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+    int SyncAction();
     void Print();
 
     ImagedAction image_;      ///< Image routines.

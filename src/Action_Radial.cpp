@@ -109,8 +109,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
     outfilename = actionArgs.GetStringNext();
 
-  // Set up output dataset. 
-  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  // Set up output dataset.
+  MetaData md( actionArgs.GetStringNext() );
+  md.SetTimeSeries( MetaData::NOT_TS );
+  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, md, "g(r)");
   if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
   DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
@@ -130,7 +132,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (intrdfFile != 0) {
-    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
+    MetaData md2( Dset_->Meta().Name(), "int" );
+    md2.SetTimeSeries( MetaData::NOT_TS );
+    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, md2);
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
@@ -140,7 +144,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     intrdf_ = 0;
   // Set up output for raw rdf
   if (rawrdfFile != 0) {
-    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
+    MetaData md2( Dset_->Meta().Name(), "raw" );
+    md2.SetTimeSeries( MetaData::NOT_TS );
+    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, md2);
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
@@ -400,6 +406,23 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 
   return Action::OK;
 } 
+
+int Action_Radial::SyncAction() {
+# ifdef MPI
+  int total_frames = 0;
+  Parallel::World().Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  // FIXME if MPI + OPENMP then threads have to be synced here.
+  if (Parallel::World().Master()) {
+    numFrames_ = total_frames;
+    int* sum_bins = new int[ numBins_ ];
+    Parallel::World().Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
+    std::copy( sum_bins, sum_bins + numBins_, RDF_ );
+    delete[] sum_bins;
+  } else
+    Parallel::World().Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+# endif
+  return 0;
+}
 
 // Action_Radial::Print()
 /** Convert the histogram to a dataset, normalize, create datafile.
