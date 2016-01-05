@@ -768,7 +768,9 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames) const {
+void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets)
+const
+{
   // Need to know how many hbonds on each thread.
   int num_hb = (int)mapIn.size();
   int* nhb_on_rank = 0;
@@ -818,7 +820,9 @@ void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames) const {
         }
         if (series_) {
           HB.data_->Resize( Nframes_ );
-          int* d_beg = HB.data_->Ptr() + rank_frames[ rank-1 ];
+          int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
+          mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
+                  Nframes_, rank_offsets[rank], rank_frames[rank]);
           Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1302 );
           HB.data_->SetSynced();
         }
@@ -866,14 +870,21 @@ int Action_Hbond::SyncAction() {
     Nframes_ += rank_frames[ rank ];
   }
   mprintf("DEBUG: Total= %i frames.\n", Nframes_);
+  // Convert rank frames to offsets.
+  int* rank_offsets = new int[ Parallel::World().Size() ];
+  rank_offsets[0] = 0;
+  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+    rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
+    mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
+  }
   //int total_frames = 0;
   //Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   //if (Parallel::World().Master())
   //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
-  SyncMap( HbondMap_, rank_frames );
+  SyncMap( HbondMap_, rank_frames, rank_offsets );
   if (calcSolvent_) {
-    SyncMap( SolventMap_, rank_frames );
+    SyncMap( SolventMap_, rank_frames, rank_offsets );
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
@@ -915,6 +926,7 @@ int Action_Hbond::SyncAction() {
     }
   }
   delete[] rank_frames;
+  delete[] rank_offsets;
 # endif
   return 0;
 }
