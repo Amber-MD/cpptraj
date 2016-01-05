@@ -815,7 +815,8 @@ const
             HB.D      = iArray[ii+3];
             HB.Frames = iArray[ii+4];
             HB.data_ = 0;
-            mprintf("\tNEW Hbond: %i-%i-%i D=%g A=%g %i frames", HB.A+1, HB.H+1, HB.D+1, HB.dist,
+            mprintf("\tNEW Hbond %i: %i-%i-%i D=%g A=%g %i frames", iArray[ii],
+                    HB.A+1, HB.H+1, HB.D+1, HB.dist,
                     HB.angle, HB.Frames);
             if (series_) {
               HB.data_ = (DataSet_integer*)
@@ -829,7 +830,7 @@ const
             mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
           } else {
             // Hbond on rank and master. Update on master.
-            mprintf("\tAPPENDING Hbond: %i-%i-%i D=%g A=%g %i frames\n",
+            mprintf("\tAPPENDING Hbond %i: %i-%i-%i D=%g A=%g %i frames\n", iArray[ii],
                     it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
                     dArray[id+1], iArray[ii+4]);
             it->second.dist  += dArray[id  ];
