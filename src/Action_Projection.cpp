@@ -182,7 +182,7 @@ Action::RetType Action_Projection::Setup(ActionSetup& setup) {
 
 // Action_Projection::DoAction()
 Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_->Eigenvector(beg_);
   // Project snapshots on modes

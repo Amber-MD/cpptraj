@@ -133,7 +133,7 @@ Action::RetType Action_Average::Setup(ActionSetup& setup) {
 
 // Action_Average::DoAction()
 Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
 
   if (AvgFrame_->AddByMask(frm.Frm(), Mask1_)) return Action::ERR;
   ++Nframes_; 

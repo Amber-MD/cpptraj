@@ -118,7 +118,7 @@ Action::RetType Action_AtomicFluct::Setup(ActionSetup& setup) {
 
 // Action_AtomicFluct::DoAction()
 Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   SumCoords_ += frm.Frm();
   SumCoords2_ += ( frm.Frm() * frm.Frm() );
   if (calc_adp_) {
@@ -130,6 +130,20 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
   }
   ++sets_;
   return Action::OK;
+}
+
+int Action_AtomicFluct::SyncAction() {
+# ifdef MPI
+  int total_frames = 0;
+  Parallel::World().Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
+  if (Parallel::World().Master()) {
+    sets_ = total_frames;
+    rprintf("DEBUG: Total frames= %i\n", sets_);
+  }
+  SumCoords_.SumToMaster();
+  SumCoords2_.SumToMaster();
+# endif
+  return 0;
 }
 
 // Action_AtomicFluct::Print() 

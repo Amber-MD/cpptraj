@@ -791,7 +791,7 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame const& currentFrame) {
 // Action_Matrix::DoAction()
 Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   // Check if this frame should be processed
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   // Increment number of snapshots
   Mat_->IncrementSnapshots();
 
