@@ -38,7 +38,6 @@ nolibcpptraj:
 cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)
 
-
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
 
@@ -57,6 +56,11 @@ ambpdb.MPI:
 
 readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
+
+noreadline:
+	@echo ""
+	@echo "Skipping READLINE support"
+	@echo ""
 
 $(FFT_DEPEND):  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90

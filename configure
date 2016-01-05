@@ -27,6 +27,7 @@ UsageFull() {
   echo "    -nolfs     : Do not enable large file support."
   echo "    -shared    : Enable position-independent code for generating shared library."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
+  echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
@@ -36,19 +37,22 @@ UsageFull() {
   echo "    --with-lapack=<DIR>"
   echo "    --with-arpack=<DIR>"
   echo "    --with-fftw3=<DIR>"
+  echo "    --with-readline=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
-  echo "    -static    : Use static linking."
-  echo "    -amberlib  : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
-  echo "    -nobzlib   : Do not use libbz2 (bzip2)"
-  echo "    -nozlib    : Do not use zlib (gzip/zip)"
-  echo "    -nonetcdf  : Do not use NetCDF"
-  echo "    -nomathlib : Do not include routines which require LAPACK or BLAS"
-  echo "    -noarpack  : Do not include routines which require ARPACK"
+  echo "    -static     : Use static linking."
+  echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
+  echo "    -nobzlib    : Do not use libbz2 (bzip2)"
+  echo "    -nozlib     : Do not use zlib (gzip/zip)"
+  echo "    -nonetcdf   : Do not use NetCDF"
+  echo "    -nomathlib  : Do not include routines which require LAPACK or BLAS"
+  echo "    -noarpack   : Do not include routines which require ARPACK"
+  echo "    -noreadline : Do not include support for readline in the interpreter"
+  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate blas/lapack"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
-  #echo "    CC         : Name of the C compiler."
-  #echo "    FC         : Name of the fortran compiler."
+  echo "    CC         : Name of the C compiler."
+  echo "    FC         : Name of the fortran compiler."
   echo "    CXXFLAGS   : Flags to pass to the C++ compiler."
   echo "    CFLAGS     : Flags to pass to the C compiler."
   echo "    FFLAGS     : Flags to pass to the Fortran compiler."
@@ -248,33 +252,33 @@ SetCompilerOptions() {
   case "$1" in
     "gnu" )
       echo "Using gnu compilers"
-      CC=gcc
-      CXX=g++
-      FC=gfortran
+      if [ -z "$CC" ]; then CC=gcc; fi
+      if [ -z "$CXX" ]; then CXX=g++; fi
+      if [ -z "$FC" ]; then FC=gfortran; fi
       OPTFLAGS="-O3 -Wall"
       OMPFLAGS="-fopenmp"
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran -w"
+      FLIBS="$FLIBS -lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
    "clang" )
       echo "Using clang/gfortran compilers"
-      CC=clang
-      CXX=clang++
-      FC=gfortran
+      if [ -z "$CC" ]; then CC=clang; fi
+      if [ -z "$CXX" ]; then CXX=clang++; fi
+      if [ -z "$FC" ]; then FC=gfortran; fi
       OPTFLAGS="-O3 -Wall"
       OMPFLAGS=""
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran -w"
+      FLIBS="$FLIBS -lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
     "intel" )
       echo "Using intel compilers"
-      CC=icc
-      CXX=icpc
-      FC=ifort
+      if [ -z "$CC" ]; then CC=icc; fi
+      if [ -z "$CXX" ]; then CXX=icpc; fi
+      if [ -z "$FC" ]; then FC=ifort; fi
       OPTFLAGS="-O3 -Wall"
       OMPFLAGS="-openmp"
       FFLAGS="-FR"
@@ -284,9 +288,9 @@ SetCompilerOptions() {
       ;;
     "pgi" )
       echo "Using PGI compilers"
-      CC=pgcc
-      CXX=pgc++
-      FC=pgf90
+      if [ -z "$CC" ]; then CC=pgcc; fi
+      if [ -z "$CXX" ]; then CXX=pgc++; fi
+      if [ -z "$FC" ]; then FC=pgf90; fi
       OPTFLAGS="-O2"
       OMPFLAGS="-mp"
       FFLAGS="-Mfree"
@@ -297,9 +301,9 @@ SetCompilerOptions() {
     "cray" )
       echo "Using Cray compilers"
       USECRAY=1
-      CC=cc
-      CXX=CC
-      FC=ftn
+      if [ -z "$CC" ]; then CC=cc; fi
+      if [ -z "$CXX" ]; then CXX=CC; fi
+      if [ -z "$FC" ]; then FC=ftn; fi
       OPTFLAGS="-h gnu"
       OMPFLAGS=""
       FFLAGS="-f free -emf"
@@ -363,7 +367,7 @@ LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 # Library flags
 STATIC=0
-#STATICFLAG="-static"
+STATICFLAG="-static"
 NETCDF_HOME=""
 PNETCDF_HOME=""
 BZLIB_HOME=""
@@ -390,6 +394,12 @@ USE_AMBER_LIB=0
 USEMKL=0
 FLIBS=""
 HDF5LIB="" #"-lhdf5_hl -lhdf5"
+WINDOWS="no"
+CROSS_COMPILE="no"
+
+# Private variables
+quadmath=""
+external_readline="no"
 
 # Parse command line options
 KEY=""
@@ -397,7 +407,7 @@ VALUE=""
 while [[ ! -z $1 ]] ; do
   # If arg is Key=Value, separate into Key and Value
   VALUE=""
-  POS=`expr index "$1" '='`
+  POS=`echo $1 | awk 'match($0,"="){print RSTART}'`
   if [[ $POS -eq 1 ]] ; then
     echo "Error: '=' cannot be first character in an argument." > /dev/stderr ; exit 1
   elif [[ $POS -gt 1 ]] ; then
@@ -420,8 +430,8 @@ while [[ ! -z $1 ]] ; do
     "pgi"   ) COMPILERS=$KEY ;;
     "cray"  ) COMPILERS=$KEY ;;
     "CXX"   ) CXX="$VALUE" ;;
-    "CC"    ) echo "Warning: CC set but not used (use CXX to determine compilers)." ;;
-    "FC"    ) echo "Warning: FC set but not used (use CXX to determine compilers)." ;;
+    "CC"    ) CC="$VALUE" ;;
+    "FC"    ) FC="$VALUE" ;;
     "CXXFLAGS" ) CXXFLAGS="$VALUE" ;;
     "CFLAGS"   ) CFLAGS="$VALUE" ;;
     "FFLAGS"   ) FFLAGS="$VALUE" ;;
@@ -536,6 +546,31 @@ while [[ ! -z $1 ]] ; do
       DIRECTIVES="$DIRECTIVES -DNO_ARPACK"
       ARPACK=""
       ;;
+    "-noreadline")
+      echo "Not using READLINE."
+      DIRECTIVES="$DIRECTIVES -DNO_READLINE"
+      READLINE_TARGET="noreadline"
+      READLINE=""
+      ;;
+    "-windows")
+      printf "WINDOWS support requested. Implies -static."
+      READLINE_TARGET="noreadline"
+      STATIC=1
+      WINDOWS="yes"
+      uname | grep -i linux > /dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        echo " Detected cross-compilation."
+        CROSS_COMPILE="yes"
+      else
+        echo " Native windows build."
+        quadmath="-lquadmath"
+      fi
+      SFX=".exe"
+      ;;
+    "-openblas")
+      BLAS="-lopenblas"
+      LAPACK=""
+      ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
       BZLIB_HOME="$VALUE"
@@ -585,6 +620,12 @@ while [[ ! -z $1 ]] ; do
 #      HDF5LIB="-I$VALUE/include $VALUE/lib/libhdf5_hl.a $VALUE/lib/libhdf5.a -lm"
 #      echo "Using HDF5LIB: $HDF5LIB"
 #      ;;
+    "--with-readline")
+      echo "Using external readline"
+      READLINE_TARGET="noreadline"
+      READLINE="-L$VALUE/lib -lreadline"
+      external_readline="yes"
+      ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
@@ -598,33 +639,34 @@ while [[ ! -z $1 ]] ; do
   shift
 done
 
+# For external readline, we need to link libtermcap for windows and libncurses
+# for Linux
+if [ "$external_readline" = "yes" ]; then
+    if [ "$WINDOWS" = "yes" ]; then
+        READLINE="$READLINE -ltermcap"
+    else
+        READLINE="$READLINE -lncurses"
+    fi
+fi
+
 # If compiler has not yet been specified, determine from CXX, otherwise default
 # to GNU
 if [[ -z $COMPILERS ]] ; then
   if [[ ! -z $CXX ]] ; then
     echo "Determining compilers from CXX ($CXX)"
+    COMPILERS='gnu'
     case "$CXX" in
-      "g++"     ) COMPILERS='gnu' ;;
-      "clang++" ) COMPILERS='clang' ;;
-      "icpc"    ) COMPILERS='intel' ;;
-      "pgc++"   ) COMPILERS='pgi' ;;
-      "CC"      ) COMPILERS='cray' ;;
-      * ) echo "Error: Unrecognized compiler: $CXX" > /dev/stderr ; exit 1 ;;
+      *g++*     ) COMPILERS='gnu' ;;
+      *clang++* ) COMPILERS='clang' ;;
+      *icpc*    ) COMPILERS='intel' ;;
+      *pgc++*   ) COMPILERS='pgi' ;;
+      *CC*      ) COMPILERS='cray' ;;
+      * ) echo "Warning: Could not detect compiler type ($CXX); assuming gnu" > /dev/stderr;;
     esac
   else
     COMPILERS='gnu'
     echo "No compilers specified; defaulting to GNU."
   fi
-else
-  # Compiler was specified on command line. Ignore flags from outside.
-  if [[ ! -z $CFLAGS || ! -z $CXXFLAGS || ! -z $FFLAGS || ! -z $LDFLAGS ]] ; then
-    echo "Warning: Compiler specified on command line. Ignoring CFLAGS, CXXFLAGS,"
-    echo "         FFLAGS, and LDFLAGS from environment/command line."
-  fi
-  CFLAGS=""
-  CXXFLAGS=""
-  FFLAGS=""
-  LDFLAGS=""
 fi
 SetCompilerOptions $COMPILERS
 
@@ -783,9 +825,7 @@ if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
 fi
 
 # Set up linking flags if not already set
-if [[ -z $LDFLAGS ]] ; then
-  LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS"
-fi
+LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS $LDFLAGS"
 if [[ ! -z $FFT_LIBDIR ]] ; then
   FFT_LIB="$FFT_LIBDIR $FFT_LIB"
 fi
@@ -798,13 +838,17 @@ fi
 
 # For pgi on cray modify some flags
 if [[ $USECRAY -eq 1 && $COMPILERS = "pgi" ]] ; then
-    OPTFLAGS="-fast"
-    OMPFLAGS="-mp=nonuma"
-    FOPTFLAGS="-fast"
+  OPTFLAGS="-fast"
+  OMPFLAGS="-mp=nonuma"
+  FOPTFLAGS="-fast"
 fi
 
 # Add flags for OPENMP if specified
 if [[ $USEOPENMP -eq 1 ]] ; then
+  if [[ "$WINDOWS" = "yes" ]]; then
+    echo "OpenMP not currently supported on Windows"
+    exit 1
+  fi
   if [[ $COMPILERS = "clang" ]] ; then
     echo "Error: clang compiler does not yet support OpenMP."
     exit 1
@@ -835,6 +879,10 @@ fi
 
 # Change to MPI compiler wrappers if specified
 if [[ $USEMPI -eq 1 ]] ; then
+  if [[ "$WINDOWS" = "yes" ]]; then
+    echo "MPI not currently supported on Windows"
+    exit 1
+  fi
   echo "Using MPI"
   DIRECTIVES="$DIRECTIVES -DMPI"
   CC=mpicc
@@ -844,15 +892,9 @@ if [[ $USEMPI -eq 1 ]] ; then
 fi
 
 # Set up compiler flags if not already set
-if [[ -z $CFLAGS ]] ; then
-  CFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
-fi
-if [[ -z $CXXFLAGS ]] ; then
-  CXXFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE"
-fi
-if [[ -z $FFLAGS ]] ; then
-  FFLAGS="$FFLAGS $DEBUGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE"
-fi
+CFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE $CFLAGS"
+CXXFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE $CXXFLAGS"
+FFLAGS="$DEBUGFLAGS $FOPTFLAGS $DIRECTIVES $LFS $INCLUDE $FFLAGS"
 
 # Add position-independent code if necessary
 if [[ $USESHARED -eq 1 ]] ; then
@@ -895,14 +937,21 @@ if [[ $USECRAY -eq 1 ]] ; then
   FC=ftn
 fi
 
-# Test compilers
-TestCompile
-TestBzlib
-TestZlib
-TestNetcdf
-TestMathlib
-TestArpack
-TestFFTW3
+# Set up static compilers
+if [[ $STATIC -eq 1 ]]; then
+  LDFLAGS="$LDFLAGS $STATICFLAG"
+fi
+
+# Test compilers (if we are not cross-compiling)
+if [[ "$CROSS_COMPILE" = "no" ]]; then
+  TestCompile
+  TestBzlib
+  TestZlib
+  TestNetcdf
+  TestMathlib
+  TestArpack
+  TestFFTW3
+fi
 
 # Write config.h
 cat > config.h <<EOF

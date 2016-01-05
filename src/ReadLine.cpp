@@ -1,9 +1,16 @@
+#include "CpptrajStdio.h"
 #include <cstdio> // required for readline
 #include <cstdlib> // free
 #include <cstring>
-#define READLINE_LIBRARY
-#include <readline.h>
-#include <history.h>
+#ifdef NO_READLINE
+#   include <stdexcept>
+#   include <string>
+#   include <iostream>
+#else
+#   define READLINE_LIBRARY
+#   include <readline.h>
+#   include <history.h>
+#endif /* NO_READLINE */
 #include "ReadLine.h"
 #include "Command.h"
 
@@ -43,6 +50,7 @@ static char* command_generator(const char* text, int state) {
   return 0;
 }
 
+#ifndef NO_READLINE
 // cpptraj_completion()
 static char** cpptraj_completion(const char* text, int start, int end) {
   char** matches = 0;
@@ -51,11 +59,14 @@ static char** cpptraj_completion(const char* text, int start, int end) {
     matches = rl_completion_matches(text, command_generator);
   return matches;
 }
+#endif
 
 // CONSTRUCTOR
 ReadLine::ReadLine() {
+#ifndef NO_READLINE
   // Tell the completer that we want a crack first.
   rl_attempted_completion_function = cpptraj_completion;
+#endif
 }
 
 // -----------------------------------------------------------------------------
@@ -64,6 +75,17 @@ ReadLine::ReadLine() {
   */
 int ReadLine::GetInput() {
   input_.Clear();
+#ifdef NO_READLINE
+  mprintf("> ");
+  std::string inp;
+  getline(std::cin, inp);
+  if (inp.size() == 0 && std::cin.eof()) return 1; // EOF
+  bool moreInput = input_.AddInput( inp.c_str() );
+  while ( moreInput ) {
+      getline(std::cin, inp);
+      moreInput = input_.AddInput( inp.c_str() );
+  }
+#else
   char* line = readline("> ");
   if (line == 0) return 1; // EOF
   bool moreInput = input_.AddInput( line );
@@ -75,16 +97,29 @@ int ReadLine::GetInput() {
   // Add line to history
   if (!input_.Empty()) AddHistory(input_.str());
   if (line != 0) free( line );
+#endif
   return 0;
 }
 
 void ReadLine::AddHistory(const char* line) {
+#ifdef NO_READLINE
+  throw std::runtime_error("Internal Error: readline not enabled; history "
+                           "storage not supported");
+#else
   if (line != 0) add_history( line );
+#endif
 }
 
 bool ReadLine::YesNoPrompt(const char* prompt) {
+#ifdef NO_READLINE
+  mprintf(prompt);
+  std::string line;
+  getline(std::cin, line);
+  if (line.size() == 0) return false;
+#else
   char* line = readline(prompt);
   if (line == 0 || strlen( line ) < 1) return false;
+#endif
   if (line[0] == 'y' || line[0] == 'Y') return true;
   return false;
 }

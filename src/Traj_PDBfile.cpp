@@ -272,6 +272,29 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         else if ( rname[1] == 'C' ) rname=" DC ";
         else if ( rname[1] == 'A' ) rname=" DA ";
         else if ( rname[1] == 'T' ) rname=" DT ";
+      } else if ( rname == "URA" || rname == "URI" )
+        rname="  U ";
+      else if ( rname == "THY" )
+        rname=" DT ";
+      else if ( rname == "GUA" || rname == "ADE" || rname == "CYT" ) {
+        // Determine if RNA or DNA via existence of O2'
+        bool isRNA = false;
+        for (int ratom = res->FirstAtom(); ratom != res->LastAtom(); ++ratom)
+          if ( (*trajParm)[ratom].Name() == "O2'" ||
+               (*trajParm)[ratom].Name() == "O2*" )
+          {
+            isRNA = true;
+            break;
+          }
+        if (isRNA) {
+          if      (rname[0] == 'G') rname="  G ";
+          else if (rname[0] == 'A') rname="  A ";
+          else if (rname[0] == 'C') rname="  C ";
+        } else {
+          if      (rname[0] == 'G') rname=" DG ";
+          else if (rname[0] == 'A') rname=" DA ";
+          else if (rname[0] == 'C') rname=" DC ";
+        }
       }
       resNames_.push_back( rname );
     }

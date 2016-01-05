@@ -358,6 +358,7 @@ int Cpptraj::Interactive() {
   CpptrajFile logfile_;
   if (logfilename_.empty())
     logfilename_.SetFileName("cpptraj.log");
+#ifndef NO_READLINE
   if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
@@ -376,6 +377,7 @@ int Cpptraj::Interactive() {
       logfile_.CloseFile();
     }
   }
+#endif
   logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen())
     logfile_.Printf("# %s\n", TimeString().c_str());
