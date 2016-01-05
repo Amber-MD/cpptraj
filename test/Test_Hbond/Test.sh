@@ -15,9 +15,13 @@ cat > hbond.in <<EOF
 noprogress
 parm ../DPDP.parm7
 trajin ../DPDP.nc
-hbond BB donormask :14@N acceptormask :17@O series 
+
+hbond BB1 donormask :14@N acceptormask :17@O series 
+
+hbond BB2 donormask :13@N acceptormask :3@O series
+
 run
-write solutehb.dat BB[solutehb]
+write solutehb.dat BB*[solutehb]
 EOF
 RunCpptraj "Solute Hbond test."
 DoTest solutehb.dat.save solutehb.dat
