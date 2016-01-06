@@ -140,8 +140,8 @@ int Action_AtomicFluct::SyncAction(Parallel::Comm const& commIn) {
     sets_ = total_frames;
     rprintf("DEBUG: Total frames= %i\n", sets_);
   }
-  SumCoords_.SumToMaster();
-  SumCoords2_.SumToMaster();
+  SumCoords_.SumToMaster(commIn);
+  SumCoords2_.SumToMaster(commIn);
   return 0;
 }
 #endif

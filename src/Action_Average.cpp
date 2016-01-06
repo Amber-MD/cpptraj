@@ -142,7 +142,7 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
 int Action_Average::SyncAction(Parallel::Comm const& commIn) {
   int total_frames = 0;
   commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  AvgFrame_->SumToMaster();
+  AvgFrame_->SumToMaster(commIn);
   if (commIn.Master()) {
     Nframes_ = total_frames;
     rprintf("DEBUG: Total frames= %i\n", Nframes_);

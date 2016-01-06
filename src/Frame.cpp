@@ -3,9 +3,6 @@
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 
@@ -1193,44 +1190,44 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
 #ifdef MPI
 // TODO: Change Frame class so everything can be sent in one MPI call.
 /** Send contents of this Frame to recvrank. */
-int Frame::SendFrame(int recvrank) {
+int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
   //rprintf("SENDING TO %i\n", recvrank); // DEBUG
-  Parallel::World().Send( X_,                ncoord_, MPI_DOUBLE, recvrank, 1212 );
+  commIn.Send( X_,                ncoord_, MPI_DOUBLE, recvrank, 1212 );
   if (V_ != 0)
-    Parallel::World().Send( V_,              ncoord_, MPI_DOUBLE, recvrank, 1215 );
+    commIn.Send( V_,              ncoord_, MPI_DOUBLE, recvrank, 1215 );
   if (F_ != 0)
-    Parallel::World().Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
-  Parallel::World().Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
-  Parallel::World().Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
-  Parallel::World().Send( &time_,            1,       MPI_DOUBLE, recvrank, 1217 );
-  Parallel::World().Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
+    commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
+  commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
+  commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
+  commIn.Send( &time_,            1,       MPI_DOUBLE, recvrank, 1217 );
+  commIn.Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
   return 0;
 }
 
 /** Receive contents of Frame from sendrank. */
-int Frame::RecvFrame(int sendrank) {
+int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
   //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
-  Parallel::World().Recv( X_,                ncoord_, MPI_DOUBLE, sendrank, 1212 );
+  commIn.Recv( X_,                ncoord_, MPI_DOUBLE, sendrank, 1212 );
   if (V_ != 0)
-    Parallel::World().Recv( V_,              ncoord_, MPI_DOUBLE, sendrank, 1215 );
+    commIn.Recv( V_,              ncoord_, MPI_DOUBLE, sendrank, 1215 );
   if (F_ != 0)
-    Parallel::World().Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
-  Parallel::World().Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
-  Parallel::World().Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
-  Parallel::World().Recv( &time_,            1,       MPI_DOUBLE, sendrank, 1217 );
-  Parallel::World().Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
+    commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
+  commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
+  commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
+  commIn.Recv( &time_,            1,       MPI_DOUBLE, sendrank, 1217 );
+  commIn.Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
   return 0;
 }
 
 /** Sum across all ranks, store in master. */
-int Frame::SumToMaster() {
-  if (Parallel::World().Master()) {
+int Frame::SumToMaster(Parallel::Comm const& commIn) {
+  if (commIn.Master()) {
     double* total = new double[ ncoord_ ];
-    Parallel::World().Reduce( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.Reduce( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
     std::copy( total, total + ncoord_, X_ );
     delete[] total;
   } else
-    Parallel::World().Reduce( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    commIn.Reduce( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif
