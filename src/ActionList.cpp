@@ -127,6 +127,17 @@ void ActionList::PrintActions() {
   }
 }
 #ifdef MPI
+void ActionList::ParallelInitActions(Parallel::Comm const& commIn) {
+for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE) {
+      rprintf("DEBUG: Calling ParallelActionInit() for '%s'\n", act->args_.Command());
+      if (act->ptr_->ParallelActionInit(commIn))
+        rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
+    }
+  }
+}
+
 void ActionList::SyncActions(Parallel::Comm const& commIn) {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions

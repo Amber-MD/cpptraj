@@ -14,7 +14,9 @@ class Action_DistRmsd: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
-
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { REF_.SetTrajComm( c ); return 0; }
+#   endif
     ReferenceAction REF_;
     DataSet *drmsd_;    ///< DRMSD DataSet
     AtomMask TgtMask_;  ///< Target mask.

@@ -64,6 +64,7 @@ class Parallel::Comm {
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
     void Barrier() const;
+    Comm Split(int) const;
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
     int SendMaster(void*, int, int, MPI_Datatype) const;
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;

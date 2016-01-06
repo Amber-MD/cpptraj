@@ -53,6 +53,8 @@ class Action : public DispatchObject {
       */
     virtual void Print() = 0;
 #   ifdef MPI
+    /// Perform any parallel-related initialization.
+    virtual int ParallelActionInit(Parallel::Comm const&) { return 0; } // TODO: pure virtual
     /// Sync Action data to master when running in parallel across trajectories.
     virtual int SyncAction(Parallel::Comm const&) { return 0; } // TODO: pure virtual
 #   endif

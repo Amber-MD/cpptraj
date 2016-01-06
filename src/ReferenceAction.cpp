@@ -2,9 +2,6 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Coords_TRJ.h"
 #include "ReferenceFrame.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 ReferenceAction::ReferenceAction() :
   refMode_( FIRST ),
@@ -114,15 +111,15 @@ void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
 # ifdef MPI
   if (Parallel::Trajin()) {
     // Ensure all threads are using the same reference
-    if (Parallel::World().Master()) { // TODO MasterBcast
+    if (trajComm_.Master()) { // TODO MasterBcast
       rprintf("DEBUG: Sending reference frame to children.\n");
-      for (int rank = 1; rank != Parallel::World().Size(); rank++)
-        refFrame_.SendFrame(rank);
+      for (int rank = 1; rank != trajComm_.Size(); rank++)
+        refFrame_.SendFrame(rank, trajComm_);
     } else {
       rprintf("DEBUG: Receiving reference frame from master.\n");
-      refFrame_.RecvFrame(0);
+      refFrame_.RecvFrame(0, trajComm_);
     }
-    Parallel::World().Barrier();
+    trajComm_.Barrier();
   }
 # endif
   selectedRef_.SetCoordinates( refFrame_, refMask_ );

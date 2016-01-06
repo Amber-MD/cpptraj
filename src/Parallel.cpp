@@ -121,6 +121,12 @@ void Parallel::Comm::Barrier() const {
   MPI_Barrier( comm_ );
 }
 
+Parallel::Comm Parallel::Comm::Split(int ID) const {
+  MPI_Comm newComm;
+  MPI_Comm_split( comm_, ID, rank_, &newComm );
+  return Comm(newComm);
+}
+
 /** Use MPI_REDUCE to OP the values in sendbuffer and place them in
   * recvbuffer on master.
   */

@@ -9,6 +9,10 @@ class ReferenceAction {
     ~ReferenceAction();
     /// Process all reference-related arguments, figure out reference mode.
     int InitRef(ArgList&, DataSetList const&, bool, bool);
+#   ifdef MPI
+    /// Set reference trajectory comm so SetupRef() can properly broadcast reference.
+    void SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; }
+#   endif
     /// Set reference mask string.
     int SetRefMask(std::string const& m) { return refMask_.SetMaskString( m ); }
     /// \return String describing current reference mode.
@@ -52,6 +56,9 @@ class ReferenceAction {
     bool needsSetup_;        ///< True if ref from COORDS needs to be set up during SetupRef()
     bool fitRef_;            ///< If true, move reference to origin for RMS fitting
     bool useMass_;           ///< (If fitRef_) If true, move COM, otherwise geometric center.
+#   ifdef MPI
+    Parallel::Comm trajComm_; ///< Comm across trajectory for synchronizing ref from master.
+#   endif
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // ReferenceAction::ActionRef()

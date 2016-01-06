@@ -702,6 +702,9 @@ int CpptrajState::RunParallel() {
 */
   Parallel::World().Barrier();
 
+  // Perform any necessary parallel Init
+  actionList_.ParallelInitActions( Parallel::World() );
+
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
 
