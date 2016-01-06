@@ -1,7 +1,4 @@
 #include "DataSet_double.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 // DataSet_double::Allocate()
 /** Reserve space in the Data and Frames arrays. */
@@ -48,21 +45,23 @@ int DataSet_double::Append(DataSet* dsIn) {
   return 0;
 }
 
+#ifdef MPI
 // DataSet_double::Sync()
-int DataSet_double::Sync(size_t total, std::vector<int> const& rank_frames) {
-# ifdef MPI
-  if (Parallel::World().Size()==1) return 0;
-  if (Parallel::World().Master()) {
+int DataSet_double::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
     // Resize for total number of frames.
     Data_.resize( total );
     double* endptr = &(Data_[0]) + rank_frames[0];
     // Receive data from each rank
-    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
-      Parallel::World().SendMaster( endptr, rank_frames[rank], rank, MPI_DOUBLE );
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      commIn.SendMaster( endptr, rank_frames[rank], rank, MPI_DOUBLE );
       endptr += rank_frames[rank];
     }
   } else // Send data to master //TODO adjust for repeated additions?
-    Parallel::World().SendMaster( &(Data_[0]), Data_.size(), Parallel::World().Rank(), MPI_DOUBLE );
-# endif
+    commIn.SendMaster( &(Data_[0]), Data_.size(), commIn.Rank(), MPI_DOUBLE );
   return 0;
 }
+#endif

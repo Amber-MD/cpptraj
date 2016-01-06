@@ -582,11 +582,13 @@ void DataSetList::List() const {
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
-void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames) {
+void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames,
+                                  Parallel::Comm const& commIn)
+{
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
     if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS && (*ds)->NeedsSync() ) {
       mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->legend(), (*ds)->Size(), total);
-      if ( (*ds)->Sync(total, rank_frames) ) {
+      if ( (*ds)->Sync(total, rank_frames, commIn) ) {
         rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
         //return;
       }

@@ -101,7 +101,7 @@ class DataSetList {
     void List() const;
 #   ifdef MPI
     /// Call sync for DataSets in the list (MPI only)
-    void SynchronizeData(size_t, std::vector<int> const&);
+    void SynchronizeData(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
 
     // REF_COORDS functions ----------------------

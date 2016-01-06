@@ -7,6 +7,9 @@
 #include "AssociatedData.h"
 #include "TextFormat.h"
 #include "CpptrajFile.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Base class that all DataSet types will inherit.
 /** The DataSet base class holds common information, like MetaData for
   * selection, TextFormat for text output, etc.
@@ -39,8 +42,6 @@ class DataSet {
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
-    /// Consolidate this DataSet across all threads (MPI only)
-    virtual int Sync(size_t, std::vector<int> const&) = 0;
     /// Print DataSet information //TODO return string instead?
     virtual void Info() const = 0;
     /// Write data to file given start indices. FIXME Buffer? Should this function take number of elements as well?
@@ -61,6 +62,10 @@ class DataSet {
     /// Can be used to append given data set to this one.
     virtual int Append(DataSet*) = 0;
     // TODO SizeInMB?
+#   ifdef MPI
+    /// Consolidate this DataSet across all threads (MPI only)
+    virtual int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) = 0;
+#   endif
     // -----------------------------------------------------
     /// Associate additional data with this set.
     void AssociateData(AssociatedData* a) { associatedData_.push_back( a->Copy() ); }

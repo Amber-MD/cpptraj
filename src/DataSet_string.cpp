@@ -1,7 +1,4 @@
 #include "DataSet_string.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 // DataSet_string::Allocate()
 /** Reserve space in the Data and Frames arrays. */
@@ -53,11 +50,13 @@ int DataSet_string::Append(DataSet* dsIn) {
   return 0;
 }
 
+#ifdef MPI
 // DataSet_string::Sync()
-int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
-# ifdef MPI
-  if (Parallel::World().Size() == 1) return 0;
-  if (Parallel::World().Master()) {
+int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size() == 1) return 0;
+  if (commIn.Master()) {
     // MASTER
     char* block = 0;
     int currentBlockSize = 0;
@@ -66,17 +65,17 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
     int additional_frames = (int)total - rank_frames[0];
     Data_.resize( Data_.size() + additional_frames );
     // Receive data from each rank.
-    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+    for (int rank = 1; rank < commIn.Size(); rank++) {
       // Need the size of the char* block
       int blockSize = 0;
-      Parallel::World().SendMaster( &blockSize, 1, rank, MPI_INT );
+      commIn.SendMaster( &blockSize, 1, rank, MPI_INT );
       if (blockSize > currentBlockSize) {
         if (block != 0) delete[] block;
         block = new char[ blockSize ];
         currentBlockSize = blockSize;
       }
       // Receive the block of text
-      Parallel::World().SendMaster( block, blockSize, rank, MPI_CHAR );
+      commIn.SendMaster( block, blockSize, rank, MPI_CHAR );
       // Convert text block into strings
       const char* ptr = block;
       const char* endptr = block + blockSize;
@@ -93,7 +92,7 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)
       blockSize += (it->size() + 1); // +1 for null char.
     char* block = new char[ blockSize ];
-    Parallel::World().SendMaster( &blockSize, 1, Parallel::World().Rank(), MPI_INT );
+    commIn.SendMaster( &blockSize, 1, commIn.Rank(), MPI_INT );
     // Copy each string (including null char) to array
     char* ptr = block;
     for (std::vector<std::string>::const_iterator it = Data_.begin(); it != Data_.end(); ++it)
@@ -103,9 +102,9 @@ int DataSet_string::Sync(size_t total, std::vector<int> const& rank_frames) {
       ptr += (len + 1);
     }
     // Send array to master
-    Parallel::World().SendMaster( block, blockSize, Parallel::World().Rank(), MPI_CHAR );
+    commIn.SendMaster( block, blockSize, commIn.Rank(), MPI_CHAR );
     delete[] block;
   }
-# endif
   return 0;
 }
+#endif

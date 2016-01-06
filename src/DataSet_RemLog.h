@@ -48,7 +48,9 @@ class DataSet_RemLog : public DataSet {
     
     // ----- DataSet routines --------------------
     size_t Size()                       const { return ensemble_.size(); }
-    int Sync(size_t, std::vector<int> const&) { return 1;                }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info()                         const { return;                  }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Allocate(SizeArray const&) { return 0; } // TODO implement?

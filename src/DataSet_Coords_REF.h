@@ -10,7 +10,9 @@ class DataSet_Coords_REF : public DataSet_Coords {
     // ----- DataSet functions -------------------
     // NOTE: Technically a 1D data set so return 1 if not empty.
     size_t Size() const { if (!frame_.empty()) return 1; else return 0; }
-    int Sync(size_t, std::vector<int> const&)    { return 1;   }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info() const;
     void Add( size_t, const void* )              { return;     }
     // Size is only ever 1, no need to allocate.

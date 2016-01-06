@@ -12,7 +12,9 @@ class DataSet_Mesh : public DataSet_1D {
     void Resize(size_t n)   { mesh_x_.resize(n, 0.0); mesh_y_.resize(n, 0.0); }
     // ----- DataSet functions -------------------
     size_t Size()                       const { return mesh_x_.size();     }
-    int Sync(size_t, std::vector<int> const&) { return 1;                  }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info()                         const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );

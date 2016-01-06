@@ -9,7 +9,9 @@ class DataSet_Topology : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Topology();}
     // ----- DataSet functions -------------------
     size_t Size()                  const { return (size_t)top_.Natom(); }
-    int Sync(size_t, std::vector<int> const&) { return 1;               }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info()                    const { top_.Brief(0);               }
     int Allocate(SizeArray const&)       { return 0;                    }
     void Add( size_t, const void* ) {}

@@ -2,7 +2,6 @@
 #define INC_DATASET_DOUBLE_H
 #include <vector>
 #include "DataSet_1D.h"
-// Class: DataSet_double
 /// Hold an array of double values.
 class DataSet_double : public DataSet_1D {
   public:
@@ -21,7 +20,9 @@ class DataSet_double : public DataSet_1D {
     iterator end()                       { return Data_.end();        }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
-    int Sync(size_t, std::vector<int> const&);
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
     void Info()                    const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );

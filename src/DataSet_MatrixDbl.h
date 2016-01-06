@@ -13,7 +13,9 @@ class DataSet_MatrixDbl : public DataSet_2D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixDbl();     }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
-    int Sync(size_t, std::vector<int> const&)  { return 1;                  }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------

@@ -10,7 +10,9 @@ class DataSet_Modes : public DataSet {
     static const char* DeprecateFileMsg;
     // ----- DataSet functions -------------------
     size_t Size()                       const { return nmodes_; }
-    int Sync(size_t, std::vector<int> const&) { return 1;       }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info()                         const { return;         }
     void Add( size_t, const void* ) {}
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {} // TODO implement?

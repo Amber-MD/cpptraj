@@ -15,7 +15,9 @@ class DataSet_Coords_TRJ : public DataSet_Coords {
     int AddInputTraj(Trajin*);
     // ---- DataSet functions -------------------
     size_t Size() const                          { return maxFrames_; }
-    int Sync(size_t, std::vector<int> const&)    { return 1;          }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info() const;
     void Add( size_t, const void* )              { return;            }
     int Allocate(SizeArray const&)               { return 0;          }

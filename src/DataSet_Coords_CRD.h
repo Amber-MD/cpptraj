@@ -7,7 +7,9 @@ class DataSet_Coords_CRD : public DataSet_Coords {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Coords_CRD(); }
     // ----- DataSet functions -------------------
     size_t Size() const                       { return coords_.size(); }
-    int Sync(size_t, std::vector<int> const&) { return 1;              }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     void Info() const;
     void Add(size_t, const void*) {}
     int Allocate(SizeArray const&);

@@ -25,22 +25,24 @@ int DataSet_Mat3x3::Append(DataSet* dsIn) {
   return 0;
 }
 
-int DataSet_Mat3x3::Sync(size_t total, std::vector<int> const& rank_frames) {
-# ifdef MPI
-  if (Parallel::World().Size()==1) return 0;
-  if (Parallel::World().Master()) {
+#ifdef MPI
+int DataSet_Mat3x3::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
     // Resize to accept data from other ranks.
     data_.resize( total );
     int midx = rank_frames[0]; // Index on master
-    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+    for (int rank = 1; rank < commIn.Size(); rank++) {
       for (int ridx = 0; ridx != rank_frames[rank]; ridx++, midx++)
         // TODO: Consolidate to 1 send/recv via arrays?
-        Parallel::World().SendMaster( data_[midx].Dptr(), 9, rank, MPI_DOUBLE );
+        commIn.SendMaster( data_[midx].Dptr(), 9, rank, MPI_DOUBLE );
     }
   } else { // Send data to master
     for (unsigned int ridx = 0; ridx != data_.size(); ++ridx)
-      Parallel::World().SendMaster( data_[ridx].Dptr(), 9, Parallel::World().Rank(), MPI_DOUBLE );
+      commIn.SendMaster( data_[ridx].Dptr(), 9, commIn.Rank(), MPI_DOUBLE );
   }
-# endif
   return 0;
 }
+#endif
