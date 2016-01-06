@@ -1,4 +1,3 @@
-// Action_Hbond 
 #include <cmath> // sqrt
 #include <algorithm> // sort
 #include "Action_Hbond.h"
@@ -7,9 +6,6 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 #include "Constants.h" // RADDEG, DEGRAD
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 // CONSTRUCTOR
 Action_Hbond::Action_Hbond() :
@@ -783,25 +779,25 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
 
 
 void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets,
-                           const char* aspect)
+                           const char* aspect, Parallel::Comm const& commIn)
 const
 {
   // Need to know how many hbonds on each thread.
   int num_hb = (int)mapIn.size();
   int* nhb_on_rank = 0;
-  if (Parallel::World().Master())
-    nhb_on_rank = new int[ Parallel::World().Size() ];
-  Parallel::World().GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
+  if (commIn.Master())
+    nhb_on_rank = new int[ commIn.Size() ];
+  commIn.GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
   std::vector<double> dArray;
   std::vector<int> iArray;
-  if (Parallel::World().Master()) {
-    for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+  if (commIn.Master()) {
+    for (int rank = 1; rank < commIn.Size(); rank++) {
       if (nhb_on_rank[rank] > 0) {
         mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
         dArray.resize( 2 * nhb_on_rank[rank] );
         iArray.resize( 5 * nhb_on_rank[rank] );
-        Parallel::World().Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
-        Parallel::World().Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
+        commIn.Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
+        commIn.Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
         HbondType HB;
         int ii = 0, id = 0;
         for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
@@ -844,7 +840,7 @@ const
             int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
             mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
                     Nframes_, rank_offsets[rank], rank_frames[rank]);
-            Parallel::World().Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
+            commIn.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
             HB.data_->SetSynced();
           }
         } // END master loop over hbonds from rank
@@ -864,13 +860,13 @@ const
         iArray.push_back( hb->second.D );
         iArray.push_back( hb->second.Frames );
       }
-      Parallel::World().Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
-      Parallel::World().Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
+      commIn.Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
+      commIn.Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
       // Send series data to master
       if (series_) {
         int in = 0; // For tag
         for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
-          Parallel::World().Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
+          commIn.Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
                                   MPI_INT, 0, 1304 + in );
           hb->second.data_->SetSynced();
         }
@@ -878,7 +874,6 @@ const
     }
   }
 }
-#endif
 
 /** PARALLEL NOTES:
   * The following tags are used for MPI send/receive:
@@ -888,45 +883,44 @@ const
   *   1303  : Array containing bridge integer info on rank.
   *   1304+X: Array of hbond X series info from rank.
   */
-int Action_Hbond::SyncAction() {
-# ifdef MPI
+int Action_Hbond::SyncAction(Parallel::Comm const& commIn) {
   // Make sure all time series are updated at this point.
   UpdateSeries();
   // Get total number of frames.
-  int* rank_frames = new int[ Parallel::World().Size() ];
-  Parallel::World().GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
+  int* rank_frames = new int[ commIn.Size() ];
+  commIn.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
   mprintf("DEBUG: Master= %i frames\n", Nframes_);
-  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+  for (int rank = 1; rank < commIn.Size(); rank++) {
     mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
     Nframes_ += rank_frames[ rank ];
   }
   mprintf("DEBUG: Total= %i frames.\n", Nframes_);
   // Convert rank frames to offsets.
-  int* rank_offsets = new int[ Parallel::World().Size() ];
+  int* rank_offsets = new int[ commIn.Size() ];
   rank_offsets[0] = 0;
-  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+  for (int rank = 1; rank < commIn.Size(); rank++) {
     rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
     mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
   }
   //int total_frames = 0;
-  //Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  //if (Parallel::World().Master())
+  //commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  //if (commIn.Master())
   //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
-  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb" );
+  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb", commIn );
   if (calcSolvent_) {
-    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb" );
+    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb", commIn );
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
-    if (Parallel::World().Master()) {
-      for (int rank = 1; rank < Parallel::World().Size(); rank++)
+    if (commIn.Master()) {
+      for (int rank = 1; rank < commIn.Size(); rank++)
       {
         // Receive size of iArray
-        Parallel::World().Recv( &iSize,           1, MPI_INT, rank, 1302 );
+        commIn.Recv( &iSize,           1, MPI_INT, rank, 1302 );
         mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
         iArray.resize( iSize );
-        Parallel::World().Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
+        commIn.Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
         unsigned int idx = 0;
         while (idx < iArray.size()) {
           std::set<int> residues;
@@ -953,15 +947,15 @@ int Action_Hbond::SyncAction() {
       // Since the size of each bridge can be different (i.e. differing #s of
       // residues may be bridged), first send size of the transport array.
       iSize = (int)iArray.size();
-      Parallel::World().Send( &iSize,           1, MPI_INT, 0, 1302 );
-      Parallel::World().Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
+      commIn.Send( &iSize,           1, MPI_INT, 0, 1302 );
+      commIn.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
     }
   }
   delete[] rank_frames;
   delete[] rank_offsets;
-# endif
   return 0;
 }
+#endif
 
 /** Calculate average distance and angle for hbond. */
 void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {

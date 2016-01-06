@@ -13,8 +13,10 @@ class Action_Average: public Action, ActionFrameCounter {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
-    int SyncAction();
 
     int ensembleNum_;
     int debug_;

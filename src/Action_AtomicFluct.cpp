@@ -132,19 +132,19 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
-int Action_AtomicFluct::SyncAction() {
-# ifdef MPI
+#ifdef MPI
+int Action_AtomicFluct::SyncAction(Parallel::Comm const& commIn) {
   int total_frames = 0;
-  Parallel::World().Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
-  if (Parallel::World().Master()) {
+  commIn.Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
+  if (commIn.Master()) {
     sets_ = total_frames;
     rprintf("DEBUG: Total frames= %i\n", sets_);
   }
   SumCoords_.SumToMaster();
   SumCoords2_.SumToMaster();
-# endif
   return 0;
 }
+#endif
 
 // Action_AtomicFluct::Print() 
 void Action_AtomicFluct::Print() {

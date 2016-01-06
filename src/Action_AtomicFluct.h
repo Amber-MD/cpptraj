@@ -11,7 +11,9 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    int SyncAction();
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     enum outputType { BYATOM = 0, BYRES, BYMASK };

@@ -407,22 +407,22 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 } 
 
-int Action_Radial::SyncAction() {
-# ifdef MPI
+#ifdef MPI
+int Action_Radial::SyncAction(Parallel::Comm const& commIn) {
   int total_frames = 0;
-  Parallel::World().Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  commIn.Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
   // FIXME if MPI + OPENMP then threads have to be synced here.
-  if (Parallel::World().Master()) {
+  if (commIn.Master()) {
     numFrames_ = total_frames;
     int* sum_bins = new int[ numBins_ ];
-    Parallel::World().Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
+    commIn.Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
     std::copy( sum_bins, sum_bins + numBins_, RDF_ );
     delete[] sum_bins;
   } else
-    Parallel::World().Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
-# endif
+    commIn.Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
   return 0;
 }
+#endif
 
 // Action_Radial::Print()
 /** Convert the histogram to a dataset, normalize, create datafile.

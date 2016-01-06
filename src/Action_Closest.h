@@ -13,8 +13,10 @@ class Action_Closest: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print() {}
-    int SyncAction();
 
     ImagedAction image_;    ///< Imaging routines.
     DataFile *outFile_;     ///< Output file for data on closest molecules

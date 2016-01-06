@@ -754,7 +754,7 @@ int CpptrajState::RunParallel() {
   Timer time_sync;
   time_sync.Start();
   // Sync Actions to master thread
-  actionList_.SyncActions();
+  actionList_.SyncActions( Parallel::World() );
   // Sync data sets to master thread
   DSL_.SynchronizeData( input_traj.Size(), rank_frames );
   time_sync.Stop();
@@ -853,7 +853,7 @@ int CpptrajState::RunSingleTrajParallel() {
   time_sync.Start();
   DSL_.SynchronizeData( total_read_frames, rank_frames );
   // Sync Actions to master thread
-  actionList_.SyncActions();
+  actionList_.SyncActions( Parallel::World() );
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");

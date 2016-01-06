@@ -2,9 +2,6 @@
 #include "Action_DSSP.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 /// Hbond energy calc prefactor for kcal/mol: q1*q2*E, 0.42*0.20*332
 const double Action_DSSP::DSSP_fac = 27.888;
 
@@ -515,27 +512,27 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
-int Action_DSSP::SyncAction() {
-# ifdef MPI
+#ifdef MPI
+int Action_DSSP::SyncAction(Parallel::Comm const& commIn) {
   // Consolidate SSprob data to master.
   int SSprob[8];
   for (std::vector<SSres>::iterator res = SecStruct_.begin(); res != SecStruct_.end(); ++res)
   {
     std::fill(SSprob, SSprob+8, 0);
-    Parallel::World().Reduce( SSprob, res->SSprob, 8, MPI_INT, MPI_SUM );
-    if (Parallel::World().Master()) {
+    commIn.Reduce( SSprob, res->SSprob, 8, MPI_INT, MPI_SUM );
+    if (commIn.Master()) {
       for (int idx = 0; idx != 8; idx++)
         res->SSprob[idx] = SSprob[idx];
     }
   }
   // Calc total number of frames.
   int total_frames = 0;
-  Parallel::World().Reduce( &total_frames, &Nframe_, 1, MPI_INT, MPI_SUM );
-  if (Parallel::World().Master())
+  commIn.Reduce( &total_frames, &Nframe_, 1, MPI_INT, MPI_SUM );
+  if (commIn.Master())
     Nframe_ = total_frames;
-# endif
   return 0;
 }
+#endif
 
 // Action_DSSP::Print()
 void Action_DSSP::Print() {

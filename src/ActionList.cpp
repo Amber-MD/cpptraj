@@ -126,18 +126,18 @@ void ActionList::PrintActions() {
       act->ptr_->Print();
   }
 }
-
-void ActionList::SyncActions() {
+#ifdef MPI
+void ActionList::SyncActions(Parallel::Comm const& commIn) {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
       rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
-      if (act->ptr_->SyncAction())
+      if (act->ptr_->SyncAction(commIn))
         rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
     }
   }
 }
-
+#endif
 void ActionList::List() const {
   if (!actionList_.empty()) {
     mprintf("\nACTIONS (%zu total):\n", actionList_.size());

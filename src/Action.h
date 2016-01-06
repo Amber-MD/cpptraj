@@ -3,6 +3,9 @@
 #include "DispatchObject.h"
 #include "ArgList.h"
 #include "ActionState.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// The abstract base class that all other Actions inherit.
 /** By convention Actions have 3 main phases: Init, Setup, and DoAction.
   * Init is used to initialize the Action, make sure that all arguments
@@ -49,7 +52,9 @@ class Action : public DispatchObject {
       * necessary post-trajectory processing calculations.
       */
     virtual void Print() = 0;
+#   ifdef MPI
     /// Sync Action data to master when running in parallel across trajectories.
-    virtual int SyncAction() { return 0; } // TODO: pure virtual
+    virtual int SyncAction(Parallel::Comm const&) { return 0; } // TODO: pure virtual
+#   endif
 };
 #endif

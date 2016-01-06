@@ -2,9 +2,6 @@
 #include "CpptrajStdio.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_REF.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 // CONSTRUCTOR
 Action_Average::Action_Average() :
@@ -141,18 +138,18 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
-int Action_Average::SyncAction() {
-# ifdef MPI
+#ifdef MPI
+int Action_Average::SyncAction(Parallel::Comm const& commIn) {
   int total_frames = 0;
-  Parallel::World().Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   AvgFrame_->SumToMaster();
-  if (Parallel::World().Master()) {
+  if (commIn.Master()) {
     Nframes_ = total_frames;
     rprintf("DEBUG: Total frames= %i\n", Nframes_);
   }
-# endif
   return 0;
 }
+#endif
 
 
 // Action_Average::Print()

@@ -11,7 +11,9 @@ class Action_DSSP : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    int SyncAction();
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
     // Enum and static vars
     //enum SStype { ALPHA=0, ANTI, PARA, H3_10, HPI, TURN, BEND, NONE };

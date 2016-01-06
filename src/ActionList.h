@@ -23,8 +23,10 @@ class ActionList {
     bool DoActions(int, ActionFrame&);
     /// Call print for each Action.
     void PrintActions();
+#   ifdef MPI
     /// Call sync for each Action (parallel only)
-    void SyncActions();
+    void SyncActions(Parallel::Comm const&);
+#   endif
     /// List all Actions in the list.
     void List() const;
     /// \return Current debug level.

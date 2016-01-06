@@ -13,7 +13,9 @@ class Action_Radial: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    int SyncAction();
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     ImagedAction image_;      ///< Image routines.

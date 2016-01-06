@@ -362,17 +362,17 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   return Action::MODIFY_COORDS;
 }
 
+#ifdef MPI
 /** Since datasets are actually # frames * closestWaters_ in length, need to
   * sync here.
   */
-int Action_Closest::SyncAction() {
-# ifdef MPI
+int Action_Closest::SyncAction(Parallel::Comm const& commIn) {
   if (outFile_ == 0) return 0;
   // Get total number of closest entries.
-  std::vector<int> rank_frames( Parallel::World().Size() );
-  Parallel::World().GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
+  std::vector<int> rank_frames( commIn.Size() );
+  commIn.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
   mprintf("DEBUG: Master= %i frames\n", Nclosest_);
-  for (int rank = 1; rank < Parallel::World().Size(); rank++) {
+  for (int rank = 1; rank < commIn.Size(); rank++) {
     mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
     Nclosest_ += rank_frames[ rank ];
   }
@@ -386,6 +386,6 @@ int Action_Closest::SyncAction() {
   distdata_->SetSynced();
   atomdata_->Sync( Nclosest_, rank_frames );
   atomdata_->SetSynced();
-# endif
   return 0;
 }
+#endif

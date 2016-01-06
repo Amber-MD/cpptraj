@@ -16,8 +16,10 @@ class Action_Hbond : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
-    int SyncAction();
 
     struct HbondType {
       double dist;  ///< Used to calc avg distance of this hbond
@@ -111,7 +113,7 @@ class Action_Hbond : public Action {
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;
 #   ifdef MPI
-    void SyncMap(HBmapType&, const int*, const int*, const char*) const;
+    void SyncMap(HBmapType&, const int*, const int*, const char*, Parallel::Comm const&) const;
 #   endif
 };
 #endif
