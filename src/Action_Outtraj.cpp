@@ -1,8 +1,5 @@
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 Action_Outtraj::~Action_Outtraj() {
 # ifdef MPI
@@ -102,7 +99,7 @@ Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
 #   ifdef MPI
     if (Parallel::Trajin())
       err = outtraj_.ParallelSetupTrajWrite(setup.TopAddress(), setup.CoordInfo(),
-                                            setup.Nframes(), Parallel::World());
+                                            setup.Nframes(), trajComm_);
     else
 #   endif
       err = outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes());

@@ -1,6 +1,5 @@
 #ifndef INC_ACTION_OUTTRAJ_H
 #define INC_ACTION_OUTTRAJ_H
-// Action_Outtraj
 #include "Action.h"
 #include "Trajout_Single.h"
 #include "DataSet_1D.h"
@@ -16,7 +15,9 @@ class Action_Outtraj: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
-
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+#   endif
     Trajout_Single outtraj_;
     Topology* associatedParm_;
     bool isSetup_;
@@ -24,5 +25,8 @@ class Action_Outtraj: public Action {
     std::vector<double> Max_;
     std::vector<double> Min_;
     std::vector<DataSet_1D*> Dsets_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif
