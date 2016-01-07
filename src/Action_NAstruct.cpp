@@ -22,6 +22,7 @@ Action_NAstruct::Action_NAstruct() :
   grooveCalcType_(PP_OO),
   printheader_(true),
   useReference_(false),
+  seriesUpdated_(false),
   bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
@@ -1256,8 +1257,29 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
 
   if (!useReference_) {
     // Determine Base Pairing based on first frame
+#   ifdef MPI
+    // Ensure all threads set up base axes for base pair determination
+    // from first frame on master.
+    int err = 0;
+    if (trajComm_.Master()) { // TODO MasterBcast?
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
+        frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+    } else {
+      Frame refFrame = frm.Frm();
+      refFrame.RecvFrame(0, trajComm_);
+      err = SetupBaseAxes( refFrame );
+      if (err != 0)
+        rprinterr("Error: Could not sync nastruct reference first frame.\n");
+    }
+    if (trajComm_.CheckError( err ))
+      return Action::ERR;
+#   endif
     if ( DetermineBasePairing() ) return Action::ERR;
     useReference_ = true;
+#   ifdef MPI
+    // Now re-set up base axes from current frame on non-master.
+    SetupBaseAxes( frm.Frm() );
+#   endif
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
     for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
@@ -1286,17 +1308,23 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   }
 }
 
-// Action_NAstruct::Print()
-void Action_NAstruct::Print() {
-  if (bpout_ == 0) return;
-  // ---------- Base pair parameters ----------
-  // Check that there is actually data
-  if ( BasePairs_.empty() || nframes_ < 1)
-    mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
-  else {
-    mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
-            bpout_->Filename().full(), nframes_, BasePairs_.size());
-    // Update time series data
+#ifdef MPI
+int Action_NAstruct::SyncAction(Parallel::Comm const& commIn) {
+  // Make sure all time series are updated at this point.
+  UpdateSeries();
+  // Get total number of frames
+  int total_frames = 0;
+  commIn.Reduce( &total_frames, &nframes_, 1, MPI_INT, MPI_SUM );
+  if (commIn.Master())
+    nframes_ = total_frames;
+  return 0;
+}
+#endif
+
+void Action_NAstruct::UpdateSeries() {
+  if (seriesUpdated_) return;
+  if (nframes_ > 0) {
+    // Base pair data
     for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it) {
       BPtype& BP = it->second;
       UpdateTimeSeries( nframes_, BP.shear_ );
@@ -1311,6 +1339,42 @@ void Action_NAstruct::Print() {
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
       UpdateTimeSeries( nframes_, Bases_[BP.base2idx_].Pucker() );
     }
+    // Step and helix data
+    for (StepMap::iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
+      StepType& BS = it->second;
+      UpdateTimeSeries( nframes_, BS.shift_ );
+      UpdateTimeSeries( nframes_, BS.slide_ );
+      UpdateTimeSeries( nframes_, BS.rise_ );
+      UpdateTimeSeries( nframes_, BS.tilt_ );
+      UpdateTimeSeries( nframes_, BS.roll_ );
+      UpdateTimeSeries( nframes_, BS.twist_ );
+      UpdateTimeSeries( nframes_, BS.xdisp_ );
+      UpdateTimeSeries( nframes_, BS.ydisp_ );
+      UpdateTimeSeries( nframes_, BS.hrise_ );
+      UpdateTimeSeries( nframes_, BS.incl_ );
+      UpdateTimeSeries( nframes_, BS.tip_ );
+      UpdateTimeSeries( nframes_, BS.htwist_ );
+      UpdateTimeSeries( nframes_, BS.Zp_ );
+      UpdateTimeSeries( nframes_, BS.majGroove_ );
+      UpdateTimeSeries( nframes_, BS.minGroove_ );
+    }
+  }
+  // Should only be called once.
+  seriesUpdated_ = true;
+}
+
+// Action_NAstruct::Print()
+void Action_NAstruct::Print() {
+  if (bpout_ == 0) return;
+  // Ensure all series have been updated for all frames.
+  UpdateSeries();
+  // ---------- Base pair parameters ----------
+  // Check that there is actually data
+  if ( BasePairs_.empty() || nframes_ < 1)
+    mprinterr("Error: Could not write BP file %s: No BP data.\n", bpout_->Filename().full()); 
+  else {
+    mprintf("\tBase pair output file %s; %i frames, %zu base pairs.\n", 
+            bpout_->Filename().full(), nframes_, BasePairs_.size());
     //  File header
     if (printheader_) {
       bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s",
@@ -1349,25 +1413,6 @@ void Action_NAstruct::Print() {
             "\t  %i frames, %zu base pair steps.\n", 
             stepout_->Filename().full(), helixout_->Filename().full(),
             nframes_, Steps_.size() - 1);
-    // Update time series data
-    for (StepMap::iterator it = Steps_.begin(); it != Steps_.end(); ++it) {
-      StepType& BS = it->second;
-      UpdateTimeSeries( nframes_, BS.shift_ );
-      UpdateTimeSeries( nframes_, BS.slide_ );
-      UpdateTimeSeries( nframes_, BS.rise_ );
-      UpdateTimeSeries( nframes_, BS.tilt_ );
-      UpdateTimeSeries( nframes_, BS.roll_ );
-      UpdateTimeSeries( nframes_, BS.twist_ );
-      UpdateTimeSeries( nframes_, BS.xdisp_ );
-      UpdateTimeSeries( nframes_, BS.ydisp_ );
-      UpdateTimeSeries( nframes_, BS.hrise_ );
-      UpdateTimeSeries( nframes_, BS.incl_ );
-      UpdateTimeSeries( nframes_, BS.tip_ );
-      UpdateTimeSeries( nframes_, BS.htwist_ );
-      UpdateTimeSeries( nframes_, BS.Zp_ );
-      UpdateTimeSeries( nframes_, BS.majGroove_ );
-      UpdateTimeSeries( nframes_, BS.minGroove_ );
-    }
     // Base pair step frames
     if (printheader_) {
       stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",

@@ -31,6 +31,10 @@ class Action_NAstruct: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     enum HbondType { WC = 0, HOOG, OTHER };
@@ -50,6 +54,7 @@ class Action_NAstruct: public Action {
     int DeterminePairParameters(int);
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
     int DetermineStepParameters(int);
+    void UpdateSeries();
 
     typedef std::vector<NA_Base> Barray;
     Barray Bases_;        ///< Hold nucleobases
@@ -119,6 +124,7 @@ class Action_NAstruct: public Action {
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool useReference_;                 ///< If true, use reference to determine base pairing.
+    bool seriesUpdated_;                ///< If false, check that time series data is nframes long
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
@@ -128,6 +134,9 @@ class Action_NAstruct: public Action {
     ResMapType CustomMap_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 #   ifdef NASTRUCTDEBUG
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam_;

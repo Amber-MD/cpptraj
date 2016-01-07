@@ -112,7 +112,7 @@ void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
   // Ensure all threads are using the same reference
   if (trajComm_.Master()) { // TODO MasterBcast
     rprintf("DEBUG: Sending reference frame to children.\n");
-    for (int rank = 1; rank != trajComm_.Size(); rank++)
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
       refFrame_.SendFrame(rank, trajComm_);
   } else {
     rprintf("DEBUG: Receiving reference frame from master.\n");
