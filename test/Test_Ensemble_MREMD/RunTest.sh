@@ -64,7 +64,7 @@ EOF
   DoTest Outtraj.crd.1.save Outtraj.crd.1
 }
 
-RequiresThreads 8
+RequiresThreads 8 "M-REMD ensemble tests"
 if [[ $? -eq 0 ]] ; then
   TrajSort
   ActionsTest

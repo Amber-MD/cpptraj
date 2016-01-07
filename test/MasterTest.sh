@@ -276,13 +276,16 @@ RequiresThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
     if [[ ! -f "$NPROC" ]] ; then
       echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
-      echo "Error: Test requires $1 threads. Attempting to run test anyway." > /dev/stderr
+      echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
     N_THREADS=`$DO_PARALLEL $NPROC`
     if [[ $N_THREADS -ne $1 ]] ; then
       echo ""
-      echo "Warning: Test requires $1 threads. Skipping."
+      if [[ ! -z $2 ]] ; then
+        echo "  CPPTRAJ: $2"
+      fi
+      echo "  Warning: Test requires $1 parallel threads. Skipping."
       return 1
     fi
   fi
