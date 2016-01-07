@@ -146,7 +146,6 @@ SOURCES=ActionFrameCounter.cpp \
         Command.cpp \
         ComplexArray.cpp \
         Corr.cpp \
-        Cpptraj.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
@@ -258,7 +257,6 @@ SOURCES=ActionFrameCounter.cpp \
         Random.cpp \
         Range.cpp \
         RPNcalc.cpp \
-        ReadLine.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
