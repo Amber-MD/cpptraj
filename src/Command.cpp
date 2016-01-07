@@ -475,8 +475,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         delete obj;
         break;
-      case Cmd::ACT: State.AddToActionQueue( (Action*)obj, cmdArg ); break;
-      case Cmd::ANA: State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
+      case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;
+      case Cmd::ANA: ret_val = State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
       case Cmd::DEP:
         mprinterr("Error: '%s' is deprecated.\n", cmdArg.Command());
         cmd.Help();

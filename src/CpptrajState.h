@@ -38,8 +38,8 @@ class CpptrajState {
     inline int AddReference( std::string const& );
     int AddTopology( std::string const&, ArgList const& );
     int AddTopology( Topology const&, std::string const& );
-    inline int AddToActionQueue( Action*, ArgList& );
-    inline int AddToAnalysisQueue( Analysis*, ArgList& );
+    inline RetType AddToActionQueue( Action*, ArgList& );
+    inline RetType AddToAnalysisQueue( Analysis*, ArgList& );
     static int WorldSize();
     static std::string PrintListKeys();
     int ListAll(ArgList&) const;
@@ -91,16 +91,18 @@ class CpptrajState {
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 // CpptrajState::AddToActionQueue()
-int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
+CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   ActionInit init(DSL_, DFL_);
-  return actionList_.AddAction( actIn, argIn, init );
+  if (actionList_.AddAction( actIn, argIn, init )) return ERR;
+  return OK;
 }
 // CpptrajState::AddToAnalysisQueue()
-int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
+CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
-  return analysisList_.AddAnalysis( anaIn, argIn, setup );
+  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) return ERR;
+  return OK;
 }
 // CpptrajState::AddReference()
 int CpptrajState::AddReference( std::string const& fname ) {
