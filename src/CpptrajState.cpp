@@ -117,7 +117,7 @@ int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
 }
 
 // CpptrajState::AddToActionQueue()
-int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
+CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   // Default to NORMAL if not set.
   if (mode_ == UNDEFINED) {
@@ -125,19 +125,16 @@ int CpptrajState::AddToActionQueue( Action* actIn, ArgList& argIn ) {
     SetTrajMode( NORMAL );
   }
   ActionInit init(DSL_, DFL_);
-  return actionList_.AddAction( actIn, argIn, init );
+  if (actionList_.AddAction( actIn, argIn, init )) return ERR;
+  return OK;
 }
 
 // CpptrajState::AddToAnalysisQueue()
-int CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
+CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
-  return analysisList_.AddAnalysis( anaIn, argIn, setup );
-}
-
-// CpptrajState::AddReference()
-int CpptrajState::AddReference( std::string const& fname ) {
-  return AddReference( fname, ArgList() );
+  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) return ERR;
+  return OK;
 }
 
 // -----------------------------------------------------------------------------
@@ -1084,6 +1081,11 @@ int CpptrajState::RunAnalyses() {
 }
 
 // CpptrajState::AddReference()
+int CpptrajState::AddReference( std::string const& fname ) {
+  return AddReference( fname, ArgList() );
+}
+
+// CpptrajState::AddReference()
 /** Add specified file/COORDS set as reference. Reference frames are a unique
   * DataSet - they are set up OUTSIDE data set list.
   */
@@ -1186,7 +1188,6 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
 }
 
 int CpptrajState::AddTopology( Topology const& top, std::string const& parmname ) {
-  
   DataSet_Topology* ds = (DataSet_Topology*)DSL_.AddSet(DataSet::TOPOLOGY, parmname);
   if (ds == 0) return 1;
   ds->SetTop( top );
