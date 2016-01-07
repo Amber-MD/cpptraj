@@ -179,7 +179,6 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
   if (nameIn.empty() && !allowStdout) return 0;
 # ifdef MPI
   // If TrajComm size > 1 and not stdout, overwrites can happen.
-  rprintf("CALLING ADDCPPTRAJFILE\n");
   if (Parallel::TrajComm().Size() > 1) {
     if (nameIn.empty())
       mprintf("Warning: Writes to STDOUT for '%s' in parallel may be garbled.\n", descrip.c_str());
