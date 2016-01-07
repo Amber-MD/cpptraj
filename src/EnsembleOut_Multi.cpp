@@ -56,11 +56,11 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   fileNames_.clear();
 # ifdef MPI
   // In MPI each thread writes a single member.
-  if (members_to_write.InRange( Parallel::World().Rank() ))
-    fileNames_.push_back( AppendNumber(Traj().Filename().Full(), Parallel::World().Rank()) );
+  if (members_to_write.InRange( Parallel::EnsembleComm().Rank() ))
+    fileNames_.push_back( AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()) );
   else
     rprintf("Warning: Skipping member '%s'\n", 
-            AppendNumber(Traj().Filename().Full(), Parallel::World().Rank()).c_str());
+            AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()).c_str());
 # else
   // In serial single process writes each member.
   // Create a map: tIndex[ pos ] = <ioarray_index>
@@ -180,7 +180,7 @@ void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
   // determine total number being written.
   int mysize = (int)ioarray_.size();
   int total;
-  Parallel::World().Reduce(&total, &mysize, 1, MPI_INT, MPI_SUM);
+  Parallel::EnsembleComm().Reduce(&total, &mysize, 1, MPI_INT, MPI_SUM);
   mprintf(" %i members written) ", total);
   // Since first member may be skipped, do not print if empty. 
   if (ioarray_.empty())

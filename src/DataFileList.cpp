@@ -102,6 +102,7 @@ DataFile* DataFileList::AddDataFile(FileName const& nameIn, ArgList& argIn,
   if (nameIn.empty()) return 0;
   FileName fname( nameIn );
   // Append ensemble number if set.
+  rprintf("DEBUG: Setting up data file '%s' with ensembleNum %i\n", nameIn.base(), ensembleNum_);
   if (ensembleNum_ != -1)
     fname.AppendFileName( "." + integerToString(ensembleNum_) );
   // Check if filename in use by CpptrajFile.

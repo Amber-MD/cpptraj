@@ -109,18 +109,16 @@ int ReferenceAction::SetupRefMask(Topology const& topIn) {
 void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
   refFrame_ = frameIn;
 # ifdef MPI
-  if (Parallel::Trajin()) {
-    // Ensure all threads are using the same reference
-    if (trajComm_.Master()) { // TODO MasterBcast
-      rprintf("DEBUG: Sending reference frame to children.\n");
-      for (int rank = 1; rank != trajComm_.Size(); rank++)
-        refFrame_.SendFrame(rank, trajComm_);
-    } else {
-      rprintf("DEBUG: Receiving reference frame from master.\n");
-      refFrame_.RecvFrame(0, trajComm_);
-    }
-    trajComm_.Barrier();
+  // Ensure all threads are using the same reference
+  if (trajComm_.Master()) { // TODO MasterBcast
+    rprintf("DEBUG: Sending reference frame to children.\n");
+    for (int rank = 1; rank != trajComm_.Size(); rank++)
+      refFrame_.SendFrame(rank, trajComm_);
+  } else {
+    rprintf("DEBUG: Receiving reference frame from master.\n");
+    refFrame_.RecvFrame(0, trajComm_);
   }
+  trajComm_.Barrier();
 # endif
   selectedRef_.SetCoordinates( refFrame_, refMask_ );
   if (fitRef_)

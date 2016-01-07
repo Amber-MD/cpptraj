@@ -8,7 +8,8 @@
 Parallel::Comm Parallel::world_ = Parallel::Comm();
 
 #ifdef MPI
-int Parallel::trajin_ = 1;
+Parallel::Comm Parallel::ensembleComm_ = Parallel::Comm();
+Parallel::Comm Parallel::trajComm_ = Parallel::Comm();
 
 // printMPIerr()
 /** Wrapper for MPI_Error string.  */
@@ -72,8 +73,8 @@ int Parallel::debug_end() {
     fclose(mpidebugfile_);
   return 0;
 }
+#endif /* PARALLEL_DEBUG_VERBOSE */
 // -----------------------------------------------------------------------------
-#endif
 
 // Parallel::Init()
 int Parallel::Init(int argc, char** argv) {
@@ -102,6 +103,47 @@ int Parallel::Abort(int errcode) {
   return 1;
 }
 
+int Parallel::SetupComms(int ngroups) {
+  if (ngroups < 1) {
+    // If ngroups < 1 assume we want to reset comm info
+    fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
+    trajComm_.Reset();
+    ensembleComm_.Reset();
+  } else if (!ensembleComm_.IsNull()) {
+    // If comms were previously set up make sure the number of groups remains the same!
+    if (ensembleComm_.Size() != ngroups) {
+      fprintf(stderr,"Error: Ensemble size (%i) does not first ensemble size (%i).\n",
+              ngroups, ensembleComm_.Size());
+      return 1;
+    }
+  } else {
+    // Initial setup: Make sure that ngroups is a multiple of total # threads.
+    if ( (world_.Size() % ngroups) != 0 ) {
+      fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
+              world_.Size(), ngroups);
+      return 1;
+    }
+    // Split into comms for parallel across trajectory
+    int ID = world_.Rank() / (world_.Size() / ngroups);
+    fprintf(stdout,"[%i] DEBUG: My trajComm ID is %i\n", world_.Rank(), ID);
+    trajComm_ = world_.Split( ID );
+    // Ensemble comm is orthogonal to trajectory comm
+    ID = world_.Rank() % trajComm_.Size();
+    fprintf(stdout, "[%i] DEBUG: My ensembleComm ID is %i\n", world_.Rank(), ID);
+    ensembleComm_ = world_.Split( ID );
+    // DEBUG 
+    if (trajComm_.Master())
+      fprintf(stdout,"[%i] DEBUG: I am in the ensemble master comm\n", world_.Rank());
+    else
+      fprintf(stdout,"[%i] DEBUG: Not part of ensemble master comm\n", world_.Rank());
+    fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i\n",
+            world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
+            ensembleComm_.Rank(), ensembleComm_.Size());
+    world_.Barrier();
+  }
+  return 0;
+}
+
 #else /* MPI */
 // ----- NON-MPI VERSIONS OF ROUTINES ------------------------------------------
 int Parallel::Init(int argc, char** argv) { return 0; }
@@ -110,7 +152,9 @@ int Parallel::End() { return 0; }
 
 // ===== Parallel::Comm ========================================================
 #ifdef MPI
-/** CONSTRUCTOR: Use given MPI communicator */
+/** CONSTRUCTOR: Use given MPI communicator. Should NOT be called with 
+  * MPI_COMM_NULL.
+  */
 Parallel::Comm::Comm(MPI_Comm commIn) : comm_(commIn), rank_(0), size_(0) {
   MPI_Comm_size(comm_, &size_);
   MPI_Comm_rank(comm_, &rank_);
@@ -125,6 +169,14 @@ Parallel::Comm Parallel::Comm::Split(int ID) const {
   MPI_Comm newComm;
   MPI_Comm_split( comm_, ID, rank_, &newComm );
   return Comm(newComm);
+}
+
+void Parallel::Comm::Reset() {
+  if (comm_ != MPI_COMM_NULL) {
+    MPI_Comm_free( &comm_ );
+    rank_ = 0;
+    size_ = 1;
+  }
 }
 
 /** Use MPI_REDUCE to OP the values in sendbuffer and place them in

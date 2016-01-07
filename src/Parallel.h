@@ -32,13 +32,14 @@ class Parallel {
     static int End();
 #   ifdef CPPTRAJ_MPI
     static int Abort(int);
+    /// Set up ensemble and trajectory communicators for given ensemble size
+    static int SetupComms(int);
+    static Comm const& EnsembleComm()   { return ensembleComm_;   }
+    static Comm const& TrajComm()       { return trajComm_;       }
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
-#   endif
-    static int Trajin()       { return trajin_; }
-    static void SetTrajin()   { trajin_ = 1; }
-    static void SetEnsemble() { trajin_ = 0; }
-#   endif
+#   endif /* PARALLEL_DEBUG_VERBOSE */
+#   endif /* CPPTRAJ_MPI */
   private:
 #   ifdef CPPTRAJ_MPI
     static void printMPIerr(int, const char*, int);
@@ -47,24 +48,27 @@ class Parallel {
     static void dbgprintf(const char*, ...);
     static int debug_init();
     static int debug_end();
-#   endif
-    static int trajin_; ///< If 1, single trajectories are being processed in parallel.
-#   endif
+#   endif /* PARALLEL_DEBUG_VERBOSE */
+    static Comm ensembleComm_;   ///< Communicator across ensemble.
+    static Comm trajComm_;       ///< Communicator across single trajectory.
+#   endif /* CPPTRAJ_MPI */
     static Comm world_;
 };
 
 class Parallel::Comm {
   public:
-    Comm() : rank_(0), size_(1) {}
     int Rank()    const { return rank_;      }
     int Size()    const { return size_;      }
     bool Master() const { return rank_ == 0; }
 #   ifdef CPPTRAJ_MPI
+    Comm() : comm_(MPI_COMM_NULL), rank_(0), size_(1) {}
     Comm(MPI_Comm);
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
+    bool IsNull() const { return comm_ == MPI_COMM_NULL; }
     void Barrier() const;
     Comm Split(int) const;
+    void Reset();
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
     int SendMaster(void*, int, int, MPI_Datatype) const;
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
@@ -75,6 +79,7 @@ class Parallel::Comm {
     int MasterBcast(void*, int, MPI_Datatype) const;
     int CheckError(int) const;
 #   else
+    Comm() : rank_(0), size_(1) {}
     void Barrier() const {}
 #   endif
   private:

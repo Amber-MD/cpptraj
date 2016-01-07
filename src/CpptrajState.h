@@ -55,6 +55,7 @@ class CpptrajState {
     /// Write all DataFiles
     void MasterDataFileWrite();
   private:
+    int SetTrajMode(TrajModeType, std::string const&, Topology*, ArgList&);
     int SetTrajMode(TrajModeType);
     /// Types of lists
     enum ListType {

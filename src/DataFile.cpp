@@ -340,8 +340,8 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (Parallel::Trajin() && !Parallel::World().Master()) {
-    rprintf("DEBUG: Parallel 'trajin' mode: skipping data file write on this rank.\n");
+  if (!Parallel::TrajComm().Master()) {
+    rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
     return;
   }
 # endif

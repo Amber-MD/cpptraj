@@ -61,7 +61,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
   }
 # ifdef MPI
   // Set up communicators
-  if (SetupComms( ensembleSize_ )) return 1;
+  if (Parallel::SetupComms( ensembleSize_ )) return 1;
 # endif
   // If dimensions are present, assume search by indices, otherwise by temp.
   targetType_ = ReplicaInfo::NONE;
@@ -97,7 +97,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
       std::vector<double> allTemps( ensembleSize_, -1.0 );
 #     ifdef MPI
       // Consolidate temperatures
-      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps)) return 1;
+      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps, EnsembleComm())) return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)
         allTemps[en] = f_ensemble[en].Temperature();
@@ -107,7 +107,8 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
       std::vector<RemdIdxType> allIndices( ensembleSize_ );
 #     ifdef MPI
       // Consolidate replica indices
-      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
+      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
+                        EnsembleComm()))
         return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)

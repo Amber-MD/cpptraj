@@ -30,7 +30,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
 # ifdef MPI
   // Set up communicators
-  if (SetupComms( REMDtraj_.size() )) return 1;
+  if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
 # endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
@@ -98,6 +98,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     else if (targetType_ == ReplicaInfo::INDICES)
       allIndices.resize( REMDtraj_.size() );
 #   ifdef MPI
+    // FIXME This needs to be changed if TrajComm size ever > 1
     int err = 0;
     if (REMDtraj_[Member()]->openTrajin()) {
       rprinterr("Error: Opening %s\n", REMDtraj_.f_name(Member()));
@@ -110,15 +111,16 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       }
       REMDtraj_[Member()]->closeTraj();
     }
-    if (SetupComm().CheckError( err )) {
+    if (EnsembleComm().CheckError( err )) {
       mprinterr("Error: Cannot setup ensemble trajectories.\n");
       return 1;
     }
     if (targetType_ == ReplicaInfo::TEMP) {
-      if (GatherTemperatures(frameIn.tAddress(), allTemps))
+      if (GatherTemperatures(frameIn.tAddress(), allTemps, EnsembleComm()))
         return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
+      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
+                        EnsembleComm()))
         return 1;
     }
 #   else

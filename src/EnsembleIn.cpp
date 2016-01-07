@@ -2,46 +2,21 @@
 #include "CpptrajStdio.h"
 
 #ifdef MPI
-int EnsembleIn::SetupComms(int ngroups) {
-  // Make sure that ngroups is a multiple of total # threads.
-  if ( (Parallel::World().Size() % ngroups) != 0 ) {
-    mprinterr("Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
-              Parallel::World().Size(), ngroups);
-    return 1;
-  }
-  // Split into comms for parallel across trajectory
-  int ID = Parallel::World().Rank() / (Parallel::World().Size() / ngroups);
-  rprintf("DEBUG: My trajComm ID is %i\n", ID);
-  trajComm_ = Parallel::World().Split( ID );
-  // Ensemble comm is orthogonal to trajectory comm
-  ID = Parallel::World().Rank() % trajComm_.Size();
-  rprintf("DEBUG: My ensembleComm ID is %i\n", ID);
-  ensembleComm_ = Parallel::World().Split( ID );
-  // Create comm from masters of trajComm_ for setting up ensemble.
-  if (trajComm_.Master())
-    ID = 0;
-  else
-    ID = MPI_UNDEFINED;
-  if (ID == 0)
-    rprintf("DEBUG: I am in the ensemble setup comm\n");
-  else
-    rprintf("DEBUG: Not part of ensemble setup comm\n");
-  setupComm_ = Parallel::World().Split( ID );
-  return 0;
-}
-
-int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) const {
-  if (setupComm_.AllGather(tAddress, 1, MPI_DOUBLE, &allTemps[0])) {
+int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps,
+                                   Parallel::Comm const& commIn)
+{
+  if (commIn.AllGather(tAddress, 1, MPI_DOUBLE, &allTemps[0])) {
     rprinterr("Error: Gathering temperatures.\n");
     return 1; // TODO: Better parallel error check
   }
   return 0;
 }
 
-int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) const
+int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices,
+                              int Ndims, Parallel::Comm const& commIn)
 {
   std::vector<int> all_indices(allIndices.size() * Ndims, 0);
-  if (setupComm_.AllGather(iAddress, Ndims, MPI_INT, &all_indices[0])) {
+  if (commIn.AllGather(iAddress, Ndims, MPI_INT, &all_indices[0])) {
     rprinterr("Error: Gathering replica indices\n");
     return 1; // TODO: Better parallel error check
   }
@@ -66,7 +41,7 @@ void EnsembleIn::TimingData(double trajin_time) {
             other_time, (other_time / trajin_time)*100.0 );
   }
 }
-#endif
+#endif /* TIMER */
 #endif /* MPI */
 
 void EnsembleIn::PrintReplicaInfo() const {

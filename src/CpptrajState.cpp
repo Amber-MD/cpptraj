@@ -22,13 +22,28 @@ CpptrajState::CpptrajState() :
   mode_(UNDEFINED)
 {}
 
+/** NOTE: This may be called from AddToActionQueue() to set NORMAL as default
+  *       mode without setting up a trajectory. May also be used to clear the
+  *       mode via UNDEFINED. It is illegal to call this for ENSEMBLE.
+  */
 int CpptrajState::SetTrajMode(TrajModeType modeIn) {
+  if (modeIn == ENSEMBLE) return 1;
+  ArgList blankArg;
+  return (SetTrajMode( modeIn, std::string(), 0, blankArg ));
+}
+
+/** Use to set the current trajectory mode, and also potentially add
+  * a trajectory to trajinList_.
+  */
+int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
+                              Topology* topIn, ArgList& argIn)
+{
   if (modeIn == UNDEFINED) {
     mode_ = modeIn;
     DSL_.SetEnsembleNum( -1 );
     DFL_.SetEnsembleNum( -1 );
 #   ifdef MPI
-    Parallel::SetTrajin();
+    Parallel::SetupComms( -1 );
 #   endif
     return 0;
   }
@@ -42,16 +57,28 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn) {
   // Mode not yet set. Set DataSetList / DataFileList mode if necessary.
   mode_ = modeIn;
   if (mode_ == ENSEMBLE) {
+    if (trajinList_.AddEnsemble( fnameIn, topIn, argIn )) return 1;
 #   ifdef MPI
-    // Let everything know individual trajectories are not being processed in parallel
-    Parallel::SetEnsemble();
-    // Make all sets not in an ensemble a member of this thread.
-    DSL_.SetEnsembleNum( Parallel::World().Rank() ); // FIXME create MPI ensemble comm
-    // This tells all DataFiles to append member number.
-    DFL_.SetEnsembleNum( Parallel::World().Rank() );
+    // NOTE: SetupComms is called during ensemble setup.
+    rprintf("DEBUG: Inside SetTrajMode(%i): EnsembleComm rank %i\n", (int)modeIn,
+            Parallel::EnsembleComm().Rank());
+    // Make all sets a member of this ensemble.
+    DSL_.SetEnsembleNum( Parallel::EnsembleComm().Rank() );
+    // This tells all DataFiles to append ensemble member number to file name.
+    DFL_.SetEnsembleNum( Parallel::EnsembleComm().Rank() );
 #   else
     // Ensemble 0 is set up first. All others are setup in RunEnsemble.
     DSL_.SetEnsembleNum( 0 );
+#   endif
+  } else if (mode_ == NORMAL) {
+    if (topIn != 0) {
+      if (trajinList_.AddTrajin( fnameIn, topIn, argIn )) return 1;
+    }
+#   ifdef MPI
+    // NOTE: SetupComms is called here for trajin, whereas in ensemble it is
+    //       called inside ensemble setup. This is because ensemble setup
+    //       typically requires communication.
+    if (Parallel::SetupComms( 1 )) return 1;
 #   endif
   }
   return 0;
@@ -65,16 +92,14 @@ int CpptrajState::AddInputTrajectory( std::string const& fname ) {
 
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
-  SetTrajMode( NORMAL );
   Topology* top = DSL_.GetTopology( argIn );
-  return trajinList_.AddTrajin( argIn.GetStringNext(), top, argIn );
+  return (SetTrajMode( NORMAL, argIn.GetStringNext(), top, argIn ));
 }
 
 // CpptrajState::AddInputEnsemble()
 int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
-  SetTrajMode( ENSEMBLE );
   Topology* top = DSL_.GetTopology( argIn );
-  return trajinList_.AddEnsemble( argIn.GetStringNext(), top, argIn );
+  return (SetTrajMode( ENSEMBLE, argIn.GetStringNext(), top, argIn ));
 }
 
 // CpptrajState::AddOutputTrajectory()
@@ -322,20 +347,13 @@ int CpptrajState::RunEnsemble() {
 
   mprintf("\nINPUT ENSEMBLE:\n");
   // Ensure all ensembles are of the same size
+  // FIXME This check may no longer be necessary, should happen upon ensemble setup?
   int ensembleSize = -1;
   for (TrajinList::ensemble_it traj = trajinList_.ensemble_begin(); 
                                traj != trajinList_.ensemble_end(); ++traj) 
   {
     if (ensembleSize == -1) {
       ensembleSize = (*traj)->EnsembleCoordInfo().EnsembleSize();
-#     ifdef MPI
-      // TODO: Eventually try to divide ensemble among MPI threads?
-      if (Parallel::World().Size() != ensembleSize) {
-        mprinterr("Error: Ensemble size (%i) does not match # of MPI threads (%i).\n",
-                  ensembleSize, Parallel::World().Size());
-        return 1;
-      }
-#     endif
     } else if (ensembleSize != (*traj)->EnsembleCoordInfo().EnsembleSize()) {
       mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
                 (*traj)->EnsembleCoordInfo().EnsembleSize(), ensembleSize);
@@ -383,6 +401,12 @@ int CpptrajState::RunEnsemble() {
   // Allocate an ActionList for each member of the ensemble.
   std::vector<ActionList*> ActionEnsemble( ensembleSize );
   ActionEnsemble[0] = &actionList_;
+# ifdef MPI
+  // NOTE: Even if not processing individual trajectories in parallel certain
+  //       Actions may require that the comm be set to avoid calls to 
+  //       MPI_COMM_NULL.
+  ActionEnsemble[0]->ParallelInitActions( Parallel::TrajComm() );
+# endif
   for (int member = 1; member < ensembleSize; member++)
     ActionEnsemble[member] = new ActionList();
   // If we are on a single thread, give each member its own copy of the
@@ -478,7 +502,7 @@ int CpptrajState::RunEnsemble() {
         if (ActionEnsemble[member]->SetupActions( EnsembleParm[member], exitOnError_ )) {
 #         ifdef MPI
           rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
-                  Parallel::World().Rank(), EnsembleParm[member].Top().c_str());
+                  Parallel::EnsembleComm().Rank(), EnsembleParm[member].Top().c_str());
 #         else
           mprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
                   member, EnsembleParm[member].Top().c_str());
@@ -634,6 +658,8 @@ std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_s
 // -----------------------------------------------------------------------------
 /** Process trajectories in trajinList in parallel. */
 int CpptrajState::RunParallel() {
+  // Set comms
+  Parallel::Comm const& TrajComm = Parallel::TrajComm();
   // Print information.
   DSL_.ListTopologies();
   trajinList_.List();
@@ -653,7 +679,7 @@ int CpptrajState::RunParallel() {
         break;
       }
   }
-  if (Parallel::World().CheckError( err )) {
+  if (TrajComm.CheckError( err )) {
     mprinterr("Error: 'trajin' in parallel currently requires all trajectories use"
               " the same topology file.\n");
     return 1;
@@ -665,15 +691,15 @@ int CpptrajState::RunParallel() {
   for ( TrajinList::trajin_it traj = trajinList_.trajin_begin();
                               traj != trajinList_.trajin_end(); ++traj)
     if (input_traj.AddInputTraj( *traj )) { err = 1; break; }
-  if (Parallel::World().CheckError( err )) return 1;
+  if (TrajComm.CheckError( err )) return 1;
 
   // Divide frames among threads.
   int my_start, my_stop, my_frames;
   std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
                                                           input_traj.Size(),
-                                                          Parallel::World().Size(),
-                                                          Parallel::World().Rank(),
-                                                          Parallel::World().Master());
+                                                          TrajComm.Size(),
+                                                          TrajComm.Rank(),
+                                                          TrajComm.Master());
 /*
   int my_start = 0;
   int my_stop = 0;
@@ -700,10 +726,10 @@ int CpptrajState::RunParallel() {
   }
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
 */
-  Parallel::World().Barrier();
+  TrajComm.Barrier();
 
   // Perform any necessary parallel Init
-  actionList_.ParallelInitActions( Parallel::World() );
+  actionList_.ParallelInitActions( TrajComm );
 
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
@@ -715,14 +741,14 @@ int CpptrajState::RunParallel() {
   int topFrames = trajinList_.TopFrames( top->Pindex() );
   ActionSetup currentParm( top, currentCoordInfo, topFrames );
   err = actionList_.SetupActions( currentParm, exitOnError_ );
-  if (Parallel::World().CheckError( err )) {
+  if (TrajComm.CheckError( err )) {
     mprinterr("Error: Could not set up actions for '%s'\n", top->c_str());
     return 1;
   }
 
   // Set up any related output trajectories. 
   if (trajoutList_.ParallelSetupTrajout( currentParm.TopAddress(), currentParm.CoordInfo(),
-                                         input_traj.Size(), Parallel::World() ))
+                                         input_traj.Size(), TrajComm ))
     return 1;
 
   // ----- ACTION PHASE --------------------------
@@ -750,23 +776,23 @@ int CpptrajState::RunParallel() {
   frames_time.Stop();
   rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
-  Parallel::World().Barrier();
+  TrajComm.Barrier();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
   Timer time_sync;
   time_sync.Start();
   // Sync Actions to master thread
-  actionList_.SyncActions( Parallel::World() );
+  actionList_.SyncActions( TrajComm );
   // Sync data sets to master thread
-  DSL_.SynchronizeData( input_traj.Size(), rank_frames, Parallel::World() );
+  DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm );
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");
   // Only call print for master
-  if (Parallel::World().Master())
+  if (TrajComm.Master())
     actionList_.PrintActions();
-  Parallel::World().Barrier();
+  TrajComm.Barrier();
   return 0;
 }
 

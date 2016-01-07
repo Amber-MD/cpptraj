@@ -5,9 +5,6 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 
 // NetcdfFile::GetNetcdfConventions()
 NetcdfFile::NCTYPE NetcdfFile::GetNetcdfConventions(const char* fname) {
@@ -914,10 +911,10 @@ void NetcdfFile::WriteVIDs() const {
           TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
 
-void NetcdfFile::Sync() {
+void NetcdfFile::Sync(Parallel::Comm const& commIn) {
 # ifdef MPI
   int nc_vars[23];
-  if (Parallel::World().Master()) {
+  if (commIn.Master()) {
     nc_vars[0] = ncframe_;
     nc_vars[1] = TempVID_;
     nc_vars[2] = coordVID_;
@@ -942,8 +939,8 @@ void NetcdfFile::Sync() {
     nc_vars[21] = cell_spatialVID_;
     nc_vars[22] = cell_angularVID_;
   }
-  Parallel::World().MasterBcast( nc_vars, 23, MPI_INT );
-  if (!Parallel::World().Master()) {
+  commIn.MasterBcast( nc_vars, 23, MPI_INT );
+  if (!commIn.Master()) {
     ncframe_ = nc_vars[0];
     TempVID_ = nc_vars[1];
     coordVID_ = nc_vars[2];

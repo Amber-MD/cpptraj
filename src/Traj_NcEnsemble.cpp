@@ -208,7 +208,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     if (err != 0) return 1;
 #   ifdef MPI
     // Synchronize netcdf info on non-master threads
-    Sync();
+    Sync(Parallel::World());
     // DEBUG: Print info for all ranks
     WriteVIDs();
 #   endif
