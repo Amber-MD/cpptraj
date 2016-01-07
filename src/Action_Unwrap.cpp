@@ -103,10 +103,19 @@ Action::RetType Action_Unwrap::Setup(ActionSetup& setup) {
 // Action_Unwrap::DoAction()
 Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
-  // Set reference structure if not already set
   if (RefFrame_.empty()) {
+    // Set reference structure if not already set
     RefFrame_ = frm.Frm();
-    return Action::OK;
+#   ifdef MPI
+    if (trajComm_.Master()) {
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
+        frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+    } else
+      RefFrame_.RecvFrame(0, trajComm_);
+    // Only return if this is the master; otherwise need to unwrap
+    if (trajComm_.Master())
+#   endif
+      return Action::OK;
   }
  
   if (orthogonal_)
