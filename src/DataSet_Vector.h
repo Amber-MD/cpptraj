@@ -14,7 +14,7 @@ class DataSet_Vector : public DataSet {
     // ----- DataSet functions -------------------
     size_t Size()                       const { return vectors_.size(); }
 #   ifdef MPI
-    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
     void Info()                         const { return;                 }
     int Allocate(SizeArray const&);

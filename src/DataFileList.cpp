@@ -177,6 +177,19 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 {
   // If no filename and stdout not allowed, no output desired.
   if (nameIn.empty() && !allowStdout) return 0;
+# ifdef MPI
+  // If TrajComm size > 1 and not stdout, overwrites can happen.
+  rprintf("CALLING ADDCPPTRAJFILE\n");
+  if (Parallel::TrajComm().Size() > 1) {
+    if (nameIn.empty())
+      mprintf("Warning: Writes to STDOUT for '%s' in parallel may be garbled.\n", descrip.c_str());
+    else {
+      mprinterr("Error: Cannot write to file '%s' (%s) in parallel.\n",
+                nameIn.base(), descrip.c_str());
+      return 0;
+    }
+  }
+# endif
   FileName name;
   CpptrajFile* Current = 0;
   int currentIdx = -1;

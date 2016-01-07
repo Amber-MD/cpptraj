@@ -188,3 +188,33 @@ double DataSet_Vector::SphericalHarmonicsNorm(int order) {
   else if (order == 0) return Constants::FOURPI;
   else return 1.0;
 }
+
+#ifdef MPI
+int DataSet_Vector::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  double buf[6];
+  // TODO: Consolidate to 1 send/recv via arrays?
+  if (commIn.Master()) {
+    // Resize to accept data from other ranks.
+    vectors_.resize( total );
+    origins_.resize( total );
+    int vidx = rank_frames[0]; // Index on master
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, vidx++) {
+        commIn.SendMaster( buf, 6, rank, MPI_DOUBLE );
+        std::copy( buf,   buf+3, vectors_[vidx].Dptr() );
+        std::copy( buf+3, buf+6, origins_[vidx].Dptr() );
+      }
+    }
+  } else { // Send data to master
+    for (unsigned int ridx = 0; ridx != vectors_.size(); ++ridx) {
+      std::copy( vectors_[ridx].Dptr(), vectors_[ridx].Dptr()+3, buf   );
+      std::copy( origins_[ridx].Dptr(), origins_[ridx].Dptr()+3, buf+3 );
+      commIn.SendMaster( buf, 6, commIn.Rank(), MPI_DOUBLE );
+    }
+  }
+  return 0;
+}
+#endif
