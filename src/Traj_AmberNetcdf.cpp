@@ -537,7 +537,11 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
     if (checkPNCerr(err)) return Parallel::Abort(err);
     FloatToDouble(frameIn.vAddress(), Coord_);
   }
-  // TODO force
+  if (frcVID_ != -1) {
+    err = ncmpi_get_vara_float(ncid_, frcVID_, pstart_, pcount_, Coord_);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
+    FloatToDouble(frameIn.fAddress(), Coord_);
+  } 
 
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {
@@ -552,6 +556,12 @@ int Traj_AmberNetcdf::parallelReadFrame(int set, Frame& frameIn) {
     //err = ncmpi_get_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
     err = ncmpi_get_vara_double(ncid_, TempVID_, pstart_, pcount_, frameIn.tAddress());
     if (checkPNCerr(err)) return Parallel::Abort(err);
+  }
+  if (timeVID_ != -1) {
+    float time;
+    err = ncmpi_get_vara_float(ncid_, timeVID_, pstart_, pcount_, &time);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
+    frameIn.SetTime( (double)time );
   }
   if (indicesVID_ != -1) {
     pcount_[1] = remd_dimension_;
@@ -582,7 +592,11 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
     err = ncmpi_put_vara_float(ncid_, velocityVID_, pstart_, pcount_, Coord_);
     if (checkPNCerr(err)) return Parallel::Abort(err);
   }
-  // TODO force
+  if (frcVID_ != -1) {
+    DoubleToFloat(Coord_, frameOut.fAddress());
+    err = ncmpi_put_vara_float(ncid_, frcVID_, pstart_, pcount_, Coord_);
+    if (checkPNCerr(err)) return Parallel::Abort(err);
+  }
 
   pcount_[2] = 0;
   if (cellLengthVID_ != -1) {
@@ -596,6 +610,11 @@ int Traj_AmberNetcdf::parallelWriteFrame(int set, Frame const& frameOut) {
   if (TempVID_ != -1) {
     //err = ncmpi_put_vara_double_all(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
     err = ncmpi_put_vara_double(ncid_, TempVID_, pstart_, pcount_, frameOut.tAddress());
+    if (checkPNCerr(err)) return Parallel::Abort(err);
+  }
+  if (timeVID_ != -1) {
+    float tVal = (float)frameOut.Time();
+    err = ncmpi_put_vara_float(ncid_, timeVID_, pstart_, pcount_, &tVal);
     if (checkPNCerr(err)) return Parallel::Abort(err);
   }
   if (indicesVID_ != -1) {
