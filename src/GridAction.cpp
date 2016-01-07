@@ -29,6 +29,10 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
                 callingRoutine, dsname.c_str());
       return 0;
     }
+#   ifdef MPI
+    // DataSet will probably need syncing after action.
+    Grid->SetNeedsSync();
+#   endif
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.
     DataSet_Coords_REF* REF = (DataSet_Coords_REF*)DSL.FindSetOfType( refname, DataSet::REF_FRAME );
@@ -113,6 +117,17 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
 
   return Grid;
 }
+
+#ifdef MPI
+int GridAction::ParallelGridInit(Parallel::Comm const& commIn, DataSet_GridFlt* Grid) {
+  if (commIn.Rank() > 0) {
+    // Since this set may have been read in (and therefore is synced),
+    // zero it out on all non-master threads to avoid overcounting.
+    std::fill( Grid->begin(), Grid->end(), 0.0 );
+  }
+  return 0;
+}
+#endif
 
 // GridAction::GridInfo() 
 void GridAction::GridInfo(DataSet_GridFlt const& grid) {

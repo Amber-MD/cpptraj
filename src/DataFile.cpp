@@ -144,6 +144,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
+    // FIXME in parallel mark data sets as synced if all threads read.
     err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();

@@ -1181,6 +1181,10 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
           if (ds->StripTop( maskexpr )) return 1;
         }
       }
+#     ifdef MPI
+      // Assume all threads have loaded Topology, so no need to sync.
+      ds->SetSynced();
+#     endif
     }
     // TODO: Set active top?
   }

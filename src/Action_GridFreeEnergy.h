@@ -15,6 +15,9 @@ class Action_GridFreeEnergy : public Action, private GridAction {
   private:
     // Action members
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { return ParallelGridInit(c, grid_); }
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();

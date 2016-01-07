@@ -586,7 +586,8 @@ void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_fra
                                   Parallel::Comm const& commIn)
 {
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS && (*ds)->NeedsSync() ) {
+    //if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS && (*ds)->NeedsSync() ) {
+    if ( (*ds)->NeedsSync() ) {
       mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->legend(), (*ds)->Size(), total);
       if ( (*ds)->Sync(total, rank_frames, commIn) ) {
         rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());

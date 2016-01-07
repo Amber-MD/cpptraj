@@ -161,6 +161,19 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_Dipole::SyncAction(Parallel::Comm const& commIn) {
+  // Sync dipole_ data
+  double buf[3];
+  for (std::vector<Vec3>::iterator dp = dipole_.begin(); dp != dipole_.end(); ++dp)
+  {
+    commIn.Reduce( buf, dp->Dptr(), 3, MPI_DOUBLE, MPI_SUM );
+    std::copy( buf, buf+3, dp->Dptr() );
+  }
+  return 0;
+}
+#endif
+
 // Action_Dipole::print()
 /** Print dipole data in format for Chris Bayly's discern delegate that 
   * comes with Midas/Plus.

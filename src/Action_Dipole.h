@@ -12,6 +12,10 @@ class Action_Dipole : public Action, private GridAction {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { return ParallelGridInit(c, grid_); }
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     DataSet_GridFlt* grid_;

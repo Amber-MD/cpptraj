@@ -82,6 +82,7 @@ class DataSet {
     void SetDim(int i, Dimension const& d)                   { dim_[i] = d;      }
 #   ifdef MPI
     void SetSynced()       { needsSync_ = false; }
+    void SetNeedsSync()    { needsSync_ = true;  }
     bool NeedsSync() const { return needsSync_;  }
 #   endif
     /// Check if name and/or index and aspect wildcard match this DataSet.
