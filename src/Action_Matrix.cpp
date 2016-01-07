@@ -810,6 +810,17 @@ Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_Matrix::SyncAction(Parallel::Comm const& commIn) {
+  if (commIn.Master()) {
+    Darray buf( vect2_.size() );
+    commIn.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+    vect2_ = buf;
+  } else
+    commIn.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+  return 0;
+}
+#endif
 // -----------------------------------------------------------------------------
 void Action_Matrix::Vect2MinusVect() {
   v_iterator v2 = vect2_.begin();
