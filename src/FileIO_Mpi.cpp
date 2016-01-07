@@ -2,7 +2,7 @@
 #ifdef MPI
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
-  if (comm_ == MPI_COMM_NULL) return 1;
+  if (comm_.IsNull()) return 1;
   if (filename == 0) return 1;
   return pfile_.OpenFile(filename, mode, comm_);
 }

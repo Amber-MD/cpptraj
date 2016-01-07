@@ -63,6 +63,8 @@ class Parallel::Comm {
 #   ifdef CPPTRAJ_MPI
     Comm() : comm_(MPI_COMM_NULL), rank_(0), size_(1) {}
     Comm(MPI_Comm);
+    Comm(Comm const&);
+    Comm& operator=(Comm const&);
     /// \return Internal MPI_Comm
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
