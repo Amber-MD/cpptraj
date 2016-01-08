@@ -85,7 +85,7 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
         }
         ++iptr;
       }
-      mprintf("DEBUG: %s = %i %i %i\n", dirstring.c_str(), ixyz[0], ixyz[1], ixyz[2]);
+      //mprintf("DEBUG: %s = %i %i %i\n", dirstring.c_str(), ixyz[0], ixyz[1], ixyz[2]);
       directionArray_.push_back( ixyz[0] );
       directionArray_.push_back( ixyz[1] );
       directionArray_.push_back( ixyz[2] );
@@ -198,6 +198,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
     frac = recip_ * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
+    //mprintf("DEBUG: Atom %i frac={ %g %g %g }\n", Mask1_[idx]+1, frac[0], frac[1], frac[2]);
     // replicate in each direction
     newFrameIdx = idx * 3;
     for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)
