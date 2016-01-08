@@ -75,7 +75,7 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
     return frameSize_;
   }
   size_t newsize = frameSize_ + CalcFrameSize( delta );
-  char* newbuffer = new char[ newsize ];
+  char* newbuffer = new char[ newsize + 1]; // +1 for null
   std::copy(buffer_, buffer_+frameSize_, newbuffer);
   std::fill(newbuffer+frameSize_, newbuffer+newsize, 0);
   delete[] buffer_;
