@@ -36,6 +36,8 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int readDcdHeader();
     int ReadBox(double*);
     int writeDcdHeader();
+    inline void seekToFrame(int);
+    void setFrameSizes();
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
@@ -51,5 +53,17 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj();
+
+    bool master_;
+#   endif
 };
 #endif
