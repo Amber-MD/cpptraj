@@ -52,10 +52,8 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
       mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
       return 1;
     }
-    return 0;
-  }
-  // Mode not yet set. Set DataSetList / DataFileList mode if necessary.
-  mode_ = modeIn;
+  } else // Mode not yet set. Set DataSetList / DataFileList mode if necessary.
+    mode_ = modeIn;
   if (mode_ == ENSEMBLE) {
     if (trajinList_.AddEnsemble( fnameIn, topIn, argIn )) return 1;
 #   ifdef MPI
