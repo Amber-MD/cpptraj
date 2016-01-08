@@ -87,7 +87,7 @@ Atom::Atom(NameType const& aname, const char* elt) :
   aname_(aname), atype_(""), atype_index_(0), element_(UNKNOWN_ELEMENT),
   resnum_(0), mol_(0)
 {
-  if (elt ==0 || (elt[0]==' ' && elt[1]==' '))
+  if (elt == 0 || (!isalpha(elt[0]) && !isalpha(elt[1])))
     SetElementFromName();
   else
     SetElementFromSymbol(elt[0], elt[1]);
@@ -283,14 +283,14 @@ void Atom::SetElementFromSymbol(char c1, char c2) {
   // Attempt to match up 1 or 2 char element name
   char en[2];
   bool oneChar = true;
-  if (c1 != ' ' && c2 != ' ') {
+  if (isalpha(c1) && isalpha(c2)) {
     en[0] = toupper(c1);
     en[1] = toupper(c2);
     oneChar = false;
-  } else if (c2 != ' ') {
+  } else if (isalpha(c2)) {
     en[0] = toupper(c2);
     en[1] = ' ';
-  } else if (c1 != ' ') {
+  } else if (isalpha(c1)) {
     en[0] = toupper(c1);
     en[1] = ' ';
   } else
