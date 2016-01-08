@@ -1065,7 +1065,7 @@ int CpptrajState::RunAnalyses() {
   analysis_time.Start();
   // Only master performs analyses currently.
   int err = 0;
-  if (Parallel::World().Master())
+  if (Parallel::TrajComm().Master())
     err = analysisList_.DoAnalyses();
   analysis_time.Stop();
 # ifdef MPI
@@ -1135,6 +1135,10 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   if (!maskexpr.empty()) {
     if (ref->StripRef( maskexpr )) return 1;
   }
+# ifdef MPI
+  // Assume all threads have loaded Reference, so no need to sync.
+  ref->SetSynced();
+# endif
   // Add DataSet to main DataSetList.
   if (DSL_.AddSet( ref )) return 1; 
   return 0;
