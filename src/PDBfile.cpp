@@ -45,6 +45,9 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,5,"ORIGX" )==0) return true; // ORIGXn
   if (recname.compare(0,5,"MTRIX" )==0) return true; // MTRIXn
   if (recname.compare(0,9,"USER  MOD")==0) return true; // reduce
+  // Bookkeeping Section
+  if (recname.compare(0,6,"MASTER")==0) return true;
+  if (recname.compare(0,3,"END"   )==0) return true;
   return false;
 }
 
@@ -56,7 +59,7 @@ bool PDBfile::ID_PDB(CpptrajFile& fileIn) {
   std::string line2 = fileIn.GetLine();
   fileIn.CloseFile();
   if (!IsPDBkeyword( line1 )) return false;
-  if (!IsPDBkeyword( line2 )) return false;
+  if (!line2.empty() && !IsPDBkeyword( line2 )) return false;
   return true;
 }
 

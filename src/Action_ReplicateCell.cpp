@@ -13,6 +13,22 @@ void Action_ReplicateCell::Help() const {
           "    <XYZ>: X= 1, 0, -1, replicate in specified direction (e.g. 100 is +X only)\n");
 }
 
+static inline int toDigit(char c) {
+  switch (c) {
+    case '0' : return 0;
+    case '1' : return 1;
+    case '2' : return 2;
+    case '3' : return 3;
+    case '4' : return 4;
+    case '5' : return 5;
+    case '6' : return 6;
+    case '7' : return 7;
+    case '8' : return 8;
+    case '9' : return 9;
+  }
+  return 0; // SANITY CHECK
+}
+
 // Action_ReplicateCell::Init()
 Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -60,11 +76,16 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
         if      (*c == '+') ++c;
         else if (*c == '-') { sign = -1; ++c; }
         
-        if      (*c == '1') *iptr = 1 * sign;
-        else if (*c == '0') *iptr = 0;
+        if (isdigit( *c ))
+          *iptr = toDigit( *c ) * sign;
+        else {
+          mprinterr("Error: illegal character '%c' in 'dir' string '%s'; only numbers allowed.\n",
+                    *c, dirstring.c_str());
+          return Action::ERR;
+        }
         ++iptr;
       }
-      mprintf("DEBUG: %s = %i %i %i\n", dirstring.c_str(), ixyz[0], ixyz[1], ixyz[2]);
+      //mprintf("DEBUG: %s = %i %i %i\n", dirstring.c_str(), ixyz[0], ixyz[1], ixyz[2]);
       directionArray_.push_back( ixyz[0] );
       directionArray_.push_back( ixyz[1] );
       directionArray_.push_back( ixyz[2] );
@@ -177,6 +198,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   for (idx = 0; idx < Mask1_.Nselected(); idx++) {
     // Convert to fractional coords
     frac = recip_ * Vec3(frm.Frm().XYZ( Mask1_[idx] ));
+    //mprintf("DEBUG: Atom %i frac={ %g %g %g }\n", Mask1_[idx]+1, frac[0], frac[1], frac[2]);
     // replicate in each direction
     newFrameIdx = idx * 3;
     for (id = 0; id != directionArray_.size(); id+=3, newFrameIdx += shift)
