@@ -2,18 +2,17 @@
 
 . ../MasterTest.sh
 
-CleanFiles charmm.in test.ala3.pdb test.ala3.nc first.ala3.crd \
+CleanFiles charmm.in test.ala3.pdb.1 first.ala3.crd \
            test.psf test.ala3.dcd second.ala3.crd
 CheckNetcdf
+INPUT="-i charmm.in"
 cat > charmm.in <<EOF
 parm ala3.psf
-trajin ala3.dcd
-trajout test.ala3.pdb pdb onlyframes 1 chainid X
-trajout test.ala3.nc netcdf
+trajin ala3.dcd 1 1
+trajout test.ala3.pdb pdb multi chainid X
 EOF
-INPUT="-i charmm.in"
 RunCpptraj "CHARMM PSF/DCD test"
-DoTest test.ala3.pdb.save test.ala3.pdb
+DoTest test.ala3.pdb.save test.ala3.pdb.1
 CheckTest
 
 # Second test: Read in 10 frames of a dcd traj, write
