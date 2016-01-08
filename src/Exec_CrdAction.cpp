@@ -25,7 +25,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   ActionFrame frm( &originalFrame, 0 );
   // Set up for this topology 
   Action::RetType setup_ret = act->Setup( originalSetup );
-  if ( setup_ret == Action::ERR )
+  if ( setup_ret == Action::ERR || setup_ret == Action::SKIP )
     return CpptrajState::ERR;
   // Loop over all frames in COORDS.
   ProgressBar progress( frameCount.TotalReadFrames() );
