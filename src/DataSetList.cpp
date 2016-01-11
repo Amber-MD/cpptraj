@@ -582,20 +582,38 @@ void DataSetList::List() const {
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
-void DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames,
+int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames,
                                   Parallel::Comm const& commIn)
 {
-  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) {
-    //if ( (*ds)->Meta().TimeSeries() == MetaData::IS_TS && (*ds)->NeedsSync() ) {
-    if ( (*ds)->NeedsSync() ) {
-      mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->legend(), (*ds)->Size(), total);
-      if ( (*ds)->Sync(total, rank_frames, commIn) ) {
-        rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
-        //return;
-      }
-      (*ds)->SetSynced();
+  if (commIn.Size() < 2) return 0;
+  // Ensure that the number of sets that require sync is same on each rank.
+  // FIXME: Make sure this allgather does not end up taking too much time.
+  //        Should it be debug only?
+  DataListType SetsToSync;
+  for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->NeedsSync() )
+      SetsToSync.push_back( *ds );
+  int* n_on_rank = new int[ commIn.Size() ];
+  int nSets = (int)SetsToSync.size();
+  commIn.AllGather( &nSets, 1, MPI_INT, n_on_rank );
+  for (int rank = 1; rank < commIn.Size(); rank++)
+    if (n_on_rank[rank] != n_on_rank[0]) {
+      mprinterr("Internal Error: Number of sets to sync on rank %i != number on master %i\n",
+                n_on_rank[rank], n_on_rank[0]);
+      delete[] n_on_rank;
+      return 1;
     }
+  delete[] n_on_rank;
+  // Call Sync only for sets that need it.
+  for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds) {
+    mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->legend(), (*ds)->Size(), total);
+    if ( (*ds)->Sync(total, rank_frames, commIn) ) {
+      rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
+      //return;
+    }
+    (*ds)->SetSynced();
   }
+  return 0;
 }
 #endif
 // -----------------------------------------------------------------------------
