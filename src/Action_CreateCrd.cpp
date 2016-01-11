@@ -38,6 +38,17 @@ Action::RetType Action_CreateCrd::Init(ArgList& actionArgs, ActionInit& init, in
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_CreateCrd::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1)
+    mprintf("Warning: Synchronization of COORDS data sets over multiple threads is\n"
+            "Warning:   experimental and may be slower than reading in via a single\n"
+            "Warning:   thread. Users are encouraged to run benchmarks before\n"
+            "Warning:   extensive usage.\n");
+  return 0;
+}
+#endif
+
 Action::RetType Action_CreateCrd::Setup(ActionSetup& setup) {
   // Set COORDS topology now if not already set.
   if (setup.Top().Pindex() == pindex_ && coords_->Top().Natom() == 0) {
