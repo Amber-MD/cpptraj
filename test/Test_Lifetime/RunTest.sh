@@ -8,9 +8,14 @@ CleanFiles avg.life.5.gnu max.life.5.gnu life.5.gnu life.in perres.avg.gnu \
 cat > life.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc
-hbond H1 series @N,H,C,O uuseries solutehb.gnu
+hbond H1 series @N,H,C,O #uuseries solutehb.gnu
 go
-#create solutehb.gnu H1[solutehb]
+writedata solutehb.gnu \
+  H1[solutehb]:24  H1[solutehb]:104 H1[solutehb]:414 H1[solutehb]:422 \
+  H1[solutehb]:494 H1[solutehb]:652 H1[solutehb]:184 H1[solutehb]:732 \
+  H1[solutehb]:342 H1[solutehb]:352 H1[solutehb]:264 H1[solutehb]:262 \
+  H1[solutehb]:424 H1[solutehb]:218 H1[solutehb]:66  H1[solutehb]:188 \
+  H1[solutehb]:42  H1[solutehb]:86  H1[solutehb]:794
 lifetime H1[solutehb] out life.5.gnu window 5
 runanalysis
 EOF
