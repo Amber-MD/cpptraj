@@ -472,18 +472,7 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
     DispatchObject* obj = cmd.Alloc();
     switch (cmd.Destination()) {
       case Cmd::EXE:
-#       ifdef MPI
-        // Only execute COORDS commands on master
-        if (obj->Type() != DispatchObject::COORDS || Parallel::TrajComm().Master()) {
-          if (obj->Type() == DispatchObject::COORDS)
-            mprintf("Warning: COORDS commands do not yet use multiple MPI threads.\n");
-#       endif
-          ret_val = ((Exec*)obj)->Execute( State, cmdArg );
-#       ifdef MPI
-        }
-        if (obj->Type() == DispatchObject::COORDS)
-         Parallel::World().Barrier();
-#       endif
+        ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         delete obj;
         break;
       case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;

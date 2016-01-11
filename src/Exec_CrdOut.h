@@ -7,5 +7,7 @@ class Exec_CrdOut : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdOut(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    RetType WriteCrd(CpptrajState&, ArgList&);
 };
 #endif

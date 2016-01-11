@@ -58,7 +58,27 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   return CpptrajState::OK;
 }
 
+// Exec_CrdAction::Execute()
 Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
+  Exec::RetType ret = CpptrajState::OK;
+# ifdef MPI
+  int err = 0;
+  if (Parallel::TrajComm().Master()) {
+    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+# endif
+    ret = ProcessArgs(State, argIn);
+# ifdef MPI
+    if (ret != CpptrajState::OK)
+      err = 1;
+  }
+  if (Parallel::World().CheckError( err ))
+    ret = CpptrajState::ERR;
+# endif
+  return ret;
+}
+
+// Exec_CrdAction::ProcessArgs()
+Exec::RetType Exec_CrdAction::ProcessArgs(CpptrajState& State, ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
@@ -81,7 +101,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
   if ( cmd.Empty() ) return CpptrajState::ERR;
   Action* act = (Action*)cmd.Alloc();
   if (act == 0) return CpptrajState::ERR;
-  CpptrajState::RetType err = DoCrdAction(State, actionargs, CRD, act, frameCount); 
+  CpptrajState::RetType err = DoCrdAction(State, actionargs, CRD, act, frameCount);
   delete act;
   return err;
 }

@@ -8,6 +8,25 @@ void Exec_CrdOut::Help() const {
 }
 
 Exec::RetType Exec_CrdOut::Execute(CpptrajState& State, ArgList& argIn) {
+  Exec::RetType ret = CpptrajState::OK;
+# ifdef MPI
+  int err = 0;
+  if (Parallel::TrajComm().Master()) {
+    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+# endif
+    ret = WriteCrd(State, argIn);
+# ifdef MPI
+    if (ret != CpptrajState::OK)
+      err = 1;
+  }
+  if (Parallel::World().CheckError( err ))
+    ret = CpptrajState::ERR;
+# endif
+  return ret;
+}
+
+// Exec_CrdOut::WriteCrd()
+Exec::RetType Exec_CrdOut::WriteCrd(CpptrajState& State, ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: crdout: Specify COORDS dataset name.\n");

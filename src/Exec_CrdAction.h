@@ -9,6 +9,7 @@ class Exec_CrdAction : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_CrdAction(); }
     RetType Execute(CpptrajState&, ArgList&);
   private:
+    RetType ProcessArgs(CpptrajState&, ArgList&);
     RetType DoCrdAction(CpptrajState&, ArgList&, DataSet_Coords*,
                         Action*, TrajFrameCounter const&) const;
 };
