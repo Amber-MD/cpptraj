@@ -58,6 +58,9 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
+# ifdef MPI
+  dataout_->SetSynced();
+# endif
   if (outfile != 0) 
     outfile->AddDataSet( dataout_ );
 

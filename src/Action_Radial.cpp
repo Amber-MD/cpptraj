@@ -154,7 +154,11 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rawrdfFile->AddDataSet( rawrdf_ );
   } else
     rawrdf_ = 0;
-
+# ifdef MPI
+  Dset_->SetSynced();
+  if (intrdf_ != 0) intrdf_->SetSynced();
+  if (rawrdf_ != 0) rawrdf_->SetSynced();
+# endif
   // Set up histogram
   RDF_ = new int[ numBins_ ];
   std::fill(RDF_, RDF_ + numBins_, 0);
