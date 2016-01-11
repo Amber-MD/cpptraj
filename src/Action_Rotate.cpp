@@ -61,14 +61,15 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
     else
       frm.ModifyFrm().Rotate(RotMatrix_, mask_);
   } else {
-    if (frameNum >= (int)rmatrices_->Size()) {
-      mprintf("Warning: Frame %i out of range for set '%s'\n", frameNum+1, rmatrices_->legend());
+    if (frm.TrajoutNum() >= (int)rmatrices_->Size()) {
+      mprintf("Warning: Frame %i out of range for set '%s'\n",
+              frm.TrajoutNum()+1, rmatrices_->legend());
       return Action::ERR;
     }
     if (inverse_)
-      frm.ModifyFrm().InverseRotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().InverseRotate((*rmatrices_)[frm.TrajoutNum()], mask_);
     else
-      frm.ModifyFrm().Rotate((*rmatrices_)[frameNum], mask_);
+      frm.ModifyFrm().Rotate((*rmatrices_)[frm.TrajoutNum()], mask_);
   }
   return Action::MODIFY_COORDS;
 }
