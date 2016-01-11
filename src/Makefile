@@ -9,6 +9,10 @@ include ambpdbfiles
 
 AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
+include libcpptrajfiles
+
+LIBCPPTRAJ_OBJECTS=$(LIBCPPTRAJ_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
+
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) ambpdb$(SFX) 
@@ -28,8 +32,8 @@ dependclean:
 
 libcpptraj: $(LIBCPPTRAJ)
 
-libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) $(FFT_LIB) $(LDFLAGS) $(READLINE)
+libcpptraj.so: $(LIBCPPTRAJ_OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
+	$(CXX)  -shared -o libcpptraj.so $(LIBCPPTRAJ_OBJECTS) $(FFT_LIB) $(LDFLAGS)
 	/bin/mv libcpptraj.so $(CPPTRAJLIB)
 
 nolibcpptraj:

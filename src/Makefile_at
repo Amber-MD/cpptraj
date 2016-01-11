@@ -20,6 +20,10 @@ include ambpdbfiles
 
 AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
 
+include libcpptrajfiles
+
+LIBCPPTRAJ_OBJECTS=$(LIBCPPTRAJ_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
+
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) ambpdb$(SFX)
@@ -57,9 +61,9 @@ cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.
 	       -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)  \
 	       -lsander
 
-libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
-	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
-		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
+	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(LIBCPPTRAJ_OBJECTS) pub_fft.o \
+		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
 
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
