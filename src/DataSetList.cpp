@@ -367,6 +367,9 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     delete DS;
     return 0;
   }
+# ifdef MPI
+  if (newSetsNeedSync_) DS->SetNeedsSync();
+# endif
 # ifdef TIMER
   time_setup_.Stop();
   time_push_.Start();
@@ -425,6 +428,9 @@ DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& m
     delete DS;
     return 0;
   }
+# ifdef MPI
+  if (newSetsNeedSync_) DS->SetNeedsSync();
+# endif
   // Add to list
   Push_Back(DS);
   return DS;

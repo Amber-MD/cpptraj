@@ -4,7 +4,7 @@
 // CONSTRUCTOR
 DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC)
 # ifdef MPI
-, needsSync_( true )
+, needsSync_( false )
 # endif
 {}
 
@@ -15,7 +15,7 @@ DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, in
   dType_(typeIn),
   dGroup_(groupIn)
 # ifdef MPI
-, needsSync_(true)
+, needsSync_( false )
 # endif
 { }
 

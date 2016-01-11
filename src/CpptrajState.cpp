@@ -122,9 +122,16 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
     mprintf("Warning: Action specified before trajin/ensemble. Assuming trajin.\n");
     SetTrajMode( NORMAL );
   }
+# ifdef MPI
+  DSL_.SetNewSetsNeedSync( true );
+# endif
   ActionInit init(DSL_, DFL_);
-  if (actionList_.AddAction( actIn, argIn, init )) return ERR;
-  return OK;
+  RetType err = OK;
+  if (actionList_.AddAction( actIn, argIn, init )) err = ERR;
+# ifdef MPI
+  DSL_.SetNewSetsNeedSync( false );
+# endif
+  return err;
 }
 
 // CpptrajState::AddToAnalysisQueue()
@@ -728,6 +735,8 @@ int CpptrajState::RunParallel() {
 
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
+  // Any DataSets added to the DataSetList during run will need to be synced.
+  DSL_.SetNewSetsNeedSync( true );
 
   // ----- SETUP PHASE ---------------------------
   CoordinateInfo const& currentCoordInfo = input_traj.CoordsInfo();
@@ -775,6 +784,7 @@ int CpptrajState::RunParallel() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
+  DSL_.SetNewSetsNeedSync( false );
   Timer time_sync;
   time_sync.Start();
   // Sync Actions to master thread
@@ -1063,9 +1073,13 @@ int CpptrajState::RunAnalyses() {
   if (analysisList_.Empty()) return 0;
   Timer analysis_time;
   analysis_time.Start();
-  // Only master performs analyses currently.
   int err = 0;
+# ifdef MPI
+  // Only master performs analyses currently.
+  if (Parallel::TrajComm().Size() > 1)
+    mprintf("Warning: Analysis does not currently use multiple MPI threads.\n");
   if (Parallel::TrajComm().Master())
+# endif
     err = analysisList_.DoAnalyses();
   analysis_time.Stop();
 # ifdef MPI
