@@ -120,6 +120,17 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_ClusterDihedral::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
+              commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Action_ClusterDihedral::Setup()
 Action::RetType Action_ClusterDihedral::Setup(ActionSetup& setup) {
   // Currently setup can only be performed based on first prmtop
