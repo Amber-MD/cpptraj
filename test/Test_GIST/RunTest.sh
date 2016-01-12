@@ -4,6 +4,12 @@
 
 CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat
 
+NotParallel "GIST test."
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 0
+fi
+
 INPUT="-i gist.in"
 
 # doeij test with much smaller grid to save memory
