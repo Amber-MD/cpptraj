@@ -260,6 +260,9 @@ test.rotate:
 test.integrate:
 	@-cd Test_Integrate && ./RunTest.sh $(OPT)
 
+test.nativecontacts:
+	@-cd Test_NativeContacts && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -322,7 +325,8 @@ SHORT_TESTS=test.general \
           test.multidihedral \
           test.makestructure \
           test.rotate \
-          test.integrate
+          test.integrate \
+          test.nativecontacts
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -407,7 +411,8 @@ COMPLETETESTS=test.general \
               test.mremd \
               test.makestructure \
               test.rotate \
-              test.integrate
+              test.integrate \
+              test.nativecontacts
 
 test: test.all 
 
