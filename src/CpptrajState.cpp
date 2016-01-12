@@ -292,6 +292,10 @@ int CpptrajState::Run() {
         mprinterr("Error: Cannot create COORDS DataSet; no input trajectories specified.\n");
         return 1;
       }
+#     ifdef MPI
+      // Default COORDS DataSet may need to be synced.
+      default_crd->SetNeedsSync();
+#     endif
       ArgList crdcmd("createcrd _DEFAULTCRD_");
       crdcmd.MarkArg(0);
       if (AddToActionQueue( new Action_CreateCrd(), crdcmd ))
