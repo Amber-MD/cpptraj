@@ -155,9 +155,10 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   } else
     rawrdf_ = 0;
 # ifdef MPI
-  Dset_->SetSynced();
-  if (intrdf_ != 0) intrdf_->SetSynced();
-  if (rawrdf_ != 0) rawrdf_->SetSynced();
+  // These do not need to be synced since they are not time series
+  Dset_->SetNeedsSync( false );
+  if (intrdf_ != 0) intrdf_->SetNeedsSync( false );
+  if (rawrdf_ != 0) rawrdf_->SetNeedsSync( false );
 # endif
   // Set up histogram
   RDF_ = new int[ numBins_ ];

@@ -59,7 +59,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     return Action::ERR; 
   }
 # ifdef MPI
-  dataout_->SetSynced();
+  dataout_->SetNeedsSync( false ); // Not a time series
 # endif
   if (outfile != 0) 
     outfile->AddDataSet( dataout_ );

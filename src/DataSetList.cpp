@@ -46,6 +46,9 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 DataSetList::DataSetList() :
   activeRef_(0),maxFrames_(-1), debug_(0), ensembleNum_(-1), hasCopies_(false),
   dataSetsPending_(false)
+# ifdef MPI
+  , newSetsNeedSync_(false)
+# endif
 {}
 
 // DESTRUCTOR
@@ -61,6 +64,9 @@ void DataSetList::Clear() {
   TopList_.clear();
   hasCopies_ = false;
   dataSetsPending_ = false;
+# ifdef MPI
+  newSetsNeedSync_ = false;
+# endif
   activeRef_ = 0;
 } 
 
@@ -368,7 +374,7 @@ DataSet* DataSetList::AddSet(DataSet::DataType inType, MetaData const& metaIn)
     return 0;
   }
 # ifdef MPI
-  if (newSetsNeedSync_) DS->SetNeedsSync();
+  if (newSetsNeedSync_) DS->SetNeedsSync( true );
 # endif
 # ifdef TIMER
   time_setup_.Stop();
@@ -429,7 +435,7 @@ DataSet* DataSetList::AddSet_NoCheck(DataSet::DataType inType, MetaData const& m
     return 0;
   }
 # ifdef MPI
-  if (newSetsNeedSync_) DS->SetNeedsSync();
+  if (newSetsNeedSync_) DS->SetNeedsSync( true );
 # endif
   // Add to list
   Push_Back(DS);
@@ -618,7 +624,7 @@ int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_fram
       rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
       //return;
     }
-    (*ds)->SetSynced();
+    (*ds)->SetNeedsSync( false );
   }
   return 0;
 }

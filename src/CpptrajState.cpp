@@ -294,7 +294,7 @@ int CpptrajState::Run() {
       }
 #     ifdef MPI
       // Default COORDS DataSet may need to be synced.
-      default_crd->SetNeedsSync();
+      default_crd->SetNeedsSync( true );
 #     endif
       ArgList crdcmd("createcrd _DEFAULTCRD_");
       crdcmd.MarkArg(0);
@@ -1153,10 +1153,6 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   if (!maskexpr.empty()) {
     if (ref->StripRef( maskexpr )) return 1;
   }
-# ifdef MPI
-  // Assume all threads have loaded Reference, so no need to sync.
-  ref->SetSynced();
-# endif
   // Add DataSet to main DataSetList.
   if (DSL_.AddSet( ref )) return 1; 
   return 0;
@@ -1201,10 +1197,6 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
           if (ds->StripTop( maskexpr )) return 1;
         }
       }
-#     ifdef MPI
-      // Assume all threads have loaded Topology, so no need to sync.
-      ds->SetSynced();
-#     endif
     }
     // TODO: Set active top?
   }

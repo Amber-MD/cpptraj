@@ -841,7 +841,7 @@ const
             mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
                     Nframes_, rank_offsets[rank], rank_frames[rank]);
             commIn.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
-            HB.data_->SetSynced();
+            HB.data_->SetNeedsSync( false );
           }
         } // END master loop over hbonds from rank
       }
@@ -868,7 +868,7 @@ const
         for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
           commIn.Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
                                   MPI_INT, 0, 1304 + in );
-          hb->second.data_->SetSynced();
+          hb->second.data_->SetNeedsSync( false );
         }
       }
     }

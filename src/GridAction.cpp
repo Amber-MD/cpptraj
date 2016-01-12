@@ -31,7 +31,7 @@ DataSet_GridFlt* GridAction::GridInit(const char* callingRoutine, ArgList& argIn
     }
 #   ifdef MPI
     // DataSet will probably need syncing after action.
-    Grid->SetNeedsSync();
+    Grid->SetNeedsSync( true );
 #   endif
   } else if (!refname.empty()) {
     // Get grid parameters from reference structure box.

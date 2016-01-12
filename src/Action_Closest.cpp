@@ -378,14 +378,14 @@ int Action_Closest::SyncAction(Parallel::Comm const& commIn) {
   }
   mprintf("DEBUG: Total= %i frames.\n", Nclosest_);
   framedata_->Sync( Nclosest_, rank_frames, commIn );
-  framedata_->SetSynced();
+  framedata_->SetNeedsSync( false );
   mprintf("DEBUG: framedata_ size is %zu\n", framedata_->Size());
   moldata_->Sync( Nclosest_, rank_frames, commIn );
-  moldata_->SetSynced();
+  moldata_->SetNeedsSync( false );
   distdata_->Sync( Nclosest_, rank_frames, commIn );
-  distdata_->SetSynced();
+  distdata_->SetNeedsSync( false );
   atomdata_->Sync( Nclosest_, rank_frames, commIn );
-  atomdata_->SetSynced();
+  atomdata_->SetNeedsSync( false );
   return 0;
 }
 #endif
