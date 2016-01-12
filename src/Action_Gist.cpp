@@ -164,6 +164,17 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_Gist::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'gist' action does not work with > 1 thread (%i threads currently).\n",
+              commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Action_Gist::Setup()
 /** Set Gist up for this parmtop. Get masks etc.
   */
