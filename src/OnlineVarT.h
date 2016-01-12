@@ -31,7 +31,12 @@ public:
     return M2_ / (n_ - 1.0); 
   };
   Float nData() const { return n_; };
-
+# ifdef MPI
+  Float M2()    const { return M2_; }; // Needed for MPI reduce
+  void SetVals(double m0, double m2, double n) {
+    n_ = n; mean_ = m0; M2_ = m2;
+  }
+# endif
 private:
   Float n_;
   Float mean_;

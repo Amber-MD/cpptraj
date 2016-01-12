@@ -69,9 +69,19 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 
   delta_ = actionArgs.getKeyDouble("delta", 0.01);
 
-  Pr_ = init.DSL().AddSet(DataSet::XYMESH, "", "Pr");
-  std_ = init.DSL().AddSet(DataSet::XYMESH, "", "std");
-
+  std::string dsname = actionArgs.GetStringNext();
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("PDIST");
+  MetaData md(dsname, "Pr");
+  md.SetTimeSeries( MetaData::NOT_TS );
+  Pr_ = init.DSL().AddSet(DataSet::XYMESH, md);
+  md.SetAspect("std");
+  std_ = init.DSL().AddSet(DataSet::XYMESH, md);
+# ifdef MPI
+  // Do not need to be synced since not time series
+  Pr_->SetNeedsSync( false );
+  std_->SetNeedsSync( false );
+# endif
   return Action::OK;
 }
 
@@ -170,6 +180,29 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_PairDist::SyncAction(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    // Ensure every histogram is same size
+    unsigned long world_max;
+    commIn.AllReduce( &world_max, &maxbin_, 1, MPI_UNSIGNED_LONG, MPI_MAX );
+    if ( maxbin_ < world_max )
+      histogram_.resize( world_max + 1 );
+    maxbin_ = world_max;
+    for (unsigned long i = 0; i < histogram_.size(); i++) {
+      double total[3], buf[3]; // Convert to double in case float ever used for Stats
+      buf[0] = (double)histogram_[i].mean();
+      buf[1] = (double)histogram_[i].M2();
+      buf[2] = (double)histogram_[i].nData();
+      commIn.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
+      if (commIn.Master())
+        // Divide by # threads to get actual mean
+        histogram_[i].SetVals( total[0] / (double)commIn.Size(), total[1], total[2] );
+    }
+  }
+  return 0;
+}
+#endif
 
 // Action_PairDist::print()
 void Action_PairDist::Print()
@@ -187,7 +220,6 @@ void Action_PairDist::Print()
       sd = sqrt(histogram_[i].variance() );
       ((DataSet_Mesh*) Pr_)->AddXY(dist, Pr);
       ((DataSet_Mesh*) std_)->AddXY(dist, sd);
-      
       output_->Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
     }
   }
