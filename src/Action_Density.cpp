@@ -85,6 +85,16 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_Density::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'density' action does not work with > 1 thread (%i threads currently).\n",
+              commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
 
 // Action_Density::Setup()
 Action::RetType Action_Density::Setup(ActionSetup& setup) {
