@@ -68,20 +68,21 @@ class Action_NativeContacts : public Action {
     contactListType nativeContacts_; ///< List of native contacts.
     /// Hold residue total contact frames and total # contacts.
     class resContact {
-    public:
-    resContact() : nframes_(0), ncontacts_(0) {}
-    resContact(int nf) : nframes_(nf), ncontacts_(1) {}
-    void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
-    int Nframes() const { return nframes_; }
-    int Ncontacts() const { return ncontacts_; }
-    bool operator<(resContact const& rhs) const {
-      if (nframes_ == rhs.nframes_)
-        return (ncontacts_ > rhs.ncontacts_);
-      else
-        return (nframes_ > rhs.nframes_);
-    }
-    private:
-    int nframes_, ncontacts_;
+      // NOTE: Class must be defined here for subseqent Rpair typedef
+      public:
+        resContact() : nframes_(0), ncontacts_(0) {}
+        resContact(int nf) : nframes_(nf), ncontacts_(1) {}
+        void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
+        int Nframes() const { return nframes_; }
+        int Ncontacts() const { return ncontacts_; }
+        bool operator<(resContact const& rhs) const {
+          if (nframes_ == rhs.nframes_)
+            return (ncontacts_ > rhs.ncontacts_);
+          else
+            return (nframes_ > rhs.nframes_);
+        }
+      private:
+        int nframes_, ncontacts_;
     };
     /// For holding residue pair and total fraction contact.
     typedef std::pair<Cpair, resContact> Rpair;
