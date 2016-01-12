@@ -44,8 +44,8 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
-	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
+cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) ReadLine.o Cpptraj.o
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) ReadLine.o Cpptraj.o pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)

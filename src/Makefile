@@ -35,8 +35,8 @@ libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 nolibcpptraj:
 	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
 
-cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(LDFLAGS)
+cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) ReadLine.o Cpptraj.o
+	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) ReadLine.o Cpptraj.o $(READLINE) $(FFT_LIB) $(LDFLAGS)
 
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
