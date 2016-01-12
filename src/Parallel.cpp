@@ -93,6 +93,7 @@ int Parallel::End() {
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_end();
 # endif
+  SetupComms( -1 );
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;

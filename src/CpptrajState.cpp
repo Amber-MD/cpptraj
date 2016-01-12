@@ -22,9 +22,9 @@ CpptrajState::CpptrajState() :
   mode_(UNDEFINED)
 {}
 
-/** NOTE: This may be called from AddToActionQueue() to set NORMAL as default
-  *       mode without setting up a trajectory. May also be used to clear the
-  *       mode via UNDEFINED. It is illegal to call this for ENSEMBLE.
+/** This version of SetTrajMode() may be called from AddToActionQueue() to set
+  * NORMAL as the default mode without setting up a trajectory. May also be used
+  * to clear the mode via UNDEFINED. It is illegal to call this for ENSEMBLE.
   */
 int CpptrajState::SetTrajMode(TrajModeType modeIn) {
   if (modeIn == ENSEMBLE) return 1;
@@ -32,8 +32,9 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn) {
   return (SetTrajMode( modeIn, std::string(), 0, blankArg ));
 }
 
-/** Use to set the current trajectory mode, and also potentially add
-  * a trajectory to trajinList_.
+/** Main routine for setting up trajectory input mode (NORMAL/ENSEMBLE), and
+  * potentiall adding a trajectory/ensemble to trajinList_. In parallel this
+  * routine is also responsible for initial setup of comms for NORMAL runs.
   */
 int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
                               Topology* topIn, ArgList& argIn)
