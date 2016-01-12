@@ -73,7 +73,7 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
-    std::vector<int> DivideFramesAmongThreads(int&, int&, int&, int, int, int, bool);
+    std::vector<int> DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&);
     int RunParallel();
     //int RunSingleTrajParallel();
 #   endif

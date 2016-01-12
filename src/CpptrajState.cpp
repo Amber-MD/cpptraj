@@ -633,29 +633,27 @@ int CpptrajState::RunEnsemble() {
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
-std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop,
-                                                        int& my_frames,
-                                                        int maxFrames, int worldsize,
-                                                        int worldrank, bool master)
+std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
+                                                        int maxFrames, Parallel::Comm const& commIn)
 {
-  int frames_per_thread = maxFrames / worldsize;
-  int remainder         = maxFrames % worldsize;
-  my_frames             = frames_per_thread + (int)(worldrank < remainder);
+  int frames_per_thread = maxFrames / commIn.Size();
+  int remainder         = maxFrames % commIn.Size();
+  my_frames             = frames_per_thread + (int)(commIn.Rank() < remainder);
   // Figure out where this thread starts and stops
   my_start = 0;
-  for (int rank = 0; rank != worldrank; rank++)
+  for (int rank = 0; rank != commIn.Rank(); rank++)
     if (rank < remainder)
       my_start += (frames_per_thread + 1);
     else
       my_start += (frames_per_thread);
   my_stop = my_start + my_frames;
   // Store how many frames each rank will process (only needed by master).
-  std::vector<int> rank_frames( worldsize, frames_per_thread );
-  for (int i = 0; i != worldsize; i++)
+  std::vector<int> rank_frames( commIn.Size(), frames_per_thread );
+  for (int i = 0; i != commIn.Size(); i++)
     if (i < remainder) rank_frames[i]++;
-  if (master) {
+  if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
-    for (int i = 0; i != worldsize; i++)
+    for (int i = 0; i != commIn.Size(); i++)
       mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
   rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
@@ -703,36 +701,7 @@ int CpptrajState::RunParallel() {
   // Divide frames among threads.
   int my_start, my_stop, my_frames;
   std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
-                                                          input_traj.Size(),
-                                                          TrajComm.Size(),
-                                                          TrajComm.Rank(),
-                                                          TrajComm.Master());
-/*
-  int my_start = 0;
-  int my_stop = 0;
-//  int my_frames = 0;
-  int maxFrames = (int)input_traj.Size();
-  int frames_per_thread = maxFrames / Parallel::World().Size();
-  int remainder         = maxFrames % Parallel::World().Size();
-  int my_frames         = frames_per_thread + (int)(Parallel::World().Rank() < remainder);
-  // Figure out where this thread starts and stops
-  for (int rank = 0; rank != Parallel::World().Rank(); rank++)
-    if (rank < remainder)
-      my_start += (frames_per_thread + 1);
-    else
-      my_start += (frames_per_thread);
-  my_stop = my_start + my_frames;
-  // Store how many frames each rank will process (only needed by master).
-  std::vector<int> rank_frames( Parallel::World().Size(), frames_per_thread );
-  for (int i = 0; i != Parallel::World().Size(); i++)
-    if (i < remainder) rank_frames[i]++;
-  if (Parallel::World().Master()) {
-    mprintf("\nPARALLEL INFO:\n");
-    for (int i = 0; i != Parallel::World().Size(); i++)
-      mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
-  }
-  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
-*/
+                                                          input_traj.Size(), TrajComm);
   TrajComm.Barrier();
 
   // Perform any necessary parallel Init
