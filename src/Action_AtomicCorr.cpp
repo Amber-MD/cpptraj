@@ -113,14 +113,14 @@ Action::RetType Action_AtomicCorr::Setup(ActionSetup& setup) {
 
 Action::RetType Action_AtomicCorr::DoAction(int frameNum, ActionFrame& frm) {
   // On first pass through refframe will be empty and first frame will become ref.
-  if (!refframe_.empty()) {
+  if (!previousFrame_.empty()) {
     ACvector::iterator atom_vector = atom_vectors_.begin();
     if (acorr_mode_ == ATOM) {
       // For each atom in mask, calc delta position.
       for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom) 
       {
         const double* tgtxyz = frm.Frm().XYZ( *atom );
-        const double* refxyz = refframe_.XYZ( *atom );
+        const double* refxyz = previousFrame_.XYZ( *atom );
         atom_vector->push_back( (float)(tgtxyz[0] - refxyz[0]) );
         atom_vector->push_back( (float)(tgtxyz[1] - refxyz[1]) );
         atom_vector->push_back( (float)(tgtxyz[2] - refxyz[2]) );
@@ -131,7 +131,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, ActionFrame& frm) {
                                                  rmask != resmasks_.end(); ++rmask)
       {
         Vec3 CXYZ = frm.Frm().VGeometricCenter( *rmask );
-        Vec3 RXYZ = refframe_.VGeometricCenter( *rmask );
+        Vec3 RXYZ = previousFrame_.VGeometricCenter( *rmask );
         atom_vector->push_back( (float)(CXYZ[0] - RXYZ[0]) );
         atom_vector->push_back( (float)(CXYZ[1] - RXYZ[1]) );
         atom_vector->push_back( (float)(CXYZ[2] - RXYZ[2]) );
@@ -140,7 +140,7 @@ Action::RetType Action_AtomicCorr::DoAction(int frameNum, ActionFrame& frm) {
     }
   }
   // Store this frame as new reference frame
-  refframe_ = frm.Frm();
+  previousFrame_ = frm.Frm();
   return Action::OK;
 }
 
