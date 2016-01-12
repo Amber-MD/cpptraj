@@ -120,6 +120,18 @@ Action::RetType Action_Contacts::Init(ArgList& actionArgs, ActionInit& init, int
   return Action::OK;
 }
 
+#ifdef MPI
+/** Since output is to CpptrajFiles, not practical in parallel. */
+int Action_Contacts::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'contacts' action does not work with > 1 thread (%i threads currently).\n"
+              "Error:   Consider using 'nativecontacts' instead.\n", commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 Action::RetType Action_Contacts::Setup(ActionSetup& setup) {
   //if (first_) 
   //  RefParm_ = currentParm;
