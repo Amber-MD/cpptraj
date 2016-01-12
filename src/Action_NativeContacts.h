@@ -16,6 +16,10 @@ class Action_NativeContacts : public Action {
   private:
     typedef std::vector<int> Iarray;
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+    int SyncAction(Parallel::Comm const&);
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
@@ -92,6 +96,9 @@ class Action_NativeContacts : public Action {
         return (first.second < second.second);
       }
     };
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Action_NativeContacts::contactType {

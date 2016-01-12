@@ -156,11 +156,28 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
   */
 int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& frameIn)
 {
+# ifdef MPI
+  Frame REF = frameIn;
+  if (trajComm_.Size() > 1) {
+    // Ensure all threads use same reference
+    if (trajComm_.Master())
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
+        REF.SendFrame( rank, trajComm_ );
+    else
+      REF.RecvFrame( 0, trajComm_ );
+  }
+  if (pfile_ != 0) {
+    refFrame_ = REF; // Save frame for later PDB output.
+    refParm_ = &parmIn;  // Save parm for later PDB output.
+  }
+  if ( SetupContactLists(parmIn, REF) ) return 1;
+# else
   if (pfile_ != 0) {
     refFrame_ = frameIn; // Save frame for later PDB output.
     refParm_ = &parmIn;  // Save parm for later PDB output.
   }
   if ( SetupContactLists(parmIn, frameIn) ) return 1;
+# endif
   // If specified, set up contacts maps; base size on atom masks.
   if (nativeMap_ != 0) {
     int matrix_max;
@@ -455,6 +472,17 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) 
   }
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_NativeContacts::SyncAction(Parallel::Comm const& commIn) {
+  int N = (int)nframes_;
+  int total_frames;
+  commIn.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
+  if (commIn.Master())
+    nframes_ = (unsigned int)total_frames;
+  return 0;
+}
+#endif
 
 // Action_NativeContacts::Print()
 void Action_NativeContacts::Print() {
