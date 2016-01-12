@@ -20,6 +20,7 @@ Action_NativeContacts::Action_NativeContacts() :
   includeSolvent_(false),
   series_(false),
   usepdbcut_(false),
+  seriesUpdated_(false),
   cfile_(0), pfile_(0), rfile_(0),
   seriesout_(0),
   numnative_(0),
@@ -129,8 +130,8 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
   */
 #define SetNativeContact() { \
         if (ValidContact(*c1, *c2, parmIn)) { \
-          double Dist2 = DIST2(frameIn.XYZ(*c1), frameIn.XYZ(*c2), image_.ImageType(), \
-                               frameIn.BoxCrd(), ucell_, recip_); \
+          double Dist2 = DIST2(fIn.XYZ(*c1), fIn.XYZ(*c2), image_.ImageType(), \
+                               fIn.BoxCrd(), ucell_, recip_); \
           minDist2 = std::min( Dist2, minDist2 ); \
           maxDist2 = std::max( Dist2, maxDist2 ); \
           if (Dist2 < distance_) { \
@@ -154,30 +155,28 @@ int Action_NativeContacts::SetupContactLists(Topology const& parmIn, Frame const
   * which pairs of contacts satisfy the cutoff and set those as native contacts.
   * Should only be called once.
   */
+#ifdef MPI
 int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& frameIn)
+#else
+int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame const& fIn)
+#endif
 {
 # ifdef MPI
-  Frame REF = frameIn;
+  Frame fIn = frameIn;
   if (trajComm_.Size() > 1) {
     // Ensure all threads use same reference
     if (trajComm_.Master())
       for (int rank = 1; rank < trajComm_.Size(); rank++)
-        REF.SendFrame( rank, trajComm_ );
+        fIn.SendFrame( rank, trajComm_ );
     else
-      REF.RecvFrame( 0, trajComm_ );
+      fIn.RecvFrame( 0, trajComm_ );
   }
-  if (pfile_ != 0) {
-    refFrame_ = REF; // Save frame for later PDB output.
-    refParm_ = &parmIn;  // Save parm for later PDB output.
-  }
-  if ( SetupContactLists(parmIn, REF) ) return 1;
-# else
-  if (pfile_ != 0) {
-    refFrame_ = frameIn; // Save frame for later PDB output.
-    refParm_ = &parmIn;  // Save parm for later PDB output.
-  }
-  if ( SetupContactLists(parmIn, frameIn) ) return 1;
 # endif
+  if (pfile_ != 0) {
+    refFrame_ = fIn; // Save frame for later PDB output.
+    refParm_ = &parmIn;  // Save parm for later PDB output.
+  }
+  if ( SetupContactLists(parmIn, fIn) ) return 1;
   // If specified, set up contacts maps; base size on atom masks.
   if (nativeMap_ != 0) {
     int matrix_max;
@@ -223,7 +222,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   //mprintf("\tMinimum observed distance= %f, maximum observed distance= %f\n",
   //        sqrt(minDist2), sqrt(maxDist2));
   // Print contacts
-  mprintf("\tSetup %zu native contacts:\n", nativeContacts_.size());
+  rprintf("\tSetup %zu native contacts:\n", nativeContacts_.size());
   for (contactListType::const_iterator contact = nativeContacts_.begin();
                                        contact != nativeContacts_.end(); ++contact)
   {
@@ -473,13 +472,42 @@ Action::RetType Action_NativeContacts::DoAction(int frameNum, ActionFrame& frm) 
   return Action::OK;
 }
 
+void Action_NativeContacts::UpdateSeries() {
+  if (seriesUpdated_) return;
+  if (series_ && nframes_ > 0) {
+    const int ZERO = 0;
+    // Ensure all series have been updated for all frames.
+    for (contactListType::iterator it = nativeContacts_.begin();
+                                   it != nativeContacts_.end(); ++it)
+      if (it->second.Data().Size() < nframes_)
+        it->second.Data().Add( nframes_ - 1, &ZERO );
+  }
+  // Should only be called once.
+  seriesUpdated_ = true;
+}
+
 #ifdef MPI
 int Action_NativeContacts::SyncAction(Parallel::Comm const& commIn) {
+  // Make sure all time series are updated at this point.
+  UpdateSeries();
+  // Get total number of frames.
   int N = (int)nframes_;
   int total_frames;
   commIn.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
   if (commIn.Master())
     nframes_ = (unsigned int)total_frames;
+  mprintf("DEBUG: Total frames: %u\n", nframes_);
+  // Should have the same number of contacts on each thread since reference is shared.
+  for (contactListType::iterator it = nativeContacts_.begin(); it != nativeContacts_.end(); ++it)
+  {
+    double total[3], buf[3];
+    buf[0] = it->second.Avg();
+    buf[1] = it->second.Stdev();
+    buf[2] = (double)it->second.Nframes();
+    commIn.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
+    if (commIn.Master())
+      it->second.SetValues( total[0], total[1], (int)total[2] );
+  }
   return 0;
 }
 #endif
@@ -494,14 +522,8 @@ void Action_NativeContacts::Print() {
     for (DataSet_MatrixDbl::iterator m = nonnatMap_->begin(); m != nonnatMap_->end(); ++m)
       *m *= norm;
   }
-  if (series_ && nframes_ > 0) {
-    const int ZERO = 0;
-    // Ensure all series have been updated for all frames.
-    for (contactListType::iterator it = nativeContacts_.begin();
-                                   it != nativeContacts_.end(); ++it)
-      if (it->second.Data().Size() < nframes_)
-        it->second.Data().Add( nframes_ - 1, &ZERO );
-  }
+  // Ensure all series have been updated for all frames.
+  UpdateSeries();
   if (!cfile_->IsStream()) {
     mprintf("    CONTACTS: %s: Writing native contacts to file '%s'\n",
             numnative_->Meta().Name().c_str(), cfile_->Filename().full());

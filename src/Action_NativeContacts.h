@@ -28,6 +28,7 @@ class Action_NativeContacts : public Action {
     int SetupContactLists(Topology const&, Frame const&);
     int DetermineNativeContacts(Topology const&, Frame const&);
     inline bool ValidContact(int, int, Topology const&) const;
+    void UpdateSeries();
 
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
@@ -40,6 +41,7 @@ class Action_NativeContacts : public Action {
     bool includeSolvent_; ///< If true include solvent residues
     bool series_;         ///< If true save time series of native contacts.
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
+    bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
@@ -127,6 +129,11 @@ class Action_NativeContacts::contactType {
         return (nframes_ > rhs.nframes_);
     }
     void SetData(DataSet* ds) { data_ = (DataSet_integer*)ds; }
+#   ifdef MPI
+    void SetValues(double d, double d2, int n) {
+      dist_ = d; dist2_ = d2; nframes_ = n;
+    }
+#   endif
   private:
     double dist_;    ///< (For avg) contact distance when present.
     double dist2_;   ///< (For stdev) contact distance^2 when present.
