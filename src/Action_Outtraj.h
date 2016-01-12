@@ -16,7 +16,7 @@ class Action_Outtraj: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+    int ParallelActionInit(Parallel::Comm const& c);
 #   endif
     Trajout_Single outtraj_;
     Topology* associatedParm_;

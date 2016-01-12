@@ -70,6 +70,16 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_FilterByData::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1)
+    mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
+            "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
+            commIn.Size());
+  return 0;
+}
+#endif
+
 // Action_FilterByData::DoAction()
 Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 {

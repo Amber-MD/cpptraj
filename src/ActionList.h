@@ -25,7 +25,7 @@ class ActionList {
     void PrintActions();
 #   ifdef MPI
     /// Call parallel init for each Action
-    void ParallelInitActions(Parallel::Comm const&);
+    int ParallelInitActions(Parallel::Comm const&);
     /// Call sync for each Action (parallel only)
     void SyncActions(Parallel::Comm const&);
 #   endif

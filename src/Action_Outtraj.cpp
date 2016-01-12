@@ -89,7 +89,17 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
 
   return Action::OK;
 } 
-
+# ifdef MPI
+int Action_Outtraj::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1 && !Dsets_.empty()) {
+    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 thread\n"
+              "Error:   to write trajectory (currently %i threads)\n", commIn.Size());
+    return 1;
+  }
+  trajComm_ = commIn;
+  return 0;
+}
+#endif
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
   if (!isActive_ || associatedParm_->Pindex() != setup.Top().Pindex())

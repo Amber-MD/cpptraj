@@ -736,7 +736,8 @@ int CpptrajState::RunParallel() {
   TrajComm.Barrier();
 
   // Perform any necessary parallel Init
-  actionList_.ParallelInitActions( TrajComm );
+  if (actionList_.ParallelInitActions( TrajComm ) != 0 && exitOnError_)
+    return 1;
 
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
