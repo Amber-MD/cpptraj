@@ -26,6 +26,10 @@ class ActionList {
 #   ifdef MPI
     /// Call parallel init for each Action
     int ParallelInitActions(Parallel::Comm const&);
+/*    /// Figure out the max number previous frames required
+    int NumPreviousFramesReqd() const;
+    /// Call preload for Actions
+    int ParallelProcessPreload(Action::FArray const&);*/
     /// Call sync for each Action (parallel only)
     void SyncActions(Parallel::Comm const&);
 #   endif

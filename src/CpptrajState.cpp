@@ -729,7 +729,20 @@ int CpptrajState::RunParallel() {
   if (trajoutList_.ParallelSetupTrajout( currentParm.TopAddress(), currentParm.CoordInfo(),
                                          input_traj.Size(), TrajComm ))
     return 1;
-
+/*
+  // Figure out if any frames need to be preloaded on ranks
+  int preload_err = 0;
+  int n_previous_frames = actionList_.NumPreviousFramesReqd();
+  if (n_previous_frames > 0 && !TrajComm.Master()) {
+    rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
+    Action::FArray preload_frames( n_previous_frames, input_traj.AllocateFrame() );
+    int idx = 0;
+    for (int set = my_start - n_previous_frames; set != my_start; set++, idx++)
+      input_traj.GetFrame(set, preload_frames[idx]);
+    preload_err = actionList_.ParallelProcessPreload( preload_frames );
+  }
+  if (TrajComm.CheckError( preload_err ) && exitOnError_) return 1;
+*/
   // ----- ACTION PHASE --------------------------
   Timer frames_time;
   frames_time.Start();
