@@ -734,12 +734,25 @@ int CpptrajState::RunParallel() {
   int preload_err = 0;
   int n_previous_frames = actionList_.NumPreviousFramesReqd();
   if (n_previous_frames > 0 && !TrajComm.Master()) {
+    int preload_start = my_start - n_previous_frames;
     rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
-    Action::FArray preload_frames( n_previous_frames, input_traj.AllocateFrame() );
-    int idx = 0;
-    for (int set = my_start - n_previous_frames; set != my_start; set++, idx++)
-      input_traj.GetFrame(set, preload_frames[idx]);
-    preload_err = actionList_.ParallelProcessPreload( preload_frames );
+    preload_err = 1;
+    if (preload_start < 0) {
+      rprinterr("Error: Cannot preload, start is before beginning of traj.\n");
+    } else if (my_frames == n_previous_frames) {
+      rprinterr("Error: Number of preload frames is same as number of processed frames.\n"
+                "Error:   Try reducing the number of threads.\n");
+    } else {
+      if (n_previous_frames > (my_frames / 2))
+        rprintf("Warning: Number of preload frames is greater than half the "
+                          "number of processed frames.\n"
+                "Warning:   Try reducing the number of threads.\n");
+      Action::FArray preload_frames( n_previous_frames, input_traj.AllocateFrame() );
+      int idx = 0;
+      for (int set = preload_start; set != my_start; set++, idx++)
+        input_traj.GetFrame(set, preload_frames[idx]);
+      preload_err = actionList_.ParallelProcessPreload( preload_frames );
+    }
   }
   if (TrajComm.CheckError( preload_err ) && exitOnError_) return 1;
 
@@ -766,9 +779,9 @@ int CpptrajState::RunParallel() {
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
-  rprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)actionSet / frames_time.Total());
   TrajComm.Barrier();
+  rprintf("TIME: Rank throughput= %.4f frames / second.\n",
+          (double)actionSet / frames_time.Total());
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
