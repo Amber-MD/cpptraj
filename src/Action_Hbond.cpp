@@ -22,6 +22,7 @@ Action_Hbond::Action_Hbond() :
   hasSolventAcceptor_(false),
   calcSolvent_(false),
   noIntramol_(false),
+  useAtomIndex_(false),
   acut_(0),
   dcut2_(0),
   CurrentParm_(0),
@@ -30,6 +31,7 @@ Action_Hbond::Action_Hbond() :
   NumSolvent_(0),
   NumBridge_(0),
   BridgeID_(0),
+  AHDIndices_(0),
   masterDSL_(0)
 {}
 
@@ -40,6 +42,7 @@ void Action_Hbond::Help() const {
           "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
           "\t[solvout <filename>] [bridgeout <filename>]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
+          "\t[atomindex]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
           "  A to D distance < dcut and A-H-D angle > acut; if acut < 0 it is ignored.\n"
@@ -53,6 +56,8 @@ void Action_Hbond::Help() const {
           "  If donorhmask is specified atoms in that mask will be paired with atoms in\n"
           "  donormask instead of automatically searching for hydrogen atoms.\n");
 }
+
+// Add atomindex to get atom indices for pytraj (hide from cpptraj man)
 
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -76,6 +81,7 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
+  useAtomIndex_ = actionArgs.hasKey("atomindex");
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
@@ -136,6 +142,10 @@ Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int de
     if (DF != 0) DF->AddDataSet( BridgeID_ );
     solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
+  }
+
+  if (useAtomIndex_) {
+    AHDIndices_ = (DataSet_integer*)init.DSL().AddSet(DataSet::INTEGER, MetaData(hbsetname_,"atomindex"));
   }
 
   mprintf( "  HBOND: ");
@@ -793,6 +803,12 @@ void Action_Hbond::Print() {
     {
       if ((int)hb->second.data_->Size() < Nframes_)
         hb->second.data_->Add( Nframes_-1, &ZERO );
+
+      if (useAtomIndex_) {
+        AHDIndices_->AddElement(hb->second.A);
+        AHDIndices_->AddElement(hb->second.H);
+        AHDIndices_->AddElement(hb->second.D);
+      }
     }
     for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
     {

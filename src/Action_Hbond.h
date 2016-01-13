@@ -61,6 +61,7 @@ class Action_Hbond : public Action {
     bool hasSolventAcceptor_;
     bool calcSolvent_;
     bool noIntramol_;
+    bool useAtomIndex_;
     double acut_;
     double dcut2_;
     Topology* CurrentParm_;
@@ -70,7 +71,8 @@ class Action_Hbond : public Action {
     DataSet* NumHbonds_;
     DataSet* NumSolvent_;
     DataSet* NumBridge_;
-    DataSet* BridgeID_;
+    DataSet* BridgeID_; 
+    DataSet_integer* AHDIndices_; // store atom indices
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
     /// Return true if the first hbond has more frames than the second.
