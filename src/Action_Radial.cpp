@@ -110,9 +110,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     outfilename = actionArgs.GetStringNext();
 
   // Set up output dataset.
-  MetaData md( actionArgs.GetStringNext() );
-  md.SetTimeSeries( MetaData::NOT_TS );
-  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, md, "g(r)");
+  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), "",
+                                                       MetaData::NOT_TS), "g(r)");
   if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
   DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
@@ -132,9 +131,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (intrdfFile != 0) {
-    MetaData md2( Dset_->Meta().Name(), "int" );
-    md2.SetTimeSeries( MetaData::NOT_TS );
-    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, md2);
+    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int",
+                                                           MetaData::NOT_TS) );
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
@@ -144,9 +142,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     intrdf_ = 0;
   // Set up output for raw rdf
   if (rawrdfFile != 0) {
-    MetaData md2( Dset_->Meta().Name(), "raw" );
-    md2.SetTimeSeries( MetaData::NOT_TS );
-    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, md2);
+    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw",
+                                                           MetaData::NOT_TS) );
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");

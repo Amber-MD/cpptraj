@@ -70,7 +70,10 @@ EOF
 
 Test_diffusion_oldSyntax
 Test_diffusion_newSyntax
-Test_stfc_diffusion
+NotParallel "STFC diffusion tests."
+if [[ $? -eq 0 ]] ; then
+  Test_stfc_diffusion
+fi
 
 EndTest
 

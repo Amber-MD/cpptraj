@@ -47,8 +47,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
-  MetaData md( setname );
-  md.SetTimeSeries( MetaData::NOT_TS );
+  MetaData md( setname, "", MetaData::NOT_TS );
   if (bfactor_)
     md.SetLegend("B-factors");
   else

@@ -133,14 +133,23 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   avg_a_->SetDim(Dimension::X, Xdim_);
   // Add DataSets for diffusion constant calc
   if (calcDiffConst_) {
-    diffConst_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "D"));
-    diffLabel_ = init.DSL().AddSet(DataSet::STRING, MetaData(dsname_, "Label"));
-    diffSlope_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Slope"));
-    diffInter_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Intercept"));
-    diffCorrl_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Corr"));
+    MetaData::tsType ts = MetaData::NOT_TS;
+    diffConst_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "D", ts));
+    diffLabel_ = init.DSL().AddSet(DataSet::STRING, MetaData(dsname_, "Label", ts));
+    diffSlope_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Slope", ts));
+    diffInter_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Intercept", ts));
+    diffCorrl_ = init.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname_, "Corr", ts));
     if (diffConst_ == 0 || diffLabel_ == 0 || diffSlope_ == 0 || diffInter_ == 0 ||
         diffCorrl_ == 0)
       return Action::ERR;
+#   ifdef MPI
+    // No sync needed since these are not time series
+    diffConst_->SetNeedsSync( false );
+    diffLabel_->SetNeedsSync( false );
+    diffSlope_->SetNeedsSync( false );
+    diffInter_->SetNeedsSync( false );
+    diffCorrl_->SetNeedsSync( false );
+#   endif
     if (diffout_ != 0) {
       diffout_->AddDataSet( diffConst_ );
       diffout_->AddDataSet( diffSlope_ );
@@ -286,96 +295,111 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = frm.Frm();
+#   ifdef MPI
+    if (trajComm_.Size() > 1) {
+      if (trajComm_.Master())
+        for (int rank = 1; rank < trajComm_.Size(); ++rank)
+          initial_.SendFrame( rank, trajComm_ );
+      else
+        initial_.RecvFrame( 0, trajComm_ );
+    }
+#   endif
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
-      const double* XYZ = frm.Frm().XYZ(*atom);
+      const double* XYZ = initial_.XYZ(*atom); //frm.Frm().XYZ(*atom);
       previous_.push_back( XYZ[0] );
       previous_.push_back( XYZ[1] );
       previous_.push_back( XYZ[2] );
     }
-  } else {
-    if (hasBox_) 
-      boxcenter_ = frm.Frm().BoxCrd().Center();
-    // For averaging over selected atoms
-    double average2 = 0.0;
-    double avgx = 0.0;
-    double avgy = 0.0;
-    double avgz = 0.0;
-    unsigned int idx = 0;
-    for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
-    { // Get current and initial coords for this atom.
-      const double* XYZ = frm.Frm().XYZ(*at);
-      const double* iXYZ = initial_.XYZ(*at);
-      // Calculate distance to previous frames coordinates.
-      double delx = XYZ[0] - previous_[idx  ];
-      double dely = XYZ[1] - previous_[idx+1];
-      double delz = XYZ[2] - previous_[idx+2];
-      //mprinterr("\tDeltaFromPrevious={ %g %g %g }\n", delx, dely, delz); // DEBUG
-      // If the particle moved more than half the box, assume it was imaged
-      // and adjust the distance of the total movement with respect to the
-      // original frame.
-      if (hasBox_) {
-        if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
-        else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
-        if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
-        else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
-        if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
-        else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
-      }
-      //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
-      // Set the current x with reference to the un-imaged trajectory.
-      double xx = XYZ[0] + delta_[idx  ];
-      double yy = XYZ[1] + delta_[idx+1];
-      double zz = XYZ[2] + delta_[idx+2];
-      // Calculate the distance between this "fixed" coordinate
-      // and the reference (initial) frame.
-      delx = xx - iXYZ[0];
-      dely = yy - iXYZ[1];
-      delz = zz - iXYZ[2];
-      //mprinterr("\tDeltaFromInitial={ %g %g %g }\n", delx, dely, delz); // DEBUG
-      // Calc distances for this atom
-      double distx = delx * delx;
-      double disty = dely * dely;
-      double distz = delz * delz;
-      double dist2 = distx + disty + distz;
-      // Accumulate averages
-      avgx += distx;
-      avgy += disty;
-      avgz += distz;
-      average2 += dist2;
-      // Store distances for this atom
-      if (printIndividual_) {
-        float fval = (float)distx;
-        atom_x_[*at]->Add(frameNum, &fval);
-        fval = (float)disty;
-        atom_y_[*at]->Add(frameNum, &fval);
-        fval = (float)distz;
-        atom_z_[*at]->Add(frameNum, &fval);
-        fval = (float)dist2;
-        atom_r_[*at]->Add(frameNum, &fval);
-        dist2 = sqrt(dist2);
-        fval = (float)dist2;
-        atom_a_[*at]->Add(frameNum, &fval);
-      }
-      // Update the previous coordinate set to match the current coordinates
-      previous_[idx  ] = XYZ[0];
-      previous_[idx+1] = XYZ[1];
-      previous_[idx+2] = XYZ[2];
-    } // END loop over selected atoms
-    // Calc averages
-    double dNselected = 1.0 / (double)mask_.Nselected();
-    avgx *= dNselected;
-    avgy *= dNselected;
-    avgz *= dNselected;
-    average2 *= dNselected;
-    // Save averages
-    avg_x_->Add(frameNum, &avgx);
-    avg_y_->Add(frameNum, &avgy);
-    avg_z_->Add(frameNum, &avgz);
-    avg_r_->Add(frameNum, &average2);
-    average2 = sqrt(average2);
-    avg_a_->Add(frameNum, &average2);
+#   ifdef MPI
+    if (trajComm_.Master()) return Action::OK;
+    // On non-master we want to calculate diffusion for *this* frame. It is
+    // possible wrapping has already occurred from the initial frame. Try to
+    // detect and correct for this.
+#   endif
   }
+  // Diffusion calculation
+  if (hasBox_)
+    boxcenter_ = frm.Frm().BoxCrd().Center();
+  // For averaging over selected atoms
+  double average2 = 0.0;
+  double avgx = 0.0;
+  double avgy = 0.0;
+  double avgz = 0.0;
+  unsigned int idx = 0; // Index into previous_ and delta_
+  for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
+  { // Get current and initial coords for this atom.
+    const double* XYZ = frm.Frm().XYZ(*at);
+    const double* iXYZ = initial_.XYZ(*at);
+    // Calculate distance to previous frames coordinates.
+    double delx = XYZ[0] - previous_[idx  ];
+    double dely = XYZ[1] - previous_[idx+1];
+    double delz = XYZ[2] - previous_[idx+2];
+    //mprinterr("\tDeltaFromPrevious={ %g %g %g }\n", delx, dely, delz); // DEBUG
+    // If the particle moved more than half the box, assume it was imaged
+    // and adjust the distance of the total movement with respect to the
+    // original frame.
+    if (hasBox_) {
+      if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
+      else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
+      if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
+      else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
+      if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
+      else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
+    }
+    //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
+    // Set the current x with reference to the un-imaged trajectory.
+    double xx = XYZ[0] + delta_[idx  ];
+    double yy = XYZ[1] + delta_[idx+1];
+    double zz = XYZ[2] + delta_[idx+2];
+    // Calculate the distance between this "fixed" coordinate
+    // and the reference (initial) frame.
+    delx = xx - iXYZ[0];
+    dely = yy - iXYZ[1];
+    delz = zz - iXYZ[2];
+    //mprinterr("\tDeltaFromInitial={ %g %g %g }\n", delx, dely, delz); // DEBUG
+    // Calc distances for this atom
+    double distx = delx * delx;
+    double disty = dely * dely;
+    double distz = delz * delz;
+    double dist2 = distx + disty + distz;
+    // Accumulate averages
+    avgx += distx;
+    avgy += disty;
+    avgz += distz;
+    average2 += dist2;
+    // Store distances for this atom
+    if (printIndividual_) {
+      float fval = (float)distx;
+      atom_x_[*at]->Add(frameNum, &fval);
+      fval = (float)disty;
+      atom_y_[*at]->Add(frameNum, &fval);
+      fval = (float)distz;
+      atom_z_[*at]->Add(frameNum, &fval);
+      fval = (float)dist2;
+      atom_r_[*at]->Add(frameNum, &fval);
+      dist2 = sqrt(dist2);
+      fval = (float)dist2;
+      atom_a_[*at]->Add(frameNum, &fval);
+    }
+    // Update the previous coordinate set to match the current coordinates
+    previous_[idx  ] = XYZ[0];
+    previous_[idx+1] = XYZ[1];
+    previous_[idx+2] = XYZ[2];
+  } // END loop over selected atoms
+  // Calc averages
+  double dNselected = 1.0 / (double)mask_.Nselected();
+  avgx *= dNselected;
+  avgy *= dNselected;
+  avgz *= dNselected;
+  average2 *= dNselected;
+  // Save averages
+  avg_x_->Add(frameNum, &avgx);
+  avg_y_->Add(frameNum, &avgy);
+  avg_z_->Add(frameNum, &avgz);
+  avg_r_->Add(frameNum, &average2);
+  average2 = sqrt(average2);
+  avg_a_->Add(frameNum, &average2);
   return Action::OK;
 }
 

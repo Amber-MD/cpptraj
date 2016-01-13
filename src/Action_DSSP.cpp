@@ -555,8 +555,7 @@ void Action_DSSP::Print() {
   if (dsspFile_ != 0) {
     std::vector<DataSet*> dsspData_(NSSTYPE);
     Dimension Xdim( min_res + 1, 1, "Residue" );
-    MetaData md(dsetname_, "avgss");
-    md.SetTimeSeries(MetaData::NOT_TS);
+    MetaData md(dsetname_, "avgss", MetaData::NOT_TS);
     // Set up a dataset for each SS type. TODO: NONE type?
     for (int ss = 1; ss < NSSTYPE; ss++) {
       md.SetIdx(ss);
