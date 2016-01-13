@@ -8,6 +8,9 @@ class Action_Diffusion : public Action {
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
@@ -52,5 +55,8 @@ class Action_Diffusion : public Action {
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif
