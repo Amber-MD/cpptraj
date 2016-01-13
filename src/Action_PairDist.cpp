@@ -72,8 +72,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("PDIST");
-  MetaData md(dsname, "Pr");
-  md.SetTimeSeries( MetaData::NOT_TS );
+  MetaData md(dsname, "Pr", MetaData::NOT_TS );
   Pr_ = init.DSL().AddSet(DataSet::XYMESH, md);
   md.SetAspect("std");
   std_ = init.DSL().AddSet(DataSet::XYMESH, md);
