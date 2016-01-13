@@ -127,6 +127,17 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_STFC_Diffusion::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'stfcdiffusion' action does not work with > 1 thread"
+              " (%i threads currently).\n", commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Action_STFC_Diffusion::Setup()
 Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
