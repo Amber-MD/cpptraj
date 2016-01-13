@@ -318,7 +318,7 @@ int Parallel::Comm::MasterBcast(void* buffer, int count, MPI_Datatype datatype) 
   */
 int Parallel::Comm::CheckError(int err) const {
   int errtotal = 0;
-  AllReduce(&err, &errtotal, 1, MPI_INT, MPI_SUM);
+  AllReduce(&errtotal, &err, 1, MPI_INT, MPI_SUM);
   return errtotal;
 }
 
