@@ -48,6 +48,10 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int 
       mprinterr("Error: Could not allocate average coordinate data set '%s'\n", crdName.c_str());
       return Action::ERR;
     }
+#   ifdef MPI
+    // crdset_ is not written to until Print(), no sync needed.
+    crdset_->SetNeedsSync( false );
+#   endif
   }
   // Get start/stop/offset args
   if (InitFrameCounter(actionArgs)) return Action::ERR;
