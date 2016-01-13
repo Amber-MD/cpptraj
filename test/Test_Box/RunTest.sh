@@ -5,6 +5,12 @@
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10
 
+MaxThreads 10 "Box tests."
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 0
+fi
+
 INPUT="-i box.in"
 cat > box.in <<EOF
 parm ../tz2.parm7

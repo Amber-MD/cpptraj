@@ -9,29 +9,35 @@ CleanFiles closest.in first.Closest.pdb.1 closestmols.dat \
 
 INPUT="-i closest.in"
 CheckNetcdf
-# Test 1 - Closest, first solvent atom only
-cat > closest.in <<EOF
+MaxThreads 1 "Closest command test using first solvent atom."
+if [[ $? -eq 0 ]] ; then
+  # Test 1 - Closest, first solvent atom only
+  cat > closest.in <<EOF
 noprogress
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 closest 10 :1-13 first closestout closestmols.dat name CL outprefix closest
 trajout first.Closest.pdb pdb nobox multi
 EOF
-RunCpptraj "Closest command test using first solvent atom."
-DoTest first.Closest.pdb.save first.Closest.pdb.1
-DoTest closestmols.dat.save closestmols.dat
-# Tell diff to ignore the VERSION line
-DoTest closest.tz2.truncoct.parm7.save closest.tz2.truncoct.parm7 -I %VERSION
+  RunCpptraj "Closest command test using first solvent atom."
+  DoTest first.Closest.pdb.save first.Closest.pdb.1
+  DoTest closestmols.dat.save closestmols.dat
+  # Tell diff to ignore the VERSION line
+  DoTest closest.tz2.truncoct.parm7.save closest.tz2.truncoct.parm7 -I %VERSION
+fi
 
-# Test 2 - Closest, all solvent atoms
-cat > closest.in <<EOF
+MaxThreads 1 "Closest command test using all solvent atoms."
+if [[ $? -eq 0 ]] ; then
+  # Test 2 - Closest, all solvent atoms
+  cat > closest.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc 1 1
 closest 10 :1-13
 trajout all.Closest.pdb pdb nobox multi
 EOF
-RunCpptraj "Closest command test using all solvent atoms."
-DoTest all.Closest.pdb.save all.Closest.pdb.1
+  RunCpptraj "Closest command test using all solvent atoms."
+  DoTest all.Closest.pdb.save all.Closest.pdb.1
+fi
 
 # Test 3 - Closest atoms to mask center
 cat > closest.in <<EOF

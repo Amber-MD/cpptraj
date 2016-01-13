@@ -4,6 +4,12 @@
 
 CleanFiles check.in report.dat
 
+MaxThreads 1 "Structure check test"
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 0
+fi
+
 INPUT="-i check.in"
 cat > check.in <<EOF
 parm ../tz2.parm7

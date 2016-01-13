@@ -4,7 +4,8 @@
 
 # Clean
 CleanFiles cpptraj.in dssp.dat dssp.dat.sum dssp.sum.agr dssp.gnu \
-           dssp2.gnu dssp2.sum.agr total.agr assign.4.dat
+           dssp2.gnu dssp2.sum.agr total.agr assign.4.dat \
+           DSSP.assign.dat
 
 CheckNetcdf
 INPUT="-i cpptraj.in"
@@ -14,12 +15,14 @@ TOP="../DPDP.parm7"
 cat > cpptraj.in <<EOF
 noprogress
 trajin ../DPDP.nc 
-secstruct out dssp.gnu sumout dssp.sum.agr totalout total.agr 
+secstruct out dssp.gnu sumout dssp.sum.agr totalout total.agr \
+          assignout DSSP.assign.dat
 EOF
 RunCpptraj "Secstruct (DSSP) command test."
 DoTest dssp.gnu.save dssp.gnu
 DoTest dssp.sum.agr.save dssp.sum.agr
 DoTest total.agr.save total.agr
+DoTest DSSP.assign.dat.save DSSP.assign.dat
 CheckTest
 
 # Test 2
@@ -49,14 +52,17 @@ EOF
 fi
 
 # Test 4
-TOP=""
-cat > cpptraj.in <<EOF
+MaxThreads 1 "Secstruct (DSSP): SS assign output test"
+if [[ $? -eq 0 ]] ; then
+  TOP=""
+  cat > cpptraj.in <<EOF
 parm test.4.pdb
 trajin test.4.pdb
 dssp N4 assignout assign.4.dat
 EOF
-RunCpptraj "Secstruct (DSSP): SS assign output test"
-DoTest assign.4.dat.save assign.4.dat
+  RunCpptraj "Secstruct (DSSP): SS assign output test"
+  DoTest assign.4.dat.save assign.4.dat
+fi
 
 EndTest
 

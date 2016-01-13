@@ -2,13 +2,20 @@
 
 . ../MasterTest.sh
 
-CleanFiles charmm.in test.ala3.pdb.1 first.ala3.crd \
+CleanFiles charmm.in test.ala3.pdb.? test.ala3.pdb.10 first.ala3.crd \
            test.psf test.ala3.dcd second.ala3.crd
 CheckNetcdf
+
+MaxThreads 10 "Charmm DCD tests."
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 0
+fi
+
 INPUT="-i charmm.in"
 cat > charmm.in <<EOF
 parm ala3.psf
-trajin ala3.dcd 1 1
+trajin ala3.dcd 1 10
 trajout test.ala3.pdb pdb multi chainid X
 EOF
 RunCpptraj "CHARMM PSF/DCD test"
