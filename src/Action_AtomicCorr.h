@@ -10,6 +10,12 @@ class Action_AtomicCorr : public Action {
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const&);
+    int ParallelPreviousFramesRequired() const { return 1; }
+    int ParallelPreloadFrames(FArray const&);
+    int SyncAction(Parallel::Comm const&);
+#   endif
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
     /// Hold a series of position vectors ([X1 - X0], [X2 - X1], ..., [XN - XN-1])
@@ -25,6 +31,8 @@ class Action_AtomicCorr : public Action {
         Vec3 VXYZ(int idx) const { return Vec3((double)vec_[idx  ], 
                                                (double)vec_[idx+1], 
                                                (double)vec_[idx+2]); }
+        void resize(size_t n) { vec_.resize( n ); }
+        float* Fptr() { return &(vec_[0]); }
       private:
         std::vector<float> vec_; ///< Array of position vectors for N-1 steps (XYZ)
         std::string lbl_;        ///< Label for this vector array
