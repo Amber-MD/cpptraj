@@ -702,7 +702,14 @@ int CpptrajState::RunParallel() {
   int my_start, my_stop, my_frames;
   std::vector<int> rank_frames = DivideFramesAmongThreads(my_start, my_stop, my_frames,
                                                           input_traj.Size(), TrajComm);
-  TrajComm.Barrier();
+  // Ensure at least 1 frame per thread, otherwise some ranks could cause hangups.
+  if (my_frames > 0)
+    err = 0;
+  else {
+    rprinterr("Error: Thread is processing less than 1 frame. Try reducing # threads.\n");
+    err = 1;
+  }
+  if (TrajComm.CheckError( err )) return 1;
 
   // Perform any necessary parallel Init
   if (actionList_.ParallelInitActions( TrajComm ) != 0 && exitOnError_)

@@ -262,6 +262,7 @@ CheckPnetcdf() {
   return 0
 }
 
+# NotParallel() <Test title>
 NotParallel() {
   if [[ ! -z $DO_PARALLEL ]] ; then
     echo ""
@@ -272,6 +273,7 @@ NotParallel() {
  return 0
 }
 
+# RequiresThreads() <# threads> <Test title>
 RequiresThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
     if [[ ! -f "$NPROC" ]] ; then
@@ -286,6 +288,27 @@ RequiresThreads() {
         echo "  CPPTRAJ: $2"
       fi
       echo "  Warning: Test requires $1 parallel threads. Skipping."
+      return 1
+    fi
+  fi
+  return 0
+}
+
+# MaxThreads() <# threads> <Test title>
+MaxThreads() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    if [[ ! -f "$NPROC" ]] ; then
+      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
+      return 0
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+    if [[ $N_THREADS -gt $1 ]] ; then
+      echo ""
+      if [[ ! -z $2 ]] ; then
+        echo "  CPPTRAJ: $2"
+      fi
+      echo "  Warning: Test can only run with $1 or fewer parallel threads. Skipping."
       return 1
     fi
   fi
