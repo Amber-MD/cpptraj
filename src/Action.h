@@ -57,11 +57,11 @@ class Action : public DispatchObject {
     virtual int ParallelActionInit(Parallel::Comm const&) { return 0; } // TODO: pure virtual
     /// Sync Action data to master when running in parallel across trajectories.
     virtual int SyncAction(Parallel::Comm const&) { return 0; } // TODO: pure virtual
-/*    /// Number of frames before start required by ranks > 0
+    /// Number of frames before start required by ranks > 0
     virtual int ParallelPreviousFramesRequired() const { return 0; } // TODO: pure virtual
     typedef std::vector<Frame> FArray;
     /// Process array of frames before start required by ranks > 0 (not called by master)
-    virtual int ParallelPreloadFrames(FArray const&) { return 0; } // TODO: pure virtual*/
+    virtual int ParallelPreloadFrames(FArray const&) { return 0; } // TODO: pure virtual
 #   endif
 };
 #endif

@@ -142,7 +142,7 @@ int ActionList::ParallelInitActions(Parallel::Comm const& commIn) {
   }
   return err;
 }
-/*
+
 int ActionList::NumPreviousFramesReqd() const {
   int nrequired = 0;
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
@@ -153,9 +153,8 @@ int ActionList::NumPreviousFramesReqd() const {
   rprintf("DEBUG: Action(s) require %i previous frames.\n", nrequired);
   return nrequired;
 }
-*/
+
 /** Should not be called by master. */
-/*
 int ActionList::ParallelProcessPreload(Action::FArray const& preload_frames) {
   int err = 0;
   for (Aarray::iterator act = actionList_.begin(); act != actionList_.end(); ++act)
@@ -170,7 +169,7 @@ int ActionList::ParallelProcessPreload(Action::FArray const& preload_frames) {
     }
   }
   return err;
-}*/
+}
 
 void ActionList::SyncActions(Parallel::Comm const& commIn) {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
