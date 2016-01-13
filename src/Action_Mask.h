@@ -2,7 +2,6 @@
 #define INC_ACTION_MASK_H
 #include "Action.h"
 #include "TrajectoryFile.h"
-// Class: Action_Mask
 /// Print out all atoms selected by a mask for each frame.
 /** This allows use of distance-dependent masks. This does NOT modify the
   * frame or parm. 
@@ -16,11 +15,21 @@ class Action_Mask: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print() {}
 
     int ensembleNum_;
     CharMask Mask1_;         ///< Atoms which will be selected each frame
     CpptrajFile* outfile_;   ///< File to write selected atom info to
+    DataSet* fnum_;
+    DataSet* anum_;
+    DataSet* aname_;
+    DataSet* rnum_;
+    DataSet* rname_;
+    DataSet* mnum_;
+    int idx_; ///< Index into data sets
     std::string maskpdb_;    ///< Traj output file name
     Topology* CurrentParm_;
     CoordinateInfo currentCoordInfo_;
