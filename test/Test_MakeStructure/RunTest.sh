@@ -5,6 +5,11 @@
 CleanFiles ms.in pp2.rst7 hairpin.rst7 dihedrals.dat dihedrals?.dat fromref.rst7 fromref.pdb.1
 INPUT="-i ms.in"
 
+MaxThreads 1 "Makestructure test"
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 1
+fi
 # Tests
 MS1() {
 cat > ms.in <<EOF
