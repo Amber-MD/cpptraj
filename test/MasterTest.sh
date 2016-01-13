@@ -477,7 +477,9 @@ SetBinaries() {
       if [[ $USEDACDIF -eq 1 ]] ; then
         DACDIF=$DIRPREFIX/test/dacdif
       fi
-      NCDUMP=$DIRPREFIX/bin/ncdump
+      if [[ -f "$DIRPREFIX/bin/ncdump" && -e "$DIRPREFIX/bin/ncdump" ]]; then
+        NCDUMP=$DIRPREFIX/bin/ncdump
+      fi
       CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
       AMBPDB=$DIRPREFIX/bin/ambpdb
       NPROC=$DIRPREFIX/AmberTools/test/numprocs
