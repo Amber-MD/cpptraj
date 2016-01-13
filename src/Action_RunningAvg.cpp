@@ -76,7 +76,8 @@ Action::RetType Action_RunningAvg::Setup(ActionSetup& setup) {
 int Action_RunningAvg::ParallelActionInit(Parallel::Comm const& commIn) {
   if (commIn.Size() > 1)
     mprintf("\nWarning: 'runavg' in parallel will not work correctly if coordinates have\n"
-              "Warning:   been modified by previous actions (e.g. 'rms').\n\n");
+              "Warning:   been modified by previous actions (e.g. 'rms').\n"
+              "Warning: In addition, certain output trajectory formats may not write correctly\n\n");
   return 0;
 }
 
