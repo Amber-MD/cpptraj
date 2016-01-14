@@ -4,7 +4,7 @@
 
 # Clean
 CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd ref.centered.crd
-
+# Also tests strip functionality
 MaxThreads 2 "Center tests."
 if [[ $? -ne 0 ]] ; then
   echo ""

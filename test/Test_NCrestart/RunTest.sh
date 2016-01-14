@@ -5,6 +5,12 @@
 # Clean
 CleanFiles ncr.in nc.rst7* text.rst7*
 
+MaxThreads 1 "NetCDF restart tests"
+if [[ $? -ne 0 ]] ; then
+  echo ""
+  exit 1
+fi
+
 CheckNetcdf
 
 INPUT="ncr.in"
