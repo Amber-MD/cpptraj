@@ -7,7 +7,7 @@ CleanFiles center.in centered.crd origin.centered.crd origin.mass.centered.crd r
 # Also tests strip functionality
 MaxThreads 2 "Center tests."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

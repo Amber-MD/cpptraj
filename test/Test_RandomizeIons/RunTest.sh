@@ -5,7 +5,7 @@
 CleanFiles ptraj.in random.crd
 MaxThreads 1 "randomizeions test"
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 CheckZlib

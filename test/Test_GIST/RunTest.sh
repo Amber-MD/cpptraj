@@ -6,7 +6,7 @@ CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat
 
 NotParallel "GIST test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

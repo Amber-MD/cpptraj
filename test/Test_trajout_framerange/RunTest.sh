@@ -6,7 +6,7 @@
 CleanFiles general.in *.rst7.? framerange.in framerange.crd
 NotParallel "Trajout Frame Range"
 if [[ $? -eq 1 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 CheckNetcdf

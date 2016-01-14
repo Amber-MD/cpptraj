@@ -6,7 +6,7 @@ CleanFiles ptraj.in cd.dat cf.dat ci.dat
 
 NotParallel "clusterdihedral test"
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 # clusterdihedral

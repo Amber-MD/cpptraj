@@ -7,7 +7,7 @@ CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd
 
 NotParallel "SPAM test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

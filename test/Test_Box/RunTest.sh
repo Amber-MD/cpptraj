@@ -7,7 +7,7 @@ CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
 
 MaxThreads 10 "Box tests."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

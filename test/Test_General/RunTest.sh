@@ -11,7 +11,7 @@ CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat test.c
 
 NotParallel "General tests"
 if [[ $? -eq 1 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 # Check libraries

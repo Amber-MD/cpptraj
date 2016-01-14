@@ -8,7 +8,7 @@ CheckNetcdf
 
 MaxThreads 10 "Charmm DCD tests."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

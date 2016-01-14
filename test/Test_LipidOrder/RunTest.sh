@@ -14,7 +14,7 @@ CleanFiles $in $out1 $oute1 $out2 $oute2 $out3 $out4
 
 NotParallel "Lipid Order Parameter Test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

@@ -7,8 +7,8 @@ INPUT="-i ms.in"
 
 MaxThreads 1 "Makestructure test"
 if [[ $? -ne 0 ]] ; then
-  echo ""
-  exit 1
+  EndTest
+  exit 0
 fi
 # Tests
 MS1() {

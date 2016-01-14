@@ -69,9 +69,6 @@ if [[ $? -eq 0 ]] ; then
   TrajSort
   ActionsTest
   OuttrajTest
-else
-  echo ""
-  exit 0
 fi
 
 EndTest

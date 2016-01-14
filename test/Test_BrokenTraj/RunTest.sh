@@ -6,8 +6,8 @@
 CleanFiles goodrmsd.dat badrmsd.dat goodtraj.in brokentraj.in zip.gz zip.in ziprmsd.dat
 NotParallel "Broken Traj"
 if [[ $? -eq 1 ]] ; then
-  echo ""
-  exit 0;
+  EndTest
+  exit 0
 fi
 # Test 1
 cat > goodtraj.in <<EOF

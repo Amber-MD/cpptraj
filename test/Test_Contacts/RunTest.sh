@@ -6,7 +6,7 @@ CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
 
 NotParallel "Contacts test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 TOP="../tz2.truncoct.parm7"

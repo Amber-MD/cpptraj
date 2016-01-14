@@ -12,7 +12,7 @@ CleanFiles $in $out1 $out2 $out3 $out4
 
 NotParallel "Density test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

@@ -6,7 +6,7 @@ CleanFiles check.in report.dat
 
 MaxThreads 1 "Structure check test"
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

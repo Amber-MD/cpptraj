@@ -6,7 +6,7 @@ CleanFiles gist.in gist-*.dx gistout.dat
 
 NotParallel "GIST tetrahedral water cluster test."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 

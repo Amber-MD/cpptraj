@@ -7,7 +7,7 @@ CleanFiles mol2.in L01.mol2 tz2.mol2 test.mol2 test1.mol2 test2.mol2
 
 NotParallel "Mol2 tests."
 if [[ $? -ne 0 ]] ; then
-  echo ""
+  EndTest
   exit 0
 fi
 
