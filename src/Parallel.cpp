@@ -171,7 +171,8 @@ Parallel::Comm::Comm(MPI_Comm commIn) : comm_(commIn), rank_(0), size_(0) {
   } else {
     MPI_Comm_size(comm_, &size_);
     MPI_Comm_rank(comm_, &rank_);
-    fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i\n", world_.Rank(), size_, rank_);
+    fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i COMM=%i\n",
+            world_.Rank(), size_, rank_, (int)comm_);
   }
 }
 
