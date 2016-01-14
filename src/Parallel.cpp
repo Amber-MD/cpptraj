@@ -157,9 +157,14 @@ int Parallel::End() { return 0; }
   * MPI_COMM_NULL.
   */
 Parallel::Comm::Comm(MPI_Comm commIn) : comm_(commIn), rank_(0), size_(0) {
-  MPI_Comm_size(comm_, &size_);
-  MPI_Comm_rank(comm_, &rank_);
-  fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i\n", world_.Rank(), size_, rank_);
+  if (comm_ == MPI_COMM_NULL) {
+    fprintf(stdout,"[%i] DEBUG: NEW NULL COMM.\n", world_.Rank());
+    // FIXME What is the correct thing to set size and rank here?
+  } else {
+    MPI_Comm_size(comm_, &size_);
+    MPI_Comm_rank(comm_, &rank_);
+    fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i\n", world_.Rank(), size_, rank_);
+  }
 }
 
 Parallel::Comm::Comm(Comm const& rhs) : comm_(rhs.comm_), rank_(rhs.rank_), size_(rhs.size_) {}
@@ -181,12 +186,9 @@ void Parallel::Comm::Barrier() const {
 }
 
 Parallel::Comm Parallel::Comm::Split(int ID) const {
-  if (ID != MPI_UNDEFINED) {
-    MPI_Comm newComm;
-    MPI_Comm_split( comm_, ID, rank_, &newComm );
-    return Comm(newComm);
-  } else
-    return Comm();
+  MPI_Comm newComm;
+  MPI_Comm_split( comm_, ID, rank_, &newComm );
+  return Comm(newComm);
 }
 
 void Parallel::Comm::Reset() {
