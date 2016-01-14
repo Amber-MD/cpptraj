@@ -45,6 +45,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int ReadBox(double*);
     int ReadTrxHeader();
     int ReadAtomVector(double*, int);
+    void AllocateCoords();
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
@@ -59,5 +60,15 @@ class Traj_GmxTrX : public TrajectoryIO {
     int readForce(int, Frame&)     { return 1; }  // TODO support this
     int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj();
+#   endif
 };
 #endif
