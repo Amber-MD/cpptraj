@@ -78,7 +78,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
     ID = Parallel::World().Rank();
   rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
   trajComm_ = Parallel::World().Split( ID ); 
-  if (Parallel::TrajComm().Master()) {
+  if (ID != MPI_UNDEFINED) {
     mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
     ret = ProcessArgs(State, argIn);
     if (ret != CpptrajState::OK)
