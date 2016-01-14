@@ -156,6 +156,10 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
     mprinterr("Error: 'trajout' frame options not yet supported during parallel processing.\n");
     return 1;
   }
+  if (traj_.Append()) {
+    mprinterr("Error: 'trajout' append not yet supported during parallel processing.\n");
+    return 1;
+  }
   // Set up topology and coordinate info.
   if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
