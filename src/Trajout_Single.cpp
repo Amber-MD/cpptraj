@@ -163,7 +163,7 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
   // Set up topology and coordinate info.
   if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
-  //if (debug_ > 0)
+  if (debug_ > 0)
     rprintf("\tSetting up '%s' for WRITE in parallel, topology '%s' (%i atoms, %i frames).\n",
             traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom(), traj_.NframesToWrite());
   // Set up TrajectoryIO in parallel.

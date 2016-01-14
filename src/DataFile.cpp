@@ -342,11 +342,13 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 void DataFile::WriteDataOut() {
 # ifdef MPI
   if (!Parallel::TrajComm().Master()) {
-    rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
+    if (debug_ > 0)
+      rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
     return;
   }
 # endif
-  rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
+  if (debug_ > 0)
+    rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
   //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
   //        SetList_.size(), dimenison_, maxFrames);
   // Loop over all sets, decide which ones should be written.

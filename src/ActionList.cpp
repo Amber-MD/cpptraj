@@ -132,7 +132,7 @@ int ActionList::ParallelInitActions(Parallel::Comm const& commIn) {
   for (Aarray::iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
-      rprintf("DEBUG: Calling ParallelActionInit() for '%s'\n", act->args_.Command());
+      //rprintf("DEBUG: Calling ParallelActionInit() for '%s'\n", act->args_.Command());
       if (act->ptr_->ParallelActionInit(commIn)) {
         rprintf("Warning: Parallel Init failed for Action '%s'\n", act->args_.Command());
         act->status_ = INACTIVE;
@@ -150,7 +150,7 @@ int ActionList::NumPreviousFramesReqd() const {
     if (act->status_ != INACTIVE)
       nrequired = std::max( nrequired, act->ptr_->ParallelPreviousFramesRequired() );
   }
-  rprintf("DEBUG: Action(s) require %i previous frames.\n", nrequired);
+  if (debug_ > 0) rprintf("DEBUG: Action(s) require %i previous frames.\n", nrequired);
   return nrequired;
 }
 
@@ -160,7 +160,7 @@ int ActionList::ParallelProcessPreload(Action::FArray const& preload_frames) {
   for (Aarray::iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
-      rprintf("DEBUG: Calling ParallelPreloadFrames() for '%s'\n", act->args_.Command());
+      //rprintf("DEBUG: Calling ParallelPreloadFrames() for '%s'\n", act->args_.Command());
       if (act->ptr_->ParallelPreloadFrames( preload_frames )) {
         rprintf("Warning: Parallel Preload failed for Action '%s'\n", act->args_.Command());
         act->status_ = INACTIVE;
@@ -175,7 +175,7 @@ void ActionList::SyncActions(Parallel::Comm const& commIn) {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
-      rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
+      //rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
       if (act->ptr_->SyncAction(commIn))
         rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
     }

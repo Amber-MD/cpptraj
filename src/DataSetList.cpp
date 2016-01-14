@@ -618,8 +618,8 @@ int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_fram
   delete[] n_on_rank;
   // Call Sync only for sets that need it.
   for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds) {
-    mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->Meta().PrintName().c_str(),
-            (*ds)->Size(), total);
+    //mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->Meta().PrintName().c_str(),
+    //        (*ds)->Size(), total);
     if ( (*ds)->Sync(total, rank_frames, commIn) ) {
       rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
       //return;

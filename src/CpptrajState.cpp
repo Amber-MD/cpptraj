@@ -656,7 +656,8 @@ std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_s
     for (int i = 0; i != commIn.Size(); i++)
       mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
   }
-  rprintf("Start %i Stop %i Frames %i\n", my_start, my_stop, my_frames);
+  commIn.Barrier();
+  if (debug_ > 0) rprintf("Start %i Stop %i Frames %i\n", my_start+1, my_stop, my_frames);
   return rank_frames;
 }
 
@@ -786,9 +787,9 @@ int CpptrajState::RunParallel() {
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
-  TrajComm.Barrier();
   rprintf("TIME: Rank throughput= %.4f frames / second.\n",
           (double)actionSet / frames_time.Total());
+  TrajComm.Barrier();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();

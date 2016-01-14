@@ -507,7 +507,6 @@ int Traj_AmberNetcdf::parallelSetupTrajout(FileName const& fname, Topology* traj
   if (err != 0) return 1;
   // Synchronize netcdf info on non-master threads.
   Sync(commIn);
-  rprintf("DEBUG: coordVID= %i\n", coordVID_);
   if (!commIn.Master()) {
     // Non masters need filename and allocate Coord
     filename_ = fname;

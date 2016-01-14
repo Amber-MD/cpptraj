@@ -107,7 +107,7 @@ int Parallel::Abort(int errcode) {
 int Parallel::SetupComms(int ngroups) {
   if (ngroups < 1) {
     // If ngroups < 1 assume we want to reset comm info
-    fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
+    //fprintf(stdout, "DEBUG: Resetting ensemble/traj comm info.\n");
     trajComm_.Reset();
     ensembleComm_.Reset();
   } else if (!ensembleComm_.IsNull()) {
@@ -126,11 +126,11 @@ int Parallel::SetupComms(int ngroups) {
     }
     // Split into comms for parallel across trajectory
     int ID = world_.Rank() / (world_.Size() / ngroups);
-    fprintf(stdout,"[%i] DEBUG: My trajComm ID is %i\n", world_.Rank(), ID);
+    //fprintf(stdout,"[%i] DEBUG: My trajComm ID is %i\n", world_.Rank(), ID);
     trajComm_ = world_.Split( ID );
     // Ensemble comm is orthogonal to trajectory comm
     ID = world_.Rank() % trajComm_.Size();
-    fprintf(stdout, "[%i] DEBUG: My ensembleComm ID is %i\n", world_.Rank(), ID);
+    //fprintf(stdout, "[%i] DEBUG: My ensembleComm ID is %i\n", world_.Rank(), ID);
     ensembleComm_ = world_.Split( ID );
     // DEBUG 
     if (trajComm_.Master())
@@ -165,14 +165,11 @@ int Parallel::End() { return 0; }
   * MPI_COMM_NULL.
   */
 Parallel::Comm::Comm(MPI_Comm commIn) : comm_(commIn), rank_(0), size_(0) {
-  if (comm_ == MPI_COMM_NULL) {
-    fprintf(stdout,"[%i] DEBUG: NEW NULL COMM.\n", world_.Rank());
-    // FIXME What is the correct thing to set size and rank here?
-  } else {
+  if (comm_ != MPI_COMM_NULL) {
     MPI_Comm_size(comm_, &size_);
     MPI_Comm_rank(comm_, &rank_);
-    fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i COMM=%i\n",
-            world_.Rank(), size_, rank_, (int)comm_);
+    //fprintf(stdout,"[%i] DEBUG: NEW COMMUNICATOR SIZE=%i RANK=%i COMM=%i\n",
+    //        world_.Rank(), size_, rank_, (int)comm_);
   }
 }
 

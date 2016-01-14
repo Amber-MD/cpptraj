@@ -47,8 +47,8 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     std::fill(buffer_, buffer_ + frameSize_, 0);
   }
   bufferPosition_ = buffer_;
-  rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
-          Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
+  //rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
 
