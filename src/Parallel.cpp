@@ -164,6 +164,8 @@ Parallel::Comm::Comm(MPI_Comm commIn) : comm_(commIn), rank_(0), size_(0) {
 
 Parallel::Comm::Comm(Comm const& rhs) : comm_(rhs.comm_), rank_(rhs.rank_), size_(rhs.size_) {}
 
+//Parallel::Comm::~Comm() { if (comm_ != MPI_COMM_WORLD) Reset(); }
+
 Parallel::Comm& Parallel::Comm::operator=(Comm const& rhs) {
   if (this != &rhs) {
     comm_ = rhs.comm_;
@@ -179,14 +181,18 @@ void Parallel::Comm::Barrier() const {
 }
 
 Parallel::Comm Parallel::Comm::Split(int ID) const {
-  MPI_Comm newComm;
-  MPI_Comm_split( comm_, ID, rank_, &newComm );
-  return Comm(newComm);
+  if (ID != MPI_UNDEFINED) {
+    MPI_Comm newComm;
+    MPI_Comm_split( comm_, ID, rank_, &newComm );
+    return Comm(newComm);
+  } else
+    return Comm();
 }
 
 void Parallel::Comm::Reset() {
   if (comm_ != MPI_COMM_NULL) {
     MPI_Comm_free( &comm_ );
+    comm_ = MPI_COMM_NULL;
     rank_ = 0;
     size_ = 1;
   }
