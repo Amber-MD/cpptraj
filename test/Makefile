@@ -2,6 +2,7 @@
 
 test.general:
 	@-cd Test_General && ./RunTest.sh $(OPT)
+	@-cd Test_Parallel && ./RunTest.sh $(OPT)
 
 test.strip:
 	@-cd Test_Strip && ./RunTest.sh $(OPT)
