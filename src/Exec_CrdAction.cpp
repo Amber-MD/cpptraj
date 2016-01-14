@@ -19,6 +19,9 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   if ( act->Init( actionargs, state, State.Debug() ) != Action::OK )
     return CpptrajState::ERR;
   actionargs.CheckForMoreArgs();
+# ifdef MPI
+  act->ParallelActionInit( trajComm_ );
+# endif
   // Set up frame and parm for COORDS.
   ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
@@ -27,9 +30,6 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   Action::RetType setup_ret = act->Setup( originalSetup );
   if ( setup_ret == Action::ERR || setup_ret == Action::SKIP )
     return CpptrajState::ERR;
-# ifdef MPI
-  act->ParallelActionInit( trajComm_ );
-# endif
   // Loop over all frames in COORDS.
   ProgressBar progress( frameCount.TotalReadFrames() );
   int set = 0;
@@ -77,7 +77,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (Parallel::TrajComm().Master())
     ID = Parallel::World().Rank();
   rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
-  trajComm_ = Parallel::World().Split( ID ); 
+  trajComm_ = Parallel::World().Split( ID );
   if (ID != MPI_UNDEFINED) {
     mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
     ret = ProcessArgs(State, argIn);
