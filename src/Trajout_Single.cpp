@@ -152,6 +152,10 @@ void Trajout_Single::PrintInfo(int expectedNframes) const {
 int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                            int nFrames, Parallel::Comm const& commIn)
 {
+  if (traj_.HasRange()) {
+    mprinterr("Error: 'trajout' frame options not yet supported during parallel processing.\n");
+    return 1;
+  }
   // Set up topology and coordinate info.
   if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
