@@ -109,18 +109,16 @@ int ReferenceAction::SetupRefMask(Topology const& topIn) {
 void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
   refFrame_ = frameIn;
 # ifdef MPI
-  if (trajComm_.Size() > 1) {
-    // Ensure all threads are using the same reference
-    if (trajComm_.Master()) { // TODO MasterBcast
-      rprintf("DEBUG: Sending reference frame to children.\n");
-      for (int rank = 1; rank < trajComm_.Size(); rank++)
-        refFrame_.SendFrame(rank, trajComm_);
-    } else {
-      rprintf("DEBUG: Receiving reference frame from master.\n");
-      refFrame_.RecvFrame(0, trajComm_);
-    }
-    trajComm_.Barrier();
+  // Ensure all threads are using the same reference
+  if (trajComm_.Master()) { // TODO MasterBcast
+    rprintf("DEBUG: Sending reference frame to children.\n");
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      refFrame_.SendFrame(rank, trajComm_);
+  } else {
+    rprintf("DEBUG: Receiving reference frame from master.\n");
+    refFrame_.RecvFrame(0, trajComm_);
   }
+  trajComm_.Barrier();
 # endif
   selectedRef_.SetCoordinates( refFrame_, refMask_ );
   if (fitRef_)
@@ -129,6 +127,19 @@ void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
 
 // ReferenceAction::SetupRef()
 int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt) {
+# ifdef MPI
+  // Sanity check. Ensure refMode_ matches on all threads.
+  int* all_modes = new int[ trajComm_.Size() ];
+  trajComm_.AllGather( &refMode_, 1, MPI_INT, all_modes );
+  int err = 0;
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    if (all_modes[rank] != all_modes[0]) { err = 1; break; }
+  delete[] all_modes;
+  if (err != 0) {
+    mprinterr("Error: Reference mode on rank does not match master mode.\n");
+    return 1;
+  }
+# endif
   if (refMode_ == FIRST) {
     if ( SetupRefMask( topIn ) ) return 1;
   } else if (previous_) {
