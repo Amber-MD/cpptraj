@@ -8,21 +8,31 @@ void Exec_CrdOut::Help() const {
 }
 
 Exec::RetType Exec_CrdOut::Execute(CpptrajState& State, ArgList& argIn) {
+# ifdef MPI
   Exec::RetType ret = CpptrajState::OK;
-# ifdef MPI
   int err = 0;
-  if (Parallel::TrajComm().Master()) {
+  // Create a communicator that just contains the master.
+  int ID = MPI_UNDEFINED;
+  if (Parallel::TrajComm().IsNull()) {
+    if (Parallel::World().Master())
+      ID = 0;
+  } else if (Parallel::TrajComm().Master())
+    ID = Parallel::World().Rank();
+  rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
+  trajComm_ = Parallel::World().Split( ID );
+  if (ID != MPI_UNDEFINED) {
     mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
-# endif
     ret = WriteCrd(State, argIn);
-# ifdef MPI
     if (ret != CpptrajState::OK)
       err = 1;
   }
+  trajComm_.Reset();
   if (Parallel::World().CheckError( err ))
     ret = CpptrajState::ERR;
-# endif
   return ret;
+# else
+  return (WriteCrd(State, argIn));
+# endif
 }
 
 // Exec_CrdOut::WriteCrd()

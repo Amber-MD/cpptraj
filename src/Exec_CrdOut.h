@@ -9,5 +9,8 @@ class Exec_CrdOut : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     RetType WriteCrd(CpptrajState&, ArgList&);
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif
