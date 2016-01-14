@@ -370,6 +370,10 @@ void Action_Rmsd::Print() {
                                                                   MetaData(rmsd_->Meta().Name(),
                                                                            "Stdev"));
     PerResStdev->ModifyDim(Dimension::X).SetLabel("Residue");
+#   ifdef MPI
+    PerResAvg->SetNeedsSync( false );
+    PerResStdev->SetNeedsSync( false );
+#   endif
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddDataSet(PerResAvg);
     perresavg_->AddDataSet(PerResStdev);
