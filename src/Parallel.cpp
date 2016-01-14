@@ -147,6 +147,7 @@ int Parallel::SetupComms(int ngroups) {
 
 /** Can be placed inside the code so debugger can be attached. */
 void Parallel::Lock() {
+  fprintf(stdout,"[%i] Thread is locked. Waiting for debugger.\n", world_.Rank());
   int PleaseWait = 1;
   while (PleaseWait == 1)
     PleaseWait *= 1;
