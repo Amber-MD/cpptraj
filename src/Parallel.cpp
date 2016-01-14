@@ -145,6 +145,13 @@ int Parallel::SetupComms(int ngroups) {
   return 0;
 }
 
+/** Can be placed inside the code so debugger can be attached. */
+void Parallel::Lock() {
+  int PleaseWait = 1;
+  while (PleaseWait == 1)
+    PleaseWait *= 1;
+}
+
 #else /* MPI */
 // ----- NON-MPI VERSIONS OF ROUTINES ------------------------------------------
 int Parallel::Init(int argc, char** argv) { return 0; }

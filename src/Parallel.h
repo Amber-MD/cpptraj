@@ -34,6 +34,8 @@ class Parallel {
     static int Abort(int);
     /// Set up ensemble and trajectory communicators for given ensemble size
     static int SetupComms(int);
+    /// For DEBUG: infinite loop, gives time to attach a debugger.
+    static void Lock();
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
     static Comm const& TrajComm()       { return trajComm_;       }
 #   ifdef PARALLEL_DEBUG_VERBOSE
