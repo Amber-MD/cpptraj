@@ -14,3 +14,16 @@ double* DataSet_MatrixFlt::MatrixArray() const {
     matOut[i] = (double)mat_[i];
   return matOut;
 }
+#ifdef MPI
+int DataSet_MatrixFlt::Sync(size_t total, std::vector<int> const& rank_frames,
+                            Parallel::Comm const& commIn)
+{
+  if (commIn.Master()) {
+    std::vector<float> buf( mat_.size() );
+    commIn.Reduce( &(buf[0]), &(mat_[0]),  mat_.size(),  MPI_FLOAT, MPI_SUM );
+    std::copy( buf.begin(), buf.end(), mat_.begin() );
+  } else
+    commIn.Reduce( 0,         &(mat_[0]),  mat_.size(),  MPI_FLOAT, MPI_SUM );
+  return 0;
+}
+#endif
