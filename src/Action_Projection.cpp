@@ -45,6 +45,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
     modinfo_ = (DataSet_Modes*)init.DSL().FindSetOfType( modesname, DataSet::MODES );
     if (modinfo_ == 0) return Action::ERR;
   }
+  if (modinfo_->Nmodes() < 1) {
+    rprinterr("Error: modes set '%s' is empty.\n", modinfo_->legend());
+    return Action::ERR;
+  }
   // Check if beg and end are in bounds.
   if (end_ > modinfo_->Nmodes()) {
     mprintf("Warning: 'end' %i is greater than # evecs (%i); setting end to %i\n",

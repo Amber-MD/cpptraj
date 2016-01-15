@@ -131,6 +131,7 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
   if (actionList_.AddAction( actIn, argIn, init )) err = ERR;
 # ifdef MPI
   DSL_.SetNewSetsNeedSync( false );
+  if (Parallel::World().CheckError( err )) err = ERR;
 # endif
   return err;
 }
@@ -140,6 +141,9 @@ CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
   if (analysisList_.AddAnalysis( anaIn, argIn, setup )) return ERR;
+# ifdef MPI
+  if (Parallel::World().CheckError( err )) err = ERR;
+# endif
   return OK;
 }
 
