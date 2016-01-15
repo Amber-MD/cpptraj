@@ -112,6 +112,16 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
 # endif
 }
 
+#ifdef MPI
+int Action_CreateReservoir::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
 # ifdef BINTRAJ
