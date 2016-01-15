@@ -267,6 +267,9 @@ test.nativecontacts:
 test.checkchirality:
 	@-cd Test_CheckChiral && ./RunTest.sh $(OPT)
 
+test.energy:
+	@-cd Test_Energy && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -331,7 +334,8 @@ SHORT_TESTS=test.general \
           test.rotate \
           test.integrate \
           test.nativecontacts \
-          test.checkchirality
+          test.checkchirality \
+          test.energy
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -418,7 +422,8 @@ COMPLETETESTS=test.general \
               test.rotate \
               test.integrate \
               test.nativecontacts \
-              test.checkchirality
+              test.checkchirality \
+              test.energy
 
 test: test.all 
 
