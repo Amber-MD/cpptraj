@@ -34,6 +34,17 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_LESsplit::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'lessplit' action does not work with > 1 thread (%i threads currently).\n",
+              commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
+
 // Action_LESsplit::Setup()
 Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
   if ( !setup.Top().LES().HasLES() ) {
