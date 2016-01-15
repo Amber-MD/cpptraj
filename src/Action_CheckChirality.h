@@ -12,6 +12,9 @@ class Action_CheckChirality: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     struct ResidueInfo {

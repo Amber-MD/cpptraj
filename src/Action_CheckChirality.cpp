@@ -144,6 +144,21 @@ Action::RetType Action_CheckChirality::DoAction(int frameNum, ActionFrame& frm) 
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_CheckChirality::SyncAction(Parallel::Comm const& commIn) {
+  int total_L, total_D;
+  for (Rarray::iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri) {
+    commIn.Reduce( &total_L, &(ri->N_L_), 1, MPI_INT, MPI_SUM );
+    commIn.Reduce( &total_D, &(ri->N_D_), 1, MPI_INT, MPI_SUM );
+    if (commIn.Master()) {
+      ri->N_L_ = total_L;
+      ri->N_D_ = total_D;
+    }
+  }
+  return 0;
+}
+#endif
+
 void Action_CheckChirality::Print() {
   data_L_->ModifyDim(Dimension::X).SetLabel("Res");
   data_D_->ModifyDim(Dimension::X).SetLabel("Res");
