@@ -911,8 +911,8 @@ void NetcdfFile::WriteVIDs() const {
           TempVID_, coordVID_, velocityVID_, frcVID_, cellAngleVID_, cellLengthVID_, indicesVID_);
 }
 
+#ifdef MPI
 void NetcdfFile::Sync(Parallel::Comm const& commIn) {
-# ifdef MPI
   int nc_vars[23];
   if (commIn.Master()) {
     nc_vars[0] = ncframe_;
@@ -965,6 +965,6 @@ void NetcdfFile::Sync(Parallel::Comm const& commIn) {
     cell_spatialVID_ = nc_vars[21];
     cell_angularVID_ = nc_vars[22];
   }
-# endif
 }
-#endif
+#endif /* MPI */
+#endif /* BINTRAJ */

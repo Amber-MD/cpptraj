@@ -62,7 +62,7 @@ void Cpptraj::Intro() {
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("| Running on %i threads\n",CpptrajState::WorldSize());
+  mprintf("| Running on %i threads\n", Parallel::World().Size());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
   std::string available_mem = AvailableMemoryStr();

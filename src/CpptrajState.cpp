@@ -5,7 +5,7 @@
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
-#include "Parallel.h" // Not inside ifdef for Parallel::World.Size()
+#include "Parallel.h" // Not inside ifdef for Parallel::World().Barrier()
 #ifdef MPI
 # include "DataSet_Coords_TRJ.h"
 # ifdef TIMER
@@ -149,8 +149,6 @@ CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList
 }
 
 // -----------------------------------------------------------------------------
-int CpptrajState::WorldSize() { return Parallel::World().Size(); }
-
 CpptrajState::ListKeyType CpptrajState::ListKeys[] = {
   {L_ACTION,   "actions" }, {L_ACTION,   "action"   },
   {L_TRAJIN,   "trajin"  },

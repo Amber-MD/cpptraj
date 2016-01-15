@@ -44,7 +44,6 @@ class CpptrajState {
     int AddTopology( Topology const&, std::string const& );
     RetType AddToActionQueue( Action*, ArgList& );
     RetType AddToAnalysisQueue( Analysis*, ArgList& );
-    static int WorldSize();
     static std::string PrintListKeys();
     int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
