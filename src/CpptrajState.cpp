@@ -790,9 +790,12 @@ int CpptrajState::RunParallel() {
     if (showProgress_) progress.Update( actionSet );
   }
   frames_time.Stop();
-  rprintf("TIME: Rank throughput= %.4f frames / second.\n",
-          (double)actionSet / frames_time.Total());
-  TrajComm.Barrier();
+  // Collect FPS stats from each rank.
+  std::vector<double> darray( TrajComm.Size() );
+  double rank_fps = (double)actionSet / frames_time.Total();
+  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] );
+  for (int rank = 0; rank < TrajComm.Size(); rank++)
+    mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)input_traj.Size() / frames_time.Total());
   trajoutList_.ParallelCloseTrajout();
