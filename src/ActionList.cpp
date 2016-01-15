@@ -133,14 +133,14 @@ int ActionList::ParallelInitActions(Parallel::Comm const& commIn) {
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
       //rprintf("DEBUG: Calling ParallelActionInit() for '%s'\n", act->args_.Command());
-      if (act->ptr_->ParallelActionInit(commIn)) {
+      err = act->ptr_->ParallelActionInit(commIn);
+      if (err != 0)
         rprintf("Warning: Parallel Init failed for Action '%s'\n", act->args_.Command());
-        act->status_ = INACTIVE;
-        err++;
-      }
+      if (commIn.CheckError( err )) return 1;
+        //act->status_ = INACTIVE;
     }
   }
-  return err;
+  return 0;
 }
 
 int ActionList::NumPreviousFramesReqd() const {

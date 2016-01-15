@@ -34,6 +34,33 @@ std::string ReferenceAction::help_ =
   "\t[ first | " + std::string(DataSetList::RefArgs) + " | previous |\n" +
   "\t  reftraj <filename> [" + std::string(DataSetList::TopArgs) + "] ]\n";
 
+#ifdef MPI
+/** Should be called after InitRef(). */
+int ReferenceAction::SetTrajComm( Parallel::Comm const& commIn ) {
+  trajComm_ = commIn;
+  // Sanity check. Ensure refMode_ matches on all threads.
+  std::vector<int> all_modes( trajComm_.Size() );
+  trajComm_.AllGather( &refMode_, 1, MPI_INT, &all_modes[0] );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    if (all_modes[rank] != all_modes[0]) { 
+      mprinterr("Error: Reference mode on rank does not match master mode.\n");
+      return 1;
+    }
+  if (refMode_ == FRAME) {
+    // Ensure natom matches on all threads.
+    int natom = ((DataSet_Coords_REF*)refCrd_)->RefFrame().Natom();
+    trajComm_.AllGather( &natom, 1, MPI_INT, &all_modes[0] );
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      if (all_modes[rank] != all_modes[0]) {
+        mprinterr("Error: Reference mode # atoms on rank (%i) != # atoms on master (%i)\n",
+                  all_modes[rank], all_modes[0]);
+        return 1;
+      }
+  }
+  return 0;
+}
+#endif
+
 // ReferenceAction::InitRef()
 int ReferenceAction::InitRef(ArgList& argIn, DataSetList const& DSLin,
                              bool fitRefIn, bool useMassIn)
@@ -124,19 +151,6 @@ void ReferenceAction::SelectRefAtoms(Frame const& frameIn) {
 
 // ReferenceAction::SetupRef()
 int ReferenceAction::SetupRef(Topology const& topIn, int Ntgt) {
-# ifdef MPI
-  // Sanity check. Ensure refMode_ matches on all threads.
-  int* all_modes = new int[ trajComm_.Size() ];
-  trajComm_.AllGather( &refMode_, 1, MPI_INT, all_modes );
-  int err = 0;
-  for (int rank = 1; rank < trajComm_.Size(); rank++)
-    if (all_modes[rank] != all_modes[0]) { err = 1; break; }
-  delete[] all_modes;
-  if (err != 0) {
-    mprinterr("Error: Reference mode on rank does not match master mode.\n");
-    return 1;
-  }
-# endif
   if (refMode_ == FIRST) {
     if ( SetupRefMask( topIn ) ) return 1;
   } else if (previous_) {

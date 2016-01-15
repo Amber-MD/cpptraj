@@ -11,7 +11,7 @@ class ReferenceAction {
     int InitRef(ArgList&, DataSetList const&, bool, bool);
 #   ifdef MPI
     /// Set reference trajectory comm so SetupRef() can properly broadcast reference.
-    void SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; }
+    int SetTrajComm(Parallel::Comm const& c);
 #   endif
     /// Set reference mask string.
     int SetRefMask(std::string const& m) { return refMask_.SetMaskString( m ); }

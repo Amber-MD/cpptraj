@@ -16,7 +16,7 @@ class Action_Rmsd: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { REF_.SetTrajComm( c ); return 0; }
+    int ParallelActionInit(Parallel::Comm const& c) { return REF_.SetTrajComm( c ); }
 #   endif
     // PerResRMSD -------------
     /// Set up per-residue RMSD calc
