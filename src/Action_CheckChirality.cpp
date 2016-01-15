@@ -1,9 +1,7 @@
 #include "Action_CheckChirality.h"
 #include "CpptrajStdio.h"
 #include "TorsionRoutines.h"
-
-// CONSTRUCTOR
-Action_CheckChirality::Action_CheckChirality() : outfile_(0) {}
+#include "DataSet_Mesh.h"
 
 void Action_CheckChirality::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
@@ -14,30 +12,41 @@ void Action_CheckChirality::Help() const {
 Action::RetType Action_CheckChirality::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  //outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Chirality",
-                                 DataFileList::TEXT, true);
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Get Masks
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
-
-  // DataSet name
-  //setname_ = actionArgs.GetStringNext();
-
+  // Set up DataSets
+  setname_ = actionArgs.GetStringNext();
+  if (setname_.empty())
+    setname_ = init.DSL().GenerateDefaultName("CHIRAL");
+  MetaData md(setname_, "L", MetaData::NOT_TS);
+  data_L_ = init.DSL().AddSet( DataSet::XYMESH, md);
+  md.SetAspect("D");
+  data_D_ = init.DSL().AddSet( DataSet::XYMESH, md); 
+  if (data_L_ == 0 || data_D_ == 0) return Action::ERR;
+  data_L_->SetupFormat().SetFormatWidthPrecision( 8, 0 );
+  data_D_->SetupFormat().SetFormatWidthPrecision( 8, 0 );
+  if (outfile != 0) {
+    outfile->AddDataSet( data_L_ );
+    outfile->AddDataSet( data_D_ );
+  }
+# ifdef MPI
+  data_L_->SetNeedsSync( false );
+  data_D_->SetNeedsSync( false );
+# endif
   mprintf("    CHECKCHIRALITY: Check chirality for AA residues in mask '%s'\n",
           Mask1_.MaskString());
-  mprintf("\tOutput to %s\n", outfile_->Filename().full());
-//  if (outfile_ != 0)
-//    mprintf("\tOutput to file %s\n", outfile_->DataFilename().full());
-//  if (!setname_.empty())
-//    mprintf("\tData set name: %s\n", setname_.c_str());
-//  masterDSL_ = DSL;
+  if (outfile != 0)
+    mprintf("\tOutput to file %s\n", outfile->DataFilename().full());
+  if (!setname_.empty())
+    mprintf("\tData set name: %s\n", setname_.c_str());
+  Init_ = init;
 
   return Action::OK;
 }
 
 // Action_CheckChirality::Setup()
-/** Set angle up for this parmtop. Get masks etc.
-  */
+/** Set angle up for this parmtop. Get masks etc. */
 Action::RetType Action_CheckChirality::Setup(ActionSetup& setup) {
   if (setup.Top().SetupCharMask(Mask1_)) return Action::ERR;
   if (Mask1_.None()) {
@@ -136,8 +145,12 @@ Action::RetType Action_CheckChirality::DoAction(int frameNum, ActionFrame& frm) 
 }
 
 void Action_CheckChirality::Print() {
-  mprintf("CHECKCHIRALITY: '%s', output to %s\n", Mask1_.MaskString(), outfile_->Filename().full());
-  outfile_->Printf("%-8s %8s %8s\n", "#Res", "#L", "#D");
-  for (Rarray::const_iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri)
-    outfile_->Printf("%8i %8i %8i\n", ri->num_+1, ri->N_L_, ri->N_D_);
+  data_L_->ModifyDim(Dimension::X).SetLabel("Res");
+  data_D_->ModifyDim(Dimension::X).SetLabel("Res");
+  DataSet_Mesh& dsetL = static_cast<DataSet_Mesh&>( *data_L_ );
+  DataSet_Mesh& dsetD = static_cast<DataSet_Mesh&>( *data_D_ );
+  for (Rarray::const_iterator ri = resInfo_.begin(); ri != resInfo_.end(); ++ri) {
+    dsetL.AddXY( ri->num_+1, ri->N_L_ );
+    dsetD.AddXY( ri->num_+1, ri->N_D_ );
+  }
 }
