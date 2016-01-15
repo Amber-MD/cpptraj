@@ -156,10 +156,10 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
                                            1,trajFmt_,ensembleNum_)) 
     {
       mprinterr("Error: %s: Could not write mask atoms for frame %i.\n",
-                maskpdb_.c_str(), frameNum + 1);
+                maskpdb_.c_str(), frm.TrajoutNum() + 1);
     } else {
       if (debug_ > 0) coordsOut.PrintInfo(0);
-      coordsOut.WriteSingle(frameNum, pdbFrame);
+      coordsOut.WriteSingle(frm.TrajoutNum(), pdbFrame);
       coordsOut.EndTraj();
     }
     delete pdbParm;

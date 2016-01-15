@@ -216,7 +216,7 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
   }
 # endif
   if (!trajfilename_.empty()) {
-    if (outtraj_.WriteSingle(frameNum, combinedFrame_)!=0)
+    if (outtraj_.WriteSingle(frm.TrajoutNum(), combinedFrame_)!=0)
       return Action::ERR;
   }
   if (coords_ != 0)

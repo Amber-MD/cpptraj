@@ -63,7 +63,7 @@ Action::RetType Action_DistRmsd::Setup(ActionSetup& setup) {
 /** Called every time a frame is read in. Calc distance RMSD. */
 Action::RetType Action_DistRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frameNum, frm.Frm() );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Set selected frame atoms. Masses have already been set.
   SelectedTgt_.SetCoordinates(frm.Frm(), TgtMask_);
   double DR = SelectedTgt_.DISTRMSD( REF_.SelectedRef() );

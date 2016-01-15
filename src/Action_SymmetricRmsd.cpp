@@ -87,7 +87,7 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
 // Action_SymmetricRmsd::DoAction()
 Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frameNum, frm.Frm() );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate symmetric RMSD
   selectedTgt_.SetCoordinates( frm.Frm(), tgtMask_ );
   double rmsdval = SRMSD_.SymmRMSD_CenteredRef( selectedTgt_, REF_.SelectedRef() );

@@ -88,7 +88,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
   // Check if frame is within max/min
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
   {
-    double dVal = Dsets_[ds]->Dval(frameNum);
+    double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
     //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
     // If value from dataset not within min/max, exit now.
     if (dVal < Min_[ds] || dVal > Max_[ds]) {

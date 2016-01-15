@@ -216,7 +216,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
       for (Array1D::const_iterator dih = DihedralSets_.begin();
                                    dih != DihedralSets_.end(); ++dih)
       {
-        double theta = (*dih)->Dval( frameNum ) * Constants::DEGRAD;
+        double theta = (*dih)->Dval( frm.TrajoutNum() ) * Constants::DEGRAD;
         proj += (cos(theta) - *(Avg++)) * Vec[0];
         proj += (sin(theta) - *(Avg++)) * Vec[1];
         Vec += 2;
