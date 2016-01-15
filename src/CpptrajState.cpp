@@ -140,11 +140,12 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
 CpptrajState::RetType CpptrajState::AddToAnalysisQueue( Analysis* anaIn, ArgList& argIn ) {
   argIn.MarkArg(0);
   AnalysisSetup setup(DSL_, DFL_);
-  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) return ERR;
+  RetType err = OK;
+  if (analysisList_.AddAnalysis( anaIn, argIn, setup )) err = ERR;
 # ifdef MPI
   if (Parallel::World().CheckError( err )) err = ERR;
 # endif
-  return OK;
+  return err;
 }
 
 // -----------------------------------------------------------------------------
