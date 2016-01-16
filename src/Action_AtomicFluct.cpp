@@ -144,6 +144,7 @@ int Action_AtomicFluct::SyncAction(Parallel::Comm const& commIn) {
   }
   SumCoords_.SumToMaster(commIn);
   SumCoords2_.SumToMaster(commIn);
+  Cross_.SumToMaster(commIn);
   return 0;
 }
 #endif
