@@ -11,6 +11,12 @@ class Action_VelocityAutoCorr : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int ParallelActionInit(Parallel::Comm const&);
+    int ParallelPreviousFramesRequired() const { return 1; }
+    int ParallelPreloadFrames(FArray const&);
+    int SyncAction(Parallel::Comm const&);
+#   endif
     void Print();
 
     bool useVelInfo_;     ///< If true use actual velocities in frame if present
