@@ -232,7 +232,8 @@ int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
     // Check that input parm matches setup parm - if not, skip
     if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
       if (!open_[i]) { // Only set up if not already open.
-        if ( trajout_[i]->ParallelSetupTrajWrite( CurrentParm, cInfo, Nframes, commIn) )
+        trajout_[i]->SetTrajComm( commIn );
+        if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )
         {
           mprinterr("Error: Setting up output trajectory '%s' in parallel.\n",
                     trajoutNames_[i].c_str());
@@ -249,25 +250,5 @@ int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
     }
   }
   return 0;
-}
-
-int TrajoutList::ParallelWriteTrajout(int set, Frame const& CurrentFrame)
-{
-  for (ListType::const_iterator traj = active_.begin();
-                                traj != active_.end(); ++traj)
-  {
-    if ( (*traj)->ParallelWriteSingle(set, CurrentFrame) ) {
-      mprinterr("Error writing output trajectory in parallel, frame %i.\n", set+1);
-      return 1;
-    }
-  }
-  return 0;
-}
-
-void TrajoutList::ParallelCloseTrajout() {
-  for (ListType::const_iterator traj = trajout_.begin();
-                                traj != trajout_.end(); ++traj)
-    (*traj)->ParallelEndTraj();
-  Clear();
 }
 #endif

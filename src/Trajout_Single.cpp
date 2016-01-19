@@ -34,21 +34,28 @@ int Trajout_Single::PrepareStdoutTrajWrite(ArgList const& argIn, Topology *tparm
   return 0;
 }
 
+/** Initialize trajectory for write. Append ensemble number to filename if given. */
 int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                           TrajectoryFile::TrajFormatType fmtIn, int ensembleNum)
 {
+  ArgList args = argIn;
+  // Try to determine format here, before extension is potentially modified.
   TrajectoryFile::TrajFormatType fmt = fmtIn;
+  if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
+    fmt = TrajectoryFile::GetFormatFromArg( args );
   if (fmt == TrajectoryFile::UNKNOWN_TRAJ)
     fmt = TrajectoryFile::GetTypeFromExtension( tnameIn.Ext() );
   int err = 0;
   if (ensembleNum > -1)
-    err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), argIn, fmt );
+    err = InitTrajWrite( AppendNumber(tnameIn.Full(), ensembleNum), args, fmt );
   else
-    err = InitTrajWrite( tnameIn,                            argIn, fmt );
+    err = InitTrajWrite( tnameIn, args, fmt );
   if (err != 0) return 1;
   return 0;
 }
 
+/** Initialize trajectory for write and set up for topology. Append ensemble
+  * number fo filename if given. */
 int Trajout_Single::PrepareEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                              Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                              int nFrames, TrajectoryFile::TrajFormatType fmtIn,
@@ -104,13 +111,24 @@ int Trajout_Single::InitTrajout(FileName const& tnameIn, ArgList const& argIn,
 // Trajout_Single::EndTraj()
 void Trajout_Single::EndTraj() {
   //if (TrajIsOpen()) { // FIXME: Necessary?
-  if (trajio_ != 0) trajio_->closeTraj(); // Handle no init case
+  if (trajio_ != 0) {  // Handle no init case
+#   ifdef MPI
+    if (trajComm_.Size() > 1)
+      trajio_->parallelCloseTraj();
+    else
+#   endif
+      trajio_->closeTraj();
+  }
   //  SetTrajIsOpen(false);
   //}
 }
 
 /** Perform any topology-related setup for this trajectory */
 int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
+# ifdef MPI
+  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
+    return ParallelSetupTrajWrite(tparmIn, cInfoIn, nFrames);
+# endif
   // Set up topology and coordinate info.
   if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
@@ -134,10 +152,16 @@ int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInf
 int Trajout_Single::WriteSingle(int set, Frame const& FrameOut) {
   // Check that set should be written
   if (traj_.CheckFrameRange(set)) return 0;
-  // Write
   //fprintf(stdout,"DEBUG: %20s: Writing %i\n",trajName,set);
-  if (trajio_->writeFrame(set, FrameOut)) return 1;
-  return 0;
+  // Write
+  int err = 0;
+# ifdef MPI
+  if (trajComm_.Size() > 1)
+    err = trajio_->parallelWriteFrame(set, FrameOut);
+  else
+# endif
+    err = trajio_->writeFrame(set, FrameOut);
+  return err;
 }
 
 // Trajout_Single::PrintInfo()
@@ -150,7 +174,7 @@ void Trajout_Single::PrintInfo(int expectedNframes) const {
 #ifdef MPI
 // -----------------------------------------------------------------------------
 int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
-                                           int nFrames, Parallel::Comm const& commIn)
+                                           int nFrames)
 {
   if (traj_.HasRange()) {
     mprinterr("Error: 'trajout' frame options not yet supported during parallel processing.\n");
@@ -168,7 +192,7 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
             traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom(), traj_.NframesToWrite());
   // Set up TrajectoryIO in parallel.
   if (trajio_->parallelSetupTrajout(traj_.Filename(), traj_.Parm(), traj_.CoordInfo(),
-                                    traj_.NframesToWrite(), traj_.Append(), commIn))
+                                    traj_.NframesToWrite(), traj_.Append(), trajComm_))
   {
     mprinterr("Error: Could not set up parallel trajout.\n");
     mprinterr("Error: Problem with set up or format may be unsupported in parallel.\n");
@@ -177,22 +201,11 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
   //if (debug_ > 0)
   //  Frame::PrintCoordInfo(traj_.Filename().base(), traj_.Parm()->c_str(), trajio_->CoordInfo());
   // Open TrajectoryIO in parallel.
-  if (trajio_->parallelOpenTrajout( commIn ))
+  if (trajio_->parallelOpenTrajout( trajComm_ ))
   {
     mprinterr("Error: Could not open parallel trajout.\n");
     return 1;
   }
   return 0;
-}
-
-int Trajout_Single::ParallelWriteSingle(int set, Frame const& FrameOut) {
-  // Check that set should be written
-  if (traj_.CheckFrameRange(set)) return 0;
-  if (trajio_->parallelWriteFrame(set, FrameOut)) return 1;
-  return 0;
-}
-
-void Trajout_Single::ParallelEndTraj() {
-  if (trajio_ != 0) trajio_->parallelCloseTraj();
 }
 #endif

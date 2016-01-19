@@ -51,8 +51,6 @@ class TrajoutList {
     bool Empty()     const { return trajout_.empty();     }
 #   ifdef MPI
     int ParallelSetupTrajout(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
-    int ParallelWriteTrajout(int, Frame const&);
-    void ParallelCloseTrajout();
 #   endif
   private:
     int debug_;

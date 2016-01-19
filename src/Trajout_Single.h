@@ -44,15 +44,16 @@ class Trajout_Single {
                                  CoordinateInfo const&, int,
                                  TrajectoryFile::TrajFormatType, int);
 #   ifdef MPI
-    // -------------------------------------------
-    /// Peform Topology-related setup for trajectory and open in parallel.
-    int ParallelSetupTrajWrite(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
-    int ParallelWriteSingle(int, Frame const&);
-    void ParallelEndTraj();
+    // Set the parallel communicator.
+    int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }
 #   endif
   private:
     int InitTrajout(FileName const&, ArgList const&, TrajectoryFile::TrajFormatType);
-
+#   ifdef MPI
+    /// Peform Topology-related setup for trajectory and open in parallel.
+    int ParallelSetupTrajWrite(Topology*, CoordinateInfo const&, int);
+    Parallel::Comm trajComm_;
+#   endif
     OutputTrajCommon traj_;
     TrajectoryIO* trajio_;
     int debug_;

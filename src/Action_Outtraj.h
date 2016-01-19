@@ -16,7 +16,9 @@ class Action_Outtraj: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c);
+    int ParallelActionInit(Parallel::Comm const&);
+    int SyncAction(Parallel::Comm const&);
+    int total_frames_;
 #   endif
     Trajout_Single outtraj_;
     Topology* associatedParm_;
@@ -25,8 +27,5 @@ class Action_Outtraj: public Action {
     std::vector<double> Max_;
     std::vector<double> Min_;
     std::vector<DataSet_1D*> Dsets_;
-#   ifdef MPI
-    Parallel::Comm trajComm_;
-#   endif
 };
 #endif
