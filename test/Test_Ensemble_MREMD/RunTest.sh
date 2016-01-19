@@ -5,7 +5,7 @@
 CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            nhbond.dat nhbond.dat.? all.nhbond.dat \
            hbavg.dat hbavg.dat.? all.hbavg.dat \
-           Outtraj.crd Outtraj.crd.0 Outtraj.crd.1
+           Outtraj.crd Outtraj.crd.0 Outtraj.crd.1 avg.rst7.?
 
 INPUT="-i mremd.in"
 
@@ -33,6 +33,7 @@ ensemble rGACC.nowat.001
 hbond HB :1-4 solventdonor :Na+ solventacceptor :Na+ \
       out nhbond.dat avgout hbavg.dat
 rms R1-4NoH first :1-4&!@H= mass out rmsd.dat
+average avg.rst7 :1-4
 EOF
   RunCpptraj "M-REMD actions test."
   if [[ -z $DO_PARALLEL ]] ; then
@@ -44,7 +45,8 @@ EOF
     cat nhbond.dat.? > all.nhbond.dat && DoTest all.nhbond.dat.save all.nhbond.dat
     cat hbavg.dat.? > all.hbavg.dat   && DoTest all.hbavg.dat.save all.hbavg.dat
   fi
-  
+  DoTest avg.rst7.2.save avg.rst7.2
+  DoTest avg.rst7.5.save avg.rst7.5
 }
 
 # Test ensemble mode with outtraj output
