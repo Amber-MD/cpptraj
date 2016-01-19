@@ -1,10 +1,8 @@
 #include "Action_Mask.h"
 #include "CpptrajStdio.h"
-#include "Trajout_Single.h"
 
 // CONSTRUCTOR
 Action_Mask::Action_Mask() :
-  ensembleNum_(-1),
   outfile_(0),
   fnum_(0),
   anum_(0),
@@ -15,9 +13,8 @@ Action_Mask::Action_Mask() :
   idx_(0),
   CurrentParm_(0),
   debug_(0),
-  trajFmt_(TrajectoryFile::PDBFILE),
-  trajOpt_(0)
-{ } 
+  writeTraj_(false)
+{} 
 
 void Action_Mask::Help() const {
   mprintf("\t<mask1> [maskout <filename>] [maskpdb <filename> | maskmol2 <filename>]\n"
@@ -35,30 +32,39 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   debug_ = debugIn;
   // Get Keywords
   outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("maskout"), "Atoms in mask");
-  maskpdb_ = actionArgs.GetStringKey("maskpdb");
+  std::string maskpdb = actionArgs.GetStringKey("maskpdb");
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   std::string dsname = actionArgs.GetStringKey("name");
   std::string dsout = actionArgs.GetStringKey("out");
   // At least 1 of maskout, maskpdb, maskmol2, or name must be specified.
-  if (outfile_ == 0 && maskpdb_.empty() && maskmol2.empty() && dsname.empty()) {
+  if (outfile_ == 0 && maskpdb.empty() && maskmol2.empty() && dsname.empty()) {
     mprinterr("Error: At least one of maskout, maskpdb, maskmol2, or name must be specified.\n");
     return Action::ERR;
   }
   // Set up any trajectory options
-  if (!maskpdb_.empty()) {
-    trajFmt_ = TrajectoryFile::PDBFILE;
-    // Set pdb output options: multi so that 1 file per frame is written; dumpq
-    // so that charges are written out.
-    trajOpt_ = "multi dumpq nobox";
-  } else if (!maskmol2.empty()) {
-    maskpdb_ = maskmol2;
-    trajFmt_ = TrajectoryFile::MOL2FILE;
-    trajOpt_ = "multi nobox";
-  }
+  TrajectoryFile::TrajFormatType trajFmt = TrajectoryFile::PDBFILE;
+  if (!maskpdb.empty() || !maskmol2.empty()) {
+    outtraj_.SetDebug( debug_ );
+    ArgList trajArgs;
+    if (!maskpdb.empty()) {
+      // Set pdb output options: multi so that 1 file per frame is written; dumpq
+      // so that charges are written out.
+      trajArgs = ArgList("multi dumpq nobox");
+    } else if (!maskmol2.empty()) {
+      maskpdb = maskmol2;
+      trajFmt = TrajectoryFile::MOL2FILE;
+      trajArgs = ArgList("multi nobox");
+    }
+    if (outtraj_.InitEnsembleTrajWrite(maskpdb, trajArgs, trajFmt, init.DSL().EnsembleNum()))
+      return Action::ERR;
+    writeTraj_ = true;
+  } else
+    writeTraj_ = false;
   // Get Mask
   Mask1_.SetMaskString( actionArgs.GetMaskNext() );
   // Set up data sets
-  if (!dsname.empty()) {
+  if (!dsname.empty() || !dsout.empty()) {
+    if (dsname.empty()) dsname = init.DSL().GenerateDefaultName("MASK");
     MetaData::tsType ts = MetaData::NOT_TS; // None are a straight time series
     fnum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "Frm",   ts));
     anum_  = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, "AtNum", ts));
@@ -77,6 +83,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
       dout->AddDataSet( rnum_ );
       dout->AddDataSet( rname_ );
       dout->AddDataSet( mnum_ );
+      dout->ProcessArgs("noxcol");
     }
     idx_ = 0;
   }
@@ -85,9 +92,9 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (outfile_ != 0)
     mprintf(" to file %s",outfile_->Filename().full());
   mprintf(".\n");
-  if (!maskpdb_.empty()) 
+  if (writeTraj_) 
     mprintf("\t%ss of atoms in mask will be written to %s.X\n",
-            TrajectoryFile::FormatString(trajFmt_), maskpdb_.c_str());
+            TrajectoryFile::FormatString(trajFmt), outtraj_.Traj().Filename().full());
   if (fnum_ != 0)
     mprintf("\tData sets will be saved with name '%s'\n", fnum_->Meta().Name().c_str());
   // Header
@@ -100,7 +107,7 @@ Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int deb
 // Action_Mask::Setup()
 Action::RetType Action_Mask::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
-  currentCoordInfo_ = setup.CoordInfo();
+  cInfo_ = setup.CoordInfo();
   return Action::OK;
 }
 
@@ -140,8 +147,7 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   // Optional write out of selected atoms for the frame.
-  if (!maskpdb_.empty()) {
-    Trajout_Single coordsOut;
+  if (writeTraj_) {
     // Convert Mask1 to an integer mask for use in parm/frame functions
     AtomMask Mask2( Mask1_.ConvertToIntMask(), Mask1_.Natom() );
     // Create new parm and frame based on atoms in Mask. Since we dont care
@@ -150,17 +156,14 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
     //pdbParm->Summary(); // DEBUG
     Frame pdbFrame(frm.Frm(), Mask2);
     // Set up output trajectory file. 
-    coordsOut.SetDebug(debug_);
-    if (coordsOut.PrepareEnsembleTrajWrite(maskpdb_,trajOpt_,pdbParm,
-                                           currentCoordInfo_,
-                                           1,trajFmt_,ensembleNum_)) 
+    if (outtraj_.SetupTrajWrite(pdbParm, cInfo_, 1))
     {
       mprinterr("Error: %s: Could not write mask atoms for frame %i.\n",
-                maskpdb_.c_str(), frm.TrajoutNum() + 1);
+                outtraj_.Traj().Filename().base(), frm.TrajoutNum() + 1);
     } else {
-      if (debug_ > 0) coordsOut.PrintInfo(0);
-      coordsOut.WriteSingle(frm.TrajoutNum(), pdbFrame);
-      coordsOut.EndTraj();
+      if (debug_ > 0) outtraj_.PrintInfo(0);
+      outtraj_.WriteSingle(frm.TrajoutNum(), pdbFrame);
+      outtraj_.EndTraj();
     }
     delete pdbParm;
   }
@@ -169,6 +172,15 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
+int Action_Mask::ParallelActionInit(Parallel::Comm const& commIn) {
+  if ( commIn.Size() > 1 && outfile_ != 0) {
+    mprinterr("Error: 'maskout' currently only works with 1 thread (currently %i)\n"
+              "Error:   Consider using the 'name'/'out' keywords instead\n", commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+
 /** Since datasets are actually # frames * however many atoms found in mask
   * at each frame, sync here.
   */
@@ -177,12 +189,8 @@ int Action_Mask::SyncAction(Parallel::Comm const& commIn) {
   // Get total number of mask entries.
   std::vector<int> rank_frames( commIn.Size() );
   commIn.GatherMaster( &idx_, 1, MPI_INT, &(rank_frames[0]) );
-  mprintf("DEBUG: Master= %i frames\n", idx_);
-  for (int rank = 1; rank < commIn.Size(); rank++) {
-    mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+  for (int rank = 1; rank < commIn.Size(); rank++)
     idx_ += rank_frames[ rank ];
-  }
-  mprintf("DEBUG: Total= %i frames.\n", idx_);
   fnum_->Sync( idx_, rank_frames, commIn );
   fnum_->SetNeedsSync( false );
   anum_->Sync( idx_, rank_frames, commIn );

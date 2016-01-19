@@ -54,18 +54,7 @@ int Trajout_Single::InitEnsembleTrajWrite(FileName const& tnameIn, ArgList const
   return 0;
 }
 
-/** Initialize trajectory for write and set up for topology. Append ensemble
-  * number fo filename if given. */
-int Trajout_Single::PrepareEnsembleTrajWrite(FileName const& tnameIn, ArgList const& argIn,
-                                             Topology* tparmIn, CoordinateInfo const& cInfoIn,
-                                             int nFrames, TrajectoryFile::TrajFormatType fmtIn,
-                                             int ensembleNum)
-{
-  if (InitEnsembleTrajWrite(tnameIn, argIn, fmtIn, ensembleNum)) return 1;
-  if (SetupTrajWrite(tparmIn, cInfoIn, nFrames)) return 1;
-  return 0;
-}
-
+// Trajout_Single::PrepareTrajWrite()
 int Trajout_Single::PrepareTrajWrite(FileName const& tnameIn, ArgList const& argIn,
                                      Topology* tparmIn, CoordinateInfo const& cInfoIn,
                                      int nFrames, TrajectoryFile::TrajFormatType fmtIn)
