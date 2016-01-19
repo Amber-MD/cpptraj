@@ -450,7 +450,7 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
   titleSize = std::min(81U, titleSize);
   file_.SetupFrameBuffer( natom3_, 8, 10, headerSize_, titleSize );
   file_.ResizeBuffer( numBoxCoords_ );
-  //if (debug_>0)
+  if (debug_>0)
     rprintf("'%s'(Parallel): Each frame has %lu bytes.\n", file_.Filename().base(),
             file_.FrameSize());
   // TODO set file size

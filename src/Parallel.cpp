@@ -344,10 +344,10 @@ int Parallel::File::OpenFile(const char* filename, const char* mode, Comm const&
 {
   if (filename == 0 || mode == 0) return 1;
   comm_ = commIn;
-//# ifdef PARALLEL_DEBUG_VERBOSE
+# ifdef PARALLEL_DEBUG_VERBOSE
   fprintf(stdout,"[%i]\tOpening file '%s' in parallel with mode '%s'\n",
           comm_.Rank(), filename, mode);
-//# endif
+# endif
   int amode;
   bool needs_seek = false;
   switch (mode[0]) {
