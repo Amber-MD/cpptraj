@@ -12,10 +12,10 @@ class Action_VelocityAutoCorr : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const&);
     int ParallelPreviousFramesRequired() const { return 1; }
     int ParallelPreloadFrames(FArray const&);
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     void Print();
 

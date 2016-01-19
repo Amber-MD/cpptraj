@@ -127,22 +127,6 @@ void ActionList::PrintActions() {
   }
 }
 #ifdef MPI
-int ActionList::ParallelInitActions(Parallel::Comm const& commIn) {
-  int err = 0;
-  for (Aarray::iterator act = actionList_.begin(); act != actionList_.end(); ++act)
-  { // Skip deactivated actions
-    if (act->status_ != INACTIVE) {
-      //rprintf("DEBUG: Calling ParallelActionInit() for '%s'\n", act->args_.Command());
-      err = act->ptr_->ParallelActionInit(commIn);
-      if (err != 0)
-        rprintf("Warning: Parallel Init failed for Action '%s'\n", act->args_.Command());
-      if (commIn.CheckError( err )) return 1;
-        //act->status_ = INACTIVE;
-    }
-  }
-  return 0;
-}
-
 int ActionList::NumPreviousFramesReqd() const {
   int nrequired = 0;
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
@@ -171,12 +155,12 @@ int ActionList::ParallelProcessPreload(Action::FArray const& preload_frames) {
   return err;
 }
 
-void ActionList::SyncActions(Parallel::Comm const& commIn) {
+void ActionList::SyncActions() {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE) {
       //rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
-      if (act->ptr_->SyncAction(commIn))
+      if (act->ptr_->SyncAction())
         rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
     }
   }

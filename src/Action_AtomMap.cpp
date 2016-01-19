@@ -698,7 +698,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
                                                       DataFileList::TEXT, true);
 # ifdef MPI
   // Prevent non-master from writing.
-  if (!Parallel::TrajComm().Master()) outputfile = 0;
+  if (!init.TrajComm().Master()) outputfile = 0;
 # endif
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");

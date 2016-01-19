@@ -37,7 +37,9 @@ Action::RetType Action_Grid::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Get grid options
   grid_ = GridInit( "GRID", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
-
+# ifdef MPI
+  if (ParallelGridInit(init.TrajComm(), grid_)) return Action::ERR;
+# endif
   // Get extra options
   max_ = actionArgs.getKeyDouble("max", 0.80);
   madura_ = actionArgs.getKeyDouble("madura", 0);

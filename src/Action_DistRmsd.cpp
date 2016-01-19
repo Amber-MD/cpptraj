@@ -31,7 +31,9 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   if (drmsd_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( drmsd_ );
-
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    DISTRMSD: (%s), reference is %s\n",TgtMask_.MaskString(),
           REF_.RefModeString().c_str());
 

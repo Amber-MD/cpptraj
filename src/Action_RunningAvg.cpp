@@ -38,7 +38,12 @@ Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, ActionInit& init, i
 
   mprintf("    RUNNINGAVG: Running average of size %i will be performed over input coords.\n",
           Nwindow_);
-
+# ifdef MPI
+  if (init.TrajComm().Size() > 1)
+    mprintf("\nWarning: 'runavg' in parallel will not work correctly if coordinates have\n"
+              "Warning:   been modified by previous actions (e.g. 'rms').\n"
+              "Warning: In addition, certain output trajectory formats may not write correctly\n\n");
+# endif
   return Action::OK;
 }
 
@@ -73,14 +78,6 @@ Action::RetType Action_RunningAvg::Setup(ActionSetup& setup) {
 }
 
 #ifdef MPI
-int Action_RunningAvg::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1)
-    mprintf("\nWarning: 'runavg' in parallel will not work correctly if coordinates have\n"
-              "Warning:   been modified by previous actions (e.g. 'rms').\n"
-              "Warning: In addition, certain output trajectory formats may not write correctly\n\n");
-  return 0;
-}
-
 int Action_RunningAvg::ParallelPreloadFrames(FArray const& preload_frames) {
   int start_idx = (int)preload_frames.size() - Nwindow_ + 1;
   for (int idx = start_idx; idx != (int)preload_frames.size(); idx++) {

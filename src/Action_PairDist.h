@@ -25,7 +25,8 @@ class Action_PairDist : public Action, ImagedAction {
   Action::RetType Setup(ActionSetup&);
   Action::RetType DoAction(int, ActionFrame&);
 # ifdef MPI
-  int SyncAction(Parallel::Comm const&);
+  int SyncAction();
+  Parallel::Comm trajComm_;
 # endif
   void Print();
 

@@ -66,19 +66,14 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
-
-  return Action::OK;
-}
-
-#ifdef MPI
-int Action_FilterByData::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1)
+# ifdef MPI
+  if (init.TrajComm().Size() > 1)
     mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
             "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
-            commIn.Size());
-  return 0;
+            init.TrajComm().Size());
+# endif
+  return Action::OK;
 }
-#endif
 
 // Action_FilterByData::DoAction()
 Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)

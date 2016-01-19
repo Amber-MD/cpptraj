@@ -13,11 +13,14 @@ class Action_Radial: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-#   ifdef MPI
-    int SyncAction(Parallel::Comm const&);
-#   endif
     void Print();
-
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
+#   ifdef _OPENMP
+    void CombineRdfThreads();
+#   endif
     ImagedAction image_;      ///< Image routines.
     int* RDF_;                ///< Hold bin counts.
     int** rdf_thread_;        ///< Hold bin count on each thread.

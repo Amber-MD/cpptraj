@@ -954,6 +954,9 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 // Action_NAstruct::Init()
 Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   masterDSL_ = init.DslPtr();
   // Get keywords
@@ -1315,13 +1318,13 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
 }
 
 #ifdef MPI
-int Action_NAstruct::SyncAction(Parallel::Comm const& commIn) {
+int Action_NAstruct::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
   // Get total number of frames
   int total_frames = 0;
-  commIn.Reduce( &total_frames, &nframes_, 1, MPI_INT, MPI_SUM );
-  if (commIn.Master())
+  trajComm_.Reduce( &total_frames, &nframes_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
     nframes_ = total_frames;
   return 0;
 }

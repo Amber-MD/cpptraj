@@ -30,6 +30,12 @@ void Action_CreateReservoir::Help() const {
 Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef BINTRAJ
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Get keywords
   filename_.SetFileName( actionArgs.GetStringNext() );
   if (filename_.empty()) {
@@ -111,16 +117,6 @@ Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& in
   return Action::ERR;
 # endif
 }
-
-#ifdef MPI
-int Action_CreateReservoir::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1) {
-    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", commIn.Size());
-    return 1;
-  }
-  return 0;
-}
-#endif
 
 // Action_CreateReservoir::Setup()
 Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {

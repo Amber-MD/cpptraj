@@ -16,8 +16,8 @@ class Action_Outtraj: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const&);
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
     int total_frames_;
 #   endif
     Trajout_Single outtraj_;

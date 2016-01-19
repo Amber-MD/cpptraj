@@ -41,6 +41,9 @@ Action_Closest::~Action_Closest() {
 // Action_Closest::Init()
 Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
@@ -366,25 +369,25 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 /** Since datasets are actually # frames * closestWaters_ in length, need to
   * sync here.
   */
-int Action_Closest::SyncAction(Parallel::Comm const& commIn) {
+int Action_Closest::SyncAction() {
   if (outFile_ == 0) return 0;
   // Get total number of closest entries.
-  std::vector<int> rank_frames( commIn.Size() );
-  commIn.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
   mprintf("DEBUG: Master= %i frames\n", Nclosest_);
-  for (int rank = 1; rank < commIn.Size(); rank++) {
+  for (int rank = 1; rank < trajComm_.Size(); rank++) {
     mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
     Nclosest_ += rank_frames[ rank ];
   }
   mprintf("DEBUG: Total= %i frames.\n", Nclosest_);
-  framedata_->Sync( Nclosest_, rank_frames, commIn );
+  framedata_->Sync( Nclosest_, rank_frames, trajComm_ );
   framedata_->SetNeedsSync( false );
   mprintf("DEBUG: framedata_ size is %zu\n", framedata_->Size());
-  moldata_->Sync( Nclosest_, rank_frames, commIn );
+  moldata_->Sync( Nclosest_, rank_frames, trajComm_ );
   moldata_->SetNeedsSync( false );
-  distdata_->Sync( Nclosest_, rank_frames, commIn );
+  distdata_->Sync( Nclosest_, rank_frames, trajComm_ );
   distdata_->SetNeedsSync( false );
-  atomdata_->Sync( Nclosest_, rank_frames, commIn );
+  atomdata_->Sync( Nclosest_, rank_frames, trajComm_ );
   atomdata_->SetNeedsSync( false );
   return 0;
 }

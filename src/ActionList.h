@@ -24,14 +24,12 @@ class ActionList {
     /// Call print for each Action.
     void PrintActions();
 #   ifdef MPI
-    /// Call parallel init for each Action
-    int ParallelInitActions(Parallel::Comm const&);
-    /// Figure out the max number previous frames required
+    /// Figure out the max number previous frames required for non-master ranks
     int NumPreviousFramesReqd() const;
     /// Call preload for Actions
     int ParallelProcessPreload(Action::FArray const&);
     /// Call sync for each Action (parallel only)
-    void SyncActions(Parallel::Comm const&);
+    void SyncActions();
 #   endif
     /// List all Actions in the list.
     void List() const;

@@ -29,6 +29,9 @@ void Action_PairDist::Help() const {
 // Action_PairDist::init()
 Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   InitImaging(true);
 
   std::string outfileName = actionArgs.GetStringKey("out");
@@ -180,11 +183,11 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_PairDist::SyncAction(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1) {
+int Action_PairDist::SyncAction() {
+  if (trajComm_.Size() > 1) {
     // Ensure every histogram is same size
     unsigned long world_max;
-    commIn.AllReduce( &world_max, &maxbin_, 1, MPI_UNSIGNED_LONG, MPI_MAX );
+    trajComm_.AllReduce( &world_max, &maxbin_, 1, MPI_UNSIGNED_LONG, MPI_MAX );
     if ( maxbin_ < world_max )
       histogram_.resize( world_max + 1 );
     maxbin_ = world_max;
@@ -193,10 +196,10 @@ int Action_PairDist::SyncAction(Parallel::Comm const& commIn) {
       buf[0] = (double)histogram_[i].mean();
       buf[1] = (double)histogram_[i].M2();
       buf[2] = (double)histogram_[i].nData();
-      commIn.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
-      if (commIn.Master())
+      trajComm_.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
+      if (trajComm_.Master())
         // Divide by # threads to get actual mean
-        histogram_[i].SetVals( total[0] / (double)commIn.Size(), total[1], total[2] );
+        histogram_[i].SetVals( total[0] / (double)trajComm_.Size(), total[1], total[2] );
     }
   }
   return 0;

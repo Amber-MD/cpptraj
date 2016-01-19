@@ -44,7 +44,7 @@ Action::RetType Action_Principal::Init(ArgList& actionArgs, ActionInit& init, in
   mprintf("    PRINCIPAL:");
   if (!filename.empty()) {
 #   ifdef MPI
-    if (Parallel::TrajComm().Size() > 1) {
+    if (init.TrajComm().Size() > 1) {
       mprinterr("Error: 'out' keyword not supported in parallel.\n");
       return Action::ERR;
     }

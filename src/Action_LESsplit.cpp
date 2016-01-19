@@ -25,6 +25,9 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif 
   splitfilename_ = actionArgs.GetStringKey("out");
   std::string avgfilename = actionArgs.GetStringKey("average");
   lesSplit_ = !splitfilename_.empty();
@@ -40,6 +43,9 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
     avgTraj_.SetDebug( debugIn );
     if (avgTraj_.InitTrajWrite( avgfilename, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ ))
       return Action::ERR;
+#   ifdef MPI
+    avgTraj_.SetTrajComm( trajComm_ );
+#   endif
   }
   
   mprintf("    LESSPLIT:\n");
@@ -47,14 +53,6 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
   if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgTraj_.Traj().Filename().full());
   return Action::OK;
 }
-
-#ifdef MPI
-int Action_LESsplit::ParallelActionInit(Parallel::Comm const& commIn) {
-  trajComm_ = commIn;
-  if (lesAverage_) avgTraj_.SetTrajComm( commIn );
-  return 0;
-}
-#endif
 
 // Action_LESsplit::Setup()
 Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {

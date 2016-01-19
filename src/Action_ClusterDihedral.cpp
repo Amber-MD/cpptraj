@@ -60,6 +60,13 @@ int Action_ClusterDihedral::ReadDihedrals(std::string const& fname) {
 // Action_ClusterDihedral::Init()
 Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   debug_ = debugIn;
   // # of phi and psi bins
   phibins_ = actionArgs.getKeyInt("phibins", 10);
@@ -119,17 +126,6 @@ Action::RetType Action_ClusterDihedral::Init(ArgList& actionArgs, ActionInit& in
             cvtfile->DataFilename().full());
   return Action::OK;
 }
-
-#ifdef MPI
-int Action_ClusterDihedral::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1) {
-    mprinterr("Error: 'clusterdihedral' not supported with > 1 thread (%i threads currently)\n",
-              commIn.Size());
-    return 1;
-  }
-  return 0;
-}
-#endif
 
 // Action_ClusterDihedral::Setup()
 Action::RetType Action_ClusterDihedral::Setup(ActionSetup& setup) {

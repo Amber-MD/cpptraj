@@ -28,10 +28,17 @@ void Action_Mask::Help() const {
 //       file can be written out.
 Action::RetType Action_Mask::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  ensembleNum_ = init.DSL().EnsembleNum();
   debug_ = debugIn;
   // Get Keywords
   outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("maskout"), "Atoms in mask");
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  if ( trajComm_.Size() > 1 && outfile_ != 0) {
+    mprinterr("Error: 'maskout' currently only works with 1 thread (currently %i)\n"
+              "Error:   Consider using the 'name'/'out' keywords instead\n", trajComm_.Size());
+    return Action::ERR;
+  }
+# endif
   std::string maskpdb = actionArgs.GetStringKey("maskpdb");
   std::string maskmol2 = actionArgs.GetStringKey("maskmol2");
   std::string dsname = actionArgs.GetStringKey("name");
@@ -172,36 +179,27 @@ Action::RetType Action_Mask::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_Mask::ParallelActionInit(Parallel::Comm const& commIn) {
-  if ( commIn.Size() > 1 && outfile_ != 0) {
-    mprinterr("Error: 'maskout' currently only works with 1 thread (currently %i)\n"
-              "Error:   Consider using the 'name'/'out' keywords instead\n", commIn.Size());
-    return 1;
-  }
-  return 0;
-}
-
 /** Since datasets are actually # frames * however many atoms found in mask
   * at each frame, sync here.
   */
-int Action_Mask::SyncAction(Parallel::Comm const& commIn) {
+int Action_Mask::SyncAction() {
   if (fnum_ == 0) return 0;
   // Get total number of mask entries.
-  std::vector<int> rank_frames( commIn.Size() );
-  commIn.GatherMaster( &idx_, 1, MPI_INT, &(rank_frames[0]) );
-  for (int rank = 1; rank < commIn.Size(); rank++)
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &idx_, 1, MPI_INT, &(rank_frames[0]) );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
     idx_ += rank_frames[ rank ];
-  fnum_->Sync( idx_, rank_frames, commIn );
+  fnum_->Sync( idx_, rank_frames, trajComm_ );
   fnum_->SetNeedsSync( false );
-  anum_->Sync( idx_, rank_frames, commIn );
+  anum_->Sync( idx_, rank_frames, trajComm_ );
   anum_->SetNeedsSync( false );
-  aname_->Sync( idx_, rank_frames, commIn );
+  aname_->Sync( idx_, rank_frames, trajComm_ );
   aname_->SetNeedsSync( false );
-  rnum_->Sync( idx_, rank_frames, commIn );
+  rnum_->Sync( idx_, rank_frames, trajComm_ );
   rnum_->SetNeedsSync( false );
-  rname_->Sync( idx_, rank_frames, commIn );
+  rname_->Sync( idx_, rank_frames, trajComm_ );
   rname_->SetNeedsSync( false );
-  mnum_->Sync( idx_, rank_frames, commIn );
+  mnum_->Sync( idx_, rank_frames, trajComm_ );
   mnum_->SetNeedsSync( false );
 
   return 0;

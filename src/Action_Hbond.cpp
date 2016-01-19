@@ -57,6 +57,9 @@ void Action_Hbond::Help() const {
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get keywords
   Image_.InitImaging( (actionArgs.hasKey("image")) );
@@ -883,44 +886,44 @@ const
   *   1303  : Array containing bridge integer info on rank.
   *   1304+X: Array of hbond X series info from rank.
   */
-int Action_Hbond::SyncAction(Parallel::Comm const& commIn) {
+int Action_Hbond::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
   // Get total number of frames.
-  int* rank_frames = new int[ commIn.Size() ];
-  commIn.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
+  int* rank_frames = new int[ trajComm_.Size() ];
+  trajComm_.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
   mprintf("DEBUG: Master= %i frames\n", Nframes_);
-  for (int rank = 1; rank < commIn.Size(); rank++) {
+  for (int rank = 1; rank < trajComm_.Size(); rank++) {
     mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
     Nframes_ += rank_frames[ rank ];
   }
   mprintf("DEBUG: Total= %i frames.\n", Nframes_);
   // Convert rank frames to offsets.
-  int* rank_offsets = new int[ commIn.Size() ];
+  int* rank_offsets = new int[ trajComm_.Size() ];
   rank_offsets[0] = 0;
-  for (int rank = 1; rank < commIn.Size(); rank++) {
+  for (int rank = 1; rank < trajComm_.Size(); rank++) {
     rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
     mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
   }
   //int total_frames = 0;
-  //commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  //if (commIn.Master())
+  //trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  //if (trajComm_.Master())
   //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
-  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb", commIn );
+  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb", trajComm_ );
   if (calcSolvent_) {
-    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb", commIn );
+    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb", trajComm_ );
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
-    if (commIn.Master()) {
-      for (int rank = 1; rank < commIn.Size(); rank++)
+    if (trajComm_.Master()) {
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
       {
         // Receive size of iArray
-        commIn.Recv( &iSize,           1, MPI_INT, rank, 1302 );
+        trajComm_.Recv( &iSize,           1, MPI_INT, rank, 1302 );
         mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
         iArray.resize( iSize );
-        commIn.Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
+        trajComm_.Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
         unsigned int idx = 0;
         while (idx < iArray.size()) {
           std::set<int> residues;
@@ -947,8 +950,8 @@ int Action_Hbond::SyncAction(Parallel::Comm const& commIn) {
       // Since the size of each bridge can be different (i.e. differing #s of
       // residues may be bridged), first send size of the transport array.
       iSize = (int)iArray.size();
-      commIn.Send( &iSize,           1, MPI_INT, 0, 1302 );
-      commIn.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
+      trajComm_.Send( &iSize,           1, MPI_INT, 0, 1302 );
+      trajComm_.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
     }
   }
   delete[] rank_frames;

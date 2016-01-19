@@ -237,6 +237,9 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
 // Action_NativeContacts::Init()
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   masterDSL_ = init.DslPtr();
   debug_ = debugIn;
   // Get Keywords
@@ -487,14 +490,14 @@ void Action_NativeContacts::UpdateSeries() {
 }
 
 #ifdef MPI
-int Action_NativeContacts::SyncAction(Parallel::Comm const& commIn) {
+int Action_NativeContacts::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
   // Get total number of frames.
   int N = (int)nframes_;
   int total_frames;
-  commIn.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
-  if (commIn.Master())
+  trajComm_.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
     nframes_ = (unsigned int)total_frames;
   mprintf("DEBUG: Total frames: %u\n", nframes_);
   // Should have the same number of contacts on each thread since reference is shared.
@@ -504,8 +507,8 @@ int Action_NativeContacts::SyncAction(Parallel::Comm const& commIn) {
     buf[0] = it->second.Avg();
     buf[1] = it->second.Stdev();
     buf[2] = (double)it->second.Nframes();
-    commIn.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
-    if (commIn.Master())
+    trajComm_.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
+    if (trajComm_.Master())
       it->second.SetValues( total[0], total[1], (int)total[2] );
   }
   return 0;

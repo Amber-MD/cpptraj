@@ -21,6 +21,10 @@ void Action_Average::Help() const {
 // Action_Average::Init()
 Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  Nframes_ = 0;
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   std::string crdName = actionArgs.GetStringKey("crdset");
@@ -65,8 +69,6 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf("\tWriting averaged coords to file '%s'\n", outtraj_.Traj().Filename().full());
   else
     mprintf("\tSaving averaged coords to set '%s'\n", crdset_->legend());
-
-  Nframes_ = 0;
 
   return Action::OK;
 }
@@ -136,11 +138,11 @@ Action::RetType Action_Average::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_Average::SyncAction(Parallel::Comm const& commIn) {
+int Action_Average::SyncAction() {
   int total_frames = 0;
-  commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  AvgFrame_.SumToMaster(commIn);
-  if (commIn.Master())
+  trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  AvgFrame_.SumToMaster(trajComm_);
+  if (trajComm_.Master())
     Nframes_ = total_frames;
   return 0;
 }

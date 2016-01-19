@@ -17,12 +17,11 @@ class Action_Mask: public Action {
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
     // NOTE: not setting parallel comm for output traj since only PDB/mol2 multi right now
-    int ParallelActionInit(Parallel::Comm const&);
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     void Print() {}
 
-    int ensembleNum_;
     CharMask Mask1_;         ///< Atoms which will be selected each frame
     CpptrajFile* outfile_;   ///< File to write selected atom info to
     DataSet* fnum_;          ///< Hold frame numbers for selections

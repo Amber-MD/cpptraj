@@ -20,6 +20,9 @@ void Action_Unwrap::Help() const {
 // Action_Unwrap::Init()
 Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   // Get Keywords
   center_ = actionArgs.hasKey("center");
   if (actionArgs.hasKey("bymol"))

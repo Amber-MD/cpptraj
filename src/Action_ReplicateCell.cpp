@@ -102,6 +102,9 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
       return Action::ERR;
     writeTraj_ = true;
+#   ifdef MPI
+    outtraj_.SetTrajComm( init.TrajComm() );
+#   endif
   } else
     writeTraj_ = false;
 

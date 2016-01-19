@@ -16,7 +16,6 @@ void Action_Outtraj::Help() const {
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Set up output traj
-  outtraj_.SetDebug(debugIn);
   std::string trajfilename = actionArgs.GetStringNext();
   if (trajfilename.empty()) {
     mprinterr("Error: No filename given.\nError: Usage: ");
@@ -67,8 +66,18 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
       return Action::ERR;
     }
   }
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  if (trajComm_.Size() > 1 && !Dsets_.empty()) {
+    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 thread\n"
+              "Error:   to write trajectory (currently %i threads)\n", trajComm_.Size());
+    return Action::ERR;
+  }
+  outtraj_.SetTrajComm( trajComm_ );
+# endif
   // Initialize output trajectory with remaining arguments
   if (isActive_) {
+    outtraj_.SetDebug(debugIn);
     if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
                                         TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
       return Action::ERR;
@@ -86,19 +95,9 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
 } 
 
 # ifdef MPI
-int Action_Outtraj::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1 && !Dsets_.empty()) {
-    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 thread\n"
-              "Error:   to write trajectory (currently %i threads)\n", commIn.Size());
-    return 1;
-  }
-  outtraj_.SetTrajComm( commIn );
-  return 0;
-}
-
-int Action_Outtraj::SyncAction(Parallel::Comm const& commIn) {
+int Action_Outtraj::SyncAction() {
   int nframes = outtraj_.Traj().NframesWritten();
-  commIn.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
+  trajComm_.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
   return 0;
 }
 #endif

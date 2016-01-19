@@ -53,6 +53,9 @@ static inline int CheckTimeArg(double dt) {
 // Action_Diffusion::Init()
 Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Determine if this is old syntax or new.
   if (actionArgs.Nargs() > 2 && actionArgs.ArgIsMask(1) && validDouble(actionArgs[2]))

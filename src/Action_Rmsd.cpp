@@ -86,6 +86,9 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
     rmatrices_ = init.DSL().AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
   }
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString().c_str());
   if (!fit_)

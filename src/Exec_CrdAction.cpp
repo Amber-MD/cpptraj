@@ -15,13 +15,14 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
 {
   Timer total_time;
   total_time.Start();
+# ifdef MPI
+  ActionInit state(State.DSL(), State.DFL(), trajComm_);
+# else
   ActionInit state(State.DSL(), State.DFL());
+# endif
   if ( act->Init( actionargs, state, State.Debug() ) != Action::OK )
     return CpptrajState::ERR;
   actionargs.CheckForMoreArgs();
-# ifdef MPI
-  act->ParallelActionInit( trajComm_ );
-# endif
   // Set up frame and parm for COORDS.
   ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
@@ -49,7 +50,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
       CRD->SetCRD( frame, frm.Frm() );
   }
 # ifdef MPI
-  act->SyncAction( trajComm_ );
+  act->SyncAction();
 # endif
   // Check if parm was modified. If so, update COORDS.
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {

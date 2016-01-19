@@ -38,6 +38,9 @@ void Action_Volmap::RawHelp() const {
 // Action_Volmap::Init()
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -279,10 +282,10 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_Volmap::SyncAction(Parallel::Comm const& commIn) {
+int Action_Volmap::SyncAction() {
   int total_frames = 0;
-  commIn.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  if (commIn.Master())
+  trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
     Nframes_ = total_frames;
   return 0;
 }

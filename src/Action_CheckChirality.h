@@ -13,7 +13,7 @@ class Action_CheckChirality: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
 #   endif
     void Print();
 

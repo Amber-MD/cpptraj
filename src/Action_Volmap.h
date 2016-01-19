@@ -10,8 +10,8 @@ class Action_Volmap : public Action {
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
@@ -43,8 +43,5 @@ class Action_Volmap : public Action {
     /// the scaling factor to divide all radii by
     double radscale_;
     static const double sqrt_8_pi_cubed;
-#   ifdef MPI
-    Parallel::Comm trajComm_;
-#   endif
 };
 #endif

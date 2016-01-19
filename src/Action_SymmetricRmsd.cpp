@@ -45,7 +45,9 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
     action_return_ = Action::MODIFY_COORDS;
   else
     action_return_ = Action::OK;
-  
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    SYMMRMSD: (%s), reference is %s", tgtMask_.MaskString(),
           REF_.RefModeString().c_str());
   if (!SRMSD_.Fit())

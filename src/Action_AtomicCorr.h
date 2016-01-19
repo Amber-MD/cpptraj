@@ -11,10 +11,10 @@ class Action_AtomicCorr : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const&);
     int ParallelPreviousFramesRequired() const { return 1; }
     int ParallelPreloadFrames(FArray const&);
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     Action::RetType DoAction(int, ActionFrame&);
     void Print();

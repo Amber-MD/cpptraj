@@ -37,6 +37,10 @@ Action::RetType Action_Dipole::Init(ArgList& actionArgs, ActionInit& init, int d
   // Get grid options
   grid_ = GridInit( "Dipole", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
+# ifdef MPI
+  if (ParallelGridInit(init.TrajComm(), grid_)) return Action::ERR;
+  trajComm_ = init.TrajComm();
+# endif
   // Setup dipole x, y, and z grids
   dipole_.resize( grid_->Size(), Vec3(0.0,0.0,0.0) );
 
@@ -162,12 +166,12 @@ Action::RetType Action_Dipole::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_Dipole::SyncAction(Parallel::Comm const& commIn) {
+int Action_Dipole::SyncAction() {
   // Sync dipole_ data
   double buf[3];
   for (std::vector<Vec3>::iterator dp = dipole_.begin(); dp != dipole_.end(); ++dp)
   {
-    commIn.Reduce( buf, dp->Dptr(), 3, MPI_DOUBLE, MPI_SUM );
+    trajComm_.Reduce( buf, dp->Dptr(), 3, MPI_DOUBLE, MPI_SUM );
     std::copy( buf, buf+3, dp->Dptr() );
   }
   return 0;

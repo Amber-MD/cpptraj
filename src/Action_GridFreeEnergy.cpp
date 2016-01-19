@@ -29,6 +29,9 @@ Action::RetType Action_GridFreeEnergy::Init(ArgList& actionArgs, ActionInit& ini
   // Get grid options (<nx> <dx> <ny> <dy> <nz> <dz> [box|origin] [negative])
   grid_ = GridInit( "GridFreeEnergy", actionArgs, init.DSL() );
   if (grid_ == 0) return Action::ERR;
+# ifdef MPI
+  if (ParallelGridInit(init.TrajComm(), grid_)) return Action::ERR;
+# endif
   //grid_.PrintXplor( filename_, "", "REMARKS Change in Free energy from bulk solvent with bin normalisation of " + integerToString(currentLargestVoxelOccupancyCount) );
 
   // Get mask

@@ -29,9 +29,6 @@ public:
 
 private:
   Action::RetType Init(ArgList&, ActionInit&, int);
-# ifdef MPI
-  int ParallelActionInit(Parallel::Comm const&);
-# endif
   Action::RetType Setup(ActionSetup&);
   Action::RetType DoAction(int, ActionFrame&);
   void Print();

@@ -125,8 +125,10 @@ CpptrajState::RetType CpptrajState::AddToActionQueue( Action* actIn, ArgList& ar
   }
 # ifdef MPI
   DSL_.SetNewSetsNeedSync( true );
-# endif
+  ActionInit init(DSL_, DFL_, Parallel::TrajComm());
+# else 
   ActionInit init(DSL_, DFL_);
+# endif
   RetType err = OK;
   if (actionList_.AddAction( actIn, argIn, init )) err = ERR;
 # ifdef MPI
@@ -411,12 +413,6 @@ int CpptrajState::RunEnsemble() {
   // Allocate an ActionList for each member of the ensemble.
   std::vector<ActionList*> ActionEnsemble( ensembleSize );
   ActionEnsemble[0] = &actionList_;
-# ifdef MPI
-  // NOTE: Even if not processing individual trajectories in parallel certain
-  //       Actions may require that the comm be set to avoid calls to 
-  //       MPI_COMM_NULL.
-  ActionEnsemble[0]->ParallelInitActions( Parallel::TrajComm() );
-# endif
   for (int member = 1; member < ensembleSize; member++)
     ActionEnsemble[member] = new ActionList();
   // If we are on a single thread, give each member its own copy of the
@@ -715,10 +711,6 @@ int CpptrajState::RunParallel() {
   }
   if (TrajComm.CheckError( err )) return 1;
 
-  // Perform any necessary parallel Init
-  if (actionList_.ParallelInitActions( TrajComm ) != 0 && exitOnError_)
-    return 1;
-
   // Allocate DataSets in DataSetList based on # frames read by this thread.
   DSL_.AllocateSets( my_frames );
   // Any DataSets added to the DataSetList during run will need to be synced.
@@ -803,7 +795,7 @@ int CpptrajState::RunParallel() {
   Timer time_sync;
   time_sync.Start();
   // Sync Actions to master thread
-  actionList_.SyncActions( TrajComm );
+  actionList_.SyncActions();
   // Sync data sets to master thread
   if (DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm )) return 1;
   time_sync.Stop();
@@ -902,7 +894,7 @@ int CpptrajState::RunSingleTrajParallel() {
   time_sync.Start();
   if (DSL_.SynchronizeData( total_read_frames, rank_frames, Parallel::World() )) return 1;
   // Sync Actions to master thread
-  actionList_.SyncActions( Parallel::World() );
+  actionList_.SyncActions();
   time_sync.Stop();
   time_sync.WriteTiming(1, "Data set/actions sync");
   mprintf("\nACTION OUTPUT:\n");

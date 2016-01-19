@@ -13,9 +13,6 @@ class Action_FilterByData : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType DoAction(int, ActionFrame&);
   private:
-#   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const&);
-#   endif
     Action::RetType Setup(ActionSetup&) { return Action::OK; }
     void Print() {}
 

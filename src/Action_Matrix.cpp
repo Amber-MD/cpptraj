@@ -38,6 +38,9 @@ void Action_Matrix::Help() const {
 // Action_Matrix::Init()
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   std::string outfilename = actionArgs.GetStringKey("out");
@@ -811,13 +814,13 @@ Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
-int Action_Matrix::SyncAction(Parallel::Comm const& commIn) {
-  if (commIn.Master()) {
+int Action_Matrix::SyncAction() {
+  if (trajComm_.Master()) {
     Darray buf( vect2_.size() );
-    commIn.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+    trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
     vect2_ = buf;
   } else
-    commIn.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+    trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif

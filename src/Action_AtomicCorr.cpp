@@ -64,7 +64,12 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, i
   if (min_!=0)
     mprintf("\tOnly correlations for %ss > %i apart will be calculated.\n",
             ModeString[acorr_mode_],min_);
-
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  if (trajComm_.Size() > 1)
+    mprintf("\nWarning: 'atomiccorr' in parallel will not work correctly if coordinates have\n"
+              "Warning:   been modified by previous actions (e.g. 'rms').\n\n");
+# endif
   return Action::OK;
 }
 
@@ -112,31 +117,24 @@ Action::RetType Action_AtomicCorr::Setup(ActionSetup& setup) {
 }
 
 #ifdef MPI
-int Action_AtomicCorr::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1)
-    mprintf("\nWarning: 'atomiccorr' in parallel will not work correctly if coordinates have\n"
-              "Warning:   been modified by previous actions (e.g. 'rms').\n\n");
-  return 0;
-}
-
 int Action_AtomicCorr::ParallelPreloadFrames(FArray const& preload_frames) {
   unsigned int idx = preload_frames.size() - 1;
   previousFrame_ = preload_frames[idx];
   return 0;
 }
 
-int Action_AtomicCorr::SyncAction(Parallel::Comm const& commIn) {
-  if (commIn.Size() < 2 || atom_vectors_.empty()) return 0;
+int Action_AtomicCorr::SyncAction() {
+  if (trajComm_.Size() < 2 || atom_vectors_.empty()) return 0;
   // atom_vectors_ should be same size on all ranks, and length of all
   // should be the same. Need to know length on each vector.
   int vlength = (int)atom_vectors_[0].size();
-  if (commIn.Master()) {
+  if (trajComm_.Master()) {
     // MASTER
-    int* rank_sizes = new int[ commIn.Size() ];
-    commIn.GatherMaster( &vlength, 1, MPI_INT, rank_sizes );
+    int* rank_sizes = new int[ trajComm_.Size() ];
+    trajComm_.GatherMaster( &vlength, 1, MPI_INT, rank_sizes );
     // Compute total number of elements 
     int total_elements = rank_sizes[0];
-    for (int rank = 1; rank < commIn.Size(); rank++)
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
       total_elements += rank_sizes[rank];
     mprintf("DEBUG: Total atomiccorr elements: %i\n", total_elements);
     int idx = 0; // For tag
@@ -147,19 +145,19 @@ int Action_AtomicCorr::SyncAction(Parallel::Comm const& commIn) {
       av->resize( total_elements );
       float* ptr = av->Fptr() + rank_sizes[0];
       // Receive data from all ranks for this vector
-      for (int rank = 1; rank < commIn.Size(); rank++) {
-        commIn.Recv( ptr, rank_sizes[rank], MPI_FLOAT, rank, 1400 + idx );
+      for (int rank = 1; rank < trajComm_.Size(); rank++) {
+        trajComm_.Recv( ptr, rank_sizes[rank], MPI_FLOAT, rank, 1400 + idx );
         ptr += rank_sizes[rank];
       } 
     }
     delete[] rank_sizes;
   } else {
     // RANK
-    commIn.GatherMaster( &vlength, 1, MPI_INT, 0 );
+    trajComm_.GatherMaster( &vlength, 1, MPI_INT, 0 );
     int idx = 0; // For tag
     for (ACvector::iterator av = atom_vectors_.begin(); 
                             av != atom_vectors_.end(); ++av, ++idx) 
-      commIn.Send( av->Fptr(), av->size(), MPI_FLOAT, 0, 1400 + idx );
+      trajComm_.Send( av->Fptr(), av->size(), MPI_FLOAT, 0, 1400 + idx );
   }
   return 0;
 }

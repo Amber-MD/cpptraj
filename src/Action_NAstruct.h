@@ -32,8 +32,8 @@ class Action_NAstruct: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { trajComm_ = c; return 0; }
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     void Print();
 
@@ -134,9 +134,6 @@ class Action_NAstruct: public Action {
     ResMapType CustomMap_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
-#   ifdef MPI
-    Parallel::Comm trajComm_;
-#   endif
 #   ifdef NASTRUCTDEBUG
     // DEBUG - used to trigger AxisPDBwriter for first call of calculateParameters
     bool calcparam_;

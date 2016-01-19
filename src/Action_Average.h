@@ -15,7 +15,8 @@ class Action_Average: public Action, ActionFrameCounter {
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
     // NOTE: In parallel no need to pass comm to outtraj_ since write is done in Print()
-    int SyncAction(Parallel::Comm const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
 #   endif
     void Print();
 

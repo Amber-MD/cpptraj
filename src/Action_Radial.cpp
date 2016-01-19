@@ -58,6 +58,9 @@ inline Action::RetType RDF_ERR(const char* msg) {
 // Action_Radial::Init()
 Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -410,19 +413,35 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 } 
 
 #ifdef MPI
-int Action_Radial::SyncAction(Parallel::Comm const& commIn) {
+int Action_Radial::SyncAction() {
+# ifdef _OPENMP
+  CombineRdfThreads();
+# endif
   int total_frames = 0;
-  commIn.Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
-  // FIXME if MPI + OPENMP then threads have to be synced here.
-  if (commIn.Master()) {
+  trajComm_.Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master()) {
     numFrames_ = total_frames;
     int* sum_bins = new int[ numBins_ ];
-    commIn.Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
     std::copy( sum_bins, sum_bins + numBins_, RDF_ );
     delete[] sum_bins;
   } else
-    commIn.Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+    trajComm_.Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
   return 0;
+}
+#endif
+
+#ifdef _OPENMP
+/** Combine results from each rdf_thread into rdf. */
+void Action_Radial::CombineRdfThreads() {
+  if (rdf_thread_ == 0) return;
+  for (int thread = 0; thread < numthreads_; thread++) 
+    for (int bin = 0; bin < numBins_; bin++) {
+      RDF_[bin] += rdf_thread_[thread][bin];
+      delete[] rdf_thread_[thread];
+    }
+  delete[] rdf_thread_;
+  rdf_thread_ = 0;
 }
 #endif
 
@@ -434,13 +453,9 @@ int Action_Radial::SyncAction(Parallel::Comm const& commIn) {
 //       prmtop to prmtop this will throw off normalization.
 void Action_Radial::Print() {
   if (numFrames_==0) return;
-# ifdef _OPENMP 
-  // Combine results from each rdf_thread into rdf
-  for (int thread=0; thread < numthreads_; thread++) 
-    for (int bin = 0; bin < numBins_; bin++) 
-      RDF_[bin] += rdf_thread_[thread][bin];
+# ifdef _OPENMP
+  CombineRdfThreads(); 
 # endif
-
   mprintf("    RADIAL: %i frames,", numFrames_);
   double nmask1 = (double)Mask1_.Nselected();
   double nmask2 = (double)Mask2_.Nselected();

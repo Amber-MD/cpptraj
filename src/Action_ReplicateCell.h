@@ -12,9 +12,6 @@ class Action_ReplicateCell: public Action {
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
-#   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const& c) { return outtraj_.SetTrajComm( c ); }
-#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}

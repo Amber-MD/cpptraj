@@ -23,7 +23,6 @@ class Action_RunningAvg: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 #   ifdef MPI
-    int ParallelActionInit(Parallel::Comm const&);
     int ParallelPreviousFramesRequired() const { return Nwindow_ - 1; }
     int ParallelPreloadFrames(FArray const&);
 #   endif
