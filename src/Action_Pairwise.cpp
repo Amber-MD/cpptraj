@@ -40,6 +40,13 @@ const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOA
 // Action_Pairwise::Init()
 Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'pairwise' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Get Keywords
   DataFile* dataout = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataFile* vmapout = init.DFL().AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
