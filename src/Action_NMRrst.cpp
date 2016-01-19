@@ -142,7 +142,16 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 
   return Action::OK;
 }
-
+#ifdef MPI
+int Action_NMRrst::ParallelActionInit(Parallel::Comm const& commIn) {
+  if (commIn.Size() > 1) {
+    mprinterr("Error: 'nmrrst' action does not work with > 1 thread (%i threads currently).\n",
+              commIn.Size());
+    return 1;
+  }
+  return 0;
+}
+#endif
 // -----------------------------------------------------------------------------
 int Action_NMRrst::ReadNmrRestraints( std::string const& rstfilename )
 {
