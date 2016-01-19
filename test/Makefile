@@ -270,6 +270,9 @@ test.checkchirality:
 test.energy:
 	@-cd Test_Energy && ./RunTest.sh $(OPT)
 
+test.lessplit:
+	@-cd Test_LESsplit && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -423,7 +426,8 @@ COMPLETETESTS=test.general \
               test.integrate \
               test.nativecontacts \
               test.checkchirality \
-              test.energy
+              test.energy \
+              test.lessplit
 
 test: test.all 
 
