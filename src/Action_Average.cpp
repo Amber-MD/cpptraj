@@ -53,6 +53,7 @@ Action::RetType Action_Average::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // Initialize output trajectory from remaining arguments.
   if (crdset_ == 0) {
+    outtraj_.SetDebug( debug_ );
     if (outtraj_.InitEnsembleTrajWrite(avgfilename, actionArgs.RemainingArgs(),
                                        TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()))
       return Action::ERR;

@@ -14,16 +14,17 @@ class Action_Average: public Action, ActionFrameCounter {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
+    // NOTE: In parallel no need to pass comm to outtraj_ since write is done in Print()
     int SyncAction(Parallel::Comm const&);
 #   endif
     void Print();
 
     int debug_;
-    AtomMask Mask1_;          ///< Mask of atoms to average.
-    Frame AvgFrame_;          ///< Hold averaged coordinates.
-    Topology AvgParm_;        ///< Hold topology corresponding to averaged coordinates.
-    int Nframes_;             ///< Number of frames in the average.
-    Trajout_Single outtraj_;  ///< File to write avg coords to.
-    DataSet* crdset_;         ///< DataSet to save avg coords to.
+    AtomMask Mask1_;         ///< Mask of atoms to average.
+    Frame AvgFrame_;         ///< Hold averaged coordinates.
+    Topology AvgParm_;       ///< Hold topology corresponding to averaged coordinates.
+    int Nframes_;            ///< Number of frames in the average.
+    Trajout_Single outtraj_; ///< File to write avg coords to.
+    DataSet* crdset_;        ///< DataSet to save avg coords to.
 };
 #endif  
