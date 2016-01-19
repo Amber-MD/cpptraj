@@ -1278,7 +1278,13 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
     useReference_ = true;
 #   ifdef MPI
     // Now re-set up base axes from current frame on non-master.
-    SetupBaseAxes( frm.Frm() );
+    if (!trajComm_.Master()) {
+      SetupBaseAxes( frm.Frm() );
+      // # hbonds currently based on reference; re-calc for current frame.
+      for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
+        BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
+                                    BP->second.n_wc_hb_);
+    }
 #   endif
   } else {
     // Base pairing determined from ref. Just calc # hbonds for each pair.
