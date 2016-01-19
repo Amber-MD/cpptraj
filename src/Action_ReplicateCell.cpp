@@ -3,8 +3,7 @@
 #include "ParmFile.h"
 
 // CONSTRUCTOR
-Action_ReplicateCell::Action_ReplicateCell() : 
-  coords_(0), ncopies_(0), ensembleNum_(-1) {} 
+Action_ReplicateCell::Action_ReplicateCell() : coords_(0), ncopies_(0), writeTraj_(false) {} 
 
 void Action_ReplicateCell::Help() const {
   mprintf("\t[out <traj filename>] [parmout <parm filename>] [name <dsname>]\n"
@@ -35,16 +34,15 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
   // Require imaging.
   image_.InitImaging( true );
   // Set up output traj
-  trajfilename_ = actionArgs.GetStringKey("out");
+  std::string trajfilename = actionArgs.GetStringKey("out");
   parmfilename_ = actionArgs.GetStringKey("parmout");
-  Topology* tempParm = init.DSL().GetTopology( actionArgs );
   bool setAll = actionArgs.hasKey("all");
   std::string dsname = actionArgs.GetStringKey("name");
   if (!dsname.empty()) {
     coords_ = (DataSet_Coords*)init.DSL().AddSet(DataSet::COORDS, dsname, "RCELL");
     if (coords_ == 0) return Action::ERR;
   }
-  if (trajfilename_.empty() && coords_ == 0) {
+  if (trajfilename.empty() && coords_ == 0) {
     mprinterr("Error: Either 'out <traj filename> or 'name <dsname>' must be specified.\n");
     return Action::ERR;
   }
@@ -97,17 +95,15 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     mprinterr("Error: No directions (or 'all') specified.\n");
     return Action::ERR;
   }
-  // Set up output trajectory
-  if (!trajfilename_.empty()) {
-    if (tempParm == 0) {
-      mprinterr("Error: Could not get topology for %s\n", trajfilename_.c_str());
-      return Action::ERR;
-    }
+  // Initialize output trajectory with remaining arguments
+  if (!trajfilename.empty()) {
     outtraj_.SetDebug( debugIn );
-    // Initialize output trajectory with remaining arguments
-    trajArgs_ = actionArgs.RemainingArgs();
-    ensembleNum_ = init.DSL().EnsembleNum();
-  }
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+                                        TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
+      return Action::ERR;
+    writeTraj_ = true;
+  } else
+    writeTraj_ = false;
 
   mprintf("    REPLICATE CELL: Replicating cell in %i directions:\n", ncopies_);
   mprintf("\t\t X  Y  Z\n");
@@ -115,8 +111,8 @@ Action::RetType Action_ReplicateCell::Init(ArgList& actionArgs, ActionInit& init
     mprintf("\t\t%2i %2i %2i\n", directionArray_[i], 
             directionArray_[i+1], directionArray_[i+2]);
   mprintf("\tUsing atoms in mask '%s'\n", Mask1_.MaskString());
-  if (!trajfilename_.empty())
-    mprintf("\tWriting to trajectory %s\n", trajfilename_.c_str());
+  if (writeTraj_)
+    mprintf("\tWriting to trajectory %s\n", outtraj_.Traj().Filename().full());
   if (!parmfilename_.empty())
     mprintf("\tWriting topology %s\n", parmfilename_.c_str());
   if (coords_ != 0)
@@ -170,11 +166,8 @@ Action::RetType Action_ReplicateCell::Setup(ActionSetup& setup) {
     // Set up COORDS / output traj if necessary.
     if (coords_ != 0)
       coords_->CoordsSetup( combinedTop_, CoordinateInfo() );
-    if (!trajfilename_.empty()) {
-      if ( outtraj_.PrepareEnsembleTrajWrite(trajfilename_, trajArgs_,
-                                             &combinedTop_, CoordinateInfo(),
-                                             setup.Nframes(), TrajectoryFile::UNKNOWN_TRAJ,
-                                             ensembleNum_) )
+    if (writeTraj_) {
+      if ( outtraj_.SetupTrajWrite( &combinedTop_, CoordinateInfo(), setup.Nframes() ) )
         return Action::ERR;
     }
   }
@@ -215,8 +208,8 @@ Action::RetType Action_ReplicateCell::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef _OPENMP
   }
 # endif
-  if (!trajfilename_.empty()) {
-    if (outtraj_.WriteSingle(frm.TrajoutNum(), combinedFrame_)!=0)
+  if (writeTraj_) {
+    if (outtraj_.WriteSingle(frm.TrajoutNum(), combinedFrame_) !=0 )
       return Action::ERR;
   }
   if (coords_ != 0)
