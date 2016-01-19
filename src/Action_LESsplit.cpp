@@ -1,9 +1,16 @@
 #include "Action_LESsplit.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
 
 // DESTRUCTOR
-Action_LESsplit::~Action_LESsplit() { if (lesParm_ != 0) delete lesParm_; }
+Action_LESsplit::~Action_LESsplit() {
+  if (lesSplit_) {
+    for (Tarray::iterator tout = lesTraj_.begin(); tout != lesTraj_.end(); ++tout) {
+      (*tout)->EndTraj();
+      delete *tout;
+    }
+  }
+  if (lesParm_ != 0) delete lesParm_;
+}
 
 void Action_LESsplit::Help() const {
   mprintf("\t[out <filename prefix>] [average <avg filename>] <trajout args>\n"
@@ -18,29 +25,33 @@ Action::RetType Action_LESsplit::Init(ArgList& actionArgs, ActionInit& init, int
     mprinterr("Error: LESSPLIT currently cannot be used in ensemble mode.\n");
     return Action::ERR;
   }
-  trajfilename_ = actionArgs.GetStringKey("out");
-  avgfilename_ = actionArgs.GetStringKey("average");
-  lesSplit_ = !trajfilename_.empty();
-  lesAverage_ = !avgfilename_.empty();
+  splitfilename_ = actionArgs.GetStringKey("out");
+  std::string avgfilename = actionArgs.GetStringKey("average");
+  lesSplit_ = !splitfilename_.empty();
+  lesAverage_ = !avgfilename.empty();
   if (!lesSplit_ && !lesAverage_) {
     mprinterr("Error: Must specify at least 'out <prefix>' or 'average <name>'.\n");
     return Action::ERR;
   }
   trajArgs_ = actionArgs.RemainingArgs();
+  // Initialize average output trajectory.
+  // NOTE: Cannot yet init split traj since we dont know how many.
+  if (lesAverage_) {
+    avgTraj_.SetDebug( debugIn );
+    if (avgTraj_.InitTrajWrite( avgfilename, trajArgs_, TrajectoryFile::UNKNOWN_TRAJ ))
+      return Action::ERR;
+  }
   
   mprintf("    LESSPLIT:\n");
-  if (lesSplit_) mprintf("\tSplit output to '%s.X'\n", trajfilename_.c_str());
-  if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgfilename_.c_str());
+  if (lesSplit_) mprintf("\tSplit output to '%s.X'\n", splitfilename_.c_str());
+  if (lesAverage_) mprintf("\tAverage output to '%s'\n", avgTraj_.Traj().Filename().full());
   return Action::OK;
 }
 
 #ifdef MPI
 int Action_LESsplit::ParallelActionInit(Parallel::Comm const& commIn) {
-  if (commIn.Size() > 1) {
-    mprinterr("Error: 'lessplit' action does not work with > 1 thread (%i threads currently).\n",
-              commIn.Size());
-    return 1;
-  }
+  trajComm_ = commIn;
+  if (lesAverage_) avgTraj_.SetTrajComm( commIn );
   return 0;
 }
 #endif
@@ -76,27 +87,29 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
     // Create topology for first copy
     lesParm_ = setup.Top().modifyStateByMask( lesMasks_[0] );
     if (lesParm_ == 0) return Action::ERR;
-    // Set up frames to hold individual copies
-    lesFrames_.resize( lesMasks_.size() );
-    lesFrames_.SetupFrames(lesParm_->Atoms(), setup.CoordInfo());
-    lesPtrs_.resize( lesMasks_.size() );
-    for (unsigned int i = 0; i != lesMasks_.size(); i++)
-      lesPtrs_[i] = &lesFrames_[i];
+    // Set up frame to hold individual copy
+    lesFrame_.SetupFrameV( lesParm_->Atoms(), setup.CoordInfo() );
     if (lesSplit_) {
-      // Set up output ensemble FIXME check overwrites TODO combine init/setup?
-      if (lesTraj_.InitEnsembleWrite(trajfilename_, trajArgs_, lesMasks_.size(),
-                                     TrajectoryFile::UNKNOWN_TRAJ))
-        return Action::ERR;
-      if (lesTraj_.SetupEnsembleWrite(lesParm_, setup.CoordInfo(), setup.Nframes()))
-         return Action::ERR;
-      lesTraj_.PrintInfo(0);
+      // Set up split output trajectories. lesTraj_ should be empty.
+      lesTraj_.reserve( lesMasks_.size() );
+      for (unsigned int idx = 0; idx != lesMasks_.size(); idx++) {
+        // FIXME this will have to be changed if lessplit every enabled for ensemble
+        lesTraj_.push_back( new Trajout_Single() );
+        if (lesTraj_.back()->InitEnsembleTrajWrite( splitfilename_, trajArgs_,
+                                                    TrajectoryFile::UNKNOWN_TRAJ, idx ))
+          return Action::ERR;
+#       ifdef MPI
+        lesTraj_.back()->SetTrajComm( trajComm_ );
+#       endif
+        if (lesTraj_.back()->SetupTrajWrite( lesParm_, setup.CoordInfo(), setup.Nframes() ))
+          return Action::ERR;
+        lesTraj_.back()->PrintInfo(0);
+      }
     }
     if (lesAverage_) {
       // For average only care about coords.
       avgFrame_.SetupFrame( lesParm_->Natom() );
-      if (avgTraj_.PrepareTrajWrite( avgfilename_, trajArgs_, lesParm_,
-                                     CoordinateInfo(), setup.Nframes(),
-                                     TrajectoryFile::UNKNOWN_TRAJ ))
+      if (avgTraj_.SetupTrajWrite( lesParm_, CoordinateInfo(), setup.Nframes() ))
         return Action::ERR;
       avgTraj_.PrintInfo(0);
     }
@@ -113,17 +126,19 @@ Action::RetType Action_LESsplit::Setup(ActionSetup& setup) {
 
 // Action_LESsplit::DoAction()
 Action::RetType Action_LESsplit::DoAction(int frameNum, ActionFrame& frm) {
-  for (unsigned int i = 0; i != lesMasks_.size(); i++)
-    lesFrames_[i].SetFrame(frm.Frm(), lesMasks_[i]);
-  if (lesSplit_) {
-    if ( lesTraj_.WriteEnsemble(frameNum, lesPtrs_) ) return Action::ERR;
+  if (lesAverage_)
+    avgFrame_.ZeroCoords();
+  for (unsigned int idx = 0; idx != lesMasks_.size(); idx++) {
+    lesFrame_.SetFrame(frm.Frm(), lesMasks_[idx]);
+    if (lesAverage_)
+      avgFrame_ += lesFrame_;
+    if (lesSplit_)
+      if ( lesTraj_[idx]->WriteSingle(frm.TrajoutNum(), lesFrame_) != 0 )
+        return Action::ERR;
   }
   if (lesAverage_) {
-    avgFrame_.ZeroCoords();
-    for (unsigned int i = 0; i != lesMasks_.size(); i++)
-      avgFrame_ += lesFrames_[i];
-    avgFrame_.Divide( lesMasks_.size() );
-    if ( avgTraj_.WriteSingle(frameNum, avgFrame_) != 0 )
+    avgFrame_.Divide( (double)lesMasks_.size() );
+    if ( avgTraj_.WriteSingle(frm.TrajoutNum(), avgFrame_) != 0 )
       return Action::ERR;
   }
   return Action::OK;
