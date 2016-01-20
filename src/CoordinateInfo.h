@@ -41,7 +41,7 @@ class CoordinateInfo {
     int SyncCoordInfo(Parallel::Comm const&);
 #   endif
     /// \return True if Frame would need to be re-setup based on CoordinateInfo
-    bool operator !=(CoordinateInfo const& rhs) {
+    bool operator !=(CoordinateInfo const& rhs) const {
       return (hasVel_ != rhs.hasVel_ ||
               hasFrc_ != rhs.hasFrc_ ||
               remdDim_.Ndims() != rhs.remdDim_.Ndims());
