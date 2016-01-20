@@ -927,6 +927,7 @@ int CpptrajState::RunParallel() {
   if (TrajComm.CheckError( preload_err ) && exitOnError_) return 1;
 
   // ----- ACTION PHASE --------------------------
+  mprintf("\nBEGIN PARALLEL TRAJECTORY PROCESSING:\n");
   Timer frames_time;
   frames_time.Start();
   ProgressBar progress;
