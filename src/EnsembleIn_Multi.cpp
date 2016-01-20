@@ -232,7 +232,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 }
 
 int EnsembleIn_Multi::BeginEnsemble() {
-  mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
+  if (debug_ > 0) mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
   // Open the trajectory this thread will be dealing with.
   if (REMDtraj_[Member()]->openTrajin()) {

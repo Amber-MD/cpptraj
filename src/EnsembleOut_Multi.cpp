@@ -41,13 +41,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   }
   ArgList trajout_args = argIn;
   // Get onlymembers range
-  Range members_to_write = MembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_);
-  if (members_to_write.Empty()) return 1;
-  // DEBUG
-  //std::string dbg_mtw = "MembersToWrite:";
-  //for (Range::const_iterator r = members_to_write.begin(); r != members_to_write.end(); r++)
-  //  dbg_mtw += (" " + integerToString(*r));
-  //rprintf("DEBUG: %s\n", dbg_mtw.c_str());
+  if (SetMembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_)) return 1;
   // Process common args
   if (SetTraj().CommonTrajoutSetup(tnameIn, trajout_args, writeFormatIn))
     return 1;
@@ -56,11 +50,11 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   fileNames_.clear();
 # ifdef MPI
   // In MPI each thread writes a single member.
-  if (members_to_write.InRange( Parallel::EnsembleComm().Rank() ))
+  if (MembersToWrite().InRange( Parallel::EnsembleComm().Rank() ))
     fileNames_.push_back( AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()) );
-  else
-    rprintf("Warning: Skipping member '%s'\n", 
-            AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()).c_str());
+  //else
+  //  rprintf("DEBUG: Skipping member '%s'\n", 
+  //          AppendNumber(Traj().Filename().Full(), Parallel::EnsembleComm().Rank()).c_str());
 # else
   // In serial single process writes each member.
   // Create a map: tIndex[ pos ] = <ioarray_index>
@@ -68,12 +62,12 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   tIndex_.reserve( ensembleSize_ );
   int ioidx = 0;
   for (int num = 0; num < ensembleSize_; num++) {
-    if (members_to_write.InRange( num )) {
+    if (MembersToWrite.InRange( num )) {
       fileNames_.push_back( AppendNumber(Traj().Filename().Full(), num) );
       tIndex_.push_back( ioidx++ );
     } else {
-      mprintf("Warning: Skipping member '%s'\n",
-              AppendNumber(Traj().Filename().Full(), num).c_str());
+      //mprintf("DEBUG: Skipping member '%s'\n",
+      //        AppendNumber(Traj().Filename().Full(), num).c_str());
       tIndex_.push_back( -1 );
     }
   }
@@ -191,23 +185,18 @@ int EnsembleOut_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
 void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
   mprintf("  '%s.X' ", Traj().Filename().base());
   if (expectedNframes > 0) mprintf("(%i frames) ", expectedNframes);
-  mprintf("(Ensemble,");
-# ifdef MPI
-  // Since not every thread may be writing if 'onlymembers' specified,
-  // determine total number being written.
-  int mysize = (int)ioarray_.size();
-  int total;
-  Parallel::EnsembleComm().Reduce(&total, &mysize, 1, MPI_INT, MPI_SUM);
-  mprintf(" %i members written) ", total);
-  // Since first member may be skipped, do not print if empty. 
-  if (ioarray_.empty())
-    mprintf("\n");
-  else
-# else
-  mprintf(" %zu members written) ", ioarray_.size());
-# endif
+  // Use MembersToWrite() instead of ioarray since 'onlymembers' may have been specified
+  mprintf("(Ensemble, %i members written", MembersToWrite().Size());
+  if (MembersToWrite().Size() < ensembleSize_) {
+    mprintf(":");
+    for (Range::const_iterator it = MembersToWrite().begin();
+                               it != MembersToWrite().end(); ++it)
+      mprintf(" %i", *it);
+  }
+  mprintf(") ");
+  if (!ioarray_.empty()) //FIXME: If 'onlymembers' does not include 0, no info printed
     ioarray_.front()->Info();
-  Traj().CommonInfo();
+  Traj().CommonInfo(); // NOTE: Prints newline
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------

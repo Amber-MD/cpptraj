@@ -66,7 +66,7 @@ int Trajin_Multi::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, Topolog
 // Trajin_Multi::BeginTraj() 
 int Trajin_Multi::BeginTraj() {
   // Open the trajectories
-  mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
+  if (debug_ > 0) mprintf("\tREMD: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
   for (TrajIOarray::const_iterator rep = REMDtraj_.begin(); rep != REMDtraj_.end(); ++rep)
   {
     if ( (*rep)->openTrajin()) {

@@ -29,8 +29,11 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
   }
   ArgList trajout_args = argIn;
   // Get onlymembers range
-  Range members_to_write = MembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_);
-  if (members_to_write.Empty()) return 1;
+  //if (SetMembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_)) return 1;
+  if (trajout_args.hasKey("onlymembers")) {
+    mprinterr("Error: 'onlymembers' not yet supported for single ensemble output.\n");
+    return 1;
+  }
   // Process common args
   if (SetTraj().CommonTrajoutSetup(tnameIn, trajout_args, writeFormatIn))
     return 1;
