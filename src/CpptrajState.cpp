@@ -59,8 +59,8 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
     if (trajinList_.AddEnsemble( fnameIn, topIn, argIn )) return 1;
 #   ifdef MPI
     // NOTE: SetupComms is called during ensemble setup.
-    rprintf("DEBUG: Inside SetTrajMode(%i): EnsembleComm rank %i\n", (int)modeIn,
-            Parallel::EnsembleComm().Rank());
+    //rprintf("DEBUG: Inside SetTrajMode(%i): EnsembleComm rank %i\n", (int)modeIn,
+    //        Parallel::EnsembleComm().Rank());
     // Make all sets a member of this ensemble.
     DSL_.SetEnsembleNum( Parallel::EnsembleComm().Rank() );
     // This tells all DataFiles to append ensemble member number to file name.
@@ -659,6 +659,8 @@ std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_s
     if (i < remainder) rank_frames[i]++;
   if (commIn.Master()) {
     mprintf("\nPARALLEL INFO:\n");
+    if (Parallel::EnsembleComm().Size() > 1)
+      mprintf("  %i threads per ensemble member.\n", commIn.Size());
     for (int i = 0; i != commIn.Size(); i++)
       mprintf("  Thread %i will process %i frames.\n", i, rank_frames[i]);
   }

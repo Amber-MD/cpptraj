@@ -796,7 +796,7 @@ const
   if (commIn.Master()) {
     for (int rank = 1; rank < commIn.Size(); rank++) {
       if (nhb_on_rank[rank] > 0) {
-        mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
+        //mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
         dArray.resize( 2 * nhb_on_rank[rank] );
         iArray.resize( 5 * nhb_on_rank[rank] );
         commIn.Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
@@ -814,24 +814,24 @@ const
             HB.D      = iArray[ii+3];
             HB.Frames = iArray[ii+4];
             HB.data_ = 0;
-            mprintf("\tNEW Hbond %i: %i-%i-%i D=%g A=%g %i frames", iArray[ii],
-                    HB.A+1, HB.H+1, HB.D+1, HB.dist,
-                    HB.angle, HB.Frames);
+            //mprintf("\tNEW Hbond %i: %i-%i-%i D=%g A=%g %i frames", iArray[ii],
+            //        HB.A+1, HB.H+1, HB.D+1, HB.dist,
+            //        HB.angle, HB.Frames);
             if (series_) {
               HB.data_ = (DataSet_integer*)
                          masterDSL_->AddSet( DataSet::INTEGER,
                                              MetaData(hbsetname_, aspect, iArray[ii]) );
               // FIXME: This may be incorrect if CurrentParm_ has changed
               HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
-              mprintf(" \"%s\"", HB.data_->legend());
+             // mprintf(" \"%s\"", HB.data_->legend());
             }
-            mprintf("\n");
+            //mprintf("\n");
             mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
           } else {
             // Hbond on rank and master. Update on master.
-            mprintf("\tAPPENDING Hbond %i: %i-%i-%i D=%g A=%g %i frames\n", iArray[ii],
-                    it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
-                    dArray[id+1], iArray[ii+4]);
+            //mprintf("\tAPPENDING Hbond %i: %i-%i-%i D=%g A=%g %i frames\n", iArray[ii],
+            //        it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
+            //        dArray[id+1], iArray[ii+4]);
             it->second.dist  += dArray[id  ];
             it->second.angle += dArray[id+1];
             it->second.Frames += iArray[ii+4];
@@ -841,8 +841,8 @@ const
           if (series_) {
             HB.data_->Resize( Nframes_ );
             int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
-            mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
-                    Nframes_, rank_offsets[rank], rank_frames[rank]);
+            //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
+            //        Nframes_, rank_offsets[rank], rank_frames[rank]);
             commIn.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
             HB.data_->SetNeedsSync( false );
           }
@@ -892,18 +892,18 @@ int Action_Hbond::SyncAction() {
   // Get total number of frames.
   int* rank_frames = new int[ trajComm_.Size() ];
   trajComm_.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
-  mprintf("DEBUG: Master= %i frames\n", Nframes_);
+  //mprintf("DEBUG: Master= %i frames\n", Nframes_);
   for (int rank = 1; rank < trajComm_.Size(); rank++) {
-    mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+    //mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
     Nframes_ += rank_frames[ rank ];
   }
-  mprintf("DEBUG: Total= %i frames.\n", Nframes_);
+  //mprintf("DEBUG: Total= %i frames.\n", Nframes_);
   // Convert rank frames to offsets.
   int* rank_offsets = new int[ trajComm_.Size() ];
   rank_offsets[0] = 0;
   for (int rank = 1; rank < trajComm_.Size(); rank++) {
     rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
-    mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
+    //mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
   }
   //int total_frames = 0;
   //trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
@@ -921,7 +921,7 @@ int Action_Hbond::SyncAction() {
       {
         // Receive size of iArray
         trajComm_.Recv( &iSize,           1, MPI_INT, rank, 1302 );
-        mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
+        //mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
         iArray.resize( iSize );
         trajComm_.Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
         unsigned int idx = 0;

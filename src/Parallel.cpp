@@ -134,12 +134,13 @@ int Parallel::SetupComms(int ngroups) {
     ensembleComm_ = world_.Split( ID );
     // DEBUG 
     if (trajComm_.Master())
-      fprintf(stdout,"[%i] DEBUG: I am in the ensemble master comm\n", world_.Rank());
+      fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i (ensemble master)\n",
+              world_.Rank(), trajComm_.Rank()+1, trajComm_.Size(),
+              ensembleComm_.Rank()+1, ensembleComm_.Size());
     else
-      fprintf(stdout,"[%i] DEBUG: Not part of ensemble master comm\n", world_.Rank());
-    fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i\n",
-            world_.Rank(), trajComm_.Rank(), trajComm_.Size(),
-            ensembleComm_.Rank(), ensembleComm_.Size());
+      fprintf(stdout,"[%i] DEBUG: RANKS: TrajComm %i/%i  EnsembleComm %i/%i\n",
+              world_.Rank(), trajComm_.Rank()+1, trajComm_.Size(),
+              ensembleComm_.Rank()+1, ensembleComm_.Size());
     world_.Barrier();
   }
   return 0;

@@ -242,7 +242,7 @@ void DataFileList::List() const {
     }
     if (!cfList_.empty()) {
       for (unsigned int idx = 0; idx != cfList_.size(); idx++)
-        rprintf("  %s (%s)\n", cfList_[idx]->Filename().base(), cfData_[idx].descrip());
+        mprintf("  %s (%s)\n", cfList_[idx]->Filename().base(), cfData_[idx].descrip());
     }
   }
 }
