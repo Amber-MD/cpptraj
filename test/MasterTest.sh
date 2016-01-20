@@ -282,12 +282,13 @@ RequiresThreads() {
       return 0
     fi
     N_THREADS=`$DO_PARALLEL $NPROC`
-    if [[ $N_THREADS -ne $1 ]] ; then
+    REMAINDER=`echo "$N_THREADS % $1" | bc`
+    if [[ -z $REMAINDER || $REMAINDER -ne 0 ]] ; then
       echo ""
       if [[ ! -z $2 ]] ; then
         echo "  CPPTRAJ: $2"
       fi
-      echo "  Warning: Test requires $1 parallel threads. Skipping."
+      echo "  Warning: Test requires a multiple of $1 parallel threads. Skipping."
       return 1
     fi
   fi

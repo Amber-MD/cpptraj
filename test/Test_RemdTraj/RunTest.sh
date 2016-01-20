@@ -9,15 +9,17 @@ CleanFiles remd.in d1.offset.dat d1.crd.dat d1.nc.dat temp.crd.* \
 INPUT="-i remd.in"
 
 # Test 0
-cat > remd.in <<EOF
+MaxThreads 5 "CRD Replica Trajectory Run with offset"
+if [[ $? -eq 0 ]] ; then
+  cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
 trajin rem.crd.000 remdtraj remdtrajtemp 492.2 1 11 2
 distance d1 out d1.offset.dat @1 @21
 EOF
-RunCpptraj "CRD Replica Trajectory Run with offset"
-DoTest d1.offset.dat.save d1.offset.dat
-CheckTest
+  RunCpptraj "CRD Replica Trajectory Run with offset"
+  DoTest d1.offset.dat.save d1.offset.dat
+fi
 
 # Test 1
 cat > remd.in <<EOF
@@ -28,7 +30,6 @@ distance d1 out d1.crd.dat @1 @21
 EOF
 RunCpptraj "CRD Replica Trajectory Run"
 DoTest d1.crd.dat.save d1.crd.dat
-CheckTest
 
 # Test 2
 CheckNetcdf
@@ -40,7 +41,6 @@ distance d1 out d1.nc.dat @1 @21
 EOF
 RunCpptraj "NETCDF Replica Trajectory Run"
 DoTest d1.nc.dat.save d1.nc.dat
-CheckTest
 
 # Remdout test
 RequiresThreads 4 "CRD Replica Trajectory Run with remdout"
