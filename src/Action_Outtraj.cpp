@@ -138,11 +138,12 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
-#         ifdef MPI
-          total_frames_
-#         else
-          outtraj_.Traj().NframesWritten()
-#         endif
-         );
+  // Possible to write 0 frames due to 'onlymembers'
+# ifdef MPI
+  int frames_written = total_frames_;
+# else
+  int frames_written = outtraj_.Traj().NframesWritten();
+# endif
+  if (frames_written > 0)
+    mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(), frames_written);
 }
