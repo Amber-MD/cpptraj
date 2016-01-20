@@ -26,7 +26,9 @@ class TrajinList {
     void FirstEnsembleReplicaInfo() const {
       if (!ensemble_.empty()) ensemble_.front()->PrintReplicaInfo();
     }
-
+#   ifdef MPI
+    EnsembleIn* EnsPtr(int idx) { return ensemble_[idx]; }
+#   endif
     bool empty()         const { return trajin_.empty() && ensemble_.empty(); }
     int MaxFrames()      const { return maxframes_; }
     int TopFrames(int i) const { return topFrames_[i]; }
