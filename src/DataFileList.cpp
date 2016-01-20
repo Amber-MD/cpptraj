@@ -3,9 +3,6 @@
 #include "CpptrajStdio.h"
 #include "PDBfile.h"
 #include "StringRoutines.h" // integerToString
-#ifdef MPI
-# include "Parallel.h"
-#endif
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -230,9 +227,6 @@ CpptrajFile* DataFileList::AddCpptrajFile(FileName const& nameIn,
 // DataFileList::List()
 /** Print information on what datasets are going to what datafiles */
 void DataFileList::List() const {
-# ifdef MPI
-  Parallel::World().Barrier();
-# endif
   if (!fileList_.empty() || !cfList_.empty()) {
     mprintf("\nDATAFILES (%zu total):\n", fileList_.size() + cfList_.size());
     if (!fileList_.empty()) {
