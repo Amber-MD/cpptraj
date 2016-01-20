@@ -7,7 +7,8 @@ CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
            fit.mol2 rmsd.dat map.chm_to_amb.dat mapped.pdb.? rmsout.dat
 
 INPUT="-i atommap.in"
-if [[ -z $DO_PARALLEL ]] ; then
+MaxThreads 1 "AtomMap Test"
+if [[ $? -eq 0 ]] ; then
   # Test 1
   cat > atommap.in <<EOF
 noprogress
@@ -38,7 +39,9 @@ EOF
 fi
 
 # Test 2
-cat > atommap.in <<EOF
+MaxThreads 2 "AtomMap with 'rmsfit'"
+if [[ $? -eq 0 ]] ; then
+  cat > atommap.in <<EOF
 parm xtallig.mol2
 reference xtallig.mol2
 
@@ -49,11 +52,14 @@ atommap xtallig.mol2 start.mol2 rmsfit rmsout rmsout.dat 1g9v
 
 trajin xtallig.mol2
 EOF
-RunCpptraj "AtomMap with 'rmsfit'"
-DoTest rmsd.dat.save rmsout.dat
+  RunCpptraj "AtomMap with 'rmsfit'"
+  DoTest rmsd.dat.save rmsout.dat
+fi
 
 # Test 3
-cat > atommap.in <<EOF
+MaxThreads 3 "Atom map charmm->amber atom order"
+if [[ $? -eq 0 ]] ; then
+  cat > atommap.in <<EOF
 parm cg-amb.topo
 reference cg-amb.crds
 parm cg-chm.topo
@@ -62,9 +68,9 @@ atommap cg-amb.crds cg-chm.crds mapout map.chm_to_amb.dat
 trajin cg.crd
 trajout mapped.pdb pdb multi
 EOF
-RunCpptraj "Atom map charmm->amber atom order"
-DoTest map.chm_to_amb.dat.save map.chm_to_amb.dat
-
+  RunCpptraj "Atom map charmm->amber atom order"
+  DoTest map.chm_to_amb.dat.save map.chm_to_amb.dat
+fi
 EndTest
 
 exit 0
