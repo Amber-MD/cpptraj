@@ -97,6 +97,7 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
   }
   // If desired traj is different than current, open desired traj
   if (IDX_.TrajHasChanged()) {
+    if (Traj_ != 0) Traj_->EndTraj();
     Trajin* previousTraj = Traj_;
     Traj_ = trajinList_[ IDX_.CurrentTrajNum() ];
     // NOTE: Currently enforcing all traj have same # atoms, no need to check topology.
