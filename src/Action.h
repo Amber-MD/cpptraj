@@ -3,9 +3,6 @@
 #include "DispatchObject.h"
 #include "ArgList.h"
 #include "ActionState.h"
-#ifdef MPI
-# include "Parallel.h"
-#endif
 /// The abstract base class that all other Actions inherit.
 /** By convention Actions have 3 main phases: Init, Setup, and DoAction.
   * Init is used to initialize the Action, make sure that all arguments

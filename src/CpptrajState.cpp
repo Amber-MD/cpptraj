@@ -5,8 +5,8 @@
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
-#include "Parallel.h" // Not inside ifdef for Parallel::World().Barrier()
 #ifdef MPI
+# include "Parallel.h"
 # include "DataSet_Coords_TRJ.h"
 # ifdef TIMER
 #   include "EnsembleIn.h"

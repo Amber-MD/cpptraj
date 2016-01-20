@@ -85,7 +85,6 @@ class Parallel::Comm {
     int CheckError(int) const;
 #   else
     Comm() : rank_(0), size_(1) {}
-    void Barrier() const {}
 #   endif
   private:
 #   ifdef CPPTRAJ_MPI

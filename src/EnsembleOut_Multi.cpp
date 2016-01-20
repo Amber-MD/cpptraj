@@ -62,7 +62,7 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
   tIndex_.reserve( ensembleSize_ );
   int ioidx = 0;
   for (int num = 0; num < ensembleSize_; num++) {
-    if (MembersToWrite.InRange( num )) {
+    if (MembersToWrite().InRange( num )) {
       fileNames_.push_back( AppendNumber(Traj().Filename().Full(), num) );
       tIndex_.push_back( ioidx++ );
     } else {
