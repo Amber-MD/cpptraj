@@ -9,19 +9,17 @@ CleanFiles lie.in test.out LIE.out
 CheckNetcdf
 CheckZlib
 CheckBzlib
-
-cat > lie.in <<EOF
+MaxThreads 2
+if [[ $? -eq 0 ]] ; then
+  cat > lie.in <<EOF
 trajin test.mdcrd
 lie LIE :RAL out LIE.out cutvdw 12 cutelec 12
 EOF
-
-INPUT="lie.in"
-TOP="sol.top"
-RunCpptraj "LIE Test"
-
-DoTest LIE.out.save LIE.out
-CheckTest
-
+  INPUT="lie.in"
+  TOP="sol.top"
+  RunCpptraj "LIE Test"
+  DoTest LIE.out.save LIE.out
+fi
 EndTest
 
 exit 0
