@@ -5,7 +5,11 @@
 CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd
 
 INPUT="ptraj.in"
-
+MaxThreads 2 "Unwrap tests"
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
 TOP="../tz2.truncoct.parm7"
 cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc 1 2
@@ -14,7 +18,6 @@ trajout unwrap.crd title "Test"
 EOF
 RunCpptraj "Unwrap non-orthogonal test"
 DoTest unwrap.crd.save unwrap.crd
-CheckTest
 
 TOP="../tz2.ortho.parm7"
 cat > ptraj.in <<EOF
@@ -24,8 +27,6 @@ trajout unwrap.ortho.crd title "Test"
 EOF
 RunCpptraj "Unwrap orthogonal test"
 DoTest unwrap.ortho.crd.save unwrap.ortho.crd
-CheckTest
-
 
 EndTest
 
