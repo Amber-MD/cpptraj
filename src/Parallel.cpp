@@ -104,6 +104,15 @@ int Parallel::Abort(int errcode) {
   return 1;
 }
 
+/** Trajectory and Ensemble communicators are set up orthogonal to one
+  * another. In row-major notation, Trajectory communicators are set up
+  * across rows, and Ensemble communicators are set up down columns. For
+  * example, if reading in 2 ensemble members with 3 threads per member
+  * (world size 6), the layout would be:
+  *   0 1 2 (member 0)
+  *   3 4 5 (member 1)
+  * Threads 0 and 3 would read the first third of the trajectories, etc.
+  */
 int Parallel::SetupComms(int ngroups) {
   if (ngroups < 1) {
     // If ngroups < 1 assume we want to reset comm info
