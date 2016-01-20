@@ -9,7 +9,7 @@ CleanFiles lie.in test.out LIE.out
 CheckNetcdf
 CheckZlib
 CheckBzlib
-MaxThreads 2
+MaxThreads 2 "LIE test"
 if [[ $? -eq 0 ]] ; then
   cat > lie.in <<EOF
 trajin test.mdcrd
