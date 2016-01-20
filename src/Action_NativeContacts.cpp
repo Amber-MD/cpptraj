@@ -499,7 +499,6 @@ int Action_NativeContacts::SyncAction() {
   trajComm_.Reduce( &total_frames, &N, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     nframes_ = (unsigned int)total_frames;
-  mprintf("DEBUG: Total frames: %u\n", nframes_);
   // Should have the same number of contacts on each thread since reference is shared.
   for (contactListType::iterator it = nativeContacts_.begin(); it != nativeContacts_.end(); ++it)
   {

@@ -374,15 +374,10 @@ int Action_Closest::SyncAction() {
   // Get total number of closest entries.
   std::vector<int> rank_frames( trajComm_.Size() );
   trajComm_.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
-  mprintf("DEBUG: Master= %i frames\n", Nclosest_);
-  for (int rank = 1; rank < trajComm_.Size(); rank++) {
-    mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
     Nclosest_ += rank_frames[ rank ];
-  }
-  mprintf("DEBUG: Total= %i frames.\n", Nclosest_);
   framedata_->Sync( Nclosest_, rank_frames, trajComm_ );
   framedata_->SetNeedsSync( false );
-  mprintf("DEBUG: framedata_ size is %zu\n", framedata_->Size());
   moldata_->Sync( Nclosest_, rank_frames, trajComm_ );
   moldata_->SetNeedsSync( false );
   distdata_->Sync( Nclosest_, rank_frames, trajComm_ );

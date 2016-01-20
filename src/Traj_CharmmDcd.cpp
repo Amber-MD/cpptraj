@@ -734,7 +734,7 @@ void Traj_CharmmDcd::parallelCloseTraj() {
     file_.CloseFile();
     framecount.i[1] = 0;
     framecount.i[0] = dcdframes_;
-    mprintf("\tDEBUG: Parallel updated DCD frame count is %i\n", dcdframes_);
+    if (debug_>0) mprintf("\tDEBUG: Parallel updated DCD frame count is %i\n", dcdframes_);
     if (master_) {
       file_.OpenFile(CpptrajFile::UPDATE);
       file_.Seek( blockSize_+4 );

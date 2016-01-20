@@ -136,7 +136,7 @@ int Action_AtomicCorr::SyncAction() {
     int total_elements = rank_sizes[0];
     for (int rank = 1; rank < trajComm_.Size(); rank++)
       total_elements += rank_sizes[rank];
-    mprintf("DEBUG: Total atomiccorr elements: %i\n", total_elements);
+    //mprintf("DEBUG: Total atomiccorr elements: %i\n", total_elements);
     int idx = 0; // For tag
     for (ACvector::iterator av = atom_vectors_.begin();
                             av != atom_vectors_.end(); ++av, ++idx)

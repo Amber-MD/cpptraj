@@ -624,7 +624,7 @@ void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFr
           ++nClustersObserved;
           *ob = false;
         }
-      mprintf("DEBUG: WINDOW at frame %i; %i clusters observed\n", frame+1, nClustersObserved);
+      //mprintf("DEBUG: WINDOW at frame %i; %i clusters observed\n", frame+1, nClustersObserved);
       clustersVtime_->Add( dataIdx++, &nClustersObserved );
     }
   }

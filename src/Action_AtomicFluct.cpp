@@ -139,10 +139,8 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
 int Action_AtomicFluct::SyncAction() {
   int total_frames = 0;
   trajComm_.Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
-  if (trajComm_.Master()) {
+  if (trajComm_.Master())
     sets_ = total_frames;
-    rprintf("DEBUG: Total frames= %i\n", sets_);
-  }
   SumCoords_.SumToMaster(trajComm_);
   SumCoords2_.SumToMaster(trajComm_);
   Cross_.SumToMaster(trajComm_);
