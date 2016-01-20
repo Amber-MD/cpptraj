@@ -350,6 +350,131 @@ int CpptrajState::Run() {
 }
 
 // -----------------------------------------------------------------------------
+#ifdef MPI
+int CpptrajState::RunParaEnsemble() {
+  // Only two frames needed; one for reading, one for receiving.
+  FrameArray FrameEnsemble( 2 );
+  FramePtrArray SortedFrames( 2 );
+  // In parallel, each ensemble member is responsible for only 1 frame.
+  FramePtrArray CurrentFrames( 1 );
+  // TODO Check ensemble size?
+  // List state
+  trajinList_.FirstEnsembleReplicaInfo();
+  trajinList_.List();
+  DSL_.ListTopologies();
+  DSL_.ListReferenceFrames();
+  // Use separate TrajoutList. Existing trajout in current TrajoutList
+  // will be converted to ensemble trajout.
+  // FIXME should no longer be necessary
+  EnsembleOutList ensembleOut;
+  if (!trajoutList_.Empty()) {
+    if (trajoutList_.MakeEnsembleTrajout(ensembleOut, Parallel::EnsembleComm().Size()))
+      return 1;
+    mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
+            " suffix corresponds to above map):\n");
+    Parallel::World().Barrier();
+    ensembleOut.List( trajinList_.PindexFrames() );
+    Parallel::World().Barrier();
+  }
+  // Allocate DataSets in the master DataSetList based on # frames to be read
+  DSL_.AllocateSets( trajinList_.MaxFrames() );
+  
+  // ========== A C T I O N  P H A S E =========
+  int lastPindex=-1;               // Index of the last loaded parm file
+  int readSets = 0;
+  int actionSet = 0;
+  CoordinateInfo currentCoordInfo; // CoordInfo for current frame
+  Timer frames_time;
+  frames_time.Start();
+  // Loop over every trajectory in trajFileList
+  mprintf("\nBEGIN PARALLEL ENSEMBLE PROCESSING:\n");
+  ProgressBar progress;
+  if (showProgress_)
+    progress.SetupProgress( trajinList_.MaxFrames() );
+  for ( TrajinList::ensemble_it traj = trajinList_.ensemble_begin();
+                                traj != trajinList_.ensemble_end(); ++traj)
+  {
+    // Open up the trajectory file. If an error occurs, bail
+    if ( (*traj)->BeginEnsemble() ) {
+      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
+      break;
+    }
+    Topology* topPtr = (*traj)->Traj().Parm();
+    topPtr->SetBoxFromTraj( (*traj)->EnsembleCoordInfo().TrajBox() ); // FIXME necessary?
+    // Check if Topology has changed
+    bool parmHasChanged = (lastPindex != topPtr->Pindex());
+    // If Topology or Frame have changed, re-allocate.
+    if (parmHasChanged || currentCoordInfo != (*traj)->EnsembleCoordInfo()) {
+      FrameEnsemble.SetupFrames( topPtr->Atoms(), (*traj)->EnsembleCoordInfo() );
+      currentCoordInfo = (*traj)->EnsembleCoordInfo();
+    }
+    // If Topology has changed, reset Actions for current Topology.
+    if (parmHasChanged) {
+      ActionSetup currentSetup( (*traj)->Traj().Parm(), (*traj)->EnsembleCoordInfo(),
+                                trajinList_.TopFrames(topPtr->Pindex()) );
+      int err = actionList_.SetupActions( currentSetup, exitOnError_ );
+      if (err)
+        rprintf("Warning: Ensemble member %i: Could not set up actions for %s: skipping.\n",
+                  Parallel::EnsembleComm().Rank(), topPtr->c_str());
+      if ( Parallel::World().CheckError( err ) ) continue;
+      // Set up any related output trajectories.
+      ensembleOut.SetupEnsembleOut( currentSetup.TopAddress(), currentSetup.CoordInfo(),
+                                    currentSetup.Nframes() );
+    }
+    // Loop over every collection of frames in the ensemble
+    (*traj)->Traj().PrintInfoLine();
+    while ( (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames) )
+    {
+      if (!(*traj)->BadEnsemble()) {
+        // Since Frame can be modified by actions, save original and use currentFrame
+        ActionFrame currentFrame( SortedFrames[0], actionSet );
+        if ( currentFrame.Frm().CheckCoordsInvalid() )
+          rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
+                  Parallel::EnsembleComm().Rank(),
+                  (*traj)->Traj().Counter().PreviousFrameNumber()+1);
+        // Perform Actions on Frame
+        bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
+        if (!suppress_output) {
+          CurrentFrames[0] = currentFrame.FramePtr();
+          if (ensembleOut.WriteEnsembleOut(actionSet, CurrentFrames))
+          {
+            rprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
+            if (exitOnError_) return 1;
+          }
+        }
+      } else {
+        rprinterr("Error: Could not read frame %i for ensemble.\n", actionSet + 1);
+      }
+      if (showProgress_) progress.Update( actionSet );
+      // Increment frame counter
+      ++actionSet;
+    } // END loop over ensemble frames
+    // Close the trajectory file
+    (*traj)->EndEnsemble();
+    // Update how many frames have been processed.
+    readSets += (*traj)->Traj().Counter().NumFramesProcessed();
+    mprintf("\n");
+  } // End loop over trajin
+  mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
+  frames_time.Stop();
+  frames_time.WriteTiming(0," Trajectory processing:");
+  mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
+          (double)readSets / frames_time.Total());
+# ifdef TIMER
+  Ensemble::TimingData(trajin_time.Total());
+# endif
+  // Close output trajectories
+  ensembleOut.CloseEnsembleOut();
+
+  // ========== A C T I O N  O U T P U T  P H A S E ==========
+  mprintf("\nENSEMBLE ACTION OUTPUT:\n");
+  actionList_.PrintActions();
+  // Sync DataSets across all threads. 
+  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
+  return 0;
+}
+#endif
+
 // CpptrajState::RunEnsemble()
 int CpptrajState::RunEnsemble() {
   Timer init_time;

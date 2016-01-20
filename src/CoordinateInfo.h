@@ -40,6 +40,12 @@ class CoordinateInfo {
 #   ifdef MPI
     int SyncCoordInfo(Parallel::Comm const&);
 #   endif
+    /// \return True if Frame would need to be re-setup based on CoordinateInfo
+    bool operator !=(CoordinateInfo const& rhs) {
+      return (hasVel_ != rhs.hasVel_ ||
+              hasFrc_ != rhs.hasFrc_ ||
+              remdDim_.Ndims() != rhs.remdDim_.Ndims());
+    }
   private:
     ReplicaDimArray remdDim_; ///< Hold info on any replica dimensions.
     Box box_;                 ///< Hold box information.
