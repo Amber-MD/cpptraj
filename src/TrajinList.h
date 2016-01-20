@@ -14,7 +14,7 @@ class TrajinList {
     /// Add a trajectory file to the list.
     int AddTrajin(std::string const&, Topology*, ArgList const&);
     /// Add an ensemble to the list.
-    int AddEnsemble(std::string const&, Topology*, ArgList const&);
+    int AddEnsembleIn(std::string const&, Topology*, ArgList const&);
 
     typedef tListType::const_iterator trajin_it;
     trajin_it trajin_begin() const { return trajin_.begin(); }

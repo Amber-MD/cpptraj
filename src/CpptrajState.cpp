@@ -56,7 +56,7 @@ int CpptrajState::SetTrajMode(TrajModeType modeIn, std::string const& fnameIn,
   } else // Mode not yet set. Set DataSetList / DataFileList mode if necessary.
     mode_ = modeIn;
   if (mode_ == ENSEMBLE) {
-    if (trajinList_.AddEnsemble( fnameIn, topIn, argIn )) return 1;
+    if (trajinList_.AddEnsembleIn( fnameIn, topIn, argIn )) return 1;
 #   ifdef MPI
     // NOTE: SetupComms is called during ensemble setup.
     //rprintf("DEBUG: Inside SetTrajMode(%i): EnsembleComm rank %i\n", (int)modeIn,

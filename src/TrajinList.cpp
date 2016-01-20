@@ -41,8 +41,8 @@ void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
   }
 }
 
-// TrajinList::AddEnsemble()
-int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList const& argIn)
+// TrajinList::AddEnsembleIn()
+int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList const& argIn)
 {
   if (topIn == 0) {
     mprinterr("Error: No topology for input ensemble '%s'\n", fname.c_str());
