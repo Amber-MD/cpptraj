@@ -803,7 +803,7 @@ int CpptrajState::RunParaEnsemble() {
     currentEns->ReadEnsemble( internalIdx, FrameEnsemble, SortedFrames );
     if (!currentEns->BadEnsemble()) {
       // Since Frame can be modified by actions, save original and use currentFrame
-      ActionFrame currentFrame( SortedFrames[0], actionSet );
+      ActionFrame currentFrame( SortedFrames[0], set );
       if ( currentFrame.Frm().CheckCoordsInvalid() )
         rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
                 EnsComm.Rank(), currentEns->Traj().Counter().PreviousFrameNumber()+1);
