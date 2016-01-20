@@ -378,40 +378,31 @@ int CpptrajState::Run() {
 int CpptrajState::RunEnsemble() {
   Timer init_time;
   init_time.Start();
-  FrameArray FrameEnsemble;
-  FramePtrArray SortedFrames;
-
-  mprintf("\nINPUT ENSEMBLE:\n");
+  // Print ensemble size
   int ensembleSize = trajinList_.EnsembleSize();
-  mprintf("  Ensemble size is %i\n", ensembleSize);
+  mprintf("\nENSEMBLE INFO:\n  Ensemble size is %i\n", ensembleSize);
   // Allocate space to hold position of each incoming frame in replica space.
 # ifdef MPI
-  // Only two frames needed; one for reading, one for receiving.
-  SortedFrames.resize( 2 );
-  FrameEnsemble.resize( 2 );
+  // In parallel only two frames needed; one for reading, one for receiving.
+  FramePtrArray SortedFrames( 2 );
+  FrameArray FrameEnsemble( 2 );
+  // Each thread will process one member of the ensemble, so local ensemble
+  // size is effectively 1.
+  ensembleSize = 1;
 # else
-  SortedFrames.resize( ensembleSize );
-  FrameEnsemble.resize( ensembleSize );
+  FramePtrArray SortedFrames( ensembleSize );
+  FrameArray FrameEnsemble( ensembleSize );
 # endif
-  // At this point all ensembles should match (i.e. same map etc.)
+  // List state
   trajinList_.FirstEnsembleReplicaInfo();
-
-  // Calculate frame division among trajectories
   trajinList_.List();
-  // Parameter file information
   DSL_.ListTopologies();
-  // Print reference information 
   DSL_.ListReferenceFrames();
-  // Print output ensemble info
   ensembleOut_.List( trajinList_.PindexFrames() );
 
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
-# ifdef MPI
-  // Each thread will process one member of the ensemble, so local ensemble
-  // size is effectively 1.
-  ensembleSize = 1;
-# endif
+
   // Allocate an ActionList for each member of the ensemble.
   std::vector<ActionList*> ActionEnsemble( ensembleSize );
   ActionEnsemble[0] = &actionList_;
@@ -447,9 +438,8 @@ int CpptrajState::RunEnsemble() {
   SetWorldSilent( false );
 # endif
   init_time.Stop();
-  // Re-enable output
-  SetWorldSilent( false );
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
+
   // ========== A C T I O N  P H A S E ==========
   int lastPindex=-1;          // Index of the last loaded parm file
   int readSets = 0;
@@ -622,10 +612,6 @@ int CpptrajState::RunEnsemble() {
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
     ActionEnsemble[member]->PrintActions();
-# ifdef MPI
-  // Sync DataSets across all threads. 
-  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
-# endif
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
@@ -670,6 +656,8 @@ int CpptrajState::RunParaEnsemble() {
   // Set Comms
   Parallel::Comm const& EnsComm = Parallel::EnsembleComm();
   Parallel::Comm const& TrajComm = Parallel::TrajComm();
+  // Print ensemble size
+  mprintf("\nENSEMBLE INFO:\n  Ensemble size is %i\n", trajinList_.EnsembleSize());
   // Only two frames needed; one for reading, one for receiving.
   FrameArray FrameEnsemble( 2 );
   FramePtrArray SortedFrames( 2 );
