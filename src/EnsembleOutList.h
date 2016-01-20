@@ -20,6 +20,9 @@ class EnsembleOutList {
     void List(std::vector<int> const&) const;
     /// \return true if no output ensembles present.
     bool Empty() const { return ensout_.empty(); }
+#   ifdef MPI
+    int ParallelSetupEnsembleOut(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
+#   endif
   private:
     int debug_;
     typedef std::vector<Topology*> TopArray;

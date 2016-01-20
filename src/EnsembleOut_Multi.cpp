@@ -121,7 +121,12 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
 void EnsembleOut_Multi::EndEnsemble() {
   //if (TrajIsOpen()) {
     for (IOarrayType::const_iterator tio = ioarray_.begin(); tio != ioarray_.end(); ++tio)
-      (*tio)->closeTraj();
+#     ifdef MPI
+      if (trajComm_.Size() > 1)
+        (*tio)->parallelCloseTraj();
+      else
+#     endif
+        (*tio)->closeTraj();
   //  SetTrajIsOpen( false );
   //}
 }
@@ -131,10 +136,16 @@ void EnsembleOut_Multi::EndEnsemble() {
   * been modified (e.g. by a 'strip' command) since the output trajectory was
   * initialized.
   */
-int EnsembleOut_Multi::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
-  // Setup topology and coordiante info.
+int EnsembleOut_Multi::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                          int nFrames)
+{
+  // Setup topology and coordinate info.
   if (SetTraj().SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
+# ifdef MPI
+  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
+    return ParallelSetupEnsembleWrite();
+# endif
   // Set up all TrajectoryIOs
   //if (!TrajIsOpen()) {
     for (unsigned int m = 0; m != ioarray_.size(); ++m) {
@@ -157,9 +168,14 @@ int EnsembleOut_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
   if (SetTraj().CheckFrameRange(set)) return 0;
   // Write
 # ifdef MPI
+  int err = 0;
   if (!ioarray_.empty()) {
-    if (ioarray_.front()->writeFrame(set, *Farray.front())) return 1;
+    if (trajComm_.Size() > 1)
+      err = ioarray_.front()->parallelWriteFrame(set, *Farray.front());
+    else
+      err = ioarray_.front()->writeFrame(set, *Farray.front());
   }
+  return err;
 # else
   for (int member = 0; member != ensembleSize_; member++) {
     int tidx = tIndex_[member];
@@ -167,8 +183,8 @@ int EnsembleOut_Multi::WriteEnsemble(int set, FramePtrArray const& Farray)
       if (ioarray_[tidx]->writeFrame(set, *Farray[member])) return 1;
     }
   }
-# endif
   return 0;
+# endif
 }
 
 // EnsembleOut_Multi::PrintInfo()
@@ -193,3 +209,21 @@ void EnsembleOut_Multi::PrintInfo(int expectedNframes) const {
     ioarray_.front()->Info();
   Traj().CommonInfo();
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int EnsembleOut_Multi::ParallelSetupEnsembleWrite()
+{
+  int err = 0;
+  // Set up all TrajectoryIOs
+  //if (!TrajIsOpen()) {
+    for (unsigned int m = 0; m != ioarray_.size(); ++m) {
+      err += ioarray_[m]->parallelSetupTrajout(fileNames_[m], Traj().Parm(), Traj().CoordInfo(),
+                                               Traj().NframesToWrite(), Traj().Append(),
+                                               trajComm_);
+      err += ioarray_[m]->parallelOpenTrajout( trajComm_ );
+    }
+    if (trajComm_.CheckError( err )) return 1;
+  //}
+  return 0;
+}
+#endif

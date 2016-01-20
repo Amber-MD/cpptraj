@@ -13,6 +13,9 @@ class EnsembleOut_Single : public EnsembleOut {
     void EndEnsemble();
     int WriteEnsemble(int, FramePtrArray const&);
     void PrintInfo(int) const;
+#   ifdef MPI
+    int ParallelSetupEnsembleWrite();
+#   endif
   private:
     TrajectoryIO* eio_; // TODO Make EnsembleIO
     int ensembleSize_;

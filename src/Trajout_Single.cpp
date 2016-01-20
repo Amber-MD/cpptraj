@@ -114,13 +114,13 @@ void Trajout_Single::EndTraj() {
 
 /** Perform any topology-related setup for this trajectory */
 int Trajout_Single::SetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
-# ifdef MPI
-  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
-    return ParallelSetupTrajWrite(tparmIn, cInfoIn, nFrames);
-# endif
   // Set up topology and coordinate info.
   if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
+# ifdef MPI
+  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
+    return ParallelSetupTrajWrite();
+# endif
   if (debug_ > 0)
     rprintf("\tSetting up %s for WRITE, topology '%s' (%i atoms).\n",
             traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom());
@@ -162,9 +162,7 @@ void Trajout_Single::PrintInfo(int expectedNframes) const {
 }
 #ifdef MPI
 // -----------------------------------------------------------------------------
-int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
-                                           int nFrames)
-{
+int Trajout_Single::ParallelSetupTrajWrite() {
   if (traj_.HasRange()) {
     mprinterr("Error: 'trajout' frame options not yet supported during parallel processing.\n");
     return 1;
@@ -173,12 +171,10 @@ int Trajout_Single::ParallelSetupTrajWrite(Topology* tparmIn, CoordinateInfo con
     mprinterr("Error: 'trajout' append not yet supported during parallel processing.\n");
     return 1;
   }
-  // Set up topology and coordinate info.
-  if (traj_.SetupCoordInfo(tparmIn, nFrames, cInfoIn))
-    return 1;
   if (debug_ > 0)
     rprintf("\tSetting up '%s' for WRITE in parallel, topology '%s' (%i atoms, %i frames).\n",
-            traj_.Filename().base(), tparmIn->c_str(), tparmIn->Natom(), traj_.NframesToWrite());
+            traj_.Filename().base(), traj_.Parm()->c_str(), traj_.Parm()->Natom(),
+            traj_.NframesToWrite());
   // Set up TrajectoryIO in parallel.
   if (trajio_->parallelSetupTrajout(traj_.Filename(), traj_.Parm(), traj_.CoordInfo(),
                                     traj_.NframesToWrite(), traj_.Append(), trajComm_))

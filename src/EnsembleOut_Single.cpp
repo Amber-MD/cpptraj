@@ -73,10 +73,16 @@ void EnsembleOut_Single::EndEnsemble() {
 }
 
 // EnsembleOut_Single::SetupEnsembleWrite()
-int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
+int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                           int nFrames)
+{
   // Set up topology and coordinate info.
   if (SetTraj().SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
+# ifdef MPI
+  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
+    return ParallelSetupEnsembleWrite();
+# endif
   if (debug_ > 0)
     rprintf("\tSetting up single ensemble %s for WRITE, topology '%s' (%i atoms).\n",
             Traj().Filename().base(), tparmIn->c_str(), tparmIn->Natom());
@@ -109,4 +115,10 @@ void EnsembleOut_Single::PrintInfo(int expectedNframes) const {
   eio_->Info();
   Traj().CommonInfo();
 }
+#ifdef MPI
+int EnsembleOut_Single::ParallelSetupEnsembleWrite() {
+  mprinterr("Error: Multiple threads per ensemble not supported for single ensemble write.\n");
+  return 1;
+}
 #endif
+#endif /* ENABLE_SINGLE_ENSEMBLE */

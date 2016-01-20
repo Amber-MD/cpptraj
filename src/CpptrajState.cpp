@@ -739,8 +739,9 @@ int CpptrajState::RunParaEnsemble() {
   }
 
   // Set up any related output trajectories.
-  if (ensembleOut_.SetupEnsembleOut( currentParm.TopAddress(), currentParm.CoordInfo(),
-                                     currentParm.Nframes() ))
+  if (ensembleOut_.ParallelSetupEnsembleOut( currentParm.TopAddress(),
+                                             currentParm.CoordInfo(),
+                                             currentParm.Nframes(), TrajComm ))
     return 1;
 
   // TODO Figure out if any frames need to be preloaded on ranks

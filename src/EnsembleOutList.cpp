@@ -113,3 +113,29 @@ void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
         ensout_[i]->PrintInfo( PindexFrames[ensTops_[i]->Pindex()] );
   }
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int EnsembleOutList::ParallelSetupEnsembleOut(Topology* CurrentParm,
+                                              CoordinateInfo const& cInfo, int Nframes,
+                                              Parallel::Comm const& commIn)
+{
+  active_.clear();
+  for (unsigned int i = 0; i != ensout_.size(); i++) {
+    // Check that input parm matches setup parm - if not, skip
+    if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
+      if (!open_[i]) {
+        ensout_[i]->SetTrajComm( commIn );
+        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, cInfo, Nframes ) )
+        {
+          mprinterr("Error: Setting up output ensemble '%s' in parallel\n",
+                    ensout_[i]->Traj().Filename().full());
+          return 1;
+        }
+        open_[i] = true;
+      }
+      active_.push_back( ensout_[i] );
+    }
+  }
+  return 0;
+}
+#endif

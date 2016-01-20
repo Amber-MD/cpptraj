@@ -14,7 +14,9 @@ class EnsembleOut_Multi : public EnsembleOut {
     void PrintInfo(int) const;
   private:
     void Clear();
-
+#   ifdef MPI
+    int ParallelSetupEnsembleWrite();
+#   endif
     typedef std::vector<TrajectoryIO*> IOarrayType;
     IOarrayType ioarray_;
     typedef std::vector<std::string> Sarray;
