@@ -3,6 +3,12 @@
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 
+void EnsembleOutList::SetDebug(int debugIn) {
+  debug_ = debugIn;
+  if (debug_ > 0)
+    mprintf("EnsembleOutList debug level set to %i\n", debug_);
+}
+
 void EnsembleOutList::Clear() {
   for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
     delete *ens;
@@ -12,10 +18,28 @@ void EnsembleOutList::Clear() {
   open_.clear();
 }
 
+// TODO Pass in more ensemble information, maps etc?
 int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
                                     Topology* eParm, int ensembleSize,
                                     TrajectoryFile::TrajFormatType fmt)
 {
+  if (eParm == 0) {
+    mprinterr("Error: No topology information.\n");
+    return 1;
+  }
+  if (fname.empty()) {
+    mprinterr("Internal Error: EnsembleOutList::AddEnsembleOut() called with empty filename.\n");
+    return 1;
+  }
+  // Determine if this filename is in use in order to prevent overwrites
+  for (EnsArray::const_iterator eo = ensout_.begin();
+                                eo != ensout_.end(); ++eo)
+  {
+    if ( (*eo)->Traj().Filename().Full() == fname ) {
+      mprinterr("Error: Output ensemble filename %s already in use.\n", fname.c_str());
+      return 1;
+    }
+  }
   ArgList argIn = args;
   EnsembleOut* ens = 0;
 # ifdef ENABLE_SINGLE_ENSEMBLE
