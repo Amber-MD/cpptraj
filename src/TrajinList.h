@@ -32,6 +32,7 @@ class TrajinList {
     bool empty()         const { return trajin_.empty() && ensemble_.empty(); }
     int MaxFrames()      const { return maxframes_; }
     int TopFrames(int i) const { return topFrames_[i]; }
+    int EnsembleSize()   const { return ensembleSize_; }
     unsigned int Size()  const { return trajin_.size() + ensemble_.size(); }
     std::vector<int> const& PindexFrames() const { return topFrames_; }
     void List() const;
@@ -46,5 +47,7 @@ class TrajinList {
     Iarray topFrames_; ///< Record how many frames currently associated with each topology.
     /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
     std::string finalCrdIndicesArg_;
+    /// Current ensemble size. All input ensembles in given run must be same size.
+    int ensembleSize_;
 };
 #endif

@@ -20,8 +20,7 @@ void EnsembleOutList::Clear() {
 
 // TODO Pass in more ensemble information, maps etc?
 int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
-                                    Topology* eParm, int ensembleSize,
-                                    TrajectoryFile::TrajFormatType fmt)
+                                    Topology* eParm, int ensembleSize)
 {
   if (eParm == 0) {
     mprinterr("Error: No topology information.\n");
@@ -51,7 +50,7 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
     // Create new multi output trajectory
     ens = new EnsembleOut_Multi();
   if (ens == 0) return 1;
-  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, fmt)) {
+  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, TrajectoryFile::UNKNOWN_TRAJ)) {
     delete ens;
     return 1;
   }
@@ -103,7 +102,9 @@ void EnsembleOutList::CloseEnsembleOut() {
 
 void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
   if (!ensout_.empty()) {
-    mprintf("\nOUTPUT ENSEMBLE:\n");
+    //mprintf("\nOUTPUT ENSEMBLE:\n");
+    mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
+            " suffix corresponds to above map):\n");
     if (PindexFrames.empty())
       for (unsigned int i = 0; i != ensout_.size(); i++)
         ensout_[i]->PrintInfo( 0 );

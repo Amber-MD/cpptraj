@@ -103,16 +103,26 @@ int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
 
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( ArgList& argIn ) {
+  // Default to NORMAL if not set.
+  if (mode_ == UNDEFINED) {
+    mprintf("Warning: Output traj specified before trajin/ensemble. Assuming trajin.\n");
+    SetTrajMode( NORMAL );
+  }
   std::string fname = argIn.GetStringNext();
   Topology* top = DSL_.GetTopology( argIn );
-  return trajoutList_.AddTrajout( fname, argIn, top );
+  int err = 1;
+  if (mode_ == NORMAL)
+    err = trajoutList_.AddTrajout( fname, argIn, top );
+  else if (mode_ == ENSEMBLE)
+    err = ensembleOut_.AddEnsembleOut( fname, argIn, top, trajinList_.EnsembleSize() );
+  return err;
 }
 
 // CpptrajState::AddOutputTrajectory()
 int CpptrajState::AddOutputTrajectory( std::string const& fname ) {
   // FIXME Should this use the last Topology instead?
-  ArgList blank;
-  return trajoutList_.AddTrajout( fname, blank, DSL_.GetTopology(blank) );
+  ArgList tmpArg(fname);
+  return AddOutputTrajectory( tmpArg );
 }
 
 // CpptrajState::AddToActionQueue()
@@ -209,7 +219,10 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
   if ( enabled[L_ACTION]   ) actionList_.List();
   if ( enabled[L_TRAJIN]   ) trajinList_.List();
   if ( enabled[L_REF]      ) DSL_.ListReferenceFrames();
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.List( trajinList_.PindexFrames() );
+  if ( enabled[L_TRAJOUT]  ) {
+    trajoutList_.List( trajinList_.PindexFrames() );
+    ensembleOut_.List( trajinList_.PindexFrames() );
+  }
   if ( enabled[L_PARM]     ) DSL_.ListTopologies();
   if ( enabled[L_ANALYSIS] ) analysisList_.List();
   if ( enabled[L_DATAFILE] ) DFL_.List();
@@ -223,7 +236,10 @@ int CpptrajState::SetListDebug( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, true );
   if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
   if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.SetDebug( debug_ );
+  if ( enabled[L_TRAJOUT]  ) {
+    trajoutList_.SetDebug( debug_ );
+    ensembleOut_.SetDebug( debug_ );
+  }
   if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
   if ( enabled[L_DATAFILE] ) DFL_.SetDebug( debug_ );
   if ( enabled[L_DATASET]  ) DSL_.SetDebug( debug_ );
@@ -235,7 +251,7 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
   if ( enabled[L_ACTION]   ) actionList_.Clear();
   if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); SetTrajMode( UNDEFINED ); }
-  if ( enabled[L_TRAJOUT]  ) trajoutList_.Clear();
+  if ( enabled[L_TRAJOUT]  ) { trajoutList_.Clear(); ensembleOut_.Clear(); }
   if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
   if ( enabled[L_DATAFILE] ) DFL_.Clear();
   if ( enabled[L_DATASET]  ) DSL_.Clear();
@@ -311,7 +327,7 @@ int CpptrajState::Run() {
   mprintf("---------- RUN BEGIN -------------------------------------------------\n");
   if (trajinList_.empty()) 
     mprintf("Warning: No input trajectories specified.\n");
-  else if (actionList_.Empty() && trajoutList_.Empty() && noEmptyRun_)
+  else if (actionList_.Empty() && trajoutList_.Empty() && ensembleOut_.Empty() && noEmptyRun_)
     mprintf("Warning: No actions/output trajectories specified.\n");
   else {
     switch ( mode_ ) {
@@ -339,6 +355,7 @@ int CpptrajState::Run() {
     if (err == 0) {
       actionList_.Clear();
       trajoutList_.Clear();
+      ensembleOut_.Clear();
       DSL_.SetDataSetsPending(false);
     }
   }
@@ -365,20 +382,7 @@ int CpptrajState::RunEnsemble() {
   FramePtrArray SortedFrames;
 
   mprintf("\nINPUT ENSEMBLE:\n");
-  // Ensure all ensembles are of the same size
-  // FIXME This check may no longer be necessary, should happen upon ensemble setup?
-  int ensembleSize = -1;
-  for (TrajinList::ensemble_it traj = trajinList_.ensemble_begin(); 
-                               traj != trajinList_.ensemble_end(); ++traj) 
-  {
-    if (ensembleSize == -1) {
-      ensembleSize = (*traj)->EnsembleCoordInfo().EnsembleSize();
-    } else if (ensembleSize != (*traj)->EnsembleCoordInfo().EnsembleSize()) {
-      mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
-                (*traj)->EnsembleCoordInfo().EnsembleSize(), ensembleSize);
-      return 1;
-    }
-  }
+  int ensembleSize = trajinList_.EnsembleSize();
   mprintf("  Ensemble size is %i\n", ensembleSize);
   // Allocate space to hold position of each incoming frame in replica space.
 # ifdef MPI
@@ -398,18 +402,9 @@ int CpptrajState::RunEnsemble() {
   DSL_.ListTopologies();
   // Print reference information 
   DSL_.ListReferenceFrames();
-  // Use separate TrajoutList. Existing trajout in current TrajoutList
-  // will be converted to ensemble trajout.
-  EnsembleOutList ensembleOut;
-  if (!trajoutList_.Empty()) {
-    if (trajoutList_.MakeEnsembleTrajout(ensembleOut, ensembleSize))
-      return 1;
-    mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
-            " suffix corresponds to above map):\n");
-    Parallel::World().Barrier();
-    ensembleOut.List( trajinList_.PindexFrames() );
-    Parallel::World().Barrier();
-  }
+  // Print output ensemble info
+  ensembleOut_.List( trajinList_.PindexFrames() );
+
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
 # ifdef MPI
@@ -530,9 +525,9 @@ int CpptrajState::RunEnsemble() {
       // TODO: Currently assuming topology is always modified the same
       //       way for all actions. If this behavior ever changes the
       //       following line will cause undesireable behavior.
-      ensembleOut.SetupEnsembleOut( EnsembleParm[0].TopAddress(),
-                                    EnsembleParm[0].CoordInfo(),
-                                    EnsembleParm[0].Nframes() );
+      ensembleOut_.SetupEnsembleOut( EnsembleParm[0].TopAddress(),
+                                     EnsembleParm[0].CoordInfo(),
+                                     EnsembleParm[0].Nframes() );
       lastPindex = currentParm->Pindex();
     }
 #   ifdef TIMER
@@ -573,7 +568,7 @@ int CpptrajState::RunEnsemble() {
 #         ifdef TIMER
           trajout_time.Start();
 #         endif 
-          if (ensembleOut.WriteEnsembleOut(actionSet, CurrentFrames))
+          if (ensembleOut_.WriteEnsembleOut(actionSet, CurrentFrames))
           {
             mprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
             if (exitOnError_) return 1; 
@@ -621,7 +616,7 @@ int CpptrajState::RunEnsemble() {
 # endif
 
   // Close output trajectories
-  ensembleOut.CloseEnsembleOut();
+  ensembleOut_.CloseEnsembleOut();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
@@ -686,6 +681,7 @@ int CpptrajState::RunParaEnsemble() {
   trajinList_.List();
   DSL_.ListTopologies();
   DSL_.ListReferenceFrames();
+  ensembleOut_.List( trajinList_.PindexFrames() );
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
   TrajFrameIndex IDX;
@@ -754,22 +750,9 @@ int CpptrajState::RunParaEnsemble() {
     return 1;
   }
 
-  // Use separate TrajoutList. Existing trajout in current TrajoutList
-  // will be converted to ensemble trajout.
-  // FIXME should no longer be necessary
-  EnsembleOutList ensembleOut;
-  if (!trajoutList_.Empty()) {
-    if (trajoutList_.MakeEnsembleTrajout(ensembleOut, EnsComm.Size()))
-      return 1;
-    mprintf("\nENSEMBLE OUTPUT TRAJECTORIES (Numerical filename"
-            " suffix corresponds to above map):\n");
-    Parallel::World().Barrier();
-    ensembleOut.List( trajinList_.PindexFrames() );
-    Parallel::World().Barrier();
-  }
   // Set up any related output trajectories.
-  if (ensembleOut.SetupEnsembleOut( currentParm.TopAddress(), currentParm.CoordInfo(),
-                                    currentParm.Nframes() ))
+  if (ensembleOut_.SetupEnsembleOut( currentParm.TopAddress(), currentParm.CoordInfo(),
+                                     currentParm.Nframes() ))
     return 1;
 
   // TODO Figure out if any frames need to be preloaded on ranks
@@ -811,7 +794,7 @@ int CpptrajState::RunParaEnsemble() {
       bool suppress_output = actionList_.DoActions(actionSet, currentFrame);
       if (!suppress_output) {
         CurrentFrames[0] = currentFrame.FramePtr();
-        if (ensembleOut.WriteEnsembleOut(set, CurrentFrames))
+        if (ensembleOut_.WriteEnsembleOut(set, CurrentFrames))
         {
           rprinterr("Error: Writing ensemble output traj, frame %i\n", actionSet+1);
           if (exitOnError_) return 1;
@@ -837,7 +820,7 @@ int CpptrajState::RunParaEnsemble() {
 //  Ensemble::TimingData(trajin_time.Total());
 //# endif
   // Close output trajectories
-  ensembleOut.CloseEnsembleOut();
+  ensembleOut_.CloseEnsembleOut();
   DSL_.SetNewSetsNeedSync( false );
   Timer time_sync;
   time_sync.Start();

@@ -2,6 +2,7 @@
 #define INC_CPPTRAJSTATE_H
 #include "TrajinList.h"
 #include "TrajoutList.h"
+#include "EnsembleOutList.h"
 #include "DataSetList.h"
 #include "DataFileList.h"
 #include "ActionList.h"
@@ -28,7 +29,8 @@ class CpptrajState {
     bool ExitOnError()        const { return exitOnError_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
                                               analysisList_.Empty() &&
-                                              trajoutList_.Empty()); }
+                                              trajoutList_.Empty() &&
+                                              ensembleOut_.Empty()); }
     TrajinList const& InputTrajList() const { return trajinList_; }
 
     int AddInputTrajectory( std::string const& );
@@ -89,6 +91,8 @@ class CpptrajState {
     ActionList actionList_;
     /// List of output trajectory files 
     TrajoutList trajoutList_;
+    /// List of output ensemble files.
+    EnsembleOutList ensembleOut_;
     // -------------------------------------------
     /// List of analyses to be performed on datasets
     AnalysisList analysisList_;

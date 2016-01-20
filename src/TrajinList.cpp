@@ -7,7 +7,7 @@
 #include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
-TrajinList::TrajinList() : debug_(0), maxframes_(0) {}
+TrajinList::TrajinList() : debug_(0), maxframes_(0), ensembleSize_(-1) {}
 
 TrajinList::~TrajinList() { Clear(); }
 
@@ -20,6 +20,7 @@ void TrajinList::Clear() {
   ensemble_.clear();
   maxframes_ = 0;
   topFrames_.clear();
+  ensembleSize_ = -1;
 }
 
 /** Update max # of frames in the list and # frames associated with Topologies
@@ -83,6 +84,14 @@ int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList
       delete tio;
       err++;
       continue;
+    }
+    // Currently all input ensembles must be same size.
+    if (ensembleSize_ == -1)
+      ensembleSize_ = ensemble->EnsembleCoordInfo().EnsembleSize();
+    else if (ensembleSize_ != ensemble->EnsembleCoordInfo().EnsembleSize()) {
+      mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
+                ensemble->EnsembleCoordInfo().EnsembleSize(), ensembleSize_);
+      return 1;
     }
     // CRDIDXARG: If trajectory is REMD ensemble and sorting by CRDIDX, need to
     //            save final CRDIDX for next ensemble command.
