@@ -2,7 +2,7 @@
 #define INC_FILEIO_BZIP2_H
 #ifdef HASBZ2
 // NOTE: bzlib.h has stdio.h. Does it matter that its not cstdio? 
-#include "bzlib.h"
+#include <bzlib.h>
 #include "FileIO.h"
 // Class: FileIO_Bzip2
 /// Bzip2 file IO.
