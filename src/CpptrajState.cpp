@@ -661,6 +661,7 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
                                int& n_previous_frames, int& preload_start) const
 {
   n_previous_frames = actionList_.NumPreviousFramesReqd();
+  if (n_previous_frames < 1) return 0;
   preload_start = my_start - n_previous_frames;
   rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
   if (preload_start < 0) {
@@ -735,7 +736,7 @@ int CpptrajState::RunParaEnsemble() {
   if (!TrajComm.Master()) {
     int n_previous_frames, preload_start;
     preload_err = PreloadCheck( my_start, my_frames, n_previous_frames, preload_start );
-    if (preload_err == 0) {
+    if (n_previous_frames > 0 && preload_err == 0) {
       Action::FArray preload_frames;
       preload_frames.reserve( n_previous_frames );
       int idx = 0;
@@ -894,7 +895,7 @@ int CpptrajState::RunParallel() {
   if (!TrajComm.Master()) {
     int n_previous_frames, preload_start;
     preload_err = PreloadCheck( my_start, my_frames, n_previous_frames, preload_start );
-    if (preload_err == 0) {
+    if (n_previous_frames > 0 && preload_err == 0) {
       Action::FArray preload_frames( n_previous_frames, input_traj.AllocateFrame() );
       int idx = 0;
       for (int set = preload_start; set != my_start; set++, idx++)
