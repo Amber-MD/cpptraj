@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

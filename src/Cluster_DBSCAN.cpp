@@ -5,7 +5,7 @@
 #include "ProgressBar.h"
 #include "StringRoutines.h" // integerToString
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 #include "DataSet_MatrixDbl.h" // DEBUG
 #include "DataFile.h" // DEBUG

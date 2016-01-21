@@ -5,7 +5,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 // CONSTRUCTOR
 Action_Surf::Action_Surf() : surf_(0) {} 

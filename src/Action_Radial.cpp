@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

@@ -1,7 +1,7 @@
 #include "Action_Watershell.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

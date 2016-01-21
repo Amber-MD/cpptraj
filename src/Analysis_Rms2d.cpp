@@ -4,7 +4,7 @@
 #include "ProgressBar.h"
 #include "DataSet_Coords_TRJ.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

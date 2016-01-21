@@ -6,7 +6,7 @@
 #include "Constants.h"
 #include "Corr.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

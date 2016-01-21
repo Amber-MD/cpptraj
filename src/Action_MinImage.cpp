@@ -3,7 +3,7 @@
 #include "Action_MinImage.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

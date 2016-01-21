@@ -6,7 +6,7 @@
 #include "DataSet_MatrixFlt.h"
 #include "ProgressBar.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

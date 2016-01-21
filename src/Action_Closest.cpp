@@ -2,7 +2,7 @@
 #include <algorithm> // sort
 #include <cfloat> // DBL_MAX
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"

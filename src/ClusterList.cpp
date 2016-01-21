@@ -9,7 +9,7 @@
 #include "ProgressBar.h"
 #include "StringRoutines.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 #include "PDBfile.h" // DEBUG
 
