@@ -90,33 +90,37 @@ void DataSet_Coords_TRJ::GetFrame(int idx, Frame& fIn) {
 # pragma omp critical
   {
 # endif
+  int err = 0; // NOTE: Needed because exiting from OMP critical block is illegal.
   // Determine which trajectory has the desired index
   int internalIdx = IDX_.FindIndex( idx );
   if (internalIdx < 0) {
     mprinterr("Internal Error: Global index %i is out of range.\n", idx);
-    return;
-  }
-  // If desired traj is different than current, open desired traj
-  if (IDX_.TrajHasChanged()) {
-    if (Traj_ != 0) Traj_->EndTraj();
-    Trajin* previousTraj = Traj_;
-    Traj_ = trajinList_[ IDX_.CurrentTrajNum() ];
-    // NOTE: Currently enforcing all traj have same # atoms, no need to check topology.
-    // See if frame needs (re-)allocation.
-    if (previousTraj == 0 || previousTraj->TrajCoordInfo() != Traj_->TrajCoordInfo())
-      readFrame_.SetupFrameV( Traj_->Traj().Parm()->Atoms(), Traj_->TrajCoordInfo() );
-    // Open traj.
-    if (Traj_->BeginTraj()) {
-      mprinterr("Error: Could not open trajectory %i '%s'\n", IDX_.CurrentTrajNum(),
-                Traj_->Traj().Filename().full());
-      return;
+    err = 1;
+  } else {
+    // If desired traj is different than current, open desired traj
+    if (IDX_.TrajHasChanged()) {
+      if (Traj_ != 0) Traj_->EndTraj();
+      Trajin* previousTraj = Traj_;
+      Traj_ = trajinList_[ IDX_.CurrentTrajNum() ];
+      // NOTE: Currently enforcing all traj have same # atoms, no need to check topology.
+      // See if frame needs (re-)allocation.
+      if (previousTraj == 0 || previousTraj->TrajCoordInfo() != Traj_->TrajCoordInfo())
+        readFrame_.SetupFrameV( Traj_->Traj().Parm()->Atoms(), Traj_->TrajCoordInfo() );
+      // Open traj.
+      if (Traj_->BeginTraj()) {
+        mprinterr("Error: Could not open trajectory %i '%s'\n", IDX_.CurrentTrajNum(),
+                  Traj_->Traj().Filename().full());
+        err = 1;
+      }
     }
-  }
-  // Read the frame
-  // TODO: May need to use readFrame here as well...
-  if (Traj_->ReadTrajFrame( internalIdx, fIn )) {
-    mprinterr("Error: Could not read '%s' frame %i\n",
-                Traj_->Traj().Filename().full(), internalIdx + 1);
+    // Read the frame
+    // TODO: May need to use readFrame here as well...
+    if (err == 0) { 
+      if (Traj_->ReadTrajFrame( internalIdx, fIn )) {
+        mprinterr("Error: Could not read '%s' frame %i\n",
+                    Traj_->Traj().Filename().full(), internalIdx + 1);
+      }
+    }
   }
 # ifdef _OPENMP
   }

@@ -435,11 +435,11 @@ int Action_Radial::SyncAction() {
 /** Combine results from each rdf_thread into rdf. */
 void Action_Radial::CombineRdfThreads() {
   if (rdf_thread_ == 0) return;
-  for (int thread = 0; thread < numthreads_; thread++) 
-    for (int bin = 0; bin < numBins_; bin++) {
+  for (int thread = 0; thread < numthreads_; thread++) { 
+    for (int bin = 0; bin < numBins_; bin++)
       RDF_[bin] += rdf_thread_[thread][bin];
-      delete[] rdf_thread_[thread];
-    }
+    delete[] rdf_thread_[thread];
+  }
   delete[] rdf_thread_;
   rdf_thread_ = 0;
 }
