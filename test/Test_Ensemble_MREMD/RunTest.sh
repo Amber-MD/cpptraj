@@ -5,7 +5,8 @@
 CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            nhbond.dat nhbond.dat.? all.nhbond.dat \
            hbavg.dat hbavg.dat.? all.hbavg.dat \
-           Outtraj.crd Outtraj.crd.0 Outtraj.crd.1 avg.rst7.?
+           Outtraj.crd Outtraj.crd.0 Outtraj.crd.1 avg.rst7.? \
+           RA.dat RA.dat.? all.RA.dat
 
 INPUT="-i mremd.in"
 
@@ -49,6 +50,22 @@ EOF
   DoTest avg.rst7.5.save avg.rst7.5
 }
 
+# Test M-REMD process, no sort, running average (tests preload in parallel)
+RunAvgTest() {
+  cat > mremd.in <<EOF
+parm rGACC.nowat.parm7
+ensemble rGACC.nowat.001 nosort
+runavg window 3
+rms RA first :1-4&!@H= out RA.dat
+EOF
+  RunCpptraj "M-REMD no sort, running average test"
+  if [[ -z $DO_PARALLEL ]] ; then
+    DoTest RA.dat.save RA.dat
+  else
+    cat RA.dat.? > all.RA.dat && DoTest all.RA.dat.save all.RA.dat
+  fi
+}
+
 # Test ensemble mode with outtraj output
 OuttrajTest() {
   cat > mremd.in <<EOF
@@ -71,6 +88,7 @@ if [[ $? -eq 0 ]] ; then
   TrajSort
   ActionsTest
   OuttrajTest
+  RunAvgTest
 fi
 
 EndTest
