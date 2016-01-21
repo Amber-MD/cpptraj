@@ -194,6 +194,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
+        EnsembleNavigator.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
