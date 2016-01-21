@@ -31,6 +31,7 @@ UsageFull() {
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
+  echo "    --with-pnetcdf=<DIR> (PNETCDF is needed for NetCDF parallel trajectory processing)"
   echo "    --with-zlib=<DIR>"
   echo "    --with-bzlib=<DIR>"
   echo "    --with-blas=<DIR>"
@@ -60,14 +61,13 @@ UsageFull() {
   echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
-  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)"
+  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)*"
+  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)*"
   echo "    -vtune              : Enable options for use with Intel Vtune"
   echo "    -sanderlib          : Link to sander API (requires AMBERHOME set)."
   echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
-  echo "    --with-pnetcdf=<DIR>: PNETCDF location, currently only used for single ensemble with MPI."
   echo ""
-  echo "NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
+  echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
 }
 
@@ -462,14 +462,8 @@ while [[ ! -z $1 ]] ; do
       echo "Turning off optimization"
       OPT=0
       ;;
-    "-mpi"          )
-      USEMPI=1
-      USEOPENMP=0
-      ;;
-    "-openmp"       )
-      USEOPENMP=1
-      USEMPI=0
-      ;;
+    "-mpi"          ) USEMPI=1 ;;
+    "-openmp"       ) USEOPENMP=1 ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
     "-vtune"        ) PROFILE=3 ;;
