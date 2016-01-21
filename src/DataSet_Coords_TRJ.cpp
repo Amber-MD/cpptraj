@@ -29,9 +29,10 @@ int DataSet_Coords_TRJ::CoordsSetup(Topology const& topIn, CoordinateInfo const&
                 "Error:  number of atoms first.\n", topIn.Natom(), top_.Natom());
       return 1;
     }
-    // Since velocity info is not always allocated in Frame, if one traj
-    // has velocity info ensure that all do.
+    // Since velocity/force info is not always allocated in Frame, if one traj
+    // has velocity/force info ensure that all do.
     if (cInfoIn.HasVel()) cInfo_.SetVelocity( true );
+    if (cInfoIn.HasForce()) cInfo_.SetForce( true );
   }
   return 0;
 }

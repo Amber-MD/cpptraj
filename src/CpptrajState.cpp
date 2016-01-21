@@ -372,6 +372,18 @@ int CpptrajState::Run() {
   return err;
 }
 
+/** Prior to a run, list the current state. */
+void CpptrajState::ListState() const {
+  if (mode_ == ENSEMBLE) trajinList_.FirstEnsembleReplicaInfo();
+  DSL_.ListTopologies();
+  trajinList_.List();
+  DSL_.ListReferenceFrames();
+  if (mode_ == ENSEMBLE)
+    ensembleOut_.List( trajinList_.PindexFrames() );
+  else
+    trajoutList_.List( trajinList_.PindexFrames() );
+}
+
 // -----------------------------------------------------------------------------
 // CpptrajState::RunEnsemble()
 /** Process ensemble in serial or parallel, individual trajectories in serial. */
@@ -394,11 +406,7 @@ int CpptrajState::RunEnsemble() {
   FrameArray FrameEnsemble( ensembleSize );
 # endif
   // List state
-  trajinList_.FirstEnsembleReplicaInfo();
-  trajinList_.List();
-  DSL_.ListTopologies();
-  DSL_.ListReferenceFrames();
-  ensembleOut_.List( trajinList_.PindexFrames() );
+  ListState();
 
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
@@ -441,11 +449,11 @@ int CpptrajState::RunEnsemble() {
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
 
   // ========== A C T I O N  P H A S E ==========
-  int lastPindex=-1;          // Index of the last loaded parm file
-  int readSets = 0;
-  int actionSet = 0;
-  bool hasVelocity = false;
-  bool hasForce = false;
+  int actionSet = 0;            // Internal data frame
+  int readSets = 0;             // Number of frames actually read
+  int lastPindex = -1;          // Index of the last loaded parm file
+  CoordinateInfo lastCoordInfo; // Coordinate info for previous ensemble
+  // Loop over every ensemble 
 # ifdef TIMER
   Timer trajin_time;
   Timer setup_time;
@@ -454,41 +462,35 @@ int CpptrajState::RunEnsemble() {
 # endif
   Timer frames_time;
   frames_time.Start();
-  // Loop over every trajectory in trajFileList
   mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
   ProgressBar progress;
   if (showProgress_)
     progress.SetupProgress( trajinList_.MaxFrames() );
-  for ( TrajinList::ensemble_it traj = trajinList_.ensemble_begin();
-                                traj != trajinList_.ensemble_end(); ++traj)
+  for ( TrajinList::ensemble_it ens = trajinList_.ensemble_begin();
+                                ens != trajinList_.ensemble_end(); ++ens)
   {
-    // Open up the trajectory file. If an error occurs, bail
-    if ( (*traj)->BeginEnsemble() ) {
-      mprinterr("Error: Could not open trajectory %s.\n",(*traj)->Traj().Filename().full());
+    // Open up the ensemble. If an error occurs, bail
+    if ( (*ens)->BeginEnsemble() ) {
+      mprinterr("Error: Could not open ensemble %s.\n",(*ens)->Traj().Filename().full());
       break;
     }
-    // Set current parm from current traj.
-    Topology* currentParm = (*traj)->Traj().Parm();
-    int topFrames = trajinList_.TopFrames( currentParm->Pindex() );
-    CoordinateInfo const& currentCoordInfo = (*traj)->EnsembleCoordInfo();
-    currentParm->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+    // Set current parm from current ensemble.
+    Topology* currentTop = (*ens)->Traj().Parm();
+    CoordinateInfo const& currentCoordInfo = (*ens)->EnsembleCoordInfo();
+    currentTop->SetBoxFromTraj( currentCoordInfo.TrajBox() ); // FIXME necessary?
+    int topFrames = trajinList_.TopFrames( currentTop->Pindex() );
     for (int member = 0; member < ensembleSize; ++member)
-      EnsembleParm[member].Set( currentParm, currentCoordInfo, topFrames );
+      EnsembleParm[member].Set( currentTop, currentCoordInfo, topFrames );
     // Check if parm has changed
-    bool parmHasChanged = (lastPindex != currentParm->Pindex());
+    bool parmHasChanged = (lastPindex != currentTop->Pindex());
 #   ifdef TIMER
     setup_time.Start();
 #   endif
-    // If Parm has changed or trajectory velocity status has changed,
-    // reset the frame.
-    if (parmHasChanged || (hasVelocity != currentCoordInfo.HasVel()))
-      FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
-    hasVelocity = currentCoordInfo.HasVel();
-
-    if (parmHasChanged || (hasForce != currentCoordInfo.HasForce()))
-      FrameEnsemble.SetupFrames(currentParm->Atoms(), currentCoordInfo);
-    hasForce = currentCoordInfo.HasForce();
-
+    // If Parm has changed or trajectory frame has changed, reset the frame. 
+    if (parmHasChanged || currentCoordInfo != lastCoordInfo) {
+      FrameEnsemble.SetupFrames(currentTop->Atoms(), currentCoordInfo);
+      lastCoordInfo = currentCoordInfo;
+    }
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm
@@ -511,30 +513,30 @@ int CpptrajState::RunEnsemble() {
       // Re-enable output
       SetWorldSilent( false );
       if (!setupOK) continue;
-      // Set up any related output trajectories.
+      // Set up any related output ensembles.
       // TODO: Currently assuming topology is always modified the same
       //       way for all actions. If this behavior ever changes the
       //       following line will cause undesireable behavior.
       ensembleOut_.SetupEnsembleOut( EnsembleParm[0].TopAddress(),
                                      EnsembleParm[0].CoordInfo(),
                                      EnsembleParm[0].Nframes() );
-      lastPindex = currentParm->Pindex();
+      lastPindex = currentTop->Pindex();
     }
 #   ifdef TIMER
     setup_time.Stop();
 #   endif
     // Loop over every collection of frames in the ensemble
-    (*traj)->Traj().PrintInfoLine();
+    (*ens)->Traj().PrintInfoLine();
 #   ifdef TIMER
     trajin_time.Start();
-    bool readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
+    bool readMoreFrames = (*ens)->GetNextEnsemble(FrameEnsemble, SortedFrames);
     trajin_time.Stop();
     while ( readMoreFrames )
 #   else
-    while ( (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames) )
+    while ( (*ens)->GetNextEnsemble(FrameEnsemble, SortedFrames) )
 #   endif
     {
-      if (!(*traj)->BadEnsemble()) {
+      if (!(*ens)->BadEnsemble()) {
         bool suppress_output = false;
         for (int member = 0; member != ensembleSize; ++member) {
           // Since Frame can be modified by actions, save original and use currentFrame
@@ -542,7 +544,7 @@ int CpptrajState::RunEnsemble() {
           //rprintf("DEBUG: currentFrame=%x SortedFrames[0]=%x\n",currentFrame, SortedFrames[0]);
           if ( currentFrame.Frm().CheckCoordsInvalid() )
             rprintf("Warning: Ensemble member %i frame %i may be corrupt.\n",
-                    member, (*traj)->Traj().Counter().PreviousFrameNumber()+1);
+                    member, (*ens)->Traj().Counter().PreviousFrameNumber()+1);
 #         ifdef TIMER
           actions_time.Start();
 #         endif
@@ -579,15 +581,15 @@ int CpptrajState::RunEnsemble() {
       ++actionSet;
 #     ifdef TIMER
       trajin_time.Start();
-      readMoreFrames = (*traj)->GetNextEnsemble(FrameEnsemble, SortedFrames);
+      readMoreFrames = (*ens)->GetNextEnsemble(FrameEnsemble, SortedFrames);
       trajin_time.Stop();
 #     endif
     }
 
     // Close the trajectory file
-    (*traj)->EndEnsemble();
+    (*ens)->EndEnsemble();
     // Update how many frames have been processed.
-    readSets += (*traj)->Traj().Counter().NumFramesProcessed();
+    readSets += (*ens)->Traj().Counter().NumFramesProcessed();
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
@@ -665,11 +667,7 @@ int CpptrajState::RunParaEnsemble() {
   FramePtrArray CurrentFrames( 1 );
   // TODO Check ensemble size?
   // List state
-  trajinList_.FirstEnsembleReplicaInfo();
-  trajinList_.List();
-  DSL_.ListTopologies();
-  DSL_.ListReferenceFrames();
-  ensembleOut_.List( trajinList_.PindexFrames() );
+  ListState();
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
   TrajFrameIndex IDX;
@@ -832,11 +830,8 @@ int CpptrajState::RunParaEnsemble() {
 int CpptrajState::RunParallel() {
   // Set comms
   Parallel::Comm const& TrajComm = Parallel::TrajComm();
-  // Print information.
-  DSL_.ListTopologies();
-  trajinList_.List();
-  DSL_.ListReferenceFrames();
-  trajoutList_.List( trajinList_.PindexFrames() );
+  // List state 
+  ListState();
 
   // Currently only let this happen if all trajectories share same topology.
   Topology* FirstParm = 0;
@@ -1080,28 +1075,23 @@ int CpptrajState::RunSingleTrajParallel() {
  *  to the actions in actionList for processing.
  */
 int CpptrajState::RunNormal() {
-  int actionSet=0;            // Internal data frame
-  int readSets=0;             // Number of frames actually read
-  int lastPindex=-1;          // Index of the last loaded parm file
-  Frame TrajFrame;            // Original Frame read in from traj
 
   // ========== S E T U P   P H A S E ========== 
   Timer init_time;
   init_time.Start();
-  // Parameter file information
-  DSL_.ListTopologies();
-  // Input coordinate file information
-  trajinList_.List();
-  // Print reference information
-  DSL_.ListReferenceFrames(); 
-  // Output traj
-  trajoutList_.List( trajinList_.PindexFrames() );
+  // List state
+  ListState();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
   init_time.Stop();
   mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
   
   // ========== A C T I O N  P H A S E ==========
+  int actionSet = 0;            // Internal data frame
+  int readSets = 0;             // Number of frames actually read
+  int lastPindex = -1;          // Index of the last loaded parm file
+  CoordinateInfo lastCoordInfo; // Coordinate info for previous trajectory.
+  Frame TrajFrame;              // Original Frame read in from traj
   // Loop over every trajectory in trajFileList
 # ifdef TIMER
   Timer trajin_time;
@@ -1126,32 +1116,31 @@ int CpptrajState::RunNormal() {
     // Set current parm from current traj.
     Topology* top = (*traj)->Traj().Parm();
     top->SetBoxFromTraj( (*traj)->TrajCoordInfo().TrajBox() ); // FIXME necessary?
-    int topFrames = trajinList_.TopFrames( top->Pindex() );
-    ActionSetup currentParm( top, (*traj)->TrajCoordInfo(), topFrames );
+    ActionSetup currentSetup( top, (*traj)->TrajCoordInfo(),
+                             trajinList_.TopFrames( top->Pindex() ) );
     // Check if parm has changed
-    bool parmHasChanged = (lastPindex != currentParm.Top().Pindex());
+    bool parmHasChanged = (lastPindex != currentSetup.Top().Pindex());
 #   ifdef TIMER
     setup_time.Start();
 #   endif
     // If Parm has changed or trajectory frame has changed, reset the frame.
-    if (parmHasChanged || 
-        (TrajFrame.HasVelocity() != currentParm.CoordInfo().HasVel()) ||
-        ((int)TrajFrame.RemdIndices().size() !=
-              currentParm.CoordInfo().ReplicaDimensions().Ndims()))
-      TrajFrame.SetupFrameV(currentParm.Top().Atoms(), currentParm.CoordInfo());
+    if (parmHasChanged || currentSetup.CoordInfo() != lastCoordInfo) {
+      TrajFrame.SetupFrameV(currentSetup.Top().Atoms(), currentSetup.CoordInfo());
+      lastCoordInfo = currentSetup.CoordInfo();
+    }
     // If Parm has changed, reset actions for new topology.
     if (parmHasChanged) {
       // Set up actions for this parm
-      if (actionList_.SetupActions( currentParm, exitOnError_ )) {
+      if (actionList_.SetupActions( currentSetup, exitOnError_ )) {
         mprintf("WARNING: Could not set up actions for %s: skipping.\n",
-                currentParm.Top().c_str());
+                currentSetup.Top().c_str());
         continue;
       }
       // Set up any related output trajectories 
-      trajoutList_.SetupTrajout( currentParm.TopAddress(),
-                                 currentParm.CoordInfo(),
-                                 currentParm.Nframes() );
-      lastPindex = currentParm.Top().Pindex();
+      trajoutList_.SetupTrajout( currentSetup.TopAddress(),
+                                 currentSetup.CoordInfo(),
+                                 currentSetup.Nframes() );
+      lastPindex = currentSetup.Top().Pindex();
     }
 #   ifdef TIMER
     setup_time.Stop();

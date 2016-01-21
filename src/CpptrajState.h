@@ -71,6 +71,7 @@ class CpptrajState {
     static ListKeyType ListKeys[];
     std::vector<bool> ListsFromArg(ArgList&, bool) const;
 
+    void ListState() const;
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
