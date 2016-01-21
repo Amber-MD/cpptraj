@@ -625,6 +625,7 @@ int CpptrajState::RunEnsemble() {
 // -----------------------------------------------------------------------------
 std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_stop, int& my_frames,
                                                         int maxFrames, Parallel::Comm const& commIn)
+const
 {
   int frames_per_thread = maxFrames / commIn.Size();
   int remainder         = maxFrames % commIn.Size();
@@ -653,6 +654,29 @@ std::vector<int> CpptrajState::DivideFramesAmongThreads(int& my_start, int& my_s
   return rank_frames;
 }
 
+/** Figure out if any frames need to be preloaded on ranks. Should NOT be 
+  * called by master.
+  */
+int CpptrajState::PreloadCheck(int my_start, int my_frames,
+                               int& n_previous_frames, int& preload_start) const
+{
+  n_previous_frames = actionList_.NumPreviousFramesReqd();
+  preload_start = my_start - n_previous_frames;
+  rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
+  if (preload_start < 0) {
+    rprinterr("Error: Cannot preload, start is before beginning of traj.\n");
+    return 1;
+  } else if (my_frames == n_previous_frames) {
+    rprinterr("Error: Number of preload frames is same as number of processed frames.\n"
+              "Error:   Try reducing the number of threads.\n");
+    return 1;
+  } 
+  if (n_previous_frames > (my_frames / 2))
+    rprintf("Warning: Number of preload frames is greater than half the "
+                      "number of processed frames.\n"
+            "Warning:   Try reducing the number of threads.\n");
+  return 0;
+}
 // -----------------------------------------------------------------------------
 /** Process ensemble and individual trajectories in parallel. */
 int CpptrajState::RunParaEnsemble() {
@@ -699,14 +723,30 @@ int CpptrajState::RunParaEnsemble() {
     mprinterr("Error: Could not set up actions for '%s'\n", NAV.FirstParm()->c_str());
     return 1;
   }
-
   // Set up any related output trajectories.
   if (ensembleOut_.ParallelSetupEnsembleOut( currentParm.TopAddress(),
                                              currentParm.CoordInfo(),
                                              currentParm.Nframes(), TrajComm ))
     return 1;
-
-  // TODO Figure out if any frames need to be preloaded on ranks
+  // Allocate FrameEnsemble here in case preload is needed.
+  FrameEnsemble.SetupFrames( NAV.FirstParm()->Atoms(), NAV.EnsCoordInfo() );
+  // Figure out if any frames need to be preloaded on ranks
+  int preload_err = 0;
+  if (!TrajComm.Master()) {
+    int n_previous_frames, preload_start;
+    preload_err = PreloadCheck( my_start, my_frames, n_previous_frames, preload_start );
+    if (preload_err == 0) {
+      Action::FArray preload_frames;
+      preload_frames.reserve( n_previous_frames );
+      int idx = 0;
+      for (int set = preload_start; set != my_start; set++, idx++) {
+        NAV.GetEnsemble( set, FrameEnsemble, SortedFrames );
+        preload_frames.push_back( *(SortedFrames[0]) );
+      }
+      preload_err = actionList_.ParallelProcessPreload( preload_frames );
+    }
+  }
+  if (Parallel::World().CheckError( preload_err ) && exitOnError_) return 1;
 
   // ----- ACTION PHASE --------------------------
   Timer frames_time;
@@ -715,7 +755,6 @@ int CpptrajState::RunParaEnsemble() {
   ProgressBar progress;
   if (showProgress_)
     progress.SetupProgress( my_frames );
-  FrameEnsemble.SetupFrames( NAV.FirstParm()->Atoms(), NAV.EnsCoordInfo() );
   int actionSet = 0; // Internal data frame
   err = 0;
   for (int set = my_start; set != my_stop; set++, actionSet++) {
@@ -852,21 +891,10 @@ int CpptrajState::RunParallel() {
 
   // Figure out if any frames need to be preloaded on ranks
   int preload_err = 0;
-  int n_previous_frames = actionList_.NumPreviousFramesReqd();
-  if (n_previous_frames > 0 && !TrajComm.Master()) {
-    int preload_start = my_start - n_previous_frames;
-    rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
-    preload_err = 1;
-    if (preload_start < 0) {
-      rprinterr("Error: Cannot preload, start is before beginning of traj.\n");
-    } else if (my_frames == n_previous_frames) {
-      rprinterr("Error: Number of preload frames is same as number of processed frames.\n"
-                "Error:   Try reducing the number of threads.\n");
-    } else {
-      if (n_previous_frames > (my_frames / 2))
-        rprintf("Warning: Number of preload frames is greater than half the "
-                          "number of processed frames.\n"
-                "Warning:   Try reducing the number of threads.\n");
+  if (!TrajComm.Master()) {
+    int n_previous_frames, preload_start;
+    preload_err = PreloadCheck( my_start, my_frames, n_previous_frames, preload_start );
+    if (preload_err == 0) {
       Action::FArray preload_frames( n_previous_frames, input_traj.AllocateFrame() );
       int idx = 0;
       for (int set = preload_start; set != my_start; set++, idx++)
