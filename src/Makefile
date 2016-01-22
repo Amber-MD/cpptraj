@@ -61,6 +61,8 @@ nproc.OMP: ;
 nproc.MPI:
 	cd ../util && $(MAKE)
 
+nproc.exe: ;
+
 readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
