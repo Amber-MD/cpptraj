@@ -29,8 +29,8 @@ trajin ../tz2.ortho.nc
 diffusion :WAT@O out WAT_O.agr WAT_O diffout DC.dat
 EOF
   RunCpptraj "Diffusion test, new syntax."
-  DoTest WAT_O.agr.save WAT_O.agr
-  DoTest DC.dat.save DC.dat
+  DoTest WAT_O.agr.save WAT_O.agr parallelfail
+  DoTest DC.dat.save DC.dat parallelfail
 }
 
 # ------------------------------------------------------------------------------

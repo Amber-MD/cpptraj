@@ -18,9 +18,9 @@ volmap volmap2.dx 0.5 0.5 0.5 :WAT@O buffer 2.0 centermask !:1-13 \\
        radscale 1.36 peakcut 0.10 peakfile peaks.xyz
 EOF
 RunCpptraj "VMD VolMap Algo. test"
-DoTest volmap.dx.save volmap.dx
-DoTest volmap.dx.save volmap2.dx
-DoTest peaks.xyz.save peaks.xyz
+DoTest volmap.dx.save volmap.dx parallelfail
+DoTest volmap.dx.save volmap2.dx parallelfail
+DoTest peaks.xyz.save peaks.xyz parallelfail
 CheckTest
 
 EndTest

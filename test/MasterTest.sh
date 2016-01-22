@@ -65,8 +65,9 @@ DoTest() {
     FAIL_OS=""
     while [[ ! -z $1 ]] ; do
       case "$1" in
-        "allowfail" ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
-        *           ) DIFFARGS=$DIFFARGS" $1" ;;
+        "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
+        "parallelfail" ) ALLOW_FAIL=2 ;;
+        *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
     done
@@ -86,6 +87,16 @@ DoTest() {
           echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
           echo "           This test is known to fail on $TEST_OS."
           echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
+          echo "           The differences below should be carefully inspected."
+          echo "--------------------------------------------------------------------------------"
+          cat temp.diff
+          echo "--------------------------------------------------------------------------------"
+          ((WARNCOUNT++))
+        elif [[ $ALLOW_FAIL -eq 2 && ! -z $DO_PARALLEL ]] ; then
+          echo "Warning: Differences between $F1 and $F2 detected."
+          echo "Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
+          echo "         This test is known to fail in parallel."
+          echo "         This test is known to fail in parallel." >> $TEST_RESULTS
           echo "           The differences below should be carefully inspected."
           echo "--------------------------------------------------------------------------------"
           cat temp.diff
