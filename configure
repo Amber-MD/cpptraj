@@ -48,7 +48,8 @@ UsageFull() {
   echo "    -nomathlib  : Do not include routines which require LAPACK or BLAS"
   echo "    -noarpack   : Do not include routines which require ARPACK"
   echo "    -noreadline : Do not include support for readline in the interpreter"
-  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate blas/lapack"
+  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
+  echo "    -libsci     : Use Cray LibSci for BLAS/LAPACK"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -134,7 +135,7 @@ EOF
 }
 
 TestMathlib() {
-  if [[ ! -z $BLAS ]] ; then # ASSUME LAPACK also defined
+  if [[ ! -z $BLAS || $USELIBSCI -eq 1 ]] ; then # ASSUME LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
 extern "C" {
@@ -352,6 +353,7 @@ USEOPENMP=0
 USETIMER=0
 PROFILE=0
 USECRAY=0
+USELIBSCI=0
 USESHARED=0
 SFX=""
 CPPTRAJHOME=""
@@ -438,8 +440,14 @@ while [[ ! -z $1 ]] ; do
     "LDFLAGS"  ) LDFLAGS="$VALUE" ;;
     "DBGFLAGS" ) DBGFLAGS="$VALUE" ;;
     "-cray" )
-      echo "Using cray compiler wrappers (cc/CC/ftn)"
+      echo "Using Cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
+      ;;
+    "-libsci" ) # LibSci on cray needs no extra flags
+      echo "Using Cray LibSci for BLAS/LAPACK"
+      USELIBSCI=1
+      BLAS=""
+      LAPACK=""
       ;;
     "-debug" )
       echo "Turning on compiler debug info"
