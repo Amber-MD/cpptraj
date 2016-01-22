@@ -604,7 +604,7 @@ int CpptrajState::RunEnsemble() {
   actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
   trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
 # ifdef MPI
-  Ensemble::TimingData(trajin_time.Total());
+  EnsembleIn::TimingData(trajin_time.Total());
 # endif
 # endif
 
@@ -799,7 +799,7 @@ int CpptrajState::RunParaEnsemble() {
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)NAV.IDX().MaxFrames() / frames_time.Total());
 //# ifdef TIMER
-//  Ensemble::TimingData(trajin_time.Total());
+//  EnsembleIn::TimingData(trajin_time.Total());
 //# endif
   // Close output trajectories
   ensembleOut_.CloseEnsembleOut();
