@@ -604,7 +604,8 @@ int Traj_GmxTrX::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
     file_.SetupWrite( fname, debug_ );
   else
     file_.SetupAppend( fname, debug_ );
-  rprintf("Gromacs TRR: parallel headerSize= %zu  frameSize= %zu\n", headerBytes_, frameSize_);
+  if (debug_ > 0)
+    rprintf("Gromacs TRR: parallel headerSize= %zu  frameSize= %zu\n", headerBytes_, frameSize_);
 
   return 0;
 }

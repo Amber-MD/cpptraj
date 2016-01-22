@@ -222,7 +222,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   //mprintf("\tMinimum observed distance= %f, maximum observed distance= %f\n",
   //        sqrt(minDist2), sqrt(maxDist2));
   // Print contacts
-  rprintf("\tSetup %zu native contacts:\n", nativeContacts_.size());
+  mprintf("\tSetup %zu native contacts:\n", nativeContacts_.size());
   for (contactListType::const_iterator contact = nativeContacts_.begin();
                                        contact != nativeContacts_.end(); ++contact)
   {

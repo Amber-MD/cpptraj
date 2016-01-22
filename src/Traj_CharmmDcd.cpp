@@ -715,8 +715,9 @@ int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajPa
       file_.SetupAppend( fname, debug_ );
     AllocateCoords();
   }
-  rprintf("Charmm DCD: headerBytes_=%zu  frame1Bytes_=%zu  frameNBytes_=%zu\n",
-          headerBytes_, frame1Bytes_, frameNBytes_);
+  if (debug_ > 0)
+    rprintf("Charmm DCD: headerBytes_=%zu  frame1Bytes_=%zu  frameNBytes_=%zu\n",
+            headerBytes_, frame1Bytes_, frameNBytes_);
   return 0;
 }
 
