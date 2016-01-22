@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles corr.in acorr.gnu
-
+CheckNetcdf
 INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7

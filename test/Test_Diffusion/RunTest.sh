@@ -7,7 +7,7 @@ TOP=../tz2.ortho.parm7
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
            WAT_O.agr DC.dat
-
+CheckNetcdf
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
 Test_diffusion_oldSyntax() {

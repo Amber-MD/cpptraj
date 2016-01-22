@@ -4,7 +4,7 @@
 
 CleanFiles rms.in rmsd?.dat rmsd.dat rotate.in srms.in *.rmsd.dat \
            TYR.remap.crd ASP.remap.crd GLU.remap.crd
-
+CheckNetcdf
 MaxThreads 3 "Symmetry-corrected RMSD tests"
 if [[ $? -ne 0 ]] ; then
   EndTest

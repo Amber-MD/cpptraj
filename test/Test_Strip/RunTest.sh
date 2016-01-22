@@ -5,7 +5,7 @@
 # Clean
 CleanFiles dummy.rst7 dummy.pdb.1 strip.in *.tz2.truncoct.parm7 Complex.crd \
            Receptor.crd Ligand.crd res1.tz2.crd
-
+CheckNetcdf
 INPUT="-i strip.in"
 # NOTE: strip is also tested in Test_Center
 MaxThreads 1 "Strip tests"

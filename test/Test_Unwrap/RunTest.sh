@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd
-
+CheckNetcdf
 INPUT="ptraj.in"
 MaxThreads 2 "Unwrap tests"
 if [[ $? -ne 0 ]] ; then

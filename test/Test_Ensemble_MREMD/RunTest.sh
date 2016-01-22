@@ -9,7 +9,7 @@ CleanFiles mremd.in Strip.sorted.crd.? rmsd.dat rmsd.dat.? all.rmsd.dat \
            RA.dat RA.dat.? all.RA.dat
 
 INPUT="-i mremd.in"
-
+CheckNetcdf
 # Test M-REMD traj sorting
 TrajSort() {
   cat > mremd.in <<EOF

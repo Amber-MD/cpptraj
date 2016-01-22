@@ -5,7 +5,7 @@
 CleanFiles nc.in nc.hp1.ca.dat nc.hp2.ca.dat nc.all.res.dat cmap.dat \
   native.cmap.gnu nonnative.cmap.gnu native.resmap.gnu nonnative.resmap.gnu \
   nc1.pdb nc2.contacts.dat nc2.res.dat NC2.series.dat
-
+CheckNetcdf
 INPUT="-i nc.in"
 cat > nc.in <<EOF
 parm ../DPDP.parm7

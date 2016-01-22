@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ci.in chiral.dat
-
+CheckNetcdf
 INPUT="-i ci.in"
 cat > ci.in <<EOF
 parm ../DPDP.parm7

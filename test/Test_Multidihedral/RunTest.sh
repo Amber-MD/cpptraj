@@ -5,7 +5,7 @@
 CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat chin.dat
 
 INPUT="-i dih.in"
-
+CheckNetcdf
 cat > dih.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc 1 10

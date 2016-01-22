@@ -4,7 +4,7 @@
 
 CleanFiles box.in addbox.rst7 addbox.rst7.? addbox.rst7.10 \
                   modX.rst7   modX.rst7.?   modX.rst7.10
-
+CheckNetcdf
 MaxThreads 10 "Box tests."
 if [[ $? -ne 0 ]] ; then
   EndTest

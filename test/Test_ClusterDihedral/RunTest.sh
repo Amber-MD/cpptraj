@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in cd.dat cf.dat ci.dat 
-
+CheckNetcdf
 NotParallel "clusterdihedral test"
 if [[ $? -ne 0 ]] ; then
   EndTest

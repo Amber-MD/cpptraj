@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles load.in d1-10.dat d1-12.dat
-
+CheckNetcdf
 INPUT="-i load.in"
 # Generate comparison file
 Generate() {

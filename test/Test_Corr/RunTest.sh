@@ -1,8 +1,8 @@
 #!/bin/bash
 
 . ../MasterTest.sh
-
 CleanFiles corr.in corr.dat cross.dat
+CheckNetcdf
 INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7

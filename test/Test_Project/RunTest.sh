@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles proj.in project.dat
-
+CheckNetcdf
 TOP=../tz2.parm7
 TRJ=../tz2.nc
 

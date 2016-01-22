@@ -4,7 +4,7 @@
 
 CleanFiles ms.in pp2.rst7 hairpin.rst7 dihedrals.dat dihedrals?.dat fromref.rst7 fromref.pdb.1
 INPUT="-i ms.in"
-
+CheckNetcdf
 MaxThreads 1 "Makestructure test"
 if [[ $? -ne 0 ]] ; then
   EndTest

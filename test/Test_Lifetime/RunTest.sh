@@ -4,7 +4,7 @@
 
 CleanFiles avg.life.5.gnu max.life.5.gnu life.5.gnu life.in perres.avg.gnu \
            perres.cumulative.gnu crv.life.5.gnu solutehb.gnu
-
+CheckNetcdf
 cat > life.in <<EOF
 parm ../DPDP.parm7
 trajin ../DPDP.nc

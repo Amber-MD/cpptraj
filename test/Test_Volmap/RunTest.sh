@@ -5,7 +5,7 @@
 CleanFiles ptraj.in volmap.dx peaks.xyz volmap2.dx
 
 INPUT="ptraj.in"
-
+CheckNetcdf
 # dipole
 TOP="../tz2.ortho.parm7"
 cat > ptraj.in <<EOF

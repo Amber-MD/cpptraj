@@ -7,7 +7,7 @@ CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            cvt.dat
 
 INPUT="-i ds.in"
-
+CheckNetcdf
 OneDS() {
   TOP=../tz2.parm7
   cat > ds.in <<EOF

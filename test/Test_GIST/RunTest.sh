@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles gist.in gist.out gist-*.dx ww_Eij.dat Eww_ij.dat
-
+CheckNetcdf
 NotParallel "GIST test."
 if [[ $? -ne 0 ]] ; then
   EndTest

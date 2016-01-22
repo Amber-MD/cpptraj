@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
-
+CheckNetcdf
 NotParallel "Contacts test."
 if [[ $? -ne 0 ]] ; then
   EndTest

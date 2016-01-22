@@ -5,7 +5,7 @@
 . ../MasterTest.sh
 
 CleanFiles para.in d1-12.dat a1-6-12.dat phi2.dat rmsd.dat avg.rst7 offset.dat test.nc
-
+CheckNetcdf
 INPUT="-i para.in"
 
 Test1() {

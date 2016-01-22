@@ -4,6 +4,7 @@
 
 # Clean
 CleanFiles temp.in rmsd.dat
+CheckNetcdf
 # Test
 cat > temp.in <<EOF
 noprogress

@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles image.in reimage.mdcrd
-
+CheckNetcdf
 TRAJ=ptraj.image.nc
 INPUT="-i image.in"
 MaxThreads 2 "AutoImage test"

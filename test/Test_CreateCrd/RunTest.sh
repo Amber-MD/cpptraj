@@ -5,7 +5,7 @@
 CleanFiles create.in crd?.dat crd?.gnu crd?.rst7 crd.rst7
 
 INPUT="-i create.in"
-
+CheckNetcdf
 # Test COORDS creation and processing
 cat > create.in <<EOF
 parm ../tz2.parm7
