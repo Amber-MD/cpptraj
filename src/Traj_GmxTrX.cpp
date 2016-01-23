@@ -341,7 +341,7 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     precision_ = 4;
     // Set up title
     if (Title().empty())
-      SetTitle("Cpptraj generated dcd file.");
+      SetTitle("Cpptraj generated TRR file.");
     // Set size defaults, box, velocity etc
     ir_size_ = 0;
     e_size_ = 0;
