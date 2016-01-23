@@ -1,7 +1,7 @@
 # CPPTRAJ - AmberTools Makefile
 include ../../config.h
 
-CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC)
+CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -46,7 +46,8 @@ dependclean:
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+               -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(FLIBS_PTRAJ) $(READLINE)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
@@ -94,6 +95,7 @@ clean:
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
 	/bin/rm -f $(BINDIR)/ambpdb$(SFX)
+	/bin/rm -f $(LIBDIR)/libcpptraj.*
 	cd readline && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies
