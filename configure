@@ -885,6 +885,12 @@ if [[ $USEMPI -eq 1 ]] ; then
     echo "MPI not currently supported on Windows"
     exit 1
   fi
+  if [[ -z $PNETCDFLIB ]] ; then
+    echo ""
+    echo "Warning: No parallel NetCDF library specified."
+    echo "Warning: NetCDF parallel trajectory output requires parallel NetCDF."
+    echo ""
+  fi
   echo "Using MPI"
   DIRECTIVES="$DIRECTIVES -DMPI"
   CC=mpicc
