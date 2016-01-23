@@ -20,7 +20,7 @@ EOF
   RunCpptraj "Principal Test"
   DoTest Ctest.crd.save Ctest.crd
   DoTest principal.dat.save principal.dat
-  DoTest eigen.dat eigen.dat.save
+  DoTest eigen.dat.save eigen.dat
 else
   # 'out' not supported in parallel
   cat > principal.in <<EOF
@@ -33,7 +33,7 @@ writedata eigen.dat All[eval] All[evec]
 EOF
   RunCpptraj "Principal Test"
   DoTest Ctest.crd.save Ctest.crd
-  DoTest eigen.dat eigen.dat.save
+  DoTest eigen.dat.save eigen.dat
 fi
 
 EndTest
