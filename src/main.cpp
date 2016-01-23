@@ -1,6 +1,6 @@
 /*
  * CPPTRAJ: Rewrite of PTRAJ in C++
- * Copyright (c) 2010-2014 Daniel R. Roe
+ * Copyright (c) 2010-2016 Daniel R. Roe
  * For license information see the LICENSE file.
  * For a full list of contributing authors see the README file.
  */
