@@ -23,7 +23,7 @@ Build Status
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe.   
+CPPTRAJ is Copyright (c) 2010-2016 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -40,15 +40,19 @@ libraries:
 * Bzip2
 * Gzip
 
+For NetCDF trajectory output when processing trajectories in parallel,
+parallel NetCDF is also required (MPI build only).
+
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NETCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
 `./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
-An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag;
-currently MPI can only be used for `ensemble` processing (see the manual for
-further details).
+An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
+CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
+should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
+thread per node.
 
 The configure script by default sets everything up to link dynamically. The
 `-static` flag can be used to force static linking. If linking errors are
@@ -102,6 +106,12 @@ Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_
 
 * Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)  
 Original code for Analysis\_Wavelet.
+
+* Chris Lee (University of California, San Diego)
+Support for processing force information in NetCDF trajectories.
+
+* Steven Ramsey (CUNY Lehman College, Bronx, NY)
+Enhancements to entropy calculation in GIST.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
