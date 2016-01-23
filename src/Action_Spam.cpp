@@ -47,6 +47,13 @@ void Action_Spam::Help() const {
 // Action_Spam::init()
 Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'spam' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Always use imaged distances
   InitImaging(true);
   // This is needed everywhere in this function scope

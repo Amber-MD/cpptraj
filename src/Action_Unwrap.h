@@ -20,5 +20,8 @@ class Action_Unwrap : public Action {
     Topology* RefParm_;
     bool orthogonal_;
     bool center_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif

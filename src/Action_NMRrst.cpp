@@ -37,6 +37,13 @@ static void TranslateAmbiguous(std::string& aname) {
 // Action_NMRrst::Init()
 Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'nmrrst' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   debug_ = debugIn;
   // Get Keywords
   Image_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -142,7 +149,6 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 
   return Action::OK;
 }
-
 // -----------------------------------------------------------------------------
 int Action_NMRrst::ReadNmrRestraints( std::string const& rstfilename )
 {

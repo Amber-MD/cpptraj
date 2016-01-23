@@ -9,9 +9,11 @@ class DataSet_Modes : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Modes();}
     static const char* DeprecateFileMsg;
     // ----- DataSet functions -------------------
-    size_t Size() const { return nmodes_; }
-    int Sync()          { return 1;       }
-    void Info()   const { return;         }
+    size_t Size()                       const { return nmodes_; }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
+    void Info()                         const { return;         }
     void Add( size_t, const void* ) {}
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {} // TODO implement?
     int Allocate(SizeArray const&) { return 0; } // TODO implement?

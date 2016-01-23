@@ -11,6 +11,9 @@ class GridAction {
     GridAction() : increment_(1.0) {}
     static const char* HelpText;
     DataSet_GridFlt* GridInit(const char*, ArgList&, DataSetList&);
+#   ifdef MPI
+    int ParallelGridInit(Parallel::Comm const&, DataSet_GridFlt*);
+#   endif
     void GridInfo(DataSet_GridFlt const&);
     int GridSetup(Topology const&, CoordinateInfo const&);
     inline void GridFrame(Frame const&, AtomMask const&, DataSet_GridFlt&);

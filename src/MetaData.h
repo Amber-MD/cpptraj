@@ -52,6 +52,10 @@ class MetaData {
     MetaData(std::string const& n, std::string const& a) : name_(n), aspect_(a), idx_(-1),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),
       timeSeries_(UNKNOWN_TS) {}
+    /// CONSTRUCTOR - name, aspect, time series
+    MetaData(std::string const& n, std::string const& a, tsType ts) :
+      name_(n), aspect_(a), idx_(-1), ensembleNum_(-1),
+      scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED), timeSeries_(ts) {}
     /// CONSTRUCTOR - name, index 
     MetaData(std::string const& n, int i) : name_(n), idx_(i),
       ensembleNum_(-1), scalarmode_(UNKNOWN_MODE), scalartype_(UNDEFINED),

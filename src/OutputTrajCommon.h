@@ -38,6 +38,8 @@ class OutputTrajCommon {
     void CommonInfo() const;
     /// \return 1 if set should not be written.
     inline int CheckFrameRange(int);
+    /// \return 'true' if output frame range has been set up
+    inline bool HasRange() const { return hasRange_ || !frameCount_.DefaultSettings(); }
   private:
     FileName trajName_; // FIXME: Save this here?
     Topology* trajParm_;// FIXME: Save this here?

@@ -93,6 +93,34 @@ CpptrajFile::~CpptrajFile() {
    CloseFile();
    if (IO_ != 0) delete IO_;
 }
+#ifdef MPI
+/** Open the file using MPI file routines. */
+int CpptrajFile::ParallelOpenFile(AccessType accessIn, Parallel::Comm const& commIn)
+{
+  if (IO_ == 0) {
+    mprinterr("Internal Error: CpptrajFile has not been set up.\n");
+    return 1;
+  }
+  // This will currently only work for fileType_ STANDARD
+  if (fileType_ != STANDARD) {
+    mprinterr("Error: Parallel file access not supported for file type '%s'\n",
+              FileTypeName[fileType_]);
+    return 1;
+  }
+  // This will NOT work for streams.
+  if (isStream_) {
+    mprinterr("Error: Parallel file access not supported for streams.\n");
+    return 1;
+  }
+  if (isOpen_) CloseFile();
+  // TODO Save serial IO object?
+  fileType_ = MPIFILE;
+  IO_ = SetupFileIO( fileType_ );
+  if (IO_ == 0) return 1;
+  ((FileIO_Mpi*)IO_)->SetComm( commIn );
+  return OpenFile( accessIn );
+}
+#endif
 
 // CpptrajFile::OpenFile()
 /** Open the file. If already open, reopen.
@@ -147,6 +175,17 @@ void CpptrajFile::CloseFile() {
     IO_->Close();
     if (debug_>0) rprintf("Closed %s.\n", fname_.full());
     isOpen_=false;
+#   ifdef MPI
+    // Restore standard IO object.
+    if (fileType_ == MPIFILE) {
+      delete IO_;
+      fileType_ = STANDARD;
+      IO_ = SetupFileIO( fileType_ );
+      if (IO_ == 0)
+        mprinterr("Internal Error: Could not reset file '%s' from parallel to serial.\n",
+                  fname_.full());
+    }
+#   endif
   }
 }
 

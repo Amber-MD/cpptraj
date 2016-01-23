@@ -7,7 +7,7 @@ TOP=../tz2.ortho.parm7
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
            WAT_O.agr DC.dat
-
+CheckNetcdf
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
 Test_diffusion_oldSyntax() {
@@ -29,8 +29,8 @@ trajin ../tz2.ortho.nc
 diffusion :WAT@O out WAT_O.agr WAT_O diffout DC.dat
 EOF
   RunCpptraj "Diffusion test, new syntax."
-  DoTest WAT_O.agr.save WAT_O.agr
-  DoTest DC.dat.save DC.dat
+  DoTest WAT_O.agr.save WAT_O.agr parallelfail
+  DoTest DC.dat.save DC.dat parallelfail
 }
 
 # ------------------------------------------------------------------------------
@@ -70,7 +70,10 @@ EOF
 
 Test_diffusion_oldSyntax
 Test_diffusion_newSyntax
-Test_stfc_diffusion
+NotParallel "STFC diffusion tests."
+if [[ $? -eq 0 ]] ; then
+  Test_stfc_diffusion
+fi
 
 EndTest
 

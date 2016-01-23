@@ -2,7 +2,7 @@
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR
@@ -71,10 +71,18 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
             bondoffset_);
     mprintf("\tand non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
   }
-  if (skipBadFrames_)
+  if (skipBadFrames_) {
     mprintf("\tFrames with problems will be skipped.\n");
+#   ifdef MPI
+    if (init.TrajComm().Size() > 1)
+      mprintf("Warning: Skipping frames in parallel can cause certain actions "
+                       "(e.g. 'rms') to hang.\n"
+              "Warning:   In addition, trajectories written after skipping "
+                       "frames may have issues.\n");
+#   endif
+  }
   if (silent_)
-    mprintf("\tWarning messages will be suppressed.\n");
+    mprintf("\tStructure warning messages will be suppressed.\n");
 # ifdef _OPENMP
 # pragma omp parallel
   {

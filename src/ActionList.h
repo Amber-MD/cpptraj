@@ -22,7 +22,15 @@ class ActionList {
     /// Perform Actions on the given Frame.
     bool DoActions(int, ActionFrame&);
     /// Call print for each Action.
-    void Print();
+    void PrintActions();
+#   ifdef MPI
+    /// Figure out the max number previous frames required for non-master ranks
+    int NumPreviousFramesReqd() const;
+    /// Call preload for Actions
+    int ParallelProcessPreload(Action::FArray const&);
+    /// Call sync for each Action (parallel only)
+    void SyncActions();
+#   endif
     /// List all Actions in the list.
     void List() const;
     /// \return Current debug level.

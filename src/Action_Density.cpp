@@ -32,6 +32,13 @@ void Action_Density::Help() const {
 // Action_Density::init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'density' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   InitImaging(true);
 
   std::string outfileName = actionArgs.GetStringKey("out");
@@ -84,7 +91,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 
   return Action::OK;
 }
-
 
 // Action_Density::Setup()
 Action::RetType Action_Density::Setup(ActionSetup& setup) {

@@ -11,7 +11,7 @@ class Exec_Trajin : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Trajin(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
-      return (RetType)State.AddTrajin( argIn, false );
+      return (RetType)State.AddInputTrajectory( argIn );
     }
 };
 /// Add input ensemble to State.
@@ -21,7 +21,7 @@ class Exec_Ensemble : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_Ensemble(); }
     RetType Execute(CpptrajState& State, ArgList& argIn) {
-      return (RetType)State.AddTrajin( argIn, true );
+      return (RetType)State.AddInputEnsemble( argIn );
     }
 };
 /// Add reference coordinates to State.

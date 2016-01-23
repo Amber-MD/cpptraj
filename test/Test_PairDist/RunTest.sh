@@ -17,7 +17,7 @@ pairdist out $out mask "*" delta 0.1
 EOF
 
 RunCpptraj "PairDist Test."
-DoTest ${out}.save $out
+DoTest ${out}.save $out parallelfail
 CheckTest
 EndTest
 

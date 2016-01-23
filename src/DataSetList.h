@@ -50,7 +50,7 @@ class DataSetList {
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
-    void MakeDataSetsEnsemble(int);
+    //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.
@@ -100,8 +100,10 @@ class DataSetList {
     /// Print info on DataSets in the list
     void List() const;
 #   ifdef MPI
+    /// Indicate whether sets added to the list need to be synced
+    void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
-    void SynchronizeData();
+    int SynchronizeData(size_t, std::vector<int> const&, Parallel::Comm const&);
 #   endif
 
     // REF_COORDS functions ----------------------
@@ -167,5 +169,8 @@ class DataSetList {
     };
     static const DataToken DataArray[];
     typedef const DataToken* TokenPtr;
+#   ifdef MPI
+    bool newSetsNeedSync_; ///< If true, any sets added need to be synced.
+#   endif
 };
 #endif

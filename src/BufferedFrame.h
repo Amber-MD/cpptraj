@@ -25,6 +25,8 @@ class BufferedFrame : public CpptrajFile {
 
     size_t FrameSize()   const { return frameSize_; }
     const char* Buffer() const { return buffer_;    }
+    /// \return Total output file size for given number of frames.
+    size_t OutputFileSize(unsigned int n) const { return offset_ + (frameSize_ * n); }
   private:
     size_t CalcFrameSize(int) const;
 

@@ -30,6 +30,12 @@ void Action_CreateReservoir::Help() const {
 Action::RetType Action_CreateReservoir::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef BINTRAJ
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'createreservoir' action does not work with > 1 thread (%i threads currently).\n", init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Get keywords
   filename_.SetFileName( actionArgs.GetStringNext() );
   if (filename_.empty()) {
@@ -148,8 +154,8 @@ Action::RetType Action_CreateReservoir::Setup(ActionSetup& setup) {
 Action::RetType Action_CreateReservoir::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef BINTRAJ
   int bin = -1;
-  if (bin_ != 0) bin = (int)bin_->Dval(frameNum);
-  if (reservoir_.writeReservoir(nframes_++, frm.Frm(), ene_->Dval(frameNum), bin))
+  if (bin_ != 0) bin = (int)bin_->Dval(frm.TrajoutNum());
+  if (reservoir_.writeReservoir(nframes_++, frm.Frm(), ene_->Dval(frm.TrajoutNum()), bin))
     return Action::ERR;
   return Action::OK;
 # else

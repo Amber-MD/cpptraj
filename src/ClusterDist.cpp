@@ -3,7 +3,7 @@
 #include "Constants.h" // RADDEG, DEGRAD
 #include "ProgressBar.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 // TODO: All DataSet stuff const&
 /// Calculate smallest difference between two angles (in degrees).

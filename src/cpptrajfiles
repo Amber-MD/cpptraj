@@ -145,6 +145,7 @@ SOURCES=ActionFrameCounter.cpp \
         CmdList.cpp \
         Command.cpp \
         ComplexArray.cpp \
+        CoordinateInfo.cpp \
         Corr.cpp \
         Cpptraj.cpp \
         CpptrajFile.cpp \
@@ -193,9 +194,11 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
+        EnsembleNavigator.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        EnsembleOutList.cpp \
         Exec_Calc.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
@@ -244,6 +247,8 @@ SOURCES=ActionFrameCounter.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
+        Parallel.cpp \
+        ParallelNetcdf.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
@@ -288,6 +293,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
         TrajectoryFile.cpp \
+        TrajectoryIO.cpp \
         TrajFrameCounter.cpp \
         TrajinList.cpp \
         Trajin_Multi.cpp \
@@ -298,7 +304,6 @@ SOURCES=ActionFrameCounter.cpp \
         Vec3.cpp \
         main.cpp
 
-CSOURCES=MpiRoutines.c \
-         molsurf.c
+CSOURCES= molsurf.c
 
 

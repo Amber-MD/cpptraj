@@ -2,7 +2,7 @@
 #include <algorithm> // sort
 #include <cfloat> // DBL_MAX
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
@@ -41,6 +41,9 @@ Action_Closest::~Action_Closest() {
 // Action_Closest::Init()
 Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
@@ -339,7 +342,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     stripMask_.AddMaskAtPosition( solvent->mask, *katom );
     // Record which water molecules are closest if requested
     if (outFile_!=0) {
-      int fnum = frameNum + 1;
+      int fnum = frm.TrajoutNum() + 1;
       framedata_->Add(Nclosest_, &fnum);
       moldata_->Add(Nclosest_, &(solvent->mol));
       Dist = sqrt( solvent->D );
@@ -361,3 +364,26 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
   return Action::MODIFY_COORDS;
 }
+
+#ifdef MPI
+/** Since datasets are actually # frames * closestWaters_ in length, need to
+  * sync here.
+  */
+int Action_Closest::SyncAction() {
+  if (outFile_ == 0) return 0;
+  // Get total number of closest entries.
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    Nclosest_ += rank_frames[ rank ];
+  framedata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  framedata_->SetNeedsSync( false );
+  moldata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  moldata_->SetNeedsSync( false );
+  distdata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  distdata_->SetNeedsSync( false );
+  atomdata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  atomdata_->SetNeedsSync( false );
+  return 0;
+}
+#endif

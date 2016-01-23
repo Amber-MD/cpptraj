@@ -52,5 +52,8 @@ class Action_Diffusion : public Action {
     DataSetList* masterDSL_;
     std::string dsname_;
     Dimension Xdim_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 #endif

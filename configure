@@ -31,6 +31,7 @@ UsageFull() {
   echo ""
   echo "  LIBRARY LINKING OPTIONS:"
   echo "    --with-netcdf=<DIR>"
+  echo "    --with-pnetcdf=<DIR> (PNETCDF is needed for NetCDF parallel trajectory processing)"
   echo "    --with-zlib=<DIR>"
   echo "    --with-bzlib=<DIR>"
   echo "    --with-blas=<DIR>"
@@ -47,7 +48,8 @@ UsageFull() {
   echo "    -nomathlib  : Do not include routines which require LAPACK or BLAS"
   echo "    -noarpack   : Do not include routines which require ARPACK"
   echo "    -noreadline : Do not include support for readline in the interpreter"
-  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate blas/lapack"
+  echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
+  echo "    -libsci     : Use Cray LibSci for BLAS/LAPACK"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -60,14 +62,13 @@ UsageFull() {
   echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)"
-  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)"
+  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)*"
+  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)*"
   echo "    -vtune              : Enable options for use with Intel Vtune"
   echo "    -sanderlib          : Link to sander API (requires AMBERHOME set)."
   echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
-  echo "    --with-pnetcdf=<DIR>: PNETCDF location, currently only used for single ensemble with MPI."
   echo ""
-  echo "NOTE: -openmp and -mpi are mutually exclusive, as are -profile and -gprofile."
+  echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
 }
 
@@ -134,7 +135,7 @@ EOF
 }
 
 TestMathlib() {
-  if [[ ! -z $BLAS ]] ; then # ASSUME LAPACK also defined
+  if [[ ! -z $BLAS || $USELIBSCI -eq 1 ]] ; then # ASSUME LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
 extern "C" {
@@ -352,6 +353,7 @@ USEOPENMP=0
 USETIMER=0
 PROFILE=0
 USECRAY=0
+USELIBSCI=0
 USESHARED=0
 SFX=""
 CPPTRAJHOME=""
@@ -438,8 +440,14 @@ while [[ ! -z $1 ]] ; do
     "LDFLAGS"  ) LDFLAGS="$VALUE" ;;
     "DBGFLAGS" ) DBGFLAGS="$VALUE" ;;
     "-cray" )
-      echo "Using cray compiler wrappers (cc/CC/ftn)"
+      echo "Using Cray compiler wrappers (cc/CC/ftn)"
       USECRAY=1
+      ;;
+    "-libsci" ) # LibSci on cray needs no extra flags
+      echo "Using Cray LibSci for BLAS/LAPACK"
+      USELIBSCI=1
+      BLAS=""
+      LAPACK=""
       ;;
     "-debug" )
       echo "Turning on compiler debug info"
@@ -462,14 +470,8 @@ while [[ ! -z $1 ]] ; do
       echo "Turning off optimization"
       OPT=0
       ;;
-    "-mpi"          )
-      USEMPI=1
-      USEOPENMP=0
-      ;;
-    "-openmp"       )
-      USEOPENMP=1
-      USEMPI=0
-      ;;
+    "-mpi"          ) USEMPI=1 ;;
+    "-openmp"       ) USEOPENMP=1 ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
     "-vtune"        ) PROFILE=3 ;;
@@ -590,6 +592,7 @@ while [[ ! -z $1 ]] ; do
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
       echo "Using parallel NETCDF in $PNETCDF_HOME"
+      USEMPI=1
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"

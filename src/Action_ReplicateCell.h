@@ -16,19 +16,17 @@ class Action_ReplicateCell: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    ImagedAction image_;
-    Matrix_3x3 ucell_, recip_;
+    ImagedAction image_;       ///< Imaging routines
+    Matrix_3x3 ucell_, recip_; ///< Matrices for imaging
     typedef std::vector<int> Iarray;
-    Iarray directionArray_;
-    std::string trajfilename_;
-    std::string parmfilename_;
-    Trajout_Single outtraj_;
-    DataSet_Coords* coords_;
-    AtomMask Mask1_;
-    int ncopies_;
-    Topology combinedTop_;
-    Frame combinedFrame_;
-    ArgList trajArgs_;
-    int ensembleNum_;
+    Iarray directionArray_;    ///< Array of directions to replicate (x,y,z)
+    std::string parmfilename_; ///< Output combined cell file name
+    Trajout_Single outtraj_;   ///< Output combined cell traj
+    DataSet_Coords* coords_;   ///< Combined cell COORDS DataSet
+    AtomMask Mask1_;           ///< Mask of atoms to replicate
+    int ncopies_;              ///< Total # of replications to make
+    bool writeTraj_;           ///< If true, write output combined cell traj
+    Topology combinedTop_;     ///< Combined cell topology
+    Frame combinedFrame_;      ///< Combined cell frame
 };
 #endif

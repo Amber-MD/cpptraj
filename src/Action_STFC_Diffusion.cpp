@@ -33,6 +33,13 @@ static const char* DirectionString[] = {
 // Action_STFC_Diffusion::Init()
 Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'stfcdiffusion' action does not work with > 1 thread"
+              " (%i threads currently).\n", init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   n_atom_ = -1;
   // Get keywords
   std::string maskarg = actionArgs.GetStringKey("mask");

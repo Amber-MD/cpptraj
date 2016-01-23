@@ -45,11 +45,13 @@ GridDxRead() {
   TOP="../tz2.truncoct.parm7"
   cat > ptraj.in <<EOF
 readdata out.dx.save
-trajin ../tz2.truncoct.nc 1 1
-grid out.dx.2 data out.dx.save :1588 opendx  
+trajin ../tz2.truncoct.nc
+autoimage origin
+rms first :1-13
+grid out.dx.2 data out.dx.save @CA opendx  
 EOF
   RunCpptraj "OpenDX Grid read test"
-  DoTest out.dx.save out.dx.2
+  DoTest out.dx.2.save out.dx.2
   CheckTest
 }
 

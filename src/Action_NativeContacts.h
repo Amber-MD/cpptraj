@@ -16,6 +16,10 @@ class Action_NativeContacts : public Action {
   private:
     typedef std::vector<int> Iarray;
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
@@ -24,6 +28,7 @@ class Action_NativeContacts : public Action {
     int SetupContactLists(Topology const&, Frame const&);
     int DetermineNativeContacts(Topology const&, Frame const&);
     inline bool ValidContact(int, int, Topology const&) const;
+    void UpdateSeries();
 
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
@@ -36,6 +41,7 @@ class Action_NativeContacts : public Action {
     bool includeSolvent_; ///< If true include solvent residues
     bool series_;         ///< If true save time series of native contacts.
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
+    bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
@@ -68,20 +74,21 @@ class Action_NativeContacts : public Action {
     contactListType nativeContacts_; ///< List of native contacts.
     /// Hold residue total contact frames and total # contacts.
     class resContact {
-    public:
-    resContact() : nframes_(0), ncontacts_(0) {}
-    resContact(int nf) : nframes_(nf), ncontacts_(1) {}
-    void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
-    int Nframes() const { return nframes_; }
-    int Ncontacts() const { return ncontacts_; }
-    bool operator<(resContact const& rhs) const {
-      if (nframes_ == rhs.nframes_)
-        return (ncontacts_ > rhs.ncontacts_);
-      else
-        return (nframes_ > rhs.nframes_);
-    }
-    private:
-    int nframes_, ncontacts_;
+      // NOTE: Class must be defined here for subseqent Rpair typedef
+      public:
+        resContact() : nframes_(0), ncontacts_(0) {}
+        resContact(int nf) : nframes_(nf), ncontacts_(1) {}
+        void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
+        int Nframes() const { return nframes_; }
+        int Ncontacts() const { return ncontacts_; }
+        bool operator<(resContact const& rhs) const {
+          if (nframes_ == rhs.nframes_)
+            return (ncontacts_ > rhs.ncontacts_);
+          else
+            return (nframes_ > rhs.nframes_);
+        }
+      private:
+        int nframes_, ncontacts_;
     };
     /// For holding residue pair and total fraction contact.
     typedef std::pair<Cpair, resContact> Rpair;
@@ -119,6 +126,11 @@ class Action_NativeContacts::contactType {
         return (nframes_ > rhs.nframes_);
     }
     void SetData(DataSet* ds) { data_ = (DataSet_integer*)ds; }
+#   ifdef MPI
+    void SetValues(double d, double d2, int n) {
+      dist_ = d; dist2_ = d2; nframes_ = n;
+    }
+#   endif
   private:
     double dist_;    ///< (For avg) contact distance when present.
     double dist2_;   ///< (For stdev) contact distance^2 when present.

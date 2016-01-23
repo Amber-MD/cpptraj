@@ -40,6 +40,13 @@ const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOA
 // Action_Pairwise::Init()
 Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'pairwise' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   // Get Keywords
   DataFile* dataout = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   DataFile* vmapout = init.DFL().AddDataFile( actionArgs.GetStringKey("vmapout"), actionArgs );
@@ -424,17 +431,17 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   // Reset cumulative energy arrays
   atom_eelec_.assign(CurrentParm_->Natom(), 0.0);
   atom_evdw_.assign(CurrentParm_->Natom(), 0.0);
-  if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frameNum);
+  if (Eout_ != 0) Eout_->Printf("PAIRWISE: Frame %i\n",frm.TrajoutNum());
   NonbondEnergy( frm.Frm(), *CurrentParm_, Mask0_ );
   nframes_++;
   // Write cumulative energy arrays
-  if (PrintCutAtoms( frm.Frm(), frameNum, VDWOUT, atom_evdw_, cut_evdw_ ))
+  if (PrintCutAtoms( frm.Frm(), frm.TrajoutNum(), VDWOUT, atom_evdw_, cut_evdw_ ))
     return Action::ERR;
-  if (PrintCutAtoms( frm.Frm(), frameNum, ELECOUT, atom_eelec_, cut_eelec_ ))
+  if (PrintCutAtoms( frm.Frm(), frm.TrajoutNum(), ELECOUT, atom_eelec_, cut_eelec_ ))
     return Action::ERR;
   // Write PDB with atoms that satisfy cutoff colored in.
   if (PdbOut_.IsOpen()) {
-    PdbOut_.WriteMODEL(frameNum + 1);
+    PdbOut_.WriteMODEL(frm.TrajoutNum() + 1); // FIXME in parallel this needs to be separate files
     for (AtomMask::const_iterator atom = Mask0_.begin(); atom != Mask0_.end(); ++atom)
     {
       float occ = 0.0;

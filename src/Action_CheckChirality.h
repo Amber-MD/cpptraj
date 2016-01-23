@@ -5,13 +5,16 @@
 /// Determine if amino acids are D or L 
 class Action_CheckChirality: public Action {
   public:
-    Action_CheckChirality();
+    Action_CheckChirality() {}
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_CheckChirality(); }
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction();
+#   endif
     void Print();
 
     struct ResidueInfo {
@@ -29,9 +32,9 @@ class Action_CheckChirality: public Action {
     typedef std::vector<ResidueInfo> Rarray;
     Rarray resInfo_; 
     CharMask Mask1_;
-    CpptrajFile* outfile_;
-//    DataFile* outfile_;
-//    std::string setname_;
-//    DataSetList* masterDSL_;
+    DataSet* data_L_;     ///< Hold number of times each residue was L
+    DataSet* data_D_;     ///< Hold number of times each residue was D
+    std::string setname_; ///< Data set name
+    ActionInit Init_;     ///< Master DSL/DFL
 };
 #endif

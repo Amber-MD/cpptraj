@@ -45,6 +45,10 @@ Action::RetType Action_Projection::Init(ArgList& actionArgs, ActionInit& init, i
     modinfo_ = (DataSet_Modes*)init.DSL().FindSetOfType( modesname, DataSet::MODES );
     if (modinfo_ == 0) return Action::ERR;
   }
+  if (modinfo_->Nmodes() < 1) {
+    rprinterr("Error: modes set '%s' is empty.\n", modinfo_->legend());
+    return Action::ERR;
+  }
   // Check if beg and end are in bounds.
   if (end_ > modinfo_->Nmodes()) {
     mprintf("Warning: 'end' %i is greater than # evecs (%i); setting end to %i\n",
@@ -182,7 +186,7 @@ Action::RetType Action_Projection::Setup(ActionSetup& setup) {
 
 // Action_Projection::DoAction()
 Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   // Always start at first eigenvector element of first mode.
   const double* Vec = modinfo_->Eigenvector(beg_);
   // Project snapshots on modes
@@ -212,7 +216,7 @@ Action::RetType Action_Projection::DoAction(int frameNum, ActionFrame& frm) {
       for (Array1D::const_iterator dih = DihedralSets_.begin();
                                    dih != DihedralSets_.end(); ++dih)
       {
-        double theta = (*dih)->Dval( frameNum ) * Constants::DEGRAD;
+        double theta = (*dih)->Dval( frm.TrajoutNum() ) * Constants::DEGRAD;
         proj += (cos(theta) - *(Avg++)) * Vec[0];
         proj += (sin(theta) - *(Avg++)) * Vec[1];
         Vec += 2;

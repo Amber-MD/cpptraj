@@ -7,11 +7,11 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
 
 include ambpdbfiles
 
-AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
+AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
 all: cpptraj$(SFX)
 
-install: cpptraj$(SFX) ambpdb$(SFX) 
+install: cpptraj$(SFX) ambpdb$(SFX) nproc$(SFX) 
 	mv cpptraj$(SFX) $(CPPTRAJBIN)
 	(if [ -e "ambpdb$(SFX)" ]; then \
 	   mv ambpdb$(SFX) $(CPPTRAJBIN); \
@@ -53,6 +53,15 @@ ambpdb.MPI:
 	@echo ""
 	@echo "INFO: ambpdb is not MPI-enabled. Skipping."
 	@echo ""
+
+nproc: ;
+
+nproc.OMP: ;
+
+nproc.MPI:
+	cd ../util && $(MAKE)
+
+nproc.exe: ;
 
 readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all

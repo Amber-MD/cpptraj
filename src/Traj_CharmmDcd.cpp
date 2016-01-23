@@ -187,6 +187,17 @@ void Traj_CharmmDcd::AllocateCoords() {
   zcoord_ = ycoord_ + dcdatom_;
 }
 
+void Traj_CharmmDcd::setFrameSizes() {
+  size_t dimBytes = dcd_dim_ * sizeof(float);
+  size_t extraBytes;
+  if (is64bit_)
+    extraBytes = 4;
+  else
+    extraBytes = 2;
+  frame1Bytes_ = (((size_t) dcdatom_ + extraBytes) * dimBytes) + boxBytes_;
+  frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
+}
+
 // Traj_CharmmDcd::setupTrajin()
 int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
 {
@@ -203,19 +214,14 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   AllocateCoords();
   // DCD file may have less frames than is stored in the header.
   // Check the file size against the reported number of frames.
-  size_t extraBytes;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
-    size_t dimBytes = dcd_dim_ * sizeof(float);
-    if (is64bit_)
-      extraBytes = 4;
-    else
-      extraBytes = 2;
-    frame1Bytes_ = (((size_t) dcdatom_ + extraBytes) * dimBytes) + boxBytes_;
-    frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
+    setFrameSizes();
     // Header size should be current position after open, which automatically
     // reads DCD header.
     headerBytes_ = (size_t)file_.Tell();
+    if (debug_ > 0) mprintf("DEBUG:\tDCD header bytes= %zu  frame1= %zu  frameN= %zu\n",
+                            headerBytes_, frame1Bytes_, frameNBytes_);
     file_size = file_size - headerBytes_ - frame1Bytes_;
     if ( (file_size % frameNBytes_) != 0 ) {
       mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n"
@@ -401,12 +407,16 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   return 0;
 }
 
-// Traj_CharmmDcd::readFrame()
-int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
+void Traj_CharmmDcd::seekToFrame(int set) {
   if (set == 0)
     file_.Seek( headerBytes_ );
-  else 
+  else
     file_.Seek( headerBytes_ + frame1Bytes_ + ((size_t)(set - 1) * frameNBytes_) );
+}
+
+// Traj_CharmmDcd::readFrame()
+int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
+  seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
     if (ReadBox( frameIn.bAddress() )) return 1;
@@ -491,6 +501,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
     if (file_.SetupAppend( fname, debug_ )) return 1;
     if (file_.OpenFile()) return 1;
   }
+  
   return 0;
 }
 
@@ -616,3 +627,124 @@ void Traj_CharmmDcd::Info() {
   else 
     mprintf(" 32 bit");
 }
+#ifdef MPI
+// =============================================================================
+int Traj_CharmmDcd::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  mprinterr("Error: Parallel read not supported for Charmm DCD.\n");
+  return 1;
+}
+
+/** This assumes file has been previously set up with parallelSetupTrajout
+  * and header has been written, so open append.
+  */
+int Traj_CharmmDcd::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  return (file_.ParallelOpenFile( CpptrajFile::APPEND, commIn ));
+}
+
+/** First master performs all necessary setup, then sends info to all children.
+  */
+int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                         CoordinateInfo const& cInfoIn,
+                                         int NframesToWrite, bool append,
+                                         Parallel::Comm const& commIn)
+{
+  int err = 0;
+  // In parallel MUST know # of frames to write in order to correctly set size
+  if (NframesToWrite < 1) {
+    mprinterr("Error: # frames to write must be known for Charmm DCD output in parallel.\n");
+    err = 1;
+  } else if (commIn.Master()) {
+    // NOTE: This writes the header.
+    err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    // Calculate number of free atoms (#total - #fixed) // TODO put in setupTrajout?
+    nfreeat_ = dcdatom_ - nfixedat_;
+    // Setup frame sizes // TODO put in setupTrajout?
+    setFrameSizes();
+    // Header size should be current position since header has just been written.
+    headerBytes_ = (size_t)file_.Tell(); // TODO put in setupTrajout?
+    // NOTE: setupTrajout leaves file open. Should this change?
+    file_.CloseFile();
+  }
+  commIn.MasterBcast(&err, 1, MPI_INT);
+  if (err != 0) return 1;
+  // Synchronize info on non-master threads.
+  SyncTrajIO( commIn );
+  // TODO for simplicity converting everything to int. Should be double for larger #s?
+  int* buf = new int[ 13 ];
+  if (commIn.Master()) {
+    master_ = true;
+    buf[0]  = dcdatom_;
+    buf[1]  = dcdframes_;
+    buf[2]  = (int)isBigEndian_;
+    buf[3]  = (int)is64bit_;
+    buf[4]  = (int)blockSize_;
+    buf[5]  = (int)dcd_dim_;
+    buf[6]  = (int)boxBytes_;
+    buf[7]  = (int)frame1Bytes_;
+    buf[8]  = (int)frameNBytes_;
+    buf[9]  = (int)headerBytes_;
+    buf[10] = (int)coordinate_size_;
+    buf[11] = nfixedat_;
+    buf[12] = nfreeat_;
+    commIn.MasterBcast(buf, 13, MPI_INT);
+    if (nfixedat_ != 0)
+      commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
+  } else {
+    master_ = false;
+    commIn.MasterBcast(buf, 13, MPI_INT);
+    dcdatom_         = buf[0];
+    dcdframes_       = buf[1];
+    isBigEndian_     = (bool)buf[2];
+    is64bit_         = (bool)buf[3];
+    blockSize_       = (size_t)buf[4];
+    dcd_dim_         = (size_t)buf[5];
+    boxBytes_        = (size_t)buf[6];
+    frame1Bytes_     = (size_t)buf[7];
+    frameNBytes_     = (size_t)buf[8];
+    headerBytes_     = (size_t)buf[9];
+    coordinate_size_ = (size_t)buf[10];
+    nfixedat_        = buf[11];
+    nfreeat_         = buf[12];
+    if (nfixedat_ > 0) {
+      freeat_ = new int[ nfreeat_ ];
+      commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
+    }
+    if (append)
+      file_.SetupWrite( fname, debug_ );
+    else
+      file_.SetupAppend( fname, debug_ );
+    AllocateCoords();
+  }
+  if (debug_ > 0)
+    rprintf("Charmm DCD: headerBytes_=%zu  frame1Bytes_=%zu  frameNBytes_=%zu\n",
+            headerBytes_, frame1Bytes_, frameNBytes_);
+  return 0;
+}
+
+int Traj_CharmmDcd::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+
+int Traj_CharmmDcd::parallelWriteFrame(int set, Frame const& frameOut) {
+  // Seek to given frame.
+  seekToFrame( set );
+  return ( writeFrame(set, frameOut) );
+}
+
+void Traj_CharmmDcd::parallelCloseTraj() {
+  byte8 framecount;
+  if (file_.IsOpen() && file_.Access() != CpptrajFile::READ) {
+    file_.CloseFile();
+    framecount.i[1] = 0;
+    framecount.i[0] = dcdframes_;
+    if (debug_>0) mprintf("\tDEBUG: Parallel updated DCD frame count is %i\n", dcdframes_);
+    if (master_) {
+      file_.OpenFile(CpptrajFile::UPDATE);
+      file_.Seek( blockSize_+4 );
+      // NOTE: Here we are ensuring that ONLY 4 bytes are written. This could
+      //       overflow for large # of frames.
+      file_.Write(framecount.c,sizeof(unsigned char)*4);
+    }
+    file_.CloseFile();
+  } else
+    file_.CloseFile();
+}
+#endif

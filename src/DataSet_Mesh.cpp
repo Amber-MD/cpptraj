@@ -38,6 +38,32 @@ void DataSet_Mesh::WriteBuffer(CpptrajFile &cbuffer, SizeArray const& pIn) const
   else
     cbuffer.Printf(format_.fmt(), mesh_y_[pIn[0]]);
 }
+#ifdef MPI
+// DataSet_double::Sync()
+int DataSet_Mesh::Sync(size_t total, std::vector<int> const& rank_frames,
+                       Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
+    // Resize for total number of frames.
+    mesh_x_.resize( total );
+    mesh_y_.resize( total );
+    double* x_endptr = &(mesh_x_[0]) + rank_frames[0];
+    double* y_endptr = &(mesh_y_[0]) + rank_frames[0];
+    // Receive data from each rank
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      commIn.SendMaster( x_endptr, rank_frames[rank], rank, MPI_DOUBLE );
+      commIn.SendMaster( y_endptr, rank_frames[rank], rank, MPI_DOUBLE );
+      x_endptr += rank_frames[rank];
+      y_endptr += rank_frames[rank];
+    }
+  } else {// Send data to master //TODO adjust for repeated additions?
+    commIn.SendMaster( &(mesh_x_[0]), mesh_x_.size(), commIn.Rank(), MPI_DOUBLE );
+    commIn.SendMaster( &(mesh_y_[0]), mesh_y_.size(), commIn.Rank(), MPI_DOUBLE );
+  }
+  return 0;
+}
+#endif
 
 // -----------------------------------------------------------------------------
 int DataSet_Mesh::Append(DataSet* dsIn) {

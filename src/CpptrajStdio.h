@@ -11,8 +11,8 @@
  */
 void mflush();
 void loudPrintf(const char*, ...);
-void mprintf(const char *, ...);
 void loudPrinterr(const char*, ...);
+void mprintf(const char *, ...);
 void mprinterr(const char *, ...);
 void rprintf(const char *, ...);
 void rprinterr(const char *, ...);

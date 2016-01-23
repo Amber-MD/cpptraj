@@ -47,8 +47,7 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   // Get DataSet name
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
-  MetaData md( setname );
-  md.SetTimeSeries( MetaData::NOT_TS );
+  MetaData md( setname, "", MetaData::NOT_TS );
   if (bfactor_)
     md.SetLegend("B-factors");
   else
@@ -58,6 +57,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
     return Action::ERR; 
   }
+# ifdef MPI
+  dataout_->SetNeedsSync( false ); // Not a time series
+  trajComm_ = init.TrajComm();
+# endif
   if (outfile != 0) 
     outfile->AddDataSet( dataout_ );
 
@@ -118,7 +121,7 @@ Action::RetType Action_AtomicFluct::Setup(ActionSetup& setup) {
 
 // Action_AtomicFluct::DoAction()
 Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   SumCoords_ += frm.Frm();
   SumCoords2_ += ( frm.Frm() * frm.Frm() );
   if (calc_adp_) {
@@ -131,6 +134,19 @@ Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
   ++sets_;
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_AtomicFluct::SyncAction() {
+  int total_frames = 0;
+  trajComm_.Reduce( &total_frames, &sets_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
+    sets_ = total_frames;
+  SumCoords_.SumToMaster(trajComm_);
+  SumCoords2_.SumToMaster(trajComm_);
+  Cross_.SumToMaster(trajComm_);
+  return 0;
+}
+#endif
 
 // Action_AtomicFluct::Print() 
 void Action_AtomicFluct::Print() {

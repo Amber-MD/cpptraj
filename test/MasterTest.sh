@@ -14,6 +14,7 @@ USEDACDIF=1         # If 0 do not use dacdif even if in AmberTools
 CPPTRAJ=""          # CPPTRAJ binary
 SFX=""              # CPPTRAJ binary suffix
 AMBPDB=""           # ambpdb binary
+NPROC=""            # nproc binary for counting threads in parallel tests.
 TIME=""             # Set to the 'time' command if timing requested.
 VALGRIND=""         # Set to 'valgrind' command if memory check requested.
 DIFFCMD=""          # Command used to check for test differences
@@ -64,8 +65,9 @@ DoTest() {
     FAIL_OS=""
     while [[ ! -z $1 ]] ; do
       case "$1" in
-        "allowfail" ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
-        *           ) DIFFARGS=$DIFFARGS" $1" ;;
+        "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
+        "parallelfail" ) ALLOW_FAIL=2 ;;
+        *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
     done
@@ -85,6 +87,16 @@ DoTest() {
           echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
           echo "           This test is known to fail on $TEST_OS."
           echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
+          echo "           The differences below should be carefully inspected."
+          echo "--------------------------------------------------------------------------------"
+          cat temp.diff
+          echo "--------------------------------------------------------------------------------"
+          ((WARNCOUNT++))
+        elif [[ $ALLOW_FAIL -eq 2 && ! -z $DO_PARALLEL ]] ; then
+          echo "Warning: Differences between $F1 and $F2 detected."
+          echo "Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
+          echo "         This test is known to fail in parallel."
+          echo "         This test is known to fail in parallel." >> $TEST_RESULTS
           echo "           The differences below should be carefully inspected."
           echo "--------------------------------------------------------------------------------"
           cat temp.diff
@@ -248,6 +260,72 @@ CheckPtrajAnalyze() {
   fi
 }
 
+CheckPnetcdf() {
+  DESCRIP="This test"
+  if [[ ! -z $1 ]] ; then
+    DESCRIP="Test '$1'"
+  fi
+  if [[ -z $PNETCDFLIB ]] ; then
+    echo "$DESCRIP requires compilation with Pnetcdf."
+    echo "Cpptraj was compiled without Pnetcdf support. Skipping test."
+    return 1
+  fi
+  return 0
+}
+
+# NotParallel() <Test title>
+NotParallel() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    echo ""
+    echo "  CPPTRAJ: $1"
+    echo "  This test cannot be run in parallel. Skipping test."
+    return 1
+ fi
+ return 0
+}
+
+# RequiresThreads() <# threads> <Test title>
+RequiresThreads() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    if [[ ! -f "$NPROC" ]] ; then
+      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
+      return 0
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+    REMAINDER=`echo "$N_THREADS % $1" | bc`
+    if [[ -z $REMAINDER || $REMAINDER -ne 0 ]] ; then
+      echo ""
+      if [[ ! -z $2 ]] ; then
+        echo "  CPPTRAJ: $2"
+      fi
+      echo "  Warning: Test requires a multiple of $1 parallel threads. Skipping."
+      return 1
+    fi
+  fi
+  return 0
+}
+
+# MaxThreads() <# threads> <Test title>
+MaxThreads() {
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    if [[ ! -f "$NPROC" ]] ; then
+      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
+      return 0
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+    if [[ $N_THREADS -gt $1 ]] ; then
+      echo ""
+      if [[ ! -z $2 ]] ; then
+        echo "  CPPTRAJ: $2"
+      fi
+      echo "  Warning: Test can only run with $1 or fewer parallel threads. Skipping."
+      return 1
+    fi
+  fi
+  return 0
+}
 #-------------------------------------------------------------------------------
 # Summary(): Print a summary of the tests.
 Summary() {
@@ -416,14 +494,17 @@ SetBinaries() {
       fi
       CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
       AMBPDB=$DIRPREFIX/bin/ambpdb
+      NPROC=$DIRPREFIX/AmberTools/test/numprocs
     else
       # Standalone: GitHub etc
       if [[ ! -z $CPPTRAJHOME ]] ; then
         CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
         AMBPDB=$CPPTRAJHOME/bin/ambpdb
+        NPROC=$CPPTRAJHOME/test/nproc
       else
         CPPTRAJ=../../bin/cpptraj$SFX
         AMBPDB=../../bin/ambpdb
+        NPROC=../../test/nproc
       fi
     fi
   fi
@@ -436,6 +517,7 @@ SetBinaries() {
     fi
     echo "DEBUG: CPPTRAJ: $CPPTRAJ"
     echo "DEBUG: AMBPDB:  $AMBPDB"
+    echo "DEBUG: NPROC:   $NPROC"
     echo "DEBUG: NCDUMP:  $NCDUMP"
     echo "DEBUG: DIFFCMD: $DIFFCMD"
     echo "DEBUG: DACDIF:  $DACDIF"

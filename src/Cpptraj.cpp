@@ -62,7 +62,7 @@ void Cpptraj::Intro() {
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("| Running on %i threads\n",CpptrajState::WorldSize());
+  mprintf("| Running on %i threads\n", Parallel::World().Size());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
   std::string available_mem = AvailableMemoryStr();
@@ -90,7 +90,12 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
     if (!State_.EmptyState())
       err = State_.Run();
   } else if ( cmode == INTERACTIVE ) {
+#   ifdef MPI
+    mprinterr("Error: MPI version of cpptraj cannot run in interactive mode.\n");
+    err = 1;
+#   else
     err = Interactive();
+#   endif
   } else if ( cmode == ERROR ) {
     err = 1;
   }
@@ -306,7 +311,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   for (Sarray::const_iterator trajinName = trajinFiles.begin();
                               trajinName != trajinFiles.end();
                               ++trajinName)
-    if (State_.AddTrajin( *trajinName )) return ERROR;
+    if (State_.AddInputTrajectory( *trajinName )) return ERROR;
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input

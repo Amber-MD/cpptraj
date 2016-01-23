@@ -43,10 +43,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   if (frameSize_ < 1) 
     buffer_ = 0;
   else {
-    buffer_ = new char[ frameSize_ ];
+    buffer_ = new char[ frameSize_ + 1 ]; // +1 for null, TODO not necessary for read?
     std::fill(buffer_, buffer_ + frameSize_, 0);
   }
   bufferPosition_ = buffer_;
+  //rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
 
@@ -62,9 +64,6 @@ size_t BufferedFrame::CalcFrameSize( int Nelts ) const {
   if (readingFile && IsDos()) frame_lines *= 2;
   // Calculate total frame size
   size_t fsize = (((size_t)Nelts * eltWidth_) + frame_lines);
-  // If writing, add +1 for null 
-  if (!readingFile)
-    ++fsize;
   return fsize;
 }
 
@@ -76,7 +75,7 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
     return frameSize_;
   }
   size_t newsize = frameSize_ + CalcFrameSize( delta );
-  char* newbuffer = new char[ newsize ];
+  char* newbuffer = new char[ newsize + 1]; // +1 for null
   std::copy(buffer_, buffer_+frameSize_, newbuffer);
   std::fill(newbuffer+frameSize_, newbuffer+newsize, 0);
   delete[] buffer_;

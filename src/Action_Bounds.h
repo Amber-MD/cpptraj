@@ -11,6 +11,10 @@ class Action_Bounds : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
     void Print();
     AtomMask mask_;
     CpptrajFile* outfile_;

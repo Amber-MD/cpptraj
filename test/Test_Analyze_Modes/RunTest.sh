@@ -7,6 +7,7 @@ CleanFiles modes.in fluct.dat displ.dat corr.dat
 TOP=../tz2.parm7
 INPUT="modes.in"
 CheckPtrajAnalyze
+CheckNetcdf
 
 Test1() {
 cat > modes.in <<EOF

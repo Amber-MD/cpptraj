@@ -46,9 +46,15 @@ EOF
   DoTest CremerP.dat.save CremerP.dat
 }
 
-Nucleic
-Furanoid
-Pyranoid
+MaxThreads 3 "Pucker command test"
+if [[ $? -eq 0 ]] ; then
+  Nucleic
+fi
+MaxThreads 1 "Pyranoid/furanoid pucker tests."
+if [[ $? -eq 0 ]] ; then
+  Furanoid
+  Pyranoid
+fi
 
 EndTest
 

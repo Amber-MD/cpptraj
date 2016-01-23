@@ -3,7 +3,6 @@
 #include "Atom.h"
 #include "AtomMask.h"
 #include "CoordinateInfo.h"
-// Class: Frame
 /// Hold coordinates, perform various operations/transformations on them.
 /** Intended to hold coordinates e.g. from a trajectory or reference frame,
   * along with box coordinates (used in imaging calculations), mass information,
@@ -30,7 +29,6 @@
   */
 class Frame {
   public:
-    static void PrintCoordInfo( const char*, const char*, CoordinateInfo const&);
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -206,8 +204,9 @@ class Frame {
     double CalcTemperature(AtomMask const&,int) const;
 #   ifdef MPI
     // ----- Parallel Routines -------------------
-    int SendFrame(int);
-    int RecvFrame(int);
+    int SendFrame(int, Parallel::Comm const&);
+    int RecvFrame(int, Parallel::Comm const&);
+    int SumToMaster(Parallel::Comm const&);
 #   endif
   private:
     typedef std::vector<double> Darray;

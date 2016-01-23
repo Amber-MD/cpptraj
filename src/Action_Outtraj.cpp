@@ -1,6 +1,10 @@
-// Action_Outtraj 
 #include "Action_Outtraj.h"
 #include "CpptrajStdio.h"
+
+Action_Outtraj::~Action_Outtraj() {
+  // NOTE: Must close in destructor since Print() is only called by master.
+  outtraj_.EndTraj();
+}
 
 void Action_Outtraj::Help() const {
   mprintf("\t<filename> [ trajout args ]\n"
@@ -12,7 +16,6 @@ void Action_Outtraj::Help() const {
 Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Set up output traj
-  outtraj_.SetDebug(debugIn);
   std::string trajfilename = actionArgs.GetStringNext();
   if (trajfilename.empty()) {
     mprinterr("Error: No filename given.\nError: Usage: ");
@@ -23,6 +26,14 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
   if (associatedParm_ == 0) {
     mprinterr("Error: Could not get associated topology for %s\n",trajfilename.c_str());
     return Action::ERR;
+  }
+  std::string rangeArg = actionArgs.GetStringKey("onlymembers");
+  if (rangeArg.empty())
+    isActive_ = true;
+  else {
+    Range members;
+    if (members.SetRange( rangeArg )) return Action::ERR;
+    isActive_ = members.InRange( init.DSL().EnsembleNum() );
   }
   // If maxmin, get the name of the dataset as well as the max and min values.
   double lastmin = 0.0;
@@ -55,13 +66,27 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
       return Action::ERR;
     }
   }
-  // Initialize output trajectory with remaining arguments
-  if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(), 
-                                      TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) ) 
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  if (trajComm_.Size() > 1 && !Dsets_.empty()) {
+    mprinterr("Error: outtraj 'maxmin' currently does not work when using > 1 thread\n"
+              "Error:   to write trajectory (currently %i threads)\n", trajComm_.Size());
     return Action::ERR;
+  }
+  outtraj_.SetTrajComm( trajComm_ );
+# endif
+  // Initialize output trajectory with remaining arguments
+  if (isActive_) {
+    outtraj_.SetDebug(debugIn);
+    if ( outtraj_.InitEnsembleTrajWrite(trajfilename, actionArgs.RemainingArgs(),
+                                        TrajectoryFile::UNKNOWN_TRAJ, init.DSL().EnsembleNum()) )
+      return Action::ERR;
+  }
   isSetup_ = false;
 
   mprintf("    OUTTRAJ: Writing frames associated with topology '%s'\n", associatedParm_->c_str());
+  if (!rangeArg.empty())
+    mprintf("\tonlymembers: Only writing members %s\n", rangeArg.c_str());
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     mprintf("\tmaxmin: Printing trajectory frames based on %g <= %s <= %g\n",
             Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
@@ -69,9 +94,17 @@ Action::RetType Action_Outtraj::Init(ArgList& actionArgs, ActionInit& init, int 
   return Action::OK;
 } 
 
+# ifdef MPI
+int Action_Outtraj::SyncAction() {
+  int nframes = outtraj_.Traj().NframesWritten();
+  trajComm_.Reduce( &total_frames_, &nframes, 1, MPI_INT, MPI_SUM );
+  return 0;
+}
+#endif
+
 // Action_Outtraj::Setup()
 Action::RetType Action_Outtraj::Setup(ActionSetup& setup) {
-  if (associatedParm_->Pindex() != setup.Top().Pindex())
+  if (!isActive_ || associatedParm_->Pindex() != setup.Top().Pindex())
     return Action::SKIP;
   if (!isSetup_) { // TODO: Trajout IsOpen?
     if (outtraj_.SetupTrajWrite(setup.TopAddress(), setup.CoordInfo(), setup.Nframes()))
@@ -97,8 +130,7 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
       if (dVal < Min_[ds] || dVal > Max_[ds]) return Action::OK;
     }
   }
-  if ( outtraj_.WriteSingle(frameNum, frm.Frm()) != 0 ) 
-    return Action::ERR;
+  if (outtraj_.WriteSingle(frm.TrajoutNum(), frm.Frm())) return Action::ERR;
   return Action::OK;
 }
 
@@ -106,7 +138,12 @@ Action::RetType Action_Outtraj::DoAction(int frameNum, ActionFrame& frm) {
 /** Close trajectory. Indicate how many frames were actually written.
   */
 void Action_Outtraj::Print() {
-  mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(),
-          outtraj_.Traj().NframesWritten());
-  outtraj_.EndTraj();
+  // Possible to write 0 frames due to 'onlymembers'
+# ifdef MPI
+  int frames_written = total_frames_;
+# else
+  int frames_written = outtraj_.Traj().NframesWritten();
+# endif
+  if (frames_written > 0)
+    mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(), frames_written);
 }

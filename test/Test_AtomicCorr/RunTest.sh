@@ -3,12 +3,11 @@
 . ../MasterTest.sh
 
 CleanFiles corr.in acorr.gnu
-
+CheckNetcdf
 INPUT="-i corr.in"
 cat > corr.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
-rms first
 atomiccorr out acorr.gnu
 EOF
 RunCpptraj "Atomic Correlation test."

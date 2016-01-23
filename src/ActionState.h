@@ -10,6 +10,11 @@
 class ActionInit {
   public:
     ActionInit() : dsl_(0), dfl_(0) {} // NOTE: For pytraj/cython
+#   ifdef MPI
+    ActionInit(DataSetList& dslIn, DataFileList& dflIn, Parallel::Comm const& commIn) :
+      dsl_(&dslIn), dfl_(&dflIn), trajComm_(commIn) {}
+    Parallel::Comm const& TrajComm() const { return trajComm_; }
+#   endif
     ActionInit(DataSetList& dslIn, DataFileList& dflIn) :
       dsl_(&dslIn), dfl_(&dflIn) {}
     DataSetList& DSL()              { return *dsl_; }
@@ -21,6 +26,9 @@ class ActionInit {
   private:
     DataSetList* dsl_;
     DataFileList* dfl_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 /* The ActionSetup class is used to pass in the current Topology, CoordinateInfo,
  * and expected number of frames associated with the current Topology.
@@ -54,14 +62,17 @@ class ActionSetup {
 /** The ActionFrame class is used to pass in the current Frame. */
 class ActionFrame {
   public:
-    ActionFrame() : frm_(0) {}
-    ActionFrame(Frame* fIn) : frm_(fIn) {}
+    ActionFrame() : frm_(0), trajoutNum_(0) {}
+    ActionFrame(Frame* fIn, int t) : frm_(fIn), trajoutNum_(t) {}
     Frame const& Frm()  const { return *frm_; }
     Frame& ModifyFrm()        { return *frm_; }
+    int TrajoutNum()    const { return trajoutNum_; }
+    void SetTrajoutNum(int t) { trajoutNum_ = t; }
     // NOTE: Used during ensemble.
     Frame* FramePtr()         { return frm_;  }
     void SetFrame( Frame* f ) { frm_ = f;     }
   private:
     Frame* frm_;
+    int trajoutNum_; ///< Current output trajectory frame number.
 };
 #endif

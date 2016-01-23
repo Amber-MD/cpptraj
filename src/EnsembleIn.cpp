@@ -1,19 +1,22 @@
 #include "EnsembleIn.h"
 #include "CpptrajStdio.h"
-#ifdef MPI
-#include "MpiRoutines.h"
 
-int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps) {
-  if (parallel_allgather(tAddress, 1, PARA_DOUBLE, &allTemps[0], 1, PARA_DOUBLE)) {
+#ifdef MPI
+int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps,
+                                   Parallel::Comm const& commIn)
+{
+  if (commIn.AllGather(tAddress, 1, MPI_DOUBLE, &allTemps[0])) {
     rprinterr("Error: Gathering temperatures.\n");
     return 1; // TODO: Better parallel error check
   }
   return 0;
 }
 
-int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices, int Ndims) {
+int EnsembleIn::GatherIndices(int* iAddress, std::vector<RemdIdxType>& allIndices,
+                              int Ndims, Parallel::Comm const& commIn)
+{
   std::vector<int> all_indices(allIndices.size() * Ndims, 0);
-  if (parallel_allgather(iAddress, Ndims, PARA_INT, &all_indices[0], Ndims, PARA_INT)) {
+  if (commIn.AllGather(iAddress, Ndims, MPI_INT, &all_indices[0])) {
     rprinterr("Error: Gathering replica indices\n");
     return 1; // TODO: Better parallel error check
   }
@@ -38,8 +41,8 @@ void EnsembleIn::TimingData(double trajin_time) {
             other_time, (other_time / trajin_time)*100.0 );
   }
 }
-#endif
-#endif
+#endif /* TIMER */
+#endif /* MPI */
 
 void EnsembleIn::PrintReplicaInfo() const {
   if (targetType_ == ReplicaInfo::TEMP) {

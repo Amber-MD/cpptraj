@@ -67,7 +67,9 @@ class NetcdfFile {
     int crdidxVID_;           ///< Variable ID for overall coordinate index.
 
     bool checkNCerr(int);
-    void Sync();
+#   ifdef MPI
+    void Sync(Parallel::Comm const&);
+#   endif
   private:
     int ncdebug_;
     int ensembleDID_;

@@ -1,4 +1,3 @@
-// DISTRMSD
 #include "Action_DistRmsd.h"
 #include "CpptrajStdio.h"
 
@@ -6,10 +5,8 @@
 Action_DistRmsd::Action_DistRmsd() : drmsd_(0) {}
 
 void Action_DistRmsd::Help() const {
-  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
-          "  Calculate distance RMSD (DME) for specified atoms.\n", DataSetList::RefArgs);
+  mprintf("\t[<name>] [<mask>] [<refmask>] [out filename]\n%s"
+          "  Calculate distance RMSD (DME) for specified atoms.\n", ReferenceAction::Help());
 }
 
 // Action_DistRmsd::Init()
@@ -19,37 +16,31 @@ Action::RetType Action_DistRmsd::Init(ArgList& actionArgs, ActionInit& init, int
   // Check for keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Reference keywords
-  // TODO: Can these just be put in the InitRef call?
-  bool first = actionArgs.hasKey("first");
-  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
-  std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  Topology* RefParm = init.DSL().GetTopology( actionArgs );
+  REF_.InitRef(actionArgs, init.DSL(), false, false);
   // Get the RMS mask string for target 
-  std::string mask0 = actionArgs.GetMaskNext();
-  TgtMask_.SetMaskString(mask0);
+  std::string tMaskExpr = actionArgs.GetMaskNext();
+  TgtMask_.SetMaskString( tMaskExpr );
   // Get the RMS mask string for reference
-  std::string mask1 = actionArgs.GetMaskNext();
-  if (mask1.empty())
-    mask1 = mask0;
-
-  // Initialize reference
-  if (refHolder_.InitRef(false, first, false, false, reftrajname, REF, RefParm,
-                         mask1, actionArgs, "distrmsd"))
-    return Action::ERR;
+  std::string rMaskExpr = actionArgs.GetMaskNext();
+  if (rMaskExpr.empty())
+    rMaskExpr = tMaskExpr;
+  REF_.SetRefMask( tMaskExpr );
  
   // Set up the RMSD data set
   drmsd_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(),"DRMSD");
   if (drmsd_==0) return Action::ERR;
   // Add dataset to data file list
   if (outfile != 0) outfile->AddDataSet( drmsd_ );
-
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    DISTRMSD: (%s), reference is %s\n",TgtMask_.MaskString(),
-          refHolder_.RefModeString());
+          REF_.RefModeString().c_str());
 
   return Action::OK;
 }
 
-// Action_DistRmsd::setup()
+// Action_DistRmsd::Setup()
 /** Called every time the trajectory changes. Set up TgtMask for the new 
   * parmtop and allocate space for selected atoms from the Frame.
   */
@@ -63,23 +54,22 @@ Action::RetType Action_DistRmsd::Setup(ActionSetup& setup) {
   // Allocate space for selected atoms in the frame. This will also put the
   // correct masses in based on the mask.
   SelectedTgt_.SetupFrameFromMask(TgtMask_, setup.Top().Atoms());
-
-  if (refHolder_.SetupRef(setup.Top(), TgtMask_.Nselected(), "distrmsd"))
+  // Reference setup
+  if (REF_.SetupRef(setup.Top(), TgtMask_.Nselected()))
     return Action::ERR; 
 
   return Action::OK;
 }
 
-// Action_DistRmsd::action()
-/** Called every time a frame is read in. Calc distance RMSD.
-  * If first is true, set the first frame read in as reference.
-  */
+// Action_DistRmsd::DoAction()
+/** Called every time a frame is read in. Calc distance RMSD. */
 Action::RetType Action_DistRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  refHolder_.ActionRef( frm.Frm(), false, false );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Set selected frame atoms. Masses have already been set.
   SelectedTgt_.SetCoordinates(frm.Frm(), TgtMask_);
-  double DR = SelectedTgt_.DISTRMSD( refHolder_.SelectedRef() );
+  double DR = SelectedTgt_.DISTRMSD( REF_.SelectedRef() );
   drmsd_->Add(frameNum, &DR);
+  REF_.PreviousRef( frm.Frm() );
   return Action::OK;
 }

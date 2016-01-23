@@ -21,12 +21,23 @@ class EnsembleOut {
     virtual void PrintInfo(int) const = 0;
     // -------------------------------------------
     OutputTrajCommon const& Traj() const { return traj_; }
+#   ifdef MPI
+    // Set the parallel communicator.
+    int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+#   endif
   protected:
     OutputTrajCommon& SetTraj() { return traj_; }
     /// For ensemble trajouts, get range of members to write.
-    static Range MembersToWrite(std::string const&,int);
-
+    int SetMembersToWrite(std::string const&,int);
+    Range const& MembersToWrite() const { return members_to_write_; }
     int debug_;
+#   ifdef MPI
+    /// Peform Topology-related setup for ensemble and open in parallel.
+    virtual int ParallelSetupEnsembleWrite() = 0;
+    Parallel::Comm trajComm_; //TODO: make private
+#   endif
+  private:
     OutputTrajCommon traj_;
+    Range members_to_write_; ///< Range of members to write to.
 };
 #endif

@@ -10,12 +10,12 @@ AMBPDBSOURCES=AmbPDB.cpp \
               ByteRoutines.cpp \
               CharMask.cpp \
               CIFfile.cpp \
+              CoordinateInfo.cpp \
               CpptrajFile.cpp \
               CpptrajStdio.cpp \
               DistRoutines.cpp \
               FileIO_Bzip2.cpp \
               FileIO_Gzip.cpp \
-              FileIO_Mpi.cpp \
               FileIO_Std.cpp \
               FileName.cpp \
               FileTypes.cpp \

@@ -10,7 +10,6 @@ Action_Rmsd::Action_Rmsd() :
   perrescenter_(false),
   perresinvert_(false),
   perresavg_(0),
-  RefParm_(0),
   masterDSL_(0),
   debug_(0),
   fit_(true),
@@ -22,13 +21,11 @@ Action_Rmsd::Action_Rmsd() :
 
 void Action_Rmsd::Help() const {
   mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
-          "\t[mass] [savematrices]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
+          "\t[mass] [savematrices]\n%s"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
           "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n",
-          DataSetList::RefArgs);
+          ReferenceAction::Help());
   mprintf("  Calculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
@@ -45,12 +42,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   bool saveMatrices = actionArgs.hasKey("savematrices");
   // Reference keywords
-  bool previous = actionArgs.hasKey("previous");
-  bool first = actionArgs.hasKey("first");
-  ReferenceFrame refFrm = init.DSL().GetReferenceFrame( actionArgs );
-  std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  if (!reftrajname.empty())
-    RefParm_ = init.DSL().GetTopology( actionArgs );
+  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -76,13 +68,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  // Initialize reference
-  if (REF_.InitRef(previous, first, useMass_, fit_, reftrajname, refFrm, 
-                   RefParm_, rMaskExpr, actionArgs, "rmsd"))
-    return Action::ERR;
-  // Set RefParm for perres if not empty
-  if (perres_ && RefParm_ == 0 && !refFrm.empty())
-    RefParm_ = refFrm.ParmPtr();
+  REF_.SetRefMask( rMaskExpr );
 
   // Set up the RMSD data set.
   MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
@@ -100,8 +86,11 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
     rmatrices_ = init.DSL().AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
   }
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
-          REF_.RefModeString());
+          REF_.RefModeString().c_str());
   if (!fit_)
     mprintf(", no fitting");
   else {
@@ -283,15 +272,16 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   // correct masses in based on the mask.
   tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());
   // Reference setup
-  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected(), "rmsd"))
+  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::SKIP;
  
   // Per residue rmsd setup
   if (perres_) {
+    Topology* RefParm = REF_.RefCrdTopPtr();
     // If RefParm is still NULL probably 'first', set now.
-    if (RefParm_ == 0)
-      RefParm_ = setup.TopAddress();
-    int err = perResSetup(setup.Top(), *RefParm_);
+    if (RefParm == 0)
+      RefParm = setup.TopAddress();
+    int err = perResSetup(setup.Top(), *RefParm);
     if      (err == 1) return Action::SKIP;
     else if (err == 2) return Action::ERR;
   }
@@ -309,7 +299,7 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frm.Frm(), fit_, useMass_ );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate RMSD
   double rmsdval;
   Action::RetType err;
@@ -340,8 +330,8 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
                                      PerRes != ResidueRMS_.end(); ++PerRes)
     {
       if ( PerRes->isActive_ ) {
-        ResRefFrame_.SetFrame(REF_.RefFrame(), PerRes->refResMask_);
-        ResTgtFrame_.SetFrame(frm.Frm(),       PerRes->tgtResMask_);
+        ResRefFrame_.SetFrame(REF_.CurrentReference(), PerRes->refResMask_);
+        ResTgtFrame_.SetFrame(frm.Frm(),               PerRes->tgtResMask_);
         if (perrescenter_) {
           ResTgtFrame_.CenterOnOrigin( useMass_ );
           ResRefFrame_.CenterOnOrigin( useMass_ );
@@ -351,9 +341,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
       }
     }
   }
-
-  if (REF_.Previous())
-    REF_.SetRefStructure( frm.Frm(), fit_, useMass_ );
+  REF_.PreviousRef( frm.Frm() );
 
   return err;
 }
@@ -385,6 +373,10 @@ void Action_Rmsd::Print() {
                                                                   MetaData(rmsd_->Meta().Name(),
                                                                            "Stdev"));
     PerResStdev->ModifyDim(Dimension::X).SetLabel("Residue");
+#   ifdef MPI
+    PerResAvg->SetNeedsSync( false );
+    PerResStdev->SetNeedsSync( false );
+#   endif
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddDataSet(PerResAvg);
     perresavg_->AddDataSet(PerResStdev);

@@ -36,16 +36,20 @@ class Trajout_Single {
     /// Init and setup/open traj for writing to STDOUT (e.g. ambpdb mode)
     int PrepareStdoutTrajWrite(ArgList const&, Topology*, CoordinateInfo const&, int,
                                TrajectoryFile::TrajFormatType);
-    /// Init traj; if given, append ensemble number to name
+    /// Init traj; if given, append ensemble number to name (use in Actions)
     int InitEnsembleTrajWrite(FileName const&, ArgList const&,
                               TrajectoryFile::TrajFormatType, int);
-    /// Init and setup/open traj; if given, append ensemble number to name
-    int PrepareEnsembleTrajWrite(FileName const&, ArgList const&, Topology*,
-                                 CoordinateInfo const&, int,
-                                 TrajectoryFile::TrajFormatType, int);
+#   ifdef MPI
+    // Set the parallel communicator.
+    int SetTrajComm(Parallel::Comm const& c) { trajComm_ = c; return 0; }
+#   endif
   private:
     int InitTrajout(FileName const&, ArgList const&, TrajectoryFile::TrajFormatType);
-
+#   ifdef MPI
+    /// Peform Topology-related setup for trajectory and open in parallel.
+    int ParallelSetupTrajWrite();
+    Parallel::Comm trajComm_;
+#   endif
     OutputTrajCommon traj_;
     TrajectoryIO* trajio_;
     int debug_;

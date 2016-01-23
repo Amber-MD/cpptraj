@@ -2,7 +2,11 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC) {}
+DataSet::DataSet() : dType_(UNKNOWN_DATA), dGroup_(GENERIC)
+# ifdef MPI
+, needsSync_( false )
+# endif
+{}
 
 /// CONSTRUCTOR - Take type, group, width, precision, and dimension
 DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, int dimIn) :
@@ -10,6 +14,9 @@ DataSet::DataSet(DataType typeIn, DataGroup groupIn, TextFormat const& fmtIn, in
   dim_(dimIn, Dimension(1.0, 1.0)), // default min=1.0, step=1.0
   dType_(typeIn),
   dGroup_(groupIn)
+# ifdef MPI
+, needsSync_( false )
+# endif
 { }
 
 // COPY CONSTRUCTOR
@@ -19,6 +26,9 @@ DataSet::DataSet(const DataSet& rhs) :
   dType_(rhs.dType_),
   dGroup_(rhs.dGroup_),
   meta_(rhs.meta_)
+# ifdef MPI
+, needsSync_(rhs.needsSync_)
+# endif
 {
   for (AdataArray::const_iterator a = rhs.associatedData_.begin();
                                   a != rhs.associatedData_.end(); ++a)
@@ -34,6 +44,9 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
     dGroup_ = rhs.dGroup_;
     meta_ = rhs.meta_;
     associatedData_.clear();
+#   ifdef MPI
+    needsSync_ = rhs.needsSync_;
+#   endif
     for (AdataArray::const_iterator a = rhs.associatedData_.begin();
                                     a != rhs.associatedData_.end(); ++a)
       associatedData_.push_back( (*a)->Copy() );

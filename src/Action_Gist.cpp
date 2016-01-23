@@ -51,6 +51,13 @@ void Action_Gist::Help() const {
 // Action_Gist::Init()
 Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'gist' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   if (init.DSL().EnsembleNum() > -1) {
     mprinterr("Error: GIST currently cannot be used in ensemble mode.\n");
     return Action::ERR;

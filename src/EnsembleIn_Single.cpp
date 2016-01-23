@@ -2,9 +2,6 @@
 #include "EnsembleIn_Single.h"
 #include "TrajectoryFile.h"
 #include "CpptrajStdio.h"
-#ifdef MPI
-#include "MpiRoutines.h"
-#endif
 
 // CONSTRUCTOR
 EnsembleIn_Single::EnsembleIn_Single() : eio_(0), ensembleSize_(0) {}
@@ -62,6 +59,10 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
               TrajectoryFile::FormatString(tformat));
     return 1;
   }
+# ifdef MPI
+  // Set up communicators
+  if (Parallel::SetupComms( ensembleSize_ )) return 1;
+# endif
   // If dimensions are present, assume search by indices, otherwise by temp.
   targetType_ = ReplicaInfo::NONE;
   if (cInfo_.ReplicaDimensions().Ndims() > 0)
@@ -73,7 +74,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
     return 1;
   }
   if (debug_ > 0)
-    Frame::PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str(), cInfo_ );
+    cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
 # ifdef MPI
   // This array will let each thread know who has what frame.
   frameidx_.resize( ensembleSize_ ); // TODO: Get rid of, should do all in TrajIO class.
@@ -96,7 +97,7 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
       std::vector<double> allTemps( ensembleSize_, -1.0 );
 #     ifdef MPI
       // Consolidate temperatures
-      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps)) return 1;
+      if (GatherTemperatures(f_ensemble[0].tAddress(), allTemps, EnsembleComm())) return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)
         allTemps[en] = f_ensemble[en].Temperature();
@@ -106,7 +107,8 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
       std::vector<RemdIdxType> allIndices( ensembleSize_ );
 #     ifdef MPI
       // Consolidate replica indices
-      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
+      if (GatherIndices(f_ensemble[0].iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
+                        EnsembleComm()))
         return 1;
 #     else
       for (int en = 0; en != ensembleSize_; ++en)
@@ -161,7 +163,7 @@ int EnsembleIn_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     mpi_allgather_timer_.Start();
 #   endif
     // TODO: Put this in Traj_NcEnsemble
-    if (parallel_allgather( &my_idx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+    if (EnsembleComm().AllGather( &my_idx, 1, MPI_INT, &frameidx_[0])) {
       rprinterr("Error: Gathering frame indices.\n");
       badEnsemble_ = true;
       return 0; // TODO: Better parallel error check
@@ -179,10 +181,10 @@ int EnsembleIn_Single::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       for (int sendrank = 0; sendrank != ensembleSize_; sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          if (sendrank == worldrank)
-            f_ensemble[0].SendFrame( recvrank );
-          else if (recvrank == worldrank) {
-            f_ensemble[1].RecvFrame( sendrank );
+          if (sendrank == Member())
+            f_ensemble[0].SendFrame( recvrank, EnsembleComm() );
+          else if (recvrank == Member()) {
+            f_ensemble[1].RecvFrame( sendrank, EnsembleComm() );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1;
           }

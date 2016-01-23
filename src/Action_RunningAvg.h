@@ -22,5 +22,9 @@ class Action_RunningAvg: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
+#   ifdef MPI
+    int ParallelPreviousFramesRequired() const { return Nwindow_ - 1; }
+    int ParallelPreloadFrames(FArray const&);
+#   endif
 };
 #endif  

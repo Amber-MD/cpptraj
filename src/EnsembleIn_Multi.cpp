@@ -2,9 +2,6 @@
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
-#ifdef MPI
-#  include "MpiRoutines.h"
-#endif
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -31,6 +28,10 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
   // Set up TrajectoryIO classes for all file names.
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+# ifdef MPI
+  // Set up communicators
+  if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
+# endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
@@ -97,29 +98,29 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     else if (targetType_ == ReplicaInfo::INDICES)
       allIndices.resize( REMDtraj_.size() );
 #   ifdef MPI
+    // FIXME This needs to be changed if TrajComm size ever > 1
     int err = 0;
-    if (REMDtraj_[worldrank]->openTrajin()) {
-      rprinterr("Error: Opening %s\n", REMDtraj_.f_name(worldrank));
+    if (REMDtraj_[Member()]->openTrajin()) {
+      rprinterr("Error: Opening %s\n", REMDtraj_.f_name(Member()));
       err = 1;
     }
     if (err == 0) {
-      if (REMDtraj_[worldrank]->readFrame( Traj().Counter().Start(), frameIn )) {
-        rprinterr("Error: Reading %s\n", REMDtraj_.f_name(worldrank));
+      if (REMDtraj_[Member()]->readFrame( Traj().Counter().Start(), frameIn )) {
+        rprinterr("Error: Reading %s\n", REMDtraj_.f_name(Member()));
         err = 2;
       }
-      REMDtraj_[worldrank]->closeTraj();
+      REMDtraj_[Member()]->closeTraj();
     }
-    int total_error;
-    parallel_allreduce( &total_error, &err, 1, PARA_INT, PARA_SUM );
-    if (total_error != 0) {
+    if (EnsembleComm().CheckError( err )) {
       mprinterr("Error: Cannot setup ensemble trajectories.\n");
       return 1;
     }
     if (targetType_ == ReplicaInfo::TEMP) {
-      if (GatherTemperatures(frameIn.tAddress(), allTemps))
+      if (GatherTemperatures(frameIn.tAddress(), allTemps, EnsembleComm()))
         return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
-      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
+      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
+                        EnsembleComm()))
         return 1;
     }
 #   else
@@ -152,10 +153,10 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   // Read in all replicas
   //mprintf("DBG: Ensemble frame %i:",currentFrame+1); // DEBUG
 # ifdef MPI
-  int repIdx = worldrank; // for targetType==CRDIDX
+  int repIdx = Member(); // for targetType==CRDIDX
   unsigned int member = 0;
   // Read REMDtraj for this rank
-  if ( REMDtraj_[worldrank]->readFrame( currentFrame, f_ensemble[0]) )
+  if ( REMDtraj_[Member()]->readFrame( currentFrame, f_ensemble[0]) )
     return 1;
 # else
   int repIdx = 0; // for targetType==CRDIDX
@@ -191,7 +192,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 #   ifdef TIMER
     mpi_allgather_timer_.Start();
 #   endif
-    if (parallel_allgather( &fidx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+    if (EnsembleComm().AllGather( &fidx, 1, MPI_INT, &frameidx_[0])) {
       rprinterr("Error: Gathering frame indices.\n");
       return 0; // TODO: Better parallel error check
     }
@@ -209,10 +210,10 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       for (int sendrank = 0; sendrank != (int)REMDtraj_.size(); sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          if (sendrank == worldrank)
-            f_ensemble[0].SendFrame( recvrank ); 
-          else if (recvrank == worldrank) {
-            f_ensemble[1].RecvFrame( sendrank );
+          if (sendrank == Member())
+            f_ensemble[0].SendFrame( recvrank, EnsembleComm() ); 
+          else if (recvrank == Member()) {
+            f_ensemble[1].RecvFrame( sendrank, EnsembleComm() );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1; 
           }
@@ -231,12 +232,12 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 }
 
 int EnsembleIn_Multi::BeginEnsemble() {
-  mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
+  if (debug_ > 0) mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
   // Open the trajectory this thread will be dealing with.
-  if (REMDtraj_[worldrank]->openTrajin()) {
+  if (REMDtraj_[Member()]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
-              REMDtraj_.f_name(worldrank));
+              REMDtraj_.f_name(Member()));
     return 1;
   }
 # else
@@ -257,7 +258,7 @@ int EnsembleIn_Multi::BeginEnsemble() {
 
 void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
-  REMDtraj_[worldrank]->closeTraj();
+  REMDtraj_[Member()]->closeTraj();
 # ifdef TIMER
   total_mpi_allgather_ += mpi_allgather_timer_.Total();
   total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();

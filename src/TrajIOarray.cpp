@@ -247,7 +247,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   // Update ensemble size
   cInfo.SetEnsembleSize( (int)IOarray_.size() );
   if (debug_ > 0)
-    Frame::PrintCoordInfo( replica_filenames_[0].full(), trajParm->c_str(), cInfo );
+    cInfo.PrintCoordInfo( replica_filenames_[0].full(), trajParm->c_str() );
 
   return 0;
 }

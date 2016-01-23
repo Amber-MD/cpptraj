@@ -1,17 +1,11 @@
 #ifdef BINTRAJ
 #ifdef ENABLE_SINGLE_ENSEMBLE
-//#include <cstdio> // DEBUG
-#include "netcdf.h"
+#include <netcdf.h>
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
-# include "MpiRoutines.h"
-  // MPI cannot be defined for C++ when including mpi.h since it is reserved for the MPI namespace
-# undef MPI
-# define USE_MPI
-# ifdef HAS_PNETCDF
-#   include "pnetcdf.h"
-# endif
+# include "Parallel.h"
+# include "ParallelNetcdf.h"
 #endif
 
 // CONSTRUCTOR
@@ -84,7 +78,7 @@ void Traj_NcEnsemble::closeTraj() {
 # endif
 }
 
-#ifdef USE_MPI
+#ifdef MPI
 static int NoPnetcdf() {
 # ifndef HAS_PNETCDF
   mprinterr("Error: Compiled without pnetcdf. Netcdf Ensemble requires pnetcdf in parallel.\n");
@@ -98,7 +92,7 @@ static int NoPnetcdf() {
 // Traj_NcEnsemble::setupTrajin()
 int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
 {
-# ifdef USE_MPI
+# ifdef MPI
   if (NoPnetcdf()) return TRAJIN_ERR;
 # endif
   readAccess_ = true;
@@ -159,9 +153,9 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   // Close single thread for now
   NC_close();
   // Set up local ensemble parameters
-# ifdef USE_MPI
-  ensembleStart_ = worldrank;
-  ensembleEnd_ = worldrank + 1;
+# ifdef MPI
+  ensembleStart_ = Parallel::World().Rank();
+  ensembleEnd_ = Parallel::World().Rank() + 1;
 # else
   ensembleStart_ = 0;
   ensembleEnd_ = ensembleSize;
@@ -180,7 +174,7 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
                                   int NframesToWrite, bool append)
 {
   int err = 0;
-# ifdef USE_MPI
+# ifdef MPI
   if (NoPnetcdf()) return 1;
 # endif
   readAccess_ = false;
@@ -188,9 +182,9 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     CoordinateInfo cInfo = cInfoIn;
     // TODO: File output modifications
     SetCoordInfo( cInfo );
-#   ifdef USE_MPI
-    ensembleStart_ = worldrank;
-    ensembleEnd_ = worldrank + 1;
+#   ifdef MPI
+    ensembleStart_ = Parallel::World().Rank();
+    ensembleEnd_ = Parallel::World().Rank() + 1;
 #   else
     ensembleStart_ = 0;
     ensembleEnd_ = cInfo.EnsembleSize();;
@@ -199,22 +193,22 @@ int Traj_NcEnsemble::setupTrajout(FileName const& fname, Topology* trajParm,
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj Generated trajectory");
-#   ifdef USE_MPI
-    if (worldrank == 0) { // Only master creates file.
+#   ifdef MPI
+    if (Parallel::World().Master()) { // Only master creates file.
 #   endif
       // Create NetCDF file.
       err = NC_create(filename_.Full(), NC_AMBERENSEMBLE, trajParm->Natom(), CoordInfo(), Title());
       if (debug_ > 1 && err == 0) NetcdfDebug();
       // Close Netcdf file. It will be reopened write.
       NC_close();
-#   ifdef USE_MPI
+#   ifdef MPI
     }
-    parallel_bcastMaster(&err, 1, PARA_INT);
+    Parallel::World().MasterBcast(&err, 1, MPI_INT);
 #   endif
     if (err != 0) return 1;
-#   ifdef USE_MPI
+#   ifdef MPI
     // Synchronize netcdf info on non-master threads
-    Sync();
+    Sync(Parallel::World());
     // DEBUG: Print info for all ranks
     WriteVIDs();
 #   endif
@@ -258,17 +252,6 @@ int Traj_NcEnsemble::writeFrame(int set, Frame const& frameOut) {
   return 1;
 }
 
-#ifdef HAS_PNETCDF
-inline int checkPNCerr(int err) {
-  if (err != NC_NOERR) {
-    rprinterr("PnetCDF Error: %s\n", ncmpi_strerror(err));
-    parallel_abort( err );
-    return 1;
-  }
-  return 0;
-}
-#endif
-
 // Traj_NcEnsemble::readArray()
 int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 # ifdef HAS_PNETCDF
@@ -285,7 +268,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
   count_[3] = 3;        // XYZ
   //rprintf("DEBUG: Reading frame %i\n", set+1);
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
-#   ifdef USE_MPI
+#   ifdef MPI
     Frame& frm = f_ensemble[0];
 #   else
     Frame& frm = f_ensemble[member];
@@ -398,7 +381,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
   count_[3] = 3; // XYZ
   for (int member = ensembleStart_; member != ensembleEnd_; member++) {
     //rprintf("DEBUG: Writing set %i, member %i\n", set+1, member); 
-#   ifdef USE_MPI
+#   ifdef MPI
     Frame* frm = Farray[0];
 #   else
     Frame* frm = Farray[member];

@@ -79,7 +79,7 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
 
   // TODO add in support for separate mdfrc file
   if (debug_ > 0)
-    Frame::PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str(), cInfo_ );
+    cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
   return 0;
 }
 
@@ -140,3 +140,43 @@ void Trajin_Single::PrintInfo(int showExtended) const {
     mprintf("\n");
   }
 }
+
+#ifdef MPI
+int Trajin_Single::ParallelBeginTraj( Parallel::Comm const& commIn ) {
+  // Open the trajectory
+  if (trajio_->parallelOpenTrajin( commIn )) {
+    rprinterr("Error: Could not open '%s' in parallel.\n", Traj().Filename().base());
+    return 1;
+  }
+  // Open mdvel file if present // TODO enable?
+  if (velio_ != 0) {
+    mprinterr("Error: separate velocity file not yet supported in parallel.\n");
+    return 1;
+  }
+  //if (velio_!=0 && velio_->openTrajin()) {
+  //  mprinterr("Error: Could not open mdvel file.\n");
+  //  return 1;
+  //}
+  // TODO open mdfrc file if present
+  // Initialize counter. // FIXME needed in parallel?
+  SetTraj().Counter().Begin();
+  return 0;
+}
+
+int Trajin_Single::ParallelReadTrajFrame(int idx, Frame& frameIn) {
+  if (trajio_->parallelReadFrame(idx, frameIn))
+    return 1;
+  //if (velio_ != 0 && velio_->readVelocity(idx, frameIn))
+  //  return 1;
+  //if (frcio_ != 0 && frcio_->readForce(idx, frameIn))
+  //  return 1;
+  //printf("DEBUG:\t%s:  current=%i  target=%i\n",trajName,idx,targetSet);
+  return 0;
+}
+
+void Trajin_Single::ParallelEndTraj() {
+  trajio_->parallelCloseTraj();
+  //if (velio_ != 0) velio_->closeTraj();
+  // TODO close mdfrc file if present
+}
+#endif

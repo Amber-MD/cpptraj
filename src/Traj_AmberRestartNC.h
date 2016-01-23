@@ -23,6 +23,14 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&);
     void Info();
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj() {} 
+#   endif
   private:
     double restartTime_;
     bool singleWrite_;
@@ -39,4 +47,4 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int readForce(int, Frame&)    { return 1; }
 };
 #endif
-#endif  
+#endif

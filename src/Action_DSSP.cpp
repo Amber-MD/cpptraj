@@ -17,7 +17,6 @@ Action_DSSP::Action_DSSP() :
   Nselected_(0),
   Nframe_(0),
   printString_(false),
-  masterDSL_(0),
   BB_N_("N"),
   BB_H_("H"),
   BB_C_("C"),
@@ -106,7 +105,7 @@ Action::RetType Action_DSSP::Init(ArgList& actionArgs, ActionInit& init, int deb
           "#           Pattern Recognition of Hydrogen-Bonded and Geometrical Features.\"\n"
           "#           Biopolymers (1983), V.22, pp.2577-2637.\n" );
   init.DSL().SetDataSetsPending(true);
-  masterDSL_ = init.DslPtr();
+  Init_ = init;
   return Action::OK;
 }
 
@@ -213,7 +212,7 @@ Action::RetType Action_DSSP::Setup(ActionSetup& setup) {
         md.SetIdx( res+1 );
         md.SetLegend( setup.Top().TruncResNameNum(res) );
         // Setup dataset for this residue
-        SecStruct_[res].resDataSet = masterDSL_->AddSet( dt, md );
+        SecStruct_[res].resDataSet = Init_.DSL().AddSet( dt, md );
         if (SecStruct_[res].resDataSet == 0) {
           mprinterr("Error: Could not allocate DSSP data set for residue %i\n", res+1);
           return Action::ERR;
@@ -512,6 +511,28 @@ Action::RetType Action_DSSP::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_DSSP::SyncAction() {
+  // Consolidate SSprob data to master.
+  int SSprob[8];
+  for (std::vector<SSres>::iterator res = SecStruct_.begin(); res != SecStruct_.end(); ++res)
+  {
+    std::fill(SSprob, SSprob+8, 0);
+    Init_.TrajComm().Reduce( SSprob, res->SSprob, 8, MPI_INT, MPI_SUM );
+    if (Init_.TrajComm().Master()) {
+      for (int idx = 0; idx != 8; idx++)
+        res->SSprob[idx] = SSprob[idx];
+    }
+  }
+  // Calc total number of frames.
+  int total_frames = 0;
+  Init_.TrajComm().Reduce( &total_frames, &Nframe_, 1, MPI_INT, MPI_SUM );
+  if (Init_.TrajComm().Master())
+    Nframe_ = total_frames;
+  return 0;
+}
+#endif
+
 // Action_DSSP::Print()
 void Action_DSSP::Print() {
   if (dsetname_.empty()) return;
@@ -533,13 +554,12 @@ void Action_DSSP::Print() {
   if (dsspFile_ != 0) {
     std::vector<DataSet*> dsspData_(NSSTYPE);
     Dimension Xdim( min_res + 1, 1, "Residue" );
-    MetaData md(dsetname_, "avgss");
-    md.SetTimeSeries(MetaData::NOT_TS);
+    MetaData md(dsetname_, "avgss", MetaData::NOT_TS);
     // Set up a dataset for each SS type. TODO: NONE type?
     for (int ss = 1; ss < NSSTYPE; ss++) {
       md.SetIdx(ss);
       md.SetLegend( SSname[ss] );
-      dsspData_[ss] = masterDSL_->AddSet(DataSet::DOUBLE, md);
+      dsspData_[ss] = Init_.DSL().AddSet(DataSet::DOUBLE, md);
       dsspData_[ss]->SetDim(Dimension::X, Xdim);
       dsspFile_->AddDataSet( dsspData_[ss] ); 
     }

@@ -69,7 +69,7 @@ class DataFile {
     /// \return DataFile member num.
     int Member()                   const { return member_;   }
     /// Set DataFile member num.
-    void SetMember(int);
+    void SetMember(int m) { member_ = m; }
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
 

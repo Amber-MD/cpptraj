@@ -1,4 +1,3 @@
-// Action_Hbond 
 #include <cmath> // sqrt
 #include <algorithm> // sort
 #include "Action_Hbond.h"
@@ -26,6 +25,7 @@ Action_Hbond::Action_Hbond() :
   dcut2_(0),
   CurrentParm_(0),
   series_(false),
+  seriesUpdated_(false),
   NumHbonds_(0),
   NumSolvent_(0),
   NumBridge_(0),
@@ -57,6 +57,9 @@ void Action_Hbond::Help() const {
 // Action_Hbond::Init()
 Action::RetType Action_Hbond::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get keywords
   Image_.InitImaging( (actionArgs.hasKey("image")) );
@@ -365,12 +368,12 @@ Action::RetType Action_Hbond::Setup(ActionSetup& setup) {
   // Print acceptor/donor information
   mprintf("\tSet up %zu acceptors:\n", Acceptor_.size() );
   if (debug_>0) {
-    for (HBlistType::iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
+    for (HBlistType::const_iterator accept = Acceptor_.begin(); accept!=Acceptor_.end(); accept++)
       mprintf("        %8i: %4s\n",*accept+1,setup.Top()[*accept].c_str());
   }
   mprintf("\tSet up %zu donors:\n", Donor_.size()/2 );
   if (debug_>0) {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); donor++) {
       int atom = (*donor);
       ++donor;
       int a2   = (*donor);
@@ -641,13 +644,13 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   int hbidx = 0; 
   int numHB=0;
   if (noIntramol_) {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
       D = (*donor);
       ++donor;
       H = (*donor);
       int mol1 = (*CurrentParm_)[D].MolNum();
-      for (HBlistType::iterator accept = Acceptor_.begin(); 
-                                accept != Acceptor_.end(); ++accept, ++hbidx) 
+      for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                      accept != Acceptor_.end(); ++accept, ++hbidx)
       {
         if (*accept == D || mol1 == (*CurrentParm_)[*accept].MolNum()) continue;
         // The following macro handles hbond determination.
@@ -655,12 +658,12 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
       }
     }
   } else {
-    for (HBlistType::iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
+    for (HBlistType::const_iterator donor = Donor_.begin(); donor!=Donor_.end(); ++donor) {
       D = (*donor);
       ++donor;
       H = (*donor);
-      for (HBlistType::iterator accept = Acceptor_.begin(); 
-                                accept != Acceptor_.end(); ++accept, ++hbidx) 
+      for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                accept != Acceptor_.end(); ++accept, ++hbidx)
       {
         if (*accept == D) continue;
         // The following macro handles hbond determination.
@@ -680,14 +683,14 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Index by solute H atom. 
     if (hasSolventAcceptor_) {
       numHB = 0;
-      for (HBlistType::iterator donor = Donor_.begin(); 
-                                donor != Donor_.end(); ++donor) 
+      for (HBlistType::const_iterator donor = Donor_.begin();
+                                      donor != Donor_.end(); ++donor)
       {
         D = (*donor);
         ++donor;
         H = (*donor);
-        for (HBlistType::iterator accept = SolventAcceptor_.begin(); 
-                                  accept != SolventAcceptor_.end(); ++accept)
+        for (HBlistType::const_iterator accept = SolventAcceptor_.begin();
+                                        accept != SolventAcceptor_.end(); ++accept)
         { 
           if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, H, true )) {
             ++numHB;
@@ -705,14 +708,14 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Index by solute acceptor atom
     if (hasSolventDonor_) {
       numHB = 0;
-      for (HBlistType::iterator donor = SolventDonor_.begin();
-                                donor != SolventDonor_.end(); ++donor)
+      for (HBlistType::const_iterator donor = SolventDonor_.begin();
+                                      donor != SolventDonor_.end(); ++donor)
       {
         D = (*donor);
         ++donor;
         H = (*donor);
-        for (HBlistType::iterator accept = Acceptor_.begin();
-                                  accept != Acceptor_.end(); ++accept)
+        for (HBlistType::const_iterator accept = Acceptor_.begin();
+                                        accept != Acceptor_.end(); ++accept)
         {
           if (AtomsAreHbonded( frm.Frm(), frameNum, *accept, D, H, *accept, false )) {
             ++numHB;
@@ -731,25 +734,25 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
     // Determine number of bridging waters.
     numHB = 0;
     std::string bridgeID;
-    for (std::map< int, std::set<int> >::iterator bridge = solvent2solute.begin();
-                                                  bridge != solvent2solute.end();
-                                                  ++bridge)
+    for (std::map< int, std::set<int> >::const_iterator bridge = solvent2solute.begin();
+                                                        bridge != solvent2solute.end();
+                                                      ++bridge)
     {
       // If solvent molecule is bound to 2 or more different residues,
       // it is bridging. 
-      if ( (*bridge).second.size() > 1) {
+      if ( bridge->second.size() > 1) {
         ++numHB;
-        bridgeID.append(integerToString( (*bridge).first+1 ) + "("); // Bridging Solvent res 
-        for (std::set<int>::iterator res = (*bridge).second.begin();
-                                     res != (*bridge).second.end(); ++res)
+        bridgeID.append(integerToString( bridge->first+1 ) + "("); // Bridging Solvent res 
+        for (std::set<int>::const_iterator res = bridge->second.begin();
+                                           res != bridge->second.end(); ++res)
           bridgeID.append( integerToString( *res+1 ) + "+" ); // Solute res being bridged
         bridgeID.append("),");
         // Find bridge in map based on this combo of residues (bridge.second)
-        BridgeType::iterator b_it = BridgeMap_.find( (*bridge).second );
+        BridgeType::iterator b_it = BridgeMap_.find( bridge->second );
         if (b_it == BridgeMap_.end() ) // New Bridge 
-          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>((*bridge).second, 1) );
+          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
         else                           // Increment bridge #frames
-          (*b_it).second++;
+          b_it->second++;
       }
     }
     if (bridgeID.empty())
@@ -763,6 +766,200 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+// TODO Use in other hbond functions
+static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int h_atom, int d_atom)
+{
+  if (a_atom == -1)
+    return (topIn.TruncResAtomName(h_atom) + "-V");
+  else if (d_atom == -1)
+    return (topIn.TruncResAtomName(a_atom) + "-V");
+  else
+    return (topIn.TruncResAtomName(a_atom) + "-" +
+            topIn.TruncResAtomName(d_atom) + "-" +
+            topIn[h_atom].Name().Truncated());
+}
+
+
+void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets,
+                           const char* aspect, Parallel::Comm const& commIn)
+const
+{
+  // Need to know how many hbonds on each thread.
+  int num_hb = (int)mapIn.size();
+  int* nhb_on_rank = 0;
+  if (commIn.Master())
+    nhb_on_rank = new int[ commIn.Size() ];
+  commIn.GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
+  std::vector<double> dArray;
+  std::vector<int> iArray;
+  if (commIn.Master()) {
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      if (nhb_on_rank[rank] > 0) {
+        //mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
+        dArray.resize( 2 * nhb_on_rank[rank] );
+        iArray.resize( 5 * nhb_on_rank[rank] );
+        commIn.Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
+        commIn.Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
+        HbondType HB;
+        int ii = 0, id = 0;
+        for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
+          HBmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
+          if (it == mapIn.end() ) {
+            // Hbond on rank that has not been found on master
+            HB.dist  = dArray[id  ];
+            HB.angle = dArray[id+1];
+            HB.A      = iArray[ii+1];
+            HB.H      = iArray[ii+2];
+            HB.D      = iArray[ii+3];
+            HB.Frames = iArray[ii+4];
+            HB.data_ = 0;
+            //mprintf("\tNEW Hbond %i: %i-%i-%i D=%g A=%g %i frames", iArray[ii],
+            //        HB.A+1, HB.H+1, HB.D+1, HB.dist,
+            //        HB.angle, HB.Frames);
+            if (series_) {
+              HB.data_ = (DataSet_integer*)
+                         masterDSL_->AddSet( DataSet::INTEGER,
+                                             MetaData(hbsetname_, aspect, iArray[ii]) );
+              // FIXME: This may be incorrect if CurrentParm_ has changed
+              HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
+             // mprintf(" \"%s\"", HB.data_->legend());
+            }
+            //mprintf("\n");
+            mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
+          } else {
+            // Hbond on rank and master. Update on master.
+            //mprintf("\tAPPENDING Hbond %i: %i-%i-%i D=%g A=%g %i frames\n", iArray[ii],
+            //        it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
+            //        dArray[id+1], iArray[ii+4]);
+            it->second.dist  += dArray[id  ];
+            it->second.angle += dArray[id+1];
+            it->second.Frames += iArray[ii+4];
+            if (series_)
+              HB.data_ = it->second.data_;
+          }
+          if (series_) {
+            HB.data_->Resize( Nframes_ );
+            int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
+            //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
+            //        Nframes_, rank_offsets[rank], rank_frames[rank]);
+            commIn.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
+            HB.data_->SetNeedsSync( false );
+          }
+        } // END master loop over hbonds from rank
+      }
+    } // END master loop over ranks
+    delete[] nhb_on_rank;
+  } else {
+    if (mapIn.size() > 0) {
+      dArray.reserve( 2 * mapIn.size() );
+      iArray.reserve( 5 * mapIn.size() );
+      for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+        dArray.push_back( hb->second.dist );
+        dArray.push_back( hb->second.angle );
+        iArray.push_back( hb->first );
+        iArray.push_back( hb->second.A );
+        iArray.push_back( hb->second.H );
+        iArray.push_back( hb->second.D );
+        iArray.push_back( hb->second.Frames );
+      }
+      commIn.Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
+      commIn.Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
+      // Send series data to master
+      if (series_) {
+        int in = 0; // For tag
+        for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
+          commIn.Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
+                                  MPI_INT, 0, 1304 + in );
+          hb->second.data_->SetNeedsSync( false );
+        }
+      }
+    }
+  }
+}
+
+/** PARALLEL NOTES:
+  * The following tags are used for MPI send/receive:
+  *   1300  : Array containing hbond double info on rank.
+  *   1301  : Array containing hbond integer info on rank.
+  *   1302  : Number of bridges to expect from rank.
+  *   1303  : Array containing bridge integer info on rank.
+  *   1304+X: Array of hbond X series info from rank.
+  */
+int Action_Hbond::SyncAction() {
+  // Make sure all time series are updated at this point.
+  UpdateSeries();
+  // Get total number of frames.
+  int* rank_frames = new int[ trajComm_.Size() ];
+  trajComm_.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
+  //mprintf("DEBUG: Master= %i frames\n", Nframes_);
+  for (int rank = 1; rank < trajComm_.Size(); rank++) {
+    //mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
+    Nframes_ += rank_frames[ rank ];
+  }
+  //mprintf("DEBUG: Total= %i frames.\n", Nframes_);
+  // Convert rank frames to offsets.
+  int* rank_offsets = new int[ trajComm_.Size() ];
+  rank_offsets[0] = 0;
+  for (int rank = 1; rank < trajComm_.Size(); rank++) {
+    rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
+    //mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
+  }
+  //int total_frames = 0;
+  //trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  //if (trajComm_.Master())
+  //  Nframes_ = total_frames;
+  // Need to send hbond data from all ranks to master.
+  SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb", trajComm_ );
+  if (calcSolvent_) {
+    SyncMap( SolventMap_, rank_frames, rank_offsets, "solventhb", trajComm_ );
+    // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
+    std::vector<int> iArray;
+    int iSize;
+    if (trajComm_.Master()) {
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
+      {
+        // Receive size of iArray
+        trajComm_.Recv( &iSize,           1, MPI_INT, rank, 1302 );
+        //mprintf("DEBUG: Receiving %i bridges from rank %i\n", iSize, rank);
+        iArray.resize( iSize );
+        trajComm_.Recv( &(iArray[0]), iSize, MPI_INT, rank, 1303 );
+        unsigned int idx = 0;
+        while (idx < iArray.size()) {
+          std::set<int> residues;
+          unsigned int i2 = idx + 1;
+          for (int ir = 0; ir != iArray[idx]; ir++, i2++)
+            residues.insert( iArray[i2] );
+          BridgeType::iterator b_it = BridgeMap_.find( residues );
+          if (b_it == BridgeMap_.end() ) // New Bridge 
+            BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(residues, iArray[i2]) );
+          else                           // Increment bridge #frames
+            b_it->second += iArray[i2];
+          idx = i2 + 1;
+        }
+      }
+    } else {
+       // Construct bridge info array.
+       for (BridgeType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
+       {
+         iArray.push_back( b->first.size() ); // # of bridging res
+         for ( std::set<int>::const_iterator r = b->first.begin(); r != b->first.end(); ++r)
+           iArray.push_back( *r ); // Bridging res
+         iArray.push_back( b->second ); // # frames
+      }
+      // Since the size of each bridge can be different (i.e. differing #s of
+      // residues may be bridged), first send size of the transport array.
+      iSize = (int)iArray.size();
+      trajComm_.Send( &iSize,           1, MPI_INT, 0, 1302 );
+      trajComm_.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
+    }
+  }
+  delete[] rank_frames;
+  delete[] rank_offsets;
+  return 0;
+}
+#endif
+
 /** Calculate average distance and angle for hbond. */
 void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
   double dFrames = (double)hb.Frames;
@@ -770,6 +967,25 @@ void Action_Hbond::HbondTypeCalcAvg(HbondType& hb) {
   hb.angle /= dFrames;
   hb.angle *= Constants::RADDEG;
 }
+
+void Action_Hbond::UpdateSeries() {
+  if (seriesUpdated_) return;
+  if (series_ && Nframes_ > 0) {
+    const int ZERO = 0;
+    for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
+    {
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
+    }
+    for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
+    {
+      if ((int)hb->second.data_->Size() < Nframes_)
+        hb->second.data_->Add( Nframes_-1, &ZERO );
+    }
+  }
+  // Should only be called once.
+  seriesUpdated_ = true;
+} 
 
 // Action_Hbond::Print()
 /** Print average occupancies over all frames for all detected Hbonds. */
@@ -787,19 +1003,7 @@ void Action_Hbond::Print() {
   }
 
   // Ensure all series have been updated for all frames.
-  if (series_ && Nframes_ > 0) {
-    const int ZERO = 0;
-    for (HBmapType::iterator hb = HbondMap_.begin(); hb != HbondMap_.end(); ++hb)
-    {
-      if ((int)hb->second.data_->Size() < Nframes_)
-        hb->second.data_->Add( Nframes_-1, &ZERO );
-    }
-    for (HBmapType::iterator hb = SolventMap_.begin(); hb != SolventMap_.end(); ++hb)
-    {
-      if ((int)hb->second.data_->Size() < Nframes_)
-        hb->second.data_->Add( Nframes_-1, &ZERO );
-    }
-  } 
+  UpdateSeries();
 
   if (CurrentParm_ == 0) return;
   // Calculate necessary column width for strings based on how many residues.
@@ -887,18 +1091,19 @@ void Action_Hbond::Print() {
     bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
     std::vector<std::pair< std::set<int>, int> > bridgevector;
-    for (BridgeType::iterator it = BridgeMap_.begin(); 
-                              it != BridgeMap_.end(); ++it) 
+    for (BridgeType::const_iterator it = BridgeMap_.begin();
+                                    it != BridgeMap_.end(); ++it)
       bridgevector.push_back( *it );
     std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
-    for (std::vector<std::pair< std::set<int>, int> >::iterator bv = bridgevector.begin();
-                                                                bv != bridgevector.end(); ++bv)
+    for (std::vector<std::pair< std::set<int>, int> >::const_iterator bv = bridgevector.begin();
+                                                                      bv != bridgevector.end();
+                                                                    ++bv)
     {
       bridgeout_->Printf("Bridge Res");
-      for (std::set<int>::iterator res = (*bv).first.begin();
-                                   res != (*bv).first.end(); ++res)
+      for (std::set<int>::const_iterator res = bv->first.begin();
+                                         res != bv->first.end(); ++res)
         bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
-      bridgeout_->Printf(", %i frames.\n", (*bv).second);
+      bridgeout_->Printf(", %i frames.\n", bv->second);
     } 
   } 
 }

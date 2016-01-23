@@ -38,6 +38,9 @@ void Action_Matrix::Help() const {
 // Action_Matrix::Init()
 Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   std::string outfilename = actionArgs.GetStringKey("out");
@@ -791,7 +794,7 @@ void Action_Matrix::CalcDistanceCovarianceMatrix(Frame const& currentFrame) {
 // Action_Matrix::DoAction()
 Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   // Check if this frame should be processed
-  if ( CheckFrameCounter( frameNum ) ) return Action::OK;
+  if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
   // Increment number of snapshots
   Mat_->IncrementSnapshots();
 
@@ -810,6 +813,17 @@ Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+int Action_Matrix::SyncAction() {
+  if (trajComm_.Master()) {
+    Darray buf( vect2_.size() );
+    trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+    vect2_ = buf;
+  } else
+    trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+  return 0;
+}
+#endif
 // -----------------------------------------------------------------------------
 void Action_Matrix::Vect2MinusVect() {
   v_iterator v2 = vect2_.begin();

@@ -22,6 +22,9 @@ void Action_Bounds::Help() const {
 // Action_Bounds::Init()
 Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Bounds",
                                  DataFileList::TEXT, true);
   dxyz_[0] = actionArgs.getKeyDouble("dx", -1.0);
@@ -84,6 +87,19 @@ Action::RetType Action_Bounds::DoAction(int frameNum, ActionFrame& frm) {
   }
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_Bounds::SyncAction() {
+  double buf[3];
+  trajComm_.Reduce( &buf, min_, 3, MPI_DOUBLE, MPI_MIN );
+  if (trajComm_.Master())
+    std::copy( buf, buf+3, min_ );
+  trajComm_.Reduce( &buf, max_, 3, MPI_DOUBLE, MPI_MAX );
+  if (trajComm_.Master())
+    std::copy( buf, buf+3, max_ );
+  return 0;
+}
+#endif
 
 void Action_Bounds::Print() {
   static const char cXYZ[3] = {'X', 'Y', 'Z'};

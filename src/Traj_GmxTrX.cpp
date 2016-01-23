@@ -315,6 +315,18 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
   return nframes;
 }
 
+void Traj_GmxTrX::AllocateCoords() {
+  // Allocate temp space for coords/velo
+  if (farray_ != 0) {delete[] farray_; farray_ = 0;}
+  if (darray_ != 0) {delete[] darray_; darray_ = 0;}
+  size_t arraySize = (size_t)natom3_;
+  if (CoordInfo().HasVel()) arraySize *= 2;
+  if (precision_ == sizeof(float)) 
+    farray_ = new float[ arraySize ];
+  else 
+    darray_ = new double[ arraySize ];
+}
+
 int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
@@ -352,14 +364,7 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     dt_ = 0.0;
     lambda_ = 0.0;
     // Allocate temp space for coords/velo
-    if (farray_ != 0) {delete[] farray_; farray_ = 0;}
-    if (darray_ != 0) {delete[] darray_; darray_ = 0;}
-    size_t arraySize = (size_t)natom3_;
-    if (CoordInfo().HasVel()) arraySize *= 2;
-    if (precision_ == sizeof(float)) 
-      farray_ = new float[ arraySize ];
-    else 
-      darray_ = new double[ arraySize ];
+    AllocateCoords();
     if (file_.SetupWrite( fname, debug_)) return 1;
     if (file_.OpenFile()) return 1;
   } else {
@@ -527,3 +532,91 @@ void Traj_GmxTrX::Info() {
   else if (precision_ == sizeof(double))
     mprintf(" double precision");
 }
+#ifdef MPI
+// =============================================================================
+int Traj_GmxTrX::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  mprinterr("Error: Parallel read not supported for GROMACS TRX.\n");
+  return 1;
+}
+
+/** This assumes file has been previously set up with parallelSetupTrajout
+  * and header has been written, so open append.
+  */
+int Traj_GmxTrX::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  return (file_.ParallelOpenFile( CpptrajFile::APPEND, commIn ));
+}
+
+/** First master performs all necessary setup, then sends info to all children.
+  */
+int Traj_GmxTrX::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                      CoordinateInfo const& cInfoIn,
+                                      int NframesToWrite, bool append,
+                                      Parallel::Comm const& commIn)
+{
+  int err = 0;
+  // In parallel MUST know # of frames to write in order to correctly set size
+  if (NframesToWrite < 1) {
+    mprinterr("Error: # frames to write must be known for TRR output in parallel.\n");
+    err = 1;
+  } else if (commIn.Master()) {
+    err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    // Determine header size, (18 * 4) + titleSize TODO put in setupTrajout?
+    headerBytes_ = (18 * 4) + Title().size();
+    // Determine frame size
+    frameSize_ = headerBytes_ + box_size_ + x_size_ + v_size_;
+    // NOTE: setupTrajout leaves file open. Should this change?
+    file_.CloseFile();
+  }
+  commIn.MasterBcast(&err, 1, MPI_INT);
+  if (err != 0) return 1;
+  // Synchronize info on non-master threads.
+  SyncTrajIO( commIn );
+  commIn.MasterBcast( &ir_size_, 1, MPI_INT );
+  commIn.MasterBcast( &e_size_,  1, MPI_INT );
+  commIn.MasterBcast( &box_size_, 1, MPI_INT );
+  commIn.MasterBcast( &vir_size_, 1, MPI_INT );
+  commIn.MasterBcast( &pres_size_, 1, MPI_INT );
+  commIn.MasterBcast( &top_size_, 1, MPI_INT );
+  commIn.MasterBcast( &sym_size_, 1, MPI_INT );
+  commIn.MasterBcast( &x_size_, 1, MPI_INT );
+  commIn.MasterBcast( &v_size_, 1, MPI_INT );
+  commIn.MasterBcast( &f_size_, 1, MPI_INT );
+  commIn.MasterBcast( &natoms_, 1, MPI_INT );
+  commIn.MasterBcast( &natom3_, 1, MPI_INT );
+  commIn.MasterBcast( &step_, 1, MPI_INT );
+  commIn.MasterBcast( &nre_, 1, MPI_INT );
+  commIn.MasterBcast( &precision_, 1, MPI_INT );
+  commIn.MasterBcast( &dt_, 1, MPI_FLOAT );
+  commIn.MasterBcast( &lambda_, 1, MPI_FLOAT );
+  // NOTE: cast these to unsigned long long to avoid ambiguity since MPI doesnt have size_t
+  unsigned long long buf[2];
+  if (commIn.Master()) {
+    buf[0] = (unsigned long long)frameSize_;
+    buf[1] = (unsigned long long)headerBytes_;
+    commIn.MasterBcast( buf, 2, MPI_UNSIGNED_LONG_LONG );
+  } else {
+    commIn.MasterBcast( buf, 2, MPI_UNSIGNED_LONG_LONG );
+    frameSize_ = (size_t)buf[0];
+    headerBytes_ = (size_t)buf[1];
+    AllocateCoords(); // Should already be done on master
+  }
+  if (append)
+    file_.SetupWrite( fname, debug_ );
+  else
+    file_.SetupAppend( fname, debug_ );
+  if (debug_ > 0)
+    rprintf("Gromacs TRR: parallel headerSize= %zu  frameSize= %zu\n", headerBytes_, frameSize_);
+
+  return 0;
+}
+
+int Traj_GmxTrX::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+
+int Traj_GmxTrX::parallelWriteFrame(int set, Frame const& frameOut) {
+  // Seek to given frame.
+  file_.Seek( frameSize_ * set );
+  return ( writeFrame(set, frameOut) );
+}
+
+void Traj_GmxTrX::parallelCloseTraj() { closeTraj(); }
+#endif

@@ -66,7 +66,12 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
-
+# ifdef MPI
+  if (init.TrajComm().Size() > 1)
+    mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
+            "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
+            init.TrajComm().Size());
+# endif
   return Action::OK;
 }
 
@@ -78,7 +83,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
   // Check if frame is within max/min
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
   {
-    double dVal = Dsets_[ds]->Dval(frameNum);
+    double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
     //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
     // If value from dataset not within min/max, exit now.
     if (dVal < Min_[ds] || dVal > Max_[ds]) {

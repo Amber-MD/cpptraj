@@ -693,8 +693,13 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   RefMap_.SetDebug(debug_);
   TgtMap_.SetDebug(debug_);
   // Get Args
-  CpptrajFile* outputfile = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("mapout"), "Atom Map",
+  CpptrajFile* outputfile = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("mapout"),
+                                                      "Atom Map",
                                                       DataFileList::TEXT, true);
+# ifdef MPI
+  // Prevent non-master from writing.
+  if (!init.TrajComm().Master()) outputfile = 0;
+# endif
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
   DataFile* rmsout = 0;
@@ -726,7 +731,8 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   mprintf("    ATOMMAP: Atoms associated with target topology will be remapped to reference.\n"
           "\tTarget topology: '%s'\n\tReference topology: '%s'\n",
           TgtFrame_->Top().c_str(), RefFrame_->Top().c_str());
-  mprintf("\tMap will be written to %s\n", outputfile->Filename().full());
+  if (outputfile != 0)
+    mprintf("\tMap will be written to %s\n", outputfile->Filename().full());
   if (maponly_)
     mprintf("\tmaponly: Map will only be written, not used in trajectory read.\n");
   if (!maponly_ && rmsfit_) {
@@ -794,14 +800,16 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
 
   // Print atom map
-  outputfile->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
-  for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
-    int targetatom = AMap_[refatom];
-    if (targetatom < 0)
-      outputfile->Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap_[refatom].c_str());
-    else
-      outputfile->Printf("%6i %4s %6i %4s\n",targetatom+1,TgtMap_[targetatom].c_str(),
-                            refatom+1, RefMap_[refatom].c_str());
+  if (outputfile != 0) {
+    outputfile->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
+    for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
+      int targetatom = AMap_[refatom];
+      if (targetatom < 0)
+        outputfile->Printf("%6s %4s %6i %4s\n","---","---",refatom+1,RefMap_[refatom].c_str());
+      else
+        outputfile->Printf("%6i %4s %6i %4s\n",targetatom+1,TgtMap_[targetatom].c_str(),
+                              refatom+1, RefMap_[refatom].c_str());
+    }
   }
   if (maponly_) return Action::OK;
 

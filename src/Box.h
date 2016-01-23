@@ -1,6 +1,9 @@
 #ifndef INC_BOX_H
 #define INC_BOX_H
 #include "Matrix_3x3.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Hold box information; 3xlengths, 3xangles.
 class Box {
   public:
@@ -48,6 +51,9 @@ class Box {
 
     double const& operator[](int idx) const { return box_[idx]; }
     double&       operator[](int idx)       { return box_[idx]; }
+#   ifdef MPI
+    int SyncBox(Parallel::Comm const&);
+#   endif
   private:
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);

@@ -235,3 +235,23 @@ void Traj_Mol2File::Info() {
   else if (mol2WriteMode_==MOL)
     mprintf(" (1 MOLECULE per frame)");
 }
+#ifdef MPI
+/// Not valid for MOL (checked in setup) so no need to do anything.
+int Traj_Mol2File::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+int Traj_Mol2File::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  if (mol2WriteMode_ != MULTI) {
+    mprinterr("Error: Mol2 write in parallel requires 'multi' keyword.\n");
+    return 1;
+  }
+  return setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+}
+
+int Traj_Mol2File::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif

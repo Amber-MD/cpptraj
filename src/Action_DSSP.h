@@ -11,6 +11,9 @@ class Action_DSSP : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
+#   ifdef MPI
+    int SyncAction();
+#   endif
     void Print();
     // Enum and static vars
     //enum SStype { ALPHA=0, ANTI, PARA, H3_10, HPI, TURN, BEND, NONE };
@@ -47,8 +50,7 @@ class Action_DSSP : public Action {
     unsigned int Nselected_;  ///< Current # residues selected.
     int Nframe_;              ///< # of frames, for calculating SS avg.
     bool printString_;        ///< If true print 1 char per residue indicating ss type
-    // TODO: Replace these with new type of DataSet
-    DataSetList* masterDSL_;
+    ActionInit Init_;         ///< Hold pointers to master DSL/DFL
     DataSet* totalDS_[8];
     NameType BB_N_;
     NameType BB_H_;

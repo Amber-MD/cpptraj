@@ -38,6 +38,9 @@ void Action_Volmap::RawHelp() const {
 // Action_Volmap::Init()
 Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -187,30 +190,43 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
       // Determine min/max coord values for atoms in centermask. Calculate
       // geometric center while doing this.
       double xmin, xmax, ymin, ymax, zmin, zmax;
-      AtomMask::const_iterator it = centermask_.begin();
-      Vec3 cxyz = Vec3(frm.Frm().XYZ(*it));
-      xmin = xmax = cxyz[0];
-      ymin = ymax = cxyz[1];
-      zmin = zmax = cxyz[2];
-      ++it;
-      for (; it != centermask_.end(); it++) {
-        Vec3 pt = Vec3(frm.Frm().XYZ(*it));
-        cxyz += pt;
-        xmin = std::min(xmin, pt[0]);
-        xmax = std::max(xmax, pt[0]);
-        ymin = std::min(ymin, pt[1]);
-        ymax = std::max(ymax, pt[1]);
-        zmin = std::min(zmin, pt[2]);
-        zmax = std::max(zmax, pt[2]);
+#     ifdef MPI
+      if (trajComm_.Master()) {
+#     endif
+        AtomMask::const_iterator it = centermask_.begin();
+        Vec3 cxyz = Vec3(frm.Frm().XYZ(*it));
+        xmin = xmax = cxyz[0];
+        ymin = ymax = cxyz[1];
+        zmin = zmax = cxyz[2];
+        ++it;
+        for (; it != centermask_.end(); it++) {
+          Vec3 pt = Vec3(frm.Frm().XYZ(*it));
+          cxyz += pt;
+          xmin = std::min(xmin, pt[0]);
+          xmax = std::max(xmax, pt[0]);
+          ymin = std::min(ymin, pt[1]);
+          ymax = std::max(ymax, pt[1]);
+          zmin = std::min(zmin, pt[2]);
+          zmax = std::max(zmax, pt[2]);
+        }
+        cxyz /= (double)centermask_.Nselected();
+        // Extend min/max by buffer.
+        xmin -= buffer_; 
+        xmax += buffer_;
+        ymin -= buffer_; 
+        ymax += buffer_;
+        zmin -= buffer_; 
+        zmax += buffer_;
+#     ifdef MPI
       }
-      cxyz /= (double)centermask_.Nselected();
-      // Extend min/max by buffer.
-      xmin -= buffer_; 
-      xmax += buffer_;
-      ymin -= buffer_; 
-      ymax += buffer_;
-      zmin -= buffer_; 
-      zmax += buffer_;
+      // Send values to children //TODO put in array instead
+      trajComm_.MasterBcast( &xmin, 1, MPI_DOUBLE );
+      trajComm_.MasterBcast( &xmax, 1, MPI_DOUBLE );
+      trajComm_.MasterBcast( &ymin, 1, MPI_DOUBLE );
+      trajComm_.MasterBcast( &ymax, 1, MPI_DOUBLE );
+      trajComm_.MasterBcast( &zmin, 1, MPI_DOUBLE );
+      trajComm_.MasterBcast( &zmax, 1, MPI_DOUBLE );
+#     endif
       // Allocate grid of given size centered on mask.
       if (grid_->Allocate_N_O_D( (xmax-xmin)/dx_, (ymax-ymin)/dy_, (zmax-zmin)/dz_,
                                  Vec3(xmin, ymin, zmin), Vec3(dx_, dy_, dz_) ))
@@ -264,6 +280,16 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_Volmap::SyncAction() {
+  int total_frames = 0;
+  trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master())
+    Nframes_ = total_frames;
+  return 0;
+}
+#endif
 
 // Need this instead of MAX since size_t can never be negative
 inline size_t setStart(size_t xIn) {

@@ -2,6 +2,7 @@
 
 test.general:
 	@-cd Test_General && ./RunTest.sh $(OPT)
+	@-cd Test_Parallel && ./RunTest.sh $(OPT)
 
 test.strip:
 	@-cd Test_Strip && ./RunTest.sh $(OPT)
@@ -9,7 +10,7 @@ test.strip:
 test.brokentraj:
 	@-cd Test_BrokenTraj && ./RunTest.sh $(OPT)
 
-test.traj:
+test.trajinoffset:
 	@-cd Test_TrajinOffset && ./RunTest.sh $(OPT)
 
 test.remdnetcdf:
@@ -260,11 +261,23 @@ test.rotate:
 test.integrate:
 	@-cd Test_Integrate && ./RunTest.sh $(OPT)
 
+test.nativecontacts:
+	@-cd Test_NativeContacts && ./RunTest.sh $(OPT)
+
+test.checkchirality:
+	@-cd Test_CheckChiral && ./RunTest.sh $(OPT)
+
+test.energy:
+	@-cd Test_Energy && ./RunTest.sh $(OPT)
+
+test.lessplit:
+	@-cd Test_LESsplit && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
-          test.traj \
+          test.trajinoffset \
           test.remdnetcdf \
           test.framerange \
           test.perres \
@@ -322,13 +335,16 @@ SHORT_TESTS=test.general \
           test.multidihedral \
           test.makestructure \
           test.rotate \
-          test.integrate
+          test.integrate \
+          test.nativecontacts \
+          test.checkchirality \
+          test.energy
 
 # Every test should go here.
 COMPLETETESTS=test.general \
               test.strip \
               test.brokentraj \
-              test.traj \
+              test.trajinoffset \
               test.remdnetcdf \
               test.framerange \
               test.perres \
@@ -407,7 +423,11 @@ COMPLETETESTS=test.general \
               test.mremd \
               test.makestructure \
               test.rotate \
-              test.integrate
+              test.integrate \
+              test.nativecontacts \
+              test.checkchirality \
+              test.energy \
+              test.lessplit
 
 test: test.all 
 

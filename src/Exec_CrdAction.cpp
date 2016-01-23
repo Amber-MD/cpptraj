@@ -15,14 +15,18 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
 {
   Timer total_time;
   total_time.Start();
+# ifdef MPI
+  ActionInit state(State.DSL(), State.DFL(), trajComm_);
+# else
   ActionInit state(State.DSL(), State.DFL());
+# endif
   if ( act->Init( actionargs, state, State.Debug() ) != Action::OK )
     return CpptrajState::ERR;
   actionargs.CheckForMoreArgs();
   // Set up frame and parm for COORDS.
   ActionSetup originalSetup( CRD->TopPtr(), CRD->CoordsInfo(), CRD->Size() );
   Frame originalFrame = CRD->AllocateFrame();
-  ActionFrame frm( &originalFrame );
+  ActionFrame frm( &originalFrame, 0 );
   // Set up for this topology 
   Action::RetType setup_ret = act->Setup( originalSetup );
   if ( setup_ret == Action::ERR || setup_ret == Action::SKIP )
@@ -35,6 +39,7 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   { 
     progress.Update( set );
     CRD->GetFrame( frame, originalFrame );
+    frm.SetTrajoutNum( set );
     Action::RetType ret = act->DoAction( set, frm );
     if (ret == Action::ERR) {
       mprinterr("Error: crdaction: Frame %i, set %i\n", frame + 1, set + 1);
@@ -44,6 +49,9 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
     if ( ret == Action::MODIFY_COORDS )
       CRD->SetCRD( frame, frm.Frm() );
   }
+# ifdef MPI
+  act->SyncAction();
+# endif
   // Check if parm was modified. If so, update COORDS.
   if ( setup_ret == Action::MODIFY_TOPOLOGY ) {
     mprintf("Info: crdaction: Parm for %s was modified by action %s\n",
@@ -57,7 +65,37 @@ Exec::RetType Exec_CrdAction::DoCrdAction(CpptrajState& State, ArgList& actionar
   return CpptrajState::OK;
 }
 
+// Exec_CrdAction::Execute()
 Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
+# ifdef MPI
+  Exec::RetType ret = CpptrajState::OK;
+  int err = 0;
+  // Create a communicator that just contains the master.
+  int ID = MPI_UNDEFINED;
+  if (Parallel::TrajComm().IsNull()) {
+    if (Parallel::World().Master())
+      ID = 0;
+  } else if (Parallel::TrajComm().Master())
+    ID = Parallel::World().Rank();
+  //rprintf("DEBUG: About to create new comm, ID= %i\n", ID);
+  trajComm_ = Parallel::World().Split( ID );
+  if (ID != MPI_UNDEFINED) {
+    mprintf("Warning: '%s' command does not yet use multiple MPI threads.\n", argIn.Command());
+    ret = ProcessArgs(State, argIn);
+    if (ret != CpptrajState::OK)
+      err = 1;
+  }
+  trajComm_.Reset();
+  if (Parallel::World().CheckError( err ))
+    ret = CpptrajState::ERR;
+  return ret;
+# else
+  return (ProcessArgs(State, argIn));
+# endif
+}
+
+// Exec_CrdAction::ProcessArgs()
+Exec::RetType Exec_CrdAction::ProcessArgs(CpptrajState& State, ArgList& argIn) {
   std::string setname = argIn.GetStringNext();
   if (setname.empty()) {
     mprinterr("Error: %s: Specify COORDS dataset name.\n", argIn.Command());
@@ -80,7 +118,7 @@ Exec::RetType Exec_CrdAction::Execute(CpptrajState& State, ArgList& argIn) {
   if ( cmd.Empty() ) return CpptrajState::ERR;
   Action* act = (Action*)cmd.Alloc();
   if (act == 0) return CpptrajState::ERR;
-  CpptrajState::RetType err = DoCrdAction(State, actionargs, CRD, act, frameCount); 
+  CpptrajState::RetType err = DoCrdAction(State, actionargs, CRD, act, frameCount);
   delete act;
   return err;
 }

@@ -56,5 +56,13 @@ class Traj_PDBfile: public TrajectoryIO {
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj() {}
+#   endif
 };
 #endif

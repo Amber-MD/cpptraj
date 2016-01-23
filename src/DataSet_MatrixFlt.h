@@ -10,7 +10,10 @@ class DataSet_MatrixFlt : public DataSet_2D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_MatrixFlt();     }
     // ----- DataSet functions -------------------
     size_t Size()                        const { return mat_.size();        }
-    int Sync()                                 { return 1;                  }
+#   ifdef MPI
+    // FIXME: Currently just sums up. Should this be a separate Sync function?
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------
