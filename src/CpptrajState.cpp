@@ -910,8 +910,9 @@ int CpptrajState::RunParallel() {
 
   // ----- ACTION PHASE --------------------------
   mprintf("\nBEGIN PARALLEL TRAJECTORY PROCESSING:\n");
-  Timer frames_time;
+  Timer frames_time, master_frames;
   frames_time.Start();
+  master_frames.Start();
   ProgressBar progress;
   if (showProgress_)
     progress.SetupProgress( my_frames );
@@ -935,11 +936,12 @@ int CpptrajState::RunParallel() {
   // Collect FPS stats from each rank.
   std::vector<double> darray( TrajComm.Size() );
   double rank_fps = (double)actionSet / frames_time.Total();
-  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] );
+  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] ); // Acts as barrier
+  master_frames.Stop();
   for (int rank = 0; rank < TrajComm.Size(); rank++)
     mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)input_traj.Size() / frames_time.Total());
+          (double)input_traj.Size() / master_frames.Total());
   trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
   Timer time_sync;
