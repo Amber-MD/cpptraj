@@ -18,7 +18,7 @@ OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
 include ambpdbfiles
 
-AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o) MpiRoutines.o
+AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
 all: cpptraj$(SFX)
 
