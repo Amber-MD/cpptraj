@@ -753,8 +753,9 @@ int CpptrajState::RunParaEnsemble() {
   if (Parallel::World().CheckError( preload_err ) && exitOnError_) return 1;
 
   // ----- ACTION PHASE --------------------------
-  Timer frames_time;
+  Timer frames_time, master_time;
   frames_time.Start();
+  master_time.Start();
   mprintf("\nBEGIN PARALLEL ENSEMBLE PROCESSING:\n");
   ProgressBar progress;
   if (showProgress_)
@@ -794,16 +795,22 @@ int CpptrajState::RunParaEnsemble() {
   // Close the trajectory file
   NAV.CurrentEns()->EndEnsemble();
   // Collect FPS stats from each rank. 
-  std::vector<double> darray( TrajComm.Size() );
+  std::vector<double> darray( Parallel::World().Size() );
   double rank_fps = (double)actionSet / frames_time.Total();
-  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] );
-  for (int rank = 0; rank < TrajComm.Size(); rank++)
-    mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
+  Parallel::World().GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] ); // Acts as barrier
+  master_time.Stop();
+  int global = 0;
+  for (int member = 0; member < EnsComm.Size(); member++) {
+    mprintf("TIME: Member %4i ranks FPS=", member);
+    for (int rank = 0; rank < TrajComm.Size(); rank++)
+      mprintf(" %8.2f", darray[global++]);
+    mprintf("\n");
+  }
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)NAV.IDX().MaxFrames() / frames_time.Total());
-//# ifdef TIMER
-//  EnsembleIn::TimingData(trajin_time.Total());
-//# endif
+          (double)NAV.IDX().MaxFrames() / master_time.Total());
+# ifdef TIMER
+  EnsembleIn::TimingData(master_time.Total());
+# endif
   // Close output trajectories
   ensembleOut_.CloseEnsembleOut();
   DSL_.SetNewSetsNeedSync( false );
