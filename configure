@@ -89,7 +89,7 @@ CompileError() {
 # Test compile test program testp.cpp
 TestCxxProgram() {
   echo "$1"
-  COMPILELINE="$CXX $CXXFLAGS -o testp testp.cpp $2"
+  COMPILELINE="$CXX -o testp testp.cpp $2"
   $COMPILELINE > /dev/null 2> compile.err
   ./testp | grep "Testing" > /dev/null
   status=$?
@@ -131,6 +131,18 @@ void unused() {int ncid; nc_open("foo.nc", 0, &ncid);}
 int main() { printf("Testing\n"); printf("%s\n",nc_strerror(0)); return 0; }
 EOF
     TestCxxProgram "Checking NetCDF" "$NETCDFLIB"
+  fi
+}
+
+TestPnetcdf() {
+  if [[ ! -z $PNETCDFLIB ]] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <pnetcdf.h>
+void unused() {int ncid; ncmpi_open(MPI_COMM_WORLD, "foo.nc", NC_NOWRITE, MPI_INFO_NULL, &ncid);}
+int main() { printf("Testing\n"); printf("%s\n",ncmpi_strerror(0)); return 0; }
+EOF
+    TestCxxProgram "Checking Parallel NetCDF" "$PNETCDFLIB"
   fi
 }
 
@@ -956,6 +968,7 @@ if [[ "$CROSS_COMPILE" = "no" ]]; then
   TestBzlib
   TestZlib
   TestNetcdf
+  TestPnetcdf
   TestMathlib
   TestArpack
   TestFFTW3
