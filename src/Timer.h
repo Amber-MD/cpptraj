@@ -10,6 +10,7 @@
 class Timer {
   public:
     Timer();
+    void Reset();
     void Start() { GetWallTime(start_sec_, start_ns_); }
     void Stop();
     double Total() const { return total_; }

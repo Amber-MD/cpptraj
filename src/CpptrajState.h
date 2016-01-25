@@ -7,6 +7,7 @@
 #include "DataFileList.h"
 #include "ActionList.h"
 #include "AnalysisList.h"
+#include "Timer.h"
 /// Hold all cpptraj state data
 class CpptrajState {
   public:
@@ -83,6 +84,8 @@ class CpptrajState {
     int RunParaEnsemble();
     //int RunSingleTrajParallel();
 #   endif
+    void Init_Timers();
+    void Time_Summary();
     // -------------------------------------------
     DataSetList DSL_;             ///< List of DataSets
     DataFileList DFL_;            ///< List of DataFiles that DataSets will be written to.
@@ -98,8 +101,16 @@ class CpptrajState {
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
     TrajModeType mode_; ///< Current trajectory mode (NORMAL/ENSEMBLE)
+    Timer init_time_;
+    Timer frames_time_;
+    Timer post_time_;
+    Timer analysis_time_;
+    Timer run_time_;
+    Timer write_time_;
 #   ifdef MPI
     bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
+    Timer sync_time_;
+    Timer master_time_;
 #   endif
 };
 #endif
