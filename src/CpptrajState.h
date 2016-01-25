@@ -19,7 +19,9 @@ class CpptrajState {
     void SetNoExitOnError()  { exitOnError_ = false;  }
     void SetNoProgress()     { showProgress_ = false; }
     void SetActionSilence(bool b)  { actionList_.SetSilent(b); }
-
+#   ifdef MPI
+    void SetForceParaEnsemble(bool b) { forceParallelEnsemble_ = b; }
+#   endif
     DataSetList const& DSL()  const { return DSL_;         }
     DataSetList&       DSL()        { return DSL_;         }
     DataFileList const& DFL() const { return DFL_;         }
@@ -82,32 +84,22 @@ class CpptrajState {
     //int RunSingleTrajParallel();
 #   endif
     // -------------------------------------------
-     /// List of generated data sets
-    DataSetList DSL_;
-    /// List of datafiles that data sets will be written to
-    DataFileList DFL_;
-    /// List of input trajectory files
-    TrajinList trajinList_;
-    // -------------------------------------------
-    /// List of actions to be performed each frame
-    ActionList actionList_;
-    /// List of output trajectory files 
-    TrajoutList trajoutList_;
-    /// List of output ensemble files.
-    EnsembleOutList ensembleOut_;
-    // -------------------------------------------
-    /// List of analyses to be performed on datasets
-    AnalysisList analysisList_;
+    DataSetList DSL_;             ///< List of DataSets
+    DataFileList DFL_;            ///< List of DataFiles that DataSets will be written to.
+    TrajinList trajinList_;       ///< List of input trajectories/ensembles.
+    ActionList actionList_;       ///< List of Actions to be performed during a Run.
+    TrajoutList trajoutList_;     ///< List of trajectories to be written during a Run.
+    EnsembleOutList ensembleOut_; ///< List of ensembles to be written during a Run.
+    AnalysisList analysisList_;   ///< List of Analyses to be performed
     
-    /// State debug level
-    int debug_;
-    /// Display Progress bar during run
-    bool showProgress_;
-    /// If true cpptraj will exit if errors are encountered instead of trying to continue
-    bool exitOnError_;
+    int debug_;         ///< Debug level.
+    bool showProgress_; ///< If true, display progress during Run.
+    bool exitOnError_;  ///< If true exit when errors encountered instead of continuing.
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
-    /// Current trajectory mode
-    TrajModeType mode_;
+    TrajModeType mode_; ///< Current trajectory mode (NORMAL/ENSEMBLE)
+#   ifdef MPI
+    bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
+#   endif
 };
 #endif

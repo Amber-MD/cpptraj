@@ -21,6 +21,9 @@ CpptrajState::CpptrajState() :
   exitOnError_(true),
   noEmptyRun_(false),
   mode_(UNDEFINED)
+# ifdef MPI
+  , forceParallelEnsemble_(false)
+# endif
 {}
 
 /** This version of SetTrajMode() may be called from AddToActionQueue() to set
@@ -341,7 +344,7 @@ int CpptrajState::Run() {
           err = RunParallel();
         break;
       case ENSEMBLE:
-        if (Parallel::TrajComm().Size() > 1)
+        if (Parallel::TrajComm().Size() > 1 || forceParallelEnsemble_)
           err = RunParaEnsemble();
         else
           err = RunEnsemble();
