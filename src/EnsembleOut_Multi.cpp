@@ -87,10 +87,12 @@ int EnsembleOut_Multi::InitEnsembleWrite(std::string const& tnameIn,
     }
   }
   // Set up TrajectoryIO for each member.
+  TrajectoryFile::TrajFormatType lastFormat = TrajectoryFile::UNKNOWN_TRAJ;
   for (unsigned int m = 0; m != fileNames_.size(); ++m) {
-    if (debug_ > 0)
-      rprintf("\tWriting ensemble member '%s' as %s\n", fileNames_[m].c_str(),
+    if (fileFormats[m] != lastFormat)
+      mprintf("\tWriting ensemble member '%s' as %s\n", fileNames_[m].c_str(),
               TrajectoryFile::FormatString(fileFormats[m]));
+    lastFormat = fileFormats[m];
     TrajectoryIO* tio = TrajectoryFile::AllocTrajIO( fileFormats[m] );
     if (tio == 0) return 1;
     ioarray_.push_back( tio );
