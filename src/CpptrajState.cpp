@@ -312,6 +312,7 @@ void CpptrajState::Init_Timers() {
 }
 
 void CpptrajState::Time_Summary() {
+  mprintf("\nRUN TIMING:\n");
   init_time_.WriteTiming(2,     "Init               :", run_time_.Total());
 # ifdef MPI
   master_time_.WriteTiming(2,   "Trajectory Process :", run_time_.Total());
