@@ -248,8 +248,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;
   if ( nc_inq_varid(ncid_, NCREMD_REPIDX, &repidxVID_) == NC_NOERR ) {
-    //if (ncdebug_ > 0)
-      mprintf("    Netcdf file has overall replica indices.\n");
+      if (ncdebug_>0) mprintf("\tNetcdf file has overall replica indices.\n");
     if ( checkNCerr(nc_inq_varid(ncid_, NCREMD_CRDIDX, &crdidxVID_)) ) {
       mprinterr("Error: Getting overall coordinate index variable ID.\n");
       return 1;
