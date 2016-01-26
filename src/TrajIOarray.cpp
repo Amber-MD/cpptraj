@@ -149,6 +149,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   bool lowestRep = true;
   int rep0Frames = TrajectoryIO::TRAJIN_UNK;  // Total frames in replica 0
   int totalFrames = TrajectoryIO::TRAJIN_UNK; // Total # frames to be read from ensemble
+  TrajectoryFile::TrajFormatType lastRepFmt = TrajectoryFile::UNKNOWN_TRAJ;
   // Right now enforce that all replicas have the same metadata as lowest
   // replica, e.g. if replica 0 has temperature, replica 1 does too etc.
   for (File::NameArray::const_iterator repfile = replica_filenames_.begin();
@@ -161,7 +162,9 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
       mprinterr("Error: Could not set up replica file %s\n", repfile->full());
       return 1;
     }
-    mprintf("\tReading '%s' as %s\n", repfile->full(), TrajectoryFile::FormatString(repformat));
+    if (repformat != lastRepFmt)
+      mprintf("\tReading '%s' as %s\n", repfile->full(), TrajectoryFile::FormatString(repformat));
+    lastRepFmt = repformat;
     replica0->SetDebug( debug_ );
     // Pushing replica0 here allows the destructor to handle it on errors
     IOarray_.push_back( replica0 );
