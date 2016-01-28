@@ -89,7 +89,7 @@ CompileError() {
 # Test compile test program testp.cpp
 TestCxxProgram() {
   echo "$1"
-  COMPILELINE="$CXX -o testp testp.cpp $2"
+  COMPILELINE="$CXX $INCLUDE -o testp testp.cpp $2"
   $COMPILELINE > /dev/null 2> compile.err
   ./testp | grep "Testing" > /dev/null
   status=$?
