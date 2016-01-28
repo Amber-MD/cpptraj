@@ -514,8 +514,12 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     if (!input.Empty()) {
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n", input.str());
+      Timer time_cmd; // DEBUG
+      time_cmd.Start(); // DEBUG
       // Call Dispatch to convert input to ArgList and process.
       cmode = Command::Dispatch(State, input.Str());
+      time_cmd.Stop(); // DEBUG
+      mprintf("  Command took %.2f s\n", time_cmd.Total()); // DEBUG
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
         if (State.ExitOnError()) break;

@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
+#include "Timer.h" // DEBUG
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -25,9 +26,17 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (argIn.Contains("crdidx"))
     crdidxarg.SetList( "crdidx " + argIn.GetStringKey("crdidx"), " " );
   // Set up replica file names.
+  Timer time_setrepnames; // DEBUG
+  time_setrepnames.Start(); // DEBUG
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
+  time_setrepnames.Stop(); // DEBUG
   // Set up TrajectoryIO classes for all file names.
+  Timer time_setrepio; // DEBUG
+  time_setrepio.Start(); // DEBUG
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+  time_setrepio.Stop(); // DEBUG
+  time_setrepnames.WriteTiming(1, "Set replica file names :"); // DEBUG
+  time_setrepio.WriteTiming(1,    "Set replica IO         :"); // DEBUG
 # ifdef MPI
   // Set up communicators
   if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
