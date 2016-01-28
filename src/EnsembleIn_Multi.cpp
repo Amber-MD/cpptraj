@@ -20,6 +20,11 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_nstlim    = argIn.getKeyDouble("nstlim", 1.0);
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
+# ifdef MPI
+  int eSize = argIn.getKeyInt("size", -1);
+  // If a size was specified set up comms now.
+  if (Parallel::SetupComms( eSize )) return 1;
+# endif
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
@@ -28,7 +33,19 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Set up replica file names.
   Timer time_setrepnames; // DEBUG
   time_setrepnames.Start(); // DEBUG
+# ifdef MPI
+  int err = 0;
+  if (eSize != -1)
+    err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn, Parallel::EnsembleComm(),
+                                           Parallel::TrajComm() );
+  else {
+    mprintf("Warning: Ensemble setup in parallel is more efficient when 'size' specified.\n");
+    err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn );
+  }
+  if (err) return 1;
+# else
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
+# endif
   time_setrepnames.Stop(); // DEBUG
   // Set up TrajectoryIO classes for all file names.
   Timer time_setrepio; // DEBUG
@@ -38,8 +55,10 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   time_setrepnames.WriteTiming(1, "Set replica file names :"); // DEBUG
   time_setrepio.WriteTiming(1,    "Set replica IO         :"); // DEBUG
 # ifdef MPI
-  // Set up communicators
-  if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
+  // Set up communicators if not already done
+  if (eSize == -1) {
+    if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
+  }
 # endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
