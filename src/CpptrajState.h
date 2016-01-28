@@ -101,16 +101,16 @@ class CpptrajState {
     /// If true do not process input trajectories when no actions/output trajectories.
     bool noEmptyRun_; // DEBUG: false is used for benchmarking trajectory read speed.
     TrajModeType mode_; ///< Current trajectory mode (NORMAL/ENSEMBLE)
-    Timer init_time_;
-    Timer frames_time_;
-    Timer post_time_;
-    Timer analysis_time_;
-    Timer run_time_;
-    Timer write_time_;
+    Timer init_time_;     ///< Run initialization time.
+    Timer frames_time_;   ///< Run frame processing time.
+    Timer post_time_;     ///< Run post-frame processing (e.g. Action::Print()) time.
+    Timer analysis_time_; ///< Run analysis time.
+    Timer run_time_;      ///< Total run time.
+    Timer write_time_;    ///< Run data file write time.
 #   ifdef MPI
     bool forceParallelEnsemble_; ///< If true run parallel ensemble even with 1 thread/member
-    Timer sync_time_;
-    Timer master_time_;
+    Timer sync_time_;     ///< DataSet/Action total sync time.
+    Timer master_time_;   ///< Total frame processing time across all ranks.
 #   endif
 };
 #endif

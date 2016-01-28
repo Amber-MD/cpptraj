@@ -14,8 +14,10 @@ class TrajIOarray {
     /// Setup TrajectoryIO classes for all file names.
     int SetupIOarray(ArgList&, TrajFrameCounter&, CoordinateInfo&, Topology*);
 #   ifdef MPI
+    /// Set up replica filenames such that each ensemble rank checks 1 file
     int SetupReplicaFilenames(FileName const&, ArgList&, Parallel::Comm const&,
                               Parallel::Comm const&);
+    /// Each ensemble rank sets up TrajectoryIO class only for member it will process.
     int SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
                      CoordinateInfo& cInfo, Topology* trajParm,
                      Parallel::Comm const&, Parallel::Comm const&);
@@ -40,15 +42,14 @@ class TrajIOarray {
   private:
     /// Used for replica filename searching.
     class RepName;
-    /// Split given filename into components for searching for other replicas.
-    int GetRepPrefixAndExt(FileName const&, std::string&, std::string&, std::string&,
-                           int&, int&) const;
     /// Given lowest replica name, search for all other replicas.
     int SearchForReplicas(FileName const&);
     /// Add the given file name and names from comma-separated list. 
     int AddReplicasFromArgs(FileName const&, std::string const&);
 #   ifdef MPI
+    /// Given lowest replica name, ensemble rank searches for corresponding replica
     int SearchForReplicas(FileName const&, Parallel::Comm const&, Parallel::Comm const&);
+    /// Each rank searches for replica from given name + comma-separated list
     int AddReplicasFromArgs(FileName const&, std::string const&, Parallel::Comm const&,
                             Parallel::Comm const&);
 #   endif
@@ -64,7 +65,7 @@ class TrajIOarray::RepName {
     RepName() : ExtWidth_(0), lowestRepnum_(-1) {}
     RepName(FileName const&, int);
     bool Error() const { return Prefix_.empty(); }
-    /// \return Replica file name for given replica number.
+    /// \return Replica file name for given offset from lowest replica number.
     FileName RepFilename(int) const;
   private:
     std::string Prefix_;      ///< File name up to the numerical extension.
