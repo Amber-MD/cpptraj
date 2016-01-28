@@ -267,7 +267,7 @@ int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& 
   // At this point each rank has found its replica. Populate filename array.
   for (int offset = 0; offset < ensComm.Size(); ++offset)
     replica_filenames_.push_back( repName.RepFilename( offset ) );
-  mprintf("\tFound %zu replicas.\n", replica_filenames_.size());
+  mprintf("\tAll ranks found total of %zu replicas.\n", replica_filenames_.size());
   return 0;
 }
 
@@ -289,7 +289,7 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     mprinterr("Error: Could not set up replica file %s\n", repFname.full());
     return 1;
   }
-  rprintf("\tReading '%s' as %s\n", repFname.full(), TrajectoryFile::FormatString(repformat));
+  mprintf("\tReading '%s' as %s\n", repFname.full(), TrajectoryFile::FormatString(repformat));
   replica0->SetDebug( debug_ );
   // Construct the IOarray_ with blanks for all except this rank.
   for (int member = 0; member != ensComm.Size(); member++)
@@ -312,6 +312,14 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     mprintf("\tReplica dimensions:\n");
     for (int rd = 0; rd < cInfo.ReplicaDimensions().Ndims(); rd++)
       mprintf("\t\t%i: %s\n", rd+1, cInfo.ReplicaDimensions().Description(rd));
+  }
+  // Check # frames in all files, use lowest.
+  Parallel::World().AllReduce( &totalFrames, &nframes, 1, MPI_INT, MPI_MIN );
+  if (totalFrames != nframes) {
+    rprintf("Warning: Replica '%s' frames (%i) is > # frames in shortest replica.\n",
+            repFname.full(), nframes);
+    mprintf("Warning: Setting total # of frames to read from replica ensemble to %i\n",
+            totalFrames);
   }
   // TODO: Check coordinate info of all files
   // TODO: Put code below into a common routine with serial version
