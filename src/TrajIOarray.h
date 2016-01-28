@@ -45,8 +45,9 @@ class TrajIOarray {
     /// Add the given file name and names from comma-separated list. 
     int AddReplicasFromArgs(FileName const&, std::string const&);
 #   ifdef MPI
-    int SearchForReplicas(FileName const&, Parallel::Comm const&);
-    int AddReplicasFromArgs(FileName const&, std::string const&, Parallel::Comm const&);
+    int SearchForReplicas(FileName const&, Parallel::Comm const&, Parallel::Comm const&);
+    int AddReplicasFromArgs(FileName const&, std::string const&, Parallel::Comm const&,
+                            Parallel::Comm const&);
 #   endif
     typedef std::vector<TrajectoryIO*> IOarrayType;
     IOarrayType IOarray_;               ///< Input replica trajectories.

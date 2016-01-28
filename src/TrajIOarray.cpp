@@ -61,67 +61,20 @@ int TrajIOarray::SetupReplicaFilenames(FileName const& tnameIn, ArgList& argIn,
                                        Parallel::Comm const& trajComm)
 {
   std::string trajnames = argIn.GetStringKey("trajnames");
-  if (trajComm.Master()) {
-    if (!trajnames.empty()) {
-      if (AddReplicasFromArgs( tnameIn, trajnames, ensComm )) return 1;
-    } else {
-      if (SearchForReplicas( tnameIn, ensComm )) return 1;
-    }
-  }
-  // Make sure all trajectory ranks have file names.
-  if (trajComm.Size() > 1) {
-    int eSize;              // # ensemble members
-    size_t bufSize;         // Total size of the character buffer.
-    std::vector<char> cbuf; // Filename character buffer
-    if (trajComm.Master()) {
-      // Broadcast total number of replicas
-      eSize = (int)replica_filenames_.size();
-      trajComm.MasterBcast( &eSize, 1, MPI_INT );
-      // Determine/broadcast the buffer size needed for all replica file names + null chars
-      bufSize = 0;
-      for (File::NameArray::const_iterator fn = replica_filenames_.begin();
-                                           fn != replica_filenames_.end(); ++fn)
-      {
-        bufSize += fn->Full().size();
-        bufSize++; // null
-      }
-      cbuf.resize( bufSize );
-      trajComm.MasterBcast( &bufSize, 1, MPI_UNSIGNED_LONG_LONG );
-      // Put all file names into buffer separated by nulls and broadcast.
-      std::vector<char>::iterator ptr = cbuf.begin();
-      for (int idx = 0; idx != eSize; idx++) {
-        std::copy( replica_filenames_[idx].Full().begin(),
-                   replica_filenames_[idx].Full().end(), ptr );
-        ptr += replica_filenames_[idx].Full().size();
-        *(ptr++) = '\0';
-      }
-      trajComm.MasterBcast( &cbuf[0], bufSize, MPI_CHAR );
-    } else {
-      // Receive total number of replicas
-      trajComm.MasterBcast( &eSize, 1, MPI_INT );
-      replica_filenames_.reserve( eSize );
-      // Receive buffer size needed for all replica file names + null chars
-      trajComm.MasterBcast( &bufSize, 1, MPI_UNSIGNED_LONG_LONG );
-      cbuf.resize( bufSize );
-      // Receive all file names in a buffer and put into replica_filenames_
-      trajComm.MasterBcast( &cbuf[0], bufSize, MPI_CHAR );
-      std::vector<char>::const_iterator beg = cbuf.begin();
-      for (int idx = 0; idx != eSize; idx++) {
-        // Seek to null char
-        std::vector<char>::const_iterator end = beg;
-        while ( *end != '\0' ) ++end;
-        replica_filenames_.push_back( std::string(beg, end) );
-        beg = end + 1;
-      }
-    }
-  }
+  int err;
+  if (!trajnames.empty())
+    err = AddReplicasFromArgs( tnameIn, trajnames, ensComm, trajComm );
+  else
+    err = SearchForReplicas( tnameIn, ensComm, trajComm );
+  if (Parallel::World().CheckError( err )) return 1;
   return 0;
 }
 
 /** Each rank checks that specified file is present. */
 int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
                                      std::string const& commaNames,
-                                     Parallel::Comm const& commIn)
+                                     Parallel::Comm const& ensComm,
+                                     Parallel::Comm const& trajComm)
 {
   // First set up filename array on all ranks.
   if (name0.empty()) return 1;
@@ -130,32 +83,33 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
   for (ArgList::const_iterator fname = remdtraj_list.begin();
                                fname != remdtraj_list.end(); ++fname)
     replica_filenames_.push_back( FileName( *fname ) );
-  int err = 0;
-  if (commIn.Size() != (int)replica_filenames_.size())
-    err = 1;
-  else if (!File::Exists( replica_filenames_[ commIn.Rank() ])) {
-    rprinterr("Error: File '%s' does not exist.\n", replica_filenames_[commIn.Rank()].full());
-    err = 1;
+  if (ensComm.Size() != (int)replica_filenames_.size())
+    return 1;
+  else if (trajComm.Master()) { // Only traj comm master checks file
+    if (!File::Exists( replica_filenames_[ ensComm.Rank() ])) {
+      rprinterr("Error: File '%s' does not exist.\n", replica_filenames_[ensComm.Rank()].full());
+      return 1;
+    }
   }
-  if (commIn.CheckError( err )) return 1;
-
   return 0;
 }
 
 /** Each rank searches for replica based on lowest replica number. */
-int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& commIn) {
+int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& ensComm,
+                                   Parallel::Comm const& trajComm)
+{
   RepName lowestRepName(fname, debug_);
   if (lowestRepName.Error()) return 1;
   // TODO check for higher replica number?
-  FileName replicaFilename = lowestRepName.RepFilename( commIn.Rank() +
+  FileName replicaFilename = lowestRepName.RepFilename( ensComm.Rank() +
                                                         lowestRepName.LowestRepNum() );
-  int err = 0;
-  if (!File::Exists( replicaFilename )) err = 1;
-  if (commIn.CheckError( err )) return 1;
-  rprintf("DEBUG: Found '%s'\n", replicaFilename.full());
+  // Only traj comm masters actually check for files.
+  if (trajComm.Master()) {
+    if (!File::Exists( replicaFilename )) return 1;
+  }
   // At this point each rank has found its replica. Populate filename array.
   for (int repnum = lowestRepName.LowestRepNum();
-           repnum < lowestRepName.LowestRepNum() + commIn.Size(); ++repnum)
+           repnum < lowestRepName.LowestRepNum() + ensComm.Size(); ++repnum)
     replica_filenames_.push_back( lowestRepName.RepFilename( repnum ) );
   mprintf("\tFound %zu replicas.\n", replica_filenames_.size());
   return 0;
