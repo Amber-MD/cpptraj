@@ -42,7 +42,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
     mprintf("Warning: Ensemble setup in parallel is more efficient when 'size' specified.\n");
     err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn );
   }
-  if (err) return 1;
+  if (Parallel::World().CheckError( err )) return 1;
 # else
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
 # endif
@@ -50,7 +50,16 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Set up TrajectoryIO classes for all file names.
   Timer time_setrepio; // DEBUG
   time_setrepio.Start(); // DEBUG
+# ifdef MPI
+  if (eSize != -1)
+    err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm(),
+                                 Parallel::EnsembleComm(), Parallel::TrajComm() );
+  else
+    err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm());
+  if (Parallel::World().CheckError( err )) return 1;
+# else
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+# endif
   time_setrepio.Stop(); // DEBUG
   time_setrepnames.WriteTiming(1, "Set replica file names :"); // DEBUG
   time_setrepio.WriteTiming(1,    "Set replica IO         :"); // DEBUG
@@ -286,7 +295,11 @@ int EnsembleIn_Multi::BeginEnsemble() {
 
 void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
-  REMDtraj_[Member()]->closeTraj();
+  // FIXME: At this point we may be calling this from the destructor. If so, Member()
+  //        is probably no longer valid since the EnsembleComm may be gone. Do not
+  //        try to do this is the EnsembleComm is null.
+  if (!Parallel::EnsembleComm().IsNull())
+    REMDtraj_[Member()]->closeTraj();
 # ifdef TIMER
   total_mpi_allgather_ += mpi_allgather_timer_.Total();
   total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();

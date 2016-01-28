@@ -11,12 +11,15 @@ class TrajIOarray {
     void ClearIOarray();
     /// Set up replica file names from arguments or by searching.
     int SetupReplicaFilenames(FileName const&, ArgList&);
+    /// Setup TrajectoryIO classes for all file names.
+    int SetupIOarray(ArgList&, TrajFrameCounter&, CoordinateInfo&, Topology*);
 #   ifdef MPI
     int SetupReplicaFilenames(FileName const&, ArgList&, Parallel::Comm const&,
                               Parallel::Comm const&);
+    int SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
+                     CoordinateInfo& cInfo, Topology* trajParm,
+                     Parallel::Comm const&, Parallel::Comm const&);
 #   endif
-    /// Setup TrajectoryIO classes for all file names.
-    int SetupIOarray(ArgList&, TrajFrameCounter&, CoordinateInfo&, Topology*);
     /// Print file names and IO info to STDOUT
     void PrintIOinfo() const;
     /// Iterator over trajectories
