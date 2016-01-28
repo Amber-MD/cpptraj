@@ -98,19 +98,17 @@ int TrajIOarray::AddReplicasFromArgs(FileName const& name0,
 int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& ensComm,
                                    Parallel::Comm const& trajComm)
 {
-  RepName lowestRepName(fname, debug_);
-  if (lowestRepName.Error()) return 1;
-  // TODO check for higher replica number?
-  FileName replicaFilename = lowestRepName.RepFilename( ensComm.Rank() +
-                                                        lowestRepName.LowestRepNum() );
+  RepName repName(fname, debug_);
+  if (repName.Error()) return 1;
+  // TODO check for lower replica number?
+  FileName replicaFilename = repName.RepFilename( ensComm.Rank() );
   // Only traj comm masters actually check for files.
   if (trajComm.Master()) {
     if (!File::Exists( replicaFilename )) return 1;
   }
   // At this point each rank has found its replica. Populate filename array.
-  for (int repnum = lowestRepName.LowestRepNum();
-           repnum < lowestRepName.LowestRepNum() + ensComm.Size(); ++repnum)
-    replica_filenames_.push_back( lowestRepName.RepFilename( repnum ) );
+  for (int offset = 0; offset < ensComm.Size(); ++offset)
+    replica_filenames_.push_back( repName.RepFilename( offset ) );
   mprintf("\tFound %zu replicas.\n", replica_filenames_.size());
   return 0;
 }
@@ -123,75 +121,31 @@ int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& 
   * \return Found replica filenames, or an empty list on error. 
   */
 int TrajIOarray::SearchForReplicas(FileName const& fname) {
-  // STEP 1 - Get filename Prefix, Numerical extension, and optional
-  //          compression extension.
-  // Assume the extension of this trajectory is the number of the lowest 
-  // replica, and that the other files are in sequence (e.g. rem.000, rem.001, 
-  // rem.002 or rem.000.gz, rem.001.gz, rem.002.gz etc).
-  if (debug_>1)
-    mprintf("\tREMDTRAJ: FileName=[%s]\n",fname.full());
-  if ( fname.Ext().empty() ) {
-    mprinterr("Error: Traj %s has no numerical extension, required for automatic\n"
-              "Error:   detection of replica trajectories. Expected filename format is\n"
-              "Error:   <Prefix>.<#> (with optional compression extension), examples:\n"
-              "Error:   Rep.traj.nc.000,  remd.x.01.gz etc.\n", fname.base());
-    return 1;
-  }
-  // Split off everything before replica extension
-  size_t found = fname.Full().rfind( fname.Ext() );
-  std::string Prefix = fname.Full().substr(0, found); 
-  std::string ReplicaExt = fname.Ext(); // This should be the numeric extension
-  // Remove leading '.'
-  if (ReplicaExt[0] == '.') ReplicaExt.erase(0,1);
-  std::string CompressExt = fname.Compress();
-  if (debug_>1) {
-    mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
-            Prefix.c_str(), ReplicaExt.c_str(), CompressExt.c_str());
-  }
-
-  // STEP 2 - Check that the numerical extension is valid.
-  if ( !validInteger(ReplicaExt) ) {
-    mprinterr("Error: Replica extension [%s] is not an integer.\n", ReplicaExt.c_str());
-    return 1;
-  }
-  int ExtWidth = (int)ReplicaExt.size();
-  if (debug_>1)
-    mprintf("\tREMDTRAJ: Numerical Extension width=%i\n",ExtWidth);
-
-  // STEP 3 - Store lowest replica number
-  int lowestRepnum = convertToInteger( ReplicaExt );
-  // TODO: Do not allow negative replica numbers?
-  if (debug_>1)
-    mprintf("\tREMDTRAJ: index of first replica = %i\n",lowestRepnum);
+  RepName repName(fname, debug_);
+  if (repName.Error()) return 1;
   // Search for a replica number lower than this. Correct functioning
   // of the replica code requires the file specified by trajin be the
   // lowest # replica.
-  std::string replica_filename = Prefix + "." + 
-                                 integerToString(lowestRepnum - 1, ExtWidth) +
-                                 CompressExt;
-  if (File::Exists(replica_filename)) {
+  if (File::Exists( repName.RepFilename( -1 ) )) {
     mprintf("Warning: Replica# found lower than file specified with trajin.\n"
             "Warning:   Found \"%s\"; 'trajin remdtraj' requires lowest # replica.\n",
-            replica_filename.c_str());
+            repName.RepFilename( -1 ).full());
   }
-
-  // SETP 4 - Add lowest filename, search for and add all replicas higher than it.
+  // Add lowest replica filename, search for and add all replicas higher than it.
   replica_filenames_.push_back( fname );
-  int current_repnum = lowestRepnum;
+  int rep_offset = 0;
   bool search_for_files = true;
   FileName trajFilename;
   while (search_for_files) {
-    ++current_repnum;
-    trajFilename.SetFileName_NoExpansion( Prefix + "." +
-                                          integerToString(current_repnum, ExtWidth) +
-                                          CompressExt );
-    //mprintf("\t\tChecking for %s\n",replica_filename.c_str());
-    if (File::Exists(trajFilename))
+    ++rep_offset;
+    trajFilename = repName.RepFilename( rep_offset );
+    //mprintf("\t\tChecking for %s\n", trajFilename.full());
+    if (File::Exists( trajFilename ))
       replica_filenames_.push_back( trajFilename );
     else
       search_for_files = false;
   }
-  mprintf("\tFound %u replicas.\n",replica_filenames_.size());
+  mprintf("\tFound %u replicas.\n", replica_filenames_.size());
 
   return 0;
 }
@@ -363,10 +317,11 @@ TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) {
     mprintf("\tREMDTRAJ: index of first replica = %i\n", lowestRepnum_);
 }
 
-/** \return Replica file name for given replica number. */
-FileName TrajIOarray::RepName::RepFilename(int repnum) const {
+/** \return Replica file name for given offset from lowest replica number. */
+FileName TrajIOarray::RepName::RepFilename(int offset) const {
   FileName trajFilename;
-  trajFilename.SetFileName_NoExpansion( Prefix_ + "." + integerToString(repnum, ExtWidth_) +
+  trajFilename.SetFileName_NoExpansion( Prefix_ + "." +
+                                        integerToString(lowestRepnum_ + offset, ExtWidth_) +
                                         CompressExt_ );
   return trajFilename;
 }

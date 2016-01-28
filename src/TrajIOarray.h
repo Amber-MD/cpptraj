@@ -63,8 +63,6 @@ class TrajIOarray::RepName {
     bool Error() const { return Prefix_.empty(); }
     /// \return Replica file name for given replica number.
     FileName RepFilename(int) const;
-    /// \return integer value of lowest replica traj filename extension.
-    int LowestRepNum() const { return lowestRepnum_; }
   private:
     std::string Prefix_;      ///< File name up to the numerical extension.
     std::string ReplicaExt_;  ///< Numerical extension.
