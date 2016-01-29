@@ -323,7 +323,30 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
     mprintf("Warning: Setting total # of frames to read from replica ensemble to %i\n",
             totalFrames);
   }
-  // TODO: Check coordinate info of all files
+  if (trajComm.Master()) {
+    static const int iSize = 6;
+    static const char* iTitle[iSize] = {"box", "velocity", "temperature", "time", "force",
+                                        "replica dimensions"};
+    // Check coordinate info of all files               0    1    2     3     4      5
+    std::vector<int> Info( iSize * ensComm.Size() ); // box, vel, temp, time, force, nRepDims
+    int rank_info[iSize];
+    rank_info[0] = (int)cInfo.TrajBox().Type();
+    rank_info[1] = (int)cInfo.HasVel();
+    rank_info[2] = (int)cInfo.HasTemp();
+    rank_info[3] = (int)cInfo.HasTime();
+    rank_info[4] = (int)cInfo.HasForce();
+    rank_info[5] = cInfo.ReplicaDimensions().Ndims();
+    ensComm.AllGather( rank_info, iSize, MPI_INT, &Info[0] );
+    // TODO Should mismatches be errors instead?
+    for (int midx = 0; midx != iSize; midx++) {
+      for (int ridx = midx + iSize; ridx < (int)Info.size(); ridx += iSize) {
+        if (Info[midx] != Info[ridx]) {
+          rprintf("Warning: Replica %i %s info does not match first replica.\n",
+                  ridx/iSize, iTitle[midx]);
+        }
+      }
+    }
+  }
   // TODO: Put code below into a common routine with serial version
   // Check how many frames will actually be read
   if (counter.CheckFrameArgs( totalFrames, argIn )) return 1;
