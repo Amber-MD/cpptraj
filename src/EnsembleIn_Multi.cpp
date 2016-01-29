@@ -2,7 +2,6 @@
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
-#include "Timer.h" // DEBUG
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -34,8 +33,6 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (argIn.Contains("crdidx"))
     crdidxarg.SetList( "crdidx " + argIn.GetStringKey("crdidx"), " " );
   // Set up replica file names.
-  Timer time_setrepnames; // DEBUG
-  time_setrepnames.Start(); // DEBUG
 # ifdef MPI
   int err = 0;
   if (eSize != -1)
@@ -49,10 +46,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
 # else
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
 # endif
-  time_setrepnames.Stop(); // DEBUG
   // Set up TrajectoryIO classes for all file names.
-  Timer time_setrepio; // DEBUG
-  time_setrepio.Start(); // DEBUG
 # ifdef MPI
   if (eSize != -1)
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm(),
@@ -60,20 +54,15 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   else
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm());
   if (Parallel::World().CheckError( err )) return 1;
-# else
-  if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
-# endif
-  time_setrepio.Stop(); // DEBUG
-  time_setrepnames.WriteTiming(1, "Set replica file names :"); // DEBUG
-  time_setrepio.WriteTiming(1,    "Set replica IO         :"); // DEBUG
-# ifdef MPI
   // Set up communicators if not already done
   if (eSize == -1) {
     if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
   } else
     mprintf("\tAll ranks set up total of %zu replicas.\n", REMDtraj_.size());
-  // Set ensemble member.
+  // Set ensemble member number.
   SetEnsembleMemberNum( EnsembleComm().Rank() );
+# else
+  if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
 # endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
