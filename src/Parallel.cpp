@@ -86,6 +86,10 @@ int Parallel::Init(int argc, char** argv) {
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_init();
 # endif
+  //char processor_name[MPI_MAX_PROCESSOR_NAME];
+  //int namelen;
+  //MPI_Get_processor_name(processor_name, &namelen);
+  //printf("DEBUG: Thread %i of %i on %s\n", world_.Rank(), world_.Size(), processor_name);
   return 0;
 }
 
