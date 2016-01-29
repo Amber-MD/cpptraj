@@ -14,6 +14,12 @@
 
 Timer::Timer() : start_sec_(0), start_ns_(0), total_(0.0) {}
 
+void Timer::Reset() {
+  start_sec_ = 0;
+  start_ns_ = 0;
+  total_ = 0.0;
+}
+
 #ifdef _MSC_VER 
 /* tw 
  * replacement for gettimeofday based on  
@@ -90,6 +96,6 @@ void Timer::WriteTiming(int indents, const char* header, double FracTotal) const
     ptr += sprintf(ptr, "\t");
   ptr += sprintf(ptr, "%s %.4f s", header, total_);
   if (FracTotal > 0.0)
-    ptr += sprintf(ptr, " (%.2f%%)", (total_ / FracTotal) * 100.0);
+    ptr += sprintf(ptr, " (%6.2f%%)", (total_ / FracTotal) * 100.0);
   mprintf("TIME:%s\n", buffer);
 }

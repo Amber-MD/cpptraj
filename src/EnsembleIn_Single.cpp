@@ -62,6 +62,8 @@ int EnsembleIn_Single::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn
 # ifdef MPI
   // Set up communicators
   if (Parallel::SetupComms( ensembleSize_ )) return 1;
+  // Set ensemble member number.
+  SetEnsembleMemberNum( EnsembleComm().Rank() );
 # endif
   // If dimensions are present, assume search by indices, otherwise by temp.
   targetType_ = ReplicaInfo::NONE;

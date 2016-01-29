@@ -191,6 +191,9 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+# ifdef MPI
+  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
+# endif
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
@@ -511,8 +514,16 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     if (!input.Empty()) {
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n", input.str());
+#     ifdef TIMER
+      Timer time_cmd; // DEBUG
+      time_cmd.Start(); // DEBUG
+#     endif
       // Call Dispatch to convert input to ArgList and process.
       cmode = Command::Dispatch(State, input.Str());
+#     ifdef TIMER
+      time_cmd.Stop(); // DEBUG
+      time_cmd.WriteTiming(0," Command time: "); // DEBUG
+#     endif
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
         if (State.ExitOnError()) break;

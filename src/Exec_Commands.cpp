@@ -19,6 +19,19 @@ Exec::RetType Exec_NoExitOnError::Execute(CpptrajState& State, ArgList&)
   mprintf("\tAttempting to ignore errors if possible.\n");
   return CpptrajState::OK;
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+void Exec_ForceParaEnsemble::Help() const {
+  mprintf("  Use parallel trajectory routines in ensemble mode even with 1 thread/member.\n"
+          "  Can potentially result in faster execution but has some reduced functionality.\n");
+}
+
+Exec::RetType Exec_ForceParaEnsemble::Execute(CpptrajState& State, ArgList&) {
+  State.SetForceParaEnsemble( true );
+  mprintf("\tAlways using parallel trajectory routines during ensemble mode.\n");
+  return CpptrajState::OK;
+}
+#endif
 // -----------------------------------------------------------------------------
 void Exec_NoProgress::Help() const {
   mprintf("  Do not print progress while reading in trajectories.\n");

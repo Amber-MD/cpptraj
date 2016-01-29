@@ -1,7 +1,6 @@
 #include "CpptrajState.h"
 #include "CpptrajStdio.h"
 #include "Action_CreateCrd.h" // in case default COORDS need to be created
-#include "Timer.h"
 #include "DataSet_Coords_REF.h" // AddReference
 #include "DataSet_Topology.h" // AddTopology
 #include "ProgressBar.h"
@@ -21,6 +20,9 @@ CpptrajState::CpptrajState() :
   exitOnError_(true),
   noEmptyRun_(false),
   mode_(UNDEFINED)
+# ifdef MPI
+  , forceParallelEnsemble_(false)
+# endif
 {}
 
 /** This version of SetTrajMode() may be called from AddToActionQueue() to set
@@ -296,9 +298,47 @@ int CpptrajState::TrajLength( std::string const& topname,
   return 0;
 }
 
+void CpptrajState::Init_Timers() {
+  init_time_.Reset();
+  frames_time_.Reset();
+  post_time_.Reset();
+  analysis_time_.Reset();
+  run_time_.Reset();
+  write_time_.Reset();
+# ifdef MPI
+  sync_time_.Reset();
+  master_time_.Reset();
+# endif
+}
+
+void CpptrajState::Time_Summary() const {
+  mprintf("\nRUN TIMING:\n");
+  init_time_.WriteTiming(2,     "Init               :", run_time_.Total());
+# ifdef MPI
+  master_time_.WriteTiming(2,   "Trajectory Process :", run_time_.Total());
+  sync_time_.WriteTiming(2,     "Data Set Sync      :", run_time_.Total());
+# else
+  frames_time_.WriteTiming(2,   "Trajectory Process :", run_time_.Total());
+# endif
+  post_time_.WriteTiming(2,     "Action Post        :", run_time_.Total());
+  analysis_time_.WriteTiming(2, "Analysis           :", run_time_.Total());
+  write_time_.WriteTiming(2,    "Data File Write    :", run_time_.Total());
+  double other_time = run_time_.Total() - init_time_.Total() -
+#                     ifdef MPI
+                      master_time_.Total() - sync_time_.Total() -
+#                     else
+                      frames_time_.Total() -
+#                     endif
+                      post_time_.Total() - analysis_time_.Total() - write_time_.Total();
+  mprintf("TIME:\t\tOther              : %.4f s (%6.2f%%)\n",
+          other_time, other_time/run_time_.Total());
+  run_time_.WriteTiming(1, "Run Total");
+}
 // -----------------------------------------------------------------------------
 // CpptrajState::Run()
 int CpptrajState::Run() {
+  Init_Timers();
+  run_time_.Start();
   int err = 0;
   // Special case: check if _DEFAULTCRD_ COORDS DataSet is defined. If so,
   // this means 1 or more actions has requested that a default COORDS DataSet
@@ -341,7 +381,7 @@ int CpptrajState::Run() {
           err = RunParallel();
         break;
       case ENSEMBLE:
-        if (Parallel::TrajComm().Size() > 1)
+        if (Parallel::TrajComm().Size() > 1 || forceParallelEnsemble_)
           err = RunParaEnsemble();
         else
           err = RunEnsemble();
@@ -363,12 +403,16 @@ int CpptrajState::Run() {
   // Run Analyses if any are specified.
   if (err == 0)
     err = RunAnalyses();
+  write_time_.Start();
   if (err == 0 || !exitOnError_) {
     DSL_.List();
     // Print DataFile information and write DataFiles
     DFL_.List();
     MasterDataFileWrite();
   }
+  write_time_.Stop();
+  run_time_.Stop();
+  Time_Summary();
   mprintf("---------- RUN END ---------------------------------------------------\n");
   return err;
 }
@@ -389,8 +433,7 @@ void CpptrajState::ListState() const {
 // CpptrajState::RunEnsemble()
 /** Process ensemble in serial or parallel, individual trajectories in serial. */
 int CpptrajState::RunEnsemble() {
-  Timer init_time;
-  init_time.Start();
+  init_time_.Start();
   // Print ensemble size
   int ensembleSize = trajinList_.EnsembleSize();
   mprintf("\nENSEMBLE INFO:\n  Ensemble size is %i\n", ensembleSize);
@@ -446,8 +489,7 @@ int CpptrajState::RunEnsemble() {
   }
   SetWorldSilent( false );
 # endif
-  init_time.Stop();
-  mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total()); 
+  init_time_.Stop();
 
   // ========== A C T I O N  P H A S E ==========
   int actionSet = 0;            // Internal data frame
@@ -461,8 +503,7 @@ int CpptrajState::RunEnsemble() {
   Timer actions_time;
   Timer trajout_time;
 # endif
-  Timer frames_time;
-  frames_time.Start();
+  frames_time_.Start();
   mprintf("\nBEGIN ENSEMBLE PROCESSING:\n");
   ProgressBar progress;
   if (showProgress_)
@@ -594,27 +635,29 @@ int CpptrajState::RunEnsemble() {
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
-  frames_time.Stop();
-  frames_time.WriteTiming(0," Trajectory processing:");
+  frames_time_.Stop();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)readSets / frames_time.Total());
+          (double)readSets / frames_time_.Total());
+# ifdef MPI
+  master_time_ = frames_time_;
+# endif
 # ifdef TIMER
-  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
-  setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
-  actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
-  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
+  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time_.Total());
+  setup_time.WriteTiming(1,   "Action setup:           ", frames_time_.Total());
+  actions_time.WriteTiming(1, "Action frame processing:", frames_time_.Total());
+  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time_.Total());
 # ifdef MPI
   EnsembleIn::TimingData(trajin_time.Total());
 # endif
 # endif
-
   // Close output trajectories
   ensembleOut_.CloseEnsembleOut();
-
+  post_time_.Start();
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nENSEMBLE ACTION OUTPUT:\n");
   for (int member = 0; member < ensembleSize; ++member)
     ActionEnsemble[member]->PrintActions();
+  post_time_.Stop();
   // Clean up ensemble action lists
   for (int member = 1; member < ensembleSize; member++)
     delete ActionEnsemble[member];
@@ -663,7 +706,8 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
   n_previous_frames = actionList_.NumPreviousFramesReqd();
   if (n_previous_frames < 1) return 0;
   preload_start = my_start - n_previous_frames;
-  rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
+  if (debug_ > 0)
+    rprintf("DEBUG: Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
   if (preload_start < 0) {
     rprinterr("Error: Cannot preload, start is before beginning of traj.\n");
     return 1;
@@ -676,11 +720,14 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
     rprintf("Warning: Number of preload frames is greater than half the "
                       "number of processed frames.\n"
             "Warning:   Try reducing the number of threads.\n");
+  rprintf("Warning: Preloading %i frames. These frames will NOT have Actions performed on them.\n",
+          n_previous_frames);
   return 0;
 }
 // -----------------------------------------------------------------------------
 /** Process ensemble and individual trajectories in parallel. */
 int CpptrajState::RunParaEnsemble() {
+  init_time_.Start();
   // Set Comms
   Parallel::Comm const& EnsComm = Parallel::EnsembleComm();
   Parallel::Comm const& TrajComm = Parallel::TrajComm();
@@ -748,10 +795,10 @@ int CpptrajState::RunParaEnsemble() {
     }
   }
   if (Parallel::World().CheckError( preload_err ) && exitOnError_) return 1;
-
+  init_time_.Stop();
   // ----- ACTION PHASE --------------------------
-  Timer frames_time;
-  frames_time.Start();
+  frames_time_.Start();
+  master_time_.Start();
   mprintf("\nBEGIN PARALLEL ENSEMBLE PROCESSING:\n");
   ProgressBar progress;
   if (showProgress_)
@@ -787,42 +834,49 @@ int CpptrajState::RunParaEnsemble() {
     }
     if (showProgress_) progress.Update( actionSet );
   } // END loop over frames
-  frames_time.Stop();
+  frames_time_.Stop();
   // Close the trajectory file
   NAV.CurrentEns()->EndEnsemble();
   // Collect FPS stats from each rank. 
-  std::vector<double> darray( TrajComm.Size() );
-  double rank_fps = (double)actionSet / frames_time.Total();
-  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] );
-  for (int rank = 0; rank < TrajComm.Size(); rank++)
-    mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
+  std::vector<double> darray( Parallel::World().Size() );
+  double rank_fps = (double)actionSet / frames_time_.Total();
+  Parallel::World().GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] ); // Acts as barrier
+  master_time_.Stop();
+  int global = 0;
+  for (int member = 0; member < EnsComm.Size(); member++) {
+    mprintf("TIME: Member %4i ranks FPS=", member);
+    for (int rank = 0; rank < TrajComm.Size(); rank++)
+      mprintf(" %8.2f", darray[global++]);
+    mprintf("\n");
+  }
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)NAV.IDX().MaxFrames() / frames_time.Total());
-//# ifdef TIMER
-//  EnsembleIn::TimingData(trajin_time.Total());
-//# endif
+          (double)NAV.IDX().MaxFrames() / master_time_.Total());
+# ifdef TIMER
+  EnsembleIn::TimingData(master_time_.Total());
+# endif
   // Close output trajectories
   ensembleOut_.CloseEnsembleOut();
   DSL_.SetNewSetsNeedSync( false );
-  Timer time_sync;
-  time_sync.Start();
+  sync_time_.Start();
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
   if (DSL_.SynchronizeData( NAV.IDX().MaxFrames(), rank_frames, TrajComm )) return 1;
-  time_sync.Stop();
-  time_sync.WriteTiming(1, "Data set/actions sync");
+  sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
+  post_time_.Start();
   // Only call print for master
   if (TrajComm.Master())
     actionList_.PrintActions();
   TrajComm.Barrier();
+  post_time_.Stop();
   return 0;
 }
 
 // -----------------------------------------------------------------------------
 /** Process trajectories in trajinList in parallel. */
 int CpptrajState::RunParallel() {
+  init_time_.Start();
   // Set comms
   Parallel::Comm const& TrajComm = Parallel::TrajComm();
   // List state 
@@ -904,11 +958,11 @@ int CpptrajState::RunParallel() {
     }
   }
   if (TrajComm.CheckError( preload_err ) && exitOnError_) return 1;
-
+  init_time_.Stop();
   // ----- ACTION PHASE --------------------------
   mprintf("\nBEGIN PARALLEL TRAJECTORY PROCESSING:\n");
-  Timer frames_time;
-  frames_time.Start();
+  frames_time_.Start();
+  master_time_.Start();
   ProgressBar progress;
   if (showProgress_)
     progress.SetupProgress( my_frames );
@@ -928,30 +982,31 @@ int CpptrajState::RunParallel() {
     }
     if (showProgress_) progress.Update( actionSet );
   }
-  frames_time.Stop();
+  frames_time_.Stop();
   // Collect FPS stats from each rank.
   std::vector<double> darray( TrajComm.Size() );
-  double rank_fps = (double)actionSet / frames_time.Total();
-  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] );
+  double rank_fps = (double)actionSet / frames_time_.Total();
+  TrajComm.GatherMaster( &rank_fps, 1, MPI_DOUBLE, &darray[0] ); // Acts as barrier
+  master_time_.Stop();
   for (int rank = 0; rank < TrajComm.Size(); rank++)
     mprintf("TIME: Rank %i throughput= %.4f frames / second.\n", rank, darray[rank]);
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
-          (double)input_traj.Size() / frames_time.Total());
+          (double)input_traj.Size() / master_time_.Total());
   trajoutList_.CloseTrajout();
   DSL_.SetNewSetsNeedSync( false );
-  Timer time_sync;
-  time_sync.Start();
+  sync_time_.Start();
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
   if (DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm )) return 1;
-  time_sync.Stop();
-  time_sync.WriteTiming(1, "Data set/actions sync");
+  sync_time_.Stop();
+  post_time_.Start();
   mprintf("\nACTION OUTPUT:\n");
   // Only call print for master
   if (TrajComm.Master())
     actionList_.PrintActions();
   TrajComm.Barrier();
+  post_time_.Stop();
   return 0;
 }
 
@@ -1059,16 +1114,12 @@ int CpptrajState::RunSingleTrajParallel() {
  *  to the actions in actionList for processing.
  */
 int CpptrajState::RunNormal() {
-
-  // ========== S E T U P   P H A S E ========== 
-  Timer init_time;
-  init_time.Start();
+  init_time_.Start();
   // List state
   ListState();
   // Allocate DataSets in the master DataSetList based on # frames to be read
   DSL_.AllocateSets( trajinList_.MaxFrames() );
-  init_time.Stop();
-  mprintf("TIME: Run Initialization took %.4f seconds.\n", init_time.Total());
+  init_time_.Stop();
   
   // ========== A C T I O N  P H A S E ==========
   int actionSet = 0;            // Internal data frame
@@ -1083,8 +1134,7 @@ int CpptrajState::RunNormal() {
   Timer actions_time;
   Timer trajout_time;
 # endif
-  Timer frames_time;
-  frames_time.Start();
+  frames_time_.Start();
   mprintf("\nBEGIN TRAJECTORY PROCESSING:\n");
   ProgressBar progress;
   if (showProgress_)
@@ -1183,28 +1233,24 @@ int CpptrajState::RunNormal() {
     mprintf("\n");
   } // End loop over trajin
   mprintf("Read %i frames and processed %i frames.\n",readSets,actionSet);
-  frames_time.Stop();
-  frames_time.WriteTiming(0," Trajectory processing:");
+  frames_time_.Stop();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n", 
-          (double)readSets / frames_time.Total());
+          (double)readSets / frames_time_.Total());
 # ifdef TIMER
   DSL_.Timing();
-  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time.Total());
-  setup_time.WriteTiming(1,   "Action setup:           ", frames_time.Total());
-  actions_time.WriteTiming(1, "Action frame processing:", frames_time.Total());
-  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time.Total());
+  trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time_.Total());
+  setup_time.WriteTiming(1,   "Action setup:           ", frames_time_.Total());
+  actions_time.WriteTiming(1, "Action frame processing:", frames_time_.Total());
+  trajout_time.WriteTiming(1, "Trajectory output:      ", frames_time_.Total());
 # endif
   // Close output trajectories.
   trajoutList_.CloseTrajout();
 
   // ========== A C T I O N  O U T P U T  P H A S E ==========
   mprintf("\nACTION OUTPUT:\n");
+  post_time_.Start();
   actionList_.PrintActions();
-# ifdef MPI
-  // Sync DataSets across all threads. 
-  //DSL_.SynchronizeData(); // NOTE: Disabled, trajs are not currently divided.
-# endif
-
+  post_time_.Stop();
   return 0;
 }
 
@@ -1219,8 +1265,8 @@ void CpptrajState::MasterDataFileWrite() { DFL_.WriteAllDF(); }
 // CpptrajState::RunAnalyses()
 int CpptrajState::RunAnalyses() {
   if (analysisList_.Empty()) return 0;
-  Timer analysis_time;
-  analysis_time.Start();
+  analysis_time_.Reset();
+  analysis_time_.Start();
   int err = 0;
 # ifdef MPI
   // Only master performs analyses currently.
@@ -1229,11 +1275,11 @@ int CpptrajState::RunAnalyses() {
   if (Parallel::TrajComm().Master())
 # endif
     err = analysisList_.DoAnalyses();
-  analysis_time.Stop();
+  analysis_time_.Stop();
 # ifdef MPI
   if (Parallel::World().CheckError( err )) err = 1;
 # endif
-  mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time.Total());
+  mprintf("TIME: Analyses took %.4f seconds.\n", analysis_time_.Total());
   // If all Analyses completed successfully, clean up analyses.
   if ( err == 0) 
     analysisList_.Clear();

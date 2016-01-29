@@ -86,6 +86,10 @@ int Parallel::Init(int argc, char** argv) {
 # ifdef PARALLEL_DEBUG_VERBOSE
   debug_init();
 # endif
+  //char processor_name[MPI_MAX_PROCESSOR_NAME];
+  //int namelen;
+  //MPI_Get_processor_name(processor_name, &namelen);
+  //printf("DEBUG: Thread %i of %i on %s\n", world_.Rank(), world_.Size(), processor_name);
   return 0;
 }
 
@@ -122,15 +126,17 @@ int Parallel::SetupComms(int ngroups) {
   } else if (!ensembleComm_.IsNull()) {
     // If comms were previously set up make sure the number of groups remains the same!
     if (ensembleComm_.Size() != ngroups) {
-      fprintf(stderr,"Error: Ensemble size (%i) does not first ensemble size (%i).\n",
-              ngroups, ensembleComm_.Size());
+      if ( world_.Master() )
+        fprintf(stderr,"Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
+                ngroups, ensembleComm_.Size());
       return 1;
     }
   } else {
     // Initial setup: Make sure that ngroups is a multiple of total # threads.
     if ( (world_.Size() % ngroups) != 0 ) {
-      fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
-              world_.Size(), ngroups);
+      if ( world_.Master() )
+        fprintf(stderr,"Error: # of threads (%i) must be a multiple of # replicas (%i)\n",
+                world_.Size(), ngroups);
       return 1;
     }
     // Split into comms for parallel across trajectory
