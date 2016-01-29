@@ -14,10 +14,12 @@ void Exec_Trajin::Help() const {
 void Exec_Ensemble::Help() const {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t        [%s]\n", DataSetList::TopArgs);
-  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>\n"
+  mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>] [size <# members>]\n"
           "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
           "  Load an ensemble of trajectories starting with <file0> that will be\n"
-          "  processed together as an ensemble.\n");
+          "  processed together as an ensemble.\n"
+          "  When running in parallel, the 'size' keyword can be used to specify\n"
+          "  the number of members in the ensemble, which may improve set-up performance.\n");
 }
 // -----------------------------------------------------------------------------
 void Exec_Reference::Help() const {
