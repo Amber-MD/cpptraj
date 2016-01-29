@@ -322,9 +322,6 @@ int EnsembleIn_Multi::BeginEnsemble() {
 
 void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
-  // FIXME: At this point we may be calling this from the destructor. If so, Member()
-  //        is probably no longer valid since the EnsembleComm may be gone. Do not
-  //        try to do this is the EnsembleComm is null.
   if (Member() != -1)
     REMDtraj_[Member()]->closeTraj();
 # ifdef TIMER
