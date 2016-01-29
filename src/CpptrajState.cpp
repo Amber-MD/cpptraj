@@ -706,7 +706,8 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
   n_previous_frames = actionList_.NumPreviousFramesReqd();
   if (n_previous_frames < 1) return 0;
   preload_start = my_start - n_previous_frames;
-  rprintf("Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
+  if (debug_ > 0)
+    rprintf("DEBUG: Preloading frames from %i to %i\n", my_start - n_previous_frames, my_start-1);
   if (preload_start < 0) {
     rprinterr("Error: Cannot preload, start is before beginning of traj.\n");
     return 1;
@@ -719,6 +720,8 @@ int CpptrajState::PreloadCheck(int my_start, int my_frames,
     rprintf("Warning: Number of preload frames is greater than half the "
                       "number of processed frames.\n"
             "Warning:   Try reducing the number of threads.\n");
+  rprintf("Warning: Preloading %i frames. These frames will NOT have Actions performed on them.\n",
+          n_previous_frames);
   return 0;
 }
 // -----------------------------------------------------------------------------
