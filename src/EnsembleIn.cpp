@@ -1,6 +1,13 @@
 #include "EnsembleIn.h"
 #include "CpptrajStdio.h"
 
+EnsembleIn::EnsembleIn() :
+  targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0)
+# ifdef MPI
+  , member_(-1)
+# endif
+{}
+
 #ifdef MPI
 int EnsembleIn::GatherTemperatures(double* tAddress, std::vector<double>& allTemps,
                                    Parallel::Comm const& commIn)

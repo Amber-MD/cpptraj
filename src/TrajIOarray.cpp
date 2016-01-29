@@ -262,12 +262,14 @@ int TrajIOarray::SearchForReplicas(FileName const& fname, Parallel::Comm const& 
   FileName replicaFilename = repName.RepFilename( ensComm.Rank() );
   // Only traj comm masters actually check for files.
   if (trajComm.Master()) {
-    if (!File::Exists( replicaFilename )) return 1;
+    if (!File::Exists( replicaFilename )) {
+      rprinterr("Error: File '%s' does not exist.\n", replicaFilename.full());
+      return 1;
+    }
   }
   // At this point each rank has found its replica. Populate filename array.
   for (int offset = 0; offset < ensComm.Size(); ++offset)
     replica_filenames_.push_back( repName.RepFilename( offset ) );
-  mprintf("\tAll ranks found total of %zu replicas.\n", replica_filenames_.size());
   return 0;
 }
 
