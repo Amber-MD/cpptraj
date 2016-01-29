@@ -311,7 +311,7 @@ void CpptrajState::Init_Timers() {
 # endif
 }
 
-void CpptrajState::Time_Summary() {
+void CpptrajState::Time_Summary() const {
   mprintf("\nRUN TIMING:\n");
   init_time_.WriteTiming(2,     "Init               :", run_time_.Total());
 # ifdef MPI
@@ -323,6 +323,15 @@ void CpptrajState::Time_Summary() {
   post_time_.WriteTiming(2,     "Action Post        :", run_time_.Total());
   analysis_time_.WriteTiming(2, "Analysis           :", run_time_.Total());
   write_time_.WriteTiming(2,    "Data File Write    :", run_time_.Total());
+  double other_time = run_time_.Total() - init_time_.Total() -
+#                     ifdef MPI
+                      master_time_.Total() - sync_time_.Total() -
+#                     else
+                      frames_time_.Total() -
+#                     endif
+                      post_time_.Total() - analysis_time_.Total() - write_time_.Total();
+  mprintf("TIME:\t\tOther              : %.4f s (%6.2f%%)\n",
+          other_time, other_time/run_time_.Total());
   run_time_.WriteTiming(1, "Run Total");
 }
 // -----------------------------------------------------------------------------
@@ -629,6 +638,9 @@ int CpptrajState::RunEnsemble() {
   frames_time_.Stop();
   mprintf("TIME: Avg. throughput= %.4f frames / second.\n",
           (double)readSets / frames_time_.Total());
+# ifdef MPI
+  master_time_ = frames_time_;
+# endif
 # ifdef TIMER
   trajin_time.WriteTiming(1,  "Trajectory read:        ", frames_time_.Total());
   setup_time.WriteTiming(1,   "Action setup:           ", frames_time_.Total());

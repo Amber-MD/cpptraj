@@ -85,7 +85,7 @@ class CpptrajState {
     //int RunSingleTrajParallel();
 #   endif
     void Init_Timers();
-    void Time_Summary();
+    void Time_Summary() const;
     // -------------------------------------------
     DataSetList DSL_;             ///< List of DataSets
     DataFileList DFL_;            ///< List of DataFiles that DataSets will be written to.
