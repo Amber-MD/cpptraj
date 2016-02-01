@@ -32,7 +32,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
                                            Parallel::TrajComm() );
   else {
     mprintf("Warning: Ensemble setup efficiency in parallel is greatly\n"
-            "Warning:   improved via the 'ensembleSize' command.\n");
+            "Warning:   improved via the 'ensemblesize' command.\n");
     err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn );
   }
   if (Parallel::World().CheckError( err )) return 1;
