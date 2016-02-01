@@ -6,7 +6,7 @@ bool DataIO_CCP4::ID_DataFormat( CpptrajFile& infile ) {
   bool isCCP4 = false;
   if (!infile.OpenFile()) {
     char MAP[4];
-    if (infile.Seek(53 * sizeof(int)) == 0) {
+    if (infile.Seek(52 * sizeof(int)) == 0) {
       infile.Read( MAP, 4*sizeof(char) );
       isCCP4 = (MAP[0] == 'M' && MAP[1] == 'A' &&
                 MAP[2] == 'P' && MAP[3] == ' ');
