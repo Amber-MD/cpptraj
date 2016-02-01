@@ -202,6 +202,22 @@ void Box::SetBoxType() {
       mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
               "Warning:   If desired, the 'box' command can be used during processing\n"
               "Warning:   to set higher-precision angles.\n", box_[4], TRUNCOCTBETA_);
+  } else if (btype_ == NONORTHO) {
+    // Check for skewed box.
+    const double boxFactor = 0.5005;
+    double Xaxis_X = box_[0];
+    double Yaxis_X = box_[1]*cos(Constants::DEGRAD*box_[5]);
+    double Yaxis_Y = box_[1]*sin(Constants::DEGRAD*box_[5]);
+    double Zaxis_X = box_[2]*cos(Constants::DEGRAD*box_[4]);
+    double Zaxis_Y = (box_[1]*box_[2]*cos(Constants::DEGRAD*box_[3]) - Zaxis_X*Yaxis_X) / Yaxis_Y;
+    if ( fabs(Yaxis_X) > boxFactor * Xaxis_X ||
+         fabs(Zaxis_X) > boxFactor * Xaxis_X ||
+         fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
+    {
+      mprintf("Warning: Non-orthogonal box is too skewed to perform imaging.\n"
+              "Warning:  Disabling box.\n");
+      SetNoBox();
+    }
   }
 }
 
