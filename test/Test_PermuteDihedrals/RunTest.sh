@@ -22,8 +22,8 @@ DoTest rotations.mdcrd.save rotations.mdcrd
 
 cat > ds.in <<EOF
 reference ../tz2.rst7 [TZ2]
-permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi
-crdout [TZ2] random.mol2 multi
+permutedihedrals crdset [TZ2] random rseed 1 check maxfactor 10 phi psi \
+                 outtraj random.mol2 multi
 EOF
 RunCpptraj "PermuteDihedrals, random rotations"
 DoTest random.mol2.save random.mol2.1
