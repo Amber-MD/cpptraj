@@ -23,7 +23,6 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Density.cpp \
         Action_Diffusion.cpp \
         Action_Dihedral.cpp \
-        Action_DihedralScan.cpp \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \

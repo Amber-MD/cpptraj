@@ -65,7 +65,6 @@
 #include "Action_Pairwise.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
-#include "Action_DihedralScan.h"
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
@@ -248,7 +247,6 @@ void Command::Init() {
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
   Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
   Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
-  Command::AddCmd( new Action_DihedralScan(),  Cmd::ACT, 1, "dihedralscan" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
@@ -345,6 +343,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
+  Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
   Command::AddCmd( new Deprecated_Hbond(),       Cmd::DEP, 2, "acceptor", "donor" );
   Command::AddCmd( new Deprecated_MinDist(),     Cmd::DEP, 2, "mindist", "maxdist" );
   Command::AddCmd( new Deprecated_ParmBondInfo(),Cmd::DEP, 1, "parmbondinfo" );

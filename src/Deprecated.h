@@ -15,4 +15,5 @@ class Deprecated_ParmBondInfo : public Deprecated { public: void Help() const; }
 class Deprecated_ParmResInfo  : public Deprecated { public: void Help() const; };
 class Deprecated_ParmMolInfo  : public Deprecated { public: void Help() const; };
 class Deprecated_AvgCoord     : public Deprecated { public: void Help() const; };
+class Deprecated_DihScan      : public Deprecated { public: void Help() const; };
 #endif
