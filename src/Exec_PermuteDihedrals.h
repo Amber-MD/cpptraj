@@ -5,7 +5,7 @@
 #include "Random.h"
 #include "Trajout_Single.h"
 #include "DihedralSearch.h"
-// NOTE: Formerly Action_DihedralScan
+// NOTE: Formerly Action_PermuteDihedrals
 /// Rotate dihedrals randomly or in intervals
 class Exec_PermuteDihedrals : public Exec {
   public:
@@ -15,7 +15,7 @@ class Exec_PermuteDihedrals : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     /// Hold additional info for a dihedral
-    struct DihedralScanType {
+    struct PermuteDihedralsType {
       AtomMask Rmask;              ///< Mask of atoms to hold fixed during rotation
       std::vector<int> checkAtoms; ///< Atoms in same residue that should be checked for clashes
       int atom0;
@@ -27,7 +27,7 @@ class Exec_PermuteDihedrals : public Exec {
 
     int GetDihedralIdxs(int*, Topology const&,int, NameType const&,
                          NameType const&, NameType const&);
-    int CheckResidue( Frame const&, Topology const&, DihedralScanType const&,int,double*);
+    int CheckResidue( Frame const&, Topology const&, PermuteDihedralsType const&,int,double*);
     void RandomizeAngles(Frame&, Topology const&);
     void IntervalAngles(Frame const&, Topology const&);
 
@@ -37,7 +37,7 @@ class Exec_PermuteDihedrals : public Exec {
     ModeType mode_;
     /// Used to search for and hold info for specified dihedrals
     DihedralSearch dihSearch_;
-    std::vector<DihedralScanType> BB_dihedrals_;
+    std::vector<PermuteDihedralsType> BB_dihedrals_;
     /// Hold info for clash check
     struct ResidueCheckType {
       int checkatom;

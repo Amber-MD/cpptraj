@@ -5,7 +5,7 @@
 #include "DistRoutines.h"
 #include "TorsionRoutines.h"
 // Activate DEBUG info
-//#define DEBUG_DIHEDRALSCAN
+//#define DEBUG_PERMUTEDIHEDRALS
 
 // CONSTRUCTOR
 Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(GENERAL),
@@ -117,7 +117,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     RN_.rn_set( iseed );
   }
 
-  mprintf("    DIHEDRALSCAN: Dihedrals in");
+  mprintf("    PERMUTEDIHEDRALS: Dihedrals in");
   if (resRange_.Empty())
     mprintf(" all solute residues.\n");
   else
@@ -162,12 +162,12 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   ++backtrack_;
   // Initialize CheckStructure
   if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, State.DFL() )) {
-    mprinterr("Error: Could not set up structure check for DIHEDRALSCAN.\n");
+    mprinterr("Error: Could not set up structure check.\n");
     return CpptrajState::ERR;
   }
 
   // Determine from selected mask atoms which dihedrals will be rotated.
-  DihedralScanType dst;
+  PermuteDihedralsType dst;
   // If range is empty (i.e. no resrange arg given) look through all 
   // solute residues.
   Range actualRange;
@@ -284,7 +284,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   * \return -1 if further rotations will not help.
   */
 int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& topIn,
-                                         DihedralScanType const& dih, 
+                                         PermuteDihedralsType const& dih, 
                                          int nextres, double *clash ) 
 {
   int resnumIn = dih.resnum;
@@ -292,7 +292,7 @@ int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& t
   int rstop = ResCheck_[ resnumIn ].stop;
   int rcheck = ResCheck_[ resnumIn ].checkatom;
   // Check for clashes with self
-# ifdef DEBUG_DIHEDRALSCAN
+# ifdef DEBUG_PERMUTEDIHEDRALS
   mprintf("\tChecking residue %i\n",resnumIn+1);
   mprintf("\tATOMS %i to %i\n",rstart+1,rstop);
 # endif
@@ -309,7 +309,7 @@ int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& t
       if (!isBonded) {
         double atomD2 = DIST2_NoImage(FrameIn.XYZ(atom1), FrameIn.XYZ(atom2));
         if (atomD2 < cutoff_) {
-#         ifdef DEBUG_DIHEDRALSCAN 
+#         ifdef DEBUG_PERMUTEDIHEDRALS 
           mprintf("\t\tCurrent Res %i Atoms %s and %s are close (%.3lf)\n", resnumIn+1, 
                   topIn.AtomMaskName(atom1).c_str(),
                   topIn.AtomMaskName(atom2).c_str(), sqrt(atomD2));
@@ -330,14 +330,14 @@ int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& t
     double resD2 = DIST2_NoImage(FrameIn.XYZ(rcheck), FrameIn.XYZ(rcheck2));
     // If residues are close enough check each atom
     if (resD2 < rescutoff_) { 
-#     ifdef DEBUG_DIHEDRALSCAN
+#     ifdef DEBUG_PERMUTEDIHEDRALS
       mprintf("\tRES %i ATOMS %i to %i\n",res+1,rstart2+2,rstop2);
 #     endif
       for (int atom1 = rstart; atom1 < rstop; atom1++) {
         for (int atom2 = rstart2; atom2 < rstop2; atom2++) {
           double D2 = DIST2_NoImage(FrameIn.XYZ(atom1), FrameIn.XYZ(atom2));
           if (D2 < cutoff_) {
-#           ifdef DEBUG_DIHEDRALSCAN
+#           ifdef DEBUG_PERMUTEDIHEDRALS
             mprintf("\t\tResCheck %i Atoms %s and %s are close (%.3lf)\n", res+1,
                     topIn.TruncResAtomName(atom1).c_str(),
                     topIn.TruncResAtomName(atom2).c_str(), sqrt(D2));
@@ -364,7 +364,7 @@ int Exec_PermuteDihedrals::CheckResidue( Frame const& FrameIn, Topology const& t
 // Exec_PermuteDihedrals::RandomizeAngles()
 void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const& topIn) {
   Matrix_3x3 rotationMatrix;
-# ifdef DEBUG_DIHEDRALSCAN
+# ifdef DEBUG_PERMUTEDIHEDRALS
   // DEBUG
   int debugframenum=0;
   Trajout_Single DebugTraj;
@@ -377,9 +377,9 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
   int bestLoop = 0;
   int number_of_rotations = 0;
 
-  std::vector<DihedralScanType>::const_iterator next_dih = BB_dihedrals_.begin();
+  std::vector<PermuteDihedralsType>::const_iterator next_dih = BB_dihedrals_.begin();
   next_dih++;
-  for (std::vector<DihedralScanType>::const_iterator dih = BB_dihedrals_.begin();
+  for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
                                                      dih != BB_dihedrals_.end(); 
                                                      ++dih, ++next_dih)
   {
@@ -415,7 +415,7 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
       }
       // Rotate around axis
       currentFrame.Rotate(rotationMatrix, dih->Rmask);
-#     ifdef DEBUG_DIHEDRALSCAN
+#     ifdef DEBUG_PERMUTEDIHEDRALS
       // DEBUG
       DebugTraj.WriteSingle(debugframenum++,currentFrame);
 #     endif
@@ -495,9 +495,9 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
     } // End dihedral rotation loop
     // Safety valve - number of defined dihedrals times * maxfactor
     if (number_of_rotations > max_rotations_) {
-      mprinterr("Error: DihedralScan: # of rotations (%i) exceeds max rotations (%i), exiting.\n",
+      mprinterr("Error: PermuteDihedrals: # of rotations (%i) exceeds max rotations (%i), exiting.\n",
                 number_of_rotations, max_rotations_);
-//#     ifdef DEBUG_DIHEDRALSCAN
+//#     ifdef DEBUG_PERMUTEDIHEDRALS
 //      DebugTraj.EndTraj();
 //#     endif
       // Return gracefully for now
@@ -505,7 +505,7 @@ void Exec_PermuteDihedrals::RandomizeAngles(Frame& currentFrame, Topology const&
       //return 1;
     }
   } // End loop over dihedrals
-# ifdef DEBUG_DIHEDRALSCAN
+# ifdef DEBUG_PERMUTEDIHEDRALS
   DebugTraj.EndTraj();
   mprintf("\tNumber of rotations %i, expected %u\n",number_of_rotations,BB_dihedrals_.size());
 # endif
@@ -519,7 +519,7 @@ void Exec_PermuteDihedrals::IntervalAngles(Frame const& frameIn, Topology const&
   if (!outfilename_.empty())
     outtraj_.WriteSingle(outframe_++, frameIn);
   Frame currentFrame = frameIn;
-  for (std::vector<DihedralScanType>::const_iterator dih = BB_dihedrals_.begin();
+  for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
                                                      dih != BB_dihedrals_.end();
                                                      ++dih)
   {
