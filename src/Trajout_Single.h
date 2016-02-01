@@ -29,7 +29,8 @@ class Trajout_Single {
     /// Print information on trajectory to be written.
     void PrintInfo(int) const;
     // -------------------------------------------
-    OutputTrajCommon Traj() const { return traj_; }
+    OutputTrajCommon Traj() const { return traj_;        }
+    bool IsInitialized()    const { return trajio_ != 0; }
     /// Init and setup/open traj.
     int PrepareTrajWrite(FileName const&, ArgList const&, Topology*,
                          CoordinateInfo const&, int, TrajectoryFile::TrajFormatType);

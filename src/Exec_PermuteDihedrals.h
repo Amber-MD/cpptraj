@@ -4,7 +4,6 @@
 #include "Action_CheckStructure.h"
 #include "Random.h"
 #include "Trajout_Single.h"
-#include "DihedralSearch.h"
 // NOTE: Formerly Action_PermuteDihedrals
 /// Rotate dihedrals randomly or in intervals
 class Exec_PermuteDihedrals : public Exec {
@@ -24,19 +23,16 @@ class Exec_PermuteDihedrals : public Exec {
       int atom3;
       int resnum;
     };
-
-    int GetDihedralIdxs(int*, Topology const&,int, NameType const&,
-                         NameType const&, NameType const&);
-    int CheckResidue( Frame const&, Topology const&, PermuteDihedralsType const&,int,double*);
+    /// Rotate dihedrals by specified interval until original structure is reached
+    void IntervalAngles(Frame const&, Topology const&, double);
+    /// Used to check for clashes when performing random rotations
+    int CheckResidue( Frame const&, Topology const&, PermuteDihedralsType const&,int,double&);
+    /// Randomly rotate dihedrals
     void RandomizeAngles(Frame&, Topology const&);
-    void IntervalAngles(Frame const&, Topology const&);
 
-    /// Scan types
+    /// Permute types 
     enum ModeType  { RANDOM = 0, INTERVAL };
-    /// What kind of scanning will be performed
-    ModeType mode_;
-    /// Used to search for and hold info for specified dihedrals
-    DihedralSearch dihSearch_;
+    ModeType mode_;            ///< What kind of dihedral permutations will be performed 
     std::vector<PermuteDihedralsType> BB_dihedrals_;
     /// Hold info for clash check
     struct ResidueCheckType {
@@ -46,25 +42,19 @@ class Exec_PermuteDihedrals : public Exec {
       int resnum;
     };
     std::vector<ResidueCheckType> ResCheck_;
-
-    Range resRange_;
-    Trajout_Single outtraj_;
-    std::string outfilename_;
-    int outframe_;
-    double interval_;   ///< interval, value to shift by
-    int maxVal_;        ///< Maximum number of times to rotate dihedral
+    // General
+    int debug_;
+    Trajout_Single outtraj_; ///< Output trajectory
+    int outframe_;           ///< Output trajectory frame count
     // 'random' options
     bool check_for_clashes_;
     bool checkAllResidues_;
-    int max_rotations_; ///< Max # of random rotations to try, == # of dihedrals
     int max_factor_;    ///< # of times to randomly rotate each dihedral
     double cutoff_;     ///< When checking for clashes, atom cutoff
     double rescutoff_;  ///< When checking for clashes, residue cutoff
     int backtrack_;     ///< When a clash cannot be resolved, # of dihedrals to backtrack
     int increment_;     ///< Value in degrees to increment random dihedral by if clash happens
     int max_increment_; ///< 360 / increment
-    // General
-    int debug_;
     DataSet* number_of_problems_;
     Action_CheckStructure checkStructure_;
     Random_Number RN_;
