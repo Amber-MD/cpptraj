@@ -44,4 +44,13 @@ class Exec_Trajout : public Exec {
       return (RetType)State.AddOutputTrajectory( argIn );
     }
 };
+
+/// Set expected ensemble size to improve ensemble setup efficiency in parallel.
+class Exec_EnsembleSize : public Exec {
+  public:
+    Exec_EnsembleSize() : Exec(TRAJ) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_EnsembleSize(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
 #endif

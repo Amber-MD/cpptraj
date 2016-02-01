@@ -19,14 +19,6 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   double remlog_nstlim    = argIn.getKeyDouble("nstlim", 1.0);
   double remlog_ntwx      = argIn.getKeyDouble("ntwx",   1.0);
   bool no_sort = argIn.hasKey("nosort");
-  int eSize = argIn.getKeyInt("size", -1);
-# ifdef MPI
-  // If a size was specified set up comms now.
-  if (Parallel::SetupComms( eSize )) return 1;
-# else
-  if (eSize != -1)
-    mprintf("Warning: The 'size' keyword only matters when running in parallel.\n");
-# endif
   // CRDIDXARG: Parse out 'crdidx <indices list>' now so it is not processed
   //            by SetupTrajIO.
   ArgList crdidxarg;
@@ -35,11 +27,12 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   // Set up replica file names.
 # ifdef MPI
   int err = 0;
-  if (eSize != -1)
+  if (!Parallel::EnsembleComm().IsNull())
     err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn, Parallel::EnsembleComm(),
                                            Parallel::TrajComm() );
   else {
-    mprintf("Warning: Ensemble setup in parallel is more efficient when 'size' specified.\n");
+    mprintf("Warning: Ensemble setup efficiency in parallel is greatly\n"
+            "Warning:   improved via the 'ensemblesize' command.\n");
     err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn );
   }
   if (Parallel::World().CheckError( err )) return 1;
@@ -48,14 +41,14 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
 # endif
   // Set up TrajectoryIO classes for all file names.
 # ifdef MPI
-  if (eSize != -1)
+  if (!Parallel::EnsembleComm().IsNull())
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm(),
                                  Parallel::EnsembleComm(), Parallel::TrajComm() );
   else
     err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm());
   if (Parallel::World().CheckError( err )) return 1;
   // Set up communicators if not already done
-  if (eSize == -1) {
+  if (Parallel::EnsembleComm().IsNull()) {
     if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
   } else
     mprintf("\tAll ranks set up total of %zu replicas.\n", REMDtraj_.size());
