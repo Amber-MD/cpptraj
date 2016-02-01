@@ -214,9 +214,8 @@ void Box::SetBoxType() {
          fabs(Zaxis_X) > boxFactor * Xaxis_X ||
          fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
     {
-      mprintf("Warning: Non-orthogonal box is too skewed to perform imaging.\n"
-              "Warning:  Disabling box.\n");
-      SetNoBox();
+      mprintf("Warning: Non-orthogonal box is too skewed to perform accurate imaging.\n"
+              "Warning:  Images and imaged distances may not be the absolute minimum.\n");
     }
   }
 }
