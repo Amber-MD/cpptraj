@@ -204,10 +204,11 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   // TRAJECTORY
-  Command::AddCmd( new Exec_Ensemble(),  Cmd::EXE, 1, "ensemble" );
-  Command::AddCmd( new Exec_Reference(), Cmd::EXE, 1, "reference" );
-  Command::AddCmd( new Exec_Trajin(),    Cmd::EXE, 1, "trajin" );
-  Command::AddCmd( new Exec_Trajout(),   Cmd::EXE, 1, "trajout" );
+  Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
+  Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
+  Command::AddCmd( new Exec_Reference(),    Cmd::EXE, 1, "reference" );
+  Command::AddCmd( new Exec_Trajin(),       Cmd::EXE, 1, "trajin" );
+  Command::AddCmd( new Exec_Trajout(),      Cmd::EXE, 1, "trajout" );
   // TOPOLOGY COMMANDS
   Command::AddCmd( new Exec_AngleInfo(),     Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
