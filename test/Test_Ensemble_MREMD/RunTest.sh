@@ -15,6 +15,7 @@ TrajSort() {
   cat > mremd.in <<EOF
 noprogress
 parm rGACC.nowat.parm7
+ensemblesize 8
 ensemble rGACC.nowat.001
 trajout Strip.sorted.crd
 EOF
@@ -30,6 +31,7 @@ ActionsTest() {
   cat > mremd.in <<EOF
 noprogress
 parm rGACC.nowat.parm7
+ensemblesize 8
 ensemble rGACC.nowat.001
 hbond HB :1-4 solventdonor :Na+ solventacceptor :Na+ \
       out nhbond.dat avgout hbavg.dat
@@ -54,6 +56,7 @@ EOF
 RunAvgTest() {
   cat > mremd.in <<EOF
 parm rGACC.nowat.parm7
+ensemblesize 8
 ensemble rGACC.nowat.001 nosort
 runavg window 3
 rms RA first :1-4&!@H= out RA.dat
@@ -71,6 +74,7 @@ OuttrajTest() {
   cat > mremd.in <<EOF
 noprogress
 parm rGACC.nowat.parm7
+ensemblesize 8
 ensemble rGACC.nowat.001 nosort
 outtraj Outtraj.crd onlymembers 0,1
 EOF
