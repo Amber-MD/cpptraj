@@ -4,6 +4,7 @@
 #include "Action_CheckStructure.h"
 #include "Random.h"
 #include "Trajout_Single.h"
+#include "DataSet_Coords_CRD.h"
 // NOTE: Formerly Action_PermuteDihedrals
 /// Rotate dihedrals randomly or in intervals
 class Exec_PermuteDihedrals : public Exec {
@@ -44,8 +45,9 @@ class Exec_PermuteDihedrals : public Exec {
     std::vector<ResidueCheckType> ResCheck_;
     // General
     int debug_;
-    Trajout_Single outtraj_; ///< Output trajectory
-    int outframe_;           ///< Output trajectory frame count
+    Trajout_Single outtraj_;     ///< Output trajectory
+    int outframe_;               ///< Output trajectory frame count
+    DataSet_Coords_CRD* crdout_; ///< Output COORDS set
     // 'random' options
     bool check_for_clashes_;
     bool checkAllResidues_;

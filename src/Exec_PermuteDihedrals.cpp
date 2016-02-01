@@ -13,6 +13,7 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(GENERAL),
   mode_(INTERVAL),
   debug_(0),
   outframe_(0),
+  crdout_(0),
   check_for_clashes_(false),
   checkAllResidues_(false),
   max_factor_(2),
@@ -27,7 +28,7 @@ Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(GENERAL),
 // Exec_PermuteDihedrals::Help()
 void Exec_PermuteDihedrals::Help() const {
   mprintf("\tcrdset <COORDS set> resrange <range> [{interval | random}]\n"
-          "\t[outtraj <filename> [<outfmt>]] [<dihedral types>]\n"
+          "\t[outtraj <filename> [<outfmt>]] [crdout <output COORDS>] [<dihedral types>]\n"
           "  Options for 'random':\n"
           "\t[rseed <rseed>] [out <# problems file> [<set name>]]\n"
           "\t[ check [cutoff <cutoff>] [rescutoff <rescutoff>] [checkallresidues]\n"
@@ -48,7 +49,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     mode_ = RANDOM;
   else if (argIn.hasKey("interval"))
     mode_ = INTERVAL;
-  // Get COORDS set to modify
+  // Get input COORDS set
   std::string setname = argIn.GetStringKey("crdset");
   if (setname.empty()) {
     mprinterr("Error: Specify COORDS dataset name with 'crdset'.\n");
@@ -82,6 +83,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
   mprintf("\n");
 
   // Setup output trajectory
+  outframe_ = 0; 
   std::string outfilename = argIn.GetStringKey("outtraj");
   if (!outfilename.empty()) {
     mprintf("\tCoordinates output to '%s'\n", outfilename.c_str());
@@ -94,7 +96,15 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     if (outtraj_.PrepareTrajWrite(outfilename, argIn, CRD->TopPtr(), CRD->CoordsInfo(),
                                   CRD->Size(), TrajectoryFile::UNKNOWN_TRAJ))
       return CpptrajState::ERR;
-    outframe_ = 0; 
+  }
+
+  // Setup output coords
+  outfilename = argIn.GetStringKey("crdout");
+  if (!outfilename.empty()) {
+    mprintf("\tCoordinates saved to set '%s'\n", outfilename.c_str());
+    crdout_ = (DataSet_Coords_CRD*)State.DSL().AddSet(DataSet::COORDS, outfilename);
+    if (crdout_ == 0) return CpptrajState::ERR;
+    crdout_->CoordsSetup( CRD->Top(), CRD->CoordsInfo() );
   }
 
   // Get specific mode options.
@@ -269,6 +279,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
         //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
         number_of_problems_->Add(set, &n_problems);
         if (outtraj_.IsInitialized()) outtraj_.WriteSingle(outframe_++, currentFrame);
+        if (crdout_ != 0) crdout_->AddFrame( currentFrame );
         break;
       case INTERVAL: IntervalAngles(currentFrame, CRD->Top(), interval_in_deg); break;
     }
@@ -289,6 +300,8 @@ void Exec_PermuteDihedrals::IntervalAngles(Frame const& frameIn, Topology const&
   // Write original frame
   if (outtraj_.IsInitialized())
     outtraj_.WriteSingle(outframe_++, frameIn);
+  if (crdout_ != 0)
+    crdout_->AddFrame( frameIn );
   Frame currentFrame = frameIn;
   for (std::vector<PermuteDihedralsType>::const_iterator dih = BB_dihedrals_.begin();
                                                      dih != BB_dihedrals_.end();
@@ -309,6 +322,8 @@ void Exec_PermuteDihedrals::IntervalAngles(Frame const& frameIn, Topology const&
       // Write output trajectory
       if (outtraj_.IsInitialized())
         outtraj_.WriteSingle(outframe_++, currentFrame);
+      if (crdout_ != 0)
+        crdout_->AddFrame( currentFrame );
     }
   }
 }
