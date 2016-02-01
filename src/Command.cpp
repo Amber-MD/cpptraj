@@ -28,6 +28,7 @@
 #include "Exec_CrdOut.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
+#include "Exec_PermuteDihedrals.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -197,11 +198,12 @@ void Command::Init() {
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
-  Command::AddCmd( new Exec_CombineCoords(),Cmd::EXE, 1, "combinecrd" ); 
-  Command::AddCmd( new Exec_CrdAction(),    Cmd::EXE, 1, "crdaction" );
-  Command::AddCmd( new Exec_CrdOut(),       Cmd::EXE, 1, "crdout" );
-  Command::AddCmd( new Exec_LoadCrd(),      Cmd::EXE, 1, "loadcrd" );
-  Command::AddCmd( new Exec_LoadTraj(),     Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
+  Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
+  Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
+  Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
+  Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),  Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_Reference(), Cmd::EXE, 1, "reference" );

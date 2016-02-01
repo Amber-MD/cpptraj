@@ -36,6 +36,8 @@ class Random_Number {
     double rn_gauss(double,double);
     /// \return true if RN generator has been set up.
     bool IsSet() const { return RN_generator.iseed != -1; }
+    /// \return Value of RN generator seed
+    int Seed() const { return RN_generator.iseed; }
   private:
     /// Variables necessary for Marsaglia random number stream.
     /** This is placed in a struct in case the state of the random number

@@ -216,6 +216,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
         Exec_ParmWrite.cpp \
+        Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
