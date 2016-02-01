@@ -23,7 +23,6 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Density.cpp \
         Action_Diffusion.cpp \
         Action_Dihedral.cpp \
-        Action_DihedralScan.cpp \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
@@ -216,6 +215,7 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
         Exec_ParmWrite.cpp \
+        Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
