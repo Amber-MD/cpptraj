@@ -219,6 +219,7 @@ Analysis::RetType Analysis_IRED::Analyze() {
     startMode = 0;
   }
   // Loop over all vector elements
+  data_s2_->SetDim(Dimension::X, Dimension(1, 1, "Vec"));
   for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
     // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
     double sum = 0.0;
