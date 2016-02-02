@@ -23,7 +23,7 @@ void Exec_Ensemble::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_Reference::Help() const {
-  mprintf("\t<name> [<frame#>] [<mask>] [TAG] [lastframe] [crdset]\n"
+  mprintf("\t<name> [<frame#>] [<mask>] [{[TAG] | name <setname>}] [lastframe] [crdset]\n"
           "\t       [%s]\n", DataSetList::TopArgs);
   mprintf("  Load trajectory file <name> as a reference frame.\n"
           "  If 'crdset' is specified use COORDS data set specified by <name> as reference.\n");
