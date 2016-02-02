@@ -1,128 +1,41 @@
 TESTS for CPPTRAJ: 
 Daniel R. Roe 2010
-Updated 2011-10-13
+Updated 2016-02-02
 
 This directory contains tests which check most of the functionality of cpptraj.
-There are several ways the tests can be run:
-  (1) make test
-      Run the normal set of test cases on $AMBERHOME/bin/cpptraj. If $AMBERHOME
-      is not set $CPPTRAJHOME/bin/cpptraj will be used.
-      $AMBERHOME/AmberTools/test/dacdif will be used to check the tests.
-  (2) make test.complete
-      Like 'make test' but run all test cases.
-  (3) make test.standalone
-      Like 'make test.complete' except use $CPPTRAJHOME/bin/cpptraj by default.
-      If $CPPTRAJHOME is not set $AMBERHOME/AmberTools/src/cpptraj/bin/cpptraj
-      will be used.
-  (4) make test.vg
-      make test.vg.standalone
-      Like 'make test' and 'make test.standalone' respectively, but check for
-      memory errors with valgrind (requires valgrind installed and in path).
-      Note that valgrind works well for GNU compilers, but has been known to
-      fail with intel compilers.
-  (5) make clean
-      Clean up all test output.
+To run the tests, type 'make test' or 'make test.all'. In order to run the tests
+in parallel, set the environment variable DO_PARALLEL to your MPI command, e.g.
 
-By default STDOUT from each test is redirected to 'test.out'. If valgrind is
-used STDERR is redirected to 'valgrind.out'. If running tests with any of the
-'standalone' targets, the test results are summarized in Test_Results.dat,
-otherwise test failures are reported in 
-$AMBERHOME/AmberTools/test/TEST_FAILURES.diff.
+  make clean && DO_PARALLEL="mpiexec -n 2" make test.all
+
+Note that in parallel, tests attempt to determine the number of threads being
+used from the output from 'DO_PARALLEL nproc'. If your MPI run command produces
+extraneous output to STDOUT (e.g. 'ibrun'), you should specify the number of 
+threads to be used by setting the N_THREADS environment variable, otherwise
+tests will probably fail. If running tests for the hybrid MPI/OpenMP binary,
+make sure OMP_NUM_THREADS is appropriately set.
+
+The command 'make clean' can be used to clean up all test output.
+
+For developers: tests can automatically be run with memory checking via valgrind
+by typing 'test.vg'. This requires valgrind to be installed and in your PATH.
+
+Tests are stored in directories with the naming convention 'Test_X', where 'X'
+is a semi-descriptive name indicating what is tested. By default the STDOUT
+output from each test is redirected to 'test.out'. If valgrind is
+used STDERR is redirected to 'valgrind.out'. If not running tests within
+AmberTools (i.e. in a standalone GitHub install), the test results are 
+summarized in Test_Results.dat and Test_Error.dat. Within AmberTools, test
+failures are reported in $AMBERHOME/AmberTools/test/TEST_FAILURES.diff.
 
 Any individual test can be run by itself, e.g. 'make test.general' (see the
-'TEST LIST:' below for a full list of targets), or by changing to the test 
+Makefile for a full list of targets), or by changing to the test 
 directory and running './RunTest.sh'. There are several options which can be 
-passed to any 'RunTest.sh': 
-  stdout: Redirect output to STDOUT insteda of test.out.
-  standalone: Run standalone. See 'make test.standalone' above.
-  vg: Use valgrind. See 'make test.vg' above.
-  -debug <#>: Set debug level to <#>.
-  -cpptraj <file>: Force test to use <file> as cpptraj binary.
-  clean: Do not run the test, just clean up any existing test files.
+passed to any 'RunTest.sh', available by typing './RunTest.sh --help'. These
+options can also be passed to Makefile targets via the 'OPT' variable, e.g.
+
+  make test.all OPT=time
 
 Note that all $TESTDIR/RunTest.sh tests require and depend on the existence of 
 MasterTest.sh, which sets up the run environment for each test in a consistent
 way.
-
-TEST LIST:
-  Format: "<make target> (<Test Directory>): <Description>
-  test.general (Test_General): 
-    Tests combination of several commands and various functionality. 
-  test.strip (Test_Strip):
-    Tests 'strip' command to strip atoms from trajectory and write stripped
-    topology. Also tests combining the 'strip' and 'unstrip' commands to 
-    separate a system into 3 parts, akin to complex/receptor/ligand.
-  test.brokentraj (Test_BrokenTraj):
-    Tests reading of corrupted Amber trajectories.
-  test.traj (ptraj_trajectory):
-    Tests reading of compressed and non-compressed trajectories with offsets.
-  test.remdnetcdf (ptraj_remd_netcdf):
-    Tests reading of REMD trajectories.
-  test.framerange (Test_trajout_framerange):
-    Tests 'trajout onlyframes', writing select frames from an input trajectory.
-  test.perres (Test_PerResRMSD):
-    Tests 'rmsd perres', the per-residue RMSD functionality.
-  test.dssp (Test_DSSP): 
-    Tests the 'secstruct' secondary structure analysis command.
-  test.center (Test_Center):
-    Tests the 'center' command.
-  test.hbond (Test_Hbond):
-    Tests the 'hbond' hydrogen bond analysis command.
-  test.image (Test_Image):
-    Tests 'image', orthogonal and non-orthogonal imaging.
-  test.ptrajcomp (ptraj_comprehensive):
-    Runs the same tests as $AMBERHOME/AmberTools/test/ptraj_comprehensive,
-    ensures that cpptraj reads ptraj input.
-  test.surf (Test_Surf):
-    Tests 'surf', the solvent accessible surface area command, both full and
-    partial surface area.
-  test.radgyr (Test_Radgyr):
-    Tests 'radgyr', the radius of gyration calculation.
-  test.mask:
-    Tests the 'mask' command. Distance-based mask is tested, PDB of all waters
-    within a certain residue each frame.
-        @-cd Test_Mask && ./RunTest.sh $(OPT)
-  test.closest (Test_Closest):
-    Tests the 'closest' command and corresponding topology write.
-  test.rmsd (Test_RMSD):
-    Tests 'rmsd' command.
-  test.outtraj (Test_Outtraj):
-    Tests 'outtraj' command. Also test 'outtraj maxmin' for only writing frames
-    that match a certain data range.
-  test.datafile (Test_Datafile):
-    Tests various 'datafile' commands (like setting precision etc).
-  test.avgref (Test_AvgRef):
-    Tests 'reference <file> average' command, using averaged coordinates as 
-    reference coordinates.
-  test.mol2 (Test_Mol2):
-    Tests reading and writing of Mol2 files.
-  test.nastruct (Test_NAstruct):
-    Tests 'nastruct', nucleic acid structure analysis command.
-  test.pucker (Test_Pucker):
-    Tests 'pucker', calculation of ring pucker.
-  test.atommap (Test_AtomMap):
-    Tests 'atommap'; map atoms from one structure to another based on maximum
-    common substructure. Particularly useful for comparing two structures
-    in which the atoms may be out of order.
-  test.2drms (Test_2DRMS):
-    Tests the '2drms' / 'rmsd2d' command; calculate the rmsd of each frame to
-    every other frame.
-  test.average (Test_Average):
-    Tests the 'average' command, average coordinates over a series of frames.
-  test.radial (Test_Radial):
-    Tests the 'radial' command, calculate the radial distribution function
-    (pair correlation) between atoms.
-  test.hist (Test_Hist):
-    Tests the 'hist' analysis command, create an N-dimensional histogram from N
-    datasets.
-  test.ncrestart (Test_NCrestart):
-    Tests reading/writing NetCDF restart files.
-  test.drmsd (Test_DRMSD):
-    Tests the 'drmsd' command, RMSD of N internal distances.
-  test.jcoupling (Test_Jcoupling):
-    Tests the 'jcoupling' command, calculate jcoupling values for protein 
-    dihedrals.
-  test.cluster (Test_Cluster):
-    Tests 'cluster', the cluster analysis command.
-
-
