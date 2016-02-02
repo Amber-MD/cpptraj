@@ -225,15 +225,14 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
       OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
     mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
             "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n");
-  // FIXME for testing set the default title to be the same as RISM
+  // Set default title if none set 
   if (title_.empty())
-    title_.assign("Amber 3D-RISM CCP4 map volumetric data. Format revision A.");
-  else {
-    // Check that title is not too big
-    if (title_.size() > 800) {
-      mprintf("Warning: CCP4 title is too large, truncating.\n");
-      title_.resize( 800 );
-    }
+    title_.assign("CPPTRAJ CCP4 map volumetric data, set '" + grid.Meta().Legend() +
+                  "'. Format revision A.");
+  // Check that title is not too big
+  if (title_.size() > 800) {
+    mprintf("Warning: CCP4 title is too large, truncating.\n");
+    title_.resize( 800 );
   }
   // Set up and write header
   headerbyte buffer;
@@ -275,6 +274,7 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
     rmsd = sqrt(rmsd);
   else
     rmsd = 0.0;
+  mprintf("\t%s\n", title_.c_str());
   mprintf("\tDensity: Min=%f  Max=%f  Mean=%f  RMS=%f\n", gmin, gmax, mean, rmsd);
   buffer.f[19] = (float)gmin;
   buffer.f[20] = (float)gmax;
@@ -312,7 +312,7 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   // No symmetry bytes
 
   // Store data in buffer, then write. X changes fastest.
-  // SANITY CHECK; This will results in invalid files if size of float is not 4.
+  // SANITY CHECK; This will result in invalid files if size of float is not 4.
   if (sizeof(float) != wSize)
     mprintf("Warning: Size of float on this system is %zu, not 4.\n"
             "Warning:  Resulting CCP4 file data will not conform to standard.\n", sizeof(float));
@@ -322,7 +322,7 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
     for (unsigned int iy = 0; iy != grid.NY(); iy++)
       for (unsigned int ix = 0; ix != grid.NX(); ix++)
         *(it++) = grid.GetElement( ix, iy, iz );
-  outfile.Write( &mapbuffer[0], mapbuffer.size() * wSize );
+  outfile.Write( &mapbuffer[0], mapbuffer.size() * sizeof(float) );
 
   outfile.CloseFile();
   return 0;
