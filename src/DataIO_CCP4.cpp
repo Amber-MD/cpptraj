@@ -60,9 +60,10 @@ int DataIO_CCP4::ReadData(FileName const& fname,
     mprinterr("Error: Could not buffer CCP4 header.\n");
     return 1;
   }
-  mprintf("DEBUG: MAP= '%c %c %c %c'  MACHST= '%x %x %x %x'\n",
-          buffer.c[208], buffer.c[209], buffer.c[210], buffer.c[211],
-          buffer.c[212], buffer.c[213], buffer.c[214], buffer.c[215]);
+  if (debug_ > 0)
+    mprintf("DEBUG: MAP= '%c %c %c %c'  MACHST= '%x %x %x %x'\n",
+            buffer.c[208], buffer.c[209], buffer.c[210], buffer.c[211],
+            buffer.c[212], buffer.c[213], buffer.c[214], buffer.c[215]);
   // SANITY CHECK
   if (!MapCharsValid(buffer.c + 208)) {
     mprinterr("Error: CCP4 file missing 'MAP ' string at word 53\n");
@@ -72,40 +73,40 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   bool isBigEndian = (buffer.c[212] == 0x11 && buffer.c[213] == 0x11 &&
                       buffer.c[214] == 0x00 && buffer.c[215] == 0x00);
   if (!isBigEndian) {
-    mprintf("DEBUG: Little endian.\n");
+    if (debug_ > 0) mprintf("DEBUG: Little endian.\n");
     // SANITY CHECK
     if ( !(buffer.c[212] == 0x44 && buffer.c[213] == 0x41 &&
            buffer.c[214] == 0x00 && buffer.c[215] == 0x00) )
       mprintf("Warning: Invalid machine stamp: %x %x %x %x : assuming little endian.\n",
               buffer.c[212], buffer.c[213], buffer.c[214], buffer.c[215]);
   } else {
-    mprintf("DEBUG: Big endian.\n");
+    if (debug_ > 0) mprintf("DEBUG: Big endian.\n");
     // Perform endian swapping on header if necessary
     endian_swap(buffer.i, 56);
   }
 
   // Print DEBUG info
-  mprintf("DEBUG: Columns=%i  Rows=%i  Sections=%i\n", buffer.i[0], buffer.i[1], buffer.i[2]);
-  mprintf("DEBUG: Mode=%i\n", buffer.i[3]);
-  mprintf("DEBUG: Offsets: C=%i  R=%i  S=%i\n", buffer.i[4], buffer.i[5], buffer.i[6]);
-  mprintf("DEBUG: NXYZ={ %i %i %i }\n", buffer.i[7], buffer.i[8], buffer.i[9]);
-  mprintf("DEBUG: Box XYZ={ %f %f %f }  ABG={ %f %f %f }\n",
-          buffer.f[10], buffer.f[11], buffer.f[12],
-          buffer.f[13], buffer.f[14], buffer.f[15]);
-  mprintf("DEBUG: Map: ColAxis=%i  RowAxis=%i  SecAxis=%i\n",
-          buffer.i[16], buffer.i[17], buffer.i[18]);
-  mprintf("DEBUG: Density: Min=%f  Max=%f  Mean=%f\n", buffer.f[19], buffer.f[20], buffer.f[21]);
-  mprintf("DEBUG: SpaceGroup#=%i  SymmOpBytes=%i  SkewFlag=%i\n",
-          buffer.i[22], buffer.i[23], buffer.i[24]);
-  const int* MSKEW = buffer.i + 25;
-  mprintf("DEBUG: Skew matrix: %i %i %i\n"
-          "                    %i %i %i\n"
-          "                    %i %i %i\n", MSKEW[0], MSKEW[1], MSKEW[2], MSKEW[3],
-          MSKEW[4], MSKEW[5], MSKEW[6], MSKEW[7], MSKEW[8]);
-  const int* TSKEW = buffer.i + 34;
-  mprintf("DEBUG: Skew translation: %i %i %i\n", TSKEW[0], TSKEW[1], TSKEW[2]);
-  mprintf("DEBUG: RMSD=%f  Nlabels=%i\n", buffer.f[54], buffer.i[55]);
-
+  if (debug_ > 0) {
+    mprintf("DEBUG: Columns=%i  Rows=%i  Sections=%i\n", buffer.i[0], buffer.i[1], buffer.i[2]);
+    mprintf("DEBUG: Mode=%i\n", buffer.i[3]);
+    mprintf("DEBUG: Offsets: C=%i  R=%i  S=%i\n", buffer.i[4], buffer.i[5], buffer.i[6]);
+    mprintf("DEBUG: NXYZ={ %i %i %i }\n", buffer.i[7], buffer.i[8], buffer.i[9]);
+    mprintf("DEBUG: Box XYZ={ %f %f %f }  ABG={ %f %f %f }\n",
+            buffer.f[10], buffer.f[11], buffer.f[12],
+            buffer.f[13], buffer.f[14], buffer.f[15]);
+    mprintf("DEBUG: Map: ColAxis=%i  RowAxis=%i  SecAxis=%i\n",
+            buffer.i[16], buffer.i[17], buffer.i[18]);
+    mprintf("DEBUG: SpaceGroup#=%i  SymmOpBytes=%i  SkewFlag=%i\n",
+            buffer.i[22], buffer.i[23], buffer.i[24]);
+    const int* MSKEW = buffer.i + 25;
+    mprintf("DEBUG: Skew matrix: %i %i %i\n"
+            "                    %i %i %i\n"
+            "                    %i %i %i\n", MSKEW[0], MSKEW[1], MSKEW[2], MSKEW[3],
+            MSKEW[4], MSKEW[5], MSKEW[6], MSKEW[7], MSKEW[8]);
+    const int* TSKEW = buffer.i + 34;
+    mprintf("DEBUG: Skew translation: %i %i %i\n", TSKEW[0], TSKEW[1], TSKEW[2]);
+    mprintf("DEBUG: Nlabels=%i\n", buffer.i[55]);
+  }
   // Check input data. Only support mode 2 for now.
   if (buffer.i[3] != 2) {
     mprinterr("Error: Mode %i; currently only mode 2 for CCP4 files is supported.\n", buffer.i[3]);
@@ -128,14 +129,16 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   char Labels[801];
   Labels[800] = '\0';
   infile.Read( Labels, 200*wSize );
-  mprintf("DEBUG: Labels:\n%s\n", Labels);
+  mprintf("\t%s\n", Labels);
   // Symmetry records: operators separated by * and grouped into 'lines' of 80 characters
   int NsymmRecords = buffer.i[23] / 80;
-  char symBuffer[81];
-  mprintf("DEBUG: %i symmetry records.\n", NsymmRecords);
-  for (int ib = 0; ib != NsymmRecords; ib++) {
-    infile.Gets( symBuffer, 80 );
-    mprintf("\t%s\n", symBuffer);
+  if (NsymmRecords > 0) {
+    char symBuffer[81];
+    mprintf("\t%i symmetry records.\n", NsymmRecords);
+    for (int ib = 0; ib != NsymmRecords; ib++) {
+      infile.Gets( symBuffer, 80 );
+      mprintf("\t%s\n", symBuffer);
+    }
   }
 
   // Add grid data set. Default to float for now.
@@ -153,6 +156,8 @@ int DataIO_CCP4::ReadData(FileName const& fname,
   //        Should be able to change indexing in grid DataSet.
   size_t mapSize = buffer.i[7] * buffer.i[8] * buffer.i[9];
   mprintf("\tCCP4 map has %zu elements\n", mapSize);
+  mprintf("\tDensity: Min=%f  Max=%f  Mean=%f  RMS=%f\n",
+          buffer.f[19], buffer.f[20], buffer.f[21], buffer.f[54]);
   std::vector<float> mapbuffer( mapSize );
   int mapBytes = mapSize * wSize;
   int numRead = infile.Read( &mapbuffer[0], mapBytes );
