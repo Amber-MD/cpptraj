@@ -314,7 +314,9 @@ MaxThreads() {
       echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
-    N_THREADS=`$DO_PARALLEL $NPROC`
+    if [[ -z $N_THREADS ]] ; then
+      N_THREADS=`$DO_PARALLEL $NPROC`
+    fi
     if [[ $N_THREADS -gt $1 ]] ; then
       echo ""
       if [[ ! -z $2 ]] ; then
@@ -395,18 +397,23 @@ Help() {
   echo "  summary    : Print summary of test results only."
   echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout     : Print CPPTRAJ test output to STDOUT."
-  echo "  mpi        : Use MPI version of CPPTRAJ."
+  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggerd if DO_PARALLEL set)."
   echo "  openmp     : Use OpenMP version of CPPTRAJ."
   echo "  vg         : Run test with valgrind memcheck."
   echo "  vgh        : Run test with valgrind helgrind."
   echo "  time       : Time the test."
-  echo "  -at        : Force AmberTools tests."
+  echo "  clean      : Clean test output."
+  #echo "  -at        : Force AmberTools tests."
   echo "  -nodacdif  : Do not use dacdif for test comparisons."
   echo "  -d         : Run CPPTRAJ with global debug level 4."
   echo "  -debug <#> : Run CPPTRAJ with global debug level #."
   echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
   echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
   echo "  -profile        : Profile results with 'gprof' (requires special compile)."
+  echo "Important environment variables:"
+  echo "  DO_PARALLEL: MPI run command."
+  echo "  N_THREADS  : Number of MPI threads (only needed if 'DO_PARALLEL nproc' fails)."
+  echo ""
 }
 
 #-------------------------------------------------------------------------------
