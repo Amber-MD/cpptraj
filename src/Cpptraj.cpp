@@ -28,7 +28,7 @@ Cpptraj::~Cpptraj() { Command::Free(); }
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
-            "               [-c <reference>]\n"
+            "               [-c <reference>] [-d <datain>] [-w <dataout>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
@@ -38,6 +38,8 @@ void Cpptraj::Usage() {
             "\t-y <trajin>      : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
             "\t-x <trajout>     : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
             "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
+            "\t-d <datain>      : Read data in from file <datain> ('readdata <datain>').\n"
+            "\t-w <dataout>     : Write data from <datain> as file <dataout> ('writedata <dataout>).\n"
             "\t-h | --help      : Print command line help and exit.\n"
             "\t-V | --version   : Print version and exit.\n"
             "\t--defines        : Print compiler defines and exit.\n"
@@ -197,6 +199,13 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
   return 0;
 }
 
+void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
+  Files.push_back( argv[++idx] );
+  // Assume all following args without leading '-' are also files.
+  while (idx+1 != argc && argv[idx+1][0] != '-')
+    Files.push_back( argv[++idx] );
+}
+
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   bool hasInput = false;
@@ -206,6 +215,8 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   Sarray trajinFiles;
   Sarray trajoutFiles;
   Sarray refFiles;
+  Sarray dataFiles;
+  std::string dataOut;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);
     if ( arg == "--help" || arg == "-h" ) {
@@ -254,31 +265,25 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       logfilename_ = argv[++i];
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
-      topFiles.push_back( argv[++i] );
-      // Assume all following args without leading '-' are tops.
-      while (i+1 != argc && argv[i+1][0] != '-')
-        topFiles.push_back( argv[++i] );
+      AddFiles( topFiles, argc, argv, i );
+    } else if ( arg == "-d" && i+1 != argc) {
+      // -d: Read data file
+      AddFiles( dataFiles, argc, argv, i );
+    } else if ( arg == "-w" && i+1 != argc) {
+      // -w: Write data file. Only one allowed. For data file conversion.
+      dataOut.assign( argv[++i] );
     } else if ( arg == "-y" && i+1 != argc) {
       // -y: Trajectory file in.
-      trajinFiles.push_back( argv[++i] );
-      // Assume all following args without leading '-' are trajs.
-      while (i+1 != argc && argv[i+1][0] != '-')
-        trajinFiles.push_back( argv[++i] );
+      AddFiles( trajinFiles, argc, argv, i );
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
       trajoutFiles.push_back( argv[++i] );
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
-      refFiles.push_back( argv[++i] );
-      // Assume all following args without leading '-' are refs.
-      while (i+1 != argc && argv[i+1][0] != '-')
-        refFiles.push_back( argv[++i] );
+      AddFiles( refFiles, argc, argv, i );
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
-      inputFiles.push_back( argv[++i] );
-      // Assume all following args without leading '-' are input.
-      while (i+1 != argc && argv[i+1][0] != '-')
-        inputFiles.push_back( argv[++i] );
+      AddFiles( inputFiles, argc, argv, i );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
@@ -309,6 +314,35 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
   }
   Cpptraj::Intro();
+  // Add all data files specified on command lin.
+  for (Sarray::const_iterator dataFilename = dataFiles.begin();
+                              dataFilename != dataFiles.end();
+                            ++dataFilename)
+  {
+    DataFile dataIn;
+    dataIn.SetDebug( State_.Debug() );
+    if (dataIn.ReadDataIn( *dataFilename, ArgList(), State_.DSL()) != 0)
+      return ERROR;
+  }
+  // Write all data sets from input data files if output data specified
+  if (!dataOut.empty()) {
+    hasInput = true; // This allows direct data conversion with no other input
+    if (State_.DSL().empty()) {
+      mprinterr("Error: '-w' specified but no input data sets '-d'\n");
+      return ERROR;
+    }
+    DataFile DF;
+    ArgList tmpArg;
+    if (DF.SetupDatafile( dataOut, tmpArg, State_.Debug() )) return ERROR;
+    for (DataSetList::const_iterator ds = State_.DSL().begin(); ds != State_.DSL().end(); ++ds)
+      if (DF.AddDataSet( *ds )) {
+        mprinterr("Error: Could not add data set '%s' to file '%s'\n", (*ds)->legend(),
+                  dataOut.c_str());
+        return ERROR;
+      }
+    mprintf("\tWriting sets to '%s', format '%s'\n", DF.DataFilename().full(), DF.FormatString());
+    DF.WriteDataOut();
+  }
   // Add all topology files specified on command line.
   for (Sarray::const_iterator topFilename = topFiles.begin();
                               topFilename != topFiles.end();
