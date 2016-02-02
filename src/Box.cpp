@@ -19,6 +19,8 @@ Box::Box(const double* bIn) //: debug_(0)
   SetBox( bIn );
 }
 
+Box::Box(const float* bIn) { SetBox( bIn ); }
+
 Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
 
 // COPY CONSTRUCTOR

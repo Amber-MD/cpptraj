@@ -11,6 +11,7 @@ class Box {
 
     Box();
     Box(const double*);
+    Box(const float*);
     Box(Matrix_3x3 const&);
     Box(const Box&);
     Box& operator=(const Box&);
