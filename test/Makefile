@@ -279,6 +279,9 @@ test.permutedih:
 test.ccp4:
 	@-cd Test_CCP4 && ./RunTest.sh $(OPT)
 
+test.dihcovar:
+	@-cd Test_DihCovar && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -437,7 +440,8 @@ COMPLETETESTS=test.general \
               test.energy \
               test.lessplit \
               test.permutedih \
-              test.ccp4
+              test.ccp4 \
+              test.dihcovar
 
 test: test.all 
 
