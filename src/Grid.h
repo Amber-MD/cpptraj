@@ -38,7 +38,6 @@ template <class T> class Grid {
     typedef ArrayIterator<T> iterator;
     iterator begin() { return grid_;              }
     iterator end()   { return grid_ + nelements_; }
-    T* Ptr()         { return grid_;              };
   private:
     size_t nx_;        ///< Grid X dimension.
     size_t ny_;        ///< Grid Y dimension.

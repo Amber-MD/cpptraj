@@ -40,8 +40,6 @@ class DataSet_GridFlt : public DataSet_3D {
     float GridVal(int x,int y,int z)        const { return grid_.element(x,y,z);   }
     /// \return grid index
     long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
-    /// \return Pointer to internal grid for File IO
-    float* Fptr() { return grid_.Ptr(); }
   private:
     Grid<float> grid_;
 };
