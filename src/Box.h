@@ -11,6 +11,7 @@ class Box {
 
     Box();
     Box(const double*);
+    Box(const float*);
     Box(Matrix_3x3 const&);
     Box(const Box&);
     Box& operator=(const Box&);
@@ -19,6 +20,7 @@ class Box {
 
     void SetBetaLengths(double,double,double,double);
     void SetBox(const double*);
+    void SetBox(const float*);
     void SetBox(Matrix_3x3 const&);
     void SetTruncOct();
     void SetNoBox();

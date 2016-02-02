@@ -17,6 +17,7 @@
 #include "DataIO_Evecs.h"
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
+#include "DataIO_CCP4.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -49,6 +50,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
+  { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -65,6 +67,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
+  { CCP4,         "ccp4",   ".ccp4"  },
   { UNKNOWN_DATA, 0,        0        }
 };
 
