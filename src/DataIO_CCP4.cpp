@@ -218,6 +218,12 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
     return 1;
   }
   DataSet_3D const& grid = static_cast<DataSet_3D const&>( *(*setIn) );
+  // Check input grid
+  Vec3 OXYZ = grid.GridOrigin();
+  if (OXYZ[0] < 0.0 || OXYZ[1] < 0.0 || OXYZ[2] < 0.0 ||
+      OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
+    mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
+            "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n");
   // Set up and write header
   headerbyte buffer;
   buffer.i[0] = (int)grid.NX();
