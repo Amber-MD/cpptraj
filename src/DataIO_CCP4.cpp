@@ -1,3 +1,4 @@
+#include <cmath> //sqrt
 #include "DataIO_CCP4.h"
 #include "CpptrajStdio.h"
 #include "ByteRoutines.h"
@@ -195,5 +196,116 @@ int DataIO_CCP4::processWriteArgs(ArgList& argIn) {
 // DataIO_CCP4::WriteData()
 int DataIO_CCP4::WriteData(FileName const& fname, DataSetList const& setList)
 {
-  return 1;
+  // Open output file
+  CpptrajFile outfile;
+  if (outfile.OpenWrite(fname)) {
+    mprinterr("Error: Could not open CCP4 output file '%s'.\n", fname.full());
+    return 1;
+  }
+  // Warn about writing multiple sets
+  if (setList.size() > 1)
+    mprintf("Warning: %s: Writing multiple 3D sets in CCP4 format not supported.\n"
+            "Warning:   Only writing first set.\n", fname.full());
+  return WriteSet3D( setList.begin(), outfile );
+}
+
+// DataIO_CCP4::WriteSet3D()
+int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFile& outfile ) {
+  if ((*setIn)->Size() < 1) return 1; // SANITY CHECK: No empty grid allowed
+  if ((*setIn)->Ndim() != 3) {
+    mprinterr("Internal Error: DataSet %s in DataFile %s has %zu dimensions, expected 3.\n",
+              (*setIn)->legend(), outfile.Filename().full(), (*setIn)->Ndim());
+    return 1;
+  }
+  DataSet_3D const& grid = static_cast<DataSet_3D const&>( *(*setIn) );
+  // Set up and write header
+  headerbyte buffer;
+  buffer.i[0] = (int)grid.NX();
+  buffer.i[1] = (int)grid.NY();
+  buffer.i[2] = (int)grid.NZ();
+  buffer.i[3] = 2; // Only mode 2 supported
+  buffer.i[4] = 0; // No offsets
+  buffer.i[5] = 0;
+  buffer.i[6] = 0;
+  buffer.i[7] = (int)grid.NX();
+  buffer.i[8] = (int)grid.NY();
+  buffer.i[9] = (int)grid.NZ();
+  Box box( grid.Ucell() );
+  buffer.f[10] = (float)box[0];
+  buffer.f[11] = (float)box[1];
+  buffer.f[12] = (float)box[2];
+  buffer.f[13] = (float)box[3];
+  buffer.f[14] = (float)box[4];
+  buffer.f[15] = (float)box[5];
+  buffer.i[16] = 1; // Cols = X
+  buffer.i[17] = 2; // Rows = Y
+  buffer.i[18] = 3; // Secs = Z
+  // Determine min, max, and mean of data
+  double mean = grid[0];
+  double gmin = grid[0];
+  double gmax = grid[0];
+  double rmsd = grid[0] * grid[0];
+  for (unsigned int i = 1; i < grid.Size(); i++) {
+    gmin = std::min(grid[i], gmin);
+    gmax = std::max(grid[i], gmax);
+    mean += grid[i];
+    rmsd += grid[i] * grid[i];
+  }
+  mean /= (double)grid.Size();
+  rmsd /= (double)grid.Size();
+  rmsd = rmsd - (mean * mean);
+  if (rmsd > 0.0)
+    rmsd = sqrt(rmsd);
+  else
+    rmsd = 0.0;
+  mprintf("\tDensity: Min=%f  Max=%f  Mean=%f  RMS=%f\n", gmin, gmax, mean, rmsd);
+  buffer.f[19] = (float)gmin;
+  buffer.f[20] = (float)gmax;
+  buffer.f[21] = (float)mean;
+  buffer.i[22] = 1; // Assume P1
+  buffer.i[23] = 0; // No bytes for symmetry ops
+  buffer.i[24] = 0; // No skew transform
+  // Skew matrix (S11, S12, S13, S21, ...) and translation; 12 total, followed
+  // by 15 'future use'; zero all.
+  std::fill( buffer.i+25, buffer.i+52, 0 );
+  // MAP and machine precision. FIXME determine endianness!
+  buffer.c[208] = 'M';
+  buffer.c[209] = 'A';
+  buffer.c[210] = 'P';
+  buffer.c[211] = ' ';
+  buffer.c[212] = 0x44; // little endian
+  buffer.c[213] = 0x41;
+  buffer.c[214] = 0x00;
+  buffer.c[215] = 0x00;
+  // Determine RMS deviation from mean.
+  buffer.f[54] = (float)rmsd;
+  buffer.i[55] = 1; // Number of labels being used
+  outfile.Write( buffer.c, 224*sizeof(unsigned char) );
+
+  // Write labels; 10 lines, 80 chars each
+  // FIXME for testing set the title to be the same as RISM
+  std::string title("Amber 3D-RISM CCP4 map volumetric data. Format revision A.");
+  outfile.Write( title.c_str(), title.size() );
+  // FIXME this seems wasteful.
+  std::vector<char> remainder( 800 - title.size(), 0 );
+  outfile.Write( &remainder[0], remainder.size() );
+  remainder.clear();
+
+  // No symmetry bytes
+
+  // Store data in buffer, then write. X changes fastest.
+  // SANITY CHECK; This will results in invalid files if size of float is not 4.
+  if (sizeof(float) != wSize)
+    mprintf("Warning: Size of float on this system is %zu, not 4.\n"
+            "Warning:  Resulting CCP4 file data will not conform to standard.\n", sizeof(float));
+  std::vector<float> mapbuffer( grid.Size() );
+  std::vector<float>::iterator it = mapbuffer.begin();
+  for (unsigned int iz = 0; iz != grid.NZ(); iz++)
+    for (unsigned int iy = 0; iy != grid.NY(); iy++)
+      for (unsigned int ix = 0; ix != grid.NX(); ix++)
+        *(it++) = grid.GetElement( ix, iy, iz );
+  outfile.Write( &mapbuffer[0], mapbuffer.size() * wSize );
+
+  outfile.CloseFile();
+  return 0;
 }

@@ -21,5 +21,6 @@ class DataIO_CCP4 : public DataIO {
 
     static const size_t wSize; ///< Size of a word (currently 4 bytes)
     static bool MapCharsValid(const unsigned char*);
+    int WriteSet3D(DataSetList::const_iterator const&, CpptrajFile&);
 };
 #endif
