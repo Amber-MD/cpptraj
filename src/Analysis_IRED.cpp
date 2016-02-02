@@ -216,6 +216,8 @@ Analysis::RetType Analysis_IRED::Analyze() {
   if (data_ds2_mat_ != 0) {
     if (((DataSet_MatrixDbl*)data_ds2_mat_)->Allocate2D(modinfo_->Nmodes(), modinfo_->VectorSize()))
       return Analysis::ERR;
+    data_ds2_mat_->SetDim(Dimension::X, Dimension(1, 1, "Mod"));
+    data_ds2_mat_->SetDim(Dimension::Y, Dimension(1, 1, "Vec"));
     startMode = 0;
   }
   // Loop over all vector elements
@@ -480,6 +482,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
       mprintf("DEBUG: Jw(0, omega_h-omega_n)= %g\n", Jw(0, omega_h - omega_n, TauM_s));
     }
     // Calculate Spectral Densities and NMR relaxation parameters
+    Dimension Vdim(1, 1, "Vec");
+    data_t1_->SetDim(Dimension::X, Vdim);
+    data_t2_->SetDim(Dimension::X, Vdim);
+    data_noe_->SetDim(Dimension::X, Vdim);
     for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
     {
       double JomegaN = Jw(ivec, omega_n, TauM_s);
