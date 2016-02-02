@@ -154,6 +154,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataFile.cpp \
         DataFileList.cpp \
         DataIO.cpp \
+        DataIO_CCP4.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \

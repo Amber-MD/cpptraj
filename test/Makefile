@@ -276,6 +276,9 @@ test.lessplit:
 test.permutedih:
 	@-cd Test_PermuteDihedrals && ./RunTest.sh $(OPT)
 
+test.ccp4:
+	@-cd Test_CCP4 && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -342,7 +345,8 @@ SHORT_TESTS=test.general \
           test.nativecontacts \
           test.checkchirality \
           test.energy \
-          test.permutedih
+          test.permutedih \
+          test.ccp4
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -432,7 +436,8 @@ COMPLETETESTS=test.general \
               test.checkchirality \
               test.energy \
               test.lessplit \
-              test.permutedih
+              test.permutedih \
+              test.ccp4
 
 test: test.all 
 

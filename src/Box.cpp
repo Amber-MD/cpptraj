@@ -19,6 +19,8 @@ Box::Box(const double* bIn) //: debug_(0)
   SetBox( bIn );
 }
 
+Box::Box(const float* bIn) { SetBox( bIn ); }
+
 Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
 
 // COPY CONSTRUCTOR
@@ -88,6 +90,21 @@ void Box::SetBox(const double* xyzabg) {
   box_[3] = xyzabg[3];
   box_[4] = xyzabg[4];
   box_[5] = xyzabg[5];
+  SetBoxType();
+}
+
+/** Set box from float[6] array */
+void Box::SetBox(const float* xyzabg) {
+  if (xyzabg == 0) {
+    mprinterr("Error: Box input array is null\n");
+    return;
+  }
+  box_[0] = (double)xyzabg[0];
+  box_[1] = (double)xyzabg[1];
+  box_[2] = (double)xyzabg[2];
+  box_[3] = (double)xyzabg[3];
+  box_[4] = (double)xyzabg[4];
+  box_[5] = (double)xyzabg[5];
   SetBoxType();
 }
 
