@@ -255,18 +255,30 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
       topFiles.push_back( argv[++i] );
+      // Assume all following args without leading '-' are tops.
+      while (i+1 != argc && argv[i+1][0] != '-')
+        topFiles.push_back( argv[++i] );
     } else if ( arg == "-y" && i+1 != argc) {
-      // -y: Trajectory file in
+      // -y: Trajectory file in.
       trajinFiles.push_back( argv[++i] );
+      // Assume all following args without leading '-' are trajs.
+      while (i+1 != argc && argv[i+1][0] != '-')
+        trajinFiles.push_back( argv[++i] );
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
       trajoutFiles.push_back( argv[++i] );
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
       refFiles.push_back( argv[++i] );
+      // Assume all following args without leading '-' are refs.
+      while (i+1 != argc && argv[i+1][0] != '-')
+        refFiles.push_back( argv[++i] );
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
       inputFiles.push_back( argv[++i] );
+      // Assume all following args without leading '-' are input.
+      while (i+1 != argc && argv[i+1][0] != '-')
+        inputFiles.push_back( argv[++i] );
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
