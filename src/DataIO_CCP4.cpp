@@ -185,11 +185,12 @@ int DataIO_CCP4::ReadData(FileName const& fname,
 
 // DataIO_CCP4::WriteHelp()
 void DataIO_CCP4::WriteHelp() {
-
+  mprintf("\ttitle <title>: Set CCP4 output title.\n");
 }
 
 // DataIO_CCP4::processWriteArgs()
 int DataIO_CCP4::processWriteArgs(ArgList& argIn) {
+  title_ = argIn.GetStringKey("title");
   return 0;
 }
 
@@ -224,6 +225,16 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
       OXYZ[0] > 0.0 || OXYZ[1] > 0.0 || OXYZ[2] > 0.0)
     mprintf("Warning: Grid '%s' origin is not 0.0, 0.0, 0.0\n"
             "Warning:  Origin other than 0.0 not yet supported for CCP4 write.\n");
+  // FIXME for testing set the default title to be the same as RISM
+  if (title_.empty())
+    title_.assign("Amber 3D-RISM CCP4 map volumetric data. Format revision A.");
+  else {
+    // Check that title is not too big
+    if (title_.size() > 800) {
+      mprintf("Warning: CCP4 title is too large, truncating.\n");
+      title_.resize( 800 );
+    }
+  }
   // Set up and write header
   headerbyte buffer;
   buffer.i[0] = (int)grid.NX();
@@ -285,15 +296,16 @@ int DataIO_CCP4::WriteSet3D( DataSetList::const_iterator const& setIn, CpptrajFi
   buffer.c[215] = 0x00;
   // Determine RMS deviation from mean.
   buffer.f[54] = (float)rmsd;
-  buffer.i[55] = 1; // Number of labels being used
+  // Determine number of labels being used
+  buffer.i[55] = (int)title_.size() / 80;
+  if ( ((int)title_.size() % 80) != 0)
+    buffer.i[55]++;
   outfile.Write( buffer.c, 224*sizeof(unsigned char) );
 
   // Write labels; 10 lines, 80 chars each
-  // FIXME for testing set the title to be the same as RISM
-  std::string title("Amber 3D-RISM CCP4 map volumetric data. Format revision A.");
-  outfile.Write( title.c_str(), title.size() );
+  outfile.Write( title_.c_str(), title_.size() );
   // FIXME this seems wasteful.
-  std::vector<char> remainder( 800 - title.size(), 0 );
+  std::vector<char> remainder( 800 - title_.size(), 0 );
   outfile.Write( &remainder[0], remainder.size() );
   remainder.clear();
 
