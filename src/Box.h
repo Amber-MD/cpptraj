@@ -19,6 +19,7 @@ class Box {
 
     void SetBetaLengths(double,double,double,double);
     void SetBox(const double*);
+    void SetBox(const float*);
     void SetBox(Matrix_3x3 const&);
     void SetTruncOct();
     void SetNoBox();
