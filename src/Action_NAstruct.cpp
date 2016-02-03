@@ -19,9 +19,9 @@ Action_NAstruct::Action_NAstruct() :
   maxResSize_(0),
   debug_(0),
   nframes_(0),
+  findBPmode_(FIRST),
   grooveCalcType_(PP_OO),
   printheader_(true),
-  useReference_(false),
   seriesUpdated_(false),
   bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
@@ -35,7 +35,7 @@ void Action_NAstruct::Help() const {
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
-          "\t[ %s ]\n", DataSetList::RefArgs);
+          "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
           "  from specified reference or first frame.\n"
           "  Base pair parameters are written to BP.<suffix>, base pair step parameters\n"
@@ -999,12 +999,15 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if (!resRange_.Empty())
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
-  // Reference for setting up basepairs
+  // Determine how base pairs will be found.
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
-  if (!REF.empty()) 
-    useReference_ = true;
-
+  if (!REF.empty())
+    findBPmode_ = REFERENCE;
+  else if (actionArgs.hasKey("allframes"))
+    findBPmode_ = ALL;
+  else 
+    findBPmode_ = FIRST;
   // Get custom residue maps
   ArgList maplist;
   NA_Base::NAType mapbase;
@@ -1072,7 +1075,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
           z_angle_cut_ * Constants::RADDEG);
   // Use reference to determine base pairing
-  if (useReference_) {
+  if (findBPmode_ == REFERENCE) {
     mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
     ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
     if (Setup( ref_setup )) return Action::ERR;
@@ -1080,8 +1083,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
     // Determine Base Pairing
     if ( DetermineBasePairing() ) return Action::ERR;
-    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() ); 
-  } else
+    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
+  } else if (findBPmode_ == ALL)
+    mprintf("\tBase pairs will be determined for each frame.\n");
+  else // FIRST
     mprintf("\tUsing first frame to determine base pairing.\n");
   if (puckerMethod_==NA_Base::ALTONA)
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
@@ -1253,47 +1258,56 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
+// Action_NAstruct::CalculateHbonds()
+void Action_NAstruct::CalculateHbonds() {
+  for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
+    BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
+                                BP->second.n_wc_hb_);
+}
+
 // Action_NAstruct::DoAction()
 Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
-  // Set up base axes
-  if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
-
-  if (!useReference_) {
-    // Determine Base Pairing based on first frame
+  if ( findBPmode_ == REFERENCE ) {
+    // Base pairs have been determined by a reference. Just set up base axes
+    // and calculate number of hydrogen bonds.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    CalculateHbonds();
+  } else if ( findBPmode_ == ALL ) {
+    // Base pairs determined for each individual frame. Hydrogen bonds are 
+    // calculated as part of determining base pairing.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    if ( DetermineBasePairing() ) return Action::ERR;
+  } else { // FIRST
+    // Base pairs determined from the first frame.
 #   ifdef MPI
-    // Ensure all threads set up base axes for base pair determination
-    // from first frame on master.
+    // Ensure all threads set up base axes for base pair determinination
+    // from the first frame on master.
     int err = 0;
     if (trajComm_.Master()) { // TODO MasterBcast?
       for (int rank = 1; rank < trajComm_.Size(); rank++)
         frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+      err = SetupBaseAxes(frm.Frm());
+      if (err==0) err = DetermineBasePairing();
     } else {
       Frame refFrame = frm.Frm();
       refFrame.RecvFrame(0, trajComm_);
       err = SetupBaseAxes( refFrame );
       if (err != 0)
         rprinterr("Error: Could not sync nastruct reference first frame.\n");
+      else {
+        err = DetermineBasePairing();
+        // Now re-set up base axes from current frame on non-master
+        if (err == 0) err = SetupBaseAxes( frm.Frm() );
+        // # hbonds currently based on reference; re-calc for current frame.
+        if (err == 0) CalculateHbonds();
+      }
     }
-    if (trajComm_.CheckError( err ))
-      return Action::ERR;
-#   endif
+    if (trajComm_.CheckError( err )) return Action::ERR;
+#   else
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
     if ( DetermineBasePairing() ) return Action::ERR;
-    useReference_ = true;
-#   ifdef MPI
-    // Now re-set up base axes from current frame on non-master.
-    if (!trajComm_.Master()) {
-      SetupBaseAxes( frm.Frm() );
-      // # hbonds currently based on reference; re-calc for current frame.
-      for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
-        BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
-                                    BP->second.n_wc_hb_);
-    }
 #   endif
-  } else {
-    // Base pairing determined from ref. Just calc # hbonds for each pair.
-    for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
-      BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
-                                  BP->second.n_wc_hb_);
+    findBPmode_ = REFERENCE;
   }
 
   // Determine base parameters

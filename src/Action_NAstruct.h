@@ -39,6 +39,8 @@ class Action_NAstruct: public Action {
 
     enum HbondType { WC = 0, HOOG, OTHER };
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
+    /// How to find base pairs: first frame, reference structure, all frames.
+    enum FindType { FIRST = 0, REFERENCE, ALL };
     // Functions
     static int TravelBackbone(Topology const&, int, std::vector<int>&); 
     int SetupBaseAxes(Frame const&);
@@ -55,6 +57,7 @@ class Action_NAstruct: public Action {
     void CalcPucker(NA_Base&, int); // TODO: Move to NA_Base
     int DetermineStepParameters(int);
     void UpdateSeries();
+    inline void CalculateHbonds();
 
     typedef std::vector<NA_Base> Barray;
     Barray Bases_;        ///< Hold nucleobases
@@ -120,10 +123,10 @@ class Action_NAstruct: public Action {
     int maxResSize_;                    ///< Max residue size, used to set up frames for RMS fit.
     int debug_;
     int nframes_;
+    FindType findBPmode_;               ///< How base pairs are to be found.
     GrooveType grooveCalcType_;         ///< Type of groove calc to perform
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
-    bool useReference_;                 ///< If true, use reference to determine base pairing.
     bool seriesUpdated_;                ///< If false, check that time series data is nframes long
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
