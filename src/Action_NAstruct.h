@@ -32,6 +32,7 @@ class Action_NAstruct: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
 #   ifdef MPI
+    void NA_Sync( DataSet_1D*, std::vector<int> const&, std::vector<int> const&, int, int ) const;
     int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
@@ -114,6 +115,7 @@ class Action_NAstruct: public Action {
     };
     typedef std::map<Rpair,StepType> StepMap;
     StepMap Steps_;       ///< Hold base pair steps.
+    void NewStepType(StepType&, int, int, int, int, int) const;
     // Variables
     NA_Base::PmethodType puckerMethod_;
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds

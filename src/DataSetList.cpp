@@ -605,13 +605,21 @@ int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_fram
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
     if ( (*ds)->NeedsSync() )
       SetsToSync.push_back( *ds );
+// DEBUG
+//  for (int rank = 0; rank != commIn.Size(); rank++) {
+//    if (rank == commIn.Rank())
+//      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
+//        rprintf("SET '%s'\n", (*ds)->legend());
+//    commIn.Barrier();
+//  }
+// DEBUG END
   int* n_on_rank = new int[ commIn.Size() ];
   int nSets = (int)SetsToSync.size();
   commIn.AllGather( &nSets, 1, MPI_INT, n_on_rank );
   for (int rank = 1; rank < commIn.Size(); rank++)
     if (n_on_rank[rank] != n_on_rank[0]) {
-      mprinterr("Internal Error: Number of sets to sync on rank %i != number on master %i\n",
-                n_on_rank[rank], n_on_rank[0]);
+      mprinterr("Internal Error: Number of sets to sync on rank %i (%i) != number on master %i\n",
+                rank, n_on_rank[rank], n_on_rank[0]);
       delete[] n_on_rank;
       return 1;
     }

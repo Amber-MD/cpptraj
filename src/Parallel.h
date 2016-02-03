@@ -32,6 +32,7 @@
   *     1303  :   Array containing bridge integer info on rank.
   *     1304+X:   Array of hbond X series info from rank.
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
+  *     1500  : Action_NAstruct: Array containing BP step info on rank.
   */
 class Parallel {
   public:

@@ -7,6 +7,9 @@
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h"
 #endif
+#ifdef MPI
+# include "DataSet_float.h" // internal pointer needed for sync
+#endif
 
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
@@ -759,6 +762,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
   //   base3 -- base4
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
     BPtype const& BP1 = bp1->second;
+    if (BP1.nhb_ < 1) continue; // Base pair not valid this frame.
     NA_Base const& base1 = Bases_[BP1.base1idx_];
     NA_Base const& base2 = Bases_[BP1.base2idx_];
     
@@ -772,7 +776,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
     if (idx1 != -1 && idx2 != -1) {
       Rpair respair(Bases_[idx1].ResNum(), Bases_[idx2].ResNum());
       BPmap::const_iterator bp2 = BasePairs_.find( respair );
-      if (bp2 != BasePairs_.end()) {
+      if (bp2 != BasePairs_.end() && bp2->second.nhb_ > 0) {
         BPtype const& BP2 = bp2->second;
         NA_Base const& base3 = Bases_[BP2.base1idx_];
         NA_Base const& base4 = Bases_[BP2.base2idx_];
@@ -1008,6 +1012,13 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = ALL;
   else 
     findBPmode_ = FIRST;
+# ifdef MPI
+  if (findBPmode_ == ALL && trajComm_.Size() > 1) {
+    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
+              " (currently %i)\n", trajComm_.Size());
+    return Action::ERR;
+  }
+# endif
   // Get custom residue maps
   ArgList maplist;
   NA_Base::NAType mapbase;
@@ -1334,15 +1345,236 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   }
 }
 
+void Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
+                                   int idx ) const
+{
+  NA_Base const& base1 = Bases_[BP1_1];
+  NA_Base const& base2 = Bases_[BP1_2];
+  NA_Base const& base3 = Bases_[BP2_1];
+  NA_Base const& base4 = Bases_[BP2_2];
+  // New base pair step
+  MetaData md(dataname_, idx);
+  md.SetLegend( base1.BaseName()+base2.BaseName()+"-"+
+                base3.BaseName()+base4.BaseName() );
+  md.SetAspect("shift");
+  BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("slide");
+  BS.slide_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("rise");
+  BS.rise_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("tilt");
+  BS.tilt_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("roll");
+  BS.roll_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("twist");
+  BS.twist_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("xdisp");
+  BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("ydisp");
+  BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("hrise");
+  BS.hrise_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("incl");
+  BS.incl_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("tip");
+  BS.tip_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("htwist");
+  BS.htwist_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("zp");
+  BS.Zp_     = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  BS.b1idx_ = BP1_1;
+  BS.b2idx_ = BP1_2;
+  BS.b3idx_ = BP2_1;
+  BS.b4idx_ = BP2_2;
+  BS.majGroove_ = 0;
+  BS.minGroove_ = 0;
+}
+
 #ifdef MPI
+void Action_NAstruct::NA_Sync( DataSet_1D* dsIn, std::vector<int> const& rank_offsets,
+                               std::vector<int> const& rank_frames, int rank, int in ) const
+{
+  if (dsIn == 0) return;
+  //rprintf("Calling sync for '%s'\n", dsIn->legend());
+  DataSet_float& DS = static_cast<DataSet_float&>( *dsIn );
+  if (trajComm_.Master()) {
+    DS.Resize( nframes_ );
+    float* d_beg = DS.Ptr() + rank_offsets[ rank ];
+    //mprintf("\tResizing nastruct series data to %i, starting frame %i, # frames %i\n",
+    //        nframes_, rank_offsets[rank], rank_frames[rank]);
+    trajComm_.Recv( d_beg,    rank_frames[ rank ], MPI_FLOAT, rank, 1501 + in );
+  } else {
+    trajComm_.Send( DS.Ptr(), DS.Size(),           MPI_FLOAT, 0,    1501 + in );
+  }
+  dsIn->SetNeedsSync( false );
+}
+
+// Action_NAstruct::SyncAction()
 int Action_NAstruct::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
+  // TODO consolidate # frames / offset calc code with Action_Hbond
   // Get total number of frames
-  int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &nframes_, 1, MPI_INT, MPI_SUM );
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &nframes_, 1, MPI_INT, &rank_frames[0] );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      //mprintf("DEBUG: Rank %i frames = %i\n", rank, rank_frames[rank]);
+      nframes_ += rank_frames[rank];
+    }
+    //mprintf("DEBUG: Total frames %i\n", nframes_);
+  }
+  // Convert rank frames to offsets.
+  std::vector<int> rank_offsets( trajComm_.Size(), 0 );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
+      //mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
+    }
+  }
+  //rprinterr("DEBUG: Number base pairs: %zu\n", BasePairs_.size());
+  //rprinterr("DEBUG: Number base pair steps: %zu\n", Steps_.size());
+  // Since base pair steps are generated after base pair parameters are
+  // calculated, the number of steps and/or the set ordering in the master
+  // DataSetList may be different on different ranks. Assume that Bases_
+  // and BasePairs_ are the same.
+  // Need to know how many steps on each thread
+  int num_steps = (int)Steps_.size();
+  std::vector<int> nsteps_on_rank;
   if (trajComm_.Master())
-    nframes_ = total_frames;
+    nsteps_on_rank.resize( trajComm_.Size() );
+  trajComm_.GatherMaster( &num_steps, 1, MPI_INT, &nsteps_on_rank[0] );
+  // bpidx1, bpidx2, b1idx, b2idx, b3idx, b4idx, groove(0=none, 1=maj, 2=min, 3=both)
+  const int iSize = 7;
+  std::vector<int> iArray;
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      if (nsteps_on_rank[rank] > 0) {
+        //mprintf("DEBUG:\tReceiving %i steps from rank %i.\n", nsteps_on_rank[rank], rank);
+        iArray.resize( iSize * nsteps_on_rank[rank] );
+        trajComm_.Recv( &iArray[0], iArray.size(), MPI_INT, rank, 1500 );
+        int ii = 0;
+        for (int in = 0; in != nsteps_on_rank[rank]; in++, ii += iSize) {
+          Rpair steppair( iArray[ii], iArray[ii+1] );
+          StepMap::iterator entry = Steps_.find( steppair );
+          if (entry == Steps_.end()) {
+            // New base pair step
+            //mprintf("NEW BASE PAIR STEP: %i %i\n", iArray[0], iArray[1]);
+            StepType BS;
+            NewStepType( BS, iArray[2], iArray[3], iArray[4], iArray[5], Steps_.size()+1 );
+            // Groove width
+            if (grooveCalcType_ == HASSAN_CALLADINE && iArray[6] > 0) {
+              MetaData md = BS.shift_->Meta();
+              if (iArray[6] == 1 || iArray[6] == 3) {
+                md.SetAspect("major");
+                BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              }
+              if (iArray[6] == 2 || iArray[6] == 3) {
+                md.SetAspect("minor");
+                BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              }
+            }
+            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+          }
+          //else mprintf("EXISTING BASE PAIR STEP: %i %i\n", entry->first.first, entry->first.second);
+          // Synchronize all step data sets from rank.
+          NA_Sync( entry->second.shift_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.slide_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.rise_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.tilt_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.roll_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.twist_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.xdisp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.ydisp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.hrise_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.incl_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.tip_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.htwist_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.Zp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.majGroove_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.minGroove_, rank_offsets, rank_frames, rank, in );
+        } // END master loop over steps from rank
+      }
+    } // END master loop over ranks
+    // At this point we have all step sets from all ranks. Mark all step sets as synced
+    // and ensure the time series has been updated to reflect overall # frames.
+    for (StepMap::iterator step = Steps_.begin(); step != Steps_.end(); ++step) {
+      step->second.shift_->SetNeedsSync(false);
+      step->second.slide_->SetNeedsSync(false);
+      step->second.rise_->SetNeedsSync(false);
+      step->second.tilt_->SetNeedsSync(false);
+      step->second.roll_->SetNeedsSync(false);
+      step->second.twist_->SetNeedsSync(false);
+      step->second.xdisp_->SetNeedsSync(false);
+      step->second.ydisp_->SetNeedsSync(false);
+      step->second.hrise_->SetNeedsSync(false);
+      step->second.incl_->SetNeedsSync(false);
+      step->second.tip_->SetNeedsSync(false);
+      step->second.htwist_->SetNeedsSync(false);
+      step->second.Zp_->SetNeedsSync(false);
+      UpdateTimeSeries(nframes_, step->second.shift_);
+      UpdateTimeSeries(nframes_, step->second.slide_);
+      UpdateTimeSeries(nframes_, step->second.rise_);
+      UpdateTimeSeries(nframes_, step->second.tilt_);
+      UpdateTimeSeries(nframes_, step->second.roll_);
+      UpdateTimeSeries(nframes_, step->second.twist_);
+      UpdateTimeSeries(nframes_, step->second.xdisp_);
+      UpdateTimeSeries(nframes_, step->second.ydisp_);
+      UpdateTimeSeries(nframes_, step->second.hrise_);
+      UpdateTimeSeries(nframes_, step->second.incl_);
+      UpdateTimeSeries(nframes_, step->second.tip_);
+      UpdateTimeSeries(nframes_, step->second.htwist_);
+      UpdateTimeSeries(nframes_, step->second.Zp_);
+      if (step->second.majGroove_!=0) {
+        step->second.majGroove_->SetNeedsSync(false);
+        UpdateTimeSeries(nframes_, step->second.majGroove_);
+      }
+      if (step->second.minGroove_!=0) {
+        step->second.minGroove_->SetNeedsSync(false);
+        UpdateTimeSeries(nframes_, step->second.minGroove_);
+      }
+    }
+  } else {
+    if (Steps_.size() > 0) {
+      iArray.reserve( iSize * Steps_.size() );
+      for (StepMap::const_iterator step = Steps_.begin(); step != Steps_.end(); ++step) {
+        iArray.push_back( step->first.first );
+        iArray.push_back( step->first.second );
+        iArray.push_back( step->second.b1idx_ );
+        iArray.push_back( step->second.b2idx_ );
+        iArray.push_back( step->second.b3idx_ );
+        iArray.push_back( step->second.b4idx_ );
+        if ( step->second.majGroove_ != 0 && step->second.minGroove_ != 0 )
+          iArray.push_back( 3 );
+        else if ( step->second.minGroove_ != 0)
+          iArray.push_back( 2 );
+        else if ( step->second.majGroove_ != 0)
+          iArray.push_back( 1 );
+        else
+          iArray.push_back( 0 );
+      }
+      trajComm_.Send( &iArray[0], iArray.size(), MPI_INT, 0, 1500 );
+      // Send step data to master.
+      int in = 0;
+      for (StepMap::const_iterator step = Steps_.begin(); step != Steps_.end(); ++step, ++in) {
+        NA_Sync( step->second.shift_, rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.slide_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.rise_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.tilt_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.roll_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.twist_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.xdisp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.ydisp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.hrise_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.incl_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.tip_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.htwist_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.Zp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.majGroove_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.minGroove_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+      }
+    }
+  }
   return 0;
 }
 #endif
