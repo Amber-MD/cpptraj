@@ -515,11 +515,6 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
         DataSet* ds1 = Dval[0].DS();
         if (debug_ > 0)
           mprintf("DEBUG: [%s] '%s'\n", T->Description(), ds1->legend());
-        if (ds1->Ndim() != 1) {
-          mprinterr("Error: Operation '%s' currently restricted to 1D data sets.\n", 
-                    T->Description());
-          return 1;
-        }
         if ( ScalarTimeSeries( ds1 ) ) { // int, float, double
           DataSet_1D const& D1 = static_cast<DataSet_1D const&>( *ds1 );
           if (T->Type() == FN_SUM) {
@@ -538,6 +533,44 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
           else if (T->Type() == FN_MAX)
             Stack.push(ValType(D1.Max()));
           else {
+            mprinterr("Internal Error: Operation '%s' is undefined for data set.\n",
+                      T->Description());
+            return 1;
+          }
+        } else if ( ds1->Ndim() == 2 ) { // 2d matrix
+          DataSet_2D const& M1 = static_cast<DataSet_2D const&>( *ds1 );
+          if (T->Type() == FN_SUM || T->Type() == FN_AVG || T->Type() == FN_STDEV) {
+            double avg = 0.0;
+            double stdev = 0.0;
+            for (unsigned int n = 0; n != M1.Size(); n++) {
+              double dval = M1.GetElement( n );
+              avg += dval;
+              stdev += (dval * dval);
+            }
+            if (T->Type() == FN_SUM)
+              Stack.push(ValType(avg));
+            else if (T->Type() == FN_AVG)
+              Stack.push(ValType( avg / (double)M1.Size() ));
+            else { // STDEV
+              avg /= (double)M1.Size();
+              stdev /= (double)M1.Size();
+              stdev -= (avg * avg);
+              if (stdev > 0.0)
+                Stack.push(ValType( sqrt(stdev) ));
+              else
+                Stack.push(ValType( 0.0 ));
+            }
+          } else if (T->Type() == FN_MIN) {
+            double min = M1.GetElement(0);
+            for (unsigned int n = 1; n < M1.Size(); n++)
+              min = std::min( min, M1.GetElement(n) );
+            Stack.push(ValType( min ));
+          } else if (T->Type() == FN_MAX) {
+            double max = M1.GetElement(0);
+            for (unsigned int n = 1; n < M1.Size(); n++)
+              max = std::max( max, M1.GetElement(n) );
+            Stack.push(ValType( max ));
+          } else {
             mprinterr("Internal Error: Operation '%s' is undefined for data set.\n",
                       T->Description());
             return 1;
