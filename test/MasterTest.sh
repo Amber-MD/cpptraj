@@ -146,8 +146,8 @@ NcTest() {
 CheckTest() {
   # Only use when not using dacdif 
   if [[ -z $DACDIF ]] ; then
-    if [[ $ERR -gt 0 ]] ; then
-      echo "  $ERR comparisons failed so far."
+    if [[ $ERRCOUNT -gt 0 ]] ; then
+      echo "  $ERRCOUNT comparisons failed so far."
     fi
   fi
 }
