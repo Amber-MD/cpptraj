@@ -17,6 +17,21 @@
 /** NOTE: I have decided to use a class instead of a namespace to have the
   *       option of making things private. Not sure if that is really
   *       necessary.
+  * Send/Receive Tags: All Comm Send()/Recv() tags should be noted here in order.
+  *     1212  : Frame::X_
+  *     1213  : Frame::box_
+  *     1214  : Frame::T_
+  *     1215  : Frame::V_
+  *     1216  : Frame::remd_indices_
+  *     1217  : Frame::time_
+  *     1218  : Frame::F_
+  *     1234  : Used by Parallel::SendMaster()
+  *     1300  : Action_Hbond: Array containing hbond double info on rank.
+  *     1301  :   Array containing hbond integer info on rank.
+  *     1302  :   Number of bridges to expect from rank.
+  *     1303  :   Array containing bridge integer info on rank.
+  *     1304+X:   Array of hbond X series info from rank.
+  *     1400+X: Action_AtomicCorr: Atomic movement vectors
   */
 class Parallel {
   public:
