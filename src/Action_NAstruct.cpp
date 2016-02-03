@@ -660,7 +660,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
   basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
-
   for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
     if (it->second.nhb_ < 1) continue;
@@ -707,8 +706,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       BP.major_->Add(frameNum, &dPtoP);
       BP.minor_->Add(frameNum, &dOtoO);
     }
-    base1.CalcPucker( frameNum, puckerMethod_ );
-    base2.CalcPucker( frameNum, puckerMethod_ );
     //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
@@ -738,6 +735,9 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
 #   endif
   }
+  // Calculate base parameters.
+  for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base)
+    base->CalcPucker( frameNum, puckerMethod_ );
 
   return 0;
 }
@@ -1267,6 +1267,9 @@ void Action_NAstruct::CalculateHbonds() {
 
 // Action_NAstruct::DoAction()
 Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
+# ifdef NASTRUCTDEBUG
+  mprintf("NASTRUCTDEBUG: Frame %i\n", frameNum);
+# endif
   if ( findBPmode_ == REFERENCE ) {
     // Base pairs have been determined by a reference. Just set up base axes
     // and calculate number of hydrogen bonds.
