@@ -224,9 +224,8 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& 
 
 // -----------------------------------------------------------------------------
 // Action_NAstruct::DetermineBasePairing()
-/** Determine which bases are paired from the individual base axes. Also 
-  * sets up BP and BP step parameter DataSets. This routine should only
-  * be called once.
+/** Determine which bases are paired from the individual base axes and set up
+  * entry in BasePairs_ if one not already present.
   */
 int Action_NAstruct::DetermineBasePairing() {
   int n_wc_hb;
