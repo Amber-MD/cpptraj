@@ -1461,42 +1461,45 @@ int Action_NAstruct::SyncAction() {
         } // END master loop over steps from rank
       }
     } // END master loop over ranks
-    // At this point we have all step sets from all ranks. Mark all step sets as synced
-    // and ensure the time series has been updated to reflect overall # frames.
+    // At this point we have all step sets from all ranks. Mark all step sets
+    // smaller than nframes_ as synced and ensure the time series has been
+    // updated to reflect overall # frames.
     for (StepMap::iterator step = Steps_.begin(); step != Steps_.end(); ++step) {
-      step->second.shift_->SetNeedsSync(false);
-      step->second.slide_->SetNeedsSync(false);
-      step->second.rise_->SetNeedsSync(false);
-      step->second.tilt_->SetNeedsSync(false);
-      step->second.roll_->SetNeedsSync(false);
-      step->second.twist_->SetNeedsSync(false);
-      step->second.xdisp_->SetNeedsSync(false);
-      step->second.ydisp_->SetNeedsSync(false);
-      step->second.hrise_->SetNeedsSync(false);
-      step->second.incl_->SetNeedsSync(false);
-      step->second.tip_->SetNeedsSync(false);
-      step->second.htwist_->SetNeedsSync(false);
-      step->second.Zp_->SetNeedsSync(false);
-      UpdateTimeSeries(nframes_, step->second.shift_);
-      UpdateTimeSeries(nframes_, step->second.slide_);
-      UpdateTimeSeries(nframes_, step->second.rise_);
-      UpdateTimeSeries(nframes_, step->second.tilt_);
-      UpdateTimeSeries(nframes_, step->second.roll_);
-      UpdateTimeSeries(nframes_, step->second.twist_);
-      UpdateTimeSeries(nframes_, step->second.xdisp_);
-      UpdateTimeSeries(nframes_, step->second.ydisp_);
-      UpdateTimeSeries(nframes_, step->second.hrise_);
-      UpdateTimeSeries(nframes_, step->second.incl_);
-      UpdateTimeSeries(nframes_, step->second.tip_);
-      UpdateTimeSeries(nframes_, step->second.htwist_);
-      UpdateTimeSeries(nframes_, step->second.Zp_);
-      if (step->second.majGroove_!=0) {
-        step->second.majGroove_->SetNeedsSync(false);
-        UpdateTimeSeries(nframes_, step->second.majGroove_);
-      }
-      if (step->second.minGroove_!=0) {
-        step->second.minGroove_->SetNeedsSync(false);
-        UpdateTimeSeries(nframes_, step->second.minGroove_);
+      if ((int)step->second.shift_->Size() < nframes_) {
+        step->second.shift_->SetNeedsSync(false);
+        step->second.slide_->SetNeedsSync(false);
+        step->second.rise_->SetNeedsSync(false);
+        step->second.tilt_->SetNeedsSync(false);
+        step->second.roll_->SetNeedsSync(false);
+        step->second.twist_->SetNeedsSync(false);
+        step->second.xdisp_->SetNeedsSync(false);
+        step->second.ydisp_->SetNeedsSync(false);
+        step->second.hrise_->SetNeedsSync(false);
+        step->second.incl_->SetNeedsSync(false);
+        step->second.tip_->SetNeedsSync(false);
+        step->second.htwist_->SetNeedsSync(false);
+        step->second.Zp_->SetNeedsSync(false);
+        UpdateTimeSeries(nframes_, step->second.shift_);
+        UpdateTimeSeries(nframes_, step->second.slide_);
+        UpdateTimeSeries(nframes_, step->second.rise_);
+        UpdateTimeSeries(nframes_, step->second.tilt_);
+        UpdateTimeSeries(nframes_, step->second.roll_);
+        UpdateTimeSeries(nframes_, step->second.twist_);
+        UpdateTimeSeries(nframes_, step->second.xdisp_);
+        UpdateTimeSeries(nframes_, step->second.ydisp_);
+        UpdateTimeSeries(nframes_, step->second.hrise_);
+        UpdateTimeSeries(nframes_, step->second.incl_);
+        UpdateTimeSeries(nframes_, step->second.tip_);
+        UpdateTimeSeries(nframes_, step->second.htwist_);
+        UpdateTimeSeries(nframes_, step->second.Zp_);
+        if (step->second.majGroove_!=0) {
+          step->second.majGroove_->SetNeedsSync(false);
+          UpdateTimeSeries(nframes_, step->second.majGroove_);
+        }
+        if (step->second.minGroove_!=0) {
+          step->second.minGroove_->SetNeedsSync(false);
+          UpdateTimeSeries(nframes_, step->second.minGroove_);
+        }
       }
     }
   } else {

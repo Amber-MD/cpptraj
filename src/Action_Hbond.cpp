@@ -787,10 +787,10 @@ const
 {
   // Need to know how many hbonds on each thread.
   int num_hb = (int)mapIn.size();
-  int* nhb_on_rank = 0;
+  std::vector<int> nhb_on_rank;
   if (commIn.Master())
-    nhb_on_rank = new int[ commIn.Size() ];
-  commIn.GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
+    nhb_on_rank.resize( commIn.Size() );
+  commIn.GatherMaster( &num_hb, 1, MPI_INT, &nhb_on_rank[0] );
   std::vector<double> dArray;
   std::vector<int> iArray;
   if (commIn.Master()) {
@@ -849,7 +849,17 @@ const
         } // END master loop over hbonds from rank
       }
     } // END master loop over ranks
-    delete[] nhb_on_rank;
+    // At this point we have all hbond sets from all ranks. Mark all HB sets
+    // smaller than Nframes_ as synced and ensure the time series has been
+    // updated to reflect overall # frames.
+    if (series_) {
+      const int ZERO = 0;
+      for (HBmapType::iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb)
+        if ((int)hb->second.data_->Size() < Nframes_) {
+          hb->second.data_->SetNeedsSync( false );
+          hb->second.data_->Add( Nframes_-1, &ZERO );
+        }
+    }
   } else {
     if (mapIn.size() > 0) {
       dArray.reserve( 2 * mapIn.size() );
