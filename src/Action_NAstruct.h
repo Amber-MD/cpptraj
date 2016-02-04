@@ -115,7 +115,7 @@ class Action_NAstruct: public Action {
     };
     typedef std::map<Rpair,StepType> StepMap;
     StepMap Steps_;       ///< Hold base pair steps.
-    void NewStepType(StepType&, int, int, int, int, int) const;
+    MetaData NewStepType(StepType&, int, int, int, int, int) const;
     // Variables
     NA_Base::PmethodType puckerMethod_;
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds

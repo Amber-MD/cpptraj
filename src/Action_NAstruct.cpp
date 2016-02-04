@@ -791,43 +791,10 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         // Base pair step. Try to find existing base pair step.
         StepMap::iterator entry = Steps_.find( steppair );
         if (entry == Steps_.end()) {
-          MetaData md(dataname_, Steps_.size() + 1); // Name, index
-          md.SetLegend( base1.BaseName()+base2.BaseName()+"-"+
-                        base3.BaseName()+base4.BaseName() );
           // New base pair step
           StepType BS;
-          md.SetAspect("shift");
-          BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("slide");
-          BS.slide_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("rise");
-          BS.rise_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("tilt");
-          BS.tilt_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("roll");
-          BS.roll_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("twist");
-          BS.twist_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("xdisp");
-          BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("ydisp");
-          BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("hrise");
-          BS.hrise_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("incl");
-          BS.incl_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("tip");
-          BS.tip_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("htwist");
-          BS.htwist_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("zp");
-          BS.Zp_     = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          BS.b1idx_ = BP1.base1idx_;
-          BS.b2idx_ = BP1.base2idx_;
-          BS.b3idx_ = BP2.base1idx_;
-          BS.b4idx_ = BP2.base2idx_;
-          BS.majGroove_ = 0;
-          BS.minGroove_ = 0;
+          MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
+                                        BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
           // H-C groove width calc setup
           if (grooveCalcType_ == HASSAN_CALLADINE) {
             // Major groove
@@ -1345,8 +1312,8 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   }
 }
 
-void Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
-                                   int idx ) const
+MetaData Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
+                                       int idx ) const
 {
   NA_Base const& base1 = Bases_[BP1_1];
   NA_Base const& base2 = Bases_[BP1_2];
@@ -1388,6 +1355,7 @@ void Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1
   BS.b4idx_ = BP2_2;
   BS.majGroove_ = 0;
   BS.minGroove_ = 0;
+  return md;
 }
 
 #ifdef MPI
@@ -1397,7 +1365,7 @@ void Action_NAstruct::NA_Sync( DataSet_1D* dsIn, std::vector<int> const& rank_of
   if (dsIn == 0) return;
   //rprintf("Calling sync for '%s'\n", dsIn->legend());
   DataSet_float& DS = static_cast<DataSet_float&>( *dsIn );
-  if (trajComm_.Master()) {
+  if (trajComm_.Master()) { //TODO put this inside DataSet_float?
     DS.Resize( nframes_ );
     float* d_beg = DS.Ptr() + rank_offsets[ rank ];
     //mprintf("\tResizing nastruct series data to %i, starting frame %i, # frames %i\n",
@@ -1461,7 +1429,8 @@ int Action_NAstruct::SyncAction() {
             // New base pair step
             //mprintf("NEW BASE PAIR STEP: %i %i\n", iArray[0], iArray[1]);
             StepType BS;
-            NewStepType( BS, iArray[2], iArray[3], iArray[4], iArray[5], Steps_.size()+1 );
+            MetaData md = NewStepType( BS, iArray[2], iArray[3],
+                                           iArray[4], iArray[5], Steps_.size()+1 );
             // Groove width
             if (grooveCalcType_ == HASSAN_CALLADINE && iArray[6] > 0) {
               MetaData md = BS.shift_->Meta();
