@@ -26,6 +26,7 @@ Action_NAstruct::Action_NAstruct() :
   grooveCalcType_(PP_OO),
   printheader_(true),
   seriesUpdated_(false),
+  skipIfNoHB_(true),
   bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
@@ -35,15 +36,17 @@ Action_NAstruct::Action_NAstruct() :
 
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
-          "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
+          "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
-          "  from specified reference or first frame.\n"
-          "  Base pair parameters are written to BP.<suffix>, base pair step parameters\n"
-          "  are written to BPstep.<suffix>, and helix parameters are written to\n"
-          "  Helix.<suffix>\n");
+          "  from specified reference or first frame. If 'calcnohb' is specified\n"
+          "  parameters will be calculated even if no hydrogen bonds present between\n"
+          "  base pairs.\n"
+          "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
+          "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
+          "  Helix.<suffix>'\n");
 }
 
 // Action_NAstruct::Init()
@@ -94,6 +97,7 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if (!resRange_.Empty())
     resRange_.ShiftBy(-1); // User res args start from 1
   printheader_ = !actionArgs.hasKey("noheader");
+  skipIfNoHB_ = !actionArgs.hasKey("calcnohb");
   // Determine how base pairs will be found.
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -190,6 +194,10 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     mprintf("\tBase pairs will be determined for each frame.\n");
   else // FIRST
     mprintf("\tUsing first frame to determine base pairing.\n");
+  if (skipIfNoHB_)
+    mprintf("\tParameters will not be calculated when no hbonds present between base pairs.\n");
+  else
+    mprintf("\tParameters will be calculated between base pairs even when no hbonds present.\n");
   if (puckerMethod_==NA_Base::ALTONA)
     mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
   else if (puckerMethod_==NA_Base::CREMER)
@@ -830,7 +838,7 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
 # endif
   for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
-    if (it->second.nhb_ < 1) continue;
+    if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
     BPtype& BP = it->second;
     int b1 = BP.base1idx_;
     int b2 = BP.base2idx_;
@@ -930,7 +938,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
   //   base3 -- base4
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
     BPtype const& BP1 = bp1->second;
-    if (BP1.nhb_ < 1) continue; // Base pair not valid this frame.
+    if (BP1.nhb_ < 1 && skipIfNoHB_) continue; // Base pair not valid this frame.
     NA_Base const& base1 = Bases_[BP1.base1idx_];
     NA_Base const& base2 = Bases_[BP1.base2idx_];
     
@@ -944,7 +952,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
     if (idx1 != -1 && idx2 != -1) {
       Rpair respair(Bases_[idx1].ResNum(), Bases_[idx2].ResNum());
       BPmap::const_iterator bp2 = BasePairs_.find( respair );
-      if (bp2 != BasePairs_.end() && bp2->second.nhb_ > 0) {
+      if (bp2 != BasePairs_.end() && (bp2->second.nhb_ > 0 || !skipIfNoHB_)) {
         BPtype const& BP2 = bp2->second;
         NA_Base const& base3 = Bases_[BP2.base1idx_];
         NA_Base const& base4 = Bases_[BP2.base2idx_];

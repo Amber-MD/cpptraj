@@ -147,6 +147,7 @@ class Action_NAstruct: public Action {
     Range resRange_;                    ///< Range to search for NA residues.
     bool printheader_;                  ///< If true, print header to naout files.
     bool seriesUpdated_;                ///< If false, check that time series data is nframes long
+    bool skipIfNoHB_;                   ///< When true, do not calc parameters when BP not present
     CpptrajFile* bpout_;                ///< Base pair out (BP.<suffix>).
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
