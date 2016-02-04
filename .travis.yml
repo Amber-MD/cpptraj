@@ -14,15 +14,17 @@ addons:
       - libnetcdf-dev
       - netcdf-bin
       - clang
+      - mpich
 env:
     - COMPILER=gnu
     - COMPILER=clang
-    - COMPILER=gnu OPENMP="-openmp" OPT=openmp
+    - COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp
+    - COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2"
 
 install:
-    - ./configure $OPENMP $COMPILER
+    - ./configure $BUILD_FLAGS $COMPILER
     - make -j2 install
-      # Hack to get ambpdb installed with OpenMP
+      # Hack to get ambpdb installed with OpenMP/MPI
     - make -C src ambpdb && mv src/ambpdb bin/
 script:
     - cd test && make test.showerrors
