@@ -95,11 +95,11 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 // Analysis_Average::Analyze()
 Analysis::RetType Analysis_Average::Analyze() {
   if (calcAvgOverSets_) {
-    mprintf("\tCalculating average over sets:\n");
+    mprintf("\tCalculating average over sets:");
     // Ensure data sets are the same size.
     size_t Ndata = 0;
     for (Array1D::const_iterator DS = input_dsets_.begin(); DS != input_dsets_.end(); ++DS) {
-      mprintf("\t%s\n", (*DS)->legend());
+      mprintf(" %s", (*DS)->legend());
       if (DS == input_dsets_.begin())
         Ndata = (*DS)->Size();
       else if (Ndata != (*DS)->Size()) {
@@ -108,7 +108,11 @@ Analysis::RetType Analysis_Average::Analyze() {
         return Analysis::ERR;
       }
     }
-    // Loop over all data
+    mprintf("\n");
+    // For now, set output set dimensions to first set dimension.
+    avgOfSets_->SetDim(Dimension::X, input_dsets_[0]->Dim(0));
+    sdOfSets_->SetDim(Dimension::X, input_dsets_[0]->Dim(0));
+    // Loop over all data TODO average X as well?
     double nsets = (double)input_dsets_.size();
     for (unsigned int i = 0; i != Ndata; i++) {
       double avg = 0.0;
@@ -153,6 +157,7 @@ Analysis::RetType Analysis_Average::Analyze() {
       if ( (*DS)->Size() < 1)
         mprintf("Warning: Set \"%s\" has no data.\n", (*DS)->legend());
       else {
+        mprintf("\t%i: %s\n", set+1, (*DS)->legend());
         std::string legend_with_quotes("\"" + (*DS)->Meta().Legend() + "\"");
         data_names_->Add( set, legend_with_quotes.c_str() );
         double Ymin = (*DS)->Dval(0);
