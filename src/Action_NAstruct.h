@@ -53,6 +53,7 @@ class Action_NAstruct: public Action {
       DataSet_1D* prop_;
       DataSet_1D* opening_;
       DataSet_1D* hbonds_;
+      DataSet_1D* isBP_;
       DataSet_1D* major_;
       DataSet_1D* minor_;
       unsigned int bpidx_;

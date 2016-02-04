@@ -468,6 +468,8 @@ int Action_NAstruct::DetermineBasePairing() {
                 BP.opening_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
                 md.SetAspect("hb");
                 BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
+                md.SetAspect("bp");
+                BP.isBP_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
                 if (grooveCalcType_ == PP_OO) {
                   md.SetAspect("major");
                   BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
@@ -896,6 +898,9 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
     BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    static const int ONE = 1;
+    if (BP.nhb_ > 0)
+      BP.isBP_->Add(frameNum, &ONE);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
@@ -1553,6 +1558,7 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BP.prop_ );
       UpdateTimeSeries( nframes_, BP.opening_ );
       UpdateTimeSeries( nframes_, BP.hbonds_ );
+      UpdateTimeSeries( nframes_, BP.isBP_ );
       UpdateTimeSeries( nframes_, BP.major_ );
       UpdateTimeSeries( nframes_, BP.minor_ );
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
@@ -1583,9 +1589,10 @@ void Action_NAstruct::UpdateSeries() {
 }
 
 // Output Format Strings
-static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %2.0f";
 static const char* GROOVE_FMT = " %10.4f %10.4f";
-static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+static const char* HELIX_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+static const char* STEP_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
@@ -1601,9 +1608,9 @@ void Action_NAstruct::Print() {
             bpout_->Filename().full(), nframes_, BasePairs_.size());
     //  File header
     if (printheader_) {
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s",
+      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
                      "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                     "Buckle","Propeller","Opening", "HB");
+                     "Buckle","Propeller","Opening", "BP", "HB");
       if (grooveCalcType_ == PP_OO)
         bpout_->Printf(" %10s %10s", "Major", "Minor");
       bpout_->Printf("\n");
@@ -1619,7 +1626,7 @@ void Action_NAstruct::Print() {
                        BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
                        BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
                        BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                       BP.hbonds_->Dval(frame));
+                       BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
         if (grooveCalcType_ == PP_OO) 
           bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
         bpout_->Printf("\n");
@@ -1639,8 +1646,8 @@ void Action_NAstruct::Print() {
             nframes_, Steps_.size() - 1);
     // Base pair step frames
     if (printheader_) {
-      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
-                     "Shift","Slide","Rise","Tilt","Roll","Twist");
+      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
+                     "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
       if (grooveCalcType_ == HASSAN_CALLADINE)
         stepout_->Printf(" %10s %10s\n", "Major", "Minor");
       stepout_->Printf("\n");
@@ -1650,12 +1657,13 @@ void Action_NAstruct::Print() {
       {
         StepType const& BS = it->second;
         // BPstep write
-        stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
+        stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
                        Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
                        Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
                        BS.shift_->Dval(frame), BS.slide_->Dval(frame),
                        BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
-                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame));
+                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
+                       BS.Zp_->Dval(frame));
         if (grooveCalcType_ == HASSAN_CALLADINE) {
           if (BS.majGroove_ == 0)
             stepout_->Printf(" %10s", "----");
@@ -1679,7 +1687,7 @@ void Action_NAstruct::Print() {
       {
         StepType const& BS = it->second;
         // Helix write
-        helixout_->Printf(NA_OUTPUT_FMT, frame+1,
+        helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
                           Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
                           Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
                           BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),
