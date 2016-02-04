@@ -14,7 +14,7 @@ addons:
       - libnetcdf-dev
       - netcdf-bin
       - clang
-      - openmpi
+      - mpich
 env:
     - COMPILER=gnu
     - COMPILER=clang
