@@ -286,6 +286,9 @@ test.curvefit:
 	@-cd Test_CurveFit && ./RunTest.sh $(OPT)
 	@-cd Test_Multicurve && ./RunTest.sh $(OPT)
 
+test.datasetavg:
+	@-cd Test_DataSetAverage && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -354,7 +357,8 @@ SHORT_TESTS=test.general \
           test.energy \
           test.permutedih \
           test.ccp4 \
-          test.curvefit
+          test.curvefit \
+          test.datasetavg
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -447,7 +451,8 @@ COMPLETETESTS=test.general \
               test.permutedih \
               test.ccp4 \
               test.dihcovar \
-              test.curvefit
+              test.curvefit \
+              test.datasetavg
 
 test: test.all 
 
