@@ -33,6 +33,7 @@
   *     1304+X:   Array of hbond X series info from rank.
   *     1400+X: Action_AtomicCorr: Atomic movement vectors
   *     1500  : Action_NAstruct: Array containing BP step info on rank.
+  *     1501+X:   Array of step series data from rank.
   */
 class Parallel {
   public:
@@ -88,15 +89,24 @@ class Parallel::Comm {
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
     void Barrier() const;
+    /// Split this Comm into a new Comm, give current rank the given ID
     Comm Split(int) const;
     void Reset();
+    /// RecvBuffer, SendBuffer, Count, DataType, Op
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Buffer, Count, Rank, DataType 
     int SendMaster(void*, int, int, MPI_Datatype) const;
+    /// Return, Input, Count, DataType, Op
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// SendBuffer, Count, DataType, RecvBuffer
     int GatherMaster(void*, int, MPI_Datatype, void*) const;
+    /// SendBuffer, Count, DataType, RecvBuffer
     int AllGather(void*, int, MPI_Datatype, void*) const;
+    /// Buffer, Count, DataType, Destination Rank, Tag
     int Send(void*, int, MPI_Datatype, int, int) const;
+    /// Bufffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
+    /// Buffer, Count, DataType
     int MasterBcast(void*, int, MPI_Datatype) const;
     int CheckError(int) const;
 #   else

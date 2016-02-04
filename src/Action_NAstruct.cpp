@@ -1311,14 +1311,10 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
 MetaData Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
                                        int idx ) const
 {
-  NA_Base const& base1 = Bases_[BP1_1];
-  NA_Base const& base2 = Bases_[BP1_2];
-  NA_Base const& base3 = Bases_[BP2_1];
-  NA_Base const& base4 = Bases_[BP2_2];
   // New base pair step
   MetaData md(dataname_, idx);
-  md.SetLegend( base1.BaseName()+base2.BaseName()+"-"+
-                base3.BaseName()+base4.BaseName() );
+  md.SetLegend( Bases_[BP1_1].BaseName() + Bases_[BP1_2].BaseName() + "-" +
+                Bases_[BP2_1].BaseName() + Bases_[BP2_2].BaseName() );
   md.SetAspect("shift");
   BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
   md.SetAspect("slide");
@@ -1427,7 +1423,7 @@ int Action_NAstruct::SyncAction() {
             StepType BS;
             MetaData md = NewStepType( BS, iArray[2], iArray[3],
                                            iArray[4], iArray[5], Steps_.size()+1 );
-            // Groove width
+            // Groove width: iArray[6]=(0=none, 1=maj, 2=min, 3=both)
             if (grooveCalcType_ == HASSAN_CALLADINE && iArray[6] > 0) {
               MetaData md = BS.shift_->Meta();
               if (iArray[6] == 1 || iArray[6] == 3) {
@@ -1512,6 +1508,7 @@ int Action_NAstruct::SyncAction() {
         iArray.push_back( step->second.b2idx_ );
         iArray.push_back( step->second.b3idx_ );
         iArray.push_back( step->second.b4idx_ );
+        // groove(0=none, 1=maj, 2=min, 3=both)
         if ( step->second.majGroove_ != 0 && step->second.minGroove_ != 0 )
           iArray.push_back( 3 );
         else if ( step->second.minGroove_ != 0)
