@@ -5,7 +5,7 @@
 # Clean
 CleanFiles rms.in rmsd.dat rms.mass.in rmsd.mass.dat rms.reftraj.in \
            rmsd.reftraj.dat tz2.norotate.crd tz2.rotate.crd rmatrices.dat \
-           rmsd.refcoords.dat
+           rmsd.refcoords.dat rms.dat NoMod.dat NoMod.crd.save NoMod.crd
 
 CheckNetcdf
 TOP="../tz2.truncoct.parm7"
@@ -49,6 +49,19 @@ RunCpptraj "RMS coordinate rotation/rotation matrices test."
 DoTest tz2.norotate.crd.save tz2.norotate.crd
 DoTest tz2.rotate.crd.save tz2.rotate.crd
 DoTest rmatrices.dat.save rmatrices.dat
+
+# Test RMS nomod
+INPUT="-i rms.in"
+cat > rms.in <<EOF
+parm ../tz2.parm7
+trajin ../tz2.nc
+outtraj NoMod.crd.save
+rms First_CA :2-12@CA out NoMod.dat nomod
+trajout NoMod.crd
+EOF
+RunCpptraj "RMS fit with no coordinates modification test."
+DoTest NoMod.dat.save NoMod.dat
+DoTest NoMod.crd.save NoMod.crd
 
 EndTest
 
