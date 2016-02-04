@@ -13,8 +13,8 @@ class Analysis_VectorMath : public Analysis {
     enum ModeType {  DOTPRODUCT = 0, DOTANGLE, CROSSPRODUCT };
     static const char* ModeString[];
 
-    int DotProduct();
-    int CrossProduct();
+    int DotProduct(unsigned int, unsigned int, unsigned int);
+    int CrossProduct(unsigned int, unsigned int, unsigned int);
 
     ModeType mode_;
     DataSet_Vector* vinfo1_;

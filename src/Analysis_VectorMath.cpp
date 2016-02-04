@@ -15,7 +15,8 @@ void Analysis_VectorMath::Help() const {
   mprintf("\tvec1 <vecname1> vec2 <vecname2> [out <filename>] [norm] [name <setname>]\n"
           "\t[ dotproduct | dotangle | crossproduct ]\n"
           "  Calculate dot product, angle from dot product (degrees), or cross product\n"
-          "  for specified vectors.\n");
+          "  for specified vectors. Either vec1 or vec2 can be size 1, otherwise they\n"
+          "  must both be the same size.\n");
 }
 
 // Analysis_VectorMath::Setup()
@@ -65,56 +66,75 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
 }
 
 // Analysis_VectorMath::DotProduct()
-int Analysis_VectorMath::DotProduct()
+int Analysis_VectorMath::DotProduct(unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
 {
   DataSet_double& Out = static_cast<DataSet_double&>( *DataOut_ );
   DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
   DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
-  Out.Resize( V1.Size() );
-  for (unsigned int v = 0; v < V1.Size(); ++v) {
+  Out.Resize( vmax );
+  unsigned int v1 = 0;
+  unsigned int v2 = 0;
+  for (unsigned int v = 0; v < vmax; ++v, v1 += v1inc, v2 += v2inc) {
     if (norm_) {
-      V1[v].Normalize();
-      V2[v].Normalize();
+      V1[v1].Normalize();
+      V2[v2].Normalize();
     }
     if (mode_ == DOTPRODUCT)
-      Out[v] = V1[v] * V2[v];
+      Out[v] = V1[v1] * V2[v2];
     else // DOTANGLE
-      Out[v] = V1[v].Angle( V2[v] ) * Constants::RADDEG;
+      Out[v] = V1[v1].Angle( V2[v2] ) * Constants::RADDEG;
   }
   return 0;
 }
 
 // Analysis_VectorMath::CrossProduct()
-int Analysis_VectorMath::CrossProduct()
+int Analysis_VectorMath::CrossProduct(unsigned int vmax, unsigned int v1inc, unsigned int v2inc)
 {
   DataSet_Vector& Out = static_cast<DataSet_Vector&>( *DataOut_ );
   DataSet_Vector& V1 = static_cast<DataSet_Vector&>( *vinfo1_ );
   DataSet_Vector& V2 = static_cast<DataSet_Vector&>( *vinfo2_ );
   Out.ReserveVecs( V1.Size() );
-  for (unsigned int v = 0; v < V1.Size(); ++v) {
+  unsigned int v1 = 0;
+  unsigned int v2 = 0;
+  for (unsigned int v = 0; v < vmax; ++v, v1 += v1inc, v2 += v2inc) {
     if (norm_) {
-      V1[v].Normalize();
-      V2[v].Normalize();
+      V1[v1].Normalize();
+      V2[v2].Normalize();
     }
-    Out.AddVxyz( V1[v].Cross( V2[v] ) );
+    Out.AddVxyz( V1[v1].Cross( V2[v2] ) );
   }
   return 0;
 }
 
 // Analysis_VectorMath::Analyze()
 Analysis::RetType Analysis_VectorMath::Analyze() {
-  // Ensure vectors have the same # of frames
-  if (vinfo1_->Size() != vinfo2_->Size()) {
-    mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
-              vinfo1_->legend(), vinfo1_->Size(),
-              vinfo2_->legend(), vinfo2_->Size());
+  if (vinfo1_->Size() == 0 || vinfo2_->Size() == 0) {
+    mprinterr("Error: One or both vectors is empty.\n");
     return Analysis::ERR;
   }
+  // Either vec1 or vec2 can be size 1, else both need to have same size.
+  unsigned int v1inc = 1;
+  unsigned int v2inc = 1;
+  if (vinfo1_->Size() != vinfo2_->Size()) {
+    if (vinfo1_->Size() == 1)
+      v1inc = 0;
+    else if (vinfo2_->Size() == 1)
+      v2inc = 0;
+    else {
+      mprinterr("Error: # Frames in vec %s (%i) != # Frames in vec %s (%i)\n",
+                vinfo1_->legend(), vinfo1_->Size(),
+                vinfo2_->legend(), vinfo2_->Size());
+      return Analysis::ERR;
+    }
+  }
+  unsigned int vmax = std::max( vinfo1_->Size(), vinfo2_->Size() );
+  mprintf("\t'%s' size %zu, '%s' size %zu, output size %zu\n",
+          vinfo1_->legend(), vinfo1_->Size(), vinfo2_->legend(), vinfo2_->Size(), vmax);
   int err = 0;
   if (mode_ == CROSSPRODUCT)
-    err = CrossProduct();
+    err = CrossProduct(vmax, v1inc, v2inc);
   else // DOTPRODUCT || DOTANGLE
-    err = DotProduct();
+    err = DotProduct(vmax, v1inc, v2inc);
   if (err != 0) return Analysis::ERR;
   return Analysis::OK;
 }
