@@ -289,6 +289,9 @@ test.curvefit:
 test.datasetavg:
 	@-cd Test_DataSetAverage && ./RunTest.sh $(OPT)
 
+test.vectormath:
+	@-cd Test_VectorMath && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -358,7 +361,8 @@ SHORT_TESTS=test.general \
           test.permutedih \
           test.ccp4 \
           test.curvefit \
-          test.datasetavg
+          test.datasetavg \
+          test.vectormath
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -452,7 +456,8 @@ COMPLETETESTS=test.general \
               test.ccp4 \
               test.dihcovar \
               test.curvefit \
-              test.datasetavg
+              test.datasetavg \
+              test.vectormath
 
 test: test.all 
 
