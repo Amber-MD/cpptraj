@@ -46,12 +46,176 @@ void Action_NAstruct::Help() const {
           "  Helix.<suffix>\n");
 }
 
-// Output Format Strings
-static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
-static const char* GROOVE_FMT = " %10.4f %10.4f";
-static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+// Action_NAstruct::Init()
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+{
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
+  debug_ = debugIn;
+  masterDSL_ = init.DslPtr();
+  // Get keywords
+  std::string outputsuffix = actionArgs.GetStringKey("naout");
+  if (!outputsuffix.empty()) {
+    // Set up output files.
+    FileName FName( outputsuffix );
+    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
+    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
+    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
+    if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
+  }
+  double hbcut = actionArgs.getKeyDouble("hbcut", -1);
+  if (hbcut > 0) 
+    HBdistCut2_ = hbcut * hbcut;
+  double origincut = actionArgs.getKeyDouble("origincut", -1);
+  if (origincut > 0)
+    originCut2_ = origincut * origincut;
+  double zcut = actionArgs.getKeyDouble("zcut", -1);
+  if (zcut > 0)
+    staggerCut_ = zcut;
+  double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
+  if (zanglecut_deg > 0)
+    z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
+  std::string groovecalc = actionArgs.GetStringKey("groovecalc");
+  if (!groovecalc.empty()) {
+    if (groovecalc == "simple") grooveCalcType_ = PP_OO;
+    else if (groovecalc == "3dna") grooveCalcType_ = HASSAN_CALLADINE;
+    else {
+      mprinterr("Error: Invalid value for 'groovecalc' %s; expected simple or 3dna.\n",
+                groovecalc.c_str());
+      return Action::ERR;
+    }
+  } else
+    grooveCalcType_ = PP_OO;
+  if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
+  // Get residue range
+  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
+  if (!resRange_.Empty())
+    resRange_.ShiftBy(-1); // User res args start from 1
+  printheader_ = !actionArgs.hasKey("noheader");
+  // Determine how base pairs will be found.
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
+  if (!REF.empty())
+    findBPmode_ = REFERENCE;
+  else if (actionArgs.hasKey("allframes"))
+    findBPmode_ = ALL;
+  else 
+    findBPmode_ = FIRST;
+# ifdef MPI
+  if (findBPmode_ == ALL && trajComm_.Size() > 1) {
+    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
+              " (currently %i)\n", trajComm_.Size());
+    return Action::ERR;
+  }
+# endif
+  // Get custom residue maps
+  ArgList maplist;
+  NA_Base::NAType mapbase;
+  while ( actionArgs.Contains("resmap") ) {
+    // Split maparg at ':'
+    maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
+    // Expect only 2 args
+    if (maplist.Nargs()!=2) {
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Check that second arg is A,C,G,T,or U
+    if      (maplist[1] == "A") mapbase = NA_Base::ADE;
+    else if (maplist[1] == "C") mapbase = NA_Base::CYT;
+    else if (maplist[1] == "G") mapbase = NA_Base::GUA;
+    else if (maplist[1] == "T") mapbase = NA_Base::THY;
+    else if (maplist[1] == "U") mapbase = NA_Base::URA;
+    else {
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Check that residue name is <= 4 chars
+    std::string resname = maplist[0]; 
+    if (resname.size() > 4) {
+      mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Format residue name
+    // TODO: Use NameType in map
+    NameType mapresname = resname;
+    resname.assign( *mapresname );
+    mprintf("\tCustom Map: [%s]\n",resname.c_str());
+    //maplist.PrintList();
+    // Add to CustomMap
+    ResMapType::iterator customRes = CustomMap_.find(resname);
+    if (customRes != CustomMap_.end()) {
+      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
+    } else {
+      CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
+    }
+  }
+  // Get Masks
+  // DataSet name
+  dataname_ = actionArgs.GetStringNext();
 
-// ------------------------- PRIVATE FUNCTIONS ---------------------------------
+  mprintf("    NAstruct: ");
+  if (resRange_.Empty())
+    mprintf("Scanning all NA residues\n");
+  else
+    mprintf("Scanning residues %s\n",resRange_.RangeArg());
+  if (bpout_ != 0) {
+    mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
+    mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
+    mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
+    if (!printheader_) mprintf("\tHeader line will not be written.\n");
+  }
+  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
+          sqrt( HBdistCut2_ ) );
+  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
+          sqrt( originCut2_ ) );
+  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
+          staggerCut_);
+  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
+          z_angle_cut_ * Constants::RADDEG);
+  // Use reference to determine base pairing
+  if (findBPmode_ == REFERENCE) {
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
+    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
+    if (Setup( ref_setup )) return Action::ERR;
+    // Set up base axes
+    if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
+    // Determine Base Pairing
+    if ( DetermineBasePairing() ) return Action::ERR;
+    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
+  } else if (findBPmode_ == ALL)
+    mprintf("\tBase pairs will be determined for each frame.\n");
+  else // FIRST
+    mprintf("\tUsing first frame to determine base pairing.\n");
+  if (puckerMethod_==NA_Base::ALTONA)
+    mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
+  else if (puckerMethod_==NA_Base::CREMER)
+    mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
+  if (grooveCalcType_ == PP_OO)
+    mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
+  else if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
+  mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
+          "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
+          "#             Parameters That Are Truly Comparable Between Structures\",\n"
+          "#             J. Mol. Biol. (1994) 237, 125-156.\n"
+          "#            Olson WK; Bansal M; Burley SK; Dickerson RE; Gerstein M;\n"
+          "#             Harvey SC; Heinemann U; Lu XJ; Neidle S; Shekked Z; Sklenar H;\n"
+          "#             Suzuki M; Tung CS; Westhof E; Wolberger C; Berman H; \"A Standard\n"
+          "#             Reference Frame for the Description of Nucleic Acid Base-pair\n"
+          "#             Geometry\", J. Mol. Biol. (2001) 313, 229-237.\n");
+  if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("#            El Hassan MA; Calladine CR; \"Two Distinct Modes of\n"
+            "#             Protein-induced Bending in DNA.\"\n"
+            "#             J. Mol. Biol. (1998) 282, 331-343.\n");
+  init.DSL().SetDataSetsPending(true);
+  return Action::OK;
+}
+
+// -----------------------------------------------------------------------------
 #ifdef NASTRUCTDEBUG
 /// Write given NA_Axis to a PDB file.
 static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis const& axis)
@@ -921,175 +1085,6 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
 }
 // ----------------------------------------------------------------------------
 
-// Action_NAstruct::Init()
-Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
-{
-# ifdef MPI
-  trajComm_ = init.TrajComm();
-# endif
-  debug_ = debugIn;
-  masterDSL_ = init.DslPtr();
-  // Get keywords
-  std::string outputsuffix = actionArgs.GetStringKey("naout");
-  if (!outputsuffix.empty()) {
-    // Set up output files.
-    FileName FName( outputsuffix );
-    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
-    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
-    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
-    if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
-  }
-  double hbcut = actionArgs.getKeyDouble("hbcut", -1);
-  if (hbcut > 0) 
-    HBdistCut2_ = hbcut * hbcut;
-  double origincut = actionArgs.getKeyDouble("origincut", -1);
-  if (origincut > 0)
-    originCut2_ = origincut * origincut;
-  double zcut = actionArgs.getKeyDouble("zcut", -1);
-  if (zcut > 0)
-    staggerCut_ = zcut;
-  double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
-  if (zanglecut_deg > 0)
-    z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
-  std::string groovecalc = actionArgs.GetStringKey("groovecalc");
-  if (!groovecalc.empty()) {
-    if (groovecalc == "simple") grooveCalcType_ = PP_OO;
-    else if (groovecalc == "3dna") grooveCalcType_ = HASSAN_CALLADINE;
-    else {
-      mprinterr("Error: Invalid value for 'groovecalc' %s; expected simple or 3dna.\n",
-                groovecalc.c_str());
-      return Action::ERR;
-    }
-  } else
-    grooveCalcType_ = PP_OO;
-  if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
-  else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
-  // Get residue range
-  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
-  if (!resRange_.Empty())
-    resRange_.ShiftBy(-1); // User res args start from 1
-  printheader_ = !actionArgs.hasKey("noheader");
-  // Determine how base pairs will be found.
-  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
-  if (REF.error()) return Action::ERR;
-  if (!REF.empty())
-    findBPmode_ = REFERENCE;
-  else if (actionArgs.hasKey("allframes"))
-    findBPmode_ = ALL;
-  else 
-    findBPmode_ = FIRST;
-# ifdef MPI
-  if (findBPmode_ == ALL && trajComm_.Size() > 1) {
-    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
-              " (currently %i)\n", trajComm_.Size());
-    return Action::ERR;
-  }
-# endif
-  // Get custom residue maps
-  ArgList maplist;
-  NA_Base::NAType mapbase;
-  while ( actionArgs.Contains("resmap") ) {
-    // Split maparg at ':'
-    maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
-    // Expect only 2 args
-    if (maplist.Nargs()!=2) {
-      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
-                maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Check that second arg is A,C,G,T,or U
-    if      (maplist[1] == "A") mapbase = NA_Base::ADE;
-    else if (maplist[1] == "C") mapbase = NA_Base::CYT;
-    else if (maplist[1] == "G") mapbase = NA_Base::GUA;
-    else if (maplist[1] == "T") mapbase = NA_Base::THY;
-    else if (maplist[1] == "U") mapbase = NA_Base::URA;
-    else {
-      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
-                maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Check that residue name is <= 4 chars
-    std::string resname = maplist[0]; 
-    if (resname.size() > 4) {
-      mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Format residue name
-    // TODO: Use NameType in map
-    NameType mapresname = resname;
-    resname.assign( *mapresname );
-    mprintf("\tCustom Map: [%s]\n",resname.c_str());
-    //maplist.PrintList();
-    // Add to CustomMap
-    ResMapType::iterator customRes = CustomMap_.find(resname);
-    if (customRes != CustomMap_.end()) {
-      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
-    } else {
-      CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
-    }
-  }
-  // Get Masks
-  // DataSet name
-  dataname_ = actionArgs.GetStringNext();
-
-  mprintf("    NAstruct: ");
-  if (resRange_.Empty())
-    mprintf("Scanning all NA residues\n");
-  else
-    mprintf("Scanning residues %s\n",resRange_.RangeArg());
-  if (bpout_ != 0) {
-    mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
-    mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
-    mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
-    if (!printheader_) mprintf("\tHeader line will not be written.\n");
-  }
-  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
-          sqrt( HBdistCut2_ ) );
-  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
-          sqrt( originCut2_ ) );
-  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
-          staggerCut_);
-  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
-          z_angle_cut_ * Constants::RADDEG);
-  // Use reference to determine base pairing
-  if (findBPmode_ == REFERENCE) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
-    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
-    if (Setup( ref_setup )) return Action::ERR;
-    // Set up base axes
-    if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
-    // Determine Base Pairing
-    if ( DetermineBasePairing() ) return Action::ERR;
-    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
-  } else if (findBPmode_ == ALL)
-    mprintf("\tBase pairs will be determined for each frame.\n");
-  else // FIRST
-    mprintf("\tUsing first frame to determine base pairing.\n");
-  if (puckerMethod_==NA_Base::ALTONA)
-    mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
-  else if (puckerMethod_==NA_Base::CREMER)
-    mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
-  if (grooveCalcType_ == PP_OO)
-    mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
-  else if (grooveCalcType_ == HASSAN_CALLADINE)
-    mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
-  mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
-          "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
-          "#             Parameters That Are Truly Comparable Between Structures\",\n"
-          "#             J. Mol. Biol. (1994) 237, 125-156.\n"
-          "#            Olson WK; Bansal M; Burley SK; Dickerson RE; Gerstein M;\n"
-          "#             Harvey SC; Heinemann U; Lu XJ; Neidle S; Shekked Z; Sklenar H;\n"
-          "#             Suzuki M; Tung CS; Westhof E; Wolberger C; Berman H; \"A Standard\n"
-          "#             Reference Frame for the Description of Nucleic Acid Base-pair\n"
-          "#             Geometry\", J. Mol. Biol. (2001) 313, 229-237.\n");
-  if (grooveCalcType_ == HASSAN_CALLADINE)
-    mprintf("#            El Hassan MA; Calladine CR; \"Two Distinct Modes of\n"
-            "#             Protein-induced Bending in DNA.\"\n"
-            "#             J. Mol. Biol. (1998) 282, 331-343.\n");
-  init.DSL().SetDataSetsPending(true);
-  return Action::OK;
-}
-
 /** Starting at atom, try to travel phosphate backbone to atom in next res.
   * \return Atom # of atom in next residue or -1 if no next residue.
   */
@@ -1299,6 +1294,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 } 
 
+// UpdateTimeSeries()
 static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   if (ds != 0) {
     if (ds->Type() == DataSet::FLOAT) {
@@ -1311,6 +1307,7 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   }
 }
 
+// Action_NAstruct::NewStepType()
 MetaData Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
                                        int idx ) const
 {
@@ -1547,6 +1544,7 @@ int Action_NAstruct::SyncAction() {
 }
 #endif
 
+// Action_NAstruct::UpdateSeries()
 void Action_NAstruct::UpdateSeries() {
   if (seriesUpdated_) return;
   if (nframes_ > 0) {
@@ -1588,6 +1586,11 @@ void Action_NAstruct::UpdateSeries() {
   // Should only be called once.
   seriesUpdated_ = true;
 }
+
+// Output Format Strings
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
+static const char* GROOVE_FMT = " %10.4f %10.4f";
+static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
 
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
