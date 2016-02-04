@@ -282,6 +282,10 @@ test.ccp4:
 test.dihcovar:
 	@-cd Test_DihCovar && ./RunTest.sh $(OPT)
 
+test.curvefit:
+	@-cd Test_CurveFit && ./RunTest.sh $(OPT)
+	@-cd Test_Multicurve && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -349,7 +353,8 @@ SHORT_TESTS=test.general \
           test.checkchirality \
           test.energy \
           test.permutedih \
-          test.ccp4
+          test.ccp4 \
+          test.curvefit
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -441,7 +446,8 @@ COMPLETETESTS=test.general \
               test.lessplit \
               test.permutedih \
               test.ccp4 \
-              test.dihcovar
+              test.dihcovar \
+              test.curvefit
 
 test: test.all 
 
