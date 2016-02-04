@@ -114,7 +114,8 @@ class Action_Hbond : public Action {
     inline void HbondTypeCalcAvg(HbondType&);
     inline double ImagedAngle(const double*, const double*, const double*) const;
 #   ifdef MPI
-    void SyncMap(HBmapType&, const int*, const int*, const char*, Parallel::Comm const&) const;
+    void SyncMap(HBmapType&, std::vector<int> const&, std::vector<int> const&,
+                 const char*, Parallel::Comm const&) const;
 #   endif
 };
 #endif

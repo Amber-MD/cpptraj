@@ -1378,19 +1378,14 @@ int Action_NAstruct::SyncAction() {
   std::vector<int> rank_frames( trajComm_.Size() );
   trajComm_.GatherMaster( &nframes_, 1, MPI_INT, &rank_frames[0] );
   if (trajComm_.Master()) {
-    for (int rank = 1; rank < trajComm_.Size(); rank++) {
-      //mprintf("DEBUG: Rank %i frames = %i\n", rank, rank_frames[rank]);
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
       nframes_ += rank_frames[rank];
-    }
-    //mprintf("DEBUG: Total frames %i\n", nframes_);
   }
   // Convert rank frames to offsets.
   std::vector<int> rank_offsets( trajComm_.Size(), 0 );
   if (trajComm_.Master()) {
-    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
       rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
-      //mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
-    }
   }
   //rprinterr("DEBUG: Number base pairs: %zu\n", BasePairs_.size());
   //rprinterr("DEBUG: Number base pair steps: %zu\n", Steps_.size());
