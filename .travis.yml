@@ -20,7 +20,7 @@ addons:
 env:
     - COMPILER=gnu
     - COMPILER=clang
-    - COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp
+    - COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4
     - COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2"
 
 install:
