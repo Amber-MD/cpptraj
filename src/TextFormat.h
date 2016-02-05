@@ -12,6 +12,9 @@ class TextFormat {
     /// CONSTRUCTOR - default 8.3f format
     TextFormat() : type_(DOUBLE), width_(8), precision_(3), nelements_(1),
                    colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
+    /// CONSTRUCTOR - Type only
+    TextFormat(FmtType t) : type_(t), width_(0), precision_(-1), nelements_(1),
+               colwidth_(0), align_(RIGHT), isLong_(false) { SetFormatString(); }
     // TODO trim constructors
     /// CONSTRUCTOR - type, width
     TextFormat(FmtType t, int w) : type_(t), width_(w), precision_(0), nelements_(1),

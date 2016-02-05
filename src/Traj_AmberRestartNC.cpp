@@ -2,10 +2,10 @@
 // This file contains a collection of routines designed for reading
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
-#include <netcdf.h>
 #include "Traj_AmberRestartNC.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NumberFilename
+#include <netcdf.h>
 
 // CONSTRUCTOR
 Traj_AmberRestartNC::Traj_AmberRestartNC() :

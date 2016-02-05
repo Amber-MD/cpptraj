@@ -1320,10 +1320,11 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
       return 1;
     }
   }
+  std::string tag = argIn.GetStringKey("name");
   // Determine if there is a mask expression for stripping reference. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
   // Check for tag. FIXME: need to do after SetupTrajRead?
-  std::string tag = argIn.getNextTag();
+  if (tag.empty()) tag = argIn.getNextTag();
   // Set up reference DataSet from file or COORDS set.
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
@@ -1360,10 +1361,11 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
     return 1;
   }
   ArgList argIn = args;
+  std::string tag = argIn.GetStringKey("name");
   // Determine if there is a mask expression for stripping. // TODO: Remove?
   std::string maskexpr = argIn.GetMaskNext();
-  // Check for tag.
-  std::string tag = argIn.getNextTag();
+  // Check for tag if 'name' not specified.
+  if (tag.empty()) tag = argIn.getNextTag();
   for (File::NameArray::const_iterator fname = fnames.begin(); fname != fnames.end(); ++fname)
   {
     MetaData md(*fname, tag, -1);

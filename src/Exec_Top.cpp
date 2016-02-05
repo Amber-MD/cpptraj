@@ -3,7 +3,7 @@
 #include "ParmFile.h"
 
 void Exec_LoadParm::Help() const {
-  mprintf("\t<filename> [<tag>] [nobondsearch | bondsearch [<offset>]]\n"
+  mprintf("\t<filename> [{[TAG] | name <setname>}] [nobondsearch | bondsearch [<offset>]]\n"
           "  Add <filename> to the topology list.\n");
   ParmFile::ReadOptions();
 }

@@ -780,17 +780,18 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
             topIn[h_atom].Name().Truncated());
 }
 
-
-void Action_Hbond::SyncMap(HBmapType& mapIn, const int* rank_frames, const int* rank_offsets,
+// Action_Hbond::SyncMap
+void Action_Hbond::SyncMap(HBmapType& mapIn, std::vector<int> const& rank_frames,
+                           std::vector<int> const& rank_offsets,
                            const char* aspect, Parallel::Comm const& commIn)
 const
 {
   // Need to know how many hbonds on each thread.
   int num_hb = (int)mapIn.size();
-  int* nhb_on_rank = 0;
+  std::vector<int> nhb_on_rank;
   if (commIn.Master())
-    nhb_on_rank = new int[ commIn.Size() ];
-  commIn.GatherMaster( &num_hb, 1, MPI_INT, nhb_on_rank );
+    nhb_on_rank.resize( commIn.Size() );
+  commIn.GatherMaster( &num_hb, 1, MPI_INT, &nhb_on_rank[0] );
   std::vector<double> dArray;
   std::vector<int> iArray;
   if (commIn.Master()) {
@@ -849,7 +850,17 @@ const
         } // END master loop over hbonds from rank
       }
     } // END master loop over ranks
-    delete[] nhb_on_rank;
+    // At this point we have all hbond sets from all ranks. Mark all HB sets
+    // smaller than Nframes_ as synced and ensure the time series has been
+    // updated to reflect overall # frames.
+    if (series_) {
+      const int ZERO = 0;
+      for (HBmapType::iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb)
+        if ((int)hb->second.data_->Size() < Nframes_) {
+          hb->second.data_->SetNeedsSync( false );
+          hb->second.data_->Add( Nframes_-1, &ZERO );
+        }
+    }
   } else {
     if (mapIn.size() > 0) {
       dArray.reserve( 2 * mapIn.size() );
@@ -889,26 +900,20 @@ const
 int Action_Hbond::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
-  // Get total number of frames.
-  int* rank_frames = new int[ trajComm_.Size() ];
-  trajComm_.GatherMaster( &Nframes_, 1, MPI_INT, rank_frames );
-  //mprintf("DEBUG: Master= %i frames\n", Nframes_);
-  for (int rank = 1; rank < trajComm_.Size(); rank++) {
-    //mprintf("DEBUG: Rank%i= %i frames\n", rank, rank_frames[ rank ]);
-    Nframes_ += rank_frames[ rank ];
+  // TODO consolidate # frames / offset calc code with Action_NAstruct
+  // Get total number of frames
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &Nframes_, 1, MPI_INT, &rank_frames[0] );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      Nframes_ += rank_frames[rank];
   }
-  //mprintf("DEBUG: Total= %i frames.\n", Nframes_);
   // Convert rank frames to offsets.
-  int* rank_offsets = new int[ trajComm_.Size() ];
-  rank_offsets[0] = 0;
-  for (int rank = 1; rank < trajComm_.Size(); rank++) {
-    rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
-    //mprintf("DEBUG:\t\tRank %i offset is %i\n", rank, rank_offsets[rank]);
+  std::vector<int> rank_offsets( trajComm_.Size(), 0 );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
   }
-  //int total_frames = 0;
-  //trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
-  //if (trajComm_.Master())
-  //  Nframes_ = total_frames;
   // Need to send hbond data from all ranks to master.
   SyncMap( HbondMap_, rank_frames, rank_offsets, "solutehb", trajComm_ );
   if (calcSolvent_) {
@@ -954,8 +959,6 @@ int Action_Hbond::SyncAction() {
       trajComm_.Send( &(iArray[0]), iSize, MPI_INT, 0, 1303 );
     }
   }
-  delete[] rank_frames;
-  delete[] rank_offsets;
   return 0;
 }
 #endif

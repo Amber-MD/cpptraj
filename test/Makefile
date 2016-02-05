@@ -279,6 +279,19 @@ test.permutedih:
 test.ccp4:
 	@-cd Test_CCP4 && ./RunTest.sh $(OPT)
 
+test.dihcovar:
+	@-cd Test_DihCovar && ./RunTest.sh $(OPT)
+
+test.curvefit:
+	@-cd Test_CurveFit && ./RunTest.sh $(OPT)
+	@-cd Test_Multicurve && ./RunTest.sh $(OPT)
+
+test.datasetavg:
+	@-cd Test_DataSetAverage && ./RunTest.sh $(OPT)
+
+test.vectormath:
+	@-cd Test_VectorMath && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -346,7 +359,10 @@ SHORT_TESTS=test.general \
           test.checkchirality \
           test.energy \
           test.permutedih \
-          test.ccp4
+          test.ccp4 \
+          test.curvefit \
+          test.datasetavg \
+          test.vectormath
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -437,7 +453,11 @@ COMPLETETESTS=test.general \
               test.energy \
               test.lessplit \
               test.permutedih \
-              test.ccp4
+              test.ccp4 \
+              test.dihcovar \
+              test.curvefit \
+              test.datasetavg \
+              test.vectormath
 
 test: test.all 
 

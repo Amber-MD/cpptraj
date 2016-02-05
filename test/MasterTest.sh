@@ -146,8 +146,8 @@ NcTest() {
 CheckTest() {
   # Only use when not using dacdif 
   if [[ -z $DACDIF ]] ; then
-    if [[ $ERR -gt 0 ]] ; then
-      echo "  $ERR comparisons failed so far."
+    if [[ $ERRCOUNT -gt 0 ]] ; then
+      echo "  $ERRCOUNT comparisons failed so far."
     fi
   fi
 }
@@ -261,14 +261,16 @@ CheckPtrajAnalyze() {
 }
 
 CheckPnetcdf() {
-  DESCRIP="This test"
-  if [[ ! -z $1 ]] ; then
-    DESCRIP="Test '$1'"
-  fi
-  if [[ -z $PNETCDFLIB ]] ; then
-    echo "$DESCRIP requires compilation with Pnetcdf."
-    echo "Cpptraj was compiled without Pnetcdf support. Skipping test."
-    return 1
+  if [[ ! -z $DO_PARALLEL ]] ; then
+    DESCRIP="This test"
+    if [[ ! -z $1 ]] ; then
+      DESCRIP="Test '$1'"
+    fi
+    if [[ -z $PNETCDFLIB ]] ; then
+      echo "$DESCRIP requires compilation with Pnetcdf."
+      echo "Cpptraj was compiled without Pnetcdf support. Skipping test."
+      return 1
+    fi
   fi
   return 0
 }
@@ -553,7 +555,7 @@ SetBinaries() {
     DIRPREFIX=`dirname $CPPTRAJ`
     AMBPDB=$DIRPREFIX/ambpdb
     if [[ ! -f "$AMBPDB" ]] ; then
-      echo "Warning: ambpdb binary '$AMBPDB' not found."
+      AMBPDB=""
     fi
   fi
 }

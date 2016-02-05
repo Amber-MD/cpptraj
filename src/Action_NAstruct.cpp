@@ -7,6 +7,9 @@
 #ifdef NASTRUCTDEBUG
 #include "PDBfile.h"
 #endif
+#ifdef MPI
+# include "DataSet_float.h" // internal pointer needed for sync
+#endif
 
 // CONSTRUCTOR
 Action_NAstruct::Action_NAstruct() :
@@ -19,10 +22,11 @@ Action_NAstruct::Action_NAstruct() :
   maxResSize_(0),
   debug_(0),
   nframes_(0),
+  findBPmode_(FIRST),
   grooveCalcType_(PP_OO),
   printheader_(true),
-  useReference_(false),
   seriesUpdated_(false),
+  skipIfNoHB_(true),
   bpout_(0), stepout_(0), helixout_(0),
   masterDSL_(0)
 # ifdef NASTRUCTDEBUG
@@ -32,23 +36,194 @@ Action_NAstruct::Action_NAstruct() :
 
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
-          "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...]\n"
+          "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
-          "\t[ %s ]\n", DataSetList::RefArgs);
+          "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
   mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
-          "  from specified reference or first frame.\n"
-          "  Base pair parameters are written to BP.<suffix>, base pair step parameters\n"
-          "  are written to BPstep.<suffix>, and helix parameters are written to\n"
-          "  Helix.<suffix>\n");
+          "  from specified reference or first frame. If 'calcnohb' is specified\n"
+          "  parameters will be calculated even if no hydrogen bonds present between\n"
+          "  base pairs.\n"
+          "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
+          "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
+          "  Helix.<suffix>'\n");
 }
 
-// Output Format Strings
-static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f";
-static const char* GROOVE_FMT = " %10.4f %10.4f";
-static const char* NA_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+// Action_NAstruct::Init()
+Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+{
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
+  debug_ = debugIn;
+  masterDSL_ = init.DslPtr();
+  // Get keywords
+  std::string outputsuffix = actionArgs.GetStringKey("naout");
+  if (!outputsuffix.empty()) {
+    // Set up output files.
+    FileName FName( outputsuffix );
+    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
+    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
+    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
+    if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
+  }
+  double hbcut = actionArgs.getKeyDouble("hbcut", -1);
+  if (hbcut > 0) 
+    HBdistCut2_ = hbcut * hbcut;
+  double origincut = actionArgs.getKeyDouble("origincut", -1);
+  if (origincut > 0)
+    originCut2_ = origincut * origincut;
+  double zcut = actionArgs.getKeyDouble("zcut", -1);
+  if (zcut > 0)
+    staggerCut_ = zcut;
+  double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
+  if (zanglecut_deg > 0)
+    z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
+  std::string groovecalc = actionArgs.GetStringKey("groovecalc");
+  if (!groovecalc.empty()) {
+    if (groovecalc == "simple") grooveCalcType_ = PP_OO;
+    else if (groovecalc == "3dna") grooveCalcType_ = HASSAN_CALLADINE;
+    else {
+      mprinterr("Error: Invalid value for 'groovecalc' %s; expected simple or 3dna.\n",
+                groovecalc.c_str());
+      return Action::ERR;
+    }
+  } else
+    grooveCalcType_ = PP_OO;
+  if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
+  else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
+  // Get residue range
+  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
+  if (!resRange_.Empty())
+    resRange_.ShiftBy(-1); // User res args start from 1
+  printheader_ = !actionArgs.hasKey("noheader");
+  skipIfNoHB_ = !actionArgs.hasKey("calcnohb");
+  // Determine how base pairs will be found.
+  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
+  if (REF.error()) return Action::ERR;
+  if (!REF.empty())
+    findBPmode_ = REFERENCE;
+  else if (actionArgs.hasKey("allframes"))
+    findBPmode_ = ALL;
+  else 
+    findBPmode_ = FIRST;
+# ifdef MPI
+  if (findBPmode_ == ALL && trajComm_.Size() > 1) {
+    mprinterr("Error: Currently 'allframes' does not work with > 1 thread per traj"
+              " (currently %i)\n", trajComm_.Size());
+    return Action::ERR;
+  }
+# endif
+  // Get custom residue maps
+  ArgList maplist;
+  NA_Base::NAType mapbase;
+  while ( actionArgs.Contains("resmap") ) {
+    // Split maparg at ':'
+    maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
+    // Expect only 2 args
+    if (maplist.Nargs()!=2) {
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Check that second arg is A,C,G,T,or U
+    if      (maplist[1] == "A") mapbase = NA_Base::ADE;
+    else if (maplist[1] == "C") mapbase = NA_Base::CYT;
+    else if (maplist[1] == "G") mapbase = NA_Base::GUA;
+    else if (maplist[1] == "T") mapbase = NA_Base::THY;
+    else if (maplist[1] == "U") mapbase = NA_Base::URA;
+    else {
+      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
+                maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Check that residue name is <= 4 chars
+    std::string resname = maplist[0]; 
+    if (resname.size() > 4) {
+      mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
+      return Action::ERR;
+    }
+    // Format residue name
+    // TODO: Use NameType in map
+    NameType mapresname = resname;
+    resname.assign( *mapresname );
+    mprintf("\tCustom Map: [%s]\n",resname.c_str());
+    //maplist.PrintList();
+    // Add to CustomMap
+    ResMapType::iterator customRes = CustomMap_.find(resname);
+    if (customRes != CustomMap_.end()) {
+      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
+    } else {
+      CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
+    }
+  }
+  // Get Masks
+  // DataSet name
+  dataname_ = actionArgs.GetStringNext();
 
-// ------------------------- PRIVATE FUNCTIONS ---------------------------------
+  mprintf("    NAstruct: ");
+  if (resRange_.Empty())
+    mprintf("Scanning all NA residues\n");
+  else
+    mprintf("Scanning residues %s\n",resRange_.RangeArg());
+  if (bpout_ != 0) {
+    mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
+    mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
+    mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
+    if (!printheader_) mprintf("\tHeader line will not be written.\n");
+  }
+  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
+          sqrt( HBdistCut2_ ) );
+  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
+          sqrt( originCut2_ ) );
+  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
+          staggerCut_);
+  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
+          z_angle_cut_ * Constants::RADDEG);
+  // Use reference to determine base pairing
+  if (findBPmode_ == REFERENCE) {
+    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
+    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
+    if (Setup( ref_setup )) return Action::ERR;
+    // Set up base axes
+    if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
+    // Determine Base Pairing
+    if ( DetermineBasePairing() ) return Action::ERR;
+    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() );
+  } else if (findBPmode_ == ALL)
+    mprintf("\tBase pairs will be determined for each frame.\n");
+  else // FIRST
+    mprintf("\tUsing first frame to determine base pairing.\n");
+  if (skipIfNoHB_)
+    mprintf("\tParameters will not be calculated when no hbonds present between base pairs.\n");
+  else
+    mprintf("\tParameters will be calculated between base pairs even when no hbonds present.\n");
+  if (puckerMethod_==NA_Base::ALTONA)
+    mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
+  else if (puckerMethod_==NA_Base::CREMER)
+    mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
+  if (grooveCalcType_ == PP_OO)
+    mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
+  else if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
+  mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
+          "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
+          "#             Parameters That Are Truly Comparable Between Structures\",\n"
+          "#             J. Mol. Biol. (1994) 237, 125-156.\n"
+          "#            Olson WK; Bansal M; Burley SK; Dickerson RE; Gerstein M;\n"
+          "#             Harvey SC; Heinemann U; Lu XJ; Neidle S; Shekked Z; Sklenar H;\n"
+          "#             Suzuki M; Tung CS; Westhof E; Wolberger C; Berman H; \"A Standard\n"
+          "#             Reference Frame for the Description of Nucleic Acid Base-pair\n"
+          "#             Geometry\", J. Mol. Biol. (2001) 313, 229-237.\n");
+  if (grooveCalcType_ == HASSAN_CALLADINE)
+    mprintf("#            El Hassan MA; Calladine CR; \"Two Distinct Modes of\n"
+            "#             Protein-induced Bending in DNA.\"\n"
+            "#             J. Mol. Biol. (1998) 282, 331-343.\n");
+  init.DSL().SetDataSetsPending(true);
+  return Action::OK;
+}
+
+// -----------------------------------------------------------------------------
 #ifdef NASTRUCTDEBUG
 /// Write given NA_Axis to a PDB file.
 static void WriteAxes(PDBfile& outfile, int resnum, const char* resname, NA_Axis const& axis)
@@ -221,9 +396,8 @@ int Action_NAstruct::CalcNumHB(NA_Base const& base1, NA_Base const& base2, int& 
 
 // -----------------------------------------------------------------------------
 // Action_NAstruct::DetermineBasePairing()
-/** Determine which bases are paired from the individual base axes. Also 
-  * sets up BP and BP step parameter DataSets. This routine should only
-  * be called once.
+/** Determine which bases are paired from the individual base axes and set up
+  * entry in BasePairs_ if one not already present.
   */
 int Action_NAstruct::DetermineBasePairing() {
   int n_wc_hb;
@@ -302,6 +476,8 @@ int Action_NAstruct::DetermineBasePairing() {
                 BP.opening_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
                 md.SetAspect("hb");
                 BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
+                md.SetAspect("bp");
+                BP.isBP_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
                 if (grooveCalcType_ == PP_OO) {
                   md.SetAspect("major");
                   BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
@@ -660,10 +836,9 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
   basepairaxesfile.OpenWrite("basepairaxes.pdb");
   mprintf("\n=================== Determine BP Parameters ===================\n");
 # endif
-
   for (BPmap::iterator it = BasePairs_.begin(); it != BasePairs_.end(); ++it)
   {
-    if (it->second.nhb_ < 1) continue;
+    if (it->second.nhb_ < 1 && skipIfNoHB_) continue;
     BPtype& BP = it->second;
     int b1 = BP.base1idx_;
     int b2 = BP.base2idx_;
@@ -707,8 +882,6 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
       BP.major_->Add(frameNum, &dPtoP);
       BP.minor_->Add(frameNum, &dOtoO);
     }
-    base1.CalcPucker( frameNum, puckerMethod_ );
-    base2.CalcPucker( frameNum, puckerMethod_ );
     //mprintf("\n");
     // Calc BP parameters, set up basepair axes
     //calculateParameters(BaseAxes[base1],BaseAxes[base2],&BasePairAxes[nbasepair],Param);
@@ -733,11 +906,17 @@ int Action_NAstruct::DeterminePairParameters(int frameNum) {
     BP.prop_->Add(frameNum, &prop);
     BP.buckle_->Add(frameNum, &buckle);
     BP.hbonds_->Add(frameNum, &(BP.n_wc_hb_));
+    static const int ONE = 1;
+    if (BP.nhb_ > 0)
+      BP.isBP_->Add(frameNum, &ONE);
 #   ifdef NASTRUCTDEBUG
     // DEBUG - write base pair axes
     WriteAxes(basepairaxesfile, b1+1, base1.ResName(), BP.bpaxis_);
 #   endif
   }
+  // Calculate base parameters.
+  for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base)
+    base->CalcPucker( frameNum, puckerMethod_ );
 
   return 0;
 }
@@ -759,6 +938,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
   //   base3 -- base4
   for (BPmap::const_iterator bp1 = BasePairs_.begin(); bp1 != BasePairs_.end(); ++bp1) {
     BPtype const& BP1 = bp1->second;
+    if (BP1.nhb_ < 1 && skipIfNoHB_) continue; // Base pair not valid this frame.
     NA_Base const& base1 = Bases_[BP1.base1idx_];
     NA_Base const& base2 = Bases_[BP1.base2idx_];
     
@@ -772,7 +952,7 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
     if (idx1 != -1 && idx2 != -1) {
       Rpair respair(Bases_[idx1].ResNum(), Bases_[idx2].ResNum());
       BPmap::const_iterator bp2 = BasePairs_.find( respair );
-      if (bp2 != BasePairs_.end()) {
+      if (bp2 != BasePairs_.end() && (bp2->second.nhb_ > 0 || !skipIfNoHB_)) {
         BPtype const& BP2 = bp2->second;
         NA_Base const& base3 = Bases_[BP2.base1idx_];
         NA_Base const& base4 = Bases_[BP2.base2idx_];
@@ -787,43 +967,10 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
         // Base pair step. Try to find existing base pair step.
         StepMap::iterator entry = Steps_.find( steppair );
         if (entry == Steps_.end()) {
-          MetaData md(dataname_, Steps_.size() + 1); // Name, index
-          md.SetLegend( base1.BaseName()+base2.BaseName()+"-"+
-                        base3.BaseName()+base4.BaseName() );
           // New base pair step
           StepType BS;
-          md.SetAspect("shift");
-          BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("slide");
-          BS.slide_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("rise");
-          BS.rise_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("tilt");
-          BS.tilt_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("roll");
-          BS.roll_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("twist");
-          BS.twist_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("xdisp");
-          BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("ydisp");
-          BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("hrise");
-          BS.hrise_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("incl");
-          BS.incl_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("tip");
-          BS.tip_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("htwist");
-          BS.htwist_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          md.SetAspect("zp");
-          BS.Zp_     = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-          BS.b1idx_ = BP1.base1idx_;
-          BS.b2idx_ = BP1.base2idx_;
-          BS.b3idx_ = BP2.base1idx_;
-          BS.b4idx_ = BP2.base2idx_;
-          BS.majGroove_ = 0;
-          BS.minGroove_ = 0;
+          MetaData md = NewStepType(BS, BP1.base1idx_, BP1.base2idx_,
+                                        BP2.base1idx_, BP2.base2idx_, Steps_.size()+1);
           // H-C groove width calc setup
           if (grooveCalcType_ == HASSAN_CALLADINE) {
             // Major groove
@@ -950,163 +1097,6 @@ int Action_NAstruct::DetermineStepParameters(int frameNum) {
   return 0;
 }
 // ----------------------------------------------------------------------------
-
-// Action_NAstruct::Init()
-Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
-{
-# ifdef MPI
-  trajComm_ = init.TrajComm();
-# endif
-  debug_ = debugIn;
-  masterDSL_ = init.DslPtr();
-  // Get keywords
-  std::string outputsuffix = actionArgs.GetStringKey("naout");
-  if (!outputsuffix.empty()) {
-    // Set up output files.
-    FileName FName( outputsuffix );
-    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
-    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
-    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
-    if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
-  }
-  double hbcut = actionArgs.getKeyDouble("hbcut", -1);
-  if (hbcut > 0) 
-    HBdistCut2_ = hbcut * hbcut;
-  double origincut = actionArgs.getKeyDouble("origincut", -1);
-  if (origincut > 0)
-    originCut2_ = origincut * origincut;
-  double zcut = actionArgs.getKeyDouble("zcut", -1);
-  if (zcut > 0)
-    staggerCut_ = zcut;
-  double zanglecut_deg = actionArgs.getKeyDouble("zanglecut", -1);
-  if (zanglecut_deg > 0)
-    z_angle_cut_ = zanglecut_deg * Constants::DEGRAD;
-  std::string groovecalc = actionArgs.GetStringKey("groovecalc");
-  if (!groovecalc.empty()) {
-    if (groovecalc == "simple") grooveCalcType_ = PP_OO;
-    else if (groovecalc == "3dna") grooveCalcType_ = HASSAN_CALLADINE;
-    else {
-      mprinterr("Error: Invalid value for 'groovecalc' %s; expected simple or 3dna.\n",
-                groovecalc.c_str());
-      return Action::ERR;
-    }
-  } else
-    grooveCalcType_ = PP_OO;
-  if      (actionArgs.hasKey("altona")) puckerMethod_=NA_Base::ALTONA;
-  else if (actionArgs.hasKey("cremer")) puckerMethod_=NA_Base::CREMER;
-  // Get residue range
-  resRange_.SetRange(actionArgs.GetStringKey("resrange"));
-  if (!resRange_.Empty())
-    resRange_.ShiftBy(-1); // User res args start from 1
-  printheader_ = !actionArgs.hasKey("noheader");
-  // Reference for setting up basepairs
-  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
-  if (REF.error()) return Action::ERR;
-  if (!REF.empty()) 
-    useReference_ = true;
-
-  // Get custom residue maps
-  ArgList maplist;
-  NA_Base::NAType mapbase;
-  while ( actionArgs.Contains("resmap") ) {
-    // Split maparg at ':'
-    maplist.SetList( actionArgs.GetStringKey("resmap"), ":" );
-    // Expect only 2 args
-    if (maplist.Nargs()!=2) {
-      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
-                maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Check that second arg is A,C,G,T,or U
-    if      (maplist[1] == "A") mapbase = NA_Base::ADE;
-    else if (maplist[1] == "C") mapbase = NA_Base::CYT;
-    else if (maplist[1] == "G") mapbase = NA_Base::GUA;
-    else if (maplist[1] == "T") mapbase = NA_Base::THY;
-    else if (maplist[1] == "U") mapbase = NA_Base::URA;
-    else {
-      mprinterr("Error: resmap format should be '<ResName>:{A,C,G,T,U}' (%s)\n",
-                maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Check that residue name is <= 4 chars
-    std::string resname = maplist[0]; 
-    if (resname.size() > 4) {
-      mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
-      return Action::ERR;
-    }
-    // Format residue name
-    // TODO: Use NameType in map
-    NameType mapresname = resname;
-    resname.assign( *mapresname );
-    mprintf("\tCustom Map: [%s]\n",resname.c_str());
-    //maplist.PrintList();
-    // Add to CustomMap
-    ResMapType::iterator customRes = CustomMap_.find(resname);
-    if (customRes != CustomMap_.end()) {
-      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
-    } else {
-      CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
-    }
-  }
-  // Get Masks
-  // DataSet name
-  dataname_ = actionArgs.GetStringNext();
-
-  mprintf("    NAstruct: ");
-  if (resRange_.Empty())
-    mprintf("Scanning all NA residues\n");
-  else
-    mprintf("Scanning residues %s\n",resRange_.RangeArg());
-  if (bpout_ != 0) {
-    mprintf("\tBase pair parameters written to %s\n", bpout_->Filename().full());
-    mprintf("\tBase pair step parameters written to %s\n", stepout_->Filename().full());
-    mprintf("\tHelical parameters written to %s\n", helixout_->Filename().full());
-    if (!printheader_) mprintf("\tHeader line will not be written.\n");
-  }
-  mprintf("\tHydrogen bond cutoff for determining base pairs is %.2f Angstroms.\n",
-          sqrt( HBdistCut2_ ) );
-  mprintf("\tBase reference axes origin cutoff for determining base pairs is %.2f Angstroms.\n",
-          sqrt( originCut2_ ) );
-  mprintf("\tBase Z height cutoff (stagger) for determining base pairs is %.2f Angstroms.\n",
-          staggerCut_);
-  mprintf("\tBase Z angle cutoff for determining base pairs is %.2f degrees.\n",
-          z_angle_cut_ * Constants::RADDEG);
-  // Use reference to determine base pairing
-  if (useReference_) {
-    mprintf("\tUsing reference %s to determine base-pairing.\n", REF.refName());
-    ActionSetup ref_setup(REF.ParmPtr(), REF.CoordsInfo(), 1);
-    if (Setup( ref_setup )) return Action::ERR;
-    // Set up base axes
-    if ( SetupBaseAxes(REF.Coord()) ) return Action::ERR;
-    // Determine Base Pairing
-    if ( DetermineBasePairing() ) return Action::ERR;
-    mprintf("\tSet up %zu base pairs.\n", BasePairs_.size() ); 
-  } else
-    mprintf("\tUsing first frame to determine base pairing.\n");
-  if (puckerMethod_==NA_Base::ALTONA)
-    mprintf("\tCalculating sugar pucker using Altona & Sundaralingam method.\n");
-  else if (puckerMethod_==NA_Base::CREMER)
-    mprintf("\tCalculating sugar pucker using Cremer & Pople method.\n");
-  if (grooveCalcType_ == PP_OO)
-    mprintf("\tUsing simple groove width calculation (P-P and O-O base pair distances).\n");
-  else if (grooveCalcType_ == HASSAN_CALLADINE)
-    mprintf("\tUsing groove width calculation of El Hassan & Calladine.\n");
-  mprintf("# Citations: Babcock MS; Pednault EPD; Olson WK; \"Nucleic Acid Structure\n"
-          "#             Analysis: Mathematics for Local Cartesian and Helical Structure\n"
-          "#             Parameters That Are Truly Comparable Between Structures\",\n"
-          "#             J. Mol. Biol. (1994) 237, 125-156.\n"
-          "#            Olson WK; Bansal M; Burley SK; Dickerson RE; Gerstein M;\n"
-          "#             Harvey SC; Heinemann U; Lu XJ; Neidle S; Shekked Z; Sklenar H;\n"
-          "#             Suzuki M; Tung CS; Westhof E; Wolberger C; Berman H; \"A Standard\n"
-          "#             Reference Frame for the Description of Nucleic Acid Base-pair\n"
-          "#             Geometry\", J. Mol. Biol. (2001) 313, 229-237.\n");
-  if (grooveCalcType_ == HASSAN_CALLADINE)
-    mprintf("#            El Hassan MA; Calladine CR; \"Two Distinct Modes of\n"
-            "#             Protein-induced Bending in DNA.\"\n"
-            "#             J. Mol. Biol. (1998) 282, 331-343.\n");
-  init.DSL().SetDataSetsPending(true);
-  return Action::OK;
-}
 
 /** Starting at atom, try to travel phosphate backbone to atom in next res.
   * \return Atom # of atom in next residue or -1 if no next residue.
@@ -1253,47 +1243,59 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
+// Action_NAstruct::CalculateHbonds()
+void Action_NAstruct::CalculateHbonds() {
+  for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
+    BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
+                                BP->second.n_wc_hb_);
+}
+
 // Action_NAstruct::DoAction()
 Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
-  // Set up base axes
-  if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
-
-  if (!useReference_) {
-    // Determine Base Pairing based on first frame
+# ifdef NASTRUCTDEBUG
+  mprintf("NASTRUCTDEBUG: Frame %i\n", frameNum);
+# endif
+  if ( findBPmode_ == REFERENCE ) {
+    // Base pairs have been determined by a reference. Just set up base axes
+    // and calculate number of hydrogen bonds.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    CalculateHbonds();
+  } else if ( findBPmode_ == ALL ) {
+    // Base pairs determined for each individual frame. Hydrogen bonds are 
+    // calculated as part of determining base pairing.
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
+    if ( DetermineBasePairing() ) return Action::ERR;
+  } else { // FIRST
+    // Base pairs determined from the first frame.
 #   ifdef MPI
-    // Ensure all threads set up base axes for base pair determination
-    // from first frame on master.
+    // Ensure all threads set up base axes for base pair determinination
+    // from the first frame on master.
     int err = 0;
     if (trajComm_.Master()) { // TODO MasterBcast?
       for (int rank = 1; rank < trajComm_.Size(); rank++)
         frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
+      err = SetupBaseAxes(frm.Frm());
+      if (err==0) err = DetermineBasePairing();
     } else {
       Frame refFrame = frm.Frm();
       refFrame.RecvFrame(0, trajComm_);
       err = SetupBaseAxes( refFrame );
       if (err != 0)
         rprinterr("Error: Could not sync nastruct reference first frame.\n");
+      else {
+        err = DetermineBasePairing();
+        // Now re-set up base axes from current frame on non-master
+        if (err == 0) err = SetupBaseAxes( frm.Frm() );
+        // # hbonds currently based on reference; re-calc for current frame.
+        if (err == 0) CalculateHbonds();
+      }
     }
-    if (trajComm_.CheckError( err ))
-      return Action::ERR;
-#   endif
+    if (trajComm_.CheckError( err )) return Action::ERR;
+#   else
+    if ( SetupBaseAxes(frm.Frm()) ) return Action::ERR;
     if ( DetermineBasePairing() ) return Action::ERR;
-    useReference_ = true;
-#   ifdef MPI
-    // Now re-set up base axes from current frame on non-master.
-    if (!trajComm_.Master()) {
-      SetupBaseAxes( frm.Frm() );
-      // # hbonds currently based on reference; re-calc for current frame.
-      for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
-        BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
-                                    BP->second.n_wc_hb_);
-    }
 #   endif
-  } else {
-    // Base pairing determined from ref. Just calc # hbonds for each pair.
-    for (BPmap::iterator BP = BasePairs_.begin(); BP != BasePairs_.end(); ++BP)
-      BP->second.nhb_ = CalcNumHB(Bases_[BP->second.base1idx_], Bases_[BP->second.base2idx_],
-                                  BP->second.n_wc_hb_);
+    findBPmode_ = REFERENCE;
   }
 
   // Determine base parameters
@@ -1305,6 +1307,7 @@ Action::RetType Action_NAstruct::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 } 
 
+// UpdateTimeSeries()
 static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   if (ds != 0) {
     if (ds->Type() == DataSet::FLOAT) {
@@ -1317,19 +1320,239 @@ static inline void UpdateTimeSeries(unsigned int nframes_, DataSet_1D* ds) {
   }
 }
 
+// Action_NAstruct::NewStepType()
+MetaData Action_NAstruct::NewStepType( StepType& BS, int BP1_1, int BP1_2, int BP2_1, int BP2_2,
+                                       int idx ) const
+{
+  // New base pair step
+  MetaData md(dataname_, idx);
+  md.SetLegend( Bases_[BP1_1].BaseName() + Bases_[BP1_2].BaseName() + "-" +
+                Bases_[BP2_1].BaseName() + Bases_[BP2_2].BaseName() );
+  md.SetAspect("shift");
+  BS.shift_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("slide");
+  BS.slide_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("rise");
+  BS.rise_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("tilt");
+  BS.tilt_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("roll");
+  BS.roll_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("twist");
+  BS.twist_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("xdisp");
+  BS.xdisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("ydisp");
+  BS.ydisp_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("hrise");
+  BS.hrise_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("incl");
+  BS.incl_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("tip");
+  BS.tip_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("htwist");
+  BS.htwist_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  md.SetAspect("zp");
+  BS.Zp_     = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+  BS.b1idx_ = BP1_1;
+  BS.b2idx_ = BP1_2;
+  BS.b3idx_ = BP2_1;
+  BS.b4idx_ = BP2_2;
+  BS.majGroove_ = 0;
+  BS.minGroove_ = 0;
+  return md;
+}
+
 #ifdef MPI
+void Action_NAstruct::NA_Sync( DataSet_1D* dsIn, std::vector<int> const& rank_offsets,
+                               std::vector<int> const& rank_frames, int rank, int in ) const
+{
+  if (dsIn == 0) return;
+  //rprintf("Calling sync for '%s'\n", dsIn->legend());
+  DataSet_float& DS = static_cast<DataSet_float&>( *dsIn );
+  if (trajComm_.Master()) { //TODO put this inside DataSet_float?
+    DS.Resize( nframes_ );
+    float* d_beg = DS.Ptr() + rank_offsets[ rank ];
+    //mprintf("\tResizing nastruct series data to %i, starting frame %i, # frames %i\n",
+    //        nframes_, rank_offsets[rank], rank_frames[rank]);
+    trajComm_.Recv( d_beg,    rank_frames[ rank ], MPI_FLOAT, rank, 1501 + in );
+  } else {
+    trajComm_.Send( DS.Ptr(), DS.Size(),           MPI_FLOAT, 0,    1501 + in );
+  }
+  dsIn->SetNeedsSync( false );
+}
+
+// Action_NAstruct::SyncAction()
 int Action_NAstruct::SyncAction() {
   // Make sure all time series are updated at this point.
   UpdateSeries();
+  // TODO consolidate # frames / offset calc code with Action_Hbond
   // Get total number of frames
-  int total_frames = 0;
-  trajComm_.Reduce( &total_frames, &nframes_, 1, MPI_INT, MPI_SUM );
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &nframes_, 1, MPI_INT, &rank_frames[0] );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      nframes_ += rank_frames[rank];
+  }
+  // Convert rank frames to offsets.
+  std::vector<int> rank_offsets( trajComm_.Size(), 0 );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
+  }
+  //rprinterr("DEBUG: Number base pairs: %zu\n", BasePairs_.size());
+  //rprinterr("DEBUG: Number base pair steps: %zu\n", Steps_.size());
+  // Since base pair steps are generated after base pair parameters are
+  // calculated, the number of steps and/or the set ordering in the master
+  // DataSetList may be different on different ranks. Assume that Bases_
+  // and BasePairs_ are the same.
+  // Need to know how many steps on each thread
+  int num_steps = (int)Steps_.size();
+  std::vector<int> nsteps_on_rank;
   if (trajComm_.Master())
-    nframes_ = total_frames;
+    nsteps_on_rank.resize( trajComm_.Size() );
+  trajComm_.GatherMaster( &num_steps, 1, MPI_INT, &nsteps_on_rank[0] );
+  // bpidx1, bpidx2, b1idx, b2idx, b3idx, b4idx, groove(0=none, 1=maj, 2=min, 3=both)
+  const int iSize = 7;
+  std::vector<int> iArray;
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++) {
+      if (nsteps_on_rank[rank] > 0) {
+        //mprintf("DEBUG:\tReceiving %i steps from rank %i.\n", nsteps_on_rank[rank], rank);
+        iArray.resize( iSize * nsteps_on_rank[rank] );
+        trajComm_.Recv( &iArray[0], iArray.size(), MPI_INT, rank, 1500 );
+        int ii = 0;
+        for (int in = 0; in != nsteps_on_rank[rank]; in++, ii += iSize) {
+          Rpair steppair( iArray[ii], iArray[ii+1] );
+          StepMap::iterator entry = Steps_.find( steppair );
+          if (entry == Steps_.end()) {
+            // New base pair step
+            //mprintf("NEW BASE PAIR STEP: %i %i\n", iArray[0], iArray[1]);
+            StepType BS;
+            MetaData md = NewStepType( BS, iArray[2], iArray[3],
+                                           iArray[4], iArray[5], Steps_.size()+1 );
+            // Groove width: iArray[6]=(0=none, 1=maj, 2=min, 3=both)
+            if (grooveCalcType_ == HASSAN_CALLADINE && iArray[6] > 0) {
+              MetaData md = BS.shift_->Meta();
+              if (iArray[6] == 1 || iArray[6] == 3) {
+                md.SetAspect("major");
+                BS.majGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              }
+              if (iArray[6] == 2 || iArray[6] == 3) {
+                md.SetAspect("minor");
+                BS.minGroove_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
+              }
+            }
+            entry = Steps_.insert( entry, std::pair<Rpair, StepType>(steppair, BS) ); // FIXME does entry make more efficient?
+          }
+          //else mprintf("EXISTING BASE PAIR STEP: %i %i\n", entry->first.first, entry->first.second);
+          // Synchronize all step data sets from rank.
+          NA_Sync( entry->second.shift_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.slide_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.rise_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.tilt_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.roll_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.twist_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.xdisp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.ydisp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.hrise_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.incl_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.tip_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.htwist_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.Zp_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.majGroove_, rank_offsets, rank_frames, rank, in );
+          NA_Sync( entry->second.minGroove_, rank_offsets, rank_frames, rank, in );
+        } // END master loop over steps from rank
+      }
+    } // END master loop over ranks
+    // At this point we have all step sets from all ranks. Mark all step sets
+    // smaller than nframes_ as synced and ensure the time series has been
+    // updated to reflect overall # frames.
+    for (StepMap::iterator step = Steps_.begin(); step != Steps_.end(); ++step) {
+      if ((int)step->second.shift_->Size() < nframes_) {
+        step->second.shift_->SetNeedsSync(false);
+        step->second.slide_->SetNeedsSync(false);
+        step->second.rise_->SetNeedsSync(false);
+        step->second.tilt_->SetNeedsSync(false);
+        step->second.roll_->SetNeedsSync(false);
+        step->second.twist_->SetNeedsSync(false);
+        step->second.xdisp_->SetNeedsSync(false);
+        step->second.ydisp_->SetNeedsSync(false);
+        step->second.hrise_->SetNeedsSync(false);
+        step->second.incl_->SetNeedsSync(false);
+        step->second.tip_->SetNeedsSync(false);
+        step->second.htwist_->SetNeedsSync(false);
+        step->second.Zp_->SetNeedsSync(false);
+        UpdateTimeSeries(nframes_, step->second.shift_);
+        UpdateTimeSeries(nframes_, step->second.slide_);
+        UpdateTimeSeries(nframes_, step->second.rise_);
+        UpdateTimeSeries(nframes_, step->second.tilt_);
+        UpdateTimeSeries(nframes_, step->second.roll_);
+        UpdateTimeSeries(nframes_, step->second.twist_);
+        UpdateTimeSeries(nframes_, step->second.xdisp_);
+        UpdateTimeSeries(nframes_, step->second.ydisp_);
+        UpdateTimeSeries(nframes_, step->second.hrise_);
+        UpdateTimeSeries(nframes_, step->second.incl_);
+        UpdateTimeSeries(nframes_, step->second.tip_);
+        UpdateTimeSeries(nframes_, step->second.htwist_);
+        UpdateTimeSeries(nframes_, step->second.Zp_);
+        if (step->second.majGroove_!=0) {
+          step->second.majGroove_->SetNeedsSync(false);
+          UpdateTimeSeries(nframes_, step->second.majGroove_);
+        }
+        if (step->second.minGroove_!=0) {
+          step->second.minGroove_->SetNeedsSync(false);
+          UpdateTimeSeries(nframes_, step->second.minGroove_);
+        }
+      }
+    }
+  } else {
+    if (Steps_.size() > 0) {
+      iArray.reserve( iSize * Steps_.size() );
+      for (StepMap::const_iterator step = Steps_.begin(); step != Steps_.end(); ++step) {
+        iArray.push_back( step->first.first );
+        iArray.push_back( step->first.second );
+        iArray.push_back( step->second.b1idx_ );
+        iArray.push_back( step->second.b2idx_ );
+        iArray.push_back( step->second.b3idx_ );
+        iArray.push_back( step->second.b4idx_ );
+        // groove(0=none, 1=maj, 2=min, 3=both)
+        if ( step->second.majGroove_ != 0 && step->second.minGroove_ != 0 )
+          iArray.push_back( 3 );
+        else if ( step->second.minGroove_ != 0)
+          iArray.push_back( 2 );
+        else if ( step->second.majGroove_ != 0)
+          iArray.push_back( 1 );
+        else
+          iArray.push_back( 0 );
+      }
+      trajComm_.Send( &iArray[0], iArray.size(), MPI_INT, 0, 1500 );
+      // Send step data to master.
+      int in = 0;
+      for (StepMap::const_iterator step = Steps_.begin(); step != Steps_.end(); ++step, ++in) {
+        NA_Sync( step->second.shift_, rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.slide_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.rise_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.tilt_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.roll_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.twist_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.xdisp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.ydisp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.hrise_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.incl_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.tip_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.htwist_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.Zp_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.majGroove_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+        NA_Sync( step->second.minGroove_ , rank_offsets, rank_frames, trajComm_.Rank(), in );
+      }
+    }
+  }
   return 0;
 }
 #endif
 
+// Action_NAstruct::UpdateSeries()
 void Action_NAstruct::UpdateSeries() {
   if (seriesUpdated_) return;
   if (nframes_ > 0) {
@@ -1343,6 +1566,7 @@ void Action_NAstruct::UpdateSeries() {
       UpdateTimeSeries( nframes_, BP.prop_ );
       UpdateTimeSeries( nframes_, BP.opening_ );
       UpdateTimeSeries( nframes_, BP.hbonds_ );
+      UpdateTimeSeries( nframes_, BP.isBP_ );
       UpdateTimeSeries( nframes_, BP.major_ );
       UpdateTimeSeries( nframes_, BP.minor_ );
       UpdateTimeSeries( nframes_, Bases_[BP.base1idx_].Pucker() );
@@ -1372,6 +1596,12 @@ void Action_NAstruct::UpdateSeries() {
   seriesUpdated_ = true;
 }
 
+// Output Format Strings
+static const char* BP_OUTPUT_FMT = "%8i %8i %8i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %2.0f %2.0f";
+static const char* GROOVE_FMT = " %10.4f %10.4f";
+static const char* HELIX_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+static const char* STEP_OUTPUT_FMT = "%8i %4i-%-4i %4i-%-4i %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f";
+
 // Action_NAstruct::Print()
 void Action_NAstruct::Print() {
   if (bpout_ == 0) return;
@@ -1386,9 +1616,9 @@ void Action_NAstruct::Print() {
             bpout_->Filename().full(), nframes_, BasePairs_.size());
     //  File header
     if (printheader_) {
-      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s",
+      bpout_->Printf("%-8s %8s %8s %10s %10s %10s %10s %10s %10s %2s %2s",
                      "#Frame","Base1","Base2", "Shear","Stretch","Stagger",
-                     "Buckle","Propeller","Opening", "HB");
+                     "Buckle","Propeller","Opening", "BP", "HB");
       if (grooveCalcType_ == PP_OO)
         bpout_->Printf(" %10s %10s", "Major", "Minor");
       bpout_->Printf("\n");
@@ -1404,7 +1634,7 @@ void Action_NAstruct::Print() {
                        BP.shear_->Dval(frame),   BP.stretch_->Dval(frame),
                        BP.stagger_->Dval(frame), BP.buckle_->Dval(frame),
                        BP.prop_->Dval(frame),    BP.opening_->Dval(frame),
-                       BP.hbonds_->Dval(frame));
+                       BP.isBP_->Dval(frame),    BP.hbonds_->Dval(frame));
         if (grooveCalcType_ == PP_OO) 
           bpout_->Printf(GROOVE_FMT, BP.major_->Dval(frame), BP.minor_->Dval(frame));
         bpout_->Printf("\n");
@@ -1424,8 +1654,8 @@ void Action_NAstruct::Print() {
             nframes_, Steps_.size() - 1);
     // Base pair step frames
     if (printheader_) {
-      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
-                     "Shift","Slide","Rise","Tilt","Roll","Twist");
+      stepout_->Printf("%-8s %-9s %-9s %10s %10s %10s %10s %10s %10s %10s","#Frame","BP1","BP2",
+                     "Shift","Slide","Rise","Tilt","Roll","Twist","Zp");
       if (grooveCalcType_ == HASSAN_CALLADINE)
         stepout_->Printf(" %10s %10s\n", "Major", "Minor");
       stepout_->Printf("\n");
@@ -1435,12 +1665,13 @@ void Action_NAstruct::Print() {
       {
         StepType const& BS = it->second;
         // BPstep write
-        stepout_->Printf(NA_OUTPUT_FMT, frame+1, 
+        stepout_->Printf(STEP_OUTPUT_FMT, frame+1, 
                        Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
                        Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
                        BS.shift_->Dval(frame), BS.slide_->Dval(frame),
                        BS.rise_->Dval(frame),  BS.tilt_->Dval(frame),
-                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame));
+                       BS.roll_->Dval(frame),  BS.twist_->Dval(frame),
+                       BS.Zp_->Dval(frame));
         if (grooveCalcType_ == HASSAN_CALLADINE) {
           if (BS.majGroove_ == 0)
             stepout_->Printf(" %10s", "----");
@@ -1464,7 +1695,7 @@ void Action_NAstruct::Print() {
       {
         StepType const& BS = it->second;
         // Helix write
-        helixout_->Printf(NA_OUTPUT_FMT, frame+1,
+        helixout_->Printf(HELIX_OUTPUT_FMT, frame+1,
                           Bases_[BS.b1idx_].ResNum()+1, Bases_[BS.b2idx_].ResNum()+1,
                           Bases_[BS.b3idx_].ResNum()+1, Bases_[BS.b4idx_].ResNum()+1,
                           BS.xdisp_->Dval(frame), BS.ydisp_->Dval(frame),

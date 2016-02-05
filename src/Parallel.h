@@ -17,6 +17,23 @@
 /** NOTE: I have decided to use a class instead of a namespace to have the
   *       option of making things private. Not sure if that is really
   *       necessary.
+  * Send/Receive Tags: All Comm Send()/Recv() tags should be noted here in order.
+  *     1212  : Frame::X_
+  *     1213  : Frame::box_
+  *     1214  : Frame::T_
+  *     1215  : Frame::V_
+  *     1216  : Frame::remd_indices_
+  *     1217  : Frame::time_
+  *     1218  : Frame::F_
+  *     1234  : Used by Parallel::SendMaster()
+  *     1300  : Action_Hbond: Array containing hbond double info on rank.
+  *     1301  :   Array containing hbond integer info on rank.
+  *     1302  :   Number of bridges to expect from rank.
+  *     1303  :   Array containing bridge integer info on rank.
+  *     1304+X:   Array of hbond X series info from rank.
+  *     1400+X: Action_AtomicCorr: Atomic movement vectors
+  *     1500  : Action_NAstruct: Array containing BP step info on rank.
+  *     1501+X:   Array of step series data from rank.
   */
 class Parallel {
   public:
@@ -72,15 +89,24 @@ class Parallel::Comm {
     MPI_Comm MPIcomm() const { return comm_; }
     bool IsNull() const { return comm_ == MPI_COMM_NULL; }
     void Barrier() const;
+    /// Split this Comm into a new Comm, give current rank the given ID
     Comm Split(int) const;
     void Reset();
+    /// RecvBuffer, SendBuffer, Count, DataType, Op
     int Reduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// Buffer, Count, Rank, DataType 
     int SendMaster(void*, int, int, MPI_Datatype) const;
+    /// Return, Input, Count, DataType, Op
     int AllReduce(void*, void*, int, MPI_Datatype, MPI_Op) const;
+    /// SendBuffer, Count, DataType, RecvBuffer
     int GatherMaster(void*, int, MPI_Datatype, void*) const;
+    /// SendBuffer, Count, DataType, RecvBuffer
     int AllGather(void*, int, MPI_Datatype, void*) const;
+    /// Buffer, Count, DataType, Destination Rank, Tag
     int Send(void*, int, MPI_Datatype, int, int) const;
+    /// Bufffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
+    /// Buffer, Count, DataType
     int MasterBcast(void*, int, MPI_Datatype) const;
     int CheckError(int) const;
 #   else

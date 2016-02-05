@@ -1,10 +1,12 @@
 #ifdef BINTRAJ
 #ifdef ENABLE_SINGLE_ENSEMBLE
-#include <netcdf.h>
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "Parallel.h"
+#endif
+#include <netcdf.h>
+#ifdef MPI
 # include "ParallelNetcdf.h"
 #endif
 

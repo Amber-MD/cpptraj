@@ -31,7 +31,9 @@ DoTest rmsd.mass.dat.save rmsd.mass.dat
 CheckTest
 
 # Test 3 - 2drms to reference traj
-cat > rms.in <<EOF
+CheckPnetcdf
+if [[ $? -eq 0 ]] ; then
+  cat > rms.in <<EOF
 trajin $CRD 1 10
 trajout ref.nc netcdf
 createcrd crd1
@@ -39,8 +41,9 @@ run
 2drms crdset crd1 :3-7 rmsout rmsd1.dat reftraj ref.nc
 runanalysis
 EOF
-RunCpptraj "2D RMSD Test with reference trajectory."
-DoTest rmsd.dat.save rmsd1.dat
+  RunCpptraj "2D RMSD Test with reference trajectory."
+  DoTest rmsd.dat.save rmsd1.dat
+fi
 
 # Test 4 - DME
 cat > rms.in <<EOF

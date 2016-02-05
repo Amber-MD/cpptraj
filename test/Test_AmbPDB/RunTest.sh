@@ -5,8 +5,12 @@
 CleanFiles out.pdb out.mol2
 
 if [ ! -f "$AMBPDB" ] ; then
-  echo "AMBPDB is not correctly set."
-  exit 1
+  echo "Warning: AMBPDB is not correctly set. Skipping."
+  if [[ ! -z $TEST_RESULTS ]] ; then
+    echo "Warning: AMBPDB is not correctly set. Skipping." >> $TEST_RESULTS
+  fi
+  EndTest
+  exit 0
 else
   $VALGRIND $AMBPDB -p ../tz2.parm7 -c ../tz2.rst7 > out.pdb 2> $ERROR
   DoTest out.pdb.save out.pdb

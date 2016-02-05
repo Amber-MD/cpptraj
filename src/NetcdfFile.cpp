@@ -1,7 +1,7 @@
+#include "NetcdfFile.h"
 #ifdef BINTRAJ
 #  include <netcdf.h>
 #endif
-#include "NetcdfFile.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "Version.h"

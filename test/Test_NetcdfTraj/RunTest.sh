@@ -4,7 +4,11 @@
 
 # Clean
 CleanFiles ptraj_netcdf.in trajectory.netcdf trajectory_test.mdcrd
- 
+CheckPnetcdf
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
 # Convert MDCRD to NETCDF and back again.
 CheckNetcdf
 INPUT="ptraj_netcdf.in"

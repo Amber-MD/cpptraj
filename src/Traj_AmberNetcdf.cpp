@@ -3,8 +3,8 @@
 // netcdf trajectory files used with amber.
 // Dan Roe 10-2008
 // Original implementation of netcdf in Amber by John Mongan.
-#include <netcdf.h>
 #include "Traj_AmberNetcdf.h"
+#include <netcdf.h>
 #include "CpptrajStdio.h"
 #ifdef MPI
 # include "ParallelNetcdf.h"
