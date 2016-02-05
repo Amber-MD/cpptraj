@@ -37,13 +37,13 @@ class Energy_Amber {
     Timer time_14_;
     Timer time_NB_;
 };
+#ifdef USE_SANDERLIB
 class Energy_Sander {
   public:
-#ifdef USE_SANDERLIB
-    Energy_Sander() : top_(0) {}
+    Energy_Sander() : top_pindex_(-1) {}
     ~Energy_Sander();
-    int Initialize(Topology*, Frame&);
-    int CalcEnergy(Topology*, Frame&);
+    int Initialize(Topology const&, Frame&);
+    int CalcEnergy(Topology const&, Frame&);
     double Ebond() const { return energy_.bond; }
     double Eangle() const { return energy_.angle; }
     double Edihedral() const { return energy_.dihedral; }
@@ -54,19 +54,9 @@ class Energy_Sander {
   private:
     sander_input input_;
     pot_ene energy_;
-    Topology* top_;
+    FileName top_filename_;
     std::vector<double> forces_;
-#else
-    Energy_Sander() {}
-    int Initialize(Topology*,Frame&) { return 1; }
-    int CalcEnergy(Topology*,Frame&) { return 1; }
-    double Ebond() const { return 0.0; }
-    double Eangle() const { return 0.0; }
-    double Edihedral() const { return 0.0; }
-    double Evdw14() const { return 0.0; }
-    double Eelec14() const { return 0.0; }
-    double Evdw() const { return 0.0; }
-    double Eelec() const { return 0.0; }
-#endif 
+    int top_pindex_;
 };
+#endif /* USE_SANDERLIB */
 #endif 
