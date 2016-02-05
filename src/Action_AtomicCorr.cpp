@@ -69,6 +69,8 @@ Action::RetType Action_AtomicCorr::Init(ArgList& actionArgs, ActionInit& init, i
   if (trajComm_.Size() > 1)
     mprintf("\nWarning: 'atomiccorr' in parallel will not work correctly if coordinates have\n"
               "Warning:   been modified by previous actions (e.g. 'rms').\n\n");
+  // Since matrix calc only happens in Print(), no sync needed.
+  dset_->SetNeedsSync( false );
 # endif
   return Action::OK;
 }
