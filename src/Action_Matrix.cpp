@@ -155,6 +155,10 @@ Action::RetType Action_Matrix::Init(ArgList& actionArgs, ActionInit& init, int d
       if (matByRes_ == 0) return Action::ERR;
       matByRes_->SetupFormat().SetFormatWidthPrecision(6, 3);
       matByRes_->ModifyDim(Dimension::X).SetLabel("Res");
+#     ifdef MPI
+      // Since by-residue matrix allocated in Print(), no sync needed.
+      matByRes_->SetNeedsSync( false );
+#     endif
     } 
     outfile_ = init.DFL().AddDataFile(outfilename, actionArgs);
     if (outfile_ != 0) {
@@ -815,12 +819,14 @@ Action::RetType Action_Matrix::DoAction(int frameNum, ActionFrame& frm) {
 
 #ifdef MPI
 int Action_Matrix::SyncAction() {
-  if (trajComm_.Master()) {
-    Darray buf( vect2_.size() );
-    trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
-    vect2_ = buf;
-  } else
-    trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+  if (!vect2_.empty()) {
+    if (trajComm_.Master()) {
+      Darray buf( vect2_.size() );
+      trajComm_.Reduce( &(buf[0]), &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+      vect2_ = buf;
+    } else
+      trajComm_.Reduce( 0,         &(vect2_[0]), vect2_.size(), MPI_DOUBLE, MPI_SUM );
+  }
   return 0;
 }
 #endif
