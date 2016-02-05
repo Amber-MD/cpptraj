@@ -22,9 +22,6 @@ void Action_Bounds::Help() const {
 // Action_Bounds::Init()
 Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-# ifdef MPI
-  trajComm_ = init.TrajComm();
-# endif
   outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("out"), "Bounds",
                                  DataFileList::TEXT, true);
   dxyz_[0] = actionArgs.getKeyDouble("dx", -1.0);
@@ -59,6 +56,11 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int d
             "\t  spacings dX= %g  dY= %g  dZ= %g  offset= %i Bins.\n",
             grid_->legend(), dxyz_[0], dxyz_[1], dxyz_[2], offset_);
   }
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  // Since grid is not allocated until Print(), no sync needed.
+  if (grid_ != 0) grid_->SetNeedsSync(false);
+# endif
   return Action::OK;
 }
 
