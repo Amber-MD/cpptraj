@@ -14,7 +14,6 @@ addons:
       - libnetcdf-dev
       - netcdf-bin
       - clang
-      - openmpi
       - openmpi-bin
       - openmpi-common
       - libopenmpi-dev
