@@ -1100,6 +1100,17 @@ Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
   return U;
 }
 
+Vec3 Frame::SetAxisOfRotation(Vec3 const& a0, Vec3 const& a1) {
+  // Calculate vector of axis between two points, which will be the new rot. axis
+  Vec3 U = a1 - a0;
+  // Normalize Vector for axis of rotation or scaling will occur!
+  U.Normalize();
+  // Now the rest of the coordinates need to be translated to match the new 
+  // rotation axis.
+  NegTranslate( a0 );
+  return U;
+}
+
 // Frame::CalculateInertia()
 /** \return Center of mass of coordinates in mask. */
 Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia) const
