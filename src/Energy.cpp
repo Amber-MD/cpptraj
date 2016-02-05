@@ -305,14 +305,14 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
   // ntb set below
   input_.ifqnt = 0;
   input_.jfastw = 1;
-  input_.ntf = 1;
-  input_.ntc = 1;
+  input_.ntf = 2;
+  input_.ntc = 2;
   if (!fIn.BoxCrd().HasBox()) {
     input_.cut = 9999.0;
     input_.igb = 1;
     input_.ntb = 0;
   } else {
-    input_.cut = 10.0;
+    input_.cut = 8.0;
     input_.igb = 0;
     input_.ntb = 1;
   }
