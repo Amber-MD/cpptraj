@@ -7,9 +7,9 @@ Action_Rotate::Action_Rotate() :
   rmatrices_(0), delta_(0.0), mode_(ROTATE), inverse_(false) { }
 
 void Action_Rotate::Help() const {
-  mprintf("\t[<mask>] [inverse] { [x <xdeg>] [y <ydeg>] [z <zdeg>]  |\n"
-          "\t                     axis0 <mask0> axis1 <mask1> <deg> |\n"
-          "\t                     usedata <set name> }\n"
+  mprintf("\t[<mask>] { [x <xdeg>] [y <ydeg>] [z <zdeg>]  |\n"
+          "\t           axis0 <mask0> axis1 <mask1> <deg> |\n"
+          "\t           usedata <set name> [inverse] }\n"
           "  Rotate atoms in <mask> either around the x, y, and/or z axes, around the\n"
           "  the axis defined by <mask0> to <mask1>, or using rotation matrices in\n"
           "  the specified data set.\n");
@@ -18,10 +18,10 @@ void Action_Rotate::Help() const {
 Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   double xrot = 0.0, yrot = 0.0, zrot = 0.0;
-  inverse_ = actionArgs.hasKey("inverse");
   std::string dsname = actionArgs.GetStringKey("usedata");
   std::string axis = actionArgs.GetStringKey("axis0");
   if (!dsname.empty()) {
+    inverse_ = actionArgs.hasKey("inverse");
     // Check if DataSet exists
     rmatrices_ = (DataSet_Mat3x3*)init.DSL().FindSetOfType( dsname, DataSet::MAT3X3 );
     if (rmatrices_ == 0) {
@@ -64,6 +64,7 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
       break;
     case DATASET:
       mprintf("\tUsing rotation matrices from set '%s'\n", rmatrices_->legend());
+      if (inverse_) mprintf("\tPerforming inverse rotation.\n");
       break;
     case AXIS:
       mprintf("\t%f degrees around axis defined by '%s' and '%s'\n",
@@ -71,7 +72,6 @@ Action::RetType Action_Rotate::Init(ArgList& actionArgs, ActionInit& init, int d
       delta_ *= Constants::DEGRAD;
       break;
   }
-  if (inverse_) mprintf("\tPerforming inverse rotation.\n");
   return Action::OK;
 }
 
@@ -98,12 +98,7 @@ Action::RetType Action_Rotate::Setup(ActionSetup& setup) {
 
 Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
   switch (mode_) {
-    case ROTATE:
-      if (inverse_)
-        frm.ModifyFrm().InverseRotate(RotMatrix_, mask_);
-      else
-        frm.ModifyFrm().Rotate(RotMatrix_, mask_);
-      break;
+    case ROTATE : frm.ModifyFrm().Rotate(RotMatrix_, mask_); break;
     case DATASET:
       if (frm.TrajoutNum() >= (int)rmatrices_->Size()) {
         mprintf("Warning: Frame %i out of range for set '%s'\n",
@@ -115,7 +110,7 @@ Action::RetType Action_Rotate::DoAction(int frameNum, ActionFrame& frm) {
       else
         frm.ModifyFrm().Rotate((*rmatrices_)[frm.TrajoutNum()], mask_);
       break;
-    case AXIS:
+    case AXIS   :
       Vec3 a0 = frm.Frm().VCenterOfMass(axis0_);
       Vec3 axisOfRotation = frm.ModifyFrm().SetAxisOfRotation( a0,
                                                                frm.Frm().VCenterOfMass(axis1_) );
