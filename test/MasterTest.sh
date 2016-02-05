@@ -555,7 +555,7 @@ SetBinaries() {
     DIRPREFIX=`dirname $CPPTRAJ`
     AMBPDB=$DIRPREFIX/ambpdb
     if [[ ! -f "$AMBPDB" ]] ; then
-      echo "Warning: ambpdb binary '$AMBPDB' not found."
+      AMBPDB=""
     fi
   fi
 }

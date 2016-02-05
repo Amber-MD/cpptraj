@@ -24,7 +24,5 @@ env:
 install:
     - ./configure $BUILD_FLAGS $COMPILER
     - make -j2 install
-      # Hack to get ambpdb installed with OpenMP/MPI
-    - make -C src ambpdb && mv src/ambpdb bin/
 script:
     - cd test && make test.showerrors
