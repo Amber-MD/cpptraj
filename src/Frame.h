@@ -198,6 +198,8 @@ class Frame {
     double DISTRMSD( Frame const& ) const;
     /// Set axis of rotation to be around line connecting given atoms.
     Vec3 SetAxisOfRotation(int, int);
+    /// Set axis of rotation to be around line connecting given points.
+    Vec3 SetAxisOfRotation(Vec3 const&, Vec3 const&);
     /// Calculate inertia matrix.
     Vec3 CalculateInertia(AtomMask const&, Matrix_3x3&) const;
     /// Calculate temperature of atoms in mask.
