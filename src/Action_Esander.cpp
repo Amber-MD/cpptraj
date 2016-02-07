@@ -107,6 +107,14 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
   SANDER_.CalcEnergy( frm.ModifyFrm() );
 
   Esets_[BOND]->Add(frameNum, SANDER_.EbondPtr());
+  Esets_[ANGLE]->Add(frameNum, SANDER_.EanglePtr());
+  Esets_[DIHEDRAL]->Add(frameNum, SANDER_.EdihedralPtr());
+  Esets_[V14]->Add(frameNum, SANDER_.Evdw14Ptr());
+  Esets_[Q14]->Add(frameNum, SANDER_.Eelec14Ptr());
+  Esets_[VDW]->Add(frameNum, SANDER_.EvdwPtr());
+  Esets_[ELEC]->Add(frameNum, SANDER_.EelecPtr());
+  double totalE = SANDER_.Etotal();
+  Esets_[TOTAL]->Add(frameNum, &totalE);
 
   //Energy_[TOTAL]->Add(frameNum, &Etot);
   //sanderout_.Printf("%8i %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n", frameNum+1,

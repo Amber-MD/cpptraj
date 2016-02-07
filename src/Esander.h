@@ -16,7 +16,18 @@ class Energy_Sander {
     double Eelec14()   const { return energy_.elec_14;  }
     double Evdw()      const { return energy_.vdw;      }
     double Eelec()     const { return energy_.elec;     }
-    const double *EbondPtr()  const { return &(energy_.bond);     }
+    double Etotal()    const {
+      return (energy_.bond + energy_.angle + energy_.dihedral +
+              energy_.vdw_14 + energy_.elec_14 + energy_.vdw +
+              energy_.elec);
+    }
+    const double* EbondPtr()     const { return &(energy_.bond);     }
+    const double* EanglePtr()    const { return &(energy_.angle);    }
+    const double* EdihedralPtr() const { return &(energy_.dihedral); }
+    const double* Evdw14Ptr()    const { return &(energy_.vdw_14);   }
+    const double* Eelec14Ptr()   const { return &(energy_.elec_14);  }
+    const double* EvdwPtr()      const { return &(energy_.vdw);      }
+    const double* EelecPtr()     const { return &(energy_.elec);     }
   private:
     sander_input input_;
     pot_ene energy_;
