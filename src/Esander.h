@@ -8,14 +8,15 @@ class Energy_Sander {
     Energy_Sander() : top_pindex_(-1) {}
     ~Energy_Sander();
     int Initialize(Topology const&, Frame&);
-    int CalcEnergy(Topology const&, Frame&);
-    double Ebond() const { return energy_.bond; }
-    double Eangle() const { return energy_.angle; }
+    int CalcEnergy(Frame&);
+    double Ebond()     const { return energy_.bond;     }
+    double Eangle()    const { return energy_.angle;    }
     double Edihedral() const { return energy_.dihedral; }
-    double Evdw14() const { return energy_.vdw_14; }
-    double Eelec14() const { return energy_.elec_14; }
-    double Evdw() const { return energy_.vdw; }
-    double Eelec() const { return energy_.elec; }
+    double Evdw14()    const { return energy_.vdw_14;   }
+    double Eelec14()   const { return energy_.elec_14;  }
+    double Evdw()      const { return energy_.vdw;      }
+    double Eelec()     const { return energy_.elec;     }
+    const double *EbondPtr()  const { return &(energy_.bond);     }
   private:
     sander_input input_;
     pot_ene energy_;

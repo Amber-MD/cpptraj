@@ -27,6 +27,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
         Action_Energy.cpp \
+        Action_Esander.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
         Action_Gist.cpp \

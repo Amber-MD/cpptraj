@@ -59,11 +59,9 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
   return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
 }
 
-int Energy_Sander::CalcEnergy(Topology const& topIn, Frame& fIn) {
-  if (top_pindex_ == -1 || topIn.Pindex() != top_pindex_) {
-    int err = Initialize(topIn, fIn);
-    if (err != 0) return err;
-  }
+int Energy_Sander::CalcEnergy(Frame& fIn) {
+  if (!is_setup()) return 1;
+
   set_positions( fIn.xAddress() );
   set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
            fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
