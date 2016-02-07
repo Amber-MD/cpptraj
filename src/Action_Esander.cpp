@@ -81,8 +81,7 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
   // Check for LJ terms
   if (!setup.Top().Nonbond().HasNonbond())
   {
-    mprinterr("Error: Nonbonded energy calc requested but topology '%s'\n"
-              "Error:   does not have non-bonded parameters.\n", setup.Top().c_str());
+    mprinterr("Error: Topology '%s' does not have non-bonded parameters.\n", setup.Top().c_str());
     return Action::ERR;
   }
   // If reference specified, init now. Otherwise using first frame.
@@ -119,12 +118,6 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
   AddEne(Energy_Sander::ELEC, frameNum);
   AddEne(Energy_Sander::TOTAL, frameNum);
 
-  //Energy_[TOTAL]->Add(frameNum, &Etot);
-  //sanderout_.Printf("%8i %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n", frameNum+1,
-  //        SANDER_.Ebond(), SANDER_.Eangle(), SANDER_.Edihedral(),
-  //        SANDER_.Evdw14(), SANDER_.Eelec14(), SANDER_.Evdw(), SANDER_.Eelec(),
-  //        SANDER_.Ebond() + SANDER_.Eangle() + SANDER_.Edihedral() +
-  //        SANDER_.Evdw14() + SANDER_.Eelec14() + SANDER_.Evdw() + SANDER_.Eelec());
   return Action::OK;
 # else
   return Action::ERR;
