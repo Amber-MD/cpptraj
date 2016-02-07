@@ -292,6 +292,28 @@ void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }
+
+static inline void dswap(double& d1, double& d2) {
+  double dtemp = d1;
+  d1 = d2;
+  d2 = dtemp;
+}
+
+static inline void bswap(Box::BoxType& b1, Box::BoxType& b2) {
+  Box::BoxType btemp = b1;
+  b1 = b2;
+  b2 = btemp;
+}
+
+void Box::swap(Box& rhs) {
+  bswap( btype_,  rhs.btype_ );
+  dswap( box_[0], rhs.box_[0] );
+  dswap( box_[1], rhs.box_[1] );
+  dswap( box_[2], rhs.box_[2] );
+  dswap( box_[3], rhs.box_[3] );
+  dswap( box_[4], rhs.box_[4] );
+  dswap( box_[5], rhs.box_[5] );
+}
 #ifdef MPI
 int Box::SyncBox(Parallel::Comm const& commIn) {
   commIn.MasterBcast( &btype_, 1, MPI_INT );

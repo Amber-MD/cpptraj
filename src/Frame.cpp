@@ -187,12 +187,7 @@ void Frame::swap(Frame &first, Frame &second) {
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
-  swap( first.box_[0], second.box_[0] );
-  swap( first.box_[1], second.box_[1] );
-  swap( first.box_[2], second.box_[2] );
-  swap( first.box_[3], second.box_[3] );
-  swap( first.box_[4], second.box_[4] );
-  swap( first.box_[5], second.box_[5] );
+  first.box_.swap( second.box_ );
 }
 
 // Frame::operator=()

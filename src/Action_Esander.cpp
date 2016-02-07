@@ -44,8 +44,9 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
   if (setname.empty())
     setname = init.DSL().GenerateDefaultName("ENE");
   Esets_.clear();
-  Esets_.resize( (int)TOTAL + 1, 0 );
-  for (int ie = 0; ie != (int)TOTAL; ie++)
+  int Nsets = (int)TOTAL + 1;
+  Esets_.resize( Nsets, 0 );
+  for (int ie = 0; ie != Nsets; ie++)
     if (AddSet((Etype)ie, init.DSL(), outfile, setname)) return Action::ERR;
       
   mprintf("    ESANDER: Calculating energy using Sander.\n");

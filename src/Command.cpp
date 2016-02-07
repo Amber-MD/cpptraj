@@ -114,6 +114,7 @@
 #include "Action_ReplicateCell.h"
 #include "Action_AreaPerMol.h"
 #include "Action_Energy.h"
+#include "Action_Esander.h"
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
@@ -254,6 +255,7 @@ void Command::Init() {
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
+  Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
   Command::AddCmd( new Action_Gist(),          Cmd::ACT, 1, "gist" );

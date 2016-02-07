@@ -79,11 +79,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
     mprintf(" %s", Cstring[*calc]);
   mprintf("\n");
-# ifdef USE_SANDERLIB
-  sanderout_.OpenWrite("TestEsander.dat");
-  sanderout_.Printf("%-8s %12s %12s %12s %12s %12s %12s %12s %12s\n", "#Frame", "Bond",
-                    "Angle", "Dihedral", "VDW14", "Elec14", "VDW", "Elec", "Total");
-# endif
+
   return Action::OK;
 }
 
@@ -147,15 +143,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
-# ifdef USE_SANDERLIB
-  // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
-  SANDER_.CalcEnergy(*currentParm_, frm.ModifyFrm());
-  sanderout_.Printf("%8i %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n", frameNum+1,
-          SANDER_.Ebond(), SANDER_.Eangle(), SANDER_.Edihedral(),
-          SANDER_.Evdw14(), SANDER_.Eelec14(), SANDER_.Evdw(), SANDER_.Eelec(),
-          SANDER_.Ebond() + SANDER_.Eangle() + SANDER_.Edihedral() +
-          SANDER_.Evdw14() + SANDER_.Eelec14() + SANDER_.Evdw() + SANDER_.Eelec());
-#endif
+
   return Action::OK;
 }
 

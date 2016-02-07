@@ -2,9 +2,6 @@
 #define INC_ACTION_ENERGY_H
 #include "Action.h"
 #include "Energy.h"
-#ifdef USE_SANDERLIB
-#include "Esander.h"
-#endif
 /// Calculate energy 
 class Action_Energy: public Action {
   public:
@@ -29,9 +26,5 @@ class Action_Energy: public Action {
     CharMask Mask1_;               ///< Char mask for all but NB calc
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
-#   ifdef USE_SANDERLIB
-    Energy_Sander SANDER_;
-    CpptrajFile sanderout_;
-#   endif
 };
 #endif
