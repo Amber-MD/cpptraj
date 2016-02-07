@@ -195,7 +195,7 @@ EOF
 }
 
 TestFFTW3() {
-  if [[ -z $FFT_DEPEND ]] ; then
+  if [[ -z $FFT_DEPEND && ! -z $FFT_LIB ]] ; then
     cat > testp.cpp <<EOF
 #include <cstdio>
 #include <fftw3.h>
@@ -888,8 +888,10 @@ fi
 # Flags for libsander
 if [[ ! -z $SANDERLIB ]] ; then
   if [[ ! -z $FFT_DEPEND ]] ; then
-    echo "Error: '-sanderlib' currently requires use of external FFT library ('-fftw3')."
-    exit 1
+    # Just use pubfft that is already in libsander
+    FFT_LIB=""
+    FFT_DEPEND=""
+    FFT_LIBDIR=""
   fi
   DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
   LDFLAGS=$LDFLAGS" $SANDERLIB"
