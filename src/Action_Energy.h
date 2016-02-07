@@ -2,6 +2,9 @@
 #define INC_ACTION_ENERGY_H
 #include "Action.h"
 #include "Energy.h"
+#ifdef USE_SANDERLIB
+#include "Esander.h"
+#endif
 /// Calculate energy 
 class Action_Energy: public Action {
   public:
