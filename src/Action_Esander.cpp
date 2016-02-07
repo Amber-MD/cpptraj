@@ -1,18 +1,10 @@
 #include "Action_Esander.h"
 #include "CpptrajStdio.h"
 
+
+#ifdef USE_SANDERLIB
 // CONSTRUCTOR
 Action_Esander::Action_Esander() : currentParm_(0) {}
-
-
-void Action_Esander::Help() const {
-# ifdef USE_SANDERLIB
-  mprintf("\t[<name>] [out <filename>]\n"
-          "  Calculate energy for atoms in mask using Sander energy routines.\n");
-# else
-  mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
-# endif
-}
 
 /// DataSet aspects
 static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
@@ -25,7 +17,18 @@ int Action_Esander::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
   if (outfile != 0) outfile->AddDataSet( Esets_[typeIn] );
   return 0;
 }
+#else
+Action_Esander::Action_Esander() {}
+#endif
 
+void Action_Esander::Help() const {
+# ifdef USE_SANDERLIB
+  mprintf("\t[<name>] [out <filename>]\n"
+          "  Calculate energy for atoms in mask using Sander energy routines.\n");
+# else
+  mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
+# endif
+}
 // Action_Esander::Init()
 Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
