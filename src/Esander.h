@@ -9,31 +9,23 @@ class Energy_Sander {
     ~Energy_Sander();
     int Initialize(Topology const&, Frame&);
     int CalcEnergy(Frame&);
-    double Ebond()     const { return energy_.bond;     }
-    double Eangle()    const { return energy_.angle;    }
-    double Edihedral() const { return energy_.dihedral; }
-    double Evdw14()    const { return energy_.vdw_14;   }
-    double Eelec14()   const { return energy_.elec_14;  }
-    double Evdw()      const { return energy_.vdw;      }
-    double Eelec()     const { return energy_.elec;     }
-    double Etotal()    const {
-      return (energy_.bond + energy_.angle + energy_.dihedral +
-              energy_.vdw_14 + energy_.elec_14 + energy_.vdw +
-              energy_.elec);
-    }
-    const double* EbondPtr()     const { return &(energy_.bond);     }
-    const double* EanglePtr()    const { return &(energy_.angle);    }
-    const double* EdihedralPtr() const { return &(energy_.dihedral); }
-    const double* Evdw14Ptr()    const { return &(energy_.vdw_14);   }
-    const double* Eelec14Ptr()   const { return &(energy_.elec_14);  }
-    const double* EvdwPtr()      const { return &(energy_.vdw);      }
-    const double* EelecPtr()     const { return &(energy_.elec);     }
+    /// Enumerate different types of energy calcd via libsander
+    enum Etype { TOTAL = 0, VDW, ELEC, GB, BOND, ANGLE, DIHEDRAL, VDW14, ELEC14,
+                 CONSTRAINT, POLAR, HBOND, SURF, SCF, DISP, DVDL, ANGLE_UB,
+                 IMP, CMAP, EMAP, LES, NOE, PB, RISM, CT, AMD_BOOST, N_ENERGYTYPES };
+    /// \return Value of specified energy term.
+    double Energy(Etype) const;
+    /// \return Pointer to specified energy term.
+    const double* Eptr(Etype) const;
+    /// \return DataSet aspect string for given energy term.
+    static std::string Easpect(Etype);
   private:
-    sander_input input_;
-    pot_ene energy_;
-    FileName top_filename_;
-    std::vector<double> forces_;
-    int top_pindex_;
+    static const char* Estring_[];
+    sander_input input_;         ///< Sander input options
+    pot_ene energy_;             ///< Sander energy terms
+    FileName top_filename_;      ///< Current Topology file name
+    std::vector<double> forces_; ///< Force array TODO use Frame
+    int top_pindex_;             ///< Current Topology internal index.
 };
 #endif /* USE_SANDERLIB */
 #endif

@@ -16,10 +16,9 @@ class Action_Esander: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 #   ifdef USE_SANDERLIB
-    /// Corresponds to data sets.
-    enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, TOTAL};
     /// Add energy data set of specified type.
-    int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
+    inline int AddSet(Energy_Sander::Etype, DataSetList&, DataFile*, std::string const&);
+    inline void AddEne(Energy_Sander::Etype, int);
     typedef std::vector<DataSet*> Earray;
     Earray Esets_;          ///< Hold output data sets
     Frame refFrame_;        ///< Hold reference coords for init.

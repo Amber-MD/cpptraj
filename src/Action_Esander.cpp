@@ -6,13 +6,10 @@
 // CONSTRUCTOR
 Action_Esander::Action_Esander() : currentParm_(0) {}
 
-/// DataSet aspects
-static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
-
-int Action_Esander::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
+int Action_Esander::AddSet(Energy_Sander::Etype typeIn, DataSetList& DslIn, DataFile* outfile,
                            std::string const& setname)
 {
-  Esets_[typeIn] = DslIn.AddSet(DataSet::DOUBLE, MetaData(setname, Estring[typeIn]));
+  Esets_[typeIn] = DslIn.AddSet(DataSet::DOUBLE, MetaData(setname, Energy_Sander::Easpect(typeIn)));
   if (Esets_[typeIn] == 0) return 1;
   if (outfile != 0) outfile->AddDataSet( Esets_[typeIn] );
   return 0;
@@ -47,10 +44,10 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
   if (setname.empty())
     setname = init.DSL().GenerateDefaultName("ENE");
   Esets_.clear();
-  int Nsets = (int)TOTAL + 1;
+  int Nsets = (int)Energy_Sander::N_ENERGYTYPES; // TODO only add sets that will be calcd
   Esets_.resize( Nsets, 0 );
   for (int ie = 0; ie != Nsets; ie++)
-    if (AddSet((Etype)ie, init.DSL(), outfile, setname)) return Action::ERR;
+    if (AddSet((Energy_Sander::Etype)ie, init.DSL(), outfile, setname)) return Action::ERR;
       
   mprintf("    ESANDER: Calculating energy using Sander.\n");
   mprintf("\tReference for initialization");
@@ -99,6 +96,10 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
 # endif
 }
 
+void Action_Esander::AddEne(Energy_Sander::Etype t, int fn) {
+  Esets_[t]->Add(fn, SANDER_.Eptr(t));
+}
+
 // Action_Esander::DoAction()
 Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef USE_SANDERLIB
@@ -109,15 +110,14 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
   // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
   SANDER_.CalcEnergy( frm.ModifyFrm() );
 
-  Esets_[BOND]->Add(frameNum, SANDER_.EbondPtr());
-  Esets_[ANGLE]->Add(frameNum, SANDER_.EanglePtr());
-  Esets_[DIHEDRAL]->Add(frameNum, SANDER_.EdihedralPtr());
-  Esets_[V14]->Add(frameNum, SANDER_.Evdw14Ptr());
-  Esets_[Q14]->Add(frameNum, SANDER_.Eelec14Ptr());
-  Esets_[VDW]->Add(frameNum, SANDER_.EvdwPtr());
-  Esets_[ELEC]->Add(frameNum, SANDER_.EelecPtr());
-  double totalE = SANDER_.Etotal();
-  Esets_[TOTAL]->Add(frameNum, &totalE);
+  AddEne(Energy_Sander::BOND, frameNum);
+  AddEne(Energy_Sander::ANGLE, frameNum);
+  AddEne(Energy_Sander::DIHEDRAL, frameNum);
+  AddEne(Energy_Sander::VDW14, frameNum);
+  AddEne(Energy_Sander::ELEC14, frameNum);
+  AddEne(Energy_Sander::VDW, frameNum);
+  AddEne(Energy_Sander::ELEC, frameNum);
+  AddEne(Energy_Sander::TOTAL, frameNum);
 
   //Energy_[TOTAL]->Add(frameNum, &Etot);
   //sanderout_.Printf("%8i %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f %12.4f\n", frameNum+1,
