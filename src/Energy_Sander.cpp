@@ -15,7 +15,7 @@ Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }
 
 const char* Energy_Sander::Estring_[] = {
   "Total", "VDW", "Elec", "GB", "Bond", "Angle", "Dihedral", "VDW14", "Elec14",
-  "Constraint", "Polar", "Hbond", "Surf", "SCF", "Dispersion", "DVDL", "Angle_UB",
+  "Constraint", "Polar", "Hbond", "Surf", "Cavity", "SCF", "Dispersion", "DVDL", "Angle_UB",
   "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", 0
 };
 
@@ -44,7 +44,8 @@ double Energy_Sander::Energy(Etype typeIn) const {
     case CONSTRAINT: return energy_.constraint; // Constraint
     case POLAR: return energy_.polar; // Polarization
     case HBOND: return energy_.hbond; // LJ 10-12 (hydrogen bond)
-    case SURF: return energy_.surf; // Surface area or cavity energy
+    case SURF: 
+    case CAVITY: return energy_.surf; // Surface area or cavity energy
     case SCF: return energy_.scf; // QM/MM SCF energy
     case DISP: return energy_.disp; // implicit solvation dispersion energy
     case DVDL: return energy_.dvdl; // TI charging free energy
@@ -78,7 +79,8 @@ const double* Energy_Sander::Eptr(Etype typeIn) const {
     case CONSTRAINT: return &energy_.constraint;
     case POLAR: return &energy_.polar;
     case HBOND: return &energy_.hbond;
-    case SURF: return &energy_.surf;
+    case SURF:
+    case CAVITY: return &energy_.surf;
     case SCF: return &energy_.scf;
     case DISP: return &energy_.disp;
     case DVDL: return &energy_.dvdl;
@@ -127,7 +129,7 @@ void Energy_Sander::SetDefaultInput() {
   input_.restraintmask[0] = '\0';
 }
  
-/** Set input for Sander. Determine which energy terms will be active. */
+/** Check and set input for Sander.*/
 int Energy_Sander::SetInput(ArgList& argIn) {
   SetDefaultInput();
   input_.extdiel = argIn.getKeyDouble("extdiel", input_.extdiel);
@@ -234,7 +236,7 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
   if (input_.igb > 0) {
     if (input_.igb == 10 || input_.ipb != 0) {
       isActive_[PB] = true;
-      isActive_[SURF] = true;
+      isActive_[CAVITY] = true;
       isActive_[DISP] = true;
     } else {
       isActive_[GB] = true;

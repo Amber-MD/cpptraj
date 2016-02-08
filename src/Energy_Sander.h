@@ -21,7 +21,7 @@ class Energy_Sander {
     int CalcEnergyForces(Frame&);
     /// Enumerate different types of energy calcd via libsander
     enum Etype { TOTAL = 0, VDW, ELEC, GB, BOND, ANGLE, DIHEDRAL, VDW14, ELEC14,
-                 CONSTRAINT, POLAR, HBOND, SURF, SCF, DISP, DVDL, ANGLE_UB,
+                 CONSTRAINT, POLAR, HBOND, SURF, CAVITY, SCF, DISP, DVDL, ANGLE_UB,
                  IMP, CMAP, EMAP, LES, NOE, PB, RISM, CT, AMD_BOOST, N_ENERGYTYPES };
     /// \return Value of specified energy term.
     double Energy(Etype) const;
