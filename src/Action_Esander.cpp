@@ -31,8 +31,9 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
 {
 # ifdef USE_SANDERLIB
   //ENE_.SetDebug( debugIn );
+  Init_ = init;
   // Get keywords
-  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   save_forces_ = actionArgs.hasKey("saveforces");
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
@@ -41,16 +42,13 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
     currentParm_ = REF.ParmPtr();
   }
   if (SANDER_.SetInput( actionArgs )) return Action::ERR;
-  // DataSet
-  std::string setname = actionArgs.GetStringNext();
-  if (setname.empty())
-    setname = init.DSL().GenerateDefaultName("ENE");
+  // DataSet name and array
+  setname_ = actionArgs.GetStringNext();
+  if (setname_.empty())
+    setname_ = init.DSL().GenerateDefaultName("ENE");
   Esets_.clear();
-  int Nsets = (int)Energy_Sander::N_ENERGYTYPES; // TODO only add sets that will be calcd
-  Esets_.resize( Nsets, 0 );
-  for (int ie = 0; ie != Nsets; ie++)
-    if (AddSet((Energy_Sander::Etype)ie, init.DSL(), outfile, setname)) return Action::ERR;
-      
+  Esets_.resize( (int)Energy_Sander::N_ENERGYTYPES, 0 );
+
   mprintf("    ESANDER: Calculating energy using Sander.\n");
   if (save_forces_) mprintf("\tSaving force information to frame.\n");
   mprintf("\tReference for initialization");
@@ -58,15 +56,30 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
     mprintf(" is '%s'\n", REF.refName());
   else
     mprintf(" will be first frame.\n");
-  mprintf("\tCalculating terms:");
-  for (Earray::const_iterator it = Esets_.begin(); it != Esets_.end(); ++it)
-    mprintf(" %s", (*it)->legend());
-  mprintf("\n");
   return Action::OK;
 # else
   mprinterr("Error: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
   return Action::ERR;
 # endif
+}
+
+/** Initialize sander energy for current top/reference, set up data sets. */
+int Action_Esander::InitForRef() {
+  if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return 1;
+  // Set up DataSets
+  int Nsets = (int)Energy_Sander::N_ENERGYTYPES;
+  for (int ie = 0; ie != Nsets; ie++) {
+    Energy_Sander::Etype etype = (Energy_Sander::Etype)ie;
+    if (SANDER_.IsActive( etype )) {
+      if (AddSet( etype, Init_.DSL(), outfile_, setname_ )) return 1;
+    }
+  }
+  mprintf("\tCalculating terms:");
+  for (Earray::const_iterator it = Esets_.begin(); it != Esets_.end(); ++it)
+    if (*it != 0) mprintf(" %s", (*it)->legend());
+  mprintf("\n");
+
+  return 0;
 }
 
 // Action_Esander::Setup()
@@ -89,7 +102,7 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
   }
   // If reference specified, init now. Otherwise using first frame.
   if (currentParm_ != 0 ) {
-    if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return Action::ERR;
+    if ( InitForRef() ) return Action::ERR;
   } else
     currentParm_ = setup.TopAddress();
   // If saving of forces is requested, make sure CoordinateInfo has force.
@@ -108,16 +121,12 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
 # endif
 }
 
-void Action_Esander::AddEne(Energy_Sander::Etype t, int fn) {
-  Esets_[t]->Add(fn, SANDER_.Eptr(t));
-}
-
 // Action_Esander::DoAction()
 Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef USE_SANDERLIB
   if (refFrame_.empty()) {
     refFrame_ = frm.Frm();
-    if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return Action::ERR;
+    if ( InitForRef() ) return Action::ERR;
   }
   if (save_forces_) {
     newFrame_.SetCoordAndBox( frm.Frm() );
@@ -127,14 +136,10 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
     // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
     SANDER_.CalcEnergy( frm.ModifyFrm() );
 
-  AddEne(Energy_Sander::BOND, frameNum);
-  AddEne(Energy_Sander::ANGLE, frameNum);
-  AddEne(Energy_Sander::DIHEDRAL, frameNum);
-  AddEne(Energy_Sander::VDW14, frameNum);
-  AddEne(Energy_Sander::ELEC14, frameNum);
-  AddEne(Energy_Sander::VDW, frameNum);
-  AddEne(Energy_Sander::ELEC, frameNum);
-  AddEne(Energy_Sander::TOTAL, frameNum);
+  for (int ie = 0; ie != (int)Energy_Sander::N_ENERGYTYPES; ie++) {
+    if (Esets_[ie] != 0)
+      Esets_[ie]->Add(frameNum, SANDER_.Eptr((Energy_Sander::Etype)ie));
+  }
 
   return ret_;
 # else

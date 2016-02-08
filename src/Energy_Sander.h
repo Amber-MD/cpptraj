@@ -4,13 +4,18 @@
 #include "Topology.h"
 #include "ArgList.h"
 #include "sander.h"
+/// Cpptraj interface to Sander API
 class Energy_Sander {
   public:
     Energy_Sander() : top_pindex_(-1) {}
     ~Energy_Sander();
+    /// Set input options from ArgList
     int SetInput(ArgList&);
+    /// Initialize for given Topology and Frame
     int Initialize(Topology const&, Frame&);
+    /// Calculate energy for given Frame
     int CalcEnergy(Frame&);
+    /// Calculate energy for given Frame, save forces
     int CalcEnergyForces(Frame&);
     /// Enumerate different types of energy calcd via libsander
     enum Etype { TOTAL = 0, VDW, ELEC, GB, BOND, ANGLE, DIHEDRAL, VDW14, ELEC14,
@@ -22,6 +27,8 @@ class Energy_Sander {
     const double* Eptr(Etype) const;
     /// \return DataSet aspect string for given energy term.
     static std::string Easpect(Etype);
+    /// \return True if corresponding energy term is active
+    bool IsActive(Etype e) const { return isActive_[e]; }
   private:
     void SetDefaultInput();
 
@@ -29,7 +36,8 @@ class Energy_Sander {
     sander_input input_;         ///< Sander input options
     pot_ene energy_;             ///< Sander energy terms
     FileName top_filename_;      ///< Current Topology file name
-    std::vector<double> forces_; ///< Force array TODO use Frame
+    std::vector<double> forces_; ///< Force array
+    std::vector<bool> isActive_; ///< True if corresponding energy term is active.
     int top_pindex_;             ///< Current Topology internal index.
     bool specified_cut_;         ///< 'cut' was specified.
     bool specified_igb_;         ///< 'igb' was specified.

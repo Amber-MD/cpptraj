@@ -24,32 +24,32 @@ std::string Energy_Sander::Easpect(Etype typeIn) {
 // Energy_Sander::Energy()
 double Energy_Sander::Energy(Etype typeIn) const {
   switch (typeIn) {
-    case TOTAL: return energy_.tot;
-    case VDW: return energy_.vdw;
-    case ELEC: return energy_.elec;
-    case GB: return energy_.gb;
-    case BOND: return energy_.bond;
-    case ANGLE: return energy_.angle;
-    case DIHEDRAL: return energy_.dihedral;
-    case VDW14: return energy_.vdw_14;
-    case ELEC14: return energy_.elec_14;
-    case CONSTRAINT: return energy_.constraint;
-    case POLAR: return energy_.polar;
-    case HBOND: return energy_.hbond;
-    case SURF: return energy_.surf;
-    case SCF: return energy_.scf;
-    case DISP: return energy_.disp;
-    case DVDL: return energy_.dvdl;
-    case ANGLE_UB: return energy_.angle_ub;
-    case IMP: return energy_.imp;
-    case CMAP: return energy_.cmap;
-    case EMAP: return energy_.emap;
-    case LES: return energy_.les;
-    case NOE: return energy_.noe;
-    case PB: return energy_.pb;
-    case RISM: return energy_.rism;
-    case CT: return energy_.ct;
-    case AMD_BOOST: return energy_.amd_boost;
+    case TOTAL: return energy_.tot; // Total PE
+    case VDW: return energy_.vdw; // van der Waals
+    case ELEC: return energy_.elec; // Electrostatic
+    case GB: return energy_.gb; // Generalized Born
+    case BOND: return energy_.bond; // Bond
+    case ANGLE: return energy_.angle; // Angle
+    case DIHEDRAL: return energy_.dihedral; // Torsion
+    case VDW14: return energy_.vdw_14; // 1-4 non-bonded
+    case ELEC14: return energy_.elec_14; // 1-4 electrostatic
+    case CONSTRAINT: return energy_.constraint; // Constraint
+    case POLAR: return energy_.polar; // Polarization
+    case HBOND: return energy_.hbond; // LJ 10-12 (hydrogen bond)
+    case SURF: return energy_.surf; // Surface area or cavity energy
+    case SCF: return energy_.scf; // QM/MM SCF energy
+    case DISP: return energy_.disp; // implicit solvation dispersion energy
+    case DVDL: return energy_.dvdl; // TI charging free energy
+    case ANGLE_UB: return energy_.angle_ub; // CHARMM Urey-Bradley
+    case IMP: return energy_.imp; // CHARMM improper
+    case CMAP: return energy_.cmap; // CHARMM CMAP
+    case EMAP: return energy_.emap; // EMAP constraint energy
+    case LES: return energy_.les; // LES
+    case NOE: return energy_.noe; // NOE
+    case PB: return energy_.pb; // Poisson-Boltzmann
+    case RISM: return energy_.rism; // 3D-RISM total solvation free energy
+    case CT: return energy_.ct; // Charge transfer
+    case AMD_BOOST: return energy_.amd_boost; // AMD boost energy
     case N_ENERGYTYPES: break;
   }
   return 0.0; 
@@ -99,6 +99,7 @@ void Energy_Sander::SetDefaultInput() {
   input_.dielc = 1.0;
   input_.rdt = 0.0;
   input_.fswitch = -1.0;
+  input_.restraint_wt = 0.0;
 
   input_.igb = 0;
   input_.alpb = 0;
@@ -113,6 +114,9 @@ void Energy_Sander::SetDefaultInput() {
   input_.jfastw = 1;
   input_.ntf = 2;
   input_.ntc = 2;
+  input_.ntr = 0;
+
+  input_.restraintmask[0] = '\0';
 }
  
 /** Set input for Sander. Determine which energy terms will be active. */
@@ -127,6 +131,7 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   input_.dielc = argIn.getKeyDouble("dielc", input_.dielc);
   input_.rdt = argIn.getKeyDouble("rdt", input_.rdt);
   input_.fswitch = argIn.getKeyDouble("fswitch", input_.fswitch);
+  input_.restraint_wt = argIn.getKeyDouble("restraint_wt", input_.restraint_wt);
 
   specified_igb_ = argIn.Contains("igb");
   input_.igb = argIn.getKeyInt("igb", input_.igb);
@@ -140,9 +145,22 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   specified_ntb_ = argIn.Contains("ntb");
   input_.ntb = argIn.getKeyInt("ntb", input_.ntb);
   input_.ifqnt = argIn.getKeyInt("ifqnt", input_.ifqnt);
+  // TODO QM/MM not yet supported
+  if (input_.ifqnt != 0) {
+    mprinterr("Error: 'ifqnt' > 0 not yet supported.\n");
+    return 1;
+  }
   input_.jfastw = argIn.getKeyInt("jfastw", input_.jfastw);
   input_.ntf = argIn.getKeyInt("ntf", input_.ntf);
   input_.ntc = argIn.getKeyInt("ntc", input_.ntc);
+  input_.ntr = argIn.getKeyInt("ntr", input_.ntr);
+
+  std::string restraintmask = argIn.GetStringKey("restraintmask");
+  if (restraintmask.size() > 255) {
+    mprinterr("Error: 'restraintmask' is too big.\n");
+    return 1;
+  }
+  restraintmask.copy( input_.restraintmask, restraintmask.size(), 0 );
   return 0;
 }
 
@@ -187,7 +205,44 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
           input_.ew_type, input_.ifqnt, input_.jfastw, input_.ntf, input_.ntc);
 
   forces_.resize( fIn.size(), 0.0 );
-  
+  // Determine which energy terms will be active based on input
+  isActive_.assign( (int)N_ENERGYTYPES, false );
+  // Always active
+  isActive_[TOTAL] = true;
+  isActive_[VDW] = true;
+  isActive_[ELEC] = true;
+  isActive_[BOND] = true;
+  isActive_[ANGLE] = true;
+  isActive_[DIHEDRAL] = true;
+  isActive_[VDW14] = true;
+  isActive_[ELEC14] = true;
+  // Implicit solvent
+  if (input_.igb > 0) {
+    if (input_.igb == 10 || input_.ipb != 0) {
+      isActive_[PB] = true;
+      isActive_[SURF] = true;
+      isActive_[DISP] = true;
+    } else {
+      isActive_[GB] = true;
+      if (input_.gbsa > 0) isActive_[SURF] = true;
+    }
+  }
+  // Restraints?
+  if (input_.ntr > 0) isActive_[CONSTRAINT] = true;
+  // Polar?
+  if (topIn.Ipol() != 0) isActive_[POLAR] = true;
+  // Are hbond terms present?
+  if (!topIn.Nonbond().HBarray().empty()) isActive_[HBOND] = true;
+  // Are CHARMM terms present?
+  if (topIn.Chamber().HasChamber()) {
+    isActive_[ANGLE_UB] = true;
+    isActive_[IMP] = true;
+    isActive_[CMAP] = true;
+  }
+  mprintf("DEBUG: The following terms are active:");
+  for (unsigned int i = 0; i != isActive_.size(); i++)
+    if (isActive_[i]) mprintf(" %s", Estring_[i]);
+  mprintf("\n");
   return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
 }
 

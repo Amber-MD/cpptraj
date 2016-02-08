@@ -18,7 +18,8 @@ class Action_Esander: public Action {
 #   ifdef USE_SANDERLIB
     /// Add energy data set of specified type.
     inline int AddSet(Energy_Sander::Etype, DataSetList&, DataFile*, std::string const&);
-    inline void AddEne(Energy_Sander::Etype, int);
+    /// Set up sander energy
+    int InitForRef();
     typedef std::vector<DataSet*> Earray;
     Earray Esets_;          ///< Hold output data sets
     Frame refFrame_;        ///< Hold reference coords for init.
@@ -28,6 +29,9 @@ class Action_Esander: public Action {
     CoordinateInfo cInfo_;  ///< Coordinate info if saving force info.
     Frame newFrame_;        ///< Frame for saving force info.
     Action::RetType ret_;   ///< Return status for DoAction()
+    ActionInit Init_;       ///< Hold master DataSet/DataFile lists.
+    std::string setname_;   ///< Data set name.
+    DataFile* outfile_;     ///< Output data file.
 #   endif /* USE_SANDERLIB */
 };
 #endif
