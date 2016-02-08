@@ -99,7 +99,7 @@ const double* Energy_Sander::Eptr(Etype typeIn) const {
 
 /** Set default input. */
 void Energy_Sander::SetDefaultInput() {
-  input_.extdiel = 80.0;
+  input_.extdiel = 78.5;
   input_.intdiel = 1.0;
   input_.rgbmax = 25.0;
   input_.saltcon = 0.0;
@@ -208,11 +208,11 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
   }
 
   mprintf("    SANDER INPUT OPTIONS:\n"
-          "\textdiel= %6.2g  intdiel= %6.2g  rgbmax=  %6.2g  saltcon= %6.2g  cut=  %6.2g\n"
-          "\tdielc=   %6.2g  rdt=     %6.2g  fswitch= %6.2g  igb=     %6i  alpb= %6i\n"
-          "\tgbsa=    %6i  ntb=     %6i  lj1264=  %6i  ipb=     %6i  inp=  %6i\n"
-          "\tvdwmeth= %6i  ew_type= %6i  ifqnt=   %6i  jfastw=  %6i  ntf=  %6i\n"
-          "\tntc=     %6i\n", input_.extdiel, input_.intdiel,
+          "      extdiel= %6.2f  intdiel= %6.2f  rgbmax=  %6.2f  saltcon= %6.2f  cut=  %8.2f\n"
+          "      dielc=   %6.2f  rdt=     %6.2f  fswitch= %6.2f  igb=     %6i  alpb= %8i\n"
+          "      gbsa=    %6i  ntb=     %6i  lj1264=  %6i  ipb=     %6i  inp=  %8i\n"
+          "      vdwmeth= %6i  ew_type= %6i  ifqnt=   %6i  jfastw=  %6i  ntf=  %8i\n"
+          "      ntc=     %6i\n", input_.extdiel, input_.intdiel,
           input_.rgbmax, input_.saltcon, input_.cut, input_.dielc,
           input_.rdt, input_.fswitch, input_.igb, input_.alpb, input_.gbsa, 
           input_.ntb, input_.lj1264, input_.ipb, input_.inp, input_.vdwmeth,
