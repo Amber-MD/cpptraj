@@ -66,6 +66,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
 # endif
 }
 
+#ifdef USE_SANDERLIB
 /** Initialize sander energy for current top/reference, set up data sets. */
 int Action_Esander::InitForRef() {
 # ifdef MPI
@@ -99,6 +100,7 @@ int Action_Esander::InitForRef() {
 
   return 0;
 }
+#endif
 
 // Action_Esander::Setup()
 /** Set angle up for this parmtop. Get masks etc.
