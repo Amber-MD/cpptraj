@@ -96,9 +96,10 @@ class DataSetList {
     int AddOrAppendSets(std::string const&, Darray const&, DataListType const&);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
-
     /// Print info on DataSets in the list
     void List() const;
+    /// List all non-Topology/Reference data sets.
+    void ListDataOnly() const;
 #   ifdef MPI
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
@@ -135,8 +136,13 @@ class DataSetList {
     inline void PendingWarning() const;
     /// Wrapper around DataList_.push_back() that does extra bookkeeping.
     void Push_Back(DataSet*);
+    /// Internal print routine
+    static inline void PrintList(DataListType const&);
+    /// Get reference using keywords; set error integer if error occurs.
     DataSet* GetReferenceSet(ArgList&, int&) const;
+    /// Set specified reference data set as the active reference.
     int SetActiveReference(DataSet*);
+    /// Get topology using keywords
     DataSet* GetTopByKeyword(ArgList&, int&) const;
 #   ifdef TIMER
     Timer time_total_;

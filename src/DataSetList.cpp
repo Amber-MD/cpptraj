@@ -573,6 +573,17 @@ void DataSetList::AddCopyOfSet(DataSet* dsetIn) {
   Push_Back( dsetIn );
 }
 
+void DataSetList::PrintList(DataListType const& dlist) {
+  for (DataListType::const_iterator ds = dlist.begin(); ds != dlist.end(); ++ds) {
+    DataSet const& dset = static_cast<DataSet const&>( *(*ds) );
+    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
+            DataArray[dset.Type()].Description, dset.Meta().ScalarDescription().c_str(),
+            dset.Size());
+    dset.Info();
+    mprintf("\n");
+  }
+}
+
 // DataSetList::List()
 void DataSetList::List() const {
   if (!hasCopies_) { // No copies; this is a Master DSL.
@@ -582,14 +593,18 @@ void DataSetList::List() const {
     mprintf("  No data sets.");
     return;
   }
-  for (unsigned int idx = 0; idx != DataList_.size(); idx++) {
-    DataSet const& dset = static_cast<DataSet const&>( *DataList_[idx] );
-    mprintf("\t%s \"%s\" (%s%s), size is %zu", dset.Meta().PrintName().c_str(), dset.legend(),
-            DataArray[dset.Type()].Description, dset.Meta().ScalarDescription().c_str(),
-            dset.Size());
-    dset.Info();
-    mprintf("\n");
-  }
+  PrintList( DataList_ );
+}
+
+/** List all non-Topology/Reference data sets. */
+void DataSetList::ListDataOnly() const {
+  DataListType temp;
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Type() != DataSet::REF_FRAME && (*ds)->Type() != DataSet::TOPOLOGY )
+      temp.push_back( *ds );
+  if (temp.empty()) return;
+  mprintf("\nDATASETS (%zu total):\n", temp.size());
+  PrintList( temp );
 }
 #ifdef MPI
 // DataSetList::SynchronizeData()

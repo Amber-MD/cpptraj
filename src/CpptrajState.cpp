@@ -405,7 +405,7 @@ int CpptrajState::Run() {
     err = RunAnalyses();
   write_time_.Start();
   if (err == 0 || !exitOnError_) {
-    DSL_.List();
+    DSL_.ListDataOnly();
     // Print DataFile information and write DataFiles
     DFL_.List();
     MasterDataFileWrite();
