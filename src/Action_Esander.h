@@ -32,6 +32,9 @@ class Action_Esander: public Action {
     ActionInit Init_;       ///< Hold master DataSet/DataFile lists.
     std::string setname_;   ///< Data set name.
     DataFile* outfile_;     ///< Output data file.
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 #   endif /* USE_SANDERLIB */
 };
 #endif

@@ -30,6 +30,9 @@ void Action_Esander::Help() const {
 Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef USE_SANDERLIB
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   //ENE_.SetDebug( debugIn );
   Init_ = init;
   // Get keywords
@@ -65,7 +68,21 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
 
 /** Initialize sander energy for current top/reference, set up data sets. */
 int Action_Esander::InitForRef() {
+# ifdef MPI
+  // Ensure all threads initialize from same reference frame.
+  int err = 0;
+  if (trajComm_.Master()) { // TODO MasterBcast?
+    err = SANDER_.Initialize( *currentParm_, refFrame_ );
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      refFrame_.SendFrame( rank, trajComm_ ); // FIXME make SendFrame const
+  } else {
+    refFrame_.RecvFrame( 0, trajComm_ );
+    err = SANDER_.Initialize( *currentParm_, refFrame_ );
+  }
+  if (trajComm_.CheckError( err )) return 1;
+# else
   if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return 1;
+# endif
   // Set up DataSets
   int Nsets = (int)Energy_Sander::N_ENERGYTYPES;
   for (int ie = 0; ie != Nsets; ie++) {
