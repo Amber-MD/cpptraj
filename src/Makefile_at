@@ -53,8 +53,8 @@ ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
-cpptraj.sander$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(LIBDIR)/libsander.so
-	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj.sander$(SFX) $(OBJECTS) pub_fft.o \
+cpptraj.sander$(SFX): $(OBJECTS) $(EXTERNAL_LIBS) $(LIBDIR)/libsander.so
+	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj.sander$(SFX) $(OBJECTS) \
 	       -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)  \
 	       -lsander
 

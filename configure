@@ -50,6 +50,7 @@ UsageFull() {
   echo "    -noreadline : Do not include support for readline in the interpreter"
   echo "    -openblas   : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
   echo "    -libsci     : Use Cray LibSci for BLAS/LAPACK"
+  echo "    -sanderlib  : Link to sander API (requires AMBERHOME set)."
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -65,7 +66,6 @@ UsageFull() {
   echo "    -profile            : Use Gnu compiler profiling (>= V4.5)*"
   echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)*"
   echo "    -vtune              : Enable options for use with Intel Vtune"
-  echo "    -sanderlib          : Link to sander API (requires AMBERHOME set)."
   echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
@@ -195,7 +195,7 @@ EOF
 }
 
 TestFFTW3() {
-  if [[ -z $FFT_DEPEND ]] ; then
+  if [[ -z $FFT_DEPEND && ! -z $FFT_LIB ]] ; then
     cat > testp.cpp <<EOF
 #include <cstdio>
 #include <fftw3.h>
@@ -887,6 +887,12 @@ fi
 
 # Flags for libsander
 if [[ ! -z $SANDERLIB ]] ; then
+  if [[ ! -z $FFT_DEPEND ]] ; then
+    # Just use pubfft that is already in libsander
+    FFT_LIB=""
+    FFT_DEPEND=""
+    FFT_LIBDIR=""
+  fi
   DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
   LDFLAGS=$LDFLAGS" $SANDERLIB"
 fi

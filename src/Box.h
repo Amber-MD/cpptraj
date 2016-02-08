@@ -47,6 +47,7 @@ class Box {
     bool HasBox()  const { return (btype_ != NOBOX); }
     Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
+    void swap(Box&);
     // For interfacing with file IO
     double* boxPtr()             { return box_; }
     const double* boxPtr() const { return box_; }

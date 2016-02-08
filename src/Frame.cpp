@@ -187,12 +187,7 @@ void Frame::swap(Frame &first, Frame &second) {
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
-  swap( first.box_[0], second.box_[0] );
-  swap( first.box_[1], second.box_[1] );
-  swap( first.box_[2], second.box_[2] );
-  swap( first.box_[3], second.box_[3] );
-  swap( first.box_[4], second.box_[4] );
-  swap( first.box_[5], second.box_[5] );
+  first.box_.swap( second.box_ );
 }
 
 // Frame::operator=()
@@ -452,6 +447,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
                                          atom != atoms.end(); ++atom)
     *(mass++) = (*atom).Mass();
+  // Box
+  box_ = cinfo.TrajBox();
   // Replica indices
   remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
   return 0;
@@ -508,6 +505,11 @@ void Frame::SetCoordinates(Frame const& frameIn) {
   memcpy(X_, frameIn.X_, natom_ * COORDSIZE_);
 }
 
+void Frame::SetCoordAndBox(Frame const& frameIn) {
+  SetCoordinates(frameIn);
+  box_ = frameIn.box_;
+}
+
 int Frame::SetCoordinates(int natom, double* Xptr) {
   if (!memIsExternal_)
     mprinterr("Internal Error: Frame memory is internal, not setting from external pointer.\n");
@@ -537,7 +539,23 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
-  if (frameIn.V_ != 0 && V_ != 0) {
+  if (frameIn.F_ != 0 && F_ != 0 && frameIn.V_ != 0 && V_ != 0) {
+    // Copy Coords/Mass/Velo/Force
+    double *newFptr = F_;
+    double *newVptr = V_;
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      int oldcrd = ((*atom) * 3);
+      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
+      newXptr += 3;
+      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
+      newVptr += 3;
+      memcpy( newFptr, frameIn.F_ + oldcrd, COORDSIZE_);
+      newFptr += 3;
+      *mass = frameIn.Mass_[*atom];
+      ++mass;
+    }
+  } else if (frameIn.V_ != 0 && V_ != 0) {
     // Copy Coords/Mass/Velo
     double *newVptr = V_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)

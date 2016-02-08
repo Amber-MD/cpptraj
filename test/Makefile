@@ -292,6 +292,9 @@ test.datasetavg:
 test.vectormath:
 	@-cd Test_VectorMath && ./RunTest.sh $(OPT)
 
+test.esander:
+	@-cd Test_Esander && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -457,7 +460,8 @@ COMPLETETESTS=test.general \
               test.dihcovar \
               test.curvefit \
               test.datasetavg \
-              test.vectormath
+              test.vectormath \
+              test.esander
 
 test: test.all 
 

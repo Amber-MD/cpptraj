@@ -42,6 +42,7 @@ MPILIB=""
 NOMATHLIB=""
 OPENMP=""
 PNETCDFLIB=""
+SANDERLIB=""
 
 # ------------------------------------------------------------------------------
 # DoTest() <File1> <File2> [allowfail <OS>] [<arg1>] ... [<argN>]
@@ -258,6 +259,20 @@ CheckPtrajAnalyze() {
     echo "Cpptraj was compiled with -DNO_MATHLIB. Skipping test."
     exit 0
   fi
+}
+
+CheckSanderlib() {
+  if [[ -z $SANDERLIB ]] ; then
+    if [[ ! -z $1 ]] ; then
+      DESCRIP=$1
+    else
+      DESCRIP="This test"
+    fi
+    echo "$DESCRIP requires compilation with the Sander API from AmberTools."
+    echo "Re-compile with '-libsander' to enable this functionality. Skipping test."
+    return 1
+  fi
+  return 0
 }
 
 CheckPnetcdf() {
@@ -571,6 +586,7 @@ CheckDefines() {
   NOMATHLIB=`echo $DEFINES | grep DNO_MATHLIB`
   OPENMP=`echo $DEFINES | grep D_OPENMP`
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
+  SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
 }
 
 #===============================================================================

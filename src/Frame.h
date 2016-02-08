@@ -131,6 +131,8 @@ class Frame {
     void SetCoordinates(Frame const&, AtomMask const&);
     /// Copy only coordinates from input frame to this frame.
     void SetCoordinates(Frame const&);
+    /// Copy only coordinates and box info from input frame to this frame.
+    void SetCoordAndBox(Frame const&);
     /// Set coordinates from external memory.
     int SetCoordinates(int, double*);
     /// Copy entire input frame according to mask.
