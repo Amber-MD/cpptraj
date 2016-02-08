@@ -194,14 +194,14 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
   if (!fIn.BoxCrd().HasBox()) {
     if (!specified_cut_) input_.cut = 9999.0;
     if (!specified_igb_ && !specified_ntb_) {
-      mprintf("Warning: No box info and igb/ntb not specified. Defaulting to igb=1, ntb=0\n");
+      mprintf("Warning: No box and igb/ntb not specified. Defaulting to igb=1, ntb=0\n");
       input_.igb = 1;
       input_.ntb = 0;
     }
   } else {
     if (!specified_cut_) input_.cut = 8.0;
     if (!specified_igb_ && !specified_ntb_) {
-      mprintf("Warning: Box info and igb/ntb not specified. Defaulting to igb=0, ntb=1\n");
+      mprintf("Warning: Box present and igb/ntb not specified. Defaulting to igb=0, ntb=1\n");
       input_.igb = 0;
       input_.ntb = 1;
     }
