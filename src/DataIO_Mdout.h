@@ -16,7 +16,7 @@ class DataIO_Mdout : public DataIO {
     typedef std::vector<std::string> Sarray;
     typedef std::vector<double> Darray;
     enum FieldType { Etot= 0, EPtot, GMAX, BOND,
-                     ANGLE, DIHED, VDWAALS, EEL, EGB,
+                     ANGLE, DIHED, VDWAALS, EEL, EGB, EPB, ECAVITY, EDISPER,
                      VDW14, EEL14, RESTRAINT, EAMBER, Density,
                      RMS, EKtot, ESURF, EAMD_BOOST, VOLUME, TEMP,
                      PRESS, DVDL, N_FIELDTYPES };
