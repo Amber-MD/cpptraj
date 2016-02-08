@@ -112,14 +112,14 @@ void Energy_Sander::SetDefaultInput() {
   input_.igb = 0;
   input_.alpb = 0;
   input_.gbsa = 0;
-  input_.lj1264 = 0;
+  input_.lj1264 = -1;
   input_.ipb = 0;
-  input_.inp = 0;
+  input_.inp = 2;
   input_.vdwmeth = 1;
   input_.ew_type = 0;
   input_.ntb = 0;
   input_.ifqnt = 0;
-  input_.jfastw = 1;
+  input_.jfastw = 0;
   input_.ntf = 2;
   input_.ntc = 2;
   input_.ntr = 0;
