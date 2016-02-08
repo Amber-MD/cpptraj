@@ -3,6 +3,14 @@
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
 
+Energy_Sander::Energy_Sander() :
+  debug_(0),
+  top_pindex_(-1),
+  specified_cut_(false),
+  specified_igb_(false),
+  specified_ntb_(false)
+{}
+
 Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }
 
 const char* Energy_Sander::Estring_[] = {
@@ -154,6 +162,11 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   input_.ntf = argIn.getKeyInt("ntf", input_.ntf);
   input_.ntc = argIn.getKeyInt("ntc", input_.ntc);
   input_.ntr = argIn.getKeyInt("ntr", input_.ntr);
+  // FIXME Currently no way with API to pass in reference coords
+  if (input_.ntr > 0) {
+    mprinterr("Error: ntr > 0 not yet supported.\n");
+    return 1;
+  }
 
   std::string restraintmask = argIn.GetStringKey("restraintmask");
   if (restraintmask.size() > 255) {
@@ -175,7 +188,8 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
   top_filename_ = topIn.OriginalFilename();
   top_pindex_ = topIn.Pindex();
   if (top_filename_.empty()) return 2;
-  mprintf("DEBUG: Topology filename= '%s'\n", top_filename_.full());
+  if (debug_ > 0)
+    mprintf("DEBUG: Topology filename= '%s'\n", top_filename_.full());
   // Set some input options if not already specified.
   if (!fIn.BoxCrd().HasBox()) {
     if (!specified_cut_) input_.cut = 9999.0;
@@ -239,10 +253,12 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const
     isActive_[IMP] = true;
     isActive_[CMAP] = true;
   }
-  mprintf("DEBUG: The following terms are active:");
-  for (unsigned int i = 0; i != isActive_.size(); i++)
-    if (isActive_[i]) mprintf(" %s", Estring_[i]);
-  mprintf("\n");
+  if (debug_ > 0) {
+    mprintf("DEBUG: The following terms are active:");
+    for (unsigned int i = 0; i != isActive_.size(); i++)
+      if (isActive_[i]) mprintf(" %s", Estring_[i]);
+    mprintf("\n");
+  }
   return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
 }
 

@@ -7,8 +7,10 @@
 /// Cpptraj interface to Sander API
 class Energy_Sander {
   public:
-    Energy_Sander() : top_pindex_(-1) {}
+    Energy_Sander();
     ~Energy_Sander();
+    /// Set debug level.
+    void SetDebug(int d) { debug_ = d; }
     /// Set input options from ArgList
     int SetInput(ArgList&);
     /// Initialize for given Topology and Frame
@@ -27,6 +29,8 @@ class Energy_Sander {
     const double* Eptr(Etype) const;
     /// \return DataSet aspect string for given energy term.
     static std::string Easpect(Etype);
+    /// \return Label for given energy term.
+    static const char* Elabel(Etype e) { return Estring_[e]; }
     /// \return True if corresponding energy term is active
     bool IsActive(Etype e) const { return isActive_[e]; }
   private:
@@ -38,6 +42,7 @@ class Energy_Sander {
     FileName top_filename_;      ///< Current Topology file name
     std::vector<double> forces_; ///< Force array
     std::vector<bool> isActive_; ///< True if corresponding energy term is active.
+    int debug_;                  ///< Debug level
     int top_pindex_;             ///< Current Topology internal index.
     bool specified_cut_;         ///< 'cut' was specified.
     bool specified_igb_;         ///< 'igb' was specified.

@@ -33,7 +33,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
-  //ENE_.SetDebug( debugIn );
+  SANDER_.SetDebug( debugIn );
   Init_ = init;
   // Get keywords
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -91,10 +91,11 @@ int Action_Esander::InitForRef() {
       if (AddSet( etype, Init_.DSL(), outfile_, setname_ )) return 1;
     }
   }
-  mprintf("\tCalculating terms:");
-  for (Earray::const_iterator it = Esets_.begin(); it != Esets_.end(); ++it)
-    if (*it != 0) mprintf(" %s", (*it)->legend());
-  mprintf("\n");
+  mprintf("\tSaving the following energy terms:\n");
+  for (int ie = 0; ie != Nsets; ie++)
+    if (Esets_[ie] != 0)
+      mprintf("\t  %s in '%s'\n", Energy_Sander::Elabel((Energy_Sander::Etype)ie),
+              Esets_[ie]->legend());
 
   return 0;
 }
