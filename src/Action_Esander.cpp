@@ -52,6 +52,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
     if (AddSet((Energy_Sander::Etype)ie, init.DSL(), outfile, setname)) return Action::ERR;
       
   mprintf("    ESANDER: Calculating energy using Sander.\n");
+  if (save_forces_) mprintf("\tSaving force information to frame.\n");
   mprintf("\tReference for initialization");
   if (!REF.empty())
     mprintf(" is '%s'\n", REF.refName());
@@ -118,9 +119,11 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
     refFrame_ = frm.Frm();
     if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return Action::ERR;
   }
-  if (save_forces_)
+  if (save_forces_) {
+    newFrame_.SetCoordAndBox( frm.Frm() );
     SANDER_.CalcEnergyForces( newFrame_ );
-  else
+    frm.SetFrame( &newFrame_ );
+  } else
     // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
     SANDER_.CalcEnergy( frm.ModifyFrm() );
 
