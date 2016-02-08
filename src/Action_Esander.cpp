@@ -39,6 +39,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
     refFrame_ = REF.Coord();
     currentParm_ = REF.ParmPtr();
   }
+  if (SANDER_.SetInput( actionArgs )) return Action::ERR;
   // DataSet
   std::string setname = actionArgs.GetStringNext();
   if (setname.empty())
