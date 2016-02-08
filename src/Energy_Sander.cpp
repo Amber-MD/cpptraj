@@ -1,6 +1,6 @@
 #ifdef USE_SANDERLIB
 #include <locale>
-#include "Esander.h"
+#include "Energy_Sander.h"
 #include "CpptrajStdio.h"
 
 Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }

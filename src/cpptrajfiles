@@ -200,7 +200,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
-        Esander.cpp \
+        Energy_Sander.cpp \
         Exec_Calc.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \

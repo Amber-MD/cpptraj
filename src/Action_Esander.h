@@ -2,7 +2,7 @@
 #define INC_ACTION_ESANDER_H
 #include "Action.h"
 #ifdef USE_SANDERLIB
-#  include "Esander.h"
+#  include "Energy_Sander.h"
 #endif
 /// Calculate energy via sanderlib
 class Action_Esander: public Action {
