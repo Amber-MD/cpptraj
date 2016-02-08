@@ -4,6 +4,12 @@
 
 CleanFiles ene.in Esander.dat force.nc Edpdp.dat
 
+CheckSanderlib "SANDER energy tests"
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
+
 INPUT="-i ene.in"
 
 TestPME() {
