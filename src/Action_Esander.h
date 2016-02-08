@@ -24,6 +24,10 @@ class Action_Esander: public Action {
     Frame refFrame_;        ///< Hold reference coords for init.
     Topology* currentParm_; ///< Hold current topology
     Energy_Sander SANDER_;  ///< Sander energy routines.
+    bool save_forces_;      ///< If true save force information.
+    CoordinateInfo cInfo_;  ///< Coordinate info if saving force info.
+    Frame newFrame_;        ///< Frame for saving force info.
+    Action::RetType ret_;   ///< Return status for DoAction()
 #   endif /* USE_SANDERLIB */
 };
 #endif

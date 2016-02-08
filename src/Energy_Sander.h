@@ -11,6 +11,7 @@ class Energy_Sander {
     int SetInput(ArgList&);
     int Initialize(Topology const&, Frame&);
     int CalcEnergy(Frame&);
+    int CalcEnergyForces(Frame&);
     /// Enumerate different types of energy calcd via libsander
     enum Etype { TOTAL = 0, VDW, ELEC, GB, BOND, ANGLE, DIHEDRAL, VDW14, ELEC14,
                  CONSTRAINT, POLAR, HBOND, SURF, SCF, DISP, DVDL, ANGLE_UB,

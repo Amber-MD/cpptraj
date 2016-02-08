@@ -20,7 +20,7 @@ Action_Esander::Action_Esander() {}
 
 void Action_Esander::Help() const {
 # ifdef USE_SANDERLIB
-  mprintf("\t[<name>] [out <filename>]\n"
+  mprintf("\t[<name>] [out <filename>] [saveforces]\n"
           "  Calculate energy for atoms in mask using Sander energy routines.\n");
 # else
   mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
@@ -33,6 +33,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
   //ENE_.SetDebug( debugIn );
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  save_forces_ = actionArgs.hasKey("saveforces");
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   if (REF.error()) return Action::ERR;
   if (!REF.empty()) {
@@ -90,6 +91,16 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
     if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return Action::ERR;
   } else
     currentParm_ = setup.TopAddress();
+  // If saving of forces is requested, make sure CoordinateInfo has force.
+  if (save_forces_) {
+    cInfo_ = setup.CoordInfo();
+    cInfo_.SetForce( true );
+    newFrame_.SetupFrameV( setup.Top().Atoms(), cInfo_ );
+    setup.SetCoordInfo( &cInfo_ );
+    ret_ = Action::MODIFY_COORDS;
+    return Action::MODIFY_TOPOLOGY;
+  }
+  ret_ = Action::OK;
   return Action::OK;
 # else
   return Action::ERR;
@@ -107,8 +118,11 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
     refFrame_ = frm.Frm();
     if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return Action::ERR;
   }
-  // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
-  SANDER_.CalcEnergy( frm.ModifyFrm() );
+  if (save_forces_)
+    SANDER_.CalcEnergyForces( newFrame_ );
+  else
+    // FIXME: Passing in ModifyFrm() to give CalcEnergy access to non-const pointers
+    SANDER_.CalcEnergy( frm.ModifyFrm() );
 
   AddEne(Energy_Sander::BOND, frameNum);
   AddEne(Energy_Sander::ANGLE, frameNum);
@@ -119,7 +133,7 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
   AddEne(Energy_Sander::ELEC, frameNum);
   AddEne(Energy_Sander::TOTAL, frameNum);
 
-  return Action::OK;
+  return ret_;
 # else
   return Action::ERR;
 # endif

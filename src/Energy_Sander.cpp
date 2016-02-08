@@ -194,4 +194,14 @@ int Energy_Sander::CalcEnergy(Frame& fIn) {
   energy_forces( &energy_, &(forces_[0]) );
   return 0;
 };
+
+int Energy_Sander::CalcEnergyForces(Frame& fIn) {
+  if (!is_setup()) return 1;
+
+  set_positions( fIn.xAddress() );
+  set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
+           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
+  energy_forces( &energy_, fIn.fAddress() );
+  return 0;
+}
 #endif
