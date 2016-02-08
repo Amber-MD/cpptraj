@@ -11,6 +11,7 @@ const char* Energy_Sander::Estring_[] = {
   "Improper", "CMap", "EMap", "LES", "NOE", "PB", "RISM", "CT", "aMD_Boost", 0
 };
 
+// Energy_Sander::Easpect()
 std::string Energy_Sander::Easpect(Etype typeIn) {
   if (typeIn == N_ENERGYTYPES) return std::string();
   std::locale loc;
@@ -20,6 +21,7 @@ std::string Energy_Sander::Easpect(Etype typeIn) {
   return aspect;
 }
 
+// Energy_Sander::Energy()
 double Energy_Sander::Energy(Etype typeIn) const {
   switch (typeIn) {
     case TOTAL: return energy_.tot;
@@ -53,6 +55,7 @@ double Energy_Sander::Energy(Etype typeIn) const {
   return 0.0; 
 }
 
+// Energy_Sander::Eptr()
 const double* Energy_Sander::Eptr(Etype typeIn) const {
   switch (typeIn) {
     case TOTAL: return &energy_.tot;
@@ -143,8 +146,11 @@ int Energy_Sander::SetInput(ArgList& argIn) {
   return 0;
 }
 
-// TODO const frame and top?
-int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
+
+/** Initialize or re-initialize for given Topology with given Frame. Also
+  * determine which energy terms will be active.
+  */
+int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const Frame?
   if (fIn.Natom() != topIn.Natom()) return 3;
   if (is_setup()) sander_cleanup();
   // FIXME: requires file name be set for now
@@ -185,21 +191,23 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
   return sander_setup_mm(top_filename_.full(), fIn.xAddress(), fIn.bAddress(), &input_);
 }
 
+// Energy_Sander::CalcEnergy()
 int Energy_Sander::CalcEnergy(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
+  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
            fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
   energy_forces( &energy_, &(forces_[0]) );
   return 0;
 };
 
+// Energy_Sander::CalcEnergyForces()
 int Energy_Sander::CalcEnergyForces(Frame& fIn) {
   if (!is_setup()) return 1;
 
   set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
+  set_box( fIn.BoxCrd().BoxX(),  fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
            fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
   energy_forces( &energy_, fIn.fAddress() );
   return 0;
