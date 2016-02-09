@@ -2,6 +2,7 @@
 #include <locale>
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"
+#include "ParmFile.h" // For writing temporary top
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
@@ -32,33 +33,33 @@ std::string Energy_Sander::Easpect(Etype typeIn) {
 // Energy_Sander::Energy()
 double Energy_Sander::Energy(Etype typeIn) const {
   switch (typeIn) {
-    case TOTAL: return energy_.tot; // Total PE
-    case VDW: return energy_.vdw; // van der Waals
-    case ELEC: return energy_.elec; // Electrostatic
-    case GB: return energy_.gb; // Generalized Born
-    case BOND: return energy_.bond; // Bond
-    case ANGLE: return energy_.angle; // Angle
-    case DIHEDRAL: return energy_.dihedral; // Torsion
-    case VDW14: return energy_.vdw_14; // 1-4 non-bonded
-    case ELEC14: return energy_.elec_14; // 1-4 electrostatic
+    case TOTAL:      return energy_.tot; // Total PE
+    case VDW:        return energy_.vdw; // van der Waals
+    case ELEC:       return energy_.elec; // Electrostatic
+    case GB:         return energy_.gb; // Generalized Born
+    case BOND:       return energy_.bond; // Bond
+    case ANGLE:      return energy_.angle; // Angle
+    case DIHEDRAL:   return energy_.dihedral; // Torsion
+    case VDW14:      return energy_.vdw_14; // 1-4 non-bonded
+    case ELEC14:     return energy_.elec_14; // 1-4 electrostatic
     case CONSTRAINT: return energy_.constraint; // Constraint
-    case POLAR: return energy_.polar; // Polarization
-    case HBOND: return energy_.hbond; // LJ 10-12 (hydrogen bond)
+    case POLAR:      return energy_.polar; // Polarization
+    case HBOND:      return energy_.hbond; // LJ 10-12 (hydrogen bond)
     case SURF: 
-    case CAVITY: return energy_.surf; // Surface area or cavity energy
-    case SCF: return energy_.scf; // QM/MM SCF energy
-    case DISP: return energy_.disp; // implicit solvation dispersion energy
-    case DVDL: return energy_.dvdl; // TI charging free energy
-    case ANGLE_UB: return energy_.angle_ub; // CHARMM Urey-Bradley
-    case IMP: return energy_.imp; // CHARMM improper
-    case CMAP: return energy_.cmap; // CHARMM CMAP
-    case EMAP: return energy_.emap; // EMAP constraint energy
-    case LES: return energy_.les; // LES
-    case NOE: return energy_.noe; // NOE
-    case PB: return energy_.pb; // Poisson-Boltzmann
-    case RISM: return energy_.rism; // 3D-RISM total solvation free energy
-    case CT: return energy_.ct; // Charge transfer
-    case AMD_BOOST: return energy_.amd_boost; // AMD boost energy
+    case CAVITY:     return energy_.surf; // Surface area or cavity energy
+    case SCF:        return energy_.scf; // QM/MM SCF energy
+    case DISP:       return energy_.disp; // implicit solvation dispersion energy
+    case DVDL:       return energy_.dvdl; // TI charging free energy
+    case ANGLE_UB:   return energy_.angle_ub; // CHARMM Urey-Bradley
+    case IMP:        return energy_.imp; // CHARMM improper
+    case CMAP:       return energy_.cmap; // CHARMM CMAP
+    case EMAP:       return energy_.emap; // EMAP constraint energy
+    case LES:        return energy_.les; // LES
+    case NOE:        return energy_.noe; // NOE
+    case PB:         return energy_.pb; // Poisson-Boltzmann
+    case RISM:       return energy_.rism; // 3D-RISM total solvation free energy
+    case CT:         return energy_.ct; // Charge transfer
+    case AMD_BOOST:  return energy_.amd_boost; // AMD boost energy
     case N_ENERGYTYPES: break;
   }
   return 0.0; 
@@ -67,33 +68,33 @@ double Energy_Sander::Energy(Etype typeIn) const {
 // Energy_Sander::Eptr()
 const double* Energy_Sander::Eptr(Etype typeIn) const {
   switch (typeIn) {
-    case TOTAL: return &energy_.tot;
-    case VDW: return &energy_.vdw;
-    case ELEC: return &energy_.elec;
-    case GB: return &energy_.gb;
-    case BOND: return &energy_.bond;
-    case ANGLE: return &energy_.angle;
-    case DIHEDRAL: return &energy_.dihedral;
-    case VDW14: return &energy_.vdw_14;
-    case ELEC14: return &energy_.elec_14;
+    case TOTAL:      return &energy_.tot;
+    case VDW:        return &energy_.vdw;
+    case ELEC:       return &energy_.elec;
+    case GB:         return &energy_.gb;
+    case BOND:       return &energy_.bond;
+    case ANGLE:      return &energy_.angle;
+    case DIHEDRAL:   return &energy_.dihedral;
+    case VDW14:      return &energy_.vdw_14;
+    case ELEC14:     return &energy_.elec_14;
     case CONSTRAINT: return &energy_.constraint;
-    case POLAR: return &energy_.polar;
-    case HBOND: return &energy_.hbond;
+    case POLAR:      return &energy_.polar;
+    case HBOND:      return &energy_.hbond;
     case SURF:
-    case CAVITY: return &energy_.surf;
-    case SCF: return &energy_.scf;
-    case DISP: return &energy_.disp;
-    case DVDL: return &energy_.dvdl;
-    case ANGLE_UB: return &energy_.angle_ub;
-    case IMP: return &energy_.imp;
-    case CMAP: return &energy_.cmap;
-    case EMAP: return &energy_.emap;
-    case LES: return &energy_.les;
-    case NOE: return &energy_.noe;
-    case PB: return &energy_.pb;
-    case RISM: return &energy_.rism;
-    case CT: return &energy_.ct;
-    case AMD_BOOST: return &energy_.amd_boost;
+    case CAVITY:     return &energy_.surf;
+    case SCF:        return &energy_.scf;
+    case DISP:       return &energy_.disp;
+    case DVDL:       return &energy_.dvdl;
+    case ANGLE_UB:   return &energy_.angle_ub;
+    case IMP:        return &energy_.imp;
+    case CMAP:       return &energy_.cmap;
+    case EMAP:       return &energy_.emap;
+    case LES:        return &energy_.les;
+    case NOE:        return &energy_.noe;
+    case PB:         return &energy_.pb;
+    case RISM:       return &energy_.rism;
+    case CT:         return &energy_.ct;
+    case AMD_BOOST:  return &energy_.amd_boost;
     case N_ENERGYTYPES: break;
   }
   return 0;
@@ -176,20 +177,66 @@ int Energy_Sander::SetInput(ArgList& argIn) {
     return 1;
   }
   restraintmask.copy( input_.restraintmask, restraintmask.size(), 0 );
+  // Temporary parm file name
+  top_filename_ = argIn.GetStringKey("parmname", "CpptrajEsander.parm7");
   return 0;
 }
 
+/** Currently the SANDER API requires a topology file to work. However, 
+  * it is not guaranteed that there will be a valid Amber topology file
+  * present (for example, after stripping a Topology et cetera). Write
+  * a temporary Topology file that can be used by the API.
+  * FIXME Should probably use mkstemp etc.
+  */
+int Energy_Sander::WriteTop( Topology const& topIn ) {
+  ParmFile pfile;
+  return pfile.WriteTopology( topIn, top_filename_, ArgList(), ParmFile::AMBERPARM, debug_ );
+}
+
+#ifdef MPI
+int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn, Parallel::Comm const& commIn)
+{
+  int err = 0;
+  if (commIn.Master()) { // TODO MasterBcast?
+    // Master writes temporary top file.
+    err = WriteTop( topIn );
+    if (commIn.CheckError( err )) return 1;
+    err = CommonInit( topIn, fIn );
+    // Master sends reference frame.
+    for (int rank = 1; rank < commIn.Size(); rank++)
+      fIn.SendFrame( rank, commIn ); // FIXME make SendFrame const
+  } else {
+    // Check if master was able to write temporary top file.
+    if (commIn.CheckError( err )) return 1;
+    // Receive reference frame
+    fIn.RecvFrame( 0, commIn );
+    err = CommonInit( topIn, fIn );
+  }
+  // Check that everyone initialized.
+  if (commIn.CheckError( err )) return 1;
+  return 0;
+}
+#else
+int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
+  if (WriteTop( topIn )) return 1;
+  return CommonInit( topIn, fIn );
+}
+#endif
 
 /** Initialize or re-initialize for given Topology with given Frame. Also
   * determine which energy terms will be active.
   */
-int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) { // TODO const Frame?
-  if (fIn.Natom() != topIn.Natom()) return 3;
+int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const Frame?
+  if (fIn.Natom() != topIn.Natom()) {
+    mprinterr("Internal Error: Energy_Sander: Input top # atoms (%i) != frame (%i)\n",
+              topIn.Natom());
+    return 3;
+  }
+  if (top_filename_.empty()) {
+    mprinterr("Internal Error: Energy_Sander: No file name set.\n");
+    return 2; // SANITY CHECK
+  }
   if (is_setup()) sander_cleanup();
-  // FIXME: requires file name be set for now
-  top_filename_ = topIn.OriginalFilename();
-  top_pindex_ = topIn.Pindex();
-  if (top_filename_.empty()) return 2;
   if (debug_ > 0)
     mprintf("DEBUG: Topology filename= '%s'\n", top_filename_.full());
   // Set some input options if not already specified.

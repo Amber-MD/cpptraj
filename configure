@@ -206,7 +206,21 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-  TestCxxProgram "Checking FFTW3" "$FFT_LIB"
+    TestCxxProgram "Checking FFTW3" "$FFT_LIB"
+  fi
+}
+
+TestSanderlib() {
+  if [[ ! -z $SANDERLIB ]] ; then
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include "sander.h"
+int main() {
+  if (is_setup()) sander_cleanup();
+  printf("Testing\n"); return 0;
+}
+EOF
+    TestCxxProgram "Checking SANDER API" "$SANDERLIB"
   fi
 }
 
@@ -515,9 +529,9 @@ while [[ ! -z $1 ]] ; do
         echo "Error: '-sanderlib' requires AMBERHOME is set."
         exit 1
       fi
-      USE_AMBER_LIB=1 # FIXME Should not depend on other libraries
-      SANDERLIB="-lsander"
-      echo "Using libsander"
+      INCLUDE="$INCLUDE -I$AMBERHOME/include"
+      SANDERLIB="-L$AMBERHOME/lib -lsander"
+      echo "Using SANDER API from $AMBERHOME"
       ;;
     "-fftw3" )
       echo "Using FFTW for FFT."
@@ -970,6 +984,7 @@ fi
 
 # Test compilers (if we are not cross-compiling)
 if [[ "$CROSS_COMPILE" = "no" ]]; then
+  echo ""
   TestCompile
   TestBzlib
   TestZlib
@@ -978,6 +993,7 @@ if [[ "$CROSS_COMPILE" = "no" ]]; then
   TestMathlib
   TestArpack
   TestFFTW3
+  TestSanderlib
 fi
 
 # Write config.h
