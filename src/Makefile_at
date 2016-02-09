@@ -36,7 +36,7 @@ install_mpi: cpptraj$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
 
 install_libsander:
-	$(MAKE) -f Makefile_at clean
+	/bin/rm -f Action_Esander.o Cpptraj.o Energy_Sander.o
 	$(MAKE) -f Makefile_at cpptraj.sander$(SFX) AMBERBUILDFLAGS=-DUSE_SANDERLIB
 	/bin/mv cpptraj.sander$(SFX) $(BINDIR)/
 
