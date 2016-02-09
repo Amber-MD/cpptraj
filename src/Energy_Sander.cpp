@@ -223,6 +223,10 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
 }
 #endif
 
+static inline bool IsZero(double dIn) {
+  return !(dIn > 0.0 || dIn < 0.0);
+}
+
 /** Initialize or re-initialize for given Topology with given Frame. Also
   * determine which energy terms will be active.
   */
@@ -302,8 +306,13 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
   if (input_.ntr > 0) isActive_[CONSTRAINT] = true;
   // Polar?
   if (topIn.Ipol() != 0) isActive_[POLAR] = true;
-  // Are hbond terms present?
-  if (!topIn.Nonbond().HBarray().empty()) isActive_[HBOND] = true;
+  // Are hbond terms present? If they are, are they blank?
+  if (!topIn.Nonbond().HBarray().empty() &&
+      !(topIn.Nonbond().HBarray().size() == 1 &&
+        IsZero(topIn.Nonbond().HBarray().front().Asol()) &&
+        IsZero(topIn.Nonbond().HBarray().front().Bsol()))
+     )
+    isActive_[HBOND] = true;
   // Are CHARMM terms present?
   if (topIn.Chamber().HasChamber()) {
     isActive_[ANGLE_UB] = true;
