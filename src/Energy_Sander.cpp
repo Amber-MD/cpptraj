@@ -197,14 +197,13 @@ int Energy_Sander::WriteTop( Topology const& topIn ) {
 int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn, Parallel::Comm const& commIn)
 {
   int err = 0;
-  int fn_size;
   if (commIn.Master()) { // TODO MasterBcast?
     // Master writes temporary top file.
     err = WriteTop( topIn );
     if (commIn.CheckError( err )) return 1;
     err = CommonInit( topIn, fIn );
     // Master sends reference frame.
-    for (int rank = 1; rank < trajComm_.Size(); rank++)
+    for (int rank = 1; rank < commIn.Size(); rank++)
       fIn.SendFrame( rank, commIn ); // FIXME make SendFrame const
   } else {
     // Check if master was able to write temporary top file.
