@@ -14,7 +14,11 @@ class Energy_Sander {
     /// Set input options from ArgList
     int SetInput(ArgList&);
     /// Initialize for given Topology and Frame
+#   ifdef MPI
+    int Initialize(Topology const&, Frame&, Parallel::Comm const&);
+#   else
     int Initialize(Topology const&, Frame&);
+#   endif
     /// Calculate energy for given Frame
     int CalcEnergy(Frame&);
     /// Calculate energy for given Frame, save forces
@@ -33,8 +37,12 @@ class Energy_Sander {
     static const char* Elabel(Etype e) { return Estring_[e]; }
     /// \return True if corresponding energy term is active
     bool IsActive(Etype e) const { return isActive_[e]; }
+    /// \return Temporary top file name
+    FileName const& TopFilename() const { return top_filename_; }
   private:
     void SetDefaultInput();
+    int WriteTop(Topology const&);
+    int CommonInit(Topology const& topIn, Frame& fIn);
 
     static const char* Estring_[];
     sander_input input_;         ///< Sander input options

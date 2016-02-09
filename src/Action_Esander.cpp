@@ -20,8 +20,10 @@ Action_Esander::Action_Esander() {}
 
 void Action_Esander::Help() const {
 # ifdef USE_SANDERLIB
-  mprintf("\t[<name>] [out <filename>] [saveforces]\n"
-          "  Calculate energy for atoms in mask using Sander energy routines.\n");
+  mprintf("\t[<name>] [out <filename>] [saveforces] [parmname <file>]\n"
+          "  Calculate energy for atoms in mask using Sander energy routines. This\n"
+          "  currently requires writing a temporary Amber topology, the name of which\n"
+          "  can be set by 'parmname' (default: 'CpptrajEsander.parm7').\n");
 # else
   mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
 # endif
@@ -53,6 +55,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
   Esets_.resize( (int)Energy_Sander::N_ENERGYTYPES, 0 );
 
   mprintf("    ESANDER: Calculating energy using Sander.\n");
+  mprintf("\tTemporary topology file name is '%s'\n", SANDER_.TopFilename().full());
   if (save_forces_) mprintf("\tSaving force information to frame.\n");
   mprintf("\tReference for initialization");
   if (!REF.empty())
@@ -70,17 +73,7 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
 /** Initialize sander energy for current top/reference, set up data sets. */
 int Action_Esander::InitForRef() {
 # ifdef MPI
-  // Ensure all threads initialize from same reference frame.
-  int err = 0;
-  if (trajComm_.Master()) { // TODO MasterBcast?
-    err = SANDER_.Initialize( *currentParm_, refFrame_ );
-    for (int rank = 1; rank < trajComm_.Size(); rank++)
-      refFrame_.SendFrame( rank, trajComm_ ); // FIXME make SendFrame const
-  } else {
-    refFrame_.RecvFrame( 0, trajComm_ );
-    err = SANDER_.Initialize( *currentParm_, refFrame_ );
-  }
-  if (trajComm_.CheckError( err )) return 1;
+  if ( SANDER_.Initialize( *currentParm_, refFrame_, trajComm_ ) ) return 1;
 # else
   if ( SANDER_.Initialize( *currentParm_, refFrame_ ) ) return 1;
 # endif
