@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ene.in Esander.dat force.nc Edpdp.dat
+CleanFiles ene.in Esander.dat force.nc Edpdp.dat CpptrajEsander.parm7 NoWat.dat
 
 CheckSanderlib "SANDER energy tests"
 if [[ $? -ne 0 ]] ; then
@@ -34,8 +34,20 @@ EOF
   DoTest Edpdp.dat.save Edpdp.dat
 }
 
+TestStrip() {
+  cat > ene.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+strip :WAT
+esander NoWat out NoWat.dat
+EOF
+  RunCpptraj "SANDER energy test after 'strip', PME."
+  DoTest NoWat.dat.save NoWat.dat
+}
+
 TestGB
 TestPME
+TestStrip
 
 EndTest
 exit 0
