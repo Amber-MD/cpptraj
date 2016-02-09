@@ -319,6 +319,26 @@ std::string const& ArgList::GetStringKey(const char *key) {
   return emptystring;
 }
 
+// ArgList::GetStringKey()
+/** Search the argument list for key, return the argument following key
+  * as a string if found, otherwise return default.
+  * \param key String to search for
+  * \param def Default string.
+  */
+std::string const& ArgList::GetStringKey(const char *key, std::string const& def) {
+  int nargs = (int)arglist_.size() - 1;
+  for (int arg=0; arg < nargs; arg++)
+    if (!marked_[arg]) {
+      if (arglist_[arg].compare(key)==0) {
+        marked_[arg]=true;
+        arg++;
+        marked_[arg]=true;
+        return arglist_[arg];
+      }
+    }
+  return def;
+}
+
 // ArgList::getKeyInt()
 /** Search the argument list for key, return the argument following key
   * as an integer if found, otherwise return def.
