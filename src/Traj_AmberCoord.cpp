@@ -181,7 +181,7 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
         numBoxCoords_ = sscanf(nextLine.c_str(), "%8lf%8lf%8lf%8lf%8lf%8lf%8lf%8lf",
                                box, box+1, box+2, box+3, box+4, box+5, box+6, box+7);
         if (numBoxCoords_ == -1) {
-          mprinterr("Error: Could not read Box coord line of trajectory %s.",
+          mprinterr("Error: Could not read Box coord line of trajectory %s.\n",
                    file_.Filename().base());
           return TRAJIN_ERR;
         } else if (numBoxCoords_ == 8) {
