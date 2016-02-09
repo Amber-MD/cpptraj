@@ -30,10 +30,15 @@ libcpptraj: libcpptraj$(SHARED_SUFFIX)
 	/bin/mv libcpptraj$(SHARED_SUFFIX) $(LIBDIR)/
 
 install_openmp: cpptraj$(SFX)
-	mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
+	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
 
 install_mpi: cpptraj$(SFX)
-	mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
+	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
+
+install_libsander:
+	$(MAKE) -f Makefile_at clean
+	$(MAKE) -f Makefile_at cpptraj.sander$(SFX) AMBERBUILDFLAGS=-DUSE_SANDERLIB
+	/bin/mv cpptraj.sander$(SFX) $(BINDIR)/
 
 findDepend: FindDepend.o
 	$(CXX) -o findDepend FindDepend.o
