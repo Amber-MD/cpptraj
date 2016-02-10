@@ -44,7 +44,11 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
 
 // CONSTRUCTOR
 DataSetList::DataSetList() :
-  activeRef_(0),maxFrames_(-1), debug_(0), ensembleNum_(-1), hasCopies_(false),
+  activeRef_(0),
+  maxFrames_(-1),
+  debug_(0),
+  ensembleNum_(-1),
+  hasCopies_(false),
   dataSetsPending_(false)
 # ifdef MPI
   , newSetsNeedSync_(false)
@@ -52,10 +56,10 @@ DataSetList::DataSetList() :
 {}
 
 // DESTRUCTOR
-DataSetList::~DataSetList() { Clear(); }
+DataSetList::~DataSetList() { ClearAll(); }
 
-// DataSetList::Clear()
-void DataSetList::Clear() {
+// DataSetList::ClearAll()
+void DataSetList::ClearAll() {
   if (!hasCopies_)
     for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds) 
       delete *ds;
@@ -69,6 +73,22 @@ void DataSetList::Clear() {
 # endif
   activeRef_ = 0;
 } 
+
+// DataSetList::Clear()
+void DataSetList::Clear() {
+  DataListType setsToErase;
+  DataListType setsToKeep;
+  setsToKeep.reserve( RefList_.size() + TopList_.size() );
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Type() == DataSet::REF_FRAME || (*ds)->Type() == DataSet::TOPOLOGY )
+      setsToKeep.push_back( *ds );
+    else
+      setsToErase.push_back( *ds );
+  if (!hasCopies_)
+    for (DataListType::iterator ds = setsToErase.begin(); ds != setsToErase.end(); ++ds)
+      delete *ds;
+  DataList_ = setsToKeep;
+}
 
 // DataSetList::Push_Back()
 void DataSetList::Push_Back(DataSet* ds) {
@@ -94,13 +114,6 @@ DataSetList& DataSetList::operator+=(DataSetList const& rhs) {
   for (DataListType::const_iterator DS = rhs.begin(); DS != rhs.end(); ++DS)
     Push_Back( *DS );
   return *this;
-}
-
-// DataSetList::SetDebug()
-void DataSetList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_>0)
-    mprintf("DataSetList Debug Level set to %i\n",debug_);
 }
 
 // DataSetList::MakeDataSetsEnsemble()
@@ -149,8 +162,8 @@ void DataSetList::PendingWarning() const {
 }
 
 // -----------------------------------------------------------------------------
-/** Remove the specified set from all lists if found, and optionally free
-  * memory.
+/** Remove the specified set from all lists if found.
+  * \param freeMemory If true, also free DataSet memory.
   * \return dsIn if found and removed/erased, 0 otherwise.
   */
 DataSet* DataSetList::EraseSet( DataSet* dsIn, bool freeMemory ) {
@@ -212,7 +225,7 @@ DataSet* DataSetList::GetDataSet( std::string const& nameIn ) const {
     PendingWarning();
     return 0;
   } else if (dsetOut.size() > 1)
-    mprintf("Warning: '%s' selects multiple sets, only using first set.\n");
+    mprintf("Warning: '%s' selects multiple sets, only using first set.\n", nameIn.c_str());
   return dsetOut[0];
 }
 
@@ -731,6 +744,20 @@ void DataSetList::ListReferenceFrames() const {
   }
 }
 
+// DataSetList::ClearRef()
+void DataSetList::ClearRef() {
+  DataListType setsToKeep;
+  setsToKeep.reserve( DataList_.size() - RefList_.size() );
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Type() != DataSet::REF_FRAME )
+      setsToKeep.push_back( *ds );
+  if (!hasCopies_)
+    for (DataListType::const_iterator ds = RefList_.begin(); ds != RefList_.end(); ++ds)
+      delete *ds;
+  RefList_.clear();
+  DataList_ = setsToKeep;
+}
+
 // -----------------------------------------------------------------------------
 const char* DataSetList::TopArgs = "parm <name> | parmindex <#>";
 
@@ -815,4 +842,18 @@ void DataSetList::ListTopologies() const {
       mprintf("\n");
     }
   }
+}
+
+// DataSetList::ClearTop()
+void DataSetList::ClearTop() {
+  DataListType setsToKeep;
+  setsToKeep.reserve( DataList_.size() - TopList_.size() );
+  for (DataListType::const_iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
+    if ( (*ds)->Type() != DataSet::TOPOLOGY )
+      setsToKeep.push_back( *ds );
+  if (!hasCopies_)
+    for (DataListType::const_iterator ds = TopList_.begin(); ds != TopList_.end(); ++ds)
+      delete *ds;
+  TopList_.clear();
+  DataList_ = setsToKeep;
 }

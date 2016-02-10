@@ -7,7 +7,7 @@ class AnalysisList {
     AnalysisList();
     ~AnalysisList();
     void Clear(); 
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     int Debug() const { return debug_; }
     int AddAnalysis(Analysis*, ArgList&, AnalysisSetup&);
     int DoAnalyses();

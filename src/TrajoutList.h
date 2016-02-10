@@ -6,7 +6,7 @@ class TrajoutList {
   public:
     TrajoutList() : debug_(0) {}
     ~TrajoutList() { Clear(); }
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     void Clear();
     /// Add output trajectory to the list and associate with given topology.
     int AddTrajout(std::string const&, ArgList const&, Topology*);

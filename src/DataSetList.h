@@ -27,7 +27,6 @@ class DataSetList {
     DataSetList();
     ~DataSetList();
 
-    void Clear();
     DataSetList& operator+=(DataSetList const&);
     /// \return DataSet at didx.
     DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
@@ -37,6 +36,8 @@ class DataSetList {
     const_iterator begin() const { return DataList_.begin(); }
     /// Iterator to end of dataset list
     const_iterator end()   const { return DataList_.end();   }
+    /// Clear all non-Topology and non-Reference DataSets
+    void Clear();
     /// True if no DataSets in list.
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 
@@ -46,7 +47,7 @@ class DataSetList {
     /// Set current ensemble number.
     void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
     /// Set DataSetList and underlying DataSet debug level
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
@@ -116,6 +117,8 @@ class DataSetList {
     int SetActiveReference( ArgList& );
     /// List all reference frames.
     void ListReferenceFrames() const;
+    /// Remove all reference frames.
+    void ClearRef();
     // TOPOLOGY functions ------------------------
     /// GetTopology arg help text
     static const char* TopArgs;
@@ -127,10 +130,15 @@ class DataSetList {
     Topology* GetTopByIndex(ArgList&) const;
     /// List all topologies
     void ListTopologies() const;
+    /// Remove all topologies.
+    void ClearTop();
 #   ifdef TIMER
     void Timing() const;
 #   endif
   private:
+    /// Clear entire DataSetList
+    void ClearAll();
+    /// Search for and remove specified data set if found, optionally free memory.
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
     inline void PendingWarning() const;
@@ -150,24 +158,15 @@ class DataSetList {
     Timer time_setup_;
     Timer time_push_;
 #   endif
-    /// Current active reference for distance-based masks.
-    DataSet* activeRef_;
-    /// Hold number of frames from most recent AllocateSets() call.
-    long int maxFrames_;
-    /// DataSet debug level
-    int debug_;
-    /// Ensemble member number
-    int ensembleNum_;
-    /// True if list contains copies that should not be freed in destructor.
-    bool hasCopies_;
-    /// True if Actions will generate DataSets in the future.
-    bool dataSetsPending_;
-    /// List of DataSets
-    DataListType DataList_;
-    /// Pointers to reference data sets.
-    DataListType RefList_;
-    /// Pointers to topology data sets.
-    DataListType TopList_;
+    DataSet* activeRef_;    ///< Current active reference for distance-based masks.
+    long int maxFrames_;    ///< Hold number of frames from most recent AllocateSets() call.
+    int debug_;             ///< DataSet debug level
+    int ensembleNum_;       ///< Ensemble member number
+    bool hasCopies_;        ///< True if DataSets should not be freed.
+    bool dataSetsPending_;  ///< True if Actions will generate DataSets in the future.
+    DataListType DataList_; ///< List of DataSets
+    DataListType RefList_;  ///< Pointers to reference data sets.
+    DataListType TopList_;  ///< Pointers to topology data sets.
     /// Hold descriptions and allocators for all DataSet types.
     struct DataToken {
       const char* Description;
