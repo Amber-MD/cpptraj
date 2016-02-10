@@ -399,11 +399,11 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 
 // WriteNameToBuffer()
 void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label,
-                                   int width,  bool leftAlign) 
+                                   int width,  bool isLeftCol)
 {
   std::string temp_name = label;
   // If left aligning, add '#' to name; 
-  if (leftAlign) {
+  if (isLeftCol) {
     if (temp_name[0]!='#') {
       temp_name.insert(0,"#");
       // Ensure that name will not be larger than column width.
@@ -421,7 +421,7 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   else {
     // Set up header format string
     TextFormat::AlignType align;
-    if (leftAlign)
+    if (isLeftCol)
       align = TextFormat::LEFT;
     else
       align = TextFormat::RIGHT;
@@ -464,7 +464,7 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // TODO: Check for empty dim.
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) );
-  int xcol_width = Xdim.Label().size() + 1;
+  int xcol_width = Xdim.Label().size() + 1; // Only used if hasXcolumn_
   if (xcol_width < 8) xcol_width = 8;
   int xcol_precision = 3;
 
@@ -484,20 +484,26 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   }
 
   // Write header to buffer
+  std::vector<int> Original_Column_Widths;
   if (writeHeader_) {
     // If x-column present, write x-label
     if (hasXcolumn_)
       WriteNameToBuffer( file, Xdim.Label(), xcol_width, true );
     // To prevent truncation of DataSet legends, adjust the width of each
     // DataSet if necessary.
-    bool labelLeftAligned = !hasXcolumn_;
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
-      int requiredColSize = (int)(*ds)->Meta().Legend().size();
-      if (!labelLeftAligned || (ds == Sets.begin() && !hasXcolumn_))
-        requiredColSize++;
-      if ( requiredColSize > (*ds)->Format().ColumnWidth() )
-        (*ds)->SetupFormat().SetFormatWidth( (*ds)->Meta().Legend().size() );
-      labelLeftAligned = false;
+      // Record original column widths in case they are changed.
+      Original_Column_Widths.push_back( (*ds)->Format().Width() );
+      int colLabelSize;
+      if (ds == Sets.begin() && !hasXcolumn_)
+        colLabelSize = (int)(*ds)->Meta().Legend().size() + 1;
+      else
+        colLabelSize = (int)(*ds)->Meta().Legend().size();
+      //mprintf("DEBUG: Set '%s', fmt width= %i, colWidth= %i, colLabelSize= %i\n",
+      //        (*ds)->legend(), (*ds)->Format().Width(), (*ds)->Format().ColumnWidth(),
+      //        colLabelSize);
+      if (colLabelSize >= (*ds)->Format().ColumnWidth())
+        (*ds)->SetupFormat().SetFormatWidth( colLabelSize );
     }
     // Write dataset names to header, left-aligning first set if no X-column
     DataSetList::const_iterator set = Sets.begin();
@@ -521,6 +527,10 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
       (*set)->WriteBuffer(file, positions);
     file.Printf("\n"); 
   }
+  // Restore original column widths if necessary
+  if (!Original_Column_Widths.empty())
+    for (unsigned int i = 0; i != Original_Column_Widths.size(); i++)
+      Sets[i]->SetupFormat().SetFormatWidth( Original_Column_Widths[i] );
   return 0;
 }
 

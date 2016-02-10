@@ -14,14 +14,6 @@ void AnalysisList::Clear() {
   analysisList_.clear();
 }
 
-// AnalysisList::SetDebug()
-/** Set Analysis list debug level. */
-void AnalysisList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_>0)
-    mprintf("AnalysisList DEBUG LEVEL SET TO %i\n",debug_);
-}
-
 // AnalysisList::AddAnalysis()
 /** Add specified analysis to the analysis list with given args and 
   * DataSetList.

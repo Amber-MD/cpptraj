@@ -87,6 +87,9 @@ class Action_NativeContacts : public Action {
           else
             return (nframes_ > rhs.nframes_);
         }
+        bool operator==(resContact const& rhs) const {
+          return (nframes_ == rhs.nframes_ && ncontacts_ == rhs.ncontacts_);
+        }
       private:
         int nframes_, ncontacts_;
     };
@@ -94,8 +97,11 @@ class Action_NativeContacts : public Action {
     typedef std::pair<Cpair, resContact> Rpair;
     /// For sorting residue contact pairs.
     struct res_cmp {
-      inline bool operator()(Rpair const& first, Rpair const& second) const {
-        return (first.second < second.second);
+      inline bool operator()(Rpair const& P1, Rpair const& P2) const {
+        if (P1.second == P2.second) // if # frames and # contacts same
+          return (P1.first < P2.first); // sort by res numbers
+        else
+          return (P1.second < P2.second); // sort by # contacts, # frames
       }
     };
 };

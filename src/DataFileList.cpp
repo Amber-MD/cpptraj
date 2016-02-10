@@ -48,8 +48,6 @@ void DataFileList::RemoveDataSet( DataSet* dsIn ) {
 /** Set debug level for DataFileList and all datafiles in it. */
 void DataFileList::SetDebug(int debugIn) {
   debug_ = debugIn;
-  if (debug_>0)
-    mprintf("DataFileList DEBUG LEVEL SET TO %i\n",debug_);
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)
     (*df)->SetDebug( debug_ );
 }

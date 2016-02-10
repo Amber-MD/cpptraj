@@ -3,12 +3,6 @@
 #include "EnsembleOut_Single.h"
 #include "EnsembleOut_Multi.h"
 
-void EnsembleOutList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0)
-    mprintf("EnsembleOutList debug level set to %i\n", debug_);
-}
-
 void EnsembleOutList::Clear() {
   for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
     delete *ens;

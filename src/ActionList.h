@@ -12,7 +12,7 @@ class ActionList {
     /// Clear the list
     void Clear();
     /// Set the debug level for actions.
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     /// Set whether to supress Action Init/Setup output.
     void SetSilent(bool b) { actionsAreSilent_ = b; }
     /// Add given action to the action list and initialize.

@@ -16,6 +16,8 @@
 /// CONSTRUCTOR
 CpptrajState::CpptrajState() :
   debug_(0),
+  refDebug_(0),
+  topDebug_(0),
   showProgress_(true),
   exitOnError_(true),
   noEmptyRun_(false),
@@ -236,28 +238,81 @@ int CpptrajState::ListAll( ArgList& argIn ) const {
 /** Set debug level of specified lists. */
 int CpptrajState::SetListDebug( ArgList& argIn ) {
   debug_ = argIn.getNextInteger(0);
+  if (debug_ > 0) mprintf("\tGeneral debug level set to %i\n", debug_);
   std::vector<bool> enabled = ListsFromArg( argIn, true );
-  if ( enabled[L_ACTION]   ) actionList_.SetDebug( debug_ );
-  if ( enabled[L_TRAJIN]   ) trajinList_.SetDebug( debug_ );
+  if ( enabled[L_ACTION]   ) {
+    actionList_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tAction debug level set to %i\n", debug_);
+  }
+  if ( enabled[L_TRAJIN]   ) {
+    trajinList_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tInput trajectory/ensemble debug level set to %i\n", debug_);
+  }
+  if ( enabled[L_REF]      ) {
+    refDebug_ = debug_;
+    if (refDebug_ > 0) mprintf("\tReference debug level set to %i\n", refDebug_);
+  }
   if ( enabled[L_TRAJOUT]  ) {
     trajoutList_.SetDebug( debug_ );
     ensembleOut_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tOutput trajectory/ensemble debug level set to %i\n", debug_);
   }
-  if ( enabled[L_ANALYSIS] ) analysisList_.SetDebug( debug_ );
-  if ( enabled[L_DATAFILE] ) DFL_.SetDebug( debug_ );
-  if ( enabled[L_DATASET]  ) DSL_.SetDebug( debug_ );
+  if ( enabled[L_PARM]     ) {
+    topDebug_ = debug_;
+    if (topDebug_ > 0) mprintf("\tTopology debug level set to %i\n", topDebug_);
+  }
+  if ( enabled[L_ANALYSIS] ) {
+    analysisList_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tAnalysis debug level set to %i\n", debug_);
+  }
+  if ( enabled[L_DATAFILE] ) {
+    DFL_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tData file debug level set to %i\n", debug_);
+  }
+  if ( enabled[L_DATASET]  ) {
+    DSL_.SetDebug( debug_ );
+    if (debug_ > 0) mprintf("\tData set debug level set to %i\n", debug_);
+  }
   return 0;
 }
 
 /** Clear specified lists */
 int CpptrajState::ClearList( ArgList& argIn ) {
   std::vector<bool> enabled = ListsFromArg( argIn, false );
-  if ( enabled[L_ACTION]   ) actionList_.Clear();
-  if ( enabled[L_TRAJIN]   ) { trajinList_.Clear(); SetTrajMode( UNDEFINED ); }
-  if ( enabled[L_TRAJOUT]  ) { trajoutList_.Clear(); ensembleOut_.Clear(); }
-  if ( enabled[L_ANALYSIS] ) analysisList_.Clear();
-  if ( enabled[L_DATAFILE] ) DFL_.Clear();
-  if ( enabled[L_DATASET]  ) DSL_.Clear();
+  if ( enabled[L_ACTION]   ) {
+    mprintf("\tClearing Actions.\n");
+    actionList_.Clear();
+  }
+  if ( enabled[L_TRAJIN]   ) {
+    mprintf("\tClearing input trajectories/ensembles.\n");
+    trajinList_.Clear();
+    SetTrajMode( UNDEFINED );
+  }
+  if ( enabled[L_REF]      ) {
+    mprintf("\tClearing reference coordinates.\n");
+    DSL_.ClearRef();
+  }
+  if ( enabled[L_TRAJOUT]  ) {
+    mprintf("\tClearing output trajectories.\n");
+    trajoutList_.Clear();
+    ensembleOut_.Clear();
+  }
+  if ( enabled[L_PARM]     ) {
+    mprintf("\tClearing topologies.\n");
+    DSL_.ClearTop();
+  }
+  if ( enabled[L_ANALYSIS] ) {
+    mprintf("\tClearing Analyses.\n");
+    analysisList_.Clear();
+  }
+  if ( enabled[L_DATAFILE] ) {
+    mprintf("\tClearing data files.\n");
+    DFL_.Clear();
+  }
+  if ( enabled[L_DATASET]  ) {
+    mprintf("\tClearing data sets.\n");
+    DSL_.Clear();
+  }
   return 0;
 }
 
@@ -1329,7 +1384,7 @@ int CpptrajState::AddReference( std::string const& fname, ArgList const& args ) 
   DataSet_Coords_REF* ref = new DataSet_Coords_REF();
   if (ref==0) return 1;
   if (refParm != 0) {
-    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, debug_)) return 1;
+    if (ref->LoadRefFromFile(fname, tag, *refParm, argIn, refDebug_)) return 1;
   } else { // CRD != 0
     int fnum;
     if (argIn.hasKey("lastframe"))
@@ -1380,7 +1435,7 @@ int CpptrajState::AddTopology( std::string const& fnameIn, ArgList const& args )
       if (ds == 0) { 
         if (exitOnError_) return 1;
       } else {
-        if (ds->LoadTopFromFile(argIn, debug_)) {
+        if (ds->LoadTopFromFile(argIn, topDebug_)) {
           DSL_.RemoveSet( ds );
           if (exitOnError_) return 1;
         }

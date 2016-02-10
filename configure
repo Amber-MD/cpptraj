@@ -852,8 +852,11 @@ if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
     FLIBS=""
 fi
 
-# Set up linking flags if not already set
-LDFLAGS="$ARPACK $LAPACK $BLAS $MKLLIB $NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $FLIBS $LDFLAGS"
+# Set up linking flags if not already set.
+# LDFLAGS contains flags common to cpptraj and ambpdb
+LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $LDFLAGS"
+# CPPTRAJ_LIB contains flags specific to cpptraj
+CPPTRAJ_LIB="$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
 if [[ ! -z $FFT_LIBDIR ]] ; then
   FFT_LIB="$FFT_LIBDIR $FFT_LIB"
 fi
@@ -908,7 +911,7 @@ if [[ ! -z $SANDERLIB ]] ; then
     FFT_LIBDIR=""
   fi
   DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
-  LDFLAGS=$LDFLAGS" $SANDERLIB"
+  CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
 fi
 
 # Change to MPI compiler wrappers if specified
@@ -1026,6 +1029,7 @@ LIBCPPTRAJ=$LIBCPPTRAJ
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
 
+CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
 EOF

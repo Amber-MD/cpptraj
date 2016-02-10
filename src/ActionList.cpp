@@ -15,13 +15,6 @@ void ActionList::Clear() {
   actionList_.clear();
 }
 
-// ActionList::SetDebug()
-void ActionList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0)
-    mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
-}
-
 // ActionList::AddAction()
 int ActionList::AddAction(Action* actIn, ArgList& argIn, ActionInit& init)
 {
