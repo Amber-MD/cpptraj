@@ -17,11 +17,13 @@ addons:
       - openmpi-bin
       - openmpi-common
       - libopenmpi-dev
-env:
-    - COMPILER=gnu
-    - COMPILER=clang
-    - COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4
-    - COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2"
+matrix:
+  include:
+    - { os: linux, env: COMPILER=gnu }
+    - { os: linux, env: COMPILER=clang }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
+    - { os: osx, env: COMPILER=clang }
 
 install:
     - ./configure $BUILD_FLAGS $COMPILER
