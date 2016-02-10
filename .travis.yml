@@ -23,7 +23,12 @@ matrix:
     - { os: linux, env: COMPILER=clang }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
-    - { os: osx, env: COMPILER=clang }
+    - { os: osx, env: COMPILER=clang MAC=yes }
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew install netcdf fftw;
+    fi
 
 install:
     - ./configure $BUILD_FLAGS $COMPILER
