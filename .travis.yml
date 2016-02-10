@@ -23,10 +23,12 @@ matrix:
     - { os: linux, env: COMPILER=clang }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
-    - { os: osx, env: COMPILER=clang MAC=yes }
+    - { os: osx, env: COMPILER=clang }
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew tap homebrew/science
+      brew update
       brew install netcdf fftw;
     fi
 
