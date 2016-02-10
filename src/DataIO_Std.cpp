@@ -399,11 +399,11 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 
 // WriteNameToBuffer()
 void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label,
-                                   int width,  bool leftAlign) 
+                                   int width,  bool isLeftCol)
 {
   std::string temp_name = label;
   // If left aligning, add '#' to name; 
-  if (leftAlign) {
+  if (isLeftCol) {
     if (temp_name[0]!='#') {
       temp_name.insert(0,"#");
       // Ensure that name will not be larger than column width.
@@ -421,7 +421,7 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   else {
     // Set up header format string
     TextFormat::AlignType align;
-    if (leftAlign)
+    if (isLeftCol)
       align = TextFormat::LEFT;
     else
       align = TextFormat::RIGHT;
@@ -464,7 +464,11 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // TODO: Check for empty dim.
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) );
-  int xcol_width = Xdim.Label().size() + 1;
+  int xcol_width;
+  if (hasXcolumn_)
+    xcol_width = Xdim.Label().size() + 1;
+  else
+    xcol_width = Xdata->Meta().Legend().size() + 1;
   if (xcol_width < 8) xcol_width = 8;
   int xcol_precision = 3;
 
@@ -496,7 +500,7 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
       if (!labelLeftAligned || (ds == Sets.begin() && !hasXcolumn_))
         requiredColSize++;
       if ( requiredColSize > (*ds)->Format().ColumnWidth() )
-        (*ds)->SetupFormat().SetFormatWidth( (*ds)->Meta().Legend().size() );
+        (*ds)->SetupFormat().SetFormatWidth( requiredColSize );
       labelLeftAligned = false;
     }
     // Write dataset names to header, left-aligning first set if no X-column
