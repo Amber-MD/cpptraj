@@ -223,6 +223,10 @@ int Energy_Sander::Initialize(Topology const& topIn, Frame& fIn) {
 }
 #endif
 
+static inline bool IsZero(double dIn) {
+  return !(dIn > 0.0 || dIn < 0.0);
+}
+
 /** Initialize or re-initialize for given Topology with given Frame. Also
   * determine which energy terms will be active.
   */
@@ -240,19 +244,27 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
   if (debug_ > 0)
     mprintf("DEBUG: Topology filename= '%s'\n", top_filename_.full());
   // Set some input options if not already specified.
-  if (!fIn.BoxCrd().HasBox()) {
-    if (!specified_cut_) input_.cut = 9999.0;
-    if (!specified_igb_ && !specified_ntb_) {
-      mprintf("Warning: No box and igb/ntb not specified. Defaulting to igb=1, ntb=0\n");
-      input_.igb = 1;
-      input_.ntb = 0;
-    }
-  } else {
-    if (!specified_cut_) input_.cut = 8.0;
-    if (!specified_igb_ && !specified_ntb_) {
-      mprintf("Warning: Box present and igb/ntb not specified. Defaulting to igb=0, ntb=1\n");
-      input_.igb = 0;
+  if (!specified_ntb_) {
+    if (fIn.BoxCrd().HasBox())
       input_.ntb = 1;
+    else
+      input_.ntb = 0;
+    mprintf("Warning: 'ntb' not specified; setting to %i based on box type '%s'\n",
+            input_.ntb, fIn.BoxCrd().TypeName());
+  }
+  if (!specified_cut_) {
+    if (input_.ntb == 0)
+      input_.cut = 9999.0;
+    else
+      input_.cut = 8.0;
+    mprintf("Warning: 'cut' not specified; setting to %.1f based on 'ntb'\n", input_.cut);
+  }
+  if (!specified_igb_) {
+    if (input_.ntb > 0)
+      input_.igb = 0; // No warning for ntb > 1 and no igb set
+    else if (input_.ntb == 0) {
+      input_.igb = 1;
+      mprintf("Warning: 'igb' not specified and ntb==0; setting to %i\n", input_.igb);
     }
   }
 
@@ -294,8 +306,13 @@ int Energy_Sander::CommonInit(Topology const& topIn, Frame& fIn) { // TODO const
   if (input_.ntr > 0) isActive_[CONSTRAINT] = true;
   // Polar?
   if (topIn.Ipol() != 0) isActive_[POLAR] = true;
-  // Are hbond terms present?
-  if (!topIn.Nonbond().HBarray().empty()) isActive_[HBOND] = true;
+  // Are hbond terms present? If they are, are they blank?
+  if (!topIn.Nonbond().HBarray().empty() &&
+      !(topIn.Nonbond().HBarray().size() == 1 &&
+        IsZero(topIn.Nonbond().HBarray().front().Asol()) &&
+        IsZero(topIn.Nonbond().HBarray().front().Bsol()))
+     )
+    isActive_[HBOND] = true;
   // Are CHARMM terms present?
   if (topIn.Chamber().HasChamber()) {
     isActive_[ANGLE_UB] = true;
