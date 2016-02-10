@@ -22,7 +22,7 @@ matrix:
     - { os: linux, env: COMPILER=clang }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
-    - { os: osx, env: COMPILER=clang }
+    - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local"}
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
