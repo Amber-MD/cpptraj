@@ -39,6 +39,7 @@ UsageFull() {
   echo "    --with-arpack=<DIR>"
   echo "    --with-fftw3=<DIR>"
   echo "    --with-readline=<DIR>"
+  echo "    --with-sanderlib=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static      : Use static linking."
   echo "    -amberlib    : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
@@ -216,18 +217,25 @@ TestSanderlib() {
   SL_ERR=0
   if [[ $USE_SANDERLIB -eq 1 ]] ; then
     echo "Checking availability of the SANDER API from AmberTools"
-    if [[ -z $AMBERHOME ]] ; then
-      echo "  Warning: Compilation with the SANDER API requires AMBERHOME to be set."
-      SL_ERR=1
-    elif [[ ! -f "$AMBERHOME/lib/libsander.so" ]] ; then
-      echo "  Warning: $AMBERHOME/lib/libsander.so not present."
-      SL_ERR=1
-    else
-      SANDERINC="-I$AMBERHOME/include"
-      SANDERLIB="-L$AMBERHOME/lib -lsander"
-      echo "  Using SANDER API from $AMBERHOME"
-      # Test that libsander can be linked
-      cat > testp.cpp <<EOF
+    if [[ -z $SANDERLIB_HOME ]] ; then
+      if [[ -z $AMBERHOME ]] ; then
+        echo "  Warning: Compilation with the SANDER API requires AMBERHOME to be set"
+        echo "           if '--with-sanderlib' not specified."
+        SL_ERR=1
+      else
+        SANDERLIB_HOME=$AMBERHOME
+      fi
+    fi
+    if [[ $SL_ERR -eq 0 ]] ; then
+      if [[ ! -f "$SANDERLIB_HOME/lib/libsander.so" ]] ; then
+        echo "  Warning: $SANDERLIB_HOME/lib/libsander.so not present."
+        SL_ERR=1
+      else
+        SANDERINC="-I$SANDERLIB_HOME/include"
+        SANDERLIB="-L$SANDERLIB_HOME/lib -lsander"
+        echo "  Using SANDER API from $SANDERLIB_HOME"
+        # Test that libsander can be linked
+        cat > testp.cpp <<EOF
 #include <cstdio>
 #include "sander.h"
 int main() {
@@ -235,23 +243,24 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-      $CXX $SANDERINC -o testp testp.cpp $SANDERLIB > /dev/null 2> compile.err
-      SL_ERR=$?
-      if [[ $SL_ERR -eq 0 ]] ; then
-        ./testp | grep "Testing" > /dev/null 2>> compile.err
+        $CXX $SANDERINC -o testp testp.cpp $SANDERLIB > /dev/null 2> compile.err
         SL_ERR=$?
+        if [[ $SL_ERR -eq 0 ]] ; then
+          ./testp | grep "Testing" > /dev/null 2>> compile.err
+          SL_ERR=$?
+        fi
+        if [[ $SL_ERR -ne 0 ]] ; then
+          echo "  Warning: Compilation with the SANDER API failed. Error follows:"
+          echo "  --------------------"
+          cat compile.err
+          echo "  --------------------"
+        else
+          echo "  OK"
+          CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
+          CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
+        fi
+        /bin/rm -f testp.cpp testp
       fi
-      if [[ $SL_ERR -ne 0 ]] ; then
-        echo "  Warning: Compilation with the SANDER API failed. Error follows:"
-        echo "  --------------------"
-        cat compile.err
-        echo "  --------------------"
-      else
-        echo "  OK"
-        CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
-        CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
-      fi
-      /bin/rm -f testp.cpp testp
     fi
   fi
   if [[ $SL_ERR -ne 0 ]] ; then
@@ -452,6 +461,7 @@ FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
 LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
 USE_SANDERLIB=1
+SANDERLIB_HOME=""
 READLINE=$READLINE_TARGET
 USE_AMBER_LIB=0
 USEMKL=0
@@ -559,7 +569,6 @@ while [[ ! -z $1 ]] ; do
       echo "Using BLAS/LAPACK/ARPACK/NetCDF libraries in $AMBERHOME"
       USE_AMBER_LIB=1
       ;;
-    "-nosanderlib"    ) USE_SANDERLIB=0 ;;
     "-fftw3" )
       echo "Using FFTW for FFT."
       FFT_LIB="-lfftw3"
@@ -577,6 +586,7 @@ while [[ ! -z $1 ]] ; do
       echo "Using MKL for BLAS/LAPACK in $MKLROOT"
       USEMKL=1
       ;;
+    "-nosanderlib"  ) USE_SANDERLIB=0 ;;
     "-nobzlib"      )
       echo "Not using bzip2"
       BZLIB=""
@@ -669,6 +679,10 @@ while [[ ! -z $1 ]] ; do
        FFT_LIB="-lfftw3"
        FFT_DEPEND=""
        DIRECTIVES="$DIRECTIVES -DFFTW_FFT"
+       ;;
+     "--with-sanderlib" )
+       SANDERLIB_HOME=$VALUE
+       USE_SANDERLIB=1
        ;;
 #    "--with-hdf5" )
 #      INCLUDE="$INCLUDE -I$VALUE/include"
