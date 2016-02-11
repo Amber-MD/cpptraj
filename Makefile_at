@@ -1,15 +1,13 @@
-# CPPTRAJ - Main Makefile
+# CPPTRAJ - AmberTools Makefile
 # Daniel R. Roe
 # 2010-11-18
-# Revised 2015-03-09
+# Revised 2016-02-11
+include ../config.h
 
 # Create standalone cpptraj binary in ./src/
-all:
-	cd src && $(MAKE)
+all: install
 
-# Create standalone cpptraj binary
-install_local:
-	cd src && $(MAKE) install
+install: $(INSTALLTYPE)
 
 # Create cpptraj/ambpdb binaries within AmberTools
 serial:
@@ -29,17 +27,10 @@ libcpptraj:
 
 # Run Tests
 check:
-	cd ../../test/cpptraj/ && $(MAKE) test
-
-check_local:
-	cd ../../test/cpptraj/ && $(MAKE) test.standalone
+	cd test && $(MAKE) test
 
 docs: src/cpptraj.Doxyfile
 	cd src && doxygen cpptraj.Doxyfile
-
-# Clean up for standalone
-clean_local:
-	cd src && $(MAKE) clean
 
 # Clean up for AmberTools
 clean:
