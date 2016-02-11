@@ -1,7 +1,7 @@
 # CPPTRAJ - AmberTools Makefile
 include ../../config.h
 
-CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF)
+CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -44,10 +44,10 @@ depend: findDepend
 dependclean:
 	/bin/rm -f FindDepend.o findDepend
 
-cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) 
+cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(SANDERAPI_DEP) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
-               $(FLIBS_PTRAJ) $(READLINE)
+               $(FLIBS_PTRAJ) $(READLINE) $(SANDERAPI_LIB)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
@@ -65,6 +65,9 @@ $(LIBDIR)/liblapack.a:
 
 $(LIBDIR)/libblas.a:
 	cd ../../blas && $(MAKE) $(BLAS)
+
+$(SANDERAPI_DEP):
+	cd ../../sander && $(MAKE) $(SANDERAPI_DEP)
 
 $(READLINE_HOME)/libreadline.a:
 	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at 
