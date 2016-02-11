@@ -904,12 +904,6 @@ fi
 
 # Flags for libsander
 if [[ ! -z $SANDERLIB ]] ; then
-  if [[ ! -z $FFT_DEPEND ]] ; then
-    # Just use pubfft that is already in libsander
-    FFT_LIB=""
-    FFT_DEPEND=""
-    FFT_LIBDIR=""
-  fi
   DIRECTIVES=$DIRECTIVES" -DUSE_SANDERLIB"
   CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
 fi
