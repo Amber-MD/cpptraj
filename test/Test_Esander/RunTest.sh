@@ -13,15 +13,18 @@ fi
 INPUT="-i ene.in"
 
 TestPME() {
-  cat > ene.in <<EOF
+  CheckPnetcdf "SANDER energy test, PME"
+  if [[ $? -eq 0 ]] ; then
+    cat > ene.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 esander S out Esander.dat saveforces
 trajout force.nc
 EOF
-  RunCpptraj "SANDER energy test, PME."
-  DoTest Esander.dat.save Esander.dat
-  NcTest force.nc.save force.nc
+    RunCpptraj "SANDER energy test, PME."
+    DoTest Esander.dat.save Esander.dat
+    NcTest force.nc.save force.nc
+  fi
 }
 
 TestGB() {

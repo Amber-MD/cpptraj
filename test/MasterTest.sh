@@ -269,7 +269,7 @@ CheckSanderlib() {
       DESCRIP="This test"
     fi
     echo "$DESCRIP requires compilation with the Sander API from AmberTools."
-    echo "Re-compile with '-libsander' to enable this functionality. Skipping test."
+    echo "Skipping test."
     return 1
   fi
   return 0
