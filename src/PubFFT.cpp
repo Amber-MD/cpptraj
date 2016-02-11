@@ -5,9 +5,9 @@
 #ifndef FFTW_FFT
 extern "C" {
   // pub_fft.F90 functions
-  void cffti_(int&, double*, int*);          // FFT init
-  void cfftf_(int&, double*, double*, int*); // Forward FFT
-  void cfftb_(int&, double*, double*, int*); // Backward FFT
+  void pubfft_init_(int&, double*, int*);          // FFT init
+  void pubfft_forward_(int&, double*, double*, int*); // Forward FFT
+  void pubfft_back_(int&, double*, double*, int*); // Backward FFT
 }
 #endif
 
@@ -51,7 +51,7 @@ PubFFT::PubFFT(int fft_sizeIn) {
   std::fill(saved_factors_, saved_factors_+saved_factors_size_, 0);
   saved_work_ = new double[ saved_work_size_ ];
   std::fill(saved_work_, saved_work_+saved_work_size_, 0.0);
-  cffti_( fft_size_, saved_work_, saved_factors_ );
+  pubfft_init_( fft_size_, saved_work_, saved_factors_ );
 # endif
 }
 
@@ -125,7 +125,7 @@ void PubFFT::Forward(ComplexArray& fft_array) {
   fftw_execute( forwards_plan_ );
   FFTWtoComplexArray(fft_array);
 # else
-  cfftf_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_ );
+  pubfft_forward_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_ );
 # endif
 }
 
@@ -136,7 +136,7 @@ void PubFFT::Back(ComplexArray& fft_array) {
   fftw_execute( backwards_plan_ );
   FFTWtoComplexArray(fft_array);
 # else
-  cfftb_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_);
+  pubfft_back_( fft_size_, fft_array.CAptr(), saved_work_, saved_factors_);
 # endif
 }
 
@@ -166,7 +166,7 @@ int PubFFT::Allocate(int sizeIn) {
   } else
     saved_work_ = 0;
   // NOTE: Should this be called if fft_size is 0?
-  cffti_( fft_size_, saved_work_, saved_factors_ );
+  pubfft_init_( fft_size_, saved_work_, saved_factors_ );
 # endif
   return 0;
 }

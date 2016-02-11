@@ -96,6 +96,8 @@ class CpptrajState {
     AnalysisList analysisList_;   ///< List of Analyses to be performed
     
     int debug_;         ///< Debug level.
+    int refDebug_;      ///< Reference debug level.
+    int topDebug_;      ///< Topology debug level.
     bool showProgress_; ///< If true, display progress during Run.
     bool exitOnError_;  ///< If true exit when errors encountered instead of continuing.
     /// If true do not process input trajectories when no actions/output trajectories.

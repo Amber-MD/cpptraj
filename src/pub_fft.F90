@@ -17,26 +17,26 @@
 !
 !     The following routines are defined:
 !
-!     cffti     initialize cfftf and cfftb
-!     cffti1
+!     pubfft_init     initialize pubfft_forward and pubfft_back
+!     pubfft_init_1
 !
-!     cfftb     unnormalized inverse of cfftf
-!     cfftb1
-!     passb4,3,2,5
-!     passb
+!     pubfft_back     unnormalized inverse of pubfft_forward
+!     pubfft_back_1
+!     pubfft_passback4,3,2,5
+!     pubfft_passback
 !
-!     cfftf     forward transform of a complex periodic sequence
-!     cfftf1
-!     passf4,3,2,5
-!     passf
+!     pubfft_forward     forward transform of a complex periodic sequence
+!     pubfft_forward_1
+!     pubfft_passfwd4,3,2,5
+!     pubfft_passfwd
 !
 !*******************************************************************************
 
 !*******************************************************************************
-! subroutine cffti(n,wsave,ifac)
+! subroutine pubfft_init(n,wsave,ifac)
 !
-! subroutine cffti initializes the array wsave which is used in
-! both cfftf and cfftb. the prime factorization of n together with
+! subroutine pubfft_init initializes the array wsave which is used in
+! both pubfft_forward and pubfft_back. the prime factorization of n together with
 ! a tabulation of the trigonometric functions are computed and
 ! stored in wsave.
 !
@@ -47,17 +47,17 @@
 ! output parameter
 !
 ! wsave   A work array which must be dimensioned at least 4*n.
-!         The same work array can be used for both cfftf and cfftb
+!         The same work array can be used for both pubfft_forward and pubfft_back
 !         as long as n remains unchanged. different wsave arrays
 !         are required for different values of n. the contents of
-!         wsave must not be changed between calls of cfftf or cfftb.
+!         wsave must not be changed between calls of pubfft_forward or pubfft_back.
 ! ifac    The saved factors array, dimensioned 30.  This was originally
 !         part of wsave, but has been separated to make it possible to
 !         put the code into a module.
 ! 
 !*******************************************************************************
 
-subroutine cffti(n, wsave, ifac)
+subroutine pubfft_init(n, wsave, ifac)
       
   implicit none
 
@@ -67,21 +67,21 @@ subroutine cffti(n, wsave, ifac)
   double precision      :: wsave(*)
   integer               :: ifac(*)
 
-  if (n .ne. 1) call cffti1(n, wsave(2 * n + 1), ifac)
+  if (n .ne. 1) call pubfft_init_1(n, wsave(2 * n + 1), ifac)
 
   return
 
-end subroutine cffti
+end subroutine pubfft_init
 
 !*******************************************************************************
 !
-! Internal Subroutine:  cffti1
+! Internal Subroutine:  pubfft_init_1
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine cffti1(n, wa, ifac)
+subroutine pubfft_init_1(n, wa, ifac)
       
   implicit none
 
@@ -174,21 +174,21 @@ subroutine cffti1(n, wa, ifac)
 
   return
 
-end subroutine cffti1
+end subroutine pubfft_init_1
 
 !*******************************************************************************
-! subroutine cfftb(n,c,wsave,ifac)
+! subroutine pubfft_back(n,c,wsave,ifac)
 !
-! subroutine cfftb computes the backward complex discrete fourier
-! transform (the fourier synthesis). equivalently , cfftb computes
+! subroutine pubfft_back computes the backward complex discrete fourier
+! transform (the fourier synthesis). equivalently , pubfft_back computes
 ! a complex periodic sequence from its fourier coefficients.
 ! the transform is defined below at output parameter c.
 !
-! a call of cfftf followed by a call of cfftb will multiply the
+! a call of pubfft_forward followed by a call of pubfft_back will multiply the
 ! sequence by n.
 !
-! the array wsave which is used by subroutine cfftb must be
-! initialized by calling subroutine cffti(n,wsave,ifac).
+! the array wsave which is used by subroutine pubfft_back must be
+! initialized by calling subroutine pubfft_init(n,wsave,ifac).
 !
 ! input parameters
 !
@@ -198,17 +198,17 @@ end subroutine cffti1
 ! c      a complex array of length n which contains the sequence
 !
 ! wsave   a real work array which must be dimensioned at least 4n
-!         in the program that calls cfftb. the wsave array must be
-!         initialized by calling subroutine cffti(n,wsave) and a
+!         in the program that calls pubfft_back. the wsave array must be
+!         initialized by calling subroutine pubfft_init(n,wsave) and a
 !         different wsave array must be used for each different
 !         value of n. this initialization does not have to be
 !         repeated so long as n remains unchanged thus subsequent
 !         transforms can be obtained faster than the first.
-!         the same wsave array can be used by cfftf and cfftb.
+!         the same wsave array can be used by pubfft_forward and pubfft_back.
 !
 ! ifac    The saved factors array, dimensioned 30.  This was originally
 !         part of wsave, but has been separated to make it possible to
-!         put the code into a module.  It was created by cffti().
+!         put the code into a module.  It was created by pubfft_init().
 ! 
 ! output parameters
 !
@@ -221,14 +221,14 @@ end subroutine cffti1
 !                        where i=sqrt(-1)
 !
 ! wsave   contains initialization calculations which must not be
-!         destroyed between calls of subroutine cfftf or cfftb
+!         destroyed between calls of subroutine pubfft_forward or pubfft_back
 !
 ! ifac    contains initialization calculations which must not be
-!         destroyed between calls of subroutine cfftf or cfftb
+!         destroyed between calls of subroutine pubfft_forward or pubfft_back
 !
 !*******************************************************************************
 
-subroutine cfftb(n, c, wsave, ifac)
+subroutine pubfft_back(n, c, wsave, ifac)
       
   implicit none
 
@@ -239,21 +239,21 @@ subroutine cfftb(n, c, wsave, ifac)
   double precision      :: wsave(*)
   integer               :: ifac(*)
 
-  if (n .ne. 1) call cfftb1(n, c, wsave, wsave(2 * n + 1), ifac)
+  if (n .ne. 1) call pubfft_back_1(n, c, wsave, wsave(2 * n + 1), ifac)
 
   return
 
-end subroutine cfftb
+end subroutine pubfft_back
 
 !*******************************************************************************
 !
-! Subroutine:  cfftb1
+! Subroutine:  pubfft_back_1
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine cfftb1(n, c, ch, wa, ifac)
+subroutine pubfft_back_1(n, c, ch, wa, ifac)
   
   implicit none
 
@@ -289,9 +289,9 @@ subroutine cfftb1(n, c, ch, wa, ifac)
       ix3 = ix2 + idot
 
       if (na .ne. 0) then
-        call passb4(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3))
+        call pubfft_passback4(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3))
       else
-        call passb4(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3))
+        call pubfft_passback4(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3))
       end if
 
       na = 1 - na
@@ -299,9 +299,9 @@ subroutine cfftb1(n, c, ch, wa, ifac)
     else if (ip .eq. 2) then
 
       if (na .ne. 0) then
-        call passb2(idot, l1, ch, c, wa(iw))
+        call pubfft_passback2(idot, l1, ch, c, wa(iw))
       else
-        call passb2(idot, l1, c, ch, wa(iw))
+        call pubfft_passback2(idot, l1, c, ch, wa(iw))
       end if
 
       na = 1 - na
@@ -311,9 +311,9 @@ subroutine cfftb1(n, c, ch, wa, ifac)
       ix2 = iw + idot
 
       if (na .ne. 0) then
-        call passb3(idot, l1, ch, c, wa(iw), wa(ix2))
+        call pubfft_passback3(idot, l1, ch, c, wa(iw), wa(ix2))
       else
-        call passb3(idot, l1, c, ch, wa(iw), wa(ix2))
+        call pubfft_passback3(idot, l1, c, ch, wa(iw), wa(ix2))
       end if
 
       na = 1 - na
@@ -325,9 +325,9 @@ subroutine cfftb1(n, c, ch, wa, ifac)
       ix4 = ix3 + idot
 
       if (na .ne. 0) then
-        call passb5(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3), wa(ix4))
+        call pubfft_passback5(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3), wa(ix4))
       else
-        call passb5(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3), wa(ix4))
+        call pubfft_passback5(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3), wa(ix4))
       end if
 
       na = 1 - na
@@ -335,9 +335,9 @@ subroutine cfftb1(n, c, ch, wa, ifac)
     else
 
       if (na .ne. 0) then
-        call passb(nac, idot, ip, l1, idl1, ch, ch, ch, c, c, wa(iw))
+        call pubfft_passback(nac, idot, ip, l1, idl1, ch, ch, ch, c, c, wa(iw))
       else
-        call passb(nac, idot, ip, l1, idl1, c, c, c, ch, ch, wa(iw))
+        call pubfft_passback(nac, idot, ip, l1, idl1, c, c, c, ch, ch, wa(iw))
       end if
 
       if (nac .ne. 0) na = 1 - na
@@ -361,13 +361,13 @@ contains
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passb4
+! Internal Subroutine:  pubfft_passback4
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passb4(ido, l1, cc, ch, wa1, wa2, wa3)
+subroutine pubfft_passback4(ido, l1, cc, ch, wa1, wa2, wa3)
       
   implicit none
 
@@ -441,17 +441,17 @@ subroutine passb4(ido, l1, cc, ch, wa1, wa2, wa3)
 
   return
 
-end subroutine passb4
+end subroutine pubfft_passback4
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passb3
+! Internal Subroutine:  pubfft_passback3
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passb3(ido, l1, cc, ch, wa1, wa2)
+subroutine pubfft_passback3(ido, l1, cc, ch, wa1, wa2)
       
   implicit none
 
@@ -517,17 +517,17 @@ subroutine passb3(ido, l1, cc, ch, wa1, wa2)
 
   return
 
-end subroutine passb3
+end subroutine pubfft_passback3
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passb2
+! Internal Subroutine:  pubfft_passback2
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passb2(ido, l1, cc, ch, wa1)
+subroutine pubfft_passback2(ido, l1, cc, ch, wa1)
       
   implicit none
 
@@ -570,17 +570,17 @@ subroutine passb2(ido, l1, cc, ch, wa1)
 
   return
 
-end subroutine passb2
+end subroutine pubfft_passback2
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passb5
+! Internal Subroutine:  pubfft_passback5
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passb5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
+subroutine pubfft_passback5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
       
   implicit none
 
@@ -687,17 +687,17 @@ subroutine passb5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
 
   return
 
-end subroutine passb5
+end subroutine pubfft_passback5
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passb
+! Internal Subroutine:  pubfft_passback
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passb(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
+subroutine pubfft_passback(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
       
   implicit none
 
@@ -858,24 +858,24 @@ subroutine passb(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
 
   return
 
-end subroutine passb
+end subroutine pubfft_passback
 
-end subroutine cfftb1
+end subroutine pubfft_back_1
 
 !*******************************************************************************
-! subroutine cfftf(n,c,wsave,ifac)
+! subroutine pubfft_forward(n,c,wsave,ifac)
 ! 
-! subroutine cfftf computes the forward complex discrete fourier
-! transform (the fourier analysis). equivalently , cfftf computes
+! subroutine pubfft_forward computes the forward complex discrete fourier
+! transform (the fourier analysis). equivalently , pubfft_forward computes
 ! the fourier coefficients of a complex periodic sequence.
 ! the transform is defined below at output parameter c.
 !
 ! the transform is not normalized. to obtain a normalized transform
-! the output must be divided by n. otherwise a call of cfftf
-! followed by a call of cfftb will multiply the sequence by n.
+! the output must be divided by n. otherwise a call of pubfft_forward
+! followed by a call of pubfft_back will multiply the sequence by n.
 !
-! the array wsave which is used by subroutine cfftf must be
-! initialized by calling subroutine cffti(n,wsave,ifac).
+! the array wsave which is used by subroutine pubfft_forward must be
+! initialized by calling subroutine pubfft_init(n,wsave,ifac).
 !
 ! input parameters
 !
@@ -885,17 +885,17 @@ end subroutine cfftb1
 ! c      a complex array of length n which contains the sequence
 !
 ! wsave   a real work array which must be dimensioned at least 4n
-!         in the program that calls cfftf. the wsave array must be
-!         initialized by calling subroutine cffti(n,wsave) and a
+!         in the program that calls pubfft_forward. the wsave array must be
+!         initialized by calling subroutine pubfft_init(n,wsave) and a
 !         different wsave array must be used for each different
 !         value of n. this initialization does not have to be
 !         repeated so long as n remains unchanged thus subsequent
 !         transforms can be obtained faster than the first.
-!         the same wsave array can be used by cfftf and cfftb.
+!         the same wsave array can be used by pubfft_forward and pubfft_back.
 !
 ! ifac    The saved factors array, dimensioned 30.  This was originally
 !         part of wsave, but has been separated to make it possible to
-!         put the code into a module.  It was created by cffti().
+!         put the code into a module.  It was created by pubfft_init().
 ! 
 ! output parameters
 !
@@ -908,14 +908,14 @@ end subroutine cfftb1
 !                        where i=sqrt(-1)
 !
 ! wsave   contains initialization calculations which must not be
-!         destroyed between calls of subroutine cfftf or cfftb
+!         destroyed between calls of subroutine pubfft_forward or pubfft_back
 !
 ! ifac    contains initialization calculations which must not be
-!         destroyed between calls of subroutine cfftf or cfftb
+!         destroyed between calls of subroutine pubfft_forward or pubfft_back
 !
 !*******************************************************************************
 
-subroutine cfftf(n, c, wsave, ifac)
+subroutine pubfft_forward(n, c, wsave, ifac)
       
   implicit none
 
@@ -926,21 +926,21 @@ subroutine cfftf(n, c, wsave, ifac)
   double precision  :: wsave(*)
   integer           :: ifac(*)
 
-  if (n .ne. 1) call cfftf1(n, c, wsave, wsave(2 * n + 1), ifac)
+  if (n .ne. 1) call pubfft_forward_1(n, c, wsave, wsave(2 * n + 1), ifac)
 
   return
 
-end subroutine cfftf
+end subroutine pubfft_forward
 
 !*******************************************************************************
 !
-! Subroutine:  cfftf1
+! Subroutine:  pubfft_forward_1
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine cfftf1(n, c, ch, wa, ifac)
+subroutine pubfft_forward_1(n, c, ch, wa, ifac)
       
   implicit none
 
@@ -976,9 +976,9 @@ subroutine cfftf1(n, c, ch, wa, ifac)
       ix3 = ix2 + idot
 
       if (na .ne. 0) then
-        call passf4(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3))
+        call pubfft_passfwd4(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3))
       else
-        call passf4(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3))
+        call pubfft_passfwd4(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3))
       end if
 
       na = 1 - na
@@ -986,9 +986,9 @@ subroutine cfftf1(n, c, ch, wa, ifac)
     else if (ip .eq. 2) then
          
       if (na .ne. 0) then
-        call passf2(idot, l1, ch, c, wa(iw))
+        call pubfft_passfwd2(idot, l1, ch, c, wa(iw))
       else
-        call passf2(idot, l1, c, ch, wa(iw))
+        call pubfft_passfwd2(idot, l1, c, ch, wa(iw))
       end if
 
       na = 1 - na
@@ -998,9 +998,9 @@ subroutine cfftf1(n, c, ch, wa, ifac)
       ix2 = iw + idot
 
       if (na .ne. 0) then
-        call passf3(idot, l1, ch, c, wa(iw), wa(ix2))
+        call pubfft_passfwd3(idot, l1, ch, c, wa(iw), wa(ix2))
       else
-        call passf3(idot, l1, c, ch, wa(iw), wa(ix2))
+        call pubfft_passfwd3(idot, l1, c, ch, wa(iw), wa(ix2))
       end if
   
       na = 1 - na
@@ -1012,9 +1012,9 @@ subroutine cfftf1(n, c, ch, wa, ifac)
       ix4 = ix3 + idot
 
       if (na .ne. 0) then
-        call passf5(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3), wa(ix4))
+        call pubfft_passfwd5(idot, l1, ch, c, wa(iw), wa(ix2), wa(ix3), wa(ix4))
       else
-        call passf5(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3), wa(ix4))
+        call pubfft_passfwd5(idot, l1, c, ch, wa(iw), wa(ix2), wa(ix3), wa(ix4))
       end if
 
       na = 1 - na
@@ -1022,9 +1022,9 @@ subroutine cfftf1(n, c, ch, wa, ifac)
     else
 
       if (na .ne. 0) then
-        call passf(nac, idot, ip, l1, idl1, ch, ch, ch, c, c, wa(iw))
+        call pubfft_passfwd(nac, idot, ip, l1, idl1, ch, ch, ch, c, c, wa(iw))
       else
-        call passf(nac, idot, ip, l1, idl1, c, c, c, ch, ch, wa(iw))
+        call pubfft_passfwd(nac, idot, ip, l1, idl1, c, c, c, ch, ch, wa(iw))
       end if
 
       if (nac .ne. 0) na = 1 - na
@@ -1048,13 +1048,13 @@ contains
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passf4
+! Internal Subroutine:  pubfft_passfwd4
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passf4(ido, l1, cc, ch, wa1, wa2, wa3)
+subroutine pubfft_passfwd4(ido, l1, cc, ch, wa1, wa2, wa3)
   
   implicit none
 
@@ -1130,17 +1130,17 @@ subroutine passf4(ido, l1, cc, ch, wa1, wa2, wa3)
 
   return
   
-end subroutine passf4
+end subroutine pubfft_passfwd4
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passf3
+! Internal Subroutine:  pubfft_passfwd3
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passf3(ido, l1, cc, ch, wa1, wa2)
+subroutine pubfft_passfwd3(ido, l1, cc, ch, wa1, wa2)
   
   implicit none
 
@@ -1206,17 +1206,17 @@ subroutine passf3(ido, l1, cc, ch, wa1, wa2)
 
   return
 
-end subroutine passf3
+end subroutine pubfft_passfwd3
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passf2
+! Internal Subroutine:  pubfft_passfwd2
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passf2(ido, l1, cc, ch, wa1)
+subroutine pubfft_passfwd2(ido, l1, cc, ch, wa1)
   
   implicit none
 
@@ -1259,17 +1259,17 @@ subroutine passf2(ido, l1, cc, ch, wa1)
 
   return
 
-end subroutine passf2
+end subroutine pubfft_passfwd2
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passf5
+! Internal Subroutine:  pubfft_passfwd5
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passf5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
+subroutine pubfft_passfwd5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
   
   implicit none
 
@@ -1376,17 +1376,17 @@ subroutine passf5(ido, l1, cc, ch, wa1, wa2, wa3, wa4)
 
   return
 
-end subroutine passf5
+end subroutine pubfft_passfwd5
 
 !*******************************************************************************
 !
-! Internal Subroutine:  passf
+! Internal Subroutine:  pubfft_passfwd
 !
 ! Description: <TBS>
 !              
 !*******************************************************************************
 
-subroutine passf(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
+subroutine pubfft_passfwd(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
       
   implicit none
 
@@ -1547,6 +1547,6 @@ subroutine passf(nac, ido, ip, l1, idl1, cc, c1, c2, ch, ch2, wa)
 
   return
 
-end subroutine passf
+end subroutine pubfft_passfwd
 
-end subroutine cfftf1
+end subroutine pubfft_forward_1

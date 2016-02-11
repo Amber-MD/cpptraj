@@ -1,12 +1,6 @@
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
 
-void TrajoutList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0)
-    mprintf("TrajoutList debug level set to %i\n", debug_);
-}
-
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     delete *traj;

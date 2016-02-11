@@ -6,7 +6,7 @@ class EnsembleOutList {
   public:
     EnsembleOutList() : debug_(0) {}
     ~EnsembleOutList() { Clear(); }
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     void Clear();
     /// Add output ensemble of given size to the list and associate with given Topology
     int AddEnsembleOut(std::string const&, ArgList const&, Topology*, int);
