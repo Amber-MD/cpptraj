@@ -8,7 +8,8 @@ Traj_Mol2File::Traj_Mol2File() :
   mol2Top_(0),
   currentSet_(0),
   hasCharges_(false),
-  useSybylTypes_(false)
+  useSybylTypes_(false),
+  prependExt_(false)
 {}
 
 bool Traj_Mol2File::ID_TrajFormat(CpptrajFile& fileIn) {
@@ -90,7 +91,8 @@ int Traj_Mol2File::readFrame(int set, Frame& frameIn) {
 void Traj_Mol2File::WriteHelp() {
   mprintf("\tsingle   : Write to a single file.\n"
           "\tmulti    : Write each frame to a separate file.\n"
-          "\tsybyltype: Convert Amber atom types (if present) to SYBYL types.\n");
+          "\tsybyltype: Convert Amber atom types (if present) to SYBYL types.\n"
+          "\tkeepext  : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
 }
 
 // Traj_Mol2File::processWriteArgs()
@@ -99,6 +101,8 @@ int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
   if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;
   useSybylTypes_ = argIn.hasKey("sybyltype");
+  prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
+  if (prependExt_) mol2WriteMode_ = MULTI;
   return 0;
 }
 
@@ -121,7 +125,7 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
       mprintf("Warning: 'append' not compatible with 'multi' mol2 write.\n");
     if (file_.SetupWrite( fname, debug_ )) return 1;
   }
-  // If writing more than 1 frame and not writing 1 pdb per frame, 
+  // If writing more than 1 frame and not writing 1 file per frame, 
   // use @<TRIPOS>MOLECULE keyword to separate frames.
   if (append || (mol2WriteMode_==SINGLE && NframesToWrite>1)) 
     mol2WriteMode_ = MOL;
@@ -182,7 +186,7 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
 int Traj_Mol2File::writeFrame(int set, Frame const& frameOut) {
   //mprintf("DEBUG: Calling Traj_Mol2File::writeFrame for set %i\n",set);
   if (mol2WriteMode_==MULTI) {
-    if (file_.OpenWriteNumbered( set + 1 )) return 1;
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
   }
   //@<TRIPOS>MOLECULE section
   file_.WriteMolecule( hasCharges_, mol2Top_->Nres() );

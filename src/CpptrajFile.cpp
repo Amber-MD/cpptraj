@@ -256,13 +256,18 @@ int CpptrajFile::OpenWrite(FileName const& nameIn) {
 
 // CpptrajFile::OpenWriteNumbered()
 // NOTE: File MUST be previously set up. Primarily for use with traj files.
-int CpptrajFile::OpenWriteNumbered(int numIn) {
+int CpptrajFile::OpenWriteNumbered(int numIn, bool prepend) {
   if (isStream_) {
     mprinterr("Internal Error: CpptrajFile::OpenWriteNumbered cannot be used with streams.\n");
     return 1;
   }
-  std::string newName = AppendNumber( fname_.Full(), numIn );
-  if (IO_->Open( newName.c_str(), "wb")) return 1;
+  if (prepend) {
+    FileName newName = fname_.PrependExt( "." + integerToString(numIn) );
+    if (IO_->Open( newName.full(), "wb")) return 1;
+  } else {
+    std::string newName = AppendNumber( fname_.Full(), numIn );
+    if (IO_->Open( newName.c_str(), "wb")) return 1;
+  }
   isOpen_ = true;
   return 0;
 }

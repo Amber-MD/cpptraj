@@ -22,6 +22,7 @@ class Traj_Mol2File : public TrajectoryIO {
     int currentSet_;
     bool hasCharges_;
     bool useSybylTypes_;
+    bool prependExt_;
     Mol2File file_; 
 
     // Inherited functions

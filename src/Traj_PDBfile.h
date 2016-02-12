@@ -32,6 +32,7 @@ class Traj_PDBfile: public TrajectoryIO {
     bool write_cryst1_; ///< If false write CRYST1 for first frame only.
     bool include_ep_;   ///< If true include extra points.
     bool writeConect_;  ///< If true write CONECT records for each bond.
+    bool prependExt_;
     std::string space_group_;
     std::vector<double> radii_; ///< Hold radii for PQR format.
     std::vector<int> TER_idxs_; ///< TER card indices.

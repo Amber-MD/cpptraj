@@ -89,10 +89,8 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
     Dimension Xdim(1.0, windowSize_, "Frame");
     outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
-      maxfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "max." + 
-                                   outfileName.Base(), analyzeArgs);
-      avgfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "avg." + 
-                                   outfileName.Base(), analyzeArgs);
+      maxfile = setup.DFL().AddDataFile(outfileName.PrependFileName("max."), analyzeArgs);
+      avgfile = setup.DFL().AddDataFile(outfileName.PrependFileName("avg."), analyzeArgs);
     }
     int didx = 0;
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
@@ -135,8 +133,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   DataFile* crvfile = 0;
   if (!averageonly_) {
     if (!outfileName.empty()) {
-      crvfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "crv." + 
-                                   outfileName.Base(), analyzeArgs);
+      crvfile = setup.DFL().AddDataFile(outfileName.PrependFileName("crv."), analyzeArgs);
     }
     MetaData md(setname, "curve");
     for (int didx = 0; didx != (int)inputDsets_.size(); didx++)

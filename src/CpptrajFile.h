@@ -36,8 +36,8 @@ class CpptrajFile {
     int OpenRead(FileName const&);
     /// Set up and open file for writing.
     int OpenWrite(FileName const&);
-    /// Open file previously set up for write with given numeric suffix.
-    int OpenWriteNumbered(int);
+    /// Open file previously set up for write with given numeric suffix/extension prefix.
+    int OpenWriteNumbered(int,bool);
     /// Set up and open file for appending.
     int OpenAppend(FileName const&);
     // -------------------------------------------

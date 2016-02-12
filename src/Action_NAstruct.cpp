@@ -62,9 +62,9 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
   if (!outputsuffix.empty()) {
     // Set up output files.
     FileName FName( outputsuffix );
-    bpout_ = init.DFL().AddCpptrajFile(FName.DirPrefix()   + "BP."     + FName.Base(), "Base Pair");
-    stepout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "BPstep." + FName.Base(), "Base Pair Step");
-    helixout_ = init.DFL().AddCpptrajFile(FName.DirPrefix() + "Helix." + FName.Base(), "Helix");
+    bpout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("BP."), "Base Pair");
+    stepout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("BPstep."), "Base Pair Step");
+    helixout_ = init.DFL().AddCpptrajFile(FName.PrependFileName("Helix."), "Helix");
     if (bpout_ == 0 || stepout_ == 0 || helixout_ == 0) return Action::ERR;
   }
   double hbcut = actionArgs.getKeyDouble("hbcut", -1);

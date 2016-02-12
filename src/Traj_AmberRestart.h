@@ -50,6 +50,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     bool outputTemp_;
     bool outputVel_;
     bool outputTime_;
+    bool prependExt_;    ///< If true prepend extension with # on write instead of append
     BufferedFrame file_; ///< Only needed for writes.
 };
 #endif

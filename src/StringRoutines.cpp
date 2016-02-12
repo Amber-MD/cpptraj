@@ -1,7 +1,7 @@
 #include <cmath>     // log10
+#include <cctype>    // isspace, isdigit
 #include <ctime>     // for TimeString()
 #include <sstream>   // istringstream, ostringstream
-#include <locale>    // isspace
 #include <stdexcept> // BadConversion
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
@@ -126,9 +126,8 @@ double convertToDouble(std::string const &s) {
 /// Remove any trailing whitespace from string.
 void RemoveTrailingWhitespace(std::string &line) {
   if (line.empty()) return;
-  std::locale loc;
   int p = (int)line.size() - 1;
-  while (p > -1 && (isspace(line[p],loc) || line[p]=='\n' || line[p]=='\r'))
+  while (p > -1 && (isspace(line[p]) || line[p]=='\n' || line[p]=='\r'))
     --p;
   line.resize(p + 1);
 }
@@ -165,7 +164,6 @@ std::string doubleToString(double d) {
 // validInteger()
 bool validInteger(std::string const &argument) {
   if (argument.empty()) return false;
-  std::locale loc;
   std::string::const_iterator c;
   if (argument[0]=='-' || argument[0]=='+') {
     c = argument.begin()+1;
@@ -173,7 +171,7 @@ bool validInteger(std::string const &argument) {
   } else
     c = argument.begin();
   for (; c != argument.end(); ++c)
-    if (!isdigit(*c,loc)) return false;
+    if (!isdigit(*c)) return false;
   return true;
 }
 

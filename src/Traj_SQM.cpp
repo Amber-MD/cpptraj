@@ -66,7 +66,7 @@ int Traj_SQM::writeFrame(int set, Frame const& frameOut) {
   if (singleWrite_) {
     if (outfile_.OpenFile()) return 1;
   } else {
-    if (outfile_.OpenWriteNumbered( set + 1 )) return 1;
+    if (outfile_.OpenWriteNumbered( set + 1, false )) return 1;
   }
   outfile_.Printf("%s\n", Title().c_str());
   outfile_.Printf("%s", header_.c_str());

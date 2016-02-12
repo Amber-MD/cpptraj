@@ -127,16 +127,43 @@ int FileName::SetFileName_NoExpansion(std::string const& nameIn) {
   return 0;
 }
 
-int FileName::AppendFileName( std::string const& suffix ) {
+int FileName::Append( std::string const& suffix ) {
   if (fullPathName_.empty()) return 1;
   fullPathName_.append( suffix );
   baseName_.append( suffix );
   return 0;
 }
 
+FileName FileName::AppendFileName( std::string const& suffix ) const {
+  FileName out( *this );
+  out.Append( suffix );
+  return out;
+}
+
+//TODO make this more efficient by just modifying full and base names
 FileName FileName::PrependFileName( std::string const& prefix ) const {
   FileName out;
   out.SetFileName_NoExpansion(dirPrefix_ + prefix + baseName_);
+  return out;
+}
+
+FileName FileName::PrependExt( std::string const& extPrefix ) const {
+  FileName out( *this );
+  // Find location of extension.
+  size_t found = out.baseName_.rfind( extension_ );
+  // Remove extension.
+  out.baseName_.resize( found );
+  // Insert extPrefix to just before extension and re-add extension.
+  out.baseName_.append( extPrefix + extension_ + compressExt_ );
+  // Update full path name.
+  out.fullPathName_ = dirPrefix_ + out.baseName_;
+  //mprintf("DEBUG: fullPathName= '%s'\n"
+  //        "       baseName=     '%s'\n"
+  //        "       extension=    '%s'\n"
+  //        "       compressExt=  '%s'\n"
+  //        "       dirPrefix=    '%s'\n",
+  //        out.fullPathName_.c_str(), out.baseName_.c_str(), out.extension_.c_str(),
+  //        out.compressExt_.c_str(), out.dirPrefix_.c_str());
   return out;
 }
 

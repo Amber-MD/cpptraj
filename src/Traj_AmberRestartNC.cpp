@@ -4,7 +4,7 @@
 // Dan Roe 2011-01-07
 #include "Traj_AmberRestartNC.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
+#include "StringRoutines.h" // integerToString 
 #include <netcdf.h>
 
 // CONSTRUCTOR
@@ -16,6 +16,7 @@ Traj_AmberRestartNC::Traj_AmberRestartNC() :
   outputVel_(false),
   outputTime_(false),
   readAccess_(false),
+  prependExt_(false),
   time0_(1.0),
   dt_(1.0)
 { }
@@ -113,10 +114,11 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 
 void Traj_AmberRestartNC::WriteHelp() {
   mprintf("\tnovelocity: Do not write velocities to restart file.\n"
-          "\tnotime:     Do not write time to restart file.\n"
-          "\tremdtraj:   Write temperature to restart file.\n"
-          "\ttime0:      Time for first frame (default 1.0).\n"
-          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
+          "\tnotime    : Do not write time to restart file.\n"
+          "\tremdtraj  : Write temperature to restart file.\n"
+          "\ttime0     : Time for first frame (default 1.0).\n"
+          "\tdt        : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext   : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
@@ -125,6 +127,7 @@ int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
   outputVel_ = !argIn.hasKey("novelocity");
   outputTime_ = !argIn.hasKey("notime");
   outputTemp_ = argIn.hasKey("remdtraj");
+  prependExt_ = argIn.hasKey("keepext");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
   return 0;
@@ -234,15 +237,17 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // Set up file for this set
   bool V_present = (CoordInfo().HasVel() && frameOut.HasVelocity());
-  std::string fname;
+  FileName fname;
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
   if (singleWrite_)
-    fname = filename_.Full();
+    fname = filename_;
+  else if (prependExt_)
+    fname = filename_.PrependExt( "." + integerToString(set+1) );
   else
-    fname = AppendNumber(filename_.Full(), set+1);
+    fname = filename_.AppendFileName( "." + integerToString(set+1) );
   // Create Netcdf file 
-  if ( NC_create( fname, NC_AMBERRESTART, Ncatom(), CoordInfo(), Title() ) )
+  if ( NC_create( fname.full(), NC_AMBERRESTART, Ncatom(), CoordInfo(), Title() ) )
     return 1;
   // write coords
   start_[0] = 0;

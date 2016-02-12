@@ -1,6 +1,6 @@
 #include <cstdio> // sscanf
 #include <cstring> // strlen, strncmp
-#include <locale> // isspace
+#include <cctype> // isdigit, toupper
 #include <cstdlib> // atoi, atof
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
@@ -1586,20 +1586,19 @@ size_t Parm_Amber::GetFortranBufferSize(int width, int ncols, int N) {
 // 01234567
 // %FORMAT([<cols>][(]<type><width>[<precision>][)])
 bool Parm_Amber::SetFortranType() {
-  std::locale loc;
   std::string arg;
 
   if ( fformat_.empty() ) return false;
   // Make sure characters are upper case.
   for (std::string::iterator p = fformat_.begin(); p != fformat_.end(); p++)
-    toupper(*p, loc);
+    toupper(*p);
   // Advance past left parentheses
   std::string::iterator ptr = fformat_.begin() + 7;
   while (*ptr=='(') ++ptr;
   // If digit, have number of data columns. Min # is 1
   fncols_ = 1;
-  if (isdigit(*ptr, loc)) {
-    while (ptr!=fformat_.end() && isdigit(*ptr, loc)) {
+  if (isdigit(*ptr)) {
+    while (ptr!=fformat_.end() && isdigit(*ptr)) {
       arg += *ptr;
       ++ptr;
     }
@@ -1624,7 +1623,7 @@ bool Parm_Amber::SetFortranType() {
   // Width
   fwidth_ = 0;
   arg.clear(); 
-  while (isdigit(*ptr,loc)) {
+  while (isdigit(*ptr)) {
     arg += *ptr;
     ++ptr;
   }
@@ -1634,7 +1633,7 @@ bool Parm_Amber::SetFortranType() {
   if (*ptr == '.') {
     ++ptr;
     arg.clear();
-    while (isdigit(*ptr,loc)) {
+    while (isdigit(*ptr)) {
       arg += *ptr;
       ++ptr;
     }
