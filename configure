@@ -25,7 +25,7 @@ UsageFull() {
   echo "    -timer     : Enable additional timing info."
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
-  echo "    -shared    : Enable position-independent code for generating shared library."
+  echo "    -shared    : Configure for generating libcpptraj.so (implies -nosanderlib)."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
   echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
   echo ""
@@ -558,6 +558,7 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
+      USE_SANDERLIB=0
       LIBCPPTRAJ="libcpptraj.so"
       ;;
     "-amberlib"     )
@@ -1075,6 +1076,12 @@ if [[ ! -e $CPPTRAJBIN ]] ; then
 fi
 if [[ ! -e $CPPTRAJLIB ]] ; then
   mkdir $CPPTRAJLIB
+fi
+
+# Clean the source directory if necessary.
+if [[ -f "src/main.o" ]] ; then
+  echo "Cleaning previous compile."
+  cd src && make clean > /dev/null 2> /dev/null
 fi
 
 echo "CPPTRAJ configuration complete."
