@@ -98,13 +98,13 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     // Open output files.
     if (!suffix.empty()) {
       FileName FName( suffix );
-      outputx_ = init.DFL().AddDataFile(FName.DirPrefix()+"x_"+FName.Base(), actionArgs);
-      outputy_ = init.DFL().AddDataFile(FName.DirPrefix()+"y_"+FName.Base(), actionArgs);
-      outputz_ = init.DFL().AddDataFile(FName.DirPrefix()+"z_"+FName.Base(), actionArgs);
-      outputr_ = init.DFL().AddDataFile(FName.DirPrefix()+"r_"+FName.Base(), actionArgs);
-      outputa_ = init.DFL().AddDataFile(FName.DirPrefix()+"a_"+FName.Base(), actionArgs);
+      outputx_ = init.DFL().AddDataFile(FName.PrependFileName("x_"), actionArgs);
+      outputy_ = init.DFL().AddDataFile(FName.PrependFileName("y_"), actionArgs);
+      outputz_ = init.DFL().AddDataFile(FName.PrependFileName("z_"), actionArgs);
+      outputr_ = init.DFL().AddDataFile(FName.PrependFileName("r_"), actionArgs);
+      outputa_ = init.DFL().AddDataFile(FName.PrependFileName("a_"), actionArgs);
       if (diffout_ == 0 && calcDiffConst_)
-        diffout_ = init.DFL().AddDataFile(FName.DirPrefix()+"diff_"+FName.Base(), actionArgs);
+        diffout_ = init.DFL().AddDataFile(FName.PrependFileName("diff_"), actionArgs);
     } else if (!outname.empty()) {
       outputr_ = init.DFL().AddDataFile( outname, actionArgs );
       outputx_ = outputy_ = outputz_ = outputa_ = outputr_;
