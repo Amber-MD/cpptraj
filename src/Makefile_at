@@ -84,11 +84,9 @@ ReadLine.o: ReadLine.cpp
 .cpp.o:
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
-# Always remove readline library with AT to avoid issues with PIC
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX)
 	cd readline && $(MAKE) -f Makefile_at clean
-	/bin/rm -f $(READLINE)
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
