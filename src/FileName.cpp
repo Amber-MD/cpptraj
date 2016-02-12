@@ -141,6 +141,26 @@ FileName FileName::PrependFileName( std::string const& prefix ) const {
   return out;
 }
 
+FileName FileName::PrependExt( std::string const& extPrefix ) const {
+  FileName out( *this );
+  // Find location of extension.
+  size_t found = out.baseName_.rfind( extension_ );
+  // Remove extension.
+  out.baseName_.resize( found );
+  // Insert extPrefix to just before extension and re-add extension.
+  out.baseName_.append( extPrefix + extension_ + compressExt_ );
+  // Update full path name.
+  out.fullPathName_ = dirPrefix_ + out.baseName_;
+  //mprintf("DEBUG: fullPathName= '%s'\n"
+  //        "       baseName=     '%s'\n"
+  //        "       extension=    '%s'\n"
+  //        "       compressExt=  '%s'\n"
+  //        "       dirPrefix=    '%s'\n",
+  //        out.fullPathName_.c_str(), out.baseName_.c_str(), out.extension_.c_str(),
+  //        out.compressExt_.c_str(), out.dirPrefix_.c_str());
+  return out;
+}
+
 // =============================================================================
 File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   NameArray fnames;
