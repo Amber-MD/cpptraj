@@ -134,6 +134,7 @@ int FileName::AppendFileName( std::string const& suffix ) {
   return 0;
 }
 
+//TODO make this more efficient by just modifying full and base names
 FileName FileName::PrependFileName( std::string const& prefix ) const {
   FileName out;
   out.SetFileName_NoExpansion(dirPrefix_ + prefix + baseName_);

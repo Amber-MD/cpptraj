@@ -313,9 +313,9 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
     FileName mapFilename;
     mapFilename.SetFileName( actionArgs.GetStringKey("mapout") );
     if (!mapFilename.empty()) {
-      natmapfile = init.DFL().AddDataFile(mapFilename.DirPrefix() + "native." + mapFilename.Base());
+      natmapfile = init.DFL().AddDataFile(mapFilename.PrependFileName("native."));
       if (natmapfile != 0) natmapfile->AddDataSet(nativeMap_);
-      nonmapfile = init.DFL().AddDataFile(mapFilename.DirPrefix() + "nonnative." + mapFilename.Base());
+      nonmapfile = init.DFL().AddDataFile(mapFilename.PrependFileName("nonnative."));
       if (nonmapfile != 0) nonmapfile->AddDataSet(nonnatMap_);
     }
   }
