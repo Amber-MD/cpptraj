@@ -17,7 +17,8 @@ Traj_AmberRestart::Traj_AmberRestart() :
   useVelAsCoords_(false),
   outputTemp_(false),
   outputVel_(false),
-  outputTime_(false)
+  outputTime_(false),
+  prependExt_(false)
 {}
 
 /** Check for an integer (I5) followed by 0-2 scientific floats (E15.7) */
@@ -57,10 +58,11 @@ int Traj_AmberRestart::openTrajin() { return 0; }
 
 void Traj_AmberRestart::WriteHelp() {
   mprintf("\tnovelocity: Do not write velocities to restart file.\n"
-          "\tnotime:     Do not write time to restart file.\n"
-          "\tremdtraj:   Write temperature to restart file (will also write time).\n"
-          "\ttime0:      Time for first frame (if not specified time is not written).\n"
-          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
+          "\tnotime    : Do not write time to restart file.\n"
+          "\tremdtraj  : Write temperature to restart file (will also write time).\n"
+          "\ttime0     : Time for first frame (if not specified time is not written).\n"
+          "\tdt        : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext   : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestart::processWriteArgs()
@@ -72,6 +74,7 @@ int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
   singleWrite_ = argIn.hasKey("single");
+  prependExt_ = argIn.hasKey("keepext");
   return 0;
 }
 
@@ -323,7 +326,7 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   if (singleWrite_) {
     if (file_.OpenFile()) return 1;
   } else {
-    if (file_.OpenWriteNumbered( set + 1 ) ) return 1;
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ ) ) return 1;
   }
 
   // Write out title

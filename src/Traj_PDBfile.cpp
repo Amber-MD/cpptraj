@@ -15,6 +15,7 @@ Traj_PDBfile::Traj_PDBfile() :
   write_cryst1_(false),
   include_ep_(false),
   writeConect_(false),
+  prependExt_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -158,20 +159,21 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq:       Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
-          "\tparse:       Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
-          "\tvdw:         Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
-          "\tpdbres:      Use PDB V3 residue names.\n"
-          "\tpdbatom:     Use PDB V3 atom names.\n"
-          "\tpdbv3:       Use PDB V3 residue/atom names.\n"
-          "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
-          "\tterbyres:    Print TER cards based on residue sequence instead of molecules.\n"
-          "\tmodel:       Write to single file separated by MODEL records.\n"
-          "\tmulti:       Write each frame to separate files.\n"
+  mprintf("\tdumpq      : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse      : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw        : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres     : Use PDB V3 residue names.\n"
+          "\tpdbatom    : Use PDB V3 atom names.\n"
+          "\tpdbv3      : Use PDB V3 residue/atom names.\n"
+          "\tteradvance : Increment record (atom) # for TER records (default no).\n"
+          "\tterbyres   : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tmodel      : Write to single file separated by MODEL records.\n"
+          "\tmulti      : Write each frame to separate files.\n"
           "\tchainid <c>: Write character 'c' in chain ID column.\n"
-          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep:  Include extra points.\n"
-          "\tconect:      Write CONECT records using bond information.\n");
+          "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep : Include extra points.\n"
+          "\tconect     : Write CONECT records using bond information.\n"
+          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -204,6 +206,8 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
   writeConect_ = argIn.hasKey("conect");
+  prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
+  if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
@@ -392,7 +396,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
-    if (file_.OpenWriteNumbered( set + 1 )) return 1;
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
     if (write_cryst1_)

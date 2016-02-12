@@ -15,7 +15,9 @@ class FileName {
     /// Set file name, no expansions.
     int SetFileName_NoExpansion(std::string const&);
     /// Append given string to file name but do not change extension info.
-    int AppendFileName(std::string const&);
+    int Append(std::string const&); //TODO this can probably replace AppendNumber some places
+    /// \return Filename with given string appended - do not change extension info.
+    FileName AppendFileName(std::string const&) const;
     /// \return Filename with given string prepended to base file name.
     FileName PrependFileName(std::string const&) const;
     /// \return Filename with given string prepended to extension

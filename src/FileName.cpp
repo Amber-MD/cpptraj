@@ -127,11 +127,17 @@ int FileName::SetFileName_NoExpansion(std::string const& nameIn) {
   return 0;
 }
 
-int FileName::AppendFileName( std::string const& suffix ) {
+int FileName::Append( std::string const& suffix ) {
   if (fullPathName_.empty()) return 1;
   fullPathName_.append( suffix );
   baseName_.append( suffix );
   return 0;
+}
+
+FileName FileName::AppendFileName( std::string const& suffix ) const {
+  FileName out( *this );
+  out.Append( suffix );
+  return out;
 }
 
 //TODO make this more efficient by just modifying full and base names
