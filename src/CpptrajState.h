@@ -78,7 +78,7 @@ class CpptrajState {
     int RunNormal();
     int RunEnsemble();
 #   ifdef MPI
-    std::vector<int> DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
+    void DivideFramesAmongThreads(int&, int&, int&, int, Parallel::Comm const&) const;
     int PreloadCheck(int, int, int&, int&) const;
     int RunParallel();
     int RunParaEnsemble();
