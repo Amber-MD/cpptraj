@@ -916,7 +916,8 @@ int CpptrajState::RunParaEnsemble() {
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
-  if (DSL_.SynchronizeData( NAV.IDX().MaxFrames(), rank_frames, TrajComm )) return 1;
+  //if (DSL_.SynchronizeData( NAV.IDX().MaxFrames(), rank_frames, TrajComm )) return 1;
+  if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   mprintf("\nACTION OUTPUT:\n");
   post_time_.Start();
@@ -1053,7 +1054,8 @@ int CpptrajState::RunParallel() {
   // Sync Actions to master thread
   actionList_.SyncActions();
   // Sync data sets to master thread
-  if (DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm )) return 1;
+  //if (DSL_.SynchronizeData( input_traj.Size(), rank_frames, TrajComm )) return 1;
+  if (DSL_.SynchronizeData( TrajComm )) return 1;
   sync_time_.Stop();
   post_time_.Start();
   mprintf("\nACTION OUTPUT:\n");

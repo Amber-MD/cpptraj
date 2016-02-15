@@ -622,40 +622,61 @@ void DataSetList::ListDataOnly() const {
 #ifdef MPI
 // DataSetList::SynchronizeData()
 /** Synchronize timeseries data from child ranks to master. */
-int DataSetList::SynchronizeData(size_t total, std::vector<int> const& rank_frames,
-                                  Parallel::Comm const& commIn)
-{
+int DataSetList::SynchronizeData(Parallel::Comm const& commIn) {
   if (commIn.Size() < 2) return 0;
   // Ensure that the number of sets that require sync is same on each rank.
   // FIXME: Make sure this allgather does not end up taking too much time.
   //        Should it be debug only?
+  std::vector<int> size_on_rank;
+  size_on_rank.reserve( DataList_.size() );
   DataListType SetsToSync;
   for (DataListType::iterator ds = DataList_.begin(); ds != DataList_.end(); ++ds)
-    if ( (*ds)->NeedsSync() )
+    if ( (*ds)->NeedsSync() ) {
       SetsToSync.push_back( *ds );
+      size_on_rank.push_back( (*ds)->Size() );
+    }
 // DEBUG
-//  for (int rank = 0; rank != commIn.Size(); rank++) {
-//    if (rank == commIn.Rank())
-//      for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
-//        rprintf("SET '%s'\n", (*ds)->legend());
-//    commIn.Barrier();
-//  }
+  //for (int rank = 0; rank != commIn.Size(); rank++) {
+  //  if (rank == commIn.Rank())
+  //    for (DataListType::const_iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds)
+  //      rprintf("SET '%s'\n", (*ds)->legend());
+  //  commIn.Barrier();
+  //}
 // DEBUG END
-  int* n_on_rank = new int[ commIn.Size() ];
+  std::vector<int> n_on_rank( commIn.Size(), 0 );
   int nSets = (int)SetsToSync.size();
-  commIn.AllGather( &nSets, 1, MPI_INT, n_on_rank );
+  commIn.AllGather( &nSets, 1, MPI_INT, &n_on_rank[0] );
   for (int rank = 1; rank < commIn.Size(); rank++)
     if (n_on_rank[rank] != n_on_rank[0]) {
       mprinterr("Internal Error: Number of sets to sync on rank %i (%i) != number on master %i\n",
                 rank, n_on_rank[rank], n_on_rank[0]);
-      delete[] n_on_rank;
       return 1;
     }
-  delete[] n_on_rank;
+  // Send all data set sizes to master.
+  std::vector<int> all_rank_sizes;
+  if (commIn.Master()) {
+    all_rank_sizes.resize( nSets * commIn.Size() );
+    commIn.GatherMaster( &size_on_rank[0], nSets, MPI_INT, &all_rank_sizes[0] );
+  } else {
+    commIn.GatherMaster( &size_on_rank[0], nSets, MPI_INT, 0 );
+  }
+  size_on_rank.clear();
   // Call Sync only for sets that need it.
-  for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds) {
-    //mprintf("DEBUG: Syncing '%s' (size=%zu, total=%zu)\n", (*ds)->Meta().PrintName().c_str(),
-    //        (*ds)->Size(), total);
+  std::vector<int> rank_frames( commIn.Size() );
+  int total = 0; //TODO size_t?
+  int idx0 = 0;
+  for (DataListType::iterator ds = SetsToSync.begin(); ds != SetsToSync.end(); ++ds, ++idx0) {
+    if (commIn.Master()) {
+      total = all_rank_sizes[idx0];
+      rank_frames[0] = all_rank_sizes[idx0];
+      int idx1 = idx0 + nSets;
+      for (int rank = 1; rank < commIn.Size(); rank++, idx1 += nSets) {
+        total += all_rank_sizes[idx1];
+        rank_frames[rank] = all_rank_sizes[idx1];
+      }
+      //mprintf("DEBUG: Syncing '%s' (size=%zu, total=%i)\n", (*ds)->Meta().PrintName().c_str(),
+      //        (*ds)->Size(), total);
+    }
     if ( (*ds)->Sync(total, rank_frames, commIn) ) {
       rprintf( "Warning: Could not sync dataset '%s'\n",(*ds)->legend());
       //return;

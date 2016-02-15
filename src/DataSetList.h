@@ -105,7 +105,7 @@ class DataSetList {
     /// Indicate whether sets added to the list need to be synced
     void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
-    int SynchronizeData(size_t, std::vector<int> const&, Parallel::Comm const&);
+    int SynchronizeData(Parallel::Comm const&);
 #   endif
 
     // REF_COORDS functions ----------------------
