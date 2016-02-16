@@ -133,7 +133,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 // Analysis_Matrix::Analyze()
 Analysis::RetType Analysis_Matrix::Analyze() {
   // Set the averaged coordinates and masses from matrix.
-  modes_->SetAvgCoords( *matrix_ );
+  if (modes_->SetAvgCoords( *matrix_ )) return Analysis::ERR;
   mprintf("\tEigenmode calculation for '%s'\n", matrix_->legend());
   // Check that the matrix was generated with enough snapshots.
   if (matrix_->Type() == DataSet::MATRIX_DBL) {
@@ -147,11 +147,6 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
   // If mass-weighted covariance, mass-weight the resulting eigenvectors.
   if (matrix_->Meta().ScalarType() == MetaData::MWCOVAR) {
-    DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
-    if ( Dmatrix.Mass().empty() ) {
-      mprinterr("Error: MWCOVAR Matrix %s does not have mass info.\n", matrix_->legend());
-      return Analysis::ERR;
-    }
     mprintf("Info: Converting eigenvalues t cm^-1 and mass-weighting eigenvectors.\n");
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;

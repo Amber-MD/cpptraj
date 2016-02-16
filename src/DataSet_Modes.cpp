@@ -42,15 +42,20 @@ DataSet_Modes::~DataSet_Modes() {
 }
 
 // DataSet_Modes::SetAvgCoords()
-void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
+int DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();
   mass_.clear();
   if (mIn.Type() == DataSet::MATRIX_DBL && mIn.Meta().ScalarType() != MetaData::UNDEFINED) 
   { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
     avgcrd_ = mat.Vect();
+    if (mIn.Meta().ScalarType() == MetaData::MWCOVAR && mat.Mass().empty()) {
+      mprinterr("Internal Error: MWCOVAR Matrix '%s' does not have mass info.\n", mIn.legend());
+      return 1;
+    }
     mass_ = mat.Mass();
   }
+  return 0;
 }
 
 // DataSet_Modes::SetModes()

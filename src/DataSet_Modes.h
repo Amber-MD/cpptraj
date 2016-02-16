@@ -30,7 +30,7 @@ class DataSet_Modes : public DataSet {
     const double* AvgFramePtr()      const { return &avgcrd_[0];          }
     void AllocateAvgCoords(int n)          { avgcrd_.resize(n, 0.0);      }
 
-    void SetAvgCoords(DataSet_2D const&);
+    int SetAvgCoords(DataSet_2D const&);
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
