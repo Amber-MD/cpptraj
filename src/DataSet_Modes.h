@@ -35,7 +35,7 @@ class DataSet_Modes : public DataSet {
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int EigvalToFreq(double);
-    int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
+    int MassWtEigvect();
     int ReduceVectors();
     int Thermo(CpptrajFile&, int, double, double) const;
 
@@ -49,12 +49,13 @@ class DataSet_Modes : public DataSet {
     int ReduceCovar();
     int ReduceDistCovar();
 
-    Darray avgcrd_;               ///< Average coordinates
-    Darray mass_;                 ///< Masses
-    double* evalues_;             ///< Array of eigenvalues
-    double* evectors_;            ///< Array of eigenvectors
-    int nmodes_;                  ///< Number of eigenmodes
-    int vecsize_;                 ///< Size of each eigenvector
-    bool reduced_;                ///< True if modes have been reduced
+    Darray avgcrd_;    ///< Average coordinates
+    Darray mass_;      ///< Masses
+    double* evalues_;  ///< Array of eigenvalues
+    double* evectors_; ///< Array of eigenvectors
+    int nmodes_;       ///< Number of eigenmodes
+    int vecsize_;      ///< Size of each eigenvector
+    bool reduced_;     ///< True if modes have been reduced
+    bool massWtEvecs_; ///< True if eigenvectors have been mass-weighted
 };
 #endif

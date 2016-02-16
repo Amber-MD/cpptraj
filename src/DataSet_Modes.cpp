@@ -31,7 +31,8 @@ DataSet_Modes::DataSet_Modes() :
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
-  reduced_(false)
+  reduced_(false),
+  massWtEvecs_(false)
 {}
 
 // DESTRUCTOR
@@ -52,6 +53,7 @@ void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   }
 }
 
+// DataSet_Modes::SetModes()
 int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn, 
                             const double* evalsIn, const double* evecsIn)
 {
@@ -79,14 +81,14 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
   return 0;
 }
 
-/** Get eigenvectors and eigenvalues. They will be stored in descending 
-  * order (largest eigenvalue first).
+/** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be
+  * stored in descending order (largest eigenvalue first).
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
-#ifdef NO_MATHLIB
-  mprinterr("Error: Compiled without ARPACK/LAPACK/BLAS routines.\n");
+# ifdef NO_MATHLIB
+  mprinterr("Error: Compiled without LAPACK/BLAS routines.\n");
   return 1;
-#else
+# else
   bool eigenvaluesOnly = false;
   int info = 0;
   int ncols = (int)mIn.Ncols();
@@ -306,7 +308,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   if (vtmp != 0) delete[] vtmp;
 
   return 0;
-#endif
+# endif /* NO_MATHLIB */
 }
 
 // DataSet_Modes::PrintModes()
@@ -350,16 +352,19 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
 }
 
 /** Mass-weight Eigenvectors. Currently only works when vector size
-  * is a multiple of 3 (i.e. COVAR-type matrix. Size of massIn
-  * must be == number of modes (TODO: Make std::vector). The
-  * ith xyz elements of each eigenvector is multiplied by mass i.
+  * is a multiple of 3 (i.e. COVAR-type matrix. Size of mass
+  * must be == number of modes. The ith xyz elements of each
+  * eigenvector is multiplied by 1/sqrt(mass i).
   */
-int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
-  if (massIn.empty()) return 1;
+int DataSet_Modes::MassWtEigvect() {
+  if (mass_.empty()) {
+    mprinterr("Internal Error: No mass info set for modes '%s'.\n", legend());
+    return 1;
+  }
   if (evectors_ == 0) return 0;
   mprintf("\tMass-weighting %i eigenvectors\n", nmodes_);
   int vend = nmodes_ * vecsize_; // == size of evectors array
-  DataSet_MatrixDbl::Darray::const_iterator mptr = massIn.begin();
+  Darray::const_iterator mptr = mass_.begin();
   for (int vi = 0; vi < vecsize_; vi += 3) {
     double mass = 1.0 / sqrt( *(mptr++) );
     for (int modev = vi; modev < vend; modev += vecsize_) {
@@ -370,6 +375,7 @@ int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
       evectors_[modev+2] *= mass;
     }
   }
+  massWtEvecs_ = true;
   return 0;
 }
 

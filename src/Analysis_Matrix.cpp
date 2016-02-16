@@ -132,6 +132,7 @@ Analysis::RetType Analysis_Matrix::Setup(ArgList& analyzeArgs, AnalysisSetup& se
 
 // Analysis_Matrix::Analyze()
 Analysis::RetType Analysis_Matrix::Analyze() {
+  // Set the averaged coordinates and masses from matrix.
   modes_->SetAvgCoords( *matrix_ );
   mprintf("\tEigenmode calculation for '%s'\n", matrix_->legend());
   // Check that the matrix was generated with enough snapshots.
@@ -144,6 +145,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   }
   // Calculate eigenvalues / eigenvectors
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
+  // If mass-weighted covariance, mass-weight the resulting eigenvectors.
   if (matrix_->Meta().ScalarType() == MetaData::MWCOVAR) {
     DataSet_MatrixDbl const& Dmatrix = static_cast<DataSet_MatrixDbl const&>( *matrix_ );
     if ( Dmatrix.Mass().empty() ) {
@@ -153,8 +155,8 @@ Analysis::RetType Analysis_Matrix::Analyze() {
     mprintf("Info: Converting eigenvalues t cm^-1 and mass-weighting eigenvectors.\n");
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
-    // Mass-wt eigenvectors // TODO Do not pass in Mass again, done above in SetAvgCoords
-    if (modes_->MassWtEigvect( Dmatrix.Mass() )) return Analysis::ERR;
+    // Mass-wt eigenvectors
+    if (modes_->MassWtEigvect()) return Analysis::ERR;
     // Calc thermo-chemistry if specified
     if (thermopt_)
       modes_->Thermo( *outthermo_, 1, thermo_temp_, 1.0 );
