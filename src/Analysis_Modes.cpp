@@ -10,6 +10,7 @@ Analysis_Modes::Analysis_Modes() :
   beg_(0),
   end_(0),
   bose_(false),
+  calcAll_(false),
   factor_(0),
   modinfo_(0),
   modinfo2_(0),
@@ -23,7 +24,7 @@ Analysis_Modes::Analysis_Modes() :
 
 void Analysis_Modes::Help() const {
   mprintf("\t{fluct|displ|corr|eigenval|trajout|rmsip} name <modesname> [name2 <modesname>]\n"
-          "\t[beg <beg>] [end <end>] [bose] [factor <factor>]\n"
+          "\t[beg <beg>] [end <end>] [bose] [factor <factor>] [calcall]\n"
           "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
           "\t[trajout <name> %s\n", DataSetList::TopArgs);
@@ -169,6 +170,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     // Get factor, bose
     bose_ = analyzeArgs.hasKey("bose");
     factor_ = analyzeArgs.getKeyDouble("factor",1.0);
+    calcAll_ = analyzeArgs.hasKey("calcall");
   }
   end_ = analyzeArgs.getKeyInt("end", 50);
 
@@ -250,6 +252,10 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
         mprintf("\tBose statistics used.\n");
       else
         mprintf("\tBoltzmann statistics used.\n");
+      if (calcAll_)
+        mprintf("\tEigenvectors associated with zero or negative eigenvalues will be used.\n");
+      else
+        mprintf("\tEigenvectors associated with zero or negative eigenvalues will be skipped.\n");
     }
     if (type_ == DISPLACE)
       mprintf("\tFactor for displacement: %lf\n", factor_);
@@ -290,6 +296,14 @@ Analysis::RetType Analysis_Modes::Analyze() {
       return Analysis::ERR;
     }
   }
+  mprintf("\tModes '%s'", modinfo_->legend());
+  if (modinfo_->EvalsAreFreq())
+    mprintf(", eigenvalues are in cm^-1");
+  if (modinfo_->EvecsAreMassWtd())
+    mprintf(", eigenvectors are mass-weighted");
+  mprintf("\n");
+  if (!modinfo_->EvalsAreFreq() && type_ == CORR)
+    mprintf("Warning: 'corr' analysis expects eigenvalues in cm^-1.\n");
 
   // ----- FLUCT PRINT -----
   if (type_ == FLUCT) {
@@ -305,30 +319,48 @@ Analysis::RetType Analysis_Modes::Analyze() {
       // Loop over all eigenvector elements for this atom
       const double* Vec = modinfo_->Eigenvector(beg_) + vi*3;
       for (int mode = beg_; mode < end_; ++mode) {
-        double frq = modinfo_->Eigenvalue(mode);
-        if (frq >= 0.5) {
+        if (modinfo_->EvalsAreFreq()) {
+          double frq = modinfo_->Eigenvalue(mode);
           // Don't use eigenvectors associated with zero or negative eigenvalues
-          double distx = Vec[0] * Vec[0];
-          double disty = Vec[1] * Vec[1];
-          double distz = Vec[2] * Vec[2];
-          double fi = 1.0 / (frq*frq);
-          if (bose_) {
-            double argq = CONSQ * frq;
-            fi *= (argq / tanh(argq));
+          if (frq >= 0.5 || calcAll_) {
+            double distx = Vec[0] * Vec[0];
+            double disty = Vec[1] * Vec[1];
+            double distz = Vec[2] * Vec[2];
+            double fi = 1.0 / (frq*frq);
+            if (bose_) {
+              double argq = CONSQ * frq;
+              fi *= (argq / tanh(argq));
+            }
+            sumx += distx * fi;
+            sumy += disty * fi;
+            sumz += distz * fi;
           }
-          sumx += distx * fi;
-          sumy += disty * fi;
-          sumz += distz * fi;
+        } else {
+          double ev = modinfo_->Eigenvalue(mode);
+          if ( ev > 0.0 || calcAll_) {
+            double distx = Vec[0] * Vec[0];
+            double disty = Vec[1] * Vec[1];
+            double distz = Vec[2] * Vec[2];
+            sumx += distx * ev;
+            sumy += disty * ev;
+            sumz += distz * ev;
+          }
         }
         Vec += modinfo_->VectorSize();
       }
-      sumx *= CNST;
-      sumy *= CNST;
-      sumz *= CNST;
-      Ri[0] = sqrt(sumx) * CONT;
-      Ri[1] = sqrt(sumy) * CONT;
-      Ri[2] = sqrt(sumz) * CONT;
-      Ri[3] = sqrt(sumx + sumy + sumz) * CONT;
+      double c1 = 1.0;
+      double c2 = 1.0;
+      if (modinfo_->EvalsAreFreq()) {
+        c1 = CNST;
+        c2 = CONT;
+      }
+      sumx *= c1;
+      sumy *= c1;
+      sumz *= c1;
+      Ri[0] = sqrt(sumx) * c2;
+      Ri[1] = sqrt(sumy) * c2;
+      Ri[2] = sqrt(sumz) * c2;
+      Ri[3] = sqrt(sumx + sumy + sumz) * c2;
       Ri += 4;
     }
     // Output
@@ -343,26 +375,34 @@ Analysis::RetType Analysis_Modes::Analyze() {
     // Calc displacement of coordinates along normal mode directions
     results_ = new double[ modinfo_->NavgCrd() ];
     std::fill(results_, results_ + modinfo_->NavgCrd(), 0);
-    double sqrtcnst = sqrt(CNST) * CONT * factor_;
+    double dfactor = factor_;
+    if (modinfo_->EvalsAreFreq())
+      dfactor *= (sqrt(CNST) * CONT);
     // Loop over all modes
     for (int mode = beg_; mode < end_; ++mode) {
-      double frq = modinfo_->Eigenvalue(mode);
-      if (frq >= 0.5) {
+      double fi;
+      if (modinfo_->EvalsAreFreq()) {
+        double frq = modinfo_->Eigenvalue(mode);
         // Don't use eigenvectors associated with zero or negative eigenvalues
-        double fi = 1.0 / frq;
+        if (frq < 0.5 && !calcAll_) continue;
+        fi = 1.0 / frq;
         if (bose_) {
           double argq = CONSQ * frq;
           fi *= (fi * argq / tanh(argq));
           fi = sqrt(fi);
         }
-        fi *= sqrtcnst; // * CONT * factor
-        // Loop over all vector elements
-        const double* Vec = modinfo_->Eigenvector(mode);
-        for (int vi = 0; vi < modinfo_->NavgCrd(); vi += 3) {
-          results_[vi  ] += Vec[vi  ] * fi;
-          results_[vi+1] += Vec[vi+1] * fi;
-          results_[vi+2] += Vec[vi+2] * fi;
-        }
+      } else {
+        fi = modinfo_->Eigenvalue(mode);
+        if (fi < Constants::SMALL && !calcAll_) continue;
+        fi = sqrt( fi );
+      }
+      fi *= dfactor; // * CONT * factor
+      // Loop over all vector elements
+      const double* Vec = modinfo_->Eigenvector(mode);
+      for (int vi = 0; vi < modinfo_->NavgCrd(); vi += 3) {
+        results_[vi  ] += Vec[vi  ] * fi;
+        results_[vi+1] += Vec[vi+1] * fi;
+        results_[vi+2] += Vec[vi+2] * fi;
       }
     }
     // Output
@@ -384,11 +424,11 @@ Analysis::RetType Analysis_Modes::Analyze() {
     for (modestack_it apair = atompairStack_.begin();
                       apair != atompairStack_.end(); ++apair)
     {
-      outfile_->Printf("%10i %10i\n", (*apair).first+1, (*apair).second+1);
+      outfile_->Printf("%10i %10i\n", apair->first+1, apair->second+1);
       double val = 1.0;
       for (int mode = beg_; mode < end_; ++mode) {
         double frq = modinfo_->Eigenvalue(mode);
-        if (frq >= 0.5) {
+        if (frq >= 0.5 || calcAll_) {
           val += results_[ncnt];
           outfile_->Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
                          "", "", mode, frq, results_[ncnt], val);
@@ -432,12 +472,12 @@ void Analysis_Modes::CalcDipoleCorr() {
   DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
   for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
   {
-    int idx1 = (*apair).first  * 3;
-    int idx2 = (*apair).second * 3;
+    int idx1 = apair->first  * 3;
+    int idx2 = apair->second * 3;
     // Check if coordinates are out of bounds
     if (idx1 >= modinfo_->NavgCrd() || idx2 >= modinfo_->NavgCrd()) {
       mprintf("Warning: Atom pair %i -- %i is out of bounds (# avg atoms in modes = %i)\n",
-              (*apair).first + 1, (*apair).second + 1, modinfo_->NavgCrd() / 3);
+              apair->first + 1, apair->second + 1, modinfo_->NavgCrd() / 3);
       continue;
     }
     // Calc unit vector along at2->at1 bond
@@ -456,7 +496,7 @@ void Analysis_Modes::CalcDipoleCorr() {
     // Loop over desired modes
     for (int mode = beg_; mode < end_; ++mode) {
       double eval = modinfo_->Eigenvalue(mode);
-      if (eval >= 0.5) {
+      if (eval >= 0.5 || calcAll_) {
         // Don't use eigenvectors associated with zero or negative eigenvalues
         // NOTE: Where is 11791.79 from? Should it be a const?
         double frq = eval * eval / 11791.79;

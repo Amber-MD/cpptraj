@@ -32,6 +32,7 @@ class Analysis_Modes : public Analysis {
     int beg_;
     int end_;
     bool bose_;
+    bool calcAll_;
     double factor_;
     DataSet_Modes* modinfo_;
     DataSet_Modes* modinfo2_;
