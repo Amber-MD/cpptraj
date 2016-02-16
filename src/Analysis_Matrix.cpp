@@ -147,7 +147,7 @@ Analysis::RetType Analysis_Matrix::Analyze() {
   if (modes_->CalcEigen( *matrix_, nevec_ )) return Analysis::ERR;
   // If mass-weighted covariance, mass-weight the resulting eigenvectors.
   if (matrix_->Meta().ScalarType() == MetaData::MWCOVAR) {
-    mprintf("Info: Converting eigenvalues t cm^-1 and mass-weighting eigenvectors.\n");
+    mprintf("Info: Converting eigenvalues to cm^-1 and mass-weighting eigenvectors.\n");
     // Convert eigenvalues to cm^-1
     if (modes_->EigvalToFreq(thermo_temp_)) return Analysis::ERR;
     // Mass-wt eigenvectors

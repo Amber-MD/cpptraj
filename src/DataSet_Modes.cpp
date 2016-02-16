@@ -32,7 +32,8 @@ DataSet_Modes::DataSet_Modes() :
   nmodes_(0),
   vecsize_(0),
   reduced_(false),
-  massWtEvecs_(false)
+  massWtEvecs_(false),
+  evalsAreFreq_(false)
 {}
 
 // DESTRUCTOR
@@ -83,6 +84,13 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
     std::copy( evecsIn, evecsIn + nmodes_ * vecsize_, evectors_ );
   }
   reduced_ = reducedIn;
+  // If MWCOVAR, assume eigenvectors are mass-weighted and eigenvalues are in cm^-1
+  if (Meta().ScalarType() == MetaData::MWCOVAR) {
+    mprintf("Info: '%s' type is mass-weighted covariance; assuming mass-weighted eigenvectors\n"
+            "Info:   and eigenvalues in cm^-1.\n");
+    massWtEvecs_ = true;
+    evalsAreFreq_ = true;
+  }
   return 0;
 }
 
@@ -336,6 +344,7 @@ void DataSet_Modes::PrintModes() {
   * Frequency = sqrt( Ene / (mass * MSF)) = sqrt( Ene / Eigval )
   */
 int DataSet_Modes::EigvalToFreq(double tempIn) {
+  if (evalsAreFreq_) return 0;
   // KT is in kcal/mol
   // TO_CM1 is conversion from (kcal / mol * A^2)^-.5 to units of cm^-1
   // = (sqrt(4184 * 1000) / (TWOPI * C)) * 1E8;
@@ -353,6 +362,7 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
       return 1;
     }
   }
+  evalsAreFreq_ = true;
   return 0;
 }
 
@@ -362,11 +372,12 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
   * eigenvector is multiplied by 1/sqrt(mass i).
   */
 int DataSet_Modes::MassWtEigvect() {
+  if (massWtEvecs_) return 0;
+  if (evectors_ == 0) return 0;
   if (mass_.empty()) {
     mprinterr("Internal Error: No mass info set for modes '%s'.\n", legend());
     return 1;
   }
-  if (evectors_ == 0) return 0;
   mprintf("\tMass-weighting %i eigenvectors\n", nmodes_);
   int vend = nmodes_ * vecsize_; // == size of evectors array
   Darray::const_iterator mptr = mass_.begin();
@@ -493,6 +504,10 @@ int DataSet_Modes::ReduceDistCovar() {
 */
 int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm) const
 {
+  if (!evalsAreFreq_) {
+    mprinterr("Internal Error: DataSet_Modes::Thermo: Expected eigenvalues as cm^-1\n");
+    return 1;
+  }
   // avgcrd_   Contains coordinates in Angstroms
   // mass_     Contains masses in amu.
   // nmodes_   Number of eigenvectors (already converted to frequencies)

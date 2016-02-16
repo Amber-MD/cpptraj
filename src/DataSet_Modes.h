@@ -49,13 +49,14 @@ class DataSet_Modes : public DataSet {
     int ReduceCovar();
     int ReduceDistCovar();
 
-    Darray avgcrd_;    ///< Average coordinates
-    Darray mass_;      ///< Masses
-    double* evalues_;  ///< Array of eigenvalues
-    double* evectors_; ///< Array of eigenvectors
-    int nmodes_;       ///< Number of eigenmodes
-    int vecsize_;      ///< Size of each eigenvector
-    bool reduced_;     ///< True if modes have been reduced
-    bool massWtEvecs_; ///< True if eigenvectors have been mass-weighted
+    Darray avgcrd_;     ///< Average coordinates
+    Darray mass_;       ///< Masses
+    double* evalues_;   ///< Array of eigenvalues
+    double* evectors_;  ///< Array of eigenvectors
+    int nmodes_;        ///< Number of eigenmodes
+    int vecsize_;       ///< Size of each eigenvector
+    bool reduced_;      ///< True if modes have been reduced
+    bool massWtEvecs_;  ///< True if eigenvectors have been mass-weighted
+    bool evalsAreFreq_; ///< True if eigenvalues are in units of cm^-1
 };
 #endif
