@@ -31,7 +31,9 @@ DataSet_Modes::DataSet_Modes() :
   evectors_(0),
   nmodes_(0),
   vecsize_(0),
-  reduced_(false)
+  reduced_(false),
+  evecsAreMassWtd_(false),
+  evalsAreFreq_(false)
 {}
 
 // DESTRUCTOR
@@ -41,17 +43,23 @@ DataSet_Modes::~DataSet_Modes() {
 }
 
 // DataSet_Modes::SetAvgCoords()
-void DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
+int DataSet_Modes::SetAvgCoords(DataSet_2D const& mIn) {
   avgcrd_.clear();
   mass_.clear();
   if (mIn.Type() == DataSet::MATRIX_DBL && mIn.Meta().ScalarType() != MetaData::UNDEFINED) 
   { // May have avg coords 
     DataSet_MatrixDbl const& mat = static_cast<DataSet_MatrixDbl const&>( mIn );
     avgcrd_ = mat.Vect();
+    if (mIn.Meta().ScalarType() == MetaData::MWCOVAR && mat.Mass().empty()) {
+      mprinterr("Internal Error: MWCOVAR Matrix '%s' does not have mass info.\n", mIn.legend());
+      return 1;
+    }
     mass_ = mat.Mass();
   }
+  return 0;
 }
 
+// DataSet_Modes::SetModes()
 int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn, 
                             const double* evalsIn, const double* evecsIn)
 {
@@ -76,17 +84,24 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
     std::copy( evecsIn, evecsIn + nmodes_ * vecsize_, evectors_ );
   }
   reduced_ = reducedIn;
+  // If MWCOVAR, assume eigenvectors are mass-weighted and eigenvalues are in cm^-1
+  if (Meta().ScalarType() == MetaData::MWCOVAR) {
+    mprintf("Info: '%s' type is mass-weighted covariance; assuming mass-weighted eigenvectors\n"
+            "Info:   and eigenvalues in cm^-1.\n", legend());
+    evecsAreMassWtd_ = true;
+    evalsAreFreq_ = true;
+  }
   return 0;
 }
 
-/** Get eigenvectors and eigenvalues. They will be stored in descending 
-  * order (largest eigenvalue first).
+/** Get n_to_calc eigenvectors and eigenvalues from given matrix. They will be
+  * stored in descending order (largest eigenvalue first).
   */
 int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
-#ifdef NO_MATHLIB
-  mprinterr("Error: Compiled without ARPACK/LAPACK/BLAS routines.\n");
+# ifdef NO_MATHLIB
+  mprinterr("Error: Compiled without LAPACK/BLAS routines.\n");
   return 1;
-#else
+# else
   bool eigenvaluesOnly = false;
   int info = 0;
   int ncols = (int)mIn.Ncols();
@@ -306,7 +321,7 @@ int DataSet_Modes::CalcEigen(DataSet_2D const& mIn, int n_to_calc) {
   if (vtmp != 0) delete[] vtmp;
 
   return 0;
-#endif
+# endif /* NO_MATHLIB */
 }
 
 // DataSet_Modes::PrintModes()
@@ -329,6 +344,7 @@ void DataSet_Modes::PrintModes() {
   * Frequency = sqrt( Ene / (mass * MSF)) = sqrt( Ene / Eigval )
   */
 int DataSet_Modes::EigvalToFreq(double tempIn) {
+  if (evalsAreFreq_) return 0;
   // KT is in kcal/mol
   // TO_CM1 is conversion from (kcal / mol * A^2)^-.5 to units of cm^-1
   // = (sqrt(4184 * 1000) / (TWOPI * C)) * 1E8;
@@ -346,20 +362,25 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
       return 1;
     }
   }
+  evalsAreFreq_ = true;
   return 0;
 }
 
 /** Mass-weight Eigenvectors. Currently only works when vector size
-  * is a multiple of 3 (i.e. COVAR-type matrix. Size of massIn
-  * must be == number of modes (TODO: Make std::vector). The
-  * ith xyz elements of each eigenvector is multiplied by mass i.
+  * is a multiple of 3 (i.e. COVAR-type matrix. Size of mass
+  * must be == number of modes. The ith xyz elements of each
+  * eigenvector is multiplied by 1/sqrt(mass i).
   */
-int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
-  if (massIn.empty()) return 1;
+int DataSet_Modes::MassWtEigvect() {
+  if (evecsAreMassWtd_) return 0;
   if (evectors_ == 0) return 0;
+  if (mass_.empty()) {
+    mprinterr("Internal Error: No mass info set for modes '%s'.\n", legend());
+    return 1;
+  }
   mprintf("\tMass-weighting %i eigenvectors\n", nmodes_);
   int vend = nmodes_ * vecsize_; // == size of evectors array
-  DataSet_MatrixDbl::Darray::const_iterator mptr = massIn.begin();
+  Darray::const_iterator mptr = mass_.begin();
   for (int vi = 0; vi < vecsize_; vi += 3) {
     double mass = 1.0 / sqrt( *(mptr++) );
     for (int modev = vi; modev < vend; modev += vecsize_) {
@@ -370,6 +391,7 @@ int DataSet_Modes::MassWtEigvect(DataSet_MatrixDbl::Darray const& massIn) {
       evectors_[modev+2] *= mass;
     }
   }
+  evecsAreMassWtd_ = true;
   return 0;
 }
 
@@ -482,6 +504,10 @@ int DataSet_Modes::ReduceDistCovar() {
 */
 int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double patm) const
 {
+  if (!evalsAreFreq_) {
+    mprinterr("Internal Error: DataSet_Modes::Thermo: Expected eigenvalues as cm^-1\n");
+    return 1;
+  }
   // avgcrd_   Contains coordinates in Angstroms
   // mass_     Contains masses in amu.
   // nmodes_   Number of eigenvectors (already converted to frequencies)
