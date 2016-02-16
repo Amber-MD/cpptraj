@@ -9,23 +9,32 @@ INPUT="modes.in"
 CheckPtrajAnalyze
 CheckNetcdf
 
-Test1() {
-cat > modes.in <<EOF
+# Test modes fluct and mwcovar matrix generation
+TestFluct() {
+  cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2 @CA
 analyze matrix tz2 name tz2modes vecs 20
 analyze modes fluct stack tz2modes out fluct.dat
-analyze modes displ stack tz2modes out displ.dat
 EOF
-RunCpptraj "Analyze Modes Fluct/Displ"
-DoTest fluct.dat.save fluct.dat
-echo "=================================================================================="
-echo "|NOTE: The displacement test is currently disabled due to eigenvector sign flips.|"
-echo "=================================================================================="
-#DoTest displ.dat.save displ.dat
+  RunCpptraj "Modes analysis, RMS fluctuations"
+  DoTest fluct.dat.save fluct.dat
 }
 
-Test2() {
+# Test modes displ and modes file read
+TestDispl() {
+  # Since the displacement test can be fooled by eigenvector
+  # sign flips, read in a previously generated set of modes.
+  cat > modes.in <<EOF
+readdata tz2.evecs.dat name tz2modes
+analyze modes displ stack tz2modes out displ.dat
+EOF
+  RunCpptraj "Modes analysis, displacements"
+  DoTest displ.dat.save displ.dat
+}
+
+# Test modes corr and mwcovar matrix generation
+TestCorr() {
 cat > modes.in <<EOF
 trajin ../tz2.nc
 matrix mwcovar name tz2
@@ -41,8 +50,9 @@ RunCpptraj "Analyze Modes Corr"
 DoTest corr.dat.save corr.dat
 }
 
-Test1
-Test2
+TestFluct
+TestDispl
+TestCorr
 
 EndTest
 
