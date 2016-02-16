@@ -518,7 +518,7 @@ void Analysis_Modes::CalcDipoleCorr(DataSet_Modes const& modes) {
   } // END loop over CORR atom pairs
 }
 
-// Calculate projection of coords along given mode.
+/** Calculate projection of coords along given mode. */
 void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) const {
   double proj = 0.0;
   DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
