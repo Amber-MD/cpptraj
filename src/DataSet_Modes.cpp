@@ -87,7 +87,7 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
   // If MWCOVAR, assume eigenvectors are mass-weighted and eigenvalues are in cm^-1
   if (Meta().ScalarType() == MetaData::MWCOVAR) {
     mprintf("Info: '%s' type is mass-weighted covariance; assuming mass-weighted eigenvectors\n"
-            "Info:   and eigenvalues in cm^-1.\n");
+            "Info:   and eigenvalues in cm^-1.\n", legend());
     evecsAreMassWtd__ = true;
     evalsAreFreq_ = true;
   }

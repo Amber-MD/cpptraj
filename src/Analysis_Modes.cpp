@@ -15,7 +15,6 @@ Analysis_Modes::Analysis_Modes() :
   modinfo_(0),
   modinfo2_(0),
   outfile_(0),
-  results_(0),
   tOutParm_(0),
   tMode_(0),
   pcmin_(0.0),
@@ -63,8 +62,6 @@ const char* Analysis_Modes::analysisTypeString[] = {
 
 // DESTRUCTOR
 Analysis_Modes::~Analysis_Modes() {
-  if (results_!=0)
-    delete[] results_;
   if (tOutParm_ != 0)
     delete tOutParm_;
 }
@@ -167,12 +164,11 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     tMode_ = analyzeArgs.getKeyInt("tmode", 1);
   } else {
     beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
-    // Get factor, bose
     bose_ = analyzeArgs.hasKey("bose");
-    factor_ = analyzeArgs.getKeyDouble("factor",1.0);
     calcAll_ = analyzeArgs.hasKey("calcall");
   }
   end_ = analyzeArgs.getKeyInt("end", 50);
+  factor_ = analyzeArgs.getKeyDouble("factor",1.0);
 
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesfile, DataSet::MODES );
@@ -258,12 +254,12 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
         mprintf("\tEigenvectors associated with zero or negative eigenvalues will be skipped.\n");
     }
     if (type_ == DISPLACE)
-      mprintf("\tFactor for displacement: %lf\n", factor_);
+      mprintf("\tFactor for displacement: %f\n", factor_);
     if (type_ == CORR) {
       mprintf("\tUsing the following atom pairs:");
       for (modestack_it apair = atompairStack_.begin();
                         apair != atompairStack_.end(); ++apair)
-        mprintf(" (%i,%i)", (*apair).first+1, (*apair).second+1 );
+        mprintf(" (%i,%i)", apair->first+1, apair->second+1 );
       mprintf("\n");
     }
     if (type_ == RMSIP)
@@ -271,8 +267,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   } else {
     mprintf("\n\tCreating trajectory for mode %i\n"
               "\tWriting to trajectory %s\n"
-              "\tPC range: %f to %f\n", tMode_, 
-            trajout_.Traj().Filename().full(), pcmin_, pcmax_);
+              "\tPC range: %f to %f\n"
+              "\tScaling factor: %f\n", tMode_, 
+            trajout_.Traj().Filename().full(), pcmin_, pcmax_, factor_);
   }
 
   return Analysis::OK;
@@ -305,179 +302,143 @@ Analysis::RetType Analysis_Modes::Analyze() {
   if (!modinfo_->EvalsAreFreq() && type_ == CORR)
     mprintf("Warning: 'corr' analysis expects eigenvalues in cm^-1.\n");
 
-  // ----- FLUCT PRINT -----
-  if (type_ == FLUCT) {
-    // Calc rms atomic fluctuations
-    int natoms = modinfo_->NavgCrd() / 3; // Possible because COVAR/MWCOVAR
-    results_ = new double[ natoms * 4 ];
-    std::fill(results_, results_ + natoms * 4, 0);
-    double* Ri = results_;
-    for (int vi = 0; vi < natoms; ++vi) {
-      double sumx = 0.0;
-      double sumy = 0.0;
-      double sumz = 0.0;
-      // Loop over all eigenvector elements for this atom
-      const double* Vec = modinfo_->Eigenvector(beg_) + vi*3;
-      for (int mode = beg_; mode < end_; ++mode) {
-        if (modinfo_->EvalsAreFreq()) {
-          double frq = modinfo_->Eigenvalue(mode);
-          // Don't use eigenvectors associated with zero or negative eigenvalues
-          if (frq >= 0.5 || calcAll_) {
-            double distx = Vec[0] * Vec[0];
-            double disty = Vec[1] * Vec[1];
-            double distz = Vec[2] * Vec[2];
-            double fi = 1.0 / (frq*frq);
-            if (bose_) {
-              double argq = CONSQ * frq;
-              fi *= (argq / tanh(argq));
-            }
-            sumx += distx * fi;
-            sumy += disty * fi;
-            sumz += distz * fi;
-          }
-        } else {
-          double ev = modinfo_->Eigenvalue(mode);
-          if ( ev > 0.0 || calcAll_) {
-            double distx = Vec[0] * Vec[0];
-            double disty = Vec[1] * Vec[1];
-            double distz = Vec[2] * Vec[2];
-            sumx += distx * ev;
-            sumy += disty * ev;
-            sumz += distz * ev;
-          }
-        }
-        Vec += modinfo_->VectorSize();
-      }
-      double c1 = 1.0;
-      double c2 = 1.0;
-      if (modinfo_->EvalsAreFreq()) {
-        c1 = CNST;
-        c2 = CONT;
-      }
-      sumx *= c1;
-      sumy *= c1;
-      sumz *= c1;
-      Ri[0] = sqrt(sumx) * c2;
-      Ri[1] = sqrt(sumy) * c2;
-      Ri[2] = sqrt(sumz) * c2;
-      Ri[3] = sqrt(sumx + sumy + sumz) * c2;
-      Ri += 4;
-    }
-    // Output
-    outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
-    outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
-    int anum = 1;
-    for (int i4 = 0; i4 < modinfo_->NavgCrd()*4/3; i4+=4) 
-      outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results_[i4], 
-                     results_[i4+1], results_[i4+2], results_[i4+3]); 
-  // ----- DISPLACE PRINT -----
-  } else if (type_ == DISPLACE) {
-    // Calc displacement of coordinates along normal mode directions
-    results_ = new double[ modinfo_->NavgCrd() ];
-    std::fill(results_, results_ + modinfo_->NavgCrd(), 0);
-    double dfactor = factor_;
-    if (modinfo_->EvalsAreFreq())
-      dfactor *= (sqrt(CNST) * CONT);
-    // Loop over all modes
-    for (int mode = beg_; mode < end_; ++mode) {
-      double fi;
-      if (modinfo_->EvalsAreFreq()) {
-        double frq = modinfo_->Eigenvalue(mode);
-        // Don't use eigenvectors associated with zero or negative eigenvalues
-        if (frq < 0.5 && !calcAll_) continue;
-        fi = 1.0 / frq;
-        if (bose_) {
-          double argq = CONSQ * frq;
-          fi *= (fi * argq / tanh(argq));
-          fi = sqrt(fi);
-        }
-      } else {
-        fi = modinfo_->Eigenvalue(mode);
-        if (fi < Constants::SMALL && !calcAll_) continue;
-        fi = sqrt( fi );
-      }
-      fi *= dfactor; // * CONT * factor
-      // Loop over all vector elements
-      const double* Vec = modinfo_->Eigenvector(mode);
-      for (int vi = 0; vi < modinfo_->NavgCrd(); vi += 3) {
-        results_[vi  ] += Vec[vi  ] * fi;
-        results_[vi+1] += Vec[vi+1] * fi;
-        results_[vi+2] += Vec[vi+2] * fi;
-      }
-    }
-    // Output
-    outfile_->Printf("#Analysis of modes: DISPLACEMENT\n");
-    outfile_->Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
-    int anum = 1;
-    for (int i3 = 0; i3 < modinfo_->NavgCrd(); i3 += 3)
-      outfile_->Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results_[i3], 
-                     results_[i3+1], results_[i3+2]);
-  // ----- CORR PRINT -----
-  } else if (type_ == CORR) {
-    // Calc dipole-dipole correlation functions
-    CalcDipoleCorr();
-    if (results_==0) return Analysis::ERR;
-    outfile_->Printf("#Analysis of modes: CORRELATION FUNCTIONS\n");
-    outfile_->Printf("%-10s %10s %10s %10s %10s %10s\n", "#Atom1", "Atom2", "Mode", 
-                   "Freq", "1-S^2", "P2(cum)");
-    int ncnt = 0;
-    for (modestack_it apair = atompairStack_.begin();
-                      apair != atompairStack_.end(); ++apair)
-    {
-      outfile_->Printf("%10i %10i\n", apair->first+1, apair->second+1);
-      double val = 1.0;
-      for (int mode = beg_; mode < end_; ++mode) {
-        double frq = modinfo_->Eigenvalue(mode);
-        if (frq >= 0.5 || calcAll_) {
-          val += results_[ncnt];
-          outfile_->Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
-                         "", "", mode, frq, results_[ncnt], val);
-          ++ncnt;
-        }
-      }
-    } // END loop over CORR atom pairs
-  // ----- PSEUDO-TRAJECTORY -----
-  } else if (type_ == TRAJ) {
-    ProjectCoords();
-  // ----- EIGENVALUE FRACTION -----
-  } else if (type_ == EIGENVAL) {
-    double sum = 0.0;
-    for (unsigned int mode = 0; mode != modinfo_->Size(); mode++)
-      sum += modinfo_->Eigenvalue( mode );
-    mprintf("\t%zu eigenvalues, sum is %f\n", modinfo_->Size(), sum);
-    double cumulative = 0.0;
-    outfile_->Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
-    for (unsigned int mode = 0; mode != modinfo_->Size(); mode++) {
-      double frac = modinfo_->Eigenvalue( mode ) / sum;
-      cumulative += frac;
-      outfile_->Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
-                     modinfo_->Eigenvalue( mode ));
-    }
-  } else if (type_ == RMSIP) {
-    if (CalcRMSIP()) return Analysis::ERR; 
-  } else // SANITY CHECK
-    return Analysis::ERR;
+  int err = 0;
+  switch ( type_ ) {
+    case FLUCT:    CalcFluct( *modinfo_ ); break;
+    case DISPLACE: CalcDisplacement( *modinfo_ ); break;
+    case CORR:     CalcDipoleCorr( *modinfo_ ); break;
+    case TRAJ:     err = ProjectCoords( *modinfo_ ); break;
+    case EIGENVAL: CalcEvalFrac( *modinfo_ ); break;
+    case RMSIP:    err = CalcRMSIP( *modinfo_, *modinfo2_ ); break;
+  }
+  if (err != 0) return Analysis::ERR;
 
   return Analysis::OK;
 }
 
+// Analysis_Modes::CalcFluct()
+void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
+  int natoms = modes.NavgCrd() / 3; // Possible because COVAR/MWCOVAR
+  std::vector<double> results( natoms * 4, 0.0 );
+  std::vector<double>::iterator Ri = results.begin();;
+  for (int vi = 0; vi < natoms; ++vi) {
+    double sumx = 0.0;
+    double sumy = 0.0;
+    double sumz = 0.0;
+    // Loop over all eigenvector elements for this atom
+    const double* Vec = modes.Eigenvector(beg_) + vi*3;
+    for (int mode = beg_; mode < end_; ++mode) {
+      if (modes.EvalsAreFreq()) {
+        double frq = modes.Eigenvalue(mode);
+        // Don't use eigenvectors associated with zero or negative eigenvalues
+        if (frq >= 0.5 || calcAll_) {
+          double distx = Vec[0] * Vec[0];
+          double disty = Vec[1] * Vec[1];
+          double distz = Vec[2] * Vec[2];
+          double fi = 1.0 / (frq*frq);
+          if (bose_) {
+            double argq = CONSQ * frq;
+            fi *= (argq / tanh(argq));
+          }
+          sumx += distx * fi;
+          sumy += disty * fi;
+          sumz += distz * fi;
+        }
+      } else {
+        double ev = modes.Eigenvalue(mode);
+        if ( ev > 0.0 || calcAll_) {
+          double distx = Vec[0] * Vec[0];
+          double disty = Vec[1] * Vec[1];
+          double distz = Vec[2] * Vec[2];
+          sumx += distx * ev;
+          sumy += disty * ev;
+          sumz += distz * ev;
+        }
+      }
+      Vec += modes.VectorSize();
+    }
+    double c1 = 1.0;
+    double c2 = 1.0;
+    if (modes.EvalsAreFreq()) {
+      c1 = CNST;
+      c2 = CONT;
+    }
+    sumx *= c1;
+    sumy *= c1;
+    sumz *= c1;
+    Ri[0] = sqrt(sumx) * c2;
+    Ri[1] = sqrt(sumy) * c2;
+    Ri[2] = sqrt(sumz) * c2;
+    Ri[3] = sqrt(sumx + sumy + sumz) * c2;
+    Ri += 4;
+  }
+  // Output
+  outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
+  outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
+  int anum = 1;
+  for (unsigned int i4 = 0; i4 < results.size(); i4 += 4) 
+    outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results[i4], 
+                   results[i4+1], results[i4+2], results[i4+3]); 
+}
+
+// Analysis_Modes::CalcDisplacement()
+void Analysis_Modes::CalcDisplacement( DataSet_Modes const& modes ) {
+  std::vector<double> results( modes.NavgCrd(), 0.0 );
+  double dfactor = factor_;
+  if (modes.EvalsAreFreq())
+    dfactor *= (sqrt(CNST) * CONT);
+  // Loop over all modes
+  for (int mode = beg_; mode < end_; ++mode) {
+    double fi;
+    if (modes.EvalsAreFreq()) {
+      double frq = modes.Eigenvalue(mode);
+      // Don't use eigenvectors associated with zero or negative eigenvalues
+      if (frq < 0.5 && !calcAll_) continue;
+      fi = 1.0 / frq;
+      if (bose_) {
+        double argq = CONSQ * frq;
+        fi *= (fi * argq / tanh(argq));
+        fi = sqrt(fi);
+      }
+    } else {
+      fi = modes.Eigenvalue(mode);
+      if (fi < Constants::SMALL && !calcAll_) continue;
+      fi = sqrt( fi );
+    }
+    fi *= dfactor; // * CONT * factor
+    // Loop over all vector elements
+    const double* Vec = modes.Eigenvector(mode);
+    for (int vi = 0; vi < modes.NavgCrd(); vi += 3) {
+      results[vi  ] += Vec[vi  ] * fi;
+      results[vi+1] += Vec[vi+1] * fi;
+      results[vi+2] += Vec[vi+2] * fi;
+    }
+  }
+  // Output
+  outfile_->Printf("#Analysis of modes: DISPLACEMENT\n");
+  outfile_->Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
+  int anum = 1;
+  for (int i3 = 0; i3 < modes.NavgCrd(); i3 += 3)
+    outfile_->Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results[i3], 
+                   results[i3+1], results[i3+2]);
+}
+
 // Analysis_Modes::CalcDipoleCorr()
-void Analysis_Modes::CalcDipoleCorr() {
+void Analysis_Modes::CalcDipoleCorr(DataSet_Modes const& modes) {
   double qcorr = 1.0; // For when bose is false
   int rsize = atompairStack_.size() * (end_ - beg_ + 1);
-  results_ = new double[ rsize ];
-  std::fill(results_, results_ + rsize, 0);
+  std::vector<double> results( rsize, 0.0 );
   // Loop over atom pairs 
-  double* Res = results_;
-  DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
+  std::vector<double>::iterator Res = results.begin();
+  DataSet_Modes::Darray const& Avg = modes.AvgCrd();
   for (modestack_it apair = atompairStack_.begin(); apair != atompairStack_.end(); ++apair)
   {
     int idx1 = apair->first  * 3;
     int idx2 = apair->second * 3;
     // Check if coordinates are out of bounds
-    if (idx1 >= modinfo_->NavgCrd() || idx2 >= modinfo_->NavgCrd()) {
+    if (idx1 >= modes.NavgCrd() || idx2 >= modes.NavgCrd()) {
       mprintf("Warning: Atom pair %i -- %i is out of bounds (# avg atoms in modes = %i)\n",
-              apair->first + 1, apair->second + 1, modinfo_->NavgCrd() / 3);
+              apair->first + 1, apair->second + 1, modes.NavgCrd() / 3);
       continue;
     }
     // Calc unit vector along at2->at1 bond
@@ -495,7 +456,7 @@ void Analysis_Modes::CalcDipoleCorr() {
     double vz2 = vec[2] * vec[2]; 
     // Loop over desired modes
     for (int mode = beg_; mode < end_; ++mode) {
-      double eval = modinfo_->Eigenvalue(mode);
+      double eval = modes.Eigenvalue(mode);
       if (eval >= 0.5 || calcAll_) {
         // Don't use eigenvectors associated with zero or negative eigenvalues
         // NOTE: Where is 11791.79 from? Should it be a const?
@@ -509,7 +470,7 @@ void Analysis_Modes::CalcDipoleCorr() {
          *  Note that the rhs of this eq. should be multiplied by kT
          */
         double qcorrf = (qcorr / frq) * 0.6;
-        const double* Evec = modinfo_->Eigenvector(mode);
+        const double* Evec = modes.Eigenvector(mode);
         double dx = (Evec[idx1  ] - Evec[idx2  ]);
         double dy = (Evec[idx1+1] - Evec[idx2+1]);
         double dz = (Evec[idx1+2] - Evec[idx2+2]);
@@ -536,10 +497,29 @@ void Analysis_Modes::CalcDipoleCorr() {
       } // END if positive definite eigenvalue
     } // END loop over modes
   } // END loop over atom pairs
+  outfile_->Printf("#Analysis of modes: CORRELATION FUNCTIONS\n");
+  outfile_->Printf("%-10s %10s %10s %10s %10s %10s\n", "#Atom1", "Atom2", "Mode", 
+                 "Freq", "1-S^2", "P2(cum)");
+  int ncnt = 0;
+  for (modestack_it apair = atompairStack_.begin();
+                    apair != atompairStack_.end(); ++apair)
+  {
+    outfile_->Printf("%10i %10i\n", apair->first+1, apair->second+1);
+    double val = 1.0;
+    for (int mode = beg_; mode < end_; ++mode) {
+      double frq = modes.Eigenvalue(mode);
+      if (frq >= 0.5 || calcAll_) {
+        val += results[ncnt];
+        outfile_->Printf("%10s %10s %10i %10.5f %10.5f %10.5f\n",
+                       "", "", mode, frq, results[ncnt], val);
+        ++ncnt;
+      }
+    }
+  } // END loop over CORR atom pairs
 }
 
 // Calculate projection of coords along given mode.
-void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
+void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) const {
   double proj = 0.0;
   DataSet_Modes::Darray const& Avg = modinfo_->AvgCrd();
   const double* Vec = modinfo_->Eigenvector(mode);
@@ -549,26 +529,26 @@ void Analysis_Modes::CalculateProjection(int set, Frame const& Crd, int mode) {
 }
 
 /** Project average coords along eigenvectors */
-int Analysis_Modes::ProjectCoords() {
-  double scale = 1.0; // TODO: read in or calculate - use factor?
+int Analysis_Modes::ProjectCoords(DataSet_Modes const& modes) {
+  double scale = factor_;
   int max_it = (int)(pcmax_ - pcmin_);
   // Check that size of eigenvectors match # coords
   int ncoord = tOutParm_->Natom() * 3;
-  if (ncoord != modinfo_->NavgCrd()) {
+  if (ncoord != modes.NavgCrd()) {
     mprinterr("Error: # selected coords (%i) != eigenvector size (%i)\n",
-               ncoord, modinfo_->NavgCrd());
+               ncoord, modes.NavgCrd());
     return 1;
   }
   // Check that mode is valid.
-  if (tMode_ < 1 || tMode_ > modinfo_->Nmodes() ) {
+  if (tMode_ < 1 || tMode_ > modes.Nmodes() ) {
     mprinterr("Error: mode %i is out of bounds.\n", tMode_);
     return Analysis::ERR;
   }
   // Setup frame to hold output coords, initalized to avg coords.
   Frame outframe;
-  outframe.SetupFrameXM( modinfo_->AvgCrd(), modinfo_->Mass() );
+  outframe.SetupFrameXM( modes.AvgCrd(), modes.Mass() );
   // Point to correct eigenvector
-  const double* Vec = modinfo_->Eigenvector(tMode_-1);
+  const double* Vec = modes.Eigenvector(tMode_-1);
   // Initialize coords to pcmin
   for (int idx = 0; idx < ncoord; idx++)
     outframe[idx] += pcmin_ * Vec[idx];
@@ -597,26 +577,42 @@ int Analysis_Modes::ProjectCoords() {
   return 0;
 }
 
+// Analysis_Modes::CalcEvalFrac()
+void Analysis_Modes::CalcEvalFrac(DataSet_Modes const& modes) {
+  double sum = 0.0;
+  for (unsigned int mode = 0; mode != modes.Size(); mode++)
+    sum += modes.Eigenvalue( mode );
+  mprintf("\t%zu eigenvalues, sum is %f\n", modes.Size(), sum);
+  double cumulative = 0.0;
+  outfile_->Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
+  for (unsigned int mode = 0; mode != modes.Size(); mode++) {
+    double frac = modes.Eigenvalue( mode ) / sum;
+    cumulative += frac;
+    outfile_->Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
+                   modes.Eigenvalue( mode ));
+  }
+}
+
 // Analysis_Modes::CalcRMSIP()
-int Analysis_Modes::CalcRMSIP() {
-  if (modinfo_->VectorSize() != modinfo2_->VectorSize()) {
+int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& modes2) {
+  if (modes1.VectorSize() != modes2.VectorSize()) {
     mprinterr("Error: '%s' vector size (%i) != '%s' vector size (%i)\n",
-              modinfo_->legend(), modinfo_->VectorSize(),
-              modinfo2_->legend(), modinfo2_->VectorSize());
+              modes1.legend(), modes1.VectorSize(),
+              modes2.legend(), modes2.VectorSize());
     return 1;
   }
-  if ( beg_ >= modinfo2_->Nmodes() || end_ > modinfo2_->Nmodes() ) {
+  if ( beg_ >= modes2.Nmodes() || end_ > modes2.Nmodes() ) {
     mprinterr("Error: beg/end out of range for %s (%i modes)\n",
-              modinfo2_->legend(), modinfo2_->Nmodes());
+              modes2.legend(), modes2.Nmodes());
     return 1;
   }
   double sumsq = 0.0;
   for (int m1 = beg_; m1 < end_; m1++) {
-    const double* ev1 = modinfo_->Eigenvector(m1);
+    const double* ev1 = modes1.Eigenvector(m1);
     for (int m2 = beg_; m2 < end_; m2++) {
-      const double* ev2 = modinfo2_->Eigenvector(m2);
+      const double* ev2 = modes2.Eigenvector(m2);
       double dot = 0.0;
-      for (int iv = 0; iv < modinfo_->VectorSize(); iv++)
+      for (int iv = 0; iv < modes1.VectorSize(); iv++)
         dot += ev1[iv] * ev2[iv];
       sumsq += (dot * dot);
     }
