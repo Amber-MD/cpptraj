@@ -32,7 +32,7 @@ DataSet_Modes::DataSet_Modes() :
   nmodes_(0),
   vecsize_(0),
   reduced_(false),
-  evecsAreMassWtd__(false),
+  evecsAreMassWtd_(false),
   evalsAreFreq_(false)
 {}
 
@@ -88,7 +88,7 @@ int DataSet_Modes::SetModes(bool reducedIn, int nmodesIn, int vecsizeIn,
   if (Meta().ScalarType() == MetaData::MWCOVAR) {
     mprintf("Info: '%s' type is mass-weighted covariance; assuming mass-weighted eigenvectors\n"
             "Info:   and eigenvalues in cm^-1.\n", legend());
-    evecsAreMassWtd__ = true;
+    evecsAreMassWtd_ = true;
     evalsAreFreq_ = true;
   }
   return 0;
@@ -372,7 +372,7 @@ int DataSet_Modes::EigvalToFreq(double tempIn) {
   * eigenvector is multiplied by 1/sqrt(mass i).
   */
 int DataSet_Modes::MassWtEigvect() {
-  if (evecsAreMassWtd__) return 0;
+  if (evecsAreMassWtd_) return 0;
   if (evectors_ == 0) return 0;
   if (mass_.empty()) {
     mprinterr("Internal Error: No mass info set for modes '%s'.\n", legend());
@@ -391,7 +391,7 @@ int DataSet_Modes::MassWtEigvect() {
       evectors_[modev+2] *= mass;
     }
   }
-  evecsAreMassWtd__ = true;
+  evecsAreMassWtd_ = true;
   return 0;
 }
 
