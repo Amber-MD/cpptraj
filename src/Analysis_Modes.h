@@ -23,6 +23,7 @@ class Analysis_Modes : public Analysis {
     static const double CONT;
 
     enum modeAnalysisType { FLUCT=0, DISPLACE, CORR, TRAJ, EIGENVAL, RMSIP };
+    enum fluctType { RMSX = 0, RMSY, RMSZ, RMS };
     static const char* analysisTypeString[];
     typedef std::vector< std::pair<int,int> > modestackType;
     typedef modestackType::const_iterator modestack_it;
@@ -53,11 +54,12 @@ class Analysis_Modes : public Analysis {
     DataSet_Modes* modinfo_;
     DataSet_Modes* modinfo2_;
     CpptrajFile* outfile_;
-    modestackType atompairStack_;
-    Topology* tOutParm_;
-    Trajout_Single trajout_;
-    int tMode_;
-    double pcmin_;
-    double pcmax_;
+    modestackType atompairStack_;   ///< Hold atom pairs for 'corr'
+    Topology* tOutParm_;            ///< Topology for output pseudo-traj
+    Trajout_Single trajout_;        ///< Output pseudo-traj
+    int tMode_;                     ///< Mode (PC) to use for pseudo-traj
+    double pcmin_;                  ///< Max value for pseudo-traj PC
+    double pcmax_;                  ///< Minimum value for pseudo-traj PC
+    std::vector<DataSet*> OutSets_; ///< Hold all output data sets
 };
 #endif

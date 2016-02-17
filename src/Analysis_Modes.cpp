@@ -24,18 +24,21 @@ Analysis_Modes::Analysis_Modes() :
 void Analysis_Modes::Help() const {
   mprintf("\t{fluct|displ|corr|eigenval|trajout|rmsip} name <modesname> [name2 <modesname>]\n"
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>] [calcall]\n"
-          "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
+          "\t[out <outfile>] [setname <name>]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
           "\t[trajout <name> %s\n", DataSetList::TopArgs);
   mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
-          "  Perform one of the following analysis on calculated Eigenmodes.\n"
-          "    fluct:    RMS fluctations from normal modes\n"
-          "    displ:    Displacement of cartesian coordinates along normal mode directions\n"
-          "    corr:     Calculate dipole-dipole correlation functions.\n"
-          "    eigenval: Calculate eigenvalue fractions.\n"
-          "    trajout:  Calculate pseudo-trajectory along given mode.\n"
-          "    rmsip:    Root mean square inner product.\n");
+          "    Options for 'corr': (Calculate dipole correlation)\n"
+          "\t{ maskp <mask1> <mask2> [...] | mask1 <mask> mask2 <mask> }\n"
+          "\t%s\n", DataSetList::TopArgs);
+  mprintf("  Perform one of the following analysis on calculated Eigenmodes.\n"
+          "    fluct    : RMS fluctations from normal modes.\n"
+          "    displ    : Displacement of cartesian coordinates along normal mode directions.\n"
+          "    corr     : Calculate dipole-dipole correlation functions.\n"
+          "    eigenval : Calculate eigenvalue fraction for all modes.\n"
+          "    trajout  : Calculate pseudo-trajectory along given mode 'tmode'.\n"
+          "    rmsip    : Root mean square inner product between 'name' and 'name2'.\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
@@ -118,10 +121,12 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
       return Analysis::ERR;
     }
   } else
-    modesfile2.clear(); 
+    modesfile2.clear();
+  // Get topology for TRAJ/CORR
+  Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); 
 
-  // Get trajectory format args for projected traj
   if (type_ == TRAJ ) {
+    // Get trajectory format args for projected traj
     beg_ = analyzeArgs.getKeyInt("beg",1) - 1; // Args start at 1
     std::string tOutName = analyzeArgs.GetStringKey("trajout");
     if (tOutName.empty()) {
@@ -131,20 +136,19 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
     if ( analyzeArgs.Contains("trajoutfmt") )
       tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
-    Topology* parm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with modes
-    if (parm == 0) {
+    if (analyzeParm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
       return Analysis::ERR;
     }
     AtomMask tOutMask( analyzeArgs.GetStringKey("trajoutmask") );
-    if ( parm->SetupIntegerMask( tOutMask ) || tOutMask.None() ) {
+    if ( analyzeParm->SetupIntegerMask( tOutMask ) || tOutMask.None() ) {
       mprinterr("Error: Could not setup output trajectory mask.\n");
       return Analysis::ERR;
     }
     tOutMask.MaskInfo();
     // Strip topology to match mask.
     if (tOutParm_ != 0) delete tOutParm_;
-    tOutParm_ = parm->modifyStateByMask( tOutMask );
+    tOutParm_ = analyzeParm->modifyStateByMask( tOutMask );
     if (tOutParm_ == 0) {
       mprinterr("Error: Could not create topology to match mask.\n");
       return Analysis::ERR;
@@ -163,12 +167,14 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
     tMode_ = analyzeArgs.getKeyInt("tmode", 1);
   } else {
+    // Args for everything else
     beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
     bose_ = analyzeArgs.hasKey("bose");
     calcAll_ = analyzeArgs.hasKey("calcall");
   }
   end_ = analyzeArgs.getKeyInt("end", 50);
   factor_ = analyzeArgs.getKeyDouble("factor",1.0);
+  std::string setname = analyzeArgs.GetStringKey("setname");
 
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesfile, DataSet::MODES );
@@ -195,45 +201,121 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
   }
 
-  // Get output filename
-  outfile_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("out"), "Modes analysis",
-                                    DataFileList::TEXT, true );
-  if (outfile_ == 0) return Analysis::ERR;
-
-  // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
-  if ( type_ == CORR ) {
-    Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with above?
+  // Get output filename for types that use DataSets
+  std::string outfilename = analyzeArgs.GetStringKey("out"); // TODO all datafile?
+  DataFile* dataout = 0;
+  if (type_ == FLUCT || type_ == DISPLACE || type_ == EIGENVAL || type_ == RMSIP)
+    dataout = setup.DFL().AddDataFile( outfilename, analyzeArgs );
+  else if (type_ == CORR) {
+    // CORR-specific setup
+    outfile_ = setup.DFL().AddCpptrajFile( outfilename, "Modes analysis",
+                                           DataFileList::TEXT, true );
+    if (outfile_ == 0) return Analysis::ERR;
+    // Get list of atom pairs
     if (analyzeParm == 0) {
-      mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
+      mprinterr("Error: 'corr' requires topology.\n");
       return Analysis::ERR;
     }
-    while (analyzeArgs.hasKey("maskp")) {
-      // Next two arguments should be one-atom masks
-      std::string a1mask = analyzeArgs.GetMaskNext();
-      std::string a2mask = analyzeArgs.GetMaskNext();
-      if (a1mask.empty() || a2mask.empty()) {
-        mprinterr("Error: For 'corr' two 1-atom masks are expected.\n");
+    std::string maskexp = analyzeArgs.GetStringKey("mask1");
+    if (maskexp.empty()) {
+      while (analyzeArgs.hasKey("maskp")) {
+        // Next two arguments should be one-atom masks
+        std::string a1mask = analyzeArgs.GetMaskNext();
+        std::string a2mask = analyzeArgs.GetMaskNext();
+        if (a1mask.empty() || a2mask.empty()) {
+          mprinterr("Error: For 'corr' two 1-atom masks are expected.\n");
+          return Analysis::ERR;
+        }
+        // Check that each mask is just 1 atom
+        AtomMask m1( a1mask );
+        AtomMask m2( a2mask );
+        analyzeParm->SetupIntegerMask( m1 ); 
+        analyzeParm->SetupIntegerMask( m2 );
+        if ( m1.Nselected()==1 && m2.Nselected()==1 )
+          // Store atom pair
+          atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
+        else {
+          mprinterr("Error: For 'corr', masks should specify only one atom.\n"
+                    "\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
+                    m2.MaskString(), m2.Nselected());
+          return Analysis::ERR;
+        }
+      }
+    } else {
+      AtomMask mask1( maskexp );
+      maskexp = analyzeArgs.GetStringKey("mask2");
+      if (maskexp.empty()) {
+        mprinterr("Error: 'mask2' must be specified if 'mask1' is.\n");
         return Analysis::ERR;
       }
-      // Check that each mask is just 1 atom
-      AtomMask m1( a1mask );
-      AtomMask m2( a2mask );
-      analyzeParm->SetupIntegerMask( m1 ); 
-      analyzeParm->SetupIntegerMask( m2 );
-      if ( m1.Nselected()==1 && m2.Nselected()==1 )
-        // Store atom pair
-        atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
-      else {
-        mprinterr("Error: For 'corr', masks should specify only one atom.\n"
-                  "\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
-                  m2.MaskString(), m2.Nselected());
+      AtomMask mask2( maskexp );
+      if ( analyzeParm->SetupIntegerMask( mask1 ) ) return Analysis::ERR;
+      if ( analyzeParm->SetupIntegerMask( mask2 ) ) return Analysis::ERR;
+      mask1.MaskInfo();
+      mask2.MaskInfo();
+      if (mask1.None() || mask2.None()) {
+        mprinterr("Error: One or both masks are empty.\n");
         return Analysis::ERR;
       }
+      if (mask1.Nselected() != mask2.Nselected()) {
+        mprinterr("Error: # atoms in mask 1 not equal to # atoms in mask 2.\n");
+        return Analysis::ERR;
+      }
+      for (int idx = 0; idx != mask1.Nselected(); idx++)
+        atompairStack_.push_back( std::pair<int,int>( mask1[idx], mask2[idx] ) );
     }
     if ( atompairStack_.empty() ) {
-      mprinterr("Error: No atom pairs found (use 'maskp <mask1> <mask2>')\n");
+      mprinterr("Error: No atom pairs found (use 'maskp' or 'mask1'/'mask2' keywords.)\n");
       return Analysis::ERR;
     }
+  }
+
+  // Set up data sets
+  Dimension Xdim;
+  if (type_ == FLUCT) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("FLUCT");
+    MetaData md(setname, "rmsX");
+    OutSets_.resize( 4, 0 );
+    OutSets_[RMSX] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rmsY");
+    OutSets_[RMSY] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rmsZ");
+    OutSets_[RMSZ] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rms");
+    OutSets_[RMS]  = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension(1, 1, "Atom_no.");
+  } else if (type_ == DISPLACE) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("DISPL");
+    MetaData md(setname, "displX");
+    OutSets_.resize( 3, 0 );
+    OutSets_[RMSX] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("displY");
+    OutSets_[RMSY] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("displZ");
+    OutSets_[RMSZ] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension(1, 1, "Atom_no.");
+  } else if (type_ == EIGENVAL) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("XEVAL");
+    MetaData md(setname, "Frac");
+    OutSets_.resize( 3, 0 );
+    OutSets_[0] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("Cumulative");
+    OutSets_[1] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("Eigenval");
+    OutSets_[2] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension( 1, 1, "Mode" );
+  } else if (type_ == RMSIP) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("RMSIP");
+    OutSets_.push_back( setup.DSL().AddSet( DataSet::DOUBLE, setname ) );
+    if (dataout != 0) dataout->ProcessArgs("noxcol");
+    OutSets_[0]->SetupFormat() = TextFormat(TextFormat::GDOUBLE);
+    OutSets_[0]->SetLegend( modinfo_->Meta().Legend() + "_X_" + modinfo2_->Meta().Legend() );
+  }
+  for (std::vector<DataSet*>::const_iterator set = OutSets_.begin(); set != OutSets_.end(); ++set)
+  {
+    if (*set == 0) return Analysis::ERR;
+    if (dataout != 0) dataout->AddDataSet( *set );
+    (*set)->SetDim(Dimension::X, Xdim);
   }
 
   // Status
@@ -242,7 +324,10 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
-    mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
+    if (outfile_ != 0)
+      mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
+    else if (dataout != 0)
+      mprintf("\n\tResults are written to '%s'\n", dataout->DataFilename().full());
     if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");
@@ -319,8 +404,6 @@ Analysis::RetType Analysis_Modes::Analyze() {
 // Analysis_Modes::CalcFluct()
 void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
   int natoms = modes.NavgCrd() / 3; // Possible because COVAR/MWCOVAR
-  std::vector<double> results( natoms * 4, 0.0 );
-  std::vector<double>::iterator Ri = results.begin();;
   for (int vi = 0; vi < natoms; ++vi) {
     double sumx = 0.0;
     double sumy = 0.0;
@@ -366,19 +449,15 @@ void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
     sumx *= c1;
     sumy *= c1;
     sumz *= c1;
-    Ri[0] = sqrt(sumx) * c2;
-    Ri[1] = sqrt(sumy) * c2;
-    Ri[2] = sqrt(sumz) * c2;
-    Ri[3] = sqrt(sumx + sumy + sumz) * c2;
-    Ri += 4;
+    double rmsX = sqrt(sumx) * c2;
+    OutSets_[RMSX]->Add( vi, &rmsX );
+    double rmsY = sqrt(sumy) * c2;
+    OutSets_[RMSY]->Add( vi, &rmsY );
+    double rmsZ = sqrt(sumz) * c2;
+    OutSets_[RMSZ]->Add( vi, &rmsZ );
+    double rms = sqrt(sumx + sumy + sumz) * c2;
+    OutSets_[RMS]->Add( vi, &rms );
   }
-  // Output
-  outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
-  outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
-  int anum = 1;
-  for (unsigned int i4 = 0; i4 < results.size(); i4 += 4) 
-    outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results[i4], 
-                   results[i4+1], results[i4+2], results[i4+3]); 
 }
 
 // Analysis_Modes::CalcDisplacement()
@@ -414,13 +493,12 @@ void Analysis_Modes::CalcDisplacement( DataSet_Modes const& modes ) {
       results[vi+2] += Vec[vi+2] * fi;
     }
   }
-  // Output
-  outfile_->Printf("#Analysis of modes: DISPLACEMENT\n");
-  outfile_->Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
-  int anum = 1;
-  for (int i3 = 0; i3 < modes.NavgCrd(); i3 += 3)
-    outfile_->Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results[i3], 
-                   results[i3+1], results[i3+2]);
+  int anum = 0;
+  for (int i3 = 0; i3 < modes.NavgCrd(); i3 += 3, anum++) {
+    OutSets_[RMSX]->Add( anum, &results[i3] );
+    OutSets_[RMSY]->Add( anum, &results[i3+1] );
+    OutSets_[RMSZ]->Add( anum, &results[i3+2] );
+  }
 }
 
 // Analysis_Modes::CalcDipoleCorr()
@@ -584,12 +662,13 @@ void Analysis_Modes::CalcEvalFrac(DataSet_Modes const& modes) {
     sum += modes.Eigenvalue( mode );
   mprintf("\t%zu eigenvalues, sum is %f\n", modes.Size(), sum);
   double cumulative = 0.0;
-  outfile_->Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
   for (unsigned int mode = 0; mode != modes.Size(); mode++) {
     double frac = modes.Eigenvalue( mode ) / sum;
     cumulative += frac;
-    outfile_->Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
-                   modes.Eigenvalue( mode ));
+    OutSets_[0]->Add( mode, &frac );
+    OutSets_[1]->Add( mode, &cumulative );
+    frac = modes.Eigenvalue( mode );
+    OutSets_[2]->Add( mode, &frac );
   }
 }
 
@@ -619,6 +698,6 @@ int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& 
   }
   sumsq /= (double)(end_ - beg_);
   double rmsip = sqrt( sumsq );
-  outfile_->Printf("%g\n", rmsip);
+  OutSets_[0]->Add( 0, &rmsip );
   return 0;
 }
