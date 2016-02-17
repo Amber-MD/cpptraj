@@ -16,7 +16,8 @@ Analysis_Average::Analysis_Average() :
 {}
 
 void Analysis_Average::Help() const {
-  mprintf("\t<dset0> [<dset1> ...] [out <file>] [oversets] [name <output setname>]\n"
+  mprintf("\t<dset0> [<dset1> ...] [torsion] [out <file>] [oversets]\n"
+          "\t[name <output setname>]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n"
           "  If 'oversets' is specified calculate the average over all sets.\n");
 }
@@ -26,7 +27,10 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 {
   calcAvgOverSets_ = analyzeArgs.hasKey("oversets");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  bool convertToTorsion = analyzeArgs.hasKey("torsion");
   if (calcAvgOverSets_) {
+    if (convertToTorsion)
+      mprintf("Warning: 'torsion' keyword not used with 'oversets'\n");
     avgOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "AVERAGE");
     if (avgOfSets_ == 0) return Analysis::ERR;
     sdOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(avgOfSets_->Meta().Name(), "SD"));
@@ -75,6 +79,13 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     mprinterr("Error: No input data sets.\n");
     return Analysis::ERR;
   }
+  if (convertToTorsion) {
+    for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set) {
+      MetaData md = (*set)->Meta();
+      md.SetScalarMode( MetaData::M_TORSION );
+      (*set)->SetMeta( md );
+    }
+  }
 
   mprintf("    AVERAGE:");
   if (calcAvgOverSets_) {
@@ -84,6 +95,8 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   } else {
     mprintf(" Calculating average of %i data sets.\n", input_dsets_.size());
     mprintf("\tData set base name '%s'\n", data_avg_->Meta().Name().c_str());
+    if (convertToTorsion)
+      mprintf("\tData sets will be marked as torsions\n");
   }
   if (outfile != 0) mprintf("\tOutput to to '%s'\n", outfile->DataFilename().full());
   //for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set)
