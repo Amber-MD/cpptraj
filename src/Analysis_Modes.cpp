@@ -169,6 +169,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   }
   end_ = analyzeArgs.getKeyInt("end", 50);
   factor_ = analyzeArgs.getKeyDouble("factor",1.0);
+  std::string setname = analyzeArgs.GetStringKey("setname");
 
   // Check if modes name exists on the stack
   modinfo_ = (DataSet_Modes*)setup.DSL().FindSetOfType( modesfile, DataSet::MODES );
@@ -196,9 +197,15 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   }
 
   // Get output filename
-  outfile_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("out"), "Modes analysis",
-                                    DataFileList::TEXT, true );
-  if (outfile_ == 0) return Analysis::ERR;
+  std::string outfilename = analyzeArgs.GetStringKey("out"); // TODO all datafile?
+  DataFile* dataout = 0;
+  if (type_ == FLUCT)
+    dataout = setup.DFL().AddDataFile( outfilename, analyzeArgs );
+  else {
+    outfile_ = setup.DFL().AddCpptrajFile( outfilename, "Modes analysis",
+                                           DataFileList::TEXT, true );
+    if (outfile_ == 0) return Analysis::ERR;
+  }
 
   // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
   if ( type_ == CORR ) {
@@ -236,13 +243,39 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
   }
 
+  // Set up data sets
+  Dimension Xdim;
+  if (type_ == FLUCT) {
+    if (setname.empty())
+      setname = setup.DSL().GenerateDefaultName("FLUCT");
+    MetaData md(setname, "rmsX");
+    OutSets_.resize( 4, 0 );
+    OutSets_[RMSX] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rmsY");
+    OutSets_[RMSY] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rmsZ");
+    OutSets_[RMSZ] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("rms");
+    OutSets_[RMS]  = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension(1, 1, "Atom_no.");
+  }
+  for (std::vector<DataSet*>::const_iterator set = OutSets_.begin(); set != OutSets_.end(); ++set)
+  {
+    if (*set == 0) return Analysis::ERR;
+    if (dataout != 0) dataout->AddDataSet( *set );
+    (*set)->SetDim(Dimension::X, Xdim);
+  }
+
   // Status
   mprintf("    ANALYZE MODES: Calculating %s using modes from %s", 
           analysisTypeString[type_], modinfo_->legend());
   if ( type_ != TRAJ ) {
     if (type_ != EIGENVAL)
       mprintf(", modes %i to %i", beg_+1, end_);
-    mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
+    if (outfile_ != 0)
+      mprintf("\n\tResults are written to %s\n", outfile_->Filename().full());
+    else if (dataout != 0)
+      mprintf("\n\tResults are written to '%s'\n", dataout->DataFilename().full());
     if (type_ != EIGENVAL && type_ != RMSIP) {
       if (bose_)
         mprintf("\tBose statistics used.\n");
@@ -319,8 +352,6 @@ Analysis::RetType Analysis_Modes::Analyze() {
 // Analysis_Modes::CalcFluct()
 void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
   int natoms = modes.NavgCrd() / 3; // Possible because COVAR/MWCOVAR
-  std::vector<double> results( natoms * 4, 0.0 );
-  std::vector<double>::iterator Ri = results.begin();;
   for (int vi = 0; vi < natoms; ++vi) {
     double sumx = 0.0;
     double sumy = 0.0;
@@ -366,19 +397,28 @@ void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
     sumx *= c1;
     sumy *= c1;
     sumz *= c1;
-    Ri[0] = sqrt(sumx) * c2;
-    Ri[1] = sqrt(sumy) * c2;
-    Ri[2] = sqrt(sumz) * c2;
-    Ri[3] = sqrt(sumx + sumy + sumz) * c2;
-    Ri += 4;
+    double rmsX = sqrt(sumx) * c2;
+    OutSets_[RMSX]->Add( vi, &rmsX );
+    double rmsY = sqrt(sumy) * c2;
+    OutSets_[RMSY]->Add( vi, &rmsY );
+    double rmsZ = sqrt(sumz) * c2;
+    OutSets_[RMSZ]->Add( vi, &rmsZ );
+    double rms = sqrt(sumx + sumy + sumz) * c2;
+    OutSets_[RMS]->Add( vi, &rms );
+    //Ri[0] = sqrt(sumx) * c2;
+    //Ri[1] = sqrt(sumy) * c2;
+    //Ri[2] = sqrt(sumz) * c2;
+    //Ri[3] = sqrt(sumx + sumy + sumz) * c2;
+    //Ri += 4;
   }
   // Output
-  outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
+/*  outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
   outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
   int anum = 1;
   for (unsigned int i4 = 0; i4 < results.size(); i4 += 4) 
     outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results[i4], 
                    results[i4+1], results[i4+2], results[i4+3]); 
+*/
 }
 
 // Analysis_Modes::CalcDisplacement()
