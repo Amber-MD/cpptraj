@@ -477,6 +477,8 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     // Create format string for X column based on dimension in first data set.
     if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
       xcol_precision = 0;
+    else
+      xcol_precision = std::max(xcol_precision, Sets[0]->Format().Precision());
     x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
   } else {
     // If not writing an X-column, no leading space for the first dataset.

@@ -46,6 +46,7 @@ class TextFormat {
     const char* fmt()        const { return fmt_.c_str(); }
     std::string const& Fmt() const { return fmt_;         }
     int Width()              const { return width_;       }
+    int Precision()          const { return precision_;   }
     int ColumnWidth()        const { return colwidth_;    }
   private:
     /// Set format string for current type, width, precision, etc 

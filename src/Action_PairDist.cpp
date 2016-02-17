@@ -79,6 +79,9 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   Pr_ = init.DSL().AddSet(DataSet::XYMESH, md);
   md.SetAspect("std");
   std_ = init.DSL().AddSet(DataSet::XYMESH, md);
+  if (Pr_ == 0 || std_ == 0) return Action::ERR;
+  Pr_->ModifyDim(Dimension::X).SetLabel("Distance");
+  std_->ModifyDim(Dimension::X).SetLabel("Distance");
 # ifdef MPI
   // Do not need to be synced since not time series
   Pr_->SetNeedsSync( false );
