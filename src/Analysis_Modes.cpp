@@ -24,18 +24,21 @@ Analysis_Modes::Analysis_Modes() :
 void Analysis_Modes::Help() const {
   mprintf("\t{fluct|displ|corr|eigenval|trajout|rmsip} name <modesname> [name2 <modesname>]\n"
           "\t[beg <beg>] [end <end>] [bose] [factor <factor>] [calcall]\n"
-          "\t[out <outfile>] [maskp <mask1> <mask2> [...]]\n"
+          "\t[out <outfile>] [setname <name>]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
           "\t[trajout <name> %s\n", DataSetList::TopArgs);
   mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
-          "  Perform one of the following analysis on calculated Eigenmodes.\n"
-          "    fluct:    RMS fluctations from normal modes\n"
-          "    displ:    Displacement of cartesian coordinates along normal mode directions\n"
-          "    corr:     Calculate dipole-dipole correlation functions.\n"
-          "    eigenval: Calculate eigenvalue fractions.\n"
-          "    trajout:  Calculate pseudo-trajectory along given mode.\n"
-          "    rmsip:    Root mean square inner product.\n");
+          "    Options for 'corr': (Calculate dipole correlation)\n"
+          "\t{ maskp <mask1> <mask2> [...] | mask1 <mask> mask2 <mask> }\n"
+          "\t%s\n", DataSetList::TopArgs);
+  mprintf("  Perform one of the following analysis on calculated Eigenmodes.\n"
+          "    fluct    : RMS fluctations from normal modes.\n"
+          "    displ    : Displacement of cartesian coordinates along normal mode directions.\n"
+          "    corr     : Calculate dipole-dipole correlation functions.\n"
+          "    eigenval : Calculate eigenvalue fraction for all modes.\n"
+          "    trajout  : Calculate pseudo-trajectory along given mode 'tmode'.\n"
+          "    rmsip    : Root mean square inner product between 'name' and 'name2'.\n");
 }
 
 /// hc/2kT in cm, with T=300K; use for quantum Bose statistics)
@@ -118,7 +121,9 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
       return Analysis::ERR;
     }
   } else
-    modesfile2.clear(); 
+    modesfile2.clear();
+  // Get topology for TRAJ/CORR
+  Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); 
 
   if (type_ == TRAJ ) {
     // Get trajectory format args for projected traj
@@ -131,20 +136,19 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     TrajectoryFile::TrajFormatType tOutFmt = TrajectoryFile::UNKNOWN_TRAJ;
     if ( analyzeArgs.Contains("trajoutfmt") )
       tOutFmt = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("trajoutfmt") );
-    Topology* parm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with modes
-    if (parm == 0) {
+    if (analyzeParm == 0) {
       mprinterr("Error: Could not get topology for output trajectory.\n");
       return Analysis::ERR;
     }
     AtomMask tOutMask( analyzeArgs.GetStringKey("trajoutmask") );
-    if ( parm->SetupIntegerMask( tOutMask ) || tOutMask.None() ) {
+    if ( analyzeParm->SetupIntegerMask( tOutMask ) || tOutMask.None() ) {
       mprinterr("Error: Could not setup output trajectory mask.\n");
       return Analysis::ERR;
     }
     tOutMask.MaskInfo();
     // Strip topology to match mask.
     if (tOutParm_ != 0) delete tOutParm_;
-    tOutParm_ = parm->modifyStateByMask( tOutMask );
+    tOutParm_ = analyzeParm->modifyStateByMask( tOutMask );
     if (tOutParm_ == 0) {
       mprinterr("Error: Could not create topology to match mask.\n");
       return Analysis::ERR;
@@ -207,37 +211,61 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     outfile_ = setup.DFL().AddCpptrajFile( outfilename, "Modes analysis",
                                            DataFileList::TEXT, true );
     if (outfile_ == 0) return Analysis::ERR;
-    // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
-    Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with above?
+    // Get list of atom pairs
     if (analyzeParm == 0) {
-      mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
+      mprinterr("Error: 'corr' requires topology.\n");
       return Analysis::ERR;
     }
-    while (analyzeArgs.hasKey("maskp")) {
-      // Next two arguments should be one-atom masks
-      std::string a1mask = analyzeArgs.GetMaskNext();
-      std::string a2mask = analyzeArgs.GetMaskNext();
-      if (a1mask.empty() || a2mask.empty()) {
-        mprinterr("Error: For 'corr' two 1-atom masks are expected.\n");
+    std::string maskexp = analyzeArgs.GetStringKey("mask1");
+    if (maskexp.empty()) {
+      while (analyzeArgs.hasKey("maskp")) {
+        // Next two arguments should be one-atom masks
+        std::string a1mask = analyzeArgs.GetMaskNext();
+        std::string a2mask = analyzeArgs.GetMaskNext();
+        if (a1mask.empty() || a2mask.empty()) {
+          mprinterr("Error: For 'corr' two 1-atom masks are expected.\n");
+          return Analysis::ERR;
+        }
+        // Check that each mask is just 1 atom
+        AtomMask m1( a1mask );
+        AtomMask m2( a2mask );
+        analyzeParm->SetupIntegerMask( m1 ); 
+        analyzeParm->SetupIntegerMask( m2 );
+        if ( m1.Nselected()==1 && m2.Nselected()==1 )
+          // Store atom pair
+          atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
+        else {
+          mprinterr("Error: For 'corr', masks should specify only one atom.\n"
+                    "\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
+                    m2.MaskString(), m2.Nselected());
+          return Analysis::ERR;
+        }
+      }
+    } else {
+      AtomMask mask1( maskexp );
+      maskexp = analyzeArgs.GetStringKey("mask2");
+      if (maskexp.empty()) {
+        mprinterr("Error: 'mask2' must be specified if 'mask1' is.\n");
         return Analysis::ERR;
       }
-      // Check that each mask is just 1 atom
-      AtomMask m1( a1mask );
-      AtomMask m2( a2mask );
-      analyzeParm->SetupIntegerMask( m1 ); 
-      analyzeParm->SetupIntegerMask( m2 );
-      if ( m1.Nselected()==1 && m2.Nselected()==1 )
-        // Store atom pair
-        atompairStack_.push_back( std::pair<int,int>( m1[0], m2[0] ) );
-      else {
-        mprinterr("Error: For 'corr', masks should specify only one atom.\n"
-                  "\tM1[%s]=%i atoms, M2[%s]=%i atoms.\n", m1.MaskString(), m1.Nselected(),
-                  m2.MaskString(), m2.Nselected());
+      AtomMask mask2( maskexp );
+      if ( analyzeParm->SetupIntegerMask( mask1 ) ) return Analysis::ERR;
+      if ( analyzeParm->SetupIntegerMask( mask2 ) ) return Analysis::ERR;
+      mask1.MaskInfo();
+      mask2.MaskInfo();
+      if (mask1.None() || mask2.None()) {
+        mprinterr("Error: One or both masks are empty.\n");
         return Analysis::ERR;
       }
+      if (mask1.Nselected() != mask2.Nselected()) {
+        mprinterr("Error: # atoms in mask 1 not equal to # atoms in mask 2.\n");
+        return Analysis::ERR;
+      }
+      for (int idx = 0; idx != mask1.Nselected(); idx++)
+        atompairStack_.push_back( std::pair<int,int>( mask1[idx], mask2[idx] ) );
     }
     if ( atompairStack_.empty() ) {
-      mprinterr("Error: No atom pairs found (use 'maskp <mask1> <mask2>')\n");
+      mprinterr("Error: No atom pairs found (use 'maskp' or 'mask1'/'mask2' keywords.)\n");
       return Analysis::ERR;
     }
   }
