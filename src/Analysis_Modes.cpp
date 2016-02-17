@@ -120,8 +120,8 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   } else
     modesfile2.clear(); 
 
-  // Get trajectory format args for projected traj
   if (type_ == TRAJ ) {
+    // Get trajectory format args for projected traj
     beg_ = analyzeArgs.getKeyInt("beg",1) - 1; // Args start at 1
     std::string tOutName = analyzeArgs.GetStringKey("trajout");
     if (tOutName.empty()) {
@@ -163,6 +163,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
     tMode_ = analyzeArgs.getKeyInt("tmode", 1);
   } else {
+    // Args for everything else
     beg_ = analyzeArgs.getKeyInt("beg",7) - 1; // Args start at 1
     bose_ = analyzeArgs.hasKey("bose");
     calcAll_ = analyzeArgs.hasKey("calcall");
@@ -196,19 +197,17 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     }
   }
 
-  // Get output filename
+  // Get output filename for types that use DataSets
   std::string outfilename = analyzeArgs.GetStringKey("out"); // TODO all datafile?
   DataFile* dataout = 0;
-  if (type_ == FLUCT)
+  if (type_ == FLUCT || type_ == DISPLACE || type_ == EIGENVAL || type_ == RMSIP)
     dataout = setup.DFL().AddDataFile( outfilename, analyzeArgs );
-  else {
+  else if (type_ == CORR) {
+    // CORR-specific setup
     outfile_ = setup.DFL().AddCpptrajFile( outfilename, "Modes analysis",
                                            DataFileList::TEXT, true );
     if (outfile_ == 0) return Analysis::ERR;
-  }
-
-  // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
-  if ( type_ == CORR ) {
+    // Get mask pair info for ANALYZEMODES_CORR option and build the atom pair stack
     Topology* analyzeParm = setup.DSL().GetTopology( analyzeArgs ); // TODO include with above?
     if (analyzeParm == 0) {
       mprinterr("Error: 'corr' requires topology (parm <file>, parmindex <#>).\n");
@@ -246,8 +245,7 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
   // Set up data sets
   Dimension Xdim;
   if (type_ == FLUCT) {
-    if (setname.empty())
-      setname = setup.DSL().GenerateDefaultName("FLUCT");
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("FLUCT");
     MetaData md(setname, "rmsX");
     OutSets_.resize( 4, 0 );
     OutSets_[RMSX] = setup.DSL().AddSet( DataSet::DOUBLE, md );
@@ -258,6 +256,32 @@ Analysis::RetType Analysis_Modes::Setup(ArgList& analyzeArgs, AnalysisSetup& set
     md.SetAspect("rms");
     OutSets_[RMS]  = setup.DSL().AddSet( DataSet::DOUBLE, md );
     Xdim = Dimension(1, 1, "Atom_no.");
+  } else if (type_ == DISPLACE) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("DISPL");
+    MetaData md(setname, "displX");
+    OutSets_.resize( 3, 0 );
+    OutSets_[RMSX] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("displY");
+    OutSets_[RMSY] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("displZ");
+    OutSets_[RMSZ] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension(1, 1, "Atom_no.");
+  } else if (type_ == EIGENVAL) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("XEVAL");
+    MetaData md(setname, "Frac");
+    OutSets_.resize( 3, 0 );
+    OutSets_[0] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("Cumulative");
+    OutSets_[1] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    md.SetAspect("Eigenval");
+    OutSets_[2] = setup.DSL().AddSet( DataSet::DOUBLE, md );
+    Xdim = Dimension( 1, 1, "Mode" );
+  } else if (type_ == RMSIP) {
+    if (setname.empty()) setname = setup.DSL().GenerateDefaultName("RMSIP");
+    OutSets_.push_back( setup.DSL().AddSet( DataSet::DOUBLE, setname ) );
+    if (dataout != 0) dataout->ProcessArgs("noxcol");
+    OutSets_[0]->SetupFormat() = TextFormat(TextFormat::GDOUBLE);
+    OutSets_[0]->SetLegend( modinfo_->Meta().Legend() + "_X_" + modinfo2_->Meta().Legend() );
   }
   for (std::vector<DataSet*>::const_iterator set = OutSets_.begin(); set != OutSets_.end(); ++set)
   {
@@ -405,20 +429,7 @@ void Analysis_Modes::CalcFluct(DataSet_Modes const& modes) {
     OutSets_[RMSZ]->Add( vi, &rmsZ );
     double rms = sqrt(sumx + sumy + sumz) * c2;
     OutSets_[RMS]->Add( vi, &rms );
-    //Ri[0] = sqrt(sumx) * c2;
-    //Ri[1] = sqrt(sumy) * c2;
-    //Ri[2] = sqrt(sumz) * c2;
-    //Ri[3] = sqrt(sumx + sumy + sumz) * c2;
-    //Ri += 4;
   }
-  // Output
-/*  outfile_->Printf("#Analysis of modes: RMS FLUCTUATIONS\n");
-  outfile_->Printf("%-10s %10s %10s %10s %10s\n", "#Atom_no.", "rmsX", "rmsY", "rmsZ", "rms");
-  int anum = 1;
-  for (unsigned int i4 = 0; i4 < results.size(); i4 += 4) 
-    outfile_->Printf("%10i %10.3f %10.3f %10.3f %10.3f\n", anum++, results[i4], 
-                   results[i4+1], results[i4+2], results[i4+3]); 
-*/
 }
 
 // Analysis_Modes::CalcDisplacement()
@@ -454,13 +465,12 @@ void Analysis_Modes::CalcDisplacement( DataSet_Modes const& modes ) {
       results[vi+2] += Vec[vi+2] * fi;
     }
   }
-  // Output
-  outfile_->Printf("#Analysis of modes: DISPLACEMENT\n");
-  outfile_->Printf("%-10s %10s %10s %10s\n", "#Atom_no.", "displX", "displY", "displZ");
-  int anum = 1;
-  for (int i3 = 0; i3 < modes.NavgCrd(); i3 += 3)
-    outfile_->Printf("%10i %10.3f %10.3f %10.3f\n", anum++, results[i3], 
-                   results[i3+1], results[i3+2]);
+  int anum = 0;
+  for (int i3 = 0; i3 < modes.NavgCrd(); i3 += 3, anum++) {
+    OutSets_[RMSX]->Add( anum, &results[i3] );
+    OutSets_[RMSY]->Add( anum, &results[i3+1] );
+    OutSets_[RMSZ]->Add( anum, &results[i3+2] );
+  }
 }
 
 // Analysis_Modes::CalcDipoleCorr()
@@ -624,12 +634,13 @@ void Analysis_Modes::CalcEvalFrac(DataSet_Modes const& modes) {
     sum += modes.Eigenvalue( mode );
   mprintf("\t%zu eigenvalues, sum is %f\n", modes.Size(), sum);
   double cumulative = 0.0;
-  outfile_->Printf("%6s %12s %12s %12s\n", "#Mode", "Frac.", "Cumulative", "Eigenval");
   for (unsigned int mode = 0; mode != modes.Size(); mode++) {
     double frac = modes.Eigenvalue( mode ) / sum;
     cumulative += frac;
-    outfile_->Printf("%6u %12.6f %12.6f %12.6f\n", mode+1, frac, cumulative, 
-                   modes.Eigenvalue( mode ));
+    OutSets_[0]->Add( mode, &frac );
+    OutSets_[1]->Add( mode, &cumulative );
+    frac = modes.Eigenvalue( mode );
+    OutSets_[2]->Add( mode, &frac );
   }
 }
 
@@ -659,6 +670,6 @@ int Analysis_Modes::CalcRMSIP(DataSet_Modes const& modes1, DataSet_Modes const& 
   }
   sumsq /= (double)(end_ - beg_);
   double rmsip = sqrt( sumsq );
-  outfile_->Printf("%g\n", rmsip);
+  OutSets_[0]->Add( 0, &rmsip );
   return 0;
 }
