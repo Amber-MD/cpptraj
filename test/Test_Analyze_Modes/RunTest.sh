@@ -41,13 +41,8 @@ TestCorr() {
 trajin ../tz2.nc
 matrix mwcovar name tz2
 analyze matrix tz2 name tz2modes vecs 20
+analyze modes corr name tz2modes out corr.dat mask1 :2-13@N mask2 :2-13@H
 EOF
-  printf "analyze modes corr name tz2modes out corr.dat" >> modes.in
-  for ATOMN in 14 38 52 76 91 105 112 134 158 172 196 218 ; do
-    ((ATOMH = ATOMN + 1))
-    printf " maskp @$ATOMN @$ATOMH" >> modes.in
-  done
-  printf "\n" >> modes.in
   RunCpptraj "Modes analysis, dipole correlation"
   DoTest corr.dat.save corr.dat
 }
