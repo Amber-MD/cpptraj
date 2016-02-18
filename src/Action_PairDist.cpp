@@ -13,7 +13,6 @@
 
 // CONSTRUCTOR
 Action_PairDist::Action_PairDist() :
-  output_(0),
   delta_(0.0),
   maxbin_(0),
   same_mask_(false),
@@ -22,7 +21,7 @@ Action_PairDist::Action_PairDist() :
 {}
 
 void Action_PairDist::Help() const {
-  mprintf("\tout <filename> mask <mask> [mask2 <mask>] [<resolution> delta]\n"
+  mprintf("\t[out <filename>] mask <mask> [mask2 <mask>] [delta <resolution>]\n"
           "  Calculate pair distribution function P(r) between two masks.\n");
 }
 
@@ -34,18 +33,7 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
 # endif
   InitImaging(true);
 
-  std::string outfileName = actionArgs.GetStringKey("out");
-
-  if (outfileName.empty()) {
-    outfileName = "pairdist.dat";
-  }
-
-  output_ = init.DFL().AddCpptrajFile(outfileName, "Pair Dist Fxn");
-  if (output_ == 0) {
-    mprinterr("Error: PairDist: Could not open output file %s\n",
-	      outfileName.c_str());
-    return Action::ERR;
-  }
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
   std::string mask1 = actionArgs.GetStringKey("mask");
 
@@ -80,13 +68,24 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   md.SetAspect("std");
   std_ = init.DSL().AddSet(DataSet::XYMESH, md);
   if (Pr_ == 0 || std_ == 0) return Action::ERR;
-  Pr_->ModifyDim(Dimension::X).SetLabel("Distance");
-  std_->ModifyDim(Dimension::X).SetLabel("Distance");
+  if (outfile != 0) {
+    outfile->AddDataSet( Pr_ );
+    outfile->AddDataSet( std_ );
+  }
 # ifdef MPI
   // Do not need to be synced since not time series
   Pr_->SetNeedsSync( false );
   std_->SetNeedsSync( false );
 # endif
+
+  mprintf("    PAIRDIST: Calculate P(r)");
+  if (!same_mask_)
+    mprintf(" between atoms selected by '%s' and '%s'\n", mask1_.MaskString(), mask2_.MaskString());
+  else
+    mprintf(" for atoms selected by '%s'\n", mask1_.MaskString());
+  if (outfile != 0)
+    mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tResolution is %f Ang.\n", delta_);
   return Action::OK;
 }
 
@@ -212,10 +211,12 @@ int Action_PairDist::SyncAction() {
 // Action_PairDist::print()
 void Action_PairDist::Print()
 {
-  double dist, Pr, sd;
+  // Set DataSets X dim
+  Dimension Xdim( 0.5 * delta_, delta_, "Distance" );
+  Pr_->SetDim(Dimension::X, Xdim);
+  std_->SetDim(Dimension::X, Xdim);
 
-  output_->Printf("# pair-distance distribution P(r)\n"
-		 "#distance P(r) stddev\n");
+  double dist, Pr, sd;
 
   for (unsigned long i = 0; i < histogram_.size(); i++) {
     Pr = histogram_[i].mean() / delta_;
@@ -225,7 +226,6 @@ void Action_PairDist::Print()
       sd = sqrt(histogram_[i].variance() );
       ((DataSet_Mesh*) Pr_)->AddXY(dist, Pr);
       ((DataSet_Mesh*) std_)->AddXY(dist, sd);
-      output_->Printf("%10.4f %16.2f %10.2f\n", dist, Pr, sd);
     }
   }
 }
