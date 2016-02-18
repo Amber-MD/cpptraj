@@ -295,6 +295,9 @@ test.vectormath:
 test.esander:
 	@-cd Test_Esander && ./RunTest.sh $(OPT)
 
+test.temperature:
+	@-cd Test_Temperature && ./RunTest.sh $(OPT)
+
 # Only crucial/non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -365,7 +368,8 @@ SHORT_TESTS=test.general \
           test.ccp4 \
           test.curvefit \
           test.datasetavg \
-          test.vectormath
+          test.vectormath \
+          test.temperature
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -461,7 +465,8 @@ COMPLETETESTS=test.general \
               test.curvefit \
               test.datasetavg \
               test.vectormath \
-              test.esander
+              test.esander \
+              test.temperature
 
 test: test.all 
 
