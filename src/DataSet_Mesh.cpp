@@ -93,6 +93,8 @@ void DataSet_Mesh::CalculateMeshX(int sizeIn, double ti, double tf) {
   double d = (tf - ti)/2;
   for (int i = 0; i < sizeIn; i++)
     mesh_x_[i] = s + d*((double) (2*i + 1 - sizeIn)/(sizeIn - 1));
+  // Update dimension
+  SetDim(Dimension::X, Dimension( ti, (tf - ti) / (double)(sizeIn - 1), Dim(0).Label() ));
 }
 
 // DataSet_Mesh::SetMeshXY()
@@ -103,6 +105,8 @@ int DataSet_Mesh::SetMeshXY(DataSet_1D const& dsIn) {
     mesh_x_[i] = dsIn.Xcrd(i);
     mesh_y_[i] = dsIn.Dval(i);
   }
+  // Update dimension
+  SetDim(Dimension::X, Dimension( dsIn.Dim(0).Min(), dsIn.Dim(0).Step(), Dim(0).Label() ));
   return 0;
 }
 
