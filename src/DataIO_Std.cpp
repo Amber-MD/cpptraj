@@ -2,6 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
+#include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
@@ -475,14 +476,24 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   TextFormat x_col_format;
   if (hasXcolumn_) {
     // Create format string for X column based on dimension in first data set.
-    if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
+    // Adjust X col precision as follows: if the step is set and has a 
+    // fractional component set the X col width/precision to either the data
+    // width/precision or the current width/precision, whichever is larger. If
+    // the set is XYMESH but step has not been set (so we do not know spacing 
+    // between X values) use default precision. Otherwise the step has no
+    // fractional component so make the precision zero.
+    double step_i;
+    double step_f = modf( Xdim.Step(), &step_i );
+    double min_f  = modf( Xdim.Min(),  &step_i );
+    if (Xdim.Step() > 0.0 && (step_f > 0.0 || min_f > 0.0)) {
+      xcol_precision = std::max(xcol_precision, Xdata->Format().Precision());
+      xcol_width = std::max(xcol_width, Xdata->Format().Width());
+    } else if (Xdata->Type() != DataSet::XYMESH)
       xcol_precision = 0;
-    else
-      xcol_precision = std::max(xcol_precision, Sets[0]->Format().Precision());
     x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
   } else {
     // If not writing an X-column, no leading space for the first dataset.
-    Sets[0]->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
+    Xdata->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
   }
 
   // Write header to buffer
