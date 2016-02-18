@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles ds.in rotations.nc rotations.mdcrd random.mol2.1
+CleanFiles ds.in rotations.nc rotations.mdcrd random.mol2.1 RAND.mol2
 INPUT="ds.in"
 TOP=../tz2.parm7
 
