@@ -298,7 +298,10 @@ test.esander:
 test.temperature:
 	@-cd Test_Temperature && ./RunTest.sh $(OPT)
 
-# Only crucial/non-time-consuming tests should go here.
+test.spline:
+	@-cd Test_Spline && ./RunTest.sh $(OPT)
+
+# Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
           test.brokentraj \
@@ -369,7 +372,8 @@ SHORT_TESTS=test.general \
           test.curvefit \
           test.datasetavg \
           test.vectormath \
-          test.temperature
+          test.temperature \
+          test.spline
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -466,7 +470,8 @@ COMPLETETESTS=test.general \
               test.datasetavg \
               test.vectormath \
               test.esander \
-              test.temperature
+              test.temperature \
+              test.spline
 
 test: test.all 
 
