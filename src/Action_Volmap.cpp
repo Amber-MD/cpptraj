@@ -32,7 +32,7 @@ void Action_Volmap::Help() const {
 void Action_Volmap::RawHelp() const {
   mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n"
           "\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n"
-          "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
+          "\t[peakcut <cutoff>] [peakfile <xyzfile>] [data <existing set>] [name <setname>]\n");
 }
 
 // Action_Volmap::Init()
@@ -41,6 +41,28 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
+  // Get specific keywords
+  peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
+  peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
+  radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
+  std::string sizestr = actionArgs.GetStringKey("size");
+  std::string center = actionArgs.GetStringKey("centermask");
+  //std::string density = actionArgs.GetStringKey("density"); // FIXME obsolete?
+  std::string dsname = actionArgs.GetStringKey("data");
+  std::string setname, centerstr;
+  if (dsname.empty()) {
+    setname = actionArgs.GetStringKey("name");
+    centerstr = actionArgs.GetStringKey("center");
+    buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
+    if (buffer_ < 0) {
+      mprintf("Error: Volmap: The buffer must be non-negative.\n");
+      return Action::ERR;
+    }
+  }
+  // Get grid resolutions
+  dx_ = actionArgs.getNextDouble(0.0);
+  dy_ = actionArgs.getNextDouble(0.0);
+  dz_ = actionArgs.getNextDouble(0.0);
   // Get the required mask
   std::string reqmask = actionArgs.GetMaskNext();
   if (reqmask.empty()) {
@@ -49,27 +71,10 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   }
   densitymask_.SetMaskString(reqmask);
   // Get output filename
-  std::string filename = actionArgs.GetStringNext();
-  if (filename.empty()) {
-    mprinterr("Error: Volmap: no filename specified.\n");
-    return Action::ERR;
-  }
-  DataFile* outfile = init.DFL().AddDataFile( filename, actionArgs );
-  // Get grid resolutions
-  dx_ = actionArgs.getNextDouble(0.0);
-  dy_ = actionArgs.getNextDouble(0.0);
-  dz_ = actionArgs.getNextDouble(0.0);
-  // Get extra options
-  peakcut_ = actionArgs.getKeyDouble("peakcut", 0.05);
-  peakfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("peakfile"), "Volmap Peaks");
-  radscale_ = 1.0 / actionArgs.getKeyDouble("radscale", 1.0);
-  std::string sizestr = actionArgs.GetStringKey("size");
-  std::string center = actionArgs.GetStringKey("centermask");
-  std::string density = actionArgs.GetStringKey("density");
+  DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringNext(), actionArgs );
 
-  // See how we are going to be setting up our grid
+  // Create new grid or use existing. 
   setupGridOnMask_ = false;
-  std::string dsname = actionArgs.GetStringKey("data");
   if (!dsname.empty()) {
     // Get existing grid dataset
     grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( dsname, DataSet::GRID_FLT );
@@ -80,8 +85,7 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
     }
   } else {
     // Create new grid.
-    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, actionArgs.GetStringKey("name"),
-                                         "VOLMAP");
+    grid_ = (DataSet_GridFlt*)init.DSL().AddSet(DataSet::GRID_FLT, setname, "VOLMAP");
     if (grid_ == 0) return Action::ERR;
     if (!sizestr.empty()) {
       // Get grid sizes from the specified arguments
@@ -93,7 +97,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
         mprinterr("Error: Volmap: Illegal grid sizes [%s]\n", sizestr.c_str());
         return Action::ERR;
       }
-      std::string centerstr = actionArgs.GetStringKey("center");
       ArgList centerargs = ArgList(centerstr, ",");
       double xcenter = centerargs.getNextDouble(0.0);
       double ycenter = centerargs.getNextDouble(0.0);
@@ -112,17 +115,12 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
         centermask_.SetMaskString(reqmask);
       else
         centermask_.SetMaskString(center);
-      buffer_ = actionArgs.getKeyDouble("buffer", 3.0);
-      if (buffer_ < 0) {
-        mprintf("Error: Volmap: The buffer must be non-negative.\n");
-        return Action::ERR;
-      }
       setupGridOnMask_ = true;
     }
   }
 
   // Setup output file
-  outfile->AddDataSet( grid_ );
+  if (outfile != 0) outfile->AddDataSet( grid_ );
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
@@ -131,7 +129,11 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
             centermask_.MaskExpression().c_str(), buffer_);
   else
     mprintf("\tGrid centered at origin.\n");
-  mprintf("\tDensity will wrtten to %s\n", outfile->DataFilename().full());
+  mprintf("\tGridding atoms in mask '%s'\n", densitymask_.MaskString());
+  mprintf("\tDividing radii by %f\n", 1.0/radscale_);
+  if (outfile != 0)
+    mprintf("\tDensity will wrtten to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tGrid dataset name is '%s'\n", grid_->legend());
   if (peakfile_ != 0)
     mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
             peakcut_, peakfile_->Filename().full());
