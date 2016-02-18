@@ -301,6 +301,9 @@ test.temperature:
 test.spline:
 	@-cd Test_Spline && ./RunTest.sh $(OPT)
 
+test.kde:
+	@-cd Test_KDE && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -373,7 +376,8 @@ SHORT_TESTS=test.general \
           test.datasetavg \
           test.vectormath \
           test.temperature \
-          test.spline
+          test.spline \
+          test.kde
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -471,7 +475,8 @@ COMPLETETESTS=test.general \
               test.vectormath \
               test.esander \
               test.temperature \
-              test.spline
+              test.spline \
+              test.kde
 
 test: test.all 
 
