@@ -5,6 +5,11 @@
 
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
+  tot_Nlifetimes_(0),
+  tot_MaxLT_(0),
+  tot_AvgLT_(0),
+  tot_Frames_(0),
+  tot_Name_(0),
   standalone_(0),
   windowSize_(0),
   fuzzCut_(-1),
@@ -80,14 +85,13 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   if (sortSets) inputDsets_.SortArray1D(); 
 
   // Create output datasets
-  DataFile* outfile = 0;
+  DataFile* outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
   if (setname.empty())
     setname = setup.DSL().GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
     Dimension Xdim(1.0, windowSize_, "Frame");
-    outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
       maxfile = setup.DFL().AddDataFile(outfileName.PrependFileName("max."), analyzeArgs);
       avgfile = setup.DFL().AddDataFile(outfileName.PrependFileName("avg."), analyzeArgs);
@@ -148,8 +152,39 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   }
   // Non-window output file
   if (!averageonly_ && windowSize_ == -1) {
-    standalone_ = setup.DFL().AddCpptrajFile( outfileName, "Lifetimes", DataFileList::TEXT, true );
-    if (standalone_ == 0) return Analysis::ERR;
+    Dimension Xdim(1, 1, "Set");
+    // Add DataSets
+    MetaData md(setname);
+    tot_Nlifetimes_ = setup.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("max");
+    tot_MaxLT_      = setup.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("avg");
+    tot_AvgLT_      = setup.DSL().AddSet(DataSet::FLOAT, md);
+    md.SetAspect("frames");
+    tot_Frames_     = setup.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("name");
+    tot_Name_       = setup.DSL().AddSet(DataSet::STRING, md);
+    if (tot_Nlifetimes_ == 0 || tot_MaxLT_ == 0 || tot_AvgLT_ == 0 ||
+        tot_Frames_ == 0     || tot_Name_ == 0)
+      return Analysis::ERR;
+    tot_Nlifetimes_->SetDim(Dimension::X, Xdim);
+    tot_Nlifetimes_->SetupFormat().SetFormatWidth(10);
+    tot_MaxLT_->SetDim(Dimension::X, Xdim);
+    tot_MaxLT_->SetupFormat().SetFormatWidth(10);
+    tot_AvgLT_->SetDim(Dimension::X, Xdim);
+    tot_AvgLT_->SetupFormat().SetFormatWidthPrecision(10,4);
+    tot_Frames_->SetDim(Dimension::X, Xdim);
+    tot_Frames_->SetupFormat().SetFormatWidth(10);
+    tot_Name_->SetDim(Dimension::X, Xdim);
+    if (outfile != 0) {
+      outfile->AddDataSet( tot_Nlifetimes_ );
+      outfile->AddDataSet( tot_MaxLT_ );
+      outfile->AddDataSet( tot_AvgLT_ );
+      outfile->AddDataSet( tot_Frames_ );
+      outfile->AddDataSet( tot_Name_ );
+    }
+    //standalone_ = setup.DFL().AddCpptrajFile( outfileName, "Lifetimes", DataFileList::TEXT, true );
+    //if (standalone_ == 0) return Analysis::ERR;
   } else
     standalone_ = 0; 
 
@@ -177,7 +212,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   }
   if (outfile != 0) {
     mprintf("\tOutfile: %s", outfile->DataFilename().full());
-    if (!averageonly_ && outfile != 0)
+    if (maxfile != 0 && avgfile != 0)
       mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
     mprintf("\n");
   }
@@ -418,7 +453,8 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
       }
     } // END loop over data points.
     // Print lifetime information if no window
-    if ( standalone_ != 0 ) {
+    //if ( standalone_ != 0 ) {
+    if ( tot_Nlifetimes_ != 0 ) {
       // Update current lifetime total
       if  (location == INSIDE || location == OUTER_FUZZ) {
         // Were there enough frames?
@@ -438,9 +474,15 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = 0.0;
       else
         favg = (float)sumLifetimes / (float)Nlifetimes;
-      standalone_->Printf("%10u %10i %10i %10.4f %10.0f %s\n",setIdx,
-                            Nlifetimes, maximumLifetimeCount, favg, sum,
-                            DS.legend());
+      //standalone_->Printf("%10u %10i %10i %10.4f %10.0f %s\n",setIdx,
+      //                      Nlifetimes, maximumLifetimeCount, favg, sum,
+      //                      DS.legend());
+      tot_Nlifetimes_->Add( setIdx, &Nlifetimes );
+      tot_MaxLT_->Add( setIdx, &maximumLifetimeCount );
+      tot_AvgLT_->Add( setIdx, &favg );
+      int isum = (int)sum;
+      tot_Frames_->Add( setIdx, &isum );
+      tot_Name_->Add( setIdx, DS.legend() );
     }
     // Calculate normalized lifetime curve
     if (!lifetimeCurve.empty() && !curveSets_.empty()) {

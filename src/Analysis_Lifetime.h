@@ -16,6 +16,11 @@ class Analysis_Lifetime : public Analysis {
     Array1D curveSets_;
     Array1D maxDsets_;
     Array1D avgDsets_;
+    DataSet* tot_Nlifetimes_;
+    DataSet* tot_MaxLT_;
+    DataSet* tot_AvgLT_;
+    DataSet* tot_Frames_;
+    DataSet* tot_Name_;
     CpptrajFile* standalone_;
     int windowSize_;
     int fuzzCut_;
