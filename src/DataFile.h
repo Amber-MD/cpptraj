@@ -46,7 +46,7 @@ class DataFile {
     /// Set up DataFile for writing with specific format.
     int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
-    int SetupStdout(ArgList&, int);
+    int SetupStdout(ArgList const&, int);
     /// Add a previously set-up DataSet to DataFile.
     int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.

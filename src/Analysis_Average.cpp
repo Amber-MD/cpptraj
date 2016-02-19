@@ -12,14 +12,16 @@ Analysis_Average::Analysis_Average() :
   data_yminIdx_(0),
   data_ymaxIdx_(0),
   data_names_(0),
-  calcAvgOverSets_(false)
+  calcAvgOverSets_(false),
+  toStdout_(false)
 {}
 
 void Analysis_Average::Help() const {
   mprintf("\t<dset0> [<dset1> ...] [torsion] [out <file>] [oversets]\n"
-          "\t[name <output setname>]\n"
+          "\t[name <output setname>] [nostdout]\n"
           "  Calculate the average, standard deviation, min, and max of given data sets.\n"
-          "  If 'oversets' is specified calculate the average over all sets.\n");
+          "  If 'oversets' is specified calculate the average over all sets.\n"
+          "  If 'nostdout' specified do not write averages to STDOUT when 'out' not specified.\n");
 }
 
 // Analysis_Average::Setup()
@@ -27,22 +29,41 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
 {
   calcAvgOverSets_ = analyzeArgs.hasKey("oversets");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  toStdout_ = (outfile == 0 && !calcAvgOverSets_);
+  if (analyzeArgs.hasKey("nostdout")) toStdout_ = false;
   bool convertToTorsion = analyzeArgs.hasKey("torsion");
+  std::string dsname = analyzeArgs.GetStringKey("name");
+  if (dsname.empty())
+    dsname = setup.DSL().GenerateDefaultName("AVERAGE");
+  // Select datasets from remaining args
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
+    mprinterr("Error: Could not add data sets.\n");
+    return Analysis::ERR;
+  }
+  if (input_dsets_.empty()) {
+    mprinterr("Error: No input data sets.\n");
+    return Analysis::ERR;
+  }
+  if (convertToTorsion) {
+    for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set) {
+      MetaData md = (*set)->Meta();
+      md.SetScalarMode( MetaData::M_TORSION );
+      (*set)->SetMeta( md );
+    }
+  }
+  // Set up output data sets for the specified calculation mode
   if (calcAvgOverSets_) {
     if (convertToTorsion)
       mprintf("Warning: 'torsion' keyword not used with 'oversets'\n");
-    avgOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, analyzeArgs.GetStringKey("name"), "AVERAGE");
+    avgOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, dsname);
     if (avgOfSets_ == 0) return Analysis::ERR;
-    sdOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(avgOfSets_->Meta().Name(), "SD"));
+    sdOfSets_ = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(dsname, "SD"));
     if (sdOfSets_ == 0) return Analysis::ERR;
     if (outfile != 0) {
       outfile->AddDataSet( avgOfSets_ );
       outfile->AddDataSet( sdOfSets_ );
     }
   } else {
-    std::string dsname = analyzeArgs.GetStringKey("name");
-    if (dsname.empty())
-      dsname = setup.DSL().GenerateDefaultName("AVERAGE");
     MetaData md(dsname, "avg");
     data_avg_ = setup.DSL().AddSet(DataSet::DOUBLE, md);
     md.SetAspect("sd");
@@ -68,22 +89,6 @@ Analysis::RetType Analysis_Average::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       outfile->AddDataSet(data_yminIdx_);
       outfile->AddDataSet(data_ymaxIdx_);
       outfile->AddDataSet(data_names_);
-    }
-  }
-  // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
-    mprinterr("Error: Could not add data sets.\n");
-    return Analysis::ERR;
-  }
-  if (input_dsets_.empty()) {
-    mprinterr("Error: No input data sets.\n");
-    return Analysis::ERR;
-  }
-  if (convertToTorsion) {
-    for (Array1D::const_iterator set = input_dsets_.begin(); set != input_dsets_.end(); ++set) {
-      MetaData md = (*set)->Meta();
-      md.SetScalarMode( MetaData::M_TORSION );
-      (*set)->SetMeta( md );
     }
   }
 
@@ -202,6 +207,18 @@ Analysis::RetType Analysis_Average::Analyze() {
         data_ymaxIdx_->Add( set, &idxYmax );
       }
     }
+  }
+  if (toStdout_) {
+    DataFile OUT;
+    OUT.SetupStdout(ArgList(), 0); // TODO debug?
+    OUT.AddDataSet( data_avg_ );
+    OUT.AddDataSet( data_sd_ );
+    OUT.AddDataSet( data_ymin_ );
+    OUT.AddDataSet( data_ymax_ );
+    OUT.AddDataSet( data_yminIdx_ );
+    OUT.AddDataSet( data_ymaxIdx_ );
+    OUT.AddDataSet( data_names_ );
+    OUT.WriteDataOut();
   }
   return Analysis::OK;
 }
