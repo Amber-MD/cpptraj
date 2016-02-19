@@ -13,7 +13,7 @@ cat > $in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
 
-pairdist out $out mask "*" delta 0.1
+pairdist P0 out $out mask "*" delta 0.1
 EOF
 
 RunCpptraj "PairDist Test."

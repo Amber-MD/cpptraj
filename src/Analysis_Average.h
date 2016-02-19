@@ -22,5 +22,6 @@ class Analysis_Average : public Analysis {
     DataSet* data_ymaxIdx_; ///< Index at which maximum Y value found in each set.
     DataSet* data_names_;   ///< Legend of each input data set.
     bool calcAvgOverSets_;  ///< If true calculate avg/stdev over all input sets at each point.
+    bool toStdout_;         ///< If true write avg results to STDOUT when no outfile specified
 };
 #endif

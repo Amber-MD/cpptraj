@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles int.in curve.dat
+CleanFiles curve.in curve.dat
 
 INPUT="-i curve.in"
 

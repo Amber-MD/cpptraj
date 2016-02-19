@@ -111,13 +111,12 @@ Analysis::RetType Analysis_Spline::Analyze() {
       msize = (int)((double)ds.Size() * meshfactor_);
     else
       msize = meshsize_;
-    // Set up output dimension
+    // Set up output mesh X values - use same X label as input set.
     mprintf("\t%s: Setting mesh from %f->%f, size=%i,", ds.legend(), mmin, mmax, msize);
-    output_dsets_[idx]->SetDim( Dimension::X, 
-                                Dimension(mmin, (mmax - mmin)/(double)msize, ds.Dim(0).Label()) );
     output_dsets_[idx]->CalculateMeshX(msize, mmin, mmax);
-    mprintf(" set min=%f, set step=%f\n", ds.Dim(0).Min(), ds.Dim(0).Step());
-    // Calculate mesh Y values.
+    mprintf(" step=%f\n", output_dsets_[idx]->Dim(0).Step());
+    output_dsets_[idx]->ModifyDim(Dimension::X).SetLabel( ds.Dim(0).Label() );
+    // Calculate output mesh Y values from input set.
     output_dsets_[idx]->SetSplinedMesh( ds );
     // DEBUG
     //for (unsigned int i = 0; i < output_dsets_[idx]->Size(); i++)
