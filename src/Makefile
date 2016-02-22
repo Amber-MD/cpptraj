@@ -28,9 +28,9 @@ dependclean:
 
 libcpptraj: $(LIBCPPTRAJ)
 
-libcpptraj.so: $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX)  -shared -o libcpptraj.so $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
-	/bin/mv libcpptraj.so $(CPPTRAJLIB)
+libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
+	$(CXX)  -shared -o libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
+	/bin/mv libcpptraj$(SHARED_SUFFIX) $(CPPTRAJLIB)
 
 nolibcpptraj:
 	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
@@ -82,7 +82,7 @@ clean:
 	cd $(READLINE_HOME) && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj.so
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
 
 # Header dependencies
 include cpptrajdepend
