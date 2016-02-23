@@ -45,11 +45,13 @@ class Analysis_RemLog : public Analysis {
     DataSet_RemLog* remlog_;
     ModeType mode_;
     std::vector<DataSet*> outputDsets_;
-    CpptrajFile* lifetimes_;
+    DataFile* lifetimes_;
     CpptrajFile* statsout_;
     CpptrajFile* reptime_;
     CpptrajFile* acceptout_;
     int calcRepFracSlope_;
     CpptrajFile* repFracSlope_;
+    std::string dsname_; ///< Output data set name
+    AnalysisSetup Setup_; ///< Hold DSL for lifetime data sets
 };
 #endif
