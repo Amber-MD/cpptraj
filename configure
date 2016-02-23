@@ -25,7 +25,7 @@ UsageFull() {
   echo "    -timer     : Enable additional timing info."
   echo "    -debugon   : Add -DDEBUG flag to activate additional internal debugging."
   echo "    -nolfs     : Do not enable large file support."
-  echo "    -shared    : Configure for generating libcpptraj.so (implies -nosanderlib)."
+  echo "    -shared    : Configure for generating libcpptraj (implies -nosanderlib)."
   echo "    -fftw3     : Use FFTW instead of pubfft for FFT."
   echo "    -windows   : Set up for use with MinGW compilers for a native Windows build"
   echo ""
@@ -227,8 +227,8 @@ TestSanderlib() {
       fi
     fi
     if [[ $SL_ERR -eq 0 ]] ; then
-      if [[ ! -f "$SANDERLIB_HOME/lib/libsander.so" ]] ; then
-        echo "  Warning: $SANDERLIB_HOME/lib/libsander.so not present."
+      if [[ ! -f "$SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX" ]] ; then
+        echo "  Warning: $SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX not present."
         SL_ERR=1
       else
         SANDERINC="-I$SANDERLIB_HOME/include"
@@ -438,6 +438,7 @@ PICFLAG=""
 LFS="-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 INCLUDE=""
 # Library flags
+SHARED_SUFFIX=".so"
 STATIC=0
 STATICFLAG="-static"
 NETCDF_HOME=""
@@ -459,7 +460,7 @@ ARPACK="-larpack"
 FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
-LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj.so if library will be built
+LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj target if library will be built
 USE_SANDERLIB=1
 SANDERLIB_HOME=""
 READLINE=$READLINE_TARGET
@@ -559,7 +560,7 @@ while [[ ! -z $1 ]] ; do
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
       USE_SANDERLIB=0
-      LIBCPPTRAJ="libcpptraj.so"
+      LIBCPPTRAJ="libcpptraj\$(SHARED_SUFFIX)"
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -892,12 +893,24 @@ if [[ $USEMKL -eq 1 ]] ; then
   LAPACK=""
 fi
 
-if [[ "$(uname)" == "Darwin" && "$FFT_LIB" == "-lfftw3" ]] ; then
+# Determine platform type
+PLATFORM=`uname -s | awk '{print $1}'`
+
+if [[ $PLATFORM = "Darwin" ]] ; then
+  echo "Detected OSX system."
+  # OSX-specific options
+  SHARED_SUFFIX=".dylib"
+  if [[ "$FFT_LIB" == "-lfftw3" ]] ; then
     # Linking against fortran libraries (e.g. -lgfortran) is not required on
     # Mac OS X using FFTW3, since the the Mac Accelerate blas/lapack/arpack
     # doesn't require any extra fortran libs, and fftw3 does not require
     # fortran.
     FLIBS=""
+  fi
+elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
+  echo "Detected Cygwin system."
+  PLATFORM="Cygwin"
+  SHARED_SUFFIX=".dll"
 fi
 
 # Set up linking flags if not already set.
@@ -1055,6 +1068,7 @@ FC=$FC
 CFLAGS=$CFLAGS \$(DBGFLAGS)
 CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 FFLAGS=$FFLAGS \$(DBGFLAGS)
+SHARED_SUFFIX=$SHARED_SUFFIX
 
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
