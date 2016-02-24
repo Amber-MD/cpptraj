@@ -86,6 +86,39 @@ CompileError() {
   exit 1
 }
 
+# Test that OpenMP works
+TestOpenMP() {
+  if [[ $USEOPENMP -eq 1 ]] ; then
+    cat > testp.cpp <<EOF
+#ifdef _OPENMP
+#include <omp.h>
+#include <cstdio>
+int main() {
+  int nthreads;
+# pragma omp parallel
+  {
+  if (omp_get_thread_num() == 0)
+    nthreads = omp_get_num_threads();
+  }
+  printf("%i threads Testing\n", nthreads);
+  return 0;
+}
+#endif
+EOF
+    $CXX -o testp $OMPFLAGS testp.cpp > /dev/null 2> /dev/null
+    ERR=$?
+    if [[ $ERR -eq 0 ]] ; then
+      ./testp | grep "Testing" > /dev/null
+      ERR=$?
+    fi
+    if [[ $ERR -ne 0 ]] ; then
+      echo "Error: OpenMP not supported for compiler $COMPILERS"
+      exit 1
+    fi
+    /bin/rm -f testp testp.cpp
+  fi
+}
+
 # TestCxxProgram "TestName" "Lib"
 # Test compile test program testp.cpp
 TestCxxProgram() {
@@ -339,7 +372,7 @@ SetCompilerOptions() {
       if [ -z "$CXX" ]; then CXX=clang++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
       OPTFLAGS="-O3 -Wall"
-      OMPFLAGS=""
+      OMPFLAGS="-fopenmp"
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
       FLIBS="$FLIBS -lgfortran $quadmath -w"
@@ -420,6 +453,7 @@ COMPILERS=""
 OPT=1
 USEMPI=0
 USEOPENMP=0
+USEOPENBLAS=0
 USETIMER=0
 PROFILE=0
 USECRAY=0
@@ -635,8 +669,8 @@ while [[ ! -z $1 ]] ; do
       SFX=".exe"
       ;;
     "-openblas")
-      BLAS="-lopenblas"
-      LAPACK=""
+      echo "Using OpenBLAS"
+      USEOPENBLAS=1
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -747,6 +781,9 @@ if [[ -z $COMPILERS ]] ; then
 fi
 SetCompilerOptions $COMPILERS
 
+# Check that OpenMP will work if it was specified
+TestOpenMP
+
 # Check install directory
 if [[ -z $CPPTRAJHOME ]] ; then
   # Default is to use current directory.
@@ -766,16 +803,15 @@ if [[ -z $CC || -z $CXX || -z $FC ]] ; then
   exit 1
 fi
 
-# If no netcdf specified and AMBERHOME defined use netcdf from AMBERHOME
-#if [[ $NETCDFLIB = "-lnetcdf" && ! -z $AMBERHOME ]] ; then
-#  echo "Using netcdf from AMBERHOME: $AMBERHOME"
-#  INCLUDE="$INCLUDE -I$AMBERHOME/AmberTools/src/netcdf/include"
-#  NETCDFLIB="-I$AMBERHOME/AmberTools/src/netcdf/include $AMBERHOME/AmberTools/src/netcdf/lib/libnetcdf.a"
+# Add HDF5 flags to NETCDF
+#if [[ ! -z $NETCDFLIB ]] ; then
+#  NETCDFLIB="$NETCDFLIB $HDF5LIB"
 #fi
 
-# Add HDF5 flags to NETCDF
-if [[ ! -z $NETCDFLIB ]] ; then
-  NETCDFLIB="$NETCDFLIB $HDF5LIB"
+# OpenBLAS
+if [[ $USEOPENBLAS -eq 1 ]] ; then
+  BLAS="-lopenblas"
+  LAPACK=""
 fi
 
 # Only use parallel NETCDF with MPI
@@ -900,12 +936,17 @@ if [[ $PLATFORM = "Darwin" ]] ; then
   echo "Detected OSX system."
   # OSX-specific options
   SHARED_SUFFIX=".dylib"
-  if [[ "$FFT_LIB" == "-lfftw3" ]] ; then
+  if [[ "$FFT_LIB" == "-lfftw3" && $USEOPENBLAS -eq 1  ]] ; then
     # Linking against fortran libraries (e.g. -lgfortran) is not required on
     # Mac OS X using FFTW3, since the the Mac Accelerate blas/lapack/arpack
     # doesn't require any extra fortran libs, and fftw3 does not require
     # fortran.
     FLIBS=""
+  fi
+  # On OSX with clang, some libraries may be built with libstdc++ and will
+  # fail to link without this flag.
+  if [[ $COMPILERS = "clang" ]] ; then
+    LDFLAGS=$LDFLAGS" -stdlib=libstdc++"
   fi
 elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
   echo "Detected Cygwin system."
@@ -939,10 +980,6 @@ fi
 if [[ $USEOPENMP -eq 1 ]] ; then
   if [[ "$WINDOWS" = "yes" ]]; then
     echo "OpenMP not currently supported on Windows"
-    exit 1
-  fi
-  if [[ $COMPILERS = "clang" ]] ; then
-    echo "Error: clang compiler does not yet support OpenMP."
     exit 1
   fi
   echo "Using OPENMP"
