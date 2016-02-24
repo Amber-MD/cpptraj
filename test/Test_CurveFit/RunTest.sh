@@ -32,10 +32,10 @@ runanalysis curvefit Data.dat nexp 2 name PKFitY form mexpk_penalty \
 EOF
 RunCpptraj "Curve fitting multi-exponential tests."
 DoTest curve.dat.save curve1.dat
-DoTest Kcurve.dat.save Kcurve.dat
+DoTest Kcurve.dat.save Kcurve.dat -r 0.0002
 # Differences in windows seem like round-off
-DoTest PKcurve.dat.save PKcurve.dat allowfail windows
-DoTest Results.dat.save Results.dat allowfail windows
+DoTest PKcurve.dat.save PKcurve.dat allowfail windows -r 0.0003
+DoTest Results.dat.save Results.dat allowfail windows -r 0.006
 
 # Custom X output range.
 cat > cf.in <<EOF

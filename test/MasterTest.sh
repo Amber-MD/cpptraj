@@ -52,10 +52,22 @@ SANDERLIB=""
 #   <OS>. The remaining args can be used to pass options to DIFFCMD.
 DoTest() {
   if [[ ! -z $DACDIF ]] ; then
-    # AmberTools - will use dacdif.
-    $DACDIF $1 $2
+    # AmberTools - will use dacdif. Use any '-r <X>' or '-a <X>' args found.
+    # Ignore the rest.
+    DIFFARGS="$1 $2"
+    shift # Save file
+    shift # Test file
+    # Process remaining args
+    while [[ ! -z $1 ]] ; do
+      case "$1" in
+        "-r" ) shift ; DIFFARGS=" -r $1 "$DIFFARGS ;;
+        "-a" ) shift ; DIFFARGS=" -a $1 "$DIFFARGS ;;
+      esac
+      shift
+    done
+    $DACDIF $DIFFARGS
   else
-    # Standalone - will use diff.
+    # Standalone - will use diff. Skip any dacdif args.
     ((NUMTEST++))
     DIFFARGS="--strip-trailing-cr"
     # First two arguments are files to compare.
@@ -68,6 +80,8 @@ DoTest() {
       case "$1" in
         "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
         "parallelfail" ) ALLOW_FAIL=2 ;;
+        "-r"           ) shift ;;
+        "-a"           ) shift ;;
         *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
@@ -129,16 +143,31 @@ NcTest() {
     echo "ncdump missing." > /dev/stderr
     exit 1
   fi
+  # Save remaining args for DoTest
+  F1=$1
+  F2=$2
+  shift
+  shift
+  DIFFARGS="nc0.save nc0"
+  while [[ ! -z $1 ]] ; do
+    DIFFARGS=$DIFFARGS" $1"
+    shift
+  done
   # Prepare files.
-  if [[ ! -e $1 ]] ; then
-    echo "Error: $1 missing." >> $TEST_ERROR
-  elif [[ ! -e $2 ]] ; then
-    echo "Error: $2 missing." >> $TEST_ERROR
+  if [[ ! -e $F1 ]] ; then
+    echo "Error: $F1 missing." >> $TEST_ERROR
+  elif [[ ! -e $F2 ]] ; then
+    echo "Error: $F2 missing." >> $TEST_ERROR
   else
-    $NCDUMP -n nctest $1 | grep -v "==>\|:programVersion" > nc0
-    $NCDUMP -n nctest $2 | grep -v "==>\|:programVersion" > nc1
-    DoTest nc0 nc1
-    $REMOVE nc0 nc1
+    if [[ ! -z $DACDIF ]] ; then
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+    else
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+    fi
+    DoTest $DIFFARGS 
+    $REMOVE nc0.save nc0
   fi
 }
 

@@ -23,7 +23,7 @@ trajout force.nc
 EOF
     RunCpptraj "SANDER energy test, PME."
     DoTest Esander.dat.save Esander.dat
-    NcTest force.nc.save force.nc
+    NcTest force.nc.save force.nc -a 0.000001
   fi
 }
 
