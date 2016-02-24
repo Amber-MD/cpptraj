@@ -60,8 +60,8 @@ DoTest() {
     # Process remaining args
     while [[ ! -z $1 ]] ; do
       case "$1" in
-        "-r" ) shift ; DIFFARGS=$DIFFARGS" -r $1" ;;
-        "-a" ) shift ; DIFFARGS=$DIFFARGS" -a $1" ;;
+        "-r" ) shift ; DIFFARGS=" -r $1 "$DIFFARGS ;;
+        "-a" ) shift ; DIFFARGS=" -a $1 "$DIFFARGS ;;
       esac
       shift
     done
@@ -143,16 +143,31 @@ NcTest() {
     echo "ncdump missing." > /dev/stderr
     exit 1
   fi
+  # Save remaining args for DoTest
+  F1=$1
+  F2=$2
+  shift
+  shift
+  DIFFARGS="nc0.save nc0"
+  while [[ ! -z $1 ]] ; do
+    DIFFARGS=$DIFFARGS" $1"
+    shift
+  done
   # Prepare files.
-  if [[ ! -e $1 ]] ; then
-    echo "Error: $1 missing." >> $TEST_ERROR
-  elif [[ ! -e $2 ]] ; then
-    echo "Error: $2 missing." >> $TEST_ERROR
+  if [[ ! -e $F1 ]] ; then
+    echo "Error: $F1 missing." >> $TEST_ERROR
+  elif [[ ! -e $F2 ]] ; then
+    echo "Error: $F2 missing." >> $TEST_ERROR
   else
-    $NCDUMP -n nctest $1 | grep -v "==>\|:programVersion" > nc0
-    $NCDUMP -n nctest $2 | grep -v "==>\|:programVersion" > nc1
-    DoTest nc0 nc1
-    $REMOVE nc0 nc1
+    if [[ ! -z $DACDIF ]] ; then
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+    else
+      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
+      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+    fi
+    DoTest $DIFFARGS 
+    $REMOVE nc0.save nc0
   fi
 }
 
