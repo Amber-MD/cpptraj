@@ -52,10 +52,22 @@ SANDERLIB=""
 #   <OS>. The remaining args can be used to pass options to DIFFCMD.
 DoTest() {
   if [[ ! -z $DACDIF ]] ; then
-    # AmberTools - will use dacdif.
-    $DACDIF $1 $2
+    # AmberTools - will use dacdif. Use any '-r <X>' or '-a <X>' args found.
+    # Ignore the rest.
+    DIFFARGS="$1 $2"
+    shift # Save file
+    shift # Test file
+    # Process remaining args
+    while [[ ! -z $1 ]] ; do
+      case "$1" in
+        "-r" ) shift ; DIFFARGS=$DIFFARGS" -r $1" ;;
+        "-a" ) shift ; DIFFARGS=$DIFFARGS" -a $1" ;;
+      esac
+      shift
+    done
+    $DACDIF $DIFFARGS
   else
-    # Standalone - will use diff.
+    # Standalone - will use diff. Skip any dacdif args.
     ((NUMTEST++))
     DIFFARGS="--strip-trailing-cr"
     # First two arguments are files to compare.
@@ -68,6 +80,8 @@ DoTest() {
       case "$1" in
         "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
         "parallelfail" ) ALLOW_FAIL=2 ;;
+        "-r"           ) shift ;;
+        "-a"           ) shift ;;
         *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
