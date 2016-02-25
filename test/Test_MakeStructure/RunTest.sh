@@ -33,7 +33,7 @@ dihedral chi1 :8@N :8@CA :8@CB :8@CG out dihedrals3.dat
 EOF
 RunCpptraj "Makestructure test."
 DoTest pp2.rst7.save pp2.rst7
-DoTest dihedrals.dat.save dihedrals.dat
+DoTest dihedrals.dat.save dihedrals.dat -a 0.00001
 DoTest dihedrals2.dat.save dihedrals2.dat
 DoTest dihedrals3.dat.save dihedrals3.dat
 }

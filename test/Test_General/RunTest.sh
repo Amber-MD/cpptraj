@@ -74,7 +74,9 @@ NcTest test.nc.save test.nc
 DoTest r4.dat.save r4.dat
 # NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
 #       by different newline characters in compressed file.
-DoTest a2.dat.gz.save a2.dat.gz allowfail windows
+if [[ $TEST_OS != "windows" ]] ; then
+  DoTest a2.dat.gz.save a2.dat.gz
+fi
 DoTest a3.dat.bz2.save a3.dat.bz2
 DoTest r2.dat.save r2.dat
 DoTest r3-nofit.dat.save r3-nofit.dat

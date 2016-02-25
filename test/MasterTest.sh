@@ -19,6 +19,7 @@ TIME=""             # Set to the 'time' command if timing requested.
 VALGRIND=""         # Set to 'valgrind' command if memory check requested.
 DIFFCMD=""          # Command used to check for test differences
 DACDIF=""           # Set if using 'dacdif' to test differences
+NDIFF=""            # Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc
 REMOVE="/bin/rm -f" # Remove command
 NCDUMP=""           # ncdump command; needed for NcTest()
 OUTPUT="test.out"   # File to direct test STDOUT to.
@@ -45,14 +46,15 @@ PNETCDFLIB=""
 SANDERLIB=""
 
 # ------------------------------------------------------------------------------
-# DoTest() <File1> <File2> [allowfail <OS>] [<arg1>] ... [<argN>]
+# DoTest() <File1> <File2> [-r <relative err>] [-a <absolute err>] [<arg1>] ... [<argN>]
 #   Compare File1 (the 'save' file) to File2 (test output), print an error if
-#   they differ. The 'allowfail' keyword allows test to fail with just a
-#   warning, and is currently intended for tests with known failures on given
-#   <OS>. The remaining args can be used to pass options to DIFFCMD.
+#   they differ. If '-r' or '-a' are specified the test will pass as long as the
+#   maximum relative or absolulte errors are below the given value (using Nelson
+#   H. F. Beebe's ndiff.awk script. The remaining args can be used to pass
+#   options to DIFFCMD.
 DoTest() {
   if [[ ! -z $DACDIF ]] ; then
-    # AmberTools - will use dacdif. Use any '-r <X>' or '-a <X>' args found.
+    # AmberTools - use dacdif. Use any '-r <X>' or '-a <X>' args found.
     # Ignore the rest.
     DIFFARGS="$1 $2"
     shift # Save file
@@ -67,21 +69,19 @@ DoTest() {
     done
     $DACDIF $DIFFARGS
   else
-    # Standalone - will use diff. Skip any dacdif args.
+    # Standalone - will use diff, or ndiff where '-r' or '-a' specified.
     ((NUMTEST++))
     DIFFARGS="--strip-trailing-cr"
+    NDIFFARGS=""
     # First two arguments are files to compare.
     F1=$1 ; shift
     F2=$1 ; shift
     # Process remaining arguments.
-    ALLOW_FAIL=0
-    FAIL_OS=""
+    USE_NDIFF=0
     while [[ ! -z $1 ]] ; do
       case "$1" in
-        "allowfail"    ) ALLOW_FAIL=1 ; shift ; FAIL_OS=$1 ;;
-        "parallelfail" ) ALLOW_FAIL=2 ;;
-        "-r"           ) shift ;;
-        "-a"           ) shift ;;
+        "-r"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v RELERR=$1" ;;
+        "-a"           ) USE_NDIFF=1; shift; NDIFFARGS="$NDIFFARGS -v ABSERR=$1" ;;
         *              ) DIFFARGS=$DIFFARGS" $1" ;;
       esac
       shift
@@ -95,34 +95,16 @@ DoTest() {
       echo "  $F2 not found." >> $TEST_ERROR
       ((ERRCOUNT++))
     else
-      $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
+      if [[ $USE_NDIFF -eq 0 ]] ; then
+        $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
+      else
+        $NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+      fi
       if [[ -s temp.diff ]] ; then
-        if [[ $ALLOW_FAIL -eq 1 && $TEST_OS = $FAIL_OS ]] ; then
-          echo "  Warning: Differences between $F1 and $F2 detected."
-          echo "  Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
-          echo "           This test is known to fail on $TEST_OS."
-          echo "           This test is known to fail on $TEST_OS." >> $TEST_RESULTS
-          echo "           The differences below should be carefully inspected."
-          echo "--------------------------------------------------------------------------------"
-          cat temp.diff
-          echo "--------------------------------------------------------------------------------"
-          ((WARNCOUNT++))
-        elif [[ $ALLOW_FAIL -eq 2 && ! -z $DO_PARALLEL ]] ; then
-          echo "Warning: Differences between $F1 and $F2 detected."
-          echo "Warning: Differences between $F1 and $F2 detected." >> $TEST_RESULTS
-          echo "         This test is known to fail in parallel."
-          echo "         This test is known to fail in parallel." >> $TEST_RESULTS
-          echo "           The differences below should be carefully inspected."
-          echo "--------------------------------------------------------------------------------"
-          cat temp.diff
-          echo "--------------------------------------------------------------------------------"
-          ((WARNCOUNT++))
-        else
-          echo "  $F1 $F2 are different." >> $TEST_RESULTS
-          echo "  $F1 $F2 are different." >> $TEST_ERROR
-          cat temp.diff >> $TEST_ERROR
-          ((ERRCOUNT++))
-        fi
+        echo "  $F1 $F2 are different." >> $TEST_RESULTS
+        echo "  $F1 $F2 are different." >> $TEST_ERROR
+        cat temp.diff >> $TEST_ERROR
+        ((ERRCOUNT++))
       else
         echo "  $F2 OK." >> $TEST_RESULTS
       fi
@@ -149,7 +131,11 @@ NcTest() {
   shift
   shift
   DIFFARGS="nc0.save nc0"
+  CALC_NUM_ERR=0
   while [[ ! -z $1 ]] ; do
+    if [[ $1 = '-r' || $1 = '-a' ]] ; then
+      CALC_NUM_ERR=1
+    fi
     DIFFARGS=$DIFFARGS" $1"
     shift
   done
@@ -159,7 +145,11 @@ NcTest() {
   elif [[ ! -e $F2 ]] ; then
     echo "Error: $F2 missing." >> $TEST_ERROR
   else
-    if [[ ! -z $DACDIF ]] ; then
+    if [[ $CALC_NUM_ERR -eq 1 ]] ; then
+      # FIXME: Must remove commas here because I cannot figure out how to pass
+      # the regular expression to ndiff.awk FS without the interpreter giving
+      # this error for FS='[ \t,()]':
+      # awk: fatal: Invalid regular expression: /'[/
       $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
       $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
     else
@@ -554,11 +544,18 @@ SetBinaries() {
         CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
         AMBPDB=$CPPTRAJHOME/bin/ambpdb
         NPROC=$CPPTRAJHOME/test/nproc
+        NDIFF="$CPPTRAJHOME/util/ndiff/ndiff.awk"
       else
         CPPTRAJ=../../bin/cpptraj$SFX
         AMBPDB=../../bin/ambpdb
         NPROC=../../test/nproc
+        NDIFF="../../util/ndiff/ndiff.awk"
       fi
+      if [[ ! -f "$NDIFF" ]] ; then
+        echo "Error: 'ndiff.awk' not present in cpptraj 'util/ndiff/'."
+        exit 1
+      fi
+      NDIFF="awk -f $NDIFF"
     fi
   fi
   # Print DEBUG info

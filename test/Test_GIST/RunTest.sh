@@ -40,7 +40,7 @@ DoTest gist-neighbor-norm.dx.save gist-neighbor-norm.dx
 DoTest gist-order-norm.dx.save gist-order-norm.dx
 # NOTE: gist.out allowed to fail on windows; differences due to slightly
 #       difference implementation of printf '%g' (manifests as round-off).
-DoTest gist.out.save gist.out allowfail windows -r 0.0001
+DoTest gist.out.save gist.out -r 0.0001
 
 EndTest
 exit 0
