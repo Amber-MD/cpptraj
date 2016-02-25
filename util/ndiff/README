@@ -1,0 +1,33 @@
+# NOTE: This version of ndiff.awk is the one distributed with AmberTools 16.
+# It differs slightly from the web version of ndiff.awk. If any problems
+# are encountered please direct questions to Daniel R. Roe or the Amber
+# mailing list. The original README is reproduced below.
+
+%% /u/sy/beebe/src/ndiff/ndiff-2.00/README, Sun Dec 10 08:47:09 2000
+%% Edit by Nelson H. F. Beebe <beebe@math.utah.edu>
+
+%% Author:
+%% 	Nelson H. F. Beebe
+%% 	Center for Scientific Computing
+%% 	University of Utah
+%% 	Department of Mathematics, 322 INSCC
+%% 	155 S 1400 E RM 233
+%% 	Salt Lake City, UT 84112-0090
+%% 	USA
+%% 	Email: beebe@math.utah.edu, beebe@acm.org, 
+%%	       beebe@computer.org, beebe@ieee.org (Internet)
+%% 	WWW URL: http://www.math.utah.edu/~beebe
+%% 	Telephone: +1 801 581 5254
+%% 	FAX: +1 801 585 1640, +1 801 581 4148
+
+This directory contains a utility, ndiff, for comparing putatively
+similar files, ignoring small numeric differences.
+
+See "man ndiff" for program documentation.
+
+That documentation is also provided with the distribution in HTML,
+Adobe Acrobat Portable Document Format (PDF), PostScript, and ASCII
+text formats, all automatically derived from the original source file
+in nroff/troff markup, ndiff.man,
+
+See the companion INSTALL file for installation instructions.

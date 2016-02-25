@@ -22,7 +22,11 @@ Action_PairDist::Action_PairDist() :
 
 void Action_PairDist::Help() const {
   mprintf("\t[out <filename>] mask <mask> [mask2 <mask>] [delta <resolution>]\n"
-          "  Calculate pair distribution function P(r) between two masks.\n");
+          "\t[maxdist <distance>]\n"
+          "  Calculate pair distribution function P(r) between two masks.\n"
+          "  If 'maxdist' is specified the initial histogram max size will be set to\n"
+          "  <distance>; if larger distances are encountered the histogram will be\n"
+          "  resized appropriately.\n");
 }
 
 // Action_PairDist::init()
@@ -32,6 +36,12 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   trajComm_ = init.TrajComm();
 # endif
   InitImaging(true);
+  delta_ = actionArgs.getKeyDouble("delta", 0.01);
+  double maxDist = actionArgs.getKeyDouble("maxdist", -1.0);
+  if (maxDist > 0.0) {
+    maxbin_ = (unsigned long)(maxDist / delta_);
+    histogram_.resize( maxbin_ + 1 );
+  }
 
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
@@ -57,8 +67,6 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
     else
       same_mask_ = true;
   }
-
-  delta_ = actionArgs.getKeyDouble("delta", 0.01);
 
   std::string dsname = actionArgs.GetStringNext();
   if (dsname.empty())
@@ -86,9 +94,18 @@ Action::RetType Action_PairDist::Init(ArgList& actionArgs, ActionInit& init, int
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   mprintf("\tResolution is %f Ang.\n", delta_);
+  if (maxDist > 0.0)
+    mprintf("\tInitial histogram max distance= %f Ang\n", maxDist);
+# ifdef MPI
+  if (trajComm_.Size() > 1 && maxDist < 0.0)
+    mprintf("Warning: Due to the way 'pairdist' currently accumulates data, the\n"
+            "Warning:   final histogram may have numerical inaccuracies in the\n"
+            "Warning:   tail in parallel.\n"
+            "Warning: To avoid this try setting the histogram initial max\n"
+            "Warning:   distance with the 'maxdist' keyword.\n");
+# endif
   return Action::OK;
 }
-
 
 // Action_PairDist::Setup()
 Action::RetType Action_PairDist::Setup(ActionSetup& setup) {
@@ -185,23 +202,67 @@ Action::RetType Action_PairDist::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 #ifdef MPI
+/** Calculate overall average/stdev for histogram bins using the parallel
+  * form of the Online algorithm ( Chan, T.F.; Golub, G.H.; LeVeque, R.J.
+  * (1979), "Updating Formulae and a Pairwise Algorithm for Computing Sample
+  * Variances.", Technical Report STAN-CS-79-773, Department of Computer
+  * Science, Stanford University ).
+  * NOTE: Due to the way pairwise currently works (histogram resized on the
+  *       fly) this will not work correctly for a bin that is only sometimes
+  *       present as the final bin counts will be different. The only way I
+  *       could see around this is to have all the threads sync up any time
+  *       a histogram is resized, which seems pretty bad performance-wise.
+  *       Adding the 'maxdist' keyword seemed like a good compromise.
+  */
 int Action_PairDist::SyncAction() {
   if (trajComm_.Size() > 1) {
-    // Ensure every histogram is same size
-    unsigned long world_max;
-    trajComm_.AllReduce( &world_max, &maxbin_, 1, MPI_UNSIGNED_LONG, MPI_MAX );
-    if ( maxbin_ < world_max )
-      histogram_.resize( world_max + 1 );
-    maxbin_ = world_max;
-    for (unsigned long i = 0; i < histogram_.size(); i++) {
-      double total[3], buf[3]; // Convert to double in case float ever used for Stats
-      buf[0] = (double)histogram_[i].mean();
-      buf[1] = (double)histogram_[i].M2();
-      buf[2] = (double)histogram_[i].nData();
-      trajComm_.Reduce( total, buf, 3, MPI_DOUBLE, MPI_SUM );
-      if (trajComm_.Master())
-        // Divide by # threads to get actual mean
-        histogram_[i].SetVals( total[0] / (double)trajComm_.Size(), total[1], total[2] );
+    std::vector<double> buffer;
+    unsigned long rank_size;
+    if (trajComm_.Master()) {
+      for (int rank = 1; rank < trajComm_.Size(); rank++) {
+        // 1. Get size of histogram on rank.
+        trajComm_.SendMaster(&rank_size, 1, rank, MPI_UNSIGNED_LONG);
+        // 2. Receive histogram from rank.
+        buffer.resize(3*rank_size, 0.0); // mean, m2, N
+        unsigned long master_size = (unsigned long)histogram_.size();
+        trajComm_.SendMaster(&buffer[0], buffer.size(), rank, MPI_DOUBLE);
+        unsigned long idx = 0; // Index into buffer
+        // Only sum for bins where master and rank both have data
+        unsigned long Nbins = std::min( master_size, rank_size );
+        for (unsigned long i = 0; i < Nbins; i++, idx += 3) {
+          double mA = (double)histogram_[i].mean();
+          double sA = (double)histogram_[i].M2();
+          double nA = (double)histogram_[i].nData();
+          double mB = buffer[idx  ];
+          double sB = buffer[idx+1];
+          double nB = buffer[idx+2];
+          double nX = nA + nB;
+          double delta    = mB - mA;
+          double new_mean = mA + delta * (nB / nX);
+          double new_sd   = sA + sB + ((delta*delta) * ((nA*nB) / nX));
+          histogram_[i].SetVals( new_mean, new_sd, nX );
+        }
+        // If rank had more data than master, fill in data
+        if (rank_size > master_size) {
+          histogram_.resize( rank_size );
+          maxbin_ = (unsigned long)histogram_.size() - 1;
+          idx = master_size * 3;
+          for (unsigned long i = master_size; i < rank_size; i++, idx += 3)
+            histogram_[i].SetVals( buffer[idx], buffer[idx+1], buffer[idx+2] );
+        }
+      }
+    } else {
+      // 1. Send size of histogram on this rank to master.
+      rank_size = (unsigned long)histogram_.size();
+      trajComm_.SendMaster(&rank_size, 1, trajComm_.Rank(), MPI_UNSIGNED_LONG);
+      // 2. Place histogram data into a buffer and send to master.
+      buffer.reserve(3*histogram_.size()); // mean, m2, N
+      for (unsigned long i = 0; i < histogram_.size(); i++) {
+        buffer.push_back( (double)histogram_[i].mean()  );
+        buffer.push_back( (double)histogram_[i].M2()    );
+        buffer.push_back( (double)histogram_[i].nData() );
+      }
+      trajComm_.SendMaster(&buffer[0], buffer.size(), trajComm_.Rank(), MPI_DOUBLE);
     }
   }
   return 0;

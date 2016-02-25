@@ -41,17 +41,18 @@ UsageFull() {
   echo "    --with-readline=<DIR>"
   echo "    --with-sanderlib=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
-  echo "    -static      : Use static linking."
-  echo "    -amberlib    : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
-  echo "    -nobzlib     : Do not use libbz2 (bzip2)"
-  echo "    -nozlib      : Do not use zlib (gzip/zip)"
-  echo "    -nonetcdf    : Do not use NetCDF"
-  echo "    -nomathlib   : Do not include routines which require LAPACK or BLAS"
-  echo "    -noarpack    : Do not include routines which require ARPACK"
-  echo "    -noreadline  : Do not include support for readline in the interpreter"
-  echo "    -nosanderlib : Do not try to link to the sander API even if present"
-  echo "    -openblas    : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
-  echo "    -libsci      : Use Cray LibSci for BLAS/LAPACK"
+  echo "    -static        : Use static linking."
+  echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
+  echo "    -nobzlib       : Do not use libbz2 (bzip2)"
+  echo "    -nozlib        : Do not use zlib (gzip/zip)"
+  echo "    -nonetcdf      : Do not use NetCDF"
+  echo "    -nomathlib     : Do not include routines which require LAPACK or BLAS"
+  echo "    -noarpack      : Do not include routines which require ARPACK"
+  echo "    -noreadline    : Do not include support for readline in the interpreter"
+  echo "    -nosanderlib   : Do not try to link to the sander API even if present"
+  echo "    -openblas      : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
+  echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
+  echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX        : Name of the C++ compiler."
@@ -363,7 +364,7 @@ SetCompilerOptions() {
       OMPFLAGS="-fopenmp"
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran $quadmath -w"
+      FLIBS="$FLIBS $lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
    "clang" )
@@ -375,7 +376,7 @@ SetCompilerOptions() {
       OMPFLAGS="-fopenmp"
       FFLAGS="-ffree-form"
       FOPTFLAGS="-O3"
-      FLIBS="$FLIBS -lgfortran $quadmath -w"
+      FLIBS="$FLIBS $lgfortran $quadmath -w"
       PICFLAG="-fPIC"
       ;;
     "intel" )
@@ -508,6 +509,7 @@ CROSS_COMPILE="no"
 # Private variables
 quadmath=""
 external_readline="no"
+lgfortran="-lgfortran"
 
 # Parse command line options
 KEY=""
@@ -621,6 +623,12 @@ while [[ ! -z $1 ]] ; do
       fi
       echo "Using MKL for BLAS/LAPACK in $MKLROOT"
       USEMKL=1
+      ;;
+    "-macAccelerate" )
+      lgfortran=""
+      BLAS="-framework Accelerate"
+      LAPACK=""
+      ARPACK=""
       ;;
     "-nosanderlib"  ) USE_SANDERLIB=0 ;;
     "-nobzlib"      )
@@ -946,7 +954,32 @@ if [[ $PLATFORM = "Darwin" ]] ; then
   # On OSX with clang, some libraries may be built with libstdc++ and will
   # fail to link without this flag.
   if [[ $COMPILERS = "clang" ]] ; then
-    LDFLAGS=$LDFLAGS" -stdlib=libstdc++"
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <string>
+int main() { std::string temp("Testing"); printf("%s\n", temp.c_str()); return 0; }
+EOF
+    # Test without stdlib flag
+    $CXX -o testp testp.cpp > /dev/null 2> /dev/null
+    ERR=$?
+    if [[ $ERR -ne 0 ]] ; then
+      # Test with stdlib flag
+      $CXX -o testp testp.cpp -stdlib=libstdc++ > /dev/null 2> /dev/null
+      ERR=$?
+      if [[ $ERR -eq 0 ]] ; then
+        LDFLAGS=$LDFLAGS" -stdlib=libstdc++"
+      fi
+    fi
+    # Check that program actually runs
+    if [[ $ERR -eq 0 ]] ; then
+      ./testp | grep "Testing" > /dev/null
+      ERR=$?
+    fi
+    if [[ $ERR -ne 0 ]] ; then
+      echo "Error: Could not link properly with clang++ on OSX."
+      exit 1
+    fi
+    /bin/rm -f testp testp.cpp
   fi
 elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
   echo "Detected Cygwin system."
