@@ -1,3 +1,8 @@
+# NOTE: This version of ndiff.awk is the one distributed with AmberTools 16.
+# It differs slightly from the web version of ndiff.awk. If any problems
+# are encountered please direct questions to Daniel R. Roe or the Amber
+# mailing list. The original README is reproduced below.
+
 %% /u/sy/beebe/src/ndiff/ndiff-2.00/README, Sun Dec 10 08:47:09 2000
 %% Edit by Nelson H. F. Beebe <beebe@math.utah.edu>
 

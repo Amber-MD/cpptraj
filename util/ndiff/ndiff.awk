@@ -146,10 +146,12 @@ function compare_files(file1,file2, f1line,f2line,f1parts,f2parts,n1,n2)
 	    printf("### Maximum relative error in matching lines = %.2e at line %d field %d\n", \
 		   Max_Relerr, Max_Relerr_NR, Max_Relerr_NF)
     }
-    if ((getline f1line < file1) > 0)
+    if ((getline f1line < file1) > 0) {
 	warning("file " file2 " is short")
-    if ((getline f2line < file2) > 0)
+   Ndiff++ }
+    if ((getline f2line < file2) > 0) {
 	warning("file " file1 " is short")
+   Ndiff++ }
 }
 
 
@@ -224,10 +226,10 @@ function diff_field(field1,field2,nfield)
 		Max_Relerr_NR = NRLINE
 		Max_Relerr = This_Relerr
 	    }
-	    return (0)
+	    return (1)
 	}
 	else
-	    return (1)
+	    return (0)
     }
     else
 	return (1)
@@ -277,6 +279,7 @@ function initialize( eps)
     if ((ABSERR == "") && (RELERR == "")) # supply default (see man pages)
 	RELERR = max(1.0e-15, 8.0 * Macheps)
 
+	## printf( "RELERR is %15.10f\n", RELERR )
     ## Coerce remaining options to numbers
     MINWIDTH += 0
     QUIET += 0
@@ -408,8 +411,8 @@ function maxrelerr(x,y)
 {
     ## Return the maximum relative error of two values.
 
-    x = abs(x + 0)		# coerce to nonnegative numbers
-    y = abs(y + 0)    		# coerce to nonnegative numbers
+    #x = abs(x + 0)		# coerce to nonnegative numbers
+    #y = abs(y + 0)    		# coerce to nonnegative numbers
 
     ## See the documentation of the -relerr option in ndiff.man for the
     ## explanation of this complex definition:
@@ -417,7 +420,7 @@ function maxrelerr(x,y)
     if (x == y)
 	return (0)
     else if ((x != 0) && (y != 0))
-	return (abs(x-y)/min(x,y))
+	return (abs(x-y)/min(abs(x),abs(y)))
     else if ((x == 0) && (y != 0))
 	return (1)
     else if ((y == 0) && (x != 0))
@@ -446,18 +449,18 @@ function report_difference(f1line,f2line,nfield, emult)
     {
 	printf("%dc%d\n", NRLINE, NRLINE)
 	printf("< %s\n", f1line)
-	if ((This_Abserr != 0) || (This_Relerr != 0))
-	{
-	    emult = This_Relerr / Macheps
-	    if (emult >= 10000)
-		printf("--- field %d\tabsolute error %.2e\trelative error %.2e\n",
-		       nfield, This_Abserr, This_Relerr)
-	    else
-		printf("--- field %d\tabsolute error %.2e\trelative error %.2e [%d*(machine epsilon)]\n",
-		       nfield, This_Abserr, This_Relerr, int(emult + 0.5))
-	}
-	else
-	    printf("--- field %d\n", nfield)
+	## if ((This_Abserr != 0) || (This_Relerr != 0))
+	## {
+	##     emult = This_Relerr / Macheps
+	##     if (emult >= 10000)
+	##	printf("--- field %d\tabsolute error %.2e\trelative error %.2e\n",
+	##	       nfield, This_Abserr, This_Relerr)
+	##    else
+	##	printf("--- field %d\tabsolute error %.2e\trelative error %.2e [%d*(machine epsilon)]\n",
+	##	       nfield, This_Abserr, This_Relerr, int(emult + 0.5))
+	##}
+	##else
+	##    printf("--- field %d\n", nfield)
 	printf("> %s\n", f2line)
     }
     Ndiff++
