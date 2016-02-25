@@ -954,7 +954,32 @@ if [[ $PLATFORM = "Darwin" ]] ; then
   # On OSX with clang, some libraries may be built with libstdc++ and will
   # fail to link without this flag.
   if [[ $COMPILERS = "clang" ]] ; then
-    LDFLAGS=$LDFLAGS" -stdlib=libstdc++"
+    cat > testp.cpp <<EOF
+#include <cstdio>
+#include <string>
+int main() { std::string temp("Testing"); printf("%s\n", temp.c_str()); return 0; }
+EOF
+    # Test without stdlib flag
+    $CXX -o testp testp.cpp > /dev/null 2> /dev/null
+    ERR=$?
+    if [[ $ERR -ne 0 ]] ; then
+      # Test with stdlib flag
+      $CXX -o testp testp.cpp -stdlib=libstdc++ > /dev/null 2> /dev/null
+      ERR=$?
+      if [[ $ERR -eq 0 ]] ; then
+        LDFLAGS=$LDFLAGS" -stdlib=libstdc++"
+      fi
+    fi
+    # Check that program actually runs
+    if [[ $ERR -eq 0 ]] ; then
+      ./testp | grep "Testing" > /dev/null
+      ERR=$?
+    fi
+    if [[ $ERR -ne 0 ]] ; then
+      echo "Error: Could not link properly with clang++ on OSX."
+      exit 1
+    fi
+    /bin/rm -f testp testp.cpp
   fi
 elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
   echo "Detected Cygwin system."
