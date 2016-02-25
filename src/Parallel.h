@@ -104,7 +104,7 @@ class Parallel::Comm {
     int AllGather(void*, int, MPI_Datatype, void*) const;
     /// Buffer, Count, DataType, Destination Rank, Tag
     int Send(void*, int, MPI_Datatype, int, int) const;
-    /// Bufffer, Count, DataType, Source Rank, Tag
+    /// Buffer, Count, DataType, Source Rank, Tag
     int Recv(void*, int, MPI_Datatype, int, int) const;
     /// Buffer, Count, DataType
     int MasterBcast(void*, int, MPI_Datatype) const;
