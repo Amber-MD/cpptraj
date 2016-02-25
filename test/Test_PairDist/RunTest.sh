@@ -13,18 +13,12 @@ cat > $in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.crd
 
-pairdist P0 out $out mask "*" delta 0.1
+pairdist P0 out $out mask "*" delta 0.1 maxdist 36.25
 EOF
 
 RunCpptraj "PairDist Test."
-if [[ -z $DO_PARALLEL ]] ; then
-  DoTest ${out}.save $out
-else
-  # NOTE: In parallel the differences can be larger than expected due
-  #       to the way the pairdist command accumulates the mean and
-  #       standard deviation.
-  DoTest ${out}.save $out -r 0.99
-fi
+DoTest ${out}.save $out
+
 EndTest
 
 exit 0
