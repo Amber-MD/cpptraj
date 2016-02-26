@@ -112,7 +112,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists(fnameIn)) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;
@@ -174,7 +174,7 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists( fnameIn )) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;

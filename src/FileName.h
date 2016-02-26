@@ -46,8 +46,10 @@ class FileName {
 /// This namespace contains useful file-related routines.
 namespace File {
   typedef std::vector<FileName> NameArray;
-
+  /// Expand given expression to array of file names
   NameArray ExpandToFilenames(std::string const&);
+  /// Print error message corresponding to 'false' value from 'Exists()'
+  void ErrorMsg(const char*);
   bool Exists(std::string const&);
   bool Exists(FileName const&);
 }

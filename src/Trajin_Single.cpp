@@ -58,7 +58,7 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
       return 1;
     }
     if ( !File::Exists( mdvel_fname ) ) {
-      mprinterr("Error: %s does not exist.\n", mdvel_fname.full() );
+      File::ErrorMsg( mdvel_fname.full() );
       return 1;
     }
     // Detect mdvel format

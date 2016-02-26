@@ -1,7 +1,9 @@
 #ifndef __WIN32
 #   include <wordexp.h>
 #endif
-#include <cstdio> // FILE, fopen
+#include <cstdio>  // FILE, fopen
+#include <cerrno>  // fileErrMsg, errno
+#include <cstring> // fileErrMsg, strerror
 #include "FileName.h"
 #include "CpptrajStdio.h"
 
@@ -193,10 +195,17 @@ File::NameArray File::ExpandToFilenames(std::string const& fnameArg) {
   return fnames;
 }
 
+static std::string fileErrMsg_ = std::string("");
+
+void File::ErrorMsg(const char* fname) {
+  mprinterr("Error: '%s': %s\n", fname, fileErrMsg_.c_str());
+}
+
 bool File::Exists(FileName const& fn) {
   if (!fn.empty()) {
     FILE* infile = fopen(fn.full(), "rb");
     if (infile==0) {
+      fileErrMsg_.assign( strerror(errno) );
       return false;
     }
     fclose(infile);
