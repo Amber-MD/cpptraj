@@ -12,6 +12,7 @@ UsageSimple() {
   echo "    --help      : Display this message."
   echo "    -openmp     : Use openmp for parallelization of certain routines."
   echo "    -mpi        : Use mpicc/mpicxx to compile."
+  echo "    -intelmpi   : Use mpiicc/mpiicpc to compile."
   echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
   echo "    --full-help : Display additional options."
   echo ""
@@ -579,6 +580,7 @@ while [[ ! -z $1 ]] ; do
       OPT=0
       ;;
     "-mpi"          ) USEMPI=1 ;;
+    "-intelmpi"     ) USEMPI=2 ;;
     "-openmp"       ) USEOPENMP=1 ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
@@ -699,7 +701,9 @@ while [[ ! -z $1 ]] ; do
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
       echo "Using parallel NETCDF in $PNETCDF_HOME"
-      USEMPI=1
+      if [[ $USEMPI -eq 0 ]] ; then
+        USEMPI=1
+      fi
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -825,7 +829,7 @@ fi
 # Only use parallel NETCDF with MPI
 if [[ ! -z $PNETCDFLIB ]] ; then
   if [[ $USEMPI -eq 0 ]] ; then
-    echo "Warning: Parallel NETCDF only supported with '-mpi'"
+    echo "Warning: Parallel NETCDF only supported with '-mpi'/'-intelmpi'"
     PNETCDFLIB=""
     PNETCDF_HOME=""
   else
@@ -1034,7 +1038,7 @@ if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
 fi
 
 # Change to MPI compiler wrappers if specified
-if [[ $USEMPI -eq 1 ]] ; then
+if [[ $USEMPI -ne 0 ]] ; then
   if [[ "$WINDOWS" = "yes" ]]; then
     echo "MPI not currently supported on Windows"
     exit 1
@@ -1045,12 +1049,19 @@ if [[ $USEMPI -eq 1 ]] ; then
     echo "Warning: NetCDF parallel trajectory output requires parallel NetCDF."
     echo ""
   fi
-  echo "Using MPI"
   DIRECTIVES="$DIRECTIVES -DMPI"
-  CC=mpicc
-  CXX=mpicxx
-  FC=mpif90
   SFX=".MPI"
+  if [[ $USEMPI -eq 1 ]] ; then
+    echo "Using MPI"
+    CC=mpicc
+    CXX=mpicxx
+    FC=mpif90
+  elif [[ $USEMPI -eq 2 ]] ; then
+    echo "Using Intel MPI"
+    CC=mpiicc
+    CXX=mpiicpc
+    FC=mpiifort
+  fi
 fi
 
 # Set up compiler flags if not already set
