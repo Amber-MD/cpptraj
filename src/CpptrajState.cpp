@@ -97,12 +97,20 @@ int CpptrajState::AddInputTrajectory( std::string const& fname ) {
 // CpptrajState::AddInputTrajectory()
 int CpptrajState::AddInputTrajectory( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
+  if (top == 0) {
+    mprinterr("Error: No topology selected or no topologies present.\n");
+    return 1;
+  }
   return (SetTrajMode( NORMAL, argIn.GetStringNext(), top, argIn ));
 }
 
 // CpptrajState::AddInputEnsemble()
 int CpptrajState::AddInputEnsemble( ArgList& argIn ) {
   Topology* top = DSL_.GetTopology( argIn );
+  if (top == 0) {
+    mprinterr("Error: No topology selected or no topologies present.\n");
+    return 1;
+  }
   return (SetTrajMode( ENSEMBLE, argIn.GetStringNext(), top, argIn ));
 }
 
