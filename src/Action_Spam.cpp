@@ -82,9 +82,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   }else {
     // Get the file name with the peaks defined in it
     filename.SetFileName( actionArgs.GetStringNext() );
-
-    if (filename.empty() || !File::Exists(filename)) {
-      mprinterr("Spam: Error: Peak file [%s] does not exist!\n", filename.full());
+    if (filename.empty()) {
+      mprinterr("Error: No Peak file specified.\n");
+      return Action::ERR;
+    } else if (!File::Exists(filename)) {
+      File::ErrorMsg( filename.full() );
       return Action::ERR;
     }
 

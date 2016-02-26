@@ -380,7 +380,7 @@ int CpptrajFile::SetupAppend(FileName const& nameIn, int debugIn) {
     // File does not exist, just set up for write.
     if (SetupWrite(nameIn, debugIn)!=0) return 1;
     if (debug_>0)
-      mprintf("Warning: %s does not exist, changed access from APPEND to WRITE.\n",
+      mprintf("Warning: %s not accessible, changed access from APPEND to WRITE.\n",
               fname_.full());
   }
   // Appending and compression not supported.
