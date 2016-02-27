@@ -11,6 +11,7 @@ addons:
       - liblapack-dev
       - libarpack2-dev
       - libnetcdf-dev
+      - fftw3
       - netcdf-bin
       - clang
       - openmpi-bin
