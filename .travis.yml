@@ -30,7 +30,7 @@ before_install:
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
-      curl https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
+      curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
       tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
     else
       wget https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
