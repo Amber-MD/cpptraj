@@ -30,11 +30,12 @@ before_install:
       brew update;
       brew install netcdf fftw;
       curl https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
-      tar jxf -C $HOME $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
+      tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
     else
       wget https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
-      tar jxf -C $HOME pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
+      tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
     fi
+  - mv lib include $HOME
 
 install:
     - ./configure $BUILD_FLAGS --with-sanderlib=$HOME $COMPILER
