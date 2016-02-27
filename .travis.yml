@@ -38,7 +38,7 @@ before_install:
   - mv lib include $HOME
 
 install:
-    - ./configure $BUILD_FLAGS --with-sanderlib=$HOME $COMPILER
+    - ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
           export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
       else
