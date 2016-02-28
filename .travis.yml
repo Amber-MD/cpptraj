@@ -27,7 +27,6 @@ matrix:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      set -x;
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
