@@ -41,10 +41,11 @@ before_install:
 install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
           export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
       else
           export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER
       fi
-    - ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER
     - make -j2 install
 script:
     - cd test && make test.showerrors
