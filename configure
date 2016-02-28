@@ -289,6 +289,7 @@ EOF
           echo "  --------------------"
           cat compile.err
           echo "  --------------------"
+          exit 1
         else
           echo "  OK"
           CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"

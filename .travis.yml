@@ -11,6 +11,7 @@ addons:
       - liblapack-dev
       - libarpack2-dev
       - libnetcdf-dev
+      - libfftw3-dev
       - netcdf-bin
       - clang
       - openmpi-bin
@@ -29,10 +30,22 @@ before_install:
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
+      curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
+      tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
+    else
+      wget https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
+      tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
     fi
+  - mv lib include $HOME
 
 install:
-    - ./configure $BUILD_FLAGS $COMPILER
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+      else
+          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+      fi
     - make -j2 install
 script:
     - cd test && make test.showerrors
