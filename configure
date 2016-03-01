@@ -43,6 +43,7 @@ UsageFull() {
   echo "    --with-sanderlib=<DIR>"
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static        : Use static linking."
+  echo "    -libstatic     : Use static linking only for specified libraries."
   echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    -nobzlib       : Do not use libbz2 (bzip2)"
   echo "    -nozlib        : Do not use zlib (gzip/zip)"
@@ -595,6 +596,10 @@ while [[ ! -z $1 ]] ; do
       echo "Using static linking."
       STATIC=1
       ;;
+    "-libstatic"    )
+      echo "Using static linking for specified libraries."
+      STATIC=2
+      ;;
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
@@ -870,8 +875,8 @@ if [[ $USE_AMBER_LIB -eq 1 ]] ; then
 fi
 
 # Static/Dynamic linking options
-if [[ $STATIC -eq 1 ]] ; then
-  # Static linking
+if [[ $STATIC -eq 2 ]] ; then
+  # Static linking for specified libraries
   if [[ ! -z $BLAS_HOME && ! -z $BLAS ]] ; then
     BLAS="$BLAS_HOME/lib/libblas.a"
   fi
@@ -1111,7 +1116,7 @@ if [[ $USECRAY -eq 1 ]] ; then
   FC=ftn
 fi
 
-# Set up static compilers
+# Set up static linking
 if [[ $STATIC -eq 1 ]]; then
   LDFLAGS="$LDFLAGS $STATICFLAG"
 fi
