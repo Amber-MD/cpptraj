@@ -4,12 +4,13 @@
 
 CleanFiles ptraj.in unwrap.crd unwrap.ortho.crd
 CheckNetcdf
-INPUT="ptraj.in"
-MaxThreads 2 "Unwrap tests"
+NotParallel "Unwrap tests."
 if [[ $? -ne 0 ]] ; then
   EndTest
   exit 0
 fi
+
+INPUT="ptraj.in"
 TOP="../tz2.truncoct.parm7"
 cat > ptraj.in <<EOF
 trajin ../tz2.truncoct.nc 1 2
