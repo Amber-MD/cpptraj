@@ -3,6 +3,10 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
 #include "DataSet_1D.h" // LinearRegression
+#ifdef MPI
+#  include "DataSet_double.h" // SyncAction
+#  include "DataSet_float.h"  // SyncAction
+#endif
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -290,35 +294,30 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+void Action_Diffusion::LoadInitial(Frame const& fIn) {
+  initial_ = fIn;
+  for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+  {
+    const double* XYZ = initial_.XYZ(*atom);
+    previous_.push_back( XYZ[0] );
+    previous_.push_back( XYZ[1] );
+    previous_.push_back( XYZ[2] );
+  }
+}
+
+#ifdef MPI
+int Action_Diffusion::ParallelPreloadFrames(FArray const& preload_frames) {
+  unsigned int idx = preload_frames.size() - 1;
+  LoadInitial( preload_frames[idx] );
+  return 0;
+}
+#endif
+
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   // Load initial frame if necessary
-  if (initial_.empty()) {
-    initial_ = frm.Frm();
-#   ifdef MPI
-    if (trajComm_.Size() > 1) {
-      if (trajComm_.Master())
-        for (int rank = 1; rank < trajComm_.Size(); ++rank)
-          initial_.SendFrame( rank, trajComm_ );
-      else
-        initial_.RecvFrame( 0, trajComm_ );
-    }
-#   endif
-    for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-    {
-      const double* XYZ = initial_.XYZ(*atom); //frm.Frm().XYZ(*atom);
-      previous_.push_back( XYZ[0] );
-      previous_.push_back( XYZ[1] );
-      previous_.push_back( XYZ[2] );
-    }
-#   ifdef MPI
-    if (trajComm_.Master()) return Action::OK;
-    // On non-master we want to calculate diffusion for *this* frame. It is
-    // possible wrapping has already occurred from the initial frame. Try to
-    // detect and correct for this.
-#   endif
-  }
+  if (initial_.empty()) LoadInitial( frm.Frm() );
   // Diffusion calculation
   if (image_.ImageType() != NOIMAGE) {
     boxcenter_ = frm.Frm().BoxCrd().Center();
@@ -458,6 +457,61 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+#ifdef MPI
+/** Each rank beyond master updates values in given dataset by sum of last
+  * values in preceeding ranks.
+  */
+void Action_Diffusion::UpdateOffsetD( Darray& LastVals, DataSet* dIn ) {
+  DataSet_double& dset = static_cast<DataSet_double&>( *dIn );
+  double lastVal = dset.Back();
+  trajComm_.AllGather( &lastVal, 1, MPI_DOUBLE, &LastVals[0] );
+  if (!trajComm_.Master()) {
+    lastVal = 0.0;
+    for (int rank = trajComm_.Rank(); rank != 0; rank--)
+      lastVal += LastVals[rank-1];
+    for (unsigned int i = 0; i != dset.Size(); i++)
+      dset[i] += lastVal;
+  }
+}
+
+/** Float version of UpdateOffsetD */
+void Action_Diffusion::UpdateOffsetF( Farray& LastVals, DataSet* dIn ) {
+  DataSet_float& dset = static_cast<DataSet_float&>( *dIn );
+  float lastVal = dset.Back();
+  trajComm_.AllGather( &lastVal, 1, MPI_FLOAT, &LastVals[0] );
+  if (!trajComm_.Master()) {
+    lastVal = 0.0;
+    for (int rank = trajComm_.Rank(); rank != 0; rank--)
+      lastVal += LastVals[rank-1];
+    for (unsigned int i = 0; i != dset.Size(); i++)
+      dset[i] += lastVal;
+  }
+}
+
+// Action_Diffusion::SyncAction()
+int Action_Diffusion::SyncAction() {
+  if (trajComm_.Size() < 2) return 0;
+  Darray LastVals( trajComm_.Size() );
+  UpdateOffsetD( LastVals, avg_r_ );
+  UpdateOffsetD( LastVals, avg_x_ );
+  UpdateOffsetD( LastVals, avg_y_ );
+  UpdateOffsetD( LastVals, avg_z_ );
+  UpdateOffsetD( LastVals, avg_a_ );
+  if (printIndividual_) {
+    std::vector<float> LastValsF( trajComm_.Size() );
+    for (unsigned int idx = 0; idx != atom_r_.size(); idx++) {
+      UpdateOffsetF( LastValsF, atom_r_[idx] );
+      UpdateOffsetF( LastValsF, atom_x_[idx] );
+      UpdateOffsetF( LastValsF, atom_y_[idx] );
+      UpdateOffsetF( LastValsF, atom_z_[idx] );
+      UpdateOffsetF( LastValsF, atom_a_[idx] );
+    }
+  }
+  return 0;
+}
+#endif
+
+// Action_Diffusion::Print()
 void Action_Diffusion::Print() {
   if (!calcDiffConst_) return;
   mprintf("    DIFFUSION: Calculating diffusion constants from slopes.\n");

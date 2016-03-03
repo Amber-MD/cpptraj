@@ -16,6 +16,7 @@ class Action_Diffusion : public Action {
     typedef DataSetList::DataListType Dlist;
     typedef std::vector<double> Darray;
 
+    inline void LoadInitial(Frame const&);
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
@@ -54,6 +55,12 @@ class Action_Diffusion : public Action {
     std::string dsname_;
     Dimension Xdim_;
 #   ifdef MPI
+    typedef std::vector<float> Farray;
+    int ParallelPreviousFramesRequired() const { return 1; }
+    int ParallelPreloadFrames(FArray const&);
+    void UpdateOffsetD( Darray&, DataSet* ); 
+    void UpdateOffsetF( Farray&, DataSet* ); 
+    int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
 };

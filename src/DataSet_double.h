@@ -18,6 +18,7 @@ class DataSet_double : public DataSet_1D {
     typedef std::vector<double>::iterator iterator;
     iterator begin()                     { return Data_.begin();      }
     iterator end()                       { return Data_.end();        }
+    double Back()                  const { return Data_.back();       }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
 #   ifdef MPI
