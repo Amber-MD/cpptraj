@@ -3,10 +3,6 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // validDouble
 #include "DataSet_1D.h" // LinearRegression
-#ifdef MPI
-#  include "DataSet_double.h" // SyncAction
-#  include "DataSet_float.h"  // SyncAction
-#endif
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -207,12 +203,6 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
             "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
-# ifdef MPI
-  if (trajComm_.Size() > 1)
-    mprintf("Warning: Due to its nature, the diffusion calculation in parallel is an\n"
-            "Warning:   approximation only. The more data that goes into this calculation\n"
-            "Warning:   (i.e. atoms * frames), the better the approximation will be.\n");
-# endif
   return Action::OK;
 }
 
@@ -232,9 +222,19 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
   // Set up imaging info for this parm
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  if (image_.ImagingEnabled()) {
     mprintf("\tImaging enabled.\n");
-  else
+#   ifdef MPI
+    if (trajComm_.Size() > 1) {
+      mprinterr("Error: Imaging for 'diffusion' is not supported in parallel as there is\n"
+                "Error:   no way to correct for imaging that has taken place on preceding\n"
+                "Error:   MPI ranks. To use 'diffusion' in parallel, the trajectory should\n"
+                "Error:   be unwrapped. If this trajectory has already been unwrapped please\n"
+                "Error:   specify the 'noimage' keyword.\n");
+      return Action::ERR;
+    }
+#   endif
+  } else
     mprintf("\tImaging disabled.\n");
 
   // Allocate the delta array
@@ -297,30 +297,29 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
-void Action_Diffusion::LoadInitial(Frame const& fIn) {
-  initial_ = fIn;
-  for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
-  {
-    const double* XYZ = initial_.XYZ(*atom);
-    previous_.push_back( XYZ[0] );
-    previous_.push_back( XYZ[1] );
-    previous_.push_back( XYZ[2] );
-  }
-}
-
-#ifdef MPI
-int Action_Diffusion::ParallelPreloadFrames(FArray const& preload_frames) {
-  unsigned int idx = preload_frames.size() - 1;
-  LoadInitial( preload_frames[idx] );
-  return 0;
-}
-#endif
-
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
   // Load initial frame if necessary
-  if (initial_.empty()) LoadInitial( frm.Frm() );
+  if (initial_.empty()) {
+    initial_ = frm.Frm();
+#   ifdef MPI
+    if (trajComm_.Size() > 1) {
+      if (trajComm_.Master())
+        for (int rank = 1; rank < trajComm_.Size(); ++rank)
+          initial_.SendFrame( rank, trajComm_ );
+      else
+        initial_.RecvFrame( 0, trajComm_ );
+    }
+#   endif
+    for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
+    {
+      const double* XYZ = initial_.XYZ(*atom);
+      previous_.push_back( XYZ[0] );
+      previous_.push_back( XYZ[1] );
+      previous_.push_back( XYZ[2] );
+    }
+  }
   // Diffusion calculation
   if (image_.ImageType() != NOIMAGE) {
     boxcenter_ = frm.Frm().BoxCrd().Center();
@@ -460,60 +459,6 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
-#ifdef MPI
-/** Each rank beyond master updates values in given dataset by sum of last
-  * values in preceeding ranks.
-  */
-void Action_Diffusion::UpdateOffsetD( Darray& LastVals, DataSet* dIn ) {
-  DataSet_double& dset = static_cast<DataSet_double&>( *dIn );
-  double lastVal = dset.Back();
-  trajComm_.AllGather( &lastVal, 1, MPI_DOUBLE, &LastVals[0] );
-  if (!trajComm_.Master()) {
-    lastVal = 0.0;
-    for (int rank = trajComm_.Rank(); rank != 0; rank--)
-      lastVal += LastVals[rank-1];
-    for (unsigned int i = 0; i != dset.Size(); i++)
-      dset[i] += lastVal;
-  }
-}
-
-/** Float version of UpdateOffsetD */
-void Action_Diffusion::UpdateOffsetF( Farray& LastVals, DataSet* dIn ) {
-  DataSet_float& dset = static_cast<DataSet_float&>( *dIn );
-  float lastVal = dset.Back();
-  trajComm_.AllGather( &lastVal, 1, MPI_FLOAT, &LastVals[0] );
-  if (!trajComm_.Master()) {
-    lastVal = 0.0;
-    for (int rank = trajComm_.Rank(); rank != 0; rank--)
-      lastVal += LastVals[rank-1];
-    for (unsigned int i = 0; i != dset.Size(); i++)
-      dset[i] += lastVal;
-  }
-}
-
-// Action_Diffusion::SyncAction()
-int Action_Diffusion::SyncAction() {
-  if (trajComm_.Size() < 2) return 0;
-  Darray LastVals( trajComm_.Size() );
-  UpdateOffsetD( LastVals, avg_r_ );
-  UpdateOffsetD( LastVals, avg_x_ );
-  UpdateOffsetD( LastVals, avg_y_ );
-  UpdateOffsetD( LastVals, avg_z_ );
-  UpdateOffsetD( LastVals, avg_a_ );
-  if (printIndividual_) {
-    std::vector<float> LastValsF( trajComm_.Size() );
-    for (unsigned int idx = 0; idx != atom_r_.size(); idx++) {
-      UpdateOffsetF( LastValsF, atom_r_[idx] );
-      UpdateOffsetF( LastValsF, atom_x_[idx] );
-      UpdateOffsetF( LastValsF, atom_y_[idx] );
-      UpdateOffsetF( LastValsF, atom_z_[idx] );
-      UpdateOffsetF( LastValsF, atom_a_[idx] );
-    }
-  }
-  return 0;
-}
-#endif
-
 // Action_Diffusion::Print()
 void Action_Diffusion::Print() {
   if (!calcDiffConst_) return;
@@ -532,6 +477,7 @@ void Action_Diffusion::Print() {
   }
 }
 
+// Action_Diffusion::CalcDiffForSet()
 void Action_Diffusion::CalcDiffForSet(unsigned int& set, Dlist const& Sets, int Ndim,
                                       std::string const& label) const
 {
@@ -540,6 +486,7 @@ void Action_Diffusion::CalcDiffForSet(unsigned int& set, Dlist const& Sets, int 
       CalcDiffusionConst(set, *ds, Ndim, label + "_" + integerToString( (*ds)->Meta().Idx() ));
 }
 
+// Action_Diffusion::CalcDiffusionConst()
 void Action_Diffusion::CalcDiffusionConst(unsigned int& set, DataSet* ds, int Ndim,
                                           std::string const& label) const
 {

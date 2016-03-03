@@ -55,12 +55,6 @@ class Action_Diffusion : public Action {
     std::string dsname_;
     Dimension Xdim_;
 #   ifdef MPI
-    typedef std::vector<float> Farray;
-    int ParallelPreviousFramesRequired() const { return 1; }
-    int ParallelPreloadFrames(FArray const&);
-    void UpdateOffsetD( Darray&, DataSet* ); 
-    void UpdateOffsetF( Farray&, DataSet* ); 
-    int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
 };
