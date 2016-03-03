@@ -21,7 +21,11 @@ void Action_Unwrap::Help() const {
 Action::RetType Action_Unwrap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef MPI
-  trajComm_ = init.TrajComm();
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'unwrap' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
 # endif
   // Get Keywords
   center_ = actionArgs.hasKey("center");
@@ -109,16 +113,7 @@ Action::RetType Action_Unwrap::DoAction(int frameNum, ActionFrame& frm) {
   if (RefFrame_.empty()) {
     // Set reference structure if not already set
     RefFrame_ = frm.Frm();
-#   ifdef MPI
-    if (trajComm_.Master()) {
-      for (int rank = 1; rank < trajComm_.Size(); rank++)
-        frm.ModifyFrm().SendFrame( rank, trajComm_); // FIXME make SendFrame const
-    } else
-      RefFrame_.RecvFrame(0, trajComm_);
-    // Only return if this is the master; otherwise need to unwrap
-    if (trajComm_.Master())
-#   endif
-      return Action::OK;
+    return Action::OK;
   }
  
   if (orthogonal_)
