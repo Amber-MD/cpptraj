@@ -12,7 +12,6 @@ class DataSet_float : public DataSet_1D {
     void AddElement(float f)             { Data_.push_back( f );      }
     /// Make set size sizeIn, all values set to 0.0.
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, 0.0); }
-    float Back()                   const { return Data_.back();       }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
 #   ifdef MPI
