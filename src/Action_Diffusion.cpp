@@ -331,24 +331,18 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   double avgy = 0.0;
   double avgz = 0.0;
   unsigned int idx = 0; // Index into previous_ and delta_
-  mprintf("\nDEBUG: Diffusion (%i): boxcenter={ %g %g %g }\n", frameNum+1, boxcenter_[0], boxcenter_[1], boxcenter_[2]);
   for (AtomMask::const_iterator at = mask_.begin(); at != mask_.end(); ++at, idx += 3)
   { // Get current and initial coords for this atom.
     const double* XYZ = frm.Frm().XYZ(*at);
     const double* iXYZ = initial_.XYZ(*at);
-    mprintf("\tInitial={ %g %g %g }  Current={ %g %g %g }\n",
-            iXYZ[0], iXYZ[1], iXYZ[2], XYZ[0], XYZ[1], XYZ[2]);
-    // Calculate distance to previous frames coordinates.
-    double delx = XYZ[0] - previous_[idx  ];
-    double dely = XYZ[1] - previous_[idx+1];
-    double delz = XYZ[2] - previous_[idx+2];
-    mprintf("\tCurrentDeltaFromPrevious={ %g %g %g }\n", delx, dely, delz); // DEBUG
-    if (image_.ImageType() == NOIMAGE) {
-      // No imaging. Calculate distance from current position to initial position.
-      delx = XYZ[0] - iXYZ[0];
-      dely = XYZ[1] - iXYZ[1];
-      delz = XYZ[2] - iXYZ[2];
-    } else if ( image_.ImageType() == ORTHO ) {
+    // Calculate distance from initial position. 
+    double delx, dely, delz;
+    if ( image_.ImageType() == ORTHO ) {
+      // Orthorhombic imaging
+      // Calculate distance to previous frames coordinates.
+      delx = XYZ[0] - previous_[idx  ];
+      dely = XYZ[1] - previous_[idx+1];
+      delz = XYZ[2] - previous_[idx+2];
       // If the particle moved more than half the box, assume it was imaged
       // and adjust the distance of the total movement with respect to the
       // original frame.
@@ -358,7 +352,6 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
       if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
       else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
-      //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
@@ -366,23 +359,22 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
       delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
     } else if ( image_.ImageType() == NONORTHO ) {
       // Non-orthorhombic imaging
+      // Calculate distance to previous frames coordinates.
+      delx = XYZ[0] - previous_[idx  ];
+      dely = XYZ[1] - previous_[idx+1];
+      delz = XYZ[2] - previous_[idx+2];
+      // If the particle moved more than half the box, assume it was imaged
+      // and adjust the distance of the total movement with respect to the
+      // original frame.
       if (fabs(delx) > boxcenter_[0] ||
           fabs(dely) > boxcenter_[1] ||
           fabs(delz) > boxcenter_[2])
       {
-        mprintf("\tImaging detected.\n");
-        // Previous position in fractional coords
-        //Vec3 pFrac = recip * Vec3( previous_[idx], previous_[idx+1], previous_[idx+2] );
-        // Previous position back in Cartesian space
-        //Vec3 pCart = ucell.TransposeMult( pFrac );
+        // Previous position in Cartesian space
         Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
-        //mprintf("\tPrevious position (Cart): %g %g %g (%g %g %g)\n",
-        //        previous_[idx], previous_[idx+1], previous_[idx+2], pCart[0], pCart[1], pCart[2]);
         // Current position in fractional coords
         Vec3 cFrac = recip * Vec3( XYZ[0], XYZ[1], XYZ[2] );
-        // Current position back in Cartesian space
-        //Vec3 cCart = ucell.TransposeMult( cFrac );
-        // Look for imaged distance closer than current position
+        // Look for imaged distance closer to previous than current position
         double minDist2 = frm.Frm().BoxCrd().BoxX() *
                           frm.Frm().BoxCrd().BoxY() *
                           frm.Frm().BoxCrd().BoxZ();
@@ -405,29 +397,27 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
             }
           }
         }
-        mprintf("\tClosest position {%g %g %g} (%g) to previous={ %g %g %g }\n",
-                minCurr[0], minCurr[1], minCurr[2], sqrt(minDist2), pCart[0], pCart[1], pCart[2]);
-                
         // Update the delta for this atom
         delta_[idx  ] += minCurr[0] - XYZ[0]; // cCart
         delta_[idx+1] += minCurr[1] - XYZ[1];
         delta_[idx+2] += minCurr[2] - XYZ[2];
-        mprintf("\tUpdated delta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]);
       }
       // Calculate the distance between this "fixed" coordinate
       // and the reference (initial) frame.
       delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
       dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
       delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
-      mprintf("\tCorrected distance from initial={ %g %g %g }\n", delx, dely, delz);
+    } else {
+      // No imaging. Calculate distance from current position to initial position.
+      delx = XYZ[0] - iXYZ[0];
+      dely = XYZ[1] - iXYZ[1];
+      delz = XYZ[2] - iXYZ[2];
     }
-    //mprinterr("\tDeltaFromInitial={ %g %g %g }\n", delx, dely, delz); // DEBUG
     // Calc distances for this atom
     double distx = delx * delx;
     double disty = dely * dely;
     double distz = delz * delz;
     double dist2 = distx + disty + distz;
-    mprintf("\tDistances(X Y Z Tot): %g %g %g %g\n", sqrt(distx), sqrt(disty), sqrt(distz), sqrt(dist2));
     // Accumulate averages
     avgx += distx;
     avgy += disty;
