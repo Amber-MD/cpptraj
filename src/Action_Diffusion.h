@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_DIFFUSION_H
 #define INC_ACTION_DIFFUSION_H
 #include "Action.h"
+#include "ImagedAction.h"
 class Action_Diffusion : public Action {
   public:
     Action_Diffusion();
@@ -18,6 +19,7 @@ class Action_Diffusion : public Action {
     void CalcDiffForSet(unsigned int&, Dlist const&, int, std::string const&) const;
     void CalcDiffusionConst(unsigned int&, DataSet*, int, std::string const&) const;
 
+    ImagedAction image_; ///< Imaging routines
     Frame initial_;   ///< Initial frame (all atoms)
     Darray previous_; ///< Previous coordinates (selected atoms)
     DataSet* avg_x_;  ///< Hold average diffusion in X direction each frame
@@ -33,7 +35,6 @@ class Action_Diffusion : public Action {
     bool printIndividual_; ///< If true print diffusion for individual atoms
     bool calcDiffConst_;   ///< If true calculate diffusion const from MSD vs time
     double time_;          ///< Time step between frames
-    bool hasBox_;          ///< If true trajectory has box information
     DataSet* diffConst_;   ///< Hold diffusion constants.
     DataSet* diffLabel_;   ///< Hold diffusion constant labels.
     DataSet* diffSlope_;   ///< Hold MSD vs time line slopes.
