@@ -37,12 +37,9 @@ static inline void ShortHelp() {
 void Action_Diffusion::Help() const {
   ShortHelp();
   mprintf("  Compute a mean square displacement plot for the atoms in the <mask>.\n"
-          "  The following files are produced:\n"
-          "    x_<suffix>: Mean square displacement(s) in the X direction (in Å^2).\n"
-          "    y_<suffix>: Mean square displacement(s) in the Y direction (in Å^2).\n"
-          "    z_<suffix>: Mean square displacement(s) in the Z direction (in Å^2).\n"
-          "    r_<suffix>: Overall mean square displacement(s) (in Å^2).\n"
-          "    a_<suffix>: Total distance travelled (in Å).\n");
+          "  By default the average displacements are calculated unless 'individual'\n"
+          "  is specified. Diffusion constants will be calculated from best-fit linear\n"
+          "  regression lines of MSDs vs time unless 'nocalc' is specified.\n");
 }
 
 static inline int CheckTimeArg(double dt) {
@@ -210,6 +207,12 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
     mprintf("\tTo calculate diffusion constant from mean squared displacement plots,\n"
             "\t  calculate the slope of MSD vs time and multiply by 10.0/2*N (where N\n"
             "\t  is # of dimensions); this will give units of 1x10^-5 cm^2/s.\n");
+# ifdef MPI
+  if (trajComm_.Size() > 1)
+    mprintf("Warning: Due to its nature, the diffusion calculation in parallel is an\n"
+            "Warning:   approximation only. The more data that goes into this calculation\n"
+            "Warning:   (i.e. atoms * frames), the better the approximation will be.\n");
+# endif
   return Action::OK;
 }
 
