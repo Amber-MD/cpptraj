@@ -13,7 +13,6 @@ Action_Diffusion::Action_Diffusion() :
   printIndividual_(false),
   calcDiffConst_(false),
   time_(1.0),
-  hasBox_(false),
   diffConst_(0),
   diffLabel_(0),
   diffSlope_(0),
@@ -34,12 +33,9 @@ static inline void ShortHelp() {
 void Action_Diffusion::Help() const {
   ShortHelp();
   mprintf("  Compute a mean square displacement plot for the atoms in the <mask>.\n"
-          "  The following files are produced:\n"
-          "    x_<suffix>: Mean square displacement(s) in the X direction (in Å^2).\n"
-          "    y_<suffix>: Mean square displacement(s) in the Y direction (in Å^2).\n"
-          "    z_<suffix>: Mean square displacement(s) in the Z direction (in Å^2).\n"
-          "    r_<suffix>: Overall mean square displacement(s) (in Å^2).\n"
-          "    a_<suffix>: Total distance travelled (in Å).\n");
+          "  By default the average displacements are calculated unless 'individual'\n"
+          "  is specified. Diffusion constants will be calculated from best-fit linear\n"
+          "  regression lines of MSDs vs time unless 'nocalc' is specified.\n");
 }
 
 static inline int CheckTimeArg(double dt) {
@@ -57,6 +53,7 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   trajComm_ = init.TrajComm();
 # endif
   debug_ = debugIn;
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   // Determine if this is old syntax or new.
   if (actionArgs.Nargs() > 2 && actionArgs.ArgIsMask(1) && validDouble(actionArgs[2]))
   {
@@ -177,6 +174,10 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   else
     mprintf("\tOnly average diffusion will be calculated.\n");
   mprintf("\tData set base name: %s\n", avg_x_->Meta().Name().c_str());
+  if (image_.UseImage())
+    mprintf("\tCorrections for imaging enabled.\n");
+  else
+    mprintf("\tCorrections for imaging disabled.\n");
   // If one file defined, assume all are.
   if (outputx_ != 0) {
     mprintf("\tOutput files:\n"
@@ -219,19 +220,22 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
 
-  // Check for box
-  if ( setup.CoordInfo().TrajBox().Type() != Box::NOBOX ) {
-    // Currently only works for orthogonal boxes
-    if ( setup.CoordInfo().TrajBox().Type() != Box::ORTHO ) {
-      mprintf("Warning: Imaging currently only works with orthogonal boxes.\n"
-              "Warning:   Imaging will be disabled for this command. This may result in\n"
-              "Warning:   large jumps if target molecule is imaged. To counter this please\n"
-              "Warning:   use the 'unwrap' command prior to 'diffusion'.\n");
-      hasBox_ = false;
-    } else 
-      hasBox_ = true;
+  // Set up imaging info for this parm
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  if (image_.ImagingEnabled()) {
+    mprintf("\tImaging enabled.\n");
+#   ifdef MPI
+    if (trajComm_.Size() > 1) {
+      mprinterr("Error: Imaging for 'diffusion' is not supported in parallel as there is\n"
+                "Error:   no way to correct for imaging that has taken place on preceding\n"
+                "Error:   MPI ranks. To use 'diffusion' in parallel, the trajectory should\n"
+                "Error:   be unwrapped. If this trajectory has already been unwrapped please\n"
+                "Error:   specify the 'noimage' keyword.\n");
+      return Action::ERR;
+    }
+#   endif
   } else
-    hasBox_ = false;
+    mprintf("\tImaging disabled.\n");
 
   // Allocate the delta array
   delta_.assign( mask_.Nselected() * 3, 0.0 );
@@ -295,6 +299,7 @@ Action::RetType Action_Diffusion::Setup(ActionSetup& setup) {
 
 // Action_Diffusion::DoAction()
 Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
+  Matrix_3x3 ucell, recip;
   // Load initial frame if necessary
   if (initial_.empty()) {
     initial_ = frm.Frm();
@@ -309,21 +314,18 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
 #   endif
     for (AtomMask::const_iterator atom = mask_.begin(); atom != mask_.end(); ++atom)
     {
-      const double* XYZ = initial_.XYZ(*atom); //frm.Frm().XYZ(*atom);
+      const double* XYZ = initial_.XYZ(*atom);
       previous_.push_back( XYZ[0] );
       previous_.push_back( XYZ[1] );
       previous_.push_back( XYZ[2] );
     }
-#   ifdef MPI
-    if (trajComm_.Master()) return Action::OK;
-    // On non-master we want to calculate diffusion for *this* frame. It is
-    // possible wrapping has already occurred from the initial frame. Try to
-    // detect and correct for this.
-#   endif
   }
   // Diffusion calculation
-  if (hasBox_)
+  if (image_.ImageType() != NOIMAGE) {
     boxcenter_ = frm.Frm().BoxCrd().Center();
+    if (image_.ImageType() == NONORTHO)
+      frm.Frm().BoxCrd().ToRecip(ucell, recip);
+  }
   // For averaging over selected atoms
   double average2 = 0.0;
   double avgx = 0.0;
@@ -334,33 +336,84 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   { // Get current and initial coords for this atom.
     const double* XYZ = frm.Frm().XYZ(*at);
     const double* iXYZ = initial_.XYZ(*at);
-    // Calculate distance to previous frames coordinates.
-    double delx = XYZ[0] - previous_[idx  ];
-    double dely = XYZ[1] - previous_[idx+1];
-    double delz = XYZ[2] - previous_[idx+2];
-    //mprinterr("\tDeltaFromPrevious={ %g %g %g }\n", delx, dely, delz); // DEBUG
-    // If the particle moved more than half the box, assume it was imaged
-    // and adjust the distance of the total movement with respect to the
-    // original frame.
-    if (hasBox_) {
+    // Calculate distance from initial position. 
+    double delx, dely, delz;
+    if ( image_.ImageType() == ORTHO ) {
+      // Orthorhombic imaging
+      // Calculate distance to previous frames coordinates.
+      delx = XYZ[0] - previous_[idx  ];
+      dely = XYZ[1] - previous_[idx+1];
+      delz = XYZ[2] - previous_[idx+2];
+      // If the particle moved more than half the box, assume it was imaged
+      // and adjust the distance of the total movement with respect to the
+      // original frame.
       if      (delx >  boxcenter_[0]) delta_[idx  ] -= frm.Frm().BoxCrd().BoxX();
       else if (delx < -boxcenter_[0]) delta_[idx  ] += frm.Frm().BoxCrd().BoxX();
       if      (dely >  boxcenter_[1]) delta_[idx+1] -= frm.Frm().BoxCrd().BoxY();
       else if (dely < -boxcenter_[1]) delta_[idx+1] += frm.Frm().BoxCrd().BoxY();
       if      (delz >  boxcenter_[2]) delta_[idx+2] -= frm.Frm().BoxCrd().BoxZ();
       else if (delz < -boxcenter_[2]) delta_[idx+2] += frm.Frm().BoxCrd().BoxZ();
+      // Calculate the distance between this "fixed" coordinate
+      // and the reference (initial) frame.
+      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
+      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
+      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+    } else if ( image_.ImageType() == NONORTHO ) {
+      // Non-orthorhombic imaging
+      // Calculate distance to previous frames coordinates.
+      delx = XYZ[0] - previous_[idx  ];
+      dely = XYZ[1] - previous_[idx+1];
+      delz = XYZ[2] - previous_[idx+2];
+      // If the particle moved more than half the box, assume it was imaged
+      // and adjust the distance of the total movement with respect to the
+      // original frame.
+      if (fabs(delx) > boxcenter_[0] ||
+          fabs(dely) > boxcenter_[1] ||
+          fabs(delz) > boxcenter_[2])
+      {
+        // Previous position in Cartesian space
+        Vec3 pCart( previous_[idx], previous_[idx+1], previous_[idx+2] );
+        // Current position in fractional coords
+        Vec3 cFrac = recip * Vec3( XYZ[0], XYZ[1], XYZ[2] );
+        // Look for imaged distance closer to previous than current position
+        double minDist2 = frm.Frm().BoxCrd().BoxX() *
+                          frm.Frm().BoxCrd().BoxY() *
+                          frm.Frm().BoxCrd().BoxZ();
+        Vec3 minCurr(0.0);
+        for (int ix = -1; ix < 2; ix++) {
+          for (int iy = -1; iy < 2; iy++) {
+            for (int iz = -1; iz < 2; iz++) {
+              if (ix != 0 || iy != 0 || iz != 0) { // Ignore current position
+                Vec3 ixyz(ix, iy, iz);
+                // Current position shifted and back in Cartesian space
+                Vec3 IMG = ucell.TransposeMult(cFrac + ixyz);
+                // Distance from previous position to imaged current position
+                Vec3 dxyz = IMG - pCart;
+                double dist2 = dxyz.Magnitude2();
+                if (dist2 < minDist2) {
+                  minDist2 = dist2;
+                  minCurr = IMG;
+                }
+              }
+            }
+          }
+        }
+        // Update the delta for this atom
+        delta_[idx  ] += minCurr[0] - XYZ[0]; // cCart
+        delta_[idx+1] += minCurr[1] - XYZ[1];
+        delta_[idx+2] += minCurr[2] - XYZ[2];
+      }
+      // Calculate the distance between this "fixed" coordinate
+      // and the reference (initial) frame.
+      delx = XYZ[0] + delta_[idx  ] - iXYZ[0];
+      dely = XYZ[1] + delta_[idx+1] - iXYZ[1];
+      delz = XYZ[2] + delta_[idx+2] - iXYZ[2];
+    } else {
+      // No imaging. Calculate distance from current position to initial position.
+      delx = XYZ[0] - iXYZ[0];
+      dely = XYZ[1] - iXYZ[1];
+      delz = XYZ[2] - iXYZ[2];
     }
-    //mprinterr("\tDelta={ %g %g %g }\n", delta_[idx], delta_[idx+1], delta_[idx+2]); // DEBUG
-    // Set the current x with reference to the un-imaged trajectory.
-    double xx = XYZ[0] + delta_[idx  ];
-    double yy = XYZ[1] + delta_[idx+1];
-    double zz = XYZ[2] + delta_[idx+2];
-    // Calculate the distance between this "fixed" coordinate
-    // and the reference (initial) frame.
-    delx = xx - iXYZ[0];
-    dely = yy - iXYZ[1];
-    delz = zz - iXYZ[2];
-    //mprinterr("\tDeltaFromInitial={ %g %g %g }\n", delx, dely, delz); // DEBUG
     // Calc distances for this atom
     double distx = delx * delx;
     double disty = dely * dely;
@@ -406,6 +459,7 @@ Action::RetType Action_Diffusion::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+// Action_Diffusion::Print()
 void Action_Diffusion::Print() {
   if (!calcDiffConst_) return;
   mprintf("    DIFFUSION: Calculating diffusion constants from slopes.\n");
@@ -423,6 +477,7 @@ void Action_Diffusion::Print() {
   }
 }
 
+// Action_Diffusion::CalcDiffForSet()
 void Action_Diffusion::CalcDiffForSet(unsigned int& set, Dlist const& Sets, int Ndim,
                                       std::string const& label) const
 {
@@ -431,6 +486,7 @@ void Action_Diffusion::CalcDiffForSet(unsigned int& set, Dlist const& Sets, int 
       CalcDiffusionConst(set, *ds, Ndim, label + "_" + integerToString( (*ds)->Meta().Idx() ));
 }
 
+// Action_Diffusion::CalcDiffusionConst()
 void Action_Diffusion::CalcDiffusionConst(unsigned int& set, DataSet* ds, int Ndim,
                                           std::string const& label) const
 {
