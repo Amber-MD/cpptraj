@@ -5,8 +5,9 @@
 INPUT="diffusion.in"
 
 CleanFiles $INPUT diff_?.xmgr diff.dat diff.1.dat diff.2.dat diff.3.dat nw.dat \
-           WAT_O.agr DC.dat Nonortho.agr Nonortho.dat
+           WAT_O.agr DC.dat Nonortho.agr Nonortho.dat noimage.agr noimage.dat
 CheckNetcdf
+
 # Basic ptraj diffusion test
 # creates <prefix>_X.xmgr, X = {a,r,x,y,z}
 Test_diffusion_oldSyntax() {
@@ -45,6 +46,17 @@ EOF
   DoTest Nonortho.agr.save Nonortho.agr
 }
 
+Test_diffusion_noImage() {
+  TOP=../tz2.truncoct.parm7
+  cat > $INPUT <<EOF
+trajin ../tz2.truncoct.nc
+diffusion :WAT@O out noimage.agr WAT_O diffout noimage.dat noimage
+EOF
+  RunCpptraj "Diffusion test, no imaging."
+  DoTest noimage.dat.save noimage.dat
+  DoTest noimage.agr.save noimage.agr
+}
+
 # ------------------------------------------------------------------------------
 # STFC diffusion tests
 Test_stfc_diffusion() {
@@ -81,6 +93,7 @@ EOF
   DoTest nw.dat.save nw.dat
 }
 
+Test_diffusion_noImage
 MaxThreads 1 "Imaged diffusion tests"
 if [[ $? -eq 0 ]] ; then
   Test_diffusion_oldSyntax
