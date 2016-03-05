@@ -15,7 +15,7 @@ bool Traj_CharmmCor::ID_TrajFormat(CpptrajFile& fileIn) {
     if (ptr != 0) {
       // Next line must be # atoms ONLY
       int ibuf[2];
-      if (sscanf(ptr, "%i %i", ibuf) == 1)
+      if (sscanf(ptr, "%i %i", ibuf, ibuf+1) == 1)
         // make sure it was a valid integer
         isCor = (ibuf[0] > 0);
     }
