@@ -88,7 +88,6 @@ class NA_Base {
     int c3idx_;                     ///< Index of c3' neighbor res.
     int c5idx_;                     ///< Index of c5' neighbor res.
     char bchar_;                    ///< 1 char base name.
-    bool hasSugarAtoms_;            ///< True if base has all sugar atoms present.
     NAType type_;                   ///< Base type.
     Frame Ref_;                     ///< Reference coords.
     std::vector<NameType> anames_;  ///< Atom names (Input)

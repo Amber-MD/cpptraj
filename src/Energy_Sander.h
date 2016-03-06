@@ -51,7 +51,6 @@ class Energy_Sander {
     std::vector<double> forces_; ///< Force array
     std::vector<bool> isActive_; ///< True if corresponding energy term is active.
     int debug_;                  ///< Debug level
-    int top_pindex_;             ///< Current Topology internal index.
     bool specified_cut_;         ///< 'cut' was specified.
     bool specified_igb_;         ///< 'igb' was specified.
     bool specified_ntb_;         ///< 'ntb' was specified.
