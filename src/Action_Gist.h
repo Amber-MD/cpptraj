@@ -83,7 +83,7 @@ class Action_Gist: public Action, ImagedAction  {
     Topology::mol_iterator solvmol_, solvmol2_;
     int voxel_;
     int resnum_,resnum2_,resindex1_,resindex2_;
-    double theta_, phi_, psi_;
+    double theta_;
     
     //non-bond energy stuff
     /*    double x_0, x_1, x_2, x_3, x_4;
@@ -119,7 +119,6 @@ class Action_Gist: public Action, ImagedAction  {
     std::vector <double> dTSsix_norm_;
     std::vector <float> dTSsix_dens_;
     int max_nwat_;
-    double Ewwtot_;
     std::vector < std::vector <float> > x_vox_;
     std::vector < std::vector <float> > y_vox_;
     std::vector < std::vector <float> > z_vox_;
