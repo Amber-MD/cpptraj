@@ -11,7 +11,6 @@ Analysis_Matrix::Analysis_Matrix() :
   nevec_(0),
   thermopt_(false),
   reduce_(false),
-  eigenvaluesOnly_(false),
   nmwizopt_(false),
   nmwizvecs_(0),
   nmwizfile_(0)

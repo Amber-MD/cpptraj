@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Traj_Tinker::Traj_Tinker() : tinkerTop_(0), currentSet_(0) {}
+Traj_Tinker::Traj_Tinker() : currentSet_(0) {}
 
 bool Traj_Tinker::ID_TrajFormat(CpptrajFile& fileIn) {
   return TinkerFile::ID_Tinker( fileIn );

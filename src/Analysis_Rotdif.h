@@ -45,7 +45,6 @@ class Analysis_Rotdif: public Analysis {
     int amoeba_itmax_;   ///< Simplex min iterations
     int amoeba_nsearch_; ///< Number of simplex min searches
     bool do_gridsearch_; ///< If true perform grid search after simplex min.
-    bool useMass_;       ///< Use mass in rms fitting.
     bool usefft_;
 
     // Workspace for LAPACK functions

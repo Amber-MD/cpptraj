@@ -48,7 +48,6 @@ Analysis_Rotdif::Analysis_Rotdif() :
   amoeba_itmax_(10000),
   amoeba_nsearch_(1),
   do_gridsearch_( false ),
-  useMass_(false),
   usefft_( true ),
   outfile_(0),
   Rmatrices_(0)

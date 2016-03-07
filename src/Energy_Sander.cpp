@@ -6,7 +6,6 @@
 
 Energy_Sander::Energy_Sander() :
   debug_(0),
-  top_pindex_(-1),
   specified_cut_(false),
   specified_igb_(false),
   specified_ntb_(false)
