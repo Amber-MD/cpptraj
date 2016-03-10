@@ -9,7 +9,7 @@
 #include "AtomMap.h"
 
 // CONSTRUCTOR
-Action_NMRrst::Action_NMRrst() :
+Action_NMRrst::Action_NMRrst() : Action(HIDDEN),
    findOutput_(0), specOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
    strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
    resOffset_(0), debug_(0), nframes_(0), useMass_(false),
@@ -117,6 +117,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 
   masterDSL_ = init.DslPtr();
  
+  mprintf("Warning: *** THIS ACTION IS EXPERIMENTAL. ***\n");
   mprintf("    NMRRST: %zu NOEs from NMR restraint file.\n", NOEs_.size());
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
