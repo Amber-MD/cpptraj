@@ -117,6 +117,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
 
   masterDSL_ = init.DslPtr();
  
+  mprintf("Warning: *** THIS ACTION IS EXPERIMENTAL. ***\n");
   mprintf("    NMRRST: %zu NOEs from NMR restraint file.\n", NOEs_.size());
   mprintf("\tShifting residue numbers in restraint file by %i\n", resOffset_);
   // DEBUG - print NOEs
