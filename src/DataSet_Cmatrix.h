@@ -32,44 +32,45 @@ class DataSet_Cmatrix : public DataSet_2D {
     int SetupWithSieve(size_t, size_t, int);
     /// Allocate ignore array for given # of original rows and sieve.
     int SetupIgnore(size_t, std::vector<char> const&, int);
-
-    //int SaveFile(std::string const&) const;
-    //int LoadFile(std::string const&, int);
+    /// Set up matrix for given number of rows
     int SetupMatrix(size_t);
+
     /// Indicate given row/col should be ignored.
     void Ignore(int row)            { ignore_[row] = true;   }
     /// \return true if given row/col has been ignored.
     bool IgnoringRow(int row) const { return ignore_[row];   }
     /// \return Number of frames (original nrows)
     size_t Nframes()          const { return ignore_.size(); }
+
     /// \return An array containing sieved frame numbers.
     ClusterSieve::SievedFrames Sieved() const { return sievedFrames_.Frames(); }
     /// \return Sieve value
     int SieveValue()                    const { return sievedFrames_.Sieve();  }
     /// \return Sieve type
     ClusterSieve::SieveType SieveType() const { return sievedFrames_.Type();   }
+
     /// Set the row and column of the smallest element.
     double FindMin(int&, int&) const;
+    /// Print all matrix elements to STDOUT
     void PrintElements() const;
     /// \return an element indexed by sievedFrames.
     inline double GetFdist(int, int) const;
     /// \return an element.
     inline double GetCdist(int c, int r) const { return Mat_.element(c,r); }
+    /// Set element at row/column to given value
     inline void SetElement(int, int, double);
+    /// \return Actual number of elements in matrix
     size_t Nelements()        const { return Mat_.size();               }
+    /// Add given element to matrix
     int AddElement(double d)        { return Mat_.addElement((float)d); }
+    /// \return size used by matrix in bytes
     size_t DataSize() const;
+
     typedef Matrix<float>::iterator const_iterator;
     const_iterator begin() const { return Mat_.begin(); }
     const_iterator end()   const { return Mat_.end();   }
   private:
-    static const unsigned char Magic_[];
-    /// For reading/writing 8 byte unsigned integers
-    typedef unsigned long long int uint_8;
-    /// For reading/writing 8 byte signed integers
-    typedef long long int sint_8;
-    /// If true, ignore the row/col when printing/searching etc
-    std::vector<bool> ignore_;
+    std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc
     Matrix<float> Mat_;
     ClusterSieve sievedFrames_;
 };
