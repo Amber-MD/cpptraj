@@ -149,7 +149,7 @@ Frame::Frame(const Frame& rhs) :
   F_(0),
   remd_indices_(rhs.remd_indices_),
   Mass_(rhs.Mass_),
-  memIsExternal_(rhs.memIsExternal_)
+  memIsExternal_(false)
 {
   if (memIsExternal_) {
     X_ = rhs.X_;
