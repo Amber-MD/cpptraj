@@ -249,7 +249,7 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
 
   // Sort distances
   std::vector<float> Distances;
-  for (ClusterMatrix::const_iterator mat = FrameDistances_.begin();
+  for (DataSet_Cmatrix::const_iterator mat = FrameDistances_.begin();
                                      mat != FrameDistances_.end(); ++mat)
     Distances.push_back( *mat );
   std::sort( Distances.begin(), Distances.end() );

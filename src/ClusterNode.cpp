@@ -62,7 +62,7 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   * has the lowest cumulative distance to every other point in the cluster.
   * \return best representative frame number, or -1 on error.
   */
-int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
+int ClusterNode::FindBestRepFrame(DataSet_Cmatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -87,7 +87,7 @@ int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).
   */
-void ClusterNode::CalcEccentricity(ClusterMatrix const& FrameDistancesIn) {
+void ClusterNode::CalcEccentricity(DataSet_Cmatrix const& FrameDistancesIn) {
   double maxdist = 0.0;
   frame_iterator frame1_end = frameList_.end();
   --frame1_end;

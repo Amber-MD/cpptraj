@@ -132,7 +132,6 @@ SOURCES=ActionFrameCounter.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
-        ClusterMatrix.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
@@ -156,6 +155,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataFileList.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
+        DataIO_Cmatrix.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
@@ -170,6 +170,7 @@ SOURCES=ActionFrameCounter.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
+        DataSet_Cmatrix.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \

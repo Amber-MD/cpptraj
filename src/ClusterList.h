@@ -53,9 +53,9 @@ class ClusterList {
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
     /// Distances between each frame.
-    ClusterMatrix FrameDistances_;
+    DataSet_Cmatrix FrameDistances_;
     /// Distances between each cluster.
-    ClusterMatrix ClusterDistances_;
+    DataSet_Cmatrix ClusterDistances_;
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
     /// Add specified frames to a new cluster.

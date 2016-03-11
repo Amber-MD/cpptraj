@@ -91,7 +91,7 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
     dcalc_ = DistCalc_Std;
 }
 
-void ClusterDist_Num::PairwiseDist(ClusterMatrix& frameDistances, 
+void ClusterDist_Num::PairwiseDist(DataSet_Cmatrix& frameDistances, 
                                    ClusterSieve::SievedFrames const& frames)
 {
   int f1, f2;
@@ -161,7 +161,7 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
   }
 }
 
-void ClusterDist_Euclid::PairwiseDist(ClusterMatrix& frameDistances,
+void ClusterDist_Euclid::PairwiseDist(DataSet_Cmatrix& frameDistances,
                                       ClusterSieve::SievedFrames const& frames)
 {
   int f1, f2;
@@ -279,7 +279,7 @@ ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   frm2_ = frm1_;
 }
 
-void ClusterDist_DME::PairwiseDist(ClusterMatrix& frameDistances,
+void ClusterDist_DME::PairwiseDist(DataSet_Cmatrix& frameDistances,
                                    ClusterSieve::SievedFrames const& frames)
 {
   int f1, f2;
@@ -386,7 +386,7 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn,
   frm2_ = frm1_;
 }
 
-void ClusterDist_RMS::PairwiseDist(ClusterMatrix& frameDistances,
+void ClusterDist_RMS::PairwiseDist(DataSet_Cmatrix& frameDistances,
                                    ClusterSieve::SievedFrames const& frames)
 {
   double rmsd;
@@ -518,7 +518,7 @@ ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn,
   frm2_ = frm1_;
 }
 
-void ClusterDist_SRMSD::PairwiseDist(ClusterMatrix& frameDistances,
+void ClusterDist_SRMSD::PairwiseDist(DataSet_Cmatrix& frameDistances,
                                    ClusterSieve::SievedFrames const& frames)
 {
   double rmsd;

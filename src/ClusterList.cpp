@@ -8,6 +8,7 @@
 #include "Constants.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
+#include "DataIO_Cmatrix.h" // TODO use DataSetList
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -407,8 +408,16 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // Attempt to load pairwise distances from file if specified
   if (mode == USE_FILE && !filename.empty()) {
     mprintf("\tLoading pair-wise distances from %s\n", filename.c_str());
-    if (FrameDistances_.LoadFile( filename, dsIn->Size() )) {
+    // TODO: Place in DataSet/DataFile framework
+    DataIO_Cmatrix fIn;
+    if (fIn.ReadCmatrix( filename, FrameDistances_ )) {
       mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
+      mode = USE_FRAMES;
+    }
+    // If number of rows is not what was expected, abort
+    if ( FrameDistances_.Nframes() != dsIn->Size() ) {
+      mprintf("Warning: ClusterMatrix file %s has %zu rows, expected %zu\n",
+              filename.c_str(), FrameDistances_.Nframes(), dsIn->Size());
       mode = USE_FRAMES;
     }
   }
@@ -426,7 +435,8 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
   // Save distances if filename specified and not previously loaded.
   if (mode == USE_FRAMES && !filename.empty()) {
     mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
-    FrameDistances_.SaveFile( filename );
+    DataIO_Cmatrix fOut;
+    if (fOut.WriteCmatrix( filename, FrameDistances_ )) return 1;
   }
   mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
           ByteString(FrameDistances_.DataSize(), BYTE_DECIMAL).c_str());
@@ -770,7 +780,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
-    ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+    DataSet_Cmatrix::const_iterator Req = FrameDistances_.begin();
     for (unsigned int f1 = 0; f1 != nframes; f1++)
     {
       for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
@@ -815,7 +825,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     iteration++;
   }
   // RMS error 
-  ClusterMatrix::const_iterator Req = FrameDistances_.begin();
+  DataSet_Cmatrix::const_iterator Req = FrameDistances_.begin();
   double sumdiff2 = 0.0;
   for (unsigned int f1 = 0; f1 != nframes; f1++)
   {
