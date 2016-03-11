@@ -60,11 +60,11 @@ class ClusterList {
     ClusterDist* Cdist_;
     /// Add specified frames to a new cluster.
     int AddCluster(ClusterDist::Cframes const&);
+  private:
+    static const char* XMGRACE_COLOR[];
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.
     double ComputePseudoF(CpptrajFile&);
-  private:
-    static const char* XMGRACE_COLOR[];
 };
 #endif
