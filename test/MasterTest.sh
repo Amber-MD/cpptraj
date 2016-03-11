@@ -2,6 +2,7 @@
 
 # Environment variables
 # TEST_OS: Operating system on which tests are being run. If blank assume linux
+# N_THREADS: Set to number of test threads
 
 # MasterTest.sh command line options
 CLEAN=0             # If 1, only file cleaning needs to be performed.
@@ -320,15 +321,27 @@ NotParallel() {
  return 0
 }
 
+# SetNthreads()
+# Use NPROC to set N_THREADS if not already set.
+SetNthreads() {
+  if [ -z "$N_THREADS" ] ; then
+    if [ ! -f "$NPROC" ] ; then
+      return 1
+    fi
+    N_THREADS=`$DO_PARALLEL $NPROC`
+  fi
+  return 0
+}
+
 # RequiresThreads() <# threads> <Test title>
 RequiresThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    if [[ ! -f "$NPROC" ]] ; then
+    SetNthreads
+    if [ $? -ne 0 ] ; then
       echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
       echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
-    N_THREADS=`$DO_PARALLEL $NPROC`
     REMAINDER=`echo "$N_THREADS % $1" | bc`
     if [[ -z $REMAINDER || $REMAINDER -ne 0 ]] ; then
       echo ""
@@ -345,13 +358,11 @@ RequiresThreads() {
 # MaxThreads() <# threads> <Test title>
 MaxThreads() {
   if [[ ! -z $DO_PARALLEL ]] ; then
-    if [[ ! -f "$NPROC" ]] ; then
+    SetNthreads
+    if [ $? -ne 0 ] ; then
       echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
       echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
       return 0
-    fi
-    if [[ -z $N_THREADS ]] ; then
-      N_THREADS=`$DO_PARALLEL $NPROC`
     fi
     if [[ $N_THREADS -gt $1 ]] ; then
       echo ""
