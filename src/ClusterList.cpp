@@ -8,7 +8,6 @@
 #include "Constants.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
-#include "DataIO_Cmatrix.h" // TODO use DataSetList
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -29,7 +28,7 @@ const char* ClusterList::MetricString(DistMetricType dm) {
 }
 
 // CONSTRUCTOR
-ClusterList::ClusterList() : debug_(0), Cdist_(0) {}
+ClusterList::ClusterList() : debug_(0), Cdist_(0), frameDistances_(0) {}
 
 // DESTRUCTOR
 ClusterList::~ClusterList() {
@@ -79,7 +78,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
     // Ensure cluster centroid is up-to-date
     node->CalculateCentroid( Cdist_ );
     // Find best representative frame
-    if (node->FindBestRepFrame( FrameDistances_ ) == -1) {
+    if (node->FindBestRepFrame( FrameDistances() ) == -1) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
       centroid_error = true;
@@ -137,12 +136,12 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
       {
         // Since this can be called after sieved frames are added back in,
         // need to ensure distances were calcd for these frames.
-        if (!FrameDistances_.IgnoringRow(*frm1)) {
+        if (!FrameDistances().IgnoringRow(*frm1)) {
           ClusterNode::frame_iterator frm2 = frm1;
           ++frm2;
           for (; frm2 != frame2_end; ++frm2) {
-            if (!FrameDistances_.IgnoringRow(*frm2)) {
-              double dist = FrameDistances_.GetFdist(*frm1, *frm2);
+            if (!FrameDistances().IgnoringRow(*frm2)) {
+              double dist = FrameDistances().GetFdist(*frm1, *frm2);
               internalAvg += dist;
               internalSD += (dist * dist);
               ++Nelements;
@@ -322,16 +321,16 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
     outfile.Printf(" %i", C->BestRepFrame()+1);
   outfile.Printf("\n");
   // Print sieve info if present
-  if (FrameDistances_.SieveValue() != 1) {
-    if (FrameDistances_.SieveValue() < -1) {
-      outfile.Printf("#Sieve value: %i (random)\n#Sieved frames:", -FrameDistances_.SieveValue());
-      ClusterSieve::SievedFrames sFrames = FrameDistances_.Sieved();
+  if (FrameDistances().SieveValue() != 1) {
+    if (FrameDistances().SieveValue() < -1) {
+      outfile.Printf("#Sieve value: %i (random)\n#Sieved frames:", -FrameDistances().SieveValue());
+      ClusterSieve::SievedFrames sFrames = FrameDistances().Sieved();
       for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
                                                       sfrm != sFrames.end(); ++sfrm)
         outfile.Printf(" %i", *sfrm + 1);
       outfile.Printf("\n");
     } else
-      outfile.Printf("#Sieve value: %i\n", FrameDistances_.SieveValue());
+      outfile.Printf("#Sieve value: %i\n", FrameDistances().SieveValue());
   }
   outfile.CloseFile();
 }
@@ -340,7 +339,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
 void ClusterList::PrintClusters() {
-  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(), FrameDistances_.Nframes() );
+  mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(), FrameDistances().Nframes() );
   for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
     mprintf("\t%8i : ",(*C).Num());
     for (ClusterNode::frame_iterator fnum = (*C).beginframe();
@@ -361,12 +360,21 @@ int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
 }
 
 // ClusterList::CalcFrameDistances()
-int ClusterList::CalcFrameDistances(std::string const& filename, 
+int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn, 
                                     ClusterDist::DsArray const& dataSets,
-                                    DistModeType mode, DistMetricType metric, bool nofit, 
+                                    DistMetricType metric, bool nofit, 
                                     bool useMass, std::string const& maskexpr,
                                     int sieve, int sieveSeed) 
 {
+  if (pwDistMatrixIn == 0) {
+    mprinterr("Internal Error: Empty cluster matrix in ClusterList::CalcFrameDistances()\n");
+    return 1;
+  }
+  if (pwDistMatrixIn->Type() != DataSet::CMATRIX) {
+    mprinterr("Internal Error: Wrong cluster matrix type in ClusterList::CalcFrameDistances()\n");
+    return 1;
+  }
+  frameDistances_ = (DataSet_Cmatrix*)pwDistMatrixIn;
   if (dataSets.empty()) {
     mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
     return 1;
@@ -405,45 +413,33 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
     else // TODO: More than just euclid
       Cdist_ = new ClusterDist_Euclid(dataSets);
   }
-  // Attempt to load pairwise distances from file if specified
-  if (mode == USE_FILE && !filename.empty()) {
-    mprintf("\tLoading pair-wise distances from %s\n", filename.c_str());
-    // TODO: Place in DataSet/DataFile framework
-    DataIO_Cmatrix fIn;
-    if (fIn.ReadCmatrix( filename, FrameDistances_ )) {
-      mprintf("\tLoading pair-wise distances failed - regenerating from frames.\n");
-      mode = USE_FRAMES;
-    }
-    // If number of rows is not what was expected, abort
-    if ( FrameDistances_.Nframes() != dsIn->Size() ) {
-      mprintf("Warning: ClusterMatrix file %s has %zu rows, expected %zu\n",
-              filename.c_str(), FrameDistances_.Nframes(), dsIn->Size());
-      mode = USE_FRAMES;
+  bool calcPWdist = (FrameDistances().Size() < 1);
+  if (!calcPWdist) {
+    // If number of rows in input pairwise dist matrix is not what was expected, recalc
+    if ( FrameDistances().Nframes() != dsIn->Size() ) {
+      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
+              FrameDistances().Nframes(), dsIn->Size());
+      calcPWdist = true;
+      frameDistances_->Clear();
     }
   }
-  // Calculate pairwise distances from input DataSet. The ignore array will
-  // be set up to ignore sieved frames.
-  if (mode == USE_FRAMES) {
+  if (calcPWdist) {
+    // Calculate pairwise distances from input DataSet. The ignore array will
+    // be set up to ignore sieved frames.
     mprintf("\tCalculating pair-wise distances.\n");
     // Set up ClusterMatrix with sieve.
-    if (FrameDistances_.SetupWithSieve( dsIn->Size(), sieve, sieveSeed )) {
+    if (frameDistances_->SetupWithSieve( dsIn->Size(), sieve, sieveSeed )) {
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }
-    Cdist_->PairwiseDist(FrameDistances_, FrameDistances_.Sieved() );
-  }
-  // Save distances if filename specified and not previously loaded.
-  if (mode == USE_FRAMES && !filename.empty()) {
-    mprintf("\tSaving pair-wise distances to %s\n", filename.c_str());
-    DataIO_Cmatrix fOut;
-    if (fOut.WriteCmatrix( filename, FrameDistances_ )) return 1;
+    Cdist_->PairwiseDist(*frameDistances_, FrameDistances().Sieved() );
   }
   mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
-          ByteString(FrameDistances_.DataSize(), BYTE_DECIMAL).c_str());
+          ByteString(FrameDistances().DataSize(), BYTE_DECIMAL).c_str());
   // DEBUG - Print Frame distances
   if (debug_ > 1) {
     mprintf("INITIAL FRAME DISTANCES:\n");
-    FrameDistances_.PrintElements();
+    FrameDistances().PrintElements();
   }
   
   return 0;
@@ -481,7 +477,7 @@ void ClusterList::CalcClusterDistances() {
 void ClusterList::AddSievedFramesByCentroid() {
     // NOTE: All cluster centroids must be up to date.
   int frame;
-  int nframes = (int)FrameDistances_.Nframes();
+  int nframes = (int)FrameDistances().Nframes();
   double mindist, dist;
   cluster_it minNode, Cnode;
   ParallelProgress progress( nframes );
@@ -508,7 +504,7 @@ void ClusterList::AddSievedFramesByCentroid() {
 # endif
   for (frame = 0; frame < nframes; ++frame) {
     progress.Update( frame );
-    if (FrameDistances_.IgnoringRow(frame)) {
+    if (FrameDistances().IgnoringRow(frame)) {
       // Which clusters centroid is closest to this frame?
       mindist = DBL_MAX;
       minNode = clusters_.end();
@@ -673,15 +669,15 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
     std::vector<double> SiVals;
     for (ClusterNode::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
     {
-      if (FrameDistances_.IgnoringRow(*f1)) continue;
+      if (FrameDistances().IgnoringRow(*f1)) continue;
       // Calculate the average dissimilarity of this frame with all other
       // points in this frames cluster.
       double ai = 0.0;
       int self_frames = 0;
       for (ClusterNode::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
       {
-        if (f1 != f2 && !FrameDistances_.IgnoringRow(*f2)) {
-          ai += FrameDistances_.GetFdist(*f1, *f2);
+        if (f1 != f2 && !FrameDistances().IgnoringRow(*f2)) {
+          ai += FrameDistances().GetFdist(*f1, *f2);
           ++self_frames;
         }
       }
@@ -700,8 +696,8 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
           // NOTE: ASSUMING NO EMPTY CLUSTERS
           for (ClusterNode::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
           {
-            if (!FrameDistances_.IgnoringRow(*f2)) {
-              bi += FrameDistances_.GetFdist(*f1, *f2);
+            if (!FrameDistances().IgnoringRow(*f2)) {
+              bi += FrameDistances().GetFdist(*f1, *f2);
               ++cj_frames;
             }
           }
@@ -741,7 +737,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     mprintf("\tCreating PDB of graph points based on pairwise distances. B-factor = cluster #.\n");
   else
     mprintf("\tAttempting to draw graph based on pairwise distances.\n");
-  unsigned int nframes = FrameDistances_.Nrows();
+  unsigned int nframes = FrameDistances().Nrows();
   std::vector<Vec3> Xarray; // Coords
   std::vector<Vec3> Farray; // Forces
   Xarray.reserve( nframes );
@@ -780,12 +776,12 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
   mprintf("          \t%8s %12s %12s\n", " ", "ENE", "RMS");
   while (rms > min_tol && iteration < max_iteration) {
     double e_total = 0.0;
-    DataSet_Cmatrix::const_iterator Req = FrameDistances_.begin();
+    DataSet_Cmatrix::const_iterator Req = FrameDistances().begin();
     for (unsigned int f1 = 0; f1 != nframes; f1++)
     {
       for (unsigned int f2 = f1 + 1; f2 != nframes; f2++)
       {
-        //double Req = FrameDistances_.GetCdist(f1, f2);
+        //double Req = FrameDistances().GetCdist(f1, f2);
         Vec3 V1_2 = Xarray[f1] - Xarray[f2];
         double r2 = V1_2.Magnitude2();
         double s = sqrt(r2);
@@ -825,7 +821,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
     iteration++;
   }
   // RMS error 
-  DataSet_Cmatrix::const_iterator Req = FrameDistances_.begin();
+  DataSet_Cmatrix::const_iterator Req = FrameDistances().begin();
   double sumdiff2 = 0.0;
   for (unsigned int f1 = 0; f1 != nframes; f1++)
   {
@@ -841,13 +837,13 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
       ++Req;
     }
   }
-  double rms_err = sqrt( sumdiff2 / (double)FrameDistances_.Nelements() );
+  double rms_err = sqrt( sumdiff2 / (double)FrameDistances().Nelements() );
   mprintf("\tRMS error of final graph positions: %g\n", rms_err);
   // Write out final graph with cluster numbers.
   std::vector<int> Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
-    ClusterSieve::SievedFrames sievedFrames = FrameDistances_.Sieved();
+    ClusterSieve::SievedFrames sievedFrames = FrameDistances().Sieved();
     DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
     for (unsigned int n = 0; n != nframes; n++)
       Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );

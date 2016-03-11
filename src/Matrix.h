@@ -53,6 +53,15 @@ template <class T> class Matrix {
              (5 * sizeof(size_t) + sizeof(MType) +
              sizeof(long int(*)()));
     }
+    /// Clear matrix
+    void clear() {
+      if (elements_ != 0) delete[] elements_;
+      ncols_ = 0;
+      nrows_ = 0;
+      nelements_ = 0;
+      maxElements_ = 0;
+      currentElement_ = 0;
+    }
   private:
     T* elements_;           ///< Array of elements
     T diagElt_;             ///< For TRIANGLE, the value of the diagonal.

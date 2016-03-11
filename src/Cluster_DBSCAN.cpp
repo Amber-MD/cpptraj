@@ -75,7 +75,7 @@ void Cluster_DBSCAN::RegionQuery(std::vector<int>& NeighborPts,
                                         ++otherpoint)
   {
     if (point == *otherpoint) continue;
-    if ( FrameDistances_.GetFdist(point, *otherpoint) < epsilon_ )
+    if ( FrameDistances().GetFdist(point, *otherpoint) < epsilon_ )
       NeighborPts.push_back( *otherpoint );
   }
 }
@@ -99,7 +99,7 @@ void Cluster_DBSCAN::ComputeKdist( int Kval, std::vector<int> const& FramesToClu
     for (std::vector<int>::const_iterator otherpoint = FramesToCluster.begin();
                                           otherpoint != FramesToCluster.end();
                                           ++otherpoint)
-      dists.push_back( FrameDistances_.GetFdist(*point, *otherpoint) );
+      dists.push_back( FrameDistances().GetFdist(*point, *otherpoint) );
     // Sort distances - first dist should always be 0
     std::sort(dists.begin(), dists.end());
     Kdist.push_back( dists[Kval] );
@@ -154,7 +154,7 @@ void Cluster_DBSCAN::ComputeKdistMap( Range const& Kvals,
     d_idx = 0;
     // Store distances from pt1 to pt2
     for (pt2_idx = 0; pt2_idx != nframes; pt2_idx++)
-      kdist_array[d_idx++] = FrameDistances_.GetFdist(point, FramesToCluster[pt2_idx]);
+      kdist_array[d_idx++] = FrameDistances().GetFdist(point, FramesToCluster[pt2_idx]);
     // Sort distances; will be smallest to largest
     std::sort( kdist_array, kdist_array + nframes );
     // Save the distance of specified nearest neighbors to this point.
@@ -213,8 +213,8 @@ int Cluster_DBSCAN::Cluster() {
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
   // FIXME: Just use sieved array?
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
-    if (!FrameDistances_.IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().Nframes(); ++frame)
+    if (!FrameDistances().IgnoringRow( frame ))
       FramesToCluster.push_back( frame );
   // Calculate Kdist function
   if (!kdist_.Empty()) {
@@ -227,9 +227,9 @@ int Cluster_DBSCAN::Cluster() {
   // Set up array to keep track of points that have been visited.
   // Make it the size of FrameDistances so we can index into it. May
   // waste memory during sieving but makes code easier.
-  std::vector<bool> Visited( FrameDistances_.Nframes(), false );
+  std::vector<bool> Visited( FrameDistances().Nframes(), false );
   // Set up array to keep track of whether points are noise or in a cluster.
-  Status_.assign( FrameDistances_.Nframes(), UNASSIGNED);
+  Status_.assign( FrameDistances().Nframes(), UNASSIGNED);
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;
@@ -331,7 +331,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
             epsilon_);
   // Vars allocated here in case of OpenMP
   int frame, cidx;
-  int nframes = (int)FrameDistances_.Nframes();
+  int nframes = (int)FrameDistances().Nframes();
   double mindist, dist;
   cluster_it minNode, Cnode;
   bool goodFrame;
@@ -360,7 +360,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
 # endif
   for (frame = 0; frame < nframes; ++frame) {
     progress.Update( frame );
-    if (FrameDistances_.IgnoringRow(frame)) {
+    if (FrameDistances().IgnoringRow(frame)) {
       // Which clusters centroid is closest to this frame?
       mindist = DBL_MAX;
       minNode = clusters_.end();

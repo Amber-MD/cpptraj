@@ -25,13 +25,13 @@ Analysis_Clustering::Analysis_Clustering() :
   draw_tol_(0.0),
   cnumvtime_(0),
   clustersVtime_(0),
+  pw_dist_(0),
   cpopvtimefile_(0),
   nofitrms_(false),
   metric_(ClusterList::RMS),
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
-  load_pair_(false),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -205,13 +205,47 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   }
   sil_file_ = analyzeArgs.GetStringKey("sil");
   // Options for loading/saving pairwise distance file
-  load_pair_ = analyzeArgs.hasKey("loadpairdist");
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
-  pairdistfile_ = analyzeArgs.GetStringKey("pairdist");
-  if ( (load_pair_ || save_pair) && pairdistfile_.empty() )
-    pairdistfile_ = PAIRDISTFILE;
-  else if (!pairdistfile_.empty())
-    load_pair_ = true;
+  pw_dist_ = 0;
+  if (load_pair) {
+    // If 'loadpairdist' specified, assume we want to load from file. If the
+    // file does not exist assume we want to save.
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE;
+      pairdisttype = DataFile::CMATRIX;
+    }
+    if (File::Exists( pairdistname )) {
+      DataFile dfIn;
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
+      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
+      if (pw_dist_ == 0) return Analysis::ERR;
+    } else {
+      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
+              pairdistname.c_str());
+      save_pair = true;
+    }
+  }
+  if (pw_dist_ == 0 && !pairdistname.empty()) {
+    // Just 'pairdist' specified. Look for Cmatrix data set. If its not found
+    // assume this is the name we want to give it.
+    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
+    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
+    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
+    //  return Analysis::ERR;
+    //}
+  }
+  // Create file for saving pairwise distances
+  DataFile* pwd_file = 0;
+  if (save_pair) {
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE;
+      pairdisttype = DataFile::CMATRIX;
+    }
+    pwd_file = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
+  }
   // Output trajectory stuff
   clusterfile_ = analyzeArgs.GetStringKey("clusterout");
   clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
@@ -232,6 +266,19 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   cnumvtime_ = setup.DSL().AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+  // If no pairwise distance matrix yet, allocate one
+  if (pw_dist_ == 0) {
+    MetaData md;
+    if (pairdistname.empty())
+      md = MetaData( cnumvtime_->Meta().Name(), "PWD" );
+    else
+      md = MetaData( pairdistname );
+    pw_dist_ = setup.DSL().AddSet(DataSet::CMATRIX, md);
+    if (pw_dist_ == 0) return Analysis::ERR;
+  }
+  // If we want to save the pairwise distances add to file now
+  if (pwd_file != 0)
+    pwd_file->AddDataSet( pw_dist_ );
   // DataSet for # clusters seen v time
   if (clustersvtimefile != 0) {
     if (windowSize_ < 2) {
@@ -291,9 +338,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (calc_lifetimes_)
     mprintf("\tCluster lifetime data sets will be calculated.\n");
-  if (load_pair_)
-    mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
-            pairdistfile_.full());
+  mprintf("\tPairwise distance data set is '%s'\n", pw_dist_->legend());
+  if (pwd_file != 0)
+    mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file->DataFilename().full());
   if (!clusterinfo_.empty())
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
@@ -353,12 +400,6 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_total.Start();
   mprintf("\tStarting clustering.\n");
   cluster_setup.Start();
-  // Default: USE_FRAMES  - Calculate pair distances from frames.
-  //          USE_FILE    - If pairdistfile exists, load pair distances from there.
-  // Calculated distances will be saved if not loaded from file.
-  ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
-  if (load_pair_ && File::Exists(pairdistfile_))
-    pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
   if (cluster_dataset_.empty()) {
     if (coords_ == 0) {
@@ -396,7 +437,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_setup.Stop();
   // Calculate distances between frames
   cluster_pairwise.Start();
-  if (CList_->CalcFrameDistances( pairdistfile_.full(), cluster_dataset_, pairdist_mode,
+  if (CList_->CalcFrameDistances( pw_dist_, cluster_dataset_,
                                   metric_, nofitrms_, useMass_, maskexpr_, 
                                   sieve_, sieveSeed_ ))
     return Analysis::ERR;

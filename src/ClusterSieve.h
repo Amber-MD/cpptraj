@@ -8,6 +8,7 @@ class ClusterSieve {
     enum SieveType { NONE=0, REGULAR, RANDOM };
     typedef std::vector<int> SievedFrames;
     ClusterSieve();
+    void Clear();
     /// Setup no sieve, regular sieve, or random sieve.
     int SetSieve(int, size_t, int);
     /// Setup sieve from previously obtained ignore array.

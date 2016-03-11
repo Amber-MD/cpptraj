@@ -4,6 +4,12 @@
 // CONSTRUCTOR
 ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1) {}
 
+void ClusterSieve::Clear() {
+  frameToIdx_.clear();
+  type_ = NONE;
+  sieve_ = 1;
+}
+
 inline void ClusterSieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
   // Determine sieve type from sieve value.

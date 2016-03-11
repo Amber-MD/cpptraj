@@ -9,9 +9,12 @@ class DataSet_Cmatrix : public DataSet_2D {
     DataSet_Cmatrix() : DataSet_2D(CMATRIX, TextFormat(TextFormat::DOUBLE, 12, 4)) {}
     DataSet_Cmatrix(const DataSet_Cmatrix&);
     DataSet_Cmatrix& operator=(const DataSet_Cmatrix&);
+    static DataSet* Alloc() { return (DataSet*)new DataSet_Cmatrix(); }
     /// Access internal matrix pointer to interface with file IO
     float*       Ptr()                         { return Mat_.Ptr();         }
     float const* Ptr()                   const { return Mat_.Ptr();         }
+    /// Clear matrix
+    void Clear();
     // ----- DataSet functions -------------------
     size_t Size()                        const { return Mat_.size();        }
     void Info()                          const { return;                    }

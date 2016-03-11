@@ -38,6 +38,12 @@ DataSet_Cmatrix& DataSet_Cmatrix::operator=(const DataSet_Cmatrix& rhs) {
   return *this;
 }
 
+void DataSet_Cmatrix::Clear() {
+  Mat_.clear();
+  ignore_.clear();
+  sievedFrames_.Clear();
+}
+
 static inline int MatrixMemError() {
   mprinterr("Error: Not enough memory to allocate pair-wise matrix.\n"
             "Error: Consider using the 'sieve' keyword to reduce memory usage.\n");
