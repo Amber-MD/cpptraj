@@ -148,7 +148,7 @@ Frame::Frame(const Frame& rhs) :
   V_(0),
   F_(0),
   remd_indices_(rhs.remd_indices_),
-  Mass_(rhs.Mass_),
+  Mass_(rhs.Mass_)
 {
   // Copy coords/velo/forces; allocate for maxnatom but copy natom
   int maxncoord = maxnatom_ * 3;
