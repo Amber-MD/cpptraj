@@ -149,27 +149,20 @@ Frame::Frame(const Frame& rhs) :
   F_(0),
   remd_indices_(rhs.remd_indices_),
   Mass_(rhs.Mass_),
-  memIsExternal_(false)
 {
-  if (memIsExternal_) {
-    X_ = rhs.X_;
-    V_ = rhs.V_;
-    F_ = rhs.F_;
-  } else {
-    // Copy coords/velo/forces; allocate for maxnatom but copy natom
-    int maxncoord = maxnatom_ * 3;
-    if (rhs.X_!=0) {
-      X_ = new double[ maxncoord ];
-      memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
-    }
-    if (rhs.V_!=0) {
-      V_ = new double[ maxncoord ];
-      memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
-    }
-    if (rhs.F_!=0) {
-      F_ = new double[ maxncoord ];
-      memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
-    }
+  // Copy coords/velo/forces; allocate for maxnatom but copy natom
+  int maxncoord = maxnatom_ * 3;
+  if (rhs.X_!=0) {
+    X_ = new double[ maxncoord ];
+    memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
+  }
+  if (rhs.V_!=0) {
+    V_ = new double[ maxncoord ];
+    memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+  }
+  if (rhs.F_!=0) {
+    F_ = new double[ maxncoord ];
+    memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
   }
 }
 
