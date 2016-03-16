@@ -359,28 +359,18 @@ int ClusterList::AddCluster( ClusterDist::Cframes const& framelistIn ) {
   return 0;
 }
 
-// ClusterList::CalcFrameDistances()
-int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn, 
-                                    ClusterDist::DsArray const& dataSets,
-                                    DistMetricType metric, bool nofit, 
-                                    bool useMass, std::string const& maskexpr,
-                                    int sieve, int sieveSeed) 
+/** Set up the cluster distance calculation for the given input data sets
+  * and distance metric type.
+  */
+int ClusterList::SetupCdist( ClusterDist::DsArray const& dataSets,
+                             DistMetricType metric, bool nofit, bool useMass,
+                             std::string const& maskexpr )
 {
-  if (pwDistMatrixIn == 0) {
-    mprinterr("Internal Error: Empty cluster matrix in ClusterList::CalcFrameDistances()\n");
-    return 1;
-  }
-  if (pwDistMatrixIn->Type() != DataSet::CMATRIX) {
-    mprinterr("Internal Error: Wrong cluster matrix type in ClusterList::CalcFrameDistances()\n");
-    return 1;
-  }
-  frameDistances_ = (DataSet_Cmatrix*)pwDistMatrixIn;
-  if (dataSets.empty()) {
+  if (dataSets.empty()) { // SANITY CHECK
     mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
     return 1;
   }
   // Base everything off of the first DataSet
-  // TODO: Check all DataSet sizes?
   DataSet* dsIn = dataSets[0];
   // Set up internal cluster disance calculation
   if (metric != DATA) {
@@ -413,22 +403,33 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     else // TODO: More than just euclid
       Cdist_ = new ClusterDist_Euclid(dataSets);
   }
-  bool calcPWdist = (FrameDistances().Size() < 1);
-  if (!calcPWdist) {
-    // If number of rows in input pairwise dist matrix is not what was expected, recalc
-    if ( FrameDistances().Nframes() != dsIn->Size() ) {
-      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
-              FrameDistances().Nframes(), dsIn->Size());
-      calcPWdist = true;
-      frameDistances_->Clear();
-    }
+  return 0;
+}
+
+// ClusterList::CalcFrameDistances()
+/** Set the frame pairwise distance matrix from the given data set and
+  * calculate it if need be.
+  */
+int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn, 
+                                    ClusterDist::DsArray const& dataSets,
+                                    int sieve, int sieveSeed) 
+{
+  if (dataSets.empty()) { // SANITY CHECK
+    mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
+    return 1;
   }
-  if (calcPWdist) {
-    // Calculate pairwise distances from input DataSet. The ignore array will
-    // be set up to ignore sieved frames.
+  if (Cdist_ == 0) { // SANITY CHECK
+    mprinterr("Internal Error: ClusterDist for given metric not yet allocated.\n");
+    return 1;
+  }
+  frameDistances_ = (DataSet_Cmatrix*)pwDistMatrixIn;
+  if (FrameDistances().Size() < 1) {
+    // Calculate pairwise distances from input DataSet(s). The ignore array will
+    // be set up to ignore sieved frames. Base total # frames on first DataSet
+    // size.
     mprintf("\tCalculating pair-wise distances.\n");
     // Set up ClusterMatrix with sieve.
-    if (frameDistances_->SetupWithSieve( dsIn->Size(), sieve, sieveSeed )) {
+    if (frameDistances_->SetupWithSieve( dataSets[0]->Size(), sieve, sieveSeed )) {
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }
@@ -441,9 +442,8 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     mprintf("INITIAL FRAME DISTANCES:\n");
     FrameDistances().PrintElements();
   }
-  
   return 0;
-}  
+}
 
 // ClusterList::RemoveEmptyClusters()
 void ClusterList::RemoveEmptyClusters() {

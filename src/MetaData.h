@@ -115,6 +115,7 @@ class MetaData {
     scalarType ScalarType()     const { return scalartype_;  }
     scalarMode ScalarMode()     const { return scalarmode_;  }
 
+    void SetFileName(FileName const& f)  { fileName_ = f;    }
     void SetName(std::string const& n)   { name_ = n;        }
     void SetAspect(std::string const& a) { aspect_ = a;      }
     void SetLegend(std::string const& l) { legend_ = l;      }

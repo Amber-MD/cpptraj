@@ -21,9 +21,10 @@ class ClusterList {
     void Summary_Part(std::string const&,int,std::vector<int> const&);
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters();
+    /// Set up appropriate cluster distance calculation
+    int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
-    int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, DistMetricType,
-                           bool, bool, std::string const&, int, int);
+    int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;
