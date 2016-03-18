@@ -40,7 +40,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         0, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
-  { "Gromacs TRX",        0, 0, Traj_GmxTrX::Alloc         },
+  { "Gromacs TRX",        0, Traj_GmxTrX::WriteHelp, Traj_GmxTrX::Alloc         },
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "GRO file",           0, 0, Traj_Gro::Alloc            },

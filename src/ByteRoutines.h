@@ -13,4 +13,6 @@ union byte8 {
 void endian_swap(void *, long);
 /// Perform byte swaps on 8-byte segments.
 void endian_swap8(void *, long);
+/// \return true if underlying architecture is big endian
+bool IsBigEndian();
 #endif
