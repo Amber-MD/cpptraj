@@ -23,7 +23,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   step_(0),
   nre_(0),
   precision_(4),
-  dt_(0.0),
+  timestep_(0.0),
   lambda_(0.0),
   frameSize_(0),
   headerBytes_(0),
@@ -58,7 +58,7 @@ void Traj_GmxTrX::GmxInfo() {
   mprintf("\tstep= %i\n", step_);
   mprintf("\tnre= %i\n", nre_);
   mprintf("\tprecision= %i\n", precision_);
-  mprintf("\tdt= %f\n", dt_);
+  mprintf("\tdt= %f\n", timestep_);
   mprintf("\tlambda= %f\n", lambda_);
 }
 
@@ -240,7 +240,7 @@ int Traj_GmxTrX::ReadTrxHeader() {
     return 1;
   }
   // Read timestep and lambda
-  if ( read_real( dt_ ) ) return 1;
+  if ( read_real( timestep_ ) ) return 1;
   if ( read_real( lambda_ ) ) return 1;
   return 0;
 }
@@ -357,8 +357,15 @@ void Traj_GmxTrX::AllocateCoords() {
     darray_ = new double[ arraySize_ ];
 }
 
+void Traj_GmxTrX::WriteHelp() {
+  mprintf("\tdt        : Time step to multiply set #s by (default 1.0).\n"
+          "\tbigendian : Force byte swapping; necessary for TRR to be\n"
+          "\t            compatible with Gromacs trajectory tools.\n");
+}
+
 int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
-  dt_ = (float)argIn.getKeyDouble( "dt", 1.0 );
+  dt_ = argIn.getKeyDouble( "dt", 1.0 );
+  isBigEndian_ = argIn.hasKey("bigendian");
   return 0;
 }
 
@@ -372,7 +379,7 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     natom3_ = natoms_ * 3;
     // Default to little endian, precision 4, TRR
     format_ = TRR;
-    isBigEndian_ = true; //isBigEndian_ = false;
+    //isBigEndian_ = false;
     precision_ = 4;
     // Set up title
     if (Title().empty())
@@ -502,8 +509,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   write_int( natoms_ ); //file_.Write( &natoms_, 4 );
   write_int( step_ ); //file_.Write( &step_, 4 );
   write_int( nre_ ); //file_.Write( &nre_, 4 );
-  float time = dt_ * (float)set;
-  mprintf("DEBUG: time= %f\n", time);
+  float time = (float)(dt_ * (double)set);
   write_real( time ); //file_.Write( &dt_, 4 ); // TODO: Write actual time
   write_real( lambda_ ); //file_.Write( &lambda_, 4 );
   // Write box
@@ -527,7 +533,6 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       for (int i = 0; i < 9; i++)
         f_ucell[i] = (float)ucell[i];
       if (isBigEndian_) endian_swap( f_ucell, 9 );
-      mprintf("DEBUG: %i isBigEndian= %i  boxSize= %i\n", set, (int)isBigEndian_, box_size_ );
       file_.Write( f_ucell, box_size_ );
     } else { // double
       if (isBigEndian_) endian_swap8( ucell, 9 );
@@ -546,7 +551,6 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       for (int iv = 0; iv < natom3_; iv++, ix++)
         farray_[ix] = (float)(Vptr[iv] * 0.1);
     if (isBigEndian_) endian_swap( farray_, arraySize_ );
-    mprintf("DEBUG: %i isBigEndian= %i  arraySize= %zu\n", set, (int)isBigEndian_, arraySize_ );
     file_.Write( farray_, x_size_ + v_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
@@ -630,7 +634,7 @@ int Traj_GmxTrX::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
   commIn.MasterBcast( &step_, 1, MPI_INT );
   commIn.MasterBcast( &nre_, 1, MPI_INT );
   commIn.MasterBcast( &precision_, 1, MPI_INT );
-  commIn.MasterBcast( &dt_, 1, MPI_FLOAT );
+  commIn.MasterBcast( &timestep_, 1, MPI_DOUBLE );
   commIn.MasterBcast( &lambda_, 1, MPI_FLOAT );
   // NOTE: cast these to unsigned long long to avoid ambiguity since MPI doesnt have size_t
   unsigned long long buf[2];

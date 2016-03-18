@@ -7,6 +7,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     Traj_GmxTrX();
     ~Traj_GmxTrX();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_GmxTrX(); }
+    static void WriteHelp();
   private:
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;
@@ -15,6 +16,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     CpptrajFile file_;
     FormatType format_;
 
+    double dt_;
     int ir_size_;
     int e_size_;
     int box_size_;
@@ -30,7 +32,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int step_;
     int nre_;
     int precision_;
-    float dt_;
+    float timestep_;
     float lambda_;
     size_t frameSize_;
     size_t headerBytes_;
