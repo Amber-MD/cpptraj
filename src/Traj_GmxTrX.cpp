@@ -474,7 +474,8 @@ int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
 int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   int tsize;
   // Write header
-  file_.Write( &Magic_, 4 );
+  tsize = 1993;
+  write_int( tsize ); //file_.Write( &Magic_, 4 );
   tsize = (int)Title().size() + 1;
   write_int( tsize ); //file_.Write( &tsize, 4);
   tsize = (int)Title().size(); //--tsize;
@@ -532,7 +533,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         farray_[ix] = (float)(Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap( farray_, x_size_ + v_size_ );
+    if (isBigEndian_) endian_swap( farray_, natom3_ );
     file_.Write( farray_, x_size_ + v_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
@@ -540,7 +541,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         darray_[ix] = (Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap8( darray_, x_size_ + v_size_ );
+    if (isBigEndian_) endian_swap8( darray_, natom3_ );
     file_.Write( darray_, x_size_ + v_size_ );
   }
   
