@@ -489,29 +489,28 @@ int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
 int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   int tsize;
   // Write header
-  tsize = 1993;
-  write_int( tsize ); //file_.Write( &Magic_, 4 );
+  write_int( Magic_ );
   tsize = (int)Title().size() + 1;
-  write_int( tsize ); //file_.Write( &tsize, 4);
-  tsize = (int)Title().size(); //--tsize;
-  write_int( tsize ); //file_.Write( &tsize, 4);
+  write_int( tsize );
+  tsize = (int)Title().size();
+  write_int( tsize );
   file_.Write( Title().c_str(), Title().size() );
-  write_int( ir_size_ ); //file_.Write( &ir_size_, 4 );
-  write_int( e_size_ ); //file_.Write( &e_size_, 4 );
-  write_int( box_size_ ); //file_.Write( &box_size_, 4 );
-  write_int( vir_size_ ); //file_.Write( &vir_size_, 4 );
-  write_int( pres_size_ ); //file_.Write( &pres_size_, 4 );
-  write_int( top_size_ ); //file_.Write( &top_size_, 4 );
-  write_int( sym_size_ ); //file_.Write( &sym_size_, 4 );
-  write_int( x_size_ ); //file_.Write( &x_size_, 4 );
-  write_int( v_size_ ); //file_.Write( &v_size_, 4 );
-  write_int( f_size_ ); //file_.Write( &f_size_, 4 );
-  write_int( natoms_ ); //file_.Write( &natoms_, 4 );
-  write_int( step_ ); //file_.Write( &step_, 4 );
-  write_int( nre_ ); //file_.Write( &nre_, 4 );
+  write_int( ir_size_ );
+  write_int( e_size_ );
+  write_int( box_size_ );
+  write_int( vir_size_ );
+  write_int( pres_size_ );
+  write_int( top_size_ );
+  write_int( sym_size_ );
+  write_int( x_size_ );
+  write_int( v_size_ );
+  write_int( f_size_ );
+  write_int( natoms_ );
+  write_int( step_ );
+  write_int( nre_ );
   float time = (float)(dt_ * (double)set);
-  write_real( time ); //file_.Write( &dt_, 4 ); // TODO: Write actual time
-  write_real( lambda_ ); //file_.Write( &lambda_, 4 );
+  write_real( time ); // TODO: Write actual time
+  write_real( lambda_ );
   // Write box
   // NOTE: GROMACS units are nm
   if (box_size_ > 0) {
@@ -561,7 +560,6 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (isBigEndian_) endian_swap8( darray_, arraySize_ );
     file_.Write( darray_, x_size_ + v_size_ );
   }
-  
   return 0;
 }
 
