@@ -8,6 +8,7 @@
 Traj_GmxTrX::Traj_GmxTrX() :
   isBigEndian_(false),
   format_(TRR),
+  dt_(1.0),
   ir_size_(0),
   e_size_(0),
   box_size_(0),
