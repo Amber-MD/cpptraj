@@ -27,6 +27,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   lambda_(0.0),
   frameSize_(0),
   headerBytes_(0),
+  arraySize_(0),
   farray_(0),
   darray_(0) 
 {}
@@ -109,7 +110,8 @@ int Traj_GmxTrX::read_int( int& ival ) {
 }
 
 /** Write 1 integer, swap bytes if big endian. */
-int Traj_GmxTrX::write_int( int& ival ) {
+int Traj_GmxTrX::write_int( int ivalIn ) {
+  int ival = ivalIn;
   // ASSUMING 4 byte integers
   if (isBigEndian_) endian_swap( &ival, 1 );
   if ( file_.Write( &ival, 4 ) != 4) return 1;
@@ -136,7 +138,8 @@ int Traj_GmxTrX::read_real( float& fval ) {
 }
 
 /** Write 1 float/double based on precision, swap bytes if big endian. */
-int Traj_GmxTrX::write_real( float& fval ) {
+int Traj_GmxTrX::write_real( float fvalIn ) {
+  float fval = fvalIn;
   double dval;
   switch (precision_) {
     case sizeof(float):
@@ -346,12 +349,17 @@ void Traj_GmxTrX::AllocateCoords() {
   // Allocate temp space for coords/velo
   if (farray_ != 0) {delete[] farray_; farray_ = 0;}
   if (darray_ != 0) {delete[] darray_; darray_ = 0;}
-  size_t arraySize = (size_t)natom3_;
-  if (CoordInfo().HasVel()) arraySize *= 2;
+  arraySize_ = (size_t)natom3_;
+  if (CoordInfo().HasVel()) arraySize_ *= 2;
   if (precision_ == sizeof(float)) 
-    farray_ = new float[ arraySize ];
+    farray_ = new float[ arraySize_ ];
   else 
-    darray_ = new double[ arraySize ];
+    darray_ = new double[ arraySize_ ];
+}
+
+int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
+  dt_ = (float)argIn.getKeyDouble( "dt", 1.0 );
+  return 0;
 }
 
 int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
@@ -388,7 +396,7 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     f_size_ = 0;
     step_ = 0;
     nre_ = 0;
-    dt_ = 0.0;
+    //dt_ = 0.0;
     lambda_ = 0.0;
     // Allocate temp space for coords/velo
     AllocateCoords();
@@ -494,8 +502,9 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   write_int( natoms_ ); //file_.Write( &natoms_, 4 );
   write_int( step_ ); //file_.Write( &step_, 4 );
   write_int( nre_ ); //file_.Write( &nre_, 4 );
-  dt_ = (float)set;
-  write_real( dt_ ); //file_.Write( &dt_, 4 ); // TODO: Write actual time
+  float time = dt_ * (float)set;
+  mprintf("DEBUG: time= %f\n", time);
+  write_real( time ); //file_.Write( &dt_, 4 ); // TODO: Write actual time
   write_real( lambda_ ); //file_.Write( &lambda_, 4 );
   // Write box
   // NOTE: GROMACS units are nm
@@ -513,14 +522,17 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     ucell[7] = (by*bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / 
                 ucell[4];
     ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-    if (isBigEndian_) endian_swap8( ucell, 9 );
     if (precision_ == sizeof(float)) {
       float f_ucell[9];
       for (int i = 0; i < 9; i++)
         f_ucell[i] = (float)ucell[i];
+      if (isBigEndian_) endian_swap( f_ucell, 9 );
+      mprintf("DEBUG: %i isBigEndian= %i  boxSize= %i\n", set, (int)isBigEndian_, box_size_ );
       file_.Write( f_ucell, box_size_ );
-    } else // double
+    } else { // double
+      if (isBigEndian_) endian_swap8( ucell, 9 );
       file_.Write( ucell, box_size_ );
+    }
   }
   // Write coords/velo
   // NOTE: GROMACS units are nm
@@ -533,7 +545,8 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         farray_[ix] = (float)(Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap( farray_, natom3_ );
+    if (isBigEndian_) endian_swap( farray_, arraySize_ );
+    mprintf("DEBUG: %i isBigEndian= %i  arraySize= %zu\n", set, (int)isBigEndian_, arraySize_ );
     file_.Write( farray_, x_size_ + v_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
@@ -541,7 +554,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         darray_[ix] = (Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap8( darray_, natom3_ );
+    if (isBigEndian_) endian_swap8( darray_, arraySize_ );
     file_.Write( darray_, x_size_ + v_size_ );
   }
   

@@ -34,15 +34,16 @@ class Traj_GmxTrX : public TrajectoryIO {
     float lambda_;
     size_t frameSize_;
     size_t headerBytes_;
+    size_t arraySize_;
     float* farray_;
     double* darray_;
 
     void GmxInfo();
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
-    int write_int(int&);
+    int write_int(int);
     int read_real(float&);
-    int write_real(float&);
+    int write_real(float);
     std::string read_string();
     int ReadBox(double*);
     int ReadTrxHeader();
@@ -60,7 +61,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }  // TODO support this
-    int processWriteArgs(ArgList&) { return 0; }
+    int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
