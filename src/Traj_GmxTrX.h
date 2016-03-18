@@ -40,7 +40,9 @@ class Traj_GmxTrX : public TrajectoryIO {
     void GmxInfo();
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
+    int write_int(int&);
     int read_real(float&);
+    int write_real(float&);
     std::string read_string();
     int ReadBox(double*);
     int ReadTrxHeader();

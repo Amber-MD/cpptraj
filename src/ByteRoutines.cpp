@@ -49,3 +49,11 @@ void endian_swap8(void *x, long nswap) {
   }
 }
 
+bool IsBigEndian() {
+  union {
+      unsigned int i;
+      char c[4];
+  } bint = {0x01020304};
+
+  return ( bint.c[0] == 1 );
+}
