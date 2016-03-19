@@ -62,6 +62,14 @@ void Traj_GmxTrX::GmxInfo() {
   mprintf("\tprecision= %i\n", precision_);
   mprintf("\tdt= %f\n", timestep_);
   mprintf("\tlambda= %f\n", lambda_);
+  if (isBigEndian_)
+    mprintf("\tBig endian\n");
+  else
+    mprintf("\tLittle endian\n");
+  if (swapBytes_)
+    mprintf("\tSwapping bytes\n");
+  else
+    mprintf("\tNot swapping\n");
 }
 
 //const unsigned char Traj_GmxTrX::Magic_TRR_[4] = {201, 7, 0, 0};
@@ -332,11 +340,8 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // If float precision, create temp array. Temp array not needed for double reads.
-  if (precision_ == sizeof(float)) {
-    if (farray_ != 0) delete[] farray_;
-    farray_ = new float[ natom3_ ];
-  } 
+  // Allocate temp coord arrays.
+  AllocateCoords();
   // Attempt to determine # of frames in traj
   headerBytes_ = (size_t)file_.Tell();
   frameSize_ = headerBytes_ + (size_t)box_size_ + (size_t)vir_size_ + (size_t)pres_size_ +
@@ -387,7 +392,6 @@ int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
   isBigEndian_ = true;
   if (!IsBigEndian()) swapBytes_ = true;
-  mprintf("DEBUG: swapBytes= %i\n", (int)swapBytes_);
   // Prevent byte swapping (DEBUG)
   if (argIn.hasKey("noswap"))
     swapBytes_ = false;
