@@ -396,6 +396,7 @@ int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("noswap"))
     swapBytes_ = false;
   precision_ = sizeof(float);
+  if (argIn.hasKey("double")) precision_ = sizeof(double);
   return 0;
 }
 
