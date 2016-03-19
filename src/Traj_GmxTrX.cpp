@@ -6,6 +6,7 @@
 
 // CONSTRUCTOR
 Traj_GmxTrX::Traj_GmxTrX() :
+  swapBytes_(false),
   isBigEndian_(false),
   format_(TRR),
   dt_(1.0),
@@ -71,15 +72,22 @@ const int Traj_GmxTrX::Magic_ = 1993;
 bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
   int magic;
   if ( infile.Read( &magic, 4 ) != 4 ) return 1;
+  swapBytes_ = false;
+  isBigEndian_ = false;
   if (magic != Magic_) {
     // See if this is big endian
     endian_swap( &magic, 1 );
     if (magic != Magic_) 
       return false;
-    else
+    else {
+      // Big-endian. If we are on little endian machine need to swap bytes.
       isBigEndian_ = true;
-  } else
-    isBigEndian_ = false;
+      if (!IsBigEndian()) swapBytes_ = true;
+    }
+  } else {
+    // Little-endian (non-standard). If we are on big endian machine need to swap bytes.
+    if (IsBigEndian()) swapBytes_ = true;
+  }
   // TODO: At this point file is trX, but not sure how best to differentiate 
   // between TRR and TRJ. For now do it based on extension. Default TRR.
   if      (infile.Filename().Ext() == ".trr") format_ = TRR;
@@ -102,34 +110,33 @@ void Traj_GmxTrX::closeTraj() {
   file_.CloseFile();
 }
 
-/** Read 1 integer, swap bytes if big endian. */
+/** Read 1 integer, swap bytes if necessary. */
 int Traj_GmxTrX::read_int( int& ival ) {
-  // ASSUMING 4 byte integers
   if ( file_.Read( &ival, 4 ) != 4 ) return 1;
-  if (isBigEndian_) endian_swap( &ival, 1 );
+  if (swapBytes_) endian_swap( &ival, 1 );
   return 0;
 }
 
-/** Write 1 integer, swap bytes if big endian. */
+/** Write 1 integer, swap bytes if necessary. */
 int Traj_GmxTrX::write_int( int ivalIn ) {
   int ival = ivalIn;
   // ASSUMING 4 byte integers
-  if (isBigEndian_) endian_swap( &ival, 1 );
+  if (swapBytes_) endian_swap( &ival, 1 );
   if ( file_.Write( &ival, 4 ) != 4) return 1;
   return 0;
 }
 
-/** Read 1 float/double based on precision, swap bytes if big endian. */
+/** Read 1 float/double based on precision, swap bytes if necessary. */
 int Traj_GmxTrX::read_real( float& fval ) {
   double dval;
   switch (precision_) {
     case sizeof(float):
       if (file_.Read( &fval, precision_ ) != precision_) return 1;
-      if (isBigEndian_) endian_swap( &fval, 1 );
+      if (swapBytes_) endian_swap( &fval, 1 );
       break;
     case sizeof(double):
       if (file_.Read( &dval, precision_ ) != precision_) return 1;
-      if (isBigEndian_) endian_swap8( &dval, 1 );
+      if (swapBytes_) endian_swap8( &dval, 1 );
       fval = (float)dval;
       break;
     default:
@@ -138,18 +145,18 @@ int Traj_GmxTrX::read_real( float& fval ) {
   return 0;
 }
 
-/** Write 1 float/double based on precision, swap bytes if big endian. */
+/** Write 1 float/double based on precision, swap bytes if necessary. */
 int Traj_GmxTrX::write_real( float fvalIn ) {
   float fval = fvalIn;
   double dval;
   switch (precision_) {
     case sizeof(float):
-      if (isBigEndian_) endian_swap( &fval, 1 );
+      if (swapBytes_) endian_swap( &fval, 1 );
       if (file_.Write( &fval, precision_ ) != precision_) return 1;
       break;
     case sizeof(double):
       dval = (double)fval;
-      if (isBigEndian_) endian_swap8( &dval, 1 );
+      if (swapBytes_) endian_swap8( &dval, 1 );
       if (file_.Write( &dval, precision_ ) != precision_) return 1;
       break;
     default:
@@ -262,13 +269,13 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   switch (precision_) {
     case sizeof(float):
       if (file_.Read( f_boxIn, box_size_ ) != box_size_) return 1;
-      if (isBigEndian_) endian_swap( f_boxIn, 9 );
+      if (swapBytes_) endian_swap( f_boxIn, 9 );
       for (int i = 0; i < 9; ++i)
         xyz[i] = (double)f_boxIn[i];
       break;
     case sizeof(double):
       if (file_.Read( xyz, box_size_ ) != box_size_) return 1;
-      if (isBigEndian_) endian_swap8( xyz, 9 );
+      if (swapBytes_) endian_swap8( xyz, 9 );
       break;
     default: return 1;
   }
@@ -359,14 +366,17 @@ void Traj_GmxTrX::AllocateCoords() {
 }
 
 void Traj_GmxTrX::WriteHelp() {
-  mprintf("\tdt        : Time step to multiply set #s by (default 1.0).\n"
-          "\tbigendian : Force byte swapping; necessary for TRR to be\n"
-          "\t            compatible with Gromacs trajectory tools.\n");
+  mprintf("\tdt : Time step to multiply set #s by (default 1.0).\n");
 }
 
 int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
-  isBigEndian_ = argIn.hasKey("bigendian");
+  isBigEndian_ = true;
+  if (!IsBigEndian()) swapBytes_ = true;
+  // Prevent byte swapping (DEBUG)
+  if (argIn.hasKey("noswap"))
+    swapBytes_ = false;
+  precision_ = sizeof(float);
   return 0;
 }
 
@@ -378,10 +388,8 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     SetCoordInfo( cInfoIn );
     natoms_ = trajParm->Natom();
     natom3_ = natoms_ * 3;
-    // Default to little endian, precision 4, TRR
+    // Default to TRR
     format_ = TRR;
-    //isBigEndian_ = false;
-    precision_ = 4;
     // Set up title
     if (Title().empty())
       SetTitle("Cpptraj generated TRR file.");
@@ -432,13 +440,13 @@ int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
   switch (precision_) {
     case sizeof(float):
       if (file_.Read( farray_, size ) != size) return 1;
-      if (isBigEndian_) endian_swap(farray_, natom3_);
+      if (swapBytes_) endian_swap(farray_, natom3_);
       for (int i = 0; i < natom3_; ++i)
         Dout[i] = (double)(farray_[i] * 10.0); // FIXME: Legit for velocities?
       break;
     case sizeof(double):
       if (file_.Read( Dout, size ) != size) return 1;
-      if (isBigEndian_) endian_swap8(Dout, natom3_);
+      if (swapBytes_) endian_swap8(Dout, natom3_);
       for (int i = 0; i < natom3_; ++i)
         Dout[i] *= 10.0; // FIXME: Legit for velocities?
       break;
@@ -532,10 +540,10 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       float f_ucell[9];
       for (int i = 0; i < 9; i++)
         f_ucell[i] = (float)ucell[i];
-      if (isBigEndian_) endian_swap( f_ucell, 9 );
+      if (swapBytes_) endian_swap( f_ucell, 9 );
       file_.Write( f_ucell, box_size_ );
     } else { // double
-      if (isBigEndian_) endian_swap8( ucell, 9 );
+      if (swapBytes_) endian_swap8( ucell, 9 );
       file_.Write( ucell, box_size_ );
     }
   }
@@ -550,7 +558,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         farray_[ix] = (float)(Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap( farray_, arraySize_ );
+    if (swapBytes_) endian_swap( farray_, arraySize_ );
     file_.Write( farray_, x_size_ + v_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
@@ -558,7 +566,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
         darray_[ix] = (Vptr[iv] * 0.1);
-    if (isBigEndian_) endian_swap8( darray_, arraySize_ );
+    if (swapBytes_) endian_swap8( darray_, arraySize_ );
     file_.Write( darray_, x_size_ + v_size_ );
   }
   return 0;

@@ -12,7 +12,8 @@ class Traj_GmxTrX : public TrajectoryIO {
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;
 
-    bool isBigEndian_;   /// True if byte order is reversed
+    bool swapBytes_;   ///< True if byte order needs to be reversed
+    bool isBigEndian_; ///< True if file is big-endian.
     CpptrajFile file_;
     FormatType format_;
 
