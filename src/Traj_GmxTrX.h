@@ -42,6 +42,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     double* darray_;
 
     void GmxInfo();
+    int DetermineEndian(int);
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
     int write_int(int);
@@ -49,7 +50,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int write_real(float);
     std::string read_string();
     int ReadBox(double*);
-    int ReadTrxHeader();
+    int ReadTrxHeader(int&);
     int ReadAtomVector(double*, int);
     void AllocateCoords();
 

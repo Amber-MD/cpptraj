@@ -68,17 +68,16 @@ void Traj_GmxTrX::GmxInfo() {
 //const unsigned char Traj_GmxTrX::Magic_TRJ_[4] = {203, 7, 0, 0};
 const int Traj_GmxTrX::Magic_ = 1993;
 
-/** \return true if TRR/TRJ file. Determine endianness. */
-bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
-  int magic;
-  if ( infile.Read( &magic, 4 ) != 4 ) return 1;
+/** Determine endianness and whether bytes need to be swapped. */
+int Traj_GmxTrX::DetermineEndian(int magicIn) {
+  int magic = magicIn;
   swapBytes_ = false;
   isBigEndian_ = false;
   if (magic != Magic_) {
     // See if this is big endian
     endian_swap( &magic, 1 );
     if (magic != Magic_) 
-      return false;
+      return 1;
     else {
       // Big-endian. If we are on little endian machine need to swap bytes.
       isBigEndian_ = true;
@@ -88,6 +87,14 @@ bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
     // Little-endian (non-standard). If we are on big endian machine need to swap bytes.
     if (IsBigEndian()) swapBytes_ = true;
   }
+  return 0;
+}
+
+/** \return true if TRR/TRJ file. Determine endianness. */
+bool Traj_GmxTrX::IsTRX(CpptrajFile& infile) {
+  int magic;
+  if ( infile.Read( &magic, 4 ) != 4 ) return false;
+  if (DetermineEndian( magic )) return false;
   // TODO: At this point file is trX, but not sure how best to differentiate 
   // between TRR and TRJ. For now do it based on extension. Default TRR.
   if      (infile.Filename().Ext() == ".trr") format_ = TRR;
@@ -201,10 +208,10 @@ std::string Traj_GmxTrX::read_string( ) {
   }
 }
 
-int Traj_GmxTrX::ReadTrxHeader() {
+int Traj_GmxTrX::ReadTrxHeader(int& magic) {
   int version = 0;
   // Read past magic byte
-  if (file_.Read(&version, 4) != 4) return 1;
+  if (file_.Read(&magic, 4) != 4) return 1;
   // Read version for TRR
   if (format_ != TRJ)
     read_int( version );
@@ -307,10 +314,17 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
 int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
 {
   int nframes = 0;
+  isBigEndian_ = true;
+  if (!IsBigEndian()) swapBytes_ = true;
   if (file_.SetupRead( fname, debug_ )) return TRAJIN_ERR;
   // Open and read in header
   if ( file_.OpenFile() ) return TRAJIN_ERR;
-  ReadTrxHeader();
+  int magic;
+  ReadTrxHeader(magic);
+  if (DetermineEndian( magic )) {
+    mprinterr("Error: File is not Gromacs TRR.\n");
+    return TRAJIN_ERR;
+  }
   if (debug_ > 0) GmxInfo(); // DEBUG
   // Warn if # atoms in parm does not match
   if (trajParm->Natom() != natoms_) {
@@ -373,6 +387,7 @@ int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
   isBigEndian_ = true;
   if (!IsBigEndian()) swapBytes_ = true;
+  mprintf("DEBUG: swapBytes= %i\n", (int)swapBytes_);
   // Prevent byte swapping (DEBUG)
   if (argIn.hasKey("noswap"))
     swapBytes_ = false;
