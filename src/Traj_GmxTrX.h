@@ -12,7 +12,8 @@ class Traj_GmxTrX : public TrajectoryIO {
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;
 
-    bool isBigEndian_;   /// True if byte order is reversed
+    bool swapBytes_;   ///< True if byte order needs to be reversed
+    bool isBigEndian_; ///< True if file is big-endian.
     CpptrajFile file_;
     FormatType format_;
 
@@ -41,6 +42,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     double* darray_;
 
     void GmxInfo();
+    int DetermineEndian(int);
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
     int write_int(int);
@@ -48,7 +50,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     int write_real(float);
     std::string read_string();
     int ReadBox(double*);
-    int ReadTrxHeader();
+    int ReadTrxHeader(int&);
     int ReadAtomVector(double*, int);
     void AllocateCoords();
 
