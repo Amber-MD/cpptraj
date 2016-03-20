@@ -19,6 +19,7 @@
 #include "DataSet_Coords_REF.h"
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
+#include "DataSet_GridDbl.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -33,6 +34,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "vector",        DataSet_Vector::Alloc     }, // VECTOR
   { "eigenmodes",    DataSet_Modes::Alloc      }, // MODES
   { "float grid",    DataSet_GridFlt::Alloc    }, // GRID_FLT
+  { "double grid",   DataSet_GridDbl::Alloc    }, // GRID_DBL
   { "remlog",        DataSet_RemLog::Alloc     }, // REMLOG
   { "X-Y mesh",      DataSet_Mesh::Alloc       }, // XYMESH
   { "trajectories",  DataSet_Coords_TRJ::Alloc }, // TRAJ
