@@ -7,14 +7,17 @@ class Traj_GmxTrX : public TrajectoryIO {
     Traj_GmxTrX();
     ~Traj_GmxTrX();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_GmxTrX(); }
+    static void WriteHelp();
   private:
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;
 
-    bool isBigEndian_;   /// True if byte order is reversed
+    bool swapBytes_;   ///< True if byte order needs to be reversed
+    bool isBigEndian_; ///< True if file is big-endian.
     CpptrajFile file_;
     FormatType format_;
 
+    double dt_;
     int ir_size_;
     int e_size_;
     int box_size_;
@@ -30,20 +33,24 @@ class Traj_GmxTrX : public TrajectoryIO {
     int step_;
     int nre_;
     int precision_;
-    float dt_;
+    float timestep_;
     float lambda_;
     size_t frameSize_;
     size_t headerBytes_;
+    size_t arraySize_;
     float* farray_;
     double* darray_;
 
     void GmxInfo();
+    int DetermineEndian(int);
     bool IsTRX(CpptrajFile&);
     int read_int(int&);
+    int write_int(int);
     int read_real(float&);
+    int write_real(float);
     std::string read_string();
     int ReadBox(double*);
-    int ReadTrxHeader();
+    int ReadTrxHeader(int&);
     int ReadAtomVector(double*, int);
     void AllocateCoords();
 
@@ -58,7 +65,7 @@ class Traj_GmxTrX : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }  // TODO support this
-    int processWriteArgs(ArgList&) { return 0; }
+    int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
