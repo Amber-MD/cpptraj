@@ -26,8 +26,7 @@ install: cpptraj$(SFX) ambpdb$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/
 	/bin/mv ambpdb$(SFX) $(BINDIR)/
 
-libcpptraj: libcpptraj$(SHARED_SUFFIX)
-	/bin/mv libcpptraj$(SHARED_SUFFIX) $(LIBDIR)/
+libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
 install_openmp: cpptraj$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
@@ -53,7 +52,7 @@ ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
                -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
-libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
+$(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
 		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
 
