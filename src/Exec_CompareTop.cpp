@@ -49,6 +49,13 @@ static void PrintAngT(CpptrajFile& output, Topology const& parm,
                 *(parm[first.A3()].Type()));
 }
 
+/// Function for printing AngleParmType
+static void PrintAngP(CpptrajFile& output, Topology const& parm,
+                      AngleParmType const& first, char dir)
+{
+  output.Printf("%c Tk= %g  Teq= %g\n", dir, first.Tk(), first.Teq());
+}
+
 /// Function for printing BondType
 static void PrintBndT(CpptrajFile& output, Topology const& parm,
                       BondType const& first, char dir)
@@ -58,6 +65,13 @@ static void PrintBndT(CpptrajFile& output, Topology const& parm,
                 parm.AtomMaskName(first.A2()).c_str(),
                 *(parm[first.A1()].Type()),
                 *(parm[first.A2()].Type()));
+}
+
+/// Function for printing BondParmType
+static void PrintBndP(CpptrajFile& output, Topology const& parm,
+                      BondParmType const& first, char dir)
+{
+  output.Printf("%c Rk= %g  Req= %g\n", dir, first.Rk(), first.Req());
 }
 
 /// Class template for comparing two arrays of a given parameter type
@@ -203,6 +217,10 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     Diff<BondType> diff_bnd;
     diff_bnd.Compare( p1.Bonds(), p2.Bonds(), PrintBndT, output, p1, p2 );
     diff_bnd.Compare( p1.BondsH(), p2.BondsH(), PrintBndT, output, p1, p2 );
+    // Bond parameters
+    output.Printf("# Bond Parameters\n");
+    Diff<BondParmType> diff_bndP;
+    diff_bndP.Compare( p1.BondParm(), p2.BondParm(), PrintBndP, output, p1, p2 );
   }
   if (cmp_ang) {
     // Angles
@@ -210,6 +228,10 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
     Diff<AngleType> diff_ang;
     diff_ang.Compare( p1.Angles(), p2.Angles(), PrintAngT, output, p1, p2 );
     diff_ang.Compare( p1.AnglesH(), p2.AnglesH(), PrintAngT, output, p1, p2 );
+    // Angle parameters
+    output.Printf("# Angle Parameters\n");
+    Diff<AngleParmType> diff_angP;
+    diff_angP.Compare( p1.AngleParm(), p2.AngleParm(), PrintAngP, output, p1, p2 );
   }
   if (cmp_dih) {
     // Dihedrals
