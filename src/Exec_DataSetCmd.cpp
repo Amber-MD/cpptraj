@@ -3,15 +3,16 @@
 #include "DataSet_1D.h"
 
 void Exec_DataSetCmd::Help() const {
-  mprintf("\t{ legend <legend> <set> | makexy <Xset> <Yset> [name <name>] |\n"
-          "\t  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+  mprintf("\t{ legend <legend> <set> |\n"
+          "\t  makexy <Xset> <Yset> [name <name>] |\n"
+          "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
           "\t<mode>: ");
-  for (int i = 0; i != (int)MetaData::M_MATRIX; i++) // TODO: Allow matrix?
-    mprintf(" %s", MetaData::ModeString((MetaData::scalarMode)i));
+  for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
+    mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
   mprintf("\n\t<type>: ");
-  for (int i = 0; i != (int)MetaData::DIST; i++)
-    mprintf(" %s", MetaData::TypeString((MetaData::scalarType)i));
+  for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
+    mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
   mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n"
           "  legend: Set the legend for a single data set\n"
@@ -135,17 +136,28 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
       DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
       for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
       {
-        if ( (*ds)->Ndim() != 1 ) // TODO remove restriction
-          mprintf("Warning:\t\t'%s': Can only set mode/type for 1D data sets.\n",
-                  (*ds)->legend());
-        else {
-          if ( dtype == MetaData::NOE ) (*ds)->AssociateData( &noeData );
-          mprintf("\t\t'%s'\n", (*ds)->legend());
-          MetaData md = (*ds)->Meta();
-          md.SetScalarMode( dmode );
-          md.SetScalarType( dtype );
-          (*ds)->SetMeta( md );
+        if (dmode != MetaData::UNKNOWN_MODE) {
+          // Warn if mode does not seem appropriate for the data set type.
+          if ( dmode >= MetaData::M_DISTANCE &&
+               dmode <= MetaData::M_RMS &&
+               (*ds)->Group() != DataSet::SCALAR_1D )
+            mprintf("Warning: '%s': Expected scalar 1D data set type for mode '%s'\n",
+                    (*ds)->legend(), MetaData::ModeString(dmode));
+          else if ( dmode == MetaData::M_VECTOR &&
+                    (*ds)->Type() != DataSet::VECTOR )
+            mprintf("Warning: '%s': Expected vector data set type for mode '%s'\n",
+                    (*ds)->legend(), MetaData::ModeString(dmode));
+          else if ( dmode == MetaData::M_MATRIX &&
+                    (*ds)->Group() != DataSet::MATRIX_2D )
+            mprintf("Warning: '%s': Expected 2D matrix data set type for mode '%s'\n",
+                    (*ds)->legend(), MetaData::ModeString(dmode));
         }
+        if ( dtype == MetaData::NOE ) (*ds)->AssociateData( &noeData );
+        mprintf("\t\t'%s'\n", (*ds)->legend());
+        MetaData md = (*ds)->Meta();
+        md.SetScalarMode( dmode );
+        md.SetScalarType( dtype );
+        (*ds)->SetMeta( md );
       }
       ds_arg = argIn.GetStringNext();
     }
