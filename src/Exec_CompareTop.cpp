@@ -17,7 +17,7 @@ static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const
 static void PrintDihT(CpptrajFile& output, Topology const& parm,
                       DihedralType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s - %s {%s-%s-%s-%s}\n", dir,
+  output.Printf("%c %s - %s - %s - %s {%s-%s-%s-%s}", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
@@ -26,6 +26,12 @@ static void PrintDihT(CpptrajFile& output, Topology const& parm,
                 *(parm[first.A2()].Type()),
                 *(parm[first.A3()].Type()),
                 *(parm[first.A4()].Type()));
+  if (first.Idx() != -1) {
+    DihedralParmType const& DP = parm.DihedralParm()[first.Idx()];
+    output.Printf(" Pk=%g Pn=%g Phase=%g SCEE=%g SCNB=%g",
+                  DP.Pk(), DP.Pn(), DP.Phase(), DP.SCEE(), DP.SCNB());
+  }
+  output.Printf("\n");
 }
 
 /// Function for printing DihedralParmType
@@ -40,13 +46,18 @@ static void PrintDihP(CpptrajFile& output, Topology const& parm,
 static void PrintAngT(CpptrajFile& output, Topology const& parm,
                       AngleType const& first, char dir)
 {
-  output.Printf("%c %s - %s - %s {%s-%s-%s}\n", dir,
+  output.Printf("%c %s - %s - %s {%s-%s-%s}", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 parm.AtomMaskName(first.A3()).c_str(),
                 *(parm[first.A1()].Type()),
                 *(parm[first.A2()].Type()),
                 *(parm[first.A3()].Type()));
+  if (first.Idx() != -1) {
+    AngleParmType const& AP = parm.AngleParm()[first.Idx()];
+    output.Printf(" Tk=%g Teq=%g", AP.Tk(), AP.Teq());
+  }
+  output.Printf("\n");
 }
 
 /// Function for printing AngleParmType
@@ -60,11 +71,16 @@ static void PrintAngP(CpptrajFile& output, Topology const& parm,
 static void PrintBndT(CpptrajFile& output, Topology const& parm,
                       BondType const& first, char dir)
 {
-  output.Printf("%c %s - %s {%s-%s}\n", dir,
+  output.Printf("%c %s - %s {%s-%s}", dir,
                 parm.AtomMaskName(first.A1()).c_str(),
                 parm.AtomMaskName(first.A2()).c_str(),
                 *(parm[first.A1()].Type()),
                 *(parm[first.A2()].Type()));
+  if (first.Idx() != -1) {
+    BondParmType const& BP = parm.BondParm()[first.Idx()];
+    output.Printf(" Rk=%g Req=%g", BP.Rk(), BP.Req());
+  }
+  output.Printf("\n");
 }
 
 /// Function for printing BondParmType
