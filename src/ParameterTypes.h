@@ -8,6 +8,11 @@ class BondParmType {
     BondParmType(double rk, double req) : rk_(rk), req_(req) {}
     inline double Rk()  const { return rk_;  }
     inline double Req() const { return req_; }
+    bool operator<(const BondParmType& rhs) const {
+      if (rk_ == rhs.rk_) {
+        return (req_ < rhs.req_);
+      } else return (rk_ < rhs.rk_);
+    }
   private:
     double rk_;
     double req_;
@@ -40,6 +45,11 @@ class AngleParmType {
     AngleParmType(double tk, double teq) : tk_(tk), teq_(teq) {}
     inline double Tk()  const { return tk_;  }
     inline double Teq() const { return teq_; }
+    bool operator<(const AngleParmType& rhs) const {
+      if (tk_ == rhs.tk_) {
+        return (teq_ < rhs.teq_);
+      } else return (tk_ < rhs.tk_);
+    }
   private:
     double tk_;
     double teq_;
