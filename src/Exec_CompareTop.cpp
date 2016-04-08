@@ -7,6 +7,9 @@ void Exec_CompareTop::Help() const {
           DataSetList::TopArgs, DataSetList::TopArgs);
 }
 
+typedef std::vector<int> Iarray;
+typedef std::vector<NameType> Narray;
+
 // -----------------------------------------------------------------------------
 /// Function for printing NameType
 static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const& name, char dir)
@@ -15,18 +18,55 @@ static void PrintAtype(CpptrajFile& output, Topology const& parm, NameType const
 }
 
 /// \return An array of unique atom types
-static std::vector<NameType> AtypeArray( Topology const& parm ) {
+static Narray AtypeArray( Topology const& parm ) {
   std::set<NameType> atypes;
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom)
     atypes.insert( atom->Type() );
-  std::vector<NameType> out;
+  Narray out;
   for (std::set<NameType>::const_iterator it = atypes.begin(); it != atypes.end(); ++it)
     out.push_back( *it );
   return out;
 }
 
 // -----------------------------------------------------------------------------
+/// Used to hold and sort parameters of given parameter type.
+template <class T> class ParmT {
+  public:
+    ParmT() : natom_(0) {}
+    ParmT(Iarray const& a, Iarray const& r, Narray const& n, T const& p) :
+      atoms_(a), rnums_(r), names_(n), natom_(a.size()), parms_(p) {}
+    bool operator<(const ParmT& rhs) const {
+    // First sort on residue number
+      for (int i = 0; i != natom_; i++)
+        if (rnums_[i] < rhs.rnums_[i])
+          return true;
+        else if (rnums_[i] > rhs.rnums_[i])
+          return false;
+      // All residue numbers are equal. Sort by atom names.
+      for (int i = 0; i != natom_; i++)
+        if (names_[i] < rhs.names_[i])
+          return true;
+        else if (names_[i] > rhs.names_[i])
+          return false;
+      // All res numbers and atom names are equal. Sort by parameters.
+      if (parms_ < rhs.parms_)
+        return true;
+      else
+        return false;
+    }
+    Iarray const& Atoms() const { return atoms_; }
+    T      const& Parms() const { return parms_; }
+  private:
+    Iarray atoms_; ///< Atom indices involved in parameter
+    Iarray rnums_; ///< Residues corresponding to atoms involved in parameter
+    Narray names_; ///< Atom names involved in parameter
+    int natom_;    ///< Number of atoms involved in parameter
+    T parms_;      ///< Parameters
+};
+
+// -----------------------------------------------------------------------------
 /// Hold dihedral atoms and parameters
+/*
 class DihT {
   public:
     DihT() {}
@@ -61,7 +101,7 @@ class DihT {
       else
         return false;
     }
-/*
+*
     bool operator<(DihT const& rhs) const {
       if (atoms_ < rhs.atoms_)
         return true;
@@ -70,12 +110,32 @@ class DihT {
       else
         return false;
     }
-*/
+*
     DihedralType atoms_;
     DihedralParmType parms_;
     int rnums_[4];
     NameType anames_[4];
 };
+*/
+static inline void SetDihParms(Topology const& topIn, DihedralType const& T,
+                               Iarray& atoms, Iarray& rnums, Narray& names)
+{
+  atoms[0] = T.A1();
+  atoms[1] = T.A2();
+  atoms[2] = T.A3();
+  atoms[3] = T.A4();
+  rnums[0] = topIn[T.A1()].ResNum();
+  rnums[1] = topIn[T.A2()].ResNum();
+  rnums[2] = topIn[T.A3()].ResNum();
+  rnums[3] = topIn[T.A4()].ResNum();
+  names[0] = topIn[T.A1()].Name();
+  names[1] = topIn[T.A2()].Name();
+  names[2] = topIn[T.A3()].Name();
+  names[3] = topIn[T.A4()].Name();
+}
+
+/// Hold dihedral parameters
+typedef ParmT<DihedralParmType> DihT;
 
 /// Array of dihedral atoms and parameters
 typedef std::vector<DihT> DihArrayT;
@@ -83,14 +143,22 @@ typedef std::vector<DihT> DihArrayT;
 /// \return Sorted array of dihedral atoms and parameters from given Topology
 static DihArrayT DihArray( Topology const& topIn ) {
   DihArrayT array;
+  Iarray atoms(4);
+  Iarray rnums(4);
+  Narray names(4);
 
   for (DihedralArray::const_iterator it = topIn.Dihedrals().begin();
                                      it != topIn.Dihedrals().end(); ++it)
-    array.push_back( DihT( *it, topIn ) );
+  {
+    SetDihParms( topIn, *it, atoms, rnums, names );
+    array.push_back( DihT(atoms, rnums, names, topIn.DihedralParm()[it->Idx()]) );
+  }
   for (DihedralArray::const_iterator it = topIn.DihedralsH().begin();
                                      it != topIn.DihedralsH().end(); ++it)
-    array.push_back( DihT( *it, topIn ) );
-
+  {
+    SetDihParms( topIn, *it, atoms, rnums, names );
+    array.push_back( DihT(atoms, rnums, names, topIn.DihedralParm()[it->Idx()]) );
+  }
   //std::sort( array.begin(), array.end() );
   return array;
 }
@@ -99,17 +167,17 @@ static DihArrayT DihArray( Topology const& topIn ) {
 static void PrintDihT(CpptrajFile& output, Topology const& parm,
                       DihT const& DIH, char dir)
 {
-  DihedralType const& first = DIH.atoms_;
+  Iarray const& first = DIH.Atoms();
   output.Printf("%c %s - %s - %s - %s {%s-%s-%s-%s}", dir,
-                parm.AtomMaskName(first.A1()).c_str(),
-                parm.AtomMaskName(first.A2()).c_str(),
-                parm.AtomMaskName(first.A3()).c_str(),
-                parm.AtomMaskName(first.A4()).c_str(),
-                *(parm[first.A1()].Type()),
-                *(parm[first.A2()].Type()),
-                *(parm[first.A3()].Type()),
-                *(parm[first.A4()].Type()));
-  DihedralParmType const& DP = DIH.parms_; 
+                parm.AtomMaskName(first[0]).c_str(),
+                parm.AtomMaskName(first[1]).c_str(),
+                parm.AtomMaskName(first[2]).c_str(),
+                parm.AtomMaskName(first[3]).c_str(),
+                *(parm[first[0]].Type()),
+                *(parm[first[1]].Type()),
+                *(parm[first[2]].Type()),
+                *(parm[first[3]].Type()));
+  DihedralParmType const& DP = DIH.Parms(); 
     output.Printf(" Pk=%g Pn=%g Phase=%g SCEE=%g SCNB=%g",
                   DP.Pk(), DP.Pn(), DP.Phase(), DP.SCEE(), DP.SCNB());
   output.Printf("\n");
