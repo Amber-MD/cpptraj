@@ -93,7 +93,7 @@ static inline void PrintHeader(char dir, Iarray const& atoms, Topology const& to
 }
 
 // -----------------------------------------------------------------------------
-/// Used to hold and sort parameters of given parameter type.
+/// Used to hold and sort parameters of given parameter type. TODO also include atom types?
 template <class T> class ParmT {
   public:
     ParmT() : natom_(0) {}
@@ -326,21 +326,23 @@ template <class T> class Diff {
       ArrayType a1 = a1_in;
       ArrayType a2 = a2_in;
       std::sort( a1.begin(), a1.end() );
-/*      CpptrajFile out1;
+/*
+      CpptrajFile out1;
       out1.OpenWrite("out1");
       out1.Printf("'%s': %zu parameters.\n", parm1.c_str(), a1.size());
       for (typename ArrayType::const_iterator it = a1.begin(); it != a1.end(); ++it)
         fxnIn(out1, parm1, *it, ' ');
-      out1.CloseFile();*/
-
+      out1.CloseFile();
+*/
       std::sort( a2.begin(), a2.end() );
-/*      CpptrajFile out2;
+/*
+      CpptrajFile out2;
       out2.OpenWrite("out2");
       out2.Printf("'%s': %zu parameters.\n", parm2.c_str(), a2.size());
       for (typename ArrayType::const_iterator it = a2.begin(); it != a2.end(); ++it)
         fxnIn(out2, parm2, *it, ' ');
-      out2.CloseFile();*/
-
+      out2.CloseFile();
+*/
       typename ArrayType::const_iterator first1 = a1.begin();
       typename ArrayType::const_iterator first2 = a2.begin();
       while (first1 != a1.end() && first2 != a2.end()) {
