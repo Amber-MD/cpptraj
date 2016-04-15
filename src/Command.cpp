@@ -330,7 +330,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
-  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" );
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // HIDDEN
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
