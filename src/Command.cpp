@@ -276,7 +276,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
-  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" );
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // HIDDEN
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
@@ -292,7 +292,7 @@ void Command::Init() {
   Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
   Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
   Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
-  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" ); // HIDDEN
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
