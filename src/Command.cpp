@@ -317,6 +317,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
+  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
@@ -325,7 +326,6 @@ void Command::Init() {
   Command::AddCmd( new Analysis_KDE(),         Cmd::ANA, 1, "kde" );
   Command::AddCmd( new Analysis_Lifetime(),    Cmd::ANA, 1, "lifetime" );
   Command::AddCmd( new Analysis_LowestCurve(), Cmd::ANA, 1, "lowestcurve" );
-  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_MeltCurve(),   Cmd::ANA, 1, "meltcurve" );
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
