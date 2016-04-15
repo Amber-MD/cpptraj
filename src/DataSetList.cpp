@@ -239,6 +239,18 @@ DataSetList DataSetList::GetMultipleSets( std::string const& dsargIn ) const {
   return dsetOut;
 }
 
+// DataSetList::GetSetsOfType()
+DataSetList DataSetList::GetSetsOfType( std::string const& dsargIn, DataSet::DataType typeIn ) const
+{
+  DataSetList dsetOut;
+  dsetOut.hasCopies_ = true;
+  DataSetList selected = SelectSets(dsargIn);
+  for (const_iterator ds = selected.begin(); ds != selected.end(); ++ds)
+    if ( (*ds)->Type() == typeIn )
+      dsetOut.Push_Back( *ds );
+  return dsetOut;
+}
+
 // DataSetList::SelectSets()
 DataSetList DataSetList::SelectSets( std::string const& nameIn ) const {
   return SelectSets( nameIn, DataSet::UNKNOWN_DATA );

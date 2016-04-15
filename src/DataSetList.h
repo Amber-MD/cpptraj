@@ -72,6 +72,8 @@ class DataSetList {
     DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
+    /// Get all DataSets matching specified argument and type.
+    DataSetList GetSetsOfType( std::string const&, DataSet::DataType ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
     /// Select multiple sets by type.
