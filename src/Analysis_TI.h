@@ -4,7 +4,7 @@
 #include "Array1D.h"
 class Analysis_TI : public Analysis {
   public:
-    Analysis_TI() : nskip_(0), dAout_(0) {}
+    Analysis_TI() : Analysis(HIDDEN), nskip_(0), dAout_(0) {}
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_TI(); }
     void Help() const;
 
