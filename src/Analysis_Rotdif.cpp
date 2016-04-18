@@ -165,9 +165,13 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (!randvecOut_.empty())
     mprintf("\tWriting vectors to file '%s'\n", randvecOut_.c_str());
   mprintf("\tMax length to compute vector time correlation functions:");
-  if (ncorr_ == 0)
-    mprintf(" Total # of frames.\n");
-  else
+  if (ncorr_ == 0) {
+    if (tfac_ > 0.0 && tf_ > 0.0) {
+      ncorr_ = (int)((tf_ - ti_) / tfac_);
+      mprintf(" %i frames based on ti/tf/dt.\n", ncorr_);
+    } else
+      mprintf(" Total # of frames.\n");
+  } else
     mprintf(" %i frames.\n",ncorr_);
   mprintf("\tVector time correlation function order: %i\n", olegendre_);
   if (usefft_) {
