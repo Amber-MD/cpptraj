@@ -41,7 +41,7 @@ void Exec_Trajout::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_EnsembleSize::Help() const {
-  mprintf("  Set expected ensemble size to improve ensemble setup efficiency in parallel.\n");
+  mprintf("\t<#>\n  Set expected ensemble size to <#> in order to improve ensemble setup efficiency in parallel.\n");
 }
 
 Exec::RetType Exec_EnsembleSize::Execute(CpptrajState& State, ArgList& argIn) {
