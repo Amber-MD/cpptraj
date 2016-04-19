@@ -39,12 +39,15 @@ class Energy_Sander {
     bool IsActive(Etype e) const { return isActive_[e]; }
     /// \return Temporary top file name
     FileName const& TopFilename() const { return top_filename_; }
+    /// \return Constant string containing supported namelist variables
+    static const char* SupportedNamelist() { return supportedNamelist_; }
   private:
     void SetDefaultInput();
     int WriteTop(Topology const&);
     int CommonInit(Topology const& topIn, Frame& fIn);
 
     static const char* Estring_[];
+    static const char* supportedNamelist_;
     sander_input input_;         ///< Sander input options
     pot_ene energy_;             ///< Sander energy terms
     FileName top_filename_;      ///< Current Topology file name

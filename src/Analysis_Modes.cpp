@@ -27,7 +27,7 @@ void Analysis_Modes::Help() const {
           "\t[out <outfile>] [setname <name>]\n"
           "    Options for 'trajout': (Generate pseudo-trajectory)\n"
           "\t[trajout <name> %s\n", DataSetList::TopArgs);
-  mprintf("\t[trajoutfmt <format>] [trajoutmask <mask>]\n"
+  mprintf("\t  [trajoutfmt <format>] [trajoutmask <mask>]\n"
           "\t  [pcmin <pcmin>] [pcmax <pcmax>] [tmode <mode>]]\n"
           "    Options for 'corr': (Calculate dipole correlation)\n"
           "\t{ maskp <mask1> <mask2> [...] | mask1 <mask> mask2 <mask> }\n"

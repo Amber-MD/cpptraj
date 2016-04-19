@@ -128,6 +128,9 @@ void Energy_Sander::SetDefaultInput() {
 
   input_.restraintmask[0] = '\0';
 }
+
+const char* Energy_Sander::supportedNamelist_ = 
+"extdiel intdiel rgbmax saltcon cut dielc igb alpb gbsa lj1264 ipb inp vdwmeth ew_type ntb";
  
 /** Check and set input for Sander.*/
 int Energy_Sander::SetInput(ArgList& argIn) {
