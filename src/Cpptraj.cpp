@@ -82,6 +82,7 @@ void Cpptraj::Finalize() {
     "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
 }
 
+/** Main routine for running cpptraj. */
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
   Timer total_time;
@@ -112,6 +113,7 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   return err;
 }
 
+/** \return string containing preprocessor defines used to compile cpptraj. */
 std::string Cpptraj::Defines() {
     std::string defined_str ("");
 #ifdef DEBUG
@@ -208,6 +210,9 @@ void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
 
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  commandLine_.clear();
+  for (int i = 1; i < argc; i++)
+    commandLine_.append( " " + std::string(argv[i]) );
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
@@ -425,8 +430,18 @@ int Cpptraj::Interactive() {
   }
 #endif
   logfile_.OpenAppend(logfilename_);
-  if (logfile_.IsOpen())
+  if (logfile_.IsOpen()) {
+    // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
+    if (!commandLine_.empty())
+      logfile_.Printf("#%s\n", commandLine_.c_str());
+    DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
+    if (!tops.empty()) {
+      logfile_.Printf("# Loaded topologies:\n");
+      for (DataSetList::const_iterator top = tops.begin(); top != tops.end(); ++top)
+        logfile_.Printf("#   %s\n", (*top)->Meta().Fname().full());
+    }
+  }
   CpptrajState::RetType readLoop = CpptrajState::OK;
   while ( readLoop != CpptrajState::QUIT ) {
     if (inputLine.GetInput()) {

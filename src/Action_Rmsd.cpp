@@ -20,7 +20,7 @@ Action_Rmsd::Action_Rmsd() :
 { }
 
 void Action_Rmsd::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate | nomod]\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate | nomod]\n"
           "\t[mass] [savematrices]\n%s"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"

@@ -215,7 +215,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
   Command::AddCmd( new Exec_BondInfo(),      Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
-  Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
+  Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" ); // HIDDEN
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
@@ -276,7 +276,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
-  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" );
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // HIDDEN
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
@@ -292,7 +292,7 @@ void Command::Init() {
   Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
   Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
   Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
-  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" ); // HIDDEN
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
@@ -307,15 +307,17 @@ void Command::Init() {
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
   // ANALYSIS
-  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" );
+  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
+  Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
+  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
@@ -324,12 +326,11 @@ void Command::Init() {
   Command::AddCmd( new Analysis_KDE(),         Cmd::ANA, 1, "kde" );
   Command::AddCmd( new Analysis_Lifetime(),    Cmd::ANA, 1, "lifetime" );
   Command::AddCmd( new Analysis_LowestCurve(), Cmd::ANA, 1, "lowestcurve" );
-  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_MeltCurve(),   Cmd::ANA, 1, "meltcurve" );
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
-  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" );
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // HIDDEN
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
@@ -338,9 +339,8 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
-  Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
-  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
+  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" ); // HIDDEN
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );

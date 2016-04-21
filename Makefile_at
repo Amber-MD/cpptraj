@@ -9,6 +9,12 @@ all: install
 
 install: $(INSTALLTYPE)
 
+cray_serial: serial
+
+cray_parallel: parallel
+
+cray_openmp: openmp
+
 # Create cpptraj/ambpdb binaries within AmberTools
 serial:
 	cd src && $(MAKE) -f Makefile_at install
