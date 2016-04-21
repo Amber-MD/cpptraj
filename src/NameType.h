@@ -31,6 +31,17 @@ class NameType {
       }
       return false;
     }
+    bool operator>(NameType const& rhs) const {
+      for (unsigned int i = 0; i != NameSize_; i++)
+      {
+        if      (c_array_[i] == '\0' && rhs.c_array_[i] == '\0') return false;
+        else if (c_array_[i] != '\0' && rhs.c_array_[i] == '\0') return true;
+        else if (c_array_[i] == '\0' && rhs.c_array_[i] != '\0') return false;
+        else if (c_array_[i] > rhs.c_array_[i]) return true;
+        else if (c_array_[i] < rhs.c_array_[i]) return false;
+      }
+      return false;
+    }
   private:
     char c_array_[NameSize_];
 

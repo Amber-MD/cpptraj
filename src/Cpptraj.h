@@ -25,5 +25,6 @@ class Cpptraj {
 
     CpptrajState State_;
     FileName logfilename_; // TODO: Put in CpptrajState?
+    std::string commandLine_; ///< Used to save command line args
 };
 #endif

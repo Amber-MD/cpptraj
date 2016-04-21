@@ -142,6 +142,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
     mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
+  mprintf("\tOrder of Legendre polynomials for calculating spherical harmonics: %i\n", order_);
   mprintf("\tCorrelation time %g, time step %g\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)

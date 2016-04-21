@@ -30,9 +30,11 @@ void Action_Volmap::Help() const {
 }
 
 void Action_Volmap::RawHelp() const {
-  mprintf("\tfilename dx dy dz <mask> [xplor] [radscale <factor>]\n"
-          "\t[ [[buffer <buffer>] [centermask <mask>]] | [center <x,y,z>] [size <x,y,z>] ]\n"
-          "\t[peakcut <cutoff>] [peakfile <xyzfile>] [data <existing set>] [name <setname>]\n");
+  mprintf("\tfilename dx dy dz <mask> [radscale <factor>]\n"
+          "\t{ data <existing set> |\n"
+          "\t  name <setname> { size <x,y,z> [center <x,y,z>] |\n"
+          "\t                   centermask <mask> [buffer <buffer>] } }\n"
+          "\t[peakcut <cutoff>] [peakfile <xyzfile>]\n");
 }
 
 // Action_Volmap::Init()

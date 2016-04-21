@@ -35,6 +35,8 @@ class Mol2File : private CpptrajFile {
     void WriteMol2Bond(int, int, int, NameType const&, NameType const&);
     /// Write mol2 substructure line; res#, resname, firstatom
     void WriteMol2Substructure(int, const char*, int);
+    /// Clear any existing atom mapping
+    void ClearAmberMapping();
     /// Read in mapping from Amber to SYBYL
     int ReadAmberMapping(FileName const&, FileName const&, int);
 

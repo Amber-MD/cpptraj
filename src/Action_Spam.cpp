@@ -11,7 +11,7 @@
 #include "StringRoutines.h" // integerToString
 
 // CONSTRUCTOR
-Action_Spam::Action_Spam() :
+Action_Spam::Action_Spam() : Action(HIDDEN),
   bulk_(0.0),
   purewater_(false),
   reorder_(false),

@@ -26,7 +26,7 @@ Action_Diffusion::Action_Diffusion() :
 {}
 
 static inline void ShortHelp() {
-  mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>]\n"
+  mprintf("\t[{out <filename> | separateout <suffix>}] [time <time per frame>] [noimage]\n"
           "\t[<mask>] [<set name>] [individual] [diffout <filename>] [nocalc]\n");
 }
 

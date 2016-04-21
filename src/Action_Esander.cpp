@@ -21,7 +21,9 @@ Action_Esander::Action_Esander() {}
 void Action_Esander::Help() const {
 # ifdef USE_SANDERLIB
   mprintf("\t[<name>] [out <filename>] [saveforces] [parmname <file>]\n"
-          "  Calculate energy for atoms in mask using Sander energy routines. This\n"
+          "\t[<namelist vars>]\n"
+          "    Supported namelist vars: %s\n", Energy_Sander::SupportedNamelist());
+  mprintf("  Calculate energy for atoms in mask using Sander energy routines. This\n"
           "  currently requires writing a temporary Amber topology, the name of which\n"
           "  can be set by 'parmname' (default: 'CpptrajEsander.parm7').\n");
 # else

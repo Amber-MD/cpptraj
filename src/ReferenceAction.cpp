@@ -32,7 +32,7 @@ std::string ReferenceAction::RefModeString() const {
 
 std::string ReferenceAction::help_ =
   "\t[ first | " + std::string(DataSetList::RefArgs) + " | previous |\n" +
-  "\t  reftraj <filename> [" + std::string(DataSetList::TopArgs) + "] ]\n";
+  "\t  reftraj <name> [" + std::string(DataSetList::TopArgs) + "] ]\n";
 
 #ifdef MPI
 /** Should be called after InitRef(). */
