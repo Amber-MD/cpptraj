@@ -161,6 +161,7 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
         mprinterr("Error: Amber to SYBYL atom type conversion requires AMBERHOME be set.\n");
         return 1;
       }
+      file_.ClearAmberMapping();
       std::string pathname(AMBERHOME);
       if (file_.ReadAmberMapping(pathname+"/dat/antechamber/ATOMTYPE_CHECK.TAB",
                                  pathname+"/dat/antechamber/BONDTYPE_CHECK.TAB", debug_))

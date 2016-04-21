@@ -208,10 +208,13 @@ void Mol2File::WriteMol2Substructure(int rnum, const char* rname, int firstatom)
   Printf("%7d %4s %14d ****               0 ****  **** \n", rnum, rname, firstatom);
 }
 
-int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFile, int debug)
-{
+void Mol2File::ClearAmberMapping() {
   Atype_to_Sybyl_.clear();
   Apair_to_Bond_.clear();
+}
+
+int Mol2File::ReadAmberMapping(FileName const& AtomFile, FileName const& BondFile, int debug)
+{
   CpptrajFile infile;
   // Expected format: <Amber Atom Type> <SYBYL Atom Type>
   if (infile.OpenRead( AtomFile )) return 1;
