@@ -92,6 +92,8 @@ void Traj_Mol2File::WriteHelp() {
   mprintf("\tsingle   : Write to a single file.\n"
           "\tmulti    : Write each frame to a separate file.\n"
           "\tsybyltype: Convert Amber atom types (if present) to SYBYL types.\n"
+          "\tsybylatom: Amber to SYBYL atom type corresponding file (optional).\n"
+          "\tsybylbond: Amber to SYBYL bond type corresponding file (optional).\n"
           "\tkeepext  : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
 }
 
@@ -101,6 +103,10 @@ int Traj_Mol2File::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("single")) mol2WriteMode_ = MOL;
   if (argIn.hasKey("multi"))  mol2WriteMode_ = MULTI;
   useSybylTypes_ = argIn.hasKey("sybyltype");
+  ac_filename_ = argIn.GetStringKey("sybylatom");
+  bc_filename_ = argIn.GetStringKey("sybylbond");
+  if (!ac_filename_.empty() || !bc_filename_.empty())
+    useSybylTypes_ = true;
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) mol2WriteMode_ = MULTI;
   return 0;
@@ -168,6 +174,12 @@ int Traj_Mol2File::setupTrajout(FileName const& fname, Topology* trajParm,
       {
         mprinterr("Error: Loading Amber -> SYBYL type maps failed.\n");
         return 1;
+      }
+      if (!ac_filename_.empty() || !bc_filename_.empty()) {
+        if (file_.ReadAmberMapping(ac_filename_, bc_filename_, debug_)) {
+          mprinterr("Error: Loading custom Amber -> SYBYL type maps failed.\n");
+          return 1;
+        }
       }
     }
   }
