@@ -388,7 +388,7 @@ SetCompilerOptions() {
       if [ -z "$CC" ]; then CC=icc; fi
       if [ -z "$CXX" ]; then CXX=icpc; fi
       if [ -z "$FC" ]; then FC=ifort; fi
-      OPTFLAGS="-O3 -Wall"
+      OPTFLAGS="-O3 -Wall -fp-model precise -fp-model source"
       OMPFLAGS="-openmp"
       FFLAGS="-FR"
       FOPTFLAGS="-ip -O3"
