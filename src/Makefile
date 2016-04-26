@@ -49,6 +49,11 @@ ambpdb.OMP:
 	@echo "INFO: ambpdb is not OpenMP-enabled. Skipping."
 	@echo ""
 
+ambpdb.cuda:
+	@echo ""
+	@echo "INFO: ambpdb is not CUDA-enabled. Skipping."
+	@echo ""
+
 ambpdb.MPI:
 	@echo ""
 	@echo "INFO: ambpdb is not MPI-enabled. Skipping."
@@ -57,6 +62,8 @@ ambpdb.MPI:
 nproc: ;
 
 nproc.OMP: ;
+
+nproc.cuda: ;
 
 nproc.MPI:
 	cd ../util && $(MAKE)

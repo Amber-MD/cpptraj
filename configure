@@ -836,6 +836,7 @@ if [[ $USECUDA -eq 1 ]] ; then
   INCLUDE="$INCLUDE -I$CUDA_HOME/include"
   LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
   CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
+  SFX=".cuda"
 fi
 
 # Check install directory

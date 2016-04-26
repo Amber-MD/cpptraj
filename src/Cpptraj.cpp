@@ -134,6 +134,9 @@ std::string Cpptraj::Defines() {
 #ifdef _OPENMP
   defined_str.append(" -D_OPENMP");
 #endif
+#ifdef CUDA
+  defined_str.append(" -DCUDA"); //TODO SHADER_MODEL?
+#endif
 #ifdef NO_MATHLIB
   defined_str.append(" -DNO_MATHLIB");
 #endif
