@@ -35,8 +35,8 @@ libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
 nolibcpptraj:
 	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
 
-cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET)
+	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 ambpdb: $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
@@ -71,18 +71,25 @@ noreadline:
 	@echo "Skipping READLINE support"
 	@echo ""
 
+cuda_kernels/libcpptraj_cuda.a:
+	cd cuda_kernels && $(MAKE) all
+
 $(FFT_DEPEND):  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
 ReadLine.o: ReadLine.cpp
 	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
+.cu.o:
+	$(NVCC) $(DBGFLAGS) -c $(NVCCFLAGS) -o $@ $<
+
 clean:
 	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb
 	cd $(READLINE_HOME) && $(MAKE) clean
+	cd cuda_kernels && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) cuda_kernels/libcpptraj_cuda.a
 
 # Header dependencies
 include cpptrajdepend

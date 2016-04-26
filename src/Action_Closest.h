@@ -18,6 +18,10 @@ class Action_Closest: public Action {
     Parallel::Comm trajComm_;
 #   endif
     void Print() {}
+#   ifdef CUDA
+    bool cuda_action_center(Frame const&,double,Matrix_3x3 const&,Matrix_3x3 const&,int,float&);
+    bool cuda_action_no_center(Frame const&,double,Matrix_3x3 const&,Matrix_3x3 const&,int,float&);
+#   endif
 
     ImagedAction image_;    ///< Imaging routines.
     DataFile *outFile_;     ///< Output file for data on closest molecules
