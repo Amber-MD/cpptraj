@@ -113,6 +113,9 @@ Support for processing force information in NetCDF trajectories.
 * Steven Ramsey (CUNY Lehman College, Bronx, NY)
 Enhancements to entropy calculation in GIST.
 
+* Amit Roy (University of Utah, UT)
+Code for the CUDA version of the 'closest' Action.
+
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
 * Hai Nguyen (Rutgers University, Piscataway, NJ, USA)
