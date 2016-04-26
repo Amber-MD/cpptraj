@@ -1,6 +1,7 @@
-
+#ifdef DEBUG_CUDA
 #include <cstdio>
-#include <cmath>
+#endif
+//#include <cmath>
 
 #define BLOCKDIM 1024
 

@@ -1,4 +1,4 @@
-#include <stdio.h>
+//#include <stdio.h>
 
 #define BLOCKDIM 1024
 #define RSIZE 1024
