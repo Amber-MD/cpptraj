@@ -270,53 +270,47 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   }
 #ifdef CUDA
 // -----------------------------------------------------------------------------
+/*
   useMaskCenter_ = false;
   cudaEvent_t start_event, stop_event;
   float elapsed_time_seq;
+  mprintf("Solute Center : %s\n", v[k] ? "YES" : "NO");
+  useMaskCenter_ = v[k];
 
-  bool v[2] = { true, false };
+  cudaEventCreate(&start_event);
+  cudaEventCreate(&stop_event);
+  cudaEventRecord(start_event, 0);
 
-  for(int k =0 ; k < 2 ; k++)
-  {
-    mprintf("Solute Center : %s\n", v[k] ? "YES" : "NO");
-    useMaskCenter_ = v[k];
+  // serial section of the code 
+  Action_NoImage(frmIn,maxD);
 
-    cudaEventCreate(&start_event);
-    cudaEventCreate(&stop_event);
-    cudaEventRecord(start_event, 0);
+  cudaThreadSynchronize();
+  cudaEventRecord(stop_event, 0);
+  cudaEventSynchronize(stop_event);
+  cudaEventElapsedTime(&elapsed_time_seq,start_event, stop_event );
+  mprintf("Done with kernel SEQ Kernel Time: %.2f\n", elapsed_time_seq);
+*/
+  int type = 0;
+  bool result;
+  float elapsed_time_gpu;
+  if (useMaskCenter_)
+    result = cuda_action_center(   frm.Frm(), maxD, ucell, recip, type, elapsed_time_gpu);
+  else
+    result = cuda_action_no_center(frm.Frm(), maxD, ucell, recip, type, elapsed_time_gpu);
+  //handling all the data formatting and copying etc
+  // we will only care about kernel time
+  //fixing the overhead will be later
 
-    //serial section of the code 
-    //Action_NoImage(frmIn,maxD);
-
-    cudaThreadSynchronize();
-    cudaEventRecord(stop_event, 0);
-    cudaEventSynchronize(stop_event);
-    cudaEventElapsedTime(&elapsed_time_seq,start_event, stop_event );
-    mprintf("Done with kernel SEQ Kernel Time: %.2f\n", elapsed_time_seq);
-
-    int type = 0;
-    bool result = true;
-    float elapsed_time_gpu;
-    if (useMaskCenter_)
-      result = cuda_action_center(frm.Frm(),maxD,ucell ,recip ,type ,elapsed_time_gpu);
-    else
-      result = cuda_action_no_center(frm.Frm(),maxD,ucell ,recip ,type ,elapsed_time_gpu);
-    //handling all the data formatting and copying etc
-    // we will only care about kernel time
-    //fixing the overhead will be later
-
-    if(result){
-      mprintf("CUDA PASS\n");
-    }
-    else{
-      mprintf("CUDA FAIL!\n");
-      exit(0);
-    }
-
-    mprintf("Seq Time:  = %0.2f\n", elapsed_time_seq);
-    mprintf("CUDA Time: = %0.2f\n", elapsed_time_gpu);
-    mprintf("Speedup =  %0.2f\n", elapsed_time_seq/elapsed_time_gpu);
+  if(result)
+    mprintf("CUDA PASS\n");
+  else {
+    mprintf("CUDA FAIL!\n");
+    return Action::ERR;
   }
+
+  //mprintf("Seq Time:  = %0.2f\n", elapsed_time_seq);
+  mprintf("CUDA Time: = %0.2f\n", elapsed_time_gpu);
+  //mprintf("Speedup =  %0.2f\n", elapsed_time_seq/elapsed_time_gpu);
 #else
 // -----------------------------------------------------------------------------
   int solventMol; 

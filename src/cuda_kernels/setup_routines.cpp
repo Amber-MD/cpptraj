@@ -59,6 +59,8 @@ bool Action_Closest::cuda_action_center(Frame const& frmIn, double maxD, Matrix_
 	//copying back the D__ into the right place
 	bool flag = true;
 	for(int sMol = 0; sMol < NMols; sMol++){
+          SolventMols_[sMol].D = D_[sMol];
+/*
 		if(fabs(SolventMols_[sMol].D - D_[sMol]) > TOL)
 		{
 			flag = false;
@@ -66,6 +68,7 @@ bool Action_Closest::cuda_action_center(Frame const& frmIn, double maxD, Matrix_
 			break;
 		}
 		//printf("lhs = %f ; rhs = %f ",SolventMols_[sMol].D,D_[sMol]);
+*/
 	}
 
 	delete linear_Solvent;
@@ -73,9 +76,6 @@ bool Action_Closest::cuda_action_center(Frame const& frmIn, double maxD, Matrix_
 
 	return flag;
 	//done
-
-
-
 }
 
 
@@ -83,8 +83,6 @@ bool Action_Closest::cuda_action_center(Frame const& frmIn, double maxD, Matrix_
 //need to fix this 
 bool Action_Closest::cuda_action_no_center(Frame const& frmIn, double maxD, Matrix_3x3 const& ucell, Matrix_3x3 const& recip,int type, float &time_gpu)
 {
-	Vec3 maskCenter_holder =  frmIn.VGeometricCenter( distanceMask_ );
-	double* maskCenter = maskCenter_holder.Dptr();
 	AtomMask::const_iterator solute_atom;
 
 	//allocate space and rewrite 
@@ -138,6 +136,8 @@ bool Action_Closest::cuda_action_no_center(Frame const& frmIn, double maxD, Matr
 	//copying back the D__ into the right place
 	bool flag = true;
 	for(int sMol = 0; sMol < NMols; sMol++){
+          SolventMols_[sMol].D = D_[sMol];
+/*
 		if(fabs(SolventMols_[sMol].D - D_[sMol]) > TOL)
 		{
 			flag = false;
@@ -146,6 +146,7 @@ bool Action_Closest::cuda_action_no_center(Frame const& frmIn, double maxD, Matr
 			break;
 		}
 		//printf("lhs = %f ; rhs = %f ",SolventMols_[sMol].D,D_[sMol]);
+*/ 
 	}
 
 	delete linear_Solvent;
@@ -154,7 +155,4 @@ bool Action_Closest::cuda_action_no_center(Frame const& frmIn, double maxD, Matr
 
 	return flag;
 	//done
-
-
-
 }
