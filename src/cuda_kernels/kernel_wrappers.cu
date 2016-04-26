@@ -57,10 +57,10 @@ void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3]
   dim3 dimGrid0 = dim3(NBlocks,1);
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
 
-
+# ifdef DEBUG_CUDA
   printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
   printf("About to launch kernel.\n");
-
+# endif
 
   cudaEventCreate(&start_event);
   cudaEventCreate(&stop_event);
@@ -73,9 +73,9 @@ void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3]
   cudaEventSynchronize(stop_event);
   cudaEventElapsedTime(&elapsed_time_gpu,start_event, stop_event );
 
-
+# ifdef DEBUG_CUDA
   printf("Done with kernel CUDA Kernel Time: %.2f\n", elapsed_time_gpu);
-
+# endif
   time_gpu  = elapsed_time_gpu;
   
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
@@ -134,10 +134,10 @@ void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_at
   dim3 dimGrid0 = dim3(NBlocks,1);
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
 
-
+# ifdef DEBUG_CUDA
   printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
   printf("About to launch kernel.\n");
-
+# endif
 
   cudaEventCreate(&start_event);
   cudaEventCreate(&stop_event);
@@ -150,9 +150,9 @@ void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_at
   cudaEventSynchronize(stop_event);
   cudaEventElapsedTime(&elapsed_time_gpu,start_event, stop_event );
 
-
+# ifdef DEBUG_CUDA
   printf("Done with kernel CUDA Kernel Time: %.2f\n", elapsed_time_gpu);
-
+# endif
   time_gpu  = elapsed_time_gpu;
   
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);

@@ -61,6 +61,9 @@ void Cpptraj::Intro() {
 # ifdef _OPENMP
           " OpenMP"
 # endif
+# ifdef CUDA
+          " CUDA"
+# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI

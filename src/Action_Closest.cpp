@@ -300,17 +300,20 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   //handling all the data formatting and copying etc
   // we will only care about kernel time
   //fixing the overhead will be later
-
+# ifdef DEBUG_CUDA
   if(result)
     mprintf("CUDA PASS\n");
   else {
     mprintf("CUDA FAIL!\n");
     return Action::ERR;
   }
-
   //mprintf("Seq Time:  = %0.2f\n", elapsed_time_seq);
   mprintf("CUDA Time: = %0.2f\n", elapsed_time_gpu);
   //mprintf("Speedup =  %0.2f\n", elapsed_time_seq/elapsed_time_gpu);
+# else
+  if (!result) return Action::ERR;
+# endif
+
 #else
 // -----------------------------------------------------------------------------
   int solventMol; 
