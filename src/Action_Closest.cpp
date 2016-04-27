@@ -19,9 +19,10 @@ extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,
 // CONSTRUCTOR
 Action_Closest::Action_Closest() :
 # ifdef CUDA
-  V_distances_(0),
+  GPU_MEM_(0),
   V_atom_coords_(0),
   U_atom_coords_(0),
+  V_distances_(0),
 # endif
   outFile_(0),
   framedata_(0),
@@ -50,9 +51,7 @@ void Action_Closest::Help() const {
 Action_Closest::~Action_Closest() {
   if (newParm_!=0) delete newParm_;
 # ifdef CUDA
-  if (V_distances_ != 0) delete[] V_distances_;
-  if (V_atom_coords_ != 0) delete[] V_atom_coords_;
-  if (U_atom_coords_ != 0) delete[] U_atom_coords_;
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
 # endif
 }
 
@@ -260,13 +259,18 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   }
 # ifdef CUDA
   // Allocate space for simple arrays that will be sent to GPU.
-  if (V_distances_ != 0) delete[] V_distances_;
-  if (V_atom_coords_ != 0) delete[] V_atom_coords_;
-  if (U_atom_coords_ != 0) delete[] U_atom_coords_;
-  V_distances_ = new double[ SolventMols_.size() ];
-  V_atom_coords_ = new double[ NsolventAtoms * SolventMols_.size() * 3 ];
-  if (!useMaskCenter_)
-    U_atom_coords_ = new double[ distanceMask_.Nselected() * 3 ];
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
+  size_t gpu_mem_size = SolventMols_.size() + // V_distances_
+                        (NsolventAtoms * SolventMols_.size() * 3); // V_atom_coords_
+  if (!useMaskCenter_) gpu_mem_size += (distanceMask_.Nselected() * 3); // U_atom_coords_
+  GPU_MEM_ = new double[ gpu_mem_size ];
+  V_atom_coords_ = GPU_MEM_;
+  if (useMaskCenter_) {
+    V_distances_   = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+  } else {
+    U_atom_coords_ = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+    V_distances_   = U_atom_coords_ + (distanceMask_.Nselected() * 3);
+  }
 # endif
 
   return Action::MODIFY_TOPOLOGY;
