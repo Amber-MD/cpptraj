@@ -808,39 +808,6 @@ SetCompilerOptions $COMPILERS
 # Check that OpenMP will work if it was specified
 TestOpenMP
 
-# Check that CUDA will work.
-if [[ $USECUDA -eq 1 ]] ; then
-  if [ -z "$CUDA_HOME" ] ; then
-    echo "Error: CUDA_HOME not set." > /dev/stderr
-    echo "       Set CUDA_HOME to point to your NVIDIA tools installation." > /dev/stderr
-    exit 1
-  fi
-  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
-    echo "Error: nvcc cuda compiler not found in $CUDA_HOME/bin/" > /dev/stderr
-    exit 1
-  fi
-  if [ -z "$SHADER_MODEL" ] ; then
-    echo "Error: SHADER_MODEL not set. Set based on architecture of your GPU." > /dev/stderr
-    echo "  'sm_53' = SM5.3 = GM200 [Grid] = M60, M40?" > /dev/stderr
-    echo "  'sm_52' = SM5.2 = GM200 = GTX-Titan-X, M6000 etc." > /dev/stderr
-    echo "  'sm_50' = SM5.0 = GM204 = GTX980, 970 etc" > /dev/stderr
-    echo "  'sm_37' = SM3.7 = GK210 = K80" > /dev/stderr
-    echo "  'sm_35' = SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z" > /dev/stderr
-    echo "  'sm_30' = SM3.0 = GK104 = K10, GTX680, 690 etc." > /dev/stderr
-    echo "  'sm_20' = SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc." > /dev/stderr
-    exit 1
-  fi
-  if [ -z "$NVCC" ]; then NVCC="$CUDA_HOME/bin/nvcc"; fi
-  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="-arch=$SHADER_MODEL"; fi
-  DIRECTIVES=$DIRECTIVES" -DCUDA"
-  CUDA_VERSION=`$NVCC --version | grep 'release' | cut -d' ' -f5 | cut -d',' -f1`
-  echo "CUDA version $CUDA_VERSION detected."
-  INCLUDE="$INCLUDE -I$CUDA_HOME/include"
-  LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
-  CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
-  SFX=".cuda"
-fi
-
 # Check install directory
 if [[ -z $CPPTRAJHOME ]] ; then
   # Default is to use current directory.
@@ -1108,6 +1075,40 @@ if [[ $USEMPI -ne 0 ]] ; then
     FC=mpiifort
   fi
 fi
+
+# Check that CUDA will work.
+if [[ $USECUDA -eq 1 ]] ; then
+  if [ -z "$CUDA_HOME" ] ; then
+    echo "Error: CUDA_HOME not set." > /dev/stderr
+    echo "       Set CUDA_HOME to point to your NVIDIA tools installation." > /dev/stderr
+    exit 1
+  fi
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    echo "Error: nvcc cuda compiler not found in $CUDA_HOME/bin/" > /dev/stderr
+    exit 1
+  fi
+  if [ -z "$SHADER_MODEL" ] ; then
+    echo "Error: SHADER_MODEL not set. Set based on architecture of your GPU." > /dev/stderr
+    echo "  'sm_53' = SM5.3 = GM200 [Grid] = M60, M40?" > /dev/stderr
+    echo "  'sm_52' = SM5.2 = GM200 = GTX-Titan-X, M6000 etc." > /dev/stderr
+    echo "  'sm_50' = SM5.0 = GM204 = GTX980, 970 etc" > /dev/stderr
+    echo "  'sm_37' = SM3.7 = GK210 = K80" > /dev/stderr
+    echo "  'sm_35' = SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z" > /dev/stderr
+    echo "  'sm_30' = SM3.0 = GK104 = K10, GTX680, 690 etc." > /dev/stderr
+    echo "  'sm_20' = SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc." > /dev/stderr
+    exit 1
+  fi
+  if [ -z "$NVCC" ]; then NVCC="$CUDA_HOME/bin/nvcc"; fi
+  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DEBUGFLAGS -arch=$SHADER_MODEL"; fi
+  DIRECTIVES=$DIRECTIVES" -DCUDA"
+  CUDA_VERSION=`$NVCC --version | grep 'release' | cut -d' ' -f5 | cut -d',' -f1`
+  echo "CUDA version $CUDA_VERSION detected."
+  INCLUDE="$INCLUDE -I$CUDA_HOME/include"
+  LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
+  CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
+  SFX=".cuda"
+fi
+
 
 # Set up compiler flags if not already set
 CFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE $CFLAGS"
