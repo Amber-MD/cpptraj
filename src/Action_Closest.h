@@ -20,9 +20,9 @@ class Action_Closest: public Action {
     void Print() {}
 #   ifdef CUDA
     // TODO Should these just be simple C arrays?
-    std::vector<double> V_distances_; ///< Hold closest distance of each solvent mol
-    std::vector<double> V_atom_coords_; ///< Hold coordinates for selected solvent atoms
-    std::vector<double> U_atom_coords_; ///< Hold coordinates for selected solute atoms
+    double* V_distances_;
+    double* V_atom_coords_;
+    double* U_atom_coords_;
 #   endif
 
     ImagedAction image_;    ///< Imaging routines.

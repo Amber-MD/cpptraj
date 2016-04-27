@@ -18,6 +18,11 @@ extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,
 
 // CONSTRUCTOR
 Action_Closest::Action_Closest() :
+# ifdef CUDA
+  V_distances_(0),
+  V_atom_coords_(0),
+  U_atom_coords_(0),
+# endif
   outFile_(0),
   framedata_(0),
   moldata_(0),
@@ -44,6 +49,11 @@ void Action_Closest::Help() const {
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
   if (newParm_!=0) delete newParm_;
+# ifdef CUDA
+  if (V_distances_ != 0) delete[] V_distances_;
+  if (V_atom_coords_ != 0) delete[] V_atom_coords_;
+  if (U_atom_coords_ != 0) delete[] U_atom_coords_;
+# endif
 }
 
 // Action_Closest::Init()
@@ -250,10 +260,13 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   }
 # ifdef CUDA
   // Allocate space for simple arrays that will be sent to GPU.
-  V_distances_.resize( SolventMols_.size() );
-  V_atom_coords_.resize( NsolventAtoms * SolventMols_.size() * 3, 0.0 );
+  if (V_distances_ != 0) delete[] V_distances_;
+  if (V_atom_coords_ != 0) delete[] V_atom_coords_;
+  if (U_atom_coords_ != 0) delete[] U_atom_coords_;
+  V_distances_ = new double[ SolventMols_.size() ];
+  V_atom_coords_ = new double[ NsolventAtoms * SolventMols_.size() * 3 ];
   if (!useMaskCenter_)
-    U_atom_coords_.resize( distanceMask_.Nselected() * 3, 0.0 );
+    U_atom_coords_ = new double[ distanceMask_.Nselected() * 3 ];
 # endif
 
   return Action::MODIFY_TOPOLOGY;
@@ -316,7 +329,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   // TODO handle imaging
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
-    Action_NoImage_Center( &V_atom_coords_[0], &V_distances_[0], maskCenter.Dptr(),
+    Action_NoImage_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
                            maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu );
   } else {
     int NSAtoms = distanceMask_.Nselected();
@@ -326,7 +339,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       U_atom_coords_[nsAtom*3 + 1] = a[1];
       U_atom_coords_[nsAtom*3 + 2] = a[2];
     }
-    Action_NoImage_no_Center( &V_atom_coords_[0], &V_distances_[0], &U_atom_coords_[0],
+    Action_NoImage_no_Center( V_atom_coords_, V_distances_, U_atom_coords_,
                               maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu );
   }
   // Copy distances back into SolventMols_
