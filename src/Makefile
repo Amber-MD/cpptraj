@@ -9,6 +9,8 @@ include ambpdbfiles
 
 AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
+CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
+
 all: cpptraj$(SFX)
 
 install: cpptraj$(SFX) ambpdb$(SFX) nproc$(SFX) 
@@ -78,7 +80,7 @@ noreadline:
 	@echo "Skipping READLINE support"
 	@echo ""
 
-cuda_kernels/libcpptraj_cuda.a:
+cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
 	cd cuda_kernels && $(MAKE) all
 
 $(FFT_DEPEND):  pub_fft.F90
