@@ -100,7 +100,7 @@ __global__ void Action_noImage_no_center_GPU(double *D_,double *SolventMols_,dou
 {
 
 	__shared__ double dist_array[BLOCKDIM];
-	__shared__ double sAtom_shared[RSIZE];
+	//__shared__ double sAtom_shared[RSIZE];
 
 
 

@@ -624,6 +624,7 @@ CheckDefines() {
   OPENMP=`echo $DEFINES | grep D_OPENMP`
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
   SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
+  CUDA=`echo $DEFINES | grep DCUDA`
 }
 
 #===============================================================================
@@ -656,6 +657,10 @@ else
   SetBinaries
   # Check how CPPTRAJ was compiled
   CheckDefines
+  # If CUDA, use cuda-memcheck instead of valgrind
+  if [[ ! -z $VALGRIND && ! -z $CUDA ]] ; then
+    VALGRIND='cuda-memcheck'
+  fi
   # Start test results file
   echo "**************************************************************"
   echo "TEST: `pwd`"

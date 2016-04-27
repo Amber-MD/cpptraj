@@ -25,11 +25,11 @@ void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3]
   double *devI2Ptr;
   double *devI1Ptr;
   double *devO1Ptr;
-  int t4;
-  int t2;
-  double Dist;
-  int solventMol;
-  int solventAtom;
+  //int t4;
+  //int t2;
+  //double Dist;
+  //int solventMol;
+  //int solventAtom;
 
 
 
@@ -96,13 +96,13 @@ void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_at
 
   double *devI3Ptr;
   double *devI2Ptr;
-  double *devI1Ptr;
+  //double *devI1Ptr;
   double *devO1Ptr;
-  int t4;
-  int t2;
-  double Dist;
-  int solventMol;
-  int solventAtom;
+  //int t4;
+  //int t2;
+  //double Dist;
+  //int solventMol;
+  //int solventAtom;
 
 
 
@@ -158,7 +158,7 @@ void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_at
   
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
   cudaFree(devO1Ptr);
-  cudaFree(devI1Ptr);
+  //cudaFree(devI1Ptr);
   cudaFree(devI2Ptr);
   cudaFree(devI3Ptr);
 }
