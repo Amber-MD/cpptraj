@@ -19,8 +19,10 @@ class Action_Closest: public Action {
 #   endif
     void Print() {}
 #   ifdef CUDA
-    bool cuda_action_center(Frame const&,double,Matrix_3x3 const&,Matrix_3x3 const&,int,float&);
-    bool cuda_action_no_center(Frame const&,double,Matrix_3x3 const&,Matrix_3x3 const&,int,float&);
+    // TODO Should these just be simple C arrays?
+    std::vector<double> V_distances_; ///< Hold closest distance of each solvent mol
+    std::vector<double> V_atom_coords_; ///< Hold coordinates for selected solvent atoms
+    std::vector<double> U_atom_coords_; ///< Hold coordinates for selected solute atoms
 #   endif
 
     ImagedAction image_;    ///< Imaging routines.

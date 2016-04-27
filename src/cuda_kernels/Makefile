@@ -15,11 +15,9 @@ TARGET        = libcpptraj_cuda.a
 
 CUDA_SOURCES=core_kernels.cu kernel_wrappers.cu
 
-SOURCES=setup_routines.cpp
-
 # Objects
 
-OBJECTS=$(CUDA_SOURCES:.cu=.o) $(SOURCES:.cpp=.o)
+OBJECTS=$(CUDA_SOURCES:.cu=.o)
 
 # Specific rules
 
@@ -33,8 +31,6 @@ clean:
 	/bin/rm -f *.o $(TARGET)
 
 # Dependencies
-setup_routines.o: setup_routines.cpp ../Action_Closest.h
-
 core_kernels.o: core_kernels.cu
 
 kernel_wrappers.o: kernel_wrappers.cu

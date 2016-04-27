@@ -10,6 +10,10 @@
 #ifdef CUDA
 #  include <cuda_runtime_api.h>
 #  include <cuda.h>
+
+// CUDA kernels
+extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&);
+extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&);
 #endif
 
 // CONSTRUCTOR
@@ -244,6 +248,13 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     if ( pfile.WriteTopology(*newParm_, parmoutName_, ParmFile::AMBERPARM, debug_) )
       mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
   }
+# ifdef CUDA
+  // Allocate space for simple arrays that will be sent to GPU.
+  V_distances_.resize( SolventMols_.size() );
+  V_atom_coords_.resize( NsolventAtoms * SolventMols_.size() * 3, 0.0 );
+  if (!useMaskCenter_)
+    U_atom_coords_.resize( distanceMask_.Nselected() * 3, 0.0 );
+# endif
 
   return Action::MODIFY_TOPOLOGY;
 }
@@ -290,31 +301,42 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   cudaEventElapsedTime(&elapsed_time_seq,start_event, stop_event );
   mprintf("Done with kernel SEQ Kernel Time: %.2f\n", elapsed_time_seq);
 */
-  int type = 0;
-  bool result;
   float elapsed_time_gpu;
-  if (useMaskCenter_)
-    result = cuda_action_center(   frm.Frm(), maxD, ucell, recip, type, elapsed_time_gpu);
-  else
-    result = cuda_action_no_center(frm.Frm(), maxD, ucell, recip, type, elapsed_time_gpu);
-  //handling all the data formatting and copying etc
-  // we will only care about kernel time
-  //fixing the overhead will be later
-# ifdef DEBUG_CUDA
-  if(result)
-    mprintf("CUDA PASS\n");
-  else {
-    mprintf("CUDA FAIL!\n");
-    return Action::ERR;
+  // Copy solvent atom coords to array
+  int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to same size due to setup
+  for (int sMol = 0; sMol < NsolventMolecules_; ++sMol) {
+    for(int sAtom = 0; sAtom < NAtoms; sAtom++) {
+      int index =  (sAtom * 3 ) + (sMol * 3 * NAtoms);
+      const double *a = frm.Frm().XYZ(SolventMols_[sMol].solventAtoms[sAtom]);
+      V_atom_coords_[index + 0] = a[0];
+      V_atom_coords_[index + 1] = a[1];
+      V_atom_coords_[index + 2] = a[2];
+    }
   }
-  //mprintf("Seq Time:  = %0.2f\n", elapsed_time_seq);
+  // TODO handle imaging
+  if (useMaskCenter_) {
+    Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
+    Action_NoImage_Center( &V_atom_coords_[0], &V_distances_[0], maskCenter.Dptr(),
+                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu );
+  } else {
+    int NSAtoms = distanceMask_.Nselected();
+    for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
+      const double* a = frm.Frm().XYZ(distanceMask_[nsAtom]);
+      U_atom_coords_[nsAtom*3 + 0] = a[0];
+      U_atom_coords_[nsAtom*3 + 1] = a[1];
+      U_atom_coords_[nsAtom*3 + 2] = a[2];
+    }
+    Action_NoImage_no_Center( &V_atom_coords_[0], &V_distances_[0], &U_atom_coords_[0],
+                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu );
+  }
+  // Copy distances back into SolventMols_
+  for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
+    SolventMols_[sMol].D = V_distances_[sMol];
+# ifdef DEBUG_CUDA
   mprintf("CUDA Time: = %0.2f\n", elapsed_time_gpu);
-  //mprintf("Speedup =  %0.2f\n", elapsed_time_seq/elapsed_time_gpu);
-# else
-  if (!result) return Action::ERR;
 # endif
 
-#else
+#else /* Not CUDA */
 // -----------------------------------------------------------------------------
   int solventMol; 
 
