@@ -406,7 +406,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   // Sort distances
   std::sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
   // Add first closestWaters solvent atoms to stripMask
-  std::vector<MolDist>::iterator solventend = SolventMols_.begin() + closestWaters_;
+  std::vector<MolDist>::const_iterator solventend = SolventMols_.begin() + closestWaters_;
   Iarray::const_iterator katom = keptWaterAtomNum_.begin();
   for ( std::vector<MolDist>::const_iterator solvent = SolventMols_.begin();
                                              solvent != solventend;
