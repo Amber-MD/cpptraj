@@ -312,7 +312,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     // Calculate closest distance of every solvent image to solute
     int mnum;
 #   ifdef _OPENMP
-#   pragma omp parallel private(mnum, Dist2)
+#   pragma omp parallel private(mnum, Dist2, solvent_atom)
     {
 #   pragma omp for
 #   endif
@@ -374,7 +374,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     // Loop over all solvent molecules
     int mnum;
 #   ifdef _OPENMP
-#   pragma omp parallel private(mnum, Dist2)
+#   pragma omp parallel private(mnum, Dist2, solvent_atom)
     {
 #   pragma omp for
 #   endif
