@@ -274,7 +274,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   // Loop over all solvent molecules in original frame
   if (image_.ImageType() == NONORTHO) {
     frm.Frm().BoxCrd().ToRecip(ucell, recip);
-    mprintf("DEBUG: EXPERIMENTAL NONORTHO.\n");
+    //mprintf("DEBUG: EXPERIMENTAL NONORTHO.\n");
     // Wrap all solute atoms back into primary cell and save coords
     double* uFrac = &U_cell0_coords_[0];
     if (useMaskCenter_) {
@@ -287,6 +287,29 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       // Convert back to Cartesian
       ucell.TransposeMult( uFrac, center.Dptr() );
     } else {
+#     ifdef _OPENMP
+      int nUatoms = distanceMask_.Nselected();
+      int idx;
+      double* result;
+      const double* XYZ;
+#     pragma omp parallel private(idx, result, XYZ)
+      {
+#     pragma omp for
+      for (idx = 0; idx < nUatoms; idx++)
+      {
+        result = uFrac + idx*3;
+        XYZ = frm.Frm().XYZ( distanceMask_[idx] );
+        // Convert to frac coords
+        recip.TimesVec( result, XYZ );
+        // Wrap to primary unit cell
+        result[0] = result[0] - floor(result[0]);
+        result[1] = result[1] - floor(result[1]);
+        result[2] = result[2] - floor(result[2]);
+        // Convert back to Cartesian
+        ucell.TransposeMult( result, result );
+      }
+      }
+#     else /* _OPENMP */
       for (AtomMask::const_iterator atm = distanceMask_.begin();
                                     atm != distanceMask_.end(); ++atm, uFrac += 3)
       {
@@ -300,9 +323,16 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
         // Convert back to Cartesian
         ucell.TransposeMult( uFrac, uFrac );
       }
+#     endif /* _OPENMP */
     }
     // Calculate closest distance of every solvent image to solute
-    for (int mnum = 0; mnum < NsolventMolecules_; mnum++)
+    int mnum;
+#   ifdef _OPENMP
+#   pragma omp parallel private(mnum, Dist)
+    {
+#   pragma omp for
+#   endif
+    for (mnum = 0; mnum < NsolventMolecules_; mnum++)
     {
       MolDist& Mol = SolventMols_[mnum];
       Mol.D = maxD;
@@ -339,6 +369,9 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
             } // END loop over images (Z)
       } // END loop over solvent atoms
     } // END loop over solvent molecules
+#   ifdef _OPENMP
+    } /* END omp pragma parallel */
+#   endif
   } else if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
 #ifdef _OPENMP
