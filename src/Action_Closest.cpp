@@ -241,7 +241,10 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
       mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
   }
   if (image_.ImageType() == NONORTHO) {
-    U_cell0_coords_.resize( distanceMask_.Nselected() * 3 );
+    if (useMaskCenter_)
+      U_cell0_coords_.resize( 3 );
+    else
+      U_cell0_coords_.resize( distanceMask_.Nselected() * 3 );
   }
 
   return Action::MODIFY_TOPOLOGY;
@@ -259,8 +262,6 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   Iarray::const_iterator solvent_atom;
 
   if (image_.ImagingEnabled()) {
-    if (image_.ImageType() == NONORTHO)
-      frm.Frm().BoxCrd().ToRecip(ucell, recip);
     // Calculate max possible imaged distance
     maxD = frm.Frm().BoxCrd().BoxX() + frm.Frm().BoxCrd().BoxY() + 
            frm.Frm().BoxCrd().BoxZ();
@@ -271,44 +272,34 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   // Loop over all solvent molecules in original frame
-  if (useMaskCenter_) {
-    Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
-#ifdef _OPENMP
-#pragma omp parallel private(solventMol,Dist,solvent_atom)
-{
-#   pragma omp for
-#endif
-    for (solventMol=0; solventMol < NsolventMolecules_; solventMol++) {
-      SolventMols_[solventMol].D = maxD;
-      for (solvent_atom = SolventMols_[solventMol].solventAtoms.begin();
-           solvent_atom != SolventMols_[solventMol].solventAtoms.end(); ++solvent_atom)
-      {
-        Dist = DIST2( maskCenter.Dptr(),
-                      frm.Frm().XYZ(*solvent_atom), image_.ImageType(),
-                      frm.Frm().BoxCrd(), ucell, recip);
-        if (Dist < SolventMols_[solventMol].D) 
-          SolventMols_[solventMol].D = Dist;
-      }
-    }
-#ifdef _OPENMP
-}
-#endif
-  } else if (image_.ImageType() == NONORTHO) {
-    mprintf("DEBUG: EXPERIMENTAL NONORTHO NON-CENTER\n");
+  if (image_.ImageType() == NONORTHO) {
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+    mprintf("DEBUG: EXPERIMENTAL NONORTHO.\n");
     // Wrap all solute atoms back into primary cell and save coords
     double* uFrac = &U_cell0_coords_[0];
-    for (AtomMask::const_iterator atm = distanceMask_.begin();
-                                  atm != distanceMask_.end(); ++atm, uFrac += 3)
-    {
-      const double* XYZ = frm.Frm().XYZ( *atm );
-      // Convert to frac coords
-      recip.TimesVec( uFrac, XYZ ); 
+    if (useMaskCenter_) {
+      //  Calc COM and convert to frac coords
+      Vec3 center = recip * frm.Frm().VGeometricCenter( distanceMask_ );
       // Wrap to primary unit cell
-      uFrac[0] = uFrac[0] - floor(uFrac[0]);
-      uFrac[1] = uFrac[1] - floor(uFrac[1]);
-      uFrac[2] = uFrac[2] - floor(uFrac[2]);
+      center[0] = center[0] - floor(center[0]);
+      center[1] = center[1] - floor(center[1]);
+      center[2] = center[2] - floor(center[2]);
       // Convert back to Cartesian
-      ucell.TransposeMult( uFrac, uFrac );
+      ucell.TransposeMult( uFrac, center.Dptr() );
+    } else {
+      for (AtomMask::const_iterator atm = distanceMask_.begin();
+                                    atm != distanceMask_.end(); ++atm, uFrac += 3)
+      {
+        const double* XYZ = frm.Frm().XYZ( *atm );
+        // Convert to frac coords
+        recip.TimesVec( uFrac, XYZ ); 
+        // Wrap to primary unit cell
+        uFrac[0] = uFrac[0] - floor(uFrac[0]);
+        uFrac[1] = uFrac[1] - floor(uFrac[1]);
+        uFrac[2] = uFrac[2] - floor(uFrac[2]);
+        // Convert back to Cartesian
+        ucell.TransposeMult( uFrac, uFrac );
+      }
     }
     // Calculate closest distance of every solvent image to solute
     for (int mnum = 0; mnum < NsolventMolecules_; mnum++)
@@ -342,16 +333,34 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
                 //mprintf("\t\tV= %i  U= %i  D= %f  img= %i %i %i\n", *solvent_atom + 1, distanceMask_[idx/3]+1, sqrt(Dist), ix, iy, iz);
                 if (Dist < Mol.D) {
                   Mol.D = Dist;
-                  //closest_solute_idx = idx / 3;
-                  //closest_solute_ix = ix;
-                  //closest_solute_iy = iy;
-                  //closest_solute_iz = iz;
                   //mprintf("\tNew closest solute to solvent atom %i (%f): %i {%i,%i,%i}\n", *solvent_atom + 1, sqrt(Dist), distanceMask_[idx/3]+1, ix, iy, iz);
                 }
               } // END loop over solute atoms
             } // END loop over images (Z)
       } // END loop over solvent atoms
     } // END loop over solvent molecules
+  } else if (useMaskCenter_) {
+    Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
+#ifdef _OPENMP
+#pragma omp parallel private(solventMol,Dist,solvent_atom)
+{
+#   pragma omp for
+#endif
+    for (solventMol=0; solventMol < NsolventMolecules_; solventMol++) {
+      SolventMols_[solventMol].D = maxD;
+      for (solvent_atom = SolventMols_[solventMol].solventAtoms.begin();
+           solvent_atom != SolventMols_[solventMol].solventAtoms.end(); ++solvent_atom)
+      {
+        Dist = DIST2( maskCenter.Dptr(),
+                      frm.Frm().XYZ(*solvent_atom), image_.ImageType(),
+                      frm.Frm().BoxCrd(), ucell, recip);
+        if (Dist < SolventMols_[solventMol].D) 
+          SolventMols_[solventMol].D = Dist;
+      }
+    }
+#ifdef _OPENMP
+}
+#endif
   } else {
 #ifdef _OPENMP
 #pragma omp parallel private(solventMol,solute_atom,Dist,solvent_atom)
