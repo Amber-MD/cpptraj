@@ -257,7 +257,12 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
   // If 0 no box or velo 
   if (readSize > 0) {
-    if (readSize == infile.FrameSize()) {
+    bool velocitiesRead = (readSize == infile.FrameSize());
+    if (readSize + 1 + (unsigned int)infile.IsDos() == infile.FrameSize()) {
+      mprintf("Warning: File '%s' missing EOL.\n", infile.Filename().full());
+      velocitiesRead = true;
+    }
+    if (velocitiesRead) {
       // If filled framebuffer again, has velocity info. 
       hasVel = true;
       VEL_.resize( natom3_ );
