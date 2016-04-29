@@ -228,10 +228,18 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   natom3_ = restartAtoms * 3;
   // Calculate the length of coordinate frame in bytes
   infile.SetupFrameBuffer( natom3_, 12, 6 );
-  // Read past restart coords 
-  if ( infile.ReadFrame() ) {
-    mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
-    return TRAJIN_ERR; 
+  // Read past restart coords
+  int bytesRead = infile.AttemptReadFrame();
+  //mprintf("DEBUG: %i bytes read, frame size is %zu\n", bytesRead, infile.FrameSize());
+  if (bytesRead != (int)infile.FrameSize()) {
+    // See if we are just missing EOL
+    if (bytesRead + 1 + (int)infile.IsDos() == (int)infile.FrameSize())
+      mprintf("Warning: File '%s' missing EOL.\n", infile.Filename().full());
+    else {
+      mprinterr("Error: Error reading coordinates from Amber restart '%s'.\n",
+                 infile.Filename().full());
+      return TRAJIN_ERR;
+    }
   }
   // Save coordinates
   CRD_.resize( natom3_ );
@@ -249,7 +257,12 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
   // If 0 no box or velo 
   if (readSize > 0) {
-    if (readSize == infile.FrameSize()) {
+    bool velocitiesRead = (readSize == infile.FrameSize());
+    if (readSize + 1 + (unsigned int)infile.IsDos() == infile.FrameSize()) {
+      mprintf("Warning: File '%s' missing EOL.\n", infile.Filename().full());
+      velocitiesRead = true;
+    }
+    if (velocitiesRead) {
       // If filled framebuffer again, has velocity info. 
       hasVel = true;
       VEL_.resize( natom3_ );
