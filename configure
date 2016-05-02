@@ -118,7 +118,7 @@ EOF
       ERR=$?
     fi
     if [[ $ERR -ne 0 ]] ; then
-      echo "Error: OpenMP not supported for compiler $COMPILERS"
+      echo "Error: OpenMP not supported for compiler $CXX"
       exit 1
     fi
     /bin/rm -f testp testp.cpp
@@ -786,6 +786,15 @@ fi
 
 # If compiler has not yet been specified, determine from CXX, otherwise default
 # to GNU
+if [ ! -z "$CXX" ] ; then
+  echo "C++ compiler (CXX) set to $CXX"
+fi
+if [ ! -z "$CC" ] ; then
+  echo "C compiler (CC) set to $CC"
+fi
+if [ ! -z "$FC" ] ; then
+  echo "Fortran compiler (FC) set to $FC"
+fi
 if [[ -z $COMPILERS ]] ; then
   if [[ ! -z $CXX ]] ; then
     echo "Determining compilers from CXX ($CXX)"
