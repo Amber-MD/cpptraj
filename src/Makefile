@@ -11,67 +11,44 @@ AMBPDB_OBJECTS=$(AMBPDBSOURCES:.cpp=.o)
 
 CUDA_SOURCES=cuda_kernels/core_kernels.cu cuda_kernels/kernel_wrappers.cu
 
-all: cpptraj$(SFX)
+# Default target: cpptraj only
+all: cpptraj$(SFX)$(EXE)
 
-install: cpptraj$(SFX) ambpdb$(SFX) nproc$(SFX) 
-	mv cpptraj$(SFX) $(CPPTRAJBIN)
-	(if [ -e "ambpdb$(SFX)" ]; then \
-	   mv ambpdb$(SFX) $(CPPTRAJBIN); \
-	 fi;) 
+# Install all targets
+install: $(INSTALL_TARGETS) 
 
-findDepend: FindDepend.o 
-	$(CXX) -o findDepend FindDepend.o
+# Cpptraj ------------------------------
+install_cpptraj: cpptraj$(SFX)$(EXE)
+	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-depend: findDepend
-	./findDepend $(SOURCES) $(CSOURCES) AmbPDB.cpp > cpptrajdepend
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
-dependclean:
-	/bin/rm -f FindDepend.o findDepend
+# AmbPDB -------------------------------
+install_ambpdb: ambpdb$(EXE)
+	mv ambpdb$(EXE) $(CPPTRAJBIN)
 
-libcpptraj: $(LIBCPPTRAJ)
+ambpdb$(EXE): $(AMBPDB_OBJECTS)
+	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
+
+# libcpptraj ---------------------------
+libcpptraj: $(LIBCPPTRAJ_TARGET)
 
 libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX)  -shared -o libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
+	$(CXX) -shared -o libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
 	/bin/mv libcpptraj$(SHARED_SUFFIX) $(CPPTRAJLIB)
 
 nolibcpptraj:
-	@(echo "Error: Cannot build libcpptraj; re-configure with '-shared'" ; exit 1 ; )
-
-cpptraj$(SFX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET)
-	$(CXX)  -o cpptraj$(SFX) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
-
-ambpdb: $(AMBPDB_OBJECTS)
-	$(CXX) -o ambpdb $(AMBPDB_OBJECTS) $(LDFLAGS)
-
-ambpdb.exe: $(AMBPDB_OBJECTS)
-	$(CXX) -o ambpdb.exe $(AMBPDB_OBJECTS) $(LDFLAGS)
-
-ambpdb.OMP:
 	@echo ""
-	@echo "INFO: ambpdb is not OpenMP-enabled. Skipping."
+	@echo "Error: Cannot build libcpptraj; re-configure with '-shared'"
 	@echo ""
+	@exit 1
 
-ambpdb.cuda:
-	@echo ""
-	@echo "INFO: ambpdb is not CUDA-enabled. Skipping."
-	@echo ""
-
-ambpdb.MPI:
-	@echo ""
-	@echo "INFO: ambpdb is not MPI-enabled. Skipping."
-	@echo ""
-
-nproc: ;
-
-nproc.OMP: ;
-
-nproc.cuda: ;
-
-nproc.MPI:
+# nproc --------------------------------
+nproc:
 	cd ../util && $(MAKE)
 
-nproc.exe: ;
-
+# Additional library targets
 readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
@@ -83,17 +60,26 @@ noreadline:
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
 	cd cuda_kernels && $(MAKE) all
 
+# Individual file targets
 $(FFT_DEPEND):  pub_fft.F90
 	$(FC) $(FPPFLAGS) -c $(FFLAGS) -o $@ pub_fft.F90
 
 ReadLine.o: ReadLine.cpp
 	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
-.cu.o:
-	$(NVCC) $(DBGFLAGS) -c $(NVCCFLAGS) -o $@ $<
+# Dependency targets
+findDepend: FindDepend.o 
+	$(CXX) -o findDepend FindDepend.o
 
+depend: findDepend
+	./findDepend $(SOURCES) $(CSOURCES) AmbPDB.cpp > cpptrajdepend
+
+dependclean:
+	/bin/rm -f FindDepend.o findDepend
+
+# Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb
+	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb libcpptraj$(SHARED_SUFFIX)
 	cd $(READLINE_HOME) && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 
