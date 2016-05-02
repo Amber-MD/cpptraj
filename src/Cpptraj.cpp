@@ -8,6 +8,9 @@
 #include "ParmFile.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#ifdef CUDA
+# include <cuda_runtime_api.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -74,6 +77,17 @@ void Cpptraj::Intro() {
   // If empty, available mem could not be calculated correctly.
   if (!available_mem.empty())
     mprintf(  "| Available memory: %s\n", available_mem.c_str());
+# ifdef CUDA
+  int device;
+  if ( cudaGetDevice( &device ) == cudaSuccess ) {
+    cudaDeviceProp deviceProp;
+    if ( cudaGetDeviceProperties( &deviceProp, device ) == cudaSuccess ) {
+      mprintf("| CUDA device: %s\n", deviceProp.name);
+      mprintf("| Available GPU memory: %s\n",
+              ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+    }
+  }
+# endif
   mprintf("\n");
 }
 
@@ -90,6 +104,17 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
   Timer total_time;
   total_time.Start();
+# ifdef CUDA
+  int nGPUs = 0;
+  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
+    mprinterr("Error: Could not get # of GPU devices.\n");
+    return 1;
+  }
+  if (nGPUs < 1) {
+    mprinterr("Error: No CUDA-capable devices found.\n");
+    return 1;
+  }
+# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If State is not empty, run now.
