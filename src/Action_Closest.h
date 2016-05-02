@@ -55,5 +55,7 @@ class Action_Closest: public Action {
       }
     };
     std::vector<MolDist> SolventMols_;
+    typedef std::vector<double> Darray;
+    Darray U_cell0_coords_;
 };
 #endif  
