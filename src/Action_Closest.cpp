@@ -7,9 +7,23 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#ifdef CUDA
+#  include <cuda_runtime_api.h>
+#  include <cuda.h>
+
+// CUDA kernels
+extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&);
+extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&);
+#endif
 
 // CONSTRUCTOR
 Action_Closest::Action_Closest() :
+# ifdef CUDA
+  GPU_MEM_(0),
+  V_atom_coords_(0),
+  U_atom_coords_(0),
+  V_distances_(0),
+# endif
   outFile_(0),
   framedata_(0),
   moldata_(0),
@@ -36,6 +50,9 @@ void Action_Closest::Help() const {
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
   if (newParm_!=0) delete newParm_;
+# ifdef CUDA
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
+# endif
 }
 
 // Action_Closest::Init()
@@ -131,9 +148,14 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  if (image_.ImagingEnabled()) {
+#   ifdef CUDA
+    mprinterr("Internal Error: 'closest' imaging not yet supported for CUDA build.\n");
+    return Action::ERR;
+#   else
     mprintf("\tDistances will be imaged.\n");
-  else
+#   endif
+  } else
     mprintf("\tImaging off.\n"); 
   // LOOP OVER MOLECULES
   // 1: Check that all solvent molecules contain same # atoms. Solvent 
@@ -240,11 +262,27 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     if ( pfile.WriteTopology(*newParm_, parmoutName_, ParmFile::AMBERPARM, debug_) )
       mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
   }
+# ifdef CUDA
+  // Allocate space for simple arrays that will be sent to GPU.
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
+  size_t gpu_mem_size = SolventMols_.size() + // V_distances_
+                        (NsolventAtoms * SolventMols_.size() * 3); // V_atom_coords_
+  if (!useMaskCenter_) gpu_mem_size += (distanceMask_.Nselected() * 3); // U_atom_coords_
+  GPU_MEM_ = new double[ gpu_mem_size ];
+  V_atom_coords_ = GPU_MEM_;
+  if (useMaskCenter_) {
+    V_distances_   = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+  } else {
+    U_atom_coords_ = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+    V_distances_   = U_atom_coords_ + (distanceMask_.Nselected() * 3);
+  }
+# else
   // Allocate temp space for selected solute atom coords
   if (useMaskCenter_)
     U_cell0_coords_.resize( 3 );
   else
     U_cell0_coords_.resize( distanceMask_.Nselected() * 3 );
+# endif
 
   return Action::MODIFY_TOPOLOGY;
 }
@@ -266,7 +304,45 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
   }
+#ifdef CUDA
+// -----------------------------------------------------------------------------
+  float elapsed_time_gpu;
+  // Copy solvent atom coords to array
+  int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to be same size due to setup
+  for (int sMol = 0; sMol < NsolventMolecules_; ++sMol) {
+    for(int sAtom = 0; sAtom < NAtoms; sAtom++) {
+      int index =  (sAtom * 3 ) + (sMol * 3 * NAtoms);
+      const double *a = frm.Frm().XYZ(SolventMols_[sMol].solventAtoms[sAtom]);
+      V_atom_coords_[index + 0] = a[0];
+      V_atom_coords_[index + 1] = a[1];
+      V_atom_coords_[index + 2] = a[2];
+    }
+  }
+  // TODO handle imaging
+  if (useMaskCenter_) {
+    Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
+    Action_NoImage_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
+                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu );
+  } else {
+    int NSAtoms = distanceMask_.Nselected();
+    for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
+      const double* a = frm.Frm().XYZ(distanceMask_[nsAtom]);
+      U_atom_coords_[nsAtom*3 + 0] = a[0];
+      U_atom_coords_[nsAtom*3 + 1] = a[1];
+      U_atom_coords_[nsAtom*3 + 2] = a[2];
+    }
+    Action_NoImage_no_Center( V_atom_coords_, V_distances_, U_atom_coords_,
+                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu );
+  }
+  // Copy distances back into SolventMols_
+  for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
+    SolventMols_[sMol].D = V_distances_[sMol];
+# ifdef DEBUG_CUDA
+  mprintf("CUDA Time: = %0.2f\n", elapsed_time_gpu);
+# endif
 
+#else /* Not CUDA */
+// -----------------------------------------------------------------------------
   if (image_.ImageType() == NONORTHO) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
     Matrix_3x3 ucell, recip;
@@ -402,6 +478,8 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     } /* END pragma omp parallel */
 #   endif
   }
+#endif /* CUDA */
+// -----------------------------------------------------------------------------
 
   // Sort distances
   std::sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
