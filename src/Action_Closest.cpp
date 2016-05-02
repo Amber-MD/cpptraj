@@ -306,29 +306,9 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   }
 #ifdef CUDA
 // -----------------------------------------------------------------------------
-/*
-  useMaskCenter_ = false;
-  cudaEvent_t start_event, stop_event;
-  float elapsed_time_seq;
-  mprintf("Solute Center : %s\n", v[k] ? "YES" : "NO");
-  useMaskCenter_ = v[k];
-
-  cudaEventCreate(&start_event);
-  cudaEventCreate(&stop_event);
-  cudaEventRecord(start_event, 0);
-
-  // serial section of the code 
-  Action_NoImage(frmIn,maxD);
-
-  cudaThreadSynchronize();
-  cudaEventRecord(stop_event, 0);
-  cudaEventSynchronize(stop_event);
-  cudaEventElapsedTime(&elapsed_time_seq,start_event, stop_event );
-  mprintf("Done with kernel SEQ Kernel Time: %.2f\n", elapsed_time_seq);
-*/
   float elapsed_time_gpu;
   // Copy solvent atom coords to array
-  int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to same size due to setup
+  int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to be same size due to setup
   for (int sMol = 0; sMol < NsolventMolecules_; ++sMol) {
     for(int sAtom = 0; sAtom < NAtoms; sAtom++) {
       int index =  (sAtom * 3 ) + (sMol * 3 * NAtoms);
