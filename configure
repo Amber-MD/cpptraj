@@ -1221,6 +1221,11 @@ fi
 cat > config.h <<EOF
 # config.h for cpptraj
 # configured using: $CONFIGURECMD
+EOF
+if [ "$USECUDA" -eq 1 ] ; then
+  echo "# SHADER_MODEL=$SHADER_MODEL" >> config.h
+fi
+cat >> config.h <<EOF
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
