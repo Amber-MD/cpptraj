@@ -23,6 +23,9 @@ class Action_Closest: public Action {
     double* V_atom_coords_; ///< Hold coordinates for selected solvent atoms.
     double* U_atom_coords_; ///< Hold coordinates for selected solute atoms.
     double* V_distances_;   ///< Hold closest distance for each solvent molecule.
+#   else
+    typedef std::vector<double> Darray;
+    Darray U_cell0_coords_; ///< Hold selected solute atoms, wrapped to cell0 if non-ortho.
 #   endif
 
     ImagedAction image_;    ///< Imaging routines.
