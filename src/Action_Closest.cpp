@@ -148,9 +148,14 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
+  if (image_.ImagingEnabled()) {
+#   ifdef CUDA
+    mprinterr("Internal Error: 'closest' imaging not yet supported for CUDA build.\n");
+    return Action::ERR;
+#   else
     mprintf("\tDistances will be imaged.\n");
-  else
+#   endif
+  } else
     mprintf("\tImaging off.\n"); 
   // LOOP OVER MOLECULES
   // 1: Check that all solvent molecules contain same # atoms. Solvent 
