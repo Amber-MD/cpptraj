@@ -467,6 +467,7 @@ USECRAY=0
 USELIBSCI=0
 USESHARED=0
 SFX=""
+EXE_SFX=""
 CPPTRAJHOME=""
 CPPTRAJBIN=""
 CPPTRAJLIB=""
@@ -688,7 +689,7 @@ while [[ ! -z $1 ]] ; do
         echo " Native windows build."
         quadmath="-lquadmath"
       fi
-      SFX=".exe"
+      EXE_SFX=".exe"
       ;;
     "-openblas")
       echo "Using OpenBLAS"
@@ -1043,7 +1044,7 @@ if [[ $USEOPENMP -eq 1 ]] ; then
   echo "Using OPENMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
-  SFX=".OMP"
+  SFX=$SFX".OMP"
 fi
 
 # Remove opt flags if specified
@@ -1071,7 +1072,7 @@ if [[ $USEMPI -ne 0 ]] ; then
     echo ""
   fi
   DIRECTIVES="$DIRECTIVES -DMPI"
-  SFX=".MPI"
+  SFX=$SFX".MPI"
   if [[ $USEMPI -eq 1 ]] ; then
     echo "Using MPI"
     CC=mpicc
@@ -1118,7 +1119,7 @@ if [[ $USECUDA -eq 1 ]] ; then
   INCLUDE="$INCLUDE -I$CUDA_HOME/include"
   LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
   CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
-  SFX=".cuda"
+  SFX=$SFX".cuda"
 fi
 
 
@@ -1224,7 +1225,7 @@ FFT_LIB=$FFT_LIB
 
 CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
-SFX=$SFX
+SFX=$SFX$EXE_SFX
 EOF
 
 # Create directories if necessary
