@@ -1078,6 +1078,9 @@ fi
 
 # Check that CUDA will work.
 if [[ $USECUDA -eq 1 ]] ; then
+  echo "**********************************************************************************"
+  echo "Warning: The CUDA code in cpptraj is currently experimental. Use at your own risk."
+  echo "**********************************************************************************"
   if [ -z "$CUDA_HOME" ] ; then
     echo "Error: CUDA_HOME not set." > /dev/stderr
     echo "       Set CUDA_HOME to point to your NVIDIA tools installation." > /dev/stderr
