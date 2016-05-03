@@ -118,7 +118,7 @@ EOF
       ERR=$?
     fi
     if [[ $ERR -ne 0 ]] ; then
-      echo "Error: OpenMP not supported for compiler $COMPILERS"
+      echo "Error: OpenMP not supported for compiler $CXX"
       exit 1
     fi
     /bin/rm -f testp testp.cpp
@@ -467,6 +467,7 @@ USECRAY=0
 USELIBSCI=0
 USESHARED=0
 SFX=""
+EXE=""
 CPPTRAJHOME=""
 CPPTRAJBIN=""
 CPPTRAJLIB=""
@@ -654,7 +655,7 @@ while [[ ! -z $1 ]] ; do
       ZLIB=""
       ;;
     "-nonetcdf"     )
-      echo "Not using netcdf"
+      echo "Not using NetCDF"
       NETCDFLIB=""
       ;;
     "-nomathlib")
@@ -688,7 +689,7 @@ while [[ ! -z $1 ]] ; do
         echo " Native windows build."
         quadmath="-lquadmath"
       fi
-      SFX=".exe"
+      EXE=".exe"
       ;;
     "-openblas")
       echo "Using OpenBLAS"
@@ -707,13 +708,16 @@ while [[ ! -z $1 ]] ; do
     "--with-netcdf" )
       INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDF_HOME="$VALUE"
-      echo "Using NETCDF in $NETCDF_HOME"
+      echo "Using NetCDF in $NETCDF_HOME"
       ;;
     "--with-pnetcdf" )
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
-      echo "Using parallel NETCDF in $PNETCDF_HOME"
+      echo "Using parallel NetCDF in $PNETCDF_HOME"
       if [[ $USEMPI -eq 0 ]] ; then
+        echo ""
+        echo "Warning: '-lpnetcdf' specified but MPI not specified. Assuming '-mpi'"
+        echo ""
         USEMPI=1
       fi
       ;;
@@ -786,6 +790,15 @@ fi
 
 # If compiler has not yet been specified, determine from CXX, otherwise default
 # to GNU
+if [ ! -z "$CXX" ] ; then
+  echo "C++ compiler (CXX) set to $CXX"
+fi
+if [ ! -z "$CC" ] ; then
+  echo "C compiler (CC) set to $CC"
+fi
+if [ ! -z "$FC" ] ; then
+  echo "Fortran compiler (FC) set to $FC"
+fi
 if [[ -z $COMPILERS ]] ; then
   if [[ ! -z $CXX ]] ; then
     echo "Determining compilers from CXX ($CXX)"
@@ -841,7 +854,7 @@ fi
 # Only use parallel NETCDF with MPI
 if [[ ! -z $PNETCDFLIB ]] ; then
   if [[ $USEMPI -eq 0 ]] ; then
-    echo "Warning: Parallel NETCDF only supported with '-mpi'/'-intelmpi'"
+    echo "Warning: Parallel NetCDF only supported with '-mpi'/'-intelmpi'"
     PNETCDFLIB=""
     PNETCDF_HOME=""
   else
@@ -1031,10 +1044,10 @@ if [[ $USEOPENMP -eq 1 ]] ; then
     echo "OpenMP not currently supported on Windows"
     exit 1
   fi
-  echo "Using OPENMP"
+  echo "Using OpenMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
-  SFX=".OMP"
+  SFX=$SFX".OMP"
 fi
 
 # Remove opt flags if specified
@@ -1049,38 +1062,13 @@ if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
   DIRECTIVES="-h noomp "$DIRECTIVES
 fi
 
-# Change to MPI compiler wrappers if specified
-if [[ $USEMPI -ne 0 ]] ; then
-  if [[ "$WINDOWS" = "yes" ]]; then
-    echo "MPI not currently supported on Windows"
-    exit 1
-  fi
-  if [[ -z $PNETCDFLIB ]] ; then
-    echo ""
-    echo "Warning: No parallel NetCDF library specified."
-    echo "Warning: NetCDF parallel trajectory output requires parallel NetCDF."
-    echo ""
-  fi
-  DIRECTIVES="$DIRECTIVES -DMPI"
-  SFX=".MPI"
-  if [[ $USEMPI -eq 1 ]] ; then
-    echo "Using MPI"
-    CC=mpicc
-    CXX=mpicxx
-    FC=mpif90
-  elif [[ $USEMPI -eq 2 ]] ; then
-    echo "Using Intel MPI"
-    CC=mpiicc
-    CXX=mpiicpc
-    FC=mpiifort
-  fi
-fi
-
 # Check that CUDA will work.
 if [[ $USECUDA -eq 1 ]] ; then
-  echo "**********************************************************************************"
-  echo "Warning: The CUDA code in cpptraj is currently experimental. Use at your own risk."
-  echo "**********************************************************************************"
+  echo "Using CUDA"
+  echo "****************************************************************"
+  echo "* Warning: The CUDA code in cpptraj is currently experimental. *"
+  echo "* Warning: Use at your own risk.                               *"
+  echo "****************************************************************"
   if [ -z "$CUDA_HOME" ] ; then
     echo "Error: CUDA_HOME not set." > /dev/stderr
     echo "       Set CUDA_HOME to point to your NVIDIA tools installation." > /dev/stderr
@@ -1109,9 +1097,35 @@ if [[ $USECUDA -eq 1 ]] ; then
   INCLUDE="$INCLUDE -I$CUDA_HOME/include"
   LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
   CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
-  SFX=".cuda"
+  SFX=$SFX".cuda"
 fi
 
+# Change to MPI compiler wrappers if specified
+if [[ $USEMPI -ne 0 ]] ; then
+  if [[ "$WINDOWS" = "yes" ]]; then
+    echo "MPI not currently supported on Windows"
+    exit 1
+  fi
+  if [[ -z $PNETCDFLIB ]] ; then
+    echo "************************************************************************"
+    echo "* Warning: No parallel NetCDF library specified.                       *"
+    echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
+    echo "************************************************************************"
+  fi
+  DIRECTIVES="$DIRECTIVES -DMPI"
+  SFX=$SFX".MPI"
+  if [[ $USEMPI -eq 1 ]] ; then
+    echo "Using MPI"
+    CC=mpicc
+    CXX=mpicxx
+    FC=mpif90
+  elif [[ $USEMPI -eq 2 ]] ; then
+    echo "Using Intel MPI"
+    CC=mpiicc
+    CXX=mpiicpc
+    FC=mpiifort
+  fi
+fi
 
 # Set up compiler flags if not already set
 CFLAGS="$DEBUGFLAGS $OPTFLAGS $DIRECTIVES $LFS $INCLUDE $CFLAGS"
@@ -1178,14 +1192,47 @@ if [[ "$CROSS_COMPILE" = "no" ]]; then
   TestSanderlib
 fi
 
+# Determine which targets to build
+CPPTRAJ_TARGET=""
+AMBPDB_TARGET=""
+LIBCPPTRAJ_TARGET=""
+NPROC_TARGET=""
+INSTALL_TARGETS=""
+# Always build cpptraj
+CPPTRAJ_TARGET=cpptraj$SFX$EXE
+INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
+# Only build ambpdb in serial
+if [ "$USEMPI" -eq 0 -a "$USEOPENMP" -eq 0 -a "$USECUDA" -eq 0 ] ; then
+  AMBPDB_TARGET=ambpdb
+  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
+fi
+# Only build libcpptraj if not nolibcpptraj
+LIBCPPTRAJ_TARGET=$LIBCPPTRAJ
+if [ "$LIBCPPTRAJ" != 'nolibcpptraj' ] ; then
+  INSTALL_TARGETS=$INSTALL_TARGETS" $LIBCPPTRAJ_TARGET"
+fi
+# Only build nproc for MPI
+if [ "$USEMPI" -ne 0 ] ; then
+  NPROC_TARGET=nproc
+  INSTALL_TARGETS=$INSTALL_TARGETS" $NPROC_TARGET"
+fi
+
 # Write config.h
 cat > config.h <<EOF
 # config.h for cpptraj
 # configured using: $CONFIGURECMD
+EOF
+if [ "$USECUDA" -eq 1 ] ; then
+  echo "# SHADER_MODEL=$SHADER_MODEL" >> config.h
+fi
+cat >> config.h <<EOF
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
 CPPTRAJLIB=$CPPTRAJLIB
+
+INSTALL_TARGETS=$INSTALL_TARGETS
+LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
 EOF
 if [[ ! -z $DBGFLAGS ]] ; then
@@ -1208,14 +1255,13 @@ READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 READLINE_TARGET=$READLINE_TARGET
 
-LIBCPPTRAJ=$LIBCPPTRAJ
-
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
 
 CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
+EXE=$EXE
 EOF
 
 # Create directories if necessary

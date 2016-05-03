@@ -36,7 +36,7 @@ install:
 build_script:
   - sh -lc "mkdir bin/"
   - sh -lc "echo \"CPPTRAJBIN=$(pwd)/bin\" > config.h"
-  - echo INSTALL_TARGETS= install_cpptraj install_ambpdb
+  - echo INSTALL_TARGETS= install_cpptraj install_ambpdb >> config.h
   - echo LIBCPPTRAJ_TARGET=nolibcpptraj >> config.h
   - echo DBGFLAGS= >> config.h
   - echo CC=gcc >> config.h
