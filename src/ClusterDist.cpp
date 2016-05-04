@@ -640,26 +640,27 @@ void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldS
 ClusterDist_2D::ClusterDist_2D(DsArray const& dsIn) : matrix_(0), scale_(1.0)
 {
   if (!dsIn.empty()) {
-    if (dsIn.front()->Group() == DataSet::MATRIX_2D)
+    if (dsIn.front()->Size() > 0 && dsIn.front()->Group() == DataSet::MATRIX_2D) {
       matrix_ = (DataSet_2D*)dsIn.front();
+      // First determine the max and min values for the matrix so that the
+      // maximum difference can be scaled to 1.0.
+      double maxval = matrix_->GetElement(0);
+      double minval = maxval;
+      for (unsigned int i = 1; i < matrix_->Size(); i++) {
+        double val = matrix_->GetElement(i);
+        maxval = std::max( val, maxval );
+        minval = std::min( val, minval );
+      }
+      double maxdiff = maxval - minval;
+      printf("DEBUG: Max diff is %f\n", maxdiff);
+      scale_ = 1.0 / maxdiff;
+    }
   }
 }
 
 void ClusterDist_2D::PairwiseDist(ClusterMatrix& frameDistances,
                                   ClusterSieve::SievedFrames const& frames)
 {
-  // First determine the max and min values for the matrix so that the
-  // maximum difference can be scaled to 1.0.
-  double maxval = matrix_->GetElement(0);
-  double minval = maxval;
-  for (unsigned int i = 1; i < matrix_->Size(); i++) {
-    double val = matrix_->GetElement(i);
-    maxval = std::max( val, maxval );
-    minval = std::min( val, minval );
-  }
-  double maxdiff = maxval - minval;
-  printf("DEBUG: Max diff is %f\n", maxdiff);
-  scale_ = 1.0 / maxdiff;
   // Calculate pairwise distances.
   int f1, f2, x1, y1;
   double dist, val1, xdiff, ydiff, valdiff;
