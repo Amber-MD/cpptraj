@@ -1,11 +1,13 @@
 #include "Exec_DataSetCmd.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
+#include "DataSet_MatrixDbl.h"
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{ legend <legend> <set> |\n"
           "\t  makexy <Xset> <Yset> [name <name>] |\n"
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
+          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
           "\t<mode>: ");
   for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
@@ -18,6 +20,7 @@ void Exec_DataSetCmd::Help() const {
           "  legend: Set the legend for a single data set\n"
           "  makexy: Create new data set with X values from one set and Y values from another.\n"
           "  cat   : Concatenate 2 or more data sets.\n"
+          "  make2d: Create new 2D data set from 1D data set, assumes row-major ordering.\n"
           "  Otherwise, change the mode/type for one or more data sets.\n",
           AssociatedData_NOE::HelpText);
 }
@@ -55,6 +58,34 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
       XY[1] = ds_y.Dval(i);
       out.Add( i, XY );
     }
+  // ---------------------------------------------
+  } else if (argIn.hasKey("make2d")) { // Create 2D matrix from 1D set
+    std::string name = argIn.GetStringKey("name");
+    int ncols = argIn.getKeyInt("ncols", 0);
+    int nrows = argIn.getKeyInt("nrows", 0);
+    if (ncols < 0 || nrows < 0) {
+      mprinterr("Error: Must specify both ncols and nrows\n");
+      return CpptrajState::ERR;
+    }
+    DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
+    if (ds1 == 0) return CpptrajState::ERR;
+    if (ds1->Ndim() != 1) {
+      mprinterr("Error: make2d only works for 1D data sets.\n");
+      return CpptrajState::ERR;
+    }
+    if (nrows * ncols != (int)ds1->Size()) {
+      mprinterr("Error: Size of '%s' (%zu) != nrows X ncols.\n", ds1->Size());
+      return CpptrajState::ERR;
+    }
+    DataSet* ds3 = State.DSL().AddSet( DataSet::MATRIX_DBL, name, "make2d" );
+    if (ds3 == 0) return CpptrajState::ERR;
+    mprintf("\tConverting values from 1D set '%s' to 2D matrix '%s' with %i cols, %i rows.\n",
+            ds1->legend(), ds3->legend(), ncols, nrows);
+    DataSet_1D const& data = static_cast<DataSet_1D const&>( *ds1 );
+    DataSet_MatrixDbl& matrix = static_cast<DataSet_MatrixDbl&>( *ds3 );
+    if (matrix.Allocate2D( ncols, nrows )) return CpptrajState::ERR;
+    for (unsigned int idx = 0; idx != data.Size(); idx++)
+      matrix.AddElement( data.Dval(idx) );
   // ---------------------------------------------
   } else if (argIn.hasKey("cat")) { // Concatenate two or more data sets
     std::string name = argIn.GetStringKey("name");
