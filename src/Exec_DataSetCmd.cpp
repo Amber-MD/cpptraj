@@ -74,7 +74,7 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
       return CpptrajState::ERR;
     }
     if (nrows * ncols != (int)ds1->Size()) {
-      mprinterr("Error: Size of '%s' (%zu) != nrows X ncols.\n", ds1->Size());
+      mprinterr("Error: Size of '%s' (%zu) != nrows X ncols.\n", ds1->legend(), ds1->Size());
       return CpptrajState::ERR;
     }
     DataSet* ds3 = State.DSL().AddSet( DataSet::MATRIX_DBL, name, "make2d" );
