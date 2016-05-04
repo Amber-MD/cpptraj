@@ -240,7 +240,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
     mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
     return 1;
   }
-  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname ) ) return 1;
+  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
 
   return 0;
 }
