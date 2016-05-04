@@ -8,10 +8,10 @@ class DataIO_Gnuplot : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Gnuplot(); }
     static void WriteHelp();
     int processReadArgs(ArgList&) { return 0; }
-    int ReadData(FileName const&,DataSetList&,std::string const&) { return 1; }
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&,DataSetList const&);
-    bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&);
   private:
     CpptrajFile file_;
     typedef std::vector<std::string> LabelArray;

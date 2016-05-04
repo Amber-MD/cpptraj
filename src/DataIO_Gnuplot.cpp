@@ -1,7 +1,9 @@
+#include <cstdio> // sscanf
 #include "DataIO_Gnuplot.h"
 #include "CpptrajStdio.h"
 #include "Array1D.h"
 #include "DataSet_2D.h"
+#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Gnuplot::DataIO_Gnuplot() :
@@ -14,6 +16,111 @@ DataIO_Gnuplot::DataIO_Gnuplot() :
   writeHeader_(true)
 {}
 
+bool DataIO_Gnuplot::ID_DataFormat(CpptrajFile& infile) {
+  bool isGnuplot = false;
+/*  if (!infile.OpenFile()) {
+    ArgList line( infile.NextLine(), " " );
+    std::string setarg = line.GetStringKey("set");
+    if (setarg == "size" || setarg == "pm3d") isGnuplot = true;
+    infile.CloseFile();
+  }*/
+  return isGnuplot;
+}
+
+/** NOTE: This assumes data is in the file and is an splot "heat map" */
+int DataIO_Gnuplot::ReadData(FileName const& fname,
+                             DataSetList& DSL, std::string const& dsname)
+{
+  BufferedLine infile;
+  if (infile.OpenFileRead( fname )) return 1;
+  // Get past all of the 'set' lines
+  const char* ptr = infile.Line();
+  while (ptr != 0 && ptr[0] == 's' && ptr[1] == 'e' && ptr[2] == 't')
+    ptr = infile.Line();
+  if (ptr == 0) {
+    mprinterr("Error: No data detected in Gnuplot file.\n");
+    return 1;
+  }
+  // Search for 'splot "-"'
+  while (ptr != 0 && ptr[0] != 's' && ptr[1] != 'p' && ptr[2] != 'l' &&
+                     ptr[3] != 'o' && ptr[4] != 'o' && ptr[5] != 't' &&
+                     ptr[6] != ' ' && ptr[7] != '"' && ptr[8] != '-' &&
+                     ptr[9] != '"')
+    ptr = infile.Line();
+  if (ptr == 0) {
+    mprinterr("Error: 'splot \"-\"' not found in '%s'. CPPTRAJ currently only reads\n"
+              "Error:   CPPTRAJ-style Gnuplot files.\n", fname.full());
+    return 1;
+  }
+  // Allocate full matrix. Assume column-major order.
+  typedef std::vector<double> Darray;
+  Darray Xvals;
+  Darray Yvals;
+  Darray matrix_Cmajor;
+  int ncols = 0;
+  int nrows = -1;
+  ptr = infile.Line(); // First line of data.
+  while (ptr != 0 && ptr[0] != 'e' && ptr[1] != 'n' && ptr[2] != 'd') {
+    int row = 0;
+    while (ptr != 0 && ptr[0] != '\0') {
+      double xval, yval, val;
+      sscanf(ptr, "%lf %lf %lf", &xval, &yval, &val);
+      //mprintf("DEBUG: '%i' %f %f %f (%i, %i)\n", (int)ptr[0], xval, yval, val, ncols,row);
+      if (row   == 0) Xvals.push_back( xval );
+      if (ncols == 0) Yvals.push_back( yval );
+      matrix_Cmajor.push_back( val );
+      row++;
+      ptr = infile.Line();
+    }
+    if (nrows == -1)
+      nrows = row;
+    else if (nrows != row) {
+      mprinterr("Error: Number of rows has changed from %i to %i (line %i)\n",
+                nrows, row, infile.LineNumber());
+      return 1;
+    }
+    ptr = infile.Line();
+    ncols++;
+  }
+  mprintf("\t%i rows (%zu), %i cols (%zu), %zu values\n", nrows, Yvals.size(), ncols, Xvals.size(), matrix_Cmajor.size());
+  // DEBUG
+  if (debug_ > 0) {
+    mprintf("Xvals:");
+    for (Darray::const_iterator it = Xvals.begin(); it != Xvals.end(); ++it)
+      mprintf(" %f", *it);
+    mprintf("\nYvals:");
+    for (Darray::const_iterator it = Yvals.begin(); it != Yvals.end(); ++it)
+      mprintf(" %f", *it);
+    mprintf("\nVals:\n");
+  }
+  // Need to convert column major to row major for DetermineMatrixType
+  Darray matrix_Rmajor;
+  matrix_Rmajor.reserve( matrix_Cmajor.size() );
+  for (int r = 0; r != nrows; r++) {
+    int idx = r;
+    for (int c = 0; c != ncols; c++, idx += nrows) {
+      if (debug_ > 0) mprintf(" %g", matrix_Cmajor[idx]);
+      matrix_Rmajor.push_back( matrix_Cmajor[idx] );
+    }
+    if (debug_ > 0) mprintf("\n");
+  }
+  matrix_Cmajor.clear();
+
+  DataSet* ds = DetermineMatrixType( matrix_Rmajor, nrows, ncols, DSL, dsname );
+  if (ds == 0) return 1;
+  Dimension Xdim, Ydim;
+  if (!Xdim.SetDimension(Xvals, "X"))
+    mprintf("Warning: X dimension is NOT monotonic.\n");
+  if (!Ydim.SetDimension(Yvals, "Y"))
+    mprintf("Warning: Y dimension is not monotonic.\n");
+  ds->SetDim(Dimension::X, Xdim);
+  ds->SetDim(Dimension::Y, Ydim);
+
+  infile.CloseFile();
+  return 0;
+} 
+
+// -----------------------------------------------------------------------------
 DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg) 
 {
   return ArgList( labelarg, ",").List();
