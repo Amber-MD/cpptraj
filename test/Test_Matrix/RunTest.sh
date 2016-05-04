@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles matrix.in mtest.dat.save mtest.*.dat
+CleanFiles matrix.in mtest.dat.save mtest.*.dat evecs.10.dat
 
 INPUT="-i matrix.in"
 cat > matrix.in <<EOF
@@ -38,6 +38,14 @@ DoTest mtest.dat.10.save mtest.10.dat
 DoTest mtest.dat.11.save mtest.11.dat
 DoTest mtest.dat.12.save mtest.12.dat
 DoTest mtest.dat.13.save mtest.13.dat
+
+# Test reading symmetric matrix
+cat > matrix.in <<EOF
+readdata mtest.dat.10.save name MyMatrix read2d
+diagmatrix MyMatrix out evecs.10.dat vecs 3
+EOF
+RunCpptraj "Read symmetric matrix data test."
+DoTest evecs.10.dat.save evecs.10.dat
 
 EndTest
   
