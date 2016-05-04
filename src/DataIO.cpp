@@ -56,11 +56,11 @@ size_t DataIO::DetermineMax(DataSetList const& array) {
   * determine if it is symmetric and allocate into the given DataSetList
   * accordingly.
   */
-int DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int nrows, int ncols,
+DataSet* DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int nrows, int ncols,
                                 DataSetList& DSL, std::string const& dsname)
 {
   DataSet* ds = DSL.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
-  if (ds == 0) return 1;
+  if (ds == 0) return 0;
   DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
   //ds->SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME Allow type keywords
   bool isSymmetric = false;
@@ -79,7 +79,11 @@ int DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int nrow
   }
   if (isSymmetric) {
     mprintf("\tSymmetric matrix detected.\n");
-    if (Mat.AllocateHalf(ncols)) return 1;
+    if (Mat.AllocateHalf(ncols)) {
+      mprinterr("Error: Could not allocate memory for set '%s'\n", ds->legend());
+      DSL.RemoveSet( ds );
+      return 0;
+    }
     for (int row = 0; row < nrows; row++)
       for (int col = row; col < ncols; col++)
         Mat.AddElement( matrixArray[ (row * ncols) + col ] );
@@ -90,5 +94,5 @@ int DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int nrow
     ds->Allocate( dims );
     std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
   }
-  return 0;
+  return ds;
 }
