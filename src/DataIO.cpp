@@ -1,5 +1,6 @@
 #include "DataIO.h"
 #include "CpptrajStdio.h"
+#include "DataSet_MatrixDbl.h"
 
 // DataIO::CheckValidFor()
 bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
@@ -49,4 +50,45 @@ size_t DataIO::DetermineMax(DataSetList const& array) {
     if ( (*set)->Size() > maxSize )
       maxSize = (*set)->Size();
   return maxSize;
+}
+
+/** Given a flattened matrix (row-major order) with given # rows and columns,
+  * determine if it is symmetric and allocate into the given DataSetList
+  * accordingly.
+  */
+int DataIO::DetermineMatrixType(std::vector<double> const& matrixArray, int nrows, int ncols,
+                                DataSetList& DSL, std::string const& dsname)
+{
+  DataSet* ds = DSL.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
+  if (ds == 0) return 1;
+  DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
+  //ds->SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME Allow type keywords
+  bool isSymmetric = false;
+  if (ncols == nrows) {
+    isSymmetric = true;
+    // Check if matrix is symmetric
+    for (int row = 0; row < nrows; row++) {
+      for (int col = row + 1; col < ncols; col++) {
+        if ( matrixArray[ (row * ncols) + col ] != matrixArray[ (col * ncols) + row ] ) {
+          isSymmetric = false;
+          break;
+        }
+      }
+      if (!isSymmetric) break;
+    }
+  }
+  if (isSymmetric) {
+    mprintf("\tSymmetric matrix detected.\n");
+    if (Mat.AllocateHalf(ncols)) return 1;
+    for (int row = 0; row < nrows; row++)
+      for (int col = row; col < ncols; col++)
+        Mat.AddElement( matrixArray[ (row * ncols) + col ] );
+  } else {
+    DataSet::SizeArray dims(2);
+    dims[0] = ncols;
+    dims[1] = nrows;
+    ds->Allocate( dims );
+    std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
+  }
+  return 0;
 }

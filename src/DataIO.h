@@ -29,6 +29,8 @@ class DataIO : public BaseIOtype {
     static int CheckXDimension(DataSetList const&);
     /// \return max size of DataSets in given list.
     static size_t DetermineMax(DataSetList const&);
+    /// Convert flattened matrix array to matrix in DataSetList.
+    int DetermineMatrixType(std::vector<double> const&, int, int, DataSetList&, std::string const&);
     int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
