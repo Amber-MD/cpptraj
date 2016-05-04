@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdio> // DEBUG
 #include "ClusterDist.h"
 #include "Constants.h" // RADDEG, DEGRAD
 #include "ProgressBar.h"
@@ -657,6 +658,7 @@ void ClusterDist_2D::PairwiseDist(ClusterMatrix& frameDistances,
     minval = std::min( val, minval );
   }
   double maxdiff = maxval - minval;
+  printf("DEBUG: Max diff is %f\n", maxdiff);
   scale_ = 1.0 / maxdiff;
   // Calculate pairwise distances.
   int f1, f2, x1, y1;
@@ -672,12 +674,12 @@ void ClusterDist_2D::PairwiseDist(ClusterMatrix& frameDistances,
   for (f1 = 0; f1 < f1end; f1++) {
     val1 = matrix_->GetElement( frames[f1] );
     // Convert overall index to column (X) and row (Y)
-    y1 = frames[f1] / ncols;
     x1 = frames[f1] % ncols;
+    y1 = frames[f1] / ncols;
     for (f2 = f1 + 1; f2 < f2end; f2++) {
       valdiff = (val1 - matrix_->GetElement( frames[f2] )) * scale_;
-      xdiff = (double)(x1 - (frames[f2] / ncols));
-      ydiff = (double)(y1 - (frames[f2] % ncols));
+      xdiff = (double)(x1 - (frames[f2] % ncols));
+      ydiff = (double)(y1 - (frames[f2] / ncols));
       dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
       frameDistances.SetElement( f1, f2, sqrt(dist) );
     }
