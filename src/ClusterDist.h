@@ -3,6 +3,7 @@
 #include "SymmetricRmsdCalc.h"
 #include "DataSet_Coords.h"
 #include "DataSet_1D.h"
+#include "DataSet_2D.h"
 #include "ClusterMatrix.h"
 /// Abstract Base Class for Cluster centroid.
 /** This class is a container for the cluster centroid type appropriate for
@@ -27,7 +28,7 @@ class Centroid_Num : public Centroid {
     double sumx_; // For storing periodic average
     double sumy_; // For storing periodic average
 };
-/// Cluster centroid for mulitple DataSets
+/// Cluster centroid for multiple DataSets
 class Centroid_Multi : public Centroid {
   public:
     typedef std::vector<double> Darray;
@@ -36,6 +37,7 @@ class Centroid_Multi : public Centroid {
       cvals_(val), Sumx_(x), Sumy_(y) {}
     Centroid* Copy() { return (Centroid*)new Centroid_Multi(cvals_, Sumx_, Sumy_); }
     friend class ClusterDist_Euclid;
+    friend class ClusterDist_2D;
   private:
     Darray cvals_;
     Darray Sumx_; // For storing periodic average
@@ -173,5 +175,22 @@ class ClusterDist_SRMSD : public ClusterDist {
     SymmetricRmsdCalc SRMSD_;
     Frame frm1_;
     Frame frm2_;
-}; 
+};
+/// Cluster distance calc for 2D set using Euclid distance
+class ClusterDist_2D : public ClusterDist {
+  public:
+    ClusterDist_2D() : matrix_(0), scale_(1.0) {}
+    ClusterDist_2D(DsArray const&);
+    void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
+    double FrameDist(int, int);
+    double CentroidDist( Centroid*, Centroid* );
+    double FrameCentroidDist(int, Centroid*);
+    void CalculateCentroid(Centroid*, Cframes const&);
+    Centroid* NewCentroid(Cframes const&);
+    void FrameOpCentroid(int, Centroid*, double, CentOpType);
+    ClusterDist* Copy() { return new ClusterDist_2D( *this ); }
+  private:
+    DataSet_2D* matrix_;
+    double scale_; ///< Factor to scale value differences by.
+};
 #endif

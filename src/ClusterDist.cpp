@@ -634,3 +634,127 @@ void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldS
     cent->cframe_.Divide( oldSize - 1 );
   }
 }
+
+// ---------- Distance calc routines for 2D DataSet (Euclid) -------------------
+ClusterDist_2D::ClusterDist_2D(DsArray const& dsIn) : matrix_(0), scale_(1.0)
+{
+  if (!dsIn.empty()) {
+    if (dsIn.front()->Group() == DataSet::MATRIX_2D)
+      matrix_ = (DataSet_2D*)dsIn.front();
+  }
+}
+
+void ClusterDist_2D::PairwiseDist(ClusterMatrix& frameDistances,
+                                  ClusterSieve::SievedFrames const& frames)
+{
+  // First determine the max and min values for the matrix so that the
+  // maximum difference can be scaled to 1.0.
+  double maxval = matrix_->GetElement(0);
+  double minval = maxval;
+  for (unsigned int i = 1; i < matrix_->Size(); i++) {
+    double val = matrix_->GetElement(i);
+    maxval = std::max( val, maxval );
+    minval = std::min( val, minval );
+  }
+  double maxdiff = maxval - minval;
+  scale_ = 1.0 / maxdiff;
+  // Calculate pairwise distances.
+  int f1, f2, x1, y1;
+  double dist, val1, xdiff, ydiff, valdiff;
+  int ncols = (int)matrix_->Ncols();
+  int f2end = (int)frames.size();
+  int f1end = f2end - 1;
+#ifdef _OPENMP
+#pragma omp parallel private(f1, f2, x1, y1, dist, val1, xdiff, ydiff, valdiff)
+{
+#pragma omp for schedule(dynamic)
+#endif
+  for (f1 = 0; f1 < f1end; f1++) {
+    val1 = matrix_->GetElement( frames[f1] );
+    // Convert overall index to column (X) and row (Y)
+    y1 = frames[f1] / ncols;
+    x1 = frames[f1] % ncols;
+    for (f2 = f1 + 1; f2 < f2end; f2++) {
+      valdiff = (val1 - matrix_->GetElement( frames[f2] )) * scale_;
+      xdiff = (double)(x1 - (frames[f2] / ncols));
+      ydiff = (double)(y1 - (frames[f2] % ncols));
+      dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
+      frameDistances.SetElement( f1, f2, sqrt(dist) );
+    }
+  }
+#ifdef _OPENMP
+}
+#endif
+}
+
+// FIXME do sieved frame #s need to be stored?
+double ClusterDist_2D::FrameDist(int f1, int f2) {
+  int ncols = (int)matrix_->Ncols();
+  double valdiff = (matrix_->GetElement(f1) - matrix_->GetElement(f2)) * scale_;
+  double xdiff = (double)((f1 % ncols) - (f2 % ncols));
+  double ydiff = (double)((f1 / ncols) - (f2 / ncols));
+  double dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
+  return sqrt(dist);
+}
+
+double ClusterDist_2D::CentroidDist(Centroid* c1in, Centroid* c2in) {
+  Centroid_Multi* C1 = (Centroid_Multi*)c1in;
+  Centroid_Multi* C2 = (Centroid_Multi*)c2in;
+  Centroid_Multi::Darray const& c1 = static_cast<Centroid_Multi::Darray const&>( C1->cvals_ );
+  Centroid_Multi::Darray const& c2 = static_cast<Centroid_Multi::Darray const&>( C2->cvals_ );
+  double cvdiff = (c1[0] - c2[0]) * scale_;
+  double cxdiff = c1[1] - c2[1];
+  double cydiff = c1[2] - c2[2];
+  double dist = cvdiff*cvdiff + cxdiff*cxdiff + cydiff*cydiff;
+  return sqrt(dist);
+}
+
+double ClusterDist_2D::FrameCentroidDist(int f1, Centroid* c1in) {
+  int ncols = (int)matrix_->Ncols();
+  Centroid_Multi* C1 = (Centroid_Multi*)c1in;
+  Centroid_Multi::Darray const& c1 = static_cast<Centroid_Multi::Darray const&>( C1->cvals_ );
+  double valdiff = (matrix_->GetElement(f1) - c1[0]) * scale_;
+  double xdiff = ((double)(f1 % ncols)) - c1[1];
+  double ydiff = ((double)(f1 / ncols)) - c1[2];
+  double dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
+  return sqrt(dist);
+}
+
+void ClusterDist_2D::CalculateCentroid(Centroid* centIn, Cframes const& cframesIn) {
+  int ncols = (int)matrix_->Ncols();
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+  cent->cvals_.resize( 3, 0.0 );
+  cent->Sumx_.resize( 3, 0.0 );
+  cent->Sumy_.resize( 3, 0.0 );
+  for (unsigned int idx = 0; idx != cframesIn.size(); idx++) {
+    cent->cvals_[0] += matrix_->GetElement( cframesIn[idx] );
+    cent->cvals_[1] += (double)(cframesIn[idx] % ncols);
+    cent->cvals_[2] += (double)(cframesIn[idx] / ncols);
+  }
+  double fac = 1.0 / (double)cframesIn.size();
+  cent->cvals_[0] *= fac;
+  cent->cvals_[1] *= fac;
+  cent->cvals_[2] *= fac;
+}
+
+Centroid* ClusterDist_2D::NewCentroid(Cframes const& cframesIn) {
+  Centroid_Multi* cent = new Centroid_Multi();
+  CalculateCentroid(cent, cframesIn);
+  return cent;
+}
+
+//static const char* OPSTRING[] = {"ADD", "SUBTRACT"}; // DEBUG
+
+void ClusterDist_2D::FrameOpCentroid(int frame, Centroid* centIn, double oldSize,
+                                         CentOpType OP)
+{
+  double b1 = 0.0;
+  int ncols = (int)matrix_->Ncols();
+  Centroid_Multi* cent = (Centroid_Multi*)centIn;
+  cent->cvals_[0] = DistCalc_FrameCentroid(matrix_->GetElement(frame), 
+                                           cent->cvals_[0], false, oldSize, OP, b1, b1);
+  cent->cvals_[1] = DistCalc_FrameCentroid(frame % ncols,
+                                           cent->cvals_[1], false, oldSize, OP, b1, b1);
+  cent->cvals_[2] = DistCalc_FrameCentroid(frame / ncols,
+                                           cent->cvals_[2], false, oldSize, OP, b1, b1);
+}
