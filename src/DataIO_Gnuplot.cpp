@@ -34,9 +34,18 @@ int DataIO_Gnuplot::ReadData(FileName const& fname,
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
   // Get past all of the 'set' lines
+  std::string xlabel, ylabel;
   const char* ptr = infile.Line();
-  while (ptr != 0 && ptr[0] == 's' && ptr[1] == 'e' && ptr[2] == 't')
+  while (ptr != 0 && ptr[0] == 's' && ptr[1] == 'e' && ptr[2] == 't') {
+    if ( (ptr[4] == 'x' || ptr[4] == 'y') && ptr[5] == 'l' ) {
+      ArgList line( ptr, " " );
+      if (ptr[4] == 'x')
+        xlabel = line.GetStringKey("xlabel");
+      else
+        ylabel = line.GetStringKey("ylabel");
+    }
     ptr = infile.Line();
+  }
   if (ptr == 0) {
     mprinterr("Error: No data detected in Gnuplot file.\n");
     return 1;
@@ -109,9 +118,9 @@ int DataIO_Gnuplot::ReadData(FileName const& fname,
   DataSet* ds = DetermineMatrixType( matrix_Rmajor, nrows, ncols, DSL, dsname );
   if (ds == 0) return 1;
   Dimension Xdim, Ydim;
-  if (!Xdim.SetDimension(Xvals, "X"))
+  if (!Xdim.SetDimension(Xvals, xlabel))
     mprintf("Warning: X dimension is NOT monotonic.\n");
-  if (!Ydim.SetDimension(Yvals, "Y"))
+  if (!Ydim.SetDimension(Yvals, ylabel))
     mprintf("Warning: Y dimension is not monotonic.\n");
   ds->SetDim(Dimension::X, Xdim);
   ds->SetDim(Dimension::Y, Ydim);
