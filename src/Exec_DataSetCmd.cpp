@@ -141,8 +141,8 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
             {
               double val = matrixIn.GetElement(col, row);
               matrixOut.SetElement( col-colmin, row-rowmin, val );
-              mprintf("DEBUG:\tmatrixIn(%i, %i) = %f  to matrixOut(%i, %i)\n",
-                      col, row, val, col-colmin, row-rowmin);
+              //mprintf("DEBUG:\tmatrixIn(%i, %i) = %f  to matrixOut(%i, %i)\n",
+              //        col, row, val, col-colmin, row-rowmin);
             }
           }
         }
