@@ -637,7 +637,7 @@ void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldS
 }
 
 // ---------- Distance calc routines for 2D DataSet (Euclid) -------------------
-ClusterDist_2D::ClusterDist_2D(DsArray const& dsIn) : matrix_(0), scale_(1.0)
+ClusterDist_2D::ClusterDist_2D(DsArray const& dsIn) : matrix_(0), scale_(1.0), cut_(0.0)
 {
   if (!dsIn.empty()) {
     if (dsIn.front()->Size() > 0 && dsIn.front()->Group() == DataSet::MATRIX_2D) {
@@ -650,10 +650,13 @@ ClusterDist_2D::ClusterDist_2D(DsArray const& dsIn) : matrix_(0), scale_(1.0)
         double val = matrix_->GetElement(i);
         maxval = std::max( val, maxval );
         minval = std::min( val, minval );
+        cut_ += val;
       }
       double maxdiff = maxval - minval;
       printf("DEBUG: Max diff is %f\n", maxdiff);
-      scale_ = 1.0 / maxdiff;
+      cut_ /= (double)matrix_->Size();
+      printf("DEBUG: Avg of elements is %f, will be used as cutoff.\n", cut_);
+      //scale_ = 1.0 / maxdiff;
     }
   }
 }
@@ -674,15 +677,21 @@ void ClusterDist_2D::PairwiseDist(ClusterMatrix& frameDistances,
 #endif
   for (f1 = 0; f1 < f1end; f1++) {
     val1 = matrix_->GetElement( frames[f1] );
-    // Convert overall index to column (X) and row (Y)
-    x1 = frames[f1] % ncols;
-    y1 = frames[f1] / ncols;
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      valdiff = (val1 - matrix_->GetElement( frames[f2] )) * scale_;
-      xdiff = (double)(x1 - (frames[f2] % ncols));
-      ydiff = (double)(y1 - (frames[f2] / ncols));
-      dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
-      frameDistances.SetElement( f1, f2, sqrt(dist) );
+    if (val1 > cut_) {
+      // Convert overall index to column (X) and row (Y)
+      x1 = frames[f1] % ncols;
+      y1 = frames[f1] / ncols;
+      for (f2 = f1 + 1; f2 < f2end; f2++) {
+        valdiff = (val1 - matrix_->GetElement( frames[f2] )) * scale_;
+        xdiff = (double)(x1 - (frames[f2] % ncols));
+        ydiff = (double)(y1 - (frames[f2] / ncols));
+        dist = valdiff*valdiff + xdiff*xdiff + ydiff*ydiff;
+        frameDistances.SetElement( f1, f2, sqrt(dist) );
+      }
+    } else {
+      // Set all distances from this point to be very large
+      for (f2 = f1 + 1; f2 < f2end; f2++)
+        frameDistances.SetElement( f1, f2, 9999999.0 );
     }
   }
 #ifdef _OPENMP

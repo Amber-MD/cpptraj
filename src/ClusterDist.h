@@ -179,7 +179,7 @@ class ClusterDist_SRMSD : public ClusterDist {
 /// Cluster distance calc for 2D set using Euclid distance
 class ClusterDist_2D : public ClusterDist {
   public:
-    ClusterDist_2D() : matrix_(0), scale_(1.0) {}
+    ClusterDist_2D() : matrix_(0), scale_(1.0), cut_(0.0) {}
     ClusterDist_2D(DsArray const&);
     void PairwiseDist(ClusterMatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
@@ -192,5 +192,6 @@ class ClusterDist_2D : public ClusterDist {
   private:
     DataSet_2D* matrix_;
     double scale_; ///< Factor to scale value differences by.
+    double cut_; ///< Filter values less than cut
 };
 #endif
