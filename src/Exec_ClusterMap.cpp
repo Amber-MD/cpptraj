@@ -2,6 +2,9 @@
 #include "Exec_ClusterMap.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#ifdef _OPENMP
+#  include <omp.h>
+#endif
 
 Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN),
   epsilon_(0.0),
@@ -51,6 +54,18 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   DataSet_MatrixFlt& output = static_cast<DataSet_MatrixFlt&>( *dsOut );
   output.Allocate2D( matrix.Ncols(), matrix.Nrows() );
   std::fill( output.begin(), output.end(), -1.0 );
+
+# ifdef _OPENMP
+  int numthreads = 0;
+# pragma omp parallel
+  {
+  mythread_ = omp_get_thread_num();
+  if (mythread_ == 0)
+    numthreads = omp_get_num_threads();
+  }
+  mprintf("\tParallelizing calc with %i threads.\n", numthreads);
+  thread_neighbors_.resize( numthreads );
+# endif
 
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
@@ -195,10 +210,22 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
                                   DataSet_2D const& matrix)
 {
   NeighborPts.clear();
+# ifdef _OPENMP
+  for (std::vector<Iarray>::iterator it = thread_neighbors_.begin();
+                                     it != thread_neighbors_.end(); ++it)
+    it->clear();
+# endif
   int point_col, point_row;
   IdxToColRow( point, matrix.Ncols(), point_col, point_row );
-  
-  for (int otherpoint = 0; otherpoint != (int)matrix.Size(); otherpoint++)
+  int msize = (int)matrix.Size();
+  int otherpoint;
+
+# ifdef _OPENMP
+# pragma omp parallel private(otherpoint)
+  {
+# pragma omp for
+# endif
+  for (otherpoint = 0; otherpoint < msize; otherpoint++)
   {
     if (point != otherpoint) {
       // Distance calculation.
@@ -211,9 +238,20 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
       double dist2 = dv*dv + dr*dr + dc*dc;
       
       if ( dist2 < epsilon2_ )
+#       ifdef _OPENMP
+        thread_neighbors_[mythread_].push_back( otherpoint );
+#       else
         NeighborPts.push_back( otherpoint );
+#       endif
     }
   }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+  for (std::vector<Iarray>::const_iterator it = thread_neighbors_.begin();
+                                           it != thread_neighbors_.end(); ++it)
+    for (Iarray::const_iterator pt = it->begin(); pt != it->end(); ++pt)
+      NeighborPts.push_back( *pt );
+# endif
 }
 
 // Exec_ClusterMap::AddCluster()

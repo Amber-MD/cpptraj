@@ -21,6 +21,10 @@ class Exec_ClusterMap : public Exec {
     class Cluster;
     typedef std::vector<Cluster> Carray;
     Carray clusters_;
+#   ifdef _OPENMP
+    std::vector<Iarray> thread_neighbors_;
+    int mythread_;
+#   endif
 
     double epsilon_;
     double epsilon2_;
