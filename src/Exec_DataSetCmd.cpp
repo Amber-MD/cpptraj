@@ -87,6 +87,68 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     for (unsigned int idx = 0; idx != data.Size(); idx++)
       matrix.AddElement( data.Dval(idx) );
   // ---------------------------------------------
+  } else if (argIn.hasKey("filter")) { // Filter points in data set to make new data set
+    std::string name = argIn.GetStringKey("name");
+    int rowmin = argIn.getKeyInt("rowmin", -1);
+    int rowmax = argIn.getKeyInt("rowmax", -1);
+    int colmin = argIn.getKeyInt("colmin", -1);
+    int colmax = argIn.getKeyInt("colmax", -1);
+    
+    DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
+    if (ds1 == 0) return CpptrajState::ERR;
+    if ( ds1->Group() == DataSet::SCALAR_1D ) {
+      mprinterr("Error: Not yet set up for 1D sets.\n");
+      return CpptrajState::ERR;
+    } else if (ds1->Group() == DataSet::MATRIX_2D) {
+      DataSet_2D const& matrixIn = static_cast<DataSet_2D const&>( *ds1 );
+      if (rowmin < 0) rowmin = 0;
+      if (rowmax < 0) rowmax = matrixIn.Nrows();
+      int nrows = rowmax - rowmin;
+      if (nrows < 1) {
+        mprinterr("Error: Keeping less than 1 row.\n");
+        return CpptrajState::ERR;
+      } else if (nrows > (int)matrixIn.Nrows())
+        nrows = matrixIn.Nrows();
+      if (colmin < 0) colmin = 0;
+      if (colmax < 0) colmax = matrixIn.Ncols();
+      int ncols = colmax - colmin;
+      if (ncols < 1) {
+        mprinterr("Error: Keeping less than 1 column.\n");
+        return CpptrajState::ERR;
+      } else if (ncols > (int)matrixIn.Ncols())
+        ncols = matrixIn.Ncols();
+      mprintf("\tMatrix to filter: %s\n", ds1->legend());
+      mprintf("\tKeeping rows >= %i and < %i\n", rowmin, rowmax);
+      mprintf("\tKeeping cols >= %i and < %i\n", colmin, colmax);
+      mprintf("\tCreating new matrix with %i rows and %i columns.\n", nrows, ncols);
+      DataSet* ds3 = State.DSL().AddSet( DataSet::MATRIX_DBL, name, "make2d" );
+      if (ds3 == 0) return CpptrajState::ERR;
+      DataSet_MatrixDbl& matrixOut = static_cast<DataSet_MatrixDbl&>( *ds3 );
+      matrixOut.Allocate2D(ncols, nrows);
+      matrixOut.SetDim( Dimension::X, Dimension(matrixIn.Dim(0).Coord(colmin),
+                                                matrixIn.Dim(0).Step(),
+                                                matrixIn.Dim(0).Label()) );
+      matrixOut.SetDim( Dimension::Y, Dimension(matrixIn.Dim(1).Coord(rowmin),
+                                                matrixIn.Dim(1).Step(),
+                                                matrixIn.Dim(1).Label()) );
+      for (int row = 0; row < (int)matrixIn.Nrows(); row++)
+      {
+        if (row >= rowmin && row < rowmax)
+        {
+          for (int col = 0; col < (int)matrixIn.Ncols(); col++)
+          {
+            if (col >= colmin && col < colmax)
+            {
+              double val = matrixIn.GetElement(col, row);
+              matrixOut.SetElement( col-colmin, row-rowmin, val );
+              mprintf("DEBUG:\tmatrixIn(%i, %i) = %f  to matrixOut(%i, %i)\n",
+                      col, row, val, col-colmin, row-rowmin);
+            }
+          }
+        }
+      }
+    }
+  // ---------------------------------------------
   } else if (argIn.hasKey("cat")) { // Concatenate two or more data sets
     std::string name = argIn.GetStringKey("name");
     bool use_offset = !argIn.hasKey("nooffset");
