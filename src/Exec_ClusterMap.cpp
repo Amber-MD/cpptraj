@@ -1,4 +1,6 @@
 #include "Exec_ClusterMap.h"
+#include "CpptrajStdio.h"
+#include "DataSet_2D.h"
 
 void Exec_ClusterMap::Help() const {
   mprintf("\t<2d set>\n");
