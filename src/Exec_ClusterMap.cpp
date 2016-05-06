@@ -52,7 +52,6 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   output.Allocate2D( matrix.Ncols(), matrix.Nrows() );
   std::fill( output.begin(), output.end(), -1.0 );
 
-  unsigned int ncols = matrix.Ncols();
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
   unsigned int maxIdx = 0;
@@ -66,9 +65,9 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
     Avg_ += val;
   }
   Avg_ /= (double)matrix.Size();
-  unsigned int maxCol = maxIdx % ncols;
-  unsigned int maxRow = maxIdx / ncols;
-  mprintf("\t%zu elements, max= %f at index %u (%u, %u), Avg= %f\n",
+  int maxCol, maxRow;
+  IdxToColRow( maxIdx, matrix.Ncols(), maxCol, maxRow );
+  mprintf("\t%zu elements, max= %f at index %u (%i, %i), Avg= %f\n",
           matrix.Size(), maxVal, maxIdx, maxCol, maxRow, Avg_);
 
   // Use DBSCAN-style algorithm to cluster points. Any point less than the
@@ -98,12 +97,16 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
       {
         // Determine how many other points are near this point.
         RegionQuery( NeighborPts, val, point, matrix );
+#       ifdef DEBUG_CLUSTERMAP
         mprintf("\tPoint %u\n", point);
         mprintf("\t\t%u neighbors:\n", NeighborPts.size());
+#       endif
         // If # of neighbors less than cutoff, noise; otherwise cluster.
         if ((int)NeighborPts.size() < minPoints_)
         {
+#         ifdef DEBUG_CLUSTERMAP
           mprintf(" NOISE\n");
+#         endif
           Status[point] = NOISE;
         }
         else
@@ -120,7 +123,9 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
             double neighbor_val = matrix.GetElement(neighbor_pt);
             if (!Visited[neighbor_pt])
             {
+#             ifdef DEBUG_CLUSTERMAP
               mprintf(" %i", neighbor_pt + 1);
+#             endif
               // Mark this neighbor as visited
               Visited[neighbor_pt] = true;
               // Determine how many other points are near this neighbor
@@ -146,12 +151,21 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
                                             cluster_frames.end());
           cluster_frames.resize( std::distance(cluster_frames.begin(),it) );
           // Add cluster to the list
+#         ifdef DEBUG_CLUSTERMAP
           mprintf("\n");
-          AddCluster( cluster_frames, output );
+#         endif
+          AddCluster( cluster_frames, matrix, output );
         }
       } // END value > cutoff
     } // END if not visited
   } // END loop over matrix points
+
+  mprintf("\t%zu clusters:\n", clusters_.size());
+  for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
+    mprintf("\t %i: %zu points, Rows %i-%i, cols %i-%i, avg= %f\n",
+            CL->Cnum(), CL->Points().size(),
+            CL->MinRow(), CL->MaxRow(),
+            CL->MinCol(), CL->MaxCol(), CL->Avg());
 
   return CpptrajState::OK;
 }
@@ -182,12 +196,37 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
   }
 }
 
-void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_MatrixFlt& output) {
-  mprintf("Cluster %i:", nClusters_);
-  for (Iarray::const_iterator it = points.begin(); it != points.end(); ++it) {
-    mprintf(" %i", *it);
-    output[*it] = nClusters_;
+// Exec_ClusterMap::AddCluster()
+void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix,
+                                 DataSet_MatrixFlt& output)
+{
+# ifdef DEBUG_CLUSTERMAP
+  mprintf("Cluster %i (%zu):", nClusters_, points.size());
+# endif
+  int ncols = (int)matrix.Ncols();
+  int min_col, min_row;
+  IdxToColRow(points.front(), ncols, min_col, min_row);
+  int max_col = min_col;
+  int max_row = min_row;
+  int row, col;
+  double cavg = 0.0;
+  for (Iarray::const_iterator pt = points.begin(); pt != points.end(); ++pt) {
+#   ifdef DEBUG_CLUSTERMAP
+    mprintf(" %i", *pt);
+#   endif
+    output[*pt] = nClusters_;
+    // Determine min/max row/col and average of all points
+    IdxToColRow( *pt, ncols, col, row );
+    min_col = std::min(col, min_col);
+    max_col = std::max(col, max_col);
+    min_row = std::min(row, min_row);
+    max_row = std::max(row, max_row);
+    cavg += matrix.GetElement( *pt );
   }
+  cavg /= (double)points.size();
+  clusters_.push_back( Cluster(points, cavg, nClusters_, min_col, max_col, min_row, max_row) );
+# ifdef DEBUG_CLUSTERMAP
   mprintf("\n");
+# endif
   nClusters_++;
 }
