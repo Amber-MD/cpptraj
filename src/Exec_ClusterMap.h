@@ -2,6 +2,9 @@
 #define INC_EXEC_CLUSTERMAP_H
 #include "Exec.h"
 #include "DataSet_MatrixFlt.h"
+#ifdef TIMER
+#include "Timer.h"
+#endif
 // EXPERIMENTAL ALPHA CODE
 class Exec_ClusterMap : public Exec {
   public:
@@ -24,8 +27,13 @@ class Exec_ClusterMap : public Exec {
     double Avg_;
     int minPoints_;
     int nClusters_;
+#   ifdef TIMER
+    Timer t_overall_;
+    Timer t_query1_;
+    Timer t_query2_;
+#   endif
 };
-
+// -----------------------------------------------
 class Exec_ClusterMap::Cluster {
   public:
     Cluster() : avg_(0.0), cnum_(-1), min_col_(-1), max_col_(-1), min_row_(-1), max_row_(-1) {}

@@ -82,6 +82,9 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   Iarray Npts2;          // Will hold neighbors of a neighbor
   Iarray cluster_frames; // Hold indices of current cluster
   ProgressBar progress(matrix.Size());
+# ifdef TIMER
+  t_overall_.Start();
+# endif
   for (int point = 0; point != (int)matrix.Size(); point++)
   {
     progress.Update(point);
@@ -96,7 +99,13 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
       else
       {
         // Determine how many other points are near this point.
+#       ifdef TIMER
+        t_query1_.Start();
+#       endif
         RegionQuery( NeighborPts, val, point, matrix );
+#       ifdef TIMER
+        t_query1_.Stop();
+#       endif
 #       ifdef DEBUG_CLUSTERMAP
         mprintf("\tPoint %u\n", point);
         mprintf("\t\t%u neighbors:\n", NeighborPts.size());
@@ -129,7 +138,13 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
               // Mark this neighbor as visited
               Visited[neighbor_pt] = true;
               // Determine how many other points are near this neighbor
+#             ifdef TIMER
+              t_query2_.Start();
+#             endif
               RegionQuery( Npts2, neighbor_val, neighbor_pt, matrix );
+#             ifdef TIMER
+              t_query2_.Stop();
+#             endif
               if ((int)Npts2.size() >= minPoints_)
               {
                 // Add other points to current neighbor list
@@ -159,7 +174,12 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
       } // END value > cutoff
     } // END if not visited
   } // END loop over matrix points
-
+# ifdef TIMER
+  t_overall_.Stop();
+  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
+  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
+  t_overall_.WriteTiming(1, "Overall:");
+# endif
   mprintf("\t%zu clusters:\n", clusters_.size());
   for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
     mprintf("\t %i: %zu points, Rows %i-%i, cols %i-%i, avg= %f\n",
