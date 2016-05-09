@@ -201,6 +201,8 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   t_overall_.WriteTiming(1, "Overall:");
 # endif
   mprintf("\t%zu clusters:\n", clusters_.size());
+  // Sort by number of points
+  std::sort(clusters_.begin(), clusters_.end());
   for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
     mprintf("\t %i: %zu points, Rows %i-%i, cols %i-%i, avg= %f\n",
             CL->Cnum(), CL->Points().size(),

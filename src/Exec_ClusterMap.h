@@ -51,6 +51,10 @@ class Exec_ClusterMap::Cluster {
     int MaxCol()           const { return max_col_; }
     int MinRow()           const { return min_row_; }
     int MaxRow()           const { return max_row_; }
+    // Use > since we give higher priority to larger clusters
+    bool operator <(Cluster const& rhs) const {
+      return ( points_.size() > rhs.points_.size() );
+    }
   private:
     Iarray points_;
     double avg_;
