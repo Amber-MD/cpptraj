@@ -9,6 +9,7 @@
 #include "StringRoutines.h"
 #include "ProgressBar.h"
 #include "Trajout_Single.h"
+//#inc lude "PDBfile.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -584,12 +585,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
       // Write PDB of cluster containing only frames/atoms of interest.
       std::string cfilename = cprefix_ + ".c" + integerToString( cnum );
       // Create topology for region
-      AtomMask atoms_to_keep;
-      if (cmap_square_)
-        atoms_to_keep = AtomMask( CL->MinRow(), CL->MaxRow()+1 );
-      else
-        for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
-          atoms_to_keep.AddAtom( *pt );
+      AtomMask atoms_to_keep( CL->MinRow(), CL->MaxRow()+1 );
       Topology* regionTop = maskTop->modifyStateByMask( atoms_to_keep );
       // Set up trajectory file
       int nframes = CL->MaxCol() - CL->MinCol() + 1;
@@ -624,11 +620,34 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
     c_avgval_->Add( cnum, &fval );
     cnum++;
   }
-  if (!cprefix_.empty())
-    delete maskTop;
 
-  // Write PDB trajectory with atoms colored by cluster number vi B factor.
-  
+  if (!cprefix_.empty()) {
+/*
+    // Write PDB trajectory with atoms colored by cluster number vi B factor.
+    PDBfile trajout;
+    trajout.OpenWrite("Traj.pdb");
+    trajout.WriteTITLE("Wavelet trajectory, B factors contain cluster numbers");
+    int nframes = (int)coords_->Size();
+    for (int frm = 0; frm != nframes; frm++) {
+      trajout.WriteMODEL(frm+1);
+      coords_->GetFrame( frm, currentFrame_, mask_ );
+      for (int atm = 0; atm != mask_.Nselected(); atm++) {
+        Atom const& A = (*maskTop)[atm];
+        Residue const& R = maskTop->Res(A.ResNum());
+        const double* XYZ = currentFrame_.XYZ(atm);
+        trajout.WriteCoord( PDBfile::ATOM, atm+1, A.Name(), ' ', R.Name(),
+                            ' ', A.ResNum()+1, ' ', XYZ[0], XYZ[1], XYZ[2],
+                            1.0, outmap.GetElement(frm, atm), A.ElementName(),
+                            0, false );
+      }
+      trajout.WriteENDMDL();
+    }
+    trajout.WriteEND();
+    trajout.CloseFile();
+*/
+    delete maskTop;
+  }
+ 
   //  mprintf("\t %i: %zu points, atoms %i-%i, frames %i-%i, avg= %f\n",
   //          CL->Cnum(), CL->Points().size(),
   //          CL->MinRow()+1, CL->MaxRow()+1,
