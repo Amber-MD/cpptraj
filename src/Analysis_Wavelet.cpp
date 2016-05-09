@@ -9,7 +9,7 @@
 #include "StringRoutines.h"
 #include "ProgressBar.h"
 #include "Trajout_Single.h"
-//#inc lude "PDBfile.h"
+#include "ParmFile.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -121,6 +121,8 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   if (analyzeArgs.hasKey("cluster")) {
     doClustering_ = true;
     cprefix_ = analyzeArgs.GetStringKey("cprefix");
+    overlayName_ = analyzeArgs.GetStringKey("overlay");
+    overlayParm_ = analyzeArgs.GetStringKey("overlayparm");
     doKdist_ = analyzeArgs.hasKey("kdist");
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
@@ -200,6 +202,11 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     if (doKdist_) mprintf("\t  Calculating Kdist plot.\n");
     if (!cprefix_.empty())
       mprintf("\t  Cluster regions will be output to PDBs with name '%s.cX'\n", cprefix_.c_str());
+    if (!overlayName_.empty())
+      mprintf("\t  Overlay trajectory will be written to '%s'\n", overlayName_.c_str());
+    if (!overlayParm_.empty())
+      mprintf("\t  Topology corresponding to overlay trajectory will be written to '%s'\n",
+              overlayParm_.c_str());
   }
   return Analysis::OK;
 }
@@ -561,9 +568,9 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
 
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
-  // If writing region PDBs, create topology for mask_
+  // If writing region PDBs or overlay traj, create topology for mask_
   Topology* maskTop = 0;
-  if (!cprefix_.empty())
+  if (!cprefix_.empty() || !overlayName_.empty())
     maskTop = coords_->Top().modifyStateByMask( mask_ );
   // Renumber clusters.
   int cnum = 0;
@@ -621,32 +628,75 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
     cnum++;
   }
 
-  if (!cprefix_.empty()) {
-/*
-    // Write PDB trajectory with atoms colored by cluster number vi B factor.
-    PDBfile trajout;
-    trajout.OpenWrite("Traj.pdb");
-    trajout.WriteTITLE("Wavelet trajectory, B factors contain cluster numbers");
-    int nframes = (int)coords_->Size();
-    for (int frm = 0; frm != nframes; frm++) {
-      trajout.WriteMODEL(frm+1);
-      coords_->GetFrame( frm, currentFrame_, mask_ );
-      for (int atm = 0; atm != mask_.Nselected(); atm++) {
-        Atom const& A = (*maskTop)[atm];
-        Residue const& R = maskTop->Res(A.ResNum());
-        const double* XYZ = currentFrame_.XYZ(atm);
-        trajout.WriteCoord( PDBfile::ATOM, atm+1, A.Name(), ' ', R.Name(),
-                            ' ', A.ResNum()+1, ' ', XYZ[0], XYZ[1], XYZ[2],
-                            1.0, outmap.GetElement(frm, atm), A.ElementName(),
-                            0, false );
-      }
-      trajout.WriteENDMDL();
+  if (!overlayName_.empty()) {
+    // Write topology
+    if (!overlayParm_.empty()) {
+      ParmFile pfile;
+      if ( pfile.WriteTopology(*maskTop, overlayParm_, ParmFile::AMBERPARM, 0) )
+        mprinterr("Error: Could not write out topology to file %s\n", overlayParm_.c_str());
     }
-    trajout.WriteEND();
-    trajout.CloseFile();
-*/
-    delete maskTop;
+    // Write PDB trajectory
+    double origin[3] = {0, 0, 0}; 
+    // Open trajectory
+    int nframes = (int)coords_->Size();
+    Trajout_Single overlay;
+    if (overlay.PrepareTrajWrite(overlayName_, "title 'Wavelet trajectory'",
+                                 maskTop, CoordinateInfo(), nframes,
+                                 TrajectoryFile::UNKNOWN_TRAJ))
+      return Analysis::ERR; 
+    //PDBfile trajout;
+    //trajout.OpenWrite("Traj.pdb");
+    //trajout.WriteTITLE("Wavelet trajectory, B factors contain cluster numbers");
+    // Determine a reasonable origin. Frames/atoms with no cluster will be set to this.
+    coords_->GetFrame( 0, currentFrame_, mask_ );
+    //trajout.WriteMODEL(0);
+    for (int atm = 0; atm != mask_.Nselected(); atm++) {
+      //Atom const& A = (*maskTop)[atm];
+      //Residue const& R = maskTop->Res(A.ResNum());
+      const double* XYZ = currentFrame_.XYZ(atm);
+      origin[0] += XYZ[0];
+      origin[1] += XYZ[1];
+      origin[2] += XYZ[2];
+      //trajout.WriteCoord( PDBfile::ATOM, atm+1, A.Name(), ' ', R.Name(),
+      //                    ' ', A.ResNum()+1, ' ', XYZ[0], XYZ[1], XYZ[2],
+      //                    1.0, 0.0, A.ElementName(),
+      //                    0, false );
+    }
+    //trajout.WriteENDMDL();
+    origin[0] /= (double)mask_.Nselected();
+    origin[1] /= (double)mask_.Nselected();
+    origin[2] /= (double)mask_.Nselected();
+    // Write remaining frames
+    Frame outFrame = currentFrame_;
+    //double d_scale = 100.0 / (double)(clusters_.size() + 1);
+    for (int frm = 0; frm != nframes; frm++) {
+      //trajout.WriteMODEL(frm+1);
+      coords_->GetFrame( frm, currentFrame_, mask_ );
+      outFrame.ClearAtoms();
+      for (int atm = 0; atm != mask_.Nselected(); atm++) {
+        //float cnum = outmap.GetElement(frm, atm);
+        //float bfac = (float)((double)(cnum+1) * d_scale);
+        //const double* XYZ;
+        if (outmap.GetElement(frm, atm) > -1.0)
+          outFrame.AddXYZ( currentFrame_.XYZ(atm) );
+        else
+          outFrame.AddXYZ( origin );
+        //Atom const& A = (*maskTop)[atm];
+        //Residue const& R = maskTop->Res(A.ResNum());
+        //trajout.WriteCoord( PDBfile::ATOM, atm+1, A.Name(), ' ', R.Name(),
+        //                    ' ', A.ResNum()+1, ' ', XYZ[0], XYZ[1], XYZ[2],
+        //                    1.0, bfac, A.ElementName(),
+        //                    0, false );
+      }
+      overlay.WriteSingle(frm, outFrame);
+      //trajout.WriteENDMDL();
+    }
+    //trajout.WriteEND();
+    //trajout.CloseFile();
+    overlay.EndTraj();
   }
+
+  if (maskTop != 0) delete maskTop;
  
   //  mprintf("\t %i: %zu points, atoms %i-%i, frames %i-%i, avg= %f\n",
   //          CL->Cnum(), CL->Points().size(),

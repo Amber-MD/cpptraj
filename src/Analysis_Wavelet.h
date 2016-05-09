@@ -59,6 +59,8 @@ class Analysis_Wavelet : public Analysis {
     DataSet* c_maxfrm_;
     DataSet* c_avgval_;
     std::string cprefix_; ///< Output cluster traj prefix
+    std::string overlayName_;
+    std::string overlayParm_;
     double epsilon_;  ///< Distance to search for neighboring points within.
     double epsilon2_; ///< Epsilon squared.
     double Avg_;      ///< Average value of map, used as cutoff (points below are noise).
