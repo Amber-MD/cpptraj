@@ -571,8 +571,10 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
     CL->SetCnum( cnum );
     // Write cluster map
     if (cmap_square_) {
-      for (int row = CL->MinRow(); row != CL->MaxRow(); row++)
-        for (int col = CL->MinCol(); col != CL->MaxCol(); col++)
+      int MAXR = CL->MaxRow() + 1; // Want up to and including max
+      int MAXC = CL->MaxCol() + 1;
+      for (int row = CL->MinRow(); row != MAXR; row++)
+        for (int col = CL->MinCol(); col != MAXC; col++)
           outmap.SetElement( col, row, cnum );
     } else {
       for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
@@ -582,10 +584,15 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
       // Write PDB of cluster containing only frames/atoms of interest.
       std::string cfilename = cprefix_ + ".c" + integerToString( cnum );
       // Create topology for region
-      AtomMask atoms_to_keep( CL->MinRow(), CL->MaxRow() );
+      AtomMask atoms_to_keep;
+      if (cmap_square_)
+        atoms_to_keep = AtomMask( CL->MinRow(), CL->MaxRow()+1 );
+      else
+        for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
+          atoms_to_keep.AddAtom( *pt );
       Topology* regionTop = maskTop->modifyStateByMask( atoms_to_keep );
       // Set up trajectory file
-      int nframes = CL->MaxCol() - CL->MinCol();
+      int nframes = CL->MaxCol() - CL->MinCol() + 1;
       Trajout_Single clusterout;
       if (clusterout.PrepareTrajWrite(cfilename, ArgList(), regionTop,
                                       CoordinateInfo(), nframes, TrajectoryFile::PDBFILE))
@@ -593,8 +600,8 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
       // Setup frame for region
       Frame regionFrame;
       regionFrame.SetupFrameFromMask( atoms_to_keep, maskTop->Atoms() );
-      // Write out frames
-      for (int frm = CL->MinCol(); frm != CL->MaxCol(); frm++) {
+      // Write out frames. Want up to and including max column
+      for (int frm = CL->MinCol(); frm != CL->MaxCol()+1; frm++) {
         coords_->GetFrame( frm, currentFrame_, mask_ );
         regionFrame.SetCoordinates( currentFrame_, atoms_to_keep );
         clusterout.WriteSingle(frm, regionFrame);
