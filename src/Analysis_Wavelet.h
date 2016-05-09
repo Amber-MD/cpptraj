@@ -64,6 +64,7 @@ class Analysis_Wavelet : public Analysis {
     int nClusters_;   ///< Current number of clusters.
     bool doClustering_; ///< Perform clustering on wavelet map
     bool cmap_square_;  ///< If true write cluster map by min/max rows/cols.
+    bool doKdist_;      ///< If true calculate Kdist plot
 #   ifdef TIMER
     Timer t_overall_;
     Timer t_query1_;

@@ -118,6 +118,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   DataFile* clusterout = 0;
   if (analyzeArgs.hasKey("cluster")) {
     doClustering_ = true;
+    doKdist_ = analyzeArgs.hasKey("kdist");
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
     epsilon2_ = epsilon_ * epsilon_;
@@ -193,6 +194,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     else
       mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
     mprintf("\t  minpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
+    if (doKdist_) mprintf("\tCalculating Kdist plot.\n");
   }
   return Analysis::OK;
 }
@@ -414,7 +416,7 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 // Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   // DEBUG
-  ComputeKdist( minPoints_, matrix );
+  if (doKdist_) ComputeKdist( minPoints_, matrix );
   // Set up output cluster map
   DataSet_MatrixFlt& outmap = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
   outmap.Allocate2D( matrix.Ncols(), matrix.Nrows() );
@@ -592,6 +594,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   return 0;
 }
 
+/// Simple distance: value, row (atom#), column (frame#)
 static inline double GetDist2(DataSet_2D const& matrix,
                               double val, int point_row, int point_col, int otherpoint)
 {
