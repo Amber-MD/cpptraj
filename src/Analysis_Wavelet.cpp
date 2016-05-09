@@ -149,12 +149,22 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     clustermap_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, MetaData(dname, "clustermap") );
     if (clustermap_ == 0) return Analysis::ERR;
     if (clustermapout != 0) clustermapout->AddDataSet( clustermap_ );
+    Dimension Cdim( 0, 1, "Cluster" );
     c_points_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "points"));
     c_minatm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "minatm"));
     c_maxatm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "maxatm"));
     c_minfrm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "minfrm"));
     c_maxfrm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "maxfrm"));
     c_avgval_ = setup.DSL().AddSet(DataSet::FLOAT,   MetaData(dname, "avgval"));
+    if (c_points_==0 || c_minatm_==0 || c_maxatm_==0 ||
+        c_minfrm_==0 || c_maxfrm_==0 || c_avgval_==0)
+      return Analysis::ERR;
+    c_points_->SetDim(0, Cdim);
+    c_minatm_->SetDim(0, Cdim);
+    c_maxatm_->SetDim(0, Cdim);
+    c_minfrm_->SetDim(0, Cdim);
+    c_maxfrm_->SetDim(0, Cdim);
+    c_avgval_->SetDim(0, Cdim);
     if (clusterout != 0) {
       clusterout->AddDataSet( c_points_ );
       clusterout->AddDataSet( c_minatm_ );
