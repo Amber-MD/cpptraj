@@ -121,6 +121,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
     epsilon2_ = epsilon_ * epsilon_;
+    cmap_square_ = !analyzeArgs.hasKey("cmapdetail");
     clustermapout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clustermapout"),
                                              analyzeArgs );
     clusterout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clusterout"),
@@ -188,6 +189,10 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     mprintf("\t  Wavelet map cluster set: '%s'\n", clustermap_->legend());
     if (clustermapout != 0)
       mprintf("\t  Wavelet map cluster output to '%s'\n", clustermapout->DataFilename().full());
+    if (cmap_square_)
+      mprintf("\t  Cluster regions in map will be defined by min and max frames/atoms.\n");
+    else
+      mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
     mprintf("\t  minpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
   }
   return Analysis::OK;
@@ -554,8 +559,15 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
   {
     CL->SetCnum( cnum );
-    for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
-      outmap[*pt] = cnum;
+    // Write cluster map
+    if (cmap_square_) {
+      for (int row = CL->MinRow(); row != CL->MaxRow(); row++)
+        for (int col = CL->MinCol(); col != CL->MaxCol(); col++)
+          outmap.SetElement( col, row, cnum );
+    } else {
+      for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
+        outmap[*pt] = cnum;
+    }
     // Save cluster data to sets
     int ival = (int)CL->Points().size();
     c_points_->Add( cnum, &ival );

@@ -62,6 +62,7 @@ class Analysis_Wavelet : public Analysis {
     int minPoints_;   ///< Minimum number of points within epsilon to qualify as cluster.
     int nClusters_;   ///< Current number of clusters.
     bool doClustering_; ///< Perform clustering on wavelet map
+    bool cmap_square_;  ///< If true write cluster map by min/max rows/cols.
 #   ifdef TIMER
     Timer t_overall_;
     Timer t_query1_;
