@@ -115,6 +115,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   // Wavelet map clustering
   doClustering_ = false;
   DataFile* clustermapout = 0;
+  DataFile* clusterout = 0;
   if (analyzeArgs.hasKey("cluster")) {
     doClustering_ = true;
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
@@ -122,6 +123,8 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     epsilon2_ = epsilon_ * epsilon_;
     clustermapout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clustermapout"),
                                              analyzeArgs );
+    clusterout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clusterout"),
+                                          analyzeArgs );
 #   ifdef _OPENMP
     int numthreads = 0;
 #   pragma omp parallel
@@ -140,12 +143,26 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   output_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( output_ );
-  // Set up wavelet map clustering output set
   if (doClustering_) {
-    clustermap_ = setup.DSL().AddSet( DataSet::MATRIX_FLT,
-                                      MetaData(output_->Meta().Name(), "clustermap") );
+    std::string const& dname = output_->Meta().Name();
+    // Set up wavelet map clustering output set
+    clustermap_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, MetaData(dname, "clustermap") );
     if (clustermap_ == 0) return Analysis::ERR;
     if (clustermapout != 0) clustermapout->AddDataSet( clustermap_ );
+    c_points_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "points"));
+    c_minatm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "minatm"));
+    c_maxatm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "maxatm"));
+    c_minfrm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "minfrm"));
+    c_maxfrm_ = setup.DSL().AddSet(DataSet::INTEGER, MetaData(dname, "maxfrm"));
+    c_avgval_ = setup.DSL().AddSet(DataSet::FLOAT,   MetaData(dname, "avgval"));
+    if (clusterout != 0) {
+      clusterout->AddDataSet( c_points_ );
+      clusterout->AddDataSet( c_minatm_ );
+      clusterout->AddDataSet( c_maxatm_ );
+      clusterout->AddDataSet( c_minfrm_ );
+      clusterout->AddDataSet( c_maxfrm_ );
+      clusterout->AddDataSet( c_avgval_ );
+    }
   }
 
   mprintf("    WAVELET: Using COORDS set '%s', wavelet type %s\n",
@@ -383,9 +400,9 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 // Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   // Set up output cluster map
-  DataSet_MatrixFlt& output = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
-  output.Allocate2D( matrix.Ncols(), matrix.Nrows() );
-  std::fill( output.begin(), output.end(), -1.0 );
+  DataSet_MatrixFlt& outmap = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
+  outmap.Allocate2D( matrix.Ncols(), matrix.Nrows() );
+  std::fill( outmap.begin(), outmap.end(), -1.0 );
 
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
@@ -507,7 +524,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
 #         ifdef DEBUG_CLUSTERMAP
           mprintf("\n");
 #         endif
-          AddCluster( cluster_frames, matrix, output );
+          AddCluster( cluster_frames, matrix );
         }
       } // END value > cutoff
     } // END if not visited
@@ -519,13 +536,35 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   t_overall_.WriteTiming(1, "Overall:");
 # endif
   mprintf("\t%zu clusters:\n", clusters_.size());
+
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
-  for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
-    mprintf("\t %i: %zu points, atoms %i-%i, frames %i-%i, avg= %f\n",
-            CL->Cnum(), CL->Points().size(),
-            CL->MinRow()+1, CL->MaxRow()+1,
-            CL->MinCol()+1, CL->MaxCol()+1, CL->Avg());
+  // Renumber clusters
+  int cnum = 0;
+  for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
+  {
+    CL->SetCnum( cnum );
+    for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
+      outmap[*pt] = cnum;
+    // Save cluster data to sets
+    int ival = (int)CL->Points().size();
+    c_points_->Add( cnum, &ival );
+    ival = CL->MinRow()+1;
+    c_minatm_->Add( cnum, &ival );
+    ival = CL->MaxRow()+1;
+    c_maxatm_->Add( cnum, &ival );
+    ival = CL->MinCol()+1;
+    c_minfrm_->Add( cnum, &ival );
+    ival = CL->MaxCol()+1;
+    c_maxfrm_->Add( cnum, &ival );
+    float fval = (float)CL->Avg();
+    c_avgval_->Add( cnum, &fval );
+    cnum++;
+  }
+  //  mprintf("\t %i: %zu points, atoms %i-%i, frames %i-%i, avg= %f\n",
+  //          CL->Cnum(), CL->Points().size(),
+  //          CL->MinRow()+1, CL->MaxRow()+1,
+  //          CL->MinCol()+1, CL->MaxCol()+1, CL->Avg());
 
   return 0;
 }
@@ -580,8 +619,7 @@ void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
 }
 
 // Analysis_Wavelet::AddCluster()
-void Analysis_Wavelet::AddCluster(Iarray const& points, DataSet_2D const& matrix,
-                                  DataSet_MatrixFlt& output)
+void Analysis_Wavelet::AddCluster(Iarray const& points, DataSet_2D const& matrix)
 {
 # ifdef DEBUG_CLUSTERMAP
   mprintf("Cluster %i (%zu):", nClusters_, points.size());
@@ -597,7 +635,6 @@ void Analysis_Wavelet::AddCluster(Iarray const& points, DataSet_2D const& matrix
 #   ifdef DEBUG_CLUSTERMAP
     mprintf(" %i", *pt);
 #   endif
-    output[*pt] = nClusters_;
     // Determine min/max row/col and average of all points
     IdxToColRow( *pt, ncols, col, row );
     min_col = std::min(col, min_col);

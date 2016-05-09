@@ -40,7 +40,7 @@ class Analysis_Wavelet : public Analysis {
 
     int ClusterMap(DataSet_MatrixFlt const&);
     void RegionQuery(Iarray&, double, int, DataSet_2D const&);
-    void AddCluster(Iarray const&, DataSet_2D const&, DataSet_MatrixFlt&);
+    void AddCluster(Iarray const&, DataSet_2D const&);
 
     class Cluster;
     typedef std::vector<Cluster> Carray;
@@ -50,6 +50,12 @@ class Analysis_Wavelet : public Analysis {
     int mythread_;                         ///< Current OpenMP thread.
 #   endif
     DataSet* clustermap_; ///< Output cluster map
+    DataSet* c_points_;
+    DataSet* c_minatm_;
+    DataSet* c_maxatm_;
+    DataSet* c_minfrm_;
+    DataSet* c_maxfrm_;
+    DataSet* c_avgval_;
     double epsilon_;  ///< Distance to search for neighboring points within.
     double epsilon2_; ///< Epsilon squared.
     double Avg_;      ///< Average value of map, used as cutoff (points below are noise).
@@ -69,6 +75,7 @@ class Analysis_Wavelet::Cluster {
     Cluster(Iarray const& p, double A, int C, int minc, int maxc, int minr, int maxr) :
       points_(p), avg_(A), cnum_(C), min_col_(minc), max_col_(maxc), min_row_(minr), max_row_(maxr)
       {}
+    void SetCnum(int c) { cnum_ = c; }
     Iarray const& Points() const { return points_;  }
     double Avg()           const { return avg_;     }
     int Cnum()             const { return cnum_;    }
