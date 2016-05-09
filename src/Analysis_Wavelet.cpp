@@ -127,15 +127,14 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     clusterout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clusterout"),
                                           analyzeArgs );
 #   ifdef _OPENMP
-    int numthreads = 0;
+    numthreads_ = 0;
 #   pragma omp parallel
     {
-    mythread_ = omp_get_thread_num();
-    if (mythread_ == 0)
-      numthreads = omp_get_num_threads();
+    if (omp_get_thread_num() == 0)
+      numthreads_ = omp_get_num_threads();
     }
-    mprintf("\tParallelizing calc with %i threads.\n", numthreads);
-    thread_neighbors_.resize( numthreads );
+    mprintf("\tParallelizing calc with %i threads.\n", numthreads_);
+    thread_neighbors_.resize( numthreads_ );
 #   endif
   }
   // Atom mask
@@ -414,6 +413,8 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 
 // Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
+  // DEBUG
+  //ComputeKdist( minPoints_, matrix );
   // Set up output cluster map
   DataSet_MatrixFlt& outmap = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
   outmap.Allocate2D( matrix.Ncols(), matrix.Nrows() );
@@ -591,6 +592,18 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   return 0;
 }
 
+static inline double GetDist2(DataSet_2D const& matrix,
+                              double val, int point_row, int point_col, int otherpoint)
+{
+  int other_col, other_row;
+  IdxToColRow( otherpoint, matrix.Ncols(), other_col, other_row );
+  double other_val = matrix.GetElement( otherpoint );
+  double dv = val - other_val;
+  double dr = (double)(point_row - other_row);
+  double dc = (double)(point_col - other_col);
+  return dv*dv + dr*dr + dc*dc;
+}
+
 // Analysis_Wavelet::RegionQuery()
 void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
                                    DataSet_2D const& matrix)
@@ -604,28 +617,23 @@ void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
   int point_col, point_row;
   IdxToColRow( point, matrix.Ncols(), point_col, point_row );
   int msize = (int)matrix.Size();
-  int otherpoint;
+  int otherpoint, mythread;
 
 # ifdef _OPENMP
-# pragma omp parallel private(otherpoint)
+# pragma omp parallel private(otherpoint, mythread)
   {
+  mythread = omp_get_thread_num();
 # pragma omp for
 # endif
   for (otherpoint = 0; otherpoint < msize; otherpoint++)
   {
     if (point != otherpoint) {
       // Distance calculation.
-      int other_col, other_row;
-      IdxToColRow( otherpoint, matrix.Ncols(), other_col, other_row );
-      double other_val = matrix.GetElement( otherpoint );
-      double dv = val - other_val;
-      double dr = (double)(point_row - other_row);
-      double dc = (double)(point_col - other_col);
-      double dist2 = dv*dv + dr*dr + dc*dc;
+      double dist2 = GetDist2(matrix, val, point_row, point_col, otherpoint);
 
       if ( dist2 < epsilon2_ )
 #       ifdef _OPENMP
-        thread_neighbors_[mythread_].push_back( otherpoint );
+        thread_neighbors_[mythread].push_back( otherpoint );
 #       else
         NeighborPts.push_back( otherpoint );
 #       endif
@@ -671,4 +679,60 @@ void Analysis_Wavelet::AddCluster(Iarray const& points, DataSet_2D const& matrix
   mprintf("\n");
 # endif
   nClusters_++;
+}
+
+/** For each point p, calculate function Kdist(p) which is the distance of
+  * the Kth nearest point to p.
+  */
+void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const {
+  std::vector< std::vector<double> > dists; // Store distances of all points to current point;
+  std::vector<double> Kdist; // Distance of Kth nearest point to each point
+  Kdist.resize( matrix.Size() );
+
+  std::string outfilename = "Kdist." + integerToString(Kval) + ".dat";
+  mprintf("\tCalculating Kdist(%i), output to %s\n", Kval, outfilename.c_str());
+  int msize = (int)matrix.Size();
+  mprintf("DEBUG: msize is %i\n", msize);
+  int point, otherpoint, point_col, point_row;
+  double val;
+  ParallelProgress progress(msize);
+  int mythread = 0;
+# ifdef _OPENMP
+  dists.resize( numthreads_ );
+# pragma omp parallel private(point, otherpoint, mythread, val, point_col, point_row)
+  {
+  mythread = omp_get_thread_num();
+  progress.SetThread( mythread );
+  dists[mythread].resize( msize );
+# pragma omp for
+# else
+  dists.resize( 1 );
+  dists[0].reserve( matrix.Size() );
+# endif
+  for (point = 0; point < msize; ++point)
+  {
+    //mprintf("%i\n", point);
+    progress.Update(point);
+    val = matrix.GetElement(point);
+    IdxToColRow( point, matrix.Ncols(), point_col, point_row );
+    // Store distances from this point
+    for (otherpoint = 0; otherpoint != msize; otherpoint++)
+      dists[mythread][otherpoint] = GetDist2(matrix, val, point_row, point_col, otherpoint);
+    // Sort distances - first dist should always be 0
+    std::sort(dists[mythread].begin(), dists[mythread].end());
+    Kdist[point] = sqrt(dists[mythread][Kval]);
+  }
+# ifdef _OPENMP
+  }
+# endif
+  std::sort( Kdist.begin(), Kdist.end() );
+  CpptrajFile Outfile;
+  Outfile.OpenWrite(outfilename);
+  Outfile.Printf("%-8s %1i%-11s\n", "#Point", Kval,"-dist");
+  // Write out largest to smallest
+  unsigned int ik = 0;
+  for (std::vector<double>::reverse_iterator k = Kdist.rbegin();
+                                             k != Kdist.rend(); ++k, ++ik)
+    Outfile.Printf("%8u %12.4f\n", ik, *k);
+  Outfile.CloseFile();
 }

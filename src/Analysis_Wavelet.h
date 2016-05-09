@@ -41,13 +41,14 @@ class Analysis_Wavelet : public Analysis {
     int ClusterMap(DataSet_MatrixFlt const&);
     void RegionQuery(Iarray&, double, int, DataSet_2D const&);
     void AddCluster(Iarray const&, DataSet_2D const&);
+    void ComputeKdist(int, DataSet_2D const&) const;
 
     class Cluster;
     typedef std::vector<Cluster> Carray;
     Carray clusters_;                      ///< Hold all clusters.
 #   ifdef _OPENMP
     std::vector<Iarray> thread_neighbors_; ///< RegionQuery neighbors for each thread.
-    int mythread_;                         ///< Current OpenMP thread.
+    int numthreads_;                       ///< Total number of OpenMP threads.
 #   endif
     DataSet* clustermap_; ///< Output cluster map
     DataSet* c_points_;
