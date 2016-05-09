@@ -26,6 +26,7 @@ class Analysis_Wavelet : public Analysis {
     static const WaveletToken Tokens_[];
 
     AtomMask mask_;
+    Frame currentFrame_;
     DataSet_Coords* coords_;
     DataSet* output_;
     double S0_;
@@ -57,6 +58,7 @@ class Analysis_Wavelet : public Analysis {
     DataSet* c_minfrm_;
     DataSet* c_maxfrm_;
     DataSet* c_avgval_;
+    std::string cprefix_; ///< Output cluster traj prefix
     double epsilon_;  ///< Distance to search for neighboring points within.
     double epsilon2_; ///< Epsilon squared.
     double Avg_;      ///< Average value of map, used as cutoff (points below are noise).

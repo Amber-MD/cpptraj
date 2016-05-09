@@ -8,6 +8,7 @@
 #include "PubFFT.h"
 #include "StringRoutines.h"
 #include "ProgressBar.h"
+#include "Trajout_Single.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -118,6 +119,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   DataFile* clusterout = 0;
   if (analyzeArgs.hasKey("cluster")) {
     doClustering_ = true;
+    cprefix_ = analyzeArgs.GetStringKey("cprefix");
     doKdist_ = analyzeArgs.hasKey("kdist");
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
@@ -194,7 +196,9 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     else
       mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
     mprintf("\t  minpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
-    if (doKdist_) mprintf("\tCalculating Kdist plot.\n");
+    if (doKdist_) mprintf("\t  Calculating Kdist plot.\n");
+    if (!cprefix_.empty())
+      mprintf("\t  Cluster regions will be output to PDBs with name '%s.cX'\n", cprefix_.c_str());
   }
   return Analysis::OK;
 }
@@ -230,18 +234,17 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
           ByteString(d_matrix.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   d_matrix.resize(nframes, natoms);
   // Get initial frame.
-  Frame currentFrame, lastFrame;
-  currentFrame.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
-  lastFrame = currentFrame;
+  currentFrame_.SetupFrameFromMask( mask_, coords_->Top().Atoms() );
+  Frame lastFrame = currentFrame_;
   coords_->GetFrame( 0, lastFrame, mask_ );
   // Iterate over frames
   for (int frm = 1; frm != nframes; frm++) {
-    coords_->GetFrame( frm, currentFrame, mask_ );
+    coords_->GetFrame( frm, currentFrame_, mask_ );
     int idx = frm; // Position in distance matrix; start at column 'frame'
     for (int at = 0; at != natoms; at++, idx += nframes)
-      // Distance of atom in currentFrame from its position in lastFrame.
-      d_matrix[idx] = sqrt(DIST2_NoImage( currentFrame.XYZ(at), lastFrame.XYZ(at) ));
-    //lastFrame = currentFrame; // TODO: Re-enable?
+      // Distance of atom in currentFrame_ from its position in lastFrame.
+      d_matrix[idx] = sqrt(DIST2_NoImage( currentFrame_.XYZ(at), lastFrame.XYZ(at) ));
+    //lastFrame = currentFrame_; // TODO: Re-enable?
   }
 # ifdef DEBUG_WAVELET
   // DEBUG: Write matrix to file.
@@ -557,6 +560,10 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
 
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
+  // If writing region PDBs, create topology for mask_
+  Topology* maskTop = 0;
+  if (!cprefix_.empty())
+    maskTop = coords_->Top().modifyStateByMask( mask_ );
   // Renumber clusters
   int cnum = 0;
   for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
@@ -570,6 +577,29 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
     } else {
       for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
         outmap[*pt] = cnum;
+    }
+    if (!cprefix_.empty()) {
+      // Write PDB of cluster containing only frames/atoms of interest.
+      std::string cfilename = cprefix_ + ".c" + integerToString( cnum );
+      // Create topology for region
+      AtomMask atoms_to_keep( CL->MinRow(), CL->MaxRow() );
+      Topology* regionTop = maskTop->modifyStateByMask( atoms_to_keep );
+      // Set up trajectory file
+      int nframes = CL->MaxCol() - CL->MinCol();
+      Trajout_Single clusterout;
+      if (clusterout.PrepareTrajWrite(cfilename, ArgList(), regionTop,
+                                      CoordinateInfo(), nframes, TrajectoryFile::PDBFILE))
+        return Analysis::ERR;
+      // Setup frame for region
+      Frame regionFrame;
+      regionFrame.SetupFrameFromMask( atoms_to_keep, maskTop->Atoms() );
+      // Write out frames
+      for (int frm = CL->MinCol(); frm != CL->MaxCol(); frm++) {
+        coords_->GetFrame( frm, currentFrame_, mask_ );
+        regionFrame.SetCoordinates( currentFrame_, atoms_to_keep );
+        clusterout.WriteSingle(frm, regionFrame);
+      }
+      clusterout.EndTraj();
     }
     // Save cluster data to sets
     int ival = (int)CL->Points().size();
