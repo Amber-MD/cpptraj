@@ -100,14 +100,15 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   Iarray Npts2;          // Will hold neighbors of a neighbor
   Iarray cluster_frames; // Hold indices of current cluster
   ProgressBar progress(matrix.Size());
+  int iterations = 0;
 # ifdef TIMER
   t_overall_.Start();
 # endif
   for (int point = 0; point != (int)matrix.Size(); point++)
   {
-    progress.Update(point);
     if (!Visited[point])
     {
+      progress.Update(iterations++);
       // Mark this point as visited.
       Visited[point] = true;
       double val = matrix.GetElement(point);
@@ -150,6 +151,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
             double neighbor_val = matrix.GetElement(neighbor_pt);
             if (!Visited[neighbor_pt])
             {
+              progress.Update(iterations++);
 #             ifdef DEBUG_CLUSTERMAP
               mprintf(" %i", neighbor_pt + 1);
 #             endif
