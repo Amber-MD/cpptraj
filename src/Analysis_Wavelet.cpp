@@ -564,7 +564,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   Topology* maskTop = 0;
   if (!cprefix_.empty())
     maskTop = coords_->Top().modifyStateByMask( mask_ );
-  // Renumber clusters
+  // Renumber clusters.
   int cnum = 0;
   for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
   {
@@ -607,6 +607,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
         clusterout.WriteSingle(frm, regionFrame);
       }
       clusterout.EndTraj();
+      delete regionTop;
     }
     // Save cluster data to sets
     int ival = (int)CL->Points().size();
@@ -623,6 +624,11 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
     c_avgval_->Add( cnum, &fval );
     cnum++;
   }
+  if (!cprefix_.empty())
+    delete maskTop;
+
+  // Write PDB trajectory with atoms colored by cluster number vi B factor.
+  
   //  mprintf("\t %i: %zu points, atoms %i-%i, frames %i-%i, avg= %f\n",
   //          CL->Cnum(), CL->Points().size(),
   //          CL->MinRow()+1, CL->MaxRow()+1,
