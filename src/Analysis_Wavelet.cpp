@@ -114,13 +114,14 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   }
   // Wavelet map clustering
   doClustering_ = false;
-  DataFile* clusterout = 0;
+  DataFile* clustermapout = 0;
   if (analyzeArgs.hasKey("cluster")) {
     doClustering_ = true;
     minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
     epsilon2_ = epsilon_ * epsilon_;
-    clusterout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clusterout"), analyzeArgs );
+    clustermapout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clustermapout"),
+                                             analyzeArgs );
 #   ifdef _OPENMP
     int numthreads = 0;
 #   pragma omp parallel
@@ -140,10 +141,12 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   if (output_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( output_ );
   // Set up wavelet map clustering output set
-  clustermap_ = setup.DSL().AddSet( DataSet::MATRIX_FLT,
-                                    MetaData(output_->Meta().Name(), "clustermap") );
-  if (clustermap_ == 0) return Analysis::ERR;
-  if (clusterout != 0) clusterout->AddDataSet( clustermap_ );
+  if (doClustering_) {
+    clustermap_ = setup.DSL().AddSet( DataSet::MATRIX_FLT,
+                                      MetaData(output_->Meta().Name(), "clustermap") );
+    if (clustermap_ == 0) return Analysis::ERR;
+    if (clustermapout != 0) clustermapout->AddDataSet( clustermap_ );
+  }
 
   mprintf("    WAVELET: Using COORDS set '%s', wavelet type %s\n",
           coords_->legend(), Tokens_[wavelet_type_].description_);
@@ -156,8 +159,8 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   if (doClustering_) {
     mprintf("\tPerforming regional clustering on resulting wavelet map.\n");
     mprintf("\t  Wavelet map cluster set: '%s'\n", clustermap_->legend());
-    if (clusterout != 0)
-      mprintf("\t  Wavelet map cluster output to '%s'\n", clusterout->DataFilename().full());
+    if (clustermapout != 0)
+      mprintf("\t  Wavelet map cluster output to '%s'\n", clustermapout->DataFilename().full());
     mprintf("\t  minpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
   }
   return Analysis::OK;
@@ -370,12 +373,14 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
       
   return Analysis::OK;
 }
+
 // -----------------------------------------------------------------------------
 static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
   col = idx % ncols;
   row = idx / ncols;
 }
 
+// Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   // Set up output cluster map
   DataSet_MatrixFlt& output = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
