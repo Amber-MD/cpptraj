@@ -22,6 +22,7 @@ class DataIO_Gnuplot : public DataIO {
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
     static const char* BasicPalette[];
     PM3D_OPT pm3d_;
+    std::string palette_;
     bool printLabels_; 
     bool useMap_;
     bool jpegout_;

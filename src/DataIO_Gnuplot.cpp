@@ -136,13 +136,18 @@ DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg
 }
 
 void DataIO_Gnuplot::WriteHelp() {
-  mprintf("\tnolabels: Do not print axis labels.\n"
-          "\tusemap:   pm3d output with 1 extra empty row/col (may improve look).\n"
-          "\tpm3d:     Normal pm3d map output.\n"
-          "\tnopm3d:   Turn off pm3d\n"
-          "\tjpeg:     Plot will write to a JPEG file when used with gnuplot.\n"
+  mprintf("\tnolabels:      Do not print axis labels.\n"
+          "\tusemap:        pm3d output with 1 extra empty row/col (may improve look).\n"
+          "\tpm3d:          Normal pm3d map output.\n"
+          "\tnopm3d:        Turn off pm3d\n"
+          "\tjpeg:          Plot will write to a JPEG file when used with gnuplot.\n"
 //          "\tbinary:   Use binary output\n"
-          "\tnoheader: Do not format plot; data output only.\n"
+          "\tnoheader:      Do not format plot; data output only.\n"
+          "\tpalette <arg>: Change gnuplot pm3d palette to <arg>:\n"
+          "\t          'rgb'   - Red, yellow, green, cyan, blue, magenta, red.\n"
+          "\t          'kbvyw' - Black, blue, violet, yellow, white.\n"
+          "\t          'bgyr'  - Blue, green, yellow, red.\n"
+          "\t          'gray'  - Grayscale.\n"
           "\txlabels <labellist>: Set x axis labels with comma-separated list, e.g.\n"
           "\t                     'xlabels X1,X2,X3'\n"
           "\tylabels <labellist>: Set y axis labels.\n"
@@ -161,6 +166,24 @@ int DataIO_Gnuplot::processWriteArgs(ArgList &argIn) {
   if (!writeHeader_ && jpegout_) {
     mprintf("Warning: jpeg output not supported with 'noheader' option.\n");
     jpegout_ = false;
+  }
+  palette_ = argIn.GetStringKey("palette");
+  if (!palette_.empty()) {
+    if (pm3d_ == OFF) {
+      mprintf("Warning: 'palette' not used when 'nopm3d' specified.\n");
+      palette_.clear();
+    } else if (palette_ == "rgb")
+      palette_.assign("set palette model HSV\nset palette rgb 3,2,2\n");
+    else if (palette_ == "kbvyw")
+      palette_.assign("set palette rgb 30,31,32\n");
+    else if (palette_ == "bgyr")
+      palette_.assign("set palette rgb 33,13,10\n");
+    else if (palette_ == "gray")
+      palette_.assign("set pal gray\n");
+    else {
+      mprintf("Warning: Unrecognized palette '%s'; ignoring.\n", palette_.c_str());
+      palette_.clear();
+    }
   }
   // Label arguments
   Xlabels_ = LabelArg( argIn.GetStringKey( "xlabels" ) );
@@ -186,6 +209,8 @@ std::string DataIO_Gnuplot::Pm3d(size_t maxFrames) {
     case ON : file_.Printf("set pm3d\n"); break;
     case OFF: pm3d_cmd.clear(); break;
   }
+  if (!pm3d_cmd.empty() && !palette_.empty())
+    file_.Printf("%s", palette_.c_str());
   return pm3d_cmd;
 }
 
