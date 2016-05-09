@@ -203,11 +203,13 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\t%zu clusters:\n", clusters_.size());
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
+  Dimension const& ColDim = matrix.Dim(0);
+  Dimension const& RowDim = matrix.Dim(1);
   for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
-    mprintf("\t %i: %zu points, Rows %i-%i, cols %i-%i, avg= %f\n",
+    mprintf("\t %i: %zu points, Rows %g-%g, cols %g-%g, avg= %f\n",
             CL->Cnum(), CL->Points().size(),
-            CL->MinRow(), CL->MaxRow(),
-            CL->MinCol(), CL->MaxCol(), CL->Avg());
+            RowDim.Coord(CL->MinRow()), RowDim.Coord(CL->MaxRow()),
+            ColDim.Coord(CL->MinCol()), ColDim.Coord(CL->MaxCol()), CL->Avg());
 
   return CpptrajState::OK;
 }
