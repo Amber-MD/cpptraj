@@ -15,7 +15,9 @@ Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN),
 {}
 
 void Exec_ClusterMap::Help() const {
-  mprintf("\t<2d set>\n");
+  mprintf("\t<2D set> [minpoints <#>] [epsilon <epsilon>] [name <setname>]\n"
+          "\t[out <outfile>]\n"
+          "  Cluster regions of the given 2D data set.\n");
 }
 
 static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
@@ -26,7 +28,7 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 // Exec_ClusterMap::Execute()
 Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
 {
-  minPoints_ = argIn.getKeyInt("minPoints", 4);
+  minPoints_ = argIn.getKeyInt("minpoints", 4);
   epsilon_ = argIn.getKeyDouble("epsilon", 10.0);
   epsilon2_ = epsilon_ * epsilon_;
   std::string dsname = argIn.GetStringKey("name");
@@ -84,6 +86,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   IdxToColRow( maxIdx, matrix.Ncols(), maxCol, maxRow );
   mprintf("\t%zu elements, max= %f at index %u (%i, %i), Avg= %f\n",
           matrix.Size(), maxVal, maxIdx, maxCol, maxRow, Avg_);
+  mprintf("\tPoints below %f will be treated as noise.\n", Avg_);
 
   // Use DBSCAN-style algorithm to cluster points. Any point less than the
   // average will be considered noise.
