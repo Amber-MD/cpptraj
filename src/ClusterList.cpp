@@ -399,12 +399,9 @@ int ClusterList::CalcFrameDistances(std::string const& filename,
       default: return 1; // Sanity check
     }
   } else { // Metric is DATA
-    if (dataSets.size() == 1) {
-      if (dataSets.front()->Group() == DataSet::MATRIX_2D)
-        Cdist_ = new ClusterDist_2D(dataSets);
-      else
-        Cdist_ = new ClusterDist_Num(dsIn);
-    } else // TODO: More than just euclid
+    if (dataSets.size() == 1)
+      Cdist_ = new ClusterDist_Num(dsIn);
+    else // TODO: More than just euclid
       Cdist_ = new ClusterDist_Euclid(dataSets);
   }
   // Attempt to load pairwise distances from file if specified

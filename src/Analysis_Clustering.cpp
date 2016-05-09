@@ -109,8 +109,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     }
     for (DataSetList::const_iterator ds = inputDsets.begin(); ds != inputDsets.end(); ++ds) {
       // Clustering only allowed on 1D data sets.
-      if ( (*ds)->Ndim() != 1 && (*ds)->Ndim() != 2 ) {
-        mprinterr("Error: Clustering only allowed on 1D/2D data sets, %s is %zuD.\n",
+      if ( (*ds)->Ndim() != 1 ) {
+        mprinterr("Error: Clustering only allowed on 1D data sets, %s is %zuD.\n",
                   (*ds)->legend(), (*ds)->Ndim());
         return Analysis::ERR;
       }
