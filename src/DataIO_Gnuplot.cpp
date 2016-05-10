@@ -140,6 +140,7 @@ int DataIO_Gnuplot::ReadAsciiData(BufferedLine& infile,
                                   DataSetList& DSL, std::string const& dsname,
                                   std::string const& xlabel, std::string const& ylabel)
 {
+  mprintf("\tGnuplot data appears to be in ASCII format.\n");
   // Allocate full matrix. Assume column-major order.
   typedef std::vector<double> Darray;
   Darray Xvals;
