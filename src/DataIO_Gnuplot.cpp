@@ -293,55 +293,6 @@ int DataIO_Gnuplot::WriteData(FileName const& fname, DataSetList const& SetList)
   return err;
 }
 
-/** Format:
-  *   <N+1>  <y0>   <y1>   <y2>  ...  <yN>
-  *    <x0> <z0,0> <z0,1> <z0,2> ... <z0,N>
-  *    <x1> <z1,0> <z1,1> <z1,2> ... <z1,N>
-  *     :      :      :      :   ...    :
-  */
-/*int DataIO_Gnuplot::WriteDataBinary(std::string const& fname, DataSetList const& SetList)
-{
-  // Hold all 1D data sets.
-  Array1D Sets( SetList );
-  if (Sets.empty()) return 1;
-  // Determine size of largest DataSet.
-  size_t maxFrames = Sets.DetermineMax();
-  size_t Ymax = SetList.size();
-  if (!useMap_)
-    ++Ymax;
-  float fvar = (float)Ymax;
-  mprintf("Ymax = %f\n",fvar);
-  file_.Write( &fvar, sizeof(float) );
-  for (size_t setnum = 0; setnum < Ymax; ++setnum) {
-    fvar = (float)Dim[1].Coord(setnum);
-    file_.Write( &fvar, sizeof(float) );
-  }
-  // Data
-  for (size_t frame = 0; frame < maxFrames; ++frame) {
-    fvar = (float)Dim[0].Coord(frame);
-    file_.Write( &fvar, sizeof(float) );
-    for (Array1D::const_iterator set=Sets.begin(); set !=Sets.end(); ++set) {
-      fvar = (float)(*set)->Dval( frame );
-      file_.Write( &fvar, sizeof(float) );
-    }
-    if (!useMap_) {
-      // Print one empty row for gnuplot pm3d without map
-      fvar = 0;
-      file_.Write( &fvar, sizeof(float) );
-    }
-  }
-  if (!useMap_) {
-    // Print one empty set for gnuplot pm3d without map
-    fvar = (float)Dim[0].Coord(maxFrames);
-    file_.Write( &fvar, sizeof(float) );
-    fvar = 0.0;
-    for (size_t blankset=0; blankset < Ymax; ++blankset)
-      file_.Write( &fvar, sizeof(float) ); 
-  }
-  file_.CloseFile();
-  return 0;
-}
-*/
 const char* DataIO_Gnuplot::BasicPalette[]= {
   "#000000", // Black, 0
   "#0000FF", // Blue,  1
@@ -461,6 +412,7 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
   // Data
   if (binary_) {
     // ----- BINARY FORMAT -----------------------
+    // TODO !useMap_
     // Only support writing scalar 1D sets.
     std::vector<DataSet_1D*> Bsets;
     for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
@@ -472,7 +424,7 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
     }
     CpptrajFile bOut;
     if (bOut.OpenWrite( data_fname_ )) return 1;
-    mprintf("DEBUG: Writing binary gnuplot data to '%s'\n", data_fname_.full());
+    mprintf("\tWriting binary gnuplot data to '%s'\n", data_fname_.full());
     // Write number of frames (columns)
     float fval = (float)maxFrames;
     bOut.Write( &fval, sizeof(float) );
@@ -493,30 +445,30 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
     bOut.CloseFile();
   } else {
     // ----- ASCII FORMAT ------------------------
-  DataSet::SizeArray frame(1, 0);
-  for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
-    double xcoord = Xdata->Coord(0, frame[0]);
-    for (size_t setnum = 0; setnum < Sets.size(); ++setnum) {
-      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(setnum) );
-      Sets[setnum]->WriteBuffer( file_, frame );
+    DataSet::SizeArray frame(1, 0);
+    for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
+      double xcoord = Xdata->Coord(0, frame[0]);
+      for (size_t setnum = 0; setnum < Sets.size(); ++setnum) {
+        file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(setnum) );
+        Sets[setnum]->WriteBuffer( file_, frame );
+        file_.Printf("\n");
+      }
+      if (!useMap_) {
+        // Print one empty row for gnuplot pm3d without map
+        file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(Sets.size()) );
+        file_.Printf("0\n");
+      }
       file_.Printf("\n");
     }
     if (!useMap_) {
-      // Print one empty row for gnuplot pm3d without map
-      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(Sets.size()) );
-      file_.Printf("0\n");
+      // Print one empty set for gnuplot pm3d without map
+      double xcoord = Xdata->Coord(0, maxFrames);
+      for (size_t blankset=0; blankset <= Sets.size(); blankset++) {
+        file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(blankset) );
+        file_.Printf("0\n");
+      }
+      file_.Printf("\n");
     }
-    file_.Printf("\n");
-  }
-  if (!useMap_) {
-    // Print one empty set for gnuplot pm3d without map
-    double xcoord = Xdata->Coord(0, maxFrames);
-    for (size_t blankset=0; blankset <= Sets.size(); blankset++) {
-      file_.Printf( xyfmt.c_str(), xcoord, Ydim.Coord(blankset) );
-      file_.Printf("0\n");
-    }
-    file_.Printf("\n");
-  }
   }
   Finish();
   return 0;
@@ -560,37 +512,62 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
     // Make Yrange +1 and -1 so entire grid can be seen
     WriteRangeAndHeader(Xdim, set.Ncols(), Ydim, set.Nrows(), pm3d_cmd);
   }
-  // Setup XY coord format
-  TextFormat x_fmt, y_fmt;
-  x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
-  y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt(); // FIXME No trailing space for bkwds compat
+  if (binary_ ) {
+    // ----- BINARY FORMAT -----------------------
+    CpptrajFile bOut;
+    if (bOut.OpenWrite( data_fname_ )) return 1;
+    mprintf("\tWriting binary gnuplot data to '%s'\n", data_fname_.full());
+    // Write number of frames (columns)
+    float fval = (float)set.Ncols();
+    bOut.Write( &fval, sizeof(float) );
+    // Convert X values (i.e. columns) to floats and write.
+    std::vector<float> Vals( set.Ncols() );
+    for (unsigned int i = 0; i != set.Ncols(); i++)
+      Vals[i] = (float)set.Coord(0, i);
+    bOut.Write( &Vals[0], set.Ncols()*sizeof(float) );
+    // For each set (row), write Y value and all data.
+    for (unsigned int j = 0; j != set.Nrows(); j++)
+    {
+      fval = (float)set.Coord(1, j);
+      bOut.Write( &fval, sizeof(float) );
+      for (unsigned int i = 0; i != set.Ncols(); i++)
+        Vals[i] = (float)set.GetElement(i, j);
+      bOut.Write( &Vals[0], set.Ncols()*sizeof(float) );
+    }
+    bOut.CloseFile();
+  } else {
+    // ----- ASCII FORMAT ------------------------
+    // Setup XY coord format
+    TextFormat x_fmt, y_fmt;
+    x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+    y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt(); // FIXME No trailing space for bkwds compat
 
-  DataSet::SizeArray positions(2, 0);
-  for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
-    double xcoord = set.Coord(0, positions[0]);
-    for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
-      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, positions[1]) );
-      set.WriteBuffer( file_, positions );
+    DataSet::SizeArray positions(2, 0);
+    for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
+      double xcoord = set.Coord(0, positions[0]);
+      for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
+        file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, positions[1]) );
+        set.WriteBuffer( file_, positions );
+        file_.Printf("\n");
+      }
+      if (!useMap_) {
+        // Print one empty row for gnuplot pm3d without map
+        file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, set.Nrows()) );
+        file_.Printf(" 0\n");
+      }
       file_.Printf("\n");
     }
     if (!useMap_) {
-      // Print one empty row for gnuplot pm3d without map
-      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, set.Nrows()) );
-      file_.Printf(" 0\n");
+      // Print one empty set for gnuplot pm3d without map
+      double xcoord = set.Coord(0, set.Ncols());
+      for (size_t blankset=0; blankset <= set.Nrows(); ++blankset) {
+        file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, blankset) );
+        file_.Printf(" 0\n");
+      }
+      file_.Printf("\n");
     }
-    file_.Printf("\n");
   }
-  if (!useMap_) {
-    // Print one empty set for gnuplot pm3d without map
-    double xcoord = set.Coord(0, set.Ncols());
-    for (size_t blankset=0; blankset <= set.Nrows(); ++blankset) {
-      file_.Printf( xyfmt.c_str(), xcoord, set.Coord(1, blankset) );
-      file_.Printf(" 0\n");
-    }
-    file_.Printf("\n");
-  }
-  // End and Pause command
   Finish();
 
   return 0;
