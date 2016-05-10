@@ -566,12 +566,6 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
       } // END value > cutoff
     } // END if not visited
   } // END loop over matrix points
-# ifdef TIMER
-  t_overall_.Stop();
-  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
-  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
-  t_overall_.WriteTiming(1, "Overall:");
-# endif
   mprintf("\t%zu clusters:\n", clusters_.size());
 
   // Sort by number of points
@@ -710,6 +704,12 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   //          CL->Cnum(), CL->Points().size(),
   //          CL->MinRow()+1, CL->MaxRow()+1,
   //          CL->MinCol()+1, CL->MaxCol()+1, CL->Avg());
+# ifdef TIMER
+  t_overall_.Stop();
+  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
+  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
+  t_overall_.WriteTiming(1, "WA clustering total:");
+# endif
 
   return 0;
 }
