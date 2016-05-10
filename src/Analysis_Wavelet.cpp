@@ -8,6 +8,7 @@
 #include "PubFFT.h"
 #include "StringRoutines.h"
 #include "ProgressBar.h"
+#include "ProgressTimer.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
 #ifdef _OPENMP
@@ -811,13 +812,10 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   int point, otherpoint, point_col, point_row;
   double val;
   ParallelProgress progress(msize);
-  int mythread = 0;
-  Timer t_progress;
-  double t_target = 5.0;
   int t_points = 0;
-  int t_total_points = msize;
+  int mythread = 0;
 # ifdef _OPENMP
-  t_total_points /= numthreads_;
+  ProgressTimer ptimer( msize / numthreads_, 5.0 );
   dists.resize( numthreads_ );
 # pragma omp parallel private(point, otherpoint, mythread, val, point_col, point_row)
   {
@@ -826,12 +824,12 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   dists[mythread].resize( msize );
 # pragma omp for
 # else
+  ProgressTimer ptimer( msize, 5.0 );
   dists.resize( 1 );
   dists[0].reserve( matrix.Size() );
 # endif
   for (point = 0; point < msize; ++point)
   {
-    if (mythread == 0) t_progress.Start();
     progress.Update(point);
     val = matrix.GetElement(point);
     IdxToColRow( point, matrix.Ncols(), point_col, point_row );
@@ -841,15 +839,7 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
     // Sort distances - first dist should always be 0
     std::sort(dists[mythread].begin(), dists[mythread].end());
     Kdist[point] = sqrt(dists[mythread][Kval]);
-    if (mythread == 0) {
-      t_points++;
-      t_progress.Stop();
-      if (t_progress.Total() > t_target) {
-        mprintf("\t%i points in %f s, %f s remaining.\n", t_points, t_progress.Total(),
-                (double)(t_total_points - t_points) / ((double)t_points / t_progress.Total()));
-        t_target += 5.0;
-      }
-    }
+    if (mythread == 0) ptimer.Remaining(t_points++);
   }
 # ifdef _OPENMP
   }

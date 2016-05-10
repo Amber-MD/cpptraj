@@ -263,6 +263,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         ProgressBar.cpp \
+        ProgressTimer.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
