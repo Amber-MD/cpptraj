@@ -3,7 +3,6 @@
 #include "CpptrajStdio.h"
 #include "Array1D.h"
 #include "DataSet_2D.h"
-#include "BufferedLine.h"
 
 // CONSTRUCTOR
 DataIO_Gnuplot::DataIO_Gnuplot() :
@@ -38,13 +37,14 @@ int DataIO_Gnuplot::ReadData(FileName const& fname,
   char firstChar = ptr[0];
   infile.CloseFile();
   if (firstChar == 0)
-    return ReadBinaryData(fname, DSL, dsname);
+    return ReadBinaryData(fname, DSL, dsname, "X", "Y");
   else
-    return ReadAsciiData(fname, DSL, dsname);
+    return ReadAsciiHeader(fname, DSL, dsname);
 }
 
 int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
-                                  DataSetList& DSL, std::string const& dsname)
+                                  DataSetList& DSL, std::string const& dsname,
+                                  std::string const& xlabel, std::string const& ylabel)
 {
   mprintf("\tGnuplot data appears to be in binary format.\n");
   CpptrajFile bIn;
@@ -79,10 +79,10 @@ int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
   DataSet* ds = DetermineMatrixType( matrix_Rmajor, Yvals.size(), ncols, DSL, dsname );
   if (ds == 0) return 1;
   Dimension Xdim, Ydim;
-  if (!Xdim.SetDimension(Xvals, "X"))
+  if (!Xdim.SetDimension(Xvals, xlabel))
     mprintf("Warning: X dimension is NOT monotonic.\n");
-  if (!Ydim.SetDimension(Yvals, "Y"))
-    mprintf("Warning: Y dimension is not monotonic.\n");
+  if (!Ydim.SetDimension(Yvals, ylabel))
+    mprintf("Warning: Y dimension is NOT monotonic.\n");
   ds->SetDim(Dimension::X, Xdim);
   ds->SetDim(Dimension::Y, Ydim);
 
@@ -90,9 +90,10 @@ int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
 }
 
 /** NOTE: This assumes data is in the file and is an splot "heat map" */
-int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
-                                  DataSetList& DSL, std::string const& dsname)
+int DataIO_Gnuplot::ReadAsciiHeader(FileName const& fname,
+                                    DataSetList& DSL, std::string const& dsname)
 {
+  mprintf("\tReading Gnuplot header.\n");
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
   // Get past all of the 'set' lines
@@ -112,17 +113,33 @@ int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
     mprinterr("Error: No data detected in Gnuplot file.\n");
     return 1;
   }
-  // Search for 'splot "-"'
+  // Search for 'splot' command.
   while (ptr != 0 && ptr[0] != 's' && ptr[1] != 'p' && ptr[2] != 'l' &&
-                     ptr[3] != 'o' && ptr[4] != 'o' && ptr[5] != 't' &&
-                     ptr[6] != ' ' && ptr[7] != '"' && ptr[8] != '-' &&
-                     ptr[9] != '"')
+                     ptr[3] != 'o' && ptr[4] != 't')
     ptr = infile.Line();
   if (ptr == 0) {
-    mprinterr("Error: 'splot \"-\"' not found in '%s'. CPPTRAJ currently only reads\n"
+    mprinterr("Error: 'splot' not found in '%s'. CPPTRAJ currently only reads\n"
               "Error:   CPPTRAJ-style Gnuplot files.\n", fname.full());
     return 1;
   }
+  // Determine if data is in this file or another file. If it is another file,
+  // assume the data is binary.
+  ArgList splot_line(ptr, " ");
+  std::string splot_name = splot_line.GetStringKey("splot");
+  int err = 0;
+  if ( splot_name == "-" )
+    err = ReadAsciiData(infile, DSL, dsname, xlabel, ylabel);
+  else
+    err = ReadBinaryData(splot_name, DSL, dsname, xlabel, ylabel);
+
+  infile.CloseFile();
+  return err;
+}
+
+int DataIO_Gnuplot::ReadAsciiData(BufferedLine& infile,
+                                  DataSetList& DSL, std::string const& dsname,
+                                  std::string const& xlabel, std::string const& ylabel)
+{
   // Allocate full matrix. Assume column-major order.
   typedef std::vector<double> Darray;
   Darray Xvals;
@@ -130,7 +147,7 @@ int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
   Darray matrix_Cmajor;
   int ncols = 0;
   int nrows = -1;
-  ptr = infile.Line(); // First line of data.
+  const char* ptr = infile.Line(); // First line of data.
   while (ptr != 0 && ptr[0] != 'e' && ptr[1] != 'n' && ptr[2] != 'd') {
     int row = 0;
     while (ptr != 0 && ptr[0] != '\0') {
@@ -153,7 +170,6 @@ int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
     ptr = infile.Line();
     ncols++;
   }
-  infile.CloseFile();
   mprintf("\t%i rows (%zu), %i cols (%zu), %zu values\n", nrows, Yvals.size(), ncols, Xvals.size(), matrix_Cmajor.size());
   // DEBUG
   if (debug_ > 0) {
@@ -184,12 +200,12 @@ int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
   if (!Xdim.SetDimension(Xvals, xlabel))
     mprintf("Warning: X dimension is NOT monotonic.\n");
   if (!Ydim.SetDimension(Yvals, ylabel))
-    mprintf("Warning: Y dimension is not monotonic.\n");
+    mprintf("Warning: Y dimension is NOT monotonic.\n");
   ds->SetDim(Dimension::X, Xdim);
   ds->SetDim(Dimension::Y, Ydim);
 
   return 0;
-} 
+}
 
 // -----------------------------------------------------------------------------
 DataIO_Gnuplot::LabelArray DataIO_Gnuplot::LabelArg( std::string const& labelarg) 

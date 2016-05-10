@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_GNUPLOT_H
 #define INC_DATAIO_GNUPLOT_H
 #include "DataIO.h"
+#include "BufferedLine.h"
 /// Read/write gnuplot data files.
 class DataIO_Gnuplot : public DataIO {
   public:
@@ -30,8 +31,11 @@ class DataIO_Gnuplot : public DataIO {
     bool binary_;
     bool writeHeader_;
 
-    int ReadAsciiData(FileName const&,DataSetList&,std::string const&);
-    int ReadBinaryData(FileName const&,DataSetList&,std::string const&);
+    int ReadBinaryData(FileName const&,DataSetList&,std::string const&,
+                       std::string const&, std::string const&);
+    int ReadAsciiHeader(FileName const&,DataSetList&,std::string const&);
+    int ReadAsciiData(BufferedLine&, DataSetList&, std::string const&,
+                      std::string const&, std::string const&);
 
     static LabelArray LabelArg(std::string const&);
     int WriteSet2D( DataSet const& );
