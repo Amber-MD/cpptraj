@@ -14,6 +14,7 @@ class DataIO_Gnuplot : public DataIO {
     bool ID_DataFormat(CpptrajFile&);
   private:
     CpptrajFile file_;
+    FileName data_fname_; ///< Data file name
     typedef std::vector<std::string> LabelArray;
     LabelArray Xlabels_;
     LabelArray Ylabels_;
@@ -38,7 +39,7 @@ class DataIO_Gnuplot : public DataIO {
     void Finish();
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
-    int WriteDataAscii(std::string const&,DataSetList const&);
+    int WriteSets1D(DataSetList const&);
     //int WriteDataBinary(std::string const&,DataSetList const&);
 };
 #endif

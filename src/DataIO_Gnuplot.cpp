@@ -220,18 +220,24 @@ void DataIO_Gnuplot::WriteRangeAndHeader(Dimension const& Xdim, size_t Xmax,
                                          Dimension const& Ydim, size_t Ymax,
                                          std::string const& pm3dstr)
 {
+  const char* binaryFlag = " ";
+  if (binary_) binaryFlag = " binary ";
   file_.Printf("set xlabel \"%s\"\nset ylabel \"%s\"\n", 
                Xdim.Label().c_str(), Ydim.Label().c_str());
   file_.Printf("set yrange [%8.3f:%8.3f]\nset xrange [%8.3f:%8.3f]\n", 
          Ydim.Coord(0) - Ydim.Step(), Ydim.Coord(Ymax + 1),
          Xdim.Coord(0) - Xdim.Step(), Xdim.Coord(Xmax + 1));
-  file_.Printf("splot \"-\" %s title \"%s\"\n", pm3dstr.c_str(), file_.Filename().base());
+  file_.Printf("splot \"%s\"%s%s title \"%s\"\n", data_fname_.full(), binaryFlag, pm3dstr.c_str(), file_.Filename().base());
 }
 
 // DataIO_Gnuplot::Finish()
 void DataIO_Gnuplot::Finish() {
-  if (!jpegout_ && writeHeader_)
-    file_.Printf("end\npause -1\n");
+  if (!jpegout_ && writeHeader_) {
+    if (binary_)
+      file_.Printf("pause -1\n");
+    else
+      file_.Printf("end\npause -1\n");
+  }
 }
 
 // DataIO_Gnuplot::JpegOut()
@@ -259,16 +265,21 @@ int DataIO_Gnuplot::WriteData(FileName const& fname, DataSetList const& SetList)
   if (SetList.empty()) return 0;
   int err = 0;
   // Open output file
-  if (file_.OpenWrite( fname )) return 1;
+  if (writeHeader_ || !binary_) {
+    if (file_.OpenWrite( fname )) return 1;
+  }
+  if (binary_) {
+    // If writing binary, determine file name.
+    data_fname_ = fname;
+    if (writeHeader_)
+      data_fname_.Append( ".data" );
+  } else {
+    // Not binary. Data will be included in plot.
+    data_fname_.SetFileName_NoExpansion("-");
+  }
   // One dimension
   if (SetList[0]->Ndim() == 1) {
-    //mprintf("BINARY IS %i\n", (int)binary_);
-    if (binary_) {
-      //return WriteDataBinary( fname, SetList );
-      mprinterr("Error: GNUPLOT binary write disabled.\n");
-      return 1;
-    }
-    err = WriteDataAscii( fname.Full(), SetList );
+    err = WriteSets1D( SetList );
   } else if (SetList[0]->Ndim() == 2) {
     // Warn about writing multiple sets
     if (SetList.size() > 1)
@@ -278,7 +289,7 @@ int DataIO_Gnuplot::WriteData(FileName const& fname, DataSetList const& SetList)
       err += WriteSet2D( *(*set) );
   } else
     err = 1;
-  file_.CloseFile();
+  if (file_.IsOpen()) file_.CloseFile();
   return err;
 }
 
@@ -375,7 +386,6 @@ void DataIO_Gnuplot::WriteLabels(LabelArray const& labels, Dimension const& dim,
   file_.Printf(")\n");
 }
 
-// DataIO_Gnuplot::WriteData()
 /** Write each frame from all sets in blocks in the following format:
   *   Frame Set   Value
   * Originally there was a -0.5 offset for the Set values in order to center
@@ -390,7 +400,7 @@ void DataIO_Gnuplot::WriteLabels(LabelArray const& labels, Dimension const& dim,
   * However, in the interest of keeping data consistent, this is no longer
   * done. Could be added back in later as an option.
   */
-int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& Sets)
+int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
 {
   // FIXME: Check that dimension of each set matches.
   if (Sets.empty()) return 1;
@@ -449,6 +459,40 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
   }
 
   // Data
+  if (binary_) {
+    // ----- BINARY FORMAT -----------------------
+    // Only support writing scalar 1D sets.
+    std::vector<DataSet_1D*> Bsets;
+    for (DataSetList::const_iterator set = Sets.begin(); set != Sets.end(); ++set) {
+      if ( (*set)->Group() == DataSet::SCALAR_1D )
+        Bsets.push_back( (DataSet_1D*)*set );
+      else
+        mprintf("Warning: Set '%s' is not 1D scalar; cannot be written in Gnuplot binary format.\n",
+                (*set)->legend());
+    }
+    CpptrajFile bOut;
+    if (bOut.OpenWrite( data_fname_ )) return 1;
+    mprintf("DEBUG: Writing binary gnuplot data to '%s'\n", data_fname_.full());
+    // Write number of frames (columns)
+    float fval = (float)maxFrames;
+    bOut.Write( &fval, sizeof(float) );
+    // Convert X values (i.e. columns) to floats and write.
+    std::vector<float> Vals( maxFrames );
+    for (unsigned int i = 0; i != maxFrames; i++)
+      Vals[i] = (float)Xdata->Coord(0, i);
+    bOut.Write( &Vals[0], maxFrames*sizeof(float) );
+    // For each set (row), write Y value and all data.
+    for (unsigned int setnum = 0; setnum != Bsets.size(); setnum++)
+    {
+      fval = (float)Ydim.Coord(setnum);
+      bOut.Write( &fval, sizeof(float) );
+      for (unsigned int i = 0; i != maxFrames; i++)
+        Vals[i] = Bsets[setnum]->Dval(i);
+      bOut.Write( &Vals[0], maxFrames*sizeof(float) );
+    }
+    bOut.CloseFile();
+  } else {
+    // ----- ASCII FORMAT ------------------------
   DataSet::SizeArray frame(1, 0);
   for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
     double xcoord = Xdata->Coord(0, frame[0]);
@@ -473,7 +517,7 @@ int DataIO_Gnuplot::WriteDataAscii(std::string const& fname, DataSetList const& 
     }
     file_.Printf("\n");
   }
-  // End and Pause command
+  }
   Finish();
   return 0;
 }
