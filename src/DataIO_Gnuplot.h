@@ -30,6 +30,9 @@ class DataIO_Gnuplot : public DataIO {
     bool binary_;
     bool writeHeader_;
 
+    int ReadAsciiData(FileName const&,DataSetList&,std::string const&);
+    int ReadBinaryData(FileName const&,DataSetList&,std::string const&);
+
     static LabelArray LabelArg(std::string const&);
     int WriteSet2D( DataSet const& );
     std::string Pm3d(size_t);
@@ -40,6 +43,5 @@ class DataIO_Gnuplot : public DataIO {
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
     int WriteSets1D(DataSetList const&);
-    //int WriteDataBinary(std::string const&,DataSetList const&);
 };
 #endif

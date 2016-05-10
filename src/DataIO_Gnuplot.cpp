@@ -27,9 +27,71 @@ bool DataIO_Gnuplot::ID_DataFormat(CpptrajFile& infile) {
   return isGnuplot;
 }
 
-/** NOTE: This assumes data is in the file and is an splot "heat map" */
 int DataIO_Gnuplot::ReadData(FileName const& fname,
                              DataSetList& DSL, std::string const& dsname)
+{
+  // Simple test to determine if this is binary data or not.
+  CpptrajFile infile;
+  if (infile.OpenRead(fname)) return 1;
+  const char* ptr = infile.NextLine();
+  if (ptr == 0) return 1;
+  char firstChar = ptr[0];
+  infile.CloseFile();
+  if (firstChar == 0)
+    return ReadBinaryData(fname, DSL, dsname);
+  else
+    return ReadAsciiData(fname, DSL, dsname);
+}
+
+int DataIO_Gnuplot::ReadBinaryData(FileName const& fname,
+                                  DataSetList& DSL, std::string const& dsname)
+{
+  mprintf("\tGnuplot data appears to be in binary format.\n");
+  CpptrajFile bIn;
+  if (bIn.OpenRead(fname)) return 1;
+  typedef std::vector<double> Darray;
+  Darray Xvals, Yvals;
+  Darray matrix_Rmajor;
+
+  // Read number of columns
+  float fval;
+  bIn.Read( &fval, sizeof(float) );
+  int ncols = (int)fval;
+  // Read X values and convert to double.
+  std::vector<float> Vals( ncols );
+  Xvals.reserve( ncols );
+  bIn.Read( &Vals[0], ncols*sizeof(float) );
+  for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
+    Xvals.push_back( (double)*it );
+  // Keep reading rows until no more found.
+  int nread = 1;
+  while (nread > 0) {
+    // Read Y value
+    if (bIn.Read( &fval, sizeof(float) ) != sizeof(float)) break;
+    Yvals.push_back( (double)fval );
+    bIn.Read( &Vals[0], ncols*sizeof(float) );
+    for (std::vector<float>::const_iterator it = Vals.begin(); it != Vals.end(); ++it)
+      matrix_Rmajor.push_back( (double)*it );
+  }
+  bIn.CloseFile();
+  mprintf("\t%zu rows, %i cols (%zu), %zu vals\n", Yvals.size(), ncols, Xvals.size(), matrix_Rmajor.size());
+
+  DataSet* ds = DetermineMatrixType( matrix_Rmajor, Yvals.size(), ncols, DSL, dsname );
+  if (ds == 0) return 1;
+  Dimension Xdim, Ydim;
+  if (!Xdim.SetDimension(Xvals, "X"))
+    mprintf("Warning: X dimension is NOT monotonic.\n");
+  if (!Ydim.SetDimension(Yvals, "Y"))
+    mprintf("Warning: Y dimension is not monotonic.\n");
+  ds->SetDim(Dimension::X, Xdim);
+  ds->SetDim(Dimension::Y, Ydim);
+
+  return 0;
+}
+
+/** NOTE: This assumes data is in the file and is an splot "heat map" */
+int DataIO_Gnuplot::ReadAsciiData(FileName const& fname,
+                                  DataSetList& DSL, std::string const& dsname)
 {
   BufferedLine infile;
   if (infile.OpenFileRead( fname )) return 1;
@@ -91,6 +153,7 @@ int DataIO_Gnuplot::ReadData(FileName const& fname,
     ptr = infile.Line();
     ncols++;
   }
+  infile.CloseFile();
   mprintf("\t%i rows (%zu), %i cols (%zu), %zu values\n", nrows, Yvals.size(), ncols, Xvals.size(), matrix_Cmajor.size());
   // DEBUG
   if (debug_ > 0) {
@@ -125,7 +188,6 @@ int DataIO_Gnuplot::ReadData(FileName const& fname,
   ds->SetDim(Dimension::X, Xdim);
   ds->SetDim(Dimension::Y, Ydim);
 
-  infile.CloseFile();
   return 0;
 } 
 
