@@ -714,18 +714,6 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   return 0;
 }
 
-/// Simple distance: value, row (atom#), column (frame#)
-static inline double GetDist2(double val, int point_row, int point_col,
-                              int otherpoint, double other_val, int ncols)
-{
-  int other_col, other_row;
-  IdxToColRow( otherpoint, ncols, other_col, other_row );
-  double dv = val - other_val;
-  double dr = (double)(point_row - other_row);
-  double dc = (double)(point_col - other_col);
-  return dv*dv + dr*dr + dc*dc;
-}
-
 // Analysis_Wavelet::RegionQuery()
 void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
                                    DataSet_2D const& matrix)
@@ -836,7 +824,12 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
     // Store distances from this point
     for (otherpoint = 0; otherpoint != msize; otherpoint++) {
       double other_val = matrix.GetElement( otherpoint );
-      dists[mythread][otherpoint] = GetDist2(val, point_row, point_col, otherpoint, other_val, matrix.Ncols());
+      int other_col, other_row;
+      IdxToColRow( otherpoint, ncols, other_col, other_row );
+      double dv = val - other_val;
+      double dr = (double)(point_row - other_row);
+      double dc = (double)(point_col - other_col);
+      dists[mythread][otherpoint] = dv*dv + dr*dr + dc*dc;
     }
     // Sort distances - first dist should always be 0
     std::sort(dists[mythread].begin(), dists[mythread].end());
