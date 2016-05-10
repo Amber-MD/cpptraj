@@ -172,6 +172,15 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       clusterout->AddDataSet( c_avgval_ );
     }
   }
+# ifdef _OPENMP
+  numthreads_ = 0;
+# pragma omp parallel
+  {
+  if (omp_get_thread_num() == 0)
+    numthreads_ = omp_get_num_threads();
+  }
+  //if (doClustering_) thread_neighbors_.resize( numthreads_ );
+# endif
 
   mprintf("    WAVELET: Using COORDS set '%s', wavelet type %s\n",
           coords_->legend(), Tokens_[wavelet_type_].description_);
@@ -199,16 +208,8 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     if (!overlayParm_.empty())
       mprintf("\t  Topology corresponding to overlay trajectory will be written to '%s'\n",
               overlayParm_.c_str());
-#   ifdef _OPENMP
-    numthreads_ = 0;
-#   pragma omp parallel
-    {
-    if (omp_get_thread_num() == 0)
-      numthreads_ = omp_get_num_threads();
-    }
-    //thread_neighbors_.resize( numthreads_ );
-#   endif
   }
+
   return Analysis::OK;
 }
 
@@ -228,6 +229,9 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   //          travelled from the previous frame.
   // TODO: Implement this in Action_Matrix()?
   mprintf("    WAVELET:\n");
+# ifdef _OPENMP
+  mprintf("\tParallelizing calc with %i threads.\n", numthreads_);
+# endif
   // First set up atom mask.
   if (coords_->Top().SetupIntegerMask( mask_ )) return Analysis::ERR;
   mask_.MaskInfo();
@@ -345,9 +349,19 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
           ByteString(MAX.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   MAX.resize( nframes, natoms );
   Darray magnitude( nframes ); // Scratch space for calculating magnitude across rows
-  ProgressBar progress( natoms );
-  for (int at = 0; at != natoms; at++) {
-    progress.Update( at );
+  int at;
+  int iterations = 0;
+# ifdef _OPENMP
+  ParallelProgress progress( natoms / numthreads_ );
+# pragma omp parallel private(at) firstprivate(progress, iterations, magnitude, pubfft)
+  {
+  progress.SetThread( omp_get_thread_num() );
+# pragma omp for
+# else /* Not OpenMP */
+  ParallelProgress progress( natoms );
+# endif
+  for (at = 0; at < natoms; at++) {
+    progress.Update( iterations++ );
     ComplexArray AtomSignal( nframes ); // Initializes to zero
     // Calculate the distance variance for this atom and populate the array.
     int midx = at * nframes; // Index into d_matrix
@@ -400,6 +414,9 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
 #     endif
     } // END loop over scales
   } // END loop over atoms
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 # ifdef DEBUG_WAVELET 
   // DEBUG: Print MAX
   CpptrajFile maxmatrixOut; // DEBUG
@@ -806,10 +823,9 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   int t_points = 0;
   int mythread = 0;
 # ifdef _OPENMP
-  mprintf("\tParallelizing Kdist calc with %i threads.\n", numthreads_);
   ProgressTimer ptimer( msize / numthreads_, 5.0 );
   dists.resize( numthreads_ );
-# pragma omp parallel private(point, otherpoint, mythread, val, point_col, point_row)
+# pragma omp parallel private(point, otherpoint, mythread, val, point_col, point_row) firstprivate(progress)
   {
   mythread = omp_get_thread_num();
   progress.SetThread( mythread );
