@@ -345,7 +345,9 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
           ByteString(MAX.sizeInBytes(nframes, natoms), BYTE_DECIMAL).c_str());
   MAX.resize( nframes, natoms );
   Darray magnitude( nframes ); // Scratch space for calculating magnitude across rows
+  ProgressBar progress( natoms );
   for (int at = 0; at != natoms; at++) {
+    progress.Update( at );
     ComplexArray AtomSignal( nframes ); // Initializes to zero
     // Calculate the distance variance for this atom and populate the array.
     int midx = at * nframes; // Index into d_matrix
@@ -427,6 +429,7 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 
 // Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
+  mprintf("\tStarting clustering of wavelet map\n");
   // DEBUG
   if (doKdist_) ComputeKdist( minPoints_, matrix );
   // Set up output cluster map
@@ -449,13 +452,13 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   Avg_ /= (double)matrix.Size();
   int maxCol, maxRow;
   IdxToColRow( maxIdx, matrix.Ncols(), maxCol, maxRow );
-  mprintf("\t%zu elements, max= %f at index %u (frame %i, atom %i), Avg= %f\n",
+  mprintf("\t  Map has %zu elements, max= %f at index %u (frame %i, atom %i), Avg= %f\n",
           matrix.Size(), maxVal, maxIdx, maxCol+1, maxRow+1, Avg_);
-  mprintf("\tPoints below %f will be treated as noise.\n", Avg_);
+  mprintf("\t  Points below %f will be treated as noise.\n", Avg_);
 
   // Based on epsilon, determine max # rows/cols we will have to go. Round up.
   idx_offset_ = (int)ceil(epsilon_);
-  mprintf("DEBUG: Row/col offset is %i\n", idx_offset_);
+  //mprintf("DEBUG: Row/col offset is %i\n", idx_offset_);
 
   // Use DBSCAN-style algorithm to cluster points. Any point less than the
   // average will be considered noise.
@@ -469,7 +472,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   Iarray Npts2;          // Will hold neighbors of a neighbor
   Iarray cluster_frames; // Hold indices of current cluster
   ProgressBar progress(matrix.Size());
-  ProgressTimer ptimer(matrix.Size());
+  //ProgressTimer ptimer(matrix.Size());
   int iterations = 0;
 # ifdef TIMER
   t_overall_.Start();
@@ -478,7 +481,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   {
     if (!Visited[point])
     {
-      ptimer.Remaining(iterations);
+      //ptimer.Remaining(iterations);
       progress.Update(iterations++);
       // Mark this point as visited.
       Visited[point] = true;
@@ -522,7 +525,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
             double neighbor_val = matrix.GetElement(neighbor_pt);
             if (!Visited[neighbor_pt])
             {
-              ptimer.Remaining(iterations);
+              //ptimer.Remaining(iterations);
               progress.Update(iterations++);
 #             ifdef DEBUG_CLUSTERMAP
               mprintf(" %i", neighbor_pt + 1);
@@ -566,7 +569,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
       } // END value > cutoff
     } // END if not visited
   } // END loop over matrix points
-  mprintf("\t%zu clusters:\n", clusters_.size());
+  mprintf("\t  %zu clusters:\n", clusters_.size());
 
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
@@ -795,6 +798,7 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   std::string outfilename = "Kdist." + integerToString(Kval) + ".dat";
   mprintf("\tCalculating Kdist(%i), output to %s\n", Kval, outfilename.c_str());
   int msize = (int)matrix.Size();
+  int ncols = (int)matrix.Ncols();
   mprintf("DEBUG: msize is %i\n", msize);
   int point, otherpoint, point_col, point_row;
   double val;
@@ -820,7 +824,7 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   {
     progress.Update(point);
     val = matrix.GetElement(point);
-    IdxToColRow( point, matrix.Ncols(), point_col, point_row );
+    IdxToColRow( point, ncols, point_col, point_row );
     // Store distances from this point
     for (otherpoint = 0; otherpoint != msize; otherpoint++) {
       double other_val = matrix.GetElement( otherpoint );
