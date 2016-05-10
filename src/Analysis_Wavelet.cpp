@@ -465,6 +465,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   Iarray Npts2;          // Will hold neighbors of a neighbor
   Iarray cluster_frames; // Hold indices of current cluster
   ProgressBar progress(matrix.Size());
+  ProgressTimer ptimer(matrix.Size());
   int iterations = 0;
 # ifdef TIMER
   t_overall_.Start();
@@ -473,6 +474,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   {
     if (!Visited[point])
     {
+      ptimer.Remaining(iterations);
       progress.Update(iterations++);
       // Mark this point as visited.
       Visited[point] = true;
@@ -516,6 +518,7 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
             double neighbor_val = matrix.GetElement(neighbor_pt);
             if (!Visited[neighbor_pt])
             {
+              ptimer.Remaining(iterations);
               progress.Update(iterations++);
 #             ifdef DEBUG_CLUSTERMAP
               mprintf(" %i", neighbor_pt + 1);
@@ -708,12 +711,11 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
 }
 
 /// Simple distance: value, row (atom#), column (frame#)
-static inline double GetDist2(DataSet_2D const& matrix,
-                              double val, int point_row, int point_col, int otherpoint)
+static inline double GetDist2(double val, int point_row, int point_col,
+                              int otherpoint, double other_val, int ncols)
 {
   int other_col, other_row;
-  IdxToColRow( otherpoint, matrix.Ncols(), other_col, other_row );
-  double other_val = matrix.GetElement( otherpoint );
+  IdxToColRow( otherpoint, ncols, other_col, other_row );
   double dv = val - other_val;
   double dr = (double)(point_row - other_row);
   double dc = (double)(point_col - other_col);
@@ -733,9 +735,10 @@ void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
   int point_col, point_row;
   IdxToColRow( point, matrix.Ncols(), point_col, point_row );
   int msize = (int)matrix.Size();
-  int otherpoint, mythread;
+  int otherpoint;
 
 # ifdef _OPENMP
+  int mythread = 0;
 # pragma omp parallel private(otherpoint, mythread)
   {
   mythread = omp_get_thread_num();
@@ -743,16 +746,21 @@ void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
 # endif
   for (otherpoint = 0; otherpoint < msize; otherpoint++)
   {
-    if (point != otherpoint) {
-      // Distance calculation.
-      double dist2 = GetDist2(matrix, val, point_row, point_col, otherpoint);
+    if (point != otherpoint)
+    {
+      double other_val = matrix.GetElement( otherpoint );
+      if (other_val > Avg_)
+      {
+        // Distance calculation.
+        double dist2 = GetDist2(val, point_row, point_col, otherpoint, other_val, matrix.Ncols());
 
-      if ( dist2 < epsilon2_ )
-#       ifdef _OPENMP
-        thread_neighbors_[mythread].push_back( otherpoint );
-#       else
-        NeighborPts.push_back( otherpoint );
-#       endif
+        if ( dist2 < epsilon2_ )
+#         ifdef _OPENMP
+          thread_neighbors_[mythread].push_back( otherpoint );
+#         else
+          NeighborPts.push_back( otherpoint );
+#         endif
+      }
     }
   }
 # ifdef _OPENMP
@@ -834,8 +842,10 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
     val = matrix.GetElement(point);
     IdxToColRow( point, matrix.Ncols(), point_col, point_row );
     // Store distances from this point
-    for (otherpoint = 0; otherpoint != msize; otherpoint++)
-      dists[mythread][otherpoint] = GetDist2(matrix, val, point_row, point_col, otherpoint);
+    for (otherpoint = 0; otherpoint != msize; otherpoint++) {
+      double other_val = matrix.GetElement( otherpoint );
+      dists[mythread][otherpoint] = GetDist2(val, point_row, point_col, otherpoint, other_val, matrix.Ncols());
+    }
     // Sort distances - first dist should always be 0
     std::sort(dists[mythread].begin(), dists[mythread].end());
     Kdist[point] = sqrt(dists[mythread][Kval]);
