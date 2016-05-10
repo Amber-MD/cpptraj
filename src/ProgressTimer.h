@@ -5,7 +5,7 @@
 class ProgressTimer {
   public:
     ProgressTimer() : target_(0.0), interval_(0.0), total_it_(0) {}
-    ProgressTimer(int t) : target_(5.0), interval_(0.0), total_it_(t) { progress_.Start(); }
+    ProgressTimer(int t) : target_(5.0), interval_(5.0), total_it_(t) { progress_.Start(); }
     ProgressTimer(int t, double i) : target_(i), interval_(i), total_it_(t) { progress_.Start(); }
     void Remaining(int);
   private:
