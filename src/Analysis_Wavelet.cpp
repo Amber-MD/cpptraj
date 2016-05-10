@@ -133,16 +133,6 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
                                              analyzeArgs );
     clusterout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clusterout"),
                                           analyzeArgs );
-#   ifdef _OPENMP
-    numthreads_ = 0;
-#   pragma omp parallel
-    {
-    if (omp_get_thread_num() == 0)
-      numthreads_ = omp_get_num_threads();
-    }
-    mprintf("\tParallelizing calc with %i threads.\n", numthreads_);
-    thread_neighbors_.resize( numthreads_ );
-#   endif
   }
   // Atom mask
   mask_.SetMaskString( analyzeArgs.GetMaskNext() );
@@ -150,6 +140,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   output_ = setup.DSL().AddSet( DataSet::MATRIX_FLT, setname, "WAVELET" );
   if (output_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( output_ );
+  // Clustering setup
   if (doClustering_) {
     std::string const& dname = output_->Meta().Name();
     // Set up wavelet map clustering output set
@@ -208,6 +199,15 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     if (!overlayParm_.empty())
       mprintf("\t  Topology corresponding to overlay trajectory will be written to '%s'\n",
               overlayParm_.c_str());
+#   ifdef _OPENMP
+    numthreads_ = 0;
+#   pragma omp parallel
+    {
+    if (omp_get_thread_num() == 0)
+      numthreads_ = omp_get_num_threads();
+    }
+    //thread_neighbors_.resize( numthreads_ );
+#   endif
   }
   return Analysis::OK;
 }
@@ -452,6 +452,10 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   mprintf("\t%zu elements, max= %f at index %u (frame %i, atom %i), Avg= %f\n",
           matrix.Size(), maxVal, maxIdx, maxCol+1, maxRow+1, Avg_);
   mprintf("\tPoints below %f will be treated as noise.\n", Avg_);
+
+  // Based on epsilon, determine max # rows/cols we will have to go. Round up.
+  idx_offset_ = (int)ceil(epsilon_);
+  mprintf("DEBUG: Row/col offset is %i\n", idx_offset_);
 
   // Use DBSCAN-style algorithm to cluster points. Any point less than the
   // average will be considered noise.
@@ -727,49 +731,36 @@ void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
                                    DataSet_2D const& matrix)
 {
   NeighborPts.clear();
-# ifdef _OPENMP
-  for (std::vector<Iarray>::iterator it = thread_neighbors_.begin();
-                                     it != thread_neighbors_.end(); ++it)
-    it->clear();
-# endif
+  int ncols = (int)matrix.Ncols();
+  int nrows = (int)matrix.Nrows();
   int point_col, point_row;
-  IdxToColRow( point, matrix.Ncols(), point_col, point_row );
-  int msize = (int)matrix.Size();
-  int otherpoint;
+  IdxToColRow( point, ncols, point_col, point_row );
+  int row_beg = std::max(0,     point_row - idx_offset_);
+  int row_end = std::min(nrows, point_row + idx_offset_ + 1);
+  int col_beg = std::max(0,     point_col - idx_offset_);
+  int col_end = std::min(ncols, point_col + idx_offset_ + 1);
 
-# ifdef _OPENMP
-  int mythread = 0;
-# pragma omp parallel private(otherpoint, mythread)
+  for (int row = row_beg; row != row_end; row++)
   {
-  mythread = omp_get_thread_num();
-# pragma omp for
-# endif
-  for (otherpoint = 0; otherpoint < msize; otherpoint++)
-  {
-    if (point != otherpoint)
+    int idx = row * ncols;
+    double dr = (double)(point_row - row);
+    for (int col = col_beg; col != col_end; col++)
     {
-      double other_val = matrix.GetElement( otherpoint );
-      if (other_val > Avg_)
-      {
-        // Distance calculation.
-        double dist2 = GetDist2(val, point_row, point_col, otherpoint, other_val, matrix.Ncols());
-
-        if ( dist2 < epsilon2_ )
-#         ifdef _OPENMP
-          thread_neighbors_[mythread].push_back( otherpoint );
-#         else
-          NeighborPts.push_back( otherpoint );
-#         endif
+      int otherpoint = idx + col;
+      if (point != otherpoint) {
+        double other_val = matrix.GetElement( otherpoint );
+        if (other_val > Avg_)
+        {
+          // Distance calculation.
+          double dv = val - other_val;
+          double dc = (double)(point_col - col);
+          double dist2 = dv*dv + dr*dr + dc*dc;
+          if ( dist2 < epsilon2_ )
+            NeighborPts.push_back( otherpoint );
+        }
       }
     }
   }
-# ifdef _OPENMP
-  } // END pragma omp parallel
-  for (std::vector<Iarray>::const_iterator it = thread_neighbors_.begin();
-                                           it != thread_neighbors_.end(); ++it)
-    for (Iarray::const_iterator pt = it->begin(); pt != it->end(); ++pt)
-      NeighborPts.push_back( *pt );
-# endif
 }
 
 // Analysis_Wavelet::AddCluster()
@@ -823,6 +814,7 @@ void Analysis_Wavelet::ComputeKdist( int Kval, DataSet_2D const& matrix ) const 
   int t_points = 0;
   int mythread = 0;
 # ifdef _OPENMP
+  mprintf("\tParallelizing Kdist calc with %i threads.\n", numthreads_);
   ProgressTimer ptimer( msize / numthreads_, 5.0 );
   dists.resize( numthreads_ );
 # pragma omp parallel private(point, otherpoint, mythread, val, point_col, point_row)

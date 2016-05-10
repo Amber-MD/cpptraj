@@ -48,7 +48,7 @@ class Analysis_Wavelet : public Analysis {
     typedef std::vector<Cluster> Carray;
     Carray clusters_;                      ///< Hold all clusters.
 #   ifdef _OPENMP
-    std::vector<Iarray> thread_neighbors_; ///< RegionQuery neighbors for each thread.
+    //std::vector<Iarray> thread_neighbors_; ///< RegionQuery neighbors for each thread.
     int numthreads_;                       ///< Total number of OpenMP threads.
 #   endif
     DataSet* clustermap_; ///< Output cluster map
@@ -66,6 +66,7 @@ class Analysis_Wavelet : public Analysis {
     double Avg_;      ///< Average value of map, used as cutoff (points below are noise).
     int minPoints_;   ///< Minimum number of points within epsilon to qualify as cluster.
     int nClusters_;   ///< Current number of clusters.
+    int idx_offset_;  ///< Max # of rows/cols to offset in RegionQuery() based on epsilon.
     bool doClustering_; ///< Perform clustering on wavelet map
     bool cmap_square_;  ///< If true write cluster map by min/max rows/cols.
     bool doKdist_;      ///< If true calculate Kdist plot
