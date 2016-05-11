@@ -72,7 +72,14 @@ void Analysis_Wavelet::Help() const {
   mprintf("\t[crdset <set name>] nb <n scaling vals> [s0 <s0>] [ds <ds>]\n"
           "\t[correction <correction>] [chival <chival>] [type <wavelet>]\n"
           "\t[out <filename>] [name <setname>]\n"
-          "    <wavelet>: morlet, paul\n");
+          "\t[cluster [minpoints <#>] [epsilon <value>] [clusterout <file>]\n"
+          "\t   [clustermapout <file>] [cmapdetail] [kdist] [cprefix <PDB prefix>]\n"
+          "\t   [overlay <trajfile>] [overlayparm <parmfile>]]\n"
+          "    <wavelet>: morlet, paul\n"
+          "  Perform wavelet analysis on specified COORDS set using atomic\n"
+          "  Cartesian distance from initial frame.\n"
+          "  If 'cluster' is specified the resulting wavelet map will be\n"
+          "  clustered into regions by significance.\n");
 }
 
 // Analysis_Wavelet::Setup
@@ -125,7 +132,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     overlayName_ = analyzeArgs.GetStringKey("overlay");
     overlayParm_ = analyzeArgs.GetStringKey("overlayparm");
     doKdist_ = analyzeArgs.hasKey("kdist");
-    minPoints_ = analyzeArgs.getKeyInt("minpoints", 4);
+    minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
     epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
     epsilon2_ = epsilon_ * epsilon_;
     cmap_square_ = !analyzeArgs.hasKey("cmapdetail");
@@ -199,7 +206,11 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       mprintf("\t  Cluster regions in map will be defined by min and max frames/atoms.\n");
     else
       mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
-    mprintf("\t  minpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
+    if (minPoints_ == -1)
+      mprintf("\t  Minimum points needed to form cluster will be 0.05 * # atoms.\n");
+    else
+      mprintf("\t  Minimum points needed to form cluster is %i\n", minPoints_);
+    mprintf("\t  Max distance to search for neighbors in cluster: %f\n", epsilon_);
     if (doKdist_) mprintf("\t  Calculating Kdist plot.\n");
     if (!cprefix_.empty())
       mprintf("\t  Cluster regions will be output to PDBs with name '%s.cX'\n", cprefix_.c_str());
@@ -447,6 +458,11 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 // Analysis_Wavelet::ClusterMap()
 int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   mprintf("\tStarting clustering of wavelet map\n");
+  // If necessary calculate minPoints_
+  if (doClustering_ && minPoints_ == -1) {
+    minPoints_ = (int)(0.05 * (double)mask_.Nselected());
+    mprintf("\t  Minimum points estimated from # atoms: %i\n", minPoints_);
+  }
   // DEBUG
   if (doKdist_) ComputeKdist( minPoints_, matrix );
   // Set up output cluster map
