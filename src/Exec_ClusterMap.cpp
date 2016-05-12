@@ -3,6 +3,7 @@
 #include "Exec_ClusterMap.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+#include "ProgressTimer.h"
 /*
 #ifdef _OPENMP
 #  include <omp.h>
@@ -92,7 +93,12 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\t%zu elements, max= %f at index %u (%i, %i), Avg= %f\n",
           matrix.Size(), maxVal, maxIdx, maxCol, maxRow, Avg_);
   mprintf("\tPoints below %f will be treated as noise.\n", Avg_);
+#ifdef NEW_ALGORITHM
+  if ( DoDBSCAN( matrix ) ) return CpptrajState::ERR;
 
+
+// =============================================================================
+#else
   // Use DBSCAN-style algorithm to cluster points. Any point less than the
   // average will be considered noise.
   std::vector<bool> Visited( matrix.Size(), false );
@@ -203,10 +209,14 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   } // END loop over matrix points
 # ifdef TIMER
   t_overall_.Stop();
+# endif
+#endif /* NEW_ALGORITHM */
+# ifdef TIMER
   t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
   t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
   t_overall_.WriteTiming(1, "Overall:");
 # endif
+
   mprintf("\t%zu clusters:\n", clusters_.size());
 
   // Sort by number of points
@@ -359,3 +369,139 @@ void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix)
 # endif
   nClusters_++;
 }
+
+#ifdef NEW_ALGORITHM
+#define UNCLASSIFIED -2
+#define NOISE -1
+
+int Exec_ClusterMap::DoDBSCAN(DataSet_2D const& matrix)
+{
+# ifdef TIMER
+  t_overall_.Start();
+# endif
+  Status_.assign( matrix.Size(), UNCLASSIFIED );
+
+  // SetOfPoints is UNCLASSIFIED
+  int ClusterId = 0;
+  ProgressBar progress(matrix.Size());
+  ProgressTimer ptimer(matrix.Size());
+  for (unsigned int idx = 0; idx != matrix.Size(); idx++)
+  {
+    progress.Update(idx);
+    ptimer.Remaining(idx);
+    //Point := SetOfPoints.get(i);
+    //IF Point.ClId = UNCLASSIFIED THEN
+    if ( Status_[idx] == UNCLASSIFIED )
+    {
+      if (matrix.GetElement(idx) < Avg_) // NOTE: Not part of original DBSCAN algorithm
+        Status_[idx] = NOISE;
+      else
+      {
+        //IF ExpandCluster(SetOfPoints, Point, ClusterId, Eps, MinPts) THEN
+        if (ExpandCluster(idx, ClusterId, matrix))
+        //ClusterId := nextId(ClusterId)
+          ClusterId++;
+      }
+    }
+  }
+
+  mprintf("\t%i clusters.\n", ClusterId);
+  if (ClusterId > 0) {
+    std::vector<Iarray> C0( ClusterId );
+    for (unsigned int idx = 0; idx != Status_.size(); idx++)
+    {
+      int point = Status_[idx];
+      if (point == UNCLASSIFIED)
+        mprintf("Warning: point %u was unclassified.\n", idx);
+      else if (point != NOISE)
+        C0[ point ].push_back( idx );
+    }
+    for (std::vector<Iarray>::const_iterator it = C0.begin(); it != C0.end(); ++it)
+      AddCluster( *it, matrix );
+  }
+# ifdef TIMER
+  t_overall_.Stop();
+# endif
+  return 0;
+}
+
+bool Exec_ClusterMap::ExpandCluster(unsigned int point, int ClusterId, DataSet_2D const& matrix)
+{
+  double val = matrix.GetElement(point);
+  //seeds:=SetOfPoints.regionQuery(Point,Eps);
+  //Iarray seeds, result;
+# ifdef TIMER
+  t_query1_.Start();
+# endif
+  RegionQuery(seeds_, val, point, matrix);
+# ifdef TIMER
+  t_query1_.Stop();
+# endif
+
+  //IF seeds.size<MinPts THEN // no core point
+  if ((int)seeds_.size() < minPoints_)
+  {
+    //SetOfPoint.changeClId(Point,NOISE);
+    Status_[point] = NOISE;
+    //RETURN False;
+    return false;
+  }
+  else
+  {
+    // all points in seeds are density-reachable from Point
+    //SetOfPoints.changeClIds(seeds,ClId);
+    Status_[point] = ClusterId;
+    for (Iarray::const_iterator pt = seeds_.begin(); pt != seeds_.end(); ++pt)
+      Status_[*pt] = ClusterId;
+    //seeds.delete(Point);
+    //WHILE seeds <> Empty DO
+    unsigned int endIdx = seeds_.size();
+    for (unsigned int idx = 0; idx < endIdx; idx++)
+    {
+      //currentP := seeds.first();
+      int otherpoint = seeds_[idx];
+      double otherval = matrix.GetElement(otherpoint);
+      //result := SetOfPoints.regionQuery(currentP, Eps);
+#     ifdef TIMER
+      t_query2_.Start();
+#     endif
+      RegionQuery(result_, otherval, otherpoint, matrix);
+#     ifdef TIMER
+      t_query2_.Stop();
+#     endif
+      //IF result.size >= MinPts THEN
+      if ( (int)result_.size() >= minPoints_ )
+      {
+        //FOR i FROM 1 TO result.size DO
+        //  resultP := result.get(i);
+        //  IF resultP.ClId IN {UNCLASSIFIED, NOISE} THEN
+        //    IF resultP.ClId = UNCLASSIFIED THEN
+        //      seeds.append(resultP);
+        //    END IF;
+        //    SetOfPoints.changeClId(resultP,ClId);
+        //  END IF; // UNCLASSIFIED or NOISE
+        //END FOR;
+        for (Iarray::const_iterator rt = result_.begin(); rt != result_.end(); ++rt)
+        {
+          if (Status_[*rt] == UNCLASSIFIED || Status_[*rt] == NOISE)
+          {
+            if (Status_[*rt] == UNCLASSIFIED)
+            {
+              seeds_.push_back( *rt );
+              endIdx = seeds_.size();
+            }
+            Status_[*rt] = ClusterId;
+          }
+        }
+      }
+      //END IF; // result.size >= MinPts
+      //seeds.delete(currentP);
+    }
+    //END WHILE; // seeds <> Empty
+    //RETURN True;
+    return true;
+  }
+  //END IF
+}
+//END; // ExpandCluster
+#endif

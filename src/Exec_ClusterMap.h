@@ -25,6 +25,16 @@ class Exec_ClusterMap : public Exec {
     std::vector<Iarray> thread_neighbors_; ///< RegionQuery neighbors for each thread.
     int numthreads_;                       ///< Number of OpenMP threads.
 #   endif*/
+#   ifdef NEW_ALGORITHM
+    //static const int UNCLASSIFIED = -2;
+    //static const int NOISE = -1;
+    int DoDBSCAN(DataSet_2D const&);
+    /// \return true if cluster could be expanded, false if point is noise
+    bool ExpandCluster(unsigned int, int, DataSet_2D const&);
+    Iarray Status_; ///< Status of each point: unclassified, noise, or in cluster
+    Iarray seeds_;  ///< Results from first RegionQuery
+    Iarray result_; ///< Results from seed RegionQueries
+#   endif
 
     double epsilon_;  ///< Distance to search for neighboring points within.
     double epsilon2_; ///< Epsilon squared.
