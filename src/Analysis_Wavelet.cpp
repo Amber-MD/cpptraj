@@ -104,7 +104,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   }
   S0_ = analyzeArgs.getKeyDouble("s0", 0.2);
   ds_ = analyzeArgs.getKeyDouble("ds", 1.0/3.0);
-  correction_ = analyzeArgs.getKeyDouble("correction", 1.01);
+  correction_ = analyzeArgs.getKeyDouble("correction", -1.0);
   chival_ = analyzeArgs.getKeyDouble("chival", 0.2231);
   // Wavelet type: default to Morlet
   std::string wavelet_name = analyzeArgs.GetStringKey("type");
@@ -120,6 +120,14 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     if (wavelet_type_ == W_NONE) {
       mprinterr("Error: Unrecognized wavelet type: %s\n", wavelet_name.c_str());
       return Analysis::ERR;
+    }
+    // Set default correction if not already set.
+    if (correction_ < 0.0) {
+      switch (wavelet_type_) {
+        case W_MORLET : correction_ = 1.01; break;
+        case W_PAUL   : correction_ = 1.389; break;
+        case W_NONE   : correction_ = 1.0; break; // Sanity: should never get here.
+      }
     }
   }
   // Wavelet map clustering
