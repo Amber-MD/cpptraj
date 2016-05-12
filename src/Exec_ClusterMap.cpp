@@ -131,8 +131,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
         t_query1_.Stop();
 #       endif
 #       ifdef DEBUG_CLUSTERMAP
-        mprintf("\tPoint %u\n", point);
-        mprintf("\t\t%u neighbors:\n", NeighborPts.size());
+        mprintf("\tPoint %i has %u neighbors:", point, NeighborPts.size());
 #       endif
         // If # of neighbors less than cutoff, noise; otherwise cluster.
         if ((int)NeighborPts.size() < minPoints_)
@@ -158,7 +157,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
             {
               progress.Update(iterations++);
 #             ifdef DEBUG_CLUSTERMAP
-              mprintf(" %i", neighbor_pt + 1);
+              //mprintf(" %i", neighbor_pt + 1);
 #             endif
               // Mark this neighbor as visited
               Visited[neighbor_pt] = true;
@@ -186,13 +185,16 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
           }
           // Remove duplicate frames
           // TODO: Take care of this in Renumber?
+#         ifdef DEBUG_CLUSTERMAP
+          mprintf(" %zu frames,", cluster_frames.size());
+#         endif
           std::sort(cluster_frames.begin(), cluster_frames.end());
           Iarray::iterator it = std::unique(cluster_frames.begin(),
                                             cluster_frames.end());
           cluster_frames.resize( std::distance(cluster_frames.begin(),it) );
           // Add cluster to the list
 #         ifdef DEBUG_CLUSTERMAP
-          mprintf("\n");
+          mprintf(" %zu unique frames.\n", cluster_frames.size());
 #         endif
           AddCluster( cluster_frames, matrix );
         }
@@ -328,7 +330,7 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
 // Exec_ClusterMap::AddCluster()
 void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix)
 {
-# ifdef DEBUG_CLUSTERMAP
+# ifdef DEBUG_CLUSTERMAP_ADDCLUSTER
   mprintf("Cluster %i (%zu):", nClusters_, points.size());
 # endif
   int ncols = (int)matrix.Ncols();
@@ -339,7 +341,7 @@ void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix)
   int row, col;
   double cavg = 0.0;
   for (Iarray::const_iterator pt = points.begin(); pt != points.end(); ++pt) {
-#   ifdef DEBUG_CLUSTERMAP
+#   ifdef DEBUG_CLUSTERMAP_ADDCLUSTER
     mprintf(" %i", *pt);
 #   endif
     // Determine min/max row/col and average of all points
@@ -352,7 +354,7 @@ void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix)
   }
   cavg /= (double)points.size();
   clusters_.push_back( Cluster(points, cavg, nClusters_, min_col, max_col, min_row, max_row) );
-# ifdef DEBUG_CLUSTERMAP
+# ifdef DEBUG_CLUSTERMAP_ADDCLUSTER
   mprintf("\n");
 # endif
   nClusters_++;
