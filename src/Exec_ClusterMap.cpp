@@ -1,10 +1,13 @@
 #include <algorithm> //sort, unique
+#include <cmath>
 #include "Exec_ClusterMap.h"
 #include "CpptrajStdio.h"
 #include "ProgressBar.h"
+/*
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
+*/
 
 Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN),
   epsilon_(0.0),
@@ -16,7 +19,7 @@ Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN),
 
 void Exec_ClusterMap::Help() const {
   mprintf("\t<2D set> [minpoints <#>] [epsilon <epsilon>] [name <setname>]\n"
-          "\t[out <outfile>]\n"
+          "\t[out <outfile>] [cmapdetail]\n"
           "  Cluster regions of the given 2D data set.\n");
 }
 
@@ -28,9 +31,12 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 // Exec_ClusterMap::Execute()
 Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
 {
+  cmap_square_ = !argIn.hasKey("cmapdetail");
   minPoints_ = argIn.getKeyInt("minpoints", 4);
   epsilon_ = argIn.getKeyDouble("epsilon", 10.0);
   epsilon2_ = epsilon_ * epsilon_;
+  // Based on epsilon, determine max # rows/cols we will have to go. Round up.
+  idx_offset_ = (int)ceil(epsilon_);
   std::string dsname = argIn.GetStringKey("name");
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
   mprintf("\tminpoints= %i, epsilon= %f\n", minPoints_, epsilon_);
@@ -56,19 +62,18 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   DataSet_MatrixFlt& output = static_cast<DataSet_MatrixFlt&>( *dsOut );
   output.Allocate2D( matrix.Ncols(), matrix.Nrows() );
   std::fill( output.begin(), output.end(), -1.0 );
-
+/*
 # ifdef _OPENMP
-  int numthreads = 0;
+  numthreads_ = 0;
 # pragma omp parallel
   {
-  mythread_ = omp_get_thread_num();
-  if (mythread_ == 0)
-    numthreads = omp_get_num_threads();
+  if (omp_get_thread_num() == 0)
+    numthreads_ = omp_get_num_threads();
   }
-  mprintf("\tParallelizing calc with %i threads.\n", numthreads);
-  thread_neighbors_.resize( numthreads );
+  mprintf("\tParallelizing calc with %i threads.\n", numthreads_);
+  thread_neighbors_.resize( numthreads_ );
 # endif
-
+*/
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
   unsigned int maxIdx = 0;
@@ -189,7 +194,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
 #         ifdef DEBUG_CLUSTERMAP
           mprintf("\n");
 #         endif
-          AddCluster( cluster_frames, matrix, output );
+          AddCluster( cluster_frames, matrix );
         }
       } // END value > cutoff
     } // END if not visited
@@ -201,19 +206,74 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   t_overall_.WriteTiming(1, "Overall:");
 # endif
   mprintf("\t%zu clusters:\n", clusters_.size());
+
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
   Dimension const& ColDim = matrix.Dim(0);
   Dimension const& RowDim = matrix.Dim(1);
-  for (Carray::const_iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
-    mprintf("\t %i: %zu points, Rows %g-%g, cols %g-%g, avg= %f\n",
+  // Renumber clusters.
+  int cnum = 0;
+  for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
+  {
+    CL->SetCnum( cnum );
+    // Write cluster map
+    if (cmap_square_) {
+      int MAXR = CL->MaxRow() + 1; // Want up to and including max
+      int MAXC = CL->MaxCol() + 1;
+      for (int row = CL->MinRow(); row != MAXR; row++)
+        for (int col = CL->MinCol(); col != MAXC; col++)
+          output.SetElement( col, row, cnum );
+    } else {
+      for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
+        output[*pt] = cnum;
+    }
+    mprintf("\t %6i: %8zu points, Rows %6g - %6g  Cols %6g - %6g  Avg= %g\n",
             CL->Cnum(), CL->Points().size(),
             RowDim.Coord(CL->MinRow()), RowDim.Coord(CL->MaxRow()),
             ColDim.Coord(CL->MinCol()), ColDim.Coord(CL->MaxCol()), CL->Avg());
+    cnum++;
+  }
 
   return CpptrajState::OK;
 }
 
+void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
+                                  DataSet_2D const& matrix)
+{
+  NeighborPts.clear();
+  int ncols = (int)matrix.Ncols();
+  int nrows = (int)matrix.Nrows();
+  int point_col, point_row;
+  IdxToColRow( point, ncols, point_col, point_row );
+  int row_beg = std::max(0,     point_row - idx_offset_);
+  int row_end = std::min(nrows, point_row + idx_offset_ + 1);
+  int col_beg = std::max(0,     point_col - idx_offset_);
+  int col_end = std::min(ncols, point_col + idx_offset_ + 1);
+
+  for (int row = row_beg; row != row_end; row++)
+  {
+    int idx = row * ncols;
+    double dr = (double)(point_row - row);
+    for (int col = col_beg; col != col_end; col++)
+    {
+      int otherpoint = idx + col;
+      if (point != otherpoint) {
+        double other_val = matrix.GetElement( otherpoint );
+        if (other_val > Avg_)
+        {
+          // Distance calculation.
+          double dv = val - other_val;
+          double dc = (double)(point_col - col);
+          double dist2 = dv*dv + dr*dr + dc*dc;
+          if ( dist2 < epsilon2_ )
+            NeighborPts.push_back( otherpoint );
+        }
+      }
+    }
+  }
+}
+
+/*
 // Exec_ClusterMap::RegionQuery()
 void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
                                   DataSet_2D const& matrix)
@@ -230,8 +290,10 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
   int otherpoint;
 
 # ifdef _OPENMP
-# pragma omp parallel private(otherpoint)
+  int mythread = 0;
+# pragma omp parallel private(otherpoint, mythread)
   {
+  mythread = omp_get_thread_num();
 # pragma omp for
 # endif
   for (otherpoint = 0; otherpoint < msize; otherpoint++)
@@ -248,7 +310,7 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
       
       if ( dist2 < epsilon2_ )
 #       ifdef _OPENMP
-        thread_neighbors_[mythread_].push_back( otherpoint );
+        thread_neighbors_[mythread].push_back( otherpoint );
 #       else
         NeighborPts.push_back( otherpoint );
 #       endif
@@ -262,10 +324,9 @@ void Exec_ClusterMap::RegionQuery(Iarray& NeighborPts, double val, int point,
       NeighborPts.push_back( *pt );
 # endif
 }
-
+*/
 // Exec_ClusterMap::AddCluster()
-void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix,
-                                 DataSet_MatrixFlt& output)
+void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix)
 {
 # ifdef DEBUG_CLUSTERMAP
   mprintf("Cluster %i (%zu):", nClusters_, points.size());
@@ -281,7 +342,6 @@ void Exec_ClusterMap::AddCluster(Iarray const& points, DataSet_2D const& matrix,
 #   ifdef DEBUG_CLUSTERMAP
     mprintf(" %i", *pt);
 #   endif
-    output[*pt] = nClusters_;
     // Determine min/max row/col and average of all points
     IdxToColRow( *pt, ncols, col, row );
     min_col = std::min(col, min_col);

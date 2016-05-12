@@ -16,21 +16,23 @@ class Exec_ClusterMap : public Exec {
     typedef std::vector<int> Iarray;
 
     void RegionQuery(Iarray&, double, int, DataSet_2D const&);
-    void AddCluster(Iarray const&, DataSet_2D const&, DataSet_MatrixFlt&);
+    void AddCluster(Iarray const&, DataSet_2D const&);
 
     class Cluster;
     typedef std::vector<Cluster> Carray;
     Carray clusters_;                      ///< Hold all clusters.
-#   ifdef _OPENMP
+/*#   ifdef _OPENMP
     std::vector<Iarray> thread_neighbors_; ///< RegionQuery neighbors for each thread.
-    int mythread_;                         ///< Current OpenMP thread.
-#   endif
+    int numthreads_;                       ///< Number of OpenMP threads.
+#   endif*/
 
     double epsilon_;  ///< Distance to search for neighboring points within.
     double epsilon2_; ///< Epsilon squared.
     double Avg_;      ///< Average value of map, used as cutoff (points below are noise).
     int minPoints_;   ///< Minimum number of points within epsilon to qualify as cluster.
     int nClusters_;   ///< Current number of clusters.
+    int idx_offset_;
+    bool cmap_square_;
 #   ifdef TIMER
     Timer t_overall_;
     Timer t_query1_;
@@ -44,6 +46,7 @@ class Exec_ClusterMap::Cluster {
     Cluster(Iarray const& p, double A, int C, int minc, int maxc, int minr, int maxr) :
       points_(p), avg_(A), cnum_(C), min_col_(minc), max_col_(maxc), min_row_(minr), max_row_(maxr)
       {}
+    void SetCnum(int c) { cnum_ = c; }
     Iarray const& Points() const { return points_;  }
     double Avg()           const { return avg_;     }
     int Cnum()             const { return cnum_;    }
