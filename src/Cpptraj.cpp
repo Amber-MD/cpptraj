@@ -130,6 +130,9 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
+  // Ensure all data has been written.
+  if (State_.DFL().UnwrittenData())
+    State_.DFL().WriteAllDF();
   total_time.Stop();
   if (cmode != INTERACTIVE)
     mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
