@@ -22,6 +22,7 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   mprintf("\tminpoints= %i, epsilon= %f\n", CMAP.MinPoints(), CMAP.Epsilon());
 
   std::string dsname = argIn.GetStringKey("name");
+  std::string cinfoname = argIn.GetStringKey("cinfo");
   DataFile* outfile = State.DFL().AddDataFile( argIn.GetStringKey("out"), argIn );
   DataSet* dsIn = State.DSL().GetDataSet( argIn.GetStringNext() );
   if (dsIn == 0) return CpptrajState::ERR;
@@ -53,6 +54,10 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
   // Process clusters.
   Dimension const& ColDim = matrix.Dim(0);
   Dimension const& RowDim = matrix.Dim(1);
+  CpptrajFile cinfo;
+  if (cinfo.OpenWrite(cinfoname)) return CpptrajState::ERR;
+  cinfo.Printf("%-6s %8s %6s %6s %6s %6s %s\n", "#Cnum", "Points", "RMin", "RMax", "Cmin", "Cmax",
+               "Avg");
   for (ClusterMap::const_iterator CL = CMAP.Clusters().begin(); CL != CMAP.Clusters().end(); ++CL)
   {
     // Write cluster map
@@ -67,11 +72,13 @@ Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
                                               pt != CL->Points().end(); ++pt)
         output[*pt] = CL->Cnum();
     }
-    mprintf("\t %6i: %8zu points, Rows %6g - %6g  Cols %6g - %6g  Avg= %g\n",
+    //mprintf("\t %6i: %8zu points, Rows %6g - %6g  Cols %6g - %6g  Avg= %g\n",
+    cinfo.Printf("%6i %8zu %6g %6g %6g %6g %g\n",
             CL->Cnum(), CL->Points().size(),
             RowDim.Coord(CL->MinRow()), RowDim.Coord(CL->MaxRow()),
             ColDim.Coord(CL->MinCol()), ColDim.Coord(CL->MaxCol()), CL->Avg());
   }
+  cinfo.CloseFile();
 
   return CpptrajState::OK;
 }
