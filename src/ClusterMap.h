@@ -12,6 +12,8 @@ class ClusterMap {
     int DoCluster(DataSet_2D const&);
     /// Perform clustering on given 2D data set with given min # points.
     int DoCluster(DataSet_2D const&, int);
+    /// Write timing to stdout. Only relevant if TIMER defined.
+    void WriteTiming(double) const;
 
     double Epsilon() const { return epsilon_; }
     int MinPoints() const { return minPoints_; }
@@ -63,9 +65,21 @@ class ClusterMap::Cluster {
     int MaxCol()           const { return max_col_; }
     int MinRow()           const { return min_row_; }
     int MaxRow()           const { return max_row_; }
-    // Use > since we give higher priority to larger clusters
+    /// Sort by cluster size, min col, min row, avg
     bool operator <(Cluster const& rhs) const {
-      return ( points_.size() > rhs.points_.size() );
+      if (points_.size() == rhs.points_.size()) {
+        if (min_col_ == rhs.min_col_) {
+          if (min_row_ == rhs.min_row_) {
+            return (avg_ > rhs.avg_);
+          } else {
+            return (min_row_ < rhs.min_row_);
+          }
+        } else {
+          return (min_col_ < rhs.min_col_);
+        }
+      } else {
+        return ( points_.size() > rhs.points_.size() ); // > gives higher priority to large clusters
+      }
     }
   private:
     Iarray points_;

@@ -77,7 +77,7 @@ int ClusterMap::DoCluster(DataSet_2D const& matrix)
 
   if ( DoDBSCAN( matrix ) ) return 1;
 
-  mprintf("\t%zu clusters:\n", clusters_.size());
+  //mprintf("\t%zu clusters:\n", clusters_.size());
 
   // Sort by number of points
   std::sort(clusters_.begin(), clusters_.end());
@@ -88,12 +88,17 @@ int ClusterMap::DoCluster(DataSet_2D const& matrix)
     CL->SetCnum( cnum++ );
 # ifdef TIMER
   t_overall_.Stop();
-  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
-  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
-  t_overall_.WriteTiming(1, "Overall:");
 # endif
 
   return 0;
+}
+
+void ClusterMap::WriteTiming(double total) const {
+# ifdef TIMER
+  t_query1_.WriteTiming(3, "Region Query 1:", t_overall_.Total());
+  t_query2_.WriteTiming(3, "Region Query 2:", t_overall_.Total());
+  t_overall_.WriteTiming(2, "Clustering:", total);
+# endif
 }
 
 #define UNCLASSIFIED -2
@@ -127,7 +132,7 @@ int ClusterMap::DoDBSCAN(DataSet_2D const& matrix)
     }
   }
 
-  mprintf("DEBUG: %i clusters.\n", ClusterId);
+  //mprintf("DEBUG: %i clusters.\n", ClusterId);
   if (ClusterId > 0) {
     std::vector<Iarray> C0( ClusterId );
     for (unsigned int idx = 0; idx != Status_.size(); idx++)

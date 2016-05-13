@@ -613,6 +613,7 @@ int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
   //          CL->MinCol()+1, CL->MaxCol()+1, CL->Avg());
 # ifdef TIMER
   t_overall_.Stop();
+  CMAP_.WriteTiming( t_overall_.Total() );
   t_overall_.WriteTiming(1, "WA clustering total:");
 # endif
 
