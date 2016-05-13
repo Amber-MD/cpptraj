@@ -1,14 +1,14 @@
 #include <cmath> // pow
-#include <algorithm> // sort, unique
+#include <algorithm> // sort
 #include "Analysis_Wavelet.h"
 #include "CpptrajStdio.h"
 #include "Matrix.h"
 #include "DistRoutines.h"
 #include "Constants.h"
 #include "PubFFT.h"
-#include "StringRoutines.h"
 #include "ProgressBar.h"
 #include "ProgressTimer.h"
+#include "StringRoutines.h"
 #include "Trajout_Single.h"
 #include "ParmFile.h"
 #ifdef _OPENMP
@@ -24,12 +24,7 @@ Analysis_Wavelet::Analysis_Wavelet() :
   chival_(0.0),
   wavelet_type_(W_NONE),
   nb_(0),
-  clustermap_(0),
-  epsilon_(0.0),
-  epsilon2_(0.0),
-  Avg_(0.0),
-  minPoints_(0),
-  nClusters_(0)
+  clustermap_(0)
 {}
 
 // Wavelet functions: takes array of precomputed prefactors and scaling factor.
@@ -140,9 +135,9 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     overlayName_ = analyzeArgs.GetStringKey("overlay");
     overlayParm_ = analyzeArgs.GetStringKey("overlayparm");
     doKdist_ = analyzeArgs.hasKey("kdist");
-    minPoints_ = analyzeArgs.getKeyInt("minpoints", -1);
-    epsilon_ = analyzeArgs.getKeyDouble("epsilon", 10.0);
-    epsilon2_ = epsilon_ * epsilon_;
+    int minPoints = analyzeArgs.getKeyInt("minpoints", -1);
+    double epsilon = analyzeArgs.getKeyDouble("epsilon", 10.0);
+    if (CMAP_.Init(epsilon, minPoints)) return Analysis::ERR;
     cmap_square_ = !analyzeArgs.hasKey("cmapdetail");
     clustermapout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clustermapout"),
                                              analyzeArgs );
@@ -214,11 +209,11 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
       mprintf("\t  Cluster regions in map will be defined by min and max frames/atoms.\n");
     else
       mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
-    if (minPoints_ == -1)
+    if (CMAP_.MinPoints() == -1)
       mprintf("\t  Minimum points needed to form cluster will be 0.05 * # atoms.\n");
     else
-      mprintf("\t  Minimum points needed to form cluster is %i\n", minPoints_);
-    mprintf("\t  Max distance to search for neighbors in cluster: %f\n", epsilon_);
+      mprintf("\t  Minimum points needed to form cluster is %i\n", CMAP_.MinPoints());
+    mprintf("\t  Max distance to search for neighbors in cluster: %f\n", CMAP_.Epsilon());
     if (doKdist_) mprintf("\t  Calculating Kdist plot.\n");
     if (!cprefix_.empty())
       mprintf("\t  Cluster regions will be output to PDBs with name '%s.cX'\n", cprefix_.c_str());
@@ -451,178 +446,45 @@ Analysis::RetType Analysis_Wavelet::Analyze() {
   // Step 4 - Wavelet map clustering. Try to automatically identify regions
   //          where important motions are occurring.
   if (doClustering_) {
-    if (ClusterMap( OUT )) return Analysis::ERR;
+    if (WAFEX( OUT )) return Analysis::ERR;
   }
       
   return Analysis::OK;
 }
 
 // -----------------------------------------------------------------------------
-static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
-  col = idx % ncols;
-  row = idx / ncols;
-}
-
-// Analysis_Wavelet::ClusterMap()
-int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
+// Analysis_Wavelet::WAFEX()
+int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
+# ifdef TIMER
+  t_overall_.Start();
+# endif
   mprintf("\tStarting clustering of wavelet map\n");
   // If necessary calculate minPoints_
-  if (doClustering_ && minPoints_ == -1) {
-    minPoints_ = (int)(0.05 * (double)mask_.Nselected());
-    mprintf("\t  Minimum points estimated from # atoms: %i\n", minPoints_);
+  int minPoints = CMAP_.MinPoints();
+  if (minPoints < 1) {
+    minPoints = (int)(0.05 * (double)mask_.Nselected());
+    mprintf("\t  Minimum points estimated from # atoms: %i\n", minPoints);
   }
-  // DEBUG
-  if (doKdist_) ComputeKdist( minPoints_, matrix );
+  // Do Kdist calc if specified
+  if (doKdist_) ComputeKdist( minPoints, matrix );
   // Set up output cluster map
   DataSet_MatrixFlt& outmap = static_cast<DataSet_MatrixFlt&>( *clustermap_ );
   outmap.Allocate2D( matrix.Ncols(), matrix.Nrows() );
   std::fill( outmap.begin(), outmap.end(), -1.0 );
 
-  // Go through the set, calculate the average. Also determine the max.
-  double maxVal = matrix.GetElement(0);
-  unsigned int maxIdx = 0;
-  Avg_ = 0.0;
-  for (unsigned int i = 1; i != matrix.Size(); i++) {
-    double val = matrix.GetElement(i);
-    if (val > maxVal) {
-      maxVal = val;
-      maxIdx = i;
-    }
-    Avg_ += val;
-  }
-  Avg_ /= (double)matrix.Size();
-  int maxCol, maxRow;
-  IdxToColRow( maxIdx, matrix.Ncols(), maxCol, maxRow );
-  mprintf("\t  Map has %zu elements, max= %f at index %u (frame %i, atom %i), Avg= %f\n",
-          matrix.Size(), maxVal, maxIdx, maxCol+1, maxRow+1, Avg_);
-  mprintf("\t  Points below %f will be treated as noise.\n", Avg_);
+  if (CMAP_.DoCluster( matrix, minPoints )) return 1;
 
-  // Based on epsilon, determine max # rows/cols we will have to go. Round up.
-  idx_offset_ = (int)ceil(epsilon_);
-  //mprintf("DEBUG: Row/col offset is %i\n", idx_offset_);
+  mprintf("\t  %zu clusters:\n", CMAP_.Clusters().size());
 
-  // Use DBSCAN-style algorithm to cluster points. Any point less than the
-  // average will be considered noise.
-  std::vector<bool> Visited( matrix.Size(), false );
-  const char UNASSIGNED = 'U';
-  const char NOISE = 'N';
-  const char INCLUSTER = 'C';
-  std::vector<char> Status( matrix.Size(), UNASSIGNED );
-  // Loop over all points in matrix
-  Iarray NeighborPts;    // Will hold all neighbors of the current point
-  Iarray Npts2;          // Will hold neighbors of a neighbor
-  Iarray cluster_frames; // Hold indices of current cluster
-  ProgressBar progress(matrix.Size());
-  //ProgressTimer ptimer(matrix.Size());
-  int iterations = 0;
-# ifdef TIMER
-  t_overall_.Start();
-# endif
-  for (int point = 0; point != (int)matrix.Size(); point++)
-  {
-    if (!Visited[point])
-    {
-      //ptimer.Remaining(iterations);
-      progress.Update(iterations++);
-      // Mark this point as visited.
-      Visited[point] = true;
-      double val = matrix.GetElement(point);
-      // If this point is less than the cutoff just mark it as noise.
-      if (val < Avg_)
-        Status[point] = NOISE;
-      else
-      {
-        // Determine how many other points are near this point.
-#       ifdef TIMER
-        t_query1_.Start();
-#       endif
-        RegionQuery( NeighborPts, val, point, matrix );
-#       ifdef TIMER
-        t_query1_.Stop();
-#       endif
-#       ifdef DEBUG_CLUSTERMAP
-        mprintf("\tPoint %u\n", point);
-        mprintf("\t\t%u neighbors:\n", NeighborPts.size());
-#       endif
-        // If # of neighbors less than cutoff, noise; otherwise cluster.
-        if ((int)NeighborPts.size() < minPoints_)
-        {
-#         ifdef DEBUG_CLUSTERMAP
-          mprintf(" NOISE\n");
-#         endif
-          Status[point] = NOISE;
-        }
-        else
-        {
-          // Expand cluster
-          cluster_frames.clear();
-          cluster_frames.push_back( point );
-          // NOTE: Use index instead of iterator since NeighborPts may be
-          //       modified inside this loop.
-          unsigned int endidx = NeighborPts.size();
-          for (unsigned int idx = 0; idx < endidx; ++idx)
-          {
-            int neighbor_pt = NeighborPts[idx];
-            double neighbor_val = matrix.GetElement(neighbor_pt);
-            if (!Visited[neighbor_pt])
-            {
-              //ptimer.Remaining(iterations);
-              progress.Update(iterations++);
-#             ifdef DEBUG_CLUSTERMAP
-              mprintf(" %i", neighbor_pt + 1);
-#             endif
-              // Mark this neighbor as visited
-              Visited[neighbor_pt] = true;
-              // Determine how many other points are near this neighbor
-#             ifdef TIMER
-              t_query2_.Start();
-#             endif
-              RegionQuery( Npts2, neighbor_val, neighbor_pt, matrix );
-#             ifdef TIMER
-              t_query2_.Stop();
-#             endif
-              if ((int)Npts2.size() >= minPoints_)
-              {
-                // Add other points to current neighbor list
-                NeighborPts.insert( NeighborPts.end(), Npts2.begin(), Npts2.end() );
-                endidx = NeighborPts.size();
-              }
-            }
-            // If neighbor is not yet part of a cluster, add it to this one.
-            if (Status[neighbor_pt] != INCLUSTER)
-            {
-              cluster_frames.push_back( neighbor_pt );
-              Status[neighbor_pt] = INCLUSTER;
-            }
-          }
-          // Remove duplicate frames
-          // TODO: Take care of this in Renumber?
-          std::sort(cluster_frames.begin(), cluster_frames.end());
-          Iarray::iterator it = std::unique(cluster_frames.begin(),
-                                            cluster_frames.end());
-          cluster_frames.resize( std::distance(cluster_frames.begin(),it) );
-          // Add cluster to the list
-#         ifdef DEBUG_CLUSTERMAP
-          mprintf("\n");
-#         endif
-          AddCluster( cluster_frames, matrix );
-        }
-      } // END value > cutoff
-    } // END if not visited
-  } // END loop over matrix points
-  mprintf("\t  %zu clusters:\n", clusters_.size());
-
-  // Sort by number of points
-  std::sort(clusters_.begin(), clusters_.end());
   // If writing region PDBs or overlay traj, create topology for mask_
   Topology* maskTop = 0;
   if (!cprefix_.empty() || !overlayName_.empty())
     maskTop = coords_->Top().modifyStateByMask( mask_ );
-  // Renumber clusters.
-  int cnum = 0;
-  for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
+
+  // Process clusters.
+  for (ClusterMap::const_iterator CL = CMAP_.Clusters().begin(); CL != CMAP_.Clusters().end(); ++CL)
   {
-    CL->SetCnum( cnum );
+    int cnum = CL->Cnum();
     // Write cluster map
     if (cmap_square_) {
       int MAXR = CL->MaxRow() + 1; // Want up to and including max
@@ -631,7 +493,8 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
         for (int col = CL->MinCol(); col != MAXC; col++)
           outmap.SetElement( col, row, cnum );
     } else {
-      for (Iarray::const_iterator pt = CL->Points().begin(); pt != CL->Points().end(); ++pt)
+      for (ClusterMap::Iarray::const_iterator pt = CL->Points().begin();
+                                              pt != CL->Points().end(); ++pt)
         outmap[*pt] = cnum;
     }
     if (!cprefix_.empty()) {
@@ -750,82 +613,15 @@ int Analysis_Wavelet::ClusterMap(DataSet_MatrixFlt const& matrix) {
   //          CL->MinCol()+1, CL->MaxCol()+1, CL->Avg());
 # ifdef TIMER
   t_overall_.Stop();
-  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
-  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
   t_overall_.WriteTiming(1, "WA clustering total:");
 # endif
 
   return 0;
 }
 
-// Analysis_Wavelet::RegionQuery()
-void Analysis_Wavelet::RegionQuery(Iarray& NeighborPts, double val, int point,
-                                   DataSet_2D const& matrix)
-{
-  NeighborPts.clear();
-  int ncols = (int)matrix.Ncols();
-  int nrows = (int)matrix.Nrows();
-  int point_col, point_row;
-  IdxToColRow( point, ncols, point_col, point_row );
-  int row_beg = std::max(0,     point_row - idx_offset_);
-  int row_end = std::min(nrows, point_row + idx_offset_ + 1);
-  int col_beg = std::max(0,     point_col - idx_offset_);
-  int col_end = std::min(ncols, point_col + idx_offset_ + 1);
-
-  for (int row = row_beg; row != row_end; row++)
-  {
-    int idx = row * ncols;
-    double dr = (double)(point_row - row);
-    for (int col = col_beg; col != col_end; col++)
-    {
-      int otherpoint = idx + col;
-      if (point != otherpoint) {
-        double other_val = matrix.GetElement( otherpoint );
-        if (other_val > Avg_)
-        {
-          // Distance calculation.
-          double dv = val - other_val;
-          double dc = (double)(point_col - col);
-          double dist2 = dv*dv + dr*dr + dc*dc;
-          if ( dist2 < epsilon2_ )
-            NeighborPts.push_back( otherpoint );
-        }
-      }
-    }
-  }
-}
-
-// Analysis_Wavelet::AddCluster()
-void Analysis_Wavelet::AddCluster(Iarray const& points, DataSet_2D const& matrix)
-{
-# ifdef DEBUG_CLUSTERMAP
-  mprintf("Cluster %i (%zu):", nClusters_, points.size());
-# endif
-  int ncols = (int)matrix.Ncols();
-  int min_col, min_row;
-  IdxToColRow(points.front(), ncols, min_col, min_row);
-  int max_col = min_col;
-  int max_row = min_row;
-  int row, col;
-  double cavg = 0.0;
-  for (Iarray::const_iterator pt = points.begin(); pt != points.end(); ++pt) {
-#   ifdef DEBUG_CLUSTERMAP
-    mprintf(" %i", *pt);
-#   endif
-    // Determine min/max row/col and average of all points
-    IdxToColRow( *pt, ncols, col, row );
-    min_col = std::min(col, min_col);
-    max_col = std::max(col, max_col);
-    min_row = std::min(row, min_row);
-    max_row = std::max(row, max_row);
-    cavg += matrix.GetElement( *pt );
-  }
-  cavg /= (double)points.size();
-  clusters_.push_back( Cluster(points, cavg, nClusters_, min_col, max_col, min_row, max_row) );
-# ifdef DEBUG_CLUSTERMAP
-  mprintf("\n");
-# endif
-  nClusters_++;
+static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
+  col = idx % ncols;
+  row = idx / ncols;
 }
 
 /** For each point p, calculate function Kdist(p) which is the distance of
