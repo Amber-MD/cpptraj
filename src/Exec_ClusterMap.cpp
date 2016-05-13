@@ -1,6 +1,7 @@
 #include "Exec_ClusterMap.h"
 #include "CpptrajStdio.h"
 #include "ClusterMap.h"
+#include "DataSet_MatrixFlt.h"
 
 Exec_ClusterMap::Exec_ClusterMap() : Exec(HIDDEN) {}
 

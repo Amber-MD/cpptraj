@@ -1,10 +1,6 @@
 #ifndef INC_EXEC_CLUSTERMAP_H
 #define INC_EXEC_CLUSTERMAP_H
 #include "Exec.h"
-#include "DataSet_MatrixFlt.h"
-#ifdef TIMER
-#include "Timer.h"
-#endif
 // EXPERIMENTAL ALPHA CODE
 class Exec_ClusterMap : public Exec {
   public:
