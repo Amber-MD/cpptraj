@@ -11,11 +11,10 @@ ClusterMap::ClusterMap() :
   epsilon2_(0.0),
   Avg_(0.0),
   minPoints_(-1),
-  idx_offset_(0),
-  cmap_square_(false)
+  idx_offset_(0)
 {}
 
-int ClusterMap::Init(double epsilonIn, int minPointsIn, bool cmap_squareIn)
+int ClusterMap::Init(double epsilonIn, int minPointsIn)
 {
   epsilon_ = epsilonIn;
   if (epsilon_ < Constants::SMALL)
@@ -32,7 +31,6 @@ int ClusterMap::Init(double epsilonIn, int minPointsIn, bool cmap_squareIn)
     mprinterr("Error: Minimum number of points must be > 0\n");
     return 1;
   }
-  cmap_square_ = cmap_squareIn;
   return 0;
 }
 
@@ -43,6 +41,9 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
 
 int ClusterMap::DoCluster(DataSet_2D const& matrix)
 {
+# ifdef TIMER
+  t_overall_.Start();
+# endif
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
   unsigned int maxIdx = 0;
@@ -72,7 +73,13 @@ int ClusterMap::DoCluster(DataSet_2D const& matrix)
   // Renumber clusters.
   int cnum = 0;
   for (Carray::iterator CL = clusters_.begin(); CL != clusters_.end(); ++CL)
-    CL->SetCnum( cnum );
+    CL->SetCnum( cnum++ );
+# ifdef TIMER
+  t_overall_.Stop();
+  t_query1_.WriteTiming(2, "Region Query 1:", t_overall_.Total());
+  t_query2_.WriteTiming(2, "Region Query 2:", t_overall_.Total());
+  t_overall_.WriteTiming(1, "Overall:");
+# endif
 
   return 0;
 }
@@ -82,9 +89,6 @@ int ClusterMap::DoCluster(DataSet_2D const& matrix)
 
 int ClusterMap::DoDBSCAN(DataSet_2D const& matrix)
 {
-# ifdef TIMER
-  t_overall_.Start();
-# endif
   Status_.assign( matrix.Size(), UNCLASSIFIED );
 
   // SetOfPoints is UNCLASSIFIED
@@ -125,9 +129,6 @@ int ClusterMap::DoDBSCAN(DataSet_2D const& matrix)
     for (std::vector<Iarray>::const_iterator it = C0.begin(); it != C0.end(); ++it)
       AddCluster( *it, matrix );
   }   
-# ifdef TIMER
-  t_overall_.Stop();
-# endif
   return 0;
 }
 

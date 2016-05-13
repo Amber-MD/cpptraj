@@ -6,14 +6,21 @@
 class ClusterMap {
   public:
     ClusterMap();
-    /// Initialize with given epsilon, min points, and cmap_square
-    int Init(double,int,bool);
+    /// Initialize with given epsilon and min points, and cmap_square
+    int Init(double,int);
     /// Perform clustering on given 2D data set.
     int DoCluster(DataSet_2D const&);
 
+    double Epsilon() const { return epsilon_; }
+    int MinPoints() const { return minPoints_; }
+
     class Cluster;
     typedef std::vector<Cluster> Carray;
+    typedef Carray::const_iterator const_iterator;
     typedef std::vector<int> Iarray;
+
+    Carray const& Clusters() const { return clusters_; }
+    const_iterator begin() const { return clusters_.begin(); }
   private:
 
     int DoDBSCAN(DataSet_2D const&);
@@ -33,7 +40,6 @@ class ClusterMap {
     double Avg_;       ///< Average value of map, used as cutoff (points below are noise).
     int minPoints_;    ///< Minimum number of points within epsilon to qualify as cluster.
     int idx_offset_;   ///< Max # of rows/cols to offset in RegionQuery() based on epsilon.
-    bool cmap_square_; ///< If true write cluster map by min/max rows/cols.
 #   ifdef TIMER
     Timer t_overall_;
     Timer t_query1_;
