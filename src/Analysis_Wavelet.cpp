@@ -201,19 +201,19 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
   mprintf("\tChiVal:     %g\n", chival_);
   if (outfile != 0) mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   if (doClustering_) {
-    mprintf("\tPerforming regional clustering on resulting wavelet map.\n");
-    mprintf("\t  Wavelet map cluster set: '%s'\n", clustermap_->legend());
+    mprintf("\tPerforming wavelet analysis feature extraction (WAFEX) on resulting wavelet map.\n");
+    mprintf("\t  WAFEX cluster map set: '%s'\n", clustermap_->legend());
     if (clustermapout != 0)
-      mprintf("\t  Wavelet map cluster output to '%s'\n", clustermapout->DataFilename().full());
+      mprintf("\t  WAFEX cluster map output to '%s'\n", clustermapout->DataFilename().full());
     if (cmap_square_)
-      mprintf("\t  Cluster regions in map will be defined by min and max frames/atoms.\n");
+      mprintf("\t  Regions in map will be defined by min and max frames/atoms.\n");
     else
-      mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
+      mprintf("\t  Regions in map will correspond exactly to frames/atoms.\n");
     if (CMAP_.MinPoints() == -1)
-      mprintf("\t  Minimum points needed to form cluster will be 0.20 * # atoms.\n");
+      mprintf("\t  Minimum points needed to form region cluster will be 0.20 * # atoms.\n");
     else
-      mprintf("\t  Minimum points needed to form cluster is %i\n", CMAP_.MinPoints());
-    mprintf("\t  Max distance to search for neighbors in cluster: %f\n", CMAP_.Epsilon());
+      mprintf("\t  Minimum points needed to form region cluster is %i\n", CMAP_.MinPoints());
+    mprintf("\t  Max distance to search for neighbors in region: %f\n", CMAP_.Epsilon());
     if (doKdist_) mprintf("\t  Calculating Kdist plot.\n");
     if (!cprefix_.empty())
       mprintf("\t  Cluster regions will be output to PDBs with name '%s.cX'\n", cprefix_.c_str());
