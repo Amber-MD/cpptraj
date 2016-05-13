@@ -25,7 +25,7 @@ int ClusterMap::Init(double epsilonIn, int minPointsIn)
   epsilon2_ = epsilon_ * epsilon_;
   // Based on epsilon, determine max # rows/cols we will have to go. Round up.
   idx_offset_ = (int)ceil(epsilon_);
-
+  // NOTE: Allow minPoints to be -1. If it is, it needs to be passed in to DoCluster
   minPoints_ = minPointsIn;
   if (minPoints_ == 0) {
     mprinterr("Error: Minimum number of points must be > 0\n");
@@ -39,11 +39,23 @@ static inline void IdxToColRow(int idx, int ncols, int& col, int& row) {
   row = idx / ncols;
 }
 
+int ClusterMap::DoCluster(DataSet_2D const& matrix, int minPointsIn)
+{
+  if (minPointsIn > 0)
+    minPoints_ = minPointsIn;
+  return DoCluster(matrix);
+}
+
 int ClusterMap::DoCluster(DataSet_2D const& matrix)
 {
 # ifdef TIMER
   t_overall_.Start();
 # endif
+  if (minPoints_ < 0) {
+    mprinterr("Error: Minimum points not set.\n");
+    return 1;
+  }
+
   // Go through the set, calculate the average. Also determine the max.
   double maxVal = matrix.GetElement(0);
   unsigned int maxIdx = 0;

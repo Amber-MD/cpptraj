@@ -10,6 +10,8 @@ class ClusterMap {
     int Init(double,int);
     /// Perform clustering on given 2D data set.
     int DoCluster(DataSet_2D const&);
+    /// Perform clustering on given 2D data set with given min # points.
+    int DoCluster(DataSet_2D const&, int);
 
     double Epsilon() const { return epsilon_; }
     int MinPoints() const { return minPoints_; }
