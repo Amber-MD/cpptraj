@@ -136,7 +136,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     overlayParm_ = analyzeArgs.GetStringKey("overlayparm");
     doKdist_ = analyzeArgs.hasKey("kdist");
     int minPoints = analyzeArgs.getKeyInt("minpoints", -1);
-    double epsilon = analyzeArgs.getKeyDouble("epsilon", 10.0);
+    double epsilon = analyzeArgs.getKeyDouble("epsilon", 20.0);
     if (CMAP_.Init(epsilon, minPoints)) return Analysis::ERR;
     cmap_square_ = !analyzeArgs.hasKey("cmapdetail");
     clustermapout = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("clustermapout"),
@@ -210,7 +210,7 @@ Analysis::RetType Analysis_Wavelet::Setup(ArgList& analyzeArgs, AnalysisSetup& s
     else
       mprintf("\t  Cluster regions in map will correspond exactly to frames/atoms.\n");
     if (CMAP_.MinPoints() == -1)
-      mprintf("\t  Minimum points needed to form cluster will be 0.05 * # atoms.\n");
+      mprintf("\t  Minimum points needed to form cluster will be 0.20 * # atoms.\n");
     else
       mprintf("\t  Minimum points needed to form cluster is %i\n", CMAP_.MinPoints());
     mprintf("\t  Max distance to search for neighbors in cluster: %f\n", CMAP_.Epsilon());
@@ -462,7 +462,7 @@ int Analysis_Wavelet::WAFEX(DataSet_MatrixFlt const& matrix) {
   // If necessary calculate minPoints_
   int minPoints = CMAP_.MinPoints();
   if (minPoints < 1) {
-    minPoints = (int)(0.05 * (double)mask_.Nselected());
+    minPoints = (int)(0.20 * (double)mask_.Nselected());
     mprintf("\t  Minimum points estimated from # atoms: %i\n", minPoints);
   }
   // Do Kdist calc if specified

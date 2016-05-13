@@ -15,8 +15,8 @@ void Exec_ClusterMap::Help() const {
 Exec::RetType Exec_ClusterMap::Execute(CpptrajState& State, ArgList& argIn)
 {
   bool cmap_square = !argIn.hasKey("cmapdetail");
-  int minPoints = argIn.getKeyInt("minpoints", 4);
-  double epsilon = argIn.getKeyDouble("epsilon", 10.0);
+  int minPoints = argIn.getKeyInt("minpoints", 10);
+  double epsilon = argIn.getKeyDouble("epsilon", 20.0);
   ClusterMap CMAP;
   if (CMAP.Init(epsilon, minPoints)) return CpptrajState::ERR;
   mprintf("\tminpoints= %i, epsilon= %f\n", CMAP.MinPoints(), CMAP.Epsilon());
