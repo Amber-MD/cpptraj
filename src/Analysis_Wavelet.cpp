@@ -74,7 +74,7 @@ void Analysis_Wavelet::Help() const {
           "  Perform wavelet analysis on specified COORDS set using atomic\n"
           "  Cartesian distance from initial frame.\n"
           "  If 'cluster' is specified the resulting wavelet map will be\n"
-          "  clustered into regions by significance.\n");
+          "  clustered into regions by significance (WAFEX).\n");
 }
 
 // Analysis_Wavelet::Setup
