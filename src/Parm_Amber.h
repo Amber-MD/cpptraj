@@ -1,12 +1,13 @@
 #ifndef INC_PARM_AMBER_H
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
+#include "BufferedFrame.h"
 class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
-    ~Parm_Amber();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Amber(); }
     static void WriteHelp();
+    // ----- Inherited functions -----------------
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(FileName const&, Topology&);
@@ -15,10 +16,8 @@ class Parm_Amber : public ParmIO {
   private :
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
-    /// Enumerated type for Fortran data type
-    enum FortranType {
-      UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT
-    };
+    /// Class for determining data size from Fortran format string.
+    class FortranData;
     /// Enumerated type for Amber Parmtop Flags
     enum AmberParmFlagType {
       F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
@@ -37,62 +36,48 @@ class Parm_Amber : public ParmIO {
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
       F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
     };
-    static const int AMBERPOINTERS;
+    /// Used to hold %FLAG/FORMAT string pairs. Corresponds to AmberParmFlagType.
     struct ParmFlag {
       const char* Flag; ///< %FLAG name in topology.
       const char* Fmt;  ///< Fortran format string for writing.
     };
-    static const ParmFlag FLAGS[];
-
+    typedef const ParmFlag* ParmPtr;
     // NOTE: Although amber topology files should only ever require 83 chars
     //       to read each line (80 chars + newline + CR (if dos) + NULL)
     //       increase the size to handle non-standard files.
     static const size_t BUF_SIZE = 256;
-    char lineBuffer_[BUF_SIZE];
-    bool nochamber_; ///< For writes when true do not print chamber info
+    /// Amber topology subtype
     enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
+
+    int ReadOldParm(Topology&);
+    int ReadNewParm(Topology&);
+    int ReadFormatLine(FortranData&);
+    void ReadTitle(Topology&);
+    int ReadPointers(int, FortranData&);
+ 
+    static const int AMBERPOINTERS_;
+    static const ParmFlag FLAGS_[];
+
     ParmType ptype_;
-    std::string fformat_;
-    FortranType ftype_;
+    BufferedFrame infile_;
+};
+// -----------------------------------------------------------------------------
+class Parm_Amber::FortranData {
+  public:
+    /// Enumerated type for Fortran data type
+    enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
+    FortranData() : ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0) {}
+    FortranData(const char*);
+    int ParseFortranFormat(const char*);
+
+    Type Ftype()    const { return ftype_; }
+    int Ncols()     const { return fncols_; }
+    int Width()     const { return fwidth_; }
+    int Precision() const { return fprecision_; }
+  private:
+    Type ftype_;
     int fncols_;
-    int fprecision_;
     int fwidth_;
-    int error_count_;
-    char *buffer_;
-    size_t buffer_size_;
-    size_t buffer_max_size_;
-    CpptrajFile file_;
-
-    int ReadAmberParm(Topology&);
-
-    std::string GetLine();
-    std::vector<int> GetInteger(int,int,int);
-    std::vector<double> GetDouble(int,int,int);
-    std::vector<NameType> GetName(int,int,int);
-    std::vector<int> GetFlagInteger(AmberParmFlagType,int);
-    std::vector<double> GetFlagDouble(AmberParmFlagType,int);
-    std::vector<NameType> GetFlagName(AmberParmFlagType,int);
-    bool SeekToFlag(AmberParmFlagType);
-    int AllocateAndRead(int,int,int);
-    bool PositionFileAtFlag(AmberParmFlagType);
-    bool PositionFileAtFlag(const char*);
-
-    static void ArrayFromBondParm(BondParmArray const&, Darray&, Darray&);
-    static void ArrayFromAngleParm(AngleParmArray const&, Darray&, Darray&);
-    static void ArrayFromCharmmUB(BondParmArray const&, int, Darray&, Darray&, Iarray&);
-    static void ArrayFromDihedralParm(DihedralParmArray const&, Darray&, Darray&, Darray&, Darray&, Darray&);
-    static void ArrayFromCharmmImproper(DihedralParmArray const&, Darray&, Darray&);
-
-    static void CheckNameWidth(const char*, NameType const&);
-    static int AmberIfbox(const Box&);
-    int WriteFlagAndFormat(const char*, size_t);
-    int WriteSetup(AmberParmFlagType,size_t);
-    int WriteInteger(AmberParmFlagType,std::vector<int>const&);
-    int WriteDouble(AmberParmFlagType,std::vector<double>const&);
-    int WriteDoubleArray(std::vector<double>const&);
-    int WriteName(AmberParmFlagType,std::vector<NameType>const&);
-
-    size_t GetFortranBufferSize(int,int,int);
-    bool SetFortranType();
+    int fprecision_;
 };
 #endif
