@@ -22,7 +22,7 @@ const int Parm_Amber::AMBERPOINTERS_ = 31;
   NHPARM;   NOT USED
   NPARM;    1 for LES parm
   NNB;      total number of excluded atoms
-  NTOTRS;   total number of residues
+  NRES;     total number of residues
   MBONA;    NBONA + number of constraint bonds
   MTHETA;   NTHETA + number of constraint angles
   MPHIA;    NPHIA + number of constraint dihedral angles
@@ -295,7 +295,7 @@ int Parm_Amber::ReadTitle(Topology& TopIn) {
   return 0;
 }
 
-int Parm_Amber::ReadPointers(int Npointers, FortranData const& FMT) {
+int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& FMT) {
   infile_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
   if (infile_.ReadFrame()) return 1;
   values_.reserve(Npointers);
@@ -305,6 +305,8 @@ int Parm_Amber::ReadPointers(int Npointers, FortranData const& FMT) {
   mprintf("DEBUG: POINTERS\n");
   for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
     mprintf("%u\t%i\n", it-values_.begin(), *it);
+
+  TopIn.Resize( values_[NATOM], values_[NRES] );
   return 0;
 }
 

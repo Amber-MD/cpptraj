@@ -238,6 +238,7 @@ class NonbondParmType {
         Req.push_back( nb->B() );
       }
     }
+    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
@@ -284,6 +285,7 @@ class LES_ParmType {
       if (array_.back().Copy() > ncopies_ )
         ncopies_ = array_.back().Copy();
     }
+    void Clear() { ntypes_ = 0; ncopies_ = 0; array_.clear(); fac_.clear(); }
   private:
     int ntypes_;              ///< Total number of LES types 
     int ncopies_;             ///< Total number of LES copies.
@@ -302,6 +304,7 @@ class CapParmType {
     inline double xCap()      const { return xcap_;   }
     inline double yCap()      const { return ycap_;   }
     inline double zCap()      const { return zcap_;   }
+    void Clear() { natcap_ = 0; cutcap_ = 0.0; xcap_ = 0.0; ycap_ = 0.0; zcap_ = 0.0; }
   private:
     int natcap_;    ///< last atom before the start of the cap of waters
     double cutcap_; ///< the distance from the center of the cap to the outside
@@ -374,6 +377,11 @@ class ChamberParmType {
     }
     void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
     void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
+    void Clear() {
+      chmff_verno_=0; chmff_type_.clear(); ub_.clear(); ubparm_.clear();
+      impropers_.clear(); improperparm_.clear(); lj14_.clear();
+      cmapGrid_.clear(); cmap_.clear();
+    } 
   private:
     int chmff_verno_;                ///< CHARMM FF version number
     std::string chmff_type_;         ///< CHARMM FF type 

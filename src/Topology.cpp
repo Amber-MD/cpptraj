@@ -814,6 +814,36 @@ int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
   return 0;
 }
 
+void Topology::Resize(int natom, int nres) {
+  atoms_.clear();
+  residues_.clear();
+  molecules_.clear();
+  radius_set_.clear();
+  bonds_.clear();
+  bondsh_.clear();
+  bondparm_.clear();
+  angles_.clear();
+  anglesh_.clear();
+  angleparm_.clear();
+  dihedrals_.clear();
+  dihedralsh_.clear();
+  dihedralparm_.clear();
+  nonbond_.Clear();
+  cap_.Clear();
+  lesparm_.Clear();
+  chamber_.Clear();
+  extra_.clear();
+  parmBox_.SetNoBox();
+  refCoords_ = Frame();
+  ipol_ = 0;
+  NsolventMolecules_ = 0;
+  n_extra_pts_ = 0;
+  n_atom_types_ = 0;
+
+  atoms_.resize( natom );
+  residues_.resize( nres );
+}
+
 // Topology::SetNonbondInfo()
 int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
   nonbond_ = nonbondIn;

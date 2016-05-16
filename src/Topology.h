@@ -124,6 +124,8 @@ class Topology {
     void ResetPDBinfo();
     int Setup_NoResInfo();
     int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
+    /// Resize for given number of atoms/residues. Clears any existing data.
+    void Resize(int, int);
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;
