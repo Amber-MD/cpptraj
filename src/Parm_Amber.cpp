@@ -183,6 +183,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
   return false;
 }
 
+// -----------------------------------------------------------------------------
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm(FileName const& fname, Topology &TopIn ) {
   if (infile_.OpenRead( fname )) return 1;
@@ -197,7 +198,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
   int Npointers = 30; // No NEXTRA etc
-  if ( ReadPointers( Npointers, FortranData(FINT, 12, 6, 0) ) ) return 1;
+  if ( ReadPointers( Npointers, TopIn, FortranData(FINT, 12, 6, 0) ) ) return 1;
 
   return 0;
 }
@@ -245,7 +246,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           switch ((AmberParmFlagType)flagIdx) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
             case F_TITLE:    err = ReadTitle(TopIn); break;
-            case F_POINTERS: err = ReadPointers(AMBERPOINTERS_, FMT); break;
+            case F_POINTERS: err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
+            case F_NAMES:    err = ReadAtomNames(TopIn, FMT); break;
             default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 1; // SANITY CHECK
           }
           if (err != 0) return 1;
@@ -307,6 +309,23 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     mprintf("%u\t%i\n", it-values_.begin(), *it);
 
   TopIn.Resize( values_[NATOM], values_[NRES] );
+  return 0;
+}
+
+int Parm_Amber::NoValuesRead(const char* flag) const {
+  if (values_.empty()) {
+    mprinterr("Error: Flag '%s' encountered before POINTERS.\n", flag);
+    return 1;
+  }
+  return 0;
+}
+
+int Parm_Amber::ReadAtomNames(Topology& TopIn, FortranData const& FMT) {
+  if (NoValuesRead(FLAGS_[F_NAMES].Flag)) return 1;
+  infile_.SetupFrameBuffer( values_[NATOM], FMT.Width(), FMT.Ncols() );
+  if (infile_.ReadFrame()) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetName( NameType(infile_.NextElement()) );
   return 0;
 }
 

@@ -62,6 +62,7 @@ class Atom {
     void SetCharge(double qin)               { charge_ = qin;       }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
+    void SetName(NameType const& nin)        { aname_ = nin;        }
     // Internal vars -----------------------------
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }

@@ -55,7 +55,9 @@ class Parm_Amber : public ParmIO {
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
     int ReadTitle(Topology&);
-    int ReadPointers(int, FortranData const&);
+    int ReadPointers(int, Topology&, FortranData const&);
+    int NoValuesRead(const char*) const;
+    int ReadAtomNames(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
