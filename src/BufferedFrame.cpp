@@ -47,8 +47,8 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     std::fill(buffer_, buffer_ + frameSize_, 0);
   }
   bufferPosition_ = buffer_;
-  //rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
-  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
+  mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+          Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
 
@@ -178,4 +178,21 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
     sprintf(bufferPosition_,"\n");
     ++bufferPosition_;
   }
+}
+
+/** \return Pointer to next null-terminated element in buffer.
+  */
+const char* BufferedFrame::NextElement() {
+  if (saveChar_ != 0) *bufferPosition_ = saveChar_;
+  const char* position = bufferPosition_;
+  bufferPosition_ += eltWidth_;
+  const char* end = bufferPosition_;
+  while (*bufferPosition_=='\n' || *bufferPosition_=='\r')
+    ++bufferPosition_;
+  if (bufferPosition_ == end) {
+    saveChar_ = *bufferPosition_;
+    *bufferPosition_ = '\0';
+  } else
+    saveChar_ = 0;
+  return position; 
 }

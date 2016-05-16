@@ -22,6 +22,7 @@ class BufferedFrame : public CpptrajFile {
     void AdvanceBuffer(size_t);
     void BufferToDouble(double*,int);
     void DoubleToBuffer(const double*,int, const char*);
+    const char* NextElement();
 
     size_t FrameSize()   const { return frameSize_; }
     const char* Buffer() const { return buffer_;    }
@@ -36,5 +37,6 @@ class BufferedFrame : public CpptrajFile {
     size_t offset_;        ///< User specified offset, used in seeking.
     int Ncols_;            ///< Number of columns, use to convert array to buffer.
     size_t eltWidth_;      ///< Width of each element in the frame.
+    char saveChar_;        ///< For NextElement(); saved character at bufferPosition_.
 };
 #endif
