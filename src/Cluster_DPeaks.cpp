@@ -105,7 +105,8 @@ int Cluster_DPeaks::Cluster() {
   if (choosePoints_ == PLOT_ONLY) {
     mprintf("Info: Cutoffs for choosing points can be determined visually from the\n"
             "Info:   density versus min distance to cluster with next highest density file,\n"
-            "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n");
+            "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n",
+            dvdfile_.c_str());
     return 0;
   } else if (choosePoints_ == MANUAL)
     nclusters = ChoosePointsManually();

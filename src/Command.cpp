@@ -8,6 +8,7 @@
 #include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Calc.h"
+#include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -169,6 +170,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );

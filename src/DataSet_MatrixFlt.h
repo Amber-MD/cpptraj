@@ -29,6 +29,10 @@ class DataSet_MatrixFlt : public DataSet_2D {
     // -------------------------------------------
     int AddElement(float d)                    { return mat_.addElement(d); }
     void SetElement(size_t x,size_t y,float d) { mat_.setElement(x,y,d);    }
+    /// Type definition of iterator over matrix elements.
+    typedef Matrix<float>::iterator iterator;
+    iterator begin()                           { return mat_.begin();       }
+    iterator end()                             { return mat_.end();         }
   private:
     Matrix<float> mat_;
     MatrixKindType kind_;

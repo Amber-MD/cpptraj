@@ -27,7 +27,7 @@ class Centroid_Num : public Centroid {
     double sumx_; // For storing periodic average
     double sumy_; // For storing periodic average
 };
-/// Cluster centroid for mulitple DataSets
+/// Cluster centroid for multiple DataSets
 class Centroid_Multi : public Centroid {
   public:
     typedef std::vector<double> Darray;

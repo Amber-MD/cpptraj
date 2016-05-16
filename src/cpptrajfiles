@@ -132,6 +132,7 @@ SOURCES=ActionFrameCounter.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
+        ClusterMap.cpp \
         ClusterMatrix.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
@@ -202,6 +203,7 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleOutList.cpp \
         Energy_Sander.cpp \
         Exec_Calc.cpp \
+        Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareTop.cpp \
@@ -262,6 +264,7 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         ProgressBar.cpp \
+        ProgressTimer.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
