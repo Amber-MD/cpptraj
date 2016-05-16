@@ -86,7 +86,7 @@ class Topology {
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
-    void SetChamber(ChamberParmType const& c)     { chamber_ = c;         }
+    ChamberParmType& SetChamber()                 { return chamber_;      }
     // ----- Extra atom info ---------------------
     inline const std::vector<AtomExtra>& Extra() const { return extra_; }
     inline int NatomTypes()                      const { return n_atom_types_; }

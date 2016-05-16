@@ -56,8 +56,11 @@ class Parm_Amber : public ParmIO {
     int ReadFormatLine(FortranData&);
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
-    int NoValuesRead(const char*) const;
+    inline int SetupBuffer(AmberParmFlagType, int, FortranData const&);
     int ReadAtomNames(Topology&, FortranData const&);
+    int ReadAtomCharges(Topology&, FortranData const&);
+    int ReadAtomicNum(Topology&, FortranData const&);
+    int ReadChamberFFtype(Topology&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -65,6 +68,7 @@ class Parm_Amber : public ParmIO {
     ParmType ptype_;
     BufferedFrame infile_;
     Iarray values_; ///< Values read in from POINTERS
+    Iarray atomicNums_;
 
     bool nochamber_;
 };

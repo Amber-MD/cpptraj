@@ -199,6 +199,8 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
   int Npointers = 30; // No NEXTRA etc
   if ( ReadPointers( Npointers, TopIn, FortranData(FINT, 12, 6, 0) ) ) return 1;
+  if ( ReadAtomNames( TopIn, FortranData(FCHAR, 20, 4, 0) ) ) return 1;
+  if ( ReadAtomCharges( TopIn, FortranData(FDOUBLE, 5, 16, 0) ) ) return 1;
 
   return 0;
 }
@@ -245,9 +247,13 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           int err = 0;
           switch ((AmberParmFlagType)flagIdx) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
-            case F_TITLE:    err = ReadTitle(TopIn); break;
-            case F_POINTERS: err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
-            case F_NAMES:    err = ReadAtomNames(TopIn, FMT); break;
+            case F_TITLE:     err = ReadTitle(TopIn); break;
+            case F_POINTERS:  err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
+            case F_NAMES:     err = ReadAtomNames(TopIn, FMT); break;
+            case F_CHARGE:    err = ReadAtomCharges(TopIn, FMT); break;
+            case F_ATOMICNUM: err = ReadAtomicNum(TopIn, FMT); break;
+            // CHAMBER
+            case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
             default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 1; // SANITY CHECK
           }
           if (err != 0) return 1;
@@ -297,6 +303,7 @@ int Parm_Amber::ReadTitle(Topology& TopIn) {
   return 0;
 }
 
+// Parm_Amber::ReadPointers()
 int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& FMT) {
   infile_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
   if (infile_.ReadFrame()) return 1;
@@ -309,23 +316,59 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     mprintf("%u\t%i\n", it-values_.begin(), *it);
 
   TopIn.Resize( values_[NATOM], values_[NRES] );
+
+  if (values_[IFPERT] > 0)
+    mprintf("Warning: '%s' contains perturbation information.\n"
+            "Warning:  Cpptraj currently does not read of write perturbation information.\n",
+            infile_.Filename().base());
   return 0;
 }
 
-int Parm_Amber::NoValuesRead(const char* flag) const {
+// Parm_Amber::SetupBuffer()
+int Parm_Amber::SetupBuffer(AmberParmFlagType ftype, int nvals, FortranData const& FMT) {
   if (values_.empty()) {
-    mprinterr("Error: Flag '%s' encountered before POINTERS.\n", flag);
+    mprinterr("Error: Flag '%s' encountered before POINTERS.\n", FLAGS_[ftype].Flag);
     return 1;
   }
+  infile_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
+  if (infile_.ReadFrame()) return 1;
   return 0;
 }
 
+// Parm_Amber::ReadAtomNames()
 int Parm_Amber::ReadAtomNames(Topology& TopIn, FortranData const& FMT) {
-  if (NoValuesRead(FLAGS_[F_NAMES].Flag)) return 1;
-  infile_.SetupFrameBuffer( values_[NATOM], FMT.Width(), FMT.Ncols() );
-  if (infile_.ReadFrame()) return 1;
+  if (SetupBuffer(F_NAMES, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetAtom(idx).SetName( NameType(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadAtomCharges()
+int Parm_Amber::ReadAtomCharges(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHARGE, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetCharge( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadAtomicNum()
+int Parm_Amber::ReadAtomicNum(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_ATOMICNUM, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    atomicNums_.push_back( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+// ReadChamberFFtype(Topology& TopIn)
+int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
+  const char* ptr = infile_.NextLine();
+  char ff_verstr[2];
+  ff_verstr[0] = ptr[0];
+  ff_verstr[1] = ptr[1];
+  int ff_verno = atoi(ff_verstr);
+  std::string fftype = NoTrailingWhitespace( ptr+2 );
+  TopIn.SetChamber().SetChamber( ff_verno, fftype );
+  mprintf("\tCHAMBER topology: %i: %s\n", ff_verno, fftype.c_str());
   return 0;
 }
 
