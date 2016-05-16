@@ -288,6 +288,7 @@ void Parm_Amber::ReadTitle(Topology& TopIn) {
 
 int Parm_Amber::ReadPointers(int Npointers, FortranData const& FMT) {
   infile_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
+  if (infile_.ReadFrame()) return 1;
   
   return 0;
 }
