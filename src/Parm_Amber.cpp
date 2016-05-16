@@ -187,10 +187,17 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 // Parm_Amber::ReadParm()
 int Parm_Amber::ReadParm(FileName const& fname, Topology &TopIn ) {
   if (infile_.OpenRead( fname )) return 1;
+  int err = 0;
   if (ptype_ == OLDPARM)
-    return ReadOldParm( TopIn );
+    err = ReadOldParm( TopIn );
   else
-    return ReadNewParm( TopIn );
+    err = ReadNewParm( TopIn );
+  if (err != 0) return 1;
+  // Set Atom residue numbers
+  for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res)
+    for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
+      TopIn.SetAtom(at).SetResNum( res - TopIn.ResStart() );
+  return 0;
 }
 
 // Parm_Amber::ReadOldParm()
@@ -209,6 +216,10 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   SetupBuffer(F_NUMEX, values_[NATOM], INT);
   if (infile_.ReadFrame()) return 1;
   if ( ReadNonbondIndices(TopIn, INT) ) return 1;
+  if ( ReadBondRK(TopIn, DBL) ) return 1;
+  if ( ReadBondREQ(TopIn, DBL) ) return 1;
+  if ( ReadAngleTK(TopIn, DBL) ) return 1;
+  if ( ReadAngleTEQ(TopIn, DBL) ) return 1;
 
   return 0;
 }
@@ -266,9 +277,21 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             // NOTE: CPPTRAJ sets up its own exclusion list so reading this is skipped.
             case F_NUMEX: SkipToNextFlag(); break;
             case F_NB_INDEX:  err = ReadNonbondIndices(TopIn, FMT); break;
+            case F_RESNAMES:  err = ReadResidueNames(TopIn, FMT); break;
+            case F_RESNUMS:   err = ReadResidueAtomNums(TopIn, FMT); break;
+            case F_BONDRK:    err = ReadBondRK(TopIn, FMT); break;
+            case F_BONDREQ:   err = ReadBondREQ(TopIn, FMT); break;
+            case F_ANGLETK:   err = ReadAngleTK(TopIn, FMT); break;
+            case F_ANGLETEQ:  err = ReadAngleTEQ(TopIn, FMT); break;
+            // Extra PDB Info
+            case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
+            case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
+            case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
+            case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
-            default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 1; // SANITY CHECK
+            // Sanity check
+            default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 0;
           }
           if (err != 0) return 1;
         }
@@ -334,7 +357,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
     mprintf("%u\t%i\n", it-values_.begin(), *it);
 
-  TopIn.Resize( values_[NATOM], values_[NRES] );
+  TopIn.Resize( values_[NATOM], values_[NRES], values_[NATOM], values_[NUMBND], values_[NUMANG] );
 
   if (values_[IFPERT] > 0)
     mprintf("Warning: '%s' contains perturbation information.\n"
@@ -363,10 +386,11 @@ int Parm_Amber::ReadAtomNames(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::ReadAtomCharges()
+/** Read atomic charges. Convert units to elec. */
 int Parm_Amber::ReadAtomCharges(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHARGE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetAtom(idx).SetCharge( atof(infile_.NextElement()) );
+    TopIn.SetAtom(idx).SetCharge( atof(infile_.NextElement()) * Constants::AMBERTOELEC );
   return 0;
 }
 
@@ -388,10 +412,13 @@ int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+/** Read atom type indices. Shift by -1 to match CPPTRAJ internal indexing.
+  * NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0
+  */
 int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_MASS, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
-    TopIn.SetAtom(idx).SetTypeIndex( atoi(infile_.NextElement()) );
+    TopIn.SetAtom(idx).SetTypeIndex( atoi(infile_.NextElement()) - 1 );
   return 0;
 }
 
@@ -410,6 +437,84 @@ int Parm_Amber::ReadNonbondIndices(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadResidueNames()
+int Parm_Amber::ReadResidueNames(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_RESNAMES, values_[NRES], FMT)) return 1;
+  for (int idx = 0; idx != values_[NRES]; idx++)
+    TopIn.SetRes(idx).SetName( NameType(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadResidueAtomNums(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_RESNUMS, values_[NRES], FMT)) return 1;
+  for (int idx = 0; idx != values_[NRES]; idx++) {
+    int atnum = atoi(infile_.NextElement());
+    TopIn.SetRes(idx).SetFirstAtom( atnum - 1 );
+    if (idx > 0) TopIn.SetRes(idx-1).SetLastAtom( atnum );
+    TopIn.SetRes(idx).SetOriginalNum( idx );
+  }
+  TopIn.SetRes( values_[NRES]-1 ).SetLastAtom( values_[NATOM] );
+  return 0;
+}
+
+int Parm_Amber::ReadBondRK(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_BONDRK, values_[NUMBND], FMT)) return 1;
+  for (int idx = 0; idx != values_[NUMBND]; idx++)
+    TopIn.SetBondParm(idx).SetRk( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadBondREQ(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_BONDREQ, values_[NUMBND], FMT)) return 1;
+  for (int idx = 0; idx != values_[NUMBND]; idx++)
+    TopIn.SetBondParm(idx).SetReq( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadAngleTK(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_ANGLETK, values_[NUMANG], FMT)) return 1;
+  for (int idx = 0; idx != values_[NUMANG]; idx++)
+    TopIn.SetAngleParm(idx).SetTk( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_ANGLETEQ, values_[NUMANG], FMT)) return 1;
+  for (int idx = 0; idx != values_[NUMANG]; idx++)
+    TopIn.SetAngleParm(idx).SetTeq( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// ----- Extra PDB Info --------------------------
+int Parm_Amber::ReadPdbRes(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_RES, values_[NRES], FMT)) return 1;
+  for (int idx = 0; idx != values_[NRES]; idx++)
+    TopIn.SetRes(idx).SetOriginalNum( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbChainID(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_CHAIN, values_[NRES], FMT)) return 1;
+  for (int idx = 0; idx != values_[NRES]; idx++)
+    TopIn.SetRes(idx).SetChainID( *(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbIcode(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_ICODE, values_[NRES], FMT)) return 1;
+  for (int idx = 0; idx != values_[NRES]; idx++)
+    TopIn.SetRes(idx).SetIcode( *(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_PDB_ALT, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetAltLoc( *(infile_.NextElement()) );
+  return 0;
+}
+
+// ----- CHAMBER ---------------------------------
 // ReadChamberFFtype(Topology& TopIn)
 int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
   const char* ptr = infile_.NextLine();

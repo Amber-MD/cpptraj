@@ -48,7 +48,6 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   int bfac_col = block.ColumnIndex("B_iso_or_equiv");
   int icode_col = block.ColumnIndex("pdbx_PDB_ins_code");
   int altloc_col = block.ColumnIndex("label_alt_id");
-  std::vector<AtomExtra> extra;
 
   // Loop over all atom sites
   int current_res = 0;
@@ -70,7 +69,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     if (altloc_col != -1) altloc = (*line)[ altloc_col ][0];
     // '.' altloc means blank?
     if (altloc == '.') altloc = ' ';
-    extra.push_back( AtomExtra(occupancy, bfactor, altloc) );
+    TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altloc) );
     if (icode_col != -1) {
       icode = (*line)[ icode_col ][0];
       // '?' icode means blank
@@ -94,7 +93,6 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
                               (*line)[ COL[CHAINID] ][0]) );
     Coords.AddXYZ( XYZ );
   }
-  if (TopIn.SetExtraAtomInfo( 0, extra )) return 1;
   // Search for bonds // FIXME nobondsearch?
   BondSearch( TopIn, Coords, Offset_, debug_ );
   // Get title. 

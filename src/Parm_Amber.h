@@ -64,6 +64,17 @@ class Parm_Amber : public ParmIO {
     int ReadAtomicMass(Topology&, FortranData const&);
     int ReadAtomTypeIndex(Topology&, FortranData const&);
     int ReadNonbondIndices(Topology&, FortranData const&);
+    int ReadResidueNames(Topology&, FortranData const&);
+    int ReadResidueAtomNums(Topology&, FortranData const&);
+    int ReadBondRK(Topology&, FortranData const&);
+    int ReadBondREQ(Topology&, FortranData const&);
+    int ReadAngleTK(Topology&, FortranData const&);
+    int ReadAngleTEQ(Topology&, FortranData const&);
+
+    int ReadPdbRes(Topology&, FortranData const&);
+    int ReadPdbChainID(Topology&, FortranData const&);
+    int ReadPdbIcode(Topology&, FortranData const&);
+    int ReadPdbAlt(Topology&, FortranData const&);
 
     int ReadChamberFFtype(Topology&);
  

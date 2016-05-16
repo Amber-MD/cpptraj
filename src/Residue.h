@@ -14,11 +14,12 @@ class Residue {
     /// CONSTRUCTOR - Res name, original resnum, icode, chain ID
     Residue(NameType const& n, int r, char ic, char cid) :
             resname_(n), originalResNum_(r), icode_(ic), chainID_(cid) {}
-    inline void SetFirstAtom(int i)     { firstAtom_ = i;         }
-    inline void SetLastAtom(int i)      { lastAtom_ = i;          }
-    inline void SetOriginalNum(int i)   { originalResNum_ = i;    }
-    inline void SetIcode(char c)        { icode_ = c;             }
-    inline void SetChainID(char c)      { chainID_ = c;           }
+    inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
+    inline void SetLastAtom(int i)         { lastAtom_ = i;       }
+    inline void SetOriginalNum(int i)      { originalResNum_ = i; }
+    inline void SetIcode(char c)           { icode_ = c;          }
+    inline void SetChainID(char c)         { chainID_ = c;        }
+    inline void SetName(NameType const& n) { resname_ = n;        }
     /// \return First atom in residue, indexing from 0
     inline int FirstAtom()        const { return firstAtom_;      }
     /// \return Atom _after_ the last in residue, indexing from 0

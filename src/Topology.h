@@ -41,6 +41,7 @@ class Topology {
     const Atom &operator[](int idx)  const { return atoms_[idx];    }
     std::vector<Atom> const& Atoms() const { return atoms_;         }
     Atom& SetAtom(int idx)                 { return atoms_[idx];    }
+    AtomExtra& SetExtraAtomInfo(int idx)   { return extra_[idx];    }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -57,12 +58,15 @@ class Topology {
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
     BondParmArray     const& BondParm()     const { return bondparm_;     }
-    void AddBond(int,int);
-    int SetBondInfo(BondArray const&, BondArray const&, BondParmArray const&);
+    BondParmType& SetBondParm(int i)              { return bondparm_[i];  }
+    void AddBondParm(BondParmType const& b)       { bondparm_.push_back( b ); }
+    void AddBond(int i, int j) { AddBond(i, j, -1); }
+    void AddBond(int, int, int);
     // ----- Angle-specific routines -------------
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
+    AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
     void AddAngle(int, int, int);
     int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
     // ----- Dihedral-specific routines ----------
@@ -119,13 +123,13 @@ class Topology {
     void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
     int AddTopAtom(Atom const&, Residue const&);
+    void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
     void StartNewMol();
     int CommonSetup();
     void ResetPDBinfo();
     int Setup_NoResInfo();
-    int SetExtraAtomInfo(int, std::vector<AtomExtra> const&);
-    /// Resize for given number of atoms/residues. Clears any existing data.
-    void Resize(int, int);
+    /// Resize for given numbers of atoms/residues etc. Clears any existing data.
+    void Resize(int, int, int, int, int);
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;

@@ -757,23 +757,7 @@ static inline int NoAtomsErr(const char* msg) {
   return 1;
 }
 
-// Topology::SetBondInfo()
-int Topology::SetBondInfo(BondArray const& bondsIn, BondArray const& bondshIn,
-                          BondParmArray const& bondparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("bonds");
-  // Clear away bond info from atoms array.
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    atom->ClearBonds();
-  bonds_ = bondsIn;
-  bondsh_ = bondshIn;
-  // Create bonds in atom array.
-  SetAtomBondInfo( bonds_ );
-  SetAtomBondInfo( bondsh_ );
-  bondparm_ = bondparmIn;
 
-  return 0;
-}
 
 // Topology::SetAngleInfo()
 int Topology::SetAngleInfo(AngleArray const& anglesIn, AngleArray const& angleshIn,
@@ -797,24 +781,7 @@ int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray co
   return 0;
 }
 
-/** This is for any extra information that is not necessarily pertinent to
-  * all topologies, like Ambers ITREE or PDB B factors etc.
-  */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
-{
-  n_atom_types_ = natyp;
-  if (!extraIn.empty()) {
-    if (extraIn.size() != atoms_.size()) {
-      mprinterr("Error: Size of extra atom info (%zu) != # atoms (%zu)\n",
-                 extraIn.size(), atoms_.size());
-      return 1;
-    }
-    extra_ = extraIn;
-  }
-  return 0;
-}
-
-void Topology::Resize(int natom, int nres) {
+void Topology::Resize(int natom, int nres, int nextra, int nBndParm, int nAngParm) {
   atoms_.clear();
   residues_.clear();
   molecules_.clear();
@@ -842,6 +809,8 @@ void Topology::Resize(int natom, int nres) {
 
   atoms_.resize( natom );
   residues_.resize( nres );
+  bondparm_.resize( nBndParm );
+  angleparm_.resize( nAngParm );
 }
 
 double Topology::GetVDWradius(int a1) const {
@@ -913,7 +882,7 @@ void Topology::AssignBondParameters() {
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
   */
-void Topology::AddBond(int atom1, int atom2) {
+void Topology::AddBond(int atom1, int atom2, int pidxIn) {
   // Check if atoms are out of range.
   if (atom1 < 0 || atom1 >= (int)atoms_.size()) {
     mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom1+1);
@@ -931,17 +900,25 @@ void Topology::AddBond(int atom1, int atom2) {
         mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
       return;
     }
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)bondparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No bond parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
   bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
   //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
   // Update bonds arrays
   if (a1H || a2H) {
     if (a1H)
-      bondsh_.push_back( BondType(atom2, atom1, -1) );
+      bondsh_.push_back( BondType(atom2, atom1, pidx) );
     else
-      bondsh_.push_back( BondType(atom1, atom2, -1) );
+      bondsh_.push_back( BondType(atom1, atom2, pidx) );
   } else
-    bonds_.push_back( BondType( atom1, atom2, -1 ) );
+    bonds_.push_back( BondType( atom1, atom2, pidx ) );
   // Update atoms
   atoms_[atom1].AddBondToIdx( atom2 );
   atoms_[atom2].AddBondToIdx( atom1 );
