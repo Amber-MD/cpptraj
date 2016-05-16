@@ -216,14 +216,17 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
   }
   // Main loop for reading file.
   while (ptr != 0) {
+    mprintf("DEBUG: LINE: %s", ptr);
     if ( ptr[0] == '%' ) {
       if (ptr[1] == 'V' && ptr[2] == 'E' && ptr[3] == 'R') {
         // %VERSION line. Skip it.
         //if (debug_ > 0)
         mprintf("DEBUG: Version: %s\n", NoTrailingWhitespace(ptr).c_str());
+        ptr = infile_.NextLine();
       } else if (IsFLAG(ptr)) {
         // %FLAG <type> line. Determine the flag type.
         std::string flagType = NoTrailingWhitespace(ptr+6);
+        mprintf("DEBUG: Flag type: %s\n", flagType.c_str());
         int flagIdx = -1;
         for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
           if (flagType.compare(P->Flag) == 0) {
@@ -241,12 +244,15 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           int err = 0;
           switch ((AmberParmFlagType)flagIdx) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
-            case F_TITLE: ReadTitle(TopIn); break;
+            case F_TITLE:    err = ReadTitle(TopIn); break;
             case F_POINTERS: err = ReadPointers(AMBERPOINTERS_, FMT); break;
-            default: return 1; // SANITY CHECK
+            default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 1; // SANITY CHECK
           }
           if (err != 0) return 1;
         }
+      } else {
+        // Unknown: Read past it
+        ptr = infile_.NextLine();
       }  
     }
   }
@@ -280,20 +286,44 @@ int Parm_Amber::ReadFormatLine(FortranData& FMT) {
 }
 
 // Parm_Amber::ReadTitle()
-void Parm_Amber::ReadTitle(Topology& TopIn) {
+int Parm_Amber::ReadTitle(Topology& TopIn) {
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
-  if (debug_>0) mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
+  //if (debug_>0)
+    mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
   TopIn.SetParmName( title, infile_.Filename() );
+  if (infile_.NextLine() == 0) return 1; // Advance to next line
+  return 0;
 }
 
 int Parm_Amber::ReadPointers(int Npointers, FortranData const& FMT) {
   infile_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
   if (infile_.ReadFrame()) return 1;
-  
+  values_.reserve(Npointers);
+  for (int idx = 0; idx != Npointers; idx++)
+    values_.push_back( atoi( infile_.NextElement() ) );
+
+  mprintf("DEBUG: POINTERS\n");
+  for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
+    mprintf("%u\t%i\n", it-values_.begin(), *it);
   return 0;
 }
 
 // -----------------------------------------------------------------------------
+void Parm_Amber::WriteHelp() {
+  mprintf("\tnochamber: Do not write CHAMBER information to topology (useful for e.g. using"
+          " topology for visualization with VMD).\n");
+}
+
+int Parm_Amber::processWriteArgs(ArgList& argIn) {
+  nochamber_ = argIn.hasKey("nochamber");
+  return 0;
+}
+
+int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
+  return 1;
+}
+
+// =============================================================================
 Parm_Amber::FortranData::FortranData(const char* ptrIn) :
   ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0)
 {
@@ -307,6 +337,7 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
   if (ptrIn == 0) return 1;
   std::string fformat( NoTrailingWhitespace( ptrIn ) );
   if ( fformat.empty() ) return 1;
+  mprintf("DEBUG: Fortran format: %s\n", fformat.c_str());
   // Make sure characters are upper case.
   for (std::string::iterator p = fformat.begin(); p != fformat.end(); p++)
     toupper(*p);

@@ -54,7 +54,7 @@ class Parm_Amber : public ParmIO {
     int ReadOldParm(Topology&);
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
-    void ReadTitle(Topology&);
+    int ReadTitle(Topology&);
     int ReadPointers(int, FortranData const&);
  
     static const int AMBERPOINTERS_;
@@ -62,6 +62,9 @@ class Parm_Amber : public ParmIO {
 
     ParmType ptype_;
     BufferedFrame infile_;
+    Iarray values_; ///< Values read in from POINTERS
+
+    bool nochamber_;
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {
