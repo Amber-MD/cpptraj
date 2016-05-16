@@ -198,9 +198,17 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
   int Npointers = 30; // No NEXTRA etc
-  if ( ReadPointers( Npointers, TopIn, FortranData(FINT, 12, 6, 0) ) ) return 1;
+  FortranData DBL(FDOUBLE, 5, 16, 0);
+  FortranData INT(FINT, 12, 6, 0);
+  if ( ReadPointers( Npointers, TopIn, INT ) ) return 1;
   if ( ReadAtomNames( TopIn, FortranData(FCHAR, 20, 4, 0) ) ) return 1;
-  if ( ReadAtomCharges( TopIn, FortranData(FDOUBLE, 5, 16, 0) ) ) return 1;
+  if ( ReadAtomCharges( TopIn, DBL ) ) return 1;
+  if ( ReadAtomicMass( TopIn, DBL ) ) return 1;
+  if ( ReadAtomTypeIndex( TopIn, INT ) ) return 1;
+  // Skip past NUMEX
+  SetupBuffer(F_NUMEX, values_[NATOM], INT);
+  if (infile_.ReadFrame()) return 1;
+  if ( ReadNonbondIndices(TopIn, INT) ) return 1;
 
   return 0;
 }
@@ -243,6 +251,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         if (flagIdx == -1) {
           mprintf("Warning: Amber topology flag '%s' is unrecognized and will be skipped.\n",
                   flagType);
+          SkipToNextFlag();
         } else {
           int err = 0;
           switch ((AmberParmFlagType)flagIdx) {
@@ -251,7 +260,12 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_POINTERS:  err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
             case F_NAMES:     err = ReadAtomNames(TopIn, FMT); break;
             case F_CHARGE:    err = ReadAtomCharges(TopIn, FMT); break;
-            case F_ATOMICNUM: err = ReadAtomicNum(TopIn, FMT); break;
+            case F_ATOMICNUM: err = ReadAtomicNum(FMT); break;
+            case F_MASS:      err = ReadAtomicMass(TopIn, FMT); break;
+            case F_ATYPEIDX:  err = ReadAtomTypeIndex(TopIn, FMT); break;
+            // NOTE: CPPTRAJ sets up its own exclusion list so reading this is skipped.
+            case F_NUMEX: SkipToNextFlag(); break;
+            case F_NB_INDEX:  err = ReadNonbondIndices(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
             default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 1; // SANITY CHECK
@@ -267,6 +281,11 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
 
   infile_.CloseFile();
   return 0;
+}
+
+void Parm_Amber::SkipToNextFlag() {
+  const char* ptr = infile_.NextLine();
+  while (ptr != 0 && !IsFLAG(ptr)) ptr = infile_.NextLine();
 }
 
 // Parm_Amber::ReadFormatLine()
@@ -352,10 +371,42 @@ int Parm_Amber::ReadAtomCharges(Topology& TopIn, FortranData const& FMT) {
 }
 
 // Parm_Amber::ReadAtomicNum()
-int Parm_Amber::ReadAtomicNum(Topology& TopIn, FortranData const& FMT) {
+/** Read atomic numbers to a temporary array. This is done because some
+  * topology files do not have atomic number information.
+  */
+int Parm_Amber::ReadAtomicNum(FortranData const& FMT) {
   if (SetupBuffer(F_ATOMICNUM, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     atomicNums_.push_back( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_MASS, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetMass( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_MASS, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetTypeIndex( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadNonbondIndices(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[NTYPES]*values_[NTYPES];
+  if (SetupBuffer(F_NB_INDEX, nvals, FMT)) return 1;
+  TopIn.SetNonbond().SetNtypes( values_[NTYPES] );
+  for (int idx = 0; idx != nvals; idx++)
+  {
+    // Shift positive indices in NONBONDED index array by -1.
+    int nbidx = atoi(infile_.NextElement());
+    if (nbidx > 0)
+      nbidx -= 1;
+    TopIn.SetNonbond().SetNbIdx(idx, nbidx);
+  }
   return 0;
 }
 

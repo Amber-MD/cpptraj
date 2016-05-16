@@ -191,9 +191,9 @@ typedef std::vector<NonbondType> NonbondArray;
 class NonbondParmType {
   public:
     NonbondParmType() : ntypes_(0) {}
-    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
-                    HB_ParmArray const& hba) :
-                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
+//    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
+//                    HB_ParmArray const& hba) :
+//                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
     inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
@@ -210,6 +210,8 @@ class NonbondParmType {
       ntypes_ = n;
       nbindex_.assign(ntypes_ * ntypes_, -1); 
     }
+    /// Set specified nbindex location to given value. FIXME no bounds check
+    void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
     void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
       nbindex_[ntypes_ * type1 + type2] = ndx;

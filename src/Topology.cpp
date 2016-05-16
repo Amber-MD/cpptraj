@@ -844,12 +844,6 @@ void Topology::Resize(int natom, int nres) {
   residues_.resize( nres );
 }
 
-// Topology::SetNonbondInfo()
-int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
-  nonbond_ = nonbondIn;
-  return 0;
-}
-
 double Topology::GetVDWradius(int a1) const {
   //TODO: return zero when no params?
   NonbondType const& LJ = GetLJparam(a1, a1);

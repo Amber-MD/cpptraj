@@ -72,8 +72,8 @@ class Topology {
     void AddDihedral(int, int, int, int);
     int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
     // ----- Non-bond routines -------------------
-    NonbondParmType   const& Nonbond()      const { return nonbond_;      }
-    int SetNonbondInfo(NonbondParmType const&);
+    NonbondParmType  const& Nonbond()        const { return nonbond_;      }
+    NonbondParmType&        SetNonbond()           { return nonbond_;      }
     double GetVDWradius(int) const;
     double GetVDWdepth(int) const;
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms

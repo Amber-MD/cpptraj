@@ -54,12 +54,17 @@ class Parm_Amber : public ParmIO {
     int ReadOldParm(Topology&);
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
+    inline void SkipToNextFlag();
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
     inline int SetupBuffer(AmberParmFlagType, int, FortranData const&);
     int ReadAtomNames(Topology&, FortranData const&);
     int ReadAtomCharges(Topology&, FortranData const&);
-    int ReadAtomicNum(Topology&, FortranData const&);
+    int ReadAtomicNum(FortranData const&);
+    int ReadAtomicMass(Topology&, FortranData const&);
+    int ReadAtomTypeIndex(Topology&, FortranData const&);
+    int ReadNonbondIndices(Topology&, FortranData const&);
+
     int ReadChamberFFtype(Topology&);
  
     static const int AMBERPOINTERS_;
