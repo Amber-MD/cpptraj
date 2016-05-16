@@ -197,6 +197,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
   int Npointers = 30; // No NEXTRA etc
+  if ( ReadPointers( Npointers, FortranData(FINT, 12, 6, 0) ) ) return 1;
 
   return 0;
 }
@@ -244,6 +245,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_POINTERS: err = ReadPointers(AMBERPOINTERS_, FMT); break;
             default: return 1; // SANITY CHECK
           }
+          if (err != 0) return 1;
         }
       }  
     }
@@ -291,8 +293,8 @@ int Parm_Amber::ReadPointers(int Npointers, FortranData const& FMT) {
 }
 
 // -----------------------------------------------------------------------------
-FortranData::FortranData(const char* ptrIn) :
-  ftype_(UNKNOWN_FTYPE_), fncols_(0), fwidth_(0), fprecision_(0)
+Parm_Amber::FortranData::FortranData(const char* ptrIn) :
+  ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0)
 {
   ParseFortranFormat(ptrIn);
 }
@@ -300,7 +302,7 @@ FortranData::FortranData(const char* ptrIn) :
 /** Given a fortran-type format string, set the corresponding fortran
   * type. Set fncols (if present), fwidth, and fprecision (if present).
   */
-int FortranData::ParseFortranFormat(const char* ptrIn) {
+int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
   if (ptrIn == 0) return 1;
   std::string fformat( NoTrailingWhitespace( ptrIn ) );
   if ( fformat.empty() ) return 1;
@@ -324,8 +326,7 @@ int FortranData::ParseFortranFormat(const char* ptrIn) {
   while (ptr!=fformat.end() && *ptr=='(') ++ptr;
   // Type
   if (ptr==fformat.end()) {
-    mprinterr("Error: Malformed fortran format string (%s) in Amber Topology %s\n",
-              fformat.c_str(), infile_.Filename().base());
+    mprinterr("Error: Malformed fortran format string (%s)\n", fformat.c_str());
     return 1;
   }
   switch (*ptr) {
@@ -355,7 +356,7 @@ int FortranData::ParseFortranFormat(const char* ptrIn) {
     }
     fprecision_ = atoi( arg.c_str() );
   }
-  if (debug_ > 2)
+  //if (debug_ > 2)
     mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
             fncols_,(int)ftype_,fwidth_,fprecision_);
 

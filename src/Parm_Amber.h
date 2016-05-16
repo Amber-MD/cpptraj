@@ -18,6 +18,8 @@ class Parm_Amber : public ParmIO {
     typedef std::vector<int> Iarray;
     /// Class for determining data size from Fortran format string.
     class FortranData;
+    /// Enumerated type for Fortran data type
+    enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     /// Enumerated type for Amber Parmtop Flags
     enum AmberParmFlagType {
       F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
@@ -53,7 +55,7 @@ class Parm_Amber : public ParmIO {
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
     void ReadTitle(Topology&);
-    int ReadPointers(int, FortranData&);
+    int ReadPointers(int, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -64,10 +66,10 @@ class Parm_Amber : public ParmIO {
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {
   public:
-    /// Enumerated type for Fortran data type
-    enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     FortranData() : ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0) {}
-    FortranData(const char*);
+    FortranData(const char*); 
+    FortranData(Type tIn, int colsIn, int widthIn, int precIn) :
+      ftype_(tIn), fncols_(colsIn), fwidth_(widthIn), fprecision_(precIn) {}
     int ParseFortranFormat(const char*);
 
     Type Ftype()    const { return ftype_; }
