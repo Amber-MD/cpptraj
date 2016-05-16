@@ -62,6 +62,8 @@ class Topology {
     void AddBondParm(BondParmType const& b)       { bondparm_.push_back( b ); }
     void AddBond(int i, int j) { AddBond(i, j, -1); }
     void AddBond(int, int, int);
+    void AddToBondsH(int i, int j, int p) { bondsh_.push_back(BondType(i, j, p)); }
+    void AddToBonds(int i, int j, int p)  { bonds_.push_back(BondType(i, j, p));  }
     // ----- Angle-specific routines -------------
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }

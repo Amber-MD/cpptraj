@@ -262,7 +262,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         if (flagIdx == -1) {
           mprintf("Warning: Amber topology flag '%s' is unrecognized and will be skipped.\n",
                   flagType);
-          SkipToNextFlag();
+          ptr = SkipToNextFlag();
         } else {
           int err = 0;
           switch ((AmberParmFlagType)flagIdx) {
@@ -275,7 +275,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_MASS:      err = ReadAtomicMass(TopIn, FMT); break;
             case F_ATYPEIDX:  err = ReadAtomTypeIndex(TopIn, FMT); break;
             // NOTE: CPPTRAJ sets up its own exclusion list so reading this is skipped.
-            case F_NUMEX: SkipToNextFlag(); break;
+            case F_NUMEX: ptr = SkipToNextFlag(); break;
             case F_NB_INDEX:  err = ReadNonbondIndices(TopIn, FMT); break;
             case F_RESNAMES:  err = ReadResidueNames(TopIn, FMT); break;
             case F_RESNUMS:   err = ReadResidueAtomNums(TopIn, FMT); break;
@@ -283,6 +283,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_BONDREQ:   err = ReadBondREQ(TopIn, FMT); break;
             case F_ANGLETK:   err = ReadAngleTK(TopIn, FMT); break;
             case F_ANGLETEQ:  err = ReadAngleTEQ(TopIn, FMT); break;
+
+            case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
+            case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -291,7 +294,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             // CHAMBER
             case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
             // Sanity check
-            default: mprinterr("Internal Error: Unhandled FLAG.\n"); return 0;
+            default: mprinterr("Internal Error: Unhandled FLAG.\n"); ptr = SkipToNextFlag();
           }
           if (err != 0) return 1;
         }
@@ -306,9 +309,10 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
   return 0;
 }
 
-void Parm_Amber::SkipToNextFlag() {
+const char* Parm_Amber::SkipToNextFlag() {
   const char* ptr = infile_.NextLine();
   while (ptr != 0 && !IsFLAG(ptr)) ptr = infile_.NextLine();
+  return ptr;
 }
 
 // Parm_Amber::ReadFormatLine()
@@ -484,6 +488,28 @@ int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
     TopIn.SetAngleParm(idx).SetTeq( atof(infile_.NextElement()) );
   return 0;
 }
+
+/** Amber bond indices are * 3, bond parm indices are +1 */
+int Parm_Amber::ReadBondsH(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[NBONH]*3;
+  if (SetupBuffer(F_BONDSH, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 3)
+    TopIn.AddToBondsH( atoi(infile_.NextElement()) / 3,
+                       atoi(infile_.NextElement()) / 3,
+                       atoi(infile_.NextElement()) - 1 );
+  return 0;
+}
+
+int Parm_Amber::ReadBonds(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[MBONA]*3;
+  if (SetupBuffer(F_BONDS, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 3)
+    TopIn.AddToBonds( atoi(infile_.NextElement()) / 3,
+                      atoi(infile_.NextElement()) / 3,
+                      atoi(infile_.NextElement()) - 1 );
+  return 0;
+}
+    
 
 // ----- Extra PDB Info --------------------------
 int Parm_Amber::ReadPdbRes(Topology& TopIn, FortranData const& FMT) {

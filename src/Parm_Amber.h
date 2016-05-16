@@ -54,7 +54,7 @@ class Parm_Amber : public ParmIO {
     int ReadOldParm(Topology&);
     int ReadNewParm(Topology&);
     int ReadFormatLine(FortranData&);
-    inline void SkipToNextFlag();
+    inline const char* SkipToNextFlag();
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
     inline int SetupBuffer(AmberParmFlagType, int, FortranData const&);
@@ -70,6 +70,9 @@ class Parm_Amber : public ParmIO {
     int ReadBondREQ(Topology&, FortranData const&);
     int ReadAngleTK(Topology&, FortranData const&);
     int ReadAngleTEQ(Topology&, FortranData const&);
+
+    int ReadBondsH(Topology&, FortranData const&);
+    int ReadBonds(Topology&, FortranData const&);
 
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);
