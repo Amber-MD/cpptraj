@@ -81,6 +81,10 @@ class Parm_Amber : public ParmIO {
     int ReadPdbAlt(Topology&, FortranData const&);
 
     int ReadChamberFFtype(Topology&);
+    int ReadChamberUBCount(Topology&, FortranData const&);
+    int ReadChamberUBTerms(Topology&, FortranData const&);
+    int ReadChamberUBFC(Topology&, FortranData const&);
+    int ReadChamberUBEQ(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -90,6 +94,10 @@ class Parm_Amber : public ParmIO {
     Iarray values_; ///< Values read in from POINTERS
     Iarray atomicNums_;
 
+    // CHAMBER variables
+    int UB_count_[2]; ///< Urey-Bradley count: # bonds (x3), # parameters
+
+    // Write options
     bool nochamber_;
 };
 // -----------------------------------------------------------------------------

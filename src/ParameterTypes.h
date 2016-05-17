@@ -373,6 +373,10 @@ class ChamberParmType {
       chmff_verno_ = i;
       chmff_type_ = s;
     }
+    void ReserveUBterms(unsigned int n)       { ub_.reserve( n );         }
+    void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );     }
+    void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );      }
+    BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];      }
     void SetUB(BondArray const& ub, BondParmArray const& ubp) {
       ub_ = ub;
       ubparm_ = ubp;

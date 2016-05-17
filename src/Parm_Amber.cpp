@@ -307,6 +307,10 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
             // CHAMBER
             case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
+            case F_CHM_UBC:  err = ReadChamberUBCount(TopIn, FMT); break;
+            case F_CHM_UB:   err = ReadChamberUBTerms(TopIn, FMT); break;
+            case F_CHM_UBFC: err = ReadChamberUBFC(TopIn, FMT); break;
+            case F_CHM_UBEQ: err = ReadChamberUBEQ(TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG.\n"); ptr = SkipToNextFlag();
           }
@@ -581,6 +585,46 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
   std::string fftype = NoTrailingWhitespace( ptr+2 );
   TopIn.SetChamber().SetChamber( ff_verno, fftype );
   mprintf("\tCHAMBER topology: %i: %s\n", ff_verno, fftype.c_str());
+  return 0;
+}
+
+// Parm_Amber::ReadChamberUBCount()
+int Parm_Amber::ReadChamberUBCount(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_UBC, 2, FMT)) return 1;
+  UB_count_[0] = atoi(infile_.NextElement()); // Number of bonds
+  UB_count_[1] = atoi(infile_.NextElement()); // Number of parameters
+  TopIn.SetChamber().ReserveUBterms( UB_count_[0] );
+  TopIn.SetChamber().ResizeUBparm( UB_count_[1] );
+  UB_count_[0] *= 3; // Number of bond terms (bonds x 3)
+  return 0;
+}
+
+// Parm_Amber::ReadChamberUBTerms()
+int Parm_Amber::ReadChamberUBTerms(Topology& TopIn, FortranData const& FMT) {
+  // NOTE: UB_count_[0] already multiplied by 3
+  if (SetupBuffer(F_CHM_UB, UB_count_[0], FMT)) return 1;
+  for (int idx = 0; idx != UB_count_[0]; idx += 3) {
+    int a1 = atoi(infile_.NextElement()) - 1;
+    int a2 = atoi(infile_.NextElement()) - 1;
+    int bidx = atoi(infile_.NextElement()) - 1;
+    TopIn.SetChamber().AddUBterm( BondType(a1, a2, bidx) );
+  }
+  return 0;
+}
+
+// Parm_Amber::ReadChamberUBFC()
+int Parm_Amber::ReadChamberUBFC(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_UBFC, UB_count_[1], FMT)) return 1;
+  for (int idx = 0; idx != UB_count_[1]; idx++)
+    TopIn.SetChamber().SetUBparm(idx).SetRk( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadChamberUBEQ()
+int Parm_Amber::ReadChamberUBEQ(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_UBEQ, UB_count_[1], FMT)) return 1;
+  for (int idx = 0; idx != UB_count_[1]; idx++)
+    TopIn.SetChamber().SetUBparm(idx).SetReq( atof(infile_.NextElement()) );
   return 0;
 }
 
