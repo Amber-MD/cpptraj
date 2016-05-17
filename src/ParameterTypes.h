@@ -329,13 +329,15 @@ class CapParmType {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    CmapGridType(int r, std::vector<double> const& g) :
-                     resolution_(r), grid_(g) {}
+    //CmapGridType(int r, std::vector<double> const& g) :
+    //                 resolution_(r), grid_(g) {}
+    CmapGridType(int r) : resolution_(r), grid_(r*r, 0.0) {}
     inline int Resolution()                  const { return resolution_; }
     inline std::vector<double> const& Grid() const { return grid_;       }
+    void SetGrid(int idx, double d) { grid_[idx] = d; }
   private:
     int resolution_;           ///< Number of steps along each phi/psi CMAP axis
-    std::vector<double> grid_; ///< CMAP grid
+    std::vector<double> grid_; ///< CMAP grid (resolution_^2)
 };
 typedef std::vector<CmapGridType> CmapGridArray;
 /// Hold CMAP atom indices and corresponding grid index
@@ -375,7 +377,8 @@ class ChamberParmType {
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
     CmapArray         const& Cmap()         const { return cmap_;         }
     void SetLJ14(NonbondArray const& nb)          { lj14_ = nb;           }
-    NonbondType SetLJ14(int idx)                  { return lj14_[idx];    }
+    NonbondType& SetLJ14(int idx)                 { return lj14_[idx];    }
+    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
     /// Set expected number of LJ14 terms TODO combine with SetVersion?
     void SetNLJ14terms(int n)                     { lj14_.assign( n, NonbondType() ); }
     void SetVersion(int i, std::string const& s)  { 

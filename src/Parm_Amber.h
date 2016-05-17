@@ -117,6 +117,7 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpPHASE(Topology&, FortranData const&);
     int ReadChamberLJ14A(Topology&, FortranData const&);
     int ReadChamberLJ14B(Topology&, FortranData const&);
+    int ReadChamberCmap(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -131,9 +132,10 @@ class Parm_Amber : public ParmIO {
     bool SCNB_set_; ///< True if SCNB section found
 
     // CHAMBER variables
-    int UB_count_[2]; ///< Urey-Bradley count: # bonds (x3), # parameters
-    int N_impropers_; ///< Number of impropers (x5)
-    int N_impTerms_;  ///< Number of improper terms
+    int UB_count_[2];   ///< Urey-Bradley count: # bonds (x3), # parameters
+    int CMAP_count_[2]; ///< CMAP terms (x6), CMAP grids
+    int N_impropers_;   ///< Number of impropers (x5)
+    int N_impTerms_;    ///< Number of improper terms
 
     // Write options
     bool nochamber_;

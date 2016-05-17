@@ -1036,6 +1036,52 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+/** Because CMAP info can have N different CMAP flags (one for each CMAP)
+  * this routine assumes all CMAP info is written in one block in numerical
+  * order and will fail otherwise.
+  */
+int Parm_Amber::ReadChamberCmap(Topology& TopIn, FortranData const& FMTin) {
+  if (SetupBuffer(F_CHM_CMAPC, 2, FMTin)) return 1;
+  int n_cmap_terms = atoi( infile_.NextElement() );
+  int n_cmap_grids = atoi( infile_.NextElement() );
+  // Get CMAP resolutions for each grid and allocate grids.
+  const char* ptr = infile_.NextLine();
+  std::string FLAG = NoTrailingWhitespace( ptr + 6 );
+  if (FLAG.compare( FLAGS_[F_CHM_CMAPR].Flag ) != 0) {
+    mprinterr("Error: Expected '%s' after '%s'\n", FLAGS_[F_CHM_CMAPR].Flag,
+              FLAGS_[F_CHM_CMAPC].Flag);
+    return 1;
+  }
+  FortranData FMT;
+  if (ReadFormatLine(FMT)) return 1;
+  if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids, FMT)) return 1;
+  for (int i = 0; i != n_cmap_grids; i++)
+    TopIn.SetChamber().AddCmapGrid( CmapGridType( atoi(infile_.NextElement()) ) );
+  // Read CMAP grids
+  for (int gridnum = 0; gridnum != n_cmap_grids; gridnum++)
+  {
+    ptr = infile_.NextLine();
+    FLAG.assign( NoTrailingWhitespace( ptr + 6 ) );
+    std::string cmap_flag(FLAGS_[F_CHM_CMAPP].Flag);
+    cmap_flag.append( integerToString(gridnum+1, 2) );
+    if (FLAG != cmap_flag) {
+      mprinterr("Error: Expected '%s' for CMAP grid %i\n", cmap_flag.c_str(), gridnum+1);
+      return 1;
+    }
+    if (ReadFormatLine(FMT)) return 1;
+    int gridsize = (int)TopIn.Chamber().CmapGrid()[gridnum].Grid().size();
+    CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
+    if (SetupBuffer(F_CHM_CMAPP, gridsize, FMT))
+      return 1;
+    for (int idx = 0; idx != gridsize; idx++)
+      GRID.SetGrid( idx, atof(infile_.NextElement()) );
+  }
+    
+    
+
+  return 0;
+}
+
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber: Do not write CHAMBER information to topology (useful for e.g. using"
