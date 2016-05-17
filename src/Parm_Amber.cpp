@@ -185,7 +185,7 @@ bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
 
 // -----------------------------------------------------------------------------
 // Parm_Amber::ReadParm()
-int Parm_Amber::ReadParm(FileName const& fname, Topology &TopIn ) {
+int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (infile_.OpenRead( fname )) return 1;
   int err = 0;
   if (ptype_ == OLDPARM)
@@ -197,6 +197,12 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology &TopIn ) {
   for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res)
     for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
       TopIn.SetAtom(at).SetResNum( res - TopIn.ResStart() );
+  // DEBUG
+  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); ++atom)
+    mprintf("%u: %s Res %i\n", atom-TopIn.begin(), atom->c_str(), atom->ResNum());
+  for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res)
+    mprintf("%u: %s FirstAt=%i EndAt=%i Original=%i\n", res-TopIn.ResStart(),
+            res->c_str(), res->FirstAtom(), res->LastAtom(), res->OriginalResNum());
   return 0;
 }
 
@@ -409,6 +415,7 @@ int Parm_Amber::ReadAtomicNum(FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadAtomicMass()
 int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_MASS, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
@@ -416,6 +423,7 @@ int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadAtomTypeIndex()
 /** Read atom type indices. Shift by -1 to match CPPTRAJ internal indexing.
   * NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0
   */
@@ -426,6 +434,7 @@ int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadNonbondIndices()
 int Parm_Amber::ReadNonbondIndices(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NTYPES]*values_[NTYPES];
   if (SetupBuffer(F_NB_INDEX, nvals, FMT)) return 1;
@@ -449,13 +458,14 @@ int Parm_Amber::ReadResidueNames(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadResidueAtomNums()
 int Parm_Amber::ReadResidueAtomNums(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_RESNUMS, values_[NRES], FMT)) return 1;
   for (int idx = 0; idx != values_[NRES]; idx++) {
-    int atnum = atoi(infile_.NextElement());
-    TopIn.SetRes(idx).SetFirstAtom( atnum - 1 );
+    int atnum = atoi(infile_.NextElement()) - 1;
+    TopIn.SetRes(idx).SetFirstAtom( atnum );
     if (idx > 0) TopIn.SetRes(idx-1).SetLastAtom( atnum );
-    TopIn.SetRes(idx).SetOriginalNum( idx );
+    TopIn.SetRes(idx).SetOriginalNum( idx+1 );
   }
   TopIn.SetRes( values_[NRES]-1 ).SetLastAtom( values_[NATOM] );
   return 0;
