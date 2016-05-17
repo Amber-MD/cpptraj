@@ -271,6 +271,10 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadAsol(TopIn, DBL) ) return 1;
   if ( ReadBsol(TopIn, DBL) ) return 1;
   if ( ReadHBcut(TopIn, DBL) ) return 1;
+  if ( ReadAtomTypes(TopIn, CHAR) ) return 1;
+  if ( ReadItree(TopIn, CHAR) ) return 1;
+  if ( ReadJoin(TopIn, INT) ) return 1;
+  if ( ReadIrotat(TopIn, INT) ) return 1;
 
   return 0;
 }
@@ -352,6 +356,10 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_ASOL:      err = ReadAsol(TopIn, FMT); break;
             case F_BSOL:      err = ReadBsol(TopIn, FMT); break;
             case F_HBCUT:     err = ReadHBcut(TopIn, FMT); break;
+            case F_TYPES:     err = ReadAtomTypes(TopIn, FMT); break;
+            case F_ITREE:     err = ReadItree(TopIn, FMT); break;
+            case F_JOIN:      err = ReadJoin(TopIn, FMT); break;
+            case F_IROTAT:    err = ReadIrotat(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -753,6 +761,35 @@ int Parm_Amber::ReadHBcut(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_HBCUT, values_[NPHB], FMT)) return 1;
   for (int idx = 0; idx != values_[NPHB]; idx++)
     TopIn.SetNonbond().SetHB(idx).SetHBcut( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadAtomTypes()
+int Parm_Amber::ReadAtomTypes(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_TYPES, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetTypeName( NameType(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_ITREE, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetItree( NameType(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_JOIN, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetJoin( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_IROTAT, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetExtraAtomInfo(idx).SetIrotat( atoi(infile_.NextElement()) );
   return 0;
 }
 

@@ -89,6 +89,10 @@ class Parm_Amber : public ParmIO {
     int ReadAsol(Topology&, FortranData const&);
     int ReadBsol(Topology&, FortranData const&);
     int ReadHBcut(Topology&, FortranData const&);
+    int ReadAtomTypes(Topology&, FortranData const&);
+    int ReadItree(Topology&, FortranData const&);
+    int ReadJoin(Topology&, FortranData const&);
+    int ReadIrotat(Topology&, FortranData const&);
     // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);

@@ -786,6 +786,7 @@ void Topology::Resize(Pointers const& pIn) {
 
   atoms_.resize( pIn.natom_ );
   residues_.resize( pIn.nres_ );
+  extra_.resize( pIn.nextra_ );
   bondparm_.resize( pIn.nBndParm_ );
   angleparm_.resize( pIn.nAngParm_ );
   dihedralparm_.resize( pIn.nDihParm_ );
