@@ -84,17 +84,14 @@ class AngleType {
     int idx_;
 };
 typedef std::vector<AngleType> AngleArray;
-// NOTE: Using Amber default values for SCEE/SCNB
-#define D_SCEE 1.2
-#define D_SCNB 2.0
 /// Hold dihedral parameters
 class DihedralParmType {
   public:
-    DihedralParmType() : pk_(0), pn_(0), phase_(0), scee_(D_SCEE), scnb_(D_SCNB) {}
+    DihedralParmType() : pk_(0), pn_(0), phase_(0), scee_(0), scnb_(0) {}
     DihedralParmType(double k, double n, double p, double e, double b) :
                          pk_(k), pn_(n), phase_(p), scee_(e), scnb_(b) {}
     DihedralParmType(double k, double p) :
-                         pk_(k), pn_(0), phase_(p), scee_(D_SCEE), scnb_(D_SCNB) {}
+                         pk_(k), pn_(0), phase_(p), scee_(0), scnb_(0) {}
     inline double Pk()    const { return pk_;    }
     inline double& Pk()         { return pk_;    }
     inline double Pn()    const { return pn_;    }
@@ -125,8 +122,6 @@ class DihedralParmType {
     double scnb_;
 };
 typedef std::vector<DihedralParmType> DihedralParmArray;
-#undef D_SCEE
-#undef D_SCNB
 /// Hold dihedral atom indices and parameter index
 class DihedralType {
   public:
@@ -389,6 +384,10 @@ class ChamberParmType {
       ub_ = ub;
       ubparm_ = ubp;
     }
+    void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
+    void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
+    void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
+    DihedralParmType& SetImproperParm(unsigned int i) { return improperparm_[i];     }
     void SetImproper(DihedralArray const& im, DihedralParmArray const& imp) {
       impropers_ = im;
       improperparm_ = imp;

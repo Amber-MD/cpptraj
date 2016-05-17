@@ -140,7 +140,9 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
 // -----------------------------------------------------------------------------
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
-  ptype_(OLDPARM)
+  ptype_(OLDPARM),
+  SCEE_set_(false),
+  SCNB_set_(false)
 {}
 
 // Parm_Amber::ID_ParmFormat()
@@ -205,6 +207,13 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res)
     for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
       TopIn.SetAtom(at).SetResNum( res - TopIn.ResStart() );
+  // If SCEE/SCNB not read, set defaults
+  if (!SCEE_set_)
+    for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
+      TopIn.SetDihedralParm(idx).SetSCEE( 1.2 );
+  if (!SCNB_set_)
+    for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
+      TopIn.SetDihedralParm(idx).SetSCNB( 2.0 );
   // DEBUG
   for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); ++atom)
     mprintf("%u: %s Res %i\n", atom-TopIn.begin(), atom->c_str(), atom->ResNum());
@@ -311,11 +320,16 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
             // CHAMBER
-            case F_FF_TYPE:  err = ReadChamberFFtype(TopIn); break;
-            case F_CHM_UBC:  err = ReadChamberUBCount(TopIn, FMT); break;
-            case F_CHM_UB:   err = ReadChamberUBTerms(TopIn, FMT); break;
-            case F_CHM_UBFC: err = ReadChamberUBFC(TopIn, FMT); break;
-            case F_CHM_UBEQ: err = ReadChamberUBEQ(TopIn, FMT); break;
+            case F_FF_TYPE:   err = ReadChamberFFtype(TopIn); break;
+            case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
+            case F_CHM_UB:    err = ReadChamberUBTerms(TopIn, FMT); break;
+            case F_CHM_UBFC:  err = ReadChamberUBFC(TopIn, FMT); break;
+            case F_CHM_UBEQ:  err = ReadChamberUBEQ(TopIn, FMT); break;
+            case F_CHM_NIMP:  err = ReadChamberNumImpropers(TopIn, FMT); break;
+            case F_CHM_NIMPT: err = ReadChamberNumImpTerms(TopIn, FMT); break;
+            case F_CHM_IMP:   err = ReadChamberImpropers(TopIn, FMT); break;
+            case F_CHM_IMPFC: err = ReadChamberImpFC(TopIn, FMT); break;
+            case F_CHM_IMPP:  err = ReadChamberImpPHASE(TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG.\n"); ptr = SkipToNextFlag();
           }
@@ -521,6 +535,7 @@ int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadDihedralPK()
 int Parm_Amber::ReadDihedralPK(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_DIHPK, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
@@ -528,6 +543,7 @@ int Parm_Amber::ReadDihedralPK(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadDihedralPN()
 int Parm_Amber::ReadDihedralPN(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_DIHPN, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
@@ -535,6 +551,7 @@ int Parm_Amber::ReadDihedralPN(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadDihedralPHASE()
 int Parm_Amber::ReadDihedralPHASE(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_DIHPHASE, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
@@ -542,6 +559,7 @@ int Parm_Amber::ReadDihedralPHASE(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadDihedralSCEE()
 int Parm_Amber::ReadDihedralSCEE(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCEE, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
@@ -549,6 +567,7 @@ int Parm_Amber::ReadDihedralSCEE(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadDihedralSCNB()
 int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCNB, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
@@ -670,6 +689,48 @@ int Parm_Amber::ReadChamberUBEQ(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+int Parm_Amber::ReadChamberNumImpropers(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_NIMP, 1, FMT)) return 1;
+  N_impropers_ = atoi(infile_.NextElement());
+  TopIn.SetChamber().ReserveImproperTerms( N_impropers_ );
+  N_impropers_ *= 5; // Number of improper terms (impropers * 5)
+  return 0;
+}
+
+int Parm_Amber::ReadChamberNumImpTerms(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_NIMPT, 1, FMT)) return 1;
+  N_impTerms_ = atoi(infile_.NextElement());
+  TopIn.SetChamber().ResizeImproperParm( N_impTerms_ );
+  return 0;
+}
+
+int Parm_Amber::ReadChamberImpropers(Topology& TopIn, FortranData const& FMT) {
+  // NOTE: N_impropers_ already multiplied by 5
+  if (SetupBuffer(F_CHM_IMP, N_impropers_, FMT)) return 1;
+  for (int idx = 0; idx != N_impropers_; idx +=5) {
+    int a1 = atoi(infile_.NextElement()) - 1;
+    int a2 = atoi(infile_.NextElement()) - 1;
+    int a3 = atoi(infile_.NextElement()) - 1;
+    int a4 = atoi(infile_.NextElement()) - 1;
+    int didx = atoi(infile_.NextElement()) - 1;
+    TopIn.SetChamber().AddImproperTerm( DihedralType(a1, a2, a3, a4, didx) );
+  }
+  return 0;
+}
+
+int Parm_Amber::ReadChamberImpFC(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_IMPFC, N_impTerms_, FMT)) return 1;
+  for (int idx = 0; idx != N_impTerms_; idx++)
+    TopIn.SetChamber().SetImproperParm(idx).SetPk( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_IMPP, N_impTerms_, FMT)) return 1;
+  for (int idx = 0; idx != N_impTerms_; idx++)
+    TopIn.SetChamber().SetImproperParm(idx).SetPhase( atof(infile_.NextElement()) );
+  return 0;
+}
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
   mprintf("\tnochamber: Do not write CHAMBER information to topology (useful for e.g. using"
