@@ -94,6 +94,8 @@ class Parm_Amber : public ParmIO {
     int ReadJoin(Topology&, FortranData const&);
     int ReadIrotat(Topology&, FortranData const&);
     int ReadBox(FortranData const&);
+    int ReadCapInfo(Topology&, FortranData const&);
+    int ReadCapInfo2(Topology&, FortranData const&);
     // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);

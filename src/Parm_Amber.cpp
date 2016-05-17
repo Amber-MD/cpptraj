@@ -300,6 +300,11 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
     if (SetupBuffer(F_ATOMSPERMOL, nmolecules, INT)) return 1;
     if ( ReadBox(DBL) ) return 1;
   }
+  // Water cap info
+  if (values_[IFCAP]) {
+    if ( ReadCapInfo(TopIn, INT) ) return 1;
+    if ( ReadCapInfo2(TopIn, DBL) ) return 1;
+  }
 
   return 0;
 }
@@ -388,6 +393,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_SOLVENT_POINTER: ptr = SkipToNextFlag(); break;
             case F_ATOMSPERMOL: ptr = SkipToNextFlag(); break;
             case F_PARMBOX:   err = ReadBox(FMT); break;
+            case F_CAP_INFO:  err = ReadCapInfo(TopIn, FMT); break;
+            case F_CAP_INFO2: err = ReadCapInfo2(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -832,6 +839,23 @@ int Parm_Amber::ReadBox(FortranData const& FMT) {
   double by = atof(infile_.NextElement());
   double bz = atof(infile_.NextElement());
   parmbox_.SetBetaLengths( beta, bx, by, bz );
+  return 0;
+}
+
+// Parm_Amber::ReadCapInfo()
+int Parm_Amber::ReadCapInfo(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CAP_INFO, 1, FMT)) return 1;
+  TopIn.SetCap().SetNatcap( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadCapInfo2()
+int Parm_Amber::ReadCapInfo2(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CAP_INFO2, 4, FMT)) return 1;
+  TopIn.SetCap().SetCutCap( atof(infile_.NextElement()) );
+  TopIn.SetCap().SetXcap( atof(infile_.NextElement()) );
+  TopIn.SetCap().SetYcap( atof(infile_.NextElement()) );
+  TopIn.SetCap().SetZcap( atof(infile_.NextElement()) );
   return 0;
 }
 

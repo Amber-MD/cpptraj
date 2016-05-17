@@ -305,8 +305,6 @@ class LES_ParmType {
 class CapParmType {
   public:
     CapParmType() : natcap_(0), cutcap_(0), xcap_(0), ycap_(0), zcap_(0) {}
-    CapParmType(int n, double c, double x, double y, double z) :
-                    natcap_(n), cutcap_(c), xcap_(x), ycap_(y), zcap_(z) {}
     inline bool HasWaterCap() const { return cutcap_ > 0.0; }
     inline int NatCap()       const { return natcap_; }
     inline double CutCap()    const { return cutcap_; }
@@ -314,6 +312,11 @@ class CapParmType {
     inline double yCap()      const { return ycap_;   }
     inline double zCap()      const { return zcap_;   }
     void Clear() { natcap_ = 0; cutcap_ = 0.0; xcap_ = 0.0; ycap_ = 0.0; zcap_ = 0.0; }
+    void SetNatcap(int n)    { natcap_ = n; }
+    void SetCutCap(double c) { cutcap_ = c; }
+    void SetXcap(double x)   { xcap_ = x;   }
+    void SetYcap(double y)   { ycap_ = y;   }
+    void SetZcap(double z)   { zcap_ = z;   }
   private:
     int natcap_;    ///< last atom before the start of the cap of waters
     double cutcap_; ///< the distance from the center of the cap to the outside

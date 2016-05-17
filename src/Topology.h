@@ -87,8 +87,8 @@ class Topology {
     /// \return Lennard-Jones 6-12 parameters for given pair of atoms
     inline NonbondType const& GetLJparam(int, int) const;
     // ----- Water Cap Info ----------------------
-    CapParmType       const& Cap()          const { return cap_;          }
-    void SetCap(CapParmType const& c)             { cap_ = c;             }
+    CapParmType const& Cap()    const { return cap_; }
+    CapParmType&       SetCap()       { return cap_; }
     // ----- Amber LES info ----------------------
     LES_ParmType      const& LES()          const { return lesparm_;      }
     void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
