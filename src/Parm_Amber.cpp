@@ -141,9 +141,16 @@ const Parm_Amber::ParmFlag Parm_Amber::FLAGS_[] = {
 // CONSTRUCTOR
 Parm_Amber::Parm_Amber() :
   ptype_(OLDPARM),
+  numLJparm_(0),
   SCEE_set_(false),
-  SCNB_set_(false)
-{}
+  SCNB_set_(false),
+  N_impropers_(0),
+  N_impTerms_(0),
+  nochamber_(false)
+{
+  UB_count_[0] = 0;
+  UB_count_[1] = 0;
+}
 
 // Parm_Amber::ID_ParmFormat()
 bool Parm_Amber::ID_ParmFormat(CpptrajFile& fileIn) {
@@ -249,6 +256,8 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   // Skip past SOLTY
   SetupBuffer(F_SOLTY, values_[NATYP], DBL);
   if (infile_.ReadFrame()) return 1;
+  if ( ReadLJA(TopIn, DBL) ) return 1;
+  if ( ReadLJB(TopIn, DBL) ) return 1;
 
   return 0;
 }
@@ -318,6 +327,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_SCEE:      err = ReadDihedralSCEE(TopIn, FMT); break;
             case F_SCNB:      err = ReadDihedralSCNB(TopIn, FMT); break;
             case F_SOLTY: ptr = SkipToNextFlag(); break;
+            case F_LJ_A:      err = ReadLJA(TopIn, FMT); break;
+            case F_LJ_B:      err = ReadLJB(TopIn, FMT); break;
 
             case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
             case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
@@ -412,6 +423,9 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
     mprintf("Warning: '%s' contains perturbation information.\n"
             "Warning:  Cpptraj currently does not read of write perturbation information.\n",
             infile_.Filename().base());
+
+  numLJparm_ = values_[NTYPES] * (values_[NTYPES]+1) / 2;
+  TopIn.SetNonbond().SetNLJterms( numLJparm_ );
   return 0;
 }
 
@@ -579,6 +593,20 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCNB, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
     TopIn.SetDihedralParm(idx).SetSCNB( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LJ_A, numLJparm_, FMT)) return 1;
+  for (int idx = 0; idx != numLJparm_; idx++)
+    TopIn.SetNonbond().SetLJ(idx).SetA( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadLJB(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LJ_B, numLJparm_, FMT)) return 1;
+  for (int idx = 0; idx != numLJparm_; idx++)
+    TopIn.SetNonbond().SetLJ(idx).SetB( atof(infile_.NextElement()) );
   return 0;
 }
 

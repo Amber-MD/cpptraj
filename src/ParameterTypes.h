@@ -173,6 +173,9 @@ class HB_ParmType {
     inline double Asol()  const { return asol_;  }
     inline double Bsol()  const { return bsol_;  }
     inline double HBcut() const { return hbcut_; }
+    void SetAsol(double a)  { asol_ = a;  }
+    void SetBsol(double b)  { bsol_ = b;  }
+    void SetHBcut(double h) { hbcut_ = h; }
   private:
     double asol_;
     double bsol_;
@@ -186,6 +189,8 @@ class NonbondType {
     NonbondType(double a, double b) : A_(a), B_(b) {}
     inline double A() const { return A_; }
     inline double B() const { return B_; }
+    void SetA(double a) { A_ = a; }
+    void SetB(double b) { B_ = b; }
   private:
     double A_;
     double B_;
@@ -217,6 +222,14 @@ class NonbondParmType {
       ntypes_ = n;
       nbindex_.assign(ntypes_ * ntypes_, -1); 
     }
+    /// Set number of LJ terms and init LJ array TODO combine with SetNtypes?
+    void SetNLJterms(int n)   { nbarray_.assign( n, NonbondType() ); }
+    /// Set specified LJ term
+    NonbondType& SetLJ(int i) { return nbarray_[i];                  }
+    /// Set number of HB terms and init HB array TODO combine with SetNtypes?
+    void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
+    /// Set specified HB term
+    HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
     /// Set specified nbindex location to given value. FIXME no bounds check
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
@@ -233,19 +246,6 @@ class NonbondParmType {
       nbindex_[ntypes_ * type1 + type2] = ndx;
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
-    }
-    /// 
-    static void NB_to_array(NonbondArray const& nba, std::vector<double>& Rk, std::vector<double>& Req)
-    {
-      Rk.clear();
-      Req.clear();
-      Rk.reserve( nba.size() );
-      Req.reserve( nba.size() );
-      for (NonbondArray::const_iterator nb = nba.begin(); nb != nba.end(); ++nb)
-      {
-        Rk.push_back( nb->A() );
-        Req.push_back( nb->B() );
-      }
     }
     void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); }
   private:

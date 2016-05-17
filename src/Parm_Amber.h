@@ -75,6 +75,8 @@ class Parm_Amber : public ParmIO {
     int ReadDihedralPHASE(Topology&, FortranData const&);
     int ReadDihedralSCEE(Topology&, FortranData const&);
     int ReadDihedralSCNB(Topology&, FortranData const&);
+    int ReadLJA(Topology&, FortranData const&);
+    int ReadLJB(Topology&, FortranData const&);
 
     inline BondType GetBond();
     int ReadBondsH(Topology&, FortranData const&);
@@ -102,9 +104,10 @@ class Parm_Amber : public ParmIO {
     ParmType ptype_;
     BufferedFrame infile_;
     Iarray values_; ///< Values read in from POINTERS
-    Iarray atomicNums_;
-    bool SCEE_set_;
-    bool SCNB_set_;
+    Iarray atomicNums_; ///< Set to atomic numbers if ATOMIC_NUMBER section found.
+    int numLJparm_; ///< Number of LJ parameters
+    bool SCEE_set_; ///< True if SCEE section found
+    bool SCNB_set_; ///< True if SCNB section found
 
     // CHAMBER variables
     int UB_count_[2]; ///< Urey-Bradley count: # bonds (x3), # parameters
