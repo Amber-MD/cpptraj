@@ -531,7 +531,7 @@ int Parm_Amber::ReadBondsH(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NBONH]*3;
   if (SetupBuffer(F_BONDSH, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 3)
-    TopIn.AddToBondsH( GetBond() );
+    TopIn.AddBond( GetBond(), true );
   return 0;
 }
 
@@ -540,7 +540,7 @@ int Parm_Amber::ReadBonds(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[MBONA]*3;
   if (SetupBuffer(F_BONDS, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 3)
-    TopIn.AddToBonds( GetBond() );
+    TopIn.AddBond( GetBond(), false );
   return 0;
 }
     

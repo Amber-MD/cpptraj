@@ -924,6 +924,19 @@ void Topology::AddBond(int atom1, int atom2, int pidxIn) {
   atoms_[atom2].AddBondToIdx( atom1 );
 }
 
+/** For use when element data may not yet be available. If isH, it is
+  * assumed that the second atom is the H.
+  */
+void Topology::AddBond(BondType const& bndIn, bool isH) {
+  if (isH)
+    bondsh_.push_back( bndIn );
+  else
+    bonds_.push_back( bndIn );
+  // Update atoms
+  atoms_[bndIn.A1()].AddBondToIdx( bndIn.A2() );
+  atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
+}
+
 void Topology::AddAngle(int atom1, int atom2, int atom3) {
   // FIXME: Check duplicate
   if (atoms_[atom1].Element() == Atom::HYDROGEN ||
