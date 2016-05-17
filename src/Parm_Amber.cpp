@@ -222,11 +222,13 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
     for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
       TopIn.SetDihedralParm(idx).SetSCNB( 2.0 );
   // Check box info
-  if (parmbox_.Type() == Box::NOBOX) {
-    if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
-    // ifbox 2: truncated octahedron for certain
-    if (values_[IFBOX] == 2)
-      parmbox_.SetTruncOct();
+  if (values_[IFBOX] > 0) {
+    if (parmbox_.Type() == Box::NOBOX) {
+      if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
+      // ifbox 2: truncated octahedron for certain
+      if (values_[IFBOX] == 2)
+        parmbox_.SetTruncOct();
+    }
   }
   // Check for IFBOX/BoxType mismatch
   if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
