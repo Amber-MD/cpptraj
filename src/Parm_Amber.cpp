@@ -221,6 +221,21 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (!SCNB_set_)
     for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
       TopIn.SetDihedralParm(idx).SetSCNB( 2.0 );
+  // Check box info
+  if (parmbox_.Type() == Box::NOBOX) {
+    if (ptype_ != CHAMBER) mprintf("Warning: Prmtop missing Box information.\n");
+    // ifbox 2: truncated octahedron for certain
+    if (values_[IFBOX] == 2)
+      parmbox_.SetTruncOct();
+  }
+  // Check for IFBOX/BoxType mismatch
+  if (values_[IFBOX]==2 && parmbox_.Type() != Box::TRUNCOCT) {
+    mprintf("Warning: Amber Parm Box should be Truncated Octahedron (ifbox==2)\n");
+    mprintf("         but BOX_DIMENSIONS indicate %s - may cause imaging problems.\n",
+            parmbox_.TypeName());
+  }
+  TopIn.SetParmBox( parmbox_ );
+
   // DEBUG
   //for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); ++atom)
   //  mprintf("%u: %s Res %i\n", atom-TopIn.begin(), atom->c_str(), atom->ResNum());
@@ -245,7 +260,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadAtomicMass( TopIn, DBL ) ) return 1;
   if ( ReadAtomTypeIndex( TopIn, INT ) ) return 1;
   // Skip past NUMEX
-  SetupBuffer(F_NUMEX, values_[NATOM], INT);
+  if (SetupBuffer(F_NUMEX, values_[NATOM], INT)) return 1;
   if ( ReadNonbondIndices(TopIn, INT) ) return 1;
   if ( ReadResidueNames(TopIn, CHAR) ) return 1;
   if ( ReadResidueAtomNums(TopIn, INT) ) return 1;
@@ -257,7 +272,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadDihedralPN(TopIn, DBL) ) return 1;
   if ( ReadDihedralPHASE(TopIn, DBL) ) return 1;
   // Skip past SOLTY
-  SetupBuffer(F_SOLTY, values_[NATYP], DBL);
+  if (SetupBuffer(F_SOLTY, values_[NATYP], DBL)) return 1;
   if ( ReadLJA(TopIn, DBL) ) return 1;
   if ( ReadLJB(TopIn, DBL) ) return 1;
   if ( ReadBondsH(TopIn, INT) ) return 1;
@@ -267,7 +282,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadDihedralsH(TopIn, INT) ) return 1;
   if ( ReadDihedrals(TopIn, INT) ) return 1;
   // Skip past EXCLUDE
-  SetupBuffer(F_EXCLUDE, values_[NNB], INT);
+  if (SetupBuffer(F_EXCLUDE, values_[NNB], INT)) return 1;
   if ( ReadAsol(TopIn, DBL) ) return 1;
   if ( ReadBsol(TopIn, DBL) ) return 1;
   if ( ReadHBcut(TopIn, DBL) ) return 1;
@@ -275,6 +290,16 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadItree(TopIn, CHAR) ) return 1;
   if ( ReadJoin(TopIn, INT) ) return 1;
   if ( ReadIrotat(TopIn, INT) ) return 1;
+  // Solvent info
+  if (values_[IFBOX] > 0) {
+    // Read SOLVENT_POINTERS, only need number of molecules (2nd value).
+    if (SetupBuffer(F_SOLVENT_POINTER, 3, INT)) return 1;
+    infile_.NextElement(); // Final solute residue
+    int nmolecules = atoi(infile_.NextElement());
+    // Skip past ATOMS_PER_MOL
+    if (SetupBuffer(F_ATOMSPERMOL, nmolecules, INT)) return 1;
+    if ( ReadBox(DBL) ) return 1;
+  }
 
   return 0;
 }
@@ -360,6 +385,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_ITREE:     err = ReadItree(TopIn, FMT); break;
             case F_JOIN:      err = ReadJoin(TopIn, FMT); break;
             case F_IROTAT:    err = ReadIrotat(TopIn, FMT); break;
+            case F_SOLVENT_POINTER: ptr = SkipToNextFlag(); break;
+            case F_ATOMSPERMOL: ptr = SkipToNextFlag(); break;
+            case F_PARMBOX:   err = ReadBox(FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -772,6 +800,7 @@ int Parm_Amber::ReadAtomTypes(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadItree()
 int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_ITREE, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
@@ -779,6 +808,7 @@ int Parm_Amber::ReadItree(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadJoin()
 int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_JOIN, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
@@ -786,10 +816,22 @@ int Parm_Amber::ReadJoin(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadIrotat()
 int Parm_Amber::ReadIrotat(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_IROTAT, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetExtraAtomInfo(idx).SetIrotat( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadBox()
+int Parm_Amber::ReadBox(FortranData const& FMT) {
+  if (SetupBuffer(F_PARMBOX, 4, FMT)) return 1;
+  double beta = atof(infile_.NextElement());
+  double bx = atof(infile_.NextElement());
+  double by = atof(infile_.NextElement());
+  double bz = atof(infile_.NextElement());
+  parmbox_.SetBetaLengths( beta, bx, by, bz );
   return 0;
 }
 

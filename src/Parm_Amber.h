@@ -93,6 +93,7 @@ class Parm_Amber : public ParmIO {
     int ReadItree(Topology&, FortranData const&);
     int ReadJoin(Topology&, FortranData const&);
     int ReadIrotat(Topology&, FortranData const&);
+    int ReadBox(FortranData const&);
     // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);
@@ -119,6 +120,7 @@ class Parm_Amber : public ParmIO {
     BufferedFrame infile_;
     Iarray values_; ///< Values read in from POINTERS
     Iarray atomicNums_; ///< Set to atomic numbers if ATOMIC_NUMBER section found.
+    Box parmbox_; ///< Box coords/type, set from beta, x, y, and z.
     int numLJparm_; ///< Number of LJ parameters
     bool SCEE_set_; ///< True if SCEE section found
     bool SCNB_set_; ///< True if SCNB section found
