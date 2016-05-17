@@ -45,7 +45,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     buffer_ = 0;
   else {
     buffer_ = new char[ frameSize_ + 1 ]; // +1 for null, TODO not necessary for read?
-    std::fill(buffer_, buffer_ + frameSize_, 0);
+    std::fill(buffer_, buffer_ + frameSize_ + 1, 0);
   }
   bufferPosition_ = buffer_;
   mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
@@ -187,6 +187,7 @@ const char* BufferedFrame::NextElement() {
   if (saveChar_ != 0) *bufferPosition_ = saveChar_;
   const char* position = bufferPosition_;
   bufferPosition_ += eltWidth_;
+  //mprinterr("DEBUG: bufferPosition is %zu, frame size is %zu\n", bufferPosition_-buffer_, frameSize_);
   char* end = bufferPosition_;
   while (*bufferPosition_=='\n' || *bufferPosition_=='\r')
     ++bufferPosition_;
