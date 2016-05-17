@@ -193,6 +193,14 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   else
     err = ReadNewParm( TopIn );
   if (err != 0) return 1;
+  // Determine Atom elements
+  if (atomicNums_.empty()) {
+    mprintf("Warning: Amber topology does not include atomic numbers.\n"
+            "Warning: Will attempt to assign elements from atom masses/names.\n");
+    atomicNums_.assign( values_[NATOM], 0 );
+  }
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).DetermineElement( atomicNums_[idx] );
   // Set Atom residue numbers
   for (Topology::res_iterator res = TopIn.ResStart(); res != TopIn.ResEnd(); ++res)
     for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
@@ -363,9 +371,9 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   for (int idx = 0; idx != Npointers; idx++)
     values_.push_back( atoi( infile_.NextElement() ) );
 
-  mprintf("DEBUG: POINTERS\n");
-  for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
-    mprintf("%u\t%i\n", it-values_.begin(), *it);
+  //mprintf("DEBUG: POINTERS\n");
+  //for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
+  //  mprintf("%u\t%i\n", it-values_.begin(), *it);
 
   TopIn.Resize( values_[NATOM], values_[NRES], values_[NATOM], values_[NUMBND], values_[NUMANG] );
 
@@ -471,6 +479,7 @@ int Parm_Amber::ReadResidueAtomNums(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadBondRK()
 int Parm_Amber::ReadBondRK(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_BONDRK, values_[NUMBND], FMT)) return 1;
   for (int idx = 0; idx != values_[NUMBND]; idx++)
@@ -478,6 +487,7 @@ int Parm_Amber::ReadBondRK(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadBondREQ()
 int Parm_Amber::ReadBondREQ(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_BONDREQ, values_[NUMBND], FMT)) return 1;
   for (int idx = 0; idx != values_[NUMBND]; idx++)
@@ -485,6 +495,7 @@ int Parm_Amber::ReadBondREQ(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadAngleTK()
 int Parm_Amber::ReadAngleTK(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_ANGLETK, values_[NUMANG], FMT)) return 1;
   for (int idx = 0; idx != values_[NUMANG]; idx++)
@@ -492,6 +503,7 @@ int Parm_Amber::ReadAngleTK(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadAngleTEQ()
 int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_ANGLETEQ, values_[NUMANG], FMT)) return 1;
   for (int idx = 0; idx != values_[NUMANG]; idx++)
@@ -499,24 +511,32 @@ int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
-/** Amber bond indices are * 3, bond parm indices are +1 */
+BondType Parm_Amber::GetBond() {
+  int a1 = atoi(infile_.NextElement());
+  int a2 = atoi(infile_.NextElement());
+  int bidx = atoi(infile_.NextElement());
+  return BondType( a1 / 3, a2 / 3, bidx - 1 );
+}
+
+// Parm_Amber::ReadBondsH()
+/** Amber bond indices are * 3, bond parm indices are +1.
+  * NOTE: Since NextElement() only returns a pointer to the file buffer,
+  *       have to convert a number as soon as it is available.
+  */
 int Parm_Amber::ReadBondsH(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NBONH]*3;
   if (SetupBuffer(F_BONDSH, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 3)
-    TopIn.AddToBondsH( atoi(infile_.NextElement()) / 3,
-                       atoi(infile_.NextElement()) / 3,
-                       atoi(infile_.NextElement()) - 1 );
+    TopIn.AddToBondsH( GetBond() );
   return 0;
 }
 
+// Parm_Amber::ReadBonds()
 int Parm_Amber::ReadBonds(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[MBONA]*3;
   if (SetupBuffer(F_BONDS, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 3)
-    TopIn.AddToBonds( atoi(infile_.NextElement()) / 3,
-                      atoi(infile_.NextElement()) / 3,
-                      atoi(infile_.NextElement()) - 1 );
+    TopIn.AddToBonds( GetBond() );
   return 0;
 }
     

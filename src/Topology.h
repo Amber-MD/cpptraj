@@ -60,10 +60,10 @@ class Topology {
     BondParmArray     const& BondParm()     const { return bondparm_;     }
     BondParmType& SetBondParm(int i)              { return bondparm_[i];  }
     void AddBondParm(BondParmType const& b)       { bondparm_.push_back( b ); }
-    void AddBond(int i, int j) { AddBond(i, j, -1); }
+    void AddBond(int i, int j)                    { AddBond(i, j, -1); }
     void AddBond(int, int, int);
-    void AddToBondsH(int i, int j, int p) { bondsh_.push_back(BondType(i, j, p)); }
-    void AddToBonds(int i, int j, int p)  { bonds_.push_back(BondType(i, j, p));  }
+    void AddToBondsH(BondType const& bnd)         { bondsh_.push_back(bnd); }
+    void AddToBonds(BondType const& bnd)          { bonds_.push_back(bnd);  }
     // ----- Angle-specific routines -------------
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }

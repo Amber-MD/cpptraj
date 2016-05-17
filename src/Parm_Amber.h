@@ -71,6 +71,7 @@ class Parm_Amber : public ParmIO {
     int ReadAngleTK(Topology&, FortranData const&);
     int ReadAngleTEQ(Topology&, FortranData const&);
 
+    inline BondType GetBond();
     int ReadBondsH(Topology&, FortranData const&);
     int ReadBonds(Topology&, FortranData const&);
 

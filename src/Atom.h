@@ -87,6 +87,8 @@ class Atom {
     static double GetBondLength(AtomicElementType, AtomicElementType);
     /// \return PARSE radius in Ang. based on element.
     double ParseRadius() const;
+    /// Determine element from given atomic number. Use mass/name if number < 1.
+    void DetermineElement(int);
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
@@ -109,7 +111,6 @@ class Atom {
     std::vector<int> excluded_; ///< Indices of atoms excluded from nonbonded calc with this one.
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
-    void DetermineElement(int);
     void SetElementFromName();
     void SetElementFromSymbol(char,char);
     void SetElementFromMass();
