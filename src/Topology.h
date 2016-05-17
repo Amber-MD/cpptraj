@@ -15,6 +15,8 @@
 class Topology {
   public:
     Topology();
+    /// Can be used with Resize() to reserve Topology memory.
+    class Pointers;
     // ----- Set internal variables --------------
     void SetDebug(int dIn)                   { debug_ = dIn;                 }
     void SetIpol(int iIn)                    { ipol_ = iIn;                  }
@@ -69,13 +71,12 @@ class Topology {
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
     AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
     void AddAngle(int, int, int);
-    int SetAngleInfo(AngleArray const&, AngleArray const&, AngleParmArray const&);
     // ----- Dihedral-specific routines ----------
-    DihedralArray     const& Dihedrals()    const { return dihedrals_;    }
-    DihedralArray     const& DihedralsH()   const { return dihedralsh_;   }
-    DihedralParmArray const& DihedralParm() const { return dihedralparm_; }
+    DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
+    DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
+    DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }
+    DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
     void AddDihedral(int, int, int, int);
-    int SetDihedralInfo(DihedralArray const&, DihedralArray const&, DihedralParmArray const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -130,7 +131,7 @@ class Topology {
     void ResetPDBinfo();
     int Setup_NoResInfo();
     /// Resize for given numbers of atoms/residues etc. Clears any existing data.
-    void Resize(int, int, int, int, int);
+    void Resize(Pointers const&);
     // ----- Mask Routines -----------------------
     int SetupIntegerMask(AtomMask &) const;
     int SetupCharMask(CharMask &) const;
@@ -222,4 +223,20 @@ NonbondType const& Topology::GetLJparam(int a1, int a2) const {
     return LJ_EMPTY;
   return nonbond_.NBarray( nbindex );
 }
+// -----------------------------------------------------------------------------
+class Topology::Pointers {
+  public:
+    Pointers() : natom_(0), nres_(0), nextra_(0), nBndParm_(0), nAngParm_(0),
+                 nDihParm_(0) {}
+    Pointers(int na, int nr, int ne, int nbp, int nap, int ndp):
+     natom_(na), nres_(nr), nextra_(ne), nBndParm_(nbp), nAngParm_(nap),
+     nDihParm_(ndp) {} 
+  //private:
+    int natom_;
+    int nres_;
+    int nextra_;
+    int nBndParm_;
+    int nAngParm_;
+    int nDihParm_;
+};
 #endif

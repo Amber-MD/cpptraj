@@ -757,31 +757,8 @@ static inline int NoAtomsErr(const char* msg) {
   return 1;
 }
 
-
-
-// Topology::SetAngleInfo()
-int Topology::SetAngleInfo(AngleArray const& anglesIn, AngleArray const& angleshIn,
-                           AngleParmArray const& angleparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("angles"); 
-  angles_ = anglesIn;
-  anglesh_ = angleshIn;
-  angleparm_ = angleparmIn;
-  return 0;
-}
-
-// Topology::SetDihedralInfo()
-int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray const& dihedralshIn,
-                              DihedralParmArray const& dihedralparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("dihedrals"); 
-  dihedrals_ = dihedralsIn;
-  dihedralsh_ = dihedralshIn;
-  dihedralparm_ = dihedralparmIn;
-  return 0;
-}
-
-void Topology::Resize(int natom, int nres, int nextra, int nBndParm, int nAngParm) {
+// Topology::Resize()
+void Topology::Resize(Pointers const& pIn) {
   atoms_.clear();
   residues_.clear();
   molecules_.clear();
@@ -807,10 +784,11 @@ void Topology::Resize(int natom, int nres, int nextra, int nBndParm, int nAngPar
   n_extra_pts_ = 0;
   n_atom_types_ = 0;
 
-  atoms_.resize( natom );
-  residues_.resize( nres );
-  bondparm_.resize( nBndParm );
-  angleparm_.resize( nAngParm );
+  atoms_.resize( pIn.natom_ );
+  residues_.resize( pIn.nres_ );
+  bondparm_.resize( pIn.nBndParm_ );
+  angleparm_.resize( pIn.nAngParm_ );
+  dihedralparm_.resize( pIn.nDihParm_ );
 }
 
 double Topology::GetVDWradius(int a1) const {

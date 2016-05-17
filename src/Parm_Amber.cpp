@@ -297,6 +297,11 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_BONDREQ:   err = ReadBondREQ(TopIn, FMT); break;
             case F_ANGLETK:   err = ReadAngleTK(TopIn, FMT); break;
             case F_ANGLETEQ:  err = ReadAngleTEQ(TopIn, FMT); break;
+            case F_DIHPK:     err = ReadDihedralPK(TopIn, FMT); break;
+            case F_DIHPN:     err = ReadDihedralPN(TopIn, FMT); break;
+            case F_DIHPHASE:  err = ReadDihedralPHASE(TopIn, FMT); break;
+            case F_SCEE:      err = ReadDihedralSCEE(TopIn, FMT); break;
+            case F_SCNB:      err = ReadDihedralSCNB(TopIn, FMT); break;
 
             case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
             case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
@@ -379,7 +384,8 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   //for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
   //  mprintf("%u\t%i\n", it-values_.begin(), *it);
 
-  TopIn.Resize( values_[NATOM], values_[NRES], values_[NATOM], values_[NUMBND], values_[NUMANG] );
+  TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
+                                   values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
   if (values_[IFPERT] > 0)
     mprintf("Warning: '%s' contains perturbation information.\n"
@@ -515,6 +521,42 @@ int Parm_Amber::ReadAngleTEQ(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+int Parm_Amber::ReadDihedralPK(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_DIHPK, values_[NPTRA], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPTRA]; idx++)
+    TopIn.SetDihedralParm(idx).SetPk( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadDihedralPN(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_DIHPN, values_[NPTRA], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPTRA]; idx++)
+    TopIn.SetDihedralParm(idx).SetPn( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadDihedralPHASE(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_DIHPHASE, values_[NPTRA], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPTRA]; idx++)
+    TopIn.SetDihedralParm(idx).SetPhase( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadDihedralSCEE(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_SCEE, values_[NPTRA], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPTRA]; idx++)
+    TopIn.SetDihedralParm(idx).SetSCEE( atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_SCNB, values_[NPTRA], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPTRA]; idx++)
+    TopIn.SetDihedralParm(idx).SetSCNB( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::GetBond()
 BondType Parm_Amber::GetBond() {
   int a1 = atoi(infile_.NextElement());
   int a2 = atoi(infile_.NextElement());
