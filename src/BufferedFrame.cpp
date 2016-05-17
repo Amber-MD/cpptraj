@@ -9,7 +9,8 @@ BufferedFrame::BufferedFrame() :
   frameSize_(0),
   offset_(0),
   Ncols_(0),
-  eltWidth_(0)
+  eltWidth_(0),
+  saveChar_(0)
 {}
 
 BufferedFrame::~BufferedFrame() {
