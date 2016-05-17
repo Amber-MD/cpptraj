@@ -62,6 +62,7 @@ class Atom {
     void SetCharge(double qin)               { charge_ = qin;       }
     void SetMass(double min)                 { mass_ = min;         }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
+    void SetGBscreen(double sin)             { gb_screen_ = sin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
     void SetName(NameType const& nin)        { aname_ = nin;        }
     void SetTypeName(NameType const& tin)    { atype_ = tin;        }

@@ -395,6 +395,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PARMBOX:   err = ReadBox(FMT); break;
             case F_CAP_INFO:  err = ReadCapInfo(TopIn, FMT); break;
             case F_CAP_INFO2: err = ReadCapInfo2(TopIn, FMT); break;
+            case F_RADSET:    err = ReadGBradiiSet(TopIn); break;
+            case F_RADII:     err = ReadGBradii(TopIn, FMT); break;
+            case F_SCREEN:    err = ReadGBscreen(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -856,6 +859,30 @@ int Parm_Amber::ReadCapInfo2(Topology& TopIn, FortranData const& FMT) {
   TopIn.SetCap().SetXcap( atof(infile_.NextElement()) );
   TopIn.SetCap().SetYcap( atof(infile_.NextElement()) );
   TopIn.SetCap().SetZcap( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadGBradiiSet()
+int Parm_Amber::ReadGBradiiSet(Topology& TopIn) {
+  std::string radius_set = NoTrailingWhitespace(infile_.GetLine());
+  mprintf("\tRadius Set: %s\n",radius_set.c_str());
+  TopIn.SetGBradiiSet( radius_set );
+  return 0;
+}
+
+// Parm_Amber::ReadGBradii()
+int Parm_Amber::ReadGBradii(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_RADII, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetGBradius( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadGBscreen()
+int Parm_Amber::ReadGBscreen(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_SCREEN, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetGBscreen( atof(infile_.NextElement()) );
   return 0;
 }
 
