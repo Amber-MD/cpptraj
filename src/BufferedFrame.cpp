@@ -186,13 +186,15 @@ const char* BufferedFrame::NextElement() {
   if (saveChar_ != 0) *bufferPosition_ = saveChar_;
   const char* position = bufferPosition_;
   bufferPosition_ += eltWidth_;
-  const char* end = bufferPosition_;
+  char* end = bufferPosition_;
   while (*bufferPosition_=='\n' || *bufferPosition_=='\r')
     ++bufferPosition_;
   if (bufferPosition_ == end) {
     saveChar_ = *bufferPosition_;
     *bufferPosition_ = '\0';
-  } else
+  } else {
     saveChar_ = 0;
+    *end = '\0';
+  }
   return position; 
 }
