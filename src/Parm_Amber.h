@@ -77,16 +77,21 @@ class Parm_Amber : public ParmIO {
     int ReadDihedralSCNB(Topology&, FortranData const&);
     int ReadLJA(Topology&, FortranData const&);
     int ReadLJB(Topology&, FortranData const&);
-
     inline BondType GetBond();
     int ReadBondsH(Topology&, FortranData const&);
     int ReadBonds(Topology&, FortranData const&);
-
+    inline AngleType GetAngle();
+    int ReadAnglesH(Topology&, FortranData const&);
+    int ReadAngles(Topology&, FortranData const&);
+    inline DihedralType GetDihedral();
+    int ReadDihedralsH(Topology&, FortranData const&);
+    int ReadDihedrals(Topology&, FortranData const&);
+    // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);
     int ReadPdbIcode(Topology&, FortranData const&);
     int ReadPdbAlt(Topology&, FortranData const&);
-
+    // CHAMBER
     int ReadChamberFFtype(Topology&);
     int ReadChamberUBCount(Topology&, FortranData const&);
     int ReadChamberUBTerms(Topology&, FortranData const&);

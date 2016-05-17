@@ -258,6 +258,12 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if (infile_.ReadFrame()) return 1;
   if ( ReadLJA(TopIn, DBL) ) return 1;
   if ( ReadLJB(TopIn, DBL) ) return 1;
+  if ( ReadBondsH(TopIn, INT) ) return 1;
+  if ( ReadBonds(TopIn, INT) ) return 1;
+  if ( ReadAnglesH(TopIn, INT) ) return 1;
+  if ( ReadAngles(TopIn, INT) ) return 1;
+  if ( ReadDihedralsH(TopIn, INT) ) return 1;
+  if ( ReadDihedrals(TopIn, INT) ) return 1;
 
   return 0;
 }
@@ -329,9 +335,12 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_SOLTY: ptr = SkipToNextFlag(); break;
             case F_LJ_A:      err = ReadLJA(TopIn, FMT); break;
             case F_LJ_B:      err = ReadLJB(TopIn, FMT); break;
-
             case F_BONDSH:    err = ReadBondsH(TopIn, FMT); break;
             case F_BONDS:     err = ReadBonds(TopIn, FMT); break;
+            case F_ANGLESH:   err = ReadAnglesH(TopIn, FMT); break;
+            case F_ANGLES:    err = ReadAngles(TopIn, FMT); break;
+            case F_DIHH:      err = ReadDihedralsH(TopIn, FMT); break;
+            case F_DIH:       err = ReadDihedrals(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -643,7 +652,61 @@ int Parm_Amber::ReadBonds(Topology& TopIn, FortranData const& FMT) {
     TopIn.AddBond( GetBond(), false );
   return 0;
 }
-    
+
+// Parm_Amber::GetAngle()
+AngleType Parm_Amber::GetAngle() {
+  int a1 = atoi(infile_.NextElement());
+  int a2 = atoi(infile_.NextElement());
+  int a3 = atoi(infile_.NextElement());
+  int aidx = atoi(infile_.NextElement());
+  return AngleType( a1 / 3, a2 / 3, a3 / 3, aidx - 1 );
+}
+
+// Parm_Amber::ReadAnglesH()
+int Parm_Amber::ReadAnglesH(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[NTHETH]*4;
+  if (SetupBuffer(F_ANGLESH, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 4)
+    TopIn.AddAngle( GetAngle(), true );
+  return 0;
+}
+
+// Parm_Amber::ReadAngles()
+int Parm_Amber::ReadAngles(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[MTHETA]*4;
+  if (SetupBuffer(F_ANGLES, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 4)
+    TopIn.AddAngle( GetAngle(), false );
+  return 0;
+}
+
+// Parm_Amber::GetDihedral()
+DihedralType Parm_Amber::GetDihedral() {
+  int a1 = atoi(infile_.NextElement());
+  int a2 = atoi(infile_.NextElement());
+  int a3 = atoi(infile_.NextElement());
+  int a4 = atoi(infile_.NextElement());
+  int didx = atoi(infile_.NextElement());
+  return DihedralType( a1 / 3, a2 / 3, a3 / 3, a4 / 3, didx - 1 );
+}
+
+// Parm_Amber::ReadDihedralsH()
+int Parm_Amber::ReadDihedralsH(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[NPHIH]*5;
+  if (SetupBuffer(F_DIHH, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 5)
+    TopIn.AddDihedral( GetDihedral(), true );
+  return 0;
+}
+
+// Parm_Amber::ReadDihedrals()
+int Parm_Amber::ReadDihedrals(Topology& TopIn, FortranData const& FMT) {
+  int nvals = values_[MPHIA]*5;
+  if (SetupBuffer(F_DIH, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 5)
+    TopIn.AddDihedral( GetDihedral(), false );
+  return 0;
+}
 
 // ----- Extra PDB Info --------------------------
 int Parm_Amber::ReadPdbRes(Topology& TopIn, FortranData const& FMT) {

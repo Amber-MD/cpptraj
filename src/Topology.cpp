@@ -925,6 +925,13 @@ void Topology::AddAngle(int atom1, int atom2, int atom3) {
     angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
 }
 
+void Topology::AddAngle(AngleType const& angIn, bool isH) {
+  if (isH)
+    anglesh_.push_back( angIn );
+  else
+    angles_.push_back( angIn );
+}
+
 void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
   // FIXME: Check duplicate
   if (atoms_[atom1].Element() == Atom::HYDROGEN ||
@@ -934,6 +941,13 @@ void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
     dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
   else
     dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+}
+
+void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
+  if (isH)
+    dihedralsh_.push_back( dihIn );
+  else
+    dihedrals_.push_back( dihIn );
 }
 
 // Topology::VisitAtom()
