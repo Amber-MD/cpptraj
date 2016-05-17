@@ -372,7 +372,10 @@ class ChamberParmType {
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
     CmapArray         const& Cmap()         const { return cmap_;         }
     void SetLJ14(NonbondArray const& nb)          { lj14_ = nb;           }
-    void SetChamber(int i, std::string const& s)  { 
+    NonbondType SetLJ14(int idx)                  { return lj14_[idx];    }
+    /// Set expected number of LJ14 terms TODO combine with SetVersion?
+    void SetNLJ14terms(int n)                     { lj14_.assign( n, NonbondType() ); }
+    void SetVersion(int i, std::string const& s)  { 
       chmff_verno_ = i;
       chmff_type_ = s;
     }

@@ -1403,7 +1403,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info - Parameters remain intact
   if (chamber_.HasChamber()) {
-    newParm->chamber_.SetChamber( chamber_.FF_Version(), chamber_.FF_Type() );
+    newParm->chamber_.SetVersion( chamber_.FF_Version(), chamber_.FF_Type() );
     newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
     newParm->chamber_.SetImproper( StripDihedralArray(chamber_.Impropers(),atomMap),
                                    chamber_.ImproperParm() );

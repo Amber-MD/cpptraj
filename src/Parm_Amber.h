@@ -97,6 +97,8 @@ class Parm_Amber : public ParmIO {
     int ReadChamberImpropers(Topology&, FortranData const&);
     int ReadChamberImpFC(Topology&, FortranData const&);
     int ReadChamberImpPHASE(Topology&, FortranData const&);
+    int ReadChamberLJ14A(Topology&, FortranData const&);
+    int ReadChamberLJ14B(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];

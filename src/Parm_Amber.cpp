@@ -348,6 +348,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_IMP:   err = ReadChamberImpropers(TopIn, FMT); break;
             case F_CHM_IMPFC: err = ReadChamberImpFC(TopIn, FMT); break;
             case F_CHM_IMPP:  err = ReadChamberImpPHASE(TopIn, FMT); break;
+            case F_LJ14A:     err = ReadChamberLJ14A(TopIn, FMT); break;
+            case F_LJ14B:     err = ReadChamberLJ14B(TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str()); ptr = SkipToNextFlag();
           }
@@ -596,6 +598,7 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadLJA()
 int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_A, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++)
@@ -603,6 +606,7 @@ int Parm_Amber::ReadLJA(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadLJB()
 int Parm_Amber::ReadLJB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_LJ_B, numLJparm_, FMT)) return 1;
   for (int idx = 0; idx != numLJparm_; idx++)
@@ -679,8 +683,9 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
   ff_verstr[1] = ptr[1];
   int ff_verno = atoi(ff_verstr);
   std::string fftype = NoTrailingWhitespace( ptr+2 );
-  TopIn.SetChamber().SetChamber( ff_verno, fftype );
+  TopIn.SetChamber().SetVersion( ff_verno, fftype );
   mprintf("\tCHAMBER topology: %i: %s\n", ff_verno, fftype.c_str());
+  TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   return 0;
 }
 
@@ -769,6 +774,22 @@ int Parm_Amber::ReadChamberImpPHASE(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_IMPP, N_impTerms_, FMT)) return 1;
   for (int idx = 0; idx != N_impTerms_; idx++)
     TopIn.SetChamber().SetImproperParm(idx).SetPhase( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadChamberLJ14A()
+int Parm_Amber::ReadChamberLJ14A(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LJ14A, numLJparm_, FMT)) return 1;
+  for (int idx = 0; idx != numLJparm_; idx++)
+    TopIn.SetChamber().SetLJ14(idx).SetA( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadChamberLJ14B()
+int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LJ14B, numLJparm_, FMT)) return 1;
+  for (int idx = 0; idx != numLJparm_; idx++)
+    TopIn.SetChamber().SetLJ14(idx).SetB( atof(infile_.NextElement()) );
   return 0;
 }
 
