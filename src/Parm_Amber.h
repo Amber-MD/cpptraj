@@ -86,6 +86,9 @@ class Parm_Amber : public ParmIO {
     inline DihedralType GetDihedral();
     int ReadDihedralsH(Topology&, FortranData const&);
     int ReadDihedrals(Topology&, FortranData const&);
+    int ReadAsol(Topology&, FortranData const&);
+    int ReadBsol(Topology&, FortranData const&);
+    int ReadHBcut(Topology&, FortranData const&);
     // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);

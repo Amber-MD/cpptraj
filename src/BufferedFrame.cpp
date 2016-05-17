@@ -103,6 +103,12 @@ int BufferedFrame::AttemptReadFrame() {
   */
 bool BufferedFrame::ReadFrame() {
   return ( Read( buffer_, frameSize_ ) != (int)frameSize_ );
+  /*int nread = Read(buffer_, frameSize_);
+  if (nread != (int)frameSize_) {
+    mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_);
+    return true;
+  }
+  return false;*/
 }
 
 int BufferedFrame::WriteFrame() {

@@ -234,18 +234,21 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
 int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( infile_.GetLine() );
+  mprintf("DEBUG: Title= '%s'\n", title.c_str());
   int Npointers = 30; // No NEXTRA etc
   FortranData DBL(FDOUBLE, 5, 16, 0);
   FortranData INT(FINT, 12, 6, 0);
+  FortranData CHAR(FCHAR, 20, 4, 0);
   if ( ReadPointers( Npointers, TopIn, INT ) ) return 1;
-  if ( ReadAtomNames( TopIn, FortranData(FCHAR, 20, 4, 0) ) ) return 1;
+  if ( ReadAtomNames( TopIn, CHAR ) ) return 1;
   if ( ReadAtomCharges( TopIn, DBL ) ) return 1;
   if ( ReadAtomicMass( TopIn, DBL ) ) return 1;
   if ( ReadAtomTypeIndex( TopIn, INT ) ) return 1;
   // Skip past NUMEX
   SetupBuffer(F_NUMEX, values_[NATOM], INT);
-  if (infile_.ReadFrame()) return 1;
   if ( ReadNonbondIndices(TopIn, INT) ) return 1;
+  if ( ReadResidueNames(TopIn, CHAR) ) return 1;
+  if ( ReadResidueAtomNums(TopIn, INT) ) return 1;
   if ( ReadBondRK(TopIn, DBL) ) return 1;
   if ( ReadBondREQ(TopIn, DBL) ) return 1;
   if ( ReadAngleTK(TopIn, DBL) ) return 1;
@@ -255,7 +258,6 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadDihedralPHASE(TopIn, DBL) ) return 1;
   // Skip past SOLTY
   SetupBuffer(F_SOLTY, values_[NATYP], DBL);
-  if (infile_.ReadFrame()) return 1;
   if ( ReadLJA(TopIn, DBL) ) return 1;
   if ( ReadLJB(TopIn, DBL) ) return 1;
   if ( ReadBondsH(TopIn, INT) ) return 1;
@@ -264,6 +266,11 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   if ( ReadAngles(TopIn, INT) ) return 1;
   if ( ReadDihedralsH(TopIn, INT) ) return 1;
   if ( ReadDihedrals(TopIn, INT) ) return 1;
+  // Skip past EXCLUDE
+  SetupBuffer(F_EXCLUDE, values_[NNB], INT);
+  if ( ReadAsol(TopIn, DBL) ) return 1;
+  if ( ReadBsol(TopIn, DBL) ) return 1;
+  if ( ReadHBcut(TopIn, DBL) ) return 1;
 
   return 0;
 }
@@ -341,6 +348,10 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_ANGLES:    err = ReadAngles(TopIn, FMT); break;
             case F_DIHH:      err = ReadDihedralsH(TopIn, FMT); break;
             case F_DIH:       err = ReadDihedrals(TopIn, FMT); break;
+            case F_EXCLUDE: ptr = SkipToNextFlag(); break;
+            case F_ASOL:      err = ReadAsol(TopIn, FMT); break;
+            case F_BSOL:      err = ReadBsol(TopIn, FMT); break;
+            case F_HBCUT:     err = ReadHBcut(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -365,9 +376,12 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           if (err != 0) return 1;
         }
       } else {
-        // Unknown: Read past it
+        // Unknown '%' tag. Read past it.
         ptr = infile_.NextLine();
       }  
+    } else {
+      // Unknown line. Read past it.
+      ptr = infile_.NextLine();
     }
   }
 
@@ -375,6 +389,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
   return 0;
 }
 
+// Parm_Amber::SkipToNextFlag()
 const char* Parm_Amber::SkipToNextFlag() {
   const char* ptr = infile_.NextLine();
   while (ptr != 0 && !IsFLAG(ptr)) ptr = infile_.NextLine();
@@ -423,20 +438,21 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   for (int idx = 0; idx != Npointers; idx++)
     values_.push_back( atoi( infile_.NextElement() ) );
 
-  //mprintf("DEBUG: POINTERS\n");
-  //for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
-  //  mprintf("%u\t%i\n", it-values_.begin(), *it);
+  mprintf("DEBUG: POINTERS\n");
+  for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
+    mprintf("%u\t%i\n", it-values_.begin(), *it);
 
   TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
   if (values_[IFPERT] > 0)
     mprintf("Warning: '%s' contains perturbation information.\n"
-            "Warning:  Cpptraj currently does not read of write perturbation information.\n",
+            "Warning:  Cpptraj currently does not read or write perturbation information.\n",
             infile_.Filename().base());
 
   numLJparm_ = values_[NTYPES] * (values_[NTYPES]+1) / 2;
   TopIn.SetNonbond().SetNLJterms( numLJparm_ );
+  TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
   return 0;
 }
 
@@ -446,8 +462,16 @@ int Parm_Amber::SetupBuffer(AmberParmFlagType ftype, int nvals, FortranData cons
     mprinterr("Error: Flag '%s' encountered before POINTERS.\n", FLAGS_[ftype].Flag);
     return 1;
   }
-  infile_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
-  if (infile_.ReadFrame()) return 1;
+  if (nvals > 0) {
+    mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    infile_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
+    if (infile_.ReadFrame()) return 1;
+    //mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, infile_.Buffer());
+  } else {
+    mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
+    // Read blank line
+    infile_.NextLine();
+  }
   return 0;
 }
 
@@ -492,7 +516,7 @@ int Parm_Amber::ReadAtomicMass(Topology& TopIn, FortranData const& FMT) {
   * NOTE: If ever used, shift atom #s in excludedAtoms by -1 so they start from 0
   */
 int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
-  if (SetupBuffer(F_MASS, values_[NATOM], FMT)) return 1;
+  if (SetupBuffer(F_ATYPEIDX, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetAtom(idx).SetTypeIndex( atoi(infile_.NextElement()) - 1 );
   return 0;
@@ -705,6 +729,30 @@ int Parm_Amber::ReadDihedrals(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_DIH, nvals, FMT)) return 1;
   for (int idx = 0; idx != nvals; idx += 5)
     TopIn.AddDihedral( GetDihedral(), false );
+  return 0;
+}
+
+// Parm_Amber::ReadAsol()
+int Parm_Amber::ReadAsol(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_ASOL, values_[NPHB], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPHB]; idx++)
+    TopIn.SetNonbond().SetHB(idx).SetAsol( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadBsol()
+int Parm_Amber::ReadBsol(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_BSOL, values_[NPHB], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPHB]; idx++)
+    TopIn.SetNonbond().SetHB(idx).SetBsol( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadHBcut()
+int Parm_Amber::ReadHBcut(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_HBCUT, values_[NPHB], FMT)) return 1;
+  for (int idx = 0; idx != values_[NPHB]; idx++)
+    TopIn.SetNonbond().SetHB(idx).SetHBcut( atof(infile_.NextElement()) );
   return 0;
 }
 
