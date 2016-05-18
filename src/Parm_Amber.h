@@ -2,7 +2,6 @@
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
 #include "BufferedFrame.h"
-#include "TextFormat.h"
 class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
@@ -161,8 +160,6 @@ class Parm_Amber : public ParmIO {
     int nlestyp_; ///< Number of LES types
 
     // Write variables
-    TextFormat WriteFmt_;
-    const char* fmt_;
     bool nochamber_;
 };
 // -----------------------------------------------------------------------------

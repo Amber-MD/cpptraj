@@ -26,6 +26,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   return SetupFrameBuffer(Nelts, eltWidthIn, eltsPerLine, 0, 0);
 }
 
+size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int eltsPerLine)
+{
+  writeFmt_ = fmtIn;
+  return SetupFrameBuffer(Nelts, writeFmt_.Width(), eltsPerLine, 0, 0);
+}
+  
 /** Prepare the buffer to receive organized chunks of text, i.e. 
   * organized in some regular fashion (e.g. an Amber Traj, which
   * is 10 cols of 8.3 precision floating point numbers etc).
@@ -216,18 +222,18 @@ void BufferedFrame::AdvanceCol() {
   }
 }
 
-void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
-  sprintf(bufferPosition_, fmt, ival);
+void BufferedFrame::IntToBuffer(int ival) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
   AdvanceCol();
 }
 
-void BufferedFrame::DblToBuffer(const char* fmt, double dval) {
-  sprintf(bufferPosition_, fmt, dval);
+void BufferedFrame::DblToBuffer(double dval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
   AdvanceCol();
 }
 
-void BufferedFrame::CharToBuffer(const char* fmt, const char* cval) {
-  sprintf(bufferPosition_, fmt, cval);
+void BufferedFrame::CharToBuffer(const char* cval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
   AdvanceCol();
 }
 

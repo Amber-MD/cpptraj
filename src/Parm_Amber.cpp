@@ -1206,17 +1206,17 @@ int Parm_Amber::BufferAlloc(AmberParmFlagType ftype, int nvals) {
   // Write FLAG and FORMAT lines
   file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[ftype].Flag, FMT.Fstr());
   if (nvals > 0) {
+    TextFormat WriteFmt;
     mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
-    file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if      (FMT.Ftype() == FINT)
-      WriteFmt_ = TextFormat(TextFormat::INTEGER, FMT.Width());
+      WriteFmt = TextFormat(TextFormat::INTEGER, FMT.Width());
     else if (FMT.Ftype() == FDOUBLE)
-      WriteFmt_ = TextFormat(TextFormat::SCIENTIFIC, FMT.Width(), FMT.Precision());
+      WriteFmt = TextFormat(TextFormat::SCIENTIFIC, FMT.Width(), FMT.Precision());
     else if (FMT.Ftype() == FCHAR)
-      WriteFmt_ = TextFormat(TextFormat::STRING, FMT.Width());
+      WriteFmt = TextFormat(TextFormat::STRING, FMT.Width());
     else if (FMT.Ftype() == FFLOAT)
-      WriteFmt_ = TextFormat(TextFormat::DOUBLE, FMT.Width());
-    fmt_ = WriteFmt_.fmt();
+      WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width());
+    file_.SetupFrameBuffer( nvals, WriteFmt, FMT.Ncols() );
   } else {
     mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Write blank line
@@ -1279,46 +1279,46 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // POINTERS
   if (BufferAlloc(F_POINTERS, AMBERPOINTERS_)) return 1;
-  file_.IntToBuffer( fmt_, TopOut.Natom() ); // NATOM
-  file_.IntToBuffer( fmt_, TopOut.Nonbond().Ntypes() ); // NTYPES
-  file_.IntToBuffer( fmt_, TopOut.BondsH().size() ); // NBONH
-  file_.IntToBuffer( fmt_, TopOut.Bonds().size() ); // NBONA
-  file_.IntToBuffer( fmt_, TopOut.AnglesH().size() ); // NTHETH
-  file_.IntToBuffer( fmt_, TopOut.Angles().size() ); // NTHETA
-  file_.IntToBuffer( fmt_, TopOut.DihedralsH().size() ); // NPHIH
-  file_.IntToBuffer( fmt_, TopOut.Dihedrals().size() ); // NPHIA
-  file_.IntToBuffer( fmt_, 0 ); // NHPARM, not used
+  file_.IntToBuffer( TopOut.Natom() ); // NATOM
+  file_.IntToBuffer( TopOut.Nonbond().Ntypes() ); // NTYPES
+  file_.IntToBuffer( TopOut.BondsH().size() ); // NBONH
+  file_.IntToBuffer( TopOut.Bonds().size() ); // NBONA
+  file_.IntToBuffer( TopOut.AnglesH().size() ); // NTHETH
+  file_.IntToBuffer( TopOut.Angles().size() ); // NTHETA
+  file_.IntToBuffer( TopOut.DihedralsH().size() ); // NPHIH
+  file_.IntToBuffer( TopOut.Dihedrals().size() ); // NPHIA
+  file_.IntToBuffer( 0 ); // NHPARM, not used
   // FIXME: Currently LES info not 100% correct, in particular the excluded list
   if (TopOut.LES().HasLES()) { // NPARM
     mprintf("Warning: Excluded atom list for LES info is not correct.\n");
-    file_.IntToBuffer( fmt_, 1 );
+    file_.IntToBuffer( 1 );
   } else
-    file_.IntToBuffer( fmt_, 0 );
-  file_.IntToBuffer( fmt_, excluded.size() ); // NNB
-  file_.IntToBuffer( fmt_, TopOut.Nres() ); // NRES
+    file_.IntToBuffer( 0 );
+  file_.IntToBuffer( excluded.size() ); // NNB
+  file_.IntToBuffer( TopOut.Nres() ); // NRES
   //   NOTE: Assuming MBONA == NBONA etc
-  file_.IntToBuffer( fmt_, TopOut.Bonds().size() ); // MBONA
-  file_.IntToBuffer( fmt_, TopOut.Angles().size() ); // MTHETA
-  file_.IntToBuffer( fmt_, TopOut.Dihedrals().size() ); // MPHIA
-  file_.IntToBuffer( fmt_, TopOut.BondParm().size() ); // NUMBND
-  file_.IntToBuffer( fmt_, TopOut.AngleParm().size() ); // NUMANG
-  file_.IntToBuffer( fmt_, TopOut.DihedralParm().size() ); // NPTRA
-  file_.IntToBuffer( fmt_, TopOut.NatomTypes() ); // NATYP, only for SOLTY
-  file_.IntToBuffer( fmt_, TopOut.Nonbond().HBarray().size() ); // NPHB
-  file_.IntToBuffer( fmt_, 0 ); // IFPERT
-  file_.IntToBuffer( fmt_, 0 ); // NBPER
-  file_.IntToBuffer( fmt_, 0 ); // NGPER
-  file_.IntToBuffer( fmt_, 0 ); // NDPER
-  file_.IntToBuffer( fmt_, 0 ); // MBPER
-  file_.IntToBuffer( fmt_, 0 ); // MGPER
-  file_.IntToBuffer( fmt_, 0 ); // MDPER
-  file_.IntToBuffer( fmt_, AmberIfbox( TopOut.ParmBox() ) ); // IFBOX
-  file_.IntToBuffer( fmt_, maxResSize ); // NMXRS
+  file_.IntToBuffer( TopOut.Bonds().size() ); // MBONA
+  file_.IntToBuffer( TopOut.Angles().size() ); // MTHETA
+  file_.IntToBuffer( TopOut.Dihedrals().size() ); // MPHIA
+  file_.IntToBuffer( TopOut.BondParm().size() ); // NUMBND
+  file_.IntToBuffer( TopOut.AngleParm().size() ); // NUMANG
+  file_.IntToBuffer( TopOut.DihedralParm().size() ); // NPTRA
+  file_.IntToBuffer( TopOut.NatomTypes() ); // NATYP, only for SOLTY
+  file_.IntToBuffer( TopOut.Nonbond().HBarray().size() ); // NPHB
+  file_.IntToBuffer( 0 ); // IFPERT
+  file_.IntToBuffer( 0 ); // NBPER
+  file_.IntToBuffer( 0 ); // NGPER
+  file_.IntToBuffer( 0 ); // NDPER
+  file_.IntToBuffer( 0 ); // MBPER
+  file_.IntToBuffer( 0 ); // MGPER
+  file_.IntToBuffer( 0 ); // MDPER
+  file_.IntToBuffer( AmberIfbox( TopOut.ParmBox() ) ); // IFBOX
+  file_.IntToBuffer( maxResSize ); // NMXRS
   if (TopOut.Cap().NatCap() > 0) // IFCAP
-    file_.IntToBuffer( fmt_, 1 );
+    file_.IntToBuffer( 1 );
   else
-    file_.IntToBuffer( fmt_, 0 );
-  file_.IntToBuffer( fmt_ , TopOut.NextraPts() ); // NEXTRA
+    file_.IntToBuffer( 0 );
+  file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
   file_.FlushBuffer();
  
   // CHAMBER only - Version and FF type
@@ -1330,40 +1330,40 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // NAMES
   if (BufferAlloc(F_NAMES, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.CharToBuffer( fmt_, atm->c_str() );
+    file_.CharToBuffer( atm->c_str() );
   file_.FlushBuffer();
 
   // CHARGES
   if (BufferAlloc(F_CHARGE, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.DblToBuffer( fmt_, atm->Charge() * Constants::ELECTOAMBER );
+    file_.DblToBuffer( atm->Charge() * Constants::ELECTOAMBER );
   file_.FlushBuffer();
 
   // ATOMIC NUMBER
   if (BufferAlloc(F_ATOMICNUM, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.IntToBuffer( fmt_, atm->AtomicNumber() );
+    file_.IntToBuffer( atm->AtomicNumber() );
   file_.FlushBuffer();
 
   // MASS
   if (BufferAlloc(F_MASS, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.DblToBuffer( fmt_, atm->Mass() );
+    file_.DblToBuffer( atm->Mass() );
   file_.FlushBuffer();
 
   // TYPE INDEX
   if (BufferAlloc(F_ATYPEIDX, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.IntToBuffer( fmt_, atm->TypeIndex() );
+    file_.IntToBuffer( atm->TypeIndex() );
   file_.FlushBuffer();
 
   // NUMEX
   if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     if (atm->Nexcluded() == 0)
-      file_.IntToBuffer( fmt_, 1 );
+      file_.IntToBuffer( 1 );
     else
-      file_.IntToBuffer( fmt_, atm->Nexcluded() );
+      file_.IntToBuffer( atm->Nexcluded() );
   file_.FlushBuffer();
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
@@ -1371,75 +1371,75 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (Iarray::const_iterator it = TopOut.Nonbond().NBindex().begin();
                               it != TopOut.Nonbond().NBindex().end(); ++it)
     if (*it > -1)
-      file_.IntToBuffer( fmt_, *it + 1 );
+      file_.IntToBuffer( *it + 1 );
     else
-      file_.IntToBuffer( fmt_, *it );
+      file_.IntToBuffer( *it );
   file_.FlushBuffer();
 
   // RESIDUE NAME
   if (BufferAlloc(F_RESNAMES, TopOut.Nres())) return 1;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
-    file_.CharToBuffer( fmt_, res->c_str() );
+    file_.CharToBuffer( res->c_str() );
   file_.FlushBuffer();
 
   // RESIDUE POINTERS
   if (BufferAlloc(F_RESNUMS, TopOut.Nres())) return 1;
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
-    file_.IntToBuffer( fmt_, res->FirstAtom()+1 );
+    file_.IntToBuffer( res->FirstAtom()+1 );
   file_.FlushBuffer();
 
   // BOND RK
   if (BufferAlloc(F_BONDRK, TopOut.BondParm().size())) return 1;
   for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
                                      it != TopOut.BondParm().end(); ++it)
-    file_.DblToBuffer( fmt_, it->Rk() );
+    file_.DblToBuffer( it->Rk() );
   file_.FlushBuffer();
 
   // BOND REQ
   if (BufferAlloc(F_BONDREQ, TopOut.BondParm().size())) return 1;
   for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
                                      it != TopOut.BondParm().end(); ++it)
-    file_.DblToBuffer( fmt_, it->Req() );
+    file_.DblToBuffer( it->Req() );
   file_.FlushBuffer();
 
   // ANGLE TK
   if (BufferAlloc(F_ANGLETK, TopOut.AngleParm().size())) return 1;
   for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
                                       it != TopOut.AngleParm().end(); ++it)
-    file_.DblToBuffer( fmt_, it->Tk() );
+    file_.DblToBuffer( it->Tk() );
   file_.FlushBuffer();
 
   // ANGLE TEQ
   if (BufferAlloc(F_ANGLETEQ, TopOut.AngleParm().size())) return 1;
   for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
                                       it != TopOut.AngleParm().end(); ++it)
-    file_.DblToBuffer( fmt_, it->Teq() );
+    file_.DblToBuffer( it->Teq() );
   file_.FlushBuffer();
 
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
     if (BufferAlloc(F_CHM_UBC, 2)) return 1;
-    file_.IntToBuffer( fmt_, TopOut.Chamber().UB().size() );
-    file_.IntToBuffer( fmt_, TopOut.Chamber().UBparm().size() );
+    file_.IntToBuffer( TopOut.Chamber().UB().size() );
+    file_.IntToBuffer( TopOut.Chamber().UBparm().size() );
     file_.FlushBuffer();
     if (BufferAlloc(F_CHM_UB, TopOut.Chamber().UB().size()*3)) return 1;
     for (BondArray::const_iterator it = TopOut.Chamber().UB().begin();
                                    it != TopOut.Chamber().UB().end(); ++it)
     {
-      file_.IntToBuffer( fmt_, it->A1()+1 );
-      file_.IntToBuffer( fmt_, it->A2()+1 );
-      file_.IntToBuffer( fmt_, it->Idx()+1 );
+      file_.IntToBuffer( it->A1()+1 );
+      file_.IntToBuffer( it->A2()+1 );
+      file_.IntToBuffer( it->Idx()+1 );
     }
     file_.FlushBuffer();
     if (BufferAlloc(F_CHM_UBFC, TopOut.Chamber().UBparm().size())) return 1;
     for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
                                        it != TopOut.Chamber().UBparm().end(); ++it)
-      file_.DblToBuffer( fmt_, it->Rk() );
+      file_.DblToBuffer( it->Rk() );
     file_.FlushBuffer();
     if (BufferAlloc(F_CHM_UBEQ, TopOut.Chamber().UBparm().size())) return 1;
     for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
                                        it != TopOut.Chamber().UBparm().end(); ++it)
-      file_.DblToBuffer( fmt_, it->Req() );
+      file_.DblToBuffer( it->Req() );
     file_.FlushBuffer();
   }
 

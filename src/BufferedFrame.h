@@ -1,14 +1,18 @@
 #ifndef INC_BUFFEREDFRAME_H
 #define INC_BUFFEREDFRAME_H
 #include "CpptrajFile.h"
+#include "TextFormat.h"
 /// Used to buffer text files that will be read in chunks
 class BufferedFrame : public CpptrajFile {
   public:
     BufferedFrame();
     ~BufferedFrame();
-
+    /// Set up buffer for read/write with # elts, elt width, elts per line
     size_t SetupFrameBuffer(int, int, int);
+    /// Set up buffer for read/write. Can specify additional bytes in frame/offset
     size_t SetupFrameBuffer(int, int, int, size_t, int);
+    /// Set up buffer (primarily for writes)
+    size_t SetupFrameBuffer(int, TextFormat const&, int);
     size_t ResizeBuffer(int);
     int SeekToFrame(size_t);
     /// Attempt to read frameSize_ bytes.
@@ -24,9 +28,9 @@ class BufferedFrame : public CpptrajFile {
     void DoubleToBuffer(const double*,int, const char*);
     const char* NextElement();
 
-    void IntToBuffer(const char*, int);
-    void DblToBuffer(const char*, double);
-    void CharToBuffer(const char*, const char*);
+    void IntToBuffer(int);
+    void DblToBuffer(double);
+    void CharToBuffer(const char*);
     void FlushBuffer();
 
     size_t FrameSize()   const { return frameSize_; }
@@ -47,5 +51,6 @@ class BufferedFrame : public CpptrajFile {
     int col_;              ///< Current column (writes)
     size_t eltWidth_;      ///< Width of each element in the frame.
     char saveChar_;        ///< For NextElement(); saved character at bufferPosition_.
+    TextFormat writeFmt_;  ///< Format to use for Int|Dbl|CharToBuffer
 };
 #endif
