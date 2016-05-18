@@ -190,8 +190,7 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
   }
 }
 
-void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
-  sprintf(bufferPosition_, fmt, ival);
+void BufferedFrame::AdvanceCol() {
   bufferPosition_ += eltWidth_;
   ++col_;
   if ( col_ == Ncols_ ) {
@@ -199,6 +198,16 @@ void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
     ++bufferPosition_;
     col_ = 0;
   }
+}
+
+void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
+  sprintf(bufferPosition_, fmt, ival);
+  AdvanceCol();
+}
+
+void BufferedFrame::CharToBuffer(const char* fmt, const char* cval) {
+  sprintf(bufferPosition_, fmt, cval);
+  AdvanceCol();
 }
 
 void BufferedFrame::FlushBuffer() {

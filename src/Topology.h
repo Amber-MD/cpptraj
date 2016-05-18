@@ -24,6 +24,8 @@ class Topology {
     void SetGBradiiSet(std::string const& s) { radius_set_ = s;              }
     void SetParmName(std::string const&, FileName const&);
     void SetDistMaskRef( Frame const& );
+    /// Set value of NATYP from Amber Topology. Only needed for Amber.
+    void SetNatyp(int n)                     { n_atom_types_ = n;            }
     // ----- Return internal variables -----------
     int Ipol()                     const { return ipol_;                  }
     int Pindex()                   const { return pindex_;                }

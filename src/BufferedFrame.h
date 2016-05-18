@@ -25,6 +25,7 @@ class BufferedFrame : public CpptrajFile {
     const char* NextElement();
 
     void IntToBuffer(const char*, int);
+    void CharToBuffer(const char*, const char*);
     void FlushBuffer();
 
     size_t FrameSize()   const { return frameSize_; }
@@ -33,6 +34,7 @@ class BufferedFrame : public CpptrajFile {
     size_t OutputFileSize(unsigned int n) const { return offset_ + (frameSize_ * n); }
   private:
     size_t CalcFrameSize(int) const;
+    inline void AdvanceCol();
 
     char* buffer_;         ///< Character buffer.
     char* bufferPosition_; ///< Position in buffer.

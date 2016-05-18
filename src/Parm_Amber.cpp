@@ -528,6 +528,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   numLJparm_ = values_[NTYPES] * (values_[NTYPES]+1) / 2;
   TopIn.SetNonbond().SetNLJterms( numLJparm_ );
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
+  TopIn.SetNatyp( values_[NATYP] );
   return 0;
 }
 
@@ -1191,6 +1192,7 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(AmberParmFlagType fflag) const {
   }
   if (FMT.Ftype() == UNKNOWN_FTYPE)
     FMT.ParseFortranFormat( FLAGS_[fflag].Fmt );
+  mprintf("DEBUG: Flag '%s' format '%s'\n", FLAGS_[fflag].Flag, FMT.Fstr());
   return FMT;
 }
 
@@ -1319,9 +1321,19 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   else
     file_.IntToBuffer( fmt_, 0 );
   file_.IntToBuffer( fmt_ , TopOut.NextraPts() ); // NEXTRA
-
   file_.FlushBuffer();
-  
+ 
+  // CHAMBER only - Version and FF type
+  if (ptype_ == CHAMBER)
+    file_.Printf("%%FLAG %-74s\n%-80s\n%2i%-78s\n", FLAGS_[F_FF_TYPE].Flag,
+                 FLAGS_[F_FF_TYPE].Fmt, TopOut.Chamber().FF_Version(),
+                 TopOut.Chamber().FF_Type().c_str());
+
+  // NAMES
+  if (BufferAlloc(F_NAMES, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.CharToBuffer( fmt_, atm->c_str() );
+  file_.FlushBuffer();
 
   return 0;
 }
@@ -1344,7 +1356,7 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
   //mprintf("DEBUG: Fortran format: %s\n", fformat.c_str());
   // Make sure characters are upper case.
   for (std::string::iterator p = fformat.begin(); p != fformat.end(); p++)
-    toupper(*p);
+    *p = toupper(*p);
   // Advance past left parentheses
   std::string::iterator ptr = fformat.begin() + 7;
   while (*ptr=='(') ++ptr;
@@ -1393,8 +1405,8 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
     fprecision_ = atoi( arg.c_str() );
   }
   //if (debug_ > 2)
-  //  mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
-  //          fncols_,(int)ftype_,fwidth_,fprecision_);
+    mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
+            fncols_,(int)ftype_,fwidth_,fprecision_);
 
   return 0;
 }
