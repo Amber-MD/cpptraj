@@ -90,8 +90,8 @@ class Topology {
     CapParmType const& Cap()    const { return cap_; }
     CapParmType&       SetCap()       { return cap_; }
     // ----- Amber LES info ----------------------
-    LES_ParmType      const& LES()          const { return lesparm_;      }
-    void SetLES(LES_ParmType const& l)            { lesparm_ = l;         }
+    LES_ParmType  const& LES()    const { return lesparm_; }
+    LES_ParmType&        SetLES()       { return lesparm_; }
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     ChamberParmType& SetChamber()                 { return chamber_;      }

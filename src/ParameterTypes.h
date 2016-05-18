@@ -263,6 +263,9 @@ class LES_AtomType {
     inline int Type() const { return type_; }
     inline int Copy() const { return cnum_; }
     inline int ID()   const { return id_;   }
+    void SetType(int t) { type_ = t; }
+    void SetCopy(int c) { cnum_ = c; }
+    void SetID(int i)   { id_ = i;   }
   private:
     int type_; ///< LES atom type
     int cnum_; ///< LES copy #
@@ -273,10 +276,14 @@ typedef std::vector<LES_AtomType> LES_Array;
 class LES_ParmType {
   public:
     LES_ParmType() : ntypes_(0), ncopies_(0) {}
-    LES_ParmType(int na, int nt, std::vector<double> const& fac) : 
-                     ntypes_(nt), ncopies_(0), fac_(fac)
-    {
-      array_.reserve( na );
+    /// Prepare LES_ParmType to receive data based on given # atoms and # LES types.
+    void Allocate(int natomsIn, int ntypesIn) {
+      ntypes_ = ntypesIn;
+      ncopies_ = 0;
+      array_.clear();
+      array_.resize( natomsIn );
+      fac_.clear();
+      fac_.resize( ntypes_ * ntypes_ );
     }
     inline bool HasLES()                const { return ntypes_ > 0;      }
     inline int Ntypes()                 const { return ntypes_;          }
@@ -294,6 +301,18 @@ class LES_ParmType {
       if (array_.back().Copy() > ncopies_ )
         ncopies_ = array_.back().Copy();
     }
+    /// Set LES fac at given position.
+    void SetFAC(int idx, double f)  { fac_[idx] = f; }
+    /// Set given LES atom type
+    void SetType(int idx, int type) { array_[idx].SetType( type ); }
+    /// Set given LES atom copy number. FIXME see AddLES_Atom above.
+    void SetCopy(int idx, int cnum) {
+      array_[idx].SetCopy( cnum );
+      if (cnum > ncopies_) ncopies_ = cnum;
+    }
+    /// Set given LES atom ID
+    void SetID(int idx, int id)     { array_[idx].SetID( id ); }
+    /// Clear all data
     void Clear() { ntypes_ = 0; ncopies_ = 0; array_.clear(); fac_.clear(); }
   private:
     int ntypes_;              ///< Total number of LES types 

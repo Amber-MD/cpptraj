@@ -307,6 +307,14 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
     if ( ReadCapInfo(TopIn, INT) ) return 1;
     if ( ReadCapInfo2(TopIn, DBL) ) return 1;
   }
+  // LES info
+  if (values_[NPARM] == 1) {
+    if ( ReadLESntyp(TopIn, INT) ) return 1;
+    if ( ReadLEStypes(TopIn, INT) ) return 1;
+    if ( ReadLESfac(TopIn, DBL) ) return 1;
+    if ( ReadLEScnum(TopIn, INT) ) return 1;
+    if ( ReadLESid(TopIn, INT) ) return 1;
+  }
 
   return 0;
 }
@@ -429,6 +437,12 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_CMAPR: err = ReadChamberCmapRes(TopIn, FMT); break;
             case F_CHM_CMAPP: err = ReadChamberCmapGrid(flagType.c_str(), TopIn, FMT); break;
             case F_CHM_CMAPI: err = ReadChamberCmapTerms(TopIn, FMT); break;
+            // LES
+            case F_LES_NTYP:  err = ReadLESntyp(TopIn, FMT); break;
+            case F_LES_TYPE:  err = ReadLEStypes(TopIn, FMT); break;
+            case F_LES_FAC:   err = ReadLESfac(TopIn, FMT); break;
+            case F_LES_CNUM:  err = ReadLEScnum(TopIn, FMT); break;
+            case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str()); ptr = SkipToNextFlag();
           }
@@ -1111,6 +1125,44 @@ int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
     int gidx = atoi(infile_.NextElement()) - 1;
     TopIn.SetChamber().AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
   }
+  return 0;
+}
+
+// ----- LES -------------------------------------
+int Parm_Amber::ReadLESntyp(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LES_NTYP, 1, FMT)) return 1;
+  nlestyp_ = atoi(infile_.NextElement());
+  // This allocates the FAC array (nlestyp*nlestyp) and reserves LES array (natoms)
+  TopIn.SetLES().Allocate( values_[NATOM], nlestyp_ );
+  return 0;
+}
+
+int Parm_Amber::ReadLESfac(Topology& TopIn, FortranData const& FMT) {
+  int nvals = nlestyp_ * nlestyp_;
+  if (SetupBuffer(F_LES_FAC, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx++)
+    TopIn.SetLES().SetFAC( idx, atof(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadLEStypes(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LES_TYPE, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetLES().SetType( idx, atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadLEScnum(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LES_CNUM, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetLES().SetCopy( idx, atoi(infile_.NextElement()) );
+  return 0;
+}
+
+int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_LES_ID, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetLES().SetID( idx, atoi(infile_.NextElement()) );
   return 0;
 }
 

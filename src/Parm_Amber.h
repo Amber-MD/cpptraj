@@ -123,6 +123,12 @@ class Parm_Amber : public ParmIO {
     int ReadChamberCmapRes(Topology&, FortranData const&);
     int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
     int ReadChamberCmapTerms(Topology&, FortranData const&);
+    // LES
+    int ReadLESntyp(Topology&, FortranData const&);
+    int ReadLESfac(Topology&, FortranData const&);
+    int ReadLEStypes(Topology&, FortranData const&);
+    int ReadLEScnum(Topology&, FortranData const&);
+    int ReadLESid(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -142,6 +148,9 @@ class Parm_Amber : public ParmIO {
     int N_impTerms_;    ///< Number of improper terms
     int n_cmap_terms_;  ///< Number of CMAP terms
     int n_cmap_grids_;  ///< Number of CMAP grids
+
+    // LES variables
+    int nlestyp_; ///< Number of LES types
 
     // Write options
     bool nochamber_;
