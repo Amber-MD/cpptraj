@@ -333,7 +333,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
   }
   // Main loop for reading file.
   while (ptr != 0) {
-    mprintf("DEBUG: LINE: %s", ptr);
+    //mprintf("DEBUG: LINE: %s", ptr);
     if ( ptr[0] == '%' ) {
       if (ptr[1] == 'V' && ptr[2] == 'E' && ptr[3] == 'R') {
         // %VERSION line. Skip it.
@@ -343,7 +343,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
       } else if (IsFLAG(ptr)) {
         // %FLAG <type> line. Determine the flag type.
         std::string flagType = NoTrailingWhitespace(ptr+6);
-        mprintf("DEBUG: Flag type: %s\n", flagType.c_str());
+        //mprintf("DEBUG: Flag type: %s\n", flagType.c_str());
         int flagIdx = -1;
         if ( flagType.compare(0, 22, "CHARMM_CMAP_PARAMETER_") == 0 ) {
           // Special case. This flag has a 2 digit extension.
@@ -444,7 +444,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_LES_CNUM:  err = ReadLEScnum(TopIn, FMT); break;
             case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
             // Sanity check
-            default: mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str()); ptr = SkipToNextFlag();
+            default:
+              mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str());
+              return 1;
           }
           if (err != 0) return 1;
         }
@@ -1195,7 +1197,7 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
   if (ptrIn == 0) return 1;
   std::string fformat( NoTrailingWhitespace( ptrIn ) );
   if ( fformat.empty() ) return 1;
-  mprintf("DEBUG: Fortran format: %s\n", fformat.c_str());
+  //mprintf("DEBUG: Fortran format: %s\n", fformat.c_str());
   // Make sure characters are upper case.
   for (std::string::iterator p = fformat.begin(); p != fformat.end(); p++)
     toupper(*p);
@@ -1247,8 +1249,8 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
     fprecision_ = atoi( arg.c_str() );
   }
   //if (debug_ > 2)
-    mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
-            fncols_,(int)ftype_,fwidth_,fprecision_);
+  //  mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
+  //          fncols_,(int)ftype_,fwidth_,fprecision_);
 
   return 0;
 }
