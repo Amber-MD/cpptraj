@@ -60,6 +60,7 @@ class Atom {
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
+    void SetPolar(double pin)                { polar_ = pin;        }
     void SetMass(double min)                 { mass_ = min;         }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
     void SetGBscreen(double sin)             { gb_screen_ = sin;    }

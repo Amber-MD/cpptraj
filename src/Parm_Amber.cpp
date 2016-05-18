@@ -405,6 +405,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_RADSET:    err = ReadGBradiiSet(TopIn); break;
             case F_RADII:     err = ReadGBradii(TopIn, FMT); break;
             case F_SCREEN:    err = ReadGBscreen(TopIn, FMT); break;
+            case F_IPOL:      err = ReadIpol(TopIn, FMT); break;
+            case F_POLAR:     err = ReadPolar(TopIn, FMT); break;
             // Extra PDB Info
             case F_PDB_RES:   err = ReadPdbRes(TopIn, FMT); break;
             case F_PDB_CHAIN: err = ReadPdbChainID(TopIn, FMT); break;
@@ -894,6 +896,21 @@ int Parm_Amber::ReadGBscreen(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCREEN, values_[NATOM], FMT)) return 1;
   for (int idx = 0; idx != values_[NATOM]; idx++)
     TopIn.SetAtom(idx).SetGBscreen( atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadIpol()
+int Parm_Amber::ReadIpol(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_IPOL, 1, FMT)) return 1;
+  TopIn.SetIpol( atoi(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadPolar()
+int Parm_Amber::ReadPolar(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_POLAR, values_[NATOM], FMT)) return 1;
+  for (int idx = 0; idx != values_[NATOM]; idx++)
+    TopIn.SetAtom(idx).SetPolar( atof(infile_.NextElement()) );
   return 0;
 }
 

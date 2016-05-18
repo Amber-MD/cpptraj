@@ -99,6 +99,8 @@ class Parm_Amber : public ParmIO {
     int ReadGBradiiSet(Topology&);
     int ReadGBradii(Topology&, FortranData const&);
     int ReadGBscreen(Topology&, FortranData const&);
+    int ReadIpol(Topology&, FortranData const&);
+    int ReadPolar(Topology&, FortranData const&);
     // Extra PDB Info
     int ReadPdbRes(Topology&, FortranData const&);
     int ReadPdbChainID(Topology&, FortranData const&);
