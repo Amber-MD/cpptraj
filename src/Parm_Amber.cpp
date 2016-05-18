@@ -1257,16 +1257,14 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[titleFlag].Flag,
                FLAGS_[titleFlag].Fmt, title.c_str());
 
-  // Generate atom exclusion lists.
-  Iarray excluded, numex;
+  // Generate atom exclusion list. Do this here since POINTERS needs the size.
+  Iarray excluded;
   for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
   {
     int nex = atom->Nexcluded();
-    if (nex == 0) {
-      numex.push_back( 1 );
+    if (nex == 0)
       excluded.push_back( 0 );
-    } else {
-      numex.push_back( nex );
+    else {
       for (Atom::excluded_iterator ex = atom->excludedbegin();
                                    ex != atom->excludedend(); ex++)
         // Amber atom #s start from 1
@@ -1340,6 +1338,36 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.DblToBuffer( fmt_, atm->Charge() * Constants::ELECTOAMBER );
   file_.FlushBuffer();
+
+  // ATOMIC NUMBER
+  if (BufferAlloc(F_ATOMICNUM, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.IntToBuffer( fmt_, atm->AtomicNumber() );
+  file_.FlushBuffer();
+
+  // MASS
+  if (BufferAlloc(F_MASS, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.DblToBuffer( fmt_, atm->Mass() );
+  file_.FlushBuffer();
+
+  // TYPE INDEX
+  if (BufferAlloc(F_ATYPEIDX, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.IntToBuffer( fmt_, atm->TypeIndex() );
+  file_.FlushBuffer();
+
+  // NUMEX
+  if (BufferAlloc(F_NUMEX, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    if (atm->Nexcluded() == 0)
+      file_.IntToBuffer( fmt_, 1 );
+    else
+      file_.IntToBuffer( fmt_, atm->Nexcluded() );
+  file_.FlushBuffer();
+
+  // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
+  
 
   return 0;
 }
