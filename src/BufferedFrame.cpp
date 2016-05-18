@@ -127,6 +127,7 @@ void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {
 
 void BufferedFrame::BufferBegin() {
   bufferPosition_ = buffer_;
+  col_ = 0;
 }
 
 void BufferedFrame::BufferBeginAt(size_t pos) {

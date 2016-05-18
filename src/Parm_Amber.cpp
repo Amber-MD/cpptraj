@@ -1388,6 +1388,20 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.IntToBuffer( fmt_, res->FirstAtom()+1 );
   file_.FlushBuffer();
 
+  // BOND RK
+  if (BufferAlloc(F_BONDRK, TopOut.BondParm().size())) return 1;
+  for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
+                                     it != TopOut.BondParm().end(); ++it)
+    file_.DblToBuffer( fmt_, it->Rk() );
+  file_.FlushBuffer();
+
+  // BOND REQ
+  if (BufferAlloc(F_BONDREQ, TopOut.BondParm().size())) return 1;
+  for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
+                                     it != TopOut.BondParm().end(); ++it)
+    file_.DblToBuffer( fmt_, it->Req() );
+  file_.FlushBuffer();
+
   return 0;
 }
 
