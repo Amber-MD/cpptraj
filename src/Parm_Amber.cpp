@@ -1206,6 +1206,15 @@ int Parm_Amber::BufferAlloc(AmberParmFlagType ftype, int nvals) {
   if (nvals > 0) {
     mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
+    if      (FMT.Ftype() == FINT)
+      WriteFmt_ = TextFormat(TextFormat::INTEGER, FMT.Width());
+    else if (FMT.Ftype() == FDOUBLE)
+      WriteFmt_ = TextFormat(TextFormat::SCIENTIFIC, FMT.Width(), FMT.Precision());
+    else if (FMT.Ftype() == FCHAR)
+      WriteFmt_ = TextFormat(TextFormat::STRING, FMT.Width());
+    else if (FMT.Ftype() == FFLOAT)
+      WriteFmt_ = TextFormat(TextFormat::DOUBLE, FMT.Width());
+    fmt_ = WriteFmt_.fmt();
   } else {
     mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Write blank line
@@ -1214,13 +1223,20 @@ int Parm_Amber::BufferAlloc(AmberParmFlagType ftype, int nvals) {
   return 0;
 }
 
+int Parm_Amber::AmberIfbox(const Box& boxIn) {
+  if      (boxIn.Type() == Box::NOBOX   ) return 0;
+  else if (boxIn.Type() == Box::ORTHO   ) return 1;
+  else if (boxIn.Type() == Box::TRUNCOCT) return 2;
+  return 3;
+}
+
 // Parm_Amber::WriteParm()
-int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
+int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
   // Determine if this is a CHAMBER topology
   ptype_ = NEWPARM;
   AmberParmFlagType titleFlag = F_TITLE;
-  if (parmIn.Chamber().HasChamber()) {
+  if (TopOut.Chamber().HasChamber()) {
     if (nochamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
     else {
@@ -1232,15 +1248,79 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
   file_.Printf("%-44s%s                  \n",
                "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
                TimeString().c_str());
-  std::string title = parmIn.ParmName();
+  std::string title = TopOut.ParmName();
   // Resize title to max 80 char
   if (title.size() > 80)
     title.resize(80);
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[titleFlag].Flag,
                FLAGS_[titleFlag].Fmt, title.c_str());
 
+  // Generate atom exclusion lists.
+  Iarray excluded, numex;
+  for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
+  {
+    int nex = atom->Nexcluded();
+    if (nex == 0) {
+      numex.push_back( 1 );
+      excluded.push_back( 0 );
+    } else {
+      numex.push_back( nex );
+      for (Atom::excluded_iterator ex = atom->excludedbegin();
+                                   ex != atom->excludedend(); ex++)
+        // Amber atom #s start from 1
+        excluded.push_back( (*ex) + 1 );
+    }
+  }
+ 
+  // Determine max residue size
+  int maxResSize = 0;
+  for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    maxResSize = std::max(maxResSize, res->NumAtoms());
+
   // POINTERS
   if (BufferAlloc(F_POINTERS, AMBERPOINTERS_)) return 1;
+  file_.IntToBuffer( fmt_, TopOut.Natom() ); // NATOM
+  file_.IntToBuffer( fmt_, TopOut.Nonbond().Ntypes() ); // NTYPES
+  file_.IntToBuffer( fmt_, TopOut.BondsH().size() ); // NBONH
+  file_.IntToBuffer( fmt_, TopOut.Bonds().size() ); // NBONA
+  file_.IntToBuffer( fmt_, TopOut.AnglesH().size() ); // NTHETH
+  file_.IntToBuffer( fmt_, TopOut.Angles().size() ); // NTHETA
+  file_.IntToBuffer( fmt_, TopOut.DihedralsH().size() ); // NPHIH
+  file_.IntToBuffer( fmt_, TopOut.Dihedrals().size() ); // NPHIA
+  file_.IntToBuffer( fmt_, 0 ); // NHPARM, not used
+  // FIXME: Currently LES info not 100% correct, in particular the excluded list
+  if (TopOut.LES().HasLES()) { // NPARM
+    mprintf("Warning: Excluded atom list for LES info is not correct.\n");
+    file_.IntToBuffer( fmt_, 1 );
+  } else
+    file_.IntToBuffer( fmt_, 0 );
+  file_.IntToBuffer( fmt_, excluded.size() ); // NNB
+  file_.IntToBuffer( fmt_, TopOut.Nres() ); // NRES
+  //   NOTE: Assuming MBONA == NBONA etc
+  file_.IntToBuffer( fmt_, TopOut.Bonds().size() ); // MBONA
+  file_.IntToBuffer( fmt_, TopOut.Angles().size() ); // MTHETA
+  file_.IntToBuffer( fmt_, TopOut.Dihedrals().size() ); // MPHIA
+  file_.IntToBuffer( fmt_, TopOut.BondParm().size() ); // NUMBND
+  file_.IntToBuffer( fmt_, TopOut.AngleParm().size() ); // NUMANG
+  file_.IntToBuffer( fmt_, TopOut.DihedralParm().size() ); // NPTRA
+  file_.IntToBuffer( fmt_, TopOut.NatomTypes() ); // NATYP, only for SOLTY
+  file_.IntToBuffer( fmt_, TopOut.Nonbond().HBarray().size() ); // NPHB
+  file_.IntToBuffer( fmt_, 0 ); // IFPERT
+  file_.IntToBuffer( fmt_, 0 ); // NBPER
+  file_.IntToBuffer( fmt_, 0 ); // NGPER
+  file_.IntToBuffer( fmt_, 0 ); // NDPER
+  file_.IntToBuffer( fmt_, 0 ); // MBPER
+  file_.IntToBuffer( fmt_, 0 ); // MGPER
+  file_.IntToBuffer( fmt_, 0 ); // MDPER
+  file_.IntToBuffer( fmt_, AmberIfbox( TopOut.ParmBox() ) ); // IFBOX
+  file_.IntToBuffer( fmt_, maxResSize ); // NMXRS
+  if (TopOut.Cap().NatCap() > 0) // IFCAP
+    file_.IntToBuffer( fmt_, 1 );
+  else
+    file_.IntToBuffer( fmt_, 0 );
+  file_.IntToBuffer( fmt_ , TopOut.NextraPts() ); // NEXTRA
+
+  file_.FlushBuffer();
   
 
   return 0;

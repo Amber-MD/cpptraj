@@ -2,6 +2,7 @@
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
 #include "BufferedFrame.h"
+#include "TextFormat.h"
 class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
@@ -133,12 +134,15 @@ class Parm_Amber : public ParmIO {
     // ----- Write -------------------------------
     FortranData WriteFormat(AmberParmFlagType) const;
     int BufferAlloc(AmberParmFlagType, int);
+    static int AmberIfbox(const Box&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
 
     ParmType ptype_;
     BufferedFrame file_;
+
+    // Read variables
     Iarray values_; ///< Values read in from POINTERS
     Iarray atomicNums_; ///< Set to atomic numbers if ATOMIC_NUMBER section found.
     Box parmbox_; ///< Box coords/type, set from beta, x, y, and z.
@@ -156,7 +160,9 @@ class Parm_Amber : public ParmIO {
     // LES variables
     int nlestyp_; ///< Number of LES types
 
-    // Write options
+    // Write variables
+    TextFormat WriteFmt_;
+    const char* fmt_;
     bool nochamber_;
 };
 // -----------------------------------------------------------------------------

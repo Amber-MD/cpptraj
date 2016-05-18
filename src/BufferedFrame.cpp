@@ -9,6 +9,7 @@ BufferedFrame::BufferedFrame() :
   frameSize_(0),
   offset_(0),
   Ncols_(0),
+  col_(0),
   eltWidth_(0),
   saveChar_(0)
 {}
@@ -48,6 +49,7 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     std::fill(buffer_, buffer_ + frameSize_ + 1, 0);
   }
   bufferPosition_ = buffer_;
+  col_ = 0;
   //mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
   //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
@@ -82,6 +84,7 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
   delete[] buffer_;
   buffer_ = newbuffer;
   bufferPosition_ = buffer_;
+  col_ = 0;
   frameSize_ = newsize;
   return frameSize_;
 }
@@ -185,6 +188,26 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
     sprintf(bufferPosition_,"\n");
     ++bufferPosition_;
   }
+}
+
+void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
+  sprintf(bufferPosition_, fmt, ival);
+  bufferPosition_ += eltWidth_;
+  ++col_;
+  if ( col_ == Ncols_ ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+    col_ = 0;
+  }
+}
+
+void BufferedFrame::FlushBuffer() {
+  // If the coord record didnt end on a newline, print one
+  if ( col_ != 0 ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+  }
+  WriteFrame();
 }
 
 /** \return Pointer to next null-terminated element in buffer.
