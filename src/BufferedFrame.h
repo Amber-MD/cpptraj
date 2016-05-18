@@ -25,6 +25,7 @@ class BufferedFrame : public CpptrajFile {
     const char* NextElement();
 
     void IntToBuffer(const char*, int);
+    void DblToBuffer(const char*, double);
     void CharToBuffer(const char*, const char*);
     void FlushBuffer();
 

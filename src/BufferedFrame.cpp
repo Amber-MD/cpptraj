@@ -205,6 +205,11 @@ void BufferedFrame::IntToBuffer(const char* fmt, int ival) {
   AdvanceCol();
 }
 
+void BufferedFrame::DblToBuffer(const char* fmt, double dval) {
+  sprintf(bufferPosition_, fmt, dval);
+  AdvanceCol();
+}
+
 void BufferedFrame::CharToBuffer(const char* fmt, const char* cval) {
   sprintf(bufferPosition_, fmt, cval);
   AdvanceCol();

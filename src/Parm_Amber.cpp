@@ -1335,6 +1335,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.CharToBuffer( fmt_, atm->c_str() );
   file_.FlushBuffer();
 
+  // CHARGES
+  if (BufferAlloc(F_CHARGE, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.DblToBuffer( fmt_, atm->Charge() * Constants::ELECTOAMBER );
+  file_.FlushBuffer();
+
   return 0;
 }
 
