@@ -107,7 +107,8 @@ public:
 int convertToInteger(std::string const &s) {
   std::istringstream iss(s);
   long int i;
-  if (!(iss >> i))
+  iss >> i;
+  if (iss.fail())
     throw BadConversion("convertToInteger(\"" + s + "\")");
   return (int)i;
 }
@@ -117,7 +118,8 @@ int convertToInteger(std::string const &s) {
 double convertToDouble(std::string const &s) {
   std::istringstream iss(s);
   double d;
-  if (!(iss >> d))
+  iss >> d;
+  if (iss.fail())
     throw BadConversion("convertToDouble(\"" + s + "\")");
   return d;
 }
@@ -180,7 +182,8 @@ bool validDouble(std::string const& argument) {
   if (argument.empty()) return false;
   std::istringstream iss(argument);
   double val;
-  return (iss >> val);
+  iss >> val;
+  return !(iss.fail());
 }
 
 // -----------------------------------------------------------------------------
