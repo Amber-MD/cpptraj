@@ -41,6 +41,8 @@ class BufferedFrame : public CpptrajFile {
     char* bufferPosition_; ///< Position in buffer.
     size_t frameSize_;     ///< Total size of frame to read.
     size_t offset_;        ///< User specified offset, used in seeking.
+    size_t memSize_;       ///< Total size of the buffer in memory.
+    size_t maxSize_;       ///< Max size of the buffer in memory.
     int Ncols_;            ///< Number of columns, use to convert array to buffer.
     int col_;              ///< Current column (writes)
     size_t eltWidth_;      ///< Width of each element in the frame.

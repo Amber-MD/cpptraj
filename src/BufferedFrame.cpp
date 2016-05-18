@@ -8,6 +8,8 @@ BufferedFrame::BufferedFrame() :
   bufferPosition_(0),
   frameSize_(0),
   offset_(0),
+  memSize_(0),
+  maxSize_(0),
   Ncols_(0),
   col_(0),
   eltWidth_(0),
@@ -41,6 +43,9 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
   frameSize_ = CalcFrameSize( Nelts ) + additionalBytes;
+  memSize_ = frameSize_ + 1; // +1 for null, TODO not necessary for read?
+  mprintf("DEBUG: Buffer required size %zu, max size %zu.\n", memSize_, maxSize_);
+/*
   if (buffer_!=0) delete[] buffer_;
   if (frameSize_ < 1) 
     buffer_ = 0;
@@ -48,10 +53,20 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
     buffer_ = new char[ frameSize_ + 1 ]; // +1 for null, TODO not necessary for read?
     std::fill(buffer_, buffer_ + frameSize_ + 1, 0);
   }
+*/
+  if (memSize_ > maxSize_) {
+    mprintf("DEBUG: Reallocating.\n");
+    // Need to reallocate
+    if (buffer_ != 0) delete[] buffer_;
+    buffer_ = new char[ memSize_ ];
+    maxSize_ = memSize_;
+  }
+  // Initialize buffer
+  std::fill(buffer_, buffer_ + memSize_, 0);
   bufferPosition_ = buffer_;
   col_ = 0;
-  //mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
-  //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
+  mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+          Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
 
