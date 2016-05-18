@@ -129,6 +129,10 @@ class Parm_Amber : public ParmIO {
     int ReadLEStypes(Topology&, FortranData const&);
     int ReadLEScnum(Topology&, FortranData const&);
     int ReadLESid(Topology&, FortranData const&);
+
+    // ----- Write -------------------------------
+    FortranData WriteFormat(AmberParmFlagType) const;
+    int BufferAlloc(AmberParmFlagType, int);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -158,17 +162,21 @@ class Parm_Amber : public ParmIO {
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {
   public:
-    FortranData() : ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0) {}
-    FortranData(const char*); 
+    FortranData() : fstr_(0), ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0) {}
+    /// CONSTRUCTOR - from format string
+    FortranData(const char*);
+    /// CONSTRUCTOR - does not set format string 
     FortranData(Type tIn, int colsIn, int widthIn, int precIn) :
       ftype_(tIn), fncols_(colsIn), fwidth_(widthIn), fprecision_(precIn) {}
     int ParseFortranFormat(const char*);
 
-    Type Ftype()    const { return ftype_; }
-    int Ncols()     const { return fncols_; }
-    int Width()     const { return fwidth_; }
-    int Precision() const { return fprecision_; }
+    const char* Fstr() const { return fstr_; }
+    Type Ftype()       const { return ftype_; }
+    int Ncols()        const { return fncols_; }
+    int Width()        const { return fwidth_; }
+    int Precision()    const { return fprecision_; }
   private:
+    const char* fstr_;
     Type ftype_;
     int fncols_;
     int fwidth_;

@@ -1179,8 +1179,69 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
-int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
+/** \return Format for given flag. */
+Parm_Amber::FortranData Parm_Amber::WriteFormat(AmberParmFlagType fflag) const {
+  FortranData FMT;
+  // For chamber, certain flags have different format (boo).
+  if (ptype_ == CHAMBER) {
+    if      (fflag == F_CHARGE  ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
+    else if (fflag == F_ANGLETEQ) FMT.ParseFortranFormat("%FORMAT(3E25.17)");
+    else if (fflag == F_LJ_A    ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
+    else if (fflag == F_LJ_B    ) FMT.ParseFortranFormat("%FORMAT(3E24.16)");
+  }
+  if (FMT.Ftype() == UNKNOWN_FTYPE)
+    FMT.ParseFortranFormat( FLAGS_[fflag].Fmt );
+  return FMT;
+}
 
+// Parm_Amber::BufferAlloc()
+int Parm_Amber::BufferAlloc(AmberParmFlagType ftype, int nvals) {
+  FortranData FMT = WriteFormat( ftype );
+  if ( FMT.Ftype() == UNKNOWN_FTYPE) {
+    mprinterr("Interal Error: Could not set up format string.\n");
+    return 1;
+  }
+  // Write FLAG and FORMAT lines
+  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[ftype].Flag, FMT.Fstr());
+  if (nvals > 0) {
+    mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
+  } else {
+    mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
+    // Write blank line
+    file_.Printf("\n");
+  }
+  return 0;
+}
+
+// Parm_Amber::WriteParm()
+int Parm_Amber::WriteParm(FileName const& fname, Topology const& parmIn) {
+  if (file_.OpenWrite( fname )) return 1;
+  // Determine if this is a CHAMBER topology
+  ptype_ = NEWPARM;
+  AmberParmFlagType titleFlag = F_TITLE;
+  if (parmIn.Chamber().HasChamber()) {
+    if (nochamber_)
+      mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
+    else {
+      titleFlag = F_CTITLE;
+      ptype_ = CHAMBER;
+    }
+  }
+  // HEADER AND TITLE (4 lines, version, flag, format, title)
+  file_.Printf("%-44s%s                  \n",
+               "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
+               TimeString().c_str());
+  std::string title = parmIn.ParmName();
+  // Resize title to max 80 char
+  if (title.size() > 80)
+    title.resize(80);
+  file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[titleFlag].Flag,
+               FLAGS_[titleFlag].Fmt, title.c_str());
+
+  // POINTERS
+  if (BufferAlloc(F_POINTERS, AMBERPOINTERS_)) return 1;
+  
 
   return 0;
 }
@@ -1197,6 +1258,7 @@ Parm_Amber::FortranData::FortranData(const char* ptrIn) :
   */
 int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
   if (ptrIn == 0) return 1;
+  fstr_ = ptrIn;
   std::string fformat( NoTrailingWhitespace( ptrIn ) );
   if ( fformat.empty() ) return 1;
   //mprintf("DEBUG: Fortran format: %s\n", fformat.c_str());
