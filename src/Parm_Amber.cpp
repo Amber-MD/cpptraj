@@ -1402,6 +1402,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( fmt_, it->Req() );
   file_.FlushBuffer();
 
+  // ANGLE TK
+  if (BufferAlloc(F_ANGLETK, TopOut.AngleParm().size())) return 1;
+  for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
+                                      it != TopOut.AngleParm().end(); ++it)
+    file_.DblToBuffer( fmt_, it->Tk() );
+  file_.FlushBuffer();
+
   return 0;
 }
 
