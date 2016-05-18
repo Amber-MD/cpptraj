@@ -1409,6 +1409,40 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( fmt_, it->Tk() );
   file_.FlushBuffer();
 
+  // ANGLE TEQ
+  if (BufferAlloc(F_ANGLETEQ, TopOut.AngleParm().size())) return 1;
+  for (AngleParmArray::const_iterator it = TopOut.AngleParm().begin();
+                                      it != TopOut.AngleParm().end(); ++it)
+    file_.DblToBuffer( fmt_, it->Teq() );
+  file_.FlushBuffer();
+
+  // CHARMM only - Urey-Bradley
+  if (ptype_ == CHAMBER) {
+    if (BufferAlloc(F_CHM_UBC, 2)) return 1;
+    file_.IntToBuffer( fmt_, TopOut.Chamber().UB().size() );
+    file_.IntToBuffer( fmt_, TopOut.Chamber().UBparm().size() );
+    file_.FlushBuffer();
+    if (BufferAlloc(F_CHM_UB, TopOut.Chamber().UB().size()*3)) return 1;
+    for (BondArray::const_iterator it = TopOut.Chamber().UB().begin();
+                                   it != TopOut.Chamber().UB().end(); ++it)
+    {
+      file_.IntToBuffer( fmt_, it->A1()+1 );
+      file_.IntToBuffer( fmt_, it->A2()+1 );
+      file_.IntToBuffer( fmt_, it->Idx()+1 );
+    }
+    file_.FlushBuffer();
+    if (BufferAlloc(F_CHM_UBFC, TopOut.Chamber().UBparm().size())) return 1;
+    for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
+                                       it != TopOut.Chamber().UBparm().end(); ++it)
+      file_.DblToBuffer( fmt_, it->Rk() );
+    file_.FlushBuffer();
+    if (BufferAlloc(F_CHM_UBEQ, TopOut.Chamber().UBparm().size())) return 1;
+    for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
+                                       it != TopOut.Chamber().UBparm().end(); ++it)
+      file_.DblToBuffer( fmt_, it->Req() );
+    file_.FlushBuffer();
+  }
+
   return 0;
 }
 
