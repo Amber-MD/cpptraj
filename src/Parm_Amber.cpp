@@ -337,11 +337,15 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         std::string flagType = NoTrailingWhitespace(ptr+6);
         mprintf("DEBUG: Flag type: %s\n", flagType.c_str());
         int flagIdx = -1;
-        for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
-          size_t flen = strlen(P->Flag);
-          if (flagType.compare(0, flen, P->Flag) == 0) {
-            flagIdx = (int)(P - FLAGS_);
-            break;
+        if ( flagType.compare(0, 22, "CHARMM_CMAP_PARAMETER_") == 0 ) {
+          // Special case. This flag has a 2 digit extension.
+          flagIdx = (int)F_CHM_CMAPP;
+        } else {
+          for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
+            if (flagType.compare(P->Flag) == 0) {
+              flagIdx = (int)(P - FLAGS_);
+              break;
+            }
           }
         }
         // Read the format line. Do this even if FLAG is not recognized.
@@ -349,7 +353,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         // Process the FLAG
         if (flagIdx == -1) {
           mprintf("Warning: Amber topology flag '%s' is unrecognized and will be skipped.\n",
-                  flagType);
+                  flagType.c_str());
           ptr = SkipToNextFlag();
         } else {
           int err = 0;
