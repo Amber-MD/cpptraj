@@ -1354,7 +1354,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // TYPE INDEX
   if (BufferAlloc(F_ATYPEIDX, TopOut.Natom())) return 1;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.IntToBuffer( atm->TypeIndex() );
+    file_.IntToBuffer( atm->TypeIndex()+1 );
   file_.FlushBuffer();
 
   // NUMEX
@@ -1441,6 +1441,65 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
                                        it != TopOut.Chamber().UBparm().end(); ++it)
       file_.DblToBuffer( it->Req() );
     file_.FlushBuffer();
+  }
+
+  // DIHEDRAL PK
+  if (BufferAlloc(F_DIHPK, TopOut.DihedralParm().size())) return 1;
+  for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
+                                         it != TopOut.DihedralParm().end(); ++it)
+    file_.DblToBuffer( it->Pk() );
+  file_.FlushBuffer();
+
+  // DIHEDRAL PN 
+  if (BufferAlloc(F_DIHPN, TopOut.DihedralParm().size())) return 1;
+  for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
+                                         it != TopOut.DihedralParm().end(); ++it)
+    file_.DblToBuffer( it->Pn() );
+  file_.FlushBuffer();
+
+  // DIHEDRAL PHASE
+  if (BufferAlloc(F_DIHPHASE, TopOut.DihedralParm().size())) return 1;
+  for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
+                                         it != TopOut.DihedralParm().end(); ++it)
+    file_.DblToBuffer( it->Phase() );
+  file_.FlushBuffer();
+
+  // DIHEDRAL SCEE
+  if (BufferAlloc(F_SCEE, TopOut.DihedralParm().size())) return 1;
+  for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
+                                         it != TopOut.DihedralParm().end(); ++it)
+    file_.DblToBuffer( it->SCEE() );
+  file_.FlushBuffer();
+
+  // DIHEDRAL SCNB
+  if (BufferAlloc(F_SCNB, TopOut.DihedralParm().size())) return 1;
+  for (DihedralParmArray::const_iterator it = TopOut.DihedralParm().begin();
+                                         it != TopOut.DihedralParm().end(); ++it)
+    file_.DblToBuffer( it->SCNB() );
+  file_.FlushBuffer();
+
+  // CHAMBER only - Impropers
+  if (ptype_ == CHAMBER) {
+    if (BufferAlloc(F_CHM_NIMP, 1)) return 1;
+    file_.IntToBuffer( TopOut.Chamber().Impropers().size() );
+    file_.FlushBuffer();
+    if (BufferAlloc(F_CHM_IMP, TopOut.Chamber().Impropers().size()*5)) return 1;
+    for (DihedralArray::const_iterator it = TopOut.Chamber().Impropers().begin();
+                                       it != TopOut.Chamber().Impropers().end(); ++it)
+    {
+      file_.IntToBuffer( it->A1() + 1 );
+      file_.IntToBuffer( it->A2() + 1 );
+      if ( it->Type()  == DihedralType::BOTH || it->Type() == DihedralType::END )
+        file_.IntToBuffer( -(it->A3() + 1) );
+      else
+        file_.IntToBuffer( it->A3() + 1 );
+      if ( it->Type() == DihedralType::BOTH || it->Type() == DihedralType::IMPROPER )
+        file_.IntToBuffer( -(it->A4() + 1) );
+      else
+        file_.IntToBuffer( it->A4() + 1 );
+      file_.IntToBuffer( it->Idx() + 1 );
+    }
+
   }
 
   return 0;
