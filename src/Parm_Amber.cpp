@@ -338,7 +338,8 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
         mprintf("DEBUG: Flag type: %s\n", flagType.c_str());
         int flagIdx = -1;
         for (ParmPtr P = FLAGS_; P->Flag != 0; ++P) {
-          if (flagType.compare(P->Flag) == 0) {
+          size_t flen = strlen(P->Flag);
+          if (flagType.compare(0, flen, P->Flag) == 0) {
             flagIdx = (int)(P - FLAGS_);
             break;
           }
@@ -1076,8 +1077,9 @@ int Parm_Amber::ReadChamberCmap(Topology& TopIn, FortranData const& FMTin) {
     for (int idx = 0; idx != gridsize; idx++)
       GRID.SetGrid( idx, atof(infile_.NextElement()) );
   }
-    
-    
+  // Read CMAP terms
+  
+  //for (int idx = 0; idx != n_cmap_terms; idx++)
 
   return 0;
 }
