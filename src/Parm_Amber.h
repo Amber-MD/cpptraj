@@ -120,6 +120,7 @@ class Parm_Amber : public ParmIO {
     int ReadChamberCmapCounts(FortranData const&);
     int ReadChamberCmapRes(Topology&, FortranData const&);
     int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
+    int ReadChamberCmapTerms(Topology&, FortranData const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];

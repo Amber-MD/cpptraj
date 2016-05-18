@@ -426,6 +426,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_CMAPC: err = ReadChamberCmapCounts(FMT); break;
             case F_CHM_CMAPR: err = ReadChamberCmapRes(TopIn, FMT); break;
             case F_CHM_CMAPP: err = ReadChamberCmapGrid(flagType.c_str(), TopIn, FMT); break;
+            case F_CHM_CMAPI: err = ReadChamberCmapTerms(TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str()); ptr = SkipToNextFlag();
           }
@@ -1044,6 +1045,7 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadChamberCmapCounts()
 int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
   if (SetupBuffer(F_CHM_CMAPC, 2, FMT)) return 1;
   n_cmap_terms_ = atoi( infile_.NextElement() );
@@ -1051,6 +1053,7 @@ int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadChamberCmapRes()
 /** Get CMAP resolutions for each grid and allocate grids. */
 int Parm_Amber::ReadChamberCmapRes(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids_, FMT)) return 1;
@@ -1059,6 +1062,7 @@ int Parm_Amber::ReadChamberCmapRes(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
+// Parm_Amber::ReadChamberCmapGrid()
 /** Read CMAP grid. */
 int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
 {
@@ -1074,6 +1078,22 @@ int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, Fortr
   if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
   for (int idx = 0; idx != GRID.Size(); idx++)
     GRID.SetGridPt( idx, atof(infile_.NextElement()) );
+  return 0;
+}
+
+// Parm_Amber::ReadChamberCmapTerms()
+int Parm_Amber::ReadChamberCmapTerms(Topology& TopIn, FortranData const& FMT) {
+  int nvals = n_cmap_terms_ * 6;
+  if (SetupBuffer(F_CHM_CMAPI, nvals, FMT)) return 1;
+  for (int idx = 0; idx != nvals; idx += 6) {
+    int a1 = atoi(infile_.NextElement()) - 1;
+    int a2 = atoi(infile_.NextElement()) - 1;
+    int a3 = atoi(infile_.NextElement()) - 1;
+    int a4 = atoi(infile_.NextElement()) - 1;
+    int a5 = atoi(infile_.NextElement()) - 1;
+    int gidx = atoi(infile_.NextElement()) - 1;
+    TopIn.SetChamber().AddCmapTerm( CmapType(a1, a2, a3, a4, a5, gidx) );
+  }
   return 0;
 }
 
