@@ -134,7 +134,7 @@ class Parm_Amber : public ParmIO {
     static const ParmFlag FLAGS_[];
 
     ParmType ptype_;
-    BufferedFrame infile_;
+    BufferedFrame file_;
     Iarray values_; ///< Values read in from POINTERS
     Iarray atomicNums_; ///< Set to atomic numbers if ATOMIC_NUMBER section found.
     Box parmbox_; ///< Box coords/type, set from beta, x, y, and z.
