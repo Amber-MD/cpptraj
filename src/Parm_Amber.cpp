@@ -419,6 +419,9 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_CHM_IMPP:  err = ReadChamberImpPHASE(TopIn, FMT); break;
             case F_LJ14A:     err = ReadChamberLJ14A(TopIn, FMT); break;
             case F_LJ14B:     err = ReadChamberLJ14B(TopIn, FMT); break;
+            case F_CHM_CMAPC: err = ReadChamberCmapCounts(FMT); break;
+            case F_CHM_CMAPR: err = ReadChamberCmapRes(TopIn, FMT); break;
+            case F_CHM_CMAPP: err = ReadChamberCmapGrid(flagType.c_str(), TopIn, FMT); break;
             // Sanity check
             default: mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str()); ptr = SkipToNextFlag();
           }
@@ -1037,50 +1040,36 @@ int Parm_Amber::ReadChamberLJ14B(Topology& TopIn, FortranData const& FMT) {
   return 0;
 }
 
-/** Because CMAP info can have N different CMAP flags (one for each CMAP)
-  * this routine assumes all CMAP info is written in one block in numerical
-  * order and will fail otherwise.
-  */
-int Parm_Amber::ReadChamberCmap(Topology& TopIn, FortranData const& FMTin) {
-  if (SetupBuffer(F_CHM_CMAPC, 2, FMTin)) return 1;
-  int n_cmap_terms = atoi( infile_.NextElement() );
-  int n_cmap_grids = atoi( infile_.NextElement() );
-  // Get CMAP resolutions for each grid and allocate grids.
-  const char* ptr = infile_.NextLine();
-  std::string FLAG = NoTrailingWhitespace( ptr + 6 );
-  if (FLAG.compare( FLAGS_[F_CHM_CMAPR].Flag ) != 0) {
-    mprinterr("Error: Expected '%s' after '%s'\n", FLAGS_[F_CHM_CMAPR].Flag,
-              FLAGS_[F_CHM_CMAPC].Flag);
+int Parm_Amber::ReadChamberCmapCounts(FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_CMAPC, 2, FMT)) return 1;
+  n_cmap_terms_ = atoi( infile_.NextElement() );
+  n_cmap_grids_ = atoi( infile_.NextElement() );
+  return 0;
+}
+
+/** Get CMAP resolutions for each grid and allocate grids. */
+int Parm_Amber::ReadChamberCmapRes(Topology& TopIn, FortranData const& FMT) {
+  if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids_, FMT)) return 1;
+  for (int i = 0; i != n_cmap_grids_; i++)
+    TopIn.SetChamber().AddCmapGrid( CmapGridType( atoi(infile_.NextElement()) ) );
+  return 0;
+}
+
+/** Read CMAP grid. */
+int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, FortranData const& FMT)
+{
+  // Figure out which grid this is.
+  // 012345678901234567890123
+  // CHARMM_CMAP_PARAMETER_XX
+  int gridnum = convertToInteger( std::string( CmapFlag+22 ) ) - 1;
+  if (gridnum < 0 || gridnum >= (int)TopIn.Chamber().CmapGrid().size()) {
+    mprinterr("Error: CMAP grid '%s' out of range.\n", CmapFlag);
     return 1;
   }
-  FortranData FMT;
-  if (ReadFormatLine(FMT)) return 1;
-  if (SetupBuffer(F_CHM_CMAPR, n_cmap_grids, FMT)) return 1;
-  for (int i = 0; i != n_cmap_grids; i++)
-    TopIn.SetChamber().AddCmapGrid( CmapGridType( atoi(infile_.NextElement()) ) );
-  // Read CMAP grids
-  for (int gridnum = 0; gridnum != n_cmap_grids; gridnum++)
-  {
-    ptr = infile_.NextLine();
-    FLAG.assign( NoTrailingWhitespace( ptr + 6 ) );
-    std::string cmap_flag(FLAGS_[F_CHM_CMAPP].Flag);
-    cmap_flag.append( integerToString(gridnum+1, 2) );
-    if (FLAG != cmap_flag) {
-      mprinterr("Error: Expected '%s' for CMAP grid %i\n", cmap_flag.c_str(), gridnum+1);
-      return 1;
-    }
-    if (ReadFormatLine(FMT)) return 1;
-    int gridsize = (int)TopIn.Chamber().CmapGrid()[gridnum].Grid().size();
-    CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
-    if (SetupBuffer(F_CHM_CMAPP, gridsize, FMT))
-      return 1;
-    for (int idx = 0; idx != gridsize; idx++)
-      GRID.SetGrid( idx, atof(infile_.NextElement()) );
-  }
-  // Read CMAP terms
-  
-  //for (int idx = 0; idx != n_cmap_terms; idx++)
-
+  CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
+  if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
+  for (int idx = 0; idx != GRID.Size(); idx++)
+    GRID.SetGridPt( idx, atof(infile_.NextElement()) );
   return 0;
 }
 

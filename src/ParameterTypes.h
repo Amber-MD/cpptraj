@@ -329,15 +329,14 @@ class CapParmType {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    //CmapGridType(int r, std::vector<double> const& g) :
-    //                 resolution_(r), grid_(g) {}
     CmapGridType(int r) : resolution_(r), grid_(r*r, 0.0) {}
-    inline int Resolution()                  const { return resolution_; }
-    inline std::vector<double> const& Grid() const { return grid_;       }
-    void SetGrid(int idx, double d) { grid_[idx] = d; }
+    inline int Resolution()                  const { return resolution_;       }
+    inline std::vector<double> const& Grid() const { return grid_;             }
+    inline int Size()                        const { return (int)grid_.size(); }
+    void SetGridPt(int idx, double d)              { grid_[idx] = d;           }
   private:
     int resolution_;           ///< Number of steps along each phi/psi CMAP axis
-    std::vector<double> grid_; ///< CMAP grid (resolution_^2)
+    std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)
 };
 typedef std::vector<CmapGridType> CmapGridArray;
 /// Hold CMAP atom indices and corresponding grid index
