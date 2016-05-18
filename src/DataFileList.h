@@ -42,6 +42,8 @@ class DataFileList {
     void List() const;
     /// Write all DataFiles in list that have not yet been written.
     void WriteAllDF();
+    /// \return true if DataFiles have not yet been written.
+    bool UnwrittenData() const;
     void ResetWriteStatus();
     int ProcessDataFileArgs(ArgList&);
     int Debug() const { return debug_; }

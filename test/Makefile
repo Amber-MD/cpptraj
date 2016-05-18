@@ -304,6 +304,9 @@ test.spline:
 test.kde:
 	@-cd Test_KDE && ./RunTest.sh $(OPT)
 
+test.wavelet:
+	@-cd Test_Wavelet && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -377,7 +380,8 @@ SHORT_TESTS=test.general \
           test.vectormath \
           test.temperature \
           test.spline \
-          test.kde
+          test.kde \
+          test.wavelet
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -476,7 +480,8 @@ COMPLETETESTS=test.general \
               test.esander \
               test.temperature \
               test.spline \
-              test.kde
+              test.kde \
+              test.wavelet
 
 test: test.all 
 

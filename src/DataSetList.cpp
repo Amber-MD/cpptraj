@@ -498,20 +498,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
     Xlabel = XlabelIn;
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
-  bool isMonotonic = true;
-  double xstep = 1.0;
-  if (Xvals.size() > 1) {
-    xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
-    for (Darray::const_iterator X = Xvals.begin()+2; X != Xvals.end(); ++X)
-      if ((*X - *(X-1)) - xstep > Constants::SMALL) {
-        isMonotonic = false;
-        break;
-      }
-    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
-    Xdim = Dimension( Xvals.front(), xstep, Xlabel );
-  } else
-    // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Xlabel);
+  bool isMonotonic = Xdim.SetDimension(Xvals, Xlabel);
   if (debug_ > 0) {
     mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");
