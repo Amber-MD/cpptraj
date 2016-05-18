@@ -1367,7 +1367,26 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.FlushBuffer();
 
   // NONBONDED INDICES - positive needs to be shifted by +1 for fortran
-  
+  if (BufferAlloc(F_NB_INDEX, TopOut.Nonbond().NBindex().size())) return 1;
+  for (Iarray::const_iterator it = TopOut.Nonbond().NBindex().begin();
+                              it != TopOut.Nonbond().NBindex().end(); ++it)
+    if (*it > -1)
+      file_.IntToBuffer( fmt_, *it + 1 );
+    else
+      file_.IntToBuffer( fmt_, *it );
+  file_.FlushBuffer();
+
+  // RESIDUE NAME
+  if (BufferAlloc(F_RESNAMES, TopOut.Nres())) return 1;
+  for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    file_.CharToBuffer( fmt_, res->c_str() );
+  file_.FlushBuffer();
+
+  // RESIDUE POINTERS
+  if (BufferAlloc(F_RESNUMS, TopOut.Nres())) return 1;
+  for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
+    file_.IntToBuffer( fmt_, res->FirstAtom()+1 );
+  file_.FlushBuffer();
 
   return 0;
 }
