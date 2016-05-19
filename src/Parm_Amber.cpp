@@ -1723,6 +1723,18 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // GB RADIUS SET
   WriteLine(F_RADSET, TopOut.GBradiiSet());
 
+  // GB RADII
+  if (BufferAlloc(F_RADII, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.DblToBuffer( atm->GBRadius() );
+  file_.FlushBuffer();
+
+  // GB SCREENING PARAMS
+  if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.DblToBuffer( atm->Screen() );
+  file_.FlushBuffer();
+
   return 0;
 }
 
