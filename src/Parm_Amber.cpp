@@ -1530,6 +1530,26 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  // SOLTY - Currently unused but must be written.
+  if (BufferAlloc(F_SOLTY, TopOut.NatomTypes())) return 1;
+  for (int idx = 0; idx != TopOut.NatomTypes(); idx++)
+    file_.DblToBuffer( 0.0 );
+  file_.FlushBuffer();
+
+  // LJ A terms
+  if (BufferAlloc(F_LJ_A, TopOut.Nonbond().NBarray().size())) return 1;
+  for (NonbondArray::const_iterator it = TopOut.Nonbond().NBarray().begin();
+                                    it != TopOut.Nonbond().NBarray().end(); ++it)
+    file_.DblToBuffer( it->A() );
+  file_.FlushBuffer();
+
+  // LJ B terms
+  if (BufferAlloc(F_LJ_B, TopOut.Nonbond().NBarray().size())) return 1;
+  for (NonbondArray::const_iterator it = TopOut.Nonbond().NBarray().begin();
+                                    it != TopOut.Nonbond().NBarray().end(); ++it)
+    file_.DblToBuffer( it->B() );
+  file_.FlushBuffer();
+
   return 0;
 }
 
