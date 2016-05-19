@@ -1266,6 +1266,53 @@ int Parm_Amber::WriteLJ(FlagType Aflag, FlagType Bflag, NonbondArray const& NB) 
   return 0;
 }
 
+/** Amber bond array. Indices must be x3, parameter index +1 */
+int Parm_Amber::WriteBonds(FlagType flag, BondArray const& BND) {
+  if (BufferAlloc(flag, BND.size()*3)) return 1;
+  for (BondArray::const_iterator it = BND.begin(); it != BND.end(); ++it) {
+    file_.IntToBuffer( it->A1()*3 );
+    file_.IntToBuffer( it->A2()*3 );
+    file_.IntToBuffer( it->Idx()+1 );
+  }
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Amber angle array. Indices must be x3, parameter index +1 */
+int Parm_Amber::WriteAngles(FlagType flag, AngleArray const& ANG) {
+  if (BufferAlloc(flag, ANG.size()*4)) return 1;
+  for (AngleArray::const_iterator it = ANG.begin(); it != ANG.end(); ++it) {
+    file_.IntToBuffer( it->A1()*3 );
+    file_.IntToBuffer( it->A2()*3 );
+    file_.IntToBuffer( it->A3()*3 );
+    file_.IntToBuffer( it->Idx()+1 );
+  }
+  file_.FlushBuffer();
+  return 0;
+}
+
+/** Amber dihedral array. Indices must be x3, parameters index +1. End 
+  * dihedrals have the third atom index negative, impropers have fourth.
+  */
+int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
+  if (BufferAlloc(flag, DIH.size()*5)) return 1;
+  for (DihedralArray::const_iterator it = DIH.begin(); it != DIH.end(); ++it) {
+    file_.IntToBuffer( it->A1()*3 );
+    file_.IntToBuffer( it->A2()*3 );
+    if ( it->Type() == DihedralType::BOTH || it->Type() == DihedralType::END)
+      file_.IntToBuffer( -(it->A3()*3) );
+    else
+      file_.IntToBuffer( it->A3()*3 );
+    if ( it->Type() == DihedralType::BOTH || it->Type() == DihedralType::IMPROPER)
+      file_.IntToBuffer( -(it->A4()*3) );
+    else
+      file_.IntToBuffer( it->A4()*3 );
+    file_.IntToBuffer( it->Idx()+1 );
+  }
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
@@ -1548,6 +1595,16 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
  
   // CHAMBER only - LJ 1-4 terms
   if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Chamber().LJ14())) return 1;
+
+  // BONDSH and BONDS
+  if (WriteBonds(F_BONDSH, TopOut.BondsH())) return 1;
+  if (WriteBonds(F_BONDS,  TopOut.Bonds()) ) return 1;
+  // ANGLESH and ANGLES
+  if (WriteAngles(F_ANGLESH, TopOut.AnglesH())) return 1;
+  if (WriteAngles(F_ANGLES,  TopOut.Angles()) ) return 1;
+  // DIHEDRALSH and DIHEDRALS
+  if (WriteDihedrals(F_DIHH, TopOut.DihedralsH())) return 1;
+  if (WriteDihedrals(F_DIH,  TopOut.Dihedrals()) ) return 1;
 
   return 0;
 }

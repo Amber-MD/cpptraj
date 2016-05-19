@@ -136,6 +136,9 @@ class Parm_Amber : public ParmIO {
     static int AmberIfbox(const Box&);
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
     int WriteBondParm(FlagType, FlagType, BondParmArray const&);
+    int WriteBonds(FlagType, BondArray const&);
+    int WriteAngles(FlagType, AngleArray const&);
+    int WriteDihedrals(FlagType, DihedralArray const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
