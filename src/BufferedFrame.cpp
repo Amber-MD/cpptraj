@@ -45,6 +45,9 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int e
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, 
                                       size_t additionalBytes, int offsetIn) 
 {
+  if (Access() != CpptrajFile::READ &&
+      buffer_ != 0 && bufferPosition_ != 0 && buffer_ != bufferPosition_)
+    mprinterr("DEBUG: Buffer was not flushed.\n"); // DEBUG warning
   Ncols_ = eltsPerLine;
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
@@ -244,6 +247,8 @@ void BufferedFrame::FlushBuffer() {
     ++bufferPosition_;
   }
   WriteFrame();
+  col_ = 0;
+  bufferPosition_ = buffer_;
 }
 
 /** \return Pointer to next null-terminated element in buffer.
