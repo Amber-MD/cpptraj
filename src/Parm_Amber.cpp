@@ -1339,17 +1339,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
                FLAGS_[titleFlag].Fmt, title.c_str());
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
-  Iarray excluded;
+  Iarray Excluded;
   for (Topology::atom_iterator atom = TopOut.begin(); atom != TopOut.end(); ++atom)
   {
     int nex = atom->Nexcluded();
     if (nex == 0)
-      excluded.push_back( 0 );
+      Excluded.push_back( 0 );
     else {
       for (Atom::excluded_iterator ex = atom->excludedbegin();
                                    ex != atom->excludedend(); ex++)
         // Amber atom #s start from 1
-        excluded.push_back( (*ex) + 1 );
+        Excluded.push_back( (*ex) + 1 );
     }
   }
  
@@ -1375,7 +1375,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.IntToBuffer( 1 );
   } else
     file_.IntToBuffer( 0 );
-  file_.IntToBuffer( excluded.size() ); // NNB
+  file_.IntToBuffer( Excluded.size() ); // NNB
   file_.IntToBuffer( TopOut.Nres() ); // NRES
   //   NOTE: Assuming MBONA == NBONA etc
   file_.IntToBuffer( TopOut.Bonds().size() ); // MBONA
@@ -1605,6 +1605,33 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // DIHEDRALSH and DIHEDRALS
   if (WriteDihedrals(F_DIHH, TopOut.DihedralsH())) return 1;
   if (WriteDihedrals(F_DIH,  TopOut.Dihedrals()) ) return 1;
+
+  // EXCLUDED ATOMS LIST
+  if (BufferAlloc(F_EXCLUDE, Excluded.size())) return 1;
+  for (Iarray::const_iterator it = Excluded.begin(); it != Excluded.end(); ++it)
+    file_.IntToBuffer( *it );
+  file_.FlushBuffer();
+
+  // HBOND ASOL
+  if (BufferAlloc(F_ASOL, TopOut.Nonbond().HBarray().size())) return 1;
+  for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
+                                    it != TopOut.Nonbond().HBarray().end(); ++it)
+    file_.DblToBuffer( it->Asol() );
+  file_.FlushBuffer();
+
+  // HBOND BSOL
+  if (BufferAlloc(F_BSOL, TopOut.Nonbond().HBarray().size())) return 1;
+  for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
+                                    it != TopOut.Nonbond().HBarray().end(); ++it)
+    file_.DblToBuffer( it->Bsol() );
+  file_.FlushBuffer();
+
+  // HBOND HBCUT 
+  if (BufferAlloc(F_HBCUT, TopOut.Nonbond().HBarray().size())) return 1;
+  for (HB_ParmArray::const_iterator it = TopOut.Nonbond().HBarray().begin();
+                                    it != TopOut.Nonbond().HBarray().end(); ++it)
+    file_.DblToBuffer( it->HBcut() );
+  file_.FlushBuffer();
 
   return 0;
 }
