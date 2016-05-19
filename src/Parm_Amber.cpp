@@ -1239,6 +1239,7 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   return 0;
 }
 
+// Parm_Amber::WriteBondParm()
 int Parm_Amber::WriteBondParm(FlagType RKflag, FlagType REQflag, BondParmArray const& BP) {
   // BOND RK
   if (BufferAlloc(RKflag, BP.size())) return 1;
@@ -1253,6 +1254,7 @@ int Parm_Amber::WriteBondParm(FlagType RKflag, FlagType REQflag, BondParmArray c
   return 0;
 }
 
+// Parm_Amber::WriteLJ()
 int Parm_Amber::WriteLJ(FlagType Aflag, FlagType Bflag, NonbondArray const& NB) {
   // LJ A terms
   if (BufferAlloc(Aflag, NB.size())) return 1;
@@ -1768,7 +1770,30 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         file_.DblToBuffer( *it );
       file_.FlushBuffer();
     }
+    // CMAP parameters
+    if (BufferAlloc(F_CHM_CMAPI, TopOut.Chamber().Cmap().size())) return 1;
+    for (CmapArray::const_iterator it = TopOut.Chamber().Cmap().begin();
+                                   it != TopOut.Chamber().Cmap().end(); ++it)
+    {
+      file_.IntToBuffer( it->A1() + 1 );
+      file_.IntToBuffer( it->A2() + 1 );
+      file_.IntToBuffer( it->A3() + 1 );
+      file_.IntToBuffer( it->A4() + 1 );
+      file_.IntToBuffer( it->A5() + 1 );
+      file_.IntToBuffer( it->Idx() + 1 );
+    }
+    file_.FlushBuffer();
+  }
 
+  // Polarizability - only write if it needs to be there
+  if (TopOut.Ipol() > 0) {
+    if (BufferAlloc(F_IPOL, 1)) return 1;
+    file_.IntToBuffer( TopOut.Ipol() );
+    file_.FlushBuffer();
+    if (BufferAlloc(F_POLAR, TopOut.Natom())) return 1;
+    for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+      file_.DblToBuffer( atm->Polar() );
+    file_.FlushBuffer();
   }
 
   return 0;
