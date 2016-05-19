@@ -1796,6 +1796,44 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
+  // LES parameters
+  if (TopOut.LES().HasLES()) {
+    // LES NTYP
+    if (BufferAlloc(F_LES_NTYP, 1)) return 1;
+    file_.IntToBuffer( TopOut.LES().Ntypes() );
+    file_.FlushBuffer();
+    // Sanity check.
+    if ( (int)TopOut.LES().Array().size() != TopOut.Natom() ) {
+      mprinterr("Internal Error: # LES atoms (%zu) != # atoms in topology (%i).\n",
+                TopOut.LES().Array().size(), TopOut.Natom());
+      return 1;
+    }
+    // LES TYPE
+    if (BufferAlloc(F_LES_TYPE, TopOut.LES().Array().size())) return 1;
+    for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
+                                   les != TopOut.LES().Array().end(); ++les)
+      file_.IntToBuffer( les->Type() );
+    file_.FlushBuffer();
+    // LES FAC
+    if (BufferAlloc(F_LES_FAC, TopOut.LES().FAC().size())) return 1;
+    for (std::vector<double>::const_iterator it = TopOut.LES().FAC().begin();
+                                             it != TopOut.LES().FAC().end(); ++it)
+      file_.DblToBuffer( *it );
+    file_.FlushBuffer();
+    // LES CNUM
+    if (BufferAlloc(F_LES_CNUM, TopOut.LES().Array().size())) return 1;
+    for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
+                                   les != TopOut.LES().Array().end(); ++les)
+      file_.IntToBuffer( les->Copy() );
+    file_.FlushBuffer();
+    // LES ID
+    if (BufferAlloc(F_LES_ID, TopOut.LES().Array().size())) return 1;
+    for (LES_Array::const_iterator les = TopOut.LES().Array().begin();
+                                   les != TopOut.LES().Array().end(); ++les)
+      file_.IntToBuffer( les->ID() );
+    file_.FlushBuffer();
+  }
+
   return 0;
 }
 
