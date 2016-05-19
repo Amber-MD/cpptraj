@@ -1203,14 +1203,21 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
 }
 
 // Parm_Amber::BufferAlloc()
-int Parm_Amber::BufferAlloc(FlagType ftype, int nvals) {
+int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   FortranData FMT = WriteFormat( ftype );
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
     return 1;
   }
   // Write FLAG and FORMAT lines
-  file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[ftype].Flag, FMT.Fstr());
+  if (idx < 0)
+    file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[ftype].Flag, FMT.Fstr());
+  else {
+    // NOTE: Currently only needed for CMAP grid flags
+    std::string fflag( FLAGS_[ftype].Flag );
+    fflag.append( integerToString( idx, 2 ) );
+    file_.Printf("%%FLAG %-74s\n%-80s\n", fflag.c_str(), FMT.Fstr());
+  }
   if (nvals > 0) {
     TextFormat WriteFmt;
     mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
@@ -1221,7 +1228,8 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals) {
     else if (FMT.Ftype() == FCHAR)
       WriteFmt = TextFormat(TextFormat::STRING, FMT.Width());
     else if (FMT.Ftype() == FFLOAT)
-      WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width());
+      WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width(), FMT.Precision());
+    mprintf("DEBUG: Write format: \"%s\"\n", WriteFmt.fmt());
     file_.SetupFrameBuffer( nvals, WriteFmt, FMT.Ncols() );
   } else {
     mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
@@ -1734,6 +1742,34 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
     file_.DblToBuffer( atm->Screen() );
   file_.FlushBuffer();
+
+  // CHAMBER only - write CMAP parameters
+  if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
+    // CMAP COUNT
+    if (BufferAlloc(F_CHM_CMAPC, 2)) return 1;
+    file_.IntToBuffer( TopOut.Chamber().Cmap().size() );     // CMAP terms
+    file_.IntToBuffer( TopOut.Chamber().CmapGrid().size() ); // CMAP grids
+    file_.FlushBuffer();
+    // CMAP GRID RESOLUTIONS
+    if (BufferAlloc(F_CHM_CMAPR, TopOut.Chamber().CmapGrid().size())) return 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end(); ++grid)
+      file_.IntToBuffer( grid->Resolution() );
+    file_.FlushBuffer();
+    // CMAP GRIDS
+    int ngrid = 1;
+    for (CmapGridArray::const_iterator grid = TopOut.Chamber().CmapGrid().begin();
+                                       grid != TopOut.Chamber().CmapGrid().end();
+                                       ++grid, ++ngrid)
+    {
+      if (BufferAlloc(F_CHM_CMAPP, grid->Size(), ngrid)) return 1;
+      for (std::vector<double>::const_iterator it = grid->Grid().begin();
+                                               it != grid->Grid().end(); ++it)
+        file_.DblToBuffer( *it );
+      file_.FlushBuffer();
+    }
+
+  }
 
   return 0;
 }
