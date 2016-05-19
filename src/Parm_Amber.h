@@ -138,6 +138,7 @@ class Parm_Amber : public ParmIO {
     int WriteBonds(FlagType, BondArray const&);
     int WriteAngles(FlagType, AngleArray const&);
     int WriteDihedrals(FlagType, DihedralArray const&);
+    void WriteLine(FlagType, std::string const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];

@@ -1306,6 +1306,15 @@ int Parm_Amber::WriteDihedrals(FlagType flag, DihedralArray const& DIH) {
   return 0;
 }
 
+/** Write a single line to the topology file. */
+void Parm_Amber::WriteLine(FlagType flag, std::string const& lineIn) {
+  std::string title = lineIn;
+  // Resize to max 80 char
+  if (title.size() > 80)
+    title.resize(80);
+  file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[flag].Flag, FLAGS_[flag].Fmt, title.c_str());
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
@@ -1324,12 +1333,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.Printf("%-44s%s                  \n",
                "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
                TimeString().c_str());
-  std::string title = TopOut.ParmName();
-  // Resize title to max 80 char
-  if (title.size() > 80)
-    title.resize(80);
-  file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[titleFlag].Flag,
-               FLAGS_[titleFlag].Fmt, title.c_str());
+  WriteLine( titleFlag, TopOut.ParmName() );
 
   // Generate atom exclusion list. Do this here since POINTERS needs the size.
   Iarray Excluded;
@@ -1715,6 +1719,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( TopOut.Cap().zCap() );
     file_.FlushBuffer();
   }
+
+  // GB RADIUS SET
+  WriteLine(F_RADSET, TopOut.GBradiiSet());
 
   return 0;
 }
