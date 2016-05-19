@@ -133,7 +133,6 @@ class Parm_Amber : public ParmIO {
     // ----- Write -------------------------------
     FortranData WriteFormat(FlagType) const;
     int BufferAlloc(FlagType, int);
-    static int AmberIfbox(const Box&);
     int WriteLJ(FlagType, FlagType, NonbondArray const&);
     int WriteBondParm(FlagType, FlagType, BondParmArray const&);
     int WriteBonds(FlagType, BondArray const&);

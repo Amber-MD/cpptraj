@@ -1231,13 +1231,6 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals) {
   return 0;
 }
 
-int Parm_Amber::AmberIfbox(const Box& boxIn) {
-  if      (boxIn.Type() == Box::NOBOX   ) return 0;
-  else if (boxIn.Type() == Box::ORTHO   ) return 1;
-  else if (boxIn.Type() == Box::TRUNCOCT) return 2;
-  return 3;
-}
-
 int Parm_Amber::WriteBondParm(FlagType RKflag, FlagType REQflag, BondParmArray const& BP) {
   // BOND RK
   if (BufferAlloc(RKflag, BP.size())) return 1;
@@ -1358,6 +1351,15 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (Topology::res_iterator res = TopOut.ResStart(); res != TopOut.ResEnd(); ++res)
     maxResSize = std::max(maxResSize, res->NumAtoms());
 
+  // Determine value of ifbox
+  int ifbox;
+  switch ( TopOut.ParmBox().Type() ) {
+    case Box::NOBOX    : ifbox = 0; break;
+    case Box::ORTHO    : ifbox = 1; break;
+    case Box::TRUNCOCT : ifbox = 2; break;
+    default:             ifbox = 3; break; // General triclinic
+  }
+
   // POINTERS
   if (BufferAlloc(F_POINTERS, AMBERPOINTERS_)) return 1;
   file_.IntToBuffer( TopOut.Natom() ); // NATOM
@@ -1393,7 +1395,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( 0 ); // MBPER
   file_.IntToBuffer( 0 ); // MGPER
   file_.IntToBuffer( 0 ); // MDPER
-  file_.IntToBuffer( AmberIfbox( TopOut.ParmBox() ) ); // IFBOX
+  file_.IntToBuffer( ifbox ); // IFBOX
   file_.IntToBuffer( maxResSize ); // NMXRS
   if (TopOut.Cap().NatCap() > 0) // IFCAP
     file_.IntToBuffer( 1 );
@@ -1611,6 +1613,7 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   for (Iarray::const_iterator it = Excluded.begin(); it != Excluded.end(); ++it)
     file_.IntToBuffer( *it );
   file_.FlushBuffer();
+  Excluded.clear();
 
   // HBOND ASOL
   if (BufferAlloc(F_ASOL, TopOut.Nonbond().HBarray().size())) return 1;
@@ -1632,6 +1635,60 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
                                     it != TopOut.Nonbond().HBarray().end(); ++it)
     file_.DblToBuffer( it->HBcut() );
   file_.FlushBuffer();
+
+  // AMBER ATOM TYPES
+  if (BufferAlloc(F_TYPES, TopOut.Natom())) return 1;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+    file_.CharToBuffer( *(atm->Type()) );
+  file_.FlushBuffer();
+
+  // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
+  // TODO: Generate automatically
+  if (BufferAlloc(F_ITREE, TopOut.Natom())) return 1;
+  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+    file_.CharToBuffer( *(it->Itree()) );
+  file_.FlushBuffer();
+
+  if (BufferAlloc(F_JOIN, TopOut.Natom())) return 1;
+  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+    file_.IntToBuffer( it->Join() );
+  file_.FlushBuffer();
+
+  if (BufferAlloc(F_IROTAT, TopOut.Natom())) return 1;
+  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+    file_.IntToBuffer( it->Irotat() );
+  file_.FlushBuffer();
+
+  // Write solvent info if IFBOX > 0
+  if (ifbox > 0) {
+    // Determine first solvent molecule 
+    int firstSolventMol = -1;
+    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); ++mol) {
+      if ( mol->IsSolvent() ) {
+        firstSolventMol = (int)(mol - TopOut.MolStart());
+        break;
+      }
+    }
+    // Determine final solute residue based on first solvent molecule.
+    int finalSoluteRes = 0;
+    if (firstSolventMol == -1)
+      finalSoluteRes = TopOut.Nres(); // No solvent Molecules
+    else if (firstSolventMol > 0) {
+      int finalSoluteAtom = TopOut.Mol(firstSolventMol).BeginAtom() - 1;
+      finalSoluteRes = TopOut[finalSoluteAtom].ResNum() + 1;
+    }
+    // If no solvent, just set to 1 beyond # of molecules
+    if (firstSolventMol == -1)
+      firstSolventMol = TopOut.Nmol();
+
+    // SOLVENT POINTERS
+    if (BufferAlloc(F_SOLVENT_POINTER, 3)) return 1;
+    file_.IntToBuffer( finalSoluteRes ); // Already +1
+    file_.IntToBuffer( TopOut.Nmol() );
+    file_.IntToBuffer( firstSolventMol + 1 );
+    file_.FlushBuffer();
+
+  }
 
   return 0;
 }
