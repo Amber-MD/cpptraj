@@ -131,7 +131,8 @@ class Topology {
     int AddTopAtom(Atom const&, Residue const&);
     void AddExtraAtomInfo(AtomExtra const& ex) { extra_.push_back(ex); } // FIXME bounds check
     void StartNewMol();
-    int CommonSetup();
+    int CommonSetup(bool);
+    int CommonSetup() { return CommonSetup(true); }
     void ResetPDBinfo();
     int Setup_NoResInfo();
     /// Resize for given numbers of atoms/residues etc. Clears any existing data.
