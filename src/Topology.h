@@ -34,18 +34,20 @@ class Topology {
     int Nmol()                     const { return (int)molecules_.size(); }
     int Nsolvent()                 const { return NsolventMolecules_;     }
     int NextraPts()                const { return n_extra_pts_;           }
+    inline int NatomTypes()        const { return n_atom_types_;          }
     std::string const& ParmName()         const { return parmName_;       }
     FileName const& OriginalFilename()    const { return fileName_;       }
     std::string const& GBradiiSet()       const { return radius_set_;     }
     const char *c_str() const; //FIXME rename
     // ---- Atom-specific routines ---------------
     typedef std::vector<Atom>::const_iterator atom_iterator;
-    atom_iterator begin()            const { return atoms_.begin(); }
-    atom_iterator end()              const { return atoms_.end();   }
-    const Atom &operator[](int idx)  const { return atoms_[idx];    }
-    std::vector<Atom> const& Atoms() const { return atoms_;         }
-    Atom& SetAtom(int idx)                 { return atoms_[idx];    }
-    AtomExtra& SetExtraAtomInfo(int idx)   { return extra_[idx];    }
+    atom_iterator begin()                        const { return atoms_.begin(); }
+    atom_iterator end()                          const { return atoms_.end();   }
+    const Atom &operator[](int idx)              const { return atoms_[idx];    }
+    std::vector<Atom> const& Atoms()             const { return atoms_;         }
+    inline const std::vector<AtomExtra>& Extra() const { return extra_;         }
+    Atom& SetAtom(int idx)                 { return atoms_[idx]; }
+    AtomExtra& SetExtraAtomInfo(int idx)   { return extra_[idx]; }
     // ----- Residue-specific routines -----------
     typedef std::vector<Residue>::const_iterator res_iterator;
     inline res_iterator ResStart() const { return residues_.begin(); }
@@ -97,9 +99,6 @@ class Topology {
     // ----- CHAMBER info ------------------------
     ChamberParmType const& Chamber()        const { return chamber_;      }
     ChamberParmType& SetChamber()                 { return chamber_;      }
-    // ----- Extra atom info ---------------------
-    inline const std::vector<AtomExtra>& Extra() const { return extra_; }
-    inline int NatomTypes()                      const { return n_atom_types_; }
     // ----- Misc routines -----------------------
     /// Format: <res name><res num>@<atom name>
     std::string TruncResAtomName(int) const;
@@ -109,7 +108,9 @@ class Topology {
     std::string TruncAtomNameNum(int) const;
     /// Format: <res name>:<res num> 
     std::string TruncResNameNum(int) const;
+    /// \return index of atom with given name in specified residue.
     int FindAtomInResidue(int, NameType const&) const;
+    /// Mark all molecules matching given mask expression as solvent.
     int SetSolvent(std::string const&);
     // ----- Print topology info -----------------
     void Summary() const;
@@ -124,7 +125,6 @@ class Topology {
     int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info --
     inline Box const& ParmBox()   const { return parmBox_;        }
-//    inline Box::BoxType BoxType() const { return parmBox_.Type(); }
     void SetParmBox( Box const& bIn )   { parmBox_ = bIn;         }
     void SetBoxFromTraj(Box const&);
     // ----- Setup routines ----------------------
