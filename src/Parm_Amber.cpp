@@ -369,7 +369,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
           ptr = SkipToNextFlag();
         } else {
           int err = 0;
-          switch ((AmberParmFlagType)flagIdx) {
+          switch ((FlagType)flagIdx) {
             case F_CTITLE: ptype_ = CHAMBER; // Fall through to F_TITLE
             case F_TITLE:     err = ReadTitle(TopIn); break;
             case F_POINTERS:  err = ReadPointers(AMBERPOINTERS_, TopIn, FMT); break;
@@ -537,7 +537,7 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
 }
 
 // Parm_Amber::SetupBuffer()
-int Parm_Amber::SetupBuffer(AmberParmFlagType ftype, int nvals, FortranData const& FMT) {
+int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
   if (values_.empty()) {
     mprinterr("Error: Flag '%s' encountered before POINTERS.\n", FLAGS_[ftype].Flag);
     return 1;
@@ -1187,7 +1187,7 @@ int Parm_Amber::processWriteArgs(ArgList& argIn) {
 }
 
 /** \return Format for given flag. */
-Parm_Amber::FortranData Parm_Amber::WriteFormat(AmberParmFlagType fflag) const {
+Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   FortranData FMT;
   // For chamber, certain flags have different format (boo).
   if (ptype_ == CHAMBER) {
@@ -1203,7 +1203,7 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(AmberParmFlagType fflag) const {
 }
 
 // Parm_Amber::BufferAlloc()
-int Parm_Amber::BufferAlloc(AmberParmFlagType ftype, int nvals) {
+int Parm_Amber::BufferAlloc(FlagType ftype, int nvals) {
   FortranData FMT = WriteFormat( ftype );
   if ( FMT.Ftype() == UNKNOWN_FTYPE) {
     mprinterr("Interal Error: Could not set up format string.\n");
@@ -1238,12 +1238,40 @@ int Parm_Amber::AmberIfbox(const Box& boxIn) {
   return 3;
 }
 
+int Parm_Amber::WriteBondParm(FlagType RKflag, FlagType REQflag, BondParmArray const& BP) {
+  // BOND RK
+  if (BufferAlloc(RKflag, BP.size())) return 1;
+  for (BondParmArray::const_iterator it = BP.begin(); it != BP.end(); ++it)
+    file_.DblToBuffer( it->Rk() );
+  file_.FlushBuffer();
+  // BOND REQ
+  if (BufferAlloc(REQflag, BP.size())) return 1;
+  for (BondParmArray::const_iterator it = BP.begin(); it != BP.end(); ++it)
+    file_.DblToBuffer( it->Req() );
+  file_.FlushBuffer();
+  return 0;
+}
+
+int Parm_Amber::WriteLJ(FlagType Aflag, FlagType Bflag, NonbondArray const& NB) {
+  // LJ A terms
+  if (BufferAlloc(Aflag, NB.size())) return 1;
+  for (NonbondArray::const_iterator it = NB.begin(); it != NB.end(); ++it)
+    file_.DblToBuffer( it->A() );
+  file_.FlushBuffer();
+  // LJ B terms
+  if (BufferAlloc(Bflag, NB.size())) return 1;
+  for (NonbondArray::const_iterator it = NB.begin(); it != NB.end(); ++it)
+    file_.DblToBuffer( it->B() );
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
   // Determine if this is a CHAMBER topology
   ptype_ = NEWPARM;
-  AmberParmFlagType titleFlag = F_TITLE;
+  FlagType titleFlag = F_TITLE;
   if (TopOut.Chamber().HasChamber()) {
     if (nochamber_)
       mprintf("\tnochamber: Removing CHAMBER info from topology.\n");
@@ -1394,19 +1422,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.IntToBuffer( res->FirstAtom()+1 );
   file_.FlushBuffer();
 
-  // BOND RK
-  if (BufferAlloc(F_BONDRK, TopOut.BondParm().size())) return 1;
-  for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
-                                     it != TopOut.BondParm().end(); ++it)
-    file_.DblToBuffer( it->Rk() );
-  file_.FlushBuffer();
-
-  // BOND REQ
-  if (BufferAlloc(F_BONDREQ, TopOut.BondParm().size())) return 1;
-  for (BondParmArray::const_iterator it = TopOut.BondParm().begin();
-                                     it != TopOut.BondParm().end(); ++it)
-    file_.DblToBuffer( it->Req() );
-  file_.FlushBuffer();
+  // BOND RK and REQ
+  if (WriteBondParm(F_BONDRK, F_BONDREQ, TopOut.BondParm())) return 1;
 
   // ANGLE TK
   if (BufferAlloc(F_ANGLETK, TopOut.AngleParm().size())) return 1;
@@ -1439,18 +1456,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( it->Idx()+1 );
     }
     file_.FlushBuffer();
-    // UB FORCE CONSTANTS
-    if (BufferAlloc(F_CHM_UBFC, TopOut.Chamber().UBparm().size())) return 1;
-    for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
-                                       it != TopOut.Chamber().UBparm().end(); ++it)
-      file_.DblToBuffer( it->Rk() );
-    file_.FlushBuffer();
-    // UB EQ CONSTANTS
-    if (BufferAlloc(F_CHM_UBEQ, TopOut.Chamber().UBparm().size())) return 1;
-    for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
-                                       it != TopOut.Chamber().UBparm().end(); ++it)
-      file_.DblToBuffer( it->Req() );
-    file_.FlushBuffer();
+    // UB FORCE CONSTANTS and EQ
+    if (WriteBondParm(F_CHM_UBFC, F_CHM_UBEQ, TopOut.Chamber().UBparm())) return 1;
   }
 
   // DIHEDRAL PK
@@ -1536,19 +1543,11 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( 0.0 );
   file_.FlushBuffer();
 
-  // LJ A terms
-  if (BufferAlloc(F_LJ_A, TopOut.Nonbond().NBarray().size())) return 1;
-  for (NonbondArray::const_iterator it = TopOut.Nonbond().NBarray().begin();
-                                    it != TopOut.Nonbond().NBarray().end(); ++it)
-    file_.DblToBuffer( it->A() );
-  file_.FlushBuffer();
-
-  // LJ B terms
-  if (BufferAlloc(F_LJ_B, TopOut.Nonbond().NBarray().size())) return 1;
-  for (NonbondArray::const_iterator it = TopOut.Nonbond().NBarray().begin();
-                                    it != TopOut.Nonbond().NBarray().end(); ++it)
-    file_.DblToBuffer( it->B() );
-  file_.FlushBuffer();
+  // LJ A and B terms
+  if (WriteLJ(F_LJ_A, F_LJ_B, TopOut.Nonbond().NBarray())) return 1;
+ 
+  // CHAMBER only - LJ 1-4 terms
+  if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Chamber().LJ14())) return 1;
 
   return 0;
 }

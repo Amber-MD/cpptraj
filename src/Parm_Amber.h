@@ -21,7 +21,7 @@ class Parm_Amber : public ParmIO {
     /// Enumerated type for Fortran data type
     enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     /// Enumerated type for Amber Parmtop Flags
-    enum AmberParmFlagType {
+    enum FlagType {
       F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
       F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,    F_SOLVENT_POINTER,
       F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,    F_NB_INDEX,
@@ -38,7 +38,7 @@ class Parm_Amber : public ParmIO {
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
       F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
     };
-    /// Used to hold %FLAG/FORMAT string pairs. Corresponds to AmberParmFlagType.
+    /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
       const char* Flag; ///< %FLAG name in topology.
       const char* Fmt;  ///< Fortran format string for writing.
@@ -57,7 +57,7 @@ class Parm_Amber : public ParmIO {
     inline const char* SkipToNextFlag();
     int ReadTitle(Topology&);
     int ReadPointers(int, Topology&, FortranData const&);
-    inline int SetupBuffer(AmberParmFlagType, int, FortranData const&);
+    inline int SetupBuffer(FlagType, int, FortranData const&);
     int ReadAtomNames(Topology&, FortranData const&);
     int ReadAtomCharges(Topology&, FortranData const&);
     int ReadAtomicNum(FortranData const&);
@@ -131,9 +131,11 @@ class Parm_Amber : public ParmIO {
     int ReadLESid(Topology&, FortranData const&);
 
     // ----- Write -------------------------------
-    FortranData WriteFormat(AmberParmFlagType) const;
-    int BufferAlloc(AmberParmFlagType, int);
+    FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, int);
     static int AmberIfbox(const Box&);
+    int WriteLJ(FlagType, FlagType, NonbondArray const&);
+    int WriteBondParm(FlagType, FlagType, BondParmArray const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
