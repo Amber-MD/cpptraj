@@ -1688,6 +1688,20 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.IntToBuffer( firstSolventMol + 1 );
     file_.FlushBuffer();
 
+    // ATOMS PER MOLECULE
+    if (BufferAlloc(F_ATOMSPERMOL, TopOut.Nmol())) return 1;
+    for (Topology::mol_iterator mol = TopOut.MolStart(); mol != TopOut.MolEnd(); mol++)
+      file_.IntToBuffer( mol->NumAtoms() );
+    file_.FlushBuffer();
+
+    // BOX DIMENSIONS
+    if (BufferAlloc(F_PARMBOX, 4)) return 1;
+    file_.DblToBuffer( TopOut.ParmBox().Beta() );
+    file_.DblToBuffer( TopOut.ParmBox().BoxX() );
+    file_.DblToBuffer( TopOut.ParmBox().BoxY() );
+    file_.DblToBuffer( TopOut.ParmBox().BoxZ() );
+    file_.FlushBuffer();
+
   }
 
   return 0;
