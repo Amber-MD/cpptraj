@@ -215,12 +215,16 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
     for (int at = res->FirstAtom(); at != res->LastAtom(); ++at)
       TopIn.SetAtom(at).SetResNum( res - TopIn.ResStart() );
   // If SCEE/SCNB not read, set defaults
-  if (!SCEE_set_)
+  if (!SCEE_set_) {
+    mprintf("\tNo SCEE section: setting Amber default (1.2)\n");
     for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
       TopIn.SetDihedralParm(idx).SetSCEE( 1.2 );
-  if (!SCNB_set_)
+  }
+  if (!SCNB_set_) {
+    mprintf("\tNo SCNB section: setting Amber default (2.0)\n");
     for (unsigned int idx = 0; idx != TopIn.DihedralParm().size(); idx++)
       TopIn.SetDihedralParm(idx).SetSCNB( 2.0 );
+  }
   // Check box info
   if (values_[IFBOX] > 0) {
     if (parmbox_.Type() == Box::NOBOX) {
@@ -696,6 +700,7 @@ int Parm_Amber::ReadDihedralSCEE(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCEE, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
     TopIn.SetDihedralParm(idx).SetSCEE( atof(file_.NextElement()) );
+  SCEE_set_ = true;
   return 0;
 }
 
@@ -704,6 +709,7 @@ int Parm_Amber::ReadDihedralSCNB(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_SCNB, values_[NPTRA], FMT)) return 1;
   for (int idx = 0; idx != values_[NPTRA]; idx++)
     TopIn.SetDihedralParm(idx).SetSCNB( atof(file_.NextElement()) );
+  SCNB_set_ = true;
   return 0;
 }
 
@@ -1418,10 +1424,12 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // CHARMM only - Urey-Bradley
   if (ptype_ == CHAMBER) {
+    // UB COUNT
     if (BufferAlloc(F_CHM_UBC, 2)) return 1;
     file_.IntToBuffer( TopOut.Chamber().UB().size() );
     file_.IntToBuffer( TopOut.Chamber().UBparm().size() );
     file_.FlushBuffer();
+    // UB terms
     if (BufferAlloc(F_CHM_UB, TopOut.Chamber().UB().size()*3)) return 1;
     for (BondArray::const_iterator it = TopOut.Chamber().UB().begin();
                                    it != TopOut.Chamber().UB().end(); ++it)
@@ -1431,11 +1439,13 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       file_.IntToBuffer( it->Idx()+1 );
     }
     file_.FlushBuffer();
+    // UB FORCE CONSTANTS
     if (BufferAlloc(F_CHM_UBFC, TopOut.Chamber().UBparm().size())) return 1;
     for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
                                        it != TopOut.Chamber().UBparm().end(); ++it)
       file_.DblToBuffer( it->Rk() );
     file_.FlushBuffer();
+    // UB EQ CONSTANTS
     if (BufferAlloc(F_CHM_UBEQ, TopOut.Chamber().UBparm().size())) return 1;
     for (BondParmArray::const_iterator it = TopOut.Chamber().UBparm().begin();
                                        it != TopOut.Chamber().UBparm().end(); ++it)
@@ -1480,9 +1490,11 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // CHAMBER only - Impropers
   if (ptype_ == CHAMBER) {
+    // NUM IMPROPERS
     if (BufferAlloc(F_CHM_NIMP, 1)) return 1;
     file_.IntToBuffer( TopOut.Chamber().Impropers().size() );
     file_.FlushBuffer();
+    // IMPROPER TERMS
     if (BufferAlloc(F_CHM_IMP, TopOut.Chamber().Impropers().size()*5)) return 1;
     for (DihedralArray::const_iterator it = TopOut.Chamber().Impropers().begin();
                                        it != TopOut.Chamber().Impropers().end(); ++it)
@@ -1499,7 +1511,23 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
         file_.IntToBuffer( it->A4() + 1 );
       file_.IntToBuffer( it->Idx() + 1 );
     }
-
+    file_.FlushBuffer();
+    // NUM IMPROPER PARAMS
+    if (BufferAlloc(F_CHM_NIMPT, 1)) return 1;
+    file_.IntToBuffer( TopOut.Chamber().ImproperParm().size() );
+    file_.FlushBuffer();
+    // IMPROPER FORCE CONSTANTS
+    if (BufferAlloc(F_CHM_IMPFC, TopOut.Chamber().ImproperParm().size())) return 1;
+    for (DihedralParmArray::const_iterator it = TopOut.Chamber().ImproperParm().begin();
+                                           it != TopOut.Chamber().ImproperParm().end(); ++it)
+      file_.DblToBuffer( it->Pk() );
+    file_.FlushBuffer();
+    // IMPROPER PHASES
+    if (BufferAlloc(F_CHM_IMPP, TopOut.Chamber().ImproperParm().size())) return 1;
+    for (DihedralParmArray::const_iterator it = TopOut.Chamber().ImproperParm().begin();
+                                           it != TopOut.Chamber().ImproperParm().end(); ++it)
+      file_.DblToBuffer( it->Phase() );
+    file_.FlushBuffer();
   }
 
   return 0;
