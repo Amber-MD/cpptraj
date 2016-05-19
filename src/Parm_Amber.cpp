@@ -1701,7 +1701,19 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.DblToBuffer( TopOut.ParmBox().BoxY() );
     file_.DblToBuffer( TopOut.ParmBox().BoxZ() );
     file_.FlushBuffer();
+  }
 
+  // CAP info
+  if (TopOut.Cap().NatCap() > 0) {
+    if (BufferAlloc(F_CAP_INFO, 1)) return 1;
+    file_.IntToBuffer( TopOut.Cap().NatCap()+1 );
+    file_.FlushBuffer();
+    if (BufferAlloc(F_CAP_INFO2, 4)) return 1;
+    file_.DblToBuffer( TopOut.Cap().CutCap() );
+    file_.DblToBuffer( TopOut.Cap().xCap() );
+    file_.DblToBuffer( TopOut.Cap().yCap() );
+    file_.DblToBuffer( TopOut.Cap().zCap() );
+    file_.FlushBuffer();
   }
 
   return 0;
