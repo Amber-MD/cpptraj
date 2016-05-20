@@ -171,6 +171,9 @@ class Topology {
     void AddBondParam(BondType&, BP_mapType&);
     void AssignBondParameters();
     void VisitAtom(int, int);
+    int RecursiveMolSearch();
+    int NonrecursiveMolSearch();
+    void ClearMolecules();
     int DetermineMolecules();
     void AtomDistance(int, int, int, std::set<int>&) const;
     void DetermineExcludedAtoms();
