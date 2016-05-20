@@ -8,8 +8,12 @@ BufferedFrame::BufferedFrame() :
   bufferPosition_(0),
   frameSize_(0),
   offset_(0),
+  memSize_(0),
+  maxSize_(0),
   Ncols_(0),
-  eltWidth_(0)
+  col_(0),
+  eltWidth_(0),
+  saveChar_(0)
 {}
 
 BufferedFrame::~BufferedFrame() {
@@ -22,6 +26,12 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
   return SetupFrameBuffer(Nelts, eltWidthIn, eltsPerLine, 0, 0);
 }
 
+size_t BufferedFrame::SetupFrameBuffer(int Nelts, TextFormat const& fmtIn, int eltsPerLine)
+{
+  writeFmt_ = fmtIn;
+  return SetupFrameBuffer(Nelts, writeFmt_.Width(), eltsPerLine, 0, 0);
+}
+  
 /** Prepare the buffer to receive organized chunks of text, i.e. 
   * organized in some regular fashion (e.g. an Amber Traj, which
   * is 10 cols of 8.3 precision floating point numbers etc).
@@ -35,19 +45,27 @@ size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLin
 size_t BufferedFrame::SetupFrameBuffer(int Nelts, int eltWidthIn, int eltsPerLine, 
                                       size_t additionalBytes, int offsetIn) 
 {
+  //if (Access() != CpptrajFile::READ &&
+  //    buffer_ != 0 && bufferPosition_ != 0 && buffer_ != bufferPosition_)
+  //  mprinterr("DEBUG: Buffer was not flushed.\n"); // DEBUG warning
   Ncols_ = eltsPerLine;
   eltWidth_ = (size_t)eltWidthIn;
   offset_ = (size_t) offsetIn;
   frameSize_ = CalcFrameSize( Nelts ) + additionalBytes;
-  if (buffer_!=0) delete[] buffer_;
-  if (frameSize_ < 1) 
-    buffer_ = 0;
-  else {
-    buffer_ = new char[ frameSize_ + 1 ]; // +1 for null, TODO not necessary for read?
-    std::fill(buffer_, buffer_ + frameSize_, 0);
+  memSize_ = frameSize_ + 1; // +1 for null, TODO not necessary for read?
+  //mprintf("DEBUG: Buffer required size %zu, max size %zu.\n", memSize_, maxSize_);
+  if (memSize_ > maxSize_) {
+    //mprintf("DEBUG: Reallocating.\n");
+    // Need to reallocate
+    if (buffer_ != 0) delete[] buffer_;
+    buffer_ = new char[ memSize_ ];
+    maxSize_ = memSize_;
   }
+  // Initialize buffer
+  std::fill(buffer_, buffer_ + memSize_, 0);
   bufferPosition_ = buffer_;
-  //rprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
+  col_ = 0;
+  //mprintf("DEBUG: %s %i cols, eltWidth= %zu, offset= %zu, frameSize= %zu additional= %zu\n",
   //        Filename().base(), Ncols_, eltWidth_, offset_, frameSize_, additionalBytes);
   return frameSize_;
 }
@@ -81,6 +99,7 @@ size_t BufferedFrame::ResizeBuffer(int delta) {
   delete[] buffer_;
   buffer_ = newbuffer;
   bufferPosition_ = buffer_;
+  col_ = 0;
   frameSize_ = newsize;
   return frameSize_;
 }
@@ -102,6 +121,12 @@ int BufferedFrame::AttemptReadFrame() {
   */
 bool BufferedFrame::ReadFrame() {
   return ( Read( buffer_, frameSize_ ) != (int)frameSize_ );
+  /*int nread = Read(buffer_, frameSize_);
+  if (nread != (int)frameSize_) {
+    mprinterr("Error: Read %i bytes, expected %zu\n", nread, frameSize_);
+    return true;
+  }
+  return false;*/
 }
 
 int BufferedFrame::WriteFrame() {
@@ -117,6 +142,7 @@ void BufferedFrame::GetDoubleAtPosition(double& val, size_t start, size_t end) {
 
 void BufferedFrame::BufferBegin() {
   bufferPosition_ = buffer_;
+  col_ = 0;
 }
 
 void BufferedFrame::BufferBeginAt(size_t pos) {
@@ -178,4 +204,60 @@ void BufferedFrame::DoubleToBuffer(const double* Xin, int Nin, const char* forma
     sprintf(bufferPosition_,"\n");
     ++bufferPosition_;
   }
+}
+
+void BufferedFrame::AdvanceCol() {
+  bufferPosition_ += eltWidth_;
+  ++col_;
+  if ( col_ == Ncols_ ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+    col_ = 0;
+  }
+}
+
+void BufferedFrame::IntToBuffer(int ival) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), ival);
+  AdvanceCol();
+}
+
+void BufferedFrame::DblToBuffer(double dval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), dval);
+  AdvanceCol();
+}
+
+void BufferedFrame::CharToBuffer(const char* cval) {
+  sprintf(bufferPosition_, writeFmt_.fmt(), cval);
+  AdvanceCol();
+}
+
+void BufferedFrame::FlushBuffer() {
+  // If the coord record didnt end on a newline, print one
+  if ( col_ != 0 ) {
+    sprintf(bufferPosition_,"\n");
+    ++bufferPosition_;
+  }
+  WriteFrame();
+  col_ = 0;
+  bufferPosition_ = buffer_;
+}
+
+/** \return Pointer to next null-terminated element in buffer.
+  */
+const char* BufferedFrame::NextElement() {
+  if (saveChar_ != 0) *bufferPosition_ = saveChar_;
+  const char* position = bufferPosition_;
+  bufferPosition_ += eltWidth_;
+  //mprinterr("DEBUG: bufferPosition is %zu, frame size is %zu\n", bufferPosition_-buffer_, frameSize_);
+  char* end = bufferPosition_;
+  while (*bufferPosition_=='\n' || *bufferPosition_=='\r')
+    ++bufferPosition_;
+  if (bufferPosition_ == end) {
+    saveChar_ = *bufferPosition_;
+    *bufferPosition_ = '\0';
+  } else {
+    saveChar_ = 0;
+    *end = '\0';
+  }
+  return position; 
 }
