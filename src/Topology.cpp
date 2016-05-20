@@ -1,7 +1,6 @@
 #include <cmath> // pow
 #include <algorithm> // find
 #include <stack> // For large system molecule search
-#include "Timer.h" // DEBUG
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
@@ -955,8 +954,8 @@ void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
     dihedrals_.push_back( dihIn );
 }
 
+// -----------------------------------------------------------------------------
 // Topology::VisitAtom()
-// NOTE: Use iterator instead of atom num?
 void Topology::VisitAtom(int atomnum, int mol) {
   // Return if this atom already has a molecule number
   if (!atoms_[atomnum].NoMol()) return;
@@ -968,10 +967,10 @@ void Topology::VisitAtom(int atomnum, int mol) {
     VisitAtom(*bondedatom, mol);
 }
 
+/** Recursive search for molecules along bonds of each atom. */
 int Topology::RecursiveMolSearch() {
-  // Perform recursive search along bonds of each atom
-  Timer t_stack;
-  t_stack.Start();
+  //Timer t_stack;
+  //t_stack.Start();
   int atomnum = 0;
   int mol = 0;
   for (std::vector<Atom>::const_iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
@@ -982,16 +981,17 @@ int Topology::RecursiveMolSearch() {
     }
     ++atomnum;
   }
-  t_stack.Stop();
-  t_stack.WriteTiming(1, "Recursive mol search:");
+  //t_stack.Stop();
+  //t_stack.WriteTiming(1, "Recursive mol search:");
   return mol;
 }
 
+/** Non-recursive molecule search. Better for larger systems, uses the heap. */
 int Topology::NonrecursiveMolSearch() {
-  mprintf("DEBUG: Beginning non-recursive molecule search.\n");
+  if (debug_ > 0) mprintf("DEBUG: Beginning non-recursive molecule search.\n");
   // Recursive search for high atom counts can blow the stack away.
-  Timer t_nostack;
-  t_nostack.Start();
+  //Timer t_nostack;
+  //t_nostack.Start();
   std::stack<unsigned int> nextAtomToSearch;
   bool unassignedAtomsRemain = true;
   unsigned int currentAtom = 0;
@@ -1035,14 +1035,15 @@ int Topology::NonrecursiveMolSearch() {
       //mprintf("DEBUG:\tNext atom from stack: %u\n", currentAtom);
     }
   }
-  t_nostack.Stop();
-  t_nostack.WriteTiming(1, "Non-recursive mol search:");
+  //t_nostack.Stop();
+  //t_nostack.WriteTiming(1, "Non-recursive mol search:");
   return (int)currentMol;
 }
 
+// Topology::ClearMolecules()
+/** Clear molecules and reset molecule info for each atom. */
 void Topology::ClearMolecules() {
   molecules_.clear();
-  // Reset molecule info for each atom
   for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
     atom->SetMol( -1 );
 }
@@ -1057,10 +1058,25 @@ int Topology::DetermineMolecules() {
   // Reset molecule info for each atom
   ClearMolecules();
   int numberOfMolecules = 0;
-  if (atoms_.size() > 9999999) // NOTE: May have to make this cutoff smaller or larger
+  if (atoms_.size() > 150000) // Seems to be when performance of nonrecursive approaches recursive
     numberOfMolecules = NonrecursiveMolSearch();
   else
     numberOfMolecules = RecursiveMolSearch();
+/*// DEBUG Compare both methods
+  int test_nmol = NonrecursiveMolSearch();
+  std::vector<int> molNums( atoms_.size() );
+  for (unsigned int idx = 0; idx != atoms_.size(); idx++)
+    molNums[idx] = atoms_[idx].MolNum();
+  ClearMolecules();
+  numberOfMolecules = RecursiveMolSearch();
+  if (test_nmol != numberOfMolecules)
+    mprintf("Num mols found with non-recursive search (%i) does not match (%i)\n",
+            test_nmol, numberOfMolecules);
+  for (unsigned int idx = 0; idx != atoms_.size(); idx++)
+    if (molNums[idx] != atoms_[idx].MolNum())
+      mprintf("%u: Mol num in non-recursive search %i does not match %i\n",
+              idx, molNums[idx], atoms_[idx].MolNum());
+*/
   if (debug_ > 0) {
     mprintf("\t%i molecules.\n", numberOfMolecules);
     if (debug_ > 1)
@@ -1106,6 +1122,7 @@ int Topology::DetermineMolecules() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Topology::AtomDistance()
 void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) const 
 {
