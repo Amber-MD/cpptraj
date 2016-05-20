@@ -1610,7 +1610,9 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (WriteLJ(F_LJ_A, F_LJ_B, TopOut.Nonbond().NBarray())) return 1;
  
   // CHAMBER only - LJ 1-4 terms
-  if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Chamber().LJ14())) return 1;
+  if (ptype_ == CHAMBER) {
+    if (WriteLJ(F_LJ14A, F_LJ14B, TopOut.Chamber().LJ14())) return 1;
+  }
 
   // BONDSH and BONDS
   if (WriteBonds(F_BONDSH, TopOut.BondsH())) return 1;
