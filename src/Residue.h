@@ -5,7 +5,7 @@
 /// Hold information for a residue.
 class Residue {
   public:
-    Residue() : resname_(""), firstAtom_(0), lastAtom_(0), icode_(' ') {}
+    Residue() : resname_(""), firstAtom_(0), lastAtom_(0), icode_(' '), chainID_(' ') {}
     /// CONSTRUCTOR - Copy given Residue, set first and last atom indices.
     Residue(Residue const& r, int first, int last) :
       resname_(r.resname_), firstAtom_(first), lastAtom_(last),
