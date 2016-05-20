@@ -989,6 +989,7 @@ int Topology::DetermineMolecules() {
     bool unassignedAtomsRemain = true;
     unsigned int currentAtom = 0;
     unsigned int currentMol = 0;
+    unsigned int lowestUnassignedAtom = 0;
     while (unassignedAtomsRemain) {
       // This atom is in molecule.
       atoms_[currentAtom].SetMol( currentMol );
@@ -1012,13 +1013,15 @@ int Topology::DetermineMolecules() {
         //mprintf("DEBUG:\tNo atoms left in stack. Searching for next unmarked atom.\n");
         // No more atoms to search. Find next unmarked atom.
         currentMol++;
-        unsigned int idx = 0;
+        unsigned int idx = lowestUnassignedAtom;
         for (; idx != atoms_.size(); idx++)
           if (atoms_[idx].NoMol()) break;
         if (idx == atoms_.size())
           unassignedAtomsRemain = false;
-        else
+        else {
           currentAtom = idx;
+          lowestUnassignedAtom = idx + 1;
+        }
       } else {
         currentAtom = nextAtomToSearch.top();
         nextAtomToSearch.pop();
