@@ -204,8 +204,8 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (err != 0) return 1;
   // Determine Atom elements
   if (atomicNums_.empty()) {
-    mprintf("Warning: Amber topology does not include atomic numbers.\n"
-            "Warning: Will attempt to assign elements from atom masses/names.\n");
+    mprintf("\tAmber topology does not include atomic numbers.\n"
+            "\tAssigning elements from atom masses/names.\n");
     atomicNums_.assign( values_[NATOM], 0 );
   }
   for (int idx = 0; idx != values_[NATOM]; idx++)
