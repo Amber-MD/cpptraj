@@ -543,7 +543,7 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     return 1;
   }
   if (nvals > 0) {
-    mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    if (debug_>0) mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
     //mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
@@ -1663,21 +1663,23 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   // means this topology was not read from an Amber topology and so
   // should not be used for simulations - cpptraj is NOT a topology converter.
   // This is a useful check.
-  // TREE CHAIN CLASSIFICATION
-  if (BufferAlloc(F_ITREE, TopOut.Extra().size())) return 1;
-  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-    file_.CharToBuffer( *(it->Itree()) );
-  file_.FlushBuffer();
-  // JOIN
-  if (BufferAlloc(F_JOIN, TopOut.Extra().size())) return 1;
-  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-    file_.IntToBuffer( it->Join() );
-  file_.FlushBuffer();
-  // IROTAT
-  if (BufferAlloc(F_IROTAT, TopOut.Extra().size())) return 1;
-  for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-    file_.IntToBuffer( it->Irotat() );
-  file_.FlushBuffer();
+  if (!TopOut.Extra().empty()) {
+    // TREE CHAIN CLASSIFICATION
+    if (BufferAlloc(F_ITREE, TopOut.Extra().size())) return 1;
+    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+      file_.CharToBuffer( *(it->Itree()) );
+    file_.FlushBuffer();
+    // JOIN
+    if (BufferAlloc(F_JOIN, TopOut.Extra().size())) return 1;
+    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+      file_.IntToBuffer( it->Join() );
+    file_.FlushBuffer();
+    // IROTAT
+    if (BufferAlloc(F_IROTAT, TopOut.Extra().size())) return 1;
+    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
+      file_.IntToBuffer( it->Irotat() );
+    file_.FlushBuffer();
+  }
 
   // Write solvent info if IFBOX > 0
   if (ifbox > 0) {
