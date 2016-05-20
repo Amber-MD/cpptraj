@@ -446,10 +446,13 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_LES_ID:    err = ReadLESid(TopIn, FMT); break;
             // Sanity check
             default:
-              mprinterr("Internal Error: Unhandled FLAG '%s'.\n",flagType.c_str());
+              mprinterr("Internal Error: Unhandled FLAG '%s'.\n", flagType.c_str());
               return 1;
           }
-          if (err != 0) return 1;
+          if (err != 0) {
+            mprinterr("Error: Reading format FLAG '%s'\n", flagType.c_str());
+            return 1;
+          }
         }
       } else {
         // Unknown '%' tag. Read past it.
@@ -540,7 +543,7 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     return 1;
   }
   if (nvals > 0) {
-    //mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
     //mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
@@ -1859,7 +1862,10 @@ Parm_Amber::FortranData::FortranData(const char* ptrIn) :
   * type. Set fncols (if present), fwidth, and fprecision (if present).
   */
 int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
-  if (ptrIn == 0) return 1;
+  if (ptrIn == 0) {
+    mprinterr("Error: Empty format string.\n");
+    return 1;
+  }
   fstr_ = ptrIn;
   std::string fformat( NoTrailingWhitespace( ptrIn ) );
   if ( fformat.empty() ) return 1;
