@@ -256,9 +256,9 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( file_.GetLine() );
   int Npointers = 30; // No NEXTRA etc
-  FortranData DBL(FDOUBLE, 5, 16, 0);
-  FortranData INT(FINT, 12, 6, 0);
-  FortranData CHAR(FCHAR, 20, 4, 0);
+  const FortranData DBL(FDOUBLE, 5, 16, 0);
+  const FortranData INT(FINT, 12, 6, 0);
+  const FortranData CHAR(FCHAR, 20, 4, 0);
   if ( ReadPointers( Npointers, TopIn, INT ) ) return 1;
   if ( ReadAtomNames( TopIn, CHAR ) ) return 1;
   if ( ReadAtomCharges( TopIn, DBL ) ) return 1;
