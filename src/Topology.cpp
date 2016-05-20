@@ -1,5 +1,7 @@
 #include <cmath> // pow
 #include <algorithm> // find
+#include <stack> // For large system molecule search
+#include "Timer.h" // DEBUG
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
@@ -977,16 +979,70 @@ int Topology::DetermineMolecules() {
   // Reset molecule info for each atom
   for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
     atom->SetMol( -1 );
-  // Perform recursive search along bonds of each atom
   int mol = 0;
-  int atomnum = 0;
-  for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-  {
-    if ( atom->NoMol() ) {
-      VisitAtom( atomnum, mol );
-      ++mol;
+  if (atoms_.size() > 9999999) { // NOTE: May have to make this cutoff smaller or larger
+    mprintf("DEBUG: Beginning non-recursive molecule search.\n");
+    // Recursive search for high atom counts can blow the stack away.
+    Timer t_nostack;
+    t_nostack.Start();
+    std::stack<unsigned int> nextAtomToSearch;
+    bool unassignedAtomsRemain = true;
+    unsigned int currentAtom = 0;
+    unsigned int currentMol = 0;
+    while (unassignedAtomsRemain) {
+      // This atom is in molecule.
+      atoms_[currentAtom].SetMol( currentMol );
+      //mprintf("DEBUG:\tAssigned atom %u to mol %u\n", currentAtom, currentMol);
+      // All atoms bonded to this one are in molecule.
+      for (Atom::bond_iterator batom = atoms_[currentAtom].bondbegin();
+                               batom != atoms_[currentAtom].bondend(); ++batom)
+      {
+        if (atoms_[*batom].NoMol()) {
+          if (atoms_[*batom].Nbonds() > 1)
+            // Bonded atom has more than 1 bond; needs to be searched.
+            nextAtomToSearch.push( *batom );
+          else {
+            // Bonded atom only bonded to current atom. No more search needed.
+            atoms_[*batom].SetMol( currentMol );
+            //mprintf("DEBUG:\t\tAssigned bonded atom %i to mol %u\n", *batom, currentMol);
+          }
+        }
+      }
+      if (nextAtomToSearch.empty()) {
+        //mprintf("DEBUG:\tNo atoms left in stack. Searching for next unmarked atom.\n");
+        // No more atoms to search. Find next unmarked atom.
+        currentMol++;
+        unsigned int idx = 0;
+        for (; idx != atoms_.size(); idx++)
+          if (atoms_[idx].NoMol()) break;
+        if (idx == atoms_.size())
+          unassignedAtomsRemain = false;
+        else
+          currentAtom = idx;
+      } else {
+        currentAtom = nextAtomToSearch.top();
+        nextAtomToSearch.pop();
+        //mprintf("DEBUG:\tNext atom from stack: %u\n", currentAtom);
+      }
     }
-    ++atomnum;
+    mol = (int)currentMol;
+    t_nostack.Stop();
+    t_nostack.WriteTiming(1, "Non-recursive mol search:");
+  } else {
+    // Perform recursive search along bonds of each atom
+    Timer t_stack;
+    t_stack.Start();
+    int atomnum = 0;
+    for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    {
+      if ( atom->NoMol() ) {
+        VisitAtom( atomnum, mol );
+        ++mol;
+      }
+      ++atomnum;
+    }
+    t_stack.Stop();
+    t_stack.WriteTiming(1, "Recursive mol search:");
   }
   if (debug_>0) {
     mprintf("\t%i molecules.\n",mol);
