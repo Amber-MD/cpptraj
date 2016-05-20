@@ -884,7 +884,7 @@ int Parm_Amber::ReadBox(FortranData const& FMT) {
 // Parm_Amber::ReadCapInfo()
 int Parm_Amber::ReadCapInfo(Topology& TopIn, FortranData const& FMT) {
   if (SetupBuffer(F_CAP_INFO, 1, FMT)) return 1;
-  TopIn.SetCap().SetNatcap( atoi(file_.NextElement()) );
+  TopIn.SetCap().SetNatcap( atoi(file_.NextElement())-1 );
   return 0;
 }
 
@@ -1745,7 +1745,8 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     }
   if (hasGB) {
     // GB RADIUS SET
-    WriteLine(F_RADSET, TopOut.GBradiiSet());
+    if (!TopOut.GBradiiSet().empty())
+      WriteLine(F_RADSET, TopOut.GBradiiSet());
     // GB RADII
     if (BufferAlloc(F_RADII, TopOut.Natom())) return 1;
     for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
