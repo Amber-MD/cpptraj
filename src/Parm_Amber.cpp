@@ -1658,19 +1658,23 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.CharToBuffer( *(atm->Type()) );
   file_.FlushBuffer();
 
-  // TREE CHAIN CLASSIFICATION, JOIN, IROTAT
   // TODO: Generate automatically
-  if (BufferAlloc(F_ITREE, TopOut.Natom())) return 1;
+  // NOTE: These are required by Amber, but if they are not present it
+  // means this topology was not read from an Amber topology and so
+  // should not be used for simulations - cpptraj is NOT a topology converter.
+  // This is a useful check.
+  // TREE CHAIN CLASSIFICATION
+  if (BufferAlloc(F_ITREE, TopOut.Extra().size())) return 1;
   for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
     file_.CharToBuffer( *(it->Itree()) );
   file_.FlushBuffer();
-
-  if (BufferAlloc(F_JOIN, TopOut.Natom())) return 1;
+  // JOIN
+  if (BufferAlloc(F_JOIN, TopOut.Extra().size())) return 1;
   for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
     file_.IntToBuffer( it->Join() );
   file_.FlushBuffer();
-
-  if (BufferAlloc(F_IROTAT, TopOut.Natom())) return 1;
+  // IROTAT
+  if (BufferAlloc(F_IROTAT, TopOut.Extra().size())) return 1;
   for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
     file_.IntToBuffer( it->Irotat() );
   file_.FlushBuffer();
@@ -1732,20 +1736,27 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
     file_.FlushBuffer();
   }
 
-  // GB RADIUS SET
-  WriteLine(F_RADSET, TopOut.GBradiiSet());
-
-  // GB RADII
-  if (BufferAlloc(F_RADII, TopOut.Natom())) return 1;
+  // Only write GB params if actually present. At least one atom must have something.
+  bool hasGB = false;
   for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.DblToBuffer( atm->GBRadius() );
-  file_.FlushBuffer();
-
-  // GB SCREENING PARAMS
-  if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
-  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
-    file_.DblToBuffer( atm->Screen() );
-  file_.FlushBuffer();
+    if (atm->GBRadius() > 0.0 || atm->Screen() > 0.0) { // TODO check negative?
+      hasGB = true;
+      break;
+    }
+  if (hasGB) {
+    // GB RADIUS SET
+    WriteLine(F_RADSET, TopOut.GBradiiSet());
+    // GB RADII
+    if (BufferAlloc(F_RADII, TopOut.Natom())) return 1;
+    for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+      file_.DblToBuffer( atm->GBRadius() );
+    file_.FlushBuffer();
+    // GB SCREENING PARAMS
+    if (BufferAlloc(F_SCREEN, TopOut.Natom())) return 1;
+    for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+      file_.DblToBuffer( atm->Screen() );
+    file_.FlushBuffer();
+  }
 
   // CHAMBER only - write CMAP parameters
   if (ptype_ == CHAMBER && TopOut.Chamber().HasCmap()) {
