@@ -204,7 +204,7 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
   if (err != 0) return 1;
   // Determine Atom elements
   if (atomicNums_.empty()) {
-    mprintf("\tAmber topology does not include atomic numbers.\n"
+    mprintf("\tThis Amber topology does not include atomic numbers.\n"
             "\tAssigning elements from atom masses/names.\n");
     atomicNums_.assign( values_[NATOM], 0 );
   }
@@ -255,7 +255,6 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
 int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( file_.GetLine() );
-  mprintf("DEBUG: Title= '%s'\n", title.c_str());
   int Npointers = 30; // No NEXTRA etc
   FortranData DBL(FDOUBLE, 5, 16, 0);
   FortranData INT(FINT, 12, 6, 0);
@@ -341,8 +340,6 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
     if ( ptr[0] == '%' ) {
       if (ptr[1] == 'V' && ptr[2] == 'E' && ptr[3] == 'R') {
         // %VERSION line. Skip it.
-        //if (debug_ > 0)
-        mprintf("DEBUG: Version: %s\n", NoTrailingWhitespace(ptr).c_str());
         ptr = file_.NextLine();
       } else if (IsFLAG(ptr)) {
         // %FLAG <type> line. Determine the flag type.
@@ -502,7 +499,7 @@ int Parm_Amber::ReadFormatLine(FortranData& FMT) {
 // Parm_Amber::ReadTitle()
 int Parm_Amber::ReadTitle(Topology& TopIn) {
   std::string title = NoTrailingWhitespace( file_.GetLine() );
-  //if (debug_>0)
+  if (debug_ > 0)
     mprintf("\tAmberParm Title: \"%s\"\n",title.c_str());
   TopIn.SetParmName( title, file_.Filename() );
   if (file_.NextLine() == 0) return 1; // Advance to next line
@@ -517,9 +514,9 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
   for (int idx = 0; idx != Npointers; idx++)
     values_.push_back( atoi( file_.NextElement() ) );
 
-  mprintf("DEBUG: POINTERS\n");
-  for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
-    mprintf("%u\t%i\n", it-values_.begin(), *it);
+  //mprintf("DEBUG: POINTERS\n");
+  //for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
+  //  mprintf("%u\t%i\n", it-values_.begin(), *it);
 
   TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
@@ -543,12 +540,12 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     return 1;
   }
   if (nvals > 0) {
-    mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    //mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
     //mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
   } else {
-    mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
+    //mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Read blank line
     file_.NextLine();
   }
@@ -1198,7 +1195,7 @@ Parm_Amber::FortranData Parm_Amber::WriteFormat(FlagType fflag) const {
   }
   if (FMT.Ftype() == UNKNOWN_FTYPE)
     FMT.ParseFortranFormat( FLAGS_[fflag].Fmt );
-  mprintf("DEBUG: Flag '%s' format '%s'\n", FLAGS_[fflag].Flag, FMT.Fstr());
+  //mprintf("DEBUG: Flag '%s' format '%s'\n", FLAGS_[fflag].Flag, FMT.Fstr());
   return FMT;
 }
 
@@ -1220,7 +1217,7 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
   }
   if (nvals > 0) {
     TextFormat WriteFmt;
-    mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
+    //mprintf("DEBUG: Set up write buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     if      (FMT.Ftype() == FINT)
       WriteFmt = TextFormat(TextFormat::INTEGER, FMT.Width());
     else if (FMT.Ftype() == FDOUBLE)
@@ -1229,10 +1226,10 @@ int Parm_Amber::BufferAlloc(FlagType ftype, int nvals, int idx) {
       WriteFmt = TextFormat(TextFormat::STRING, FMT.Width());
     else if (FMT.Ftype() == FFLOAT)
       WriteFmt = TextFormat(TextFormat::DOUBLE, FMT.Width(), FMT.Precision());
-    mprintf("DEBUG: Write format: \"%s\"\n", WriteFmt.fmt());
+    //mprintf("DEBUG: Write format: \"%s\"\n", WriteFmt.fmt());
     file_.SetupFrameBuffer( nvals, WriteFmt, FMT.Ncols() );
   } else {
-    mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
+    //mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Write blank line
     file_.Printf("\n");
   }
@@ -1918,8 +1915,8 @@ int Parm_Amber::FortranData::ParseFortranFormat(const char* ptrIn) {
     fprecision_ = atoi( arg.c_str() );
   }
   //if (debug_ > 2)
-    mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
-            fncols_,(int)ftype_,fwidth_,fprecision_);
+  //  mprintf("[%s]: cols=%i type=%i width=%i precision=%i\n",fformat.c_str(),
+  //          fncols_,(int)ftype_,fwidth_,fprecision_);
 
   return 0;
 }
