@@ -255,6 +255,7 @@ int Parm_Amber::ReadParm(FileName const& fname, Topology& TopIn ) {
 int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( file_.GetLine() );
+  TopIn.SetParmName( title, file_.Filename() );
   int Npointers = 30; // No NEXTRA etc
   const FortranData DBL(FDOUBLE, 5, 16, 0);
   const FortranData INT(FINT, 12, 6, 0);
