@@ -58,16 +58,26 @@ int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr, BufferedLine& infi
       return 1;
     }
     bool readMoreLines = true;
+    mprintf("DEBUG: First quote line: '%s'\n", nextLine);
     while (readMoreLines) {
-      if (nextLine == 0 || strncmp(nextLine, "loop_", 5) == 0) {
-        mprinterr("Error: Line %i: Data '%s' record expected to have ID and data.\n",
-                  infile.LineNumber(), dataHeader_.c_str());
-        return 1;
-      }
       dataLine.append( nextLine );
-      const char* nextLine = infile.Line();
-      if (nextLine!=0 && IsQuoteChar(nextLine[0])) // Terminal quote
+      // Check for end quote.
+      int pos = strlen( nextLine ) - 1;
+      while ( pos >= 0 && (nextLine[pos] == '\n' ||
+                           nextLine[pos] == '\r' ||
+                           isspace(nextLine[pos])) ) pos--;
+      // Should now be at final non-newline char
+      mprintf("DEBUG: final non-newline char= '%c'\n", nextLine[pos]);
+      if ( IsQuoteChar(nextLine[pos]) )
         readMoreLines = false;
+      else {
+        nextLine = infile.Line();
+        if (nextLine == 0 || strncmp(nextLine, "loop_", 5) == 0) {
+          mprinterr("Error: Line %i: Data '%s' record expected to have ID and data.\n",
+                    infile.LineNumber(), dataHeader_.c_str());
+          return 1;
+        }
+      }
     }
   } else
     dataLine.assign( serialData[1]);
