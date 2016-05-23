@@ -180,6 +180,7 @@ int CIFfile::DataBlock::ColumnIndex(std::string const& headerIn) const {
   return -1;
 }
 
+/** Unlike loop data, each column for serial data in columnData is sequential. */
 std::string CIFfile::DataBlock::Data(std::string const& idIn) const {
   if (columnHeaders_.empty() || columnData_.empty()) return std::string("");
   int colnum = ColumnIndex( idIn );
