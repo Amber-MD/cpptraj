@@ -582,7 +582,9 @@ int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const
 int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
-  if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
+  if ( residues_.empty() || 
+       residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
+       residues_.back().Icode() != resIn.Icode() )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
