@@ -82,9 +82,8 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     // It seems that in some CIF files, there doesnt have to be a residue
     // number. Check if residue name has changed.
     if ( (*line)[ COL[RNUM] ][0] == '.' ) {
-      Topology::res_iterator lastResidue = TopIn.ResEnd();
-      --lastResidue;
-      if ( currentResName != (*lastResidue).Name() )
+      Topology::res_iterator lastResidue = TopIn.ResEnd() - 1;
+      if ( currentResName != lastResidue->Name() )
         current_res = TopIn.Nres() + 1;
     } else
       current_res = convertToInteger( (*line)[ COL[RNUM] ] );
