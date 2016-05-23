@@ -44,6 +44,7 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     if (debug_>0) mprintf("DEBUG: '%s' column = %i\n", Entries[i], COL[i]);
   }
   // Get optional columns
+  int auth_res_col = block.ColumnIndex("auth_seq_id");
   int occ_col = block.ColumnIndex("occupancy");
   int bfac_col = block.ColumnIndex("B_iso_or_equiv");
   int icode_col = block.ColumnIndex("pdbx_PDB_ins_code");
@@ -55,8 +56,8 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
   double occupancy = 1.0;
   double bfactor = 0.0;
   char altloc = ' ';
-  char icode;
-  icode = ' ';
+  char icode = ' ';
+  int auth_res = -1;
   Frame Coords;
   for (line = block.begin(); line != block.end(); ++line) {
     // If more than 1 model check if we are done.
@@ -67,6 +68,14 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     if (occ_col != -1) occupancy = convertToDouble( (*line)[ occ_col ] );
     if (bfac_col != -1) bfactor = convertToDouble( (*line)[ bfac_col ] );
     if (altloc_col != -1) altloc = (*line)[ altloc_col ][0];
+    // If the 'auth_seq_id' column is present it seems to have residue numbers
+    // that mirror PDB residue numbers more closely.
+    if (auth_res_col != -1) {
+      if (validInteger( (*line)[ auth_res_col ] ))
+        auth_res = convertToInteger( (*line)[ auth_res_col ] );
+      else
+        auth_res = -1;
+    }
     // '.' altloc means blank?
     if (altloc == '.') altloc = ' ';
     TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altloc) );
@@ -79,9 +88,11 @@ int Parm_CIF::ReadParm(FileName const& fname, Topology &TopIn) {
     XYZ[1] = convertToDouble( (*line)[ COL[Y] ] );
     XYZ[2] = convertToDouble( (*line)[ COL[Z] ] );
     NameType currentResName( (*line)[ COL[RNAME] ] );
-    // It seems that in some CIF files, there doesnt have to be a residue
-    // number. Check if residue name has changed.
-    if ( (*line)[ COL[RNUM] ][0] == '.' ) {
+    if ( auth_res != -1 )
+      current_res = auth_res;
+    else if ( (*line)[ COL[RNUM] ][0] == '.' ) {
+      // It seems that in some CIF files, there doesnt have to be a residue
+      // number. Check if residue name has changed.
       Topology::res_iterator lastResidue = TopIn.ResEnd() - 1;
       if ( currentResName != lastResidue->Name() )
         current_res = TopIn.Nres() + 1;
