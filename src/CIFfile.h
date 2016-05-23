@@ -44,6 +44,7 @@ class CIFfile::DataBlock {
     data_it end()   const { return columnData_.end();   }
   private:
     static int ParseData(std::string const&, std::string&, std::string&);
+    int GetColumnData(int, BufferedLine&, bool);
 
     std::string dataHeader_; ///< The data header, e.g. '_atom_site'
     Sarray columnHeaders_;   ///< Column headers, e.g. 'label_atom_id'
