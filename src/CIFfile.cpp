@@ -1,6 +1,5 @@
 #include <cstring>
 #include "CIFfile.h"
-#include "ArgList.h"
 #include "CpptrajStdio.h"
 
 static inline int LineError(const char* msg, int num, const char* ptr) {
@@ -129,17 +128,17 @@ int CIFfile::DataBlock::AddSerialDataRecord( const char* ptr, BufferedLine& infi
 }
 
 /** Add column label from loop section. */
-int CIFfile::DataBlock::AddLoopColumn( const char* ptr ) {
+int CIFfile::DataBlock::AddLoopColumn( const char* ptr, BufferedLine& infile ) {
   if (ptr == 0) return 1;
   // Expect header.id
-  ArgList loopData( ptr, " " );
-  if ( loopData.Nargs() > 1 ) {
+  int Ncols = infile.TokenizeLine(" \t");
+  if ( Ncols > 1 ) {
     mprinterr("Error: Data record expected to have ID only.\n"
               "Error: '%s'\n", ptr);
     return 1;
   }
   std::string ID, Header;
-  if (ParseData( loopData[0], Header, ID )) return 1;
+  if (ParseData( std::string(infile.NextToken()), Header, ID )) return 1;
   //mprintf("\n"); // DEBUG
   if (AddHeader( Header )) return 1;
   columnHeaders_.push_back( ID );
@@ -245,7 +244,7 @@ int CIFfile::Read(FileName const& fnameIn, int debugIn) {
       if (ptr == 0 || ptr[0] != '_')
         return LineError("In CIF file, malformed loop.", file_.LineNumber(), ptr);
       while (ptr != 0 && ptr[0] == '_') {
-        loop.AddLoopColumn(ptr);
+        loop.AddLoopColumn(ptr, file_);
         ptr = file_.Line();
       }
       // Should now be positioned at loop data

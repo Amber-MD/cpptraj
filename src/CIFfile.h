@@ -32,7 +32,7 @@ class CIFfile::DataBlock {
     bool empty()                const { return dataHeader_.empty(); }
     int AddHeader(std::string const&);
     int AddSerialDataRecord(const char*, BufferedLine&);
-    int AddLoopColumn(const char*);
+    int AddLoopColumn(const char*, BufferedLine&);
     int AddLoopData(const char*, BufferedLine&);
     void ListData() const;
     int ColumnIndex(std::string const&) const;
