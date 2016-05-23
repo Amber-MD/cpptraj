@@ -52,6 +52,8 @@ static inline bool HasEndQuote(std::string const& strIn) {
 /** Split given line into a certain number of tokens. Data might be
   * split across multiple lines.
   * \param NexpectedCols Number of expected data cols.
+  * \param infile File being read.
+  * \param isSerial true if inside a serial data block.
   */
 int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, bool isSerial)
 {
@@ -158,14 +160,14 @@ void CIFfile::DataBlock::ListData() const {
   mprintf("DataBlock: %s\n", dataHeader_.c_str());
   for (Sarray::const_iterator colname = columnHeaders_.begin();
                               colname != columnHeaders_.end(); ++colname)
-    mprintf("  Col %u name: %s\n", colname - columnHeaders_.begin(), (*colname).c_str());
+    mprintf("  Col %u name: %s\n", colname - columnHeaders_.begin(), colname->c_str());
   for (std::vector<Sarray>::const_iterator rec = columnData_.begin();
                                            rec != columnData_.end(); ++rec)
   {
     mprintf("    [%u] ", rec - columnData_.begin());
-    for (Sarray::const_iterator col = (*rec).begin();
-                                col != (*rec).end(); ++col)
-      mprintf(" {%s}", (*col).c_str());
+    for (Sarray::const_iterator col = rec->begin();
+                                col != rec->end(); ++col)
+      mprintf(" {%s}", col->c_str());
     mprintf("\n");
   }
 }
@@ -271,7 +273,7 @@ CIFfile::DataBlock const& CIFfile::GetDataBlock(std::string const& header) const
     //mprinterr("Error: CIF data block '%s' not found.\n", header.c_str());
     return emptyblock;
   }
-  return (*it).second;
+  return it->second;
 }
 
 // CIFfile::AddDataBlock()
