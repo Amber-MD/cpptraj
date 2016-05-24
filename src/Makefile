@@ -34,9 +34,8 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS)
 # libcpptraj ---------------------------
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX) -shared -o libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
-	/bin/mv libcpptraj$(SHARED_SUFFIX) $(CPPTRAJLIB)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
 
 nolibcpptraj:
 	@echo ""
