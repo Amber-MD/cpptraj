@@ -34,9 +34,6 @@ test.hbond:
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)
 
-test.comprehensive:
-	@-cd Test_Comprehensive && ./RunTest.sh $(OPT)
-
 test.netcdftraj:
 	@-cd Test_NetcdfTraj && ./RunTest.sh $(OPT)
 
@@ -408,7 +405,6 @@ COMPLETETESTS=test.general \
               test.outtraj \
               test.charmm \
               test.rotdif \
-              test.comprehensive \
               test.netcdftraj \
               test.runavg \
               test.rmsd \
