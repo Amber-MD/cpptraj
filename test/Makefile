@@ -307,6 +307,9 @@ test.kde:
 test.wavelet:
 	@-cd Test_Wavelet && ./RunTest.sh $(OPT)
 
+test.cif:
+	@-cd Test_CIF && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -381,7 +384,8 @@ SHORT_TESTS=test.general \
           test.temperature \
           test.spline \
           test.kde \
-          test.wavelet
+          test.wavelet \
+          test.cif
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -481,7 +485,8 @@ COMPLETETESTS=test.general \
               test.temperature \
               test.spline \
               test.kde \
-              test.wavelet
+              test.wavelet \
+              test.cif
 
 test: test.all 
 
