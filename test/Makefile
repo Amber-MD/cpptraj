@@ -34,9 +34,6 @@ test.hbond:
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)
 
-test.comprehensive:
-	@-cd Test_Comprehensive && ./RunTest.sh $(OPT)
-
 test.netcdftraj:
 	@-cd Test_NetcdfTraj && ./RunTest.sh $(OPT)
 
@@ -307,6 +304,12 @@ test.kde:
 test.wavelet:
 	@-cd Test_Wavelet && ./RunTest.sh $(OPT)
 
+test.cif:
+	@-cd Test_CIF && ./RunTest.sh $(OPT)
+
+test.pdb:
+	@-cd Test_PDB && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -381,7 +384,9 @@ SHORT_TESTS=test.general \
           test.temperature \
           test.spline \
           test.kde \
-          test.wavelet
+          test.wavelet \
+          test.cif \
+          test.pdb
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -404,7 +409,6 @@ COMPLETETESTS=test.general \
               test.outtraj \
               test.charmm \
               test.rotdif \
-              test.comprehensive \
               test.netcdftraj \
               test.runavg \
               test.rmsd \
@@ -481,7 +485,9 @@ COMPLETETESTS=test.general \
               test.temperature \
               test.spline \
               test.kde \
-              test.wavelet
+              test.wavelet \
+              test.cif \
+              test.pdb
 
 test: test.all 
 

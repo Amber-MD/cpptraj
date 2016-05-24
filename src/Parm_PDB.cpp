@@ -63,12 +63,14 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
-      infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
       if (readAsPQR_) {
+        infile.pdb_ChargeAndRadius(occupancy, bfactor);
         pdbAtom.SetCharge( occupancy );
         pdbAtom.SetGBradius( bfactor );
-      } else
+      } else {
+        infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
         TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+      }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
