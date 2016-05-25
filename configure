@@ -502,7 +502,7 @@ ARPACK="-larpack"
 FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
-LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj target if library will be built
+USE_LIBCPPTRAJ=0 # Set to 1 if libcpptraj will be built
 USE_SANDERLIB=1
 SANDERLIB_HOME=""
 READLINE=$READLINE_TARGET
@@ -611,7 +611,7 @@ while [[ ! -z $1 ]] ; do
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
       USE_SANDERLIB=0
-      LIBCPPTRAJ="libcpptraj\$(SHARED_SUFFIX)"
+      USE_LIBCPPTRAJ=1
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -1206,10 +1206,12 @@ if [ "$USEMPI" -eq 0 -a "$USEOPENMP" -eq 0 -a "$USECUDA" -eq 0 ] ; then
   AMBPDB_TARGET=ambpdb
   INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
 fi
-# Only build libcpptraj if not nolibcpptraj
-LIBCPPTRAJ_TARGET=$LIBCPPTRAJ
-if [ "$LIBCPPTRAJ" != 'nolibcpptraj' ] ; then
-  INSTALL_TARGETS=$INSTALL_TARGETS" $LIBCPPTRAJ_TARGET"
+# Are we building libcpptraj? 
+if [ "$USE_LIBCPPTRAJ" -eq 1 ] ; then
+  LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
+  INSTALL_TARGETS="$INSTALL_TARGETS libcpptraj"
+else
+  LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
 # Only build nproc for MPI
 if [ "$USEMPI" -ne 0 ] ; then
@@ -1232,7 +1234,6 @@ CPPTRAJBIN=$CPPTRAJBIN
 CPPTRAJLIB=$CPPTRAJLIB
 
 INSTALL_TARGETS=$INSTALL_TARGETS
-LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
 EOF
 if [[ ! -z $DBGFLAGS ]] ; then
@@ -1246,6 +1247,8 @@ CFLAGS=$CFLAGS \$(DBGFLAGS)
 CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 FFLAGS=$FFLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
+
+LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
 
 NVCC=$NVCC
 NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
