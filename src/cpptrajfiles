@@ -2,6 +2,7 @@
 # differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
 COMMON_SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
+        Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
         Action_AtomMap.cpp \
