@@ -3,7 +3,7 @@ include ../config.h
 
 include cpptrajfiles
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
 include ambpdbfiles
 
