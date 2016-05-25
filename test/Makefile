@@ -313,6 +313,9 @@ test.pdb:
 test.align:
 	@-cd Test_Align && ./RunTest.sh $(OPT)
 
+test.velocityautocorr:
+	@-cd Test_VelocityAutoCorr && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -390,7 +393,8 @@ SHORT_TESTS=test.general \
           test.wavelet \
           test.cif \
           test.pdb \
-          test.align
+          test.align \
+          test.velocityautocorr
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -492,7 +496,8 @@ COMPLETETESTS=test.general \
               test.wavelet \
               test.cif \
               test.pdb \
-              test.align
+              test.align \
+              test.velocityautocorr
 
 test: test.all 
 
