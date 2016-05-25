@@ -504,6 +504,15 @@ test: test.all
 test.all:
 	$(MAKE) test.complete summary
 
+test.mpi:
+	$(MAKE) test.complete summary OPT="$(OPT) mpi"
+
+test.openmp:
+	$(MAKE) test.complete summary OPT="$(OPT) openmp"
+
+test.cuda:
+	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+
 test.complete: $(COMPLETETESTS)
 
 test.showerrors:
