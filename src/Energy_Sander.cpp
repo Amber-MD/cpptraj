@@ -1,4 +1,4 @@
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #include <locale>
 #include "Energy_Sander.h"
 #include "CpptrajStdio.h"

@@ -3,7 +3,7 @@ include ../config.h
 
 include cpptrajfiles
 
-OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o) $(TIMER)
+OBJECTS=$(SOURCES:.cpp=.o) $(CSOURCES:.c=.o)
 
 include ambpdbfiles
 
@@ -32,10 +32,14 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
 
 # libcpptraj ---------------------------
+# Rule to make libcpptraj-specific objects
+%.LIBCPPTRAJ.o : %.cpp
+	$(CXX) -c -o $@ $(CXXFLAGS) -DLIBCPPTRAJ $(DBGFLAGS) $<
+
 libcpptraj: $(LIBCPPTRAJ_TARGET)
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) $(FFT_DEPEND)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(LIBCPPTRAJ_OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
 	@echo ""
@@ -78,7 +82,7 @@ dependclean:
 
 # Clean/uninstall targets
 clean:
-	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb libcpptraj$(SHARED_SUFFIX)
+	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
 	cd $(READLINE_HOME) && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 

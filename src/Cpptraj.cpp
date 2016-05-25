@@ -183,7 +183,7 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_PNETCDF
   defined_str.append(" -DHAS_PNETCDF");
 #endif
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
   return defined_str;
@@ -443,7 +443,9 @@ int Cpptraj::Interactive() {
   CpptrajFile logfile_;
   if (logfilename_.empty())
     logfilename_.SetFileName("cpptraj.log");
-#ifndef NO_READLINE
+# if defined (NO_READLINE) || defined (LIBCPPTRAJ)
+  // No need to load history if not using readline (or this is libcpptraj)
+# else
   if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
@@ -462,7 +464,7 @@ int Cpptraj::Interactive() {
       logfile_.CloseFile();
     }
   }
-#endif
+# endif
   logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen()) {
     // Write logfile header entry: date, cmd line opts, topologies
