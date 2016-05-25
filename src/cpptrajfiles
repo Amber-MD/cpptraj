@@ -322,7 +322,7 @@ SOURCES=$(COMMON_SOURCES) \
 # These objects are used by libcpptraj. The specified objects are special
 # versions used only by libcpptraj. They MUST have the '.LIBCPPTRAJ.o'
 # extension.
-LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c.o) \
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
         Action_Esander.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \
         Energy_Sander.LIBCPPTRAJ.o \
