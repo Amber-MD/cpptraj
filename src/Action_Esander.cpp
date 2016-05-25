@@ -1,8 +1,7 @@
 #include "Action_Esander.h"
 #include "CpptrajStdio.h"
 
-
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 // CONSTRUCTOR
 Action_Esander::Action_Esander() : currentParm_(0) {}
 
@@ -14,26 +13,19 @@ int Action_Esander::AddSet(Energy_Sander::Etype typeIn, DataSetList& DslIn, Data
   if (outfile != 0) outfile->AddDataSet( Esets_[typeIn] );
   return 0;
 }
-#else
-Action_Esander::Action_Esander() {}
-#endif
 
 void Action_Esander::Help() const {
-# ifdef USE_SANDERLIB
   mprintf("\t[<name>] [out <filename>] [saveforces] [parmname <file>]\n"
           "\t[<namelist vars>]\n"
           "    Supported namelist vars: %s\n", Energy_Sander::SupportedNamelist());
   mprintf("  Calculate energy for atoms in mask using Sander energy routines. This\n"
           "  currently requires writing a temporary Amber topology, the name of which\n"
           "  can be set by 'parmname' (default: 'CpptrajEsander.parm7').\n");
-# else
-  mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
-# endif
 }
+
 // Action_Esander::Init()
 Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-# ifdef USE_SANDERLIB
 # ifdef MPI
   trajComm_ = init.TrajComm();
 # endif
@@ -65,13 +57,8 @@ Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int 
   else
     mprintf(" will be first frame.\n");
   return Action::OK;
-# else
-  mprinterr("Error: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
-  return Action::ERR;
-# endif
 }
 
-#ifdef USE_SANDERLIB
 /** Initialize sander energy for current top/reference, set up data sets. */
 int Action_Esander::InitForRef() {
 # ifdef MPI
@@ -95,13 +82,11 @@ int Action_Esander::InitForRef() {
 
   return 0;
 }
-#endif
 
 // Action_Esander::Setup()
 /** Set angle up for this parmtop. Get masks etc.
   */
 Action::RetType Action_Esander::Setup(ActionSetup& setup) {
-# ifdef USE_SANDERLIB
   if (currentParm_ != 0 && currentParm_->Pindex() != setup.Top().Pindex())
   {
     mprintf("Warning: Current topology is %i:%s but reference is %i:%s. Skipping.\n",
@@ -131,14 +116,10 @@ Action::RetType Action_Esander::Setup(ActionSetup& setup) {
   }
   ret_ = Action::OK;
   return Action::OK;
-# else
-  return Action::ERR;
-# endif
 }
 
 // Action_Esander::DoAction()
 Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
-# ifdef USE_SANDERLIB
   if (refFrame_.empty()) {
     refFrame_ = frm.Frm();
     if ( InitForRef() ) return Action::ERR;
@@ -157,9 +138,22 @@ Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   return ret_;
-# else
-  return Action::ERR;
-# endif
 }
 
-void Action_Esander::Print() {}
+#else /* ----- Not using SANDERLIB or LIBCPPTRAJ is defined ----------------- */
+Action_Esander::Action_Esander() {}
+
+void Action_Esander::Help() const {
+  mprintf("Warning: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
+}
+
+Action::RetType Action_Esander::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+{
+  mprinterr("Error: CPPTRAJ was compiled without libsander. This Action is disabled.\n");
+  return Action::ERR;
+}
+
+Action::RetType Action_Esander::Setup(ActionSetup& setup) { return Action::ERR; }
+
+Action::RetType Action_Esander::DoAction(int frameNum, ActionFrame& frm) { return Action::ERR; }
+#endif

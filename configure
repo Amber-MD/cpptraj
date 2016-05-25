@@ -610,7 +610,6 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
-      USE_SANDERLIB=0
       USE_LIBCPPTRAJ=1
       ;;
     "-amberlib"     )
@@ -1206,10 +1205,9 @@ if [ "$USEMPI" -eq 0 -a "$USEOPENMP" -eq 0 -a "$USECUDA" -eq 0 ] ; then
   AMBPDB_TARGET=ambpdb
   INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
 fi
-# Are we building libcpptraj? 
+# Can we build libcpptraj? 
 if [ "$USE_LIBCPPTRAJ" -eq 1 ] ; then
   LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
-  INSTALL_TARGETS="$INSTALL_TARGETS libcpptraj"
 else
   LIBCPPTRAJ_TARGET='nolibcpptraj'
 fi
