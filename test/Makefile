@@ -310,6 +310,9 @@ test.cif:
 test.pdb:
 	@-cd Test_PDB && ./RunTest.sh $(OPT)
 
+test.align:
+	@-cd Test_Align && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -386,7 +389,8 @@ SHORT_TESTS=test.general \
           test.kde \
           test.wavelet \
           test.cif \
-          test.pdb
+          test.pdb \
+          test.align
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -487,7 +491,8 @@ COMPLETETESTS=test.general \
               test.kde \
               test.wavelet \
               test.cif \
-              test.pdb
+              test.pdb \
+              test.align
 
 test: test.all 
 
