@@ -610,7 +610,6 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
-      USE_SANDERLIB=0
       USE_LIBCPPTRAJ=1
       ;;
     "-amberlib"     )

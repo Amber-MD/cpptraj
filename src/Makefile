@@ -32,10 +32,15 @@ ambpdb$(EXE): $(AMBPDB_OBJECTS)
 	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
 
 # libcpptraj ---------------------------
-libcpptraj: $(LIBCPPTRAJ_TARGET)
+# This target removes any files libcpptraj needs to rebuild.
+clean_libcpptraj:
+	@-/bin/rm -f Action_Esander.o Cpptraj.o Energy_Sander.o ReadLine.o
 
-$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET)
-	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS) $(READLINE)
+libcpptraj:
+	@DBGFLAGS="$(DBGFLAGS) -DLIBCPPTRAJ" $(MAKE) $(LIBCPPTRAJ_TARGET)
+
+$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX): clean_libcpptraj $(OBJECTS) $(FFT_DEPEND)
+	$(CXX) -shared -o $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) $(OBJECTS) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 nolibcpptraj:
 	@echo ""

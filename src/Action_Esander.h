@@ -1,7 +1,7 @@
 #ifndef INC_ACTION_ESANDER_H
 #define INC_ACTION_ESANDER_H
 #include "Action.h"
-#ifdef USE_SANDERLIB
+#if defined (USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #  include "Energy_Sander.h"
 #endif
 /// Calculate energy via sanderlib
@@ -14,8 +14,8 @@ class Action_Esander: public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print();
-#   ifdef USE_SANDERLIB
+    void Print() {}
+#   if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
     /// Add energy data set of specified type.
     inline int AddSet(Energy_Sander::Etype, DataSetList&, DataFile*, std::string const&);
     /// Set up sander energy
@@ -35,6 +35,6 @@ class Action_Esander: public Action {
 #   ifdef MPI
     Parallel::Comm trajComm_;
 #   endif
-#   endif /* USE_SANDERLIB */
+#   endif /* USE_SANDERLIB and not LIBCPPTRAJ */
 };
 #endif
