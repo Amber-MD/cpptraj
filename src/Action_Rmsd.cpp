@@ -295,10 +295,12 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   }
 
   // Warn if PBC and rotating
-  if (mode_ == ROT_AND_TRANS && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-    mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-            "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-            "Warning:  after the RMS-fit is performed.\n");
+  if (fit_) {
+    if (mode_ == ROT_AND_TRANS && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
+      mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
+              "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
+              "Warning:  after the RMS-fit is performed.\n");
+    }
   }
 
   return Action::OK;

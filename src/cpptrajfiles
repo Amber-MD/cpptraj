@@ -1,5 +1,6 @@
 SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
+        Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
         Action_AtomMap.cpp \

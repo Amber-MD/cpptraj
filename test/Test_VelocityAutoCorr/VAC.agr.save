@@ -1,0 +1,20 @@
+@with g0
+@  xaxis label "Frame"
+@  yaxis label ""
+@  legend 0.2, 0.995
+@  legend char size 0.60
+@  s0 legend "Vel"
+@target G0.S0
+@type xy
+   1.000       1.0000
+   2.000       0.0660
+   3.000      -0.0152
+   4.000      -0.0446
+   5.000      -0.0301
+@  s1 legend "Crd"
+@target G0.S1
+@type xy
+   1.000       1.0000
+   2.000      -0.2486
+   3.000      -0.1111
+   4.000       0.0003
