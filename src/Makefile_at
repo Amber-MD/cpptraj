@@ -54,6 +54,7 @@ ambpdb$(SFX): $(AMBPDB_OBJECTS)
 # libcpptraj -------------------------------------
 # Rule to make libcpptraj-specific objects
 %.LIBCPPTRAJ.o : %.cpp
+	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -DLIBCPPTRAJ -o $@ $<
 
 libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
