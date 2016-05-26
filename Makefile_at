@@ -27,12 +27,9 @@ openmp:
 parallel:
 	cd src && $(MAKE) -f Makefile_at install_mpi
 
-# Create libcpptraj within AmberTools. Since we do not want to include
-# the sander API, delete any objects that may have used it and explicitly
-# blank the SANDERAPI_DEF define variable.
+# Create libcpptraj within AmberTools.
 libcpptraj:
-	/bin/rm -f src/Action_Esander.o src/Cpptraj.o src/Energy_Sander.o
-	cd src && $(MAKE) -f Makefile_at libcpptraj SANDERAPI_DEF=""
+	cd src && $(MAKE) -f Makefile_at libcpptraj
 
 # Run Tests
 check:
