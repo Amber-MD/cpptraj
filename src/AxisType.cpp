@@ -1,104 +1,156 @@
-// AxisType
 #include <map>
 #include "AxisType.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "TorsionRoutines.h" // pucker calc
 #include "Constants.h" // pucker calc
-#ifdef NASTRUCTDEBUG
-const char* HBSTRING[] = {" 0 ", "HBD", "HBA"};
-#endif
-// ---------- NA REFERENCE BASE ATOM NAMES AND COORDS --------------------------
-struct NA_RefAtom {
-  double x;
-  double y;
-  double z;
-  NA_Base::HBType hb_type;
-  int rms_fit;
-  const char* aname;
-};
+// ---------- NA_Reference -----------------------------------------------------
+/** Add all common variations of NA base name given single letter X:
+  * DX/DX3/DX5 (not for U), RX/RX3/RX5 (not for T), X3/X5, X
+  */
+static inline void AddBaseNames(std::string const& rname, RefBase& base) {
+  if (rname != "U") {
+    base.AddName("D" + rname );
+    base.AddName("D" + rname + "3" );
+    base.AddName("D" + rname + "5" );
+  }
+  if (rname != "T") {
+    base.AddName("R" + rname );
+    base.AddName("R" + rname + "3" );
+    base.AddName("R" + rname + "5" );
+  }
+  base.AddName(rname + "3");
+  base.AddName(rname + "5");
+  base.AddName(rname);
+}
 
-typedef const NA_RefAtom* RefPtr;
+/// CONSTRUCTOR - load default base references.
+NA_Reference::NA_Reference() {
+  // NOTE: This is slightly more wasteful of memory since the reference
+  //       instance is created every time NA_Reference is constructed
+  //       but allows for the addition of custom residues.
+  // ADE
+  bases_.push_back( RefBase('A', "ADE", NA_Base::ADE) );
+  RefBase& ADE = bases_.back();
+  AddBaseNames("A", ADE);
+  ADE.AddAtom(NA_Atom( -2.479000,  5.346000,  0.000000, NA_Base::NONE,     0, "C1' "));
+  ADE.AddAtom(NA_Atom( -1.291000,  4.498000,  0.000000, NA_Base::NONE,     1, "N9  "));
+  ADE.AddAtom(NA_Atom(  0.024000,  4.897000,  0.000000, NA_Base::NONE,     1, "C8  "));
+  ADE.AddAtom(NA_Atom(  0.877000,  3.902000,  0.000000, NA_Base::ACCEPTOR, 1, "N7  "));
+  ADE.AddAtom(NA_Atom(  0.071000,  2.771000,  0.000000, NA_Base::NONE,     1, "C5  "));
+  ADE.AddAtom(NA_Atom(  0.369000,  1.398000,  0.000000, NA_Base::NONE,     1, "C6  "));
+  ADE.AddAtom(NA_Atom(  1.611000,  0.909000,  0.000000, NA_Base::DONOR,    0, "N6  "));
+  ADE.AddAtom(NA_Atom( -0.668000,  0.532000,  0.000000, NA_Base::ACCEPTOR, 1, "N1  "));
+  ADE.AddAtom(NA_Atom( -1.912000,  1.023000,  0.000000, NA_Base::NONE,     1, "C2  "));
+  ADE.AddAtom(NA_Atom( -2.320000,  2.290000,  0.000000, NA_Base::ACCEPTOR, 1, "N3  "));
+  ADE.AddAtom(NA_Atom( -1.267000,  3.124000,  0.000000, NA_Base::NONE,     1, "C4  "));
+  // CYT
+  bases_.push_back( RefBase('C', "CYT", NA_Base::CYT) );
+  RefBase& CYT = bases_.back();
+  AddBaseNames("C", CYT);
+  CYT.AddAtom(NA_Atom( -2.477000,  5.402000,  0.000000, NA_Base::NONE,     0, "C1' "));
+  CYT.AddAtom(NA_Atom( -1.285000,  4.542000,  0.000000, NA_Base::NONE,     1, "N1  "));
+  CYT.AddAtom(NA_Atom( -1.472000,  3.158000,  0.000000, NA_Base::NONE,     1, "C2  "));
+  CYT.AddAtom(NA_Atom( -2.628000,  2.709000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "));
+  CYT.AddAtom(NA_Atom( -0.391000,  2.344000,  0.000000, NA_Base::ACCEPTOR, 1, "N3  "));
+  CYT.AddAtom(NA_Atom(  0.837000,  2.868000,  0.000000, NA_Base::NONE,     1, "C4  "));
+  CYT.AddAtom(NA_Atom(  1.875000,  2.027000,  0.000000, NA_Base::DONOR,    0, "N4  "));
+  CYT.AddAtom(NA_Atom(  1.056000,  4.275000,  0.000000, NA_Base::NONE,     1, "C5  "));
+  CYT.AddAtom(NA_Atom( -0.023000,  5.068000,  0.000000, NA_Base::NONE,     1, "C6  "));
+  // GUA
+  bases_.push_back( RefBase('G', "GUA", NA_Base::GUA) );
+  RefBase& GUA = bases_.back();
+  AddBaseNames("G", GUA);
+  GUA.AddAtom(NA_Atom( -2.477000,  5.399000,  0.000000, NA_Base::NONE,     0, "C1' "));
+  GUA.AddAtom(NA_Atom( -1.289000,  4.551000,  0.000000, NA_Base::NONE,     1, "N9  "));
+  GUA.AddAtom(NA_Atom(  0.023000,  4.962000,  0.000000, NA_Base::NONE,     1, "C8  "));
+  GUA.AddAtom(NA_Atom(  0.870000,  3.969000,  0.000000, NA_Base::ACCEPTOR, 1, "N7  "));
+  GUA.AddAtom(NA_Atom(  0.071000,  2.833000,  0.000000, NA_Base::NONE,     1, "C5  "));
+  GUA.AddAtom(NA_Atom(  0.424000,  1.460000,  0.000000, NA_Base::NONE,     1, "C6  "));
+  GUA.AddAtom(NA_Atom(  1.554000,  0.955000,  0.000000, NA_Base::ACCEPTOR, 0, "O6  "));
+  GUA.AddAtom(NA_Atom( -0.700000,  0.641000,  0.000000, NA_Base::DONOR,    1, "N1  "));
+  GUA.AddAtom(NA_Atom( -1.999000,  1.087000,  0.000000, NA_Base::NONE,     1, "C2  "));
+  GUA.AddAtom(NA_Atom( -2.949000,  0.139000, -0.001000, NA_Base::DONOR,    0, "N2  "));
+  GUA.AddAtom(NA_Atom( -2.342000,  2.364000,  0.001000, NA_Base::ACCEPTOR, 1, "N3  "));
+  GUA.AddAtom(NA_Atom( -1.265000,  3.177000,  0.000000, NA_Base::NONE,     1, "C4  "));
+  // THY
+  bases_.push_back( RefBase('T', "THY", NA_Base::THY) );
+  RefBase& THY = bases_.back();
+  AddBaseNames("T", THY);
+  THY.AddAtom(NA_Atom( -2.481000,  5.354000,  0.000000, NA_Base::NONE,     0, "C1' "));
+  THY.AddAtom(NA_Atom( -1.284000,  4.500000,  0.000000, NA_Base::NONE,     1, "N1  "));
+  THY.AddAtom(NA_Atom( -1.462000,  3.135000,  0.000000, NA_Base::NONE,     1, "C2  "));
+  THY.AddAtom(NA_Atom( -2.562000,  2.608000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "));
+  THY.AddAtom(NA_Atom( -0.298000,  2.407000,  0.000000, NA_Base::DONOR,    1, "N3  "));
+  THY.AddAtom(NA_Atom(  0.994000,  2.897000,  0.000000, NA_Base::NONE,     1, "C4  "));
+  THY.AddAtom(NA_Atom(  1.944000,  2.119000,  0.000000, NA_Base::ACCEPTOR, 0, "O4  "));
+  THY.AddAtom(NA_Atom(  1.106000,  4.338000,  0.000000, NA_Base::NONE,     1, "C5  "));
+  THY.AddAtom(NA_Atom(  2.466000,  4.961000,  0.001000, NA_Base::NONE,     0, "C7  "));
+  THY.AddAtom(NA_Atom( -0.024000,  5.057000,  0.000000, NA_Base::NONE,     1, "C6  "));
+  // URA
+  bases_.push_back( RefBase('U', "URA", NA_Base::URA) );
+  RefBase& URA = bases_.back();
+  AddBaseNames("U", URA);
+  URA.AddAtom(NA_Atom( -2.481000,  5.354000,  0.000000, NA_Base::NONE,     0, "C1' "));
+  URA.AddAtom(NA_Atom( -1.284000,  4.500000,  0.000000, NA_Base::NONE,     1, "N1  "));
+  URA.AddAtom(NA_Atom( -1.462000,  3.131000,  0.000000, NA_Base::NONE,     1, "C2  "));
+  URA.AddAtom(NA_Atom( -2.563000,  2.608000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "));
+  URA.AddAtom(NA_Atom( -0.302000,  2.397000,  0.000000, NA_Base::DONOR,    1, "N3  "));
+  URA.AddAtom(NA_Atom(  0.989000,  2.884000,  0.000000, NA_Base::NONE,     1, "C4  "));
+  URA.AddAtom(NA_Atom(  1.935000,  2.094000, -0.001000, NA_Base::ACCEPTOR, 0, "O4  "));
+  URA.AddAtom(NA_Atom(  1.089000,  4.311000,  0.000000, NA_Base::NONE,     1, "C5  "));
+  URA.AddAtom(NA_Atom( -0.024000,  5.053000,  0.000000, NA_Base::NONE,     1, "C6  "));
+  // DEBUG
+  for (BaseArray::const_iterator b = bases_.begin(); b != bases_.end(); ++b)
+    b->PrintInfo();
+}
 
-// x y z hb_idx rms_fit name
-static const NA_RefAtom R_ADE[] = {
-  { -2.479000,  5.346000,  0.000000, NA_Base::NONE,     0, "C1' "},
-  { -1.291000,  4.498000,  0.000000, NA_Base::NONE,     1, "N9  "},
-  {  0.024000,  4.897000,  0.000000, NA_Base::NONE,     1, "C8  "},
-  {  0.877000,  3.902000,  0.000000, NA_Base::ACCEPTOR, 1, "N7  "},
-  {  0.071000,  2.771000,  0.000000, NA_Base::NONE,     1, "C5  "},
-  {  0.369000,  1.398000,  0.000000, NA_Base::NONE,     1, "C6  "},
-  {  1.611000,  0.909000,  0.000000, NA_Base::DONOR,    0, "N6  "},
-  { -0.668000,  0.532000,  0.000000, NA_Base::ACCEPTOR, 1, "N1  "},
-  { -1.912000,  1.023000,  0.000000, NA_Base::NONE,     1, "C2  "},
-  { -2.320000,  2.290000,  0.000000, NA_Base::ACCEPTOR, 1, "N3  "},
-  { -1.267000,  3.124000,  0.000000, NA_Base::NONE,     1, "C4  "},
-  {  0.000000,  0.000000,  0.000000, NA_Base::NONE, 0, 0}
-};
+/** Attempt to find a reference for the given NA residue. */
+NA_Reference::RetType
+  NA_Reference::SetupBaseRef(NA_Base& baseIn, Topology const& currentParm, int resnum,
+                             DataSetList& masterDSL, std::string const& dataname)
+{
+  // TODO clear baseIn?
+  // Determine base from residue name.
+  Residue const& RES = currentParm.Res(resnum);
+  BaseArray::const_iterator REF = bases_.begin();
+  for (; REF != bases_.end(); ++REF)
+    if (REF->NameMatches( RES.Name() )) break;
+  if (REF == bases_.end()) return NOT_FOUND;
 
-static const NA_RefAtom R_CYT[] = {
-  { -2.477000,  5.402000,  0.000000, NA_Base::NONE,     0, "C1' "},
-  { -1.285000,  4.542000,  0.000000, NA_Base::NONE,     1, "N1  "},
-  { -1.472000,  3.158000,  0.000000, NA_Base::NONE,     1, "C2  "},
-  { -2.628000,  2.709000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "},
-  { -0.391000,  2.344000,  0.000000, NA_Base::ACCEPTOR, 1, "N3  "},
-  {  0.837000,  2.868000,  0.000000, NA_Base::NONE,     1, "C4  "},
-  {  1.875000,  2.027000,  0.000000, NA_Base::DONOR,    0, "N4  "},
-  {  1.056000,  4.275000,  0.000000, NA_Base::NONE,     1, "C5  "},
-  { -0.023000,  5.068000,  0.000000, NA_Base::NONE,     1, "C6  "},
-  {  0.000000,  0.000000,  0.000000, NA_Base::NONE, 0, 0}
-};
+  if (baseIn.Setup_Base(*REF, RES, resnum, currentParm.Atoms(), masterDSL, dataname))
+    return BASE_ERROR;
+  return BASE_OK;
+}
 
-static const NA_RefAtom R_GUA[] = {
-  { -2.477000,  5.399000,  0.000000, NA_Base::NONE,     0, "C1' "},
-  { -1.289000,  4.551000,  0.000000, NA_Base::NONE,     1, "N9  "},
-  {  0.023000,  4.962000,  0.000000, NA_Base::NONE,     1, "C8  "},
-  {  0.870000,  3.969000,  0.000000, NA_Base::ACCEPTOR, 1, "N7  "},
-  {  0.071000,  2.833000,  0.000000, NA_Base::NONE,     1, "C5  "},
-  {  0.424000,  1.460000,  0.000000, NA_Base::NONE,     1, "C6  "},
-  {  1.554000,  0.955000,  0.000000, NA_Base::ACCEPTOR, 0, "O6  "},
-  { -0.700000,  0.641000,  0.000000, NA_Base::DONOR,    1, "N1  "},
-  { -1.999000,  1.087000,  0.000000, NA_Base::NONE,     1, "C2  "},
-  { -2.949000,  0.139000, -0.001000, NA_Base::DONOR,    0, "N2  "},
-  { -2.342000,  2.364000,  0.001000, NA_Base::ACCEPTOR, 1, "N3  "},
-  { -1.265000,  3.177000,  0.000000, NA_Base::NONE,     1, "C4  "},
-  {  0.000000,  0.000000,  0.000000, NA_Base::NONE, 0, 0}
-};
+// NA_Reference::AddNameToBaseType()
+void NA_Reference::AddNameToBaseType(NameType const& nameIn, NA_Base::NAType typeIn) {
+  for (BaseArray::iterator b = bases_.begin(); b != bases_.end(); ++b) {
+    if (b->Type() == typeIn) {
+      mprintf("\tAdding name '%s' to base '%c'\n", *nameIn, b->BaseChar());
+      b->AddName( nameIn );
+      break;
+    }
+  }
+}
 
-static const NA_RefAtom R_THY[] = {
-  { -2.481000,  5.354000,  0.000000, NA_Base::NONE,     0, "C1' "},
-  { -1.284000,  4.500000,  0.000000, NA_Base::NONE,     1, "N1  "},
-  { -1.462000,  3.135000,  0.000000, NA_Base::NONE,     1, "C2  "},
-  { -2.562000,  2.608000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "},
-  { -0.298000,  2.407000,  0.000000, NA_Base::DONOR,    1, "N3  "},
-  {  0.994000,  2.897000,  0.000000, NA_Base::NONE,     1, "C4  "},
-  {  1.944000,  2.119000,  0.000000, NA_Base::ACCEPTOR, 0, "O4  "},
-  {  1.106000,  4.338000,  0.000000, NA_Base::NONE,     1, "C5  "},
-  {  2.466000,  4.961000,  0.001000, NA_Base::NONE,     0, "C7  "},
-  { -0.024000,  5.057000,  0.000000, NA_Base::NONE,     1, "C6  "},
-  {  0.000000,  0.000000,  0.000000, NA_Base::NONE, 0, 0}
-};
+/** \return true if any of this reference bases names matches given name. */
+bool RefBase::NameMatches(NameType const& nameIn) const {
+  for (NameArray::const_iterator n = names_.begin(); n != names_.end(); ++n)
+    if ( *n == nameIn ) return true;
+  return false;
+}
 
-static const NA_RefAtom R_URA[] = {
-  { -2.481000,  5.354000,  0.000000, NA_Base::NONE,     0, "C1' "},
-  { -1.284000,  4.500000,  0.000000, NA_Base::NONE,     1, "N1  "},
-  { -1.462000,  3.131000,  0.000000, NA_Base::NONE,     1, "C2  "},
-  { -2.563000,  2.608000,  0.000000, NA_Base::ACCEPTOR, 0, "O2  "},
-  { -0.302000,  2.397000,  0.000000, NA_Base::DONOR,    1, "N3  "},
-  {  0.989000,  2.884000,  0.000000, NA_Base::NONE,     1, "C4  "},
-  {  1.935000,  2.094000, -0.001000, NA_Base::ACCEPTOR, 0, "O4  "},
-  {  1.089000,  4.311000,  0.000000, NA_Base::NONE,     1, "C5  "},
-  { -0.024000,  5.053000,  0.000000, NA_Base::NONE,     1, "C6  "},
-  {  0.000000,  0.000000,  0.000000, NA_Base::NONE, 0, 0}
-};
-
-// UNKNOWN_BASE, ADE, CYT, GUA, THY, URA
-/// 1 character base names corresponding to NAbaseType
-static const char NAbaseChar[] = { '?', 'A', 'C', 'G', 'T', 'U' }; 
-#ifdef NASTRUCTDEBUG
-/// Base names corresponding to NAbaseType
-static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
-#endif
+/** Print reference base info to STDOUT. */
+void RefBase::PrintInfo() const {
+  mprintf("Base '%c':", baseChar_);
+  for (NameArray::const_iterator n = names_.begin(); n != names_.end(); ++n)
+    mprintf(" %s", *(*n));
+  mprintf("\n");
+  for (NA_Array::const_iterator at = atoms_.begin(); at != atoms_.end(); ++at)
+    mprintf("\t%s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
+            (int)at->HB_type(), at->RmsFit());
+}
 
 // ---------- NA_Base ----------------------------------------------------------
 NA_Base::NA_Base() :
@@ -162,48 +214,6 @@ NA_Base& NA_Base::operator=(const NA_Base& rhs) {
   return *this;
 }
 
-// NA_Base::ID_BaseFromName()
-/** Identify NA base typ from residue name. */
-NA_Base::NAType NA_Base::ID_BaseFromName(NameType const& resname) {
-  if (resname[0]=='D') {
-    // If residue name begins with D, assume AMBER DNA residue
-    switch (resname[1]) {
-      case 'A': return ADE;
-      case 'C': return CYT;
-      case 'G': return GUA;
-      case 'T': return THY;
-    }
-  } else if (resname[0]=='R') {
-    // If residue name beings with R, assume AMBER RNA residue
-    switch (resname[1]) {
-      case 'A': return ADE;
-      case 'C': return CYT;
-      case 'G': return GUA;
-      case 'U': return URA;
-    }
-  } else if (resname[2] == ' ' && (resname[1] == '3' || resname[1] == '5')) {
-    // Look for 1 letter terminal NA residue names
-    if (resname[0] == 'A') return ADE;
-    if (resname[0] == 'C') return CYT;
-    if (resname[0] == 'G') return GUA;
-    if (resname[0] == 'T') return THY;
-    if (resname[0] == 'U') return URA;
-  } else {
-    // Look for standard 3 letter/1 letter NA residue names
-    if ( resname == "ADE " ) return ADE;
-    if ( resname == "CYT " ) return CYT;
-    if ( resname == "GUA " ) return GUA;
-    if ( resname == "THY " ) return THY;
-    if ( resname == "URA " ) return URA;
-    if ( resname == "A   " ) return ADE;
-    if ( resname == "C   " ) return CYT;
-    if ( resname == "G   " ) return GUA;
-    if ( resname == "T   " ) return THY;
-    if ( resname == "U   " ) return URA;
-  } 
-  return UNKNOWN_BASE;
-}
-
 /** \return index of given input atom name. */
 int NA_Base::FindAtom(NameType const& atname) const {
   int atom = 0;
@@ -216,29 +226,20 @@ int NA_Base::FindAtom(NameType const& atname) const {
   return -1;
 }
 
+#ifdef NASTRUCTDEBUG
+const char* HBSTRING[] = {" 0 ", "HBD", "HBA"};
+#endif
 /** Set NA residue reference coordinates for given NA base. Ensure that
   * the atom ordering in the reference matches that in the given parm.
   * If an error occurs the type will be set to UNKNOWN_BASE. 
   */
-int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType baseType,
+int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
+                        std::vector<Atom> const& Atoms, 
                         DataSetList& masterDSL, std::string const& dataname) 
 {
-  type_ = UNKNOWN_BASE;
-  // Set up reference info for this base type 
-  RefPtr REF = 0;
-  switch (baseType) {
-    case ADE : REF = R_ADE; break;
-    case CYT : REF = R_CYT; break;
-    case GUA : REF = R_GUA; break;
-    case THY : REF = R_THY; break;
-    case URA : REF = R_URA; break;
-    case UNKNOWN_BASE: // Sanity check; should never be called with UNKNOWN 
-      REF = 0;
-      mprinterr("Internal Error: Residue %i is not a recognized NA residue.\n", resnum+1);
-      return 1;
-  }
-  int resstart = currentParm.Res(resnum).FirstAtom();
-  int resstop = currentParm.Res(resnum).LastAtom();
+  type_ = REF.Type();
+  int resstart = RES.FirstAtom();
+  int resstop  = RES.LastAtom();
   // Create mask for all input coords for this residue
   parmMask_.AddAtomRange(resstart, resstop);
   // Allocate space to hold input coords
@@ -249,7 +250,7 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
   int inpatom = 0;
   std::fill( atomIdx_, atomIdx_+6, -1 );
   for (int atom = resstart; atom < resstop; ++atom) {
-    anames_.push_back( currentParm[atom].Name() );
+    anames_.push_back( Atoms[atom].Name() );
     // Is this atom P?
     if (anames_.back() == "P   ")
       atomIdx_[PHOS] = inpatom;
@@ -274,20 +275,20 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
   // corresponding atom in the parm.
   std::map<int,int> BaseMap;
   int refatom = 0;
-  for (RefPtr ref = REF; ref->aname != 0; ++ref) {
-    NameType atomName(ref->aname);
-    inpatom = FindAtom(atomName);
+  
+  for (RefBase::const_iterator ref = REF.begin(); ref != REF.end(); ++ref) {
+    inpatom = FindAtom( ref->Name() );
     // Sometimes C1' is listed as C1*; if search for C1' fails look for C1*.
-    if (inpatom < 0 && atomName == "C1' ")
+    if (inpatom < 0 && ref->Name() == "C1' ")
       inpatom = FindAtom("C1* ");
     if (inpatom < 0) {
       mprinterr("Error: Ref Atom [%s] not found in NA base [%s].\n",
-                ref->aname, currentParm.Res(resnum).c_str());
+                ref->name(), RES.c_str());
       return 1;
     } else {
       BaseMap.insert( std::pair<int,int>(inpatom, refatom) );
 #     ifdef NASTRUCTDEBUG
-      mprintf("Ref atom %i:%s found in parm (%i:%s)\n",refatom+1,ref->aname,
+      mprintf("Ref atom %i:%s found in parm (%i:%s)\n",refatom+1,ref->name(),
               inpatom+1,*anames_[inpatom]);
 #     endif
     }
@@ -303,15 +304,15 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
       inpatom = atom->first;  // Index in Inp 
       refatom = atom->second; // Index in NA_RefAtom array 
       // Store type of hbonding atom.
-      hb_[inpatom] = REF[refatom].hb_type;
+      hb_[inpatom] = REF[refatom].HB_type();
       // Store coords
-      Ref_.AddVec3( Vec3(REF[refatom].x, REF[refatom].y, REF[refatom].z) );
+      Ref_.AddVec3( Vec3(REF[refatom].X(), REF[refatom].Y(), REF[refatom].Z()) );
 #     ifdef NASTRUCTDEBUG
       // Store reference atom names
-      refnames_.push_back( REF[refatom].aname );
+      refnames_.push_back( REF[refatom].Name() );
 #     endif
       // Will this atom be used for RMS fitting?
-      if (REF[refatom].rms_fit == 1) {
+      if (REF[refatom].RmsFit() == 1) {
         inpFitMask_.AddAtom( inpatom );
         refFitMask_.AddAtom( refidx );
 #       ifdef NASTRUCTDEBUG
@@ -327,10 +328,9 @@ int NA_Base::Setup_Base(Topology const& currentParm, int resnum, NA_Base::NAType
       rnum_ = resnum;
       c3idx_ = -1;
       c5idx_ = -1;
-      type_ = baseType;
-      bchar_ = NAbaseChar[type_];
+      bchar_ = REF.BaseChar();
 #     ifdef NASTRUCTDEBUG
-      rname_ = currentParm.Res(resnum).Name();
+      rname_ = RES.Name();
       mprintf("\tSet up residue %i:%s as %s (%c)\n", rnum_+1, *rname_, NAbaseName[type_], bchar_);
       mprintf("\tReference Atoms:\n");
       for (int atom = 0; atom < Ref_.Natom(); ++atom) {

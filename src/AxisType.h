@@ -28,6 +28,9 @@ class NA_Axis {
     Vec3 RY_;            ///< Rotation Y vector (col 2)
     Vec3 RZ_;            ///< Rotation Z vector (col 3)
 };
+// -----------------------------------------------------------------------------
+// Forward declaration for RefBase so NA_Base::Setup_Base() can work
+class RefBase;
 /// Hold information for NA base.
 class NA_Base {
     /// Type for phosphate/sugar atoms (index into atomIdx_).
@@ -35,14 +38,14 @@ class NA_Base {
   public:
     enum PmethodType { ALTONA=0, CREMER };
     /// Type for each standard NA base.
-    enum NAType { UNKNOWN_BASE, ADE, CYT, GUA, THY, URA };
+    enum NAType { UNKNOWN_BASE = 0, ADE, CYT, GUA, THY, URA };
     /// Type of hydrogen bond atom.
     enum HBType { NONE = 0, DONOR, ACCEPTOR };
     NA_Base();
     NA_Base(const NA_Base&);
     NA_Base& operator=(const NA_Base&);
-    static NAType ID_BaseFromName(NameType const&);
-    int Setup_Base(Topology const&, int, NAType, DataSetList&, std::string const&);
+    int Setup_Base(RefBase const&, Residue const&, int,
+                   std::vector<Atom> const&, DataSetList&, std::string const&);
     void CalcPucker(int, PmethodType);
     void SetInputFrame(Frame const&);
     void SetC3Idx(int i)                 { c3idx_ = i;             }
@@ -103,4 +106,62 @@ class NA_Base {
     AtomMask inpFitMask_;           ///< Mask of input atoms to be used in RMS fit.
     AtomMask refFitMask_;           ///< Mask of ref atoms to be used in RMS fit.
 };
-#endif  
+// -----------------------------------------------------------------------------
+/// Hold info for a NA base reference atom.
+class NA_Atom {
+  public:
+    NA_Atom() : x_(0.0), y_(0.0), z_(0.0), hb_type_(NA_Base::NONE), rms_fit_(0) {}
+    NA_Atom(double x, double y, double z, NA_Base::HBType t, int r, const char* n) :
+      x_(x), y_(y), z_(z), hb_type_(t), rms_fit_(r), aname_(n) {}
+    NameType const& Name()    const { return aname_; }
+    const char* name()        const { return *aname_; }
+    double X()                const { return x_; }
+    double Y()                const { return y_; }
+    double Z()                const { return z_; }
+    NA_Base::HBType HB_type() const { return hb_type_; }
+    int RmsFit()              const { return rms_fit_; }
+  private:
+    double x_, y_, z_;
+    NA_Base::HBType hb_type_;
+    int rms_fit_;
+    NameType aname_;
+};
+// -----------------------------------------------------------------------------
+/// Hold information for a NA base reference.
+class RefBase {
+    typedef std::vector<NA_Atom> NA_Array;
+  public:
+    RefBase() {}
+    RefBase(char b, NameType const& n, NA_Base::NAType t) : names_(1,n), baseChar_(b), type_(t) {}
+    void AddName( NameType const& n ) { names_.push_back( n ); }
+    void AddAtom( NA_Atom const& a )  { atoms_.push_back( a ); }
+    void PrintInfo() const;
+    bool NameMatches(NameType const&) const;
+    typedef NA_Array::const_iterator const_iterator;
+    const_iterator begin()             const { return atoms_.begin(); }
+    const_iterator end()               const { return atoms_.end();   }
+    NA_Atom const& operator[](int idx) const { return atoms_[idx];    }
+    char BaseChar()                    const { return baseChar_;      }
+    NA_Base::NAType Type()             const { return type_;          }
+  private:
+    NA_Array atoms_;
+    typedef std::vector<NameType> NameArray;
+    NameArray names_; ///< List of names corresponding to this reference.
+    char baseChar_;   ///< Base 1 char name
+    NA_Base::NAType type_; ///< Base type
+};
+// -----------------------------------------------------------------------------
+/// Hold information for all defined NA base references
+class NA_Reference {
+  public:
+    enum RetType { BASE_OK = 0, BASE_ERROR, NOT_FOUND };
+    NA_Reference();
+    /// \return NA_Base set up with correct reference.
+    RetType SetupBaseRef(NA_Base&, Topology const&, int, DataSetList&, std::string const&);
+    /// Add given name to first reference base of the specified type.
+    void AddNameToBaseType(NameType const&, NA_Base::NAType);
+  private:
+    typedef std::vector<RefBase> BaseArray;
+    BaseArray bases_;
+};
+#endif
