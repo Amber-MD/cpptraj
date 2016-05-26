@@ -26,7 +26,6 @@ install: cpptraj$(SFX) ambpdb$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/
 	/bin/mv ambpdb$(SFX) $(BINDIR)/
 
-libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
 install_openmp: cpptraj$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
@@ -45,17 +44,24 @@ dependclean:
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(SANDERAPI_DEP) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
                $(FLIBS_PTRAJ) $(READLINE) $(SANDERAPI_LIB)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
+               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
 
-$(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
-	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
-		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+# libcpptraj -------------------------------------
+# Rule to make libcpptraj-specific objects
+%.LIBCPPTRAJ.o : %.cpp
 
+libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
+
+$(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
+	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(LIBCPPTRAJ_OBJECTS) pub_fft.o \
+		$(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
+
+# ------------------------------------------------
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
 
@@ -84,7 +90,7 @@ ReadLine.o: ReadLine.cpp
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX) *.LIBCPPTRAJ.o
 	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:
