@@ -131,8 +131,10 @@ class NA_Atom {
 class RefBase {
     typedef std::vector<NA_Atom> NA_Array;
   public:
+    typedef std::vector<NameType> NameArray;
     RefBase() {}
     RefBase(char b, NameType const& n, NA_Base::NAType t) : names_(1,n), baseChar_(b), type_(t) {}
+    RefBase(char b, NameArray const& a,NA_Base::NAType t) : names_(a), baseChar_(b), type_(t) {}
     void AddName( NameType const& n ) { names_.push_back( n ); }
     void AddAtom( NA_Atom const& a )  { atoms_.push_back( a ); }
     void PrintInfo() const;
@@ -143,9 +145,9 @@ class RefBase {
     NA_Atom const& operator[](int idx) const { return atoms_[idx];    }
     char BaseChar()                    const { return baseChar_;      }
     NA_Base::NAType Type()             const { return type_;          }
+    bool empty()                       const { return atoms_.empty(); }
   private:
     NA_Array atoms_;
-    typedef std::vector<NameType> NameArray;
     NameArray names_; ///< List of names corresponding to this reference.
     char baseChar_;   ///< Base 1 char name
     NA_Base::NAType type_; ///< Base type
@@ -160,6 +162,8 @@ class NA_Reference {
     RetType SetupBaseRef(NA_Base&, Topology const&, int, DataSetList&, std::string const&);
     /// Add given name to first reference base of the specified type.
     void AddNameToBaseType(NameType const&, NA_Base::NAType);
+    /// Load a reference from a file
+    int LoadFromFile(FileName const&);
   private:
     typedef std::vector<RefBase> BaseArray;
     BaseArray bases_;

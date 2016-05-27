@@ -150,6 +150,11 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     // Add name
     refBases_.AddNameToBaseType( mapresname, mapbase );
   }
+  // Get custom base references
+  while ( actionArgs.Contains("baseref") ) {
+    std::string brefname = actionArgs.GetStringKey("baseref");
+    if ( refBases_.LoadFromFile( brefname ) ) return Action::ERR;
+  }
   // Get Masks
   // DataSet name
   dataname_ = actionArgs.GetStringNext();

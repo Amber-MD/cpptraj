@@ -4,6 +4,7 @@
 #include "StringRoutines.h"
 #include "TorsionRoutines.h" // pucker calc
 #include "Constants.h" // pucker calc
+#include "PDBfile.h" // load base reference
 // ---------- NA_Reference -----------------------------------------------------
 /** Add all common variations of NA base name given single letter X:
   * DX/DX3/DX5 (not for U), RX/RX3/RX5 (not for T), X3/X5, X
@@ -101,8 +102,144 @@ NA_Reference::NA_Reference() {
   URA.AddAtom(NA_Atom(  1.089000,  4.311000,  0.000000, NA_Base::NONE,     1, "C5  "));
   URA.AddAtom(NA_Atom( -0.024000,  5.053000,  0.000000, NA_Base::NONE,     1, "C6  "));
   // DEBUG
-  for (BaseArray::const_iterator b = bases_.begin(); b != bases_.end(); ++b)
-    b->PrintInfo();
+  //for (BaseArray::const_iterator b = bases_.begin(); b != bases_.end(); ++b)
+  //  b->PrintInfo();
+}
+
+static inline void CheckHbondValue(int& hbond) {
+  if (hbond < 0 || hbond > 2) {
+    mprintf("Warning: Invalid value for hbond column (%i): setting to 0 (none).\n", hbond);
+    hbond = 0;
+  }
+}
+
+static inline void CheckRmsValue(int& rms) {
+  if (rms < 0 || rms > 1) {
+    mprintf("Warning: Invalid value for rms column (%i): setting to 0 (not used for fit).\n",
+            rms);
+    rms = 0;
+  }
+}
+
+/** Load a NA base reference from a file. Eventually want to be able to
+  * read 3DNA files, but right now the way nastruct works it needs more
+  * info than the 3DNA reference PDBs provide, namely each atoms
+  * hydrogen bonding status and whether it should be used for rms-fitting.
+  * To make it as simple as possible for now, accept the following formats.
+  * 1 - Simple (all whitespace-delimited, ignore '#' lines):
+  *    Header:
+  *      NASTRUCT REFERENCE
+  *      <1 char name> <res name 0> [ <res name 1> ...]
+  *    Atom lines:
+  *      <atom name> <X> <Y> <Z> <hbond> <rms>
+  * 2 - Modified PDB:
+  *    Atom lines:
+  *      ATOM <#> <atom name> <res name> <res num> <X> <Y> <Z> <hbond/occ> <rms/bfac>
+  * For hbond, 0 is none, 1 is donor, 2 is acceptor.
+  */
+int NA_Reference::LoadFromFile(FileName const& fname) {
+  CpptrajFile infile;
+  if (infile.SetupRead(fname, 0)) return 1;
+  RefBase baseIn;
+  // Determine if the file is PDB format (like 3DNA references)
+  if (PDBfile::ID_PDB(infile)) {
+    // PDB format.
+    PDBfile pdbIn;
+    if (pdbIn.OpenRead(fname)) return 1;
+    double XYZ[3];
+    float occ, bfac;
+    while (pdbIn.NextRecord() != PDBfile::END_OF_FILE) {
+      if (pdbIn.RecType() == PDBfile::ATOM) {
+        pdbIn.pdb_XYZ( XYZ );
+        Atom pAtm = pdbIn.pdb_Atom();
+        Residue pRes = pdbIn.pdb_Residue();
+        //pdbIn.pdb_OccupancyAndBfactor(occ, bfac);
+        // Use ChargeAndRadius, less strict about spacing
+        pdbIn.pdb_ChargeAndRadius(occ, bfac);
+        int hbond = (int)occ;
+        int rms   = (int)bfac;
+        CheckHbondValue( hbond );
+        CheckRmsValue( rms );
+        if (baseIn.empty())
+          baseIn = RefBase( pRes.c_str()[0], pRes.Name(), NA_Base::UNKNOWN_BASE );
+        // TODO determine base type, hbond, rms fit
+        baseIn.AddAtom(NA_Atom(XYZ[0], XYZ[1], XYZ[2], NA_Base::HBType(hbond), rms, pAtm.c_str()));
+      } else if (pdbIn.RecType() == PDBfile::END)
+        break;
+    }
+    pdbIn.CloseFile();
+  } else {
+    if (infile.OpenFile()) return 1;
+    std::string line = infile.GetLine();
+    if (line.empty() || line.compare(0,18,"NASTRUCT REFERENCE") != 0) {
+      mprinterr("Error: Unrecognized reference base format.\n");
+      return 1;
+    }
+    // Next line will contain the 1 char name and all residue names
+    const char* ptr = infile.NextLine();
+    while (ptr != 0 && ptr[0] == '#') ptr = infile.NextLine();
+    ArgList argline( ptr );
+    if (argline.Nargs() < 2) {
+      mprinterr("Error: Could not read 1 char base name and residue name.\n");
+      return 1;
+    }
+    char baseChar = argline[0][0];
+    NA_Base::NAType baseType;
+    switch (baseChar) {
+      case 'A' : baseType = NA_Base::ADE; break;
+      case 'G' : baseType = NA_Base::GUA; break;
+      case 'C' : baseType = NA_Base::CYT; break;
+      case 'T' : baseType = NA_Base::THY; break;
+      case 'U' : baseType = NA_Base::URA; break;
+      default  : baseType = NA_Base::UNKNOWN_BASE;
+    }
+    argline.GetStringNext(); // Essentially "pops" the 1 char name
+    line = argline.GetStringNext(); // First residue name
+    RefBase::NameArray resNames;
+    while (!line.empty()) {
+      resNames.push_back( line );
+      line = argline.GetStringNext();
+    }
+    baseIn = RefBase( baseChar, resNames, baseType );
+    // Remaining lines contain '<atom name> <X> <Y> <Z> <hbond> <rms>'
+    ptr = infile.NextLine();
+    while (ptr != 0) {
+      argline.SetList( ptr, " " );
+      // Skip empty lines and comments
+      if (argline.Nargs() > 0 && argline[0][0] != '#') {
+        if (argline.Nargs() != 6) {
+          mprinterr("Error: Expected 6 columns, got %i\n", argline.Nargs());
+          return 1;
+        }
+        NA_Base::HBType hbtype = NA_Base::NONE;
+        if (validInteger(argline[4])) {
+          int hbond = convertToInteger(argline[4]);
+          CheckHbondValue( hbond );
+          hbtype = (NA_Base::HBType)hbond;
+        } else {
+          switch (argline[4][0]) {
+            case 'a' : hbtype = NA_Base::ACCEPTOR; break;
+            case 'd' : hbtype = NA_Base::DONOR; break;
+            case 'n' : hbtype = NA_Base::DONOR; break;
+            default  :
+              mprintf("Warning: Unrecognized HB type '%s'. Using NONE.\n", argline[4].c_str());
+              hbtype = NA_Base::NONE;
+          }
+        }
+        int rms = convertToInteger(argline[5]);
+        CheckRmsValue( rms );
+        baseIn.AddAtom(NA_Atom(convertToDouble(argline[1]),
+                               convertToDouble(argline[2]),
+                               convertToDouble(argline[3]),
+                               hbtype, rms, argline[0].c_str()));
+      }
+      ptr = infile.NextLine();
+    }
+    infile.CloseFile();
+  }
+  mprintf("Loaded reference:");
+  baseIn.PrintInfo();
+  return 0;
 }
 
 /** Attempt to find a reference for the given NA residue. */
