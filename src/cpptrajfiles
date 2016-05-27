@@ -146,7 +146,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
-        Command.cpp \
         ComplexArray.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
@@ -314,6 +313,7 @@ CSOURCES= molsurf.c
 # differently for libcpptraj.
 SOURCES=$(COMMON_SOURCES) \
         Action_Esander.cpp \
+        Command.cpp \
         Cpptraj.cpp \
         Energy_Sander.cpp \
         ReadLine.cpp \
@@ -324,6 +324,7 @@ SOURCES=$(COMMON_SOURCES) \
 # extension.
 LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
         Action_Esander.LIBCPPTRAJ.o \
+        Command.LIBCPPTRAJ.o \
         Cpptraj.LIBCPPTRAJ.o \
         Energy_Sander.LIBCPPTRAJ.o \
         ReadLine.LIBCPPTRAJ.o
