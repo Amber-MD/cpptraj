@@ -403,7 +403,8 @@ int NA_Base::FindAtom(NameType const& atname) const {
 }
 
 #ifdef NASTRUCTDEBUG
-const char* HBSTRING[] = {" 0 ", "HBD", "HBA"};
+static const char* HBSTRING[] = {" 0 ", "HBD", "HBA"};
+static const char* NAbaseName[] = { "UNK", "ADE", "CYT", "GUA", "THY", "URA" };
 #endif
 /** Set NA residue reference coordinates for given NA base. Ensure that
   * the atom ordering in the reference matches that in the given parm.
