@@ -138,24 +138,22 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
       return Action::ERR;
     }
     // Check that residue name is <= 4 chars
-    std::string resname = maplist[0]; 
-    if (resname.size() > 4) {
+    if (maplist[0].size() > 4) {
       mprinterr("Error: resmap resname > 4 chars (%s)\n",maplist.ArgLine());
       return Action::ERR;
     }
     // Format residue name
     // TODO: Use NameType in map
-    NameType mapresname = resname;
-    resname.assign( *mapresname );
-    mprintf("\tCustom Map: [%s]\n",resname.c_str());
+    NameType mapresname( maplist[0] );
+    mprintf("\tCustom Map: [%s]\n", *mapresname);
     //maplist.PrintList();
-    // Add to CustomMap
-    ResMapType::iterator customRes = CustomMap_.find(resname);
-    if (customRes != CustomMap_.end()) {
-      mprintf("Warning: resmap: %s already mapped.\n",resname.c_str());
-    } else {
-      CustomMap_.insert( std::pair<std::string,NA_Base::NAType>(resname,mapbase) );
-    }
+    // Add name
+    refBases_.AddNameToBaseType( mapresname, mapbase );
+  }
+  // Get custom base references
+  while ( actionArgs.Contains("baseref") ) {
+    std::string brefname = actionArgs.GetStringKey("baseref");
+    if ( refBases_.LoadFromFile( brefname ) ) return Action::ERR;
   }
   // Get Masks
   // DataSet name
@@ -1148,39 +1146,26 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   for (Range::const_iterator resnum = actualRange.begin();
                              resnum != actualRange.end(); ++resnum, ++idx)
   {
-    NA_Base::NAType baseType = NA_Base::UNKNOWN_BASE;
 #   ifdef NASTRUCTDEBUG
     mprintf(" ----- Setting up %i:%s -----\n", *resnum+1, setup.Top().Res(*resnum).c_str());
 #   endif
-    // Check if the residue at resnum matches any of the custom maps
-    if (!CustomMap_.empty()) {
-      std::string resname( setup.Top().Res(*resnum).c_str() );
-      ResMapType::iterator customRes = CustomMap_.find( resname );
-      if (customRes != CustomMap_.end()) {
-        mprintf("\tCustom map found: %i [%s]\n",*resnum+1, customRes->first.c_str());
-        baseType = customRes->second;
-      }
-    }
-    // If not in custom map, attempt to identify base from name
-    if (baseType == NA_Base::UNKNOWN_BASE)
-      baseType = NA_Base::ID_BaseFromName( setup.Top().Res(*resnum).Name() );
-    // If still unknown skip to the next base
-    if (baseType == NA_Base::UNKNOWN_BASE) {
-      // Print a warning if the user specified this range.
+    // Set up ref coords for this base
+    NA_Base currentBase;
+    NA_Reference::RetType err = refBases_.SetupBaseRef( currentBase, setup.Top(), *resnum,
+                                                        *masterDSL_, dataname_ );
+    if (err == NA_Reference::NOT_FOUND) {
+      // Residue not recognized. Print a warning if the user specified this range.
       if (!resRange_.Empty()) {
         mprintf("Warning: Residue %i:%s not recognized as NA residue.\n",
                 *resnum+1, setup.Top().Res(*resnum).c_str());
       }
       continue;
+    } else if (err == NA_Reference::BASE_ERROR) {
+      mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
+                setup.Top().TruncResNameNum(*resnum).c_str());
+      return Action::ERR;
     }
     if (firstTimeSetup) {
-      // Set up ref coords for this base type.
-      NA_Base currentBase;
-      if (currentBase.Setup_Base( setup.Top(), *resnum, baseType, *masterDSL_, dataname_ )) {
-        mprinterr("Error: Could not set up residue %s for NA structure analysis.\n",
-                  setup.Top().TruncResNameNum(*resnum).c_str());
-        return Action::ERR;
-      }
       Bases_.push_back( currentBase );
       // Determine the largest residue for setting up frames for RMS fit later.
       maxResSize_ = std::max( maxResSize_, currentBase.InputFitMask().Nselected() );
@@ -1191,8 +1176,8 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
         Bases_.back().RefFitMask().PrintMaskAtoms("RefMask");
       }
     } else {
-      // Ensure base type has not changed. //TODO: Re-set up reference?
-      if (baseType != Bases_[idx].Type()) {
+      // Ensure base type has not changed. //TODO: Re-set up reference? Check # atoms etc?
+      if (currentBase.Type() != Bases_[idx].Type()) {
         mprinterr("Error: Residue %s base type has changed from %s\n",
                   setup.Top().TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str());
         return Action::ERR;
