@@ -130,6 +130,7 @@ static inline void CheckRmsValue(int& rms) {
   *    Header:
   *      NASTRUCT REFERENCE
   *      <1 char name> <res name 0> [ <res name 1> ...]
+  * The 1 char name will be used to ID the underlying base type: A G C T U
   *    Atom lines:
   *      <atom name> <X> <Y> <Z> <hbond> <rms>
   * 2 - Modified PDB:
@@ -237,8 +238,37 @@ int NA_Reference::LoadFromFile(FileName const& fname) {
     }
     infile.CloseFile();
   }
-  mprintf("Loaded reference:");
-  baseIn.PrintInfo();
+  mprintf("Loaded reference from file '%s' for residues named:", fname.base());
+  for (RefBase::name_iterator it = baseIn.nameBegin(); it != baseIn.nameEnd(); ++it)
+    mprintf(" %s", *(*it));
+  mprintf("\n");
+  //baseIn.PrintInfo();
+  if (AddBase( baseIn )) return 1;
+  return 0;
+}
+
+/** Add given reference base. Determine if any of the residue names for the
+  * input reference match any existing references. If so, they will be
+  * overridden. Easiest way to do this is to insert the given base
+  * before any existing references.
+  */
+int NA_Reference::AddBase(RefBase const& refIn) {
+  if (refIn.empty()) {
+    mprinterr("Internal Error: Attempting to add an empty reference base.\n");
+    return 1;
+  }
+  BaseArray newBases;
+  newBases.reserve( bases_.size() + 1 );
+  newBases.push_back( refIn );
+  for (BaseArray::const_iterator b = bases_.begin(); b != bases_.end(); ++b) {
+    // Check if any refIn names match this base.
+    for (RefBase::name_iterator name = refIn.nameBegin(); name != refIn.nameEnd(); ++name)
+      if ( b->NameMatches( *name ) )
+        mprintf("Warning: New reference residue '%s' will override existing reference.\n",
+                *(*name));
+    newBases.push_back( *b );
+  }
+  bases_ = newBases;
   return 0;
 }
 
@@ -271,6 +301,7 @@ void NA_Reference::AddNameToBaseType(NameType const& nameIn, NA_Base::NAType typ
   }
 }
 
+// ---------- RefBase ----------------------------------------------------------
 /** \return true if any of this reference bases names matches given name. */
 bool RefBase::NameMatches(NameType const& nameIn) const {
   for (NameArray::const_iterator n = names_.begin(); n != names_.end(); ++n)
@@ -287,6 +318,14 @@ void RefBase::PrintInfo() const {
   for (NA_Array::const_iterator at = atoms_.begin(); at != atoms_.end(); ++at)
     mprintf("\t%s %6.3f %6.3f %6.3f %i %i\n", at->name(), at->X(), at->Y(), at->Z(),
             (int)at->HB_type(), at->RmsFit());
+}
+
+// ---------- NA_Atom ----------------------------------------------------------
+/// CONSTRUCTOR - replace any asterisks in name with quote
+NA_Atom::NA_Atom(double x, double y, double z, NA_Base::HBType t, int r, const char* n) :
+      x_(x), y_(y), z_(z), hb_type_(t), rms_fit_(r), aname_(n)
+{
+  aname_.ReplaceAsterisk();
 }
 
 // ---------- NA_Base ----------------------------------------------------------

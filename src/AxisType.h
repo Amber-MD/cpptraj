@@ -111,8 +111,7 @@ class NA_Base {
 class NA_Atom {
   public:
     NA_Atom() : x_(0.0), y_(0.0), z_(0.0), hb_type_(NA_Base::NONE), rms_fit_(0) {}
-    NA_Atom(double x, double y, double z, NA_Base::HBType t, int r, const char* n) :
-      x_(x), y_(y), z_(z), hb_type_(t), rms_fit_(r), aname_(n) {}
+    NA_Atom(double, double, double, NA_Base::HBType, int, const char*);
     NameType const& Name()    const { return aname_; }
     const char* name()        const { return *aname_; }
     double X()                const { return x_; }
@@ -143,6 +142,9 @@ class RefBase {
     const_iterator begin()             const { return atoms_.begin(); }
     const_iterator end()               const { return atoms_.end();   }
     NA_Atom const& operator[](int idx) const { return atoms_[idx];    }
+    typedef NameArray::const_iterator name_iterator;
+    name_iterator nameBegin()          const { return names_.begin(); }
+    name_iterator nameEnd()            const { return names_.end();   }
     char BaseChar()                    const { return baseChar_;      }
     NA_Base::NAType Type()             const { return type_;          }
     bool empty()                       const { return atoms_.empty(); }
@@ -165,6 +167,8 @@ class NA_Reference {
     /// Load a reference from a file
     int LoadFromFile(FileName const&);
   private:
+    /// Add given reference
+    int AddBase(RefBase const&);
     typedef std::vector<RefBase> BaseArray;
     BaseArray bases_;
 };
