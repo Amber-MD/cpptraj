@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTERNODE_H
 #define INC_CLUSTERNODE_H
-#include "ClusterDist.h" 
+#include "ClusterDist.h"
+#include "DataSet_Cmatrix.h"
 /// Hold information for a cluster in a ClusterList
 class ClusterNode {
   public:
