@@ -7,13 +7,16 @@
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
 #include "AtomMap.h"
+#include "ViewRst.h"
 
 // CONSTRUCTOR
 Action_NMRrst::Action_NMRrst() : Action(HIDDEN),
    findOutput_(0), specOutput_(0), masterDSL_(0), numNoePairs_(0), max_cut_(6.0),
    strong_cut_(2.9), medium_cut_(3.5), weak_cut_(5.0),
    resOffset_(0), debug_(0), nframes_(0), useMass_(false),
-   findNOEs_(false), series_(false) {} 
+   findNOEs_(false), series_(false),
+   rsttop_(0)
+{} 
 
 void Action_NMRrst::Help() const {
   mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
@@ -62,6 +65,7 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
   weak_cut_ = actionArgs.getKeyDouble("weakcut", 5.0);
   series_ = actionArgs.hasKey("series");
   std::string rstfilename = actionArgs.GetStringKey("file");
+  viewrst_ = actionArgs.GetStringKey("viewrst");
   setname_ = actionArgs.GetStringKey("name");
   if (setname_.empty())
     setname_ = init.DSL().GenerateDefaultName("NMR");
@@ -147,6 +151,8 @@ Action::RetType Action_NMRrst::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(", center of mass.\n");
   else
     mprintf(", geometric center.\n");
+  if (!viewrst_.empty())
+    mprintf("\tTopologies corresponding to found NOEs will be written to '%s'\n", viewrst_.c_str());
 
   return Action::OK;
 }
@@ -290,6 +296,7 @@ int Action_NMRrst::ReadXplor( BufferedLine& infile ) {
 /** Determine what atoms each mask pertains to for the current parm file.
   */
 Action::RetType Action_NMRrst::Setup(ActionSetup& setup) {
+  if (!viewrst_.empty() && rsttop_ == 0) rsttop_ = setup.TopAddress();
   // ---------------------------------------------
   // Set up NOEs from file.
   for (noeDataArray::iterator noe = NOEs_.begin(); noe != NOEs_.end(); ++noe) {
@@ -545,65 +552,79 @@ Action::RetType Action_NMRrst::DoAction(int frameNum, ActionFrame& frm) {
 
 /** Analyze NOEtypeArray */
 void Action_NMRrst::AnalyzeNoeArray(NOEtypeArray& Narray, CpptrajFile* out) const {
-    // Calculate <r^-6>^(-1/6) 
-    for (NOEtypeArray::iterator my_noe = Narray.begin();
-                                my_noe != Narray.end(); ++my_noe)
-    {
-      double r6Avg = pow( my_noe->R6_Avg() / (double)nframes_, -1.0/6.0 );
-      my_noe->SetR6Avg( r6Avg );
+  // Calculate <r^-6>^(-1/6) 
+  for (NOEtypeArray::iterator my_noe = Narray.begin();
+                              my_noe != Narray.end(); ++my_noe)
+  {
+    double r6Avg = pow( my_noe->R6_Avg() / (double)nframes_, -1.0/6.0 );
+    my_noe->SetR6Avg( r6Avg );
+  }
+  // Sort by R6 avg.
+  std::sort( Narray.begin(), Narray.end() );
+  // Remove sets greater than the cutoff.
+  NOEtypeArray::iterator bad_noe = Narray.begin();
+  while (bad_noe != Narray.end() && bad_noe->R6_Avg() < max_cut_)
+    ++bad_noe;
+  size_t newSize = bad_noe - Narray.begin();
+  for (NOEtypeArray::iterator my_noe = bad_noe;
+                              my_noe != Narray.end(); ++my_noe)
+  {
+    if (debug_ > 0)
+      mprintf("\tRemoving: %s (%g Ang)\n", my_noe->PrintNOE().c_str(), my_noe->R6_Avg());
+    if (my_noe->Data() != 0)
+      masterDSL_->RemoveSet( my_noe->Data() );
+  }
+  Narray.resize( newSize );
+  // Print Final found NOEs. Calculate distances from d^2 if necessary.
+  ViewRst VR;
+  if (rsttop_ != 0)
+    VR.Init(*rsttop_, ViewRst::BY_STRENGTH);
+  std::vector<unsigned int> Bins(4, 0); // Strong, weak, medium, none
+  double Cutoffs[3] = {strong_cut_, medium_cut_, weak_cut_};
+  unsigned int current_cut = 0;
+  const char* Labels[4] = {"STRONG", "MEDIUM", "WEAK", "NONE"};
+  while (current_cut < 3 && Narray.front().R6_Avg() > Cutoffs[current_cut])
+    ++current_cut;
+  out->Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
+                 " <Avg Dist. (Ang)> <Label>\n"
+                 "# r1, r2: Residue Numbers\n"
+                 "# a1X, a2X: Group atom numbers\n"
+                 "# c1X, c2X: Number of times atom was part of shortest distance.\n");
+  out->Printf("#Final NOEs (%zu):\n#   %s\n", Narray.size(), Labels[current_cut]);
+  for (NOEtypeArray::iterator my_noe = Narray.begin();
+                              my_noe != Narray.end(); ++my_noe)
+  {
+    unsigned int old_cut = current_cut;
+    while (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) 
+      current_cut++;
+    if (old_cut != current_cut)
+      out->Printf("#   %s\n", Labels[current_cut]);
+    out->Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
+                   my_noe->R6_Avg(), my_noe->legend());
+    if (my_noe->Data() != 0) {
+      DataSet_float& data = static_cast<DataSet_float&>( *(my_noe->Data()) );
+      for (unsigned int i = 0; i != data.Size(); i++)
+        data[i] = sqrt(data[i]);
     }
-    // Sort by R6 avg.
-    std::sort( Narray.begin(), Narray.end() );
-    // Remove sets greater than the cutoff.
-    NOEtypeArray::iterator bad_noe = Narray.begin();
-    while (bad_noe != Narray.end() && bad_noe->R6_Avg() < max_cut_)
-      ++bad_noe;
-    size_t newSize = bad_noe - Narray.begin();
-    for (NOEtypeArray::iterator my_noe = bad_noe;
-                                my_noe != Narray.end(); ++my_noe)
-    {
-      if (debug_ > 0)
-        mprintf("\tRemoving: %s (%g Ang)\n", my_noe->PrintNOE().c_str(), my_noe->R6_Avg());
-      if (my_noe->Data() != 0)
-        masterDSL_->RemoveSet( my_noe->Data() );
+    // Bin
+    if (my_noe->R6_Avg() < strong_cut_) {
+      ++Bins[0];
+      VR.AddRst(my_noe->Site1().Idx(0), my_noe->Site2().Idx(0), ViewRst::NOE_STRONG);
+    } else if (my_noe->R6_Avg() < medium_cut_) {
+      ++Bins[1];
+      VR.AddRst(my_noe->Site1().Idx(0), my_noe->Site2().Idx(0), ViewRst::NOE_MEDIUM);
+    } else if (my_noe->R6_Avg() < weak_cut_) {
+     ++Bins[2];
+      VR.AddRst(my_noe->Site1().Idx(0), my_noe->Site2().Idx(0), ViewRst::NOE_WEAK);
+    } else {
+     ++Bins[3];
+      VR.AddRst(my_noe->Site1().Idx(0), my_noe->Site2().Idx(0), ViewRst::NOE_VERYWEAK);
     }
-    Narray.resize( newSize );
-    // Print Final found NOEs. Calculate distances from d^2 if necessary.
-    std::vector<unsigned int> Bins(4, 0); // Strong, weak, medium, none
-    double Cutoffs[3] = {strong_cut_, medium_cut_, weak_cut_};
-    unsigned int current_cut = 0;
-    const char* Labels[4] = {"STRONG", "MEDIUM", "WEAK", "NONE"};
-    while (current_cut < 3 && Narray.front().R6_Avg() > Cutoffs[current_cut])
-      ++current_cut;
-    out->Printf("#Format: <r1>:{ @<a1X>(c1X) ... } -- <r2>:{ @<a2X>(c2X) ... }"
-                   " <Avg Dist. (Ang)> <Label>\n"
-                   "# r1, r2: Residue Numbers\n"
-                   "# a1X, a2X: Group atom numbers\n"
-                   "# c1X, c2X: Number of times atom was part of shortest distance.\n");
-    out->Printf("#Final NOEs (%zu):\n#   %s\n", Narray.size(), Labels[current_cut]);
-    for (NOEtypeArray::iterator my_noe = Narray.begin();
-                                my_noe != Narray.end(); ++my_noe)
-    {
-      unsigned int old_cut = current_cut;
-      while (current_cut < 3 && my_noe->R6_Avg() > Cutoffs[current_cut]) 
-        current_cut++;
-      if (old_cut != current_cut)
-        out->Printf("#   %s\n", Labels[current_cut]);
-      out->Printf("\t %s %g \"%s\"\n", my_noe->PrintNOE().c_str(),
-                     my_noe->R6_Avg(), my_noe->legend());
-      if (my_noe->Data() != 0) {
-        DataSet_float& data = static_cast<DataSet_float&>( *(my_noe->Data()) );
-        for (unsigned int i = 0; i != data.Size(); i++)
-          data[i] = sqrt(data[i]);
-      }
-      // Bin
-      if      (my_noe->R6_Avg() < strong_cut_) ++Bins[0];
-      else if (my_noe->R6_Avg() < medium_cut_) ++Bins[1];
-      else if (my_noe->R6_Avg() < weak_cut_)   ++Bins[2];
-      else                                     ++Bins[3];
-    }
-    out->Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
-            Bins[0], Bins[1], Bins[2], Bins[3]);
+  }
+  out->Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
+          Bins[0], Bins[1], Bins[2], Bins[3]);
+  VR.WriteRstTop(viewrst_);
+  rsttop_ = 0; // Prevents accidental overwrite.
 }
 
 // Action_NMRrst::Print()

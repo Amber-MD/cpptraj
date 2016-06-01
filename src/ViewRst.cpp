@@ -23,8 +23,10 @@ int ViewRst::Init(Topology const& topIn, OutputType typeIn)
 
 // ViewRst::AddRst()
 void ViewRst::AddRst(int atom_i, int atom_j, NoeType strength) {
-  int ntop = (int)strength;
-  Pseudo_[ntop].AddBond(atom_i, atom_j);
+  if (!Pseudo_.empty()) {
+    int ntop = (int)strength;
+    Pseudo_[ntop].AddBond(atom_i, atom_j);
+  }
 }
 
 // ViewRst::GenerateOutNames()
