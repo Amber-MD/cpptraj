@@ -1,6 +1,7 @@
 #ifndef INC_DIMENSION_H
 #define INC_DIMENSION_H
 #include <string>
+#include <vector>
 /// Holds information about a coordinate dimension.
 class Dimension {
   public:
@@ -12,6 +13,8 @@ class Dimension {
     /// CONSTRUCTOR - Min, step, label
     Dimension(double m, double s, std::string const& l) :
       label_(l), min_(m), step_(s) {}
+    /// Set dimension from given values. \return true if monotonic
+    inline bool SetDimension(std::vector<double> const&, std::string const&);
     /// COPY CONSTRUCTOR
     Dimension(const Dimension& rhs) :
       label_(rhs.label_), min_(rhs.min_), step_(rhs.step_) {}
@@ -50,4 +53,23 @@ class Dimension {
     double min_;
     double step_;
 };
+// ----- INLINE FUNCTIONS ------------------------
+bool Dimension::SetDimension(std::vector<double> const& Vals, std::string const& labelIn)
+{
+  bool isMonotonic = true;
+  double step = 1.0;
+  if (Vals.size() > 1) {
+    step = (Vals.back() - Vals.front()) / (double)(Vals.size() - 1);
+    for (std::vector<double>::const_iterator X = Vals.begin()+2; X != Vals.end(); ++X)
+      if ((*X - *(X-1)) - step > 0.00000000000001) {
+        isMonotonic = false;
+        break;
+      }
+    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
+    SetDimension( Vals.front(), step, labelIn );
+  } else
+    // No X values. set generic X dim.
+    SetDimension(1.0, 1.0, labelIn);
+  return isMonotonic;
+}
 #endif

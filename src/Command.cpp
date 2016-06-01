@@ -8,6 +8,7 @@
 #include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Calc.h"
+#include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -118,6 +119,7 @@
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
+#include "Action_Align.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -169,6 +171,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
@@ -228,6 +231,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
+  Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
   Command::AddCmd( new Action_AtomicCorr(),    Cmd::ACT, 1, "atomiccorr" );

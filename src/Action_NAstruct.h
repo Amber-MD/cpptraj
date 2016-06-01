@@ -97,8 +97,6 @@ class Action_NAstruct: public Action {
     typedef std::pair<int,int> Rpair;         ///< Pair of residue numbers / BP indices
     typedef std::map<Rpair,BPtype> BPmap;     ///< Map of residue numbers to BP
     typedef std::map<Rpair,StepType> StepMap; ///< Map of BP indices to Steps
-    /// Map a residue name to an NA base type.
-    typedef std::map<std::string, NA_Base::NAType> ResMapType;
     // ----- Functions ---------------------------
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
     static int TravelBackbone(Topology const&, int, std::vector<int>&);
@@ -131,6 +129,7 @@ class Action_NAstruct: public Action {
     /// Set up data sets for StepType (except HC groove)
     MetaData NewStepType(StepType&, int, int, int, int, int) const;
     // ----- Variables ---------------------------
+    NA_Reference refBases_;             ///< Hold reference bases
     Barray Bases_;                      ///< Hold nucleobases
     BPmap BasePairs_;                   ///< Hold base pairs
     StepMap Steps_;                     ///< Hold base pair steps.
@@ -152,7 +151,6 @@ class Action_NAstruct: public Action {
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).
-    ResMapType CustomMap_;
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
 #   ifdef NASTRUCTDEBUG

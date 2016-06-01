@@ -153,12 +153,26 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
+// PDBfile::pdb_OccupancyAndBfactor()
 void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
-  // Occupancy (54-59) | charge
-  // B-factor (60-65) | radius
-  // NOTE: sscanf is used here since occupancy and B-factor could be different
-  //       widths if this is a PQR file - potentially bad?
-  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
+  // Occupancy (54-60)
+  char savechar = linebuffer_[60];
+  linebuffer_[60] = '\0';
+  occ = atof(linebuffer_ + 54);
+  linebuffer_[60] = savechar;
+  // B-factor (60-66)
+  savechar = linebuffer_[66];
+  linebuffer_[66] = '\0';
+  bfac = atof(linebuffer_ + 60);
+  linebuffer_[66] = savechar;
+}
+  
+/** Read charge and radius from PQR file (where occupancy and B-factor would be
+  * in a PDB). Use sscanf() since these columns could have different widths.
+  * Could fail if reading a PDB with values > 99.99 in B-factor column.
+  */
+void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
+  sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
 void PDBfile::pdb_Box(double* box) {

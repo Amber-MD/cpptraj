@@ -18,6 +18,15 @@ class Action_Closest: public Action {
     Parallel::Comm trajComm_;
 #   endif
     void Print() {}
+#   ifdef CUDA
+    double* GPU_MEM_;       ///< Memory block to be sent to GPU.
+    double* V_atom_coords_; ///< Hold coordinates for selected solvent atoms.
+    double* U_atom_coords_; ///< Hold coordinates for selected solute atoms.
+    double* V_distances_;   ///< Hold closest distance for each solvent molecule.
+#   else
+    typedef std::vector<double> Darray;
+    Darray U_cell0_coords_; ///< Hold selected solute atoms, wrapped to cell0 if non-ortho.
+#   endif
 
     ImagedAction image_;    ///< Imaging routines.
     DataFile *outFile_;     ///< Output file for data on closest molecules

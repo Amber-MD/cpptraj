@@ -444,8 +444,9 @@ Help() {
   echo "  summary    : Print summary of test results only."
   echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
   echo "  stdout     : Print CPPTRAJ test output to STDOUT."
-  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggerd if DO_PARALLEL set)."
+  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggered if DO_PARALLEL set)."
   echo "  openmp     : Use OpenMP version of CPPTRAJ."
+  echo "  cuda       : Use CUDA version of CPPTRAJ."
   echo "  vg         : Run test with valgrind memcheck."
   echo "  vgh        : Run test with valgrind helgrind."
   echo "  time       : Time the test."
@@ -467,13 +468,17 @@ Help() {
 # CmdLineOpts(): Process test script command line options
 CmdLineOpts() {
   VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
+  SFX_OMP=0
+  SFX_CUDA=0
+  SFX_MPI=0
   while [[ ! -z $1 ]] ; do
     case "$1" in
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
       "stdout"    ) OUTPUT="/dev/stdout" ;;
-      "mpi"       ) SFX=".MPI" ;;
-      "openmp"    ) SFX=".OMP" ;;
+      "openmp"    ) SFX_OMP=1 ;;
+      "cuda"      ) SFX_CUDA=1 ;;
+      "mpi"       ) SFX_MPI=1 ;;
       "vg"        ) VGMODE=1 ;;
       "vgh"       ) VGMODE=2 ;;
       "time"      ) TIME=`which time` ;;
@@ -489,6 +494,19 @@ CmdLineOpts() {
     esac
     shift
   done
+  # If DO_PARALLEL has been set force MPI
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    SFX_MPI=1
+    MPI=1
+  fi
+  # Warn if using OpenMP but OMP_NUM_THREADS not set.
+  if [ "$SFX_OMP" -eq 1 -a -z "$OMP_NUM_THREADS" ] ; then
+    echo "Warning: Using OpenMP but OMP_NUM_THREADS is not set."
+  fi
+  # Set up SFX
+  if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
+  if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
+  if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   # Set up valgrind if necessary
   if [[ $VGMODE -ne 0 ]] ; then
     VG=`which valgrind`
@@ -504,11 +522,6 @@ CmdLineOpts() {
     elif [[ $VGMODE -eq 2 ]] ; then
       VALGRIND="valgrind --tool=helgrind"
     fi
-  fi
-  # If DO_PARALLEL has been set force MPI
-  if [[ ! -z $DO_PARALLEL ]] ; then
-    SFX=".MPI"
-    MPI=1
   fi
   # Figure out if we are a part of AmberTools
   if [[ -z $CPPTRAJ ]] ; then
@@ -624,6 +637,7 @@ CheckDefines() {
   OPENMP=`echo $DEFINES | grep D_OPENMP`
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
   SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
+  CUDA=`echo $DEFINES | grep DCUDA`
 }
 
 #===============================================================================
@@ -656,6 +670,10 @@ else
   SetBinaries
   # Check how CPPTRAJ was compiled
   CheckDefines
+  # If CUDA, use cuda-memcheck instead of valgrind
+  if [[ ! -z $VALGRIND && ! -z $CUDA ]] ; then
+    VALGRIND='cuda-memcheck'
+  fi
   # Start test results file
   echo "**************************************************************"
   echo "TEST: `pwd`"

@@ -15,7 +15,10 @@ class AtomExtra {
     char AtomAltLoc()       const { return atom_altloc_; }
     float Occupancy()       const { return occupancy_;   }
     float Bfactor()         const { return bfactor_;     }
-    void SetAltLoc(char c)        { atom_altloc_ = c;    }
+    void SetAltLoc(char c)           { atom_altloc_ = c;    }
+    void SetItree(NameType const& t) { itree_ = t;          }
+    void SetJoin(int j)              { join_ = j;           }
+    void SetIrotat(int i)            { irotat_ = i;         }
   private:
     // Amber extra info.
     NameType itree_;

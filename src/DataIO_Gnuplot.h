@@ -1,6 +1,7 @@
 #ifndef INC_DATAIO_GNUPLOT_H
 #define INC_DATAIO_GNUPLOT_H
 #include "DataIO.h"
+#include "BufferedLine.h"
 /// Read/write gnuplot data files.
 class DataIO_Gnuplot : public DataIO {
   public:
@@ -8,12 +9,13 @@ class DataIO_Gnuplot : public DataIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_Gnuplot(); }
     static void WriteHelp();
     int processReadArgs(ArgList&) { return 0; }
-    int ReadData(FileName const&,DataSetList&,std::string const&) { return 1; }
+    int ReadData(FileName const&,DataSetList&,std::string const&);
     int processWriteArgs(ArgList&);
     int WriteData(FileName const&,DataSetList const&);
-    bool ID_DataFormat(CpptrajFile&) { return false; }
+    bool ID_DataFormat(CpptrajFile&);
   private:
     CpptrajFile file_;
+    FileName data_fname_; ///< Data file name
     typedef std::vector<std::string> LabelArray;
     LabelArray Xlabels_;
     LabelArray Ylabels_;
@@ -22,11 +24,18 @@ class DataIO_Gnuplot : public DataIO {
     enum PM3D_OPT { OFF = 0, ON, MAP, C2C };
     static const char* BasicPalette[];
     PM3D_OPT pm3d_;
+    std::string palette_;
     bool printLabels_; 
     bool useMap_;
     bool jpegout_;
     bool binary_;
     bool writeHeader_;
+
+    int ReadBinaryData(FileName const&,DataSetList&,std::string const&,
+                       std::string const&, std::string const&);
+    int ReadAsciiHeader(FileName const&,DataSetList&,std::string const&);
+    int ReadAsciiData(BufferedLine&, DataSetList&, std::string const&,
+                      std::string const&, std::string const&);
 
     static LabelArray LabelArg(std::string const&);
     int WriteSet2D( DataSet const& );
@@ -37,7 +46,6 @@ class DataIO_Gnuplot : public DataIO {
     void Finish();
     void JpegOut(size_t,size_t);
     void WriteDefinedPalette(int);
-    int WriteDataAscii(std::string const&,DataSetList const&);
-    //int WriteDataBinary(std::string const&,DataSetList const&);
+    int WriteSets1D(DataSetList const&);
 };
 #endif

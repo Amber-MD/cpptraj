@@ -12,7 +12,7 @@
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
-#include "DataSet_MatrixDbl.h" // For reading TODO remove dependency?
+#include "DataSet_2D.h"
 #include "DataSet_3D.h"
 
 // CONSTRUCTOR
@@ -240,37 +240,8 @@ int DataIO_Std::Read_2D(std::string const& fname,
     mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
     return 1;
   }
-  DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
-  if (ds == 0) return 1;
-  DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  //ds->SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME Allow type keywords
-  bool isSymmetric = false;
-  if (ncols == nrows) {
-    isSymmetric = true;
-    // Check if matrix is symmetric
-    for (int row = 0; row < nrows; row++) {
-      for (int col = row + 1; col < ncols; col++) {
-        if ( matrixArray[ (row * ncols) + col ] != matrixArray[ (col * ncols) + row ] ) {
-          isSymmetric = false;
-          break;
-        }
-      }
-      if (!isSymmetric) break;
-    }
-  }
-  if (isSymmetric) {
-    mprintf("\tSymmetric matrix detected.\n");
-    if (Mat.AllocateHalf(ncols)) return 1;
-    for (int row = 0; row < nrows; row++)
-      for (int col = row; col < ncols; col++)
-        Mat.AddElement( matrixArray[ (row * ncols) + col ] );
-  } else {
-    DataSet::SizeArray dims(2);
-    dims[0] = ncols;
-    dims[1] = nrows;
-    ds->Allocate( dims );
-    std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
-  }
+  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
+
   return 0;
 }
 
