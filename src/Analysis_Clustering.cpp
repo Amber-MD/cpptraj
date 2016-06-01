@@ -222,7 +222,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
       pw_dist_ = setup.DSL().GetDataSet( pairdistname );
       if (pw_dist_ == 0) return Analysis::ERR;
-    }
+    } else
+      pairdisttype = DataFile::CMATRIX;
   }
   if (pw_dist_ == 0 && !pairdistname.empty()) {
     // Just 'pairdist' specified or loadpairdist specified and file not found.
