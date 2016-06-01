@@ -433,7 +433,36 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }
-    Cdist_->PairwiseDist(*frameDistances_, FrameDistances().Sieved() );
+    ClusterSieve::SievedFrames const& frames = FrameDistances().Sieved();
+    int f2end = (int)frames.size();
+    int f1end = f2end - 1;
+    ParallelProgress progress(f1end);
+    int f1, f2;
+    // For OMP, every other thread will need its own Cdist.
+    ClusterDist* MyCdist = Cdist_;
+#   ifdef _OPENMP
+#   pragma omp parallel private(MyCdist, f1, f2) firstprivate(progress)
+    {
+    int mythread = omp_get_thread_num();
+    progress.SetThread( mythread );
+    if (mythread == 0) {
+      mprintf("\tParallelizing pairwise distance calc with %i threads\n", omp_get_num_threads());
+      MyCdist = Cdist_;
+    } else
+      MyCdist = Cdist_->Copy();
+#   pragma omp for schedule(dynamic)
+#   endif
+    for (f1 = 0; f1 < f1end; f1++) {
+      progress.Update(f1);
+      for (f2 = f1 + 1; f2 < f2end; f2++)
+        frameDistances_->SetElement( f1, f2, MyCdist->FrameDist(frames[f1], frames[f2]) );
+    }
+#   ifdef _OPENMP
+    if (mythread > 0)
+      delete MyCdist;
+    } // END omp parallel
+#   endif
+    progress.Finish();
   }
   mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
           ByteString(FrameDistances().DataSize(), BYTE_DECIMAL).c_str());

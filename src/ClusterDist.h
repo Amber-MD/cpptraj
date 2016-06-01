@@ -3,7 +3,6 @@
 #include "SymmetricRmsdCalc.h"
 #include "DataSet_Coords.h"
 #include "DataSet_1D.h"
-#include "DataSet_Cmatrix.h"
 /// Abstract Base Class for Cluster centroid.
 /** This class is a container for the cluster centroid type appropriate for
   * the data being clustered. For COORDS DataSets this is a frame, for other
@@ -70,7 +69,6 @@ class ClusterDist {
     typedef Cframes::const_iterator Cframes_it;
     typedef std::vector<DataSet*> DsArray;
     virtual ~ClusterDist() {}
-    virtual void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&) = 0;
     /// \return distance between given frames.
     virtual double FrameDist(int, int) = 0;
     /// \return distance between given centroids.
@@ -93,7 +91,6 @@ class ClusterDist_Num : public ClusterDist {
   public:
     ClusterDist_Num() : data_(0), dcalc_(0) {}
     ClusterDist_Num(DataSet*);
-    void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -110,7 +107,6 @@ class ClusterDist_Euclid : public ClusterDist {
   public:
     ClusterDist_Euclid() {}
     ClusterDist_Euclid(DsArray const&);
-    void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -129,7 +125,6 @@ class ClusterDist_DME: public ClusterDist {
   public:
     ClusterDist_DME() : coords_(0) {}
     ClusterDist_DME(DataSet*,AtomMask const&);
-    void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -148,7 +143,6 @@ class ClusterDist_RMS : public ClusterDist {
   public:
     ClusterDist_RMS() : coords_(0), nofit_(false), useMass_(false) {}
     ClusterDist_RMS(DataSet*,AtomMask const&,bool,bool);
-    void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);
@@ -169,7 +163,6 @@ class ClusterDist_SRMSD : public ClusterDist {
   public:
     ClusterDist_SRMSD() {}
     ClusterDist_SRMSD(DataSet*,AtomMask const&,bool,bool,int);
-    void PairwiseDist(DataSet_Cmatrix&, ClusterSieve::SievedFrames const&);
     double FrameDist(int, int);
     double CentroidDist( Centroid*, Centroid* );
     double FrameCentroidDist(int, Centroid*);

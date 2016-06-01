@@ -1,11 +1,8 @@
 #include <cmath>
 #include "ClusterDist.h"
 #include "Constants.h" // RADDEG, DEGRAD
-#include "ProgressBar.h"
-#ifdef _OPENMP
-#  include <omp.h>
-#endif
 // TODO: All DataSet stuff const&
+
 /// Calculate smallest difference between two angles (in degrees).
 static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);
@@ -91,27 +88,6 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
     dcalc_ = DistCalc_Std;
 }
 
-void ClusterDist_Num::PairwiseDist(DataSet_Cmatrix& frameDistances, 
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-#pragma omp parallel private(f1, f2)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    for (f2 = f1 + 1; f2 < f2end; f2++)
-      frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(frames[f1]), 
-                                                data_->Dval(frames[f2])) );
-  }
-#ifdef _OPENMP
-}
-#endif
-}
-
 double ClusterDist_Num::FrameDist(int f1, int f2) {
   return dcalc_(data_->Dval(f1), data_->Dval(f2));
 }
@@ -159,36 +135,6 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
     else
       dcalcs_.push_back( DistCalc_Std );
   }
-}
-
-void ClusterDist_Euclid::PairwiseDist(DataSet_Cmatrix& frameDistances,
-                                      ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  double dist, diff;
-  DcArray::iterator dcalc;
-  D1Array::iterator ds;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-#pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      dist = 0.0;
-      dcalc = dcalcs_.begin();
-      for (ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
-        diff = (*dcalc)((*ds)->Dval(frames[f1]), (*ds)->Dval(frames[f2]));
-        dist += (diff * diff);
-      }
-      frameDistances.SetElement( f1, f2, sqrt(dist) );
-    }
-  }
-#ifdef _OPENMP
-}
-#endif
 }
 
 double ClusterDist_Euclid::FrameDist(int f1, int f2) {
@@ -279,33 +225,6 @@ ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   frm2_ = frm1_;
 }
 
-void ClusterDist_DME::PairwiseDist(DataSet_Cmatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-#pragma omp parallel private(f1, f2) firstprivate(frm1, frm2)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) { 
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      frameDistances.SetElement( f1, f2, frm1_.DISTRMSD( frm2 ) );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-} // END pragma omp parallel
-#endif
-}
-
 double ClusterDist_DME::FrameDist(int f1, int f2) {
   coords_->GetFrame( f1, frm1_, mask_ );
   coords_->GetFrame( f2, frm2_, mask_ );
@@ -384,42 +303,6 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn,
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
-}
-
-void ClusterDist_RMS::PairwiseDist(DataSet_Cmatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  double rmsd;
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-  ParallelProgress progress(f1end);
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
-{
-  progress.SetThread(omp_get_thread_num());
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    progress.Update(f1);
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      if (nofit_) 
-        rmsd = frm1_.RMSD_NoFit( frm2, useMass_ );
-      else
-        rmsd = frm1_.RMSD( frm2, useMass_ );
-      frameDistances.SetElement( f1, f2, rmsd );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-} // END pragma omp parallel
-#endif
-  progress.Finish();
 }
 
 double ClusterDist_RMS::FrameDist(int f1, int f2) {
@@ -516,42 +399,6 @@ ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn,
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
-}
-
-void ClusterDist_SRMSD::PairwiseDist(DataSet_Cmatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  double rmsd;
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-  ParallelProgress progress(f1end);
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-  SymmetricRmsdCalc SRMSD_OMP = SRMSD_;
-# define SRMSD_ SRMSD_OMP
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(SRMSD_OMP, frm1, frm2, progress)
-{
-  progress.SetThread(omp_get_thread_num());
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    progress.Update(f1);
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      rmsd = SRMSD_.SymmRMSD(frm1_, frm2);
-      frameDistances.SetElement( f1, f2, rmsd );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-# undef SRMSD_
-} // END pragma omp parallel
-#endif
-  progress.Finish();
 }
 
 double ClusterDist_SRMSD::FrameDist(int f1, int f2) {
