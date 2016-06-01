@@ -19,8 +19,13 @@ Action_NMRrst::Action_NMRrst() : Action(HIDDEN),
 {} 
 
 void Action_NMRrst::Help() const {
-  mprintf("\t[<name>] file <rstfile> [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
-          "  Calculate distances based on entries in the given NMR restraint file.\n");
+  mprintf("\t[file <rstfile>] [name <dataname>] [geom] [noimage] [resoffset <r>]\n"
+          "\t[findnoes [findout <file>] [<mask>]] [specout <file>] [out <file>] [cut <cutoff>]\n"
+          "\t[strongcut <cut>] [mediumcut <cut>] [weakcut <cut>] [series]\n"
+          "\t[viewrst <output top name>] [pair <mask1> <mask2> ...]\n"
+          "  Calculate distances based on entries in the given NMR restraint file,\n"
+          "  ('file') or find potential NOEs based on 1/r^6 averaged distances\n"
+          "  ('findnoes).\n");
 }
 
 /// \return true if first character is a 'skippable' one.
