@@ -3,6 +3,7 @@
 #include "Exec_ViewRst.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "ViewRst.h"
 
 void Exec_ViewRst::Help() const {
   mprintf("\tcrdset <coords set> rstfile <filename> mol2out <mol2 name> [noe]\n");
@@ -11,33 +12,18 @@ void Exec_ViewRst::Help() const {
 Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
 {
   mprintf("Warning: This command is experimental.\n");
-  int Ntops = 1;
-  enum TopType {TOP_STRONG=0, TOP_MEDIUM, TOP_WEAK, TOP_VERYWEAK};
-  enum OutputType { ALL=0, BY_STRENGTH };
-  OutputType outputMode = ALL;
+  ViewRst VR;
+  ViewRst::OutputType outputMode = ViewRst::ALL;
   // Get output type
   if (argIn.hasKey("noe")) {
     mprintf("\tOutput to mol2 by restraint distances (NOE strength).\n");
-    outputMode = BY_STRENGTH;
-    Ntops = 4; // strong, med, weak, v. weak
+    outputMode = ViewRst::BY_STRENGTH;
   }
   // Get output mol2 name
   std::string mol2out = argIn.GetStringKey("mol2out");
   if (mol2out.empty()) {
     mprinterr("Error: Output mol2 name ('mol2out') not specfied.\n");
     return CpptrajState::ERR;
-  }
-  std::vector< std::string > OutNames;
-  switch (outputMode) {
-    case BY_STRENGTH:
-      OutNames.push_back("strong."   + mol2out);
-      OutNames.push_back("medium."   + mol2out);
-      OutNames.push_back("weak."     + mol2out);
-      OutNames.push_back("veryweak." + mol2out);
-      break;
-    case ALL:
-      OutNames.push_back( mol2out );
-      break;
   }
   // Attempt to get coords dataset from datasetlist
   std::string name = argIn.GetStringKey("crdset");
@@ -48,6 +34,11 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
   }
   DataSet_Coords* coords = (DataSet_Coords*)sets[0];
   mprintf("\tCoords set: '%s'\n", coords->legend());
+  // Init ViewRst. Use first frame of input coords.
+  Frame* frameOut = new Frame(coords->AllocateFrame());
+  coords->GetFrame(0, *frameOut);
+  if (VR.Init(coords->Top(), *frameOut, outputMode)) return CpptrajState::ERR;
+  delete frameOut;
   // Get file with amber restraints
   name = argIn.GetStringKey("rstfile");
   if (name.empty()) {
@@ -56,12 +47,6 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
   }
   BufferedLine infile;
   if (infile.OpenFileRead( name )) return CpptrajState::ERR;
-  // Add all atoms to each pseudo topology.
-  std::vector<Topology> Pseudo( Ntops );
-  for (int nt = 0; nt != Ntops; nt++) {
-    for (Topology::atom_iterator atm = coords->Top().begin(); atm != coords->Top().end(); ++atm)
-      Pseudo[nt].AddTopAtom( *atm, coords->Top().Res( atm->ResNum() ) );
-  }
   // Process Amber restraint file. Create pseudo topology bonds.
   const char* ptr = infile.Line();
   const char* SEP = " ,=";
@@ -143,22 +128,23 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
                     infile.LineNumber(), bondIndices.size());
           return CpptrajState::ERR;
         }
-        int ntop = 0;
-        if (outputMode == BY_STRENGTH) {
+        ViewRst::NoeType ntop = ViewRst::NOE_STRONG;
+        if (outputMode == ViewRst::BY_STRENGTH) {
           // Rvals[2] is r3
           if (Rvals[2] < 3.0)
-            ntop = (int)TOP_STRONG;
+            ntop = ViewRst::NOE_STRONG;
           else if (Rvals[2] < 4.1)
-            ntop = (int)TOP_MEDIUM;
+            ntop = ViewRst::NOE_MEDIUM;
           else if (Rvals[2] < 5.5)
-            ntop = (int)TOP_WEAK;
+            ntop = ViewRst::NOE_WEAK;
           else
-            ntop = (int)TOP_VERYWEAK;
+            ntop = ViewRst::NOE_VERYWEAK;
         }
-        Pseudo[ntop].AddBond( bondIndices[0], bondIndices[1] );
+        VR.AddRst( bondIndices[0], bondIndices[1], ntop );
         if (State.Debug() > 0)
           mprintf("Bonding indices: %i %i  Rvals: %g %g %g %g {%i}\n",
-                  bondIndices[0], bondIndices[1], Rvals[0], Rvals[1], Rvals[2], Rvals[3], ntop);
+                  bondIndices[0], bondIndices[1],
+                  Rvals[0], Rvals[1], Rvals[2], Rvals[3], (int)ntop);
         bondIndices.clear();
         inRst = false;
       } else if (tkn == "iat") { // TODO check inRst?
@@ -174,17 +160,8 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
       }
     }
   } // END loop over file
-  // Write output mol2. Use first frame of input coords.
-  Frame frameOut = coords->AllocateFrame();
-  coords->GetFrame(0, frameOut);
-  for (int nt = 0; nt != Ntops; nt++) {
-    Trajout_Single trajout;
-    if (trajout.PrepareTrajWrite(OutNames[nt], ArgList(), &(Pseudo[nt]), CoordinateInfo(), 1,
-                                 TrajectoryFile::MOL2FILE))
-      return CpptrajState::ERR;
-    if (trajout.WriteSingle(0, frameOut)) return CpptrajState::ERR;
-    trajout.EndTraj();
-  }
+  // Write output mol2.
+  if (VR.WriteRstMol2(mol2out)) return CpptrajState::ERR;
 
   return CpptrajState::OK;
 }
