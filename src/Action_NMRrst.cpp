@@ -624,7 +624,6 @@ void Action_NMRrst::AnalyzeNoeArray(NOEtypeArray& Narray, CpptrajFile* out) cons
   out->Printf("#Totals: %u strong, %u medium, %u weak, %u none.\n",
           Bins[0], Bins[1], Bins[2], Bins[3]);
   VR.WriteRstTop(viewrst_);
-  rsttop_ = 0; // Prevents accidental overwrite.
 }
 
 // Action_NMRrst::Print()
@@ -635,8 +634,10 @@ void Action_NMRrst::Print() {
       mprintf("Warning: No frames processed.\n");
       return;
     }
-    if (findNOEs_)
+    if (findNOEs_) {
       AnalyzeNoeArray(noeArray_, findOutput_);
+      rsttop_ = 0; // Prevents accidental overwrite
+    }
     if (!specifiedNOEs_.empty()) {
       max_cut_  = 1000.00; // FIXME: Make sure specified NOEs do not get deleted.
       AnalyzeNoeArray(specifiedNOEs_, specOutput_);
