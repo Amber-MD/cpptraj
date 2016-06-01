@@ -34,11 +34,8 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
   }
   DataSet_Coords* coords = (DataSet_Coords*)sets[0];
   mprintf("\tCoords set: '%s'\n", coords->legend());
-  // Init ViewRst. Use first frame of input coords.
-  Frame* frameOut = new Frame(coords->AllocateFrame());
-  coords->GetFrame(0, *frameOut);
-  if (VR.Init(coords->Top(), *frameOut, outputMode)) return CpptrajState::ERR;
-  delete frameOut;
+  // Init ViewRst. 
+  if (VR.Init(coords->Top(), outputMode)) return CpptrajState::ERR;
   // Get file with amber restraints
   name = argIn.GetStringKey("rstfile");
   if (name.empty()) {
@@ -160,8 +157,10 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
       }
     }
   } // END loop over file
-  // Write output mol2.
-  if (VR.WriteRstMol2(mol2out)) return CpptrajState::ERR;
+  // Write output mol2. Use coords first frame.
+  Frame frameOut = coords->AllocateFrame();
+  coords->GetFrame(0, frameOut);
+  if (VR.WriteRstMol2(mol2out, frameOut)) return CpptrajState::ERR;
 
   return CpptrajState::OK;
 }
