@@ -73,17 +73,15 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
 }
 
 // ClusterSieve::SetSieve()
-/** Used for loading previously saved ClusterMatrix */
-// FIXME is this necessary?
-int ClusterSieve::SetSieve(int sieveIn, std::vector<bool> const& ignoreIn) {
+int ClusterSieve::SetSieve(int sieveIn, std::vector<char> const& sieveStatus) {
   DetermineTypeFromSieve( sieveIn );
-  if (ignoreIn.empty()) return 1;
+  if (sieveStatus.empty()) return 1;
   frameToIdx_.clear();
-  frameToIdx_.assign( ignoreIn.size(), -1 );
+  frameToIdx_.assign( sieveStatus.size(), -1 );
   unsigned int idx = 0;
-  for (unsigned int frame = 0; frame < ignoreIn.size(); ++frame)
+  for (unsigned int frame = 0; frame < sieveStatus.size(); ++frame)
   {
-    if ( !ignoreIn[frame] )
+    if ( sieveStatus[frame] == 'F' )
       frameToIdx_[frame] = idx++;
   }
   actualNframes_ = (int)idx;

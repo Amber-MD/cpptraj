@@ -112,8 +112,8 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-10);
   // Build initial clusters.
-  for (int frame = 0; frame < (int)FrameDistances().Nframes(); frame++) {
-    if (!FrameDistances().IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); frame++) {
+    if (!FrameDistances().FrameWasSieved( frame ))
       AddCluster( ClusterDist::Cframes(1, frame) );
   }
   mprintf("\t%i initial clusters.\n", Nclusters());
@@ -276,7 +276,7 @@ void Cluster_HierAgglo::calcMinDist(cluster_it& C1_it)
       }
     }
     //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), min );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
   }
 }
 
@@ -307,7 +307,7 @@ void Cluster_HierAgglo::calcMaxDist(cluster_it& C1_it)
       }
     }
     //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), max );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
   }
 }
 
@@ -341,6 +341,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     }
     double Dist = sumDist / N;
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), Dist );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }
 }

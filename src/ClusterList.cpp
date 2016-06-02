@@ -324,7 +324,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   if (FrameDistances().SieveValue() != 1) {
     if (FrameDistances().SieveValue() < -1) {
       outfile.Printf("#Sieve value: %i (random)\n#Sieved frames:", -FrameDistances().SieveValue());
-      ClusterSieve::SievedFrames sFrames = FrameDistances().Sieved();
+      ClusterSieve::SievedFrames sFrames = FrameDistances().FramesToCluster();
       for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
                                                       sfrm != sFrames.end(); ++sfrm)
         outfile.Printf(" %i", *sfrm + 1);
@@ -434,7 +434,7 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
       mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
       return 1; 
     }
-    ClusterSieve::SievedFrames const& frames = FrameDistances().Sieved();
+    ClusterSieve::SievedFrames const& frames = FrameDistances().FramesToCluster();
     int f2end = (int)frames.size();
     int f1end = f2end - 1;
     ParallelProgress progress(f1end);
@@ -499,7 +499,7 @@ void ClusterList::CalcClusterDistances() {
     cluster_it C2 = C1;
     ++C2;
     for (; C2 != Cend; ++C2)
-      ClusterDistances_.AddElement( Cdist_->CentroidDist( C1->Cent(), C2->Cent() ) );
+      ClusterDistances_.AddCdist( Cdist_->CentroidDist( C1->Cent(), C2->Cent() ) );
   }
 }
 
@@ -874,7 +874,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
   std::vector<int> Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
-    ClusterSieve::SievedFrames sievedFrames = FrameDistances().Sieved();
+    ClusterSieve::SievedFrames sievedFrames = FrameDistances().FramesToCluster();
     DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
     for (unsigned int n = 0; n != nframes; n++)
       Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );

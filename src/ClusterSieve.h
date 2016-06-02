@@ -11,8 +11,8 @@ class ClusterSieve {
     void Clear();
     /// Setup no sieve, regular sieve, or random sieve.
     int SetSieve(int, size_t, int);
-    /// Setup sieve from previously obtained ignore array.
-    int SetSieve(int, std::vector<bool> const&);
+    /// Setup sieve from array: 'T'=sieved, 'F'=not sieved.
+    int SetSieve(int, std::vector<char> const&);
     /// \return an array of sieved frame numbers.
     SievedFrames Frames() const;
     /// \return size of data in bytes

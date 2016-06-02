@@ -26,3 +26,19 @@ int DataSet_Cmatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
     mprintf("\tPair-wise matrix set up, %zu frames\n", sizeIn);
   return 0;
 }
+
+/** Set up sieve info from an array that contains 'T' if the frame was sieved
+  * out and 'F' otherwise.
+  */
+int DataSet_Cmatrix::SetSieveFromArray(std::vector<char> const& sieveStatus, int sieveIn)
+{
+  if (sieveStatus.empty()) return 1;
+  // Setup sieve class
+  if (sievedFrames_.SetSieve( sieveIn, sieveStatus )) {
+    mprinterr("Error: Could not set sieve from cluster matrix file.\n");
+    return 1;
+  }
+  mprintf("\tSet up %s: %u original frames, %u actual frames, %u elements, sieve=%i\n",
+          legend(), sievedFrames_.MaxFrames(), sievedFrames_.ActualNframes(), Nelements(), sieveIn);
+  return 0;
+}

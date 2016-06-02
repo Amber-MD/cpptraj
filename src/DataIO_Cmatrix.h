@@ -1,7 +1,7 @@
 #ifndef INC_DATAIO_CMATRIX_H
 #define INC_DATAIO_CMATRIX_H
 #include "DataIO.h"
-#include "DataSet_Cmatrix.h"
+#include "DataSet_Cmatrix_MEM.h"
 /// Read/write cpptraj-format binary cluster pairwise distance matrix files. 
 class DataIO_Cmatrix : public DataIO {
   public:
@@ -15,8 +15,8 @@ class DataIO_Cmatrix : public DataIO {
     int WriteData(FileName const&,DataSetList const&);
     bool ID_DataFormat(CpptrajFile&);
     // -------------------------------------------
-    int ReadCmatrix(FileName const&, DataSet_Cmatrix&);
-    int WriteCmatrix(FileName const&, DataSet_Cmatrix const&); 
+    int ReadCmatrix(FileName const&, DataSet_Cmatrix_MEM&);
+    int WriteCmatrix(FileName const&, DataSet_Cmatrix_MEM const&); 
   private:
     static const unsigned char Magic_[];
     /// For reading/writing 8 byte unsigned integers

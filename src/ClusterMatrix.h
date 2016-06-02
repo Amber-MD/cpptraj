@@ -19,7 +19,9 @@ class ClusterMatrix {
     /// Print all matrix elements to STDOUT
     void PrintElements() const;
     /// Add given element to matrix.
-    int AddElement(double d)        { return Mat_.addElement((float)d); }
+    int AddCdist(double d)        { return Mat_.addElement((float)d); }
+    /// Set element at column/row to given value
+    void SetCdist(int col, int row, double val) { Mat_.setElement(col, row, val); }
     /// Set up matrix for given number of rows
     int SetupMatrix(size_t);
   private:

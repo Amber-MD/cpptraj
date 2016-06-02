@@ -26,12 +26,6 @@ int DataSet_Cmatrix_MEM::Allocate(SizeArray const& sizeIn) {
 }
 
 // -----------------------------------------------------------------------------
-/*void DataSet_Cmatrix_MEM::Clear() {
-  Mat_.clear();
-  ignore_.clear();
-  sievedFrames_.Clear();
-}*/
-
 // DataSet_Cmatrix_MEM::AllocateCmatrix()
 int DataSet_Cmatrix_MEM::AllocateCmatrix(size_t sizeIn)
 {
@@ -47,36 +41,7 @@ int DataSet_Cmatrix_MEM::AllocateCmatrix(size_t sizeIn)
   return 0;
 }
 
-// DataSet_Cmatrix::SetupIgnore()
-/*
-int DataSet_Cmatrix::SetupIgnore(size_t originalNrows, std::vector<char> const& ignoreIn,
-                                 int sieveIn)
-{
-  ignore_.assign( originalNrows, false );
-  if (!ignoreIn.empty()) {
-    if (originalNrows != ignoreIn.size()) {
-      mprinterr("Internal Error: Original # rows %zu != ignore array size %zu\n",
-                originalNrows, ignoreIn.size());
-      return 1;
-    }
-    for (size_t row = 0; row < originalNrows; ++row)
-      if (ignoreIn[row] == 'T')
-        ignore_[row] = true;
-  }
-  // Setup sieve class
-  if (sievedFrames_.SetSieve( sieveIn, ignore_ )) {
-    mprinterr("Error: Could not set sieve from DataSet_Cmatrix file.\n");
-    return 1;
-  }
-  mprintf("\tSet up %s: %u original rows, %u actual rows, %u elements, sieve=%i\n",
-          legend(), originalNrows, Mat_.Nrows(), Mat_.size(), sieveIn);
-  return 0;
-}
-*/
-
 // DataSet_Cmatrix_MEM::DataSize()
 size_t DataSet_Cmatrix_MEM::DataSize() const {
-  return ( Mat_.DataSize() +
-//           (ignore_.capacity()*sizeof(bool) + sizeof(ignore_)) +
-           sievedFrames_.DataSize() );
+  return ( Mat_.DataSize() + sievedFrames_.DataSize() );
 }

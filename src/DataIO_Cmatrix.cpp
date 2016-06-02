@@ -46,12 +46,12 @@ int DataIO_Cmatrix::ReadData(FileName const& fname,
   MetaData md( dsname, MetaData::M_MATRIX );
   DataSet* ds = dsl.AddSet(DataSet::CMATRIX, md, "Cmatrix");
   if (ds == 0) return 1;
-  DataSet_Cmatrix& Mat = static_cast<DataSet_Cmatrix&>( *ds );
+  DataSet_Cmatrix_MEM& Mat = static_cast<DataSet_Cmatrix_MEM&>( *ds );
   return ReadCmatrix(fname, Mat);
 }
 
 // DataIO_Cmatrix::ReadCmatrix()
-int DataIO_Cmatrix::ReadCmatrix(FileName const& fname, DataSet_Cmatrix& Mat) {
+int DataIO_Cmatrix::ReadCmatrix(FileName const& fname, DataSet_Cmatrix_MEM& Mat) {
   unsigned char magic[4];
   CpptrajFile infile;
   uint_8 ROWS, ELTS;
@@ -112,18 +112,20 @@ int DataIO_Cmatrix::ReadCmatrix(FileName const& fname, DataSet_Cmatrix& Mat) {
     sieve = 1;
   }
   // Setup underlying TriangleMatrix for actual # of rows
-  if ( Mat.AllocateTriangle( actual_nrows ) ) return 1;
+  if ( Mat.Allocate( DataSet::SizeArray(1,actual_nrows) ) ) return 1;
   // Read in matrix elements
   infile.Read( Mat.Ptr(), Mat.Size()*sizeof(float) );
-  // If sieved, read in the ignore array
-  std::vector<char> ignore_in;
+  // If sieved, read in the sieve status array. 'T'=sieved, 'F'=not sieved
+  std::vector<char> sieveStatus;
   if (sieve != 1) {
     mprintf("Warning: ClusterMatrix %s contains sieved data.\n", fname.full());
-    ignore_in.resize( ROWS ); // Original nrows
-    infile.Read( &ignore_in[0], ROWS*sizeof(char) );
-  }
-  // Setup ignore array and sieve; if not sieving all elements set to false.
-  if (Mat.SetupIgnore(ROWS, ignore_in, sieve)) return 1;
+    sieveStatus.resize( ROWS ); // Original nrows
+    infile.Read( &sieveStatus[0], ROWS*sizeof(char) );
+  } else
+    // No sieved frames.
+    sieveStatus.assign( ROWS, 'F' );
+  // Set sieve status.
+  if (Mat.SetSieveFromArray(sieveStatus, sieve)) return 1;
 
   return 0;
 }
@@ -146,12 +148,12 @@ int DataIO_Cmatrix::WriteData(FileName const& fname, DataSetList const& SetList)
   if (SetList.empty()) return 1;
   if (SetList.size() > 1)
     mprintf("Warning: Multiple sets not yet supported for cluster matrix write.\n");
-  DataSet_Cmatrix const& Mat = static_cast<DataSet_Cmatrix const&>( *(*(SetList.begin())) );
+  DataSet_Cmatrix_MEM const& Mat = static_cast<DataSet_Cmatrix_MEM const&>( *(*(SetList.begin())) );
   return WriteCmatrix( fname, Mat );
 }
 
 // DataIO_Cmatrix::WriteCmatrix()
-int DataIO_Cmatrix::WriteCmatrix(FileName const& fname, DataSet_Cmatrix const& Mat) {
+int DataIO_Cmatrix::WriteCmatrix(FileName const& fname, DataSet_Cmatrix_MEM const& Mat) {
   CpptrajFile outfile;
   uint_8 ntemp;
   // No stdout write allowed.
@@ -165,8 +167,8 @@ int DataIO_Cmatrix::WriteCmatrix(FileName const& fname, DataSet_Cmatrix const& M
   }
   // Write magic byte
   outfile.Write( Magic_, 4 );
-  // Write original nrows (size of ignore)
-  ntemp = (uint_8)Mat.Nframes();
+  // Write original number of frames.
+  ntemp = (uint_8)Mat.OriginalNframes();
   outfile.Write( &ntemp, sizeof(uint_8) );
   // Write actual nrows
   ntemp = (uint_8)Mat.Nrows();
@@ -176,15 +178,15 @@ int DataIO_Cmatrix::WriteCmatrix(FileName const& fname, DataSet_Cmatrix const& M
   outfile.Write( &stemp, sizeof(sint_8) );
   // Write matrix elements
   outfile.Write( Mat.Ptr(), Mat.Size()*sizeof(float) );
-  // If this is a reduced matrix, write the ignore array as chars.
+  // If this is a reduced matrix, write whether each frame was sieved (T) or not (F). 
   if (Mat.SieveType() != ClusterSieve::NONE) {
-    std::vector<char> ignore_out( Mat.Nframes() );
-    for (unsigned int idx = 0; idx != Mat.Nframes(); idx++) 
-      if (Mat.IgnoringRow(idx))
-        ignore_out[idx] = 'T';
+    std::vector<char> sieveStatus( Mat.OriginalNframes() );
+    for (int idx = 0; idx != Mat.OriginalNframes(); idx++) 
+      if (Mat.FrameWasSieved(idx))
+        sieveStatus[idx] = 'T';
       else
-        ignore_out[idx] = 'F';
-    outfile.Write( &ignore_out[0], Mat.Nframes()*sizeof(char) );
+        sieveStatus[idx] = 'F';
+    outfile.Write( &sieveStatus[0], Mat.OriginalNframes()*sizeof(char) );
   }
   return 0;
 }

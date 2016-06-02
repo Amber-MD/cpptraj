@@ -19,7 +19,7 @@
 #include "DataSet_Coords_REF.h"
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
-#include "DataSet_Cmatrix.h"
+#include "DataSet_Cmatrix_MEM.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -40,7 +40,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
-  { "cluster matrix",DataSet_Cmatrix::Alloc    }, // CMATRIX
+  { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
   { 0, 0 }
 };
 

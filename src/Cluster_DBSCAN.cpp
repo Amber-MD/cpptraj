@@ -209,13 +209,9 @@ char Cluster_DBSCAN::INCLUSTER = 'C';
 int Cluster_DBSCAN::Cluster() {
   std::vector<int> NeighborPts;
   std::vector<int> Npts2; // Will hold neighbors of a neighbor
-  std::vector<int> FramesToCluster;
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
-  // FIXME: Just use sieved array?
-  for (int frame = 0; frame < (int)FrameDistances().Nframes(); ++frame)
-    if (!FrameDistances().IgnoringRow( frame ))
-      FramesToCluster.push_back( frame );
+  std::vector<int> FramesToCluster = FrameDistances().FramesToCluster();
   // Calculate Kdist function
   if (!kdist_.Empty()) {
     if (kdist_.Size() == 1)
@@ -225,11 +221,11 @@ int Cluster_DBSCAN::Cluster() {
     return 0;
   }
   // Set up array to keep track of points that have been visited.
-  // Make it the size of FrameDistances so we can index into it. May
-  // waste memory during sieving but makes code easier.
-  std::vector<bool> Visited( FrameDistances().Nframes(), false );
+  // Make it the size of the original # frames so we can index into it by frame.
+  // This wastes some memory during sieving but makes code easier.
+  std::vector<bool> Visited( FrameDistances().OriginalNframes(), false );
   // Set up array to keep track of whether points are noise or in a cluster.
-  Status_.assign( FrameDistances().Nframes(), UNASSIGNED);
+  Status_.assign( FrameDistances().OriginalNframes(), UNASSIGNED);
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;
@@ -331,7 +327,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
             epsilon_);
   // Vars allocated here in case of OpenMP
   int frame, cidx;
-  int nframes = (int)FrameDistances().Nframes();
+  int nframes = (int)FrameDistances().OriginalNframes();
   double mindist, dist;
   cluster_it minNode, Cnode;
   bool goodFrame;
@@ -342,7 +338,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
 # ifdef _OPENMP
   int numthreads, mythread;
   // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
-  ClusterDist** cdist_thread;
+  ClusterDist** cdist_thread; // FIXME just have threads use Cdist->Copy
 # pragma omp parallel
   {
     if (omp_get_thread_num()==0)
@@ -360,7 +356,7 @@ void Cluster_DBSCAN::AddSievedFrames() {
 # endif
   for (frame = 0; frame < nframes; ++frame) {
     progress.Update( frame );
-    if (FrameDistances().IgnoringRow(frame)) {
+    if (FrameDistances().FrameWasSieved(frame)) {
       // Which clusters centroid is closest to this frame?
       mindist = DBL_MAX;
       minNode = clusters_.end();

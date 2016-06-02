@@ -239,8 +239,8 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
   // First determine which frames are being clustered.
   Points_.clear();
   int oidx = 0;
-  for (int frame = 0; frame < (int)FrameDistances().Nframes(); ++frame)
-    if (!FrameDistances().IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); ++frame)
+    if (!FrameDistances().FrameWasSieved( frame ))
       Points_.push_back( Cpoint(frame, oidx++) );
   // Sanity check.
   if (Points_.size() < 2) {
@@ -250,9 +250,9 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
 
   // Sort distances
   std::vector<float> Distances;
-  for (DataSet_Cmatrix::const_iterator mat = FrameDistances().begin();
-                                     mat != FrameDistances().end(); ++mat)
-    Distances.push_back( *mat );
+  Distances.reserve( FrameDistances().Nelements() );
+  for (unsigned int idx = 0; idx != FrameDistances().Nelements(); idx++)
+    Distances.push_back( FrameDistances().GetElement(idx) );
   std::sort( Distances.begin(), Distances.end() );
   unsigned int idx = (unsigned int)((double)Distances.size() * 0.02);
   double bandwidth = (double)Distances[idx];
@@ -318,8 +318,8 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
   mprintf("\tStarting DPeaks clustering, discrete density calculation.\n");
   Points_.clear();
   // First determine which frames are being clustered.
-  for (int frame = 0; frame < (int)FrameDistances().Nframes(); ++frame)
-    if (!FrameDistances().IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); ++frame)
+    if (!FrameDistances().FrameWasSieved( frame ))
       Points_.push_back( Cpoint(frame) );
   // Sanity check.
   if (Points_.size() < 2) {

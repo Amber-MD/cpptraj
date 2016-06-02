@@ -54,10 +54,7 @@ void Cluster_Kmeans::ClusterResults(CpptrajFile& outfile) const {
 // Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
   // First determine which frames are being clustered.
-  // FIXME: Can this just be the sieved array?
-  for (int frame = 0; frame < (int)FrameDistances().Nframes(); ++frame)
-    if (!FrameDistances().IgnoringRow( frame ))
-      FramesToCluster_.push_back( frame );
+  FramesToCluster_ = FrameDistances().FramesToCluster();
 
   // Determine seeds
   FindKmeansSeeds();
