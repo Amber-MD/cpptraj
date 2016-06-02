@@ -40,9 +40,15 @@ class DataSet_Cmatrix : public DataSet {
     ClusterSieve::SieveType SieveType() const { return sievedFrames_.Type();   }
     /// \return Original number of frames before sieving.
     int OriginalNframes()               const { return sievedFrames_.MaxFrames(); }
+    /// \return true if frame was sieved out.
+    bool FrameWasSieved(int f)          const { return (sievedFrames_.FrameToIdx(f) == -1); }
     // -------------------------------------------
+    /// Allocate matrix for given size and sieve
+    int SetupWithSieve(size_t, size_t, int);
+    /// Print matrix elements to STDOUT
     void PrintElements() const;
-  protected: // TODO make private
-    ClusterSieve sievedFrames_; ///< Hold info on frames actually being processed.
+  protected:
+    virtual int AllocateCmatrix(size_t) = 0;
+    ClusterSieve sievedFrames_; ///< Hold info on frames actually being processed. TODO make private
 };
 #endif

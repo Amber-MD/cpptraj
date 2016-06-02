@@ -29,18 +29,17 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     /// \return Actual number of rows in the matrix
     size_t Nrows() const { return Mat_.Nrows(); }
     // -------------------------------------------
-    /// Set up matrix with sieve value.
-    int SetupWithSieve(size_t, size_t, int);
     /// Allocate ignore array for given # of original rows and sieve.
     //int SetupIgnore(size_t, std::vector<char> const&, int);
     /// Set up matrix for given number of rows
-    int SetupMatrix(size_t);
+    //int SetupMatrix(size_t);
     // Iterators to internal matrix.
     typedef Matrix<float>::iterator const_iterator;
     const_iterator begin() const { return Mat_.begin(); }
     const_iterator end()   const { return Mat_.end();   }
+  protected:
+    int AllocateCmatrix(size_t);
   private:
-    std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc
     Matrix<float> Mat_;
 };
 // Inline functions
