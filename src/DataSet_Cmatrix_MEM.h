@@ -31,8 +31,6 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     // -------------------------------------------
     /// Allocate ignore array for given # of original rows and sieve.
     //int SetupIgnore(size_t, std::vector<char> const&, int);
-    /// Set up matrix for given number of rows
-    //int SetupMatrix(size_t);
     // Iterators to internal matrix.
     typedef Matrix<float>::iterator const_iterator;
     const_iterator begin() const { return Mat_.begin(); }

@@ -38,3 +38,11 @@ void ClusterMatrix::PrintElements() const {
     }
   }
 }
+
+// ClusterMatrix::SetupMatrix()
+int ClusterMatrix::SetupMatrix(size_t sizeIn) {
+  if (Mat_.resize( 0L, sizeIn )) return 1;
+  ignore_.assign( sizeIn, false );
+  //sieve_ = 1;
+  return 0;
+}

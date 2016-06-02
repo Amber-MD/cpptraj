@@ -20,6 +20,8 @@ class ClusterMatrix {
     void PrintElements() const;
     /// Add given element to matrix.
     int AddElement(double d)        { return Mat_.addElement((float)d); }
+    /// Set up matrix for given number of rows
+    int SetupMatrix(size_t);
   private:
     Matrix<float> Mat_;        ///< Upper-triangle matrix holding cluster distances.
     std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc.

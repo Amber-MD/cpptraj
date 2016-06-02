@@ -73,15 +73,7 @@ int DataSet_Cmatrix::SetupIgnore(size_t originalNrows, std::vector<char> const& 
   return 0;
 }
 */
-/*
-// DataSet_Cmatrix_MEM::SetupMatrix()
-int DataSet_Cmatrix_MEM::SetupMatrix(size_t sizeIn) {
-  if (Mat_.resize( 0L, sizeIn )) return 1;
-  ignore_.assign( sizeIn, false );
-  //sieve_ = 1;
-  return 0;
-}
-*/
+
 // DataSet_Cmatrix_MEM::DataSize()
 size_t DataSet_Cmatrix_MEM::DataSize() const {
   return ( Mat_.DataSize() +
