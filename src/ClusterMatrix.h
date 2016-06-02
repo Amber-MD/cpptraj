@@ -18,6 +18,8 @@ class ClusterMatrix {
     inline double GetCdist(int c, int r) const { return Mat_.element(c,r); }
     /// Print all matrix elements to STDOUT
     void PrintElements() const;
+    /// Add given element to matrix.
+    int AddElement(double d)        { return Mat_.addElement((float)d); }
   private:
     Matrix<float> Mat_;        ///< Upper-triangle matrix holding cluster distances.
     std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc.

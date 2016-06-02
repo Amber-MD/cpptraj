@@ -30,7 +30,7 @@ class DataSet {
     };
     /// Group DataSet belongs to.
     enum DataGroup {
-      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES
+      GENERIC=0, SCALAR_1D, MATRIX_2D, GRID_3D, COORDINATES, CLUSTERMATRIX
     };
 
     DataSet();

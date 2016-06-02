@@ -135,6 +135,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
         ClusterMap.cpp \
+        ClusterMatrix.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
         Cluster_DBSCAN.cpp \
@@ -172,6 +173,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
         DataSet_Cmatrix.cpp \
+        DataSet_Cmatrix_MEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
