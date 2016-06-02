@@ -2,12 +2,13 @@
 #include "Random.h"
 
 // CONSTRUCTOR
-ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1) {}
+ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1), actualNframes_(0) {}
 
 void ClusterSieve::Clear() {
   frameToIdx_.clear();
   type_ = NONE;
   sieve_ = 1;
+  actualNframes_ = 0;
 }
 
 inline void ClusterSieve::DetermineTypeFromSieve( int sieveIn ) {
@@ -32,6 +33,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     frameToIdx_.reserve( maxFrames );
     for (unsigned int i = 0; i < maxFrames; i++)
       frameToIdx_.push_back( i );
+    actualNframes_ = (int)maxFrames;
   }
   else if (type_ == REGULAR)
   { // Regular sieveing; index = frame / sieve
@@ -39,6 +41,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     int idx = 0;
     for (unsigned int i = 0; i < maxFrames; i += sieve_)
       frameToIdx_[i] = idx++;
+    actualNframes_ = idx;
   }
   else if (type_ == RANDOM)
   { // Random sieving; maxframes / sieve random indices
@@ -64,12 +67,14 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     for (unsigned int i = 0; i < maxFrames; i++)
       if (frameToIdx_[i] == 1)
         frameToIdx_[i] = idx++;
+    actualNframes_ = idx;
   }
   return 0;
 }
 
 // ClusterSieve::SetSieve()
 /** Used for loading previously saved ClusterMatrix */
+// FIXME is this necessary?
 int ClusterSieve::SetSieve(int sieveIn, std::vector<bool> const& ignoreIn) {
   DetermineTypeFromSieve( sieveIn );
   if (ignoreIn.empty()) return 1;
@@ -81,6 +86,7 @@ int ClusterSieve::SetSieve(int sieveIn, std::vector<bool> const& ignoreIn) {
     if ( !ignoreIn[frame] )
       frameToIdx_[frame] = idx++;
   }
+  actualNframes_ = (int)idx;
   return 0;
 }
 

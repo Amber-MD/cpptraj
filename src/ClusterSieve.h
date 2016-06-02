@@ -21,6 +21,8 @@ class ClusterSieve {
     inline int FrameToIdx(int frame) const { return frameToIdx_[frame]; }
     /// \return Original max number of frames.
     inline size_t MaxFrames()        const { return frameToIdx_.size(); }
+    /// \return Actual number of frames after sieving.
+    inline int ActualNframes()       const { return actualNframes_;     }
     /// \return Sieve value.
     inline int Sieve()               const { return sieve_;             }
     /// \return Sieve type.
@@ -29,6 +31,7 @@ class ClusterSieve {
     inline void DetermineTypeFromSieve(int);
     SieveType type_;              ///< Sieve type.
     int sieve_;                   ///< Sieve value; > 1 is regular, < -1 is random.
+    int actualNframes_;           ///< Actual number of frames after sieving.
     std::vector<int> frameToIdx_; ///< Frame number to matrix index; -1 if frame was sieved out.
 };
 #endif
