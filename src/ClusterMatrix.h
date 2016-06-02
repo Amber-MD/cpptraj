@@ -10,8 +10,8 @@ class ClusterMatrix {
     void Ignore(int row)            { ignore_[row] = true;   }
     /// \return true if given row/col has been ignored.
     bool IgnoringRow(int row) const { return ignore_[row];   }
-    /// \return Original number of rows
-    size_t Nframes()          const { return ignore_.size(); }
+    /// \return Original number of rows in matrix
+    size_t Nrows()            const { return Mat_.Nrows();   }
     /// Set the row and column of the smallest element not being ignored.
     double FindMin(int&, int&) const;
     /// \return an element.
