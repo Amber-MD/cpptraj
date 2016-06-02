@@ -1,5 +1,6 @@
 #include <cfloat> // FLT_MAX
 #include "ClusterMatrix.h"
+#include "CpptrajStdio.h" // PrintElements
 
 // ClusterMatrix::FindMin()
 /** Find the minimum; set corresponding row and column. Cannot currently
@@ -21,4 +22,19 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
     }
   }
   return (double)min;
+}
+
+void ClusterMatrix::PrintElements() const {
+  unsigned int iVal = 0;
+  unsigned int jVal = 1;
+  for (size_t idx = 0UL; idx < Mat_.size(); ++idx) {
+    if (!ignore_[iVal] && !ignore_[jVal])
+      mprintf("\t%u %u %f\n",iVal,jVal,Mat_[idx]);
+    // Increment indices
+    jVal++;
+    if (jVal >= ignore_.size()) {
+      iVal++;
+      jVal = iVal + 1;
+    }
+  }
 }
