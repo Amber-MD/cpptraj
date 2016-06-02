@@ -28,6 +28,8 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     size_t DataSize() const;
     /// \return Actual number of rows in the matrix
     size_t Nrows() const { return Mat_.Nrows(); }
+    /// \return Element at given index.
+    double GetElement(unsigned int idx) const { return Mat_[idx]; }
     // -------------------------------------------
     /// Allocate ignore array for given # of original rows and sieve.
     //int SetupIgnore(size_t, std::vector<char> const&, int);

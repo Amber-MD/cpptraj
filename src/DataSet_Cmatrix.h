@@ -21,7 +21,7 @@ class DataSet_Cmatrix : public DataSet {
     void Add(size_t, const void*) {}
     int Append(DataSet*) { return 1; }
     // ----- Cmatrix functions -------------------
-    /// \return an element indexed by sievedFrames.
+    /// \return Distance between given frames (indexed by sievedFrames).
     virtual double GetFdist(int, int) const = 0;
     /// Set element at row/column to given value
     virtual void SetElement(int, int, double) = 0;
@@ -31,6 +31,8 @@ class DataSet_Cmatrix : public DataSet {
     virtual size_t DataSize() const = 0;
     /// \return Actual number of rows in the matrix.
     virtual size_t Nrows() const = 0;
+    /// \return Element at given index.
+    virtual double GetElement(unsigned int) const = 0;
     // ----- Sieved frames functions -------------
     /// \return An array containing sieved frame numbers.
     ClusterSieve::SievedFrames Sieved() const { return sievedFrames_.Frames(); }

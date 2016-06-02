@@ -2,7 +2,8 @@
 #define INC_CLUSTERLIST_H
 #include <list>
 #include "ArgList.h"
-#include "ClusterNode.h" 
+#include "ClusterNode.h"
+#include "ClusterMatrix.h"
 // Class: ClusterList
 /** This base class holds all the individual clusters, as well as routines 
   * that can be used to obtain information on clusters after clustering.
@@ -54,13 +55,12 @@ class ClusterList {
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
     /// Distances between each cluster.
-    DataSet_Cmatrix ClusterDistances_;
+    ClusterMatrix ClusterDistances_;
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
     /// Add specified frames to a new cluster.
     int AddCluster(ClusterDist::Cframes const&);
   private:
-    static DataSet_Cmatrix EMPTY_MATRIX_;
     static const char* XMGRACE_COLOR[];
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
