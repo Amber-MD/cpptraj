@@ -205,6 +205,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       norm_pop_ = NONE;
   }
   sil_file_ = analyzeArgs.GetStringKey("sil");
+  // ---------------------------------------------
   // Options for loading/saving pairwise distance file
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
   DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
@@ -249,6 +250,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     }
     pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
   }
+  // ---------------------------------------------
   // Output trajectory stuff
   clusterfile_ = analyzeArgs.GetStringKey("clusterout");
   clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
