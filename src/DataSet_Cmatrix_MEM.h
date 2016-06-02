@@ -33,7 +33,7 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
   private:
     Matrix<float> Mat_;
 };
-// Inline functions
+// ----- Inline functions ------------------------------------------------------
 double DataSet_Cmatrix_MEM::GetFdist(int col, int row) const {
   // row and col are based on original; convert to reduced
   // FIXME: This assumes GetFdist will never be called for a sieved frame.
