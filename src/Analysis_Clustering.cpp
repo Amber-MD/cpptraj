@@ -207,6 +207,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   sil_file_ = analyzeArgs.GetStringKey("sil");
   // ---------------------------------------------
   // Options for loading/saving pairwise distance file
+  DataSet::DataType pw_type = DataSet::CMATRIX;
+  if (analyzeArgs.hasKey("nopairwisemem"))
+    pw_type = DataSet::CMATRIX_NOMEM;
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
   DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");
@@ -278,7 +281,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       md = MetaData( cnumvtime_->Meta().Name(), "PWD" );
     else
       md = MetaData( pairdistname );
-    pw_dist_ = setup.DSL().AddSet(DataSet::CMATRIX, md);
+    pw_dist_ = setup.DSL().AddSet(pw_type, md);
     if (pw_dist_ == 0) return Analysis::ERR;
   }
 
@@ -342,6 +345,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (calc_lifetimes_)
     mprintf("\tCluster lifetime data sets will be calculated.\n");
   mprintf("\tPairwise distance data set is '%s'\n", pw_dist_->legend());
+  if (pw_dist_->Type() == DataSet::CMATRIX_NOMEM)
+    mprintf("\tPairwise distances will not be cached (will slow clustering calcs)\n");
   if (pwd_file_ != 0)
     mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file_->DataFilename().full());
   if (!clusterinfo_.empty())
@@ -450,7 +455,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     mprinterr("Internal Error: Empty cluster matrix.\n");
     return Analysis::ERR;
   }
-  if (pw_dist_->Type() != DataSet::CMATRIX) {
+  if (pw_dist_->Group() != DataSet::CLUSTERMATRIX) {
     mprinterr("Internal Error: Wrong cluster matrix type.\n");
     return Analysis::ERR;
   }

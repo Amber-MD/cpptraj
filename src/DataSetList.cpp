@@ -20,6 +20,7 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 #include "DataSet_Cmatrix_MEM.h"
+#include "DataSet_Cmatrix_NOMEM.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -41,6 +42,7 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
   { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
+  { "cluster matrix",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
   { 0, 0 }
 };
 

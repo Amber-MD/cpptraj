@@ -174,6 +174,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_3D.cpp \
         DataSet_Cmatrix.cpp \
         DataSet_Cmatrix_MEM.cpp \
+        DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \

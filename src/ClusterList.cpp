@@ -8,6 +8,7 @@
 #include "Constants.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
+#include "DataSet_Cmatrix_NOMEM.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -368,7 +369,7 @@ int ClusterList::SetupCdist( ClusterDist::DsArray const& dataSets,
                              std::string const& maskexpr )
 {
   if (dataSets.empty()) { // SANITY CHECK
-    mprinterr("Internal Error: CalcFrameDistances: No DataSets given.\n");
+    mprinterr("Internal Error: SetupCdist: No DataSets given.\n");
     return 1;
   }
   // Base everything off of the first DataSet
@@ -424,10 +425,18 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     return 1;
   }
   frameDistances_ = (DataSet_Cmatrix*)pwDistMatrixIn;
-  if (FrameDistances().Size() < 1) {
-    // Calculate pairwise distances from input DataSet(s). The ignore array will
-    // be set up to ignore sieved frames. Base total # frames on first DataSet
-    // size.
+  if (FrameDistances().Type() == DataSet::CMATRIX_NOMEM) {
+    // Pairwise distances will be calculated on the fly. Call special setup
+    // routine that uses ClusterDist.
+    mprintf("\tNot caching pair-wise distances. Using no memory but clustering will be slower.\n");
+    DataSet_Cmatrix_NOMEM& cm_nomem = static_cast<DataSet_Cmatrix_NOMEM&>( *frameDistances_ );
+    if (cm_nomem.SetupSieveAndCdist( dataSets[0]->Size(), sieve, sieveSeed, Cdist_ )) {
+      mprinterr("Error: Could not setup no-memory pairwise distance calc.\n");
+      return 1;
+    }
+  } else if (FrameDistances().Size() < 1) {
+    // Calculate pairwise distances from input DataSet(s). Base total number
+    // of frames on first DataSet size.
     mprintf("\tCalculating pair-wise distances.\n");
     // Set up ClusterMatrix with sieve.
     if (frameDistances_->SetupWithSieve( dataSets[0]->Size(), sieve, sieveSeed )) {
