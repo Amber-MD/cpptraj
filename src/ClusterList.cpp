@@ -520,25 +520,20 @@ void ClusterList::AddSievedFramesByCentroid() {
   double mindist, dist;
   cluster_it minNode, Cnode;
   ParallelProgress progress( nframes );
+  // For OMP, every other thread will need its own Cdist.
+  ClusterDist* MyCdist = Cdist_;
 # ifdef _OPENMP
-  int numthreads, mythread;
-  // Need to create a ClusterDist for every thread to ensure memory allocation and avoid clashes
-  ClusterDist** cdist_thread;
-  // Also need a temp. array to hold which frame goes to which cluster to avoid clashes
+  // For OMP need a temp. array to hold which frame goes to which cluster to avoid clashes
   std::vector<cluster_it> frameToCluster( nframes, clusters_.end() );
-# pragma omp parallel
+# pragma omp parallel private(MyCdist, frame, dist, mindist, minNode, Cnode) firstprivate(progress)
   {
-    if (omp_get_thread_num()==0)
-      numthreads = omp_get_num_threads();
-  }
-  mprintf("\tParallelizing calculation with %i threads\n", numthreads);
-  cdist_thread = new ClusterDist*[ numthreads ];
-  for (int i=0; i < numthreads; i++)
-    cdist_thread[i] = Cdist_->Copy();
-# pragma omp parallel private(mythread, frame, dist, mindist, minNode, Cnode) firstprivate(progress)
-{
-  mythread = omp_get_thread_num();
+  int mythread = omp_get_thread_num();
   progress.SetThread( mythread );
+  if (mythread == 0) {
+    mprintf("\tParallelizing sieve restore calc with %i threads\n", omp_get_num_threads());
+    MyCdist = Cdist_;
+  } else
+    MyCdist = Cdist_->Copy();
 # pragma omp for schedule(dynamic)
 # endif
   for (frame = 0; frame < nframes; ++frame) {
@@ -548,11 +543,7 @@ void ClusterList::AddSievedFramesByCentroid() {
       mindist = DBL_MAX;
       minNode = clusters_.end();
       for (Cnode = clusters_.begin(); Cnode != clusters_.end(); ++Cnode) {
-#       ifdef _OPENMP
-        dist = cdist_thread[mythread]->FrameCentroidDist(frame, (*Cnode).Cent());
-#       else
-        dist = Cdist_->FrameCentroidDist(frame, (*Cnode).Cent());
-#       endif
+        dist = MyCdist->FrameCentroidDist(frame, Cnode->Cent());
         if (dist < mindist) {
           mindist = dist;
           minNode = Cnode;
@@ -562,16 +553,14 @@ void ClusterList::AddSievedFramesByCentroid() {
 #     ifdef _OPENMP
       frameToCluster[frame] = minNode;
 #     else
-      (*minNode).AddFrameToCluster( frame );
+      minNode->AddFrameToCluster( frame );
 #     endif
     }
   } // END loop over frames
 # ifdef _OPENMP
-} // END pragma omp parallel
-  // Free cdist_thread memory
-  for (int i = 0; i < numthreads; i++)
-    delete cdist_thread[i];
-  delete[] cdist_thread;
+  if (mythread > 0)
+    delete MyCdist;
+  } // END pragma omp parallel
   // Now actually add sieved frames to their appropriate clusters
   for (frame = 0; frame < nframes; frame++)
     if (frameToCluster[frame] != clusters_.end())
