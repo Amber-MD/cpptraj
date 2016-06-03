@@ -293,6 +293,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       md = MetaData( cnumvtime_->Meta().Name(), "PWD" );
     else
       md = MetaData( pairdistname );
+    if (pw_type == DataSet::CMATRIX_DISK)
+      md.SetFileName("CpptrajPairwiseCache");
     pw_dist_ = setup.DSL().AddSet(pw_type, md);
     if (pw_dist_ == 0) return Analysis::ERR;
   }

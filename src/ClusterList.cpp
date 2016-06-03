@@ -9,7 +9,6 @@
 #include "ProgressBar.h"
 #include "StringRoutines.h"
 #include "DataSet_Cmatrix_NOMEM.h"
-#include "DataSet_Cmatrix_DISK.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -439,11 +438,6 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     } else {
       // Calculate pairwise distances from input DataSet(s). Base total number
       // of frames on first DataSet size.
-      if (FrameDistances().Type() == DataSet::CMATRIX_DISK) {
-        // Need to set temporary file name.
-        DataSet_Cmatrix_DISK& cm_disk = static_cast<DataSet_Cmatrix_DISK&>( *frameDistances_ );
-        cm_disk.SetFname("CpptrajPairwiseCache"); // TODO should remove as well, but where?
-      }
       mprintf("\tCalculating pair-wise distances.\n");
       // Set up ClusterMatrix with sieve.
       if (frameDistances_->SetupWithSieve( dataSets[0]->Size(), sieve, sieveSeed )) {

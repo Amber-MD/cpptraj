@@ -27,12 +27,9 @@ class DataSet_Cmatrix_DISK : public DataSet_Cmatrix {
     double GetElement(unsigned int idx)  const { return file_.GetCmatrixElement(idx);  }
     /// \return true if matrix needs setup
     bool NeedsSetup()                    const { return (file_.MatrixSize() < 1);      }
-    // -------------------------------------------
-    void SetFname(std::string const& f)        { fname_ = f;                           }
   protected:
     int AllocateCmatrix(size_t);
   private:
-    FileName fname_;
     NC_Cmatrix file_;
 };
 // ----- Inline functions ------------------------------------------------------
