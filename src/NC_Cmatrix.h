@@ -8,8 +8,8 @@ class NC_Cmatrix {
     ~NC_Cmatrix();
     /// \return true if file is NetCDF cluster matrix file.
     static bool ID_Cmatrix(FileName const&);
-    /// Open cluster matrix file for reading.
-    int OpenCmatrixRead(FileName const&);
+    /// Open cluster matrix file for reading. Set sieve ID.
+    int OpenCmatrixRead(FileName const&, int&);
     /// Get cluster matrix element (col, row)
     double GetCmatrixElement(unsigned int, unsigned int) const;
     /// Get cluster matrix element (raw index)
@@ -28,6 +28,7 @@ class NC_Cmatrix {
     unsigned int MatrixRows() const { return nRows_; }
   private:
 #   ifdef BINTRAJ
+    static inline bool IsCpptrajCmatrix(int);
     long int CalcIndex(unsigned int, unsigned int) const;
 
     int ncid_;                  ///< NetCDF file ID.

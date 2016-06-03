@@ -39,7 +39,7 @@ std::string NC::GetAttrText(int ncid, const char* attribute) {
   return GetAttrText(ncid, NC_GLOBAL, attribute);
 }
 
-int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
+int NC::GetDimInfo(int ncid, const char* attribute, unsigned int& length) {
   int dimID;
   size_t slength = 0;
 
@@ -54,7 +54,7 @@ int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
     mprinterr("Error: Getting length for attribute %s\n",attribute);
     return -1;
   }
-  length = (int)slength;
+  length = (unsigned int)slength;
   return dimID;
 }
 

@@ -10,7 +10,7 @@ namespace NC {
   /// \return Text for given global attribute.
   std::string GetAttrText(int, const char*);
   /// \return dimension ID of given attribute and set dimension length.
-  int GetDimInfo(int, const char*, int&);
+  int GetDimInfo(int, const char*, unsigned int&);
   /// Print debug info to STDOUT
   void Debug(int);
 }

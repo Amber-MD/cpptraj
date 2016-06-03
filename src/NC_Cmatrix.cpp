@@ -21,15 +21,21 @@ NC_Cmatrix::~NC_Cmatrix() {
   CloseCmatrix();
 }
 
+#ifdef BINTRAJ
+bool NC_Cmatrix::IsCpptrajCmatrix(int NCID) {
+  return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
+}
+#endif
+
 // NC_Cmatrix::ID_Cmatrix()
 bool NC_Cmatrix::ID_Cmatrix(FileName const& fname) {
 # ifdef BINTRAJ
   int NCID;
   if ( nc_open( fname.full(), NC_NOWRITE, &NCID ) != NC_NOERR )
     return false;
-  std::string attrText = NC::GetAttrText(NCID, "Conventions");
+  bool isCmatrix = IsCpptrajCmatrix(NCID);
   nc_close( NCID );
-  return (attrText == "CPPTRAJ_CMATRIX");
+  return isCmatrix;
 # else
   mprinterr("Error: Compiled without NetCDF support. Recompile with -DBINTRAJ.\n");
   return false;
@@ -46,11 +52,61 @@ bool NC_Cmatrix::ID_Cmatrix(FileName const& fname) {
 #define NC_CMATRIX_FRAMES "actual_frames"
 
 // NC_Cmatrix::OpenCmatrixRead()
-int NC_Cmatrix::OpenCmatrixRead(FileName const& fname) {
+int NC_Cmatrix::OpenCmatrixRead(FileName const& fname, int& sieve) {
   if (ncid_ != -1) CloseCmatrix();
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_open( fname.full(), NC_NOWRITE, &ncid_ ) ))
     return 1;
+  if (!IsCpptrajCmatrix(ncid_)) {
+    mprinterr("Error: File '%s' is not cpptraj cluster matrix.\n", fname.full());
+    return 1;
+  }
+
+  // Attributes
+  std::string version = NC::GetAttrText(ncid_, "Version");
+  if (version != "1.0")
+    mprintf("Warning: NetCDF cluster matrix file is version '%s'; expected '1.0'\n",
+            version.c_str());
+
+  // Dimensions
+  unsigned int nFrames;
+  n_original_frames_DID_ = NC::GetDimInfo(ncid_, NC_CMATRIX_NFRAMES, nFrames);
+  if (n_original_frames_DID_ == -1) {
+    mprinterr("Error: Could not get frames dimension.\n");
+    return 1;
+  }
+  n_rows_DID_ = NC::GetDimInfo(ncid_, NC_CMATRIX_NROWS, nRows_);
+  if (n_rows_DID_ == -1) {
+    mprinterr("Error: Could not get rows dimension.\n");
+    return 1;
+  }
+  msize_DID_ = NC::GetDimInfo(ncid_, NC_CMATRIX_MSIZE, mSize_);
+  if (msize_DID_ == -1) {
+    mprinterr("Error: Could not get matrix size dimension.\n");
+    return 1;
+  }
+  // Variables
+  // Sieve
+  int sieveVID;
+  if (NC::CheckErr(nc_inq_varid(ncid_, NC_CMATRIX_SIEVE, &sieveVID))) {
+    mprinterr("Error: Could not get sieve variable id.\n");
+    return 1;
+  }
+  if (NC::CheckErr(nc_get_var_int(ncid_, sieveVID, &sieve))) return 1;
+  // Matrix
+  if (NC::CheckErr(nc_inq_varid(ncid_, NC_CMATRIX_MATRIX, &cmatrix_VID_))) {
+    mprinterr("Error: Could not get matrix variable id.\n");
+    return 1;
+  }
+  // Frames; only allowed to be -1 if sieve is 1
+  if (nc_inq_varid(ncid_, NC_CMATRIX_FRAMES, &actualFrames_VID_) != NC_NOERR) {
+    if (sieve != 1) {
+      mprinterr("Error: Cluster matrix has sieve but no frames variable id.\n");
+      return 1;
+    }
+    actualFrames_VID_ = -1;
+  }
+
   return 0;
 }
 
