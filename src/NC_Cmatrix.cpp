@@ -79,6 +79,7 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) const {
   size_t index[1];
   long int idx = CalcIndex(xIn, yIn);
   if (idx < 0L) return 0.0;
+  index[0] = (size_t)idx;
   if (NC::CheckErr( nc_get_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
     return 0.0;
   return (double)fval;
@@ -95,10 +96,10 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
 
 // NC_Cmatrix::OpenCmatrixWrite()
 int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
-                                 int sieve)
+                                 int sieve, bool isCache)
 {
-  mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
-          fname.full(), nFrames, nRowsIn, sieve);
+  //mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
+  //        fname.full(), nFrames, nRowsIn, sieve);
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid_ ) ))
     return 1;
@@ -163,6 +164,12 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
   // Write sieve value
   if (NC::CheckErr(nc_put_var_int(ncid_, sieveVID, &sieve))) return 1;
 
+  // If caching, close and re-open shared
+  if (isCache) {
+    nc_close( ncid_ );
+    if (NC::CheckErr(nc_open(fname.full(), NC_WRITE|NC_SHARE, &ncid_))) return 1;
+  }
+
   return 0;
 }
 
@@ -191,7 +198,9 @@ int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double d
   float fval = (float)dval;
   size_t index[1];
   long int idx = CalcIndex(xIn, yIn);
+  //mprintf("DEBUG: Index calc x=%u y=%u i=%li\n", xIn, yIn, idx);
   if (idx < 0L) return 1;
+  index[0] = (size_t)idx;
   if (NC::CheckErr( nc_put_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
     return 1;
   return 0;

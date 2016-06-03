@@ -14,8 +14,8 @@ class NC_Cmatrix {
     double GetCmatrixElement(unsigned int, unsigned int) const;
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int) const;
-    /// Create cluster matrix file; # frames, # rows, sieve
-    int OpenCmatrixWrite(FileName const&, unsigned int, unsigned int, int);
+    /// Create cluster matrix file; # frames, # rows, sieve, cache status
+    int OpenCmatrixWrite(FileName const&, unsigned int, unsigned int, int, bool);
     /// Write non-sieved frames array.
     int WriteFramesArray(std::vector<int> const&);
     /// Write cluster matrix element (col, row)
