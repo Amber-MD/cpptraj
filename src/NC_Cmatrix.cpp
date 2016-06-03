@@ -14,7 +14,8 @@ NC_Cmatrix::NC_Cmatrix() :
   cmatrix_VID_(-1),
   actualFrames_VID_(-1),
   nRows_(0),
-  mSize_(0)
+  mSize_(0),
+  mode_(READ)
 {}
 
 NC_Cmatrix::~NC_Cmatrix() {
@@ -61,6 +62,7 @@ int NC_Cmatrix::OpenCmatrixRead(FileName const& fname, int& sieve) {
     mprinterr("Error: File '%s' is not cpptraj cluster matrix.\n", fname.full());
     return 1;
   }
+  mode_ = READ;
 
   // Attributes
   std::string version = NC::GetAttrText(ncid_, "Version");
@@ -150,9 +152,9 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
   return (double)fval;
 }
 
-// NC_Cmatrix::OpenCmatrixWrite()
-int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
-                                 int sieve, bool isCache)
+// NC_Cmatrix::CreateCmatrix()
+int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
+                              int sieve)
 {
   //mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
   //        fname.full(), nFrames, nRowsIn, sieve);
@@ -165,6 +167,7 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
     mprinterr("Internal Error: Trying to create empty cluster matrix file.\n");
     return 1;
   }
+  mode_ = WRITE;
   // Define dimensions
   if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NFRAMES, nFrames, &n_original_frames_DID_ ) ))
     return 1;
@@ -209,10 +212,10 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
     return 1;
 
   // Set fill mode
-  //if (NC::CheckErr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
-  //  mprinterr("Error: NetCDF setting fill value.\n");
-  //  return 1;
-  //}
+  if (NC::CheckErr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
+    mprinterr("Error: NetCDF setting fill value.\n");
+    return 1;
+  }
 
   // End netcdf definitions
   if (NC::CheckErr(nc_enddef(ncid_))) return 1;
@@ -220,12 +223,17 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
   // Write sieve value
   if (NC::CheckErr(nc_put_var_int(ncid_, sieveVID, &sieve))) return 1;
 
-  // If caching, close and re-open shared
-  if (isCache) {
-    nc_close( ncid_ );
-    if (NC::CheckErr(nc_open(fname.full(), NC_WRITE|NC_SHARE, &ncid_))) return 1;
-  }
+  return 0;
+}
 
+// NC_Cmatrix::OpenCmatrixWrite()
+int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname) {
+  if (cmatrix_VID_ == -1) {
+    mprinterr("Internal Error: OpenCmatrixWrite called before CreateCmatrix.\n");
+    return 1;
+  }
+  if (ncid_ != -1) CloseCmatrix();
+  if (NC::CheckErr(nc_open(fname.full(), NC_WRITE, &ncid_))) return 1;
   return 0;
 }
 

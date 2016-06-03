@@ -4,6 +4,7 @@
 /// NetCDF cluster matrix file.
 class NC_Cmatrix {
   public:
+    enum ModeType { READ=0, WRITE };
     NC_Cmatrix();
     ~NC_Cmatrix();
     /// \return true if file is NetCDF cluster matrix file.
@@ -14,8 +15,10 @@ class NC_Cmatrix {
     double GetCmatrixElement(unsigned int, unsigned int) const;
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int) const;
-    /// Create cluster matrix file; # frames, # rows, sieve, cache status
-    int OpenCmatrixWrite(FileName const&, unsigned int, unsigned int, int, bool);
+    /// Create cluster matrix file; # frames, # rows, sieve
+    int CreateCmatrix(FileName const&, unsigned int, unsigned int, int);
+    /// Open previously created cluster matrix file for writing.
+    int OpenCmatrixWrite(FileName const&);
     /// Write non-sieved frames array.
     int WriteFramesArray(std::vector<int> const&);
     /// Write cluster matrix element (col, row)
@@ -26,6 +29,8 @@ class NC_Cmatrix {
     unsigned int MatrixSize() const { return mSize_; }
     /// \return Matrix rows.
     unsigned int MatrixRows() const { return nRows_; }
+    /// \return Current access mode
+    ModeType Mode()           const { return mode_;  }
   private:
 #   ifdef BINTRAJ
     static inline bool IsCpptrajCmatrix(int);
@@ -39,6 +44,7 @@ class NC_Cmatrix {
     int actualFrames_VID_;      ///< Non-sieved frames array ( N ).
     unsigned int nRows_;        ///< Number of rows (actual frames, N) in matrix dimension.
     unsigned int mSize_;        ///< Actual matrix size.
+    ModeType mode_;             ///< Access mode.
 #   endif
 };
 #endif
