@@ -78,18 +78,24 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) {
   return (double)fval;
 }
 
-int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, int nFrames, int nRows, int sieve)
+int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
+                                 int sieve)
 {
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid_ ) ))
     return 1;
 
+  nRows_ = nRowsIn;
+  if (nRows_ < 1) {
+    mprinterr("Internal Error: Trying to create empty cluster matrix file.\n");
+    return 1;
+  }
   // Define dimensions
   if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NFRAMES, nFrames, &n_original_frames_DID_ ) ))
     return 1;
-  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NROWS, nRows, &n_rows_DID_ ) ))
+  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NROWS, nRows_, &n_rows_DID_ ) ))
     return 1;
-  int mSize = (nRows * (nRows-1)) / 2;
+  int mSize = (nRows_ * (nRows_-1)) / 2;
   if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_MSIZE, mSize, &msize_DID_ ) ))
     return 1;
 
@@ -130,6 +136,25 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, int nFrames, int nRows, 
   // Write sieve value
   if (NC::CheckErr(nc_put_var_int(ncid_, sieveVID, &sieve))) return 1;
 
+  return 0;
+}
+
+// NC_Cmatrix::WriteFramesArray()
+int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
+  if (ncid_ == -1) return 1; // Sanity check
+  if (actualFrames_VID_ == -1) {
+    mprinterr("Error: No cluster frames variable ID defined.\n");
+    return 1;
+  }
+  if (actualFrames.size() != nRows_) {
+    mprinterr("Error: Frames array is %zu elements but expected %u\n",
+              actualFrames.size(), nRows_);
+    return 1;
+  }
+  size_t start[1] = { 0      };
+  size_t count[1] = { nRows_ };
+  if (NC::CheckErr(nc_put_vara_int( ncid_, actualFrames_VID_, start, count, &actualFrames[0] )))
+    return 1;
   return 0;
 }
 

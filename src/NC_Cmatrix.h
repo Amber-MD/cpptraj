@@ -12,7 +12,7 @@ class NC_Cmatrix {
     /// Get cluster matrix element (col, row)
     double GetCmatrixElement(unsigned int, unsigned int);
     /// Create cluster matrix file; # frames, # rows, sieve
-    int OpenCmatrixWrite(FileName const&, int, int, int);
+    int OpenCmatrixWrite(FileName const&, unsigned int, unsigned int, int);
     /// Write non-sieved frames array.
     int WriteFramesArray(std::vector<int> const&);
     /// Write cluster matrix element (col, row)
