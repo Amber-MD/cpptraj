@@ -7,6 +7,7 @@ int DataSet_Cmatrix_DISK::AllocateCmatrix(size_t sizeIn) {
     mprinterr("Internal Error: Cluster matrix file name not set.\n");
     return 1;
   }
+  mprintf("\tPairwise cache file: '%s'\n", Meta().Fname().full());
   mprintf("\tEstimated pair-wise matrix disk usage: > %s\n",
           ByteString( ((sizeIn*(sizeIn-1))/2)*sizeof(float), BYTE_DECIMAL).c_str());
   if (file_.OpenCmatrixWrite(Meta().Fname(), sievedFrames_.MaxFrames(), sizeIn,
