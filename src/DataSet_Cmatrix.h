@@ -39,7 +39,7 @@ class DataSet_Cmatrix : public DataSet {
     virtual void Complete() = 0;
     // ----- Sieved frames functions -------------
     /// \return An array containing frame numbers that have not been sieved out.
-    ClusterSieve::SievedFrames FramesToCluster() const { return sievedFrames_.Frames(); }
+    ClusterSieve::SievedFrames const& FramesToCluster() const { return sievedFrames_.Frames(); }
     /// \return Sieve value
     int SieveValue()                    const { return sievedFrames_.Sieve();  }
     /// \return Sieve type

@@ -35,7 +35,6 @@ class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
     int AllocateCmatrix(size_t) { return 0; }
   private:
     ClusterDist* cdist_;
-    ClusterSieve::SievedFrames idxToFrame_; // Needed for GetElement
 };
 // ----- Inline functions ------------------------------------------------------
 
@@ -45,7 +44,7 @@ size_t DataSet_Cmatrix_NOMEM::Nelements() const {
 
 double DataSet_Cmatrix_NOMEM::GetElement(unsigned int idxIn) const {
   int iidx = (int)idxIn;
-  return cdist_->FrameDist( idxToFrame_[ iidx / sievedFrames_.ActualNframes() ],
-                            idxToFrame_[ iidx % sievedFrames_.ActualNframes() ] );
+  return cdist_->FrameDist( sievedFrames_.IdxToFrame( iidx / sievedFrames_.ActualNframes() ),
+                            sievedFrames_.IdxToFrame( iidx % sievedFrames_.ActualNframes() ) );
 }
 #endif

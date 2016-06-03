@@ -69,6 +69,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
         frameToIdx_[i] = idx++;
     actualNframes_ = idx;
   }
+  MakeIdxToFrame();
   return 0;
 }
 
@@ -85,21 +86,23 @@ int ClusterSieve::SetSieve(int sieveIn, std::vector<char> const& sieveStatus) {
       frameToIdx_[frame] = idx++;
   }
   actualNframes_ = (int)idx;
+  MakeIdxToFrame();
   return 0;
 }
 
-// ClusterSieve::Frames()
-ClusterSieve::SievedFrames ClusterSieve::Frames() const {
-  SievedFrames frames;
+// ClusterSieve::MakeIdxToFrame()
+void ClusterSieve::MakeIdxToFrame() {
+  idxToFrame_.clear();
+  idxToFrame_.reserve( actualNframes_ );
   for (unsigned int frame = 0; frame != frameToIdx_.size(); frame++)
   {
     if (frameToIdx_[frame] != -1)
-      frames.push_back( frame );
+      idxToFrame_.push_back( frame );
   }
-  return frames;
 }
 
 size_t ClusterSieve::DataSize() const {
   return ( sizeof(type_) + sizeof(int) +
-           (frameToIdx_.capacity()*sizeof(int) + sizeof(frameToIdx_)) );
+           (frameToIdx_.capacity()*sizeof(int) + sizeof(frameToIdx_)) +
+           (idxToFrame_.capacity()*sizeof(int) + sizeof(idxToFrame_)) );
 }

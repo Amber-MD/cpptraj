@@ -325,7 +325,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   if (FrameDistances().SieveValue() != 1) {
     if (FrameDistances().SieveValue() < -1) {
       outfile.Printf("#Sieve value: %i (random)\n#Sieved frames:", -FrameDistances().SieveValue());
-      ClusterSieve::SievedFrames sFrames = FrameDistances().FramesToCluster();
+      ClusterSieve::SievedFrames const& sFrames = FrameDistances().FramesToCluster();
       for (ClusterSieve::SievedFrames::const_iterator sfrm = sFrames.begin();
                                                       sfrm != sFrames.end(); ++sfrm)
         outfile.Printf(" %i", *sfrm + 1);
@@ -876,7 +876,7 @@ void ClusterList::DrawGraph(bool use_z, DataSet* cnumvtime,
   std::vector<int> Nums;
   Nums.reserve( nframes );
   if (cnumvtime != 0) {
-    ClusterSieve::SievedFrames sievedFrames = FrameDistances().FramesToCluster();
+    ClusterSieve::SievedFrames const& sievedFrames = FrameDistances().FramesToCluster();
     DataSet_1D const& CVT = static_cast<DataSet_1D const&>( *cnumvtime );
     for (unsigned int n = 0; n != nframes; n++)
       Nums.push_back( (int)CVT.Dval(sievedFrames[n]) );

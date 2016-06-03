@@ -10,7 +10,8 @@ void DataSet_Cmatrix_NOMEM::WriteBuffer(CpptrajFile& outfile, SizeArray const& p
   if ( xidx >= sievedFrames_.ActualNframes() || yidx >= sievedFrames_.ActualNframes() )
     outfile.Printf(format_.fmt(), 0.0);
   else
-    outfile.Printf(format_.fmt(), cdist_->FrameDist( idxToFrame_[yidx], idxToFrame_[xidx] ));
+    outfile.Printf(format_.fmt(), cdist_->FrameDist( sievedFrames_.IdxToFrame(yidx),
+                                                     sievedFrames_.IdxToFrame(xidx) ));
 }
 
 int DataSet_Cmatrix_NOMEM::SetupSieveAndCdist(size_t sizeIn, size_t sieveIn, int iseed,
@@ -19,6 +20,5 @@ int DataSet_Cmatrix_NOMEM::SetupSieveAndCdist(size_t sizeIn, size_t sieveIn, int
   if (cdistIn == 0) return 1;
   if (SetupWithSieve(sizeIn, sieveIn, iseed)) return 1;
   cdist_ = cdistIn->Copy();
-  idxToFrame_ = sievedFrames_.Frames();
   return 0;
 }

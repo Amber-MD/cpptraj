@@ -211,7 +211,7 @@ int Cluster_DBSCAN::Cluster() {
   std::vector<int> Npts2; // Will hold neighbors of a neighbor
   ClusterDist::Cframes cluster_frames;
   // First determine which frames are being clustered.
-  std::vector<int> FramesToCluster = FrameDistances().FramesToCluster();
+  std::vector<int> const& FramesToCluster = FrameDistances().FramesToCluster();
   // Calculate Kdist function
   if (!kdist_.Empty()) {
     if (kdist_.Size() == 1)
@@ -229,7 +229,7 @@ int Cluster_DBSCAN::Cluster() {
   mprintf("\tStarting DBSCAN Clustering:\n");
   ProgressBar cluster_progress(FramesToCluster.size());
   int iteration = 0;
-  for (std::vector<int>::iterator point = FramesToCluster.begin();
+  for (std::vector<int>::const_iterator point = FramesToCluster.begin();
                                   point != FramesToCluster.end(); ++point)
   {
     if (!Visited[*point]) {
