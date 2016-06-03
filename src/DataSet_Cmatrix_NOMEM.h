@@ -5,7 +5,7 @@
 /// Used when no pairwise distance matrix is to be stored; all calcs done on the fly.
 class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
   public:
-    DataSet_Cmatrix_NOMEM() : DataSet_Cmatrix(CMATRIX_NOMEM) {}
+    DataSet_Cmatrix_NOMEM() : DataSet_Cmatrix(CMATRIX_NOMEM), cdist_(0) {}
     ~DataSet_Cmatrix_NOMEM();
     static DataSet* Alloc() { return (DataSet*)new DataSet_Cmatrix_NOMEM(); }
   // ----- DataSet functions -------------------
@@ -26,6 +26,8 @@ class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
     size_t Nrows() const { return sievedFrames_.ActualNframes(); }
     /// \return Element at given index.
     inline double GetElement(unsigned int) const;
+    /// \return true if matrix needs setup
+    bool NeedsSetup() const { return (cdist_ == 0); }
     // -------------------------------------------
     int SetupSieveAndCdist(size_t, size_t, int, ClusterDist*);
   protected:

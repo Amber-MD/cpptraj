@@ -58,6 +58,7 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "\t[pairwisecache {mem | none}]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
@@ -208,8 +209,17 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   // ---------------------------------------------
   // Options for loading/saving pairwise distance file
   DataSet::DataType pw_type = DataSet::CMATRIX;
-  if (analyzeArgs.hasKey("nopairwisemem"))
-    pw_type = DataSet::CMATRIX_NOMEM;
+  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+  if (!pw_typeString.empty()) {
+    if (pw_typeString == "mem")
+      pw_type = DataSet::CMATRIX;
+    else if (pw_typeString == "none")
+      pw_type = DataSet::CMATRIX_NOMEM;
+    else {
+      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+      return Analysis::ERR;
+    }
+  }
   std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
   DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
   bool load_pair = analyzeArgs.hasKey("loadpairdist");

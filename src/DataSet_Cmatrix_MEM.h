@@ -28,6 +28,8 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     size_t Nrows() const { return Mat_.Nrows(); }
     /// \return Element at given index.
     double GetElement(unsigned int idx) const { return Mat_[idx]; }
+    /// \return true if matrix needs setup
+    bool NeedsSetup() const { return (Mat_.size() < 1); }
   protected:
     int AllocateCmatrix(size_t);
   private:

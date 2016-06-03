@@ -33,6 +33,8 @@ class DataSet_Cmatrix : public DataSet {
     virtual size_t Nrows() const = 0;
     /// \return Element at given index.
     virtual double GetElement(unsigned int) const = 0;
+    /// \return true if matrix needs setup
+    virtual bool NeedsSetup() const = 0;
     // ----- Sieved frames functions -------------
     /// \return An array containing frame numbers that have not been sieved out.
     ClusterSieve::SievedFrames FramesToCluster() const { return sievedFrames_.Frames(); }
