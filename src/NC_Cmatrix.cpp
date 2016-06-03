@@ -251,15 +251,27 @@ int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
 // NC_Cmatrix::WriteCmatrixElement()
 int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval)
 {
+  int err = 0;
+# ifdef _OPENMP
+  // Since NetCDF files are not thread safe this must be protected.
+# pragma omp critical(writecmatrixelement)
+  {
+# endif
   float fval = (float)dval;
   size_t index[1];
   long int idx = CalcIndex(xIn, yIn);
   //mprintf("DEBUG: Index calc x=%u y=%u i=%li\n", xIn, yIn, idx);
-  if (idx < 0L) return 1;
-  index[0] = (size_t)idx;
-  if (NC::CheckErr( nc_put_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
-    return 1;
-  return 0;
+  if (idx < 0L)
+    err = 1;
+  else {
+    index[0] = (size_t)idx;
+    if (NC::CheckErr( nc_put_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
+      err = 1;
+  }
+# ifdef _OPENMP
+  } // END pragma omp critical
+# endif
+  return err;
 }
 
 // NC_Cmatrix::CloseCmatrix()
