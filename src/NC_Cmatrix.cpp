@@ -7,13 +7,19 @@
 
 /// CONSTRUCTOR
 NC_Cmatrix::NC_Cmatrix() :
+  ncid_(-1),
   n_original_frames_DID_(-1),
   n_rows_DID_(-1),
   msize_DID_(-1),
   cmatrix_VID_(-1),
   actualFrames_VID_(-1),
-  nRows_(0)
+  nRows_(0),
+  mSize_(0)
 {}
+
+NC_Cmatrix::~NC_Cmatrix() {
+  CloseCmatrix();
+}
 
 // NC_Cmatrix::ID_Cmatrix()
 bool NC_Cmatrix::ID_Cmatrix(FileName const& fname) {
@@ -91,6 +97,8 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
 int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
                                  int sieve)
 {
+  mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
+          fname.full(), nFrames, nRowsIn, sieve);
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid_ ) ))
     return 1;
@@ -113,18 +121,27 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
   int dimensionID[1];
   // Sieve
   int sieveVID;
-  if (NC::CheckErr(nc_def_var( ncid_, NC_CMATRIX_SIEVE, NC_INT, 1, dimensionID, &sieveVID ) ))
+  if (NC::CheckErr(nc_def_var( ncid_, NC_CMATRIX_SIEVE, NC_INT, 0, dimensionID, &sieveVID ) )) {
+    mprinterr("Error: Defining sieve variable.\n");
     return 1;
+  }
   // Matrix
   dimensionID[0] = msize_DID_;
-  if (NC::CheckErr(nc_def_var( ncid_, NC_CMATRIX_MATRIX, NC_FLOAT, 1, dimensionID, &cmatrix_VID_ )))
+  if (NC::CheckErr(nc_def_var( ncid_, NC_CMATRIX_MATRIX, NC_FLOAT, 1, dimensionID,
+                               &cmatrix_VID_ ) ))
+  {
+    mprinterr("Error: Defining matrix variable.\n");
     return 1;
+  }
   // Frames (if sieved)
   if (sieve != 1) {
     dimensionID[0] = n_rows_DID_;
     if (NC::CheckErr(nc_def_var( ncid_, NC_CMATRIX_FRAMES, NC_INT, 1, dimensionID,
                                  &actualFrames_VID_ ) ))
+    {
+      mprinterr("Error: Defining actual frames variable.\n");
       return 1;
+    }
   } else
     actualFrames_VID_ = -1;
 

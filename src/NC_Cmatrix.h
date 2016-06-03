@@ -5,6 +5,7 @@
 class NC_Cmatrix {
   public:
     NC_Cmatrix();
+    ~NC_Cmatrix();
     /// \return true if file is NetCDF cluster matrix file.
     static bool ID_Cmatrix(FileName const&);
     /// Open cluster matrix file for reading.
