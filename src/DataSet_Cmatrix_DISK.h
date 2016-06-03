@@ -14,7 +14,7 @@ class DataSet_Cmatrix_DISK : public DataSet_Cmatrix {
     int Allocate(SizeArray const&) { return 0; }
     // ----- Cmatrix functions -------------------
     /// \return an element indexed by sievedFrames.
-    inline double GetFdist(int x, int y) const { return file_.GetCmatrixElement(x, y); }
+    inline double GetFdist(int, int) const;
     /// Set element at column/row to given value
     void SetElement(int x, int y, double val)  { file_.WriteCmatrixElement(x, y, val); }
     /// \return Actual number of elements in matrix
@@ -35,4 +35,9 @@ class DataSet_Cmatrix_DISK : public DataSet_Cmatrix {
     FileName fname_;
     NC_Cmatrix file_;
 };
+// ----- Inline functions ------------------------------------------------------
+double DataSet_Cmatrix_DISK::GetFdist(int x, int y) const {
+  return file_.GetCmatrixElement( sievedFrames_.FrameToIdx(x),
+                                  sievedFrames_.FrameToIdx(y) );
+}
 #endif

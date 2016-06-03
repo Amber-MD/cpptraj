@@ -213,6 +213,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!pw_typeString.empty()) {
     if (pw_typeString == "mem")
       pw_type = DataSet::CMATRIX;
+    else if (pw_typeString == "disk")
+      pw_type = DataSet::CMATRIX_DISK;
     else if (pw_typeString == "none")
       pw_type = DataSet::CMATRIX_NOMEM;
     else {
@@ -357,6 +359,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   mprintf("\tPairwise distance data set is '%s'\n", pw_dist_->legend());
   if (pw_dist_->Type() == DataSet::CMATRIX_NOMEM)
     mprintf("\tPairwise distances will not be cached (will slow clustering calcs)\n");
+  else if (pw_dist_->Type() == DataSet::CMATRIX_DISK)
+    mprintf("\tPairwise distances will be cached to disk (will slow clustering calcs)\n");
   if (pwd_file_ != 0)
     mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file_->DataFilename().full());
   if (!clusterinfo_.empty())
