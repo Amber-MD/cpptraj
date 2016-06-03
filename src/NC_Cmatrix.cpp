@@ -158,6 +158,18 @@ int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
   return 0;
 }
 
+// NC_Cmatrix::WriteCmatrixElement()
+int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval)
+{
+  float fval = (float)dval;
+  size_t index[1];
+  long int idx = CalcIndex(xIn, yIn);
+  if (idx < 0L) return 1;
+  if (NC::CheckErr( nc_put_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
+    return 1;
+  return 0;
+}
+
 // NC_Cmatrix::CloseCmatrix()
 void NC_Cmatrix::CloseCmatrix() {
   if (ncid_ != -1) {
