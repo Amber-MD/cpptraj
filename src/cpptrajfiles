@@ -173,6 +173,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
         DataSet_Cmatrix.cpp \
+        DataSet_Cmatrix_DISK.cpp \
         DataSet_Cmatrix_MEM.cpp \
         DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
@@ -252,6 +253,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         MetaData.cpp \
         Mol2File.cpp \
         NameType.cpp \
+        NC_Cmatrix.cpp \
+        NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \

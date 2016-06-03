@@ -10,7 +10,9 @@ class NC_Cmatrix {
     /// Open cluster matrix file for reading.
     int OpenCmatrixRead(FileName const&);
     /// Get cluster matrix element (col, row)
-    double GetCmatrixElement(unsigned int, unsigned int);
+    double GetCmatrixElement(unsigned int, unsigned int) const;
+    /// Get cluster matrix element (raw index)
+    double GetCmatrixElement(unsigned int) const;
     /// Create cluster matrix file; # frames, # rows, sieve
     int OpenCmatrixWrite(FileName const&, unsigned int, unsigned int, int);
     /// Write non-sieved frames array.
@@ -19,6 +21,10 @@ class NC_Cmatrix {
     int WriteCmatrixElement(unsigned int, unsigned int, double);
     /// Close cluster matrix file.
     void CloseCmatrix();
+    /// \return Matrix size
+    unsigned int MatrixSize() const { return mSize_; }
+    /// \return Matrix rows.
+    unsigned int MatrixRows() const { return nRows_; }
   private:
 #   ifdef BINTRAJ
     long int CalcIndex(unsigned int, unsigned int) const;
@@ -30,6 +36,7 @@ class NC_Cmatrix {
     int cmatrix_VID_;           ///< Cluster matrix variable ID ( matrix size ).
     int actualFrames_VID_;      ///< Non-sieved frames array ( N ).
     unsigned int nRows_;        ///< Number of rows (actual frames, N) in matrix dimension.
+    unsigned int mSize_;        ///< Actual matrix size.
 #   endif
 };
 #endif

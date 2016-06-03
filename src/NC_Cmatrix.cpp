@@ -68,7 +68,7 @@ long int NC_Cmatrix::CalcIndex(unsigned int xIn, unsigned int yIn) const {
 }
 
 // NC_Cmatrix::GetCmatrixElement()
-double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) {
+double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) const {
   float fval;
   size_t index[1];
   long int idx = CalcIndex(xIn, yIn);
@@ -78,6 +78,16 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int xIn, unsigned int yIn) {
   return (double)fval;
 }
 
+// NC_Cmatrix::GetCmatrixElement()
+double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
+  float fval;
+  size_t index[1] = { idxIn };
+  if (NC::CheckErr( nc_get_var1_float(ncid_, cmatrix_VID_, index, &fval) ))
+    return 0.0;
+  return (double)fval;
+}
+
+// NC_Cmatrix::OpenCmatrixWrite()
 int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
                                  int sieve)
 {
@@ -95,8 +105,8 @@ int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname, unsigned int nFrames, un
     return 1;
   if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NROWS, nRows_, &n_rows_DID_ ) ))
     return 1;
-  int mSize = (nRows_ * (nRows_-1)) / 2;
-  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_MSIZE, mSize, &msize_DID_ ) ))
+  mSize_ = (nRows_ * (nRows_-1)) / 2;
+  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_MSIZE, mSize_, &msize_DID_ ) ))
     return 1;
 
   // Define variables // TODO units
