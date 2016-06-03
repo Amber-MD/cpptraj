@@ -475,6 +475,8 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
 #     endif
       progress.Finish();
     }
+    // Currently this is only for DataSet_Cmatrix_DISK
+    frameDistances_->Complete();
   }
   mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
           ByteString(FrameDistances().DataSize(), BYTE_DECIMAL).c_str());

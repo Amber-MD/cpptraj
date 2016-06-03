@@ -27,6 +27,8 @@ class DataSet_Cmatrix_DISK : public DataSet_Cmatrix {
     double GetElement(unsigned int idx)  const { return file_.GetCmatrixElement(idx);  }
     /// \return true if matrix needs setup
     bool NeedsSetup()                    const { return (file_.MatrixSize() < 1);      }
+    /// No more distances will be added; flush to disk
+    void Complete()                            { file_.Sync();                         }
   protected:
     int AllocateCmatrix(size_t);
   private:

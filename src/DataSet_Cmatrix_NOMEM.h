@@ -28,6 +28,7 @@ class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
     inline double GetElement(unsigned int) const;
     /// \return true if matrix needs setup
     bool NeedsSetup() const { return (cdist_ == 0); }
+    void Complete() {}
     // -------------------------------------------
     int SetupSieveAndCdist(size_t, size_t, int, ClusterDist*);
   protected:

@@ -30,6 +30,7 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     double GetElement(unsigned int idx) const { return Mat_[idx]; }
     /// \return true if matrix needs setup
     bool NeedsSetup() const { return (Mat_.size() < 1); }
+    void Complete() {}
   protected:
     int AllocateCmatrix(size_t);
   private:

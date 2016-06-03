@@ -35,6 +35,8 @@ class DataSet_Cmatrix : public DataSet {
     virtual double GetElement(unsigned int) const = 0;
     /// \return true if matrix needs setup
     virtual bool NeedsSetup() const = 0;
+    /// Indicate that no more distances will be added to matrix.
+    virtual void Complete() = 0;
     // ----- Sieved frames functions -------------
     /// \return An array containing frame numbers that have not been sieved out.
     ClusterSieve::SievedFrames FramesToCluster() const { return sievedFrames_.Frames(); }

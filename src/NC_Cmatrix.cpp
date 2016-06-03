@@ -226,15 +226,10 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsig
   return 0;
 }
 
-// NC_Cmatrix::OpenCmatrixWrite()
-int NC_Cmatrix::OpenCmatrixWrite(FileName const& fname) {
-  if (cmatrix_VID_ == -1) {
-    mprinterr("Internal Error: OpenCmatrixWrite called before CreateCmatrix.\n");
-    return 1;
-  }
-  if (ncid_ != -1) CloseCmatrix();
-  if (NC::CheckErr(nc_open(fname.full(), NC_WRITE, &ncid_))) return 1;
-  return 0;
+// NC_Cmatrix::Sync()
+void NC_Cmatrix::Sync() {
+  if (ncid_ != -1)
+    NC::CheckErr( nc_sync(ncid_) );
 }
 
 // NC_Cmatrix::WriteFramesArray()
