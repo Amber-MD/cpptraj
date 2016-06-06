@@ -61,10 +61,10 @@ class Analysis_Clustering: public Analysis {
     int debug_;
     static const char* PAIRDISTFILE;
 
-    void CreateCnumvtime( ClusterList const&, int );
-    void CreateCpopvtime( ClusterList const&, int );
-    void ClusterLifetimes( ClusterList const&, int );
-    void NclustersObserved(ClusterList const&, int);
+    void CreateCnumvtime( ClusterList const&, unsigned int );
+    void CreateCpopvtime( ClusterList const&, unsigned int );
+    void ClusterLifetimes( ClusterList const&, unsigned int );
+    void NclustersObserved(ClusterList const&, unsigned int);
     void WriteClusterTraj( ClusterList const& );
     void WriteAvgStruct( ClusterList const& );
     void WriteSingleRepTraj( ClusterList const& );

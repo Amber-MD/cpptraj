@@ -433,8 +433,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     cluster_dataset_.push_back( (DataSet*)coords_ );
   }
   // Test that cluster data set contains data
-  // FIXME make unsigned
-  int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
+  unsigned int clusterDataSetSize = cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
     mprinterr("Error: cluster data set %s does not contain data.\n", 
               cluster_dataset_[0]->legend());
@@ -444,8 +443,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   for (ClusterDist::DsArray::iterator ds = cluster_dataset_.begin();
                                       ds != cluster_dataset_.end(); ++ds)
   {
-    if ((int)(*ds)->Size() != clusterDataSetSize) {
-      mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
+    if ((*ds)->Size() != clusterDataSetSize) {
+      mprinterr("Error: data set '%s' size (%zu) != first data set '%s' size (%u)\n",
                 (*ds)->legend(), (*ds)->Size(), 
                 cluster_dataset_[0]->legend(), clusterDataSetSize);
       return Analysis::ERR;
@@ -535,7 +534,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       std::vector<int> actualSplitFrames;
       for (std::vector<int>::const_iterator f = splitFrames_.begin();
                                             f != splitFrames_.end(); ++f)
-        if ( *f < 1 || *f >= clusterDataSetSize )
+        if ( *f < 1 || *f >= (int)clusterDataSetSize )
           mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
         else
           actualSplitFrames.push_back( *f );
@@ -582,6 +581,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       // Write all representative frames to separate trajs
       if (!reptrajfile_.empty())
         WriteRepTraj( *CList_ );
+      // Write average structures for each cluster to separate files.
       if (!avgfile_.empty())
         WriteAvgStruct( *CList_ );
     }
@@ -602,7 +602,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 // -----------------------------------------------------------------------------
 // Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned int maxFrames ) {
   // FIXME:
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
@@ -632,7 +632,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFram
 
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
-void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned int maxFrames ) {
   std::vector<int> Pop(CList.Nclusters(), 0);
   // Set up output data sets
   std::vector<DataSet*> DSL;
@@ -658,7 +658,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
   // Assumes cnumvtime has been calcd and not gracecolor!
   double norm = 1.0;
   DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
-  for (int frame = 0; frame < maxFrames; ++frame) {
+  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
@@ -677,7 +677,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
 }
 
 // Analysis_Clustering::ClusterLifetimes()
-void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, unsigned int maxFrames ) {
   // Set up output data sets. TODO: use ChildDSL
   std::vector<DataSet_integer*> DSL;
   MetaData md(cnumvtime_->Meta().Name(), "Lifetime");
@@ -692,7 +692,7 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
   }
   // For each frame, assign cluster frame belongs to 1.
   DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>(*cnumvtime_);
-  for (int frame = 0; frame < maxFrames; ++frame) {
+  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
@@ -703,13 +703,13 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
 /** Determine how many different clusters are observed within a given time
   * window.
   */
-void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::NclustersObserved( ClusterList const& CList, unsigned int maxFrames ) {
   DataSet_integer const& CVT = static_cast<DataSet_integer const&>( *cnumvtime_ );
   if (CVT.Size() < 1 || CList.Nclusters() < 1) return;
   int dataIdx = 0;
   // True if cluster was observed during window
   std::vector<bool> observed( CList.Nclusters(), false );
-  for (int frame = 0; frame < maxFrames; frame++) {
+  for (unsigned int frame = 0; frame < maxFrames; frame++) {
     if (CVT[frame] != -1)
       observed[ CVT[frame] ] = true;
     if ( ((frame+1) % windowSize_) == 0 ) {
