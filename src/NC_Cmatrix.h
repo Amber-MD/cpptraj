@@ -27,12 +27,18 @@ class NC_Cmatrix {
     int WriteCmatrixElement(unsigned int, unsigned int, double);
     /// Close cluster matrix file.
     void CloseCmatrix();
+#   ifdef BINTRAJ
     /// \return Matrix size
     unsigned int MatrixSize() const { return mSize_; }
     /// \return Matrix rows.
     unsigned int MatrixRows() const { return nRows_; }
     /// \return Current access mode
     ModeType Mode()           const { return mode_;  }
+#   else
+    unsigned int MatrixSize() const { return 0; }
+    unsigned int MatrixRows() const { return 0; }
+    ModeType Mode()           const { return READ; }
+#   endif
   private:
 #   ifdef BINTRAJ
     static inline bool IsCpptrajCmatrix(int);

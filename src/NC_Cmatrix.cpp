@@ -5,6 +5,7 @@
 #include "NC_Cmatrix.h"
 #include "CpptrajStdio.h"
 
+#ifdef BINTRAJ
 /// CONSTRUCTOR
 NC_Cmatrix::NC_Cmatrix() :
   ncid_(-1),
@@ -22,7 +23,6 @@ NC_Cmatrix::~NC_Cmatrix() {
   CloseCmatrix();
 }
 
-#ifdef BINTRAJ
 bool NC_Cmatrix::IsCpptrajCmatrix(int NCID) {
   return (NC::GetAttrText(NCID, "Conventions") == "CPPTRAJ_CMATRIX");
 }
@@ -294,10 +294,18 @@ void NC_Cmatrix::CloseCmatrix() {
   }
 }
 #else
-int OpenCmatrixRead(FileName const&) { return 1; }
-double GetCmatrixElement(unsigned int, unsigned int) { return 0.0; }
-int OpenCmatrixWrite(FileName const&, int, int, int) { return 1; }
-int WriteFramesArray(std::vector<int> const&) { return 1; }
-int WriteCmatrixElement(unsigned int, unsigned int, double) { return 1; }
-void CloseCmatrix() {}
+NC_Cmatrix::NC_Cmatrix() {}
+NC_Cmatrix::~NC_Cmatrix() {}
+int NC_Cmatrix::OpenCmatrixRead(FileName const&, int&) { return 1; }
+double NC_Cmatrix::GetCmatrixElement(unsigned int, unsigned int) const { return 0.0; }
+double NC_Cmatrix::GetCmatrixElement(unsigned int) const { return 0.0; }
+int NC_Cmatrix::CreateCmatrix(FileName const&, unsigned int, unsigned int, int) {
+  mprinterr("Error: Cpptraj was compiled without NetCDF. Cannot create NetCDF matrix file.\n");
+  return 1;
+}
+int NC_Cmatrix::WriteFramesArray(std::vector<int> const&) { return 1; }
+int NC_Cmatrix::WriteCmatrixElement(unsigned int, unsigned int, double) { return 1; }
+void NC_Cmatrix::CloseCmatrix() {}
+void NC_Cmatrix::Sync() {}
+int NC_Cmatrix::ReopenSharedWrite(FileName const&) { return 1; }
 #endif
