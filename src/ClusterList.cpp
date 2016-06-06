@@ -675,7 +675,12 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
             "Pseudo-f: Cluster distance to centroid is %.4f\n"
             "Pseudo-f: Numerator %.4f over denominator %.4f gives %.4f\n", 
             gss, wss, num, den, pseudof);
-  if (outfile.IsOpen()) outfile.Printf("#pSF: %f\n", pseudof);
+  if (outfile.IsOpen()) {
+    outfile.Printf("#pSF: %f\n", pseudof);
+    // This calculation taken directly from ptraj
+    double SSRSST = pseudof*(d_nclusters-1)/(d_ntotal-d_nclusters+pseudof*(d_nclusters-1));
+    outfile.Printf("#SSR/SST: %f\n", SSRSST);
+  }
 
   return pseudof;
 }
