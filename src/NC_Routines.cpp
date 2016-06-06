@@ -3,6 +3,7 @@
 #include "NC_Routines.h"
 #include "CpptrajStdio.h"
 
+// NC::CheckErr()
 bool NC::CheckErr(int ncerr) {
   if ( ncerr != NC_NOERR ) {
     mprintf("%s\n", nc_strerror(ncerr));
@@ -11,6 +12,10 @@ bool NC::CheckErr(int ncerr) {
   return false;
 }
 
+/** Get the information about a NetCDF text attribute with given vid and
+  * attribute text. Since there is no guarantee that null char at the
+  * end of retrieved string, append one.
+  */
 std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   size_t attlen;
   std::string attrOut;
@@ -35,10 +40,12 @@ std::string NC::GetAttrText(int ncid, int vid, const char* attribute) {
   return attrOut;
 }
 
+// NC::GetAttrText()
 std::string NC::GetAttrText(int ncid, const char* attribute) {
   return GetAttrText(ncid, NC_GLOBAL, attribute);
 }
 
+// NC::GetDimInfo()
 int NC::GetDimInfo(int ncid, const char* attribute, unsigned int& length) {
   int dimID;
   size_t slength = 0;
@@ -58,6 +65,15 @@ int NC::GetDimInfo(int ncid, const char* attribute, unsigned int& length) {
   return dimID;
 }
 
+// FIXME For backwards compat. only
+int NC::GetDimInfo(int ncid, const char* attribute, int& length) {
+  unsigned int ulen;
+  int dimID = GetDimInfo(ncid, attribute, ulen);
+  length = (int)ulen;
+  return dimID;
+}
+
+// NC::Debug()
 void NC::Debug(int ncid) {
   int ndimsp, nvarsp, ngattsp,unlimdimidp;
   char varname[NC_MAX_NAME+1];

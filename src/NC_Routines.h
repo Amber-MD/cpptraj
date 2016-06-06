@@ -11,6 +11,8 @@ namespace NC {
   std::string GetAttrText(int, const char*);
   /// \return dimension ID of given attribute and set dimension length.
   int GetDimInfo(int, const char*, unsigned int&);
+  // FIXME This version here for backwards compatibility.
+  int GetDimInfo(int, const char*, int&);
   /// Print debug info to STDOUT
   void Debug(int);
 }
