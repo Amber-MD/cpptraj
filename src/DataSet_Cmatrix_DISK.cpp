@@ -17,5 +17,7 @@ int DataSet_Cmatrix_DISK::AllocateCmatrix(size_t sizeIn) {
     if (file_.WriteFramesArray( sievedFrames_.Frames() ))
       return 1;
   }
+  // Reopen in SHARE mode for random access
+  if (file_.ReopenSharedWrite( Meta().Fname() )) return 1;
   return 0;
 }

@@ -19,6 +19,8 @@ class NC_Cmatrix {
     int CreateCmatrix(FileName const&, unsigned int, unsigned int, int);
     /// Sync to disk.
     void Sync();
+    /// Reopen in shared write mode for random access
+    int ReopenSharedWrite(FileName const&);
     /// Write non-sieved frames array.
     int WriteFramesArray(std::vector<int> const&);
     /// Write cluster matrix element (col, row)

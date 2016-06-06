@@ -232,6 +232,14 @@ void NC_Cmatrix::Sync() {
     NC::CheckErr( nc_sync(ncid_) );
 }
 
+int NC_Cmatrix::ReopenSharedWrite(FileName const& fname) {
+  if (ncid_ == -1) return 1;
+  // Close and re-open shared
+  nc_close( ncid_ );
+  if (NC::CheckErr(nc_open(fname.full(), NC_WRITE|NC_SHARE, &ncid_))) return 1;
+  return 0;
+}
+
 // NC_Cmatrix::WriteFramesArray()
 int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
   if (ncid_ == -1) return 1; // Sanity check
