@@ -57,7 +57,7 @@ void Analysis_Clustering::Help() const {
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
-          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
           "\t[pairwisecache {mem | none}]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
