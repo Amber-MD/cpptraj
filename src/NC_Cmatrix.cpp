@@ -14,6 +14,7 @@ NC_Cmatrix::NC_Cmatrix() :
   msize_DID_(-1),
   cmatrix_VID_(-1),
   actualFrames_VID_(-1),
+  nFrames_(0),
   nRows_(0),
   mSize_(0),
   mode_(READ)
@@ -71,8 +72,7 @@ int NC_Cmatrix::OpenCmatrixRead(FileName const& fname, int& sieve) {
             version.c_str());
 
   // Dimensions
-  unsigned int nFrames;
-  n_original_frames_DID_ = NC::GetDimInfo(ncid_, NC_CMATRIX_NFRAMES, nFrames);
+  n_original_frames_DID_ = NC::GetDimInfo(ncid_, NC_CMATRIX_NFRAMES, nFrames_);
   if (n_original_frames_DID_ == -1) {
     mprinterr("Error: Could not get frames dimension.\n");
     return 1;
@@ -152,8 +152,38 @@ double NC_Cmatrix::GetCmatrixElement(unsigned int idxIn) const {
   return (double)fval;
 }
 
+// NC_Cmatrix::GetSieveStatus()
+std::vector<char> NC_Cmatrix::GetSieveStatus() const {
+  if (nFrames_ < 1) return std::vector<char>();
+  if (actualFrames_VID_ == -1)
+    // No frames array. All frames present, none sieved.
+    return std::vector<char>(nFrames_, 'F');
+  else {
+    // Get the frames array
+    std::vector<int> actualFrames(nRows_);
+    size_t start[1] = { 0      };
+    size_t count[1] = { nRows_ };
+    if (NC::CheckErr(nc_get_vara_int( ncid_, actualFrames_VID_, start, count, &actualFrames[0] )))
+      return std::vector<char>();
+    // All frames execpt those in actualFrames are sieved out.
+    std::vector<char> sieveStatus(nFrames_, 'T');
+    for (std::vector<int>::const_iterator it = actualFrames.begin();
+                                          it != actualFrames.end(); ++it)
+      sieveStatus[ *it ] = 'F';
+    return sieveStatus;
+  }
+}
+
+// NC_Cmatrix::GetCmatrix()
+int NC_Cmatrix::GetCmatrix(float* ptr) const {
+  if (cmatrix_VID_ == -1) return 1;
+  size_t start[1] = { 0      };
+  size_t count[1] = { mSize_ };
+  return NC::CheckErr(nc_get_vara_float( ncid_, cmatrix_VID_, start, count, ptr ));
+}
+
 // NC_Cmatrix::CreateCmatrix()
-int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsigned int nRowsIn,
+int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFramesIn, unsigned int nRowsIn,
                               int sieve)
 {
   //mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
@@ -161,7 +191,7 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsig
   if (fname.empty()) return 1;
   if (NC::CheckErr( nc_create( fname.full(), NC_64BIT_OFFSET, &ncid_ ) ))
     return 1;
-
+  nFrames_ = nFramesIn;
   nRows_ = nRowsIn;
   if (nRows_ < 1) {
     mprinterr("Internal Error: Trying to create empty cluster matrix file.\n");
@@ -169,7 +199,7 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsig
   }
   mode_ = WRITE;
   // Define dimensions
-  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NFRAMES, nFrames, &n_original_frames_DID_ ) ))
+  if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NFRAMES, nFrames_, &n_original_frames_DID_ ) ))
     return 1;
   if (NC::CheckErr( nc_def_dim( ncid_, NC_CMATRIX_NROWS, nRows_, &n_rows_DID_ ) ))
     return 1;
@@ -227,7 +257,7 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFrames, unsig
 }
 
 // NC_Cmatrix::Sync()
-void NC_Cmatrix::Sync() {
+void NC_Cmatrix::Sync() const {
   if (ncid_ != -1)
     NC::CheckErr( nc_sync(ncid_) );
 }
@@ -241,7 +271,7 @@ int NC_Cmatrix::ReopenSharedWrite(FileName const& fname) {
 }
 
 // NC_Cmatrix::WriteFramesArray()
-int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
+int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) const {
   if (ncid_ == -1) return 1; // Sanity check
   if (actualFrames_VID_ == -1) {
     mprinterr("Error: No cluster frames variable ID defined.\n");
@@ -260,7 +290,7 @@ int NC_Cmatrix::WriteFramesArray(std::vector<int> const& actualFrames) {
 }
 
 // NC_Cmatrix::WriteCmatrixElement()
-int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval)
+int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double dval) const
 {
   int err = 0;
 # ifdef _OPENMP
@@ -283,6 +313,14 @@ int NC_Cmatrix::WriteCmatrixElement(unsigned int xIn, unsigned int yIn, double d
   } // END pragma omp critical
 # endif
   return err;
+}
+
+// NC_Cmatrix::WriteCmatrix()
+int NC_Cmatrix::WriteCmatrix(const float* ptr) const {
+  if (cmatrix_VID_ == -1) return 1;
+  size_t start[1] = { 0      };
+  size_t count[1] = { mSize_ };
+  return NC::CheckErr(nc_put_vara_float( ncid_, cmatrix_VID_, start, count, ptr ));
 }
 
 // NC_Cmatrix::CloseCmatrix()

@@ -19,6 +19,7 @@
 #include "DataIO_XVG.h"
 #include "DataIO_CCP4.h"
 #include "DataIO_Cmatrix.h"
+#include "DataIO_NC_Cmatrix.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -53,6 +54,11 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
   { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
   { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
+# ifdef BINTRAJ
+  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
+# else
+  { "NetCDF Cluster matrix file", 0, 0, 0 },
+# endif
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -70,6 +76,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
+  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 

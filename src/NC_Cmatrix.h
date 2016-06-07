@@ -15,16 +15,22 @@ class NC_Cmatrix {
     double GetCmatrixElement(unsigned int, unsigned int) const;
     /// Get cluster matrix element (raw index)
     double GetCmatrixElement(unsigned int) const;
+    /// \return Array containing sieve status for each frame: 'T' sieved out, 'F' present
+    std::vector<char> GetSieveStatus() const;
+    /// Read cmatrix into given pointer
+    int GetCmatrix(float*) const;
     /// Create cluster matrix file; # frames, # rows, sieve
     int CreateCmatrix(FileName const&, unsigned int, unsigned int, int);
     /// Sync to disk.
-    void Sync();
+    void Sync() const;
     /// Reopen in shared write mode for random access
     int ReopenSharedWrite(FileName const&);
     /// Write non-sieved frames array.
-    int WriteFramesArray(std::vector<int> const&);
+    int WriteFramesArray(std::vector<int> const&) const;
     /// Write cluster matrix element (col, row)
-    int WriteCmatrixElement(unsigned int, unsigned int, double);
+    int WriteCmatrixElement(unsigned int, unsigned int, double) const;
+    /// Write cluster matrix using given pointer
+    int WriteCmatrix(const float*) const;
     /// Close cluster matrix file.
     void CloseCmatrix();
 #   ifdef BINTRAJ
@@ -50,6 +56,7 @@ class NC_Cmatrix {
     int msize_DID_;             ///< Actual matrix size ( (N*(N-1))/2 ).
     int cmatrix_VID_;           ///< Cluster matrix variable ID ( matrix size ).
     int actualFrames_VID_;      ///< Non-sieved frames array ( N ).
+    unsigned int nFrames_;      ///< Original number of frames.
     unsigned int nRows_;        ///< Number of rows (actual frames, N) in matrix dimension.
     unsigned int mSize_;        ///< Actual matrix size.
     ModeType mode_;             ///< Access mode.

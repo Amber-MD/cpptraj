@@ -5,7 +5,7 @@
 /// Read/write NetCDF pairwise matrix files.
 class DataIO_NC_Cmatrix : public DataIO {
   public:
-    DataIO_NC_Cmatrix() {}
+    DataIO_NC_Cmatrix();
     ~DataIO_NC_Cmatrix() { file_.CloseCmatrix(); }
     static BaseIOtype* Alloc() { return (BaseIOtype*)new DataIO_NC_Cmatrix(); }
     static void ReadHelp() {}

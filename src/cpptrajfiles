@@ -163,6 +163,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
         DataIO_Mdout.cpp \
+        DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
