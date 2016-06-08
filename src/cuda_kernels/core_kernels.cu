@@ -1,4 +1,7 @@
 #define BLOCKDIM 512
+#define RSIZE 512
+
+
 
 
 
@@ -116,7 +119,7 @@ __global__ void Action_noImage_no_center_GPU(double *D_,double *SolventMols_,dou
 		double a1 = SolventMols_[sIndex + 1];
 		double a2 = SolventMols_[sIndex + 2];
 
-
+		//this is to imporve cache hits! (in the old days this would be thrown in shared mem)
 		for(i  = 0 ; i  < NChunks ; i++)
 		{
 			//copying to shared
