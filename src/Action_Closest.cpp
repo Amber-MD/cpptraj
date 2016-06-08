@@ -335,7 +335,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_NoImage_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
-                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu , image_.ImageType(), box, ucell, recip);
+                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu , image_.ImageType(), box, ucell_arr, recip_arr);
   } else {
     int NSAtoms = distanceMask_.Nselected();
     for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
@@ -346,7 +346,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
 
     Action_NoImage_no_Center( V_atom_coords_, V_distances_, U_atom_coords_,
-                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu, image_.ImageType(), box, ucell, recip);
+                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu, image_.ImageType(), box, ucell_arr, recip_arr);
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
