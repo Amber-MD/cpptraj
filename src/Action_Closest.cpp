@@ -12,8 +12,8 @@
 #  include <cuda.h>
 
 // CUDA kernels
-extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&,ImageType,double[3],double[9],double[9]);
-extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&,ImageType,double[3],double[9],double[9]);
+extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&,ImagingType,double[3],double[9],double[9]);
+extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&,ImagingType,double[3],double[9],double[9]);
 #endif
 
 // CONSTRUCTOR
@@ -320,7 +320,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   
 
   //low overhead so we will do it anyway
-  Box frmBox = frmIn.BoxCrd();
+  Box frmBox = frm.Frm().BoxCrd();
   Matrix_3x3 ucell, recip;
   frm.Frm().BoxCrd().ToRecip(ucell, recip);
   double box[3] = {frmBox[0], frmBox[1],frmBox[2]};
