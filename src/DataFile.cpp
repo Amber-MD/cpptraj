@@ -76,6 +76,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
   { CCP4,         "ccp4",   ".ccp4"  },
+  { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };

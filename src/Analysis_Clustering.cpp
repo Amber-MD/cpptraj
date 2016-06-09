@@ -77,7 +77,13 @@ void Analysis_Clustering::Help() const {
           /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
 
-const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
+const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
+DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
+# ifdef BINTRAJ
+  DataFile::NCCMATRIX;
+# else
+  DataFile::CMATRIX;
+# endif
 
 Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
@@ -230,8 +236,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (load_pair) {
     // If 'loadpairdist' specified, assume we want to load from file.
     if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE;
-      pairdisttype = DataFile::CMATRIX;
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
     }
     if (File::Exists( pairdistname )) {
       DataFile dfIn;
@@ -239,7 +245,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       pw_dist_ = setup.DSL().GetDataSet( pairdistname );
       if (pw_dist_ == 0) return Analysis::ERR;
     } else
-      pairdisttype = DataFile::CMATRIX;
+      pairdisttype = PAIRDISTTYPE_;
   }
   if (pw_dist_ == 0 && !pairdistname.empty()) {
     // Just 'pairdist' specified or loadpairdist specified and file not found.
@@ -260,8 +266,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   pwd_file_ = 0;
   if (save_pair) {
     if (pairdistname.empty()) {
-      pairdistname = PAIRDISTFILE;
-      pairdisttype = DataFile::CMATRIX;
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
     }
     pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
   }
