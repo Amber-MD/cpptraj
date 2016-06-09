@@ -6,7 +6,8 @@
 #include "ViewRst.h"
 
 void Exec_ViewRst::Help() const {
-  mprintf("\tcrdset <coords set> rstfile <filename> mol2out <mol2 name> [noe]\n");
+  mprintf("\t{mol2out <mol2 name> | topout <top name>} crdset <coords set>\n"
+          "\trstfile <filename> [noe]\n");
 }
 
 Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
@@ -19,10 +20,12 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
     mprintf("\tOutput to mol2 by restraint distances (NOE strength).\n");
     outputMode = ViewRst::BY_STRENGTH;
   }
+  // Get output topology name
+  std::string topout = argIn.GetStringKey("topout");
   // Get output mol2 name
   std::string mol2out = argIn.GetStringKey("mol2out");
-  if (mol2out.empty()) {
-    mprinterr("Error: Output mol2 name ('mol2out') not specfied.\n");
+  if (topout.empty() && mol2out.empty()) {
+    mprinterr("Error: Neither output topology ('topout') nor mol2 name ('mol2out') specfied.\n");
     return CpptrajState::ERR;
   }
   // Attempt to get coords dataset from datasetlist
@@ -158,9 +161,15 @@ Exec::RetType Exec_ViewRst::Execute(CpptrajState& State, ArgList& argIn)
     }
   } // END loop over file
   // Write output mol2. Use coords first frame.
-  Frame frameOut = coords->AllocateFrame();
-  coords->GetFrame(0, frameOut);
-  if (VR.WriteRstMol2(mol2out, frameOut)) return CpptrajState::ERR;
+  if (!mol2out.empty()) {
+    Frame frameOut = coords->AllocateFrame();
+    coords->GetFrame(0, frameOut);
+    if (VR.WriteRstMol2(mol2out, frameOut)) return CpptrajState::ERR;
+  }
+  // Write output topology
+  if (!topout.empty()) {
+    if (VR.WriteRstTop(topout)) return CpptrajState::ERR;
+  }
 
   return CpptrajState::OK;
 }
