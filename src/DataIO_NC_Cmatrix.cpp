@@ -37,7 +37,8 @@ int DataIO_NC_Cmatrix::WriteData(FileName const& fname, DataSetList const& SetLi
     mprintf("Warning: Multiple sets not yet supported for cluster matrix write.\n");
   DataSet_Cmatrix_MEM const& Mat = static_cast<DataSet_Cmatrix_MEM const&>( *(*(SetList.begin())) );
   // Create the file
-  if (file_.CreateCmatrix( fname, Mat.OriginalNframes(), Mat.Nrows(), Mat.SieveValue() ))
+  if (file_.CreateCmatrix( fname, Mat.OriginalNframes(), Mat.Nrows(), Mat.SieveValue(),
+                           Mat.MetricDescription() ))
     return 1;
   // Write the matrix
   if (file_.WriteCmatrix( Mat.Ptr() )) return 1;

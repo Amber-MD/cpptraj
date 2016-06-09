@@ -20,7 +20,7 @@ class NC_Cmatrix {
     /// Read cmatrix into given pointer
     int GetCmatrix(float*) const;
     /// Create cluster matrix file; # frames, # rows, sieve
-    int CreateCmatrix(FileName const&, unsigned int, unsigned int, int);
+    int CreateCmatrix(FileName const&, unsigned int, unsigned int, int, std::string const&);
     /// Sync to disk.
     void Sync() const;
     /// Reopen in shared write mode for random access

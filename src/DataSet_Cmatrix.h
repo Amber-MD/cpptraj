@@ -61,6 +61,8 @@ class DataSet_Cmatrix : public DataSet {
     int SetSieveFromArray(std::vector<char> const&, int);
     /// Print matrix elements to STDOUT
     void PrintElements() const;
+    /// \return Description of distance metric used to calc matrix
+    std::string const& MetricDescription() const { return metricDescription_; }
   protected:
     virtual int AllocateCmatrix(size_t) = 0;
     virtual int SetCdist(ClusterDist*) = 0;

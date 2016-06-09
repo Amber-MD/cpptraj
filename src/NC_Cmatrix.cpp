@@ -184,7 +184,7 @@ int NC_Cmatrix::GetCmatrix(float* ptr) const {
 
 // NC_Cmatrix::CreateCmatrix()
 int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFramesIn, unsigned int nRowsIn,
-                              int sieve)
+                              int sieve, std::string const& metricDescripIn)
 {
   //mprinterr("DEBUG: Cmatrix file '%s', nFrames %u, nRows %u, sieve %i\n",
   //        fname.full(), nFrames, nRowsIn, sieve);
@@ -240,6 +240,11 @@ int NC_Cmatrix::CreateCmatrix(FileName const& fname, unsigned int nFramesIn, uns
     return 1;
   if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "Version", 3, "1.0")))
     return 1;
+  if (!metricDescripIn.empty()) {
+    if (NC::CheckErr(nc_put_att_text(ncid_, NC_GLOBAL, "MetricDescription",
+                                     metricDescripIn.size(), metricDescripIn.c_str())))
+      return 1;
+  }
 
   // Set fill mode
   if (NC::CheckErr(nc_set_fill(ncid_, NC_NOFILL, dimensionID))) {
