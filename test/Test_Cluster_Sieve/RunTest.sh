@@ -36,6 +36,10 @@ Cluster sieve5 "sieve 5" savepairdist
 NcTest sieve5.nc.c0.save sieve5.nc.c0
 Cluster sieve5 "sieve 5" loadpairdist
 
+# Test pairwise no memory
+Cluster nosieve " "       "pairwisecache none"
+Cluster sieve5  "sieve 5" "pairwisecache none"
+
 EndTest
 
 exit 0

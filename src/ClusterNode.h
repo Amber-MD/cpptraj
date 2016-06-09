@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTERNODE_H
 #define INC_CLUSTERNODE_H
-#include "ClusterDist.h" 
+#include "ClusterDist.h"
+#include "DataSet_Cmatrix.h"
 /// Hold information for a cluster in a ClusterList
 class ClusterNode {
   public:
@@ -14,9 +15,9 @@ class ClusterNode {
     /// Merge frames from another cluster to this cluster
     inline void MergeFrames(ClusterNode const&);
     /// Determine which frame in the cluster is the best representative.
-    int FindBestRepFrame(ClusterMatrix const&);
+    int FindBestRepFrame(DataSet_Cmatrix const&);
     /// Calculate eccentricity for frames in this cluster.
-    void CalcEccentricity(ClusterMatrix const&);
+    void CalcEccentricity(DataSet_Cmatrix const&);
     /// Calculate centroid of members of this cluster.
     void CalculateCentroid(ClusterDist* Cdist) {
       // FIXME: Could potentially get rid of this branch.

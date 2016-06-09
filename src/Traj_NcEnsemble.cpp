@@ -2,6 +2,7 @@
 #ifdef ENABLE_SINGLE_ENSEMBLE
 #include "Traj_NcEnsemble.h"
 #include "CpptrajStdio.h"
+#include "NC_Routines.h"
 #ifdef MPI
 # include "Parallel.h"
 #endif
@@ -108,13 +109,10 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
               filename_.base());
     return TRAJIN_ERR;
   }
-  // Get global attributes
-  std::string attrText = GetAttrText("ConventionVersion");
-  if ( attrText != "1.0")
-    mprintf("Warning: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
-            filename_.base(), attrText.c_str());
+  // This will warn if conventions are not 1.0 
+  CheckConventionsVersion();
   // Get title
-  SetTitle( GetAttrText("title") );
+  SetTitle( GetNcTitle() );
   // Get Frame info
   if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
   if ( Ncframe() < 1 ) {
@@ -139,8 +137,8 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup Time - FIXME: Allowed to fail silently
   SetupTime();
   // Box info
-  double boxcrd[6];
-  if (SetupBox(boxcrd, NC_AMBERENSEMBLE) == 1) // 1 indicates an error
+  Box nc_box; 
+  if (SetupBox(nc_box, NC_AMBERENSEMBLE) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   // Replica Temperatures - FIXME: Allowed to fail silently
   SetupTemperature();
@@ -148,7 +146,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
   // Set traj info: FIXME - no forces yet
-  SetCoordInfo( CoordinateInfo(ensembleSize, remdDim, Box(boxcrd), HasVelocities(),
+  SetCoordInfo( CoordinateInfo(ensembleSize, remdDim, nc_box, HasVelocities(),
                                HasTemperatures(), HasTimes(), false) ); 
   if (debug_>1) NetcdfDebug();
   //closeTraj();
@@ -281,7 +279,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #   ifdef HAS_PNETCDF
     if (checkPNCerr(ncmpi_get_vara_float_all(ncid_, coordVID_, start_, count_, Coord_)))
 #   else
-    if (checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
+    if (NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
 #   endif
     {
       rprinterr("Error: Getting coordinates for frame %i\n", set+1);
@@ -295,7 +293,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #     ifdef HAS_PNETCDF
       if (checkPNCerr(ncmpi_get_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_)))
 #     else
-      if (checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
+      if (NC::CheckErr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)))
 #     endif
       {
         rprinterr("Error: Getting velocities for frame %i\n", set+1);
@@ -309,7 +307,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #     ifdef HAS_PNETCDF
       if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
 #     else
-      if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
+      if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frm.bAddress())))
 #     endif
       {
         rprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
@@ -318,7 +316,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #     ifdef HAS_PNETCDF
       if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
 #     else
-      if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
+      if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frm.bAddress()+3)))
 #     endif
       {
         rprinterr("Error: Getting cell angles for frame %i.\n", set+1);
@@ -330,7 +328,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #     ifdef HAS_PNETCDF
       if (checkPNCerr(ncmpi_get_vara_double_all(ncid_, TempVID_, start_, count_, frm.tAddress())))
 #     else
-      if (checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frm.tAddress())))
+      if (NC::CheckErr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frm.tAddress())))
 #     endif
       {
         rprinterr("Error: Getting replica temperature for frame %i.\n", set+1);
@@ -344,7 +342,7 @@ int Traj_NcEnsemble::readArray(int set, FrameArray& f_ensemble) {
 #     ifdef HAS_PNETCDF
       if (checkPNCerr(ncmpi_get_vara_int_all(ncid_, indicesVID_, start_, count_, frm.iAddress())))
 #     else
-      if (checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frm.iAddress())))
+      if (NC::CheckErr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frm.iAddress())))
 #     endif
       {
         rprinterr("Error: Getting replica indices for frame %i.\n", set+1);
@@ -396,7 +394,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #   ifdef HAS_PNETCDF
     if (ncmpi_put_vara_float_all(ncid_, coordVID_, start_, count_, Coord_))
 #   else
-    if (checkNCerr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
+    if (NC::CheckErr(nc_put_vara_float(ncid_, coordVID_, start_, count_, Coord_)))
 #   endif
     {
       mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
@@ -408,7 +406,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))
 #     else
-      if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) )
+      if (NC::CheckErr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) )
 #     endif
       {
         mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
@@ -421,7 +419,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_double_all(ncid_,cellLengthVID_,start_,count_,frm->bAddress()))
 #     else
-      if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
+      if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frm->bAddress())) )
 #     endif
       {
         mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
@@ -430,7 +428,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_double_all(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3))
 #     else
-      if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3)))
+      if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_,frm->bAddress()+3)))
 #     endif
       {
         mprinterr("Error: Writing cell angles frame %i.\n", set+1);
@@ -442,7 +440,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_double_all(ncid_,TempVID_,start_,count_,frm->tAddress()))
 #     else
-      if (checkNCerr(nc_put_vara_double(ncid_,TempVID_,start_,count_,frm->tAddress())))
+      if (NC::CheckErr(nc_put_vara_double(ncid_,TempVID_,start_,count_,frm->tAddress())))
 #     endif
       {
         mprinterr("Error: Writing temperature frame %i.\n", set+1);
@@ -455,7 +453,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_int_all(ncid_,indicesVID_,start_,count_,frm->iAddress()))
 #     else
-      if (checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frm->iAddress())))
+      if (NC::CheckErr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frm->iAddress())))
 #     endif
       {
         mprinterr("Error: Writing indices frame %i.\n", set+1);

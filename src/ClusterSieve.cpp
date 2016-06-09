@@ -2,7 +2,14 @@
 #include "Random.h"
 
 // CONSTRUCTOR
-ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1) {}
+ClusterSieve::ClusterSieve() : type_(NONE), sieve_(1), actualNframes_(0) {}
+
+void ClusterSieve::Clear() {
+  frameToIdx_.clear();
+  type_ = NONE;
+  sieve_ = 1;
+  actualNframes_ = 0;
+}
 
 inline void ClusterSieve::DetermineTypeFromSieve( int sieveIn ) {
   sieve_ = sieveIn;
@@ -26,6 +33,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     frameToIdx_.reserve( maxFrames );
     for (unsigned int i = 0; i < maxFrames; i++)
       frameToIdx_.push_back( i );
+    actualNframes_ = (int)maxFrames;
   }
   else if (type_ == REGULAR)
   { // Regular sieveing; index = frame / sieve
@@ -33,6 +41,7 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     int idx = 0;
     for (unsigned int i = 0; i < maxFrames; i += sieve_)
       frameToIdx_[i] = idx++;
+    actualNframes_ = idx;
   }
   else if (type_ == RANDOM)
   { // Random sieving; maxframes / sieve random indices
@@ -58,38 +67,42 @@ int ClusterSieve::SetSieve(int sieveIn, size_t maxFrames, int iseed) {
     for (unsigned int i = 0; i < maxFrames; i++)
       if (frameToIdx_[i] == 1)
         frameToIdx_[i] = idx++;
+    actualNframes_ = idx;
   }
+  MakeIdxToFrame();
   return 0;
 }
 
 // ClusterSieve::SetSieve()
-/** Used for loading previously saved ClusterMatrix */
-int ClusterSieve::SetSieve(int sieveIn, std::vector<bool> const& ignoreIn) {
+int ClusterSieve::SetSieve(int sieveIn, std::vector<char> const& sieveStatus) {
   DetermineTypeFromSieve( sieveIn );
-  if (ignoreIn.empty()) return 1;
+  if (sieveStatus.empty()) return 1;
   frameToIdx_.clear();
-  frameToIdx_.assign( ignoreIn.size(), -1 );
+  frameToIdx_.assign( sieveStatus.size(), -1 );
   unsigned int idx = 0;
-  for (unsigned int frame = 0; frame < ignoreIn.size(); ++frame)
+  for (unsigned int frame = 0; frame < sieveStatus.size(); ++frame)
   {
-    if ( !ignoreIn[frame] )
+    if ( sieveStatus[frame] == 'F' )
       frameToIdx_[frame] = idx++;
   }
+  actualNframes_ = (int)idx;
+  MakeIdxToFrame();
   return 0;
 }
 
-// ClusterSieve::Frames()
-ClusterSieve::SievedFrames ClusterSieve::Frames() const {
-  SievedFrames frames;
+// ClusterSieve::MakeIdxToFrame()
+void ClusterSieve::MakeIdxToFrame() {
+  idxToFrame_.clear();
+  idxToFrame_.reserve( actualNframes_ );
   for (unsigned int frame = 0; frame != frameToIdx_.size(); frame++)
   {
     if (frameToIdx_[frame] != -1)
-      frames.push_back( frame );
+      idxToFrame_.push_back( frame );
   }
-  return frames;
 }
 
 size_t ClusterSieve::DataSize() const {
   return ( sizeof(type_) + sizeof(int) +
-           (frameToIdx_.capacity()*sizeof(int) + sizeof(frameToIdx_)) );
+           (frameToIdx_.capacity()*sizeof(int) + sizeof(frameToIdx_)) +
+           (idxToFrame_.capacity()*sizeof(int) + sizeof(idxToFrame_)) );
 }

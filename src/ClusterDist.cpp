@@ -1,11 +1,8 @@
 #include <cmath>
 #include "ClusterDist.h"
 #include "Constants.h" // RADDEG, DEGRAD
-#include "ProgressBar.h"
-#ifdef _OPENMP
-#  include <omp.h>
-#endif
 // TODO: All DataSet stuff const&
+
 /// Calculate smallest difference between two angles (in degrees).
 static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);
@@ -91,27 +88,6 @@ ClusterDist_Num::ClusterDist_Num( DataSet* dsIn ) :
     dcalc_ = DistCalc_Std;
 }
 
-void ClusterDist_Num::PairwiseDist(ClusterMatrix& frameDistances, 
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-#pragma omp parallel private(f1, f2)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    for (f2 = f1 + 1; f2 < f2end; f2++)
-      frameDistances.SetElement( f1, f2, dcalc_(data_->Dval(frames[f1]), 
-                                                data_->Dval(frames[f2])) );
-  }
-#ifdef _OPENMP
-}
-#endif
-}
-
 double ClusterDist_Num::FrameDist(int f1, int f2) {
   return dcalc_(data_->Dval(f1), data_->Dval(f2));
 }
@@ -148,6 +124,10 @@ void ClusterDist_Num::FrameOpCentroid(int frame, Centroid* centIn, double oldSiz
                                        data_->Meta().IsTorsionArray(), oldSize, OP,
                                        cent->sumx_, cent->sumy_);
 }
+
+std::string ClusterDist_Num::Description() const {
+  return "data " + data_->Meta().PrintName();
+}
  
 // ---------- Distance calc routines for multiple DataSets (Euclid) ------------
 ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
@@ -159,36 +139,6 @@ ClusterDist_Euclid::ClusterDist_Euclid(DsArray const& dsIn)
     else
       dcalcs_.push_back( DistCalc_Std );
   }
-}
-
-void ClusterDist_Euclid::PairwiseDist(ClusterMatrix& frameDistances,
-                                      ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  double dist, diff;
-  DcArray::iterator dcalc;
-  D1Array::iterator ds;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-#pragma omp parallel private(f1, f2, dist, diff, dcalc, ds)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      dist = 0.0;
-      dcalc = dcalcs_.begin();
-      for (ds = dsets_.begin(); ds != dsets_.end(); ++ds, ++dcalc) {
-        diff = (*dcalc)((*ds)->Dval(frames[f1]), (*ds)->Dval(frames[f2]));
-        dist += (diff * diff);
-      }
-      frameDistances.SetElement( f1, f2, sqrt(dist) );
-    }
-  }
-#ifdef _OPENMP
-}
-#endif
 }
 
 double ClusterDist_Euclid::FrameDist(int f1, int f2) {
@@ -270,6 +220,16 @@ void ClusterDist_Euclid::FrameOpCentroid(int frame, Centroid* centIn, double old
 //  mprintf("\n");
 }
 
+std::string ClusterDist_Euclid::Description() const {
+  std::string description("data ");
+  for (D1Array::const_iterator ds = dsets_.begin(); ds != dsets_.end(); ++ds)
+    if (ds == dsets_.begin())
+      description.append( (*ds)->Meta().PrintName() );
+    else
+      description.append( "," + (*ds)->Meta().PrintName() );
+  return description;
+}
+
 // ---------- Distance calc routines for COORDS DataSet using DME --------------
 ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
   coords_((DataSet_Coords*)dIn),
@@ -277,33 +237,6 @@ ClusterDist_DME::ClusterDist_DME(DataSet* dIn, AtomMask const& maskIn) :
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
-}
-
-void ClusterDist_DME::PairwiseDist(ClusterMatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-#pragma omp parallel private(f1, f2) firstprivate(frm1, frm2)
-{
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) { 
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      frameDistances.SetElement( f1, f2, frm1_.DISTRMSD( frm2 ) );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-} // END pragma omp parallel
-#endif
 }
 
 double ClusterDist_DME::FrameDist(int f1, int f2) {
@@ -374,6 +307,10 @@ void ClusterDist_DME::FrameOpCentroid(int frame, Centroid* centIn, double oldSiz
   }
 }
 
+std::string ClusterDist_DME::Description() const {
+  return "dme " + mask_.MaskExpression();
+}
+
 // ---------- Distance calc routines for COORDS DataSets using RMSD ------------
 ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn, 
                                  bool nofit, bool useMass) :
@@ -384,42 +321,6 @@ ClusterDist_RMS::ClusterDist_RMS(DataSet* dIn, AtomMask const& maskIn,
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
-}
-
-void ClusterDist_RMS::PairwiseDist(ClusterMatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  double rmsd;
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-  ParallelProgress progress(f1end);
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(frm1, frm2, progress)
-{
-  progress.SetThread(omp_get_thread_num());
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    progress.Update(f1);
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      if (nofit_) 
-        rmsd = frm1_.RMSD_NoFit( frm2, useMass_ );
-      else
-        rmsd = frm1_.RMSD( frm2, useMass_ );
-      frameDistances.SetElement( f1, f2, rmsd );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-} // END pragma omp parallel
-#endif
-  progress.Finish();
 }
 
 double ClusterDist_RMS::FrameDist(int f1, int f2) {
@@ -507,6 +408,13 @@ void ClusterDist_RMS::FrameOpCentroid(int frame, Centroid* centIn, double oldSiz
   }
 }
 
+std::string ClusterDist_RMS::Description() const {
+  std::string description("rms " + mask_.MaskExpression());
+  if (nofit_) description.append(" nofit");
+  if (useMass_) description.append(" mass");
+  return description;
+}
+
 // ---------- Distance calc routines for COORDS DataSets using SRMSD -----------
 ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn, 
                                      bool nofit, bool useMass, int debugIn) :
@@ -516,42 +424,6 @@ ClusterDist_SRMSD::ClusterDist_SRMSD(DataSet* dIn, AtomMask const& maskIn,
 {
   frm1_.SetupFrameFromMask(mask_, coords_->Top().Atoms());
   frm2_ = frm1_;
-}
-
-void ClusterDist_SRMSD::PairwiseDist(ClusterMatrix& frameDistances,
-                                   ClusterSieve::SievedFrames const& frames)
-{
-  double rmsd;
-  int f1, f2;
-  Frame frm2 = frm1_;
-  int f2end = (int)frames.size();
-  int f1end = f2end - 1;
-  ParallelProgress progress(f1end);
-#ifdef _OPENMP
-  Frame frm1 = frm1_;
-# define frm1_ frm1
-  SymmetricRmsdCalc SRMSD_OMP = SRMSD_;
-# define SRMSD_ SRMSD_OMP
-#pragma omp parallel private(f1, f2, rmsd) firstprivate(SRMSD_OMP, frm1, frm2, progress)
-{
-  progress.SetThread(omp_get_thread_num());
-#pragma omp for schedule(dynamic)
-#endif
-  for (f1 = 0; f1 < f1end; f1++) {
-    progress.Update(f1);
-    coords_->GetFrame( frames[f1], frm1_, mask_ );
-    for (f2 = f1 + 1; f2 < f2end; f2++) {
-      coords_->GetFrame( frames[f2], frm2,  mask_ );
-      rmsd = SRMSD_.SymmRMSD(frm1_, frm2);
-      frameDistances.SetElement( f1, f2, rmsd );
-    }
-  }
-#ifdef _OPENMP
-# undef frm1_
-# undef SRMSD_
-} // END pragma omp parallel
-#endif
-  progress.Finish();
 }
 
 double ClusterDist_SRMSD::FrameDist(int f1, int f2) {
@@ -633,4 +505,11 @@ void ClusterDist_SRMSD::FrameOpCentroid(int frame, Centroid* centIn, double oldS
     cent->cframe_ -= frm2_;
     cent->cframe_.Divide( oldSize - 1 );
   }
+}
+
+std::string ClusterDist_SRMSD::Description() const {
+  std::string description("srmsd " + mask_.MaskExpression());
+  if (!SRMSD_.Fit()) description.append(" nofit");
+  if (SRMSD_.UseMass()) description.append(" mass");
+  return description;
 }

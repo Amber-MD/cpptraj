@@ -5,9 +5,10 @@
 #Cluster 3 has average-distance-to-centroid 0.000000
 #DBI: 0.000000
 #pSF: 544458533798691.875000
+#SSR/SST: 1.000000
 #Algorithm: HierAgglo linkage average-linkage nclusters 1 epsilon 0.8
 XXXXXXXXXX..............................
 ..........XXXXXXXXXX....................
 ....................XXXXXXXXXX..........
 ..............................XXXXXXXXXX
-#Representative frames: 4 11 25 31
+#Representative frames: 1 11 21 31

@@ -54,10 +54,7 @@ void Cluster_Kmeans::ClusterResults(CpptrajFile& outfile) const {
 // Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
   // First determine which frames are being clustered.
-  // FIXME: Can this just be the sieved array?
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
-    if (!FrameDistances_.IgnoringRow( frame ))
-      FramesToCluster_.push_back( frame );
+  FramesToCluster_ = FrameDistances().FramesToCluster();
 
   // Determine seeds
   FindKmeansSeeds();
@@ -218,7 +215,7 @@ int Cluster_Kmeans::FindKmeansSeeds() {
     for (int candidateIdx = frameIdx; candidateIdx < frameCount; candidateIdx++)
     {
       int candidateFrame = FramesToCluster_[ candidateIdx ];
-      double dist = FrameDistances_.GetFdist( seedFrame, candidateFrame );
+      double dist = FrameDistances().GetFdist( seedFrame, candidateFrame );
       if (dist > bestDistance)
       {
         bestDistance = dist;
@@ -250,7 +247,7 @@ int Cluster_Kmeans::FindKmeansSeeds() {
         for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
         {
           int seedFrame = FramesToCluster_[ SeedIndices_[checkIdx] ];
-          double dist = FrameDistances_.GetFdist( candidateFrame, seedFrame );
+          double dist = FrameDistances().GetFdist( candidateFrame, seedFrame );
           if (dist < nearestDist || nearestDist < 0.0)
             nearestDist = dist;
         }
