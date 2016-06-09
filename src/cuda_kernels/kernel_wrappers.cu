@@ -1,8 +1,6 @@
-#ifdef DEBUG_CUDA
-#include <cstdio>
-#endif
 
-#include "DistRoutines.h"
+#include <cstdio>
+#include "../DistRoutines.h"
 
 
 #define BLOCKDIM 512
