@@ -42,9 +42,9 @@ int Cluster_ReadInfo::Cluster() {
   if (nclusters == -1) return Err(2);
   int nframes = infoLine.getKeyInt("clusters", -1);
   if (nframes == -1) return Err(3);
-  if (nframes != (int)FrameDistances_.Nframes()) {
+  if (nframes != (int)FrameDistances().OriginalNframes()) {
     mprinterr("Error: # frames in cluster info file (%i) does not match"
-              " current # frames (%zu)\n", nframes, FrameDistances_.Nframes());
+              " current # frames (%zu)\n", nframes, FrameDistances().OriginalNframes());
     return 1;
   }
   // Scan down to clusters

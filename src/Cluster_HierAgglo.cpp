@@ -69,7 +69,7 @@ void Cluster_HierAgglo::InitializeClusterDistances() {
                                            F1 != C1->endframe(); ++F1)
             for (ClusterNode::frame_iterator F2 = C2->beginframe();
                                              F2 != C2->endframe(); ++F2)
-              sum += FrameDistances_.GetFdist( *F1, *F2 );
+              sum += FrameDistances().GetFdist( *F1, *F2 );
           SumDistToCluster_.setElement( C1->Num(), C2->Num(), sum );
           double total = (double)(C1->Nframes() * C2->Nframes());
           ClusterDistances_.SetElement( C1->Num(), C2->Num(), sum / total );
@@ -112,8 +112,8 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-10);
   // Build initial clusters.
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
-    if (!FrameDistances_.IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); frame++) {
+    if (!FrameDistances().FrameWasSieved( frame ))
       AddCluster( ClusterDist::Cframes(1, frame) );
   }
   mprintf("\t%i initial clusters.\n", Nclusters());
@@ -270,13 +270,13 @@ void Cluster_HierAgglo::calcMinDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist < min ) min = Dist;
       }
     }
     //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), min );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
   }
 }
 
@@ -301,13 +301,13 @@ void Cluster_HierAgglo::calcMaxDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist > max ) max = Dist;
       }
     }
     //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), max );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
   }
 }
 
@@ -333,7 +333,7 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
         N++;
@@ -341,6 +341,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     }
     double Dist = sumDist / N;
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), Dist );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }
 }

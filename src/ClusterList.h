@@ -2,14 +2,14 @@
 #define INC_CLUSTERLIST_H
 #include <list>
 #include "ArgList.h"
-#include "ClusterNode.h" 
+#include "ClusterNode.h"
+#include "ClusterMatrix.h"
 // Class: ClusterList
 /** This base class holds all the individual clusters, as well as routines 
   * that can be used to obtain information on clusters after clustering.
   */
 class ClusterList {
   public:
-    enum DistModeType   { USE_FRAMES = 0, USE_FILE  };
     enum DistMetricType { RMS = 0, DME, SRMSD, DATA };
     static const char* MetricString( DistMetricType );
     ClusterList();
@@ -22,9 +22,10 @@ class ClusterList {
     void Summary_Part(std::string const&,int,std::vector<int> const&);
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters();
-
-    int CalcFrameDistances(std::string const&, ClusterDist::DsArray const&, DistModeType, 
-                           DistMetricType, bool, bool, std::string const&, int, int);
+    /// Set up appropriate cluster distance calculation
+    int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
+    /// Calculate distances between frames if necessary.
+    int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() = 0;
@@ -47,24 +48,26 @@ class ClusterList {
     virtual void ClusterResults(CpptrajFile&) const = 0;
 
     void AddSievedFramesByCentroid();
+    DataSet_Cmatrix const& FrameDistances() const { return *frameDistances_; }
     /// Iterator over clusters
     typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
-    /// Distances between each frame.
-    ClusterMatrix FrameDistances_;
     /// Distances between each cluster.
     ClusterMatrix ClusterDistances_;
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
     /// Add specified frames to a new cluster.
     int AddCluster(ClusterDist::Cframes const&);
+  private:
+    static const char* XMGRACE_COLOR[];
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.
     double ComputePseudoF(CpptrajFile&);
-  private:
-    static const char* XMGRACE_COLOR[];
+
+    /// Hold pointer to matrix containing distances between each frame.
+    DataSet_Cmatrix* frameDistances_;
 };
 #endif

@@ -6,6 +6,7 @@
 #Cluster 4 has average-distance-to-centroid 0.000000
 #DBI: 0.475961
 #pSF: 350.265658
+#SSR/SST: 0.935874
 #Algorithm: HierAgglo linkage average-linkage nclusters 5 epsilon 4
 .............XXXXXXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXX.XXXXXXXXXX.......XXXX..........................
 .......XXXX...................................................................XXXXX..XXXX.XXXXXXXXXXX

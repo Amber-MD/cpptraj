@@ -16,6 +16,15 @@ class Analysis_Clustering: public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    void CreateCnumvtime( ClusterList const&, unsigned int );
+    void CreateCpopvtime( ClusterList const&, unsigned int );
+    void ClusterLifetimes( ClusterList const&, unsigned int );
+    void NclustersObserved(ClusterList const&, unsigned int);
+    void WriteClusterTraj( ClusterList const& );
+    void WriteAvgStruct( ClusterList const& );
+    void WriteSingleRepTraj( ClusterList const& );
+    void WriteRepTraj( ClusterList const& );
+
     DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.
     DataSet_Coords* coords_;    ///< Hold coordinates of frames being clustered.
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
@@ -29,7 +38,9 @@ class Analysis_Clustering: public Analysis {
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.
+    DataSet* pw_dist_;          ///< Cluster pairwise distance matrix dataset
     DataFile* cpopvtimefile_;   ///< Cluster pop v time file.
+    DataFile* pwd_file_;        ///< Data file to write pairwise distance matrix to.
     std::string summaryfile_;   ///< Summary file name
     std::string halffile_;      ///< 1st/2nd half summary file name
     std::string clusterfile_;   ///< Cluster trajectory base filename.
@@ -37,7 +48,6 @@ class Analysis_Clustering: public Analysis {
     std::string reptrajfile_;   ///< Cluster rep to separate trajectory filename.
     std::string avgfile_;       ///< Cluster traj average structure filename.
     std::string clusterinfo_;   ///< Name for Ptraj-like cluster output file.
-    FileName pairdistfile_;     ///< Name of pairwise-distances file.
     std::string sil_file_;      ///< Prefix name of file for cluster silhouette.
     bool nofitrms_;             ///< If true do not best-fit when calc RMSD.
     ClusterList::DistMetricType metric_;
@@ -45,29 +55,16 @@ class Analysis_Clustering: public Analysis {
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };
     normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
-    bool load_pair_;            ///< If true, previously calcd pair dist file will be used if found
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
-    ClusterDist::DsArray cluster_dataset_;  ///< DataSet(s) to use for clustering.
-    /// Cluster trajectory format.
-    TrajectoryFile::TrajFormatType clusterfmt_;
-    /// Cluster all rep single trajectory format.
-    TrajectoryFile::TrajFormatType singlerepfmt_;
-    /// Cluster rep to separate trajectory format.
-    TrajectoryFile::TrajFormatType reptrajfmt_;
-    /// Cluster traj average structure file format.
-    TrajectoryFile::TrajFormatType avgfmt_;
+    ClusterDist::DsArray cluster_dataset_;        ///< DataSet(s) to use for clustering.
+    TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
+    TrajectoryFile::TrajFormatType singlerepfmt_; ///< Cluster all rep single trajectory format.
+    TrajectoryFile::TrajFormatType reptrajfmt_;   ///< Cluster rep to separate trajectory format.
+    TrajectoryFile::TrajFormatType avgfmt_;       ///< Cluster traj average structure file format.
     int debug_;
-    static const char* PAIRDISTFILE;
-
-    void CreateCnumvtime( ClusterList const&, int );
-    void CreateCpopvtime( ClusterList const&, int );
-    void ClusterLifetimes( ClusterList const&, int );
-    void NclustersObserved(ClusterList const&, int);
-    void WriteClusterTraj( ClusterList const& );
-    void WriteAvgStruct( ClusterList const& );
-    void WriteSingleRepTraj( ClusterList const& );
-    void WriteRepTraj( ClusterList const& );
+    static const char* PAIRDISTFILE_;              ///< Default pairwise dist file name.
+    static DataFile::DataFormatType PAIRDISTTYPE_; ///< Default pairwise dist file type.
 };
 #endif

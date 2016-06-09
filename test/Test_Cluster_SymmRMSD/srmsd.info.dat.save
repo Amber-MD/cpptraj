@@ -3,6 +3,7 @@
 #Cluster 1 has average-distance-to-centroid 0.000001
 #DBI: 0.000003
 #pSF: 3850225318614.458008
+#SSR/SST: 1.000000
 #Algorithm: HierAgglo linkage average-linkage nclusters 1 epsilon 0.8
 XXXXXXXXXXXXXXXXXXXX....................
 ....................XXXXXXXXXXXXXXXXXXXX

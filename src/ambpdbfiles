@@ -25,6 +25,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Matrix_3x3.cpp \
               Mol2File.cpp \
               NameType.cpp \
+              NC_Routines.cpp \
               NetcdfFile.cpp \
               OutputTrajCommon.cpp \
               ParmFile.cpp \
