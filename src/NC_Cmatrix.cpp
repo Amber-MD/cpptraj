@@ -342,13 +342,17 @@ NC_Cmatrix::~NC_Cmatrix() {}
 int NC_Cmatrix::OpenCmatrixRead(FileName const&, int&) { return 1; }
 double NC_Cmatrix::GetCmatrixElement(unsigned int, unsigned int) const { return 0.0; }
 double NC_Cmatrix::GetCmatrixElement(unsigned int) const { return 0.0; }
-int NC_Cmatrix::CreateCmatrix(FileName const&, unsigned int, unsigned int, int) {
+std::vector<char> NC_Cmatrix::GetSieveStatus() const { return std::vector<char>(); }
+int NC_Cmatrix::GetCmatrix(float*) const { return 1; }
+int NC_Cmatrix::CreateCmatrix(FileName const&, unsigned int, unsigned int, int, std::string const&)
+{
   mprinterr("Error: Cpptraj was compiled without NetCDF. Cannot create NetCDF matrix file.\n");
   return 1;
 }
-int NC_Cmatrix::WriteFramesArray(std::vector<int> const&) { return 1; }
-int NC_Cmatrix::WriteCmatrixElement(unsigned int, unsigned int, double) { return 1; }
+int NC_Cmatrix::WriteFramesArray(std::vector<int> const&) const { return 1; }
+int NC_Cmatrix::WriteCmatrixElement(unsigned int, unsigned int, double) const { return 1; }
+int NC_Cmatrix::WriteCmatrix(const float*) const { return 1; }
 void NC_Cmatrix::CloseCmatrix() {}
-void NC_Cmatrix::Sync() {}
+void NC_Cmatrix::Sync() const {}
 int NC_Cmatrix::ReopenSharedWrite(FileName const&) { return 1; }
 #endif
