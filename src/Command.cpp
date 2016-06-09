@@ -21,6 +21,7 @@
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SequenceAlign.h"
+#include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -195,6 +196,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
   Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
 # endif

@@ -236,6 +236,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
+        Exec_ViewRst.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -313,7 +314,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         TrajIOarray.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
-        Vec3.cpp
+        Vec3.cpp \
+        ViewRst.cpp
 
 CSOURCES= molsurf.c
 

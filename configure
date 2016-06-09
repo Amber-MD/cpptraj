@@ -514,6 +514,7 @@ WINDOWS="no"
 CROSS_COMPILE="no"
 USECUDA=0
 CUDA_TARGET=""
+CLEAN='yes' # Clean source directory if configure is successful
 
 # Private variables
 quadmath=""
@@ -693,6 +694,10 @@ while [[ ! -z $1 ]] ; do
     "-openblas")
       echo "Using OpenBLAS"
       USEOPENBLAS=1
+      ;;
+    "-noclean" )
+      echo "Source directory will not be cleaned after 'configure'."
+      CLEAN='no'
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -1266,16 +1271,16 @@ EXE=$EXE
 EOF
 
 # Create directories if necessary
-if [[ ! -e $CPPTRAJBIN ]] ; then
+if [ ! -e "$CPPTRAJBIN" ] ; then
   mkdir $CPPTRAJBIN
 fi
-if [[ ! -e $CPPTRAJLIB ]] ; then
+if [ ! -e "$CPPTRAJLIB" ] ; then
   mkdir $CPPTRAJLIB
 fi
 
 # Clean the source directory if necessary.
-if [[ -f "src/main.o" ]] ; then
-  echo "Cleaning previous compile."
+if [ "$CLEAN" = 'yes' ] ; then
+  echo 'Cleaning source directory.'
   cd src && make clean > /dev/null 2> /dev/null
 fi
 
