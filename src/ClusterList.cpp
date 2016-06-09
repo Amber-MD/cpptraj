@@ -8,7 +8,6 @@
 #include "Constants.h"
 #include "ProgressBar.h"
 #include "StringRoutines.h"
-#include "DataSet_Cmatrix_NOMEM.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -426,24 +425,13 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
   }
   frameDistances_ = (DataSet_Cmatrix*)pwDistMatrixIn;
   if ( FrameDistances().NeedsSetup() ) {
-    if (FrameDistances().Type() == DataSet::CMATRIX_NOMEM) {
-      // Pairwise distances will be calculated on the fly. Call special setup
-      // routine that uses ClusterDist.
-      mprintf("\tNot caching pairwise distances. Using no memory but clustering will be slower.\n");
-      DataSet_Cmatrix_NOMEM& cm_nomem = static_cast<DataSet_Cmatrix_NOMEM&>( *frameDistances_ );
-      if (cm_nomem.SetupSieveAndCdist( dataSets[0]->Size(), sieve, sieveSeed, Cdist_ )) {
-        mprinterr("Error: Could not setup no-memory pairwise distance calc.\n");
-        return 1;
-      }
-    } else {
-      // Calculate pairwise distances from input DataSet(s). Base total number
-      // of frames on first DataSet size.
+    // Set up cluster matrix with sieving info. Base total number
+    // of frames on first DataSet size.
+    if (frameDistances_->SetupWithSieve( Cdist_, dataSets[0]->Size(), sieve, sieveSeed ))
+      return 1;
+    // If cluster matrix needs calculation (i.e. not NOMEM), perform it.
+    if (FrameDistances().NeedsCalc()) {
       mprintf("\tCalculating pair-wise distances.\n");
-      // Set up ClusterMatrix with sieve.
-      if (frameDistances_->SetupWithSieve( dataSets[0]->Size(), sieve, sieveSeed )) {
-        mprinterr("Error: Could not setup matrix for pair-wise distances.\n");
-        return 1; 
-      }
       ClusterSieve::SievedFrames const& frames = FrameDistances().FramesToCluster();
       int f2end = (int)frames.size();
       int f1end = f2end - 1;
@@ -478,6 +466,7 @@ int ClusterList::CalcFrameDistances(DataSet* pwDistMatrixIn,
     // Currently this is only for DataSet_Cmatrix_DISK
     frameDistances_->Complete();
   } else
+    // Pairwise distance matrix already set up
     mprintf("\tUsing existing pairwise distances from '%s'\n", FrameDistances().legend());
   mprintf("\tMemory used by pair-wise matrix and other cluster data: %s\n",
           ByteString(FrameDistances().DataSize(), BYTE_DECIMAL).c_str());

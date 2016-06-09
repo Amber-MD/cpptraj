@@ -14,11 +14,9 @@ void DataSet_Cmatrix_NOMEM::WriteBuffer(CpptrajFile& outfile, SizeArray const& p
                                                      sievedFrames_.IdxToFrame(xidx) ));
 }
 
-int DataSet_Cmatrix_NOMEM::SetupSieveAndCdist(size_t sizeIn, size_t sieveIn, int iseed,
-                                              ClusterDist* cdistIn)
+int DataSet_Cmatrix_NOMEM::SetCdist(ClusterDist* cdistIn)
 {
   if (cdistIn == 0) return 1;
-  if (SetupWithSieve(sizeIn, sieveIn, iseed)) return 1;
   cdist_ = cdistIn->Copy();
   return 0;
 }

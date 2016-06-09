@@ -21,18 +21,22 @@ class DataSet_Cmatrix_MEM : public DataSet_Cmatrix {
     /// Set element at column/row to given value
     void SetElement(int col, int row, double val) { Mat_.setElement(col, row, val); }
     /// \return Actual number of elements in matrix
-    size_t Nelements()        const { return Mat_.size();               }
+    size_t Nelements()                      const { return Mat_.size();             }
     /// \return size used by matrix in bytes
     size_t DataSize() const;
     /// \return Actual number of rows in the matrix
-    size_t Nrows() const { return Mat_.Nrows(); }
+    size_t Nrows()                          const { return Mat_.Nrows();            }
     /// \return Element at given index.
-    double GetElement(unsigned int idx) const { return Mat_[idx]; }
+    double GetElement(unsigned int idx)     const { return Mat_[idx];               }
     /// \return true if matrix needs setup
-    bool NeedsSetup() const { return (Mat_.size() < 1); }
+    bool NeedsSetup()                       const { return (Mat_.size() < 1);       }
+    /// \return true if matrix needs calculation
+    bool NeedsCalc()                        const { return true;                    }
+    /// Indicate that no more distances will be added to matrix.
     void Complete() {}
   protected:
     int AllocateCmatrix(size_t);
+    int SetCdist(ClusterDist*) { return 0; }
   private:
     Matrix<float> Mat_;
 };

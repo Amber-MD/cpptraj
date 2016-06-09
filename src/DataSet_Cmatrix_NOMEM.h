@@ -1,7 +1,6 @@
 #ifndef INC_DATASET_CMATRIX_NOMEM_H
 #define INC_DATASET_CMATRIX_NOMEM_H
 #include "DataSet_Cmatrix.h"
-#include "ClusterDist.h"
 /// Used when no pairwise distance matrix is to be stored; all calcs done on the fly.
 class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
   public:
@@ -28,11 +27,13 @@ class DataSet_Cmatrix_NOMEM : public DataSet_Cmatrix {
     inline double GetElement(unsigned int) const;
     /// \return true if matrix needs setup
     bool NeedsSetup() const { return (cdist_ == 0); }
+    /// \return true if matrix needs calculation
+    bool NeedsCalc() const  { return false; }
+    /// Indicate that no more distances will be added to matrix.
     void Complete() {}
-    // -------------------------------------------
-    int SetupSieveAndCdist(size_t, size_t, int, ClusterDist*);
   protected:
     int AllocateCmatrix(size_t) { return 0; }
+    int SetCdist(ClusterDist*);
   private:
     ClusterDist* cdist_;
 };

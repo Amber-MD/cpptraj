@@ -11,10 +11,11 @@ void DataSet_Cmatrix::PrintElements() const {
 /** Set up sieving info as necessary and set up cluster based on actual
   * number of frames to be clustered.
   */
-int DataSet_Cmatrix::SetupWithSieve(size_t sizeIn, size_t sieveIn, int iseed)
+int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, size_t sieveIn, int iseed)
 {
   if (sievedFrames_.SetSieve( sieveIn, sizeIn, iseed )) return 1;
   if (AllocateCmatrix( sievedFrames_.ActualNframes() )) return 1;
+  if (SetCdist(CdistIn)) return 1;
   if (sievedFrames_.Type() != ClusterSieve::NONE)
     mprintf("\tPair-wise matrix set up with sieve, %zu frames, %i sieved frames.\n",
             sievedFrames_.MaxFrames(), sievedFrames_.ActualNframes());

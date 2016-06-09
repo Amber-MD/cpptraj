@@ -2,6 +2,7 @@
 #define INC_DATASET_CMATRIX_H
 #include "DataSet.h"
 #include "ClusterSieve.h"
+#include "ClusterDist.h"
 /// Base class for pairwise distance matrices for clustering.
 /** This matrix allows for sieving, i.e. it may hold less actual data than
   * the original size would warrant. For example, if there were originally
@@ -20,6 +21,9 @@ class DataSet_Cmatrix : public DataSet {
     // NOTE: Disabled for all DataSet_Cmatrix sets
     void Add(size_t, const void*) {}
     int Append(DataSet*) { return 1; }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
     // ----- Cmatrix functions -------------------
     /// \return Distance between given frames (indexed by sievedFrames).
     virtual double GetFdist(int, int) const = 0;
@@ -35,6 +39,8 @@ class DataSet_Cmatrix : public DataSet {
     virtual double GetElement(unsigned int) const = 0;
     /// \return true if matrix needs setup
     virtual bool NeedsSetup() const = 0;
+    /// \return true if matrix needs calculation
+    virtual bool NeedsCalc() const = 0;
     /// Indicate that no more distances will be added to matrix.
     virtual void Complete() = 0;
     // ----- Sieved frames functions -------------
@@ -50,13 +56,14 @@ class DataSet_Cmatrix : public DataSet {
     bool FrameWasSieved(int f)          const { return (sievedFrames_.FrameToIdx(f) == -1); }
     // -------------------------------------------
     /// Allocate matrix and sieve info for given size and sieve
-    int SetupWithSieve(size_t, size_t, int);
+    int SetupWithSieve(ClusterDist*, size_t, size_t, int);
     /// Allocate sieve info from given array.
     int SetSieveFromArray(std::vector<char> const&, int);
     /// Print matrix elements to STDOUT
     void PrintElements() const;
   protected:
     virtual int AllocateCmatrix(size_t) = 0;
+    virtual int SetCdist(ClusterDist*) = 0;
     ClusterSieve sievedFrames_; ///< Hold info on frames actually being processed. TODO make private
 };
 #endif
