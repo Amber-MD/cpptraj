@@ -83,6 +83,8 @@ class ClusterDist {
     virtual ClusterDist* Copy() = 0;
     /// Update centroid by performing given operation between given frame and centroid.
     virtual void FrameOpCentroid(int, Centroid*, double, CentOpType) = 0;
+    /// \return string containing description of the distance metric
+    virtual std::string Description() const = 0;
   protected:
     typedef double (*DistCalc)(double,double);
 };
@@ -98,6 +100,7 @@ class ClusterDist_Num : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_Num( *this ); }
+    std::string Description() const;
   private:
     DataSet_1D* data_;
     DistCalc dcalc_;
@@ -114,6 +117,7 @@ class ClusterDist_Euclid : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_Euclid( *this ); }
+    std::string Description() const;
   private:
     typedef std::vector<DataSet_1D*> D1Array;
     D1Array dsets_;
@@ -132,6 +136,7 @@ class ClusterDist_DME: public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_DME( *this ); }
+    std::string Description() const;
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
@@ -150,6 +155,7 @@ class ClusterDist_RMS : public ClusterDist {
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     Centroid* NewCentroid(Cframes const&);
     ClusterDist* Copy() { return new ClusterDist_RMS( *this ); }
+    std::string Description() const;
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
@@ -170,6 +176,7 @@ class ClusterDist_SRMSD : public ClusterDist {
     Centroid* NewCentroid(Cframes const&);
     void FrameOpCentroid(int, Centroid*, double, CentOpType);
     ClusterDist* Copy() { return new ClusterDist_SRMSD( * this ); }
+    std::string Description() const;
   private:
     DataSet_Coords* coords_;
     AtomMask mask_;
