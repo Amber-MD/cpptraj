@@ -404,6 +404,7 @@ int ClusterList::SetupCdist( ClusterDist::DsArray const& dataSets,
     else // TODO: More than just euclid
       Cdist_ = new ClusterDist_Euclid(dataSets);
   }
+  if (debug_ > 0) mprintf("DEBUG: ClusterDist= %s\n", Cdist_->Description().c_str());
   return 0;
 }
 
