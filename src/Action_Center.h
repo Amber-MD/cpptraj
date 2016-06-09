@@ -13,7 +13,7 @@ class Action_Center: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum CenterMode { ORIGIN = 0, BOXCTR, POINT };
+    enum CenterMode { ORIGIN = 0, BOXCTR, REF, POINT };
     AtomMask Mask_;
     CenterMode centerMode_;
     bool useMass_;

@@ -9,27 +9,40 @@ Action_Center::Action_Center() :
 { } 
 
 void Action_Center::Help() const {
-  mprintf("\t<mask> [origin] [mass]\n"
-          "\t [ %s [<refmask>]]\n  Center coordinates in <mask>.\n", DataSetList::RefArgs);
+  mprintf("\t<mask> [mass] {origin | point <X> <Y> <Z>|\n"
+          "\t %s [<refmask>]}\n"
+          "  Center coordinates in <mask> to specified point. If 'origin' is specified\n"
+          "  center on coordinate origin (0,0,0). If 'point' is specified center on\n"
+          "  point specified by XYZ. If a reference is specified center on selected\n"
+          "  atoms in the given reference. Otherwise center on box center.\n",
+           DataSetList::RefArgs);
 }
 
 // Action_Center::Init()
 Action::RetType Action_Center::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get keywords
-  if (actionArgs.hasKey("origin"))
-    centerMode_ = ORIGIN;
-  else
-    centerMode_ = BOXCTR;
   useMass_ = actionArgs.hasKey("mass");
   ReferenceFrame refFrm = init.DSL().GetReferenceFrame( actionArgs );
   if (refFrm.error()) return Action::ERR;
+  // Determine center mode.
+  if (!refFrm.empty())
+    centerMode_ = REF;
+  else if (actionArgs.hasKey("origin"))
+    centerMode_ = ORIGIN;
+  else if (actionArgs.hasKey("point")) {
+    centerMode_ = POINT;
+    refCenter_[0] = actionArgs.getNextDouble(0.0);
+    refCenter_[1] = actionArgs.getNextDouble(0.0);
+    refCenter_[2] = actionArgs.getNextDouble(0.0);
+  } else
+    centerMode_ = BOXCTR;
 
   // Get Masks
   Mask_.SetMaskString( actionArgs.GetMaskNext() );
   // Get reference mask if reference specified.
   AtomMask refMask;
-  if (!refFrm.empty()) {
+  if (centerMode_ == REF) {
     std::string rMaskExpr = actionArgs.GetMaskNext();
     if (rMaskExpr.empty())
       rMaskExpr = Mask_.MaskExpression();
@@ -41,7 +54,6 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, ActionInit& init, int d
       refCenter_ = refFrm.Coord().VCenterOfMass( refMask );
     else
       refCenter_ = refFrm.Coord().VGeometricCenter( refMask );
-    centerMode_ = POINT; 
   }
 
   mprintf("    CENTER: Centering coordinates using");
@@ -50,14 +62,17 @@ Action::RetType Action_Center::Init(ArgList& actionArgs, ActionInit& init, int d
   else
     mprintf(" geometric center");
   mprintf(" of atoms in mask (%s) to\n", Mask_.MaskString());
-  if (centerMode_ == POINT)
-    mprintf("\tcenter of mask (%s) in reference '%s'.\n", refMask.MaskString(),
-            refFrm.refName());
-  else if (centerMode_ == ORIGIN)
-    mprintf("\tcoordinate origin.\n");
-  else
-    mprintf("\tbox center.\n");
-
+  switch (centerMode_) {
+    case ORIGIN: mprintf("\tcoordinate origin.\n"); break;
+    case BOXCTR: mprintf("\tbox center.\n"); break;
+    case REF:
+      mprintf("\tcenter of mask (%s) in reference '%s'.\n", refMask.MaskString(),
+              refFrm.refName());
+      break;
+    case POINT:  mprintf("\tpoint (%g, %g, %g).\n",
+                         refCenter_[0], refCenter_[1], refCenter_[2]);
+      break;
+  }
   return Action::OK;
 }
 
@@ -93,7 +108,8 @@ Action::RetType Action_Center::DoAction(int frameNum, ActionFrame& frm) {
       center.Neg(); break;
     case BOXCTR: // Shift to box center
       center = frm.Frm().BoxCrd().Center() - center; break;
-    case POINT:  // Shift to reference point
+    case POINT:  // Shift to specified point
+    case REF:    // Shift to reference point
       center = refCenter_ - center; break;
   }
   frm.ModifyFrm().Translate(center);
