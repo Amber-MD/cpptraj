@@ -13,6 +13,11 @@ void DataSet_Cmatrix::PrintElements() const {
   */
 int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, size_t sieveIn, int iseed)
 {
+  if (CdistIn == 0) {
+    mprinterr("Internal Error: DataSet_Cmatrix::SetupWithSieve called with empty ClusterDist.\n");
+    return 1;
+  }
+  metricDescription_.assign( CdistIn->Description() );
   if (sievedFrames_.SetSieve( sieveIn, sizeIn, iseed )) return 1;
   if (AllocateCmatrix( sievedFrames_.ActualNframes() )) return 1;
   if (SetCdist(CdistIn)) return 1;

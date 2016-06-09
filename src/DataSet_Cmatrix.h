@@ -65,5 +65,7 @@ class DataSet_Cmatrix : public DataSet {
     virtual int AllocateCmatrix(size_t) = 0;
     virtual int SetCdist(ClusterDist*) = 0;
     ClusterSieve sievedFrames_; ///< Hold info on frames actually being processed. TODO make private
+  private:
+    std::string metricDescription_; ///< Hold description of distance metric used to calc matrix
 };
 #endif
