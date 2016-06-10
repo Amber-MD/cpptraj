@@ -26,7 +26,7 @@ __global__ void Action_ImageNonOrtho_no_center_GPU(double *D_,double *SolventMol
 
 
 
-void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3],double maxD,int  NMols, int NAtoms, float &time_gpu, ImagingType type, double box[3], double ucell[9], double recip[9])
+void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3],double maxD,int  NMols, int NAtoms, float &time_gpu, ImagingType type, double* box, double* ucell, double* recip)
 {
 
 
@@ -121,7 +121,7 @@ void Action_NoImage_Center(double *SolventMols_,double *D_, double maskCenter[3]
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_atoms,double maxD,int  NMols, int NAtoms,int NSAtoms, float &time_gpu, ImagingType type,double box[3], double ucell[9], double recip[9])
+void Action_NoImage_no_Center(double *SolventMols_,double *D_, double *Solute_atoms,double maxD,int  NMols, int NAtoms,int NSAtoms, float &time_gpu, ImagingType type,double* box, double* ucell, double* recip)
 {
 
 
