@@ -12,8 +12,8 @@
 #  include <cuda.h>
 
 // CUDA kernels
-extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&);
-extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&);
+extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&,ImagingType,double*,double*,double*);
+extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&,ImagingType,double*,double*,double*);
 #endif
 
 // CONSTRUCTOR
@@ -150,8 +150,7 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled()) {
 #   ifdef CUDA
-    mprinterr("Internal Error: 'closest' imaging not yet supported for CUDA build.\n");
-    return Action::ERR;
+    mprintf("Distances will be imaged for CUDA build.\n");
 #   else
     mprintf("\tDistances will be imaged.\n");
 #   endif
@@ -318,11 +317,17 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       V_atom_coords_[index + 2] = a[2];
     }
   }
-  // TODO handle imaging
+  
+
+  
+  Box frmBox = frm.Frm().BoxCrd();
+  Matrix_3x3 ucell, recip;
+  frm.Frm().BoxCrd().ToRecip(ucell, recip);
+
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_NoImage_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
-                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu );
+                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu , image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
   } else {
     int NSAtoms = distanceMask_.Nselected();
     for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
@@ -331,8 +336,9 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       U_atom_coords_[nsAtom*3 + 1] = a[1];
       U_atom_coords_[nsAtom*3 + 2] = a[2];
     }
+
     Action_NoImage_no_Center( V_atom_coords_, V_distances_, U_atom_coords_,
-                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu );
+                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu, image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
