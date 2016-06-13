@@ -2,9 +2,7 @@
 #define RSIZE 512
 
 // Forward declaration for non-orthorhombic distance calc.
-__device__ double NonOrtho_dist(double a0, double a1, double a2,
-        double b0, double b1, double b2,
-        const double *ucell);
+__device__ double NonOrtho_dist(double,double,double,double,double,double,const double*);
 
 // -----------------------------------------------------------------------------
 //try thread coarsening 
