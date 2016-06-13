@@ -3,21 +3,18 @@
 #endif
 #include "../DistRoutines.h"
 
-
 #define BLOCKDIM 512
-
-
 
 // ----- Device kernel definitions ---------------------------------------------
 // No imaging
-__global__ void Action_noImage_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, int Nmols , int NAtoms, int active_size);
-__global__ void Action_noImage_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, int Nmols , int NAtoms,int NSAtoms , int active_size);
+__global__ void kClosestDistsToPt_NoImage(double*,const double *,const double*,double,int,int,int);
+__global__ void kClosestDistsToAtoms_NoImage(double*,const double*,const double *,double,int,int,int,int);
 // Orthorhombic imaging
-__global__ void Action_ImageOrtho_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, double *box, int Nmols , int NAtoms, int active_size);
-__global__ void Action_ImageOrtho_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, double *box, int Nmols , int NAtoms,int NSAtoms , int active_size);
+__global__ void kClosestDistsToPt_Ortho(double*,const double*,const double*,double,const double*,int,int,int);
+__global__ void kClosestDistsToAtoms_Ortho(double*,const double*,const double*,double,const double*,int,int,int,int);
 // Non-orthorhombic imaging
-__global__ void Action_ImageNonOrtho_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, double *ucell, double *recip ,int Nmols , int NAtoms, int active_size);
-__global__ void Action_ImageNonOrtho_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, double *ucell, double *recip, int Nmols , int NAtoms,int NSAtoms , int active_size);
+__global__ void kClosestDistsToPt_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int);
+__global__ void kClosestDistsToAtoms_Nonortho(double*,const double*,const double*,double,const double*,const double*,int,int,int,int);
 // -----------------------------------------------------------------------------
 
 /** Calculate the closest distances between atoms in solvent molecules and 
@@ -37,19 +34,15 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
                            double maxD, int NMols, int NAtoms, ImagingType type,
                            const double* box, const double* ucell, const double* recip)
 {
-
-
   #ifdef DEBUG_CUDA
   cudaEvent_t start_event, stop_event;
   float time_gpu;
   #endif
-
   double *devI2Ptr;
   double *devI1Ptr;
   double *devO1Ptr;
   double *boxDev;
   double *ucellDev, *recipDev;
-
 
   cudaMalloc(((void **)(&devO1Ptr)),NMols * sizeof(double ));
   
@@ -58,8 +51,6 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   
   cudaMalloc(((void **)(&devI2Ptr)),NMols * NAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI2Ptr,SolventMols_,NMols * NAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
-
-
 
   if (type == ORTHO)
   {
@@ -74,8 +65,6 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
     cudaMemcpy(recipDev,recip, 9 * sizeof(double), cudaMemcpyHostToDevice);
   }
 
-
-
   int active_size  =  BLOCKDIM/NAtoms * NAtoms;
   int NBlocks = ceil(float(NMols)/ (BLOCKDIM));
 
@@ -88,7 +77,6 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   printf("NBlocks =  %d\n", NBlocks);
   printf("sizeof(double) = %d\n", sizeof(double));
   printf("About to launch kernel.\n");
-  
 
   cudaEventCreate(&start_event);
   cudaEventCreate(&stop_event);
@@ -97,17 +85,16 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
 
   switch (type) {
     case NOIMAGE:
-      Action_noImage_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD, NMols, NAtoms,active_size);
+      kClosestDistsToPt_NoImage<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD, NMols, NAtoms,active_size);
       break;
     case ORTHO:
-      Action_ImageOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,boxDev, NMols, NAtoms,active_size);
+      kClosestDistsToPt_Ortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,boxDev, NMols, NAtoms,active_size);
       break;
     case NONORTHO:
-      Action_ImageNonOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
+      kClosestDistsToPt_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
   }
 
   cudaThreadSynchronize();
-
 
   #ifdef DEBUG_CUDA
   cudaEventRecord(stop_event, 0);
@@ -116,7 +103,6 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
 
   printf("Done with kernel CUDA Kernel Time: %.2f\n", time_gpu);
   #endif
-
   
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
   cudaFree(devO1Ptr);
@@ -149,23 +135,15 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
                              double maxD, int NMols, int NAtoms, int NSAtoms, ImagingType type,
                              const double* box, const double* ucell, const double* recip)
 {
-
-
   #ifdef DEBUG_CUDA
   cudaEvent_t start_event, stop_event;
   float time_gpu;
   #endif
-
-
   double *devI3Ptr;
   double *devI2Ptr;
   double *devO1Ptr;
   double *boxDev;
   double *ucellDev, *recipDev;
- 
-  
-
-
 
   cudaMalloc(((void **)(&devO1Ptr)),NMols * sizeof(double ));
 
@@ -174,9 +152,6 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   
   cudaMalloc(((void **)(&devI3Ptr)), NSAtoms * 3 * sizeof(double ));
   cudaMemcpy(devI3Ptr,Solute_atoms,NSAtoms * 3 * sizeof(double ),cudaMemcpyHostToDevice);
-
-
-
 
   if (type == ORTHO)
   {
@@ -197,13 +172,12 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   dim3 dimGrid0 = dim3(NBlocks,1);
   dim3 dimBlock0 = dim3(BLOCKDIM,1);
 
-   #ifdef DEBUG_CUDA
+  #ifdef DEBUG_CUDA
   printf("NMols =  %d, NAtoms = %d\n", NMols, NAtoms); 
   printf("active_size =  %d\n", active_size);
   printf("NBlocks =  %d\n", NBlocks);
   printf("sizeof(double) = %d\n", sizeof(double));
   printf("About to launch kernel.\n");
-  
 
   cudaEventCreate(&start_event);
   cudaEventCreate(&stop_event);
@@ -212,13 +186,13 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
 
   switch (type) {
     case NOIMAGE:
-      Action_noImage_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, NMols, NAtoms,NSAtoms,active_size);
+      kClosestDistsToAtoms_NoImage<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, NMols, NAtoms,NSAtoms,active_size);
       break;
     case ORTHO:
-      Action_ImageOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, boxDev,  NMols, NAtoms,NSAtoms,active_size);
+      kClosestDistsToAtoms_Ortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, boxDev,  NMols, NAtoms,NSAtoms,active_size);
       break;
     case NONORTHO:
-      Action_ImageNonOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
+      kClosestDistsToAtoms_Nonortho<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
     break;
   }
   
@@ -231,8 +205,6 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
 
   printf("Done with kernel CUDA Kernel Time: %.2f\n", time_gpu);
   #endif
-
-
   
   cudaMemcpy(D_,devO1Ptr,NMols * sizeof(double ),cudaMemcpyDeviceToHost);
   cudaFree(devO1Ptr);
