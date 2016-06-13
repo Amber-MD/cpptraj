@@ -7,31 +7,40 @@
 
 
 
-// device kernel def
+// ----- Device kernel definitions ---------------------------------------------
+// No imaging
 __global__ void Action_noImage_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, int Nmols , int NAtoms, int active_size);
 __global__ void Action_noImage_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, int Nmols , int NAtoms,int NSAtoms , int active_size);
-
-
-//for imaging with ortho
+// Orthorhombic imaging
 __global__ void Action_ImageOrtho_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, double *box, int Nmols , int NAtoms, int active_size);
 __global__ void Action_ImageOrtho_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, double *box, int Nmols , int NAtoms,int NSAtoms , int active_size);
-
-//for imaging with NonOrtho
+// Non-orthorhombic imaging
 __global__ void Action_ImageNonOrtho_center_GPU(double *D_,double *maskCenter,double *SolventMols_,double maxD, double *ucell, double *recip ,int Nmols , int NAtoms, int active_size);
 __global__ void Action_ImageNonOrtho_no_center_GPU(double *D_,double *SolventMols_,double *Solute_atoms ,double maxD, double *ucell, double *recip, int Nmols , int NAtoms,int NSAtoms , int active_size);
+// -----------------------------------------------------------------------------
 
-////////////////////////
-
-
-
-
-
-void Action_Closest_Center(double *SolventMols_,double *D_, double maskCenter[3],double maxD,int  NMols, int NAtoms, float &time_gpu, ImagingType type, double* box, double* ucell, double* recip)
+/** Calculate the closest distances between atoms in solvent molecules and 
+  * the given point.
+  * \param SolventMols_ Coordinates for each atom of each solvent molecule.
+  * \param D_ Output distances for each molecule.
+  * \param maskCenter Point to calculate distances to.
+  * \param maxD Maximum possible distance.
+  * \param NMols Number of solvent molecules.
+  * \param NAtoms Number of atoms in each solvent molecule.
+  * \param type Imaging type (none, ortho, non-ortho).
+  * \param box Box coordinates.
+  * \param ucell Unit cell matrix.
+  * \param recip Fractional cell matrix.
+  */
+void Action_Closest_Center(const double *SolventMols_, double *D_, const double* maskCenter,
+                           double maxD, int NMols, int NAtoms, ImagingType type,
+                           const double* box, const double* ucell, const double* recip)
 {
 
 
   #ifdef DEBUG_CUDA
   cudaEvent_t start_event, stop_event;
+  float time_gpu;
   #endif
 
   double *devI2Ptr;
@@ -119,14 +128,29 @@ void Action_Closest_Center(double *SolventMols_,double *D_, double maskCenter[3]
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void Action_Closest_NoCenter(double *SolventMols_,double *D_, double *Solute_atoms,double maxD,int  NMols, int NAtoms,int NSAtoms, float &time_gpu, ImagingType type,double* box, double* ucell, double* recip)
+/** Calculate the closest distances between atoms in solvent molecules and
+  * each solute atom.
+  * \param SolventMols_ Coordinates for each atom of each solvent molecule.
+  * \param D_ Output distances for each molecule.
+  * \param Solute_atoms Coordinates for each solute atom.
+  * \param maxD Maximum possible distance.
+  * \param NMols Number of solvent molecules.
+  * \param NAtoms Number of atoms in each solvent molecule.
+  * \param NSAtoms Number of solute atoms.
+  * \param type Imaging type (none, ortho, non-ortho).
+  * \param box Box coordinates.
+  * \param ucell Unit cell matrix.
+  * \param recip Fractional cell matrix.
+  */
+void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const double *Solute_atoms,
+                             double maxD, int NMols, int NAtoms, int NSAtoms, ImagingType type,
+                             const double* box, const double* ucell, const double* recip)
 {
 
 
   #ifdef DEBUG_CUDA
   cudaEvent_t start_event, stop_event;
+  float time_gpu;
   #endif
 
 

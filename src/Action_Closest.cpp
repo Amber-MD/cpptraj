@@ -12,8 +12,8 @@
 #  include <cuda.h>
 
 // CUDA kernel wrappers
-extern void Action_Closest_Center(double*,double*,double[3],double,int,int,float&,ImagingType,double*,double*,double*);
-extern void Action_Closest_NoCenter(double*,double*,double*,double,int,int,int,float&,ImagingType,double*,double*,double*);
+extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImagingType,const double*,const double*,const double*);
+extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
 #endif
 
 // CONSTRUCTOR
@@ -304,7 +304,6 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   }
 #ifdef CUDA
 // -----------------------------------------------------------------------------
-  float elapsed_time_gpu;
   // Copy solvent atom coords to array
   int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to be same size due to setup
   for (int sMol = 0; sMol < NsolventMolecules_; ++sMol) {
@@ -326,7 +325,8 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
     Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
-                           maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu , image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
+                           maxD, NsolventMolecules_, NAtoms, image_.ImageType(),
+                           frmBox.boxPtr(), ucell.Dptr(), recip.Dptr() );
   } else {
     int NSAtoms = distanceMask_.Nselected();
     for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
@@ -337,7 +337,8 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     }
 
     Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
-                              maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu, image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
+                             maxD, NsolventMolecules_, NAtoms, NSAtoms, image_.ImageType(),
+                             frmBox.boxPtr(), ucell.Dptr(), recip.Dptr() );
   }
   // Copy distances back into SolventMols_
   for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
