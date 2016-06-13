@@ -11,9 +11,9 @@
 #  include <cuda_runtime_api.h>
 #  include <cuda.h>
 
-// CUDA kernels
-extern void Action_NoImage_Center(double*,double*,double[3],double,int,int,float&,ImagingType,double*,double*,double*);
-extern void Action_NoImage_no_Center(double*,double*,double*,double,int,int,int,float&,ImagingType,double*,double*,double*);
+// CUDA kernel wrappers
+extern void Action_Closest_Center(double*,double*,double[3],double,int,int,float&,ImagingType,double*,double*,double*);
+extern void Action_Closest_NoCenter(double*,double*,double*,double,int,int,int,float&,ImagingType,double*,double*,double*);
 #endif
 
 // CONSTRUCTOR
@@ -126,6 +126,9 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
             prefix_.c_str());
+# ifdef CUDA
+  mprintf("\tDistance calculations will be GPU-accelerated with CUDA.\n");
+# endif
   return Action::OK;
 }
 
@@ -148,13 +151,9 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled()) {
-#   ifdef CUDA
-    mprintf("Distances will be imaged for CUDA build.\n");
-#   else
+  if (image_.ImagingEnabled())
     mprintf("\tDistances will be imaged.\n");
-#   endif
-  } else
+  else
     mprintf("\tImaging off.\n"); 
   // LOOP OVER MOLECULES
   // 1: Check that all solvent molecules contain same # atoms. Solvent 
@@ -326,7 +325,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
-    Action_NoImage_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
+    Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
                            maxD, NsolventMolecules_, NAtoms, elapsed_time_gpu , image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
   } else {
     int NSAtoms = distanceMask_.Nselected();
@@ -337,7 +336,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       U_atom_coords_[nsAtom*3 + 2] = a[2];
     }
 
-    Action_NoImage_no_Center( V_atom_coords_, V_distances_, U_atom_coords_,
+    Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
                               maxD, NsolventMolecules_, NAtoms, NSAtoms, elapsed_time_gpu, image_.ImageType(), frmBox.boxPtr(), ucell.Dptr(), recip.Dptr());
   }
   // Copy distances back into SolventMols_
