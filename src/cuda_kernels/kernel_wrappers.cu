@@ -1,5 +1,6 @@
-
+#ifdef DEBUG_CUDA
 #include <cstdio>
+#endif
 #include "../DistRoutines.h"
 
 
@@ -94,14 +95,16 @@ void Action_Closest_Center(const double *SolventMols_, double *D_, const double*
   cudaEventRecord(start_event, 0);
   #endif
 
-  if(type == NOIMAGE)
-    Action_noImage_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD, NMols, NAtoms,active_size);
-  else if (type == ORTHO)
-    Action_ImageOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,boxDev, NMols, NAtoms,active_size);
-  else if (type == NONORTHO )
-    Action_ImageNonOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
-  else
-    printf("kernel_wrapper: error in Imagingtype\n");
+  switch (type) {
+    case NOIMAGE:
+      Action_noImage_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD, NMols, NAtoms,active_size);
+      break;
+    case ORTHO:
+      Action_ImageOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,boxDev, NMols, NAtoms,active_size);
+      break;
+    case NONORTHO:
+      Action_ImageNonOrtho_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr,devI1Ptr, devI2Ptr, maxD,ucellDev, recipDev, NMols, NAtoms,active_size);
+  }
 
   cudaThreadSynchronize();
 
@@ -207,14 +210,17 @@ void Action_Closest_NoCenter(const double *SolventMols_, double *D_, const doubl
   cudaEventRecord(start_event, 0);
   #endif
 
-  if(type == NOIMAGE)
-    Action_noImage_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, NMols, NAtoms,NSAtoms,active_size);
-  else if(type == ORTHO)
-    Action_ImageOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, boxDev,  NMols, NAtoms,NSAtoms,active_size);
-  else if (type == NONORTHO)
-    Action_ImageNonOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
-  else
-    printf("kernel_wrapper: error in type no center version\n");
+  switch (type) {
+    case NOIMAGE:
+      Action_noImage_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, NMols, NAtoms,NSAtoms,active_size);
+      break;
+    case ORTHO:
+      Action_ImageOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, boxDev,  NMols, NAtoms,NSAtoms,active_size);
+      break;
+    case NONORTHO:
+      Action_ImageNonOrtho_no_center_GPU<<<dimGrid0,dimBlock0>>>(devO1Ptr, devI2Ptr,devI3Ptr, maxD, ucellDev, recipDev,  NMols, NAtoms,NSAtoms,active_size);
+    break;
+  }
   
   cudaThreadSynchronize();
 
