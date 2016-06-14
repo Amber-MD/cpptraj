@@ -95,7 +95,6 @@ int ClusterMatrix::SetupMatrix(size_t sizeIn) {
   minRow_.resize( n_threads );
   minCol_.resize( n_threads );
   minVal_.resize( n_threads );
-  mprintf("DEBUG: ClusterMatrix: Using %i threads.\n", n_threads);
 # endif
   return 0;
 }
