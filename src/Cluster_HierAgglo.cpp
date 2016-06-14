@@ -56,39 +56,15 @@ void Cluster_HierAgglo::ClusteringInfo() const {
 void Cluster_HierAgglo::InitializeClusterDistances() {
   // Sets up matrix and ignore array
   ClusterDistances_.SetupMatrix( clusters_.size() );
-  // Build initial cluster distances
-  if (linkage_==AVERAGELINK) {
-#   ifdef NEWCODE
-    // Set up matrix to hold sums of distances to clusters.
-    SumDistToCluster_.resize(0, clusters_.size());
-    for (cluster_iterator C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-      for (cluster_iterator C2 = C1; C2 != clusters_.end(); ++C2) {
-        if (C1 != C2) {
-          double sum = 0.0;
-          for (ClusterNode::frame_iterator F1 = C1->beginframe();
-                                           F1 != C1->endframe(); ++F1)
-            for (ClusterNode::frame_iterator F2 = C2->beginframe();
-                                             F2 != C2->endframe(); ++F2)
-              sum += FrameDistances().GetFdist( *F1, *F2 );
-          SumDistToCluster_.setElement( C1->Num(), C2->Num(), sum );
-          double total = (double)(C1->Nframes() * C2->Nframes());
-          ClusterDistances_.SetElement( C1->Num(), C2->Num(), sum / total );
-        }
-      }
+  // Build initial cluster distances. Take advantage of the fact that
+  // the initial cluster layout is the same as the pairwise array.
+  unsigned int total_frames = FrameDistances().FramesToCluster().size();
+  for (unsigned int idx1 = 0; idx1 != total_frames; idx1++) {
+    int f1 = FrameDistances().FramesToCluster()[ idx1 ];
+    for (unsigned int idx2 = idx1 + 1; idx2 != total_frames; idx2++) {
+      int f2 = FrameDistances().FramesToCluster()[ idx2 ];
+      ClusterDistances_.SetCdist( idx1, idx2, FrameDistances().GetFdist(f1, f2) );
     }
-#   else
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcAvgDist(C1_it);
-#   endif
-  } else if (linkage_==SINGLELINK) {
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcMinDist(C1_it);
-  } else if (linkage_==COMPLETELINK) {
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcMaxDist(C1_it);
   }
   if (debug_ > 1) {
     mprintf("CLUSTER: INITIAL CLUSTER DISTANCES:\n");
