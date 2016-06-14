@@ -48,7 +48,7 @@ int Cluster_DBSCAN::SetupCluster(ArgList& analyzeArgs) {
 }
 
 // Cluster_DBSCAN::ClusteringInfo()
-void Cluster_DBSCAN::ClusteringInfo() {
+void Cluster_DBSCAN::ClusteringInfo() const {
   mprintf("\tDBSCAN:\n");
   if (!kdist_.Empty()) {
     mprintf("\t\tOnly calculating Kdist graph for K=%s\n", kdist_.RangeArg());

@@ -11,8 +11,11 @@ class Cluster_HierAgglo : public ClusterList {
     Cluster_HierAgglo();
     static void Help();
     int SetupCluster(ArgList&);
-    void ClusteringInfo();
+    void ClusteringInfo() const;
     int Cluster();
+#   ifdef TIMER
+    void Timing(double) const;
+#   endif
     void AddSievedFrames() { AddSievedFramesByCentroid(); }
     void ClusterResults(CpptrajFile&) const;
   private:

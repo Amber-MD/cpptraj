@@ -31,7 +31,7 @@ int Cluster_Kmeans::SetupCluster(ArgList& analyzeArgs) {
 }
 
 // Cluster_Kmeans::ClusteringInfo()
-void Cluster_Kmeans::ClusteringInfo() {
+void Cluster_Kmeans::ClusteringInfo() const {
   mprintf("\tK-MEANS: Looking for %i clusters.\n", nclusters_);
   if (mode_ == SEQUENTIAL)
     mprintf("\t\tSequentially modify each point.\n");

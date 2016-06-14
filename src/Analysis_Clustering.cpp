@@ -600,6 +600,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
   cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());
   cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
+  CList_->Timing( cluster_cluster.Total() );
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;

@@ -28,9 +28,11 @@ class ClusterList {
     int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
-    virtual void ClusteringInfo() = 0;
+    virtual void ClusteringInfo() const = 0;
     virtual int Cluster() = 0;
-
+#   ifdef TIMER
+    virtual void Timing(double) const = 0;
+#   endif
     // Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     const cluster_iterator begincluster() const { return clusters_.begin(); }

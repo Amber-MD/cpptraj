@@ -39,7 +39,7 @@ int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_HierAgglo::ClusteringInfo() {
+void Cluster_HierAgglo::ClusteringInfo() const {
   mprintf("\tHierarchical Agglomerative:");
   if (nclusters_ != -1)
     mprintf(" %i clusters,",nclusters_);
@@ -144,12 +144,15 @@ int Cluster_HierAgglo::Cluster() {
 void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
                  LinkageString[linkage_], nclusters_, epsilon_);
-# ifdef TIMER
-  time_findMin_.WriteTiming(2, "Find min distance");
-  time_mergeFrames_.WriteTiming(2, "Merge cluster frames");
-  time_calcLinkage_.WriteTiming(2, "Calculate new linkage");
-# endif
 }
+
+#ifdef TIMER
+void Cluster_HierAgglo::Timing(double total) const {
+  time_findMin_.WriteTiming(2, "Find min distance", total);
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames", total);
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage", total);
+}
+#endif
 
 /** Find and merge the two closest clusters. */
 int Cluster_HierAgglo::MergeClosest() {
