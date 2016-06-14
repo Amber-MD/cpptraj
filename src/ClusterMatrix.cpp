@@ -9,17 +9,13 @@
 /** Find the minimum; set corresponding row and column. Cannot currently
   * be used for sieved frames.
   */
-double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
-# ifdef _OPENMP
-  static int minRow_[128]; // FIXME should be allocd eventually
-  static int minCol_[128];
-  static float minVal_[128];
-  int row, mythread, numthreads;
+#ifdef _OPENMP
+double ClusterMatrix::FindMin(int& iOut, int& jOut) {
+  int row, mythread;
   int nrows = (int)Mat_.Nrows();
 # pragma omp parallel private(row, mythread)
   {
   mythread = omp_get_thread_num();
-  if (mythread == 0) numthreads = omp_get_num_threads();
   minVal_[mythread] = FLT_MAX;
 # pragma omp for schedule(dynamic)
   for (row = 0; row < nrows; row++) {
@@ -41,14 +37,17 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
   float min = minVal_[0];
   iOut = minRow_[0];
   jOut = minCol_[0];
-  for (int idx = 1; idx != numthreads; idx++) {
+  for (unsigned int idx = 1; idx != minVal_.size(); idx++) {
     if (minVal_[idx] < min) {
       min = minVal_[idx];
       iOut = minRow_[idx];
       jOut = minCol_[idx];
     }
   }
-# else
+  return (double)min;
+}
+#else
+double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
   float min = FLT_MAX;
   for (unsigned int row = 0; row != Mat_.Nrows(); row++) {
     if (!ignore_[row]) {
@@ -63,9 +62,9 @@ double ClusterMatrix::FindMin(int& iOut, int& jOut) const {
       }
     }
   }
-# endif
   return (double)min;
 }
+#endif
 
 void ClusterMatrix::PrintElements() const {
   unsigned int iVal = 0;
@@ -86,7 +85,6 @@ void ClusterMatrix::PrintElements() const {
 int ClusterMatrix::SetupMatrix(size_t sizeIn) {
   if (Mat_.resize( 0L, sizeIn )) return 1;
   ignore_.assign( sizeIn, false );
-/*
 # ifdef _OPENMP
   int n_threads = 0;
 # pragma omp parallel
@@ -99,6 +97,5 @@ int ClusterMatrix::SetupMatrix(size_t sizeIn) {
   minVal_.resize( n_threads );
   mprintf("DEBUG: ClusterMatrix: Using %i threads.\n", n_threads);
 # endif
-*/
   return 0;
 }

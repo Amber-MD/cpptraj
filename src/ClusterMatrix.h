@@ -13,7 +13,11 @@ class ClusterMatrix {
     /// \return Original number of rows in matrix
     size_t Nrows()            const { return Mat_.Nrows();   }
     /// Set the row and column of the smallest element not being ignored.
+#   ifdef _OPENMP
+    double FindMin(int&, int&);
+#   else
     double FindMin(int&, int&) const;
+#   endif
     /// \return an element.
     inline double GetCdist(int c, int r) const { return Mat_.element(c,r); }
     /// Print all matrix elements to STDOUT
@@ -27,5 +31,10 @@ class ClusterMatrix {
   private:
     Matrix<float> Mat_;        ///< Upper-triangle matrix holding cluster distances.
     std::vector<bool> ignore_; ///< If true, ignore the row/col when printing/searching etc.
+#   ifdef _OPENMP
+    std::vector<int> minRow_;
+    std::vector<int> minCol_;
+    std::vector<float> minVal_;
+#   endif
 };
 #endif
