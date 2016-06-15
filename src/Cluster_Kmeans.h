@@ -18,7 +18,7 @@ class Cluster_Kmeans : public ClusterList {
     typedef std::vector<int> Iarray;
     enum KmeansModeType { SEQUENTIAL, RANDOM };
 
-    int FindKmeansSeeds();
+    int FindKmeansSeeds(Iarray const&);
     void ShufflePoints(Iarray&);
 
     Random_Number RN_;
@@ -26,7 +26,6 @@ class Cluster_Kmeans : public ClusterList {
     int kseed_;
     int maxIt_;
     Iarray SeedIndices_;
-    Iarray FramesToCluster_;
     KmeansModeType mode_;
     bool clusterToClusterCentroid_;
 };
