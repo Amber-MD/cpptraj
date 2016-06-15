@@ -19,9 +19,9 @@ class ClusterList {
     void SetDebug(int);
     void Renumber(bool);
     void Summary(std::string const&,int) const;
-    void Summary_Part(std::string const&,int,std::vector<int> const&);
+    void Summary_Part(std::string const&,int,std::vector<int> const&) const;
     void PrintClustersToFile(std::string const&,int);
-    void PrintClusters();
+    void PrintClusters() const;
     /// Set up appropriate cluster distance calculation
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
@@ -66,6 +66,8 @@ class ClusterList {
     int AddCluster(ClusterDist::Cframes const&);
   private:
     static const char* XMGRACE_COLOR[];
+    /// Determine max name width
+    unsigned int DetermineNameWidth() const;
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.

@@ -57,18 +57,17 @@ void ClusterList::Renumber(bool addSievedFrames) {
     for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     {
       double avgclusterdist = 0.0;
-      for (cluster_it node2 = clusters_.begin();
-                      node2 != clusters_.end(); node2++)
+      for (cluster_it node2 = clusters_.begin(); node2 != clusters_.end(); ++node2)
       {
         if (node == node2) continue;
-        //mprintf("DBG:\t\t%i to %i %f\n",(*node).num, (*node2).num, 
-        //        ClusterDistances.GetElement( (*node).num, (*node2).num ));
-        avgclusterdist += ClusterDistances_.GetCdist( (*node).Num(), (*node2).Num() );
+        //mprintf("DBG:\t\t%i to %i %f\n",node->num, (*node2).num,
+        //        ClusterDistances.GetElement( node->num, (*node2).num ));
+        avgclusterdist += ClusterDistances_.GetCdist( node->Num(), node2->Num() );
       }
       if (numdist > 0.0)
         avgclusterdist /= numdist;
-      //mprintf("DBG:\tCluster %i avg dist = %f\n",(*node).num,avgclusterdist);
-      (*node).SetAvgDist( avgclusterdist ); 
+      //mprintf("DBG:\tCluster %i avg dist = %f\n",node->num,avgclusterdist);
+      node->SetAvgDist( avgclusterdist );
     }
   }
   // Update cluster centroids.
@@ -105,6 +104,15 @@ void ClusterList::Renumber(bool addSievedFrames) {
   // TODO: Clear ClusterDistances?
 }
 
+// ClusterList::DetermineNameWidth()
+unsigned int ClusterList::DetermineNameWidth() const {
+  // Quick pass through clusters to determine width of cluster names
+  unsigned int nWidth = 0;
+  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
+    nWidth = std::max(nWidth, (unsigned int)node->Cname().size());
+  return nWidth;
+}
+
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
 void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
@@ -117,10 +125,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
   }
   outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s","#Cluster","Frames","Frac",
                      "AvgDist","Stdev","Centroid","AvgCDist");
-  unsigned int nWidth = 0;
-  // Quick pass through clusters to determine width of cluster names
-  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
-    nWidth = std::max(nWidth, (unsigned int)node->Cname().size());
+  unsigned int nWidth = DetermineNameWidth();
   if (nWidth > 0) {
     if (nWidth < 8) nWidth = 8;
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
@@ -184,7 +189,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
 /** Print a summary of clustering for specified portions of the overall traj. 
   */
 void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
-                               std::vector<int> const& splitFrames)
+                               std::vector<int> const& splitFrames) const
 {
   const char* nExt[] = {"st", "nd", "rd", "th"};
   if (splitFrames.empty()) return; // Sanity check.
@@ -244,22 +249,27 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
     outfile.Printf(" %7s%u", "Frac", pm);
   for (unsigned int pm = 1; pm <= partMax.size(); ++pm)
     outfile.Printf(" %7s%u", "First", pm);
+  // Determine if cluster names will be output.
+  unsigned int nWidth = DetermineNameWidth();
+  if (nWidth > 0) {
+    if (nWidth < 8) nWidth = 8;
+    outfile.Printf(" %*s %6s", nWidth, "Name", "RMS");
+  }
   outfile.Printf("\n");
   // LOOP OVER CLUSTERS
   int color = 1; // xmgrace color, 1-15
-  for (cluster_it node = clusters_.begin();
-                  node != clusters_.end(); node++)
+  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
   {
     // Calculate size and fraction of total size of this cluster
-    int numframes = (*node).Nframes();
+    int numframes = node->Nframes();
     double frac = (double)numframes / fmax;
     std::fill( numInPart.begin(), numInPart.end(), 0 );
     std::fill( firstFrame.begin(), firstFrame.end(), -1 );
     // DEBUG
-    //mprintf("\tCluster %i\n",(*node).num);
+    //mprintf("\tCluster %i\n",node->num);
     // Count how many frames are in each part. 
-    for (ClusterNode::frame_iterator frame1 = (*node).beginframe();
-                                     frame1 != (*node).endframe();
+    for (ClusterNode::frame_iterator frame1 = node->beginframe();
+                                     frame1 != node->endframe();
                                      frame1++)
     {
       unsigned int bin = splitFrames.size();
@@ -273,7 +283,7 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
         firstFrame[ bin ] = *frame1 - trajOffset[ bin ] + 1;
       ++numInPart[ bin ];
     }
-    outfile.Printf("%-8i %8i %8.4f %2i %10s", (*node).Num(), numframes, frac,
+    outfile.Printf("%-8i %8i %8.4f %2i %10s", node->Num(), numframes, frac,
                    color, XMGRACE_COLOR[color]);
     for (std::vector<int>::const_iterator np = numInPart.begin();
                                           np != numInPart.end(); ++np)
@@ -283,6 +293,8 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
     for (std::vector<int>::const_iterator ff = firstFrame.begin();
                                           ff != firstFrame.end(); ++ff)
       outfile.Printf(" %8i", *ff);
+    if (nWidth > 0)
+      outfile.Printf(" %*s %6.2f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
     if (color<15) ++color;
   }
@@ -350,13 +362,13 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
 // ClusterList::PrintClusters()
 /** Print list of clusters and frame numbers belonging to each cluster.
   */
-void ClusterList::PrintClusters() {
+void ClusterList::PrintClusters() const {
   mprintf("CLUSTER: %u clusters, %u frames.\n", clusters_.size(),
           FrameDistances().OriginalNframes() );
-  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++) {
-    mprintf("\t%8i : ",(*C).Num());
-    for (ClusterNode::frame_iterator fnum = (*C).beginframe();
-                                     fnum != (*C).endframe(); ++fnum)
+  for (cluster_iterator C = begincluster(); C != endcluster(); C++) {
+    mprintf("\t%8i : ",C->Num());
+    for (ClusterNode::frame_iterator fnum = C->beginframe();
+                                     fnum != C->endframe(); ++fnum)
       mprintf("%i,",(*fnum)+1);
     mprintf("\n");
   }
