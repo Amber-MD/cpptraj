@@ -16,6 +16,8 @@ class Analysis_Clustering: public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    inline void GetClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
+                                   TrajectoryFile::TrajFormatType&) const;
     void CreateCnumvtime( ClusterList const&, unsigned int );
     void CreateCpopvtime( ClusterList const&, unsigned int );
     void ClusterLifetimes( ClusterList const&, unsigned int );
@@ -63,6 +65,7 @@ class Analysis_Clustering: public Analysis {
     TrajectoryFile::TrajFormatType singlerepfmt_; ///< Cluster all rep single trajectory format.
     TrajectoryFile::TrajFormatType reptrajfmt_;   ///< Cluster rep to separate trajectory format.
     TrajectoryFile::TrajFormatType avgfmt_;       ///< Cluster traj average structure file format.
+    static const TrajectoryFile::TrajFormatType DEF_TRAJ_FMT_;
     int debug_;
     static const char* PAIRDISTFILE_;              ///< Default pairwise dist file name.
     static DataFile::DataFormatType PAIRDISTTYPE_; ///< Default pairwise dist file type.

@@ -41,6 +41,8 @@ Analysis_Clustering::Analysis_Clustering() :
   debug_(0)
 { } 
 
+const TrajectoryFile::TrajFormatType Analysis_Clustering::DEF_TRAJ_FMT_ = TrajectoryFile::AMBERTRAJ;
+
 // DESTRUCTOR
 Analysis_Clustering::~Analysis_Clustering() {
   if (CList_ != 0) delete CList_;
@@ -85,6 +87,20 @@ DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
   DataFile::CMATRIX;
 # endif
 
+// Analysis_Clustering::GetClusterTrajArgs()
+void Analysis_Clustering::GetClusterTrajArgs(ArgList& argIn,
+                                             const char* trajKey, const char* fmtKey,
+                                             std::string& trajName,
+                                             TrajectoryFile::TrajFormatType& fmt) const
+{
+  trajName = argIn.GetStringKey( trajKey );
+  fmt = TrajectoryFile::GetFormatFromString( argIn.GetStringKey(fmtKey), fmt );
+  // If file name specified but not format, try to guess from name
+  if (!trajName.empty() && fmt == TrajectoryFile::UNKNOWN_TRAJ)
+    fmt = TrajectoryFile::GetTypeFromExtension( trajName, DEF_TRAJ_FMT_ );
+}
+
+// Analysis_Clustering::Setup()
 Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
@@ -273,15 +289,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   }
   // ---------------------------------------------
   // Output trajectory stuff
-  clusterfile_ = analyzeArgs.GetStringKey("clusterout");
-  clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
-  singlerepfile_ = analyzeArgs.GetStringKey("singlerepout");
-  singlerepfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("singlerepfmt") );
-  reptrajfile_ = analyzeArgs.GetStringKey("repout");
-  reptrajfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("repfmt") );
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
-  avgfile_ = analyzeArgs.GetStringKey("avgout");
-  avgfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("avgfmt") );
+  GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
+  GetClusterTrajArgs(analyzeArgs, "singlerepout", "singlerepfmt", singlerepfile_, singlerepfmt_);
+  GetClusterTrajArgs(analyzeArgs, "repout",       "repfmt",       reptrajfile_,   reptrajfmt_);
+  GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
+
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
 
