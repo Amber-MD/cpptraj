@@ -18,6 +18,7 @@ class Analysis_Clustering: public Analysis {
   private:
     inline void GetClusterTrajArgs(ArgList&, const char*, const char*, std::string&,
                                    TrajectoryFile::TrajFormatType&) const;
+    void AssignRefsToClusters(ClusterList&) const;
     void CreateCnumvtime( ClusterList const&, unsigned int );
     void CreateCpopvtime( ClusterList const&, unsigned int );
     void ClusterLifetimes( ClusterList const&, unsigned int );
@@ -28,15 +29,18 @@ class Analysis_Clustering: public Analysis {
     void WriteRepTraj( ClusterList const& );
 
     DataSetList* masterDSL_;    ///< For Cluster pop v time DataSets.
+    DataSetList refs_;          ///< Hold references for cluster name assignment.
     DataSet_Coords* coords_;    ///< Hold coordinates of frames being clustered.
     ClusterList* CList_;        ///< Hold specified clustering algorithm.
     std::string maskexpr_;      ///< If RMSD, Atoms to cluster on
+    std::string refmaskexpr_;   ///< If assigning refs, atoms to calc RMSD to.
     int sieve_;                 ///< If > 1, frames to skip on initial clustering pass.
     int sieveSeed_;             ///< Used to seed random number gen for sieve
     int windowSize_;            ///< Window size for # clusters seen vs time.
     int drawGraph_;
     int draw_maxit_;
     double draw_tol_;
+    double refCut_;             ///< RMSD cutoff for assigning reference names to clusters.
     std::vector<int> splitFrames_; ///< Frames to split at when comparing parts.
     DataSet* cnumvtime_;        ///< Cluster vs time dataset.
     DataSet* clustersVtime_;    ///< # clusters seen vs time dataset.

@@ -107,18 +107,27 @@ void ClusterList::Renumber(bool addSievedFrames) {
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
+void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
+{
   CpptrajFile outfile;
   double fmax = (double)maxframesIn;
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
   }
-
-  outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s\n","#Cluster","Frames","Frac",
+  outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s","#Cluster","Frames","Frac",
                      "AvgDist","Stdev","Centroid","AvgCDist");
-  for (cluster_it node = clusters_.begin();
-                  node != clusters_.end(); node++)
+  unsigned int nWidth = 0;
+  // Quick pass through clusters to determine width of cluster names
+  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
+    nWidth = std::max(nWidth, (unsigned int)node->Cname().size());
+  if (nWidth > 0) {
+    if (nWidth < 8) nWidth = 8;
+    outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
+  }
+  outfile.Printf("\n");
+
+  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
   {
     // Since there may be a lot of frames do not calculate SD from the
     // mean (which requires either storing distances or two double loops), 
@@ -126,12 +135,12 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
     double internalAvg = 0.0;
     double internalSD = 0.0;
     unsigned int Nelements = 0;
-    if ((*node).Nframes() > 1) {
+    if (node->Nframes() > 1) {
       // Calculate average distance between all frames in this cluster
-      ClusterNode::frame_iterator frame2_end = (*node).endframe();
+      ClusterNode::frame_iterator frame2_end = node->endframe();
       ClusterNode::frame_iterator frame1_end = frame2_end;
       --frame1_end;
-      for (ClusterNode::frame_iterator frm1 = (*node).beginframe();
+      for (ClusterNode::frame_iterator frm1 = node->beginframe();
                                        frm1 != frame1_end; ++frm1)
       {
         // Since this can be called after sieved frames are added back in,
@@ -161,9 +170,12 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) {
       }
     }
     // OUTPUT
-    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f\n",
+    outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f",
                    node->Num(), node->Nframes(), (double)node->Nframes()/fmax, internalAvg, 
                    internalSD, node->BestRepFrame()+1, node->AvgDist() );
+    if (nWidth > 0)
+      outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
+    outfile.Printf("\n");
   } // END loop over clusters
   outfile.CloseFile();
 }

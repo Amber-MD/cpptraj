@@ -23,6 +23,7 @@ Analysis_Clustering::Analysis_Clustering() :
   drawGraph_(0),
   draw_maxit_(0),
   draw_tol_(0.0),
+  refCut_(1.0),
   cnumvtime_(0),
   clustersVtime_(0),
   pw_dist_(0),
@@ -152,6 +153,16 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     if      (usedme)  metric_ = ClusterList::DME;
     else if (userms)  metric_ = ClusterList::RMS;
     else if (usesrms) metric_ = ClusterList::SRMSD;
+  }
+  // Get all loaded reference structures
+  if (analyzeArgs.hasKey("assignrefs")) {
+    refs_ = setup.DSL().GetSetsOfType("*", DataSet::REF_FRAME);
+    if (refs_.empty()) {
+      mprinterr("Error: 'assignrefs' specified but no references loaded.\n");
+      return Analysis::ERR;
+    }
+    refCut_ = analyzeArgs.getKeyDouble("refcut", 1.0);
+    refmaskexpr_ = analyzeArgs.GetStringKey("refmask");
   }
   // Get clustering algorithm
   if (CList_ != 0) delete CList_;
@@ -297,6 +308,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
 
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
+  if (!refs_.empty() && refmaskexpr_.empty()) {
+    refmaskexpr_ = maskexpr_;
+    if (refmaskexpr_.empty()) {
+      refmaskexpr_.assign("!@H=");
+      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
+              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
+    }
+  }
 
   // Output option for cluster info
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
@@ -421,6 +440,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!avgfile_.empty())
     mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
             avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
+  if (!refs_.empty())
+    mprintf("\tClusters will be identified with loaded reference structures if RMSD\n"
+            "\t  (mask '%s') to representative frame is < %g Ang.\n", refmaskexpr_.c_str(),refCut_);
   if (drawGraph_ > 0)
     mprintf("\tEXPERIMENTAL: Force-directed graph will be drawn from pairwise distances.\n"
             "\t              Max iterations= %i, min tolerance= %g\n",
@@ -529,6 +551,13 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       mprintf("\nFINAL CLUSTERS:\n");
       CList_->PrintClusters();
     }
+    // Attempt to assign refernce names to clusters if any specified.
+    if (!refs_.empty()) {
+      if (has_coords)
+        AssignRefsToClusters( *CList_ );
+      else
+        mprintf("Warning: References were specified but no COORDS. Cannot assign ref names.\n");
+    }
 
     // Print ptraj-like cluster info.
     // If no filename is written and no noinfo, some info will still be written to STDOUT
@@ -619,6 +648,55 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;
+}
+
+// -----------------------------------------------------------------------------
+void Analysis_Clustering::AssignRefsToClusters( ClusterList& CList ) const {
+  // Pre-center all reference coords at the origin. No need to store trans vectors.
+  std::vector<Frame> refFrames;
+  refFrames.reserve( refs_.size() );
+  for (unsigned int idx = 0; idx != refs_.size(); idx++) {
+    AtomMask rMask( refmaskexpr_ );
+    DataSet_Coords_REF* REF_ds = (DataSet_Coords_REF*)refs_[idx];
+    if ( REF_ds->Top().SetupIntegerMask( rMask, REF_ds->RefFrame() ) ) {
+      mprintf("Warning: Could not set up mask for reference '%s'\n", REF_ds->legend());
+      continue;
+    }
+    refFrames.push_back( Frame(REF_ds->RefFrame(), rMask) );
+    refFrames.back().CenterOnOrigin( useMass_ );
+  }
+  // For each cluster, assign the reference name with the lowest RMSD
+  // to the representative frame that is below the cutoff.
+  AtomMask tMask( refmaskexpr_ );
+  if (coords_->Top().SetupIntegerMask( tMask )) {
+    mprinterr("Error: Could not set up mask for assigning references.\n");
+    return;
+  }
+  Frame TGT( coords_->AllocateFrame(), tMask );
+  unsigned int cidx = 0;
+  for (ClusterList::cluster_it cluster = CList.begin();
+                               cluster != CList.end(); ++cluster, ++cidx)
+  {
+    coords_->GetFrame( cluster->BestRepFrame(), TGT, tMask );
+    double minRms = TGT.RMSD_CenteredRef( refFrames[0], useMass_ );
+    unsigned int minIdx = 0;
+    for (unsigned int idx = 1; idx < refs_.size(); idx++) {
+      double rms = TGT.RMSD_CenteredRef( refFrames[idx], useMass_ );
+      if (rms < minRms) {
+        minRms = rms;
+        minIdx = idx;
+      }
+    }
+    if (minRms < refCut_) {
+      mprintf("DEBUG: Assigned cluster %i to reference \"%s\" (%g)\n", cidx,
+              refs_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetName( refs_[minIdx]->Meta().Name(), minRms );
+    } else {
+      mprintf("DEBUG: Cluster %i was closest to reference \"(%s)\" (%g)\n", cidx,
+              refs_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetName( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------

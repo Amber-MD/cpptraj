@@ -18,7 +18,7 @@ class ClusterList {
 
     void SetDebug(int);
     void Renumber(bool);
-    void Summary(std::string const&,int);
+    void Summary(std::string const&,int) const;
     void Summary_Part(std::string const&,int,std::vector<int> const&);
     void PrintClustersToFile(std::string const&,int);
     void PrintClusters();
@@ -33,7 +33,11 @@ class ClusterList {
 #   ifdef TIMER
     virtual void Timing(double) const = 0;
 #   endif
-    // Const Iterator over clusters
+    /// Iterator over clusters
+    typedef std::list<ClusterNode>::iterator cluster_it;
+    cluster_it begin() { return clusters_.begin(); }
+    cluster_it end()   { return clusters_.end();   }
+    /// Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     const cluster_iterator endcluster()   const { return clusters_.end();   }
@@ -51,8 +55,6 @@ class ClusterList {
 
     void AddSievedFramesByCentroid();
     DataSet_Cmatrix const& FrameDistances() const { return *frameDistances_; }
-    /// Iterator over clusters
-    typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
