@@ -67,7 +67,7 @@ void Analysis_Clustering::Help() const {
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
-          "\t[sil <silhouette file prefix>]\n"
+          "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
           "  Coordinate output options:\n"
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"

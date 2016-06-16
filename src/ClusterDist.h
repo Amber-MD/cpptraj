@@ -57,10 +57,6 @@ class Centroid_Coord : public Centroid {
 };
 // -----------------------------------------------------------------------------
 /// Abstract Base Class for Cluster distance calc.
-/** The pairwise-distance calculation is here to make COORDS DataSet calcs 
-  * more efficient; otherwise they would have to copy frame1 coords each time 
-  * as well as always track memory for frame2.
-  */
 class ClusterDist {
   public:
     enum CentOpType { ADDFRAME=0, SUBTRACTFRAME };
