@@ -189,10 +189,9 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
             // Loop over all solute atoms
             for (unsigned int idx = 0; idx < soluteCoords_.size(); idx += 3)
             {
-              // If residue is not yet marked as 1st shell, calc distance
               if (status[currentRes] < 2)
               {
-
+                // Residue is not yet marked as 1st shell, calc distance
                 double x = vCart[0] - soluteCoords_[idx  ];
                 double y = vCart[1] - soluteCoords_[idx+1];
                 double z = vCart[2] - soluteCoords_[idx+2];
@@ -205,7 +204,11 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
                   if (dist2 < lowerCutoff_)
                     status[currentRes] = 2;
                 }
-              } // END if not yet first shell
+              } else {
+                // Residue already in first shell. No need for more distance calcs
+                ix = iy = iz = 1;
+                break;
+              }
             } // END loop over solute atoms 
           } // END loop over images (Z)
     } // END loop over solvent atoms
@@ -242,10 +245,9 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
       // Loop over all solute atoms
       for (unsigned int idx = 0; idx < soluteCoords_.size(); idx += 3)
       {
-        // If residue is not yet marked as 1st shell, calc distance
         if (status[currentRes] < 2)
         {
-
+          // Residue is not yet marked as 1st shell, calc distance
           Vec3 Ucoord( soluteCoords_[idx], soluteCoords_[idx+1], soluteCoords_[idx+2] );
           double dist2;
           if (image_.ImageType() == ORTHO)
@@ -260,7 +262,10 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
             if (dist2 < lowerCutoff_)
               status[currentRes] = 2;
           }
-        } // END if not yet first shell
+        } else {
+          // Residue already in first shell. No need for more distance calcs.
+          break;
+        }
       } // END loop over solute atoms
     } // END loop over solvent atoms
 #   ifdef _OPENMP
