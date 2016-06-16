@@ -3,12 +3,9 @@
 #include "Action.h"
 #include "ImagedAction.h"
 /// Calculate number of solvent residues in 1st/2nd solvation shell.
-class Action_Watershell : public Action, ImagedAction {
+class Action_Watershell : public Action {
   public:
     Action_Watershell();
-#   ifdef _OPENMP
-    ~Action_Watershell();
-#   endif
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Watershell(); }
     void Help() const;
   private:
@@ -17,20 +14,21 @@ class Action_Watershell : public Action, ImagedAction {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() { return; }
 
-    AtomMask soluteMask_;
-    AtomMask solventMask_;
-    std::string solventmaskexpr_;
-    double lowerCutoff_;
-    double upperCutoff_;
-    Topology* CurrentParm_;
-    DataSet* lower_;
-    DataSet* upper_;
-    int numthreads_;
+    typedef std::vector<int> Iarray;
+
+    ImagedAction image_;    ///< Hold imaging routines.
+    AtomMask soluteMask_;   ///< Selected solute atoms.
+    AtomMask solventMask_;  ///< Selected solvent atoms.
+    double lowerCutoff_;    ///< Solvent below this is in the first shell.
+    double upperCutoff_;    ///< Solvent below this is in the second shell.
+    Topology* CurrentParm_; ///< Used to get molecule number for each solvent atom.
+    DataSet* lower_;        ///< Number of solvent in first shell.
+    DataSet* upper_;        ///< Number of solvent in second shell.
 #   ifdef _OPENMP
-    int** activeResidues_thread_;
-    int NactiveResidues_;
+    /// Shell status for solvent for each OpenMP thread.
+    std::vector<Iarray> shellStatus_thread_; ///< Shell status for solvent for each OpenMP thread.
 #   else
-    std::vector<int> activeResidues_;
+    Iarray shellStatus_;    ///< Solvent shell status for each solvent (none, first, second)
 #   endif
 };
 #endif

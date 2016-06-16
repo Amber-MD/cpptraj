@@ -10,23 +10,10 @@ Action_Watershell::Action_Watershell() :
   upperCutoff_(0),
   CurrentParm_(0),
   lower_(0),
-  upper_(0),
-  numthreads_(1)
-# ifdef _OPENMP
-  ,activeResidues_thread_(0),
-  NactiveResidues_(0)
-# endif
-{ }
-#ifdef _OPENMP
-Action_Watershell::~Action_Watershell() {
-  if (activeResidues_thread_ != 0) {
-    for (int i = 0; i < numthreads_; ++i)
-      delete[] activeResidues_thread_[i];
-    delete activeResidues_thread_;
-  }
-}
-#endif
+  upper_(0)
+{}
 
+// Action_Watershell::Help()
 void Action_Watershell::Help() const {
   mprintf("\t<solutemask> [out <filename>] [lower <lower cut>] [upper <upper cut>]\n"
           "\t[noimage] [<solventmask>] [<set name>]\n"
@@ -35,10 +22,10 @@ void Action_Watershell::Help() const {
           "  distance cut-offs respectively.\n");
 }
 
-// Action_Watershell::init()
+// Action_Watershell::Init()
 Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  InitImaging( !actionArgs.hasKey("noimage") );
+  image_.InitImaging( !actionArgs.hasKey("noimage") );
   // Get keywords
   std::string filename = actionArgs.GetStringKey("out");
   lowerCutoff_ = actionArgs.getKeyDouble("lower", 3.4);
@@ -51,8 +38,10 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   }
   soluteMask_.SetMaskString( maskexpr );
   // Check for solvent mask
-  solventmaskexpr_ = actionArgs.GetMaskNext();
-  // For backwards compat., if no 'out' assume next string is 
+  std::string solventmaskexpr = actionArgs.GetMaskNext();
+  if (!solventmaskexpr.empty())
+    solventMask_.SetMaskString( solventmaskexpr );
+  // For backwards compat., if no 'out' assume next string is file name 
   if (filename.empty() && actionArgs.Nargs() > 2 && !actionArgs.Marked(2))
     filename = actionArgs.GetStringNext();
   DataFile* outfile = init.DFL().AddDataFile( filename, actionArgs );
@@ -70,31 +59,32 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   }
 # ifdef _OPENMP
   // Determine number of parallel threads
+  int numthreads = 0;
 #pragma omp parallel
 {
   if (omp_get_thread_num()==0)
-    numthreads_ = omp_get_num_threads();
+    numthreads = omp_get_num_threads();
 }
+  shellStatus_thread_.resize( numthreads );
 # endif
   mprintf("    WATERSHELL:");
   if (outfile != 0) mprintf(" Output to %s", outfile->DataFilename().full());
   mprintf("\n");
-  if (!UseImage())
+  if (!image_.UseImage())
     mprintf("\tImaging is disabled.\n");
-  mprintf("\tThe first shell will contain water < %.3f angstroms from\n",
+  mprintf("\tThe first shell will contain solvent < %.3f angstroms from\n",
           lowerCutoff_);
   mprintf("\t  the solute; the second shell < %.3f angstroms...\n",
           upperCutoff_);
   mprintf("\tSolute atoms will be specified by [%s]\n",soluteMask_.MaskString());
-  if (!solventmaskexpr_.empty()) {
-    mprintf("\tSolvent atoms will be specified by [%s]\n",
-            solventmaskexpr_.c_str());
-    solventMask_.SetMaskString( solventmaskexpr_ );
-  }
-  if (numthreads_ > 1)
-    mprintf("\tParallelizing calculation with %i threads.\n", numthreads_);
-  mprintf("\t# waters in 'lower' shell stored in set '%s'\n", lower_->legend());
-  mprintf("\t# waters in 'upper' shell stored in set '%s'\n", upper_->legend());
+  if (solventMask_.MaskStringSet())
+    mprintf("\tSolvent atoms will be specified by [%s]\n", solventMask_.MaskString());
+# ifdef _OPENMP
+  if (shellStatus_thread_.size() > 1)
+    mprintf("\tParallelizing calculation with %zu threads.\n", shellStatus_thread_.size());
+# endif
+  mprintf("\t# solvent molecules in 'lower' shell stored in set '%s'\n", lower_->legend());
+  mprintf("\t# solvent molecules in 'upper' shell stored in set '%s'\n", upper_->legend());
 
   // Pre-square upper and lower cutoffs
   lowerCutoff_ *= lowerCutoff_;
@@ -103,7 +93,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   return Action::OK;
 }
 
-// Action_Watershell::setup()
+// Action_Watershell::Setup()
 /** Set up solute and solvent masks. If no solvent mask was specified use 
   * solvent information in the current topology.
   */
@@ -114,50 +104,41 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
     return Action::SKIP;
   }
-  // Set up solvent mask
-  if (!solventmaskexpr_.empty()) {
+  if (solventMask_.MaskStringSet()) {
+    // Set up solvent mask
     if (setup.Top().SetupIntegerMask( solventMask_ )) return Action::ERR;
   } else {
+    // Use all solvent atoms.
     solventMask_.ResetMask();
     for (Topology::mol_iterator mol = setup.Top().MolStart();
                                 mol != setup.Top().MolEnd(); ++mol)
-    {
       if ( mol->IsSolvent() )
         solventMask_.AddAtomRange( mol->BeginAtom(), mol->EndAtom() );
-    }
   }
   if ( solventMask_.None() ) {
-    if (!solventmaskexpr_.empty())
-      mprintf("Warning: No solvent atoms selected by mask [%s]\n",
-                solventmaskexpr_.c_str());
+    if ( solventMask_.MaskStringSet() )
+      mprintf("Warning: No solvent atoms selected by mask [%s]\n", solventMask_.MaskString());
     else
-      mprintf("Warning: No solvent atoms in topology %s\n",setup.Top().c_str());
+      mprintf("Warning: No solvent atoms in topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
-  SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  // Create space for residues
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  if (image_.ImagingEnabled())
+    mprintf("\tImaging is on.\n");
+  else
+    mprintf("\tImaging is off.\n");
+  // Allocate space to record status of each solvent molecule.
+  // NOTE: Doing this by residue instead of by molecule does waste some memory,
+  //       but it means watershell can be used even if no molecule info present. 
 # ifdef _OPENMP
-  // Only re-allocate for larger # of residues
-  if ( setup.Top().Nres() > NactiveResidues_ ) {
-    if (activeResidues_thread_ != 0) {
-      // Deallocate each thread
-      for (int i = 0; i < NactiveResidues_; ++i)
-        delete[] activeResidues_thread_[i];
-    } else {
-      // Initial thread allocation needed
-      activeResidues_thread_ = new int*[ numthreads_ ];
-    }
-    // Allocate each thread
-    for (int i = 0; i < numthreads_; ++i) {
-      activeResidues_thread_[i] = new int[ setup.Top().Nres() ];
-      std::fill( activeResidues_thread_[i], activeResidues_thread_[i] + setup.Top().Nres(), 0 );
-    }
-  }
-  NactiveResidues_ = setup.Top().Nres();
+  // Each thread needs space to record residue status to avoid clashes
+  for (std::vector<Iarray>::iterator it = shellStatus_thread_.begin();
+                                     it != shellStatus_thread_.end(); ++it)
+    it->assign( setup.Top().Nres(), 0 );
 # else
-  activeResidues_.resize( setup.Top().Nres(), 0 );
+  shellStatus_.assign( setup.Top().Nres(), 0 );
 # endif
-  // Store current Parm
+  // Store current topology
   CurrentParm_ = setup.TopAddress();
   return Action::OK;    
 }
@@ -168,7 +149,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   int nlower = 0;
   int nupper = 0;
 
-  if (ImageType()==NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell,recip);
+  if (image_.ImageType()==NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell,recip);
 
   int Vidx, Uidx, Vat, currentRes;
   int NU = soluteMask_.Nselected();
@@ -176,10 +157,10 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   double dist;
 # ifdef _OPENMP
   int mythread;
-#pragma omp parallel private(dist,Vidx,Vat,currentRes,Uidx,mythread)
-{
+# pragma omp parallel private(dist,Vidx,Vat,currentRes,Uidx,mythread)
+  {
   mythread = omp_get_thread_num();
-#pragma omp for
+# pragma omp for
 # endif
   // Assume solvent mask is the larger one.
   // Loop over solvent atoms
@@ -191,42 +172,41 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     for (Uidx = 0; Uidx < NU; Uidx++) {
       // If residue is not yet marked as 1st shell, calc distance
 #     ifdef _OPENMP
-      if ( activeResidues_thread_[mythread][currentRes] < 2 )
+      if ( shellStatus_thread_[mythread][currentRes] < 2 )
 #     else
-      if ( activeResidues_[currentRes] < 2 )
+      if ( shellStatus_[currentRes] < 2 )
 #     endif
       {
         dist = DIST2(frm.Frm().XYZ(soluteMask_[Uidx]), frm.Frm().XYZ(Vat),
-                     ImageType(), frm.Frm().BoxCrd(), ucell, recip );
+                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip );
         // Less than upper, 2nd shell
         if (dist < upperCutoff_) 
         {
 #         ifdef _OPENMP
-          activeResidues_thread_[mythread][currentRes] = 1;
+          shellStatus_thread_[mythread][currentRes] = 1;
 #         else
-          activeResidues_[currentRes] = 1;
+          shellStatus_[currentRes] = 1;
 #         endif
           // Less than lower, 1st shell
           if (dist < lowerCutoff_)
 #           ifdef _OPENMP
-            activeResidues_thread_[mythread][currentRes] = 2;
+            shellStatus_thread_[mythread][currentRes] = 2;
 #           else
-            activeResidues_[currentRes] = 2;
+            shellStatus_[currentRes] = 2;
 #           endif
         }
       }
     } // End loop over solute atoms
   } // End loop over solvent atoms
 # ifdef _OPENMP
-} // END parallel
+  } // END parallel
   // Combine results from each thread.
-  for (int res = 0; res < NactiveResidues_; res++) {
+  for (unsigned int res = 0; res < shellStatus_thread_[0].size(); res++) {
     int shell = 0;
-    for (int thread = 0; thread < numthreads_; thread++) {
-      if (activeResidues_thread_[thread][res] > shell)
-        shell = activeResidues_thread_[thread][res];
+    for (unsigned int thread = 0; thread < shellStatus_thread_.size(); thread++) {
+      shell = std::max( shellStatus_thread_[thread][res], shell );
       // Dont break here so we can reset counts. Could also do with a fill 
-      activeResidues_thread_[thread][res] = 0;
+      shellStatus_thread_[thread][res] = 0;
     }
     if (shell > 0) {
       ++nupper;
@@ -235,8 +215,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
   }
 # else
   // Now each residue is marked 0 (no shell), 1 (second shell), 2 (first shell)
-  for (std::vector<int>::iterator shell = activeResidues_.begin();
-                                  shell != activeResidues_.end(); ++shell)
+  for (Iarray::iterator shell = shellStatus_.begin(); shell != shellStatus_.end(); ++shell)
   {
     if ( *shell > 0 ) {
       ++nupper;
