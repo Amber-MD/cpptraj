@@ -15,5 +15,8 @@ namespace Image {
   void UnwrapNonortho( Frame&, Frame&, PairType const&, 
                        Matrix_3x3 const&, Matrix_3x3 const&, bool, bool );
   void UnwrapOrtho( Frame&, Frame&, PairType const&, bool, bool );
+  /// Wrap selected atom coords from given frame into primary cell, store in result.
+  void WrapToCell0(std::vector<double>&, Frame const&, AtomMask const&,
+                   Matrix_3x3 const&, Matrix_3x3 const&);
 }
 #endif

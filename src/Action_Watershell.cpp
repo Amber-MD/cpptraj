@@ -1,5 +1,7 @@
+#include <cmath> // floor
 #include "Action_Watershell.h"
 #include "CpptrajStdio.h"
+#include "ImageRoutines.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -127,6 +129,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
     mprintf("\tImaging is on.\n");
   else
     mprintf("\tImaging is off.\n");
+  // Allocate temp space for selected solute atom coords.
+  soluteCoords_.resize( soluteMask_.Nselected() * 3 );
   // Allocate space to record status of each solvent molecule.
   // NOTE: Doing this by residue instead of by molecule does waste some memory,
   //       but it means watershell can be used even if no molecule info present. 
@@ -143,63 +147,129 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   return Action::OK;    
 }
 
-// Action_Watershell::action()
+// Action_Watershell::DoAction()
 Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
-  Matrix_3x3 ucell, recip;
+  int NV = solventMask_.Nselected();
+  int Vidx, mythread;
+  int* status = 0;
+
+  if (image_.ImageType() == NONORTHO) {
+    // ----- NON-ORTHORHOMBIC IMAGING ------------
+    Matrix_3x3 ucell, recip;
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+    // Wrap all solute atoms back into primary cell, save coords.
+    Image::WrapToCell0( soluteCoords_, frm.Frm(), soluteMask_, ucell, recip );
+    // Calculate every imaged distance of all solvent atoms to solute
+#   ifdef _OPENMP
+#   pragma omp parallel private(Vidx, mythread, status)
+    {
+    mythread = omp_get_thread_num();
+    status = &(shellStatus_thread_[mythread][0]);
+#   pragma omp for
+#   else
+    status = &shellStatus_[0];
+#   endif
+    for (Vidx = 0; Vidx < NV; Vidx++)
+    {
+      int Vat = solventMask_[Vidx];
+      int currentRes = (*CurrentParm_)[ Vat ].ResNum();
+      // Convert to frac coords
+      Vec3 vFrac = recip * Vec3( frm.Frm().XYZ( Vat ) );
+      // Wrap to primary unit cell
+      vFrac[0] = vFrac[0] - floor(vFrac[0]);
+      vFrac[1] = vFrac[1] - floor(vFrac[1]);
+      vFrac[2] = vFrac[2] - floor(vFrac[2]);
+      // Loop over all images of this solvent atom
+      for (int ix = -1; ix != 2; ix++)
+        for (int iy = -1; iy != 2; iy++)
+          for (int iz = -1; iz != 2; iz++)
+          {
+            // Convert image back to Cartesian
+            Vec3 vCart = ucell.TransposeMult( vFrac + Vec3(ix, iy, iz) );
+            // Loop over all solute atoms
+            for (unsigned int idx = 0; idx < soluteCoords_.size(); idx += 3)
+            {
+              // If residue is not yet marked as 1st shell, calc distance
+              if (status[currentRes] < 2)
+              {
+
+                double x = vCart[0] - soluteCoords_[idx  ];
+                double y = vCart[1] - soluteCoords_[idx+1];
+                double z = vCart[2] - soluteCoords_[idx+2];
+                double dist2 = x*x + y*y + z*z;
+                // Less than upper, 2nd shell
+                if (dist2 < upperCutoff_) 
+                {
+                  status[currentRes] = 1;
+                  // Less than lower, 1st shell
+                  if (dist2 < lowerCutoff_)
+                    status[currentRes] = 2;
+                }
+              } // END if not yet first shell
+            } // END loop over solute atoms 
+          } // END loop over images (Z)
+    } // END loop over solvent atoms
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+  } else {
+    // ----- ORTHORHOMBIC/NO IMAGING -------------
+    // Store selected solute coordinates.
+    int idx = 0;
+    for (AtomMask::const_iterator atm = soluteMask_.begin();
+                                  atm != soluteMask_.end(); ++atm, idx += 3)
+    {
+      const double* XYZ = frm.Frm().XYZ( *atm );
+      soluteCoords_[idx  ] = XYZ[0];
+      soluteCoords_[idx+1] = XYZ[1];
+      soluteCoords_[idx+2] = XYZ[2];
+    }
+    // Calculate distance of all solvent atoms to solute
+#   ifdef _OPENMP
+#   pragma omp parallel private(Vidx, mythread, status)
+    {
+    mythread = omp_get_thread_num();
+    status = &(shellStatus_thread_[mythread][0]);
+#   pragma omp for
+#   else
+    status = &shellStatus_[0];
+#   endif
+    for (Vidx = 0; Vidx < NV; Vidx++)
+    {
+      int Vat = solventMask_[Vidx];
+      int currentRes = (*CurrentParm_)[ Vat ].ResNum();
+      Vec3 Vcoord( frm.Frm().XYZ( Vat ) );
+      // Loop over all solute atoms
+      for (unsigned int idx = 0; idx < soluteCoords_.size(); idx += 3)
+      {
+        // If residue is not yet marked as 1st shell, calc distance
+        if (status[currentRes] < 2)
+        {
+
+          Vec3 Ucoord( soluteCoords_[idx], soluteCoords_[idx+1], soluteCoords_[idx+2] );
+          double dist2;
+          if (image_.ImageType() == ORTHO)
+            dist2 = DIST2_ImageOrtho( Vcoord, Ucoord, frm.Frm().BoxCrd() );
+          else
+            dist2 = DIST2_NoImage( Vcoord, Ucoord );
+          // Less than upper, 2nd shell
+          if (dist2 < upperCutoff_)
+          {
+            status[currentRes] = 1;
+            // Less than lower, 1st shell
+            if (dist2 < lowerCutoff_)
+              status[currentRes] = 2;
+          }
+        } // END if not yet first shell
+      } // END loop over solute atoms
+    } // END loop over solvent atoms
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#   endif
+  }
   int nlower = 0;
   int nupper = 0;
-
-  if (image_.ImageType()==NONORTHO) frm.Frm().BoxCrd().ToRecip(ucell,recip);
-
-  int Vidx, Uidx, Vat, currentRes;
-  int NU = soluteMask_.Nselected();
-  int NV = solventMask_.Nselected();
-  double dist;
 # ifdef _OPENMP
-  int mythread;
-# pragma omp parallel private(dist,Vidx,Vat,currentRes,Uidx,mythread)
-  {
-  mythread = omp_get_thread_num();
-# pragma omp for
-# endif
-  // Assume solvent mask is the larger one.
-  // Loop over solvent atoms
-  for (Vidx = 0; Vidx < NV; Vidx++) {
-    // Figure out which solvent residue this is
-    Vat = solventMask_[Vidx];
-    currentRes = (*CurrentParm_)[ Vat ].ResNum();
-    // Loop over solute atoms
-    for (Uidx = 0; Uidx < NU; Uidx++) {
-      // If residue is not yet marked as 1st shell, calc distance
-#     ifdef _OPENMP
-      if ( shellStatus_thread_[mythread][currentRes] < 2 )
-#     else
-      if ( shellStatus_[currentRes] < 2 )
-#     endif
-      {
-        dist = DIST2(frm.Frm().XYZ(soluteMask_[Uidx]), frm.Frm().XYZ(Vat),
-                     image_.ImageType(), frm.Frm().BoxCrd(), ucell, recip );
-        // Less than upper, 2nd shell
-        if (dist < upperCutoff_) 
-        {
-#         ifdef _OPENMP
-          shellStatus_thread_[mythread][currentRes] = 1;
-#         else
-          shellStatus_[currentRes] = 1;
-#         endif
-          // Less than lower, 1st shell
-          if (dist < lowerCutoff_)
-#           ifdef _OPENMP
-            shellStatus_thread_[mythread][currentRes] = 2;
-#           else
-            shellStatus_[currentRes] = 2;
-#           endif
-        }
-      }
-    } // End loop over solute atoms
-  } // End loop over solvent atoms
-# ifdef _OPENMP
-  } // END parallel
   // Combine results from each thread.
   for (unsigned int res = 0; res < shellStatus_thread_[0].size(); res++) {
     int shell = 0;

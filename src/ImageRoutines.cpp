@@ -373,3 +373,36 @@ void Image::UnwrapOrtho( Frame& tgtIn, Frame& refIn, PairType const& AtomPairs,
     std::copy( tgtIn.xAddress()+i3, tgtIn.xAddress()+(lastAtom*3), refIn.xAddress()+i3 );
   } // END loop over atom pairs
 }
+
+// -----------------------------------------------------------------------------
+void Image::WrapToCell0(std::vector<double>& CoordsIn, Frame const& frmIn,
+                        AtomMask const& maskIn,
+                        Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+{
+  double* uFrac = &CoordsIn[0];
+  int nUatoms = maskIn.Nselected();
+  int idx;
+  double* result;
+  const double* XYZ;
+# ifdef _OPENMP
+# pragma omp parallel private(idx, result, XYZ)
+  {
+# pragma omp for
+# endif
+  for (idx = 0; idx < nUatoms; idx++)
+  {
+    result = uFrac + idx*3;
+    XYZ = frmIn.XYZ( maskIn[idx] );
+    // Convert to frac coords
+    recip.TimesVec( result, XYZ );
+    // Wrap to primary unit cell
+    result[0] = result[0] - floor(result[0]);
+    result[1] = result[1] - floor(result[1]);
+    result[2] = result[2] - floor(result[2]);
+    // Convert back to Cartesian
+    ucell.TransposeMult( result, result );
+  }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+}
