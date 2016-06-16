@@ -7,6 +7,7 @@
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#include "ImageRoutines.h"
 #ifdef CUDA
 #  include <cuda_runtime_api.h>
 #  include <cuda.h>
@@ -353,9 +354,9 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     // ----- NON-ORTHORHOMBIC IMAGING ------------
     Matrix_3x3 ucell, recip;
     frm.Frm().BoxCrd().ToRecip(ucell, recip);
-    double* uFrac = &U_cell0_coords_[0];
     // Wrap all solute atoms back into primary cell and save coords
     if (useMaskCenter_) {
+      double* uFrac = &U_cell0_coords_[0];
       //  Calc COM and convert to frac coords
       Vec3 center = recip * frm.Frm().VGeometricCenter( distanceMask_ );
       // Wrap to primary unit cell
@@ -365,31 +366,7 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
       // Convert back to Cartesian
       ucell.TransposeMult( uFrac, center.Dptr() );
     } else {
-      int nUatoms = distanceMask_.Nselected();
-      int idx;
-      double* result;
-      const double* XYZ;
-#     ifdef _OPENMP
-#     pragma omp parallel private(idx, result, XYZ)
-      {
-#     pragma omp for
-#     endif
-      for (idx = 0; idx < nUatoms; idx++)
-      {
-        result = uFrac + idx*3;
-        XYZ = frm.Frm().XYZ( distanceMask_[idx] );
-        // Convert to frac coords
-        recip.TimesVec( result, XYZ );
-        // Wrap to primary unit cell
-        result[0] = result[0] - floor(result[0]);
-        result[1] = result[1] - floor(result[1]);
-        result[2] = result[2] - floor(result[2]);
-        // Convert back to Cartesian
-        ucell.TransposeMult( result, result );
-      }
-#     ifdef _OPENMP
-      } // END pragma omp parallel
-#     endif
+      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, ucell, recip );
     }
     // Calculate closest distance of every solvent image to solute
     int mnum;
