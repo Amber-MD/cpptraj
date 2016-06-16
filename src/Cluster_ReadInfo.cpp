@@ -17,7 +17,7 @@ int Cluster_ReadInfo::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_ReadInfo::ClusteringInfo() {
+void Cluster_ReadInfo::ClusteringInfo() const {
   mprintf("\tREADINFO: Reading cluster information from previous run, file %s.\n",
           filename_.c_str());
 }

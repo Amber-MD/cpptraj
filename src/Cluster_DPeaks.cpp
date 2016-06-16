@@ -62,7 +62,7 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_DPeaks::ClusteringInfo() {
+void Cluster_DPeaks::ClusteringInfo() const {
   mprintf("---------------------------------------------------------------------------\n"
           "Warning: The dpeaks algorithm is still under development. USE WITH CAUTION!\n"
           "---------------------------------------------------------------------------\n");

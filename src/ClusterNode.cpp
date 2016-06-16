@@ -126,8 +126,8 @@ void ClusterNode::SortFrameList() {
 }
 
 // ClusterNode::HasFrame()
-bool ClusterNode::HasFrame(int frame) {
-  ClusterDist::Cframes::iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
+bool ClusterNode::HasFrame(int frame) const {
+  ClusterDist::Cframes::const_iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
   return !(it == frameList_.end());
 }
 

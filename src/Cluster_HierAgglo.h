@@ -6,16 +6,25 @@
 #endif
 class Cluster_HierAgglo : public ClusterList {
   public:
-    /// Type of distance calculation between clusters.
-    enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
     Cluster_HierAgglo();
     static void Help();
     int SetupCluster(ArgList&);
-    void ClusteringInfo();
+    void ClusteringInfo() const;
     int Cluster();
+#   ifdef TIMER
+    void Timing(double) const;
+#   endif
     void AddSievedFrames() { AddSievedFramesByCentroid(); }
     void ClusterResults(CpptrajFile&) const;
   private:
+    void InitializeClusterDistances();
+    int MergeClosest();
+    void calcMinDist(cluster_it&);
+    void calcMaxDist(cluster_it&);
+    void calcAvgDist(cluster_it&);
+
+    /// Type of distance calculation between clusters.
+    enum LINKAGETYPE  { SINGLELINK = 0, AVERAGELINK, COMPLETELINK };
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.
     LINKAGETYPE linkage_; ///< Cluster Linkage type.
@@ -30,10 +39,5 @@ class Cluster_HierAgglo : public ClusterList {
     Timer time_mergeFrames_;
     Timer time_calcLinkage_;
 #   endif
-    void InitializeClusterDistances();
-    int MergeClosest();
-    void calcMinDist(cluster_it&);
-    void calcMaxDist(cluster_it&);
-    void calcAvgDist(cluster_it&);
 };
 #endif

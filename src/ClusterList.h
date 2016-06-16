@@ -18,20 +18,26 @@ class ClusterList {
 
     void SetDebug(int);
     void Renumber(bool);
-    void Summary(std::string const&,int);
-    void Summary_Part(std::string const&,int,std::vector<int> const&);
+    void Summary(std::string const&,int) const;
+    void Summary_Part(std::string const&,int,std::vector<int> const&) const;
     void PrintClustersToFile(std::string const&,int);
-    void PrintClusters();
+    void PrintClusters() const;
     /// Set up appropriate cluster distance calculation
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
     int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
     // Inherited by individual clustering methods
     virtual int SetupCluster(ArgList&) = 0;
-    virtual void ClusteringInfo() = 0;
+    virtual void ClusteringInfo() const = 0;
     virtual int Cluster() = 0;
-
-    // Const Iterator over clusters
+#   ifdef TIMER
+    virtual void Timing(double) const = 0;
+#   endif
+    /// Iterator over clusters
+    typedef std::list<ClusterNode>::iterator cluster_it;
+    cluster_it begin() { return clusters_.begin(); }
+    cluster_it end()   { return clusters_.end();   }
+    /// Const Iterator over clusters
     typedef std::list<ClusterNode>::const_iterator cluster_iterator;
     const cluster_iterator begincluster() const { return clusters_.begin(); }
     const cluster_iterator endcluster()   const { return clusters_.end();   }
@@ -49,8 +55,6 @@ class ClusterList {
 
     void AddSievedFramesByCentroid();
     DataSet_Cmatrix const& FrameDistances() const { return *frameDistances_; }
-    /// Iterator over clusters
-    typedef std::list<ClusterNode>::iterator cluster_it;
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
@@ -62,6 +66,8 @@ class ClusterList {
     int AddCluster(ClusterDist::Cframes const&);
   private:
     static const char* XMGRACE_COLOR[];
+    /// Determine max name width
+    unsigned int DetermineNameWidth() const;
     /// Calculate the Davies-Bouldin index of clusters.
     double ComputeDBI(CpptrajFile&);
     /// Calculate pseudo-F statistic.
