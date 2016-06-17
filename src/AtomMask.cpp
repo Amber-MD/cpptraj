@@ -182,6 +182,11 @@ int AtomMask::SetupMask(AtomArrayT const& atoms, ResArrayT const& residues, cons
   * CharMask mask( AtomMask.ConvertToCharMask(), AtomMask.Nselected() )
   */
 std::vector<char> AtomMask::ConvertToCharMask() const {
+  // If Natom is empty this will not work.
+  if (Natom_ < 1) {
+    mprinterr("Internal Error: Cannot convert AtomMask to CharMask, Natom < 1.\n");
+    return std::vector<char>();
+  }
   std::vector<char> CharMask(Natom_, UnselectedChar_);
   if (!Selected_.empty()) {
     for (std::vector<int>::const_iterator maskatom = Selected_.begin();
