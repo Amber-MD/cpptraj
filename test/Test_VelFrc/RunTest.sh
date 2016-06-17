@@ -32,7 +32,6 @@ cat > cpptraj.in <<EOF
 parm ../tz2.nhe.parm7
 trajin CrdFrcVel.nc usefrcascoords
 trajout Frc.crd
-trajout Frc.nc
 EOF
 RunCpptraj "Test using forces as coordinates."
 DoTest Frc.crd.save Frc.crd
