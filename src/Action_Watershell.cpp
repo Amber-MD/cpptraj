@@ -113,6 +113,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
 Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Set up solute mask
   if (setup.Top().SetupIntegerMask( soluteMask_ )) return Action::ERR;
+  soluteMask_.MaskInfo();
   if ( soluteMask_.None() ) {
     mprintf("Warning: No atoms in solute mask [%s].\n",soluteMask_.MaskString());
     return Action::SKIP;
@@ -120,6 +121,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   if (solventMask_.MaskStringSet()) {
     // Set up solvent mask
     if (setup.Top().SetupIntegerMask( solventMask_ )) return Action::ERR;
+    solventMask_.MaskInfo();
   } else {
     // Use all solvent atoms.
     solventMask_.ResetMask();
@@ -129,6 +131,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
                                 mol != setup.Top().MolEnd(); ++mol)
       if ( mol->IsSolvent() )
         solventMask_.AddAtomRange( mol->BeginAtom(), mol->EndAtom() );
+    mprintf("\tSelecting all solvent atoms (%i total)\n", solventMask_.Nselected());
   }
   if ( solventMask_.None() ) {
     if ( solventMask_.MaskStringSet() )
