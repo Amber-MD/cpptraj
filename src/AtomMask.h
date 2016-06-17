@@ -55,6 +55,8 @@ class AtomMask : public MaskTokenArray {
     void AddMaskAtPosition(AtomMask const&, int);
     /// Convert from integer mask to char mask.
     std::vector<char> ConvertToCharMask() const;
+    /// Set total number of atoms; needed for conversion to CharMask
+    void SetNatoms(int n) { Natom_ = n; }
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;
