@@ -1,12 +1,13 @@
 #include <cmath> // floor
-#include "Action_Watershell.h"
-#include "CpptrajStdio.h"
-#include "ImageRoutines.h"
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
+#include "Action_Watershell.h"
+#include "CpptrajStdio.h"
+#include "ImageRoutines.h"
 
 #ifdef CUDA
+// CUDA Kernel wrappers
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
 #endif
 

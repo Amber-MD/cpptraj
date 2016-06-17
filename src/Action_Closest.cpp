@@ -8,10 +8,8 @@
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "ImageRoutines.h"
-#ifdef CUDA
-#  include <cuda_runtime_api.h>
-#  include <cuda.h>
 
+#ifdef CUDA
 // CUDA kernel wrappers
 extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImagingType,const double*,const double*,const double*);
 extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
