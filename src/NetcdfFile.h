@@ -35,7 +35,7 @@ class NetcdfFile {
     /// Read - Set up ensemble dimension ID and number of members.
     int SetupEnsembleDim();
     /// Read - Set up coordinates, velocities, forces, # atoms
-    int SetupCoordsVelo(bool);
+    int SetupCoordsVelo(bool, bool);
     /// Read - Set up time variable if present
     int SetupTime();
     /// Read - Set up box information if present.

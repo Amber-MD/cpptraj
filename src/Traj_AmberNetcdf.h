@@ -43,6 +43,7 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int eptotVID_;
     int binsVID_;
     bool useVelAsCoords_;
+    bool useFrcAsCoords_;
     bool readAccess_;
     bool outputTemp_;
     bool outputVel_;

@@ -4,7 +4,8 @@
 void Exec_Trajin::Help() const {
   mprintf("\t<filename> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t           [%s]\n", DataSetList::TopArgs);
-  mprintf("\t           [ <Format Options> ]\n"
+  mprintf("\t           [mdvel <velocities>] [mdfrc <forces>]\n"
+          "\t           [ <Format Options> ]\n"
           "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
           "  Load trajectory specified by <filename> to the input trajectory list.\n");

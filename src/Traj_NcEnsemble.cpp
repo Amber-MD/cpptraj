@@ -17,7 +17,8 @@ Traj_NcEnsemble::Traj_NcEnsemble() :
   ensembleStart_(0),
   ensembleEnd_(0),
   readAccess_(false),
-  useVelAsCoords_(false)
+  useVelAsCoords_(false),
+  useFrcAsCoords_(false)
 {}
 
 // DESTRUCTOR
@@ -44,6 +45,7 @@ int Traj_NcEnsemble::processWriteArgs(ArgList& argIn) {
 // Traj_NcEnsemble::processReadArgs()
 int Traj_NcEnsemble::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  useFrcAsCoords_ = argIn.hasKey("usefrcascoords");
   return 0;
 }
 
@@ -126,7 +128,7 @@ int Traj_NcEnsemble::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"

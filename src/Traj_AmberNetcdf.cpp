@@ -17,6 +17,7 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   eptotVID_(-1),
   binsVID_(-1),
   useVelAsCoords_(false),
+  useFrcAsCoords_(false),
   readAccess_(false),
   outputTemp_(false),
   outputVel_(false),
@@ -56,11 +57,13 @@ int Traj_AmberNetcdf::openTrajin() {
 }
 
 void Traj_AmberNetcdf::ReadHelp() {
-  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n");
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n"
+          "\tusefrcascoords: Use forces instead of coordinates if present.\n");
 }
 
 int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  useFrcAsCoords_ = argIn.hasKey("usefrcascoords");
   return 0;
 }
 
@@ -89,7 +92,7 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
