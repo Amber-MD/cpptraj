@@ -4,6 +4,13 @@
 
 CleanFiles cpptraj.in CrdFrcVel.nc Vel.crd Frc.crd
 
+NotParallel "Separate velocity/force"
+if [ "$?" -eq 1 ] ; then
+  EndTest
+  exit 0
+fi
+CheckNetcdf
+
 INPUT="-i cpptraj.in"
 
 cat > cpptraj.in <<EOF
