@@ -316,6 +316,9 @@ test.align:
 test.velocityautocorr:
 	@-cd Test_VelocityAutoCorr && ./RunTest.sh $(OPT)
 
+test.velfrc:
+	@-cd Test_VelFrc && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -394,7 +397,8 @@ SHORT_TESTS=test.general \
           test.cif \
           test.pdb \
           test.align \
-          test.velocityautocorr
+          test.velocityautocorr \
+          test.velfrc
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -497,7 +501,8 @@ COMPLETETESTS=test.general \
               test.cif \
               test.pdb \
               test.align \
-              test.velocityautocorr
+              test.velocityautocorr \
+              test.velfrc
 
 test: test.all 
 
