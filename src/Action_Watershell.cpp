@@ -64,6 +64,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
     outfile->AddDataSet(lower_);
     outfile->AddDataSet(upper_);
   }
+# ifndef CUDA
 # ifdef _OPENMP
   // Determine number of parallel threads
   int numthreads = 0;
@@ -73,6 +74,7 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
     numthreads = omp_get_num_threads();
 }
   shellStatus_thread_.resize( numthreads );
+# endif
 # endif
   mprintf("    WATERSHELL:");
   if (outfile != 0) mprintf(" Output to %s", outfile->DataFilename().full());
@@ -86,10 +88,14 @@ Action::RetType Action_Watershell::Init(ArgList& actionArgs, ActionInit& init, i
   mprintf("\tSolute atoms will be specified by [%s]\n",soluteMask_.MaskString());
   if (solventMask_.MaskStringSet())
     mprintf("\tSolvent atoms will be specified by [%s]\n", solventMask_.MaskString());
+#ifdef CUDA
+  mprintf("\tDistance calculations will be GPU-accelerated with CUDA.\n");
+#else
 # ifdef _OPENMP
   if (shellStatus_thread_.size() > 1)
     mprintf("\tParallelizing calculation with %zu threads.\n", shellStatus_thread_.size());
 # endif
+#endif
   mprintf("\t# solvent molecules in 'lower' shell stored in set '%s'\n", lower_->legend());
   mprintf("\t# solvent molecules in 'upper' shell stored in set '%s'\n", upper_->legend());
 
@@ -131,7 +137,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
       mprintf("Warning: No solvent atoms in topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
-# ifdef CUDA
+#ifdef CUDA
   // Since we are using the 'closest' kernels under the hood, all solvent mols
   // must have the same size.
   int first_solvent_mol = setup.Top()[ solventMask_[0] ].MolNum();
@@ -157,15 +163,7 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   // Allocate space for selected solvent atom coords and distances
   V_atom_coords_.resize( NsolventMolecules_ * NAtoms_ * 3, 0.0 );
   V_distances_.resize( NsolventMolecules_ );
-# endif /* CUDA */
-  // Set up imaging
-  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
-  if (image_.ImagingEnabled())
-    mprintf("\tImaging is on.\n");
-  else
-    mprintf("\tImaging is off.\n");
-  // Allocate temp space for selected solute atom coords.
-  soluteCoords_.resize( soluteMask_.Nselected() * 3 );
+#else /* CUDA */
   // Allocate space to record status of each solvent molecule.
   // NOTE: Doing this by residue instead of by molecule does waste some memory,
   //       but it means watershell can be used even if no molecule info present. 
@@ -177,6 +175,15 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
 # else
   shellStatus_.assign( setup.Top().Nres(), 0 );
 # endif
+#endif /* CUDA */
+  // Set up imaging
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  if (image_.ImagingEnabled())
+    mprintf("\tImaging is on.\n");
+  else
+    mprintf("\tImaging is off.\n");
+  // Allocate temp space for selected solute atom coords.
+  soluteCoords_.resize( soluteMask_.Nselected() * 3 );
   // Store current topology
   CurrentParm_ = setup.TopAddress();
   return Action::OK;    

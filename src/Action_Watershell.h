@@ -26,17 +26,18 @@ class Action_Watershell : public Action {
     DataSet* lower_;        ///< Number of solvent in first shell.
     DataSet* upper_;        ///< Number of solvent in second shell.
     Darray soluteCoords_;   ///< Hold selected solute coords.
+#ifdef CUDA
+    Darray V_atom_coords_;  ///< Hold selected solvent atom coords
+    Darray V_distances_;    ///< Hold closest distance of solvent mols to any solute atom
+    int NsolventMolecules_; ///< Number of selected solvent mols
+    int NAtoms_;            ///< Number of atoms in each solvent mol
+#else
 #   ifdef _OPENMP
     /// Shell status for solvent for each OpenMP thread.
     std::vector<Iarray> shellStatus_thread_; ///< Shell status for solvent for each OpenMP thread.
 #   else
     Iarray shellStatus_;    ///< Solvent shell status for each solvent (none, first, second)
 #   endif
-#   ifdef CUDA
-    Darray V_atom_coords_;  ///< Hold selected solvent atom coords
-    Darray V_distances_;    ///< Hold closest distance of solvent mols to any solute atom
-    int NsolventMolecules_; ///< Number of selected solvent mols
-    int NAtoms_;            ///< Number of atoms in each solvent mol
-#   endif
+#endif
 };
 #endif
