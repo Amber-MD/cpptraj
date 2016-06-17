@@ -20,7 +20,11 @@ static inline void CheckRange(Image::PairType& atomPairs, CharMask const& MaskIn
 }
 
 // Image::CreatePairList() 
-/** Create an atom pair list by molecule, residue, or atom. */
+/** An atom pair list consists of 2 values for each entry, a beginning
+  * index and ending index. For molecules and residues this is the first
+  * and just beyond the last atom; for atoms it is just the atom itself
+  * twice.
+  */
 Image::PairType Image::CreatePairList(Topology const& Parm, Mode modeIn,
                                        std::string const& maskExpression)
 {
