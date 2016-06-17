@@ -137,8 +137,12 @@ int NetcdfFile::SetupEnsembleDim() {
 /** Setup ncatom, ncatom3, atomDID, coordVID, spatialDID, spatialVID,
   * velocityVID, frcVID. Check units and spatial dimensions.
   */
-int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
-  int spatial;
+int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords, bool useFrcAsCoords) {
+  if (useVelAsCoords && useFrcAsCoords) {
+    mprinterr("Error: Cannot use both velocities and forces as coords - specify one only.\n");
+    return 1;
+  }
+  // Get atoms info
   atomDID_ = NC::GetDimInfo( ncid_, NCATOM, ncatom_ );
   if (atomDID_==-1) return 1;
   ncatom3_ = ncatom_ * 3;
@@ -152,6 +156,7 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
               attrText.c_str());
   }
   // Get spatial info
+  int spatial;
   spatialDID_ = NC::GetDimInfo( ncid_, NCSPATIAL, spatial );
   if (spatialDID_==-1) return 1;
   if (spatial!=3) {
@@ -180,12 +185,17 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
   if ( nc_inq_varid(ncid_, NCVELO, &velocityVID_) == NC_NOERR ) {
     if (ncdebug_>0) mprintf("\tNetCDF file has velocities.\n");
   }
-  // Return a error if no coords and no velocity
-  if ( coordVID_ == -1 && velocityVID_ == -1 ) {
-    mprinterr("Error: NetCDF file has no coords and no velocities.\n");
+  // Get force info
+  frcVID_ = -1;
+  if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
+    if (ncdebug_>0) mprintf("\tNetCDF file has forces.\n");
+  }
+  // Return a error if no coords, velocities, or forces
+  if ( coordVID_ == -1 && velocityVID_ == -1 && frcVID_ == -1 ) {
+    mprinterr("Error: NetCDF file has no coordinates, velocities, or forces.\n");
     return 1;
   }
-  // If using velocities as coordinates, swap them now.
+  // If using velocities/forces as coordinates, swap them now.
   if (useVelAsCoords) {
     if (velocityVID_ == -1) {
       mprinterr("Error: Cannot use velocities as coordinates; no velocities present.\n");
@@ -194,11 +204,14 @@ int NetcdfFile::SetupCoordsVelo(bool useVelAsCoords) {
     mprintf("\tUsing velocities as coordinates.\n");
     coordVID_ = velocityVID_;
     velocityVID_ = -1;
-  }
-  // Get force info
-  frcVID_ = -1;
-  if ( nc_inq_varid(ncid_, NCFRC, &frcVID_) == NC_NOERR ) {
-    if (ncdebug_>0) mprintf("\tNetCDF file has forces.\n");
+  } else if (useFrcAsCoords) {
+    if (frcVID_ == -1) {
+      mprinterr("Error: Cannot use forces as coordinates; no forces present.\n");
+      return 1;
+    }
+    mprintf("\tUsing forces as coordinates.\n");
+    coordVID_ = frcVID_;
+    frcVID_ = -1;
   }
   // Get overall replica and coordinate indices
   crdidxVID_ = -1;

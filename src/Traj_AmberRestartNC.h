@@ -38,6 +38,7 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int n_atoms_;         ///< Write only - number of atoms.
     bool singleWrite_;
     bool useVelAsCoords_;
+    bool useFrcAsCoords_;
     bool outputTemp_;
     bool outputVel_;
     bool outputTime_;

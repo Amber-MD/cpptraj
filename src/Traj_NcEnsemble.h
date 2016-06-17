@@ -35,6 +35,7 @@ class Traj_NcEnsemble : public TrajectoryIO, private NetcdfFile {
     int ensembleEnd_;
     bool readAccess_;
     bool useVelAsCoords_;
+    bool useFrcAsCoords_;
 };
 #endif
 #endif
