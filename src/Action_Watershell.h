@@ -32,5 +32,11 @@ class Action_Watershell : public Action {
 #   else
     Iarray shellStatus_;    ///< Solvent shell status for each solvent (none, first, second)
 #   endif
+#   ifdef CUDA
+    Darray V_atom_coords_;  ///< Hold selected solvent atom coords
+    Darray V_distances_;    ///< Hold closest distance of solvent mols to any solute atom
+    int NsolventMolecules_; ///< Number of selected solvent mols
+    int NAtoms_;            ///< Number of atoms in each solvent mol
+#   endif
 };
 #endif

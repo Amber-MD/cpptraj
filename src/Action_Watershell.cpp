@@ -6,6 +6,10 @@
 #  include <omp.h>
 #endif
 
+#ifdef CUDA
+extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
+#endif
+
 // CONSTRUCTOR
 Action_Watershell::Action_Watershell() :
   lowerCutoff_(0),
@@ -112,6 +116,8 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
   } else {
     // Use all solvent atoms.
     solventMask_.ResetMask();
+    // Set number of atoms; needed for CharMask conversion.
+    solventMask_.SetNatoms( setup.Top().Natom() );
     for (Topology::mol_iterator mol = setup.Top().MolStart();
                                 mol != setup.Top().MolEnd(); ++mol)
       if ( mol->IsSolvent() )
@@ -124,6 +130,34 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
       mprintf("Warning: No solvent atoms in topology %s\n", setup.Top().c_str());
     return Action::SKIP;
   }
+# ifdef CUDA
+  // Since we are using the 'closest' kernels under the hood, all solvent mols
+  // must have the same size.
+  int first_solvent_mol = setup.Top()[ solventMask_[0] ].MolNum();
+  NAtoms_ = setup.Top().Mol( first_solvent_mol ).NumAtoms();
+  for (AtomMask::const_iterator atm = solventMask_.begin(); atm != solventMask_.end(); ++atm) {
+    int mol = setup.Top()[*atm].MolNum();
+    if (NAtoms_ != setup.Top().Mol( mol ).NumAtoms()) {
+      mprinterr("Error: CUDA version of 'watershell' requires all solvent mols be same size.\n");
+      return Action::ERR;
+    }
+  }
+  // Determine how many solvent molecules are selected
+  NsolventMolecules_ = 0;
+  CharMask cMask( solventMask_.ConvertToCharMask(), solventMask_.Nselected() );
+  for (Topology::mol_iterator mol = setup.Top().MolStart(); mol != setup.Top().MolEnd(); ++mol)
+    if ( cMask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) )
+      NsolventMolecules_++;
+  // Sanity check
+  if ( (NsolventMolecules_ * NAtoms_) != solventMask_.Nselected() ) {
+    mprinterr("Error: CUDA version of 'watershell' requires all atoms in solvent mols be selected.\n");
+    return Action::ERR;
+  }
+  // Allocate space for selected solvent atom coords and distances
+  V_atom_coords_.resize( NsolventMolecules_ * NAtoms_ * 3, 0.0 );
+  V_distances_.resize( NsolventMolecules_ );
+# endif /* CUDA */
+  // Set up imaging
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())
     mprintf("\tImaging is on.\n");
@@ -149,8 +183,56 @@ Action::RetType Action_Watershell::Setup(ActionSetup& setup) {
 
 // Action_Watershell::DoAction()
 Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
+  int nlower = 0;
+  int nupper = 0;
+# ifdef CUDA
+  // Copy solvent atom coords to array
+  unsigned int idx = 0; // Index into V_atom_coords_
+  for (AtomMask::const_iterator atm = solventMask_.begin();
+                                atm != solventMask_.end(); ++atm, idx += 3)
+  {
+    const double* xyz = frm.Frm().XYZ( *atm );
+    V_atom_coords_[idx  ] = xyz[0];
+    V_atom_coords_[idx+1] = xyz[1];
+    V_atom_coords_[idx+2] = xyz[2];
+  }
+  Matrix_3x3 ucell, recip;
+  if (image_.ImageType() == NONORTHO)
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+  // Copy solute atom coords to array
+  idx = 0;
+  for (AtomMask::const_iterator atm = soluteMask_.begin();
+                                atm != soluteMask_.end(); ++atm, idx += 3)
+  {
+    const double* XYZ = frm.Frm().XYZ( *atm );
+    soluteCoords_[idx  ] = XYZ[0];
+    soluteCoords_[idx+1] = XYZ[1];
+    soluteCoords_[idx+2] = XYZ[2];
+  }
+
+  Action_Closest_NoCenter( &V_atom_coords_[0], &V_distances_[0], &soluteCoords_[0],
+                           9999999999999.0, NsolventMolecules_, NAtoms_, soluteMask_.Nselected(),
+                           image_.ImageType(),
+                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+
+  // V_distances_ now has the closest distance of each solvent molecule to
+  // solute. Determine shell status of each.
+  for (Darray::const_iterator dist2 = V_distances_.begin(); dist2 != V_distances_.end(); ++dist2)
+    if (*dist2 < upperCutoff_)
+    {
+      ++nupper;
+      // Less than lower, 1st shell
+      if (*dist2 < lowerCutoff_)
+        ++nlower;
+    }
+
+# else
+  // ---------------------------------------------------------------------------
   int NV = solventMask_.Nselected();
-  int Vidx, mythread;
+  int Vidx;
+# ifdef _OPENMP
+  int mythread;
+# endif
   int* status = 0;
 
   if (image_.ImageType() == NONORTHO) {
@@ -272,8 +354,6 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     } // END pragma omp parallel
 #   endif
   }
-  int nlower = 0;
-  int nupper = 0;
 # ifdef _OPENMP
   // Combine results from each thread.
   for (unsigned int res = 0; res < shellStatus_thread_[0].size(); res++) {
@@ -300,6 +380,7 @@ Action::RetType Action_Watershell::DoAction(int frameNum, ActionFrame& frm) {
     *shell = 0;
   }
 # endif
+# endif /* CUDA */
   lower_->Add(frameNum, &nlower);
   upper_->Add(frameNum, &nupper);
 
