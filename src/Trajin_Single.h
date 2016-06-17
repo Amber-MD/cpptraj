@@ -28,6 +28,8 @@ class Trajin_Single : public Trajin {
     void ParallelEndTraj();
 #   endif
   private:
+    TrajectoryIO* SetupSeparateTraj(FileName const&, const char*) const;
+
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
     TrajectoryIO* frcio_;  ///< Hold class taht will interface with opt. mdfrc file.
