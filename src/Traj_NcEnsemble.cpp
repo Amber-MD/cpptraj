@@ -32,7 +32,8 @@ void Traj_NcEnsemble::WriteHelp() {
 }
 
 void Traj_NcEnsemble::ReadHelp() {
-  mprintf("\t[usevelascoords]\n");
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n"
+          "\tusefrcascoords: Use forces instead of coordinates if present.\n");
 }
 
 // Traj_NcEnsemble::processWriteArgs()

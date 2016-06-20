@@ -113,10 +113,10 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberRestartNC::WriteHelp() {
-  mprintf("\tremdtraj  : Write temperature to restart file.\n"
-          "\ttime0     : Time for first frame (default 1.0).\n"
-          "\tdt        : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
-          "\tkeepext   : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
+  mprintf("\tremdtraj: Write temperature to restart file.\n"
+          "\ttime0   : Time for first frame (default 1.0).\n"
+          "\tdt      : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestartNC::processWriteArgs()

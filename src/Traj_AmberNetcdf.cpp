@@ -131,7 +131,7 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 void Traj_AmberNetcdf::WriteHelp() {
   mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
           "\tvelocity: Write velocities to trajectory.\n"
-          "\tforce: Write forces to trajectory.\n");
+          "\tforce   : Write forces to trajectory.\n");
 }
 
 // Traj_AmberNetcdf::processWriteArgs()

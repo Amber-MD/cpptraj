@@ -56,10 +56,10 @@ void Traj_AmberRestart::closeTraj() {
 int Traj_AmberRestart::openTrajin() { return 0; }
 
 void Traj_AmberRestart::WriteHelp() {
-  mprintf("\tremdtraj  : Write temperature to restart file (will also write time).\n"
-          "\ttime0     : Time for first frame (if not specified time is not written).\n"
-          "\tdt        : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
-          "\tkeepext   : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
+  mprintf("\tremdtraj: Write temperature to restart file (will also write time).\n"
+          "\ttime0   : Time for first frame (if not specified time is not written).\n"
+          "\tdt      : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestart::processWriteArgs()
