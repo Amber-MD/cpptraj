@@ -126,7 +126,12 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
 
 void OutputTrajCommon::CommonInfo() const {
   if (trajParm_ != 0) mprintf(", Parm %s", trajParm_->c_str());
-  if (noBox_) mprintf(" (no box info)");
+  if (noBox_) mprintf(" no box info,");
+  if (noVel_) mprintf(" no velocities,");
+  if (noTemp_) mprintf(" no temperatures,");
+  if (noTime_) mprintf(" no times,");
+  if (noFrc_) mprintf(" no forces,");
+  if (noReps_) mprintf(" no replica dimensions,");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
   else if (NframesToWrite_ > 0) {
