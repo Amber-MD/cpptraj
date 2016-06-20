@@ -554,13 +554,15 @@ int NetcdfFile::NC_create(std::string const& Name, NCTYPE type, int natomIn,
     dimensionID[1] = spatialDID_;
   }
   // Coord variable
-  if ( NC::CheckErr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
-    mprinterr("Error: Defining coordinates variable.\n");
-    return 1;
-  }
-  if ( NC::CheckErr( nc_put_att_text( ncid_, coordVID_, "units", 8, "angstrom")) ) {
-    mprinterr("Error: Writing coordinates variable units.\n");
-    return 1;
+  if (coordInfo.HasCrd()) {
+    if ( NC::CheckErr( nc_def_var( ncid_, NCCOORDS, dataType, NDIM, dimensionID, &coordVID_)) ) {
+      mprinterr("Error: Defining coordinates variable.\n");
+      return 1;
+    }
+    if ( NC::CheckErr( nc_put_att_text( ncid_, coordVID_, "units", 8, "angstrom")) ) {
+      mprinterr("Error: Writing coordinates variable units.\n");
+      return 1;
+    }
   }
   // Velocity variable
   if (coordInfo.HasVel()) {
