@@ -31,7 +31,8 @@ void Exec_Reference::Help() const {
 }
 // -----------------------------------------------------------------------------
 void Exec_Trajout::Help() const {
-  mprintf("\t<filename> [<fileformat>] [append] [nobox]\n"
+  mprintf("\t<filename> [<fileformat>] [append] [nobox] [novelocity]\n"
+          "\t           [notemperature] [notime] [noforce] [noreplicadim]\n"
           "\t           [%s] [onlyframes <range>] [title <title>]\n"
           "\t           [onlymembers <memberlist>]\n", DataSetList::TopArgs);
   mprintf("\t           %s\n", ActionFrameCounter::HelpText);

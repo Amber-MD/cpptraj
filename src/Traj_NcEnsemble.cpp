@@ -32,7 +32,8 @@ void Traj_NcEnsemble::WriteHelp() {
 }
 
 void Traj_NcEnsemble::ReadHelp() {
-  mprintf("\t[usevelascoords]\n");
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n"
+          "\tusefrcascoords: Use forces instead of coordinates if present.\n");
 }
 
 // Traj_NcEnsemble::processWriteArgs()
@@ -403,7 +404,7 @@ int Traj_NcEnsemble::writeArray(int set, FramePtrArray const& Farray) {
       return 1;
     }
     // Write velocity.
-    if (CoordInfo().HasVel() && frm->HasVelocity()) { // TODO: Determine V beforehand
+    if (velocityVID_ != -1) {
       DoubleToFloat(Coord_, frm->vAddress());
 #     ifdef HAS_PNETCDF
       if (ncmpi_put_vara_float_all(ncid_, velocityVID_, start_, count_, Coord_))

@@ -3,8 +3,7 @@
 #include "StringRoutines.h" // integerToString
 
 void Traj_SQM::WriteHelp() {
-  mprintf("\tcharge <c>: Set total integer charge. If not specified it will be calculated from"
-          " atomic charges.\n");
+  mprintf("\tcharge <c>: Specify total integer charge\n");
 }
 
 // Traj_SQM::processWriteArgs()
