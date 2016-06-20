@@ -8,7 +8,12 @@ OutputTrajCommon::OutputTrajCommon() :
   NframesToWrite_(-1),
   numFramesWritten_(0),
   writeFormat_(TrajectoryFile::UNKNOWN_TRAJ),
-  nobox_(false),
+  noBox_(false),
+  noVel_(false),
+  noTemp_(false),
+  noTime_(false),
+  noFrc_(false),
+  noReps_(false),
   append_(false),
   hasRange_(false)
 {}
@@ -22,9 +27,13 @@ int OutputTrajCommon::CommonTrajoutSetup(FileName const& tnameIn, ArgList& argIn
   append_ = argIn.hasKey("append");
   // Get specified title if any.
   title_ = argIn.GetStringKey("title");
-  // Check for nobox argument - will override any box info present in parm
-  // when trajectory IO is set up.
-  nobox_ = argIn.hasKey("nobox");
+  // Check for noX arguments - will override info in given CoordinateInfo.
+  noBox_ = argIn.hasKey("nobox");
+  noVel_ = argIn.hasKey("novelocity");
+  noTemp_ = argIn.hasKey("notemperature");
+  noTime_ = argIn.hasKey("notime");
+  noFrc_ = argIn.hasKey("noforce");
+  noReps_ = argIn.hasKey("noreplicadim");
   // If a write format was not specified (UNKNOWN_TRAJ) check the argument
   // list to see if format was specified there.
   writeFormat_ = fmtIn;
@@ -95,12 +104,14 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
 {
   if (tparmIn == 0) return 1;
   trajParm_ = tparmIn;
-  // Use parm to set up coord info for the traj. If 'nobox' was specified
-  // remove any box info.
+  // Set coordinate info. Remove box, velocities, etc if specified.
   cInfo_ = cInfoIn;
-  if (nobox_)
-    cInfo_.SetBox( Box() );
-  // TODO velocity, temperature, time etc
+  if (noBox_ ) cInfo_.SetBox( Box() );
+  if (noVel_ ) cInfo_.SetVelocity( false );
+  if (noTemp_) cInfo_.SetTemperature( false );
+  if (noTime_) cInfo_.SetTime( false );
+  if (noFrc_ ) cInfo_.SetForce( false );
+  if (noReps_) cInfo_.SetReplicaDims( ReplicaDimArray() );
   // Determine how many frames will be written
   NframesToWrite_ = nFrames;
   if (hasRange_)
@@ -115,7 +126,7 @@ int OutputTrajCommon::SetupCoordInfo(Topology* tparmIn, int nFrames, CoordinateI
 
 void OutputTrajCommon::CommonInfo() const {
   if (trajParm_ != 0) mprintf(", Parm %s", trajParm_->c_str());
-  if (nobox_) mprintf(" (no box info)");
+  if (noBox_) mprintf(" (no box info)");
   if (hasRange_)
     FrameRange_.PrintRange(": Writing frames", 1);
   else if (NframesToWrite_ > 0) {
