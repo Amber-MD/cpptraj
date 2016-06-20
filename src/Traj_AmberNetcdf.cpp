@@ -140,8 +140,12 @@ void Traj_AmberNetcdf::WriteHelp() {
 int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
   write_mdcrd_ = argIn.hasKey("mdcrd");
-  write_mdvel_ = argIn.hasKey("mdvel") || argIn.hasKey("velocity");
-  write_mdfrc_ = argIn.hasKey("mdfrc") || argIn.hasKey("force");
+  if (argIn.hasKey("velocity"))
+    mprintf("Warning: The 'velocity' keyword is no longer necessary and has been deprecated.\n");
+  if (argIn.hasKey("force"))
+    mprintf("Warning: The 'force' keyword is no longer necessary and has been deprecated.\n");
+  write_mdvel_ = argIn.hasKey("mdvel");
+  write_mdfrc_ = argIn.hasKey("mdfrc");
   return 0;
 }
 
