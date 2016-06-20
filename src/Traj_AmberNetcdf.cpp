@@ -337,8 +337,8 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     return 1;
   }
 
-  // Write velocity. FIXME: Should check in setup
-  if (CoordInfo().HasVel() && frameOut.HasVelocity()) {
+  // Write velocity.
+  if (velocityVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.vAddress());
     if (NC::CheckErr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
@@ -346,8 +346,8 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
     }
   }
 
-  // Write forces. FIXME: Should check in setup
-  if (CoordInfo().HasForce() && frameOut.HasForce()) {
+  // Write forces.
+  if (frcVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.fAddress());
     if (NC::CheckErr(nc_put_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Netcdf writing force frame %i\n", set+1);
@@ -374,7 +374,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   }
 
   // Write temperature
-  if (TempVID_!=-1) {
+  if (TempVID_ != -1) {
     if ( NC::CheckErr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing temperature frame %i.\n", set+1);
       return 1;
@@ -461,7 +461,7 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy,
   return 0;
 }
   
-// Traj_AmberNetcdf::info()
+// Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
   if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
