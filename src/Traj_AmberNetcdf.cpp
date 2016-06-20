@@ -111,8 +111,10 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   // Replica Dimensions
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  SetCoordInfo( CoordinateInfo(remdDim, nc_box, HasVelocities(),
-                               HasTemperatures(), HasTimes(), HasForces()) ); 
+  CoordinateInfo ncCoordInfo(remdDim, nc_box, HasVelocities(),
+                             HasTemperatures(), HasTimes(), HasForces());
+  ncCoordInfo.SetCrd( HasCoords() );
+  SetCoordInfo( ncCoordInfo ); 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
