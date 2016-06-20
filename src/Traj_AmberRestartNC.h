@@ -40,8 +40,6 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     bool useVelAsCoords_;
     bool useFrcAsCoords_;
     bool outputTemp_;
-    bool outputVel_;
-    bool outputTime_;
     bool readAccess_;
     bool prependExt_;
     FileName filename_;

@@ -18,8 +18,6 @@ Traj_AmberRestartNC::Traj_AmberRestartNC() :
   useVelAsCoords_(false),
   useFrcAsCoords_(false),
   outputTemp_(false),
-  outputVel_(false),
-  outputTime_(false),
   readAccess_(false),
   prependExt_(false)
 {}
@@ -115,19 +113,14 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberRestartNC::WriteHelp() {
-  mprintf("\tnovelocity: Do not write velocities to restart file.\n"
-          "\tnotime    : Do not write time to restart file.\n"
-          "\tremdtraj  : Write temperature to restart file.\n"
-          "\ttime0     : Time for first frame (default 1.0).\n"
-          "\tdt        : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
-          "\tkeepext   : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
+  mprintf("\tremdtraj: Write temperature to restart file.\n"
+          "\ttime0   : Time for first frame (default 1.0).\n"
+          "\tdt      : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
 int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
-  // For write, assume we want velocities unless specified
-  outputVel_ = !argIn.hasKey("novelocity");
-  outputTime_ = !argIn.hasKey("notime");
   outputTemp_ = argIn.hasKey("remdtraj");
   prependExt_ = argIn.hasKey("keepext");
   time0_ = argIn.getKeyDouble("time0", -1.0);
@@ -148,11 +141,7 @@ int Traj_AmberRestartNC::setupTrajout(FileName const& fname, Topology* trajParm,
   readAccess_ = false;
   CoordinateInfo cInfo = cInfoIn;
   if (!cInfo.HasTemp() && outputTemp_) cInfo.SetTemperature(true);
-  if (cInfo.HasVel() && !outputVel_) cInfo.SetVelocity(false);
-  if (outputTime_) {
-    if (!cInfo.HasTime() && time0_ >= 0) cInfo.SetTime(true);
-  } else
-    cInfo.SetTime(false);
+  if (!cInfo.HasTime() && time0_ >= 0) cInfo.SetTime(true);
   SetCoordInfo( cInfo );
   filename_ = fname;
   n_atoms_ = trajParm->Natom();
@@ -322,8 +311,6 @@ void Traj_AmberRestartNC::Info() {
     if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
   } else {
     if (outputTemp_) mprintf(", with temperature");
-    if (!outputVel_) mprintf(", no velocities");
-    if (!outputTime_) mprintf(", no time");
   }
 }
 #ifdef MPI

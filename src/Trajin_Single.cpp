@@ -42,8 +42,7 @@ TrajectoryIO* Trajin_Single::SetupSeparateTraj(FileName const& fname, const char
   return tio;
 }
 
-
-// TODO: Should this take a FileName instead of string?
+// Trajin_Single::SetupTrajRead()
 int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, 
                                  Topology* tparmIn)
 {
@@ -65,7 +64,12 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   // Set up the format for reading and get the number of frames.
   int nframes = trajio_->setupTrajin(Traj().Filename(), Traj().Parm());
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
-    mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
+    mprinterr("Error: Could not set up '%s' for reading.\n", Traj().Filename().full());
+    return 1;
+  }
+  // Coordinates must be present.
+  if (!trajio_->CoordInfo().HasCrd()) {
+    mprinterr("Error: No coordinates present in trajectory '%s'\n", Traj().Filename().full());
     return 1;
   }
   if (debug_ > 0) {

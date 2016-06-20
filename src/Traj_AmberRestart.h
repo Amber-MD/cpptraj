@@ -48,7 +48,6 @@ class Traj_AmberRestart : public TrajectoryIO {
     bool readAccess_;      ///< If true, presence/absence of velocity info is known
     bool useVelAsCoords_;  ///< If true read velocities in as coordinates.
     bool outputTemp_;
-    bool outputVel_;
     bool outputTime_;
     bool prependExt_;    ///< If true prepend extension with # on write instead of append
     BufferedFrame file_; ///< Only needed for writes.

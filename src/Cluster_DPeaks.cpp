@@ -348,13 +348,15 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
     }
     point0->SetPointsWithinEps( density );
   }
-  mprintf("DBG: Max dist= %g\n", maxDist);
-  // DEBUG: Frame/Density
-  CpptrajFile fdout;
-  fdout.OpenWrite("fd.dat");
-  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
-    fdout.Printf("%i %i\n", point->Fnum()+1, point->PointsWithinEps());
-  fdout.CloseFile();
+  if (debug_ > 0) {
+    mprintf("DBG: Max dist= %g\n", maxDist);
+    // DEBUG: Frame/Density
+    CpptrajFile fdout;
+    fdout.OpenWrite("fd.dat");
+    for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
+      fdout.Printf("%i %i\n", point->Fnum()+1, point->PointsWithinEps());
+    fdout.CloseFile();
+  }
   // Sort by density here. Otherwise array indices will be invalid later.
   std::sort( Points_.begin(), Points_.end(), Cpoint::pointsWithinEps_sort() );
   // For each point, find the closest point that has higher density. Since 

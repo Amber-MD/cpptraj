@@ -135,6 +135,11 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
       mprinterr("Error: Could not set up %s for reading.\n", repfile->full());
       return 1;
     }
+    // Coordinates must be present.
+    if (!replica0->CoordInfo().HasCrd()) {
+      mprinterr("Error: No coordinates present in trajectory '%s'\n", repfile->full());
+      return 1;
+    }
     // TODO: Do not allow unknown number of frames?
     if (lowestRep) {
       cInfo = replica0->CoordInfo();
@@ -307,6 +312,11 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
   int nframes = replica0->setupTrajin( repFname, trajParm );
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
     mprinterr("Error: Could not set up %s for reading.\n", repFname.full());
+    return 1;
+  }
+  // Coordinates must be present.
+  if (!replica0->CoordInfo().HasCrd()) {
+    mprinterr("Error: No coordinates present in trajectory '%s'\n", repFname.full());
     return 1;
   }
   // Set coordinate info
