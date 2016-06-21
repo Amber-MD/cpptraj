@@ -56,7 +56,7 @@ class DataSet_Cmatrix : public DataSet {
     bool FrameWasSieved(int f)          const { return (sievedFrames_.FrameToIdx(f) == -1); }
     // -------------------------------------------
     /// Allocate matrix and sieve info for given size and sieve
-    int SetupWithSieve(ClusterDist*, size_t, size_t, int);
+    int SetupWithSieve(ClusterDist*, size_t, int, int);
     /// Allocate sieve info from given array.
     int SetSieveFromArray(std::vector<char> const&, int);
     /// Print matrix elements to STDOUT

@@ -11,7 +11,7 @@ void DataSet_Cmatrix::PrintElements() const {
 /** Set up sieving info as necessary and set up cluster based on actual
   * number of frames to be clustered.
   */
-int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, size_t sieveIn, int iseed)
+int DataSet_Cmatrix::SetupWithSieve(ClusterDist* CdistIn, size_t sizeIn, int sieveIn, int iseed)
 {
   if (CdistIn == 0) {
     mprinterr("Internal Error: DataSet_Cmatrix::SetupWithSieve called with empty ClusterDist.\n");
