@@ -35,7 +35,6 @@ class ClusterNode {
     /// \return Frame number at given index.
     int ClusterFrame(int idx)   const { return frameList_[idx];    }
     // Return internal variables
-    double AvgDist()           const { return avgClusterDist_;        }
     double Eccentricity()      const { return eccentricity_;          }
     int Num()                  const { return num_;                   }
     int Nframes()              const { return (int)frameList_.size(); }
@@ -44,7 +43,6 @@ class ClusterNode {
     std::string const& Cname() const { return name_;                  }
     double RefRms()            const { return refRms_;                }
     // Set internal variables 
-    void SetAvgDist(double avg)        { avgClusterDist_ = avg;         }
     void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
     void SetNum(int numIn)             { num_ = numIn;                  }
     inline void SetName(std::string const&, double);
@@ -59,7 +57,6 @@ class ClusterNode {
     /// Add specified fram to cluster and update centroid.
     void AddFrameUpdateCentroid(ClusterDist*, int);
   private:
-    double avgClusterDist_;           ///< Avg distance of this cluster to all other clusters.
     double eccentricity_;             ///< Maximum distance between any 2 frames.
     double refRms_;                   ///< Cluster rms to reference (if assigned)
     int num_;                         ///< Cluster number.

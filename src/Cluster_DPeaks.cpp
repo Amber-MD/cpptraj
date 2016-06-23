@@ -228,8 +228,6 @@ int Cluster_DPeaks::Cluster() {
     if (!frames.empty())
       AddCluster( frames );
   }
-  // Calculate the distances between each cluster based on centroids
-  CalcClusterDistances();
   return 0;
 }
 

@@ -42,34 +42,23 @@ void ClusterList::SetDebug(int debugIn) {
   if (debug_>0) mprintf("ClusterList debug set to %i\n",debug_);
 }
 
+/** Calculate the distance between the given clusters based on centroids.
+  * Centroids MUST be up to date.
+  */
+double ClusterList::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
+  if (C1.Cent() == 0 || C2.Cent() == 0) {
+    mprinterr("Internal Error: One or both centroids are null in ClusterDistance()\n");
+    return 0.0;
+  }
+  return Cdist_->CentroidDist( C1.Cent(), C2.Cent() );
+}
+
 // ClusterList::Renumber()
 /** Sort clusters by size and renumber starting from 0, where cluster 0
-  * is the largest. Also determine best representative frame and calculate 
-  * anything dependent on ClusterDistances since sorting destroys indexing 
-  * into ClusterDistances.
+  * is the largest. Also updates cluster centroids and adds back sieved
+  * frames if necessary. Ensures cluster node frame lists are sorted.
   */
 void ClusterList::Renumber(bool addSievedFrames) {
-  // Before clusters are renumbered, calculate the average distance of 
-  // this cluster to every other cluster.
-  // Only do this if ClusterDistances has been set.
-  if (ClusterDistances_.Nrows() > 0) {
-    double numdist = (double) (clusters_.size() - 1);
-    for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
-    {
-      double avgclusterdist = 0.0;
-      for (cluster_it node2 = clusters_.begin(); node2 != clusters_.end(); ++node2)
-      {
-        if (node == node2) continue;
-        //mprintf("DBG:\t\t%i to %i %f\n",node->num, (*node2).num,
-        //        ClusterDistances.GetElement( node->num, (*node2).num ));
-        avgclusterdist += ClusterDistances_.GetCdist( node->Num(), node2->Num() );
-      }
-      if (numdist > 0.0)
-        avgclusterdist /= numdist;
-      //mprintf("DBG:\tCluster %i avg dist = %f\n",node->num,avgclusterdist);
-      node->SetAvgDist( avgclusterdist );
-    }
-  }
   // Update cluster centroids.
   bool centroid_error = false;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
@@ -101,7 +90,6 @@ void ClusterList::Renumber(bool addSievedFrames) {
   int newNum = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
     node->SetNum( newNum++ );
-  // TODO: Clear ClusterDistances?
 }
 
 // ClusterList::DetermineNameWidth()
@@ -132,8 +120,29 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
   }
   outfile.Printf("\n");
 
-  for (cluster_iterator node = begincluster(); node != endcluster(); ++node)
+  // Calculate distances between clusters.
+  Matrix<double> cluster_distances;
+  cluster_distances.resize( 0, clusters_.size() );
+  for (cluster_iterator c1 = begincluster(); c1 != endcluster(); ++c1)
+    for (cluster_iterator c2 = c1; c2 != endcluster(); ++c2)
+      if (c2 != c1)
+        cluster_distances.addElement( ClusterDistance( *c1, *c2 ) );
+
+  unsigned int idx1 = 0;
+  for (cluster_iterator node = begincluster(); node != endcluster(); ++node, ++idx1)
   {
+    // Calculate the average distance of this cluster to every other cluster.
+    double avgclusterdist = 0.0;
+    if (clusters_.size() > 1) {
+      unsigned int idx2 = 0;
+      for (cluster_iterator node2 = begincluster(); node2 != endcluster(); ++node2, ++idx2)
+      {
+        if (node != node2)
+          avgclusterdist += cluster_distances.element(idx1, idx2);
+      }
+      avgclusterdist /= (double)(clusters_.size() - 1);
+      //mprintf("CLUSTER %i avgclusterdist= %g\n", node->Num(), avgclusterdist);
+    }
     // Since there may be a lot of frames do not calculate SD from the
     // mean (which requires either storing distances or two double loops), 
     // instead use SD = sqrt( (SUM[x^2] - ((SUM[x])^2)/N)/N )
@@ -141,21 +150,14 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     double internalSD = 0.0;
     unsigned int Nelements = 0;
     if (node->Nframes() > 1) {
-      // Calculate average distance between all frames in this cluster
-      ClusterNode::frame_iterator frame2_end = node->endframe();
-      ClusterNode::frame_iterator frame1_end = frame2_end;
-      --frame1_end;
-      for (ClusterNode::frame_iterator frm1 = node->beginframe();
-                                       frm1 != frame1_end; ++frm1)
-      {
-        // Since this can be called after sieved frames are added back in,
-        // need to ensure distances were calcd for these frames.
-        if (!FrameDistances().FrameWasSieved(*frm1)) {
-          ClusterNode::frame_iterator frm2 = frm1;
-          ++frm2;
-          for (; frm2 != frame2_end; ++frm2) {
-            if (!FrameDistances().FrameWasSieved(*frm2)) {
-              double dist = FrameDistances().GetFdist(*frm1, *frm2);
+      // Calculate average distance between all frames in this cluster. Since
+      // this can be called after sieved frames are added back in, need to
+      // check if frames were sieved out.
+      for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
+        if (!FrameDistances().FrameWasSieved( *f1 )) {
+          for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+            if (!FrameDistances().FrameWasSieved( *f2 )) {
+              double dist = FrameDistances().GetFdist(*f1, *f2);
               internalAvg += dist;
               internalSD += (dist * dist);
               ++Nelements;
@@ -177,7 +179,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f",
                    node->Num(), node->Nframes(), (double)node->Nframes()/fmax, internalAvg, 
-                   internalSD, node->BestRepFrame()+1, node->AvgDist() );
+                   internalSD, node->BestRepFrame()+1, avgclusterdist );
     if (nWidth > 0)
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
@@ -511,23 +513,6 @@ void ClusterList::RemoveEmptyClusters() {
       cnode = clusters_.erase( cnode );
     else
       ++cnode;
-  }
-}
-
-/** Calculate the distances between each cluster based on centroids. */
-void ClusterList::CalcClusterDistances() {
-  if (clusters_.empty()) return;
-  ClusterDistances_.SetupMatrix( clusters_.size() );
-  // Make sure centroid for clusters are up to date
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
-    C1->CalculateCentroid( Cdist_ );
-  // Calculate distances between each cluster centroid
-  cluster_it Cend = clusters_.end();
-  for (cluster_it C1 = clusters_.begin(); C1 != Cend; ++C1) {
-    cluster_it C2 = C1;
-    ++C2;
-    for (; C2 != Cend; ++C2)
-      ClusterDistances_.AddCdist( Cdist_->CentroidDist( C1->Cent(), C2->Cent() ) );
   }
 }
 

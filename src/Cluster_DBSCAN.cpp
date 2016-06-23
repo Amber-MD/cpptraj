@@ -115,8 +115,6 @@ int Cluster_DBSCAN::Cluster() {
     // Add clusters. 
     for (unsigned int cnum = 0; cnum != C0.size(); cnum++)
       AddCluster( C0[cnum] );
-    // Calculate the distances between each cluster based on centroids
-    CalcClusterDistances();
   }
   return 0;
 }
