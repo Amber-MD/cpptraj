@@ -191,32 +191,11 @@ int Cluster_HierAgglo::MergeClosest() {
 # ifdef TIMER
   time_calcLinkage_.Start();
 # endif
-# ifdef NEWCODE
-  // Recalculate distances between C1 and all other clusters
-  if (linkage_ == AVERAGELINK) { // TODO: Const
-    // Update sums and average distances from C1 to other clusters, 
-    // excluding any that have already been merged. 
-    for (cluster_it C = clusters_.begin(); C != clusters_.end(); ++C) {
-      if (!ClusterDistances_.IgnoringRow(C->Num()) &&
-           C->Num() != C1 )
-      {
-        SumDistToCluster_.element( C1, C->Num() ) += SumDistToCluster_.element( C2, C->Num() );
-        double nDist = (double)(C1_it->Nframes() * C->Nframes());
-        ClusterDistances_.SetElement( C1, C->Num(), 
-                                      SumDistToCluster_.element(C1, C->Num()) / nDist );
-      }
-    }
-  } else if (linkage_ == SINGLELINK)
-    calcMinDist(C1_it);
-  else
-    calcMaxDist(C1_it);
-# else
   switch (linkage_) {
     case AVERAGELINK : calcAvgDist(C1_it); break;
     case SINGLELINK  : calcMinDist(C1_it); break;
     case COMPLETELINK: calcMaxDist(C1_it); break;
   }
-# endif
 # ifdef TIMER
   time_calcLinkage_.Stop();
 # endif
@@ -226,6 +205,52 @@ int Cluster_HierAgglo::MergeClosest() {
   }
 
   return 0;
+}
+
+// Cluster_HierAgglo::ClusterDistance()
+// TODO: Do not use GetFdist so this can be used after sieve?
+double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
+  double dist = 0.0;
+  if (linkage_ == AVERAGELINK) {
+    int nDist = 0;
+    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
+          if (!FrameDistances().FrameWasSieved( *f2 )) {
+            dist += FrameDistances().GetFdist(*f1, *f2);
+            ++nDist;
+          }
+        }
+      }
+    }
+    dist /= (double)nDist;
+  } else if (linkage_ == SINGLELINK) { // min
+    dist = DBL_MAX;
+    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
+          if (!FrameDistances().FrameWasSieved( *f2 ))
+            dist = std::min( FrameDistances().GetFdist(*f1, *f2), dist );
+        }
+      }
+    }
+  } else if (linkage_ == COMPLETELINK) { // max
+    dist = -1.0;
+    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
+          if (!FrameDistances().FrameWasSieved( *f2 ))
+            dist = std::max( FrameDistances().GetFdist(*f1, *f2), dist );
+        }
+      }
+    }
+  }
+  mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
+          C1.Num(), C1.Nframes(), C2.Num(), C2.Nframes(), dist);
+  return dist;
 }
 
 /** Calculate the minimum distance between frames in cluster specified by
@@ -303,7 +328,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
     // Pick the minimum distance between newc2 and C1
     double sumDist = 0;
-    double N = 0;
     for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
                                      c1frames != C1_it->endframe();
                                      ++c1frames)
@@ -315,10 +339,9 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
         double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
-        N++;
       }
     }
-    double Dist = sumDist / N;
+    double Dist = sumDist / (double)(C1_it->Nframes() * C2_it->Nframes());
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
     ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }

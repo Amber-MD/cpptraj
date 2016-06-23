@@ -192,8 +192,6 @@ int Cluster_Kmeans::Cluster() {
   // Remove any empty clusters
   // FIXME: Will there ever be empty clusters?
   RemoveEmptyClusters();
-  // Calculate the distances between each cluster based on centroids.
-  CalcClusterDistances();
   // NOTE in PTRAJ here align all frames to best rep 
   return 0;
 }

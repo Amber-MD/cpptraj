@@ -70,8 +70,6 @@ int Cluster_ReadInfo::Cluster() {
     ptr = infile.Line();
   }
   infile.CloseFile();
-  mprintf("\tCalculating the distances between each cluster based on centroids.\n");
-  CalcClusterDistances();
   return 0;
 }
 

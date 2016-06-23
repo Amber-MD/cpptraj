@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 ClusterNode::ClusterNode() :
-  avgClusterDist_(0),
   eccentricity_(0),
   num_(0),
   repFrame_(0),
@@ -21,7 +20,6 @@ ClusterNode::~ClusterNode() {
   * that will probably be wrong when number of frames in the list > 1.
   */
 ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameListIn, int numIn) :
-  avgClusterDist_(0.0),
   eccentricity_(0.0),
   num_(numIn),
   repFrame_(frameListIn.front()),
@@ -31,7 +29,6 @@ ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameLi
 
 // COPY CONSTRUCTOR
 ClusterNode::ClusterNode(const ClusterNode& rhs) :
-  avgClusterDist_( rhs.avgClusterDist_ ),
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
   repFrame_( rhs.repFrame_ ),
@@ -45,7 +42,6 @@ ClusterNode::ClusterNode(const ClusterNode& rhs) :
 // ASSIGNMENT
 ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   if (&rhs == this) return *this;
-  avgClusterDist_ = rhs.avgClusterDist_;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
   repFrame_ = rhs.repFrame_;

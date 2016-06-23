@@ -3,7 +3,6 @@
 #include <list>
 #include "ArgList.h"
 #include "ClusterNode.h"
-#include "ClusterMatrix.h"
 // Class: ClusterList
 /** This base class holds all the individual clusters, as well as routines 
   * that can be used to obtain information on clusters after clustering.
@@ -26,10 +25,12 @@ class ClusterList {
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
     int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
-    // Inherited by individual clustering methods
+    // ----- Inherited by individual clustering methods ----
     virtual int SetupCluster(ArgList&) = 0;
     virtual void ClusteringInfo() const = 0;
     virtual int Cluster() = 0;
+    /// \return distance between given clusters. Default is distance between centroids.
+    virtual double ClusterDistance(ClusterNode const&, ClusterNode const&) const;
 #   ifdef TIMER
     virtual void Timing(double) const = 0;
 #   endif
@@ -43,8 +44,6 @@ class ClusterList {
     const cluster_iterator endcluster()   const { return clusters_.end();   }
     /// Remove clusters with no members.
     void RemoveEmptyClusters();
-    /// Calculate distances between each cluster
-    void CalcClusterDistances();
     /// Calculate cluster silhouettes
     void CalcSilhouette(std::string const&) const;
 
@@ -58,8 +57,6 @@ class ClusterList {
     int debug_;
     /// Store individual cluster info; frame numbers, centroid, etc.
     std::list<ClusterNode> clusters_;
-    /// Distances between each cluster.
-    ClusterMatrix ClusterDistances_;
     /// Used to calculate distances between frames and/or centroids.
     ClusterDist* Cdist_;
     /// Add specified frames to a new cluster.
