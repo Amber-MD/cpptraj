@@ -533,43 +533,30 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
-  if (frameIn.F_ != 0 && F_ != 0 && frameIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo/Force
-    double *newFptr = F_;
-    double *newVptr = V_;
+  // Copy coords/mass
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
+    newXptr += 3;
+    *mass = frameIn.Mass_[*atom];
+    ++mass;
+  }
+  // Copy velocity if necessary
+  if (frameIn.V_ != 0 && V_ != 0) {
+    double* newVptr = V_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
-      int oldcrd = ((*atom) * 3);
-      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
-      newXptr += 3;
-      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
+      memcpy( newVptr, frameIn.V_ + ((*atom) * 3), COORDSIZE_);
       newVptr += 3;
-      memcpy( newFptr, frameIn.F_ + oldcrd, COORDSIZE_);
+    }
+  }
+  // Copy force if necessary
+  if (frameIn.F_ != 0 && F_ != 0) {
+    double* newFptr = F_;
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      memcpy( newFptr, frameIn.F_ + ((*atom) * 3), COORDSIZE_);
       newFptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
-    }
-  } else if (frameIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo
-    double *newVptr = V_;
-    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-    {
-      int oldcrd = ((*atom) * 3);
-      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
-      newXptr += 3;
-      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
-      newVptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
-    }
-  } else {
-    // Copy coords/mass only
-    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-    {
-      memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-      newXptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
     }
   }
 }
