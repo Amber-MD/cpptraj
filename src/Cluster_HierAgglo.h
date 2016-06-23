@@ -32,11 +32,6 @@ class Cluster_HierAgglo : public ClusterList {
     LINKAGETYPE linkage_; ///< Cluster Linkage type.
     CpptrajFile eps_v_n_; ///< Write epsilon vs # clusters.
     ClusterMatrix ClusterDistances_;
-#   ifdef NEWCODE
-    /** Upper-triangle matrix containing sum of distances between frames in
-      * cluster i to frames in cluster j, for use with average linkage. */
-    Matrix<double> SumDistToCluster_;
-#   endif
 #   ifdef TIMER
     Timer time_findMin_;
     Timer time_mergeFrames_;

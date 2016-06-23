@@ -191,32 +191,11 @@ int Cluster_HierAgglo::MergeClosest() {
 # ifdef TIMER
   time_calcLinkage_.Start();
 # endif
-# ifdef NEWCODE
-  // Recalculate distances between C1 and all other clusters
-  if (linkage_ == AVERAGELINK) { // TODO: Const
-    // Update sums and average distances from C1 to other clusters, 
-    // excluding any that have already been merged. 
-    for (cluster_it C = clusters_.begin(); C != clusters_.end(); ++C) {
-      if (!ClusterDistances_.IgnoringRow(C->Num()) &&
-           C->Num() != C1 )
-      {
-        SumDistToCluster_.element( C1, C->Num() ) += SumDistToCluster_.element( C2, C->Num() );
-        double nDist = (double)(C1_it->Nframes() * C->Nframes());
-        ClusterDistances_.SetElement( C1, C->Num(), 
-                                      SumDistToCluster_.element(C1, C->Num()) / nDist );
-      }
-    }
-  } else if (linkage_ == SINGLELINK)
-    calcMinDist(C1_it);
-  else
-    calcMaxDist(C1_it);
-# else
   switch (linkage_) {
     case AVERAGELINK : calcAvgDist(C1_it); break;
     case SINGLELINK  : calcMinDist(C1_it); break;
     case COMPLETELINK: calcMaxDist(C1_it); break;
   }
-# endif
 # ifdef TIMER
   time_calcLinkage_.Stop();
 # endif
