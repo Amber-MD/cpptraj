@@ -349,7 +349,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
     // Pick the minimum distance between newc2 and C1
     double sumDist = 0;
-    double N = 0;
     for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
                                      c1frames != C1_it->endframe();
                                      ++c1frames)
@@ -361,10 +360,9 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
         double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
-        N++;
       }
     }
-    double Dist = sumDist / N;
+    double Dist = sumDist / (double)(C1_it->Nframes() * C2_it->Nframes());
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
     ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }
