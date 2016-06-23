@@ -40,6 +40,9 @@ Cluster sieve5 "sieve 5" loadpairdist
 Cluster nosieve " "       "pairwisecache none"
 Cluster sieve5  "sieve 5" "pairwisecache none"
 
+# Test random sieving
+Cluster random "sieve 5 random sieveseed 1"
+
 EndTest
 
 exit 0
