@@ -66,7 +66,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
     // Ensure cluster centroid is up-to-date
     node->CalculateCentroid( Cdist_ );
     // Find best representative frame
-    if (node->FindBestRepFrame( FrameDistances() ) == -1) {
+    if (node->FindBestRepFrame( Cdist_ ) == -1) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
       centroid_error = true;

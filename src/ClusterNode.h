@@ -14,8 +14,8 @@ class ClusterNode {
     inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     inline void MergeFrames(ClusterNode const&);
-    /// Determine which frame in the cluster is the best representative.
-    int FindBestRepFrame(DataSet_Cmatrix const&);
+    /// Find and set frame in the cluster that has lowest distance to all other frames.
+    int FindBestRepFrame(ClusterDist* Cdist);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(DataSet_Cmatrix const&);
     /// Calculate centroid of members of this cluster.
