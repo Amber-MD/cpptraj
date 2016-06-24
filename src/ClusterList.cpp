@@ -723,15 +723,14 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
     std::vector<double> SiVals;
     for (ClusterNode::frame_iterator f1 = Ci->beginframe(); f1 != Ci->endframe(); ++f1)
     {
-      if (FrameDistances().FrameWasSieved(*f1)) continue;
       // Calculate the average dissimilarity of this frame with all other
       // points in this frames cluster.
       double ai = 0.0;
       int self_frames = 0;
       for (ClusterNode::frame_iterator f2 = Ci->beginframe(); f2 != Ci->endframe(); ++f2)
       {
-        if (f1 != f2 && !FrameDistances().FrameWasSieved(*f2)) {
-          ai += FrameDistances().GetFdist(*f1, *f2);
+        if (f1 != f2) {
+          ai += Frame_Distance(*f1, *f2);
           ++self_frames;
         }
       }
@@ -746,16 +745,10 @@ void ClusterList::CalcSilhouette(std::string const& prefix) const {
         if (Ci != Cj)
         {
           double bi = 0.0;
-          int cj_frames = 0;
           // NOTE: ASSUMING NO EMPTY CLUSTERS
           for (ClusterNode::frame_iterator f2 = Cj->beginframe(); f2 != Cj->endframe(); ++f2)
-          {
-            if (!FrameDistances().FrameWasSieved(*f2)) {
-              bi += FrameDistances().GetFdist(*f1, *f2);
-              ++cj_frames;
-            }
-          }
-          bi /= (double)cj_frames;
+            bi += Frame_Distance(*f1, *f2);
+          bi /= (double)Cj->Nframes();
           //mprintf("\t\tFrame %i to cluster %i bi = %g\n", *f1 + 1, Cj->Num(), bi);
           if (bi < min_bi)
             min_bi = bi;

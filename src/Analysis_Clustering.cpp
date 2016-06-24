@@ -659,11 +659,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # ifdef TIMER
   CList_->Timing( cluster_cluster.Total() );
 # endif
+  cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
   cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
   cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
   cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
-  cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;
 }
