@@ -61,6 +61,8 @@ class Analysis_Clustering: public Analysis {
     bool grace_color_;          ///< If true print grace colors instead of cluster number
     enum normPopType { NONE=0, CLUSTERPOP, FRAME };
     normPopType norm_pop_;      ///< If set cluster pops v time will be normalized 
+    enum BestRepType { CUMULATIVE = 0, CENTROID };
+    BestRepType bestRep_;
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT

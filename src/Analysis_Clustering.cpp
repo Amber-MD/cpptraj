@@ -34,6 +34,7 @@ Analysis_Clustering::Analysis_Clustering() :
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
+  bestRep_(CUMULATIVE),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -65,6 +66,7 @@ void Analysis_Clustering::Help() const {
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
+          "\t[bestrep {cumulative|centroid}]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
           "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
@@ -209,6 +211,23 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
         splits.CheckForMoreArgs();
         return Analysis::ERR;
       }
+    }
+  }
+  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
+  if (bestRepStr.empty()) {
+    // For sieving, cumulative can get very expensive. Default to centroid.
+    if (sieve_ != 1)
+      bestRep_ = CENTROID;
+    else
+      bestRep_ = CUMULATIVE;
+  } else {
+    if (bestRepStr == "cumulative")
+      bestRep_ = CUMULATIVE;
+    else if (bestRepStr == "centroid")
+      bestRep_ = CENTROID;
+    else {
+      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
+      return Analysis::ERR;
     }
   }
   if (analyzeArgs.hasKey("drawgraph"))
@@ -424,6 +443,11 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     } else
       mprintf("\t\tFrames will be split at the halfway point.\n");
   }
+  mprintf("\tRepresentative frames will be chosen by");
+  switch (bestRep_) {
+    case CUMULATIVE: mprintf(" lowest cumulative distance to all other frames.\n"); break;
+    case CENTROID  : mprintf(" closest distance to cluster centroid.\n"); break;
+  }
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
             clusterfile_.c_str(), TrajectoryFile::FormatString(clusterfmt_));
@@ -555,8 +579,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     cluster_post_renumber.Stop();
     // Find best representative frames for each cluster.
     cluster_post_bestrep.Start();
-    CList_->FindBestRepFrames_CumulativeDist();
-    //CList_->FindBestRepFrames_Centroid();
+    switch (bestRep_) {
+      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
+    }
     cluster_post_bestrep.Stop();
     // DEBUG
     if (debug_ > 0) {
