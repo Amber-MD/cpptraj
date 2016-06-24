@@ -639,10 +639,11 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) const {
   * number of points, G is the number of clusters, T is the total distance from
   * the all-data centroid, and P is the sum (for all clusters) of the distances
   * from the cluster centroid.
+  * NOTE: To use this, cluster centroids should be fully up-to-date.
+  * NOTE: This calc differs slightly from PTRAJ in that real centroids are used
+  *       instead of representative structures.
   */
-// NOTE: This calc differs slightly from PTRAJ in that real centroids are used
-//       instead of representative structures.
-double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
+double ClusterList::ComputePseudoF(CpptrajFile& outfile) const {
   // Calculation makes no sense with fewer than 2 clusters.
   if (Nclusters() < 2) {
     mprintf("Warning: Fewer than 2 clusters. Not calculating pseudo-F.\n");
@@ -650,12 +651,11 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   }
 
   // Form a cluster with all points to get a centroid. Use only frames that
-  // are in clusters, i.e. ignore noise. Also make sure all cluster centroids
-  // are up to date.
+  // are in clusters, i.e. ignore noise. Assumes all cluster centroids are
+  // up to date.
   ClusterNode c_all;
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+  for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
   {
-    C1->CalculateCentroid( Cdist_ );
     for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
       c_all.AddFrameToCluster( *f1 );
   }
@@ -670,7 +670,7 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) {
   // Loop over all clusters
   double gss = 0.0; // between-group sum of squares
   double wss = 0.0; // within-group sum of squares
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1)
+  for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
   {
     for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
     {

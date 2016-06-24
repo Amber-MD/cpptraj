@@ -82,7 +82,7 @@ class ClusterList {
     /// Calculate the Davies-Bouldin index of clusters. Centroids must be up-to-date.
     double ComputeDBI(CpptrajFile&) const;
     /// Calculate pseudo-F statistic.
-    double ComputePseudoF(CpptrajFile&);
+    double ComputePseudoF(CpptrajFile&) const;
 
     /// Hold pointer to matrix containing distances between each frame.
     DataSet_Cmatrix* frameDistances_;
