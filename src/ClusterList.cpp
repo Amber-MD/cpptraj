@@ -597,13 +597,12 @@ void ClusterList::AddSievedFramesByCentroid() {
   * across other clusters Y, of (Cx + Cy)/dXY. Here Cx is the average distance
   * from points in X to the centroid, similarly Cy, and dXY is the distance 
   * between cluster centroids.
+  * NOTE: To use this, cluster centroids should be fully up-to-date.
   */
-double ClusterList::ComputeDBI(CpptrajFile& outfile) {
+double ClusterList::ComputeDBI(CpptrajFile& outfile) const {
   std::vector<double> averageDist;
   averageDist.reserve( clusters_.size() );
-  for (cluster_it C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-    // Make sure centroid for this cluster is up to date
-    C1->CalculateCentroid( Cdist_ );
+  for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1) {
     // Calculate average distance to centroid for this cluster
     averageDist.push_back( C1->CalcAvgToCentroid( Cdist_ ) );
     if (outfile.IsOpen())
@@ -612,15 +611,16 @@ double ClusterList::ComputeDBI(CpptrajFile& outfile) {
   }
   double DBITotal = 0.0;
   unsigned int nc1 = 0;
-  for (cluster_it c1 = clusters_.begin(); c1 != clusters_.end(); ++c1, ++nc1) {
+  for (cluster_iterator c1 = begincluster(); c1 != endcluster(); ++c1, ++nc1) {
     double MaxFred = 0;
     unsigned int nc2 = 0;
-    for (cluster_it c2 = clusters_.begin(); c2 != clusters_.end(); ++c2, ++nc2) {
-      if (c1 == c2) continue;
-      double Fred = averageDist[nc1] + averageDist[nc2];
-      Fred /= Cdist_->CentroidDist( c1->Cent(), c2->Cent() );
-      if (Fred > MaxFred)
-        MaxFred = Fred;
+    for (cluster_iterator c2 = begincluster(); c2 != endcluster(); ++c2, ++nc2) {
+      if (c1 != c2) {
+        double Fred = averageDist[nc1] + averageDist[nc2];
+        Fred /= Cdist_->CentroidDist( c1->Cent(), c2->Cent() );
+        if (Fred > MaxFred)
+          MaxFred = Fred;
+      }
     }
     DBITotal += MaxFred;
   }

@@ -104,7 +104,7 @@ void ClusterNode::CalcEccentricity(DataSet_Cmatrix const& FrameDistancesIn) {
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
+double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist ) const
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG

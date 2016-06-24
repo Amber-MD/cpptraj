@@ -79,8 +79,8 @@ class ClusterList {
     static const char* XMGRACE_COLOR[];
     /// Determine max name width
     unsigned int DetermineNameWidth() const;
-    /// Calculate the Davies-Bouldin index of clusters.
-    double ComputeDBI(CpptrajFile&);
+    /// Calculate the Davies-Bouldin index of clusters. Centroids must be up-to-date.
+    double ComputeDBI(CpptrajFile&) const;
     /// Calculate pseudo-F statistic.
     double ComputePseudoF(CpptrajFile&);
 

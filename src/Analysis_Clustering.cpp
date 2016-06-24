@@ -547,10 +547,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   Timer cluster_post_summary;
   Timer cluster_post_coords;
   if (CList_->Nclusters() > 0) {
-    // Sort clusters and renumber; also finds centroids for printing
-    // representative frames. If sieving, add remaining frames.
+    // Sort clusters and renumber; also finds centroids. If sieving,
+    // add remaining frames.
     cluster_post_renumber.Start();
     CList_->Renumber( (sieve_ != 1) );
+    // Find best representative frames for each cluster.
     CList_->FindBestRepFrames();
     cluster_post_renumber.Stop();
     // DEBUG

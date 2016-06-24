@@ -27,7 +27,7 @@ class ClusterNode {
         Cdist->CalculateCentroid( centroid_, frameList_ );
     }
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( ClusterDist*);
+    double CalcAvgToCentroid( ClusterDist*) const;
     // Iterator over frame numbers
     typedef ClusterDist::Cframes::const_iterator frame_iterator;
     frame_iterator beginframe() const { return frameList_.begin(); }
