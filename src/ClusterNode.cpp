@@ -56,9 +56,10 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
 
 /** Find the frame in the given cluster that is the best representative, i.e.
   * has the lowest cumulative distance to every other point in the cluster.
+  * Should NOT be used if cluster contains sieved frames.
   * \return best representative frame number, or -1 on error.
   */
-int ClusterNode::FindBestRepFrame( ClusterDist* Cdist ) {
+int ClusterNode::FindBestRepFrame(DataSet_Cmatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -67,7 +68,7 @@ int ClusterNode::FindBestRepFrame( ClusterDist* Cdist ) {
     for (frame_iterator frm2 = frameList_.begin(); frm2 != frameList_.end(); ++frm2)
     {
       if (frm1 != frm2)
-        cdist += Cdist->FrameDist(*frm1, *frm2);
+        cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
     }
     if (cdist < mindist) {
       mindist = cdist;

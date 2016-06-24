@@ -78,14 +78,41 @@ void ClusterList::Renumber(bool addSievedFrames) {
   clusters_.sort( );
   // Renumber clusters, determine best representative frame.
   int newNum = 0;
-  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     node->SetNum( newNum++ );
-    // Find best representative frame
-    if (node->FindBestRepFrame( Cdist_ ) == -1) { // SANITY CHECK
+}
+
+// ClusterList::FindBestRepFrames()
+/** Find the frame in each cluster that is the best representative, i.e.
+  * has the lowest cumulative distance to every other point in the cluster.
+  */
+int ClusterList::FindBestRepFrames() {
+  int err = 0;
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    double mindist = DBL_MAX;
+    int minframe = -1;
+    for (ClusterNode::frame_iterator f1 = node->beginframe();
+                                     f1 != node->endframe(); ++f1)
+    {
+      double cdist = 0.0;
+      for (ClusterNode::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
+      {
+        if (f1 != f2)
+          cdist += Frame_Distance(*f1, *f2);
+      }
+      if (cdist < mindist) {
+        mindist = cdist;
+        minframe = *f1;
+      }
+    }
+    if (minframe == -1) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
+      err++;
     }
+    node->SetBestRepFrame( minframe );
   }
+  return err;
 }
 
 // ClusterList::DetermineNameWidth()

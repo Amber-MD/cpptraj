@@ -15,7 +15,7 @@ class ClusterNode {
     /// Merge frames from another cluster to this cluster
     inline void MergeFrames(ClusterNode const&);
     /// Find and set frame in the cluster that has lowest distance to all other frames.
-    int FindBestRepFrame(ClusterDist* Cdist);
+    int FindBestRepFrame(DataSet_Cmatrix const&);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(DataSet_Cmatrix const&);
     /// Calculate centroid of members of this cluster.
@@ -43,8 +43,9 @@ class ClusterNode {
     std::string const& Cname() const { return name_;                  }
     double RefRms()            const { return refRms_;                }
     // Set internal variables 
-    void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
-    void SetNum(int numIn)             { num_ = numIn;                  }
+    void AddFrameToCluster(int fnum) { frameList_.push_back( fnum );  }
+    void SetNum(int numIn)           { num_ = numIn;                  }
+    void SetBestRepFrame(int f)      { repFrame_ = f;                 }
     inline void SetName(std::string const&, double);
     /// Sort internal frame list
     void SortFrameList();

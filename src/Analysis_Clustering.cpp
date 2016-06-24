@@ -542,10 +542,17 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   CList_->Cluster();
   cluster_cluster.Stop();
   cluster_post.Start();
+  Timer cluster_post_renumber;
+  Timer cluster_post_info;
+  Timer cluster_post_summary;
+  Timer cluster_post_coords;
   if (CList_->Nclusters() > 0) {
     // Sort clusters and renumber; also finds centroids for printing
     // representative frames. If sieving, add remaining frames.
+    cluster_post_renumber.Start();
     CList_->Renumber( (sieve_ != 1) );
+    CList_->FindBestRepFrames();
+    cluster_post_renumber.Stop();
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");
@@ -562,7 +569,9 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Print ptraj-like cluster info.
     // If no filename is written and no noinfo, some info will still be written to STDOUT
     if (!suppressInfo_) {
+      cluster_post_info.Start();
       CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+      cluster_post_info.Stop();
     }
 
     // Calculate cluster silhouette
@@ -570,8 +579,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       CList_->CalcSilhouette( sil_file_ );
 
     // Print a summary of clusters
-    if (!summaryfile_.empty())
+    if (!summaryfile_.empty()) {
+      cluster_post_summary.Start();
       CList_->Summary(summaryfile_, clusterDataSetSize);
+      cluster_post_summary.Stop();
+    }
 
     // Print a summary comparing first half to second half of data for clusters
     if (!halffile_.empty()) {
@@ -620,6 +632,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
     // Coordinate output.
     if (has_coords) {
+      cluster_post_coords.Start();
       // Write clusters to trajectories
       if (!clusterfile_.empty())
         WriteClusterTraj( *CList_ ); 
@@ -632,6 +645,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       // Write average structures for each cluster to separate files.
       if (!avgfile_.empty())
         WriteAvgStruct( *CList_ );
+      cluster_post_coords.Stop();
     }
   } else
     mprintf("\tNo clusters found.\n");
@@ -645,6 +659,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # ifdef TIMER
   CList_->Timing( cluster_cluster.Total() );
 # endif
+  cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
+  cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
+  cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
+  cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;

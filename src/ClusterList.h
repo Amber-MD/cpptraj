@@ -16,18 +16,28 @@ class ClusterList {
     int Nclusters()                  const { return (int)clusters_.size(); }
 
     void SetDebug(int);
+    /// Add back sieved frames, update centroids, sort by cluster population.
     void Renumber(bool);
+    /// Determine which frames in each cluster are best representative.
+    int FindBestRepFrames();
+    /// Print overall summary of clusters.
     void Summary(std::string const&,int) const;
+    /// Print summary of clusters separated by parts.
     void Summary_Part(std::string const&,int,std::vector<int> const&) const;
+    /// Print cluster info.
     void PrintClustersToFile(std::string const&,int);
+    /// DEBUG: Print clusters to STDOUT
     void PrintClusters() const;
     /// Set up appropriate cluster distance calculation
     int SetupCdist( ClusterDist::DsArray const&, DistMetricType, bool, bool, std::string const&);
     /// Calculate distances between frames if necessary.
     int CalcFrameDistances(DataSet*, ClusterDist::DsArray const&, int, int);
     // ----- Inherited by individual clustering methods ----
+    /// Process algorithm-specific keywords
     virtual int SetupCluster(ArgList&) = 0;
+    /// Print summary of clustering to be performed
     virtual void ClusteringInfo() const = 0;
+    /// Perform clustering.
     virtual int Cluster() = 0;
     /// \return distance between given clusters. Default is distance between centroids.
     virtual double ClusterDistance(ClusterNode const&, ClusterNode const&) const;
@@ -49,6 +59,7 @@ class ClusterList {
 
     void DrawGraph(bool,DataSet*,double,int) const;
   protected:
+    /// Restore sieved frames to clusters
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
 
