@@ -46,7 +46,7 @@ class ClusterNode {
     void AddFrameToCluster(int fnum) { frameList_.push_back( fnum );  }
     void SetNum(int numIn)           { num_ = numIn;                  }
     void SetBestRepFrame(int f)      { repFrame_ = f;                 }
-    inline void SetName(std::string const&, double);
+    inline void SetNameAndRms(std::string const&, double);
     /// Sort internal frame list
     void SortFrameList();
     /// \return true if given frame is in this cluster.
@@ -55,7 +55,7 @@ class ClusterNode {
     void RemoveFrameFromCluster(int);
     /// Remove specified frame from cluster and update centroid.
     void RemoveFrameUpdateCentroid(ClusterDist*, int);
-    /// Add specified fram to cluster and update centroid.
+    /// Add specified frame to cluster and update centroid.
     void AddFrameUpdateCentroid(ClusterDist*, int);
   private:
     double eccentricity_;             ///< Maximum distance between any 2 frames.
@@ -76,7 +76,7 @@ void ClusterNode::MergeFrames( ClusterNode const& rhs) {
   frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
 }
 
-void ClusterNode::SetName(std::string const& nameIn, double rmsIn) {
+void ClusterNode::SetNameAndRms(std::string const& nameIn, double rmsIn) {
   name_ = nameIn;
   refRms_ = rmsIn;
 }

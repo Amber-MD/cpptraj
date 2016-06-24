@@ -709,11 +709,11 @@ void Analysis_Clustering::AssignRefsToClusters( ClusterList& CList ) const {
     if (minRms < refCut_) {
       //mprintf("DEBUG: Assigned cluster %i to reference \"%s\" (%g)\n", cidx,
       //        refs_[minIdx]->Meta().Name().c_str(), minRms);
-      cluster->SetName( refs_[minIdx]->Meta().Name(), minRms );
+      cluster->SetNameAndRms( refs_[minIdx]->Meta().Name(), minRms );
     } else {
       //mprintf("DEBUG: Cluster %i was closest to reference \"(%s)\" (%g)\n", cidx,
       //        refs_[minIdx]->Meta().Name().c_str(), minRms);
-      cluster->SetName( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
+      cluster->SetNameAndRms( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
     }
   }
 }
