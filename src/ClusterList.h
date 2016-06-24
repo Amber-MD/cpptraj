@@ -25,7 +25,7 @@ class ClusterList {
     /// Print summary of clusters separated by parts.
     void Summary_Part(std::string const&,int,std::vector<int> const&) const;
     /// Print cluster info.
-    void PrintClustersToFile(std::string const&,int);
+    void PrintClustersToFile(std::string const&,int) const;
     /// DEBUG: Print clusters to STDOUT
     void PrintClusters() const;
     /// Set up appropriate cluster distance calculation

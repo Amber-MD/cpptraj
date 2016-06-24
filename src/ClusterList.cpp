@@ -326,7 +326,7 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
   * in the clusters and . for all other frames. Also print out the
   * representative frame numbers.
   */
-void ClusterList::PrintClustersToFile(std::string const& filename, int maxframesIn) {
+void ClusterList::PrintClustersToFile(std::string const& filename, int maxframesIn) const {
   CpptrajFile outfile;
   std::string buffer;
   
@@ -343,25 +343,20 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
   ClusterResults( outfile );
   // Do not print trajectory stuff if no filename given (i.e. STDOUT output)
   if (!filename.empty()) {
-    for (cluster_it C1_it = clusters_.begin(); 
-                    C1_it != clusters_.end(); C1_it++)
+    for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
     {
       buffer.clear();
       buffer.resize(maxframesIn, '.');
-      for (ClusterNode::frame_iterator frame1 = (*C1_it).beginframe();
-                                       frame1 != (*C1_it).endframe();
-                                       frame1++)
-      {
-        buffer[ *frame1 ] = 'X';
-      }
+      for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
+        buffer[ *f1 ] = 'X';
       buffer += '\n';
       outfile.Write((void*)buffer.c_str(), buffer.size());
     }
   }
   // Print representative frame numbers
   outfile.Printf("#Representative frames:");
-  for (cluster_it C = clusters_.begin(); C != clusters_.end(); C++)
-    outfile.Printf(" %i", C->BestRepFrame()+1);
+  for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
+    outfile.Printf(" %i", C1->BestRepFrame()+1);
   outfile.Printf("\n");
   // Print sieve info if present
   if (FrameDistances().SieveValue() != 1) {
