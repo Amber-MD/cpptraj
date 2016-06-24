@@ -4,8 +4,7 @@
 #include <algorithm> // sort
 #include "ClusterList.h"
 #include "CpptrajStdio.h"
-#include "CpptrajFile.h"
-#include "Constants.h"
+#include "Constants.h" // Pseudo-F
 #include "ProgressBar.h"
 #include "StringRoutines.h"
 #ifdef _OPENMP
@@ -83,12 +82,14 @@ void ClusterList::Renumber(bool addSievedFrames) {
 }
 
 // ClusterList::FindBestRepFrames_CumulativeDist()
-/** Find the frame in each cluster that is the best representative, i.e.
-  * has the lowest cumulative distance to every other point in the cluster.
+/** Find the frame in each cluster that is the best representative by
+  * having the lowest cumulative distance to every other point in the cluster.
   */
 int ClusterList::FindBestRepFrames_CumulativeDist() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    //CpptrajFile tmp; // DEBUG
+    //tmp.OpenWrite("c"+integerToString(node->Num())+".bestRep.dat"); // DEBUG
     double mindist = DBL_MAX;
     int minframe = -1;
     for (ClusterNode::frame_iterator f1 = node->beginframe();
@@ -104,7 +105,9 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
         mindist = cdist;
         minframe = *f1;
       }
+      //tmp.Printf("%i %g %g\n", *f1+1, cdist, Cdist_->FrameCentroidDist(*f1, node->Cent()));
     }
+    //tmp.CloseFile();
     if (minframe == -1) {
       mprinterr("Error: Could not determine represenative frame for cluster %i\n",
                 node->Num());
@@ -115,6 +118,9 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
   return err;
 }
 
+/** Find the frame in the cluster that is the best representative by
+  * having the lowest distance to the cluster centroid.
+  */
 int ClusterList::FindBestRepFrames_Centroid() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
