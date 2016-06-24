@@ -59,37 +59,33 @@ double ClusterList::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2
   * frames if necessary. Ensures cluster node frame lists are sorted.
   */
 void ClusterList::Renumber(bool addSievedFrames) {
-  // Update cluster centroids.
-  bool centroid_error = false;
+  // Update cluster centroids in case they need to be used to restore sieved frames.
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     node->SortFrameList();
-    // Ensure cluster centroid is up-to-date
     node->CalculateCentroid( Cdist_ );
-    // Find best representative frame
-    if (node->FindBestRepFrame( Cdist_ ) == -1) {
-      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
-                node->Num());
-      centroid_error = true;
-    }
   }
   // Add back sieved frames
   if (addSievedFrames) {
-    if (centroid_error)
-      mprinterr("Error: 1 or more centroids not determined. Cannot add sieved frames.\n");
-    else {
-      mprintf("\tRestoring sieved frames.\n");
-      AddSievedFrames();
-    }
-    // Re-sort cluster frame lists.
-    for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
+    mprintf("\tRestoring sieved frames.\n");
+    AddSievedFrames();
+    // Re-sort cluster frame lists and re-calculate centroids.
+    for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
       node->SortFrameList();
+      node->CalculateCentroid( Cdist_ );
+    }
   }
-  // Sort clusters by population 
+  // Sort clusters by population
   clusters_.sort( );
-  // Renumber clusters.
+  // Renumber clusters, determine best representative frame.
   int newNum = 0;
-  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) 
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     node->SetNum( newNum++ );
+    // Find best representative frame
+    if (node->FindBestRepFrame( Cdist_ ) == -1) { // SANITY CHECK
+      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                node->Num());
+    }
+  }
 }
 
 // ClusterList::DetermineNameWidth()
