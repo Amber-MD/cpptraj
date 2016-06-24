@@ -543,6 +543,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_cluster.Stop();
   cluster_post.Start();
   Timer cluster_post_renumber;
+  Timer cluster_post_bestrep;
   Timer cluster_post_info;
   Timer cluster_post_summary;
   Timer cluster_post_coords;
@@ -551,9 +552,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // add remaining frames.
     cluster_post_renumber.Start();
     CList_->Renumber( (sieve_ != 1) );
-    // Find best representative frames for each cluster.
-    CList_->FindBestRepFrames();
     cluster_post_renumber.Stop();
+    // Find best representative frames for each cluster.
+    cluster_post_bestrep.Start();
+    CList_->FindBestRepFrames();
+    cluster_post_bestrep.Stop();
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");
@@ -662,6 +665,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 # endif
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
   cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
+  cluster_post_bestrep.WriteTiming(2, "Find best rep.", cluster_post.Total());
   cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
   cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
   cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
