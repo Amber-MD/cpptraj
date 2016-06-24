@@ -150,19 +150,13 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     double internalSD = 0.0;
     unsigned int Nelements = 0;
     if (node->Nframes() > 1) {
-      // Calculate average distance between all frames in this cluster. Since
-      // this can be called after sieved frames are added back in, need to
-      // check if frames were sieved out.
+      // Calculate average distance between all frames in this cluster.
       for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
-        if (!FrameDistances().FrameWasSieved( *f1 )) {
-          for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
-            if (!FrameDistances().FrameWasSieved( *f2 )) {
-              double dist = FrameDistances().GetFdist(*f1, *f2);
-              internalAvg += dist;
-              internalSD += (dist * dist);
-              ++Nelements;
-            }
-          }
+        for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+          double dist = Frame_Distance(*f1, *f2);
+          internalAvg += dist;
+          internalSD += (dist * dist);
+          ++Nelements;
         }
       }
       if (Nelements > 0) {
