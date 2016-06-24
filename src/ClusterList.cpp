@@ -82,11 +82,11 @@ void ClusterList::Renumber(bool addSievedFrames) {
     node->SetNum( newNum++ );
 }
 
-// ClusterList::FindBestRepFrames()
+// ClusterList::FindBestRepFrames_CumulativeDist()
 /** Find the frame in each cluster that is the best representative, i.e.
   * has the lowest cumulative distance to every other point in the cluster.
   */
-int ClusterList::FindBestRepFrames() {
+int ClusterList::FindBestRepFrames_CumulativeDist() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
     double mindist = DBL_MAX;
@@ -102,6 +102,30 @@ int ClusterList::FindBestRepFrames() {
       }
       if (cdist < mindist) {
         mindist = cdist;
+        minframe = *f1;
+      }
+    }
+    if (minframe == -1) {
+      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                node->Num());
+      err++;
+    }
+    node->SetBestRepFrame( minframe );
+  }
+  return err;
+}
+
+int ClusterList::FindBestRepFrames_Centroid() {
+  int err = 0;
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    double mindist = DBL_MAX;
+    int minframe = -1;
+    for (ClusterNode::frame_iterator f1 = node->beginframe();
+                                     f1 != node->endframe(); ++f1)
+    {
+      double dist = Cdist_->FrameCentroidDist(*f1, node->Cent());
+      if (dist < mindist) {
+        dist = mindist;
         minframe = *f1;
       }
     }

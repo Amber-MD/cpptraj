@@ -18,8 +18,10 @@ class ClusterList {
     void SetDebug(int);
     /// Add back sieved frames, update centroids, sort by cluster population.
     void Renumber(bool);
-    /// Determine which frames in each cluster are best representative.
-    int FindBestRepFrames();
+    /// Determine which frames in each cluster are best representative using cumulative distance.
+    int FindBestRepFrames_CumulativeDist();
+    /// Determine which frames in each cluster are best representative by distance to centroid.
+    int FindBestRepFrames_Centroid();
     /// Print overall summary of clusters.
     void Summary(std::string const&,int) const;
     /// Print summary of clusters separated by parts.

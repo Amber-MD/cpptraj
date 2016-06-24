@@ -555,7 +555,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     cluster_post_renumber.Stop();
     // Find best representative frames for each cluster.
     cluster_post_bestrep.Start();
-    CList_->FindBestRepFrames();
+    CList_->FindBestRepFrames_CumulativeDist();
+    //CList_->FindBestRepFrames_Centroid();
     cluster_post_bestrep.Stop();
     // DEBUG
     if (debug_ > 0) {
