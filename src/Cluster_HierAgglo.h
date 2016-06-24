@@ -12,6 +12,7 @@ class Cluster_HierAgglo : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo() const;
     int Cluster();
+    /// \return Distance between given clusters based on current linkage
     double ClusterDistance(ClusterNode const&, ClusterNode const&) const;
 #   ifdef TIMER
     void Timing(double) const;

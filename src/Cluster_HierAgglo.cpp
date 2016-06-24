@@ -208,48 +208,36 @@ int Cluster_HierAgglo::MergeClosest() {
 }
 
 // Cluster_HierAgglo::ClusterDistance()
-// TODO: Do not use GetFdist so this can be used after sieve?
+/** NOTE: Using the Frame_Distance() function so this can be usd with
+  *       sieved frames.
+  */
 double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
   double dist = 0.0;
   if (linkage_ == AVERAGELINK) {
-    int nDist = 0;
     for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      if (!FrameDistances().FrameWasSieved( *f1 )) {
-        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
-          if (!FrameDistances().FrameWasSieved( *f2 )) {
-            dist += FrameDistances().GetFdist(*f1, *f2);
-            ++nDist;
-          }
-        }
-      }
+      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        dist += Frame_Distance(*f1, *f2);
     }
-    dist /= (double)nDist;
+    dist /= (double)(C1.Nframes() * C2.Nframes());
   } else if (linkage_ == SINGLELINK) { // min
     dist = DBL_MAX;
     for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      if (!FrameDistances().FrameWasSieved( *f1 )) {
-        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
-          if (!FrameDistances().FrameWasSieved( *f2 ))
-            dist = std::min( FrameDistances().GetFdist(*f1, *f2), dist );
-        }
-      }
+      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        dist = std::min( Frame_Distance(*f1, *f2), dist );
     }
   } else if (linkage_ == COMPLETELINK) { // max
     dist = -1.0;
     for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      if (!FrameDistances().FrameWasSieved( *f1 )) {
-        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2) {
-          if (!FrameDistances().FrameWasSieved( *f2 ))
-            dist = std::max( FrameDistances().GetFdist(*f1, *f2), dist );
-        }
-      }
+      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        dist = std::max( Frame_Distance(*f1, *f2), dist );
     }
   }
-  mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
-          C1.Num(), C1.Nframes(), C2.Num(), C2.Nframes(), dist);
+  if (debug_ > 0)
+    mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
+            C1.Num(), C1.Nframes(), C2.Num(), C2.Nframes(), dist);
   return dist;
 }
 

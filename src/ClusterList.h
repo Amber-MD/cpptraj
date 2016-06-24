@@ -52,6 +52,9 @@ class ClusterList {
     virtual void AddSievedFrames() = 0;
     virtual void ClusterResults(CpptrajFile&) const = 0;
 
+    /// \return Distance between specified frames. Use FrameDistances if frames were not sieved.
+    inline double Frame_Distance(int,int) const;
+    /// Add each sieved frame to the nearest cluster based on frame to centroid distance.
     void AddSievedFramesByCentroid();
     DataSet_Cmatrix const& FrameDistances() const { return *frameDistances_; }
     int debug_;
@@ -73,4 +76,12 @@ class ClusterList {
     /// Hold pointer to matrix containing distances between each frame.
     DataSet_Cmatrix* frameDistances_;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+double ClusterList::Frame_Distance(int f1, int f2) const {
+  if (FrameDistances().FrameWasSieved(f1) ||
+      FrameDistances().FrameWasSieved(f2))
+    return Cdist_->FrameDist(f1, f2);
+  else
+    return FrameDistances().GetFdist(f1, f2);
+}
 #endif
