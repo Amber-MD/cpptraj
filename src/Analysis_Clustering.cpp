@@ -610,7 +610,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // If no filename is written and no noinfo, some info will still be written to STDOUT
     if (!suppressInfo_) {
       cluster_post_info.Start();
-      CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+      CList_->PrintClustersToFile(clusterinfo_);
       cluster_post_info.Stop();
     }
 
@@ -621,7 +621,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Print a summary of clusters
     if (!summaryfile_.empty()) {
       cluster_post_summary.Start();
-      CList_->Summary(summaryfile_, clusterDataSetSize, includeSieveInAvg_);
+      CList_->Summary(summaryfile_, includeSieveInAvg_);
       cluster_post_summary.Stop();
     }
 
@@ -638,7 +638,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
           mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
         else
           actualSplitFrames.push_back( *f );
-      CList_->Summary_Part(halffile_, clusterDataSetSize, actualSplitFrames);
+      CList_->Summary_Part(halffile_, actualSplitFrames);
     }
 
     // Create cluster v time data from clusters.

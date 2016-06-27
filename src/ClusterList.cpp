@@ -159,11 +159,10 @@ unsigned int ClusterList::DetermineNameWidth() const {
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(std::string const& summaryfile, int maxframesIn,
-                          bool includeSieveInAvg) const
+void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg) const
 {
   CpptrajFile outfile;
-  double fmax = (double)maxframesIn;
+  double fmax = (double)FrameDistances().OriginalNframes();
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
@@ -257,13 +256,13 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn,
 // ClusterList::Summary_Part
 /** Print a summary of clustering for specified portions of the overall traj. 
   */
-void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
+void ClusterList::Summary_Part(std::string const& summaryfile,
                                std::vector<int> const& splitFrames) const
 {
   const char* nExt[] = {"st", "nd", "rd", "th"};
   if (splitFrames.empty()) return; // Sanity check.
   CpptrajFile outfile;
-  double fmax = (double)maxframesIn;
+  double fmax = (double)FrameDistances().OriginalNframes();
   if (outfile.OpenWrite(summaryfile)) {
     mprinterr("Error: Could not open file '%s'.\n", summaryfile.c_str());
     return;
@@ -286,7 +285,7 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
     outfile.Printf(" <= %i < %u%s", trajOffset.back(), sf+2, nExt[eidx]);
     if (eidx < 3) ++eidx;
   }
-  partMax.push_back( (double)(maxframesIn - lastMax) );
+  partMax.push_back( (double)(FrameDistances().OriginalNframes() - lastMax) );
   outfile.Printf("\n# ");
   // Print # of frames in each section
   eidx=0;
@@ -376,7 +375,7 @@ void ClusterList::Summary_Part(std::string const& summaryfile, int maxframesIn,
   * in the clusters and . for all other frames. Also print out the
   * representative frame numbers.
   */
-void ClusterList::PrintClustersToFile(std::string const& filename, int maxframesIn) const {
+void ClusterList::PrintClustersToFile(std::string const& filename) const {
   CpptrajFile outfile;
   std::string buffer;
   
@@ -386,7 +385,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
     return;
   }
   outfile.Printf("#Clustering: %u clusters %i frames\n",
-                 clusters_.size(), maxframesIn);
+                 clusters_.size(), FrameDistances().OriginalNframes());
   ComputeDBI( outfile );
   ComputePseudoF( outfile );
   // Call internal info routine.
@@ -396,7 +395,7 @@ void ClusterList::PrintClustersToFile(std::string const& filename, int maxframes
     for (cluster_iterator C1 = begincluster(); C1 != endcluster(); ++C1)
     {
       buffer.clear();
-      buffer.resize(maxframesIn, '.');
+      buffer.resize(FrameDistances().OriginalNframes(), '.');
       for (ClusterNode::frame_iterator f1 = C1->beginframe(); f1 != C1->endframe(); ++f1)
         buffer[ *f1 ] = 'X';
       buffer += '\n';
