@@ -220,7 +220,7 @@ void Cluster_DBSCAN::ClusterResults(CpptrajFile& outfile) const {
 void Cluster_DBSCAN::AddSievedFrames() {
   // NOTE: All cluster centroids must be up to date!
   if (sieveToCentroid_)
-    mprintf("\tRestoring sieved frames by closeness to existing centroids.\n");
+    mprintf("\tRestoring sieved frames if within %.3f of cluster centroid.\n", epsilon_);
   else
     mprintf("\tRestoring sieved frames if within %.3f of frame in nearest cluster.\n",
             epsilon_);
@@ -261,10 +261,10 @@ void Cluster_DBSCAN::AddSievedFrames() {
         }
       }
       bool goodFrame = false;
-      if ( sieveToCentroid_ || mindist < epsilon_ )
-        // Sieving based on centroid only or frame is already within epsilon, accept.
+      if ( mindist < epsilon_ )
+        // Frame is already within epsilon, accept.
         goodFrame = true;
-      else {
+      else if ( !sieveToCentroid_ ) {
         // Check if any frames in the cluster are closer than epsilon to sieved frame.
         for (int cidx=0; cidx < minNode->Nframes(); cidx++)
         {
