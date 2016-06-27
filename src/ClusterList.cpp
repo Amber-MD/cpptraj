@@ -118,6 +118,42 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
   return err;
 }
 
+/** Find the frame in each cluster that is the best representative by
+  * having the lowest cumulative distance to every other point in the cluster,
+  * ignoring sieved frames.
+  */
+int ClusterList::FindBestRepFrames_NoSieve_CumulativeDist() {
+  if (FrameDistances().SieveValue() != 1)
+    mprintf("Warning: Ignoring sieved frames while looking for best representative.\n");
+  int err = 0;
+  for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    double mindist = DBL_MAX;
+    int minframe = -1;
+    for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1)
+    {
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        double cdist = 0.0;
+        for (ClusterNode::frame_iterator f2 = node->beginframe(); f2 != node->endframe(); ++f2)
+        {
+          if (f1 != f2 && !FrameDistances().FrameWasSieved( *f2 ))
+            cdist += FrameDistances().GetFdist(*f1, *f2);
+        }
+        if (cdist < mindist) {
+          mindist = cdist;
+          minframe = *f1;
+        }
+      }
+    }
+    if (minframe == -1) {
+      mprinterr("Error: Could not determine represenative frame for cluster %i\n",
+                node->Num());
+      err++;
+    }
+    node->SetBestRepFrame( minframe );
+  }
+  return err;
+}
+
 /** Find the frame in the cluster that is the best representative by
   * having the lowest distance to the cluster centroid.
   */
