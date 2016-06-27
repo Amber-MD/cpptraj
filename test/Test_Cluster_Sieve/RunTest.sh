@@ -25,23 +25,25 @@ EOF
   DoTest $PREFIX.sil.cluster.dat.save $PREFIX.sil.cluster.dat
 }
 
+SIEVEARGS="sieve 5 bestrep cumulative includesieveincalc"
+
 # Test sieving
 Cluster nosieve
-Cluster sieve5 "sieve 5 bestrep cumulative"
+Cluster sieve5 "$SIEVEARGS"
 
 # Test loading/saving of pairdist file with/without sieve
 Cluster nosieve " " savepairdist
 Cluster nosieve " " loadpairdist
-Cluster sieve5 "sieve 5 bestrep cumulative" savepairdist
+Cluster sieve5 "$SIEVEARGS" savepairdist
 NcTest sieve5.nc.c0.save sieve5.nc.c0
-Cluster sieve5 "sieve 5 bestrep cumulative" loadpairdist
+Cluster sieve5 "$SIEVEARGS" loadpairdist
 
 # Test pairwise no memory
 Cluster nosieve " "       "pairwisecache none"
-Cluster sieve5  "sieve 5 bestrep cumulative" "pairwisecache none"
+Cluster sieve5  "$SIEVEARGS" "pairwisecache none"
 
 # Test random sieving
-Cluster random "sieve 5 bestrep cumulative random sieveseed 1"
+Cluster random "$SIEVEARGS random sieveseed 1"
 
 EndTest
 
