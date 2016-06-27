@@ -88,6 +88,7 @@ void ClusterList::Renumber(bool addSievedFrames) {
 int ClusterList::FindBestRepFrames_CumulativeDist() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    //node->Cent()->Print("centroid." + integerToString(node->Num())); // DEBUG
     //CpptrajFile tmp; // DEBUG
     //tmp.OpenWrite("c"+integerToString(node->Num())+".bestRep.dat"); // DEBUG
     double mindist = DBL_MAX;
@@ -124,15 +125,17 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
 int ClusterList::FindBestRepFrames_Centroid() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
-    mprintf("DEBUG: FindBestRepFrames_Centroid: Cluster %i\n", node->Num());
+    //mprintf("DEBUG: FindBestRepFrames_Centroid: Cluster %i\n", node->Num());
     double mindist = DBL_MAX;
     int minframe = -1;
+    //node->Cent()->Print("centroid." + integerToString(node->Num())); // DEBUG
     for (ClusterNode::frame_iterator f1 = node->beginframe();
                                      f1 != node->endframe(); ++f1)
     {
       double dist = Cdist_->FrameCentroidDist(*f1, node->Cent());
+      //mprintf("\t%8i %10.4g %10.4g %i\n", *f1+1, dist, mindist, minframe+1);
       if (dist < mindist) {
-        dist = mindist;
+        mindist = dist;
         minframe = *f1;
       }
     }
