@@ -1,9 +1,9 @@
 #Clustering: 1 clusters 101 frames
-#Cluster 0 has average-distance-to-centroid 2.716058
+#Cluster 0 has average-distance-to-centroid 1.195517
 #DBI: 0.000000
 #Algorithm: DBSCAN minpoints 5 epsilon 1.7 sieveToCentroid 1
 #NOISE_FRAMES: 1 6 11 61 66 71 76 81 86 91 96 101
 #Number_of_noise_frames: 12
-.XXXX.XXXX.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.
-#Representative frames: 40
+..............XX.XX.XXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXXXXXX.X.......................................
+#Representative frames: 24
 #Sieve value: 5
