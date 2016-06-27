@@ -6,12 +6,13 @@
 Cluster_HierAgglo::Cluster_HierAgglo() :
   nclusters_(-1),
   epsilon_(-1.0),
-  linkage_(AVERAGELINK)
+  linkage_(AVERAGELINK),
+  includeSievedFrames_(false)
 {}
 
 void Cluster_HierAgglo::Help() {
   mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
-          "\t  [epsilonplot <file>]]\n");
+          "\t  [epsilonplot <file>]] [includesieved_cdist]\n");
 }
 
 static const char* LinkageString[] = {
@@ -25,6 +26,7 @@ int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("averagelinkage")) linkage_ = AVERAGELINK;
   else if (analyzeArgs.hasKey("complete"))       linkage_ = COMPLETELINK;
   else linkage_ = AVERAGELINK; // DEFAULT linkage
+  includeSievedFrames_ = analyzeArgs.hasKey("includesieved_cdist");
   std::string epsilonPlot = analyzeArgs.GetStringKey("epsilonplot");
   if (!epsilonPlot.empty()) {
     if (eps_v_n_.OpenWrite( epsilonPlot )) return 1;
@@ -48,6 +50,11 @@ void Cluster_HierAgglo::ClusteringInfo() const {
   mprintf(" %s.\n", LinkageString[linkage_]);
   if (eps_v_n_.IsOpen())
     mprintf("\tWriting epsilon vs # clusters to '%s'\n", eps_v_n_.Filename().full());
+  if (includeSievedFrames_)
+    mprintf("\tSieved frames will be included in final cluster distance calculation.\n"
+            "Warning: 'includesieved_cdist' may be very slow.\n");
+  else
+    mprintf("\tSieved frames will not be included in final cluster distance calculation.\n");
 }
 
 /** Set up the initial distances between clusters. Should be called before 
@@ -213,27 +220,53 @@ int Cluster_HierAgglo::MergeClosest() {
   */
 double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
   double dist = 0.0;
-  if (linkage_ == AVERAGELINK) {
+  if (includeSievedFrames_) {
+    if (linkage_ == AVERAGELINK) {
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist += Frame_Distance(*f1, *f2);
+      }
+      dist /= (double)(C1.Nframes() * C2.Nframes());
+    } else if (linkage_ == SINGLELINK) { // min
+      dist = DBL_MAX;
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist = std::min( Frame_Distance(*f1, *f2), dist );
+      }
+    } else if (linkage_ == COMPLETELINK) { // max
+      dist = -1.0;
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist = std::max( Frame_Distance(*f1, *f2), dist );
+      }
+    }
+  } else {
+    // Ignore sieved frames.
+    switch (linkage_) {
+      case AVERAGELINK : dist = 0.0; break;
+      case SINGLELINK  : dist = DBL_MAX; break;
+      case COMPLETELINK: dist = -1.0; break;
+    }
+    unsigned int Nelements = 0;
     for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
     {
-      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
-        dist += Frame_Distance(*f1, *f2);
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        {
+          if (!FrameDistances().FrameWasSieved( *f2 )) {
+            switch (linkage_) {
+              case AVERAGELINK : dist += Frame_Distance(*f1, *f2); ++Nelements; break;
+              case SINGLELINK  : dist = std::min( Frame_Distance(*f1, *f2), dist ); break;
+              case COMPLETELINK: dist = std::max( Frame_Distance(*f1, *f2), dist ); break;
+            }
+          }
+        }
+      }
     }
-    dist /= (double)(C1.Nframes() * C2.Nframes());
-  } else if (linkage_ == SINGLELINK) { // min
-    dist = DBL_MAX;
-    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
-    {
-      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
-        dist = std::min( Frame_Distance(*f1, *f2), dist );
-    }
-  } else if (linkage_ == COMPLETELINK) { // max
-    dist = -1.0;
-    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
-    {
-      for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
-        dist = std::max( Frame_Distance(*f1, *f2), dist );
-    }
+    if (linkage_ == AVERAGELINK) dist /= (double)Nelements;
   }
   if (debug_ > 0)
     mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
