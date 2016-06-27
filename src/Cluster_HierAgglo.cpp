@@ -215,9 +215,6 @@ int Cluster_HierAgglo::MergeClosest() {
 }
 
 // Cluster_HierAgglo::ClusterDistance()
-/** NOTE: Using the Frame_Distance() function so this can be usd with
-  *       sieved frames.
-  */
 double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
   double dist = 0.0;
   if (includeSievedFrames_) {

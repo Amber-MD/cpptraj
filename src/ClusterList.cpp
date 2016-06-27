@@ -800,6 +800,8 @@ double ClusterList::ComputePseudoF(CpptrajFile& outfile) const {
   */
 void ClusterList::CalcSilhouette(std::string const& prefix, bool includeSieved) const {
   mprintf("\tCalculating cluster/frame silhouette.\n");
+  if (FrameDistances().SieveValue() != 1 && !includeSieved)
+    mprintf("Warning: Silhouettes do not include sieved frames.\n");
   CpptrajFile Ffile, Cfile;
   if (Ffile.OpenWrite(prefix + ".frame.dat")) return;
   if (Cfile.OpenWrite(prefix + ".cluster.dat")) return;
