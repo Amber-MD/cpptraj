@@ -59,7 +59,7 @@ class ClusterList {
     /// Remove clusters with no members.
     void RemoveEmptyClusters();
     /// Calculate cluster silhouettes
-    void CalcSilhouette(std::string const&) const;
+    void CalcSilhouette(std::string const&, bool) const;
 
     void DrawGraph(bool,DataSet*,double,int) const;
   protected:

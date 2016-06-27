@@ -37,7 +37,7 @@ Analysis_Clustering::Analysis_Clustering() :
   bestRep_(CUMULATIVE),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
-  includeSieveInAvg_(false),
+  includeSieveInCalc_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -63,7 +63,7 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | none}] [includesieveinavg]\n"
+          "\t[pairwisecache {mem | none}] [includesieveincalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
@@ -186,7 +186,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   // Get algorithm-specific keywords
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
-  includeSieveInAvg_ = analyzeArgs.hasKey("includesieveinavg");
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
   useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
@@ -405,9 +407,8 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     mprintf(".\n");
   }
   if (sieve_ != 1) {
-    if (includeSieveInAvg_)
-      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n"
-              "Warning: 'includesieveinavg' may be very slow.\n");
+    if (includeSieveInCalc_)
+      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n");
     else
       mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
   }
@@ -440,8 +441,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!sil_file_.empty()) {
     mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
             "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
-    if (sieve_ > 1)
-      mprintf("\tSilhouette calculation will use sieved frames ONLY.\n");
+    if (sieve_ != 1) {
+      if (includeSieveInCalc_)
+        mprintf("\tSilhouette calculation will use all frames.\n");
+      else
+        mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
+    }
   }
   if (!halffile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
@@ -622,12 +627,12 @@ Analysis::RetType Analysis_Clustering::Analyze() {
 
     // Calculate cluster silhouette
     if (!sil_file_.empty())
-      CList_->CalcSilhouette( sil_file_ );
+      CList_->CalcSilhouette( sil_file_, includeSieveInCalc_ );
 
     // Print a summary of clusters
     if (!summaryfile_.empty()) {
       cluster_post_summary.Start();
-      CList_->Summary(summaryfile_, includeSieveInAvg_);
+      CList_->Summary(summaryfile_, includeSieveInCalc_);
       cluster_post_summary.Stop();
     }
 

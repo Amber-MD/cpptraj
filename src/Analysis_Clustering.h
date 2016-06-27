@@ -65,7 +65,7 @@ class Analysis_Clustering: public Analysis {
     BestRepType bestRep_;
     bool calc_lifetimes_;       ///< If true calculate DataSets for use in lifetime analysis.
     bool writeRepFrameNum_;     ///< If true frame #s will be in rep file names.
-    bool includeSieveInAvg_;
+    bool includeSieveInCalc_;   ///< If true use sieved frames in certain calculations.
     bool suppressInfo_;         ///< If true, do not print cluster info to STDOUT
     ClusterDist::DsArray cluster_dataset_;        ///< DataSet(s) to use for clustering.
     TrajectoryFile::TrajFormatType clusterfmt_;   ///< Cluster trajectory format.
