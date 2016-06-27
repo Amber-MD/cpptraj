@@ -23,7 +23,7 @@ class ClusterList {
     /// Determine which frames in each cluster are best representative by distance to centroid.
     int FindBestRepFrames_Centroid();
     /// Print overall summary of clusters.
-    void Summary(std::string const&,int) const;
+    void Summary(std::string const&,int,bool) const;
     /// Print summary of clusters separated by parts.
     void Summary_Part(std::string const&,int,std::vector<int> const&) const;
     /// Print cluster info.

@@ -37,6 +37,7 @@ Analysis_Clustering::Analysis_Clustering() :
   bestRep_(CUMULATIVE),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
+  includeSieveInAvg_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
@@ -62,7 +63,7 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | none}]\n"
+          "\t[pairwisecache {mem | none}] [includesieveinavg]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
@@ -185,6 +186,7 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   // Get algorithm-specific keywords
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
+  includeSieveInAvg_ = analyzeArgs.hasKey("includesieveinavg");
   useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
@@ -400,6 +402,13 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
     mprintf(".\n");
   }
+  if (sieve_ != 1) {
+    if (includeSieveInAvg_)
+      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n"
+              "Warning: 'includesieveinavg' may be very slow.\n");
+    else
+      mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
+  }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (clustersvtimefile != 0)
@@ -612,7 +621,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     // Print a summary of clusters
     if (!summaryfile_.empty()) {
       cluster_post_summary.Start();
-      CList_->Summary(summaryfile_, clusterDataSetSize);
+      CList_->Summary(summaryfile_, clusterDataSetSize, includeSieveInAvg_);
       cluster_post_summary.Stop();
     }
 

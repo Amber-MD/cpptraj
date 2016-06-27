@@ -11,6 +11,7 @@
 #  include <omp.h>
 #endif
 #include "PDBfile.h" // DEBUG
+#include "Timer.h" // DEBUG
 
 // XMGRACE colors
 const char* ClusterList::XMGRACE_COLOR[] = {
@@ -67,15 +68,14 @@ void ClusterList::Renumber(bool addSievedFrames) {
   if (addSievedFrames) {
     mprintf("\tRestoring sieved frames.\n");
     AddSievedFrames();
-    // Re-sort cluster frame lists and re-calculate centroids.
+    // Re-sort cluster frame lists and re-calculate centroids including sieved frames.
     for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
       node->SortFrameList();
       node->CalculateCentroid( Cdist_ );
     }
   }
-  // Sort clusters by population
+  // Sort clusters by population and renumber.
   clusters_.sort( );
-  // Renumber clusters, determine best representative frame.
   int newNum = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node)
     node->SetNum( newNum++ );
@@ -124,6 +124,7 @@ int ClusterList::FindBestRepFrames_CumulativeDist() {
 int ClusterList::FindBestRepFrames_Centroid() {
   int err = 0;
   for (cluster_it node = clusters_.begin(); node != clusters_.end(); ++node) {
+    mprintf("DEBUG: FindBestRepFrames_Centroid: Cluster %i\n", node->Num());
     double mindist = DBL_MAX;
     int minframe = -1;
     for (ClusterNode::frame_iterator f1 = node->beginframe();
@@ -156,7 +157,8 @@ unsigned int ClusterList::DetermineNameWidth() const {
 
 // ClusterList::Summary()
 /** Print a summary of clusters.  */
-void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
+void ClusterList::Summary(std::string const& summaryfile, int maxframesIn,
+                          bool includeSieveInAvg) const
 {
   CpptrajFile outfile;
   double fmax = (double)maxframesIn;
@@ -164,6 +166,8 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     mprinterr("Error: ClusterList::Summary: Could not set up file.\n");
     return;
   }
+  if (FrameDistances().SieveValue() != 1 && !includeSieveInAvg)
+    mprintf("Warning: Within cluster average distance (AvgDist) does not include sieved frames.\n");
   outfile.Printf("%-8s %8s %8s %8s %8s %8s %8s","#Cluster","Frames","Frac",
                      "AvgDist","Stdev","Centroid","AvgCDist");
   unsigned int nWidth = DetermineNameWidth();
@@ -172,7 +176,9 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
   }
   outfile.Printf("\n");
-
+  Timer t_fdist; // DEBUG
+  Timer t_cdist; // DEBUG
+  t_cdist.Start();
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
   cluster_distances.resize( 0, clusters_.size() );
@@ -180,11 +186,13 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
     for (cluster_iterator c2 = c1; c2 != endcluster(); ++c2)
       if (c2 != c1)
         cluster_distances.addElement( ClusterDistance( *c1, *c2 ) );
+  t_cdist.Stop();
 
   unsigned int idx1 = 0;
   for (cluster_iterator node = begincluster(); node != endcluster(); ++node, ++idx1)
   {
     // Calculate the average distance of this cluster to every other cluster.
+    t_cdist.Start();
     double avgclusterdist = 0.0;
     if (clusters_.size() > 1) {
       unsigned int idx2 = 0;
@@ -196,20 +204,37 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
       avgclusterdist /= (double)(clusters_.size() - 1);
       //mprintf("CLUSTER %i avgclusterdist= %g\n", node->Num(), avgclusterdist);
     }
+    t_cdist.Stop();
     // Since there may be a lot of frames do not calculate SD from the
     // mean (which requires either storing distances or two double loops), 
     // instead use SD = sqrt( (SUM[x^2] - ((SUM[x])^2)/N)/N )
+    t_fdist.Start();
     double internalAvg = 0.0;
     double internalSD = 0.0;
     unsigned int Nelements = 0;
     if (node->Nframes() > 1) {
       // Calculate average distance between all frames in this cluster.
-      for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
-        for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
-          double dist = Frame_Distance(*f1, *f2);
-          internalAvg += dist;
-          internalSD += (dist * dist);
-          ++Nelements;
+      if (includeSieveInAvg) {
+        for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
+          for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+            double dist = Frame_Distance(*f1, *f2);
+            internalAvg += dist;
+            internalSD += (dist * dist);
+            ++Nelements;
+          }
+        }
+      } else {
+        for (ClusterNode::frame_iterator f1 = node->beginframe(); f1 != node->endframe(); ++f1) {
+          if (!FrameDistances().FrameWasSieved( *f1 )) {
+            for (ClusterNode::frame_iterator f2 = f1 + 1; f2 != node->endframe(); ++f2) {
+              if (!FrameDistances().FrameWasSieved( *f2 )) {
+                double dist = FrameDistances().GetFdist(*f1, *f2);
+                internalAvg += dist;
+                internalSD += (dist * dist);
+                ++Nelements;
+              }
+            }
+          }
         }
       }
       if (Nelements > 0) {
@@ -222,6 +247,7 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
         else
           internalSD = 0.0;
       }
+      t_fdist.Stop();
     }
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f",
@@ -231,6 +257,8 @@ void ClusterList::Summary(std::string const& summaryfile, int maxframesIn) const
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
   } // END loop over clusters
+  t_cdist.WriteTiming(1, "Between-cluster distance calc.");
+  t_fdist.WriteTiming(1, "Within-cluster distance calc.");
   outfile.CloseFile();
 }
 
