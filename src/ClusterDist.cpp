@@ -3,6 +3,25 @@
 #include "Constants.h" // RADDEG, DEGRAD
 // TODO: All DataSet stuff const&
 
+void Centroid_Coord::Print(std::string const& fnameIn) const {
+  // Write Amber coordinate format
+  CpptrajFile cOut;
+  FileName fname(fnameIn);
+  if (cOut.OpenWrite(fname)) return;
+  cOut.Printf("%-80s\n", fname.base());
+  int col = 0;
+  for (int ic = 0; ic != cframe_.size(); ic++) {
+    cOut.Printf("%8.3f", cframe_[ic]);
+    ++col;
+    if (col == 10) {
+      cOut.Printf("\n");
+      col = 0;
+    }
+  }
+  if (col > 0) cOut.Printf("\n");
+}
+
+// =============================================================================
 /// Calculate smallest difference between two angles (in degrees).
 static double DistCalc_Dih(double d1, double d2) {
   double diff = fabs(d1 - d2);

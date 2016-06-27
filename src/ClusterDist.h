@@ -15,6 +15,7 @@ class Centroid {
     virtual Centroid* Copy() = 0;
   // TODO: Should centroids remember number of frames that went into them?
   //       This would make it so FrameOpCentroid wouldnt require extra arg.
+    virtual void Print(std::string const&) const {}
 };
 /// Cluster centroid for generic DataSet.
 class Centroid_Num : public Centroid {
@@ -49,6 +50,7 @@ class Centroid_Coord : public Centroid {
     Centroid_Coord(Frame const& frame) : cframe_(frame) {}
     Centroid_Coord(int natom) : cframe_(natom) {}
     Centroid* Copy() { return (Centroid*)new Centroid_Coord(cframe_); }
+    void Print(std::string const&) const;
     friend class ClusterDist_DME;
     friend class ClusterDist_RMS;
     friend class ClusterDist_SRMSD;
