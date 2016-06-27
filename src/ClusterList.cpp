@@ -213,6 +213,9 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
     outfile.Printf(" %*s %8s", nWidth, "Name", "RMS");
   }
   outfile.Printf("\n");
+  //Timer t_fdist; // DEBUG
+  //Timer t_cdist; // DEBUG
+  //t_cdist.Start();
   // Calculate distances between clusters.
   Matrix<double> cluster_distances;
   cluster_distances.resize( 0, clusters_.size() );
@@ -220,11 +223,13 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
     for (cluster_iterator c2 = c1; c2 != endcluster(); ++c2)
       if (c2 != c1)
         cluster_distances.addElement( ClusterDistance( *c1, *c2 ) );
+  //t_cdist.Stop();
 
   unsigned int idx1 = 0;
   for (cluster_iterator node = begincluster(); node != endcluster(); ++node, ++idx1)
   {
     // Calculate the average distance of this cluster to every other cluster.
+    //t_cdist.Start();
     double avgclusterdist = 0.0;
     if (clusters_.size() > 1) {
       unsigned int idx2 = 0;
@@ -236,9 +241,11 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
       avgclusterdist /= (double)(clusters_.size() - 1);
       //mprintf("CLUSTER %i avgclusterdist= %g\n", node->Num(), avgclusterdist);
     }
+    //t_cdist.Stop();
     // Since there may be a lot of frames do not calculate SD from the
     // mean (which requires either storing distances or two double loops), 
     // instead use SD = sqrt( (SUM[x^2] - ((SUM[x])^2)/N)/N )
+    //t_fdist.Start();
     double internalAvg = 0.0;
     double internalSD = 0.0;
     unsigned int Nelements = 0;
@@ -277,6 +284,7 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
         else
           internalSD = 0.0;
       }
+      //t_fdist.Stop();
     }
     // OUTPUT
     outfile.Printf("%8i %8i %8.3f %8.3f %8.3f %8i %8.3f",
@@ -286,6 +294,8 @@ void ClusterList::Summary(std::string const& summaryfile, bool includeSieveInAvg
       outfile.Printf(" %*s %8.3f", nWidth, node->Cname().c_str(), node->RefRms());
     outfile.Printf("\n");
   } // END loop over clusters
+  //t_cdist.WriteTiming(1, "Between-cluster distance calc.");
+  //t_fdist.WriteTiming(1, "Within-cluster distance calc.");
   outfile.CloseFile();
 }
 
