@@ -54,11 +54,12 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   return *this;
 }
 
-/** Find the frame in the given cluster that is the best representative, i.e.
-  * has the lowest cumulative distance to every other point in the cluster.
+/** Find the frame in the given cluster that is the best representative via
+  * having the lowest cumulative distance to every other point in the cluster.
+  * Should NOT be used if cluster contains sieved frames.
   * \return best representative frame number, or -1 on error.
   */
-int ClusterNode::FindBestRepFrame(DataSet_Cmatrix const& FrameDistancesIn) {
+int ClusterNode::SetBestRep_CumulativeDist(DataSet_Cmatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -66,8 +67,8 @@ int ClusterNode::FindBestRepFrame(DataSet_Cmatrix const& FrameDistancesIn) {
     double cdist = 0.0;
     for (frame_iterator frm2 = frameList_.begin(); frm2 != frameList_.end(); ++frm2)
     {
-      if (frm1 == frm2) continue;
-      cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
+      if (frm1 != frm2)
+        cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
     }
     if (cdist < mindist) {
       mindist = cdist;
@@ -103,7 +104,7 @@ void ClusterNode::CalcEccentricity(DataSet_Cmatrix const& FrameDistancesIn) {
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
+double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist ) const
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG

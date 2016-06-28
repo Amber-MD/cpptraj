@@ -6,9 +6,7 @@
 #endif
 
 // ClusterMatrix::FindMin()
-/** Find the minimum; set corresponding row and column. Cannot currently
-  * be used for sieved frames.
-  */
+/** Find the minimum not being ignored; set corresponding row and column. */
 #ifdef _OPENMP
 double ClusterMatrix::FindMin(int& iOut, int& jOut) {
   int row, mythread;

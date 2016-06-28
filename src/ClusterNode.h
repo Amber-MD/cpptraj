@@ -14,8 +14,8 @@ class ClusterNode {
     inline bool operator<(const ClusterNode&) const;
     /// Merge frames from another cluster to this cluster
     inline void MergeFrames(ClusterNode const&);
-    /// Determine which frame in the cluster is the best representative.
-    int FindBestRepFrame(DataSet_Cmatrix const&);
+    /// Find and set frame in the cluster that has lowest distance to all other frames.
+    int SetBestRep_CumulativeDist(DataSet_Cmatrix const&);
     /// Calculate eccentricity for frames in this cluster.
     void CalcEccentricity(DataSet_Cmatrix const&);
     /// Calculate centroid of members of this cluster.
@@ -27,7 +27,7 @@ class ClusterNode {
         Cdist->CalculateCentroid( centroid_, frameList_ );
     }
     /// Calculate average distance of all members to centroid
-    double CalcAvgToCentroid( ClusterDist*);
+    double CalcAvgToCentroid( ClusterDist*) const;
     // Iterator over frame numbers
     typedef ClusterDist::Cframes::const_iterator frame_iterator;
     frame_iterator beginframe() const { return frameList_.begin(); }
@@ -43,9 +43,10 @@ class ClusterNode {
     std::string const& Cname() const { return name_;                  }
     double RefRms()            const { return refRms_;                }
     // Set internal variables 
-    void AddFrameToCluster(int fnum)   { frameList_.push_back( fnum );  }
-    void SetNum(int numIn)             { num_ = numIn;                  }
-    inline void SetName(std::string const&, double);
+    void AddFrameToCluster(int fnum) { frameList_.push_back( fnum );  }
+    void SetNum(int numIn)           { num_ = numIn;                  }
+    void SetBestRepFrame(int f)      { repFrame_ = f;                 }
+    inline void SetNameAndRms(std::string const&, double);
     /// Sort internal frame list
     void SortFrameList();
     /// \return true if given frame is in this cluster.
@@ -54,7 +55,7 @@ class ClusterNode {
     void RemoveFrameFromCluster(int);
     /// Remove specified frame from cluster and update centroid.
     void RemoveFrameUpdateCentroid(ClusterDist*, int);
-    /// Add specified fram to cluster and update centroid.
+    /// Add specified frame to cluster and update centroid.
     void AddFrameUpdateCentroid(ClusterDist*, int);
   private:
     double eccentricity_;             ///< Maximum distance between any 2 frames.
@@ -75,7 +76,7 @@ void ClusterNode::MergeFrames( ClusterNode const& rhs) {
   frameList_.insert(frameList_.end(), rhs.frameList_.begin(), rhs.frameList_.end());
 }
 
-void ClusterNode::SetName(std::string const& nameIn, double rmsIn) {
+void ClusterNode::SetNameAndRms(std::string const& nameIn, double rmsIn) {
   name_ = nameIn;
   refRms_ = rmsIn;
 }
