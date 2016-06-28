@@ -12,9 +12,8 @@ bool Traj_Gro::ID_TrajFormat(CpptrajFile& infile) {
     const char* ptr = infile.NextLine(); // Natom
     if (ptr != 0) {
       // Ensure only a single value on # atoms line
-      std::string natom_str( ptr );
-      RemoveTrailingWhitespace( natom_str );
-      if (validInteger(natom_str)) {
+      int natom0, blank;
+      if (sscanf(ptr, "%i %i", &natom0, &blank) == 1) {
         ptr = infile.NextLine(); // First atom
         if (ptr != 0) {
           char resnum[6], resname[6], atname[6], atnum[6];
@@ -92,12 +91,14 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   }
   std::string title( ptr );
   RemoveTrailingWhitespace(title);
-  mprintf("DBG: Title: %s\n", title.c_str());
+  if (debug_ > 0)
+    mprintf("\tTitle: %s\n", title.c_str());
   bool hasTime = true;
   // TODO Is it OK to assume there will never be a negative time value?
   double timeVal = GetTimeValue( ptr );
   if (timeVal < 0.0) hasTime = false;
-  mprintf("DBG: Timeval= %g HasTime= %i\n", timeVal, (int)hasTime);
+  if (debug_ > 0)
+    mprintf("\tTimeval= %g HasTime= %i\n", timeVal, (int)hasTime);
   // Read number of atoms
   ptr = file_.Line();
   if (ptr == 0) return TRAJIN_ERR;
