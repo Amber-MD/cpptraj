@@ -1,4 +1,4 @@
-#include <cstdlib> // atof
+#include <cstdlib> // atof, getenv
 #include <algorithm> // std::remove
 #include "Parm_Gromacs.h"
 #include "CpptrajStdio.h"
@@ -223,19 +223,30 @@ int Parm_Gromacs::ReadMolsSection(BufferedLine& infile) {
 }
 
 // Parm_Gromacs::ReadGmxFile()
-int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
+int Parm_Gromacs::ReadGmxFile(FileName const& fnameIn) {
+  if (fnameIn.empty()) {
+    mprinterr("Error: No file name.\n");
+    return 1;
+  }
   numOpen_++;
   if (numOpen_ == 100) {
     mprinterr("Error: Gromacs topology opening too many files %i; possible infinite recursion.\n",
               numOpen_);
     return 1;
   }
+  // First see if absolute path exists. Then look in GMXDATA/top
+  FileName fname(fnameIn);
+  if (!File::Exists(fname)) {
+    const char* env = getenv("GMXDATA");
+    if (env != 0)
+      fname = FileName( std::string(env) + "/top/" + fnameIn.Full() );
+  }
   BufferedLine infile;
   if (debug_ > 0)
-    mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.c_str(), numOpen_);
+    mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.full(), numOpen_);
   if (infile.OpenFileRead( fname )) {
     if (numOpen_ == 1) // Do not print errors for #includes
-      mprinterr("Error: Could not open '%s'\n", fname.c_str());
+      mprinterr("Error: Could not open '%s'\n", fname.full());
     return 1;
   }
   if (infileName_.empty())
@@ -361,7 +372,7 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
 int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
   mprintf("Warning: Currently only basic topology info read from gromacs topologies.\n");
   // Reads topology and #included files, sets up gmx_molXXX arrays.
-  if (ReadGmxFile(fname.Full())) return 1;
+  if (ReadGmxFile(fname)) return 1;
   // Set title/filename
   TopIn.SetParmName( title_, infileName_ );
   int resoffset = 0;

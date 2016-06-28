@@ -26,7 +26,7 @@ class Parm_Gromacs : public ParmIO {
     int ReadSettles(BufferedLine&);
     int ReadVsite3(BufferedLine&);
     int ReadMolsSection(BufferedLine&);
-    int ReadGmxFile(std::string const&);
+    int ReadGmxFile(FileName const&);
 
     class gmx_atom;
     class gmx_mol;
