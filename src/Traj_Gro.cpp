@@ -11,9 +11,14 @@ bool Traj_Gro::ID_TrajFormat(CpptrajFile& infile) {
   if (infile.NextLine() != 0) { // Title
     const char* ptr = infile.NextLine(); // Natom
     if (ptr != 0) {
-      // Ensure only a single value on # atoms line
-      int natom0, blank;
-      if (sscanf(ptr, "%i %i", &natom0, &blank) == 1) {
+      // Advance to first non-space character
+      const char* aptr = ptr;
+      while (aptr != '\0' && *aptr == ' ') ++aptr;
+      // Ensure only a single valid integer on # atoms line. This is done to
+      // avoid confusion with Amber ASCII coords.
+      std::string natom_str( aptr );
+      RemoveTrailingWhitespace( natom_str );
+      if (validInteger(natom_str)) {
         ptr = infile.NextLine(); // First atom
         if (ptr != 0) {
           char resnum[6], resname[6], atname[6], atnum[6];
