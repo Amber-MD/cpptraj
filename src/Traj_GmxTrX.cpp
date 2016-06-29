@@ -378,9 +378,13 @@ void Traj_GmxTrX::AllocateCoords() {
   if (farray_ != 0) {delete[] farray_; farray_ = 0;}
   if (darray_ != 0) {delete[] darray_; darray_ = 0;}
   arraySize_ = (size_t)natom3_;
-  if (CoordInfo().HasVel()) arraySize_ += (size_t)natom3_;
-  if (CoordInfo().HasForce()) arraySize_ += (size_t)natom3_;
-  if (precision_ == sizeof(float)) 
+  if (v_size_ > 0) arraySize_ += (size_t)natom3_;
+  if (f_size_ > 0) arraySize_ += (size_t)natom3_;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Allocating array using precision %i\n", precision_);
+    mprintf("DEBUG: arraySize is %zu\n", arraySize_);
+  }
+  if (precision_ == sizeof(float))
     farray_ = new float[ arraySize_ ];
   else 
     darray_ = new double[ arraySize_ ];
@@ -626,7 +630,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
         farray_[ix] = (float)(Vptr[iv] * 0.1);
     if (f_size_ > 0)
       for (int ir = 0; ir < natom3_; ir++, ix++)
-        farray_[ir] = (float)(Fptr[ir] * 0.1);
+        farray_[ix] = (float)(Fptr[ir] * 0.1);
     if (swapBytes_) endian_swap( farray_, arraySize_ );
     file_.Write( farray_, x_size_ + v_size_ + f_size_ );
   } else { // double
@@ -637,7 +641,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
         darray_[ix] = (Vptr[iv] * 0.1);
     if (f_size_ > 0)
       for (int ir = 0; ir < natom3_; ir++, ix++)
-        darray_[ir] = (Fptr[ir] * 0.1);
+        darray_[ix] = (Fptr[ir] * 0.1);
     if (swapBytes_) endian_swap8( darray_, arraySize_ );
     file_.Write( darray_, x_size_ + v_size_ + f_size_ );
   }
