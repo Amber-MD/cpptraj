@@ -12,7 +12,7 @@ class Parm_Gromacs : public ParmIO {
     int WriteParm(FileName const&, Topology const&) { return 1;   }
     int processWriteArgs(ArgList&) { return 0; }
   private:
-    enum KeyType { G_UNKNOWN_KEY, G_MOLECULE_TYPE, G_ATOMS, G_BONDS,
+    enum KeyType { G_UNKNOWN_KEY = 0, G_MOLECULE_TYPE, G_ATOMS, G_BONDS,
                    G_SYSTEM, G_MOLECULES, G_SETTLES, G_VIRTUAL_SITES3 };
     static const char* SEP;
 
