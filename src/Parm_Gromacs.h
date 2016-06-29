@@ -42,6 +42,7 @@ class Parm_Gromacs : public ParmIO {
     int numOpen_;
     int directive_err_;
     std::string title_;
+    std::string currentWorkDir_;
     FileName infileName_;
 };
 // ----- CLASSES ---------------------------------------------------------------
