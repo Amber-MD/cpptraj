@@ -1,4 +1,4 @@
-#include <cstdlib> // atof
+#include <cstdlib> // atof, getenv
 #include <algorithm> // std::remove
 #include "Parm_Gromacs.h"
 #include "CpptrajStdio.h"
@@ -38,6 +38,7 @@ int Parm_Gromacs::Defined(std::string const& dir_val) const {
 
 /** Seek to #else or #endif */
 int Parm_Gromacs::AdvanceToElse( BufferedLine& infile ) const {
+  //mprintf("DBG: Advancing to else or endif.\n");
   const char* ptr = infile.Line();
   while (ptr != 0) {
     if (*ptr == '#') {
@@ -223,28 +224,48 @@ int Parm_Gromacs::ReadMolsSection(BufferedLine& infile) {
 }
 
 // Parm_Gromacs::ReadGmxFile()
-int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
+int Parm_Gromacs::ReadGmxFile(FileName const& fnameIn) {
+  if (fnameIn.empty()) {
+    mprinterr("Error: No file name.\n");
+    return 1;
+  }
   numOpen_++;
   if (numOpen_ == 100) {
     mprinterr("Error: Gromacs topology opening too many files %i; possible infinite recursion.\n",
               numOpen_);
     return 1;
   }
+  // First see if absolute path exists. Then look in GMXDATA/top
+  FileName fname(fnameIn);
+  if (!File::Exists(fname)) {
+    if (!currentWorkDir_.empty()) {
+      // Check w.r.t. current working directory.
+      fname = FileName( currentWorkDir_ + fnameIn.Full() );
+    }
+    if (!File::Exists( fname )) {
+      // Look in GMXDATA/top
+      const char* env = getenv("GMXDATA");
+      if (env != 0)
+        fname = FileName( std::string(env) + "/top/" + fnameIn.Full() );
+    }
+  }
   BufferedLine infile;
   if (debug_ > 0)
-    mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.c_str(), numOpen_);
+    mprintf("DEBUG: Opening GMX file '%s' (%i)\n", fname.full(), numOpen_);
   if (infile.OpenFileRead( fname )) {
     if (numOpen_ == 1) // Do not print errors for #includes
-      mprinterr("Error: Could not open '%s'\n", fname.c_str());
+      mprinterr("Error: Could not open '%s'\n", fname.full());
     return 1;
   }
+  currentWorkDir_ = fname.DirPrefix();
   if (infileName_.empty())
     infileName_ = infile.Filename();
   bool elseActive = false; // When true, seek to #endif when #else encountered.
   std::string directive_val;
   const char* ptr = infile.Line(); // First line
+  KeyType currentKey = G_UNKNOWN_KEY;
   while (ptr != 0) {
-    //mprintf("%-8i %s\n", infile.LineNumber(), ptr);
+    //mprintf("[%-8i] (%1i) %s\n", infile.LineNumber(), (int)currentKey, ptr);
     // -------------------------------------------
     if ( ptr[0] == '#' ) {
       // Pre-processor directive
@@ -263,9 +284,11 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
       } else if ( LineContainsDirective(gmx_line, "#ifdef ", directive_val) ) {
         //mprintf("DBG: Processing #ifdef %s\n", directive_val.c_str());
         if (directive_err_) return 1;
-        if (Defined(directive_val))
+        if (Defined(directive_val)) {
+          //mprintf("DBG: Define '%s' is active\n", directive_val.c_str());
           elseActive = true;
-        else {
+        } else {
+          //mprintf("DBG: Define '%s' is inactive\n", directive_val.c_str());
           if (AdvanceToElse( infile )) return 1;
         }
       } else if ( LineContainsDirective(gmx_line, "#ifndef ", directive_val) ) {
@@ -304,53 +327,51 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
     } else if ( ptr[0] == '[' ) {
       // Bracket keyword
       std::string gmx_line( ptr );
-      // Determine which keyword this is, then read past any comments.
-      KeyType Key = FindKey( gmx_line );
-      ptr = infile.Line();
-      while (ptr != 0 && *ptr == ';') ptr = infile.Line();
-      if (ptr == 0) return 1;
-      switch (Key) {
-        // -------------------------------------------------
-        case G_MOLECULE_TYPE : // New molecule.
+      // Determine which keyword this is
+      currentKey = FindKey( gmx_line );
+      // Warn for unknown key
+      if (debug_ > 0 && currentKey == G_UNKNOWN_KEY)
+        mprintf("Warning: Skipping section %s\n", gmx_line.c_str());
+    // -------------------------------------------
+    } else if ( ptr[0] != ';' && ptr[0] != '\n' && ptr[0] != '\r') {
+      // Section Read
+      int err = 0;
+      // -------------------------------------------------
+      if (currentKey == G_MOLECULE_TYPE) { // New molecule
         // ;  molname nrexcl
-          if (infile.TokenizeLine(SEP) < 2) {
-            mprinterr("Error: After [ moleculetype ] expected name, nrexcl.\n");
-            return 1;
-          }
+        if (infile.TokenizeLine(SEP) < 2) {
+          mprinterr("Error: After [ moleculetype ] expected name, nrexcl.\n");
+          err = 1;
+        } else {
           gmx_molecules_.push_back( gmx_mol(std::string(infile.NextToken())) );
           if (debug_ > 0)
             mprintf("DEBUG: Processed [ moleculetype ] %s\n", gmx_molecules_.back().Mname());
-          break;
-        // -------------------------------------------------
-        case G_ATOMS: // Atoms for current molecule
-          if (ReadAtomsSection(infile)) return 1;
-          break;
-        // -------------------------------------------------
-        case G_BONDS: // Bonds for current molecule
-          if (ReadBondsSection(infile)) return 1;
-          break;
-        // -------------------------------------------------
-        case G_SETTLES:
-          if (ReadSettles(infile)) return 1;
-          break;
-        // -------------------------------------------------
-        case G_VIRTUAL_SITES3:
-          if (ReadVsite3(infile)) return 1;
-          break;
-        // -------------------------------------------------
-        case G_SYSTEM: // Title
-          title_.assign( ptr );
-          RemoveTrailingWhitespace( title_ );
-          if (debug_ > 0)
-            mprintf("DEBUG: Processed [ system ]\n");
-          break;
-        // -------------------------------------------------
-        case G_MOLECULES: // System layout
-          if (ReadMolsSection(infile)) return 1;
-          break;
-        default: mprintf("Warning: Skipping section %s\n", gmx_line.c_str());
-      } // End switch(Key)
-    } // End bracket '[' read
+        }
+      // -------------------------------------------------
+      } else if (currentKey == G_ATOMS) { // Atoms for current molecule
+        err = ReadAtomsSection(infile);
+      // -------------------------------------------------
+      } else if (currentKey == G_BONDS) { // Bonds for current molecule
+        err = ReadBondsSection(infile);
+      // -------------------------------------------------
+      } else if (currentKey == G_SETTLES) {
+        err = ReadSettles(infile);
+      // -------------------------------------------------
+      } else if (currentKey == G_VIRTUAL_SITES3) {
+        err = ReadVsite3(infile);
+      // -------------------------------------------------
+      } else if (currentKey == G_SYSTEM) { // Title
+        title_.assign( ptr );
+        RemoveTrailingWhitespace( title_ );
+        if (debug_ > 0)
+          mprintf("DEBUG: Processed [ system ]\n");
+      // -------------------------------------------------
+      } else if (currentKey == G_MOLECULES) { // System layout
+        err = ReadMolsSection(infile);
+      }
+      if (err != 0) return 1;
+      currentKey = G_UNKNOWN_KEY;
+    } // End section read 
     // Get next line
     ptr = infile.Line();
   }
@@ -359,9 +380,10 @@ int Parm_Gromacs::ReadGmxFile(std::string const& fname) {
         
 // Parm_Gromacs::ReadParm()
 int Parm_Gromacs::ReadParm(FileName const& fname, Topology &TopIn) {
-  mprintf("Warning: Currently only basic topology info read from gromacs topologies.\n");
+  mprintf("Warning: Currently only basic topology info (no parameters) read"
+          " from gromacs topologies.\n");
   // Reads topology and #included files, sets up gmx_molXXX arrays.
-  if (ReadGmxFile(fname.Full())) return 1;
+  if (ReadGmxFile(fname)) return 1;
   // Set title/filename
   TopIn.SetParmName( title_, infileName_ );
   int resoffset = 0;
