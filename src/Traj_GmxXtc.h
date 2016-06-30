@@ -22,7 +22,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&);
+    int processWriteArgs(ArgList&) { return 0; }
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
@@ -38,6 +38,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     XDRFILE* xd_; ///< Hold XDR file metadata
     rvec* vec_;   ///< Temporary location for holding XDR frame data
     matrix box_;  ///< Temporary location for holding XDR box data
+    int natoms_;  ///< Number of atoms in xdr file
 #   endif
 };
 #endif
