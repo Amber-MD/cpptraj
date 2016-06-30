@@ -46,7 +46,6 @@ class Traj_GmxTrX : public TrajectoryIO {
     std::string read_string();
     int ReadBox(double*);
     int ReadTrxHeader(int&);
-    int ReadAtomVector(double*, int);
     void AllocateCoords();
 
     bool swapBytes_;   ///< True if byte order needs to be reversed
@@ -72,10 +71,13 @@ class Traj_GmxTrX : public TrajectoryIO {
     int precision_;
     float timestep_;
     float lambda_;
-    size_t frameSize_;
-    size_t headerBytes_;
-    size_t arraySize_;
-    float* farray_;
-    double* darray_;
+    size_t frameSize_;   ///< Size of single trajectory frame in bytes
+    size_t headerBytes_; ///< Size of header in bytes
+    size_t arraySize_;   ///< # elements in {d|f}array_; total # of position/veloc/force coords.
+    float* farray_;      ///< Array for reading/writing single precision.
+    double* darray_;     ///< Array for reading/writine double precision.
+
+    static const double GMX_FRC_TO_AMBER;
+    static const double AMBER_FRC_TO_GMX;
 };
 #endif
