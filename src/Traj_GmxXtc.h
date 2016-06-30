@@ -39,6 +39,8 @@ class Traj_GmxXtc : public TrajectoryIO {
     rvec* vec_;   ///< Temporary location for holding XDR frame data
     matrix box_;  ///< Temporary location for holding XDR box data
     int natoms_;  ///< Number of atoms in xdr file
+    FileName fname_; ///< File name
+    float prec_;  ///< Precision
 #   endif
 };
 #endif
