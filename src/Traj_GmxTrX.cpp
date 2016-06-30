@@ -473,6 +473,12 @@ const double Traj_GmxTrX::GMX_FRC_TO_AMBER = Constants::ANG_TO_NM * Constants::J
 /** Convert Amber force units to Gromacs */
 const double Traj_GmxTrX::AMBER_FRC_TO_GMX = Constants::NM_TO_ANG * Constants::CAL_TO_J;
 
+/** Convert Gromacs velocity units (nm / ps) to Amber units (Ang / (1/20.455)ps). */
+const double Traj_GmxTrX::GMX_VEL_TO_AMBER = Constants::NM_TO_ANG / Constants::AMBERTIME_TO_PS;
+
+/** Convert Amber velocity units to Gromacs */
+const double Traj_GmxTrX::AMBER_VEL_TO_GMX = Constants::ANG_TO_NM * Constants::AMBERTIME_TO_PS;
+
 // Traj_GmxTrX::readFrame()
 int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
   file_.Seek( (frameSize_ * set) + headerBytes_ );
@@ -501,7 +507,7 @@ int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
     if (v_size_ > 0) {
       double* Vptr = frameIn.vAddress();
       for (int iv = 0; iv != natom3_; iv++, ix++)
-        Vptr[iv] = ((double)farray_[ix]) * 10.0; // TODO fix conversion
+        Vptr[iv] = ((double)farray_[ix]) * GMX_VEL_TO_AMBER;
     }
     // Read forces
     if (f_size_ > 0) {
@@ -525,7 +531,7 @@ int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
     if (v_size_ > 0) {
       double* Vptr = frameIn.vAddress();
       for (int iv = 0; iv != natom3_; iv++, ix++)
-        Vptr[iv] = darray_[ix] * 10.0; // TODO fix conversion
+        Vptr[iv] = darray_[ix] * GMX_VEL_TO_AMBER;
     }
     // Read forces
     if (f_size_ > 0) {
@@ -553,7 +559,7 @@ int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
       }
       double* Vptr = frameIn.vAddress();
       for (int iv = 0; iv != natom3_; iv++)
-        Vptr[iv] = ((double)farray_[iv]) * 10.0; // TODO fix conversion
+        Vptr[iv] = ((double)farray_[iv]) * GMX_VEL_TO_AMBER;
     } else if (precision_ == sizeof(double)) {
       if (file_.Read( darray_, v_size_ ) != v_size_) {
         mprinterr("Error: Could not read velocities from TRX frame %i\n", set+1);
@@ -561,7 +567,7 @@ int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
       }
       double* Vptr = frameIn.vAddress();
       for (int iv = 0; iv != natom3_; iv++)
-        Vptr[iv] = darray_[iv] * 10.0; // TODO fix conversion
+        Vptr[iv] = darray_[iv] * GMX_VEL_TO_AMBER;
     }
   } else // SANITY
     mprintf("Warning: TRX file does not contain velocity information.\n");
@@ -680,7 +686,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       farray_[ix] = (float)(Xptr[ix] * Constants::ANG_TO_NM);
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
-        farray_[ix] = (float)(Vptr[iv] * 0.1); // TODO fix conversion
+        farray_[ix] = (float)(Vptr[iv] * AMBER_VEL_TO_GMX);
     if (f_size_ > 0)
       for (int ir = 0; ir < natom3_; ir++, ix++)
         farray_[ix] = (float)(Fptr[ir] * AMBER_FRC_TO_GMX);
@@ -691,7 +697,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       darray_[ix] = (Xptr[ix] * Constants::ANG_TO_NM);
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
-        darray_[ix] = (Vptr[iv] * 0.1); // TODO fix conversion
+        darray_[ix] = (Vptr[iv] * AMBER_VEL_TO_GMX);
     if (f_size_ > 0)
       for (int ir = 0; ir < natom3_; ir++, ix++)
         darray_[ix] = (Fptr[ir] * AMBER_FRC_TO_GMX);

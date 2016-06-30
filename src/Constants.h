@@ -48,9 +48,11 @@ namespace Constants {
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
   /// Convert from Amber internal units of time (1/20.455 ps) to ps.
   /** Amber operates in kcal/mol units for energy, amu for masses,
-    * and Angstoms for distances. To convert the input time parameters
-    * from picoseconds to internal units multiply by 20.455,
-    * which is sqrt(1 / ((AMU_TO_KG * NA) / (1000 * CAL_TO_J))).
+    * and Angstoms for distances. For convenience when calculating KE from
+    * velocity, the velocities have a conversion factor built in; as a result
+    * the Amber unit of time is (1/20.455) ps. So e.g. to convert Amber
+    * velocities from internal units to Ang/ps multiply by 20.455. The number
+    * itself is derived from sqrt(1 / ((AMU_TO_KG * NA) / (1000 * CAL_TO_J))).
     */
   const double AMBERTIME_TO_PS = 20.455;
 }

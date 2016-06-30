@@ -79,5 +79,7 @@ class Traj_GmxTrX : public TrajectoryIO {
 
     static const double GMX_FRC_TO_AMBER;
     static const double AMBER_FRC_TO_GMX;
+    static const double GMX_VEL_TO_AMBER;
+    static const double AMBER_VEL_TO_GMX;
 };
 #endif
