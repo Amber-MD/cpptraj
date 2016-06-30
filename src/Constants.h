@@ -18,26 +18,39 @@ namespace Constants {
   const double FOURTHIRDSPI = 4.1887902047863909; // may have precision loss 
   const double FOURFIFTHSPI = 2.5132741228718345; // may have precision loss
   const double PIOVER2      = 1.5707963267948966; // may have precision loss 
-  // Convert degrees <-> radians
+  /// Convert degrees to radians
   const double DEGRAD       = 0.017453292519943295; // may have precision loss 
+  /// Convert radians to degrees
   const double RADDEG       =   57.29577951308232;  // may have precision loss
-  // For checking floating point zero
+  /// For checking floating point zero
   const double SMALL        = 0.00000000000001;
-  // Gas constant
-  const double GASK_J       = 8.3144621;    // J/mol*K
-  const double GASK_KCAL    = 0.0019872041; // kcal/mol*K
+  /// Gas constant in J/mol*K
+  const double GASK_J       = 8.3144621;
+  /// Gas constant in kcal/mol*K
+  const double GASK_KCAL    = 0.0019872041;
   // Avogadro constant
   const double NA = 6.02214129e23;
   // Speed of light (m/s)
   const double C0 = 299792458;
-  // Convert electron charge <-> Amber units (w/ prefactor)
+  /// Convert atomic mass unit (amu) to kg
+  const double AMU_TO_KG = 1.660539e-27;
+  /// Convert Angstroms to nanometers
+  const double ANG_TO_NM = 10.0;
+  /// Convert nanometers to Angstroms
+  const double NM_TO_ANG = 0.1;
+  /// Convert calories to Joules
+  const double CAL_TO_J = 4.184;
+  /// Convert Joules to calories
+  const double J_TO_CAL = 1.0 / CAL_TO_J;
+  /// Convert electron charge to Amber units (w/ prefactor)
   const double ELECTOAMBER  = 18.2223;
+  /// Convert Amber charge to electron charge
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
   /// Convert from Amber internal units of time (1/20.455 ps) to ps.
   /** Amber operates in kcal/mol units for energy, amu for masses,
-    * and angstoms for distances. To convert the input time parameters
-    * from picoseconds to internal units, multiply by 20.455
-    * (which is 10.0 * sqrt(4.184)).
+    * and Angstoms for distances. To convert the input time parameters
+    * from picoseconds to internal units multiply by 20.455,
+    * which is sqrt(1 / ((AMU_TO_KG * NA) / (1000 * CAL_TO_J))).
     */
   const double AMBERTIME_TO_PS = 20.455;
 }

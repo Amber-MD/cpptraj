@@ -513,7 +513,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   // nmodes_   Number of eigenvectors (already converted to frequencies)
   // evalues_  vibrational frequencies, in cm**-1 and in ascending order
   double rtemp, rtemp1, rtemp2, rtemp3;
-  // ----- Constants -------------------
+  // ----- Constants ------------------- TODO use Constants.h
   const double thresh = 900.0;        // vibrational frequency threshold
   const double tokg   = 1.660531e-27; // kilograms per amu.
   const double boltz  = 1.380622e-23; // boltzman constant, in joules per kelvin.
