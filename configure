@@ -774,6 +774,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "--with-xdrfile")
       echo "Using external xdrfile"
+      XDRFILE_HOME=$VALUE
       XDRFILE_TARGET='noxdrfile'
       XDRFILE="-L$VALUE/lib -lxdrfile"
       ;;
@@ -911,6 +912,14 @@ if [[ $USE_AMBER_LIB -eq 1 ]] ; then
   fi
 fi
 
+if [ ! -z "$XDRFILE" ] ; then
+  if [ "$XDRFILE_TARGET" = 'noxdrfile' ] ; then
+    INCLUDE="$INCLUDE -I$XDRFILE_HOME/include"
+  else
+    INCLUDE="$INCLUDE -I$XDRFILE_HOME"
+  fi
+fi
+
 # Static/Dynamic linking options
 if [[ $STATIC -eq 2 ]] ; then
   # Static linking for specified libraries
@@ -1036,7 +1045,7 @@ fi
 
 # Set up linking flags if not already set.
 # LDFLAGS contains flags common to cpptraj and ambpdb
-LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $LDFLAGS"
+LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $XDRFILE $LDFLAGS"
 # CPPTRAJ_LIB contains flags specific to cpptraj
 CPPTRAJ_LIB="$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
 if [[ ! -z $FFT_LIBDIR ]] ; then

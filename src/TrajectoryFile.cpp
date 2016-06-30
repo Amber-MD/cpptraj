@@ -20,6 +20,7 @@
 #include "Traj_Tinker.h"
 #include "Traj_CharmmCor.h"
 #include "Traj_Gro.h"
+#include "Traj_GmxXtc.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -41,6 +42,11 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "CIF",                0, 0, Traj_CIF::Alloc            },
   { "Charmm DCD",         0, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, Traj_GmxTrX::WriteHelp, Traj_GmxTrX::Alloc         },
+# ifdef NO_XDRFILE
+  { "Gromacs XTC", 0, 0, 0                  },
+# else
+  { "Gromacs XTC", 0, 0, Traj_GmxXtc::Alloc },
+# endif
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
   { "GRO file",           0, 0, Traj_Gro::Alloc            },
@@ -67,6 +73,7 @@ const FileTypes::KeyToken TrajectoryFile::TF_KeyArray[] = {
   { CHARMMDCD,      "dcd",       ".dcd"     },
   { CHARMMDCD,      "charmm",    ".dcd"     },
   { GMXTRX,         "trr",       ".trr"     },
+  { GMXXTC,         "xtc",       ".xtc"     },
   { BINPOS,         "binpos",    ".binpos"  },
   { AMBERRESTART,   "restart",   ".rst7"    },
   { AMBERRESTART,   "restrt",    ".rst7"    },
