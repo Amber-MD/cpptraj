@@ -3,7 +3,9 @@
 #include "Traj_Gro.h"
 #include "StringRoutines.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
+// Traj_Gro::ID_TrajFormat()
 bool Traj_Gro::ID_TrajFormat(CpptrajFile& infile) {
   // Title line, atoms line, then resnum, resname, atomname, atomnum, X, Y, Z
   if (infile.OpenFile()) return false;
@@ -11,8 +13,12 @@ bool Traj_Gro::ID_TrajFormat(CpptrajFile& infile) {
   if (infile.NextLine() != 0) { // Title
     const char* ptr = infile.NextLine(); // Natom
     if (ptr != 0) {
-      // Ensure only a single value on # atoms line
-      std::string natom_str( ptr );
+      // Advance to first non-space character
+      const char* aptr = ptr;
+      while (aptr != '\0' && *aptr == ' ') ++aptr;
+      // Ensure only a single valid integer on # atoms line. This is done to
+      // avoid confusion with Amber ASCII coords.
+      std::string natom_str( aptr );
       RemoveTrailingWhitespace( natom_str );
       if (validInteger(natom_str)) {
         ptr = infile.NextLine(); // First atom
@@ -45,6 +51,7 @@ double Traj_Gro::GetTimeValue(const char* line) const {
   return timeVal;
 }
 
+// Traj_Gro::GetBox()
 Box Traj_Gro::GetBox(const char* line) const {
   float fXYZ[9];
   Box groBox;
@@ -56,7 +63,7 @@ Box Traj_Gro::GetBox(const char* line) const {
     dXYZ[0] = (double)fXYZ[0];
     dXYZ[1] = (double)fXYZ[1];
     dXYZ[2] = (double)fXYZ[2];
-    for (int i = 0; i != 3; i++) dXYZ[i] *= 10.0;
+    for (int i = 0; i != 3; i++) dXYZ[i] *= Constants::NM_TO_ANG;
     dXYZ[3] = 90.0;
     dXYZ[4] = 90.0;
     dXYZ[5] = 90.0;
@@ -67,17 +74,19 @@ Box Traj_Gro::GetBox(const char* line) const {
     ucell[0] = (double)fXYZ[0]; ucell[1] = (double)fXYZ[3]; ucell[2] = (double)fXYZ[4]; // X
     ucell[3] = (double)fXYZ[5]; ucell[4] = (double)fXYZ[1]; ucell[5] = (double)fXYZ[6]; // Y
     ucell[6] = (double)fXYZ[7]; ucell[7] = (double)fXYZ[8]; ucell[8] = (double)fXYZ[2]; // Z
-    for (int i = 0; i != 9; i++) ucell[i] *= 10.0;
+    for (int i = 0; i != 9; i++) ucell[i] *= Constants::NM_TO_ANG;
     groBox.SetBox( ucell );
   } // Otherwise assume no box.
   return groBox;
 }
 
+// Traj_Gro::openTrajin()
 int Traj_Gro::openTrajin() {
   currentSet_ = 0;
   return file_.OpenFileRead( fname_ );
 }
 
+// Traj_Gro::setupTrajin()
 int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
 {
   float fXYZ[9];
@@ -92,12 +101,14 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   }
   std::string title( ptr );
   RemoveTrailingWhitespace(title);
-  mprintf("DBG: Title: %s\n", title.c_str());
+  if (debug_ > 0)
+    mprintf("\tTitle: %s\n", title.c_str());
   bool hasTime = true;
   // TODO Is it OK to assume there will never be a negative time value?
   double timeVal = GetTimeValue( ptr );
   if (timeVal < 0.0) hasTime = false;
-  mprintf("DBG: Timeval= %g HasTime= %i\n", timeVal, (int)hasTime);
+  if (debug_ > 0)
+    mprintf("\tTimeval= %g HasTime= %i\n", timeVal, (int)hasTime);
   // Read number of atoms
   ptr = file_.Line();
   if (ptr == 0) return TRAJIN_ERR;
@@ -178,6 +189,10 @@ int Traj_Gro::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   return nframes;
 }
 
+/** Convert Gromacs velocity units (nm / ps) to Amber units (Ang / (1/20.455)ps). */
+const double Traj_Gro::GMX_VEL_TO_AMBER = Constants::NM_TO_ANG / Constants::AMBERTIME_TO_PS;
+
+// Traj_Gro::readFrame()
 int Traj_Gro::readFrame(int fnum, Frame& frm) {
   if (fnum < currentSet_) {
     file_.CloseFile();
@@ -207,8 +222,8 @@ int Traj_Gro::readFrame(int fnum, Frame& frm) {
       sscanf(ptr, "%*5c%*5c%*5c%*5c%lf %lf %lf %lf %lf %lf",
              Xptr, Xptr+1, Xptr+2, Vptr, Vptr+1, Vptr+2);
       for (int n = 0; n != 3; n++) {
-        Xptr[n] *= 10.0;
-        Vptr[n] *= 10.0;
+        Xptr[n] *= Constants::NM_TO_ANG;
+        Vptr[n] *= GMX_VEL_TO_AMBER;
       }
     }
   } else {
@@ -216,7 +231,7 @@ int Traj_Gro::readFrame(int fnum, Frame& frm) {
       ptr = file_.Line(); // Atom
       sscanf(ptr, "%*5c%*5c%*5c%*5c%lf %lf %lf", Xptr, Xptr+1, Xptr+2);
       for (int n = 0; n != 3; n++)
-        Xptr[n] *= 10.0;
+        Xptr[n] *= Constants::NM_TO_ANG;
     }
   }
   // Box read
@@ -229,6 +244,7 @@ int Traj_Gro::readFrame(int fnum, Frame& frm) {
   return 0;
 }
 
+// Traj_Gro::Info()
 void Traj_Gro::Info() {
   mprintf("is a GRO file");
   if (CoordInfo().HasTime()) mprintf(", with time");

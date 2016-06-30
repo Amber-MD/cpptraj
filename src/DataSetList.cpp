@@ -297,7 +297,7 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   if (dsetOut.empty())
     return 0;
   else if (dsetOut.size() > 1)
-    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
   return dsetOut[0];
 }
 

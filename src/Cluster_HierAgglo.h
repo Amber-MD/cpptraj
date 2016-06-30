@@ -1,6 +1,7 @@
 #ifndef INC_CLUSTER_HIERAGGLO_H
 #define INC_CLUSTER_HIERAGGLO_H
 #include "ClusterList.h"
+#include "ClusterMatrix.h"
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -11,6 +12,8 @@ class Cluster_HierAgglo : public ClusterList {
     int SetupCluster(ArgList&);
     void ClusteringInfo() const;
     int Cluster();
+    /// \return Distance between given clusters based on current linkage
+    double ClusterDistance(ClusterNode const&, ClusterNode const&) const;
 #   ifdef TIMER
     void Timing(double) const;
 #   endif
@@ -28,12 +31,9 @@ class Cluster_HierAgglo : public ClusterList {
     int nclusters_;       ///< Target # of clusters.
     double epsilon_;      ///< Once the min distance between clusters is > epsilon, stop.
     LINKAGETYPE linkage_; ///< Cluster Linkage type.
+    bool includeSievedFrames_; ///< If true include sieved frames in ClusterDistance() calc.
     CpptrajFile eps_v_n_; ///< Write epsilon vs # clusters.
-#   ifdef NEWCODE
-    /** Upper-triangle matrix containing sum of distances between frames in
-      * cluster i to frames in cluster j, for use with average linkage. */
-    Matrix<double> SumDistToCluster_;
-#   endif
+    ClusterMatrix ClusterDistances_;
 #   ifdef TIMER
     Timer time_findMin_;
     Timer time_mergeFrames_;

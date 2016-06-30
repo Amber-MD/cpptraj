@@ -12,8 +12,9 @@ Ctest() {
   cat > cluster.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
-cluster crd1 @CA clusters 5 rms out $PREFIX.out sieve 5 random sieveseed 1 \
-        summary $PREFIX.summary.dat info $PREFIX.info.dat \
+cluster crd1 @CA clusters 5 rms out $PREFIX.out includesieved_cdist \
+        sieve 5 random sieveseed 1 includesieveincalc \
+        summary $PREFIX.summary.dat info $PREFIX.info.dat bestrep cumulative \
         clusterout $PREFIX.crd cpopvtime $PREFIX.cpop.agr \
         repout $PREFIX.rep repfmt pdb savepairdist loadpairdist
 EOF

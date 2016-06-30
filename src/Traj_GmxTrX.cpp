@@ -76,6 +76,8 @@ void Traj_GmxTrX::GmxInfo() {
 //const unsigned char Traj_GmxTrX::Magic_TRJ_[4] = {203, 7, 0, 0};
 const int Traj_GmxTrX::Magic_ = 1993;
 
+const char* Traj_GmxTrX::Version_ = "GMX_trn_file";
+
 /** Determine endianness and whether bytes need to be swapped. */
 int Traj_GmxTrX::DetermineEndian(int magicIn) {
   int magic = magicIn;
@@ -216,6 +218,7 @@ std::string Traj_GmxTrX::read_string( ) {
   }
 }
 
+// Traj_GmxTrX::ReadTrxHeader()
 int Traj_GmxTrX::ReadTrxHeader(int& magic) {
   int version = 0;
   // Read past magic byte
@@ -268,13 +271,13 @@ int Traj_GmxTrX::ReadTrxHeader(int& magic) {
   return 0;
 }
 
-/** Open trX trajectory and read past header info. */
+/** Open trX trajectory. */
 int Traj_GmxTrX::openTrajin() {
   if (file_.OpenFile()) return 1;
   return 0;
 }
 
-/** 
+/** Read box information from current frame.
   * \param boxOut Double array of length 6 containing {X Y Z alpha beta gamma} 
   */
 int Traj_GmxTrX::ReadBox(double* boxOut) {
@@ -296,9 +299,9 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   }
   // Calculate box lengths
   // NOTE: GROMACS units are nm
-  boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * 10.0;
-  boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * 10.0;
-  boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * 10.0;
+  boxOut[0] = sqrt((xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[2]*xyz[2])) * Constants::NM_TO_ANG;
+  boxOut[1] = sqrt((xyz[3]*xyz[3] + xyz[4]*xyz[4] + xyz[5]*xyz[5])) * Constants::NM_TO_ANG;
+  boxOut[2] = sqrt((xyz[6]*xyz[6] + xyz[7]*xyz[7] + xyz[8]*xyz[8])) * Constants::NM_TO_ANG;
   //mprintf("DEBUG:\tTRX Box Lengths: %f %f %f\n", boxOut[0], boxOut[1], boxOut[2]);
   if (boxOut[0] <= 0.0 || boxOut[1] <= 0.0 || boxOut[2] <= 0.0) {
     // Use zero-length box size and set angles to 90
@@ -316,6 +319,24 @@ int Traj_GmxTrX::ReadBox(double* boxOut) {
   }
   //mprintf("DEBUG:\tTRX Box Angles: %f %f %f\n", boxOut[3], boxOut[4], boxOut[5]);
   return 0;
+}
+
+// Traj_GmxTrX::AllocateCoords()
+void Traj_GmxTrX::AllocateCoords() {
+  // Allocate temp space for coords/velo/forces
+  if (farray_ != 0) {delete[] farray_; farray_ = 0;}
+  if (darray_ != 0) {delete[] darray_; darray_ = 0;}
+  arraySize_ = (size_t)natom3_;
+  if (v_size_ > 0) arraySize_ += (size_t)natom3_;
+  if (f_size_ > 0) arraySize_ += (size_t)natom3_;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Allocating array using precision %i\n", precision_);
+    mprintf("DEBUG: arraySize is %zu\n", arraySize_);
+  }
+  if (precision_ == sizeof(float))
+    farray_ = new float[ arraySize_ ];
+  else 
+    darray_ = new double[ arraySize_ ];
 }
 
 /** Prepare trajectory for reading. Determine number of frames. */
@@ -367,27 +388,18 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
     if ( ReadBox( box ) ) return TRAJIN_ERR;
   }
   // Set traj info - No time or temperature
-  SetCoordInfo( CoordinateInfo(Box(box), (v_size_ > 0), false, false) );
+  SetCoordInfo( CoordinateInfo(ReplicaDimArray(), Box(box), (v_size_ > 0),
+                               false, false, (f_size_ > 0)) );
   closeTraj();
   return nframes;
 }
 
-void Traj_GmxTrX::AllocateCoords() {
-  // Allocate temp space for coords/velo
-  if (farray_ != 0) {delete[] farray_; farray_ = 0;}
-  if (darray_ != 0) {delete[] darray_; darray_ = 0;}
-  arraySize_ = (size_t)natom3_;
-  if (CoordInfo().HasVel()) arraySize_ *= 2;
-  if (precision_ == sizeof(float)) 
-    farray_ = new float[ arraySize_ ];
-  else 
-    darray_ = new double[ arraySize_ ];
-}
-
+// Traj_GmxTrX::WriteHelp()
 void Traj_GmxTrX::WriteHelp() {
   mprintf("\tdt : Time step to multiply set #s by (default 1.0).\n");
 }
 
+// Traj_GmxTrX::processWriteArgs()
 int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   dt_ = argIn.getKeyDouble( "dt", 1.0 );
   isBigEndian_ = true;
@@ -400,6 +412,7 @@ int Traj_GmxTrX::processWriteArgs(ArgList& argIn) {
   return 0;
 }
 
+// Traj_GmxTrX::setupTrajout()
 int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
@@ -412,7 +425,10 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     format_ = TRR;
     // Set up title
     if (Title().empty())
-      SetTitle("Cpptraj generated TRR file.");
+      SetTitle(Version_);
+    else
+      mprintf("Warning: Using a custom title with TRR format may make the trajectory\n"
+              "Warning:  incompatible with Gromacs analysis tools.\n");
     // Set size defaults, box, velocity etc
     ir_size_ = 0;
     e_size_ = 0;
@@ -429,7 +445,10 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
       v_size_ = natom3_ * precision_;
     else
       v_size_ = 0;
-    f_size_ = 0;
+    if (CoordInfo().HasForce())
+      f_size_ = natom3_ * precision_;
+    else
+      f_size_ = 0;
     step_ = 0;
     nre_ = 0;
     //dt_ = 0.0;
@@ -453,28 +472,19 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
   return 0;
 }
 
-/** Read array of size natom3 with set precision. Swap endianness if 
-  * necessary. Since GROMACS units are nm, convert to Ang.
-  */
-int Traj_GmxTrX::ReadAtomVector( double* Dout, int size ) {
-  switch (precision_) {
-    case sizeof(float):
-      if (file_.Read( farray_, size ) != size) return 1;
-      if (swapBytes_) endian_swap(farray_, natom3_);
-      for (int i = 0; i < natom3_; ++i)
-        Dout[i] = (double)(farray_[i] * 10.0); // FIXME: Legit for velocities?
-      break;
-    case sizeof(double):
-      if (file_.Read( Dout, size ) != size) return 1;
-      if (swapBytes_) endian_swap8(Dout, natom3_);
-      for (int i = 0; i < natom3_; ++i)
-        Dout[i] *= 10.0; // FIXME: Legit for velocities?
-      break;
-    default: return 1;
-  }
-  return 0;
-}
+/** Convert Gromacs force units (kJ / mol * nm) to Amber units (kcal / mol * Ang) */
+const double Traj_GmxTrX::GMX_FRC_TO_AMBER = Constants::ANG_TO_NM * Constants::J_TO_CAL;
 
+/** Convert Amber force units to Gromacs */
+const double Traj_GmxTrX::AMBER_FRC_TO_GMX = Constants::NM_TO_ANG * Constants::CAL_TO_J;
+
+/** Convert Gromacs velocity units (nm / ps) to Amber units (Ang / (1/20.455)ps). */
+const double Traj_GmxTrX::GMX_VEL_TO_AMBER = Constants::NM_TO_ANG / Constants::AMBERTIME_TO_PS;
+
+/** Convert Amber velocity units to Gromacs */
+const double Traj_GmxTrX::AMBER_VEL_TO_GMX = Constants::ANG_TO_NM * Constants::AMBERTIME_TO_PS;
+
+// Traj_GmxTrX::readFrame()
 int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
   file_.Seek( (frameSize_ * set) + headerBytes_ );
   // Read box info
@@ -483,38 +493,122 @@ int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
   }
   // Blank read past virial/pressure tensor
   file_.Seek( file_.Tell() + vir_size_ + pres_size_ );
-  // Read coordinates
-  if (x_size_ > 0) {
-    if (ReadAtomVector(frameIn.xAddress(), x_size_)) {
-      mprinterr("Error: Reading TRX coords frame %i\n", set+1);
+  // Read coords/velocities/forces
+  int ix = 0;
+  int total_size = x_size_ + v_size_ + f_size_;
+  if (precision_ == sizeof(float)) {
+    if (file_.Read( farray_, total_size ) != total_size) {
+      mprinterr("Error: Could not read TRX frame %i\n", set+1);
       return 1;
     }
-  }
-  // Read velocities
-  if (v_size_ > 0) {
-    if (ReadAtomVector(frameIn.vAddress(), v_size_)) {
-      mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
+    if (swapBytes_) endian_swap(farray_, arraySize_);
+    // Read coordinates
+    if (x_size_ > 0) {
+      double* Xptr = frameIn.xAddress();
+      for (; ix != natom3_; ix++)
+        Xptr[ix] = ((double)farray_[ix]) * Constants::NM_TO_ANG;
+    }
+    // Read velocities
+    if (v_size_ > 0) {
+      double* Vptr = frameIn.vAddress();
+      for (int iv = 0; iv != natom3_; iv++, ix++)
+        Vptr[iv] = ((double)farray_[ix]) * GMX_VEL_TO_AMBER;
+    }
+    // Read forces
+    if (f_size_ > 0) {
+      double* Fptr = frameIn.fAddress();
+      for (int ir = 0; ir != natom3_; ir++, ix++)
+        Fptr[ir] = ((double)farray_[ix]) * GMX_FRC_TO_AMBER;
+    }
+  } else if (precision_ == sizeof(double)) {
+    if (file_.Read( darray_, total_size ) != total_size) {
+      mprinterr("Error: Could not read TRX frame %i\n", set+1);
       return 1;
     }
-  }
+    if (swapBytes_) endian_swap8(darray_, arraySize_);
+    // Read coordinates
+    if (x_size_ > 0) {
+      double* Xptr = frameIn.xAddress();
+      for (; ix != natom3_; ix++)
+        Xptr[ix] = darray_[ix] * Constants::NM_TO_ANG;
+    }
+    // Read velocities
+    if (v_size_ > 0) {
+      double* Vptr = frameIn.vAddress();
+      for (int iv = 0; iv != natom3_; iv++, ix++)
+        Vptr[iv] = darray_[ix] * GMX_VEL_TO_AMBER;
+    }
+    // Read forces
+    if (f_size_ > 0) {
+      double* Fptr = frameIn.fAddress();
+      for (int ir = 0; ir != natom3_; ir++, ix++)
+        Fptr[ir] = darray_[ix] * GMX_FRC_TO_AMBER;
+    }
+  } else // SANITY CHECK
+    mprinterr("Error: Unknown precision (%i)\n", precision_);
 
   return 0;
 }
 
+// Traj_GmxTrX::readVelocity()
 int Traj_GmxTrX::readVelocity(int set, Frame& frameIn) {
   // Seek to frame and past box, virial, pressure, coords
   file_.Seek( (frameSize_ * set) + headerBytes_ + box_size_ + vir_size_ +
                                    pres_size_ + x_size_ );
   // Read velocities
   if (v_size_ > 0) {
-    if (ReadAtomVector(frameIn.vAddress(), v_size_)) {
-      mprinterr("Error: Reading TRX velocities frame %i\n", set+1);
-      return 1;
+    if (precision_ == sizeof(float)) {
+      if (file_.Read( farray_, v_size_ ) != v_size_) {
+        mprinterr("Error: Could not read velocities from TRX frame %i\n", set+1);
+        return 1;
+      }
+      double* Vptr = frameIn.vAddress();
+      for (int iv = 0; iv != natom3_; iv++)
+        Vptr[iv] = ((double)farray_[iv]) * GMX_VEL_TO_AMBER;
+    } else if (precision_ == sizeof(double)) {
+      if (file_.Read( darray_, v_size_ ) != v_size_) {
+        mprinterr("Error: Could not read velocities from TRX frame %i\n", set+1);
+        return 1;
+      }
+      double* Vptr = frameIn.vAddress();
+      for (int iv = 0; iv != natom3_; iv++)
+        Vptr[iv] = darray_[iv] * GMX_VEL_TO_AMBER;
     }
-  }
+  } else // SANITY
+    mprintf("Warning: TRX file does not contain velocity information.\n");
   return 0;
 }
 
+// Traj_GmxTrX::readForce()
+int Traj_GmxTrX::readForce(int set, Frame& frameIn) {
+  // Seek to frame and past box, virial, pressure, coords, velo
+  file_.Seek( (frameSize_ * set) + headerBytes_ + box_size_ + vir_size_ +
+                                   pres_size_ + x_size_ + v_size_ );
+  // Read forces 
+  if (f_size_ > 0) {
+    if (precision_ == sizeof(float)) {
+      if (file_.Read( farray_, f_size_ ) != f_size_) {
+        mprinterr("Error: Could not read forces from TRX frame %i\n", set+1);
+        return 1;
+      }
+      double* Fptr = frameIn.fAddress();
+      for (int ir = 0; ir != natom3_; ir++)
+        Fptr[ir] = ((double)farray_[ir]) * GMX_FRC_TO_AMBER;
+    } else if (precision_ == sizeof(double)) {
+      if (file_.Read( darray_, f_size_ ) != f_size_) {
+        mprinterr("Error: Could not read forces from TRX frame %i\n", set+1);
+        return 1;
+      }
+      double* Fptr = frameIn.fAddress();
+      for (int ir = 0; ir != natom3_; ir++)
+        Fptr[ir] = darray_[ir] * GMX_FRC_TO_AMBER;
+    }
+  } else // SANITY
+    mprintf("Warning: TRX file does not contain force information.\n");
+  return 0;
+}
+
+// Traj_GmxTrX::writeFrame()
 int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   int tsize;
   // Write header
@@ -544,18 +638,37 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   // NOTE: GROMACS units are nm
   if (box_size_ > 0) {
     double ucell[9];
-    double by = frameOut.BoxCrd().BoxY() * 0.1;
-    double bz = frameOut.BoxCrd().BoxZ() * 0.1; 
-    ucell[0] = frameOut.BoxCrd().BoxX() * 0.1;
-    ucell[1] = 0.0;
-    ucell[2] = 0.0;
-    ucell[3] = by*cos(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
-    ucell[4] = by*sin(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
-    ucell[5] = 0.0;
-    ucell[6] = bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Beta());
-    ucell[7] = (by*bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / 
-                ucell[4];
-    ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+    // NOTE: NONE check is for sanity only
+    if (frameOut.BoxCrd().Type() == Box::ORTHO || frameOut.BoxCrd().Type() == Box::NOBOX) {
+      // Orthogonal box
+      ucell[0] = frameOut.BoxCrd().BoxX() * Constants::ANG_TO_NM;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = 0.0;
+      ucell[4] = frameOut.BoxCrd().BoxY() * Constants::ANG_TO_NM;
+      ucell[5] = 0.0;
+      ucell[6] = 0.0;
+      ucell[7] = 0.0;
+      ucell[8] = frameOut.BoxCrd().BoxZ() * Constants::ANG_TO_NM;
+    } else {
+      // Non-orthogonal box
+      double by = frameOut.BoxCrd().BoxY() * Constants::ANG_TO_NM;
+      double bz = frameOut.BoxCrd().BoxZ() * Constants::ANG_TO_NM; 
+      ucell[0] = frameOut.BoxCrd().BoxX() * Constants::ANG_TO_NM;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = by*cos(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
+      ucell[4] = by*sin(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
+      ucell[5] = 0.0;
+      ucell[6] = bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Beta());
+      ucell[7] = (by*bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / 
+                  ucell[4];
+      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+    }
+    //mprintf("BoxX: %g %g %g BoxY: %g %g %g BoxZ: %g %g %g\n",
+    //        ucell[0], ucell[1], ucell[2],
+    //        ucell[3], ucell[4], ucell[5],
+    //        ucell[6], ucell[7], ucell[8]);
     if (precision_ == sizeof(float)) {
       float f_ucell[9];
       for (int i = 0; i < 9; i++)
@@ -567,31 +680,39 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       file_.Write( ucell, box_size_ );
     }
   }
-  // Write coords/velo
+  // Write coords/velo/forces
   // NOTE: GROMACS units are nm
   const double* Xptr = frameOut.xAddress();
   const double* Vptr = frameOut.vAddress();
+  const double* Fptr = frameOut.fAddress();
   int ix = 0;
   if (precision_ == sizeof(float)) {
     for (; ix < natom3_; ix++)
-      farray_[ix] = (float)(Xptr[ix] * 0.1);
+      farray_[ix] = (float)(Xptr[ix] * Constants::ANG_TO_NM);
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
-        farray_[ix] = (float)(Vptr[iv] * 0.1);
+        farray_[ix] = (float)(Vptr[iv] * AMBER_VEL_TO_GMX);
+    if (f_size_ > 0)
+      for (int ir = 0; ir < natom3_; ir++, ix++)
+        farray_[ix] = (float)(Fptr[ir] * AMBER_FRC_TO_GMX);
     if (swapBytes_) endian_swap( farray_, arraySize_ );
-    file_.Write( farray_, x_size_ + v_size_ );
+    file_.Write( farray_, x_size_ + v_size_ + f_size_ );
   } else { // double
     for (; ix < natom3_; ix++)
-      darray_[ix] = (Xptr[ix] * 0.1);
+      darray_[ix] = (Xptr[ix] * Constants::ANG_TO_NM);
     if (v_size_ > 0)
       for (int iv = 0; iv < natom3_; iv++, ix++)
-        darray_[ix] = (Vptr[iv] * 0.1);
+        darray_[ix] = (Vptr[iv] * AMBER_VEL_TO_GMX);
+    if (f_size_ > 0)
+      for (int ir = 0; ir < natom3_; ir++, ix++)
+        darray_[ix] = (Fptr[ir] * AMBER_FRC_TO_GMX);
     if (swapBytes_) endian_swap8( darray_, arraySize_ );
-    file_.Write( darray_, x_size_ + v_size_ );
+    file_.Write( darray_, x_size_ + v_size_ + f_size_ );
   }
   return 0;
 }
 
+// Traj_GmxTrX::Info()
 void Traj_GmxTrX::Info() {
   mprintf("is a GROMACS");
    if (format_ == TRR)
@@ -606,6 +727,8 @@ void Traj_GmxTrX::Info() {
     mprintf(" single precision");
   else if (precision_ == sizeof(double))
     mprintf(" double precision");
+  if (v_size_ > 0) mprintf(", velocities");
+  if (f_size_ > 0) mprintf(", forces");
 }
 #ifdef MPI
 // =============================================================================
@@ -638,7 +761,7 @@ int Traj_GmxTrX::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
     // Determine header size, (18 * 4) + titleSize TODO put in setupTrajout?
     headerBytes_ = (18 * 4) + Title().size();
     // Determine frame size
-    frameSize_ = headerBytes_ + box_size_ + x_size_ + v_size_;
+    frameSize_ = headerBytes_ + box_size_ + x_size_ + v_size_ + f_size_;
     // NOTE: setupTrajout leaves file open. Should this change?
     file_.CloseFile();
   }
