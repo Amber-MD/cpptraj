@@ -76,6 +76,8 @@ void Traj_GmxTrX::GmxInfo() {
 //const unsigned char Traj_GmxTrX::Magic_TRJ_[4] = {203, 7, 0, 0};
 const int Traj_GmxTrX::Magic_ = 1993;
 
+const char* Traj_GmxTrX::Version_ = "GMX_trn_file";
+
 /** Determine endianness and whether bytes need to be swapped. */
 int Traj_GmxTrX::DetermineEndian(int magicIn) {
   int magic = magicIn;
@@ -423,7 +425,10 @@ int Traj_GmxTrX::setupTrajout(FileName const& fname, Topology* trajParm,
     format_ = TRR;
     // Set up title
     if (Title().empty())
-      SetTitle("Cpptraj generated TRR file.");
+      SetTitle(Version_);
+    else
+      mprintf("Warning: Using a custom title with TRR format may make the trajectory\n"
+              "Warning:  incompatible with Gromacs analysis tools.\n");
     // Set size defaults, box, velocity etc
     ir_size_ = 0;
     e_size_ = 0;

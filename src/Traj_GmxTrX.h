@@ -11,6 +11,7 @@ class Traj_GmxTrX : public TrajectoryIO {
   private:
     enum FormatType { TRR = 0, TRJ };
     static const int Magic_;
+    static const char* Version_;
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
