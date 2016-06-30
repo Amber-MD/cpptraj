@@ -298,6 +298,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
+        Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \

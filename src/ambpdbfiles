@@ -64,6 +64,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_CharmmCor.cpp \
               Traj_CharmmDcd.cpp \
               Traj_GmxTrX.cpp \
+              Traj_GmxXtc.cpp \
               Traj_Gro.cpp \
               Traj_PDBfile.cpp \
               Traj_Tinker.cpp \

@@ -78,6 +78,9 @@ $(FFT_DEPEND):  pub_fft.F90
 ReadLine.o: ReadLine.cpp
 	$(CXX) $(CXXFLAGS) -I$(READLINE_HOME) -c -o $@ ReadLine.cpp
 
+Traj_GmxXtc.o: Traj_GmxXtc.cpp
+	$(CXX) $(CXXFLAGS) -I$(XDRFILE_HOME) -c -o $@ Traj_GmxXtc.cpp
+
 # Dependency targets
 findDepend: FindDepend.o 
 	$(CXX) -o findDepend FindDepend.o

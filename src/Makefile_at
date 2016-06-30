@@ -84,6 +84,9 @@ pub_fft.o:  pub_fft.F90
 ReadLine.o: ReadLine.cpp
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -I$(READLINE_HOME) -o $@ ReadLine.cpp
 
+Traj_GmxXtc.o: Traj_GmxXtc.cpp
+	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -I$(XDRFILE_HOME) -o $@ Traj_GmxXtc.cpp
+
 .c.o:
 	$(CC) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
