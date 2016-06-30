@@ -21,8 +21,8 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET)
-	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
+	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(XDRFILE) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)
@@ -55,9 +55,17 @@ nproc:
 readline/libreadline.a: $(READLINE_HOME)/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
+xdrfile/libxdrfile.a: $(XDRFILE_HOME)/Makefile
+	cd $(XDRFILE_HOME) && $(MAKE) all
+
 noreadline:
 	@echo ""
 	@echo "Skipping READLINE support"
+	@echo ""
+
+noxdrfile:
+	@echo ""
+	@echo "Skipping XDRFILE support"
 	@echo ""
 
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)

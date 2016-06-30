@@ -490,8 +490,12 @@ ZLIB_HOME=""
 BLAS_HOME=""
 LAPACK_HOME=""
 ARPACK_HOME=""
-READLINE_HOME="readline"
+READLINE_HOME='readline'
 READLINE_TARGET="$READLINE_HOME/libreadline.a"
+READLINE=$READLINE_TARGET
+XDRFILE_HOME='xdrfile'
+XDRFILE_TARGET="$XDRFILE_HOME/libxdrfile.a"
+XDRFILE=$XDRFILE_TARGET
 NETCDFLIB="-lnetcdf"
 PNETCDFLIB=""
 BZLIB="-lbz2"
@@ -505,7 +509,6 @@ FFT_DEPEND=$FFT_LIB
 USE_LIBCPPTRAJ=0 # Set to 1 if libcpptraj will be built
 USE_SANDERLIB=1
 SANDERLIB_HOME=""
-READLINE=$READLINE_TARGET
 USE_AMBER_LIB=0
 USEMKL=0
 FLIBS=""
@@ -676,6 +679,12 @@ while [[ ! -z $1 ]] ; do
       READLINE_TARGET="noreadline"
       READLINE=""
       ;;
+    "-noxdrfile")
+      echo "Not using XDRFILE."
+      DIRECTIVES="$DIRECTIVES -DNO_XDRFILE"
+      XDRFILE_TARGET="noxdrfile"
+      XDRFILE=""
+      ;;
     "-windows")
       printf "WINDOWS support requested. Implies -static."
       READLINE_TARGET="noreadline"
@@ -762,6 +771,11 @@ while [[ ! -z $1 ]] ; do
       READLINE_TARGET="noreadline"
       READLINE="-L$VALUE/lib -lreadline"
       external_readline="yes"
+      ;;
+    "--with-xdrfile")
+      echo "Using external xdrfile"
+      XDRFILE_TARGET='noxdrfile'
+      XDRFILE="-L$VALUE/lib -lxdrfile"
       ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
@@ -1260,6 +1274,10 @@ CUDA_TARGET=$CUDA_TARGET
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 READLINE_TARGET=$READLINE_TARGET
+
+XDRFILE=$XDRFILE
+XDRFILE_HOME=$XDRFILE_HOME
+XDRFILE_TARGET=$XDRFILE_TARGET
 
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
