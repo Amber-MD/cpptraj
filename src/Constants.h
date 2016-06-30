@@ -35,9 +35,9 @@ namespace Constants {
   /// Convert atomic mass unit (amu) to kg
   const double AMU_TO_KG = 1.660539e-27;
   /// Convert Angstroms to nanometers
-  const double ANG_TO_NM = 10.0;
+  const double ANG_TO_NM = 0.1;
   /// Convert nanometers to Angstroms
-  const double NM_TO_ANG = 0.1;
+  const double NM_TO_ANG = 10.0;
   /// Convert calories to Joules
   const double CAL_TO_J = 4.184;
   /// Convert Joules to calories
