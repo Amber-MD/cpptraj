@@ -1,5 +1,6 @@
 #include "Traj_GmxXtc.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 #ifndef NO_XDRFILE
 /// CONSTRUCTOR
@@ -79,12 +80,12 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
   int idx = 0;
   for (int ix = 0; ix < natoms_; ix++)
     for (int kx = 0; kx < DIM; kx++)
-      frameIn[idx++] = (double)vec_[ix][kx];
+      frameIn[idx++] = (double)vec_[ix][kx] * Constants::NM_TO_ANG;
   idx = 0;
   Matrix_3x3 ucell;
   for (int ii = 0; ii < DIM; ii++)
     for (int ij = 0; ij < DIM; ij++)
-      ucell[idx++] = (double)box_[ii][ij];
+      ucell[idx++] = (double)box_[ii][ij] * Constants::NM_TO_ANG;
   frameIn.SetBox( Box(ucell) );
   if (result != exdrOK) return 1;
   return 0;
