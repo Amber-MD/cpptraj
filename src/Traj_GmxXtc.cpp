@@ -231,7 +231,7 @@ int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
 
 // Traj_GmxXtc::Info()
 void Traj_GmxXtc::Info() {
-  mprintf("is a GROMACS XTC file,");
+  mprintf("is a GROMACS XTC file");
 }
 #else /* NO_XDRFILE */
 // =============================================================================
@@ -242,6 +242,8 @@ Traj_GmxXtc::~Traj_GmxXtc() {}
 bool Traj_GmxXtc::ID_TrajFormat(CpptrajFile&) { return false; }
 
 int Traj_GmxXtc::setupTrajin(FileName const&, Topology*) { return 1; }
+
+int Traj_GmxXtc::processWriteArgs(ArgList&) { return 0; }
 
 int Traj_GmxXtc::setupTrajout(FileName const&,Topology*,CoordinateInfo const&,int,bool) {return 1;}
 
