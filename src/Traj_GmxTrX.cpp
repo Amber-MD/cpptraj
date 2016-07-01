@@ -29,6 +29,7 @@ Traj_GmxTrX::Traj_GmxTrX() :
   lambda_(0.0),
   frameSize_(0),
   headerBytes_(0),
+  timestepPos_(0),
   arraySize_(0),
   farray_(0),
   darray_(0) 
@@ -265,6 +266,8 @@ int Traj_GmxTrX::ReadTrxHeader(int& magic) {
     mprinterr("Error: TRX precision %i not recognized.\n", precision_);
     return 1;
   }
+  // Save position just before timestep/lambda
+  timestepPos_ = (size_t)file_.Tell();
   // Read timestep and lambda
   if ( read_real( timestep_ ) ) return 1;
   if ( read_real( lambda_ ) ) return 1;
@@ -387,16 +390,16 @@ int Traj_GmxTrX::setupTrajin(FileName const& fname, Topology* trajParm)
   if ( box_size_ > 0 ) {
     if ( ReadBox( box ) ) return TRAJIN_ERR;
   }
-  // Set traj info - No time or temperature
+  // Set traj info - No temperature
   SetCoordInfo( CoordinateInfo(ReplicaDimArray(), Box(box), (v_size_ > 0),
-                               false, false, (f_size_ > 0)) );
+                               false, true, (f_size_ > 0)) );
   closeTraj();
   return nframes;
 }
 
 // Traj_GmxTrX::WriteHelp()
 void Traj_GmxTrX::WriteHelp() {
-  mprintf("\tdt : Time step to multiply set #s by (default 1.0).\n");
+  mprintf("\tdt : Time step to multiply set #s by (default 1.0). Ignored if time already present\n");
 }
 
 // Traj_GmxTrX::processWriteArgs()
@@ -486,7 +489,11 @@ const double Traj_GmxTrX::AMBER_VEL_TO_GMX = Constants::ANG_TO_NM * Constants::A
 
 // Traj_GmxTrX::readFrame()
 int Traj_GmxTrX::readFrame(int set, Frame& frameIn) {
-  file_.Seek( (frameSize_ * set) + headerBytes_ );
+  file_.Seek( (frameSize_ * set) + timestepPos_ );
+  // Read timestep and lambda
+  if ( read_real( timestep_ ) ) return 1;
+  if ( read_real( lambda_ ) ) return 1;
+  frameIn.SetTime( timestep_ );
   // Read box info
   if (box_size_ > 0) {
     if (ReadBox( frameIn.bAddress() )) return 1;
@@ -631,8 +638,12 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   write_int( natoms_ );
   write_int( step_ );
   write_int( nre_ );
-  float time = (float)(dt_ * (double)set);
-  write_real( time ); // TODO: Write actual time
+  float time;
+  if (CoordInfo().HasTime()) 
+    time = (float)frameOut.Time();
+  else
+    time = (float)(dt_ * (double)set);
+  write_real( time );
   write_real( lambda_ );
   // Write box
   // NOTE: GROMACS units are nm
