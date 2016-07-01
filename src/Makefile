@@ -52,10 +52,10 @@ nproc:
 	cd ../util && $(MAKE)
 
 # Additional library targets
-readline/libreadline.a: $(READLINE_HOME)/Makefile
+readline/libreadline.a: readline/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
 
-xdrfile/libxdrfile.a: $(XDRFILE_HOME)/Makefile
+xdrfile/libxdrfile.a: xdrfile/Makefile
 	cd $(XDRFILE_HOME) && $(MAKE) all
 
 noreadline:
