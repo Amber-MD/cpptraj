@@ -24,7 +24,7 @@ bool Traj_GmxXtc::ID_TrajFormat(CpptrajFile& infile) {
 // Traj_GmxXtc::setupTrajin()
 int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
 {
-  if (fnameIn.empty()) return 1;
+  if (fnameIn.empty()) return TRAJIN_ERR;
   fname_ = fnameIn;
   // Read number of atoms
   if ( read_xtc_natoms( (char*)fname_.full(), &natoms_ ) != exdrOK ) {
@@ -34,11 +34,12 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   if (natoms_ != trajParm->Natom()) {
     mprinterr("Error: # atoms in XTC file (%i) does not match # atoms in parm %s (%i)\n",
               natoms_, trajParm->c_str(), trajParm->Natom());
-    return 1;
+    return TRAJIN_ERR;
   }
-  // Allocate arrays for reading coords
+  // Allocate array for reading coords
+  if (vec_ != 0) delete[] vec_;
   vec_ = new rvec[ natoms_ ];
-  if (vec_ == 0) return 1;
+  if (vec_ == 0) return TRAJIN_ERR;
   // FIXME need to upgrade to libxdrfile2 to get # frames...
   if (openTrajin()) return TRAJIN_ERR;
   Frame tmp( natoms_ );
@@ -48,11 +49,38 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   return TRAJIN_UNK;
 }
 
-int Traj_GmxXtc::setupTrajout(FileName const& fname, Topology* trajParm,
+// Traj_GmxXtc::setupTrajout()
+int Traj_GmxXtc::setupTrajout(FileName const& fnameIn, Topology* trajParm,
                               CoordinateInfo const& cInfoIn,
                               int NframesToWrite, bool append)
 {
-  return 1;
+  if (fnameIn.empty()) return 1;
+  fname_ = fnameIn;
+  if (!append) {
+    natoms_ = trajParm->Natom();
+    // Allocate array for writing coords
+    if (vec_ != 0) delete[] vec_;
+    vec_ = new rvec[ natoms_ ];
+    if (vec_ == 0) return 1;
+    // Open write
+    xd_ = xdrfile_open(fname_.full(), "w");
+    if (xd_ == 0) {
+      mprinterr("Error: Could not open XTC file for write.\n");
+      return 1;
+    }
+  } else {
+    int nframes = setupTrajin( fname_, trajParm );
+    if ( nframes == TRAJIN_ERR ) return 1;
+    if ( nframes != TRAJIN_UNK )
+      mprintf("\tAppending to XTC file starting at frame %i\n", nframes);
+    // Re-open for append
+    xd_ = xdrfile_open(fname_.full(), "a");
+    if (xd_ == 0) {
+      mprinterr("Error: Could not open XTC file for append.\n");
+      return 1;
+    }
+  }
+  return 0;
 }
 
 // Traj_GmxXtc::openTrajin()
@@ -76,6 +104,7 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
   float time;
   int step;
   int result = read_xtc(xd_, natoms_, &step, &time, box_, vec_, &prec_);
+  if (result != exdrOK) return 1;
   mprintf("DEBUG: set %i step %i time %f\n", set, step, time);
   int idx = 0;
   for (int ix = 0; ix < natoms_; ix++)
@@ -87,16 +116,28 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
     for (int ij = 0; ij < DIM; ij++)
       ucell[idx++] = (double)box_[ii][ij] * Constants::NM_TO_ANG;
   frameIn.SetBox( Box(ucell) );
-  if (result != exdrOK) return 1;
   return 0;
 }
 
+// Traj_GmxXtc::writeFrame()
 int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
-  return 1;
+  float time = (float)frameOut.Time();
+  Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
+  int idx = 0;
+  for (int ii = 0; ii < DIM; ii++)
+    for (int ij = 0; ij < DIM; ij++)
+      box_[ii][ij] = (float)Ucell[idx++];
+  idx = 0;
+  for (int ix = 0; ix < natoms_; ix++)
+    for (int kx = 0; kx < DIM; kx++)
+      vec_[ix][kx] = (float)frameOut[idx++] * Constants::ANG_TO_NM;
+  int result = write_xtc(xd_, natoms_, set, time, box_, vec_, prec_);
+  if (result != 0) return 1;
+  return 0;
 }
 
 void Traj_GmxXtc::Info() {
-
+  mprintf("is a GROMACS XTC file,");
 }
 
 int Traj_GmxXtc::readVelocity(int set, Frame& frameIn) {
