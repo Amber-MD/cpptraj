@@ -49,7 +49,7 @@ build_script:
   - echo READLINE_HOME=/mingw64/include/readline/ >> config.h
   - echo XDRFILE=xdrfile/libxdrfile.a >> config.h
   - echo XDRFILE_HOME=xdrfile >> config.h
-  - echo XDRFILE_TARGET=xdrfile/libxdrfile.a
+  - echo XDRFILE_TARGET=xdrfile/libxdrfile.a >> config.h
   - echo FFT_DEPEND=pub_fft.o >> config.h
   - echo FFT_LIB=pub_fft.o >> config.h
   - echo LDFLAGS=-lreadline -ltermcap -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz xdrfile/libxdrfile.a -lgfortran -lquadmath -w  -static >> config.h
