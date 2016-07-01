@@ -1,8 +1,10 @@
 #include "Traj_GmxXtc.h"
+#ifndef NO_XDRFILE
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include <cstdio> // SEEK_SET, SEEK_CUR
+#include "xdr_seek.h"
 
-#ifndef NO_XDRFILE
 /// CONSTRUCTOR
 Traj_GmxXtc::Traj_GmxXtc() : xd_(0), vec_(0), dt_(1.0), natoms_(0), prec_(1000) {}
 
@@ -21,6 +23,10 @@ bool Traj_GmxXtc::ID_TrajFormat(CpptrajFile& infile) {
   return (natoms_ > 0);
 }
 
+static inline void Next32ByteBoundary(int& offset) {
+    offset += 3 - ((offset + 3) % 0x04);
+}
+
 // Traj_GmxXtc::setupTrajin()
 int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
 {
@@ -36,13 +42,6 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
-  // Read number of frames
-  int nframes = TRAJIN_UNK;
-  unsigned long xtc_frames;
-  if ( read_xtc_nframes( (char*)fname_.full(), &xtc_frames ) != exdrOK )
-    mprintf("Warning: Could not determine # of frames in XTC file.\n");
-  else
-    nframes = (int)xtc_frames;
   // Allocate array for reading coords
   if (vec_ != 0) delete[] vec_;
   vec_ = new rvec[ natoms_ ];
@@ -51,6 +50,59 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   if (openTrajin()) return TRAJIN_ERR;
   Frame tmp( natoms_ );
   if (readFrame(0, tmp)) return TRAJIN_ERR;
+  // Determine number of frames
+  int nframes = TRAJIN_UNK;
+  if ( natoms_ < 10 ) {
+    CpptrajFile tmpfile;
+    if (tmpfile.SetupRead(fname_, debug_)) return 1;
+    size_t file_size = (size_t)tmpfile.UncompressedSize();
+    const size_t SMALL_HEADER_SIZE = 16 + (DIM*DIM*4) + 4; // 3*int+float, DIM^2 floats
+    const size_t SMALL_BYTES_PER_ATOM = DIM * 4; // DIM floats
+    size_t frame_size = SMALL_HEADER_SIZE + (SMALL_BYTES_PER_ATOM * natoms_);
+    if ((file_size % frame_size) != 0) {
+      mprinterr("Error: Could not determine number of frames in XTC file.\n");
+      return TRAJIN_ERR;
+    }
+    nframes = (int)(file_size / frame_size);
+  } else {
+    const int LARGE_HEADER_SIZE = 44 + 8 + (DIM*DIM*4); // 11 int, 2 float, DIM^2 floats
+    // Seek past header at beginning of file
+    if (xdr_seek(xd_, LARGE_HEADER_SIZE, SEEK_SET) != 0) {
+      mprinterr("Error: Could not seek to first frame in XTC.\n");
+      return TRAJIN_ERR;
+    }
+    // Get first offset
+    int offset;
+    if (xdrfile_read_int( &offset, 1, xd_) == 0) {
+      mprinterr("Error: Could not read first integer offset.\n");
+      return TRAJIN_ERR;
+    }
+    // Advance offset at next 32 byte boundary
+    Next32ByteBoundary( offset );
+    // Seek frames
+    nframes = 1;
+    int err = 0;
+    while (err == 0) {
+      err = xdr_seek(xd_, offset + LARGE_HEADER_SIZE, SEEK_CUR);
+      if (err == 0) {
+        if (xdrfile_read_int(&offset, 1, xd_) == 0) break;
+        nframes++;
+        // Store position
+
+        // Advance to next boundary
+        Next32ByteBoundary( offset );
+      }
+    }
+  }
+/*
+  // Read number of frames
+  int nframes = TRAJIN_UNK;
+  unsigned long xtc_frames;
+  if ( read_xtc_nframes( (char*)fname_.full(), &xtc_frames ) != exdrOK )
+    mprintf("Warning: Could not determine # of frames in XTC file.\n");
+  else
+    nframes = (int)xtc_frames;
+*/
   closeTraj();
   // No velocity, no temperature, yes time, no force
   SetCoordInfo( CoordinateInfo(ReplicaDimArray(), tmp.BoxCrd(), false, false, true, false) );
@@ -165,7 +217,7 @@ int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
 void Traj_GmxXtc::Info() {
   mprintf("is a GROMACS XTC file,");
 }
-#else
+#else /* NO_XDRFILE */
 // =============================================================================
 Traj_GmxXtc::Traj_GmxXtc() {}
 
