@@ -637,34 +637,7 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
   // Write box
   // NOTE: GROMACS units are nm
   if (box_size_ > 0) {
-    double ucell[9];
-    // NOTE: NONE check is for sanity only
-    if (frameOut.BoxCrd().Type() == Box::ORTHO || frameOut.BoxCrd().Type() == Box::NOBOX) {
-      // Orthogonal box
-      ucell[0] = frameOut.BoxCrd().BoxX() * Constants::ANG_TO_NM;
-      ucell[1] = 0.0;
-      ucell[2] = 0.0;
-      ucell[3] = 0.0;
-      ucell[4] = frameOut.BoxCrd().BoxY() * Constants::ANG_TO_NM;
-      ucell[5] = 0.0;
-      ucell[6] = 0.0;
-      ucell[7] = 0.0;
-      ucell[8] = frameOut.BoxCrd().BoxZ() * Constants::ANG_TO_NM;
-    } else {
-      // Non-orthogonal box
-      double by = frameOut.BoxCrd().BoxY() * Constants::ANG_TO_NM;
-      double bz = frameOut.BoxCrd().BoxZ() * Constants::ANG_TO_NM; 
-      ucell[0] = frameOut.BoxCrd().BoxX() * Constants::ANG_TO_NM;
-      ucell[1] = 0.0;
-      ucell[2] = 0.0;
-      ucell[3] = by*cos(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
-      ucell[4] = by*sin(Constants::DEGRAD*frameOut.BoxCrd().Gamma());
-      ucell[5] = 0.0;
-      ucell[6] = bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Beta());
-      ucell[7] = (by*bz*cos(Constants::DEGRAD*frameOut.BoxCrd().Alpha()) - ucell[6]*ucell[3]) / 
-                  ucell[4];
-      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
-    }
+    Matrix_3x3 ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
     //mprintf("BoxX: %g %g %g BoxY: %g %g %g BoxZ: %g %g %g\n",
     //        ucell[0], ucell[1], ucell[2],
     //        ucell[3], ucell[4], ucell[5],
@@ -676,8 +649,8 @@ int Traj_GmxTrX::writeFrame(int set, Frame const& frameOut) {
       if (swapBytes_) endian_swap( f_ucell, 9 );
       file_.Write( f_ucell, box_size_ );
     } else { // double
-      if (swapBytes_) endian_swap8( ucell, 9 );
-      file_.Write( ucell, box_size_ );
+      if (swapBytes_) endian_swap8( ucell.Dptr(), 9 );
+      file_.Write( ucell.Dptr(), box_size_ );
     }
   }
   // Write coords/velo/forces
