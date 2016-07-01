@@ -36,18 +36,25 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
               natoms_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
+  // Read number of frames
+  int nframes = TRAJIN_UNK;
+  unsigned long xtc_frames;
+  if ( read_xtc_nframes( (char*)fname_.full(), &xtc_frames ) != exdrOK )
+    mprintf("Warning: Could not determine # of frames in XTC file.\n");
+  else
+    nframes = (int)xtc_frames;
   // Allocate array for reading coords
   if (vec_ != 0) delete[] vec_;
   vec_ = new rvec[ natoms_ ];
   if (vec_ == 0) return TRAJIN_ERR;
-  // FIXME need to upgrade to libxdrfile2 to get # frames...
+  // Read one frame to determine box info
   if (openTrajin()) return TRAJIN_ERR;
   Frame tmp( natoms_ );
   if (readFrame(0, tmp)) return TRAJIN_ERR;
   closeTraj();
   // No velocity, no temperature, yes time, no force
   SetCoordInfo( CoordinateInfo(ReplicaDimArray(), tmp.BoxCrd(), false, false, true, false) );
-  return TRAJIN_UNK;
+  return nframes;
 }
 
 // Traj_GmxXtc::setupTrajout()
@@ -154,19 +161,10 @@ int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
   return 0;
 }
 
+// Traj_GmxXtc::Info()
 void Traj_GmxXtc::Info() {
   mprintf("is a GROMACS XTC file,");
 }
-
-int Traj_GmxXtc::readVelocity(int set, Frame& frameIn) {
-  return 1;
-}
-
-int Traj_GmxXtc::readForce(int set, Frame& frameIn) {
-  return 1;
-}
-
-
 #else
 // =============================================================================
 Traj_GmxXtc::Traj_GmxXtc() {}
@@ -189,7 +187,9 @@ int Traj_GmxXtc::writeFrame(int, Frame const&) { return 1; }
 
 void Traj_GmxXtc::Info() { }
 
-int Traj_GmxXtc::readVelocity(int, Frame&) { return 1; }
-
-int Traj_GmxXtc::readForce(int, Frame&) { return 1; }
 #endif
+int Traj_GmxXtc::readVelocity(int set, Frame& frameIn) { return 1; }
+
+int Traj_GmxXtc::readForce(int set, Frame& frameIn) { return 1; }
+
+
