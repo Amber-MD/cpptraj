@@ -36,6 +36,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     void parallelCloseTraj();
 #   endif
 #   ifndef NO_XDRFILE
+    std::vector<off_t> frameOffsets_; ///< Frame offsets for reading
     XDRFILE* xd_; ///< Hold XDR file metadata
     rvec* vec_;   ///< Temporary location for holding XDR frame data
     matrix box_;  ///< Temporary location for holding XDR box data

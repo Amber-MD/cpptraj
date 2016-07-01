@@ -49,23 +49,31 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   // Read one frame to determine box info
   if (openTrajin()) return TRAJIN_ERR;
   Frame tmp( natoms_ );
+  // First frame offset is always zero
+  frameOffsets_.push_back( 0 );
   if (readFrame(0, tmp)) return TRAJIN_ERR;
-  // Determine number of frames
+  // Determine total number of frames
   int nframes = TRAJIN_UNK;
   if ( natoms_ < 10 ) {
+    // Small system, frame size is consistent
     CpptrajFile tmpfile;
     if (tmpfile.SetupRead(fname_, debug_)) return 1;
-    size_t file_size = (size_t)tmpfile.UncompressedSize();
-    const size_t SMALL_HEADER_SIZE = 16 + (DIM*DIM*4) + 4; // 3*int+float, DIM^2 floats
-    const size_t SMALL_BYTES_PER_ATOM = DIM * 4; // DIM floats
-    size_t frame_size = SMALL_HEADER_SIZE + (SMALL_BYTES_PER_ATOM * natoms_);
+    off_t file_size = tmpfile.UncompressedSize();
+    const off_t SMALL_HEADER_SIZE = 16 + (DIM*DIM*4) + 4; // 3*int+float, DIM^2 floats
+    const off_t SMALL_BYTES_PER_ATOM = DIM * 4; // DIM floats
+    off_t frame_size = SMALL_HEADER_SIZE + (SMALL_BYTES_PER_ATOM * natoms_);
     if ((file_size % frame_size) != 0) {
       mprinterr("Error: Could not determine number of frames in XTC file.\n");
       return TRAJIN_ERR;
     }
     nframes = (int)(file_size / frame_size);
+    // Set up offsets
+    frameOffsets_.reserve( nframes );
+    for (off_t frm = 1; frm < nframes; frm++)
+      frameOffsets_.push_back( frm * frame_size );
   } else {
-    const int LARGE_HEADER_SIZE = 44 + 8 + (DIM*DIM*4); // 11 int, 2 float, DIM^2 floats
+    // Large system, use seek to determine # of frames
+    const off_t LARGE_HEADER_SIZE = 44 + 8 + (DIM*DIM*4); // 11 int, 2 float, DIM^2 floats
     // Seek past header at beginning of file
     if (xdr_seek(xd_, LARGE_HEADER_SIZE, SEEK_SET) != 0) {
       mprinterr("Error: Could not seek to first frame in XTC.\n");
@@ -77,23 +85,26 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
       mprinterr("Error: Could not read first integer offset.\n");
       return TRAJIN_ERR;
     }
-    // Advance offset at next 32 byte boundary
+    // Advance offset to next frame boundary
     Next32ByteBoundary( offset );
-    // Seek frames
+    // Seek remaining frames
     nframes = 1;
     int err = 0;
     while (err == 0) {
-      err = xdr_seek(xd_, offset + LARGE_HEADER_SIZE, SEEK_CUR);
+      err = xdr_seek(xd_, (off_t)offset + LARGE_HEADER_SIZE, SEEK_CUR);
       if (err == 0) {
+        // If no integer read it is likely the end of the file has been reached.
         if (xdrfile_read_int(&offset, 1, xd_) == 0) break;
         nframes++;
         // Store position
-
-        // Advance to next boundary
+        frameOffsets_.push_back( xdr_tell(xd_) - 4 - LARGE_HEADER_SIZE );
+        // Advance to next frame boundary
         Next32ByteBoundary( offset );
       }
     }
   }
+  if (debug_ > 0)
+    mprintf("DEBUG: %i frames, %zu offsets\n", nframes, frameOffsets_.size());
 /*
   // Read number of frames
   int nframes = TRAJIN_UNK;
@@ -173,6 +184,10 @@ void Traj_GmxXtc::closeTraj() {
 
 // Traj_GmxXtc::readFrame()
 int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
+  if (xdr_seek(xd_, frameOffsets_[set], SEEK_SET) != 0) {
+    mprinterr("Error: Could not seek in XTC file, frame %i\n", set+1);
+    return 1;
+  }
   float time;
   int step;
   int result = read_xtc(xd_, natoms_, &step, &time, box_, vec_, &prec_);
