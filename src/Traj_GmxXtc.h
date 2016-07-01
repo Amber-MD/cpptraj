@@ -10,6 +10,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     Traj_GmxXtc();
     ~Traj_GmxXtc();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_GmxXtc(); }
+    static void WriteHelp();
   private:
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
@@ -22,7 +23,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     void Info();
     int readVelocity(int, Frame&);
     int readForce(int, Frame&);
-    int processWriteArgs(ArgList&) { return 0; }
+    int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
@@ -38,6 +39,7 @@ class Traj_GmxXtc : public TrajectoryIO {
     XDRFILE* xd_; ///< Hold XDR file metadata
     rvec* vec_;   ///< Temporary location for holding XDR frame data
     matrix box_;  ///< Temporary location for holding XDR box data
+    double dt_;   ///< Time step between frames for output
     int natoms_;  ///< Number of atoms in xdr file
     FileName fname_; ///< File name
     float prec_;  ///< Precision

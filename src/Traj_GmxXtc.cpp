@@ -4,7 +4,7 @@
 
 #ifndef NO_XDRFILE
 /// CONSTRUCTOR
-Traj_GmxXtc::Traj_GmxXtc() : xd_(0), vec_(0), natoms_(0), prec_(1000) {}
+Traj_GmxXtc::Traj_GmxXtc() : xd_(0), vec_(0), dt_(1.0), natoms_(0), prec_(1000) {}
 
 /// DESTRUCTOR
 Traj_GmxXtc::~Traj_GmxXtc() {
@@ -45,7 +45,8 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   Frame tmp( natoms_ );
   if (readFrame(0, tmp)) return TRAJIN_ERR;
   closeTraj();
-  SetCoordInfo( CoordinateInfo(ReplicaDimArray(), tmp.BoxCrd(), false, false, false, false) );
+  // No velocity, no temperature, yes time, no force
+  SetCoordInfo( CoordinateInfo(ReplicaDimArray(), tmp.BoxCrd(), false, false, true, false) );
   return TRAJIN_UNK;
 }
 
@@ -57,6 +58,7 @@ int Traj_GmxXtc::setupTrajout(FileName const& fnameIn, Topology* trajParm,
   if (fnameIn.empty()) return 1;
   fname_ = fnameIn;
   if (!append) {
+    SetCoordInfo( cInfoIn );
     natoms_ = trajParm->Natom();
     // Allocate array for writing coords
     if (vec_ != 0) delete[] vec_;
@@ -83,6 +85,17 @@ int Traj_GmxXtc::setupTrajout(FileName const& fnameIn, Topology* trajParm,
   return 0;
 }
 
+// Traj_GmxXtc::WriteHelp()
+void Traj_GmxXtc::WriteHelp() {
+  mprintf("\tdt : Time step to multiply set #s by (default 1.0). Ignored if time already present.\n");
+}
+
+// Traj_GmxXtc::processWriteArgs()
+int Traj_GmxXtc::processWriteArgs(ArgList& argIn) {
+  dt_ = argIn.getKeyDouble( "dt", 1.0 );
+  return 0;
+}
+
 // Traj_GmxXtc::openTrajin()
 int Traj_GmxXtc::openTrajin() {
   xd_ = xdrfile_open(fname_.full(), "r");
@@ -105,7 +118,8 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
   int step;
   int result = read_xtc(xd_, natoms_, &step, &time, box_, vec_, &prec_);
   if (result != exdrOK) return 1;
-  mprintf("DEBUG: set %i step %i time %f\n", set, step, time);
+  //mprintf("DEBUG: set %i step %i time %f\n", set, step, time);
+  frameIn.SetTime( time );
   int idx = 0;
   for (int ix = 0; ix < natoms_; ix++)
     for (int kx = 0; kx < DIM; kx++)
@@ -121,7 +135,11 @@ int Traj_GmxXtc::readFrame(int set, Frame& frameIn) {
 
 // Traj_GmxXtc::writeFrame()
 int Traj_GmxXtc::writeFrame(int set, Frame const& frameOut) {
-  float time = (float)frameOut.Time();
+  float time;
+  if (CoordInfo().HasTime())
+    time = (float)frameOut.Time();
+  else
+    time = (float)(dt_ * (double)set);
   Matrix_3x3 Ucell = frameOut.BoxCrd().UnitCell( Constants::ANG_TO_NM );
   int idx = 0;
   for (int ii = 0; ii < DIM; ii++)

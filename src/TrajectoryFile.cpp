@@ -45,7 +45,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
 # ifdef NO_XDRFILE
   { "Gromacs XTC", 0, 0, 0                  },
 # else
-  { "Gromacs XTC", 0, 0, Traj_GmxXtc::Alloc },
+  { "Gromacs XTC", 0, Traj_GmxXtc::WriteHelp, Traj_GmxXtc::Alloc },
 # endif
   { "BINPOS",             0, 0, Traj_Binpos::Alloc         },
   { "Amber Restart",      Traj_AmberRestart::ReadHelp, Traj_AmberRestart::WriteHelp, Traj_AmberRestart::Alloc   },
