@@ -142,6 +142,12 @@ Original implementation of the Amber NetCDF trajectory format.
 * Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
 
+## External libraries bundled with CPPTRAJ
+
+* CPPTRAJ makes use of the GNU readline library for the interactive command line (https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html).
+
+* CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
+
 Documentation
 =============
   The main documentation for CPPTRAJ usage is in the AmberTools user manual,

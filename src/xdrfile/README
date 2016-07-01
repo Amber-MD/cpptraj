@@ -16,6 +16,5 @@ Changes from upsteam's xdrfile-1.1.4 include:
  - Bugfix of float exception (divide by zero) in xdrfile.c, see https://github.com/SimTk/mdtraj/issues/616
  - Implemented efficient seeking pattern inspired by xdrlib2 (part of MDAnalysis)
 
-NOTE: This is a compact version of this library adapted by DRR for use in
-      CPPTRAJ. Any issues resulting from this port are not the responsibility
-      of the original authors.
+Changes for CPPTRAJ:
+ - Added protection to xdr_seek.h to allow it to be used with C++.
