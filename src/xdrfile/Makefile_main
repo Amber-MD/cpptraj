@@ -8,7 +8,7 @@ TARGET        = libxdrfile.a
 
 # Source files
 
-XDR_SOURCES=xdrfile.c xdrfile_trr.c xdrfile_xtc.c xdr_seek.c
+XDR_SOURCES=xdrfile.c xdr_seek.c xdrfile_trr.c xdrfile_xtc.c
 
 # Objects
 
