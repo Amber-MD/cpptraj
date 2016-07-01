@@ -53,6 +53,7 @@ int Traj_GmxXtc::setupTrajin(FileName const& fnameIn, Topology* trajParm)
   frameOffsets_.push_back( 0 );
   if (readFrame(0, tmp)) return TRAJIN_ERR;
   // Determine total number of frames
+  // FIXME in parallel every thread is doing this which is unnecessary.
   int nframes = TRAJIN_UNK;
   if ( natoms_ < 10 ) {
     // Small system, frame size is consistent
@@ -254,9 +255,31 @@ int Traj_GmxXtc::writeFrame(int, Frame const&) { return 1; }
 
 void Traj_GmxXtc::Info() { }
 
-#endif
+#endif /* NO_XDRFILE */
 int Traj_GmxXtc::readVelocity(int set, Frame& frameIn) { return 1; }
 
 int Traj_GmxXtc::readForce(int set, Frame& frameIn) { return 1; }
 
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int Traj_GmxXtc::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  mprinterr("Error: Parallel read not supported for GROMACS XTC.\n");
+  return 1;
+}
 
+int Traj_GmxXtc::parallelOpenTrajout(Parallel::Comm const& commIn) { return 1; }
+
+int Traj_GmxXtc::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                      CoordinateInfo const& cInfoIn,
+                                      int NframesToWrite, bool append,
+                                      Parallel::Comm const& commIn)
+{
+  return 1;
+}
+
+int Traj_GmxXtc::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+
+int Traj_GmxXtc::parallelWriteFrame(int set, Frame const& frameOut) { return 1; }
+
+void Traj_GmxXtc::parallelCloseTraj() { }
+#endif /* MPI */
