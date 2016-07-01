@@ -1,7 +1,3 @@
-/* -*- mode: c; tab-width: 4; indent-tabs-mode: t; c-basic-offset: 4 -*- 
- *
- * $Id$
- *
  /* -*- mode: c; tab-width: 4; indent-tabs-mode: t; c-basic-offset: 4 -*-
  *
  * $Id$
@@ -91,16 +87,23 @@ static int nFloatSize(t_trnheader *sh,int *nflsz)
     return exdrOK;
 }
 
-static int do_trnheader(XDRFILE *xd,mybool bRead,t_trnheader *sh)
+extern int do_trnheader(XDRFILE *xd,mybool bRead,t_trnheader *sh)
 {
 	int magic=GROMACS_MAGIC;
 	int nflsz,slen,result;
 	char *version = "GMX_trn_file";
 	char buf[BUFSIZE];
   
-	if (xdrfile_read_int(&magic,1,xd) != 1)
-		return exdrINT;
-  
+	if (xdrfile_read_int(&magic,1,xd) != 1) {
+	    /* modification by RTM to return the right EOF code
+	    this is what's happening in the XTC code */
+	    if (bRead)
+			return exdrENDOFFILE;
+        else
+		    return exdrINT;
+    }
+	if (magic != GROMACS_MAGIC)
+		return exdrMAGIC;
 	if (bRead) 
     {
         if (xdrfile_read_int(&slen,1,xd) != 1)
@@ -447,6 +450,7 @@ static int do_trn(XDRFILE *xd,mybool bRead,int *step,float *t,float *lambda,
     }
     if ((result = do_trnheader(xd,bRead,sh)) != exdrOK)
         return result;
+
     if (bRead) {
         *natoms = sh->natoms;
         *step   = sh->step;
@@ -482,6 +486,35 @@ int read_trr_natoms(char *fn,int *natoms)
 	*natoms = sh.natoms;
 	
 	return exdrOK;
+}
+
+int read_trr_nframes(char *fn, unsigned long *nframes) {
+    XDRFILE *xd;
+    int result, step;
+    float time, lambda;
+	int natoms;
+	matrix box;
+	rvec *x;
+	*nframes = 0;
+
+	read_trr_natoms(fn, &natoms);
+	x = malloc(natoms * sizeof(*x));
+
+    xd = xdrfile_open(fn, "r");
+    if (NULL == xd)
+        return exdrFILENOTFOUND;
+
+	do {
+		result = read_trr(xd, natoms, &step, &time, &lambda,
+						  box, x, NULL, NULL);
+		if (exdrENDOFFILE != result) {
+			(*nframes)++;
+		}
+	} while (result == exdrOK);
+
+	xdrfile_close(xd);
+	free(x);
+    return exdrOK;
 }
 
 int write_trr(XDRFILE *xd,int natoms,int step,float t,float lambda,

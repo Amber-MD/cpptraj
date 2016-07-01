@@ -1,7 +1,3 @@
-/* -*- mode: c; tab-width: 4; indent-tabs-mode: t; c-basic-offset: 4 -*- 
- *
- * $Id$
- *
  /* -*- mode: c; tab-width: 4; indent-tabs-mode: t; c-basic-offset: 4 -*-
  *
  * $Id$
@@ -30,6 +26,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef _xdrfile_trr_h
 #define _xdrfile_trr_h
 
@@ -39,12 +36,13 @@ extern "C" {
 
 #include "xdrfile.h"
   
-  /* All functions return exdrOK if succesfull. 
+  /* All functions return exdrOK if successful.
    * (error codes defined in xdrfile.h).
    */  
    
   /* This function returns the number of atoms in the xtc file in *natoms */
   extern int read_trr_natoms(char *fn,int *natoms);
+  extern int read_trr_nframes(char* fn, unsigned long *nframes);
   
   /* Read one frame of an open xtc file. If either of x,v,f,box are
      NULL the arrays will be read from the file but not used.  */
