@@ -10,7 +10,8 @@ CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(P
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
 READLINE_HOME=readline
-EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE)
+XDRFILE_HOME=xdrfile
+EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE) $(XDRFILE_HOME)/libxdrfile.a
 
 include cpptrajfiles
 
@@ -76,7 +77,10 @@ $(SANDERAPI_DEP):
 	cd ../../sander && $(MAKE) $(SANDERAPI_DEP)
 
 $(READLINE_HOME)/libreadline.a:
-	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at 
+	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at
+
+$(XDRFILE_HOME)/libxdrfile.a:
+	cd $(XDRFILE_HOME) && $(MAKE) all
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FWARNFLAGS) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
