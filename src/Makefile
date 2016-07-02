@@ -21,14 +21,14 @@ install: $(INSTALL_TARGETS)
 install_cpptraj: cpptraj$(SFX)$(EXE)
 	mv cpptraj$(SFX)$(EXE) $(CPPTRAJBIN)
 
-cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET)
+cpptraj$(SFX)$(EXE): $(OBJECTS) $(FFT_DEPEND) $(READLINE_TARGET) $(CUDA_TARGET) $(XDRFILE_TARGET)
 	$(CXX) -o cpptraj$(SFX)$(EXE) $(OBJECTS) $(READLINE) $(CUDA_TARGET) $(FFT_LIB) $(CPPTRAJ_LIB) $(LDFLAGS)
 
 # AmbPDB -------------------------------
 install_ambpdb: ambpdb$(EXE)
 	mv ambpdb$(EXE) $(CPPTRAJBIN)
 
-ambpdb$(EXE): $(AMBPDB_OBJECTS)
+ambpdb$(EXE): $(AMBPDB_OBJECTS) $(XDRFILE_TARGET)
 	$(CXX) -o ambpdb$(EXE) $(AMBPDB_OBJECTS) $(LDFLAGS)
 
 # libcpptraj ---------------------------
@@ -52,12 +52,20 @@ nproc:
 	cd ../util && $(MAKE)
 
 # Additional library targets
-readline/libreadline.a: $(READLINE_HOME)/Makefile
+readline/libreadline.a: readline/Makefile
 	cd $(READLINE_HOME) && $(MAKE) all
+
+xdrfile/libxdrfile.a: xdrfile/Makefile
+	cd $(XDRFILE_HOME) && $(MAKE) all
 
 noreadline:
 	@echo ""
-	@echo "Skipping READLINE support"
+	@echo "Skipping bundled READLINE build"
+	@echo ""
+
+noxdrfile:
+	@echo ""
+	@echo "Skipping bundled XDRFILE build"
 	@echo ""
 
 cuda_kernels/libcpptraj_cuda.a: $(CUDA_SOURCES)
@@ -83,7 +91,8 @@ dependclean:
 # Clean/uninstall targets
 clean:
 	/bin/rm -f $(OBJECTS) $(FFT_DEPEND) cpptraj$(SFX) AmbPDB.o ambpdb *.LIBCPPTRAJ.o libcpptraj$(SHARED_SUFFIX)
-	cd $(READLINE_HOME) && $(MAKE) clean
+	cd readline && $(MAKE) clean
+	cd xdrfile && $(MAKE) clean
 	cd cuda_kernels && $(MAKE) clean
 
 uninstall:

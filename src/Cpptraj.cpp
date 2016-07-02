@@ -183,6 +183,9 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_PNETCDF
   defined_str.append(" -DHAS_PNETCDF");
 #endif
+#ifdef NO_XDRFILE
+  defined_str.append(" -DNO_XDRFILE");
+#endif
 #if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif

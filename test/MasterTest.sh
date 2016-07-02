@@ -638,6 +638,7 @@ CheckDefines() {
   PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
   SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
   CUDA=`echo $DEFINES | grep DCUDA`
+  NO_XDRFILE=`echo $DEFINES | grep DNO_XDRFILE`
 }
 
 #===============================================================================

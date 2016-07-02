@@ -288,6 +288,42 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   return volume;
 }
 
+// Box::UnitCell()
+Matrix_3x3 Box::UnitCell(double scale) const {
+  Matrix_3x3 ucell;
+  double by, bz;
+  switch (btype_) {
+    case NOBOX: ucell.Zero(); break;
+    case ORTHO:
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = 0.0;
+      ucell[4] = box_[1] * scale;
+      ucell[5] = 0.0;
+      ucell[6] = 0.0;
+      ucell[7] = 0.0;
+      ucell[8] = box_[2] * scale;
+      break;
+    case TRUNCOCT:
+    case RHOMBIC:
+    case NONORTHO:
+      by = box_[1] * scale;
+      bz = box_[2] * scale;
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = by*cos(Constants::DEGRAD*box_[5]);
+      ucell[4] = by*sin(Constants::DEGRAD*box_[5]);
+      ucell[5] = 0.0;
+      ucell[6] = bz*cos(Constants::DEGRAD*box_[4]);
+      ucell[7] = (by*bz*cos(Constants::DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4];
+      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+      break;
+  }
+  return ucell;
+}
+
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
