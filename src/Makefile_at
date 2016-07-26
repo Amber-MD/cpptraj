@@ -1,7 +1,9 @@
 # CPPTRAJ - AmberTools Makefile
 include ../../config.h
 
-CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
+XDRFILE_HOME=xdrfile
+XDRFILE_TARGET=$(XDRFILE_HOME)/libxdrfile.a
+CPPTRAJ_FLAGS= -I$(INCDIR) -I$(XDRFILE_HOME) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -10,8 +12,7 @@ CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(P
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
 READLINE_HOME=readline
-XDRFILE_HOME=xdrfile
-EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE) $(XDRFILE_HOME)/libxdrfile.a
+EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE) $(XDRFILE_TARGET)
 
 include cpptrajfiles
 
@@ -46,11 +47,12 @@ dependclean:
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(SANDERAPI_DEP) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
                $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
-               $(FLIBS_PTRAJ) $(READLINE) $(SANDERAPI_LIB)
+               $(FLIBS_PTRAJ) $(READLINE) $(XDRFILE_TARGET) $(SANDERAPI_LIB)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
-               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
+               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(XDRFILE_TARGET)
 
 # libcpptraj -------------------------------------
 # Rule to make libcpptraj-specific objects
@@ -61,7 +63,8 @@ libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
 $(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(LIBCPPTRAJ_OBJECTS) pub_fft.o \
-		$(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ)
+		$(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) \
+                $(XDRFILE_TARGET)
 
 # ------------------------------------------------
 $(LIBDIR)/libarpack.a:
@@ -80,7 +83,7 @@ $(READLINE_HOME)/libreadline.a:
 	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at
 
 $(XDRFILE_HOME)/libxdrfile.a:
-	cd $(XDRFILE_HOME) && $(MAKE) all
+	cd $(XDRFILE_HOME) && $(MAKE) -f Makefile_at all
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FWARNFLAGS) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
