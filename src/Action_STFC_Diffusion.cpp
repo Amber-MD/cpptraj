@@ -255,6 +255,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   double xx = XYZ[0] + deltaxyz_[idx23  ];
   double yy = XYZ[1] + deltaxyz_[idx23+1];
   double zz = XYZ[2] + deltaxyz_[idx23+2];
+  mprintf("DEBUG: xx=%f yy=%f zz=%f\n", xx, yy, zz);
 
   // Calculate the distance between this "fixed" coordinate and the
   // reference (initial) frame
@@ -262,6 +263,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   delx = xx - initialxyz_[idx13  ];
   dely = yy - initialxyz_[idx13+1];
   delz = zz - initialxyz_[idx13+2];
+  mprintf("DEBUG: delx=%f dely=%f delz=%f\n", delx, dely, delz);
 
   // store the distance for this atom
   distancexyz_[idx23  ] = delx*delx;
@@ -289,6 +291,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
       sum2 = (xx * xx) + (yy * yy) + (zz * zz);
       break;
   }
+  //mprintf("DEBUG: sum=%f sum2=%f\n", sum, sum2);
 
   distance_[idx2] = sum;
   dSum1_[idx2] += sum2;       // sum r^2
@@ -306,6 +309,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
 
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
+    mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
     if ( calcType_ == DEFAULT ) { // All
       // Save all initial coords, selected previous coords.
       for (AtomMask::const_iterator selected_atom = mask_.begin();
