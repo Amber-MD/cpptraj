@@ -263,7 +263,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   delx = xx - initialxyz_[idx13  ];
   dely = yy - initialxyz_[idx13+1];
   delz = zz - initialxyz_[idx13+2];
-  mprintf("DEBUG: delx=%f dely=%f delz=%f\n", delx, dely, delz);
+  mprintf("DEBUG: delx=%f dely=%f delz=%f   ix=%f iy=%f iz=%f\n", delx, dely, delz, initialxyz_[idx13  ], initialxyz_[idx13+1], initialxyz_[idx13+2]);
 
   // store the distance for this atom
   distancexyz_[idx23  ] = delx*delx;
@@ -311,16 +311,20 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
   if ( initialxyz_.empty() ) {
     mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
     if ( calcType_ == DEFAULT ) { // All
-      // Save all initial coords, selected previous coords.
+      // Save all initial coords TODO use copy
+      for (int aidx = 0; aidx != frm.Frm().Natom(); ++aidx) {
+        const double* XYZ = frm.Frm().XYZ( aidx );
+        initialxyz_.push_back( XYZ[0] );
+        initialxyz_.push_back( XYZ[1] );
+        initialxyz_.push_back( XYZ[2] );
+      }
+      // Save selected previous coords.
       for (AtomMask::const_iterator selected_atom = mask_.begin();
                                     selected_atom != mask_.end(); ++selected_atom)
       {
         const double* XYZ = frm.Frm().XYZ(*selected_atom);
-        initialxyz_.push_back( XYZ[0] );
         previousxyz_.push_back( XYZ[0] );
-        initialxyz_.push_back( XYZ[1] );
         previousxyz_.push_back( XYZ[1] );
-        initialxyz_.push_back( XYZ[2] );
         previousxyz_.push_back( XYZ[2] );
       }
     } else if ( calcType_ == COM ) { // Center of Mass
