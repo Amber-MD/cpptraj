@@ -406,6 +406,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
           //mprintf("CDBG:\tMinDist^2 %i to %i is %lf\n", *atom1, *atom2, dist2);
         }
       }
+      mprintf("DEBUG: MinDist^2=%f\n", minDist);
       if (minDist > lowerCutoff_ && minDist < upperCutoff_) {
         nInside_[ *atom1 ] = 1;
         calculateMSD( frm.Frm().XYZ(*atom1), *atom1, *atom1, Box );
