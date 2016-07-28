@@ -299,7 +299,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
   for (int i = 0; i < totalFrames; ++i) {
     double value = ds.Dval( i );
     double dval = value;
-    if (dval < 0) dval += 360;
+    if (dval < 30.0) dval += 360;
     curbin = (int) (dval - 30.0) / 60;
     if (curbin < 0 || curbin > 5) {
       mprinterr("Error: stat torsion: frame %i has invalid torsion value.\n", i+1);
