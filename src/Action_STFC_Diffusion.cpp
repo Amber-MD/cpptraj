@@ -267,7 +267,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   double xx = XYZ[0] + deltaxyz_[idx23  ];
   double yy = XYZ[1] + deltaxyz_[idx23+1];
   double zz = XYZ[2] + deltaxyz_[idx23+2];
-  mprintf("DEBUG: xx=%f yy=%f zz=%f\n", xx, yy, zz);
+  //mprintf("DEBUG: xx=%f yy=%f zz=%f\n", xx, yy, zz);
 
   // Calculate the distance between this "fixed" coordinate and the
   // reference (initial) frame
@@ -275,7 +275,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   delx = xx - initialxyz_[idx13  ];
   dely = yy - initialxyz_[idx13+1];
   delz = zz - initialxyz_[idx13+2];
-  mprintf("DEBUG: delx=%f dely=%f delz=%f   ix=%f iy=%f iz=%f\n", delx, dely, delz, initialxyz_[idx13  ], initialxyz_[idx13+1], initialxyz_[idx13+2]);
+  //mprintf("DEBUG: delx=%f dely=%f delz=%f   ix=%f iy=%f iz=%f\n", delx, dely, delz, initialxyz_[idx13  ], initialxyz_[idx13+1], initialxyz_[idx13+2]);
 
   // store the distance for this atom
   distancexyz_[idx23  ] = delx*delx;
@@ -321,7 +321,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
 
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
-    mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
+    //mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
     if ( calcType_ == DEFAULT ) { // All
       // Save all initial coords TODO use copy
       for (int aidx = 0; aidx != frm.Frm().Natom(); ++aidx) {
@@ -405,7 +405,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
   {
     // Check which atoms from mask1 are inside or outside the region defined
     // by lower and upper.
-    mprintf("DEBUG: distances mode frame %i\n", elapsedFrames_);
+    //mprintf("DEBUG: distances mode frame %i\n", elapsedFrames_);
     nInside_.assign( n_atom_, 0 );
     for ( AtomMask::const_iterator atom1 = mask_.begin(); atom1 != mask_.end(); ++atom1)
     {
@@ -427,11 +427,11 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
         // Find minimum distance.
         if (dist2 < minDist) {
           minDist = dist2;
-          mprintf("DEBUG:\tMinDist^2 %i {%g %g %g} to %i {%g %g %g} is %f\n",
-                  *atom1,XYZ1[0],XYZ1[1],XYZ1[2], *atom2,XYZ2[0],XYZ2[1],XYZ2[2], dist2);
+          //mprintf("DEBUG:\tMinDist^2 %i {%g %g %g} to %i {%g %g %g} is %f\n",
+          //        *atom1,XYZ1[0],XYZ1[1],XYZ1[2], *atom2,XYZ2[0],XYZ2[1],XYZ2[2], dist2);
         }
       }
-      mprintf("DEBUG: MinDist^2=%f\n", minDist);
+      //mprintf("DEBUG: MinDist^2=%f\n", minDist);
       if (minDist > lowerCutoff_ && minDist < upperCutoff_) {
         nInside_[ *atom1 ] = 1;
         calculateMSD( frm.Frm().XYZ(*atom1), *atom1, *atom1, Box );
@@ -447,8 +447,8 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
         avgy += distancexyz_[i3+1];
         avgz += distancexyz_[i3+2];
         ++Nin; // NOTE: nInside only ever gets set to 1
-        mprintf("DEBUG: %i nInside= %i d= %f dx= %f dy= %f dz= %f\n",
-                i, Nin, distance_[i], distancexyz_[i3],distancexyz_[i3+1],distancexyz_[i3+2]);
+        //mprintf("DEBUG: %i nInside= %i d= %f dx= %f dy= %f dz= %f\n",
+        //        i, Nin, distance_[i], distancexyz_[i3],distancexyz_[i3+1],distancexyz_[i3+2]);
       }
       i3 += 3;
     }
