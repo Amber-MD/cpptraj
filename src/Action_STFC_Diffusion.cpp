@@ -44,7 +44,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   // Get keywords
   std::string maskarg = actionArgs.GetStringKey("mask");
   if (maskarg.empty()) {
-    mprinterr("Error: diffusion: No mask specified.\n");
+    mprinterr("Error: No mask specified.\n");
     return Action::ERR;
   }
   mask_.SetMaskString( maskarg );
@@ -54,14 +54,14 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
     outfileName = "diffusion.dat";
   output_ = init.DFL().AddCpptrajFile(outfileName, "Diffusion");
   if ( output_ == 0 ) {
-    mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
+    mprinterr("Error: Could not open output file '%s'\n", outfileName.c_str());
     return Action::ERR;
   }
 
   outputad_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("avout"), "Diffusion Avg Dist");
   time_ = actionArgs.getKeyDouble("time", 1.0);
   if (time_ < 0) {
-    mprinterr("Error: diffusion: time argument cannot be < 0 (%lf)\n", time_);
+    mprinterr("Error: time argument cannot be < 0 (%f)\n", time_);
     return Action::ERR;
   }
   printDistances_ = actionArgs.hasKey("distances");
@@ -88,7 +88,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
       outputNumWat = "nw.dat";
     outputnw_ = init.DFL().AddCpptrajFile(outputNumWat, "Diffusion # waters");
     if ( outputnw_ == 0 ) {
-      mprinterr("Error: diffusion: Could not open nwout file %s\n", 
+      mprinterr("Error: Could not open diffusion number of waters output file '%s'\n", 
                 outputNumWat.c_str());
       return Action::ERR;
     }
@@ -144,9 +144,10 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
 Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: diffusion: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
   if (n_atom_ == -1) { // first time through, write header
     output_->Printf("%-10s %10s %10s %10s %10s","#time","x","y","z",DirectionString[direction_]);
@@ -162,14 +163,15 @@ Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   // Setup second mask if necessary
   if ( calcType_ == DIST ) {
     if (setup.Top().SetupIntegerMask( mask2_ )) return Action::ERR;
+    mask2_.MaskInfo();
     if (mask2_.None()) {
-      mprinterr("Error: diffusion: No atoms selected in second mask.\n");
+      mprinterr("Error: No atoms selected by second mask.\n");
       return Action::ERR;
     }
     // Set up imaging info
     image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
     if (image_.ImagingEnabled())
-      mprintf("\tImaging distancs.\n");
+      mprintf("\tImaging distances.\n");
     else
       mprintf("\tImaging off.\n");
   }
@@ -394,7 +396,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
   else if (calcType_ == COM) 
   {
     Vec3 XYZ = frm.Frm().VCenterOfMass( mask_ );
-    //mprintf("CDBG:\tXYZ[%i] = %lf %lf %lf\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
+    //mprintf("CDBG:\tXYZ[%i] = %f %f %f\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
     calculateMSD( XYZ.Dptr(), 0, 0, Box );
     average = distance_[0];
     avgx = distancexyz_[0];
@@ -453,7 +455,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
       i3 += 3;
     }
     if (Nin == 0) {
-      mprinterr("Error: diffusion: No atoms of mask 1 left for processing.\n");
+      mprinterr("Error: No atoms of mask 1 left for processing.\n");
       return Action::ERR;
     }
     average /= (double)Nin;
