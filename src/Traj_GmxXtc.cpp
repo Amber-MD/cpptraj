@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include <cstdio> // SEEK_SET, SEEK_CUR
-#include "xdr_seek.h"
+#include <xdr_seek.h>
 
 /// CONSTRUCTOR
 Traj_GmxXtc::Traj_GmxXtc() : xd_(0), vec_(0), dt_(1.0), natoms_(0), prec_(1000) {}
