@@ -293,7 +293,7 @@ void Analysis_Statistics::TorsionAnalysis(DataSet_1D const& ds, int totalFrames)
  
   // Get initial bin
   double firstvalue = ds.Dval( 0 );
-  if (firstvalue < 0) firstvalue += 360;
+  if (firstvalue < 30.0) firstvalue += 360;
   prevbin = (int) (firstvalue - 30.0) / 60;
   // Loop over all frames
   for (int i = 0; i < totalFrames; ++i) {
