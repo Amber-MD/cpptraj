@@ -3,7 +3,7 @@ include ../../config.h
 
 XDRFILE_HOME=xdrfile
 XDRFILE_TARGET=$(XDRFILE_HOME)/libxdrfile.a
-CPPTRAJ_FLAGS= -I$(INCDIR) -I$(XDRFILE_HOME) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
+CPPTRAJ_FLAGS= -I$(INCDIR) -I$(XDRFILE_HOME) $(CPPTRAJCXXFLAGS) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -46,12 +46,13 @@ dependclean:
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(SANDERAPI_DEP) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) \
+               $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
                $(FLIBS_PTRAJ) $(READLINE) $(XDRFILE_TARGET) $(SANDERAPI_LIB)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
-               $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
                $(XDRFILE_TARGET)
 
 # libcpptraj -------------------------------------
@@ -63,7 +64,8 @@ libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
 $(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
 	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(LIBCPPTRAJ_OBJECTS) pub_fft.o \
-		$(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) \
+		$(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) \
+                $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) \
                 $(XDRFILE_TARGET)
 
 # ------------------------------------------------
