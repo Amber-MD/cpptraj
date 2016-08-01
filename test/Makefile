@@ -518,7 +518,10 @@ test.openmp:
 test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
 
-test.complete: $(COMPLETETESTS)
+test.libcpptraj:
+	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
+
+test.complete: $(COMPLETETESTS) test.libcpptraj
 
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
