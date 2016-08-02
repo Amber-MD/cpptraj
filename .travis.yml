@@ -24,6 +24,7 @@ matrix:
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
     - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
     - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack"}
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=2 BUILD_TYPE=libcpptraj }
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -39,13 +40,23 @@ before_install:
   - mv lib include $HOME
 
 install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
-          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-      else
+    - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
           export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
-          ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+          ./configure $BUILD_FLAGS LDFLAGS="-lnetcdf -lfftw3" -shared $COMPILER;
+          make -j2 libcpptraj
+      else
+          if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+              export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+              ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+          else
+              export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+              ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+          fi
+          make -j2 install
       fi
-    - make -j2 install
 script:
-    - cd test && make test.showerrors
+    - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
+        cd test && make test.libcpptraj
+      else
+        cd test && make test.showerrors
+      fi
