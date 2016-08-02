@@ -50,7 +50,7 @@ install:
     - make -j2 $BUILD_TYPE 
 script:
     - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
-          cd test && make test.showerrors;
-      else
           cd test && make test.libcpptraj;
+      else
+          cd test && make test.showerrors;
       fi
