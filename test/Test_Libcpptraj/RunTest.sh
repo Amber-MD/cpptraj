@@ -88,7 +88,9 @@ if [ "$?" -ne 0 ] ; then
   exit 1
 fi
 
-# Run the test program
+# Run the test program. Export library to avoid any issues
+export DYLD_FALLBACK_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$DYLD_FALLBACK_LIBRARY_PATH
+export LD_LIBRARY_PATH=$LIBCPPTRAJ_DIR:$LD_LIBRARY_PATH
 echo "    Testing that program compiled with libcpptraj will execute."
 VERSION=`./a.out --version | grep Version`
 echo "$VERSION"
