@@ -19,12 +19,12 @@ addons:
       - libopenmpi-dev
 matrix:
   include:
-    - { os: linux, env: COMPILER=gnu BUILD_TYPE=install }
-    - { os: linux, env: COMPILER=clang BUILD_TYPE=install }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install }
-    - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj }
+    - { os: linux, env: COMPILER=gnu BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=clang BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -49,8 +49,4 @@ install:
       fi
     - make -j2 $BUILD_TYPE 
 script:
-    - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
-          cd test && make test.libcpptraj;
-      else
-          cd test && make test.showerrors;
-      fi
+    - cd test && make $TEST_TYPE
