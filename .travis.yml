@@ -19,12 +19,12 @@ addons:
       - libopenmpi-dev
 matrix:
   include:
-    - { os: linux, env: COMPILER=gnu }
-    - { os: linux, env: COMPILER=clang }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 }
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" }
-    - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack"}
-    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=2 BUILD_TYPE=libcpptraj }
+    - { os: linux, env: COMPILER=gnu BUILD_TYPE=install }
+    - { os: linux, env: COMPILER=clang BUILD_TYPE=install }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install }
+    - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj }
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -40,23 +40,17 @@ before_install:
   - mv lib include $HOME
 
 install:
-    - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
-          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
-          ./configure $BUILD_FLAGS LDFLAGS="-lnetcdf -lfftw3" -shared $COMPILER;
-          make -j2 libcpptraj
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
       else
-          if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-              export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
-              ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-          else
-              export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
-              ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER;
-          fi
-          make -j2 install
+          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS --with-sanderlib=$HOME CFLAGS="-lnetcdf -lfftw3" $COMPILER;
       fi
+    - make -j2 $BUILD_TYPE 
 script:
     - if [[ "$BUILD_TYPE" == "libcpptraj" ]]; then
-        cd test && make test.libcpptraj
+          cd test && make test.showerrors;
       else
-        cd test && make test.showerrors
+          cd test && make test.libcpptraj;
       fi
