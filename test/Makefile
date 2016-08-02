@@ -518,6 +518,9 @@ test.openmp:
 test.cuda:
 	$(MAKE) test.complete summary OPT="$(OPT) cuda"
 
+test.libcpptraj:
+	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
+
 test.complete: $(COMPLETETESTS)
 
 test.showerrors:
@@ -543,7 +546,7 @@ clean:
             rm -f $$dif ;\
         done ;\
         )
-	$(MAKE) test.complete OPT=clean
+	$(MAKE) test.complete test.libcpptraj OPT=clean
 
 cleanprofile:
 	@echo "Removing GNU profile files:"
