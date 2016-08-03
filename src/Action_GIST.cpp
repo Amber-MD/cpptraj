@@ -11,10 +11,11 @@ Action_GIST::Action_GIST() :
   dTSsix_(0),
   neighbor_norm_(0),
   dipole_(0),
-  order_norm_(0)m
+  order_norm_(0),
   dipolex_(0),
   dipoley_(0),
   dipolez_(0),
+  datafile_(0),
   BULK_DENS_(0.0),
   temperature_(0.0),
   NFRAME_(0),
@@ -71,12 +72,50 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     nz = actionArgs.getNextInteger(-1);
   } else
     mprintf("Warning: No grid dimension values specified, using default (40,40,40)\n");
+  // Data set name
+  std::string dsname = actionArgs.GetStringKey("name");
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("GIST");
+
+  // Set up grid data sets
+  gO_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gO"));
+  gH_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gH"));
+  Esw_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Esw"));
+  Eww_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Eww"));
+  dTStrans_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTStrans"));
+  dTSorient_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTSorient"));
+  dTSsix_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dTSsix"));
+  neighbor_norm_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "neighbor"));
+  dipole_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "dipole"));
+
+  order_norm_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "order"));
+  dipolex_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolex"));
+  dipoley_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipoley"));
+  dipolez_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolez"));
+ 
+  // Set up grids. TODO non-orthogonal as well
+  Vec3 v_spacing( gridspacing );
+  gO_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  gH_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  Esw_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  Eww_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dTStrans_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dTSorient_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dTSsix_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  neighbor_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dipole_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+
+  order_norm_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+
   // Set up grid params
   Box gbox;
   gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
                              (double)ny * gridspacing,
                              (double)nz * gridspacing );
-  
+  grid_.Setup_O_Box( nx, ny, nz, gO_->GridOrigin(), gbox );
 
   mprintf("    GIST:\n");
   if(doOrder_)
@@ -89,4 +128,17 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSkip water-water Eij matrix\n");
   mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
-  
+  if (image_.UseImage())
+    mprintf("\tDistances will be imaged.\n");
+  else
+    mprintf("\tDistances will not be imaged.\n");
+  gO_->GridInfo();
+  mprintf("\t#Please cite these papers if you use GIST results in a publication:\n"
+          "\t#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
+          "\t#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
+          "\t#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
+          "\t#      J. Chem. Phys. 137, 044101 (2012)\n"
+          "\t#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
+
+  return Action::OK;
+}

@@ -101,6 +101,7 @@
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
 #include "Action_Gist.h"
+#include "Action_GIST.h" // TEST
 #include "Action_CreateReservoir.h"
 #include "Action_Density.h"
 #include "Action_PairDist.h"
@@ -267,6 +268,7 @@ void Command::Init() {
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
   Command::AddCmd( new Action_Gist(),          Cmd::ACT, 1, "gist" );
+  Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist2" ); // TEST
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
   Command::AddCmd( new Action_Hbond(),         Cmd::ACT, 1, "hbond" );

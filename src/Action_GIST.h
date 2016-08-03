@@ -1,7 +1,9 @@
-#ifndef INC_ACTION_GIST_H
-#define INC_ACTION_GIST_H
+#ifndef INC_ACTION_GIST2_H
+#define INC_ACTION_GIST2_H
+// TODO change protect eventually
 #include "Action.h"
 #include "ImagedAction.h"
+#include "DataSet_3D.h"
 /// Class for applying Grid Inhomogenous Solvation Theory
 class Action_GIST : public Action {
   public:
@@ -10,9 +12,9 @@ class Action_GIST : public Action {
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
-    Action::RetType Setup(ActionSetup&);
-    Action::RetType DoAction(int, ActionFrame&);
-    void Print();
+    Action::RetType Setup(ActionSetup&) { return Action::SKIP; }
+    Action::RetType DoAction(int, ActionFrame&) { return Action::ERR; }
+    void Print() {}
 
     ImagedAction image_; ///< Imaging routines.
     // GIST float grid datasets
@@ -32,6 +34,7 @@ class Action_GIST : public Action {
     DataSet_3D* dipolez_;
 
     GridBin_Nonortho grid_; ///< Hold common grid parameters
+    CpptrajFile* datafile_; ///< GIST output
     double BULK_DENS_; ///< Bulk water density
     double temperature_; ///< Temperature
     int NFRAME_; ///< Total # frames analyzed
