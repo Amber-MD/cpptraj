@@ -36,20 +36,25 @@ install:
 build_script:
   - sh -lc "mkdir bin/"
   - sh -lc "echo \"CPPTRAJBIN=$(pwd)/bin\" > config.h"
+  - echo INSTALL_TARGETS= install_cpptraj install_ambpdb >> config.h
+  - echo LIBCPPTRAJ_TARGET=nolibcpptraj >> config.h
   - echo DBGFLAGS= >> config.h
   - echo CC=gcc >> config.h
   - echo CXX=g++ >> config.h
   - echo FC=gfortran >> config.h
-  - echo CFLAGS=   -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include $(DBGFLAGS) >> config.h
-  - echo CXXFLAGS= -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include $(DBGFLAGS) >> config.h
-  - echo FFLAGS=   -O3       -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include -ffree-form $(DBGFLAGS) >> config.h
+  - echo CFLAGS=   -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include -Ixdrfile $(DBGFLAGS) >> config.h
+  - echo CXXFLAGS= -O3 -Wall -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include -Ixdrfile $(DBGFLAGS) >> config.h
+  - echo FFLAGS=   -O3       -DHASBZ2 -DHASGZ -DBINTRAJ -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/local/include -I/mingw64/include -Ixdrfile -ffree-form $(DBGFLAGS) >> config.h
   - echo READLINE_TARGET=/mingw64/lib/libreadline.a >> config.h
   - echo READLINE_HOME=/mingw64/include/readline/ >> config.h
-  - echo LIBCPPTRAJ=nolibcpptraj >> config.h
+  - echo XDRFILE=xdrfile/libxdrfile.a >> config.h
+  - echo XDRFILE_HOME=xdrfile >> config.h
+  - echo XDRFILE_TARGET=xdrfile/libxdrfile.a >> config.h
   - echo FFT_DEPEND=pub_fft.o >> config.h
   - echo FFT_LIB=pub_fft.o >> config.h
-  - echo LDFLAGS=-lreadline -ltermcap -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz  -lgfortran -lquadmath -w  -static >> config.h
-  - echo SFX=.exe>> config.h
+  - echo LDFLAGS=-lreadline -ltermcap -larpack -L/usr/local/lib -lnetcdf -lopenblas -lbz2 -lz xdrfile/libxdrfile.a -lgfortran -lquadmath -w  -static >> config.h
+  - echo SFX= >> config.h
+  - echo EXE=.exe >> config.h
   - sh -lc "cat config.h"
   - sh -lc "make -j2 install"
 

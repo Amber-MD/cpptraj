@@ -34,9 +34,6 @@ test.hbond:
 test.image:
 	@-cd Test_Image && ./RunTest.sh $(OPT)
 
-test.comprehensive:
-	@-cd Test_Comprehensive && ./RunTest.sh $(OPT)
-
 test.netcdftraj:
 	@-cd Test_NetcdfTraj && ./RunTest.sh $(OPT)
 
@@ -304,6 +301,27 @@ test.spline:
 test.kde:
 	@-cd Test_KDE && ./RunTest.sh $(OPT)
 
+test.wavelet:
+	@-cd Test_Wavelet && ./RunTest.sh $(OPT)
+
+test.cif:
+	@-cd Test_CIF && ./RunTest.sh $(OPT)
+
+test.pdb:
+	@-cd Test_PDB && ./RunTest.sh $(OPT)
+
+test.align:
+	@-cd Test_Align && ./RunTest.sh $(OPT)
+
+test.velocityautocorr:
+	@-cd Test_VelocityAutoCorr && ./RunTest.sh $(OPT)
+
+test.velfrc:
+	@-cd Test_VelFrc && ./RunTest.sh $(OPT)
+
+test.rotatedihedral:
+	@-cd Test_RotateDihedral && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -377,7 +395,14 @@ SHORT_TESTS=test.general \
           test.vectormath \
           test.temperature \
           test.spline \
-          test.kde
+          test.kde \
+          test.wavelet \
+          test.cif \
+          test.pdb \
+          test.align \
+          test.velocityautocorr \
+          test.velfrc \
+          test.rotatedihedral
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -400,7 +425,6 @@ COMPLETETESTS=test.general \
               test.outtraj \
               test.charmm \
               test.rotdif \
-              test.comprehensive \
               test.netcdftraj \
               test.runavg \
               test.rmsd \
@@ -476,12 +500,31 @@ COMPLETETESTS=test.general \
               test.esander \
               test.temperature \
               test.spline \
-              test.kde
+              test.kde \
+              test.wavelet \
+              test.cif \
+              test.pdb \
+              test.align \
+              test.velocityautocorr \
+              test.velfrc \
+              test.rotatedihedral
 
 test: test.all 
 
 test.all:
 	$(MAKE) test.complete summary
+
+test.mpi:
+	$(MAKE) test.complete summary OPT="$(OPT) mpi"
+
+test.openmp:
+	$(MAKE) test.complete summary OPT="$(OPT) openmp"
+
+test.cuda:
+	$(MAKE) test.complete summary OPT="$(OPT) cuda"
+
+test.libcpptraj:
+	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
 test.complete: $(COMPLETETESTS)
 
@@ -508,7 +551,7 @@ clean:
             rm -f $$dif ;\
         done ;\
         )
-	$(MAKE) test.complete OPT=clean
+	$(MAKE) test.complete test.libcpptraj OPT=clean
 
 cleanprofile:
 	@echo "Removing GNU profile files:"

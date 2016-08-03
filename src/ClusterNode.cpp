@@ -4,7 +4,6 @@
 
 // CONSTRUCTOR
 ClusterNode::ClusterNode() :
-  avgClusterDist_(0),
   eccentricity_(0),
   num_(0),
   repFrame_(0),
@@ -21,7 +20,6 @@ ClusterNode::~ClusterNode() {
   * that will probably be wrong when number of frames in the list > 1.
   */
 ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameListIn, int numIn) :
-  avgClusterDist_(0.0),
   eccentricity_(0.0),
   num_(numIn),
   repFrame_(frameListIn.front()),
@@ -31,7 +29,6 @@ ClusterNode::ClusterNode(ClusterDist* Cdist, ClusterDist::Cframes const& frameLi
 
 // COPY CONSTRUCTOR
 ClusterNode::ClusterNode(const ClusterNode& rhs) :
-  avgClusterDist_( rhs.avgClusterDist_ ),
   eccentricity_( rhs.eccentricity_ ),
   num_( rhs.num_ ),
   repFrame_( rhs.repFrame_ ),
@@ -45,7 +42,6 @@ ClusterNode::ClusterNode(const ClusterNode& rhs) :
 // ASSIGNMENT
 ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   if (&rhs == this) return *this;
-  avgClusterDist_ = rhs.avgClusterDist_;
   eccentricity_ = rhs.eccentricity_;
   num_ = rhs.num_;
   repFrame_ = rhs.repFrame_;
@@ -58,11 +54,12 @@ ClusterNode& ClusterNode::operator=(const ClusterNode& rhs) {
   return *this;
 }
 
-/** Find the frame in the given cluster that is the best representative, i.e.
-  * has the lowest cumulative distance to every other point in the cluster.
+/** Find the frame in the given cluster that is the best representative via
+  * having the lowest cumulative distance to every other point in the cluster.
+  * Should NOT be used if cluster contains sieved frames.
   * \return best representative frame number, or -1 on error.
   */
-int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
+int ClusterNode::SetBestRep_CumulativeDist(DataSet_Cmatrix const& FrameDistancesIn) {
   double mindist = DBL_MAX;
   int minframe = -1;
   for (frame_iterator frm1 = frameList_.begin(); frm1 != frameList_.end(); ++frm1)
@@ -70,8 +67,8 @@ int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
     double cdist = 0.0;
     for (frame_iterator frm2 = frameList_.begin(); frm2 != frameList_.end(); ++frm2)
     {
-      if (frm1 == frm2) continue;
-      cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
+      if (frm1 != frm2)
+        cdist += FrameDistancesIn.GetFdist(*frm1, *frm2);
     }
     if (cdist < mindist) {
       mindist = cdist;
@@ -87,7 +84,7 @@ int ClusterNode::FindBestRepFrame(ClusterMatrix const& FrameDistancesIn) {
 /** Calculate the eccentricity of this cluster (i.e. the largest distance
   * between any two points in the cluster).
   */
-void ClusterNode::CalcEccentricity(ClusterMatrix const& FrameDistancesIn) {
+void ClusterNode::CalcEccentricity(DataSet_Cmatrix const& FrameDistancesIn) {
   double maxdist = 0.0;
   frame_iterator frame1_end = frameList_.end();
   --frame1_end;
@@ -107,7 +104,7 @@ void ClusterNode::CalcEccentricity(ClusterMatrix const& FrameDistancesIn) {
 /** Calculate average distance between all members in cluster and
   * the centroid. 
   */
-double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist )
+double ClusterNode::CalcAvgToCentroid( ClusterDist* Cdist ) const
 {
   double avgdist = 0.0;
   //int idx = 0; // DEBUG
@@ -126,8 +123,8 @@ void ClusterNode::SortFrameList() {
 }
 
 // ClusterNode::HasFrame()
-bool ClusterNode::HasFrame(int frame) {
-  ClusterDist::Cframes::iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
+bool ClusterNode::HasFrame(int frame) const {
+  ClusterDist::Cframes::const_iterator it = std::find(frameList_.begin(), frameList_.end(), frame);
   return !(it == frameList_.end());
 }
 

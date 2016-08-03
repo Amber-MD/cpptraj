@@ -262,6 +262,14 @@ void DataFileList::WriteAllDF() {
 # endif
 }
 
+// DataFileList::UnwrittenData()
+bool DataFileList::UnwrittenData() const {
+  for (DFarray::const_iterator df = fileList_.begin(); df != fileList_.end(); ++df)
+    if ((*df)->DFLwrite())
+      return true;
+  return false;
+}
+
 /** Reset writeFile status for all files in list to true. */
 void DataFileList::ResetWriteStatus() {
   for (DFarray::iterator df = fileList_.begin(); df != fileList_.end(); ++df)

@@ -32,7 +32,7 @@ class CIFfile::DataBlock {
     bool empty()                const { return dataHeader_.empty(); }
     int AddHeader(std::string const&);
     int AddSerialDataRecord(const char*, BufferedLine&);
-    int AddLoopColumn(const char*);
+    int AddLoopColumn(const char*, BufferedLine&);
     int AddLoopData(const char*, BufferedLine&);
     void ListData() const;
     int ColumnIndex(std::string const&) const;
@@ -44,6 +44,7 @@ class CIFfile::DataBlock {
     data_it end()   const { return columnData_.end();   }
   private:
     static int ParseData(std::string const&, std::string&, std::string&);
+    int GetColumnData(int, BufferedLine&, bool);
 
     std::string dataHeader_; ///< The data header, e.g. '_atom_site'
     Sarray columnHeaders_;   ///< Column headers, e.g. 'label_atom_id'

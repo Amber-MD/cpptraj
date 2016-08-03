@@ -513,9 +513,9 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   // nmodes_   Number of eigenvectors (already converted to frequencies)
   // evalues_  vibrational frequencies, in cm**-1 and in ascending order
   double rtemp, rtemp1, rtemp2, rtemp3;
-  // ----- Constants -------------------
+  // ----- Constants ------------------- TODO use Constants.h
   const double thresh = 900.0;        // vibrational frequency threshold
-  const double tokg   = 1.660531e-27; // kilograms per amu.
+//  const double tokg   = 1.660531e-27; // kilograms per amu.
   const double boltz  = 1.380622e-23; // boltzman constant, in joules per kelvin.
   const double planck = 6.626196e-34; // planck constant, in joule-seconds.
 //  const double avog   = 6.022169e+23; // avogadro constant, in mol**(-1).
@@ -551,7 +551,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   for (Darray::const_iterator m = mass_.begin(); m != mass_.end(); ++m)
     weight += *m;
   outfile.Printf(" molecular mass (principal isotopes) %11.5f amu\n", weight);
-  weight *= tokg;
+  weight *= Constants::AMU_TO_KG;
   
   //trap non-unit multiplicities.
   //if (multip != 1) {
@@ -633,7 +633,7 @@ int DataSet_Modes::Thermo( CpptrajFile& outfile, int ilevel, double temp, double
   outfile.Printf("\n rotational symmetry number %3.0f\n", sn);
 
   double con = planck / (boltz*8.0*pipi);
-  con = (con / tokg)  *  (planck / (tomet*tomet));
+  con = (con / Constants::AMU_TO_KG)  *  (planck / (tomet*tomet));
   if (linear) {
     rtemp = con / pmom[2];
     if (rtemp < 0.2) {

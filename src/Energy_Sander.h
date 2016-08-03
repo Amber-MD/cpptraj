@@ -1,6 +1,6 @@
 #ifndef INC_ESANDER_H
 #define INC_ESANDER_H
-#ifdef USE_SANDERLIB
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
 #include "Topology.h"
 #include "ArgList.h"
 #include "sander.h"
@@ -58,5 +58,5 @@ class Energy_Sander {
     bool specified_igb_;         ///< 'igb' was specified.
     bool specified_ntb_;         ///< 'ntb' was specified.
 };
-#endif /* USE_SANDERLIB */
+#endif /* USE_SANDERLIB and not LIBCPPTRAJ */
 #endif

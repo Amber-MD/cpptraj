@@ -6,6 +6,7 @@
 #include "Traj_AmberNetcdf.h"
 #include <netcdf.h>
 #include "CpptrajStdio.h"
+#include "NC_Routines.h"
 #ifdef MPI
 # include "ParallelNetcdf.h"
 #endif
@@ -16,11 +17,13 @@ Traj_AmberNetcdf::Traj_AmberNetcdf() :
   eptotVID_(-1),
   binsVID_(-1),
   useVelAsCoords_(false),
+  useFrcAsCoords_(false),
   readAccess_(false),
   outputTemp_(false),
-  outputVel_(false),
-  outputFrc_(false)
-{ }
+  write_mdcrd_(false),
+  write_mdvel_(false),
+  write_mdfrc_(false)
+{}
 
 // DESTRUCTOR
 Traj_AmberNetcdf::~Traj_AmberNetcdf() {
@@ -55,11 +58,13 @@ int Traj_AmberNetcdf::openTrajin() {
 }
 
 void Traj_AmberNetcdf::ReadHelp() {
-  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n");
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n"
+          "\tusefrcascoords: Use forces instead of coordinates if present.\n");
 }
 
 int Traj_AmberNetcdf::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  useFrcAsCoords_ = argIn.hasKey("usefrcascoords");
   return 0;
 }
 
@@ -77,13 +82,10 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
     mprinterr("Error: Netcdf file %s conventions do not include \"AMBER\"\n",filename_.base());
     return TRAJIN_ERR;
   }
-  // Get global attributes
-  std::string attrText = GetAttrText("ConventionVersion");
-  if ( attrText != "1.0") 
-    mprintf("Warning: Netcdf file %s has ConventionVersion that is not 1.0 (%s)\n",
-            filename_.base(), attrText.c_str());
+  // This will warn if conventions are not 1.0 
+  CheckConventionsVersion();
   // Get title
-  SetTitle( GetAttrText("title") );
+  SetTitle( GetNcTitle() );
   // Get Frame info
   if ( SetupFrameDim()!=0 ) return TRAJIN_ERR;
   if ( Ncframe() < 1 ) {
@@ -91,7 +93,7 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
     return TRAJIN_ERR;
   }
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF file %s (%i) does not\n"
@@ -102,16 +104,18 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup Time - FIXME: Allowed to fail silently
   SetupTime();
   // Box info
-  double boxcrd[6];
-  if (SetupBox(boxcrd, NC_AMBERTRAJ) == 1) // 1 indicates an error
+  Box nc_box;
+  if (SetupBox(nc_box, NC_AMBERTRAJ) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   // Replica Temperatures - FIXME: Allowed to fail silently
   SetupTemperature();
   // Replica Dimensions
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
-  SetCoordInfo( CoordinateInfo(remdDim, Box(boxcrd), HasVelocities(),
-                               HasTemperatures(), HasTimes(), HasForces()) ); 
+  CoordinateInfo ncCoordInfo(remdDim, nc_box, HasVelocities(),
+                             HasTemperatures(), HasTimes(), HasForces());
+  ncCoordInfo.SetCrd( HasCoords() );
+  SetCoordInfo( ncCoordInfo ); 
   // NOTE: TO BE ADDED
   // labelDID;
   //int cell_spatialDID, cell_angularDID;
@@ -127,15 +131,21 @@ int Traj_AmberNetcdf::setupTrajin(FileName const& fname, Topology* trajParm)
 
 void Traj_AmberNetcdf::WriteHelp() {
   mprintf("\tremdtraj: Write temperature to trajectory (makes REMD trajectory).\n"
-          "\tvelocity: Write velocities to trajectory.\n"
-          "\tforce: Write forces to trajectory.\n");
+          "\tmdvel   : Write only velocities to trajectory.\n"
+          "\tmdfrc   : Write only forces to trajectory.\n"
+          "\tmdcrd   : Write coordinates to trajectory (only required with mdvel/mdfrc).\n");
 }
 
 // Traj_AmberNetcdf::processWriteArgs()
 int Traj_AmberNetcdf::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
-  outputVel_ = argIn.hasKey("velocity");
-  outputFrc_ = argIn.hasKey("force");
+  write_mdcrd_ = argIn.hasKey("mdcrd");
+  if (argIn.hasKey("velocity"))
+    mprintf("Warning: The 'velocity' keyword is no longer necessary and has been deprecated.\n");
+  if (argIn.hasKey("force"))
+    mprintf("Warning: The 'force' keyword is no longer necessary and has been deprecated.\n");
+  write_mdvel_ = argIn.hasKey("mdvel");
+  write_mdfrc_ = argIn.hasKey("mdfrc");
   return 0;
 }
 
@@ -153,9 +163,25 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     // Deal with output options
     // For backwards compatibility always write temperature if remdtraj is true.
     if (outputTemp_ && !cInfo.HasTemp()) cInfo.SetTemperature(true);
-    // Explicitly write velocity - initial frames may not have velocity info.
-    if (outputVel_ && !cInfo.HasVel()) cInfo.SetVelocity(true);
-    if (outputFrc_ && !cInfo.HasForce()) cInfo.SetForce(true);
+    // Determine what kind of trajectory to write based on options/coordinate info.
+    if (write_mdcrd_ || write_mdvel_ || write_mdfrc_) {
+      // If an option was specified, check that CoordinateInfo has requested info.
+      if (write_mdcrd_ && !cInfoIn.HasCrd()) { // SANITY CHECK
+        mprinterr("Error: 'mdcrd' specified but no coordinate info present.\n");
+        return 1;
+      }
+      if (write_mdvel_ && !cInfoIn.HasVel()) {
+        mprinterr("Error: 'mdvel' specified but no velocity info present.\n");
+        return 1;
+      }
+      if (write_mdfrc_ && !cInfoIn.HasForce()) {
+        mprinterr("Error: 'mdfrc' specified but no force info present.\n");
+        return 1;
+      }
+      cInfo.SetCrd( write_mdcrd_ );
+      cInfo.SetVelocity( write_mdvel_ );
+      cInfo.SetForce( write_mdfrc_ );
+    }
     SetCoordInfo( cInfo );
     filename_ = fname;
     // Set up title
@@ -175,13 +201,16 @@ int Traj_AmberNetcdf::setupTrajout(FileName const& fname, Topology* trajParm,
     // memory for coords.
     if (setupTrajin(fname, trajParm) == TRAJIN_ERR) return 1;
     // Check output options.
-    if (outputTemp_ && !CoordInfo().HasTemp())
+    if (write_mdcrd_ || write_mdvel_ || write_mdfrc_)
+      mprintf("Warning: 'mdcrd', 'mdvel', and 'mdfrc' are ignored for appending.\n");
+    // Check that CoordinateInfo matches file we are appending to.
+    if ((outputTemp_ || cInfoIn.HasTemp()) && !CoordInfo().HasTemp())
       mprintf("Warning: Cannot append temperature data to NetCDF file '%s'; no temperature dimension.\n",
               filename_.base());
-    if (outputVel_ && !CoordInfo().HasVel())
+    if (cInfoIn.HasVel() && !CoordInfo().HasVel())
       mprintf("Warning: Cannot append velocity data to NetCDF file '%s'; no velocity dimension.\n",
               filename_.base());
-    if (outputFrc_ && !CoordInfo().HasForce())
+    if (cInfoIn.HasForce() && !CoordInfo().HasForce())
       mprintf("Warning: Cannot append force data to NetCDF file '%s'; no force dimension.\n",
               filename_.base());
     if (debug_ > 0)
@@ -209,7 +238,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Get temperature
   if (TempVID_!=-1) {
-    if ( checkNCerr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, TempVID_, start_, count_, frameIn.tAddress())) ) {
       mprinterr("Error: Getting replica temperature for frame %i.\n", set+1); 
       return 1;
     }
@@ -219,7 +248,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   // Get time
   if (timeVID_!=-1) {
     float time;
-    if (checkNCerr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
+    if (NC::CheckErr(nc_get_vara_float(ncid_, timeVID_, start_, count_, &time))) {
       mprinterr("Error: Getting time for frame %i.\n", set + 1);
       return 1;
     }
@@ -227,7 +256,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   }
 
   // Read Coords 
-  if ( checkNCerr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
+  if ( NC::CheckErr(nc_get_vara_float(ncid_, coordVID_, start_, count_, Coord_)) ) {
     mprinterr("Error: Getting coordinates for frame %i\n", set+1);
     return 1;
   }
@@ -235,7 +264,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set+1);
       return 1;
     }
@@ -244,7 +273,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
 
   // Read Forces
   if (frcVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
     }
@@ -254,7 +283,7 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   // Read indices. Input array must be allocated to be size remd_dimension.
   if (indicesVID_!=-1) {
     count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
+    if ( NC::CheckErr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
       mprinterr("Error: Getting replica indices for frame %i.\n", set+1);
       return 1;
     }
@@ -267,12 +296,12 @@ int Traj_AmberNetcdf::readFrame(int set, Frame& frameIn) {
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if (checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())))
     {
       mprinterr("Error: Getting cell lengths for frame %i.\n", set+1);
       return 1;
     }
-    if (checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
+    if (NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)))
     {
       mprinterr("Error: Getting cell angles for frame %i.\n", set+1);
       return 1;
@@ -292,7 +321,7 @@ int Traj_AmberNetcdf::readVelocity(int set, Frame& frameIn) {
   count_[2] = 3;
   // Read Velocities
   if (velocityVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting velocities for frame %i\n", set+1);
       return 1;
     }
@@ -311,7 +340,7 @@ int Traj_AmberNetcdf::readForce(int set, Frame& frameIn) {
   count_[2] = 3;
   // Read forces
   if (frcVID_ != -1) {
-    if ( checkNCerr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+    if ( NC::CheckErr(nc_get_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
       mprinterr("Error: Getting forces for frame %i\n", set+1);
       return 1;
     }
@@ -322,34 +351,37 @@ int Traj_AmberNetcdf::readForce(int set, Frame& frameIn) {
 
 // Traj_AmberNetcdf::writeFrame() 
 int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
-  DoubleToFloat(Coord_, frameOut.xAddress());
-
-  // Write coords
+  // Set indices for coords/velocities/forces
   start_[0] = ncframe_;
   start_[1] = 0;
   start_[2] = 0;
   count_[0] = 1;
   count_[1] = Ncatom();
   count_[2] = 3;
-  if (checkNCerr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
-    mprinterr("Error: Netcdf Writing coords frame %i\n", set+1);
-    return 1;
-  }
 
-  // Write velocity. FIXME: Should check in setup
-  if (CoordInfo().HasVel() && frameOut.HasVelocity()) {
-    DoubleToFloat(Coord_, frameOut.vAddress());
-    if (checkNCerr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
-      mprinterr("Error: Netcdf writing velocity frame %i\n", set+1);
+  // Write coords.
+  if (coordVID_ != -1) {
+    DoubleToFloat(Coord_, frameOut.xAddress());
+    if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
+      mprinterr("Error: NetCDF writing coordinates frame %i\n", set+1);
       return 1;
     }
   }
 
-  // Write forces. FIXME: Should check in setup
-  if (CoordInfo().HasForce() && frameOut.HasForce()) {
+  // Write velocity.
+  if (velocityVID_ != -1) {
+    DoubleToFloat(Coord_, frameOut.vAddress());
+    if (NC::CheckErr(nc_put_vara_float(ncid_, velocityVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: NetCDF writing velocity frame %i\n", set+1);
+      return 1;
+    }
+  }
+
+  // Write forces.
+  if (frcVID_ != -1) {
     DoubleToFloat(Coord_, frameOut.fAddress());
-    if (checkNCerr(nc_put_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
-      mprinterr("Error: Netcdf writing force frame %i\n", set+1);
+    if (NC::CheckErr(nc_put_vara_float(ncid_, frcVID_, start_, count_, Coord_)) ) {
+      mprinterr("Error: NetCDF writing force frame %i\n", set+1);
       return 1;
     }
   }
@@ -358,19 +390,23 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_, cellLengthVID_, start_, count_,
+                                        frameOut.bAddress())) )
+    {
       mprinterr("Error: Writing cell lengths frame %i.\n", set+1);
       return 1;
     }
-    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_, cellAngleVID_, start_, count_, 
+                                        frameOut.bAddress()+3)) )
+    {
       mprinterr("Error: Writing cell angles frame %i.\n", set+1);
       return 1;
     }
   }
 
   // Write temperature
-  if (TempVID_!=-1) {
-    if ( checkNCerr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
+  if (TempVID_ != -1) {
+    if ( NC::CheckErr( nc_put_vara_double(ncid_,TempVID_,start_,count_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing temperature frame %i.\n", set+1);
       return 1;
     }
@@ -379,7 +415,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   // Write time
   if (timeVID_ != -1) {
     float tVal = (float)frameOut.Time();
-    if ( checkNCerr( nc_put_vara_float(ncid_,timeVID_,start_,count_,&tVal)) ) {
+    if ( NC::CheckErr( nc_put_vara_float(ncid_,timeVID_,start_,count_,&tVal)) ) {
       mprinterr("Error: Writing time frame %i.\n", set+1);
       return 1;
     }
@@ -388,7 +424,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   // Write indices
   if (indicesVID_ != -1) {
     count_[1] = remd_dimension_;
-    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
+    if ( NC::CheckErr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
       mprinterr("Error: Writing indices frame %i.\n", set+1);
       return 1;
     }
@@ -401,7 +437,7 @@ int Traj_AmberNetcdf::writeFrame(int set, Frame const& frameOut) {
   return 0;
 }  
 
-// Traj_AmberNetcdf::writeReservoir() TODO: Make Frame const&
+// Traj_AmberNetcdf::writeReservoir()
 int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy, int bin) {
   start_[0] = ncframe_;
   start_[1] = 0;
@@ -411,7 +447,7 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy,
   count_[2] = 3;
   // Coords
   DoubleToFloat(Coord_, frame.xAddress());
-  if (checkNCerr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
+  if (NC::CheckErr(nc_put_vara_float(ncid_,coordVID_,start_,count_,Coord_)) ) {
     mprinterr("Error: Netcdf writing reservoir coords %i\n",set);
     return 1;
   }
@@ -422,18 +458,18 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy,
       return 1;
     }
     DoubleToFloat(Coord_, frame.vAddress());
-    if (checkNCerr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
+    if (NC::CheckErr(nc_put_vara_float(ncid_,velocityVID_,start_,count_,Coord_)) ) {
       mprinterr("Error: Netcdf writing reservoir velocities %i\n",set);
       return 1;
     }
   }
   // Eptot, bins
-  if ( checkNCerr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
+  if ( NC::CheckErr( nc_put_vara_double(ncid_,eptotVID_,start_,count_,&energy)) ) {
     mprinterr("Error: Writing eptot.\n");
     return 1;
   }
   if (binsVID_ != -1) {
-    if ( checkNCerr( nc_put_vara_int(ncid_,binsVID_,start_,count_,&bin)) ) {
+    if ( NC::CheckErr( nc_put_vara_int(ncid_,binsVID_,start_,count_,&bin)) ) {
       mprinterr("Error: Writing bins.\n");
       return 1;
     }
@@ -442,11 +478,11 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy,
   if (cellLengthVID_ != -1) {
     count_[1] = 3;
     count_[2] = 0;
-    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frame.bAddress())) ) {
       mprinterr("Error: Writing cell lengths.\n");
       return 1;
     }
-    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frame.bAddress()+3)) ) {
       mprinterr("Error: Writing cell angles.\n");
       return 1;
     }
@@ -456,14 +492,30 @@ int Traj_AmberNetcdf::writeReservoir(int set, Frame const& frame, double energy,
   return 0;
 }
   
-// Traj_AmberNetcdf::info()
+// Traj_AmberNetcdf::Info()
 void Traj_AmberNetcdf::Info() {
   mprintf("is a NetCDF AMBER trajectory");
-  if (readAccess_ && !HasCoords()) mprintf(" (no coordinates)");
-  if (CoordInfo().HasVel()) mprintf(" containing velocities");
-  if (CoordInfo().HasForce()) mprintf(" containing forces");
-  if (CoordInfo().HasTemp()) mprintf(" with replica temperatures");
-  if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
+  if (readAccess_) {
+    if (!HasCoords()) mprintf(" (no coordinates)");
+    if (useVelAsCoords_) mprintf(" (using velocities as coordinates)");
+    if (useFrcAsCoords_) mprintf(" (using forces as coordinates)");
+    if (HasVelocities() || HasForces() || HasTemperatures()) {
+      mprintf(" with");
+      if (HasVelocities()) mprintf(" velocities");
+      if (HasForces()) mprintf(" forces");
+      if (HasTemperatures()) mprintf(" temperatures");
+    }
+    if (remd_dimension_ > 0) mprintf(" %i replica dimensions", remd_dimension_);
+  } else {
+    if ( !(write_mdcrd_ && write_mdvel_ && write_mdfrc_) ) {
+      if (write_mdcrd_ || write_mdvel_ || write_mdfrc_) {
+        mprintf(" with");
+        if (write_mdcrd_) mprintf(" coordinates");
+        if (write_mdvel_) mprintf(" velocities");
+        if (write_mdfrc_) mprintf(" forces");
+      }
+    }
+  }
 }
 #ifdef MPI
 #ifdef HAS_PNETCDF

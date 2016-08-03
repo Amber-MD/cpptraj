@@ -23,7 +23,6 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   PDBfile infile;
   double XYZ[6]; // Hold XYZ/box coords.
   float occupancy, bfactor; // Read in occ/bfac
-  std::vector<AtomExtra> extra; // Hold occ/bfac if not PQR
   BondArray bonds;              // Hold bonds
   std::vector<int> serial;      // Map ATOM/HETATM serial number to actual atom number.
   int atnum;                    // Read in ATOM/HETATM serial number.
@@ -64,12 +63,14 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
       if (atnum >= (int)serial.size())
         serial.resize( atnum+1, -1 );
       serial[atnum] = TopIn.Natom();
-      infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
       if (readAsPQR_) {
+        infile.pdb_ChargeAndRadius(occupancy, bfactor);
         pdbAtom.SetCharge( occupancy );
         pdbAtom.SetGBradius( bfactor );
-      } else
-        extra.push_back( AtomExtra(occupancy, bfactor, altLoc) );
+      } else {
+        infile.pdb_OccupancyAndBfactor(occupancy, bfactor);
+        TopIn.AddExtraAtomInfo( AtomExtra(occupancy, bfactor, altLoc) );
+      }
       TopIn.AddTopAtom(pdbAtom, infile.pdb_Residue());
       Coords.AddXYZ( XYZ );
 #     ifdef TIMER
@@ -87,7 +88,6 @@ int Parm_PDB::ReadParm(FileName const& fname, Topology &TopIn) {
   for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
     TopIn.AddBond( serial[bnd->A1()], serial[bnd->A2()] );
   BondSearch( TopIn, Coords, Offset_, debug_ ); 
-  if (TopIn.SetExtraAtomInfo(0, extra)) return 1;
   // If Topology name not set with TITLE etc, use base filename.
   // TODO: Read in title.
   std::string pdbtitle;

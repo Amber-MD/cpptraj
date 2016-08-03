@@ -31,7 +31,7 @@ int Cluster_Kmeans::SetupCluster(ArgList& analyzeArgs) {
 }
 
 // Cluster_Kmeans::ClusteringInfo()
-void Cluster_Kmeans::ClusteringInfo() {
+void Cluster_Kmeans::ClusteringInfo() const {
   mprintf("\tK-MEANS: Looking for %i clusters.\n", nclusters_);
   if (mode_ == SEQUENTIAL)
     mprintf("\t\tSequentially modify each point.\n");
@@ -54,18 +54,15 @@ void Cluster_Kmeans::ClusterResults(CpptrajFile& outfile) const {
 // Cluster_Kmeans::Cluster()
 int Cluster_Kmeans::Cluster() {
   // First determine which frames are being clustered.
-  // FIXME: Can this just be the sieved array?
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
-    if (!FrameDistances_.IgnoringRow( frame ))
-      FramesToCluster_.push_back( frame );
+  Iarray const& FramesToCluster = FrameDistances().FramesToCluster();
 
   // Determine seeds
-  FindKmeansSeeds();
+  FindKmeansSeeds( FramesToCluster );
 
   if (mode_ == RANDOM)
     RN_.rn_set( kseed_ );
 
-  int pointCount = (int)FramesToCluster_.size();
+  int pointCount = (int)FramesToCluster.size();
 
   // This array will hold the indices of the points to process each iteration.
   // If sequential this is just 0 -> pointCount. If random this will be 
@@ -79,7 +76,7 @@ int Cluster_Kmeans::Cluster() {
   for (Iarray::const_iterator seedIdx = SeedIndices_.begin();
                               seedIdx != SeedIndices_.end(); ++seedIdx)
   {
-    int seedFrame = FramesToCluster_[ *seedIdx ];
+    int seedFrame = FramesToCluster[ *seedIdx ];
     // A centroid is created for new clusters.
     AddCluster( ClusterDist::Cframes(1, seedFrame) );
     // NOTE: No need to calc best rep frame, only 1 frame.
@@ -106,7 +103,7 @@ int Cluster_Kmeans::Cluster() {
       int oldClusterIdx = -1;
 //      if ( iteration != 0 || mode_ != SEQUENTIAL) // FIXME: Should this really happen for RANDOM
 //      {
-        int pointFrame = FramesToCluster_[ *pointIdx ];
+        int pointFrame = FramesToCluster[ *pointIdx ];
         if (debug_ > 0)
           mprintf("DEBUG: Processing frame %i (index %i)\n", pointFrame, *pointIdx);
         bool pointWasYanked = true;
@@ -195,8 +192,6 @@ int Cluster_Kmeans::Cluster() {
   // Remove any empty clusters
   // FIXME: Will there ever be empty clusters?
   RemoveEmptyClusters();
-  // Calculate the distances between each cluster based on centroids.
-  CalcClusterDistances();
   // NOTE in PTRAJ here align all frames to best rep 
   return 0;
 }
@@ -206,19 +201,19 @@ int Cluster_Kmeans::Cluster() {
   * arbitrary first choice.  Then, at each iteration, add the point whose total
   * distance from our set of seeds is as large as possible.
   */
-int Cluster_Kmeans::FindKmeansSeeds() {
-  // SeedIndices will hold indices into FramesToCluster_
+int Cluster_Kmeans::FindKmeansSeeds(Iarray const& FramesToCluster) {
+  // SeedIndices will hold indices into FramesToCluster
   SeedIndices_.resize( nclusters_, 1 ); // 1 used to be consistent with ptraj
 
   double bestDistance = 0.0;
-  int frameCount = (int)FramesToCluster_.size();
+  int frameCount = (int)FramesToCluster.size();
   for (int frameIdx = 0; frameIdx != frameCount; frameIdx++)
   {
-    int seedFrame = FramesToCluster_[ frameIdx ];
+    int seedFrame = FramesToCluster[ frameIdx ];
     for (int candidateIdx = frameIdx; candidateIdx < frameCount; candidateIdx++)
     {
-      int candidateFrame = FramesToCluster_[ candidateIdx ];
-      double dist = FrameDistances_.GetFdist( seedFrame, candidateFrame );
+      int candidateFrame = FramesToCluster[ candidateIdx ];
+      double dist = FrameDistances().GetFdist( seedFrame, candidateFrame );
       if (dist > bestDistance)
       {
         bestDistance = dist;
@@ -245,12 +240,12 @@ int Cluster_Kmeans::FindKmeansSeeds() {
       }
       if (!skipCandidate) {
         // Get the closest distance from this candidate to a current seed
-        int candidateFrame = FramesToCluster_[ candidateIdx ];
+        int candidateFrame = FramesToCluster[ candidateIdx ];
         double nearestDist = -1.0;
         for (int checkIdx = 0; checkIdx != seedIdx; checkIdx++)
         {
-          int seedFrame = FramesToCluster_[ SeedIndices_[checkIdx] ];
-          double dist = FrameDistances_.GetFdist( candidateFrame, seedFrame );
+          int seedFrame = FramesToCluster[ SeedIndices_[checkIdx] ];
+          double dist = FrameDistances().GetFdist( candidateFrame, seedFrame );
           if (dist < nearestDist || nearestDist < 0.0)
             nearestDist = dist;
         }

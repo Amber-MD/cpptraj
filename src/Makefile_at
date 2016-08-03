@@ -1,7 +1,9 @@
 # CPPTRAJ - AmberTools Makefile
 include ../../config.h
 
-CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
+XDRFILE_HOME=xdrfile
+XDRFILE_TARGET=$(XDRFILE_HOME)/libxdrfile.a
+CPPTRAJ_FLAGS= -I$(INCDIR) -I$(XDRFILE_HOME) $(CPPTRAJCXXFLAGS) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(PNETCDFDEF) $(SANDERAPI_DEF)
 # The EXTERNAL_LIBS line is used for triggering dependencies. It contains the
 # actual locations of the arpack, lapack, blas, and netcdf libraries as 
 # installed by AmberTools. Since the NETCDFLIB / FLIBS_PTRAJ vars can now just
@@ -10,7 +12,7 @@ CPPTRAJ_FLAGS= -I$(INCDIR) $(COPTFLAGS) $(CFLAGS) $(NETCDFINC) $(PNETCDFINC) $(P
 # NOTE: Since -nobintraj is possible and the dependency for netcdf is not
 #       set correctly by configure there is no way this can work for netcdf
 READLINE_HOME=readline
-EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE)
+EXTERNAL_LIBS=$(LIBDIR)/libarpack.a $(LIBDIR)/liblapack.a $(LIBDIR)/libblas.a $(READLINE) $(XDRFILE_TARGET)
 
 include cpptrajfiles
 
@@ -26,7 +28,6 @@ install: cpptraj$(SFX) ambpdb$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/
 	/bin/mv ambpdb$(SFX) $(BINDIR)/
 
-libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
 
 install_openmp: cpptraj$(SFX)
 	/bin/mv cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX)
@@ -45,17 +46,29 @@ dependclean:
 
 cpptraj$(SFX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS) $(SANDERAPI_DEP) 
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o cpptraj$(SFX) $(OBJECTS) pub_fft.o \
-               -L$(LIBDIR) $(NETCDFLIB) $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
-               $(FLIBS_PTRAJ) $(READLINE) $(SANDERAPI_LIB)
+               $(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) \
+               $(PNETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(FLIBS_PTRAJ) $(READLINE) $(XDRFILE_TARGET) $(SANDERAPI_LIB)
 
 ambpdb$(SFX): $(AMBPDB_OBJECTS)
 	$(CXX) $(WARNFLAGS) $(LDFLAGS) -o ambpdb$(SFX) $(AMBPDB_OBJECTS) \
-               -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB)
+               $(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) \
+               $(XDRFILE_TARGET)
 
-$(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
-	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) pub_fft.o \
-		-L$(LIBDIR) $(NETCDFLIB) $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) $(READLINE)
+# libcpptraj -------------------------------------
+# Rule to make libcpptraj-specific objects
+%.LIBCPPTRAJ.o : %.cpp
+	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -DLIBCPPTRAJ -o $@ $<
 
+libcpptraj: $(LIBDIR)/libcpptraj$(SHARED_SUFFIX)
+
+$(LIBDIR)/libcpptraj$(SHARED_SUFFIX): $(LIBCPPTRAJ_OBJECTS) pub_fft.o $(EXTERNAL_LIBS)
+	$(CXX) $(MAKE_SHARED) $(WARNFLAGS) $(LDFLAGS) -o $@ $(LIBCPPTRAJ_OBJECTS) pub_fft.o \
+		$(CPPTRAJLDFLAGS) $(AMBERLDFLAGS) -L$(LIBDIR) $(NETCDFLIB) \
+                $(ZLIB) $(BZLIB) $(FLIBS_PTRAJ) \
+                $(XDRFILE_TARGET)
+
+# ------------------------------------------------
 $(LIBDIR)/libarpack.a:
 	cd ../../arpack && $(MAKE) install
 
@@ -69,7 +82,10 @@ $(SANDERAPI_DEP):
 	cd ../../sander && $(MAKE) $(SANDERAPI_DEP)
 
 $(READLINE_HOME)/libreadline.a:
-	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at 
+	cd $(READLINE_HOME) && $(MAKE) -f Makefile_at
+
+$(XDRFILE_HOME)/libxdrfile.a:
+	cd $(XDRFILE_HOME) && $(MAKE) -f Makefile_at all
 
 pub_fft.o:  pub_fft.F90
 	$(FC) $(FWARNFLAGS) $(FPPFLAGS) -c $(FREEFORMAT_FLAG) $(FOPTFLAGS) $(FFLAGS) $(AMBERFFLAGS) -o $@ pub_fft.F90
@@ -84,7 +100,7 @@ ReadLine.o: ReadLine.cpp
 	$(CXX) $(WARNFLAGS) -c $(CPPTRAJ_FLAGS) -o $@ $<
 
 clean:
-	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX)
+	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX) *.LIBCPPTRAJ.o
 	cd readline && $(MAKE) -f Makefile_at clean
 
 uninstall:

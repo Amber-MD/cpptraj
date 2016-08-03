@@ -6,12 +6,13 @@
 Cluster_HierAgglo::Cluster_HierAgglo() :
   nclusters_(-1),
   epsilon_(-1.0),
-  linkage_(AVERAGELINK)
+  linkage_(AVERAGELINK),
+  includeSievedFrames_(false)
 {}
 
 void Cluster_HierAgglo::Help() {
   mprintf("\t[hieragglo [epsilon <e>] [clusters <n>] [linkage|averagelinkage|complete]\n"
-          "\t  [epsilonplot <file>]]\n");
+          "\t  [epsilonplot <file>]] [includesieved_cdist]\n");
 }
 
 static const char* LinkageString[] = {
@@ -25,6 +26,7 @@ int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   else if (analyzeArgs.hasKey("averagelinkage")) linkage_ = AVERAGELINK;
   else if (analyzeArgs.hasKey("complete"))       linkage_ = COMPLETELINK;
   else linkage_ = AVERAGELINK; // DEFAULT linkage
+  includeSievedFrames_ = analyzeArgs.hasKey("includesieved_cdist");
   std::string epsilonPlot = analyzeArgs.GetStringKey("epsilonplot");
   if (!epsilonPlot.empty()) {
     if (eps_v_n_.OpenWrite( epsilonPlot )) return 1;
@@ -39,7 +41,7 @@ int Cluster_HierAgglo::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_HierAgglo::ClusteringInfo() {
+void Cluster_HierAgglo::ClusteringInfo() const {
   mprintf("\tHierarchical Agglomerative:");
   if (nclusters_ != -1)
     mprintf(" %i clusters,",nclusters_);
@@ -48,6 +50,11 @@ void Cluster_HierAgglo::ClusteringInfo() {
   mprintf(" %s.\n", LinkageString[linkage_]);
   if (eps_v_n_.IsOpen())
     mprintf("\tWriting epsilon vs # clusters to '%s'\n", eps_v_n_.Filename().full());
+  if (includeSievedFrames_)
+    mprintf("\tSieved frames will be included in final cluster distance calculation.\n"
+            "Warning: 'includesieved_cdist' may be very slow.\n");
+  else
+    mprintf("\tSieved frames will not be included in final cluster distance calculation.\n");
 }
 
 /** Set up the initial distances between clusters. Should be called before 
@@ -56,39 +63,15 @@ void Cluster_HierAgglo::ClusteringInfo() {
 void Cluster_HierAgglo::InitializeClusterDistances() {
   // Sets up matrix and ignore array
   ClusterDistances_.SetupMatrix( clusters_.size() );
-  // Build initial cluster distances
-  if (linkage_==AVERAGELINK) {
-#   ifdef NEWCODE
-    // Set up matrix to hold sums of distances to clusters.
-    SumDistToCluster_.resize(0, clusters_.size());
-    for (cluster_iterator C1 = clusters_.begin(); C1 != clusters_.end(); ++C1) {
-      for (cluster_iterator C2 = C1; C2 != clusters_.end(); ++C2) {
-        if (C1 != C2) {
-          double sum = 0.0;
-          for (ClusterNode::frame_iterator F1 = C1->beginframe();
-                                           F1 != C1->endframe(); ++F1)
-            for (ClusterNode::frame_iterator F2 = C2->beginframe();
-                                             F2 != C2->endframe(); ++F2)
-              sum += FrameDistances_.GetFdist( *F1, *F2 );
-          SumDistToCluster_.setElement( C1->Num(), C2->Num(), sum );
-          double total = (double)(C1->Nframes() * C2->Nframes());
-          ClusterDistances_.SetElement( C1->Num(), C2->Num(), sum / total );
-        }
-      }
+  // Build initial cluster distances. Take advantage of the fact that
+  // the initial cluster layout is the same as the pairwise array.
+  unsigned int total_frames = FrameDistances().FramesToCluster().size();
+  for (unsigned int idx1 = 0; idx1 != total_frames; idx1++) {
+    int f1 = FrameDistances().FramesToCluster()[ idx1 ];
+    for (unsigned int idx2 = idx1 + 1; idx2 != total_frames; idx2++) {
+      int f2 = FrameDistances().FramesToCluster()[ idx2 ];
+      ClusterDistances_.SetCdist( idx1, idx2, FrameDistances().GetFdist(f1, f2) );
     }
-#   else
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcAvgDist(C1_it);
-#   endif
-  } else if (linkage_==SINGLELINK) {
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcMinDist(C1_it);
-  } else if (linkage_==COMPLETELINK) {
-    for (cluster_it C1_it = clusters_.begin();
-                    C1_it != clusters_.end(); C1_it++)
-      calcMaxDist(C1_it);
   }
   if (debug_ > 1) {
     mprintf("CLUSTER: INITIAL CLUSTER DISTANCES:\n");
@@ -112,8 +95,8 @@ int Cluster_HierAgglo::Cluster() {
   mprintf("\tStarting Hierarchical Agglomerative Clustering:\n");
   ProgressBar cluster_progress(-10);
   // Build initial clusters.
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); frame++) {
-    if (!FrameDistances_.IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); frame++) {
+    if (!FrameDistances().FrameWasSieved( frame ))
       AddCluster( ClusterDist::Cframes(1, frame) );
   }
   mprintf("\t%i initial clusters.\n", Nclusters());
@@ -144,12 +127,15 @@ int Cluster_HierAgglo::Cluster() {
 void Cluster_HierAgglo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: HierAgglo linkage %s nclusters %i epsilon %g\n",
                  LinkageString[linkage_], nclusters_, epsilon_);
-# ifdef TIMER
-  time_findMin_.WriteTiming(2, "Find min distance");
-  time_mergeFrames_.WriteTiming(2, "Merge cluster frames");
-  time_calcLinkage_.WriteTiming(2, "Calculate new linkage");
-# endif
 }
+
+#ifdef TIMER
+void Cluster_HierAgglo::Timing(double total) const {
+  time_findMin_.WriteTiming(2, "Find min distance", total);
+  time_mergeFrames_.WriteTiming(2, "Merge cluster frames", total);
+  time_calcLinkage_.WriteTiming(2, "Calculate new linkage", total);
+}
+#endif
 
 /** Find and merge the two closest clusters. */
 int Cluster_HierAgglo::MergeClosest() {
@@ -212,32 +198,11 @@ int Cluster_HierAgglo::MergeClosest() {
 # ifdef TIMER
   time_calcLinkage_.Start();
 # endif
-# ifdef NEWCODE
-  // Recalculate distances between C1 and all other clusters
-  if (linkage_ == AVERAGELINK) { // TODO: Const
-    // Update sums and average distances from C1 to other clusters, 
-    // excluding any that have already been merged. 
-    for (cluster_it C = clusters_.begin(); C != clusters_.end(); ++C) {
-      if (!ClusterDistances_.IgnoringRow(C->Num()) &&
-           C->Num() != C1 )
-      {
-        SumDistToCluster_.element( C1, C->Num() ) += SumDistToCluster_.element( C2, C->Num() );
-        double nDist = (double)(C1_it->Nframes() * C->Nframes());
-        ClusterDistances_.SetElement( C1, C->Num(), 
-                                      SumDistToCluster_.element(C1, C->Num()) / nDist );
-      }
-    }
-  } else if (linkage_ == SINGLELINK)
-    calcMinDist(C1_it);
-  else
-    calcMaxDist(C1_it);
-# else
   switch (linkage_) {
     case AVERAGELINK : calcAvgDist(C1_it); break;
     case SINGLELINK  : calcMinDist(C1_it); break;
     case COMPLETELINK: calcMaxDist(C1_it); break;
   }
-# endif
 # ifdef TIMER
   time_calcLinkage_.Stop();
 # endif
@@ -247,6 +212,63 @@ int Cluster_HierAgglo::MergeClosest() {
   }
 
   return 0;
+}
+
+// Cluster_HierAgglo::ClusterDistance()
+double Cluster_HierAgglo::ClusterDistance(ClusterNode const& C1, ClusterNode const& C2) const {
+  double dist = 0.0;
+  if (includeSievedFrames_) {
+    if (linkage_ == AVERAGELINK) {
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist += Frame_Distance(*f1, *f2);
+      }
+      dist /= (double)(C1.Nframes() * C2.Nframes());
+    } else if (linkage_ == SINGLELINK) { // min
+      dist = DBL_MAX;
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist = std::min( Frame_Distance(*f1, *f2), dist );
+      }
+    } else if (linkage_ == COMPLETELINK) { // max
+      dist = -1.0;
+      for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+      {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+          dist = std::max( Frame_Distance(*f1, *f2), dist );
+      }
+    }
+  } else {
+    // Ignore sieved frames.
+    switch (linkage_) {
+      case AVERAGELINK : dist = 0.0; break;
+      case SINGLELINK  : dist = DBL_MAX; break;
+      case COMPLETELINK: dist = -1.0; break;
+    }
+    unsigned int Nelements = 0;
+    for (ClusterNode::frame_iterator f1 = C1.beginframe(); f1 != C1.endframe(); ++f1)
+    {
+      if (!FrameDistances().FrameWasSieved( *f1 )) {
+        for (ClusterNode::frame_iterator f2 = C2.beginframe(); f2 != C2.endframe(); ++f2)
+        {
+          if (!FrameDistances().FrameWasSieved( *f2 )) {
+            switch (linkage_) {
+              case AVERAGELINK : dist += Frame_Distance(*f1, *f2); ++Nelements; break;
+              case SINGLELINK  : dist = std::min( Frame_Distance(*f1, *f2), dist ); break;
+              case COMPLETELINK: dist = std::max( Frame_Distance(*f1, *f2), dist ); break;
+            }
+          }
+        }
+      }
+    }
+    if (linkage_ == AVERAGELINK) dist /= (double)Nelements;
+  }
+  if (debug_ > 0)
+    mprintf("DEBUG: Calc dist between clusters %i (%i frames) and %i (%i frames), %g\n",
+            C1.Num(), C1.Nframes(), C2.Num(), C2.Nframes(), dist);
+  return dist;
 }
 
 /** Calculate the minimum distance between frames in cluster specified by
@@ -270,13 +292,13 @@ void Cluster_HierAgglo::calcMinDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist < min ) min = Dist;
       }
     }
     //mprintf("\t\tMin distance between %i and %i: %f\n",C1,newc2,min);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), min );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), min );
   }
 }
 
@@ -301,13 +323,13 @@ void Cluster_HierAgglo::calcMaxDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         if ( Dist > max ) max = Dist;
       }
     }
     //mprintf("\t\tMax distance between %i and %i: %f\n",C1,newc2,max);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), max );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), max );
   }
 }
 
@@ -324,7 +346,6 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
     //mprintf("\t\tRecalc distance between %i and %i:\n",(*C1_it).Num(),(*C2_it).Num());
     // Pick the minimum distance between newc2 and C1
     double sumDist = 0;
-    double N = 0;
     for (ClusterNode::frame_iterator c1frames = C1_it->beginframe();
                                      c1frames != C1_it->endframe();
                                      ++c1frames)
@@ -333,14 +354,13 @@ void Cluster_HierAgglo::calcAvgDist(cluster_it& C1_it)
                                        c2frames != C2_it->endframe();
                                        ++c2frames)
       {
-        double Dist = FrameDistances_.GetFdist(*c1frames, *c2frames);
+        double Dist = FrameDistances().GetFdist(*c1frames, *c2frames);
         //mprintf("\t\t\tFrame %i to frame %i = %f\n",*c1frames,*c2frames,Dist);
         sumDist += Dist;
-        N++;
       }
     }
-    double Dist = sumDist / N;
+    double Dist = sumDist / (double)(C1_it->Nframes() * C2_it->Nframes());
     //mprintf("\t\tAvg distance between %i and %i: %f\n",(*C1_it).Num(),(*C2_it).Num(),Dist);
-    ClusterDistances_.SetElement( C1_it->Num(), C2_it->Num(), Dist );
+    ClusterDistances_.SetCdist( C1_it->Num(), C2_it->Num(), Dist );
   }
 }

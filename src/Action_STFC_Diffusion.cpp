@@ -44,7 +44,7 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   // Get keywords
   std::string maskarg = actionArgs.GetStringKey("mask");
   if (maskarg.empty()) {
-    mprinterr("Error: diffusion: No mask specified.\n");
+    mprinterr("Error: No mask specified.\n");
     return Action::ERR;
   }
   mask_.SetMaskString( maskarg );
@@ -54,14 +54,14 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
     outfileName = "diffusion.dat";
   output_ = init.DFL().AddCpptrajFile(outfileName, "Diffusion");
   if ( output_ == 0 ) {
-    mprinterr("Error: diffusion: Could not open output file %s\n", outfileName.c_str());
+    mprinterr("Error: Could not open output file '%s'\n", outfileName.c_str());
     return Action::ERR;
   }
 
   outputad_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("avout"), "Diffusion Avg Dist");
   time_ = actionArgs.getKeyDouble("time", 1.0);
   if (time_ < 0) {
-    mprinterr("Error: diffusion: time argument cannot be < 0 (%lf)\n", time_);
+    mprinterr("Error: time argument cannot be < 0 (%f)\n", time_);
     return Action::ERR;
   }
   printDistances_ = actionArgs.hasKey("distances");
@@ -88,11 +88,13 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
       outputNumWat = "nw.dat";
     outputnw_ = init.DFL().AddCpptrajFile(outputNumWat, "Diffusion # waters");
     if ( outputnw_ == 0 ) {
-      mprinterr("Error: diffusion: Could not open nwout file %s\n", 
+      mprinterr("Error: Could not open diffusion number of waters output file '%s'\n", 
                 outputNumWat.c_str());
       return Action::ERR;
     }
     calcType_ = DIST;
+    // See if imaging is to be performed.
+    image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   }
 
   if (calcType_ != DEFAULT)
@@ -112,10 +114,14 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("\n\t\tMask 1 expression: %s\n", mask_.MaskString());
   if (calcType_ == COM)
     mprintf("\t\tCenter of mass diffusion of atoms in mask1 will be computed\n");
-  else if (calcType_ == DIST)
+  else if (calcType_ == DIST) {
     mprintf("\t\tAtoms in mask 2 (%s) in the range %.3f to %.3f Angstrom will be used\n",
             mask2_.MaskString(), lcut, ucut);
-
+    if (image_.UseImage())
+      mprintf("\t\tDistances will be imaged.\n");
+    else
+      mprintf("\t\tDistances will not be imaged.\n");
+  }
   if (!printDistances_)
     mprintf("\t\tOnly the average");
   else
@@ -138,9 +144,10 @@ Action::RetType Action_STFC_Diffusion::Init(ArgList& actionArgs, ActionInit& ini
 Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   // Setup atom mask
   if (setup.Top().SetupIntegerMask( mask_ )) return Action::ERR;
+  mask_.MaskInfo();
   if (mask_.None()) {
-    mprinterr("Error: diffusion: No atoms selected.\n");
-    return Action::ERR;
+    mprintf("Warning: No atoms selected.\n");
+    return Action::SKIP;
   }
   if (n_atom_ == -1) { // first time through, write header
     output_->Printf("%-10s %10s %10s %10s %10s","#time","x","y","z",DirectionString[direction_]);
@@ -156,10 +163,17 @@ Action::RetType Action_STFC_Diffusion::Setup(ActionSetup& setup) {
   // Setup second mask if necessary
   if ( calcType_ == DIST ) {
     if (setup.Top().SetupIntegerMask( mask2_ )) return Action::ERR;
+    mask2_.MaskInfo();
     if (mask2_.None()) {
-      mprinterr("Error: diffusion: No atoms selected in second mask.\n");
+      mprinterr("Error: No atoms selected by second mask.\n");
       return Action::ERR;
     }
+    // Set up imaging info
+    image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+    if (image_.ImagingEnabled())
+      mprintf("\tImaging distances.\n");
+    else
+      mprintf("\tImaging off.\n");
   }
 
   // Check for box
@@ -255,6 +269,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   double xx = XYZ[0] + deltaxyz_[idx23  ];
   double yy = XYZ[1] + deltaxyz_[idx23+1];
   double zz = XYZ[2] + deltaxyz_[idx23+2];
+  //mprintf("DEBUG: xx=%f yy=%f zz=%f\n", xx, yy, zz);
 
   // Calculate the distance between this "fixed" coordinate and the
   // reference (initial) frame
@@ -262,6 +277,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
   delx = xx - initialxyz_[idx13  ];
   dely = yy - initialxyz_[idx13+1];
   delz = zz - initialxyz_[idx13+2];
+  //mprintf("DEBUG: delx=%f dely=%f delz=%f   ix=%f iy=%f iz=%f\n", delx, dely, delz, initialxyz_[idx13  ], initialxyz_[idx13+1], initialxyz_[idx13+2]);
 
   // store the distance for this atom
   distancexyz_[idx23  ] = delx*delx;
@@ -289,6 +305,7 @@ void Action_STFC_Diffusion::calculateMSD(const double* XYZ, int idx1, int idx2, 
       sum2 = (xx * xx) + (yy * yy) + (zz * zz);
       break;
   }
+  //mprintf("DEBUG: sum=%f sum2=%f\n", sum, sum2);
 
   distance_[idx2] = sum;
   dSum1_[idx2] += sum2;       // sum r^2
@@ -306,17 +323,22 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
 
   // ----- Load initial frame if necessary -------
   if ( initialxyz_.empty() ) {
+    //mprintf("DEBUG: Initial frame is empty, mode %i\n", (int)calcType_);
     if ( calcType_ == DEFAULT ) { // All
-      // Save all initial coords, selected previous coords.
+      // Save all initial coords TODO use copy
+      for (int aidx = 0; aidx != frm.Frm().Natom(); ++aidx) {
+        const double* XYZ = frm.Frm().XYZ( aidx );
+        initialxyz_.push_back( XYZ[0] );
+        initialxyz_.push_back( XYZ[1] );
+        initialxyz_.push_back( XYZ[2] );
+      }
+      // Save selected previous coords.
       for (AtomMask::const_iterator selected_atom = mask_.begin();
                                     selected_atom != mask_.end(); ++selected_atom)
       {
         const double* XYZ = frm.Frm().XYZ(*selected_atom);
-        initialxyz_.push_back( XYZ[0] );
         previousxyz_.push_back( XYZ[0] );
-        initialxyz_.push_back( XYZ[1] );
         previousxyz_.push_back( XYZ[1] );
-        initialxyz_.push_back( XYZ[2] );
         previousxyz_.push_back( XYZ[2] );
       }
     } else if ( calcType_ == COM ) { // Center of Mass
@@ -374,7 +396,7 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
   else if (calcType_ == COM) 
   {
     Vec3 XYZ = frm.Frm().VCenterOfMass( mask_ );
-    //mprintf("CDBG:\tXYZ[%i] = %lf %lf %lf\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
+    //mprintf("CDBG:\tXYZ[%i] = %f %f %f\n", elapsedFrames_,XYZ[0], XYZ[1], XYZ[2]);
     calculateMSD( XYZ.Dptr(), 0, 0, Box );
     average = distance_[0];
     avgx = distancexyz_[0];
@@ -385,19 +407,33 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
   {
     // Check which atoms from mask1 are inside or outside the region defined
     // by lower and upper.
+    //mprintf("DEBUG: distances mode frame %i\n", elapsedFrames_);
     nInside_.assign( n_atom_, 0 );
     for ( AtomMask::const_iterator atom1 = mask_.begin(); atom1 != mask_.end(); ++atom1)
     {
       double minDist = upperCutoff_;
+      double dist2 = upperCutoff_;
+      const double* XYZ1 = frm.Frm().XYZ(*atom1);
       for ( AtomMask::const_iterator atom2 = mask2_.begin(); atom2 != mask2_.end(); ++atom2)
       {
-        double dist2 = DIST2_NoImage( frm.Frm().XYZ(*atom1), frm.Frm().XYZ(*atom2) );
-        // Find minimum distnace.
+        const double* XYZ2 = frm.Frm().XYZ(*atom2);
+        Matrix_3x3 ucell, recip;
+        switch ( image_.ImageType() ) {
+          case NONORTHO:
+            frm.Frm().BoxCrd().ToRecip(ucell, recip);
+            dist2 = DIST2_ImageNonOrtho(XYZ1, XYZ2, ucell, recip);
+            break;
+          case ORTHO:   dist2 = DIST2_ImageOrtho(XYZ1, XYZ2, frm.Frm().BoxCrd()); break;
+          case NOIMAGE: dist2 = DIST2_NoImage(XYZ1, XYZ2); break;
+        }
+        // Find minimum distance.
         if (dist2 < minDist) {
           minDist = dist2;
-          //mprintf("CDBG:\tMinDist^2 %i to %i is %lf\n", *atom1, *atom2, dist2);
+          //mprintf("DEBUG:\tMinDist^2 %i {%g %g %g} to %i {%g %g %g} is %f\n",
+          //        *atom1,XYZ1[0],XYZ1[1],XYZ1[2], *atom2,XYZ2[0],XYZ2[1],XYZ2[2], dist2);
         }
       }
+      //mprintf("DEBUG: MinDist^2=%f\n", minDist);
       if (minDist > lowerCutoff_ && minDist < upperCutoff_) {
         nInside_[ *atom1 ] = 1;
         calculateMSD( frm.Frm().XYZ(*atom1), *atom1, *atom1, Box );
@@ -413,13 +449,13 @@ Action::RetType Action_STFC_Diffusion::DoAction(int frameNum, ActionFrame& frm) 
         avgy += distancexyz_[i3+1];
         avgz += distancexyz_[i3+2];
         ++Nin; // NOTE: nInside only ever gets set to 1
-        //mprintf("CDBG: %i nInside= %i d= %lf dx= %lf dy= %lf dz= %lf\n",
+        //mprintf("DEBUG: %i nInside= %i d= %f dx= %f dy= %f dz= %f\n",
         //        i, Nin, distance_[i], distancexyz_[i3],distancexyz_[i3+1],distancexyz_[i3+2]);
       }
       i3 += 3;
     }
     if (Nin == 0) {
-      mprinterr("Error: diffusion: No atoms of mask 1 left for processing.\n");
+      mprinterr("Error: No atoms of mask 1 left for processing.\n");
       return Action::ERR;
     }
     average /= (double)Nin;

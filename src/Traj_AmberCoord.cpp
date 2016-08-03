@@ -297,7 +297,7 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberCoord::WriteHelp() {
-  mprintf("\tremdtraj:      Write temperature to trajectory (makes REMD trajectory).\n"
+  mprintf("\tremdtraj     : Write temperature to trajectory (makes REMD trajectory).\n"
           "\thighprecision: (ADVANCED USE ONLY) Write 8.6 instead of 8.3 format.\n");
 }
 

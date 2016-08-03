@@ -20,6 +20,9 @@
 #include "DataSet_Mat3x3.h"
 #include "DataSet_Topology.h"
 #include "DataSet_GridDbl.h"
+#include "DataSet_Cmatrix_MEM.h"
+#include "DataSet_Cmatrix_NOMEM.h"
+#include "DataSet_Cmatrix_DISK.h"
 
 // IMPORTANT: THIS ARRAY MUST CORRESPOND TO DataSet::DataType
 const DataSetList::DataToken DataSetList::DataArray[] = {
@@ -41,6 +44,9 @@ const DataSetList::DataToken DataSetList::DataArray[] = {
   { "reference",     DataSet_Coords_REF::Alloc }, // REF_FRAME
   { "3x3 matrices",  DataSet_Mat3x3::Alloc     }, // MAT3X3
   { "topology",      DataSet_Topology::Alloc   }, // TOPOLOGY
+  { "cluster matrix",DataSet_Cmatrix_MEM::Alloc}, // CMATRIX
+  { "cluster matrix (no memory)",DataSet_Cmatrix_NOMEM::Alloc}, // CMATRIX_NOMEM
+  { "cluster matrix (disk)",     DataSet_Cmatrix_DISK::Alloc},  // CMATRIX_DISK
   { 0, 0 }
 };
 
@@ -293,7 +299,7 @@ DataSet* DataSetList::FindSetOfType(std::string const& nameIn, DataSet::DataType
   if (dsetOut.empty())
     return 0;
   else if (dsetOut.size() > 1)
-    mprintf("Warning: '%s' selects multiple sets. Only using first.\n");
+    mprintf("Warning: '%s' selects multiple sets. Only using first.\n", nameIn.c_str());
   return dsetOut[0];
 }
 
@@ -500,20 +506,7 @@ int DataSetList::AddOrAppendSets(std::string const& XlabelIn, Darray const& Xval
     Xlabel = XlabelIn;
   Dimension Xdim;
   // First determine if X values increase monotonically with a regular step
-  bool isMonotonic = true;
-  double xstep = 1.0;
-  if (Xvals.size() > 1) {
-    xstep = (Xvals.back() - Xvals.front()) / (double)(Xvals.size() - 1);
-    for (Darray::const_iterator X = Xvals.begin()+2; X != Xvals.end(); ++X)
-      if ((*X - *(X-1)) - xstep > Constants::SMALL) {
-        isMonotonic = false;
-        break;
-      }
-    // Set dim even for non-monotonic sets so Label is correct. FIXME is this ok?
-    Xdim = Dimension( Xvals.front(), xstep, Xlabel );
-  } else
-    // No X values. set generic X dim.
-    Xdim = Dimension(1.0, 1.0, Xlabel);
+  bool isMonotonic = Xdim.SetDimension(Xvals, Xlabel);
   if (debug_ > 0) {
     mprintf("DEBUG: xstep %g xmin %g\n", Xdim.Step(), Xdim.Min());
     if (isMonotonic) mprintf("DEBUG: Xdim is monotonic.\n");

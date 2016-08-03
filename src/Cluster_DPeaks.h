@@ -6,8 +6,11 @@ class Cluster_DPeaks : public ClusterList {
     Cluster_DPeaks();
     static void Help();
     int SetupCluster(ArgList&);
-    void ClusteringInfo();
+    void ClusteringInfo() const;
     int Cluster();
+#   ifdef TIMER
+    void Timing(double) const {}
+#   endif
     void AddSievedFrames();
     void ClusterResults(CpptrajFile&) const;
   private:

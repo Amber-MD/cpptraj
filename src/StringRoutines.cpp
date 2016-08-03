@@ -107,7 +107,8 @@ public:
 int convertToInteger(std::string const &s) {
   std::istringstream iss(s);
   long int i;
-  if (!(iss >> i))
+  iss >> i;
+  if (iss.fail())
     throw BadConversion("convertToInteger(\"" + s + "\")");
   return (int)i;
 }
@@ -117,7 +118,8 @@ int convertToInteger(std::string const &s) {
 double convertToDouble(std::string const &s) {
   std::istringstream iss(s);
   double d;
-  if (!(iss >> d))
+  iss >> d;
+  if (iss.fail())
     throw BadConversion("convertToDouble(\"" + s + "\")");
   return d;
 }
@@ -136,6 +138,28 @@ std::string NoTrailingWhitespace(std::string const& line) {
   std::string duplicate(line);
   RemoveTrailingWhitespace(duplicate);
   return duplicate;
+}
+
+/// Remove all whitespace from string.
+void RemoveAllWhitespace(std::string& line) {
+  if (line.empty()) return;
+  std::string tmp( line );
+  line.clear();
+  for (std::string::const_iterator it = tmp.begin(); it != tmp.end(); ++it) {
+    if (isspace(*it) || *it == '\n' || *it == '\r') continue;
+    line += *it;
+  }
+}
+
+/// \return Given string with all whitespace removed.
+std::string NoWhitespace(std::string const& line) {
+  if (line.empty()) return std::string("");
+  std::string out;
+  for (std::string::const_iterator it = line.begin(); it != line.end(); ++it) {
+    if (isspace(*it) || *it == '\n' || *it == '\r') continue;
+    out += *it;
+  }
+  return out;
 }
 
 // integerToString()
@@ -180,7 +204,8 @@ bool validDouble(std::string const& argument) {
   if (argument.empty()) return false;
   std::istringstream iss(argument);
   double val;
-  return (iss >> val);
+  iss >> val;
+  return !(iss.fail());
 }
 
 // -----------------------------------------------------------------------------

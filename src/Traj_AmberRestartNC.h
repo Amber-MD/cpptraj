@@ -33,15 +33,15 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
 #   endif
   private:
     double restartTime_;
-    bool singleWrite_;
-    bool useVelAsCoords_;
-    bool outputTemp_;
-    bool outputVel_;
-    bool outputTime_;
-    bool readAccess_;
-    bool prependExt_;
     double time0_;
     double dt_;
+    int n_atoms_;         ///< Write only - number of atoms.
+    bool singleWrite_;
+    bool useVelAsCoords_;
+    bool useFrcAsCoords_;
+    bool outputTemp_;
+    bool readAccess_;
+    bool prependExt_;
     FileName filename_;
 
     int readVelocity(int, Frame&) { return 1; }

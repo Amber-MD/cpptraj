@@ -9,7 +9,7 @@
 //#define DEBUG_PERMUTEDIHEDRALS
 
 // CONSTRUCTOR
-Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(GENERAL),
+Exec_PermuteDihedrals::Exec_PermuteDihedrals() : Exec(COORDS),
   mode_(INTERVAL),
   debug_(0),
   outframe_(0),

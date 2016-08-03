@@ -163,6 +163,7 @@ Action::RetType Action_Gist::Init(ArgList& actionArgs, ActionInit& init, int deb
   mprintf("\tGIST grid dimension: %d %d %d \n", griddim_[0],griddim_[1],griddim_[2]);
   mprintf("\tGIST grid spacing: %5.3f A^3\n", gridspacn_);
   mprintf("\t#Please cite these papers if you use GIST results in a publication:\n"
+	  "\t#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
           "\t#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
           "\t#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "\t#      J. Chem. Phys. 137, 044101 (2012)\n"

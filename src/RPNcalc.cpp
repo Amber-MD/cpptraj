@@ -91,7 +91,8 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
       if (debug_ > 0) mprintf("Number detected: %s\n", number.c_str());
       std::istringstream iss(number);
       double val;
-      if (!(iss >> val)) {
+      iss >> val;
+      if (iss.fail()) {
         mprinterr("Error: Invalid number: %s\n", number.c_str());
         return 1;
       }
@@ -104,7 +105,8 @@ int RPNcalc::ProcessExpression(std::string const& expression) {
         if (debug_ > 0) mprintf("Exponent detected: %s\n", exponent.c_str());
         double eval;
         std::istringstream iss2(exponent);
-        if (!(iss2 >> eval)) {
+        iss2 >> eval;
+        if (iss2.fail()) {
           mprinterr("Error: Invalid exponent: %s\n", exponent.c_str());
           return 1;
         }
@@ -868,7 +870,8 @@ int RPNcalc::Nparams() const {
       {
         std::istringstream iss( T->Name().substr(1) );      
         int pnum;
-        if (!(iss >> pnum)) {
+        iss >> pnum;
+        if (iss.fail()) {
           mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
           return 1;
         }
@@ -917,7 +920,8 @@ int RPNcalc::Evaluate(Darray const& Params, double X, double& Result) const {
           // Find parameter An, where n is parameter position.
           std::istringstream iss( T->Name().substr(1) );
           int nparam;
-          if (!(iss >> nparam)) {
+          iss >> nparam;
+          if (iss.fail()) {
             mprinterr("Error: Invalid parameter number: %s\n", T->Name().substr(1).c_str());
             return 1;
           }

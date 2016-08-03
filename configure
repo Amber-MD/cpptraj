@@ -68,10 +68,12 @@ UsageFull() {
   echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
-  echo "    -profile            : Use Gnu compiler profiling (>= V4.5)*"
-  echo "    -gprofile           : Use Gnu compiler GLIBC profiling (>= V4.5)*"
-  echo "    -vtune              : Enable options for use with Intel Vtune"
-  echo "    -single-ensemble    : Enable support for reading/writing single ensemble trajectories."
+  echo "    -profile         : Use Gnu compiler profiling (>= V4.5)*"
+  echo "    -gprofile        : Use Gnu compiler GLIBC profiling (>= V4.5)*"
+  echo "    -vtune           : Enable options for use with Intel Vtune"
+  echo "    -single-ensemble : Enable support for reading/writing single ensemble trajectories."
+  echo "    -cuda            : Enable support for CUDA. Requires SHADER_MODEL be set."
+  echo "    SHADER_MODEL     : Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
@@ -116,7 +118,7 @@ EOF
       ERR=$?
     fi
     if [[ $ERR -ne 0 ]] ; then
-      echo "Error: OpenMP not supported for compiler $COMPILERS"
+      echo "Error: OpenMP not supported for compiler $CXX"
       exit 1
     fi
     /bin/rm -f testp testp.cpp
@@ -388,7 +390,7 @@ SetCompilerOptions() {
       if [ -z "$CC" ]; then CC=icc; fi
       if [ -z "$CXX" ]; then CXX=icpc; fi
       if [ -z "$FC" ]; then FC=ifort; fi
-      OPTFLAGS="-O3 -Wall"
+      OPTFLAGS="-O3 -Wall -fp-model precise -fp-model source"
       OMPFLAGS="-openmp"
       FFLAGS="-FR"
       FOPTFLAGS="-ip -O3"
@@ -465,6 +467,7 @@ USECRAY=0
 USELIBSCI=0
 USESHARED=0
 SFX=""
+EXE=""
 CPPTRAJHOME=""
 CPPTRAJBIN=""
 CPPTRAJLIB=""
@@ -487,8 +490,12 @@ ZLIB_HOME=""
 BLAS_HOME=""
 LAPACK_HOME=""
 ARPACK_HOME=""
-READLINE_HOME="readline"
+READLINE_HOME='readline'
 READLINE_TARGET="$READLINE_HOME/libreadline.a"
+READLINE=$READLINE_TARGET
+XDRFILE_HOME='xdrfile'
+XDRFILE_TARGET="$XDRFILE_HOME/libxdrfile.a"
+XDRFILE=$XDRFILE_TARGET
 NETCDFLIB="-lnetcdf"
 PNETCDFLIB=""
 BZLIB="-lbz2"
@@ -499,16 +506,18 @@ ARPACK="-larpack"
 FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
-LIBCPPTRAJ="nolibcpptraj" # Set to libcpptraj target if library will be built
+USE_LIBCPPTRAJ=0 # Set to 1 if libcpptraj will be built
 USE_SANDERLIB=1
 SANDERLIB_HOME=""
-READLINE=$READLINE_TARGET
 USE_AMBER_LIB=0
 USEMKL=0
 FLIBS=""
 HDF5LIB="" #"-lhdf5_hl -lhdf5"
 WINDOWS="no"
 CROSS_COMPILE="no"
+USECUDA=0
+CUDA_TARGET=""
+CLEAN='yes' # Clean source directory if configure is successful
 
 # Private variables
 quadmath=""
@@ -585,6 +594,7 @@ while [[ ! -z $1 ]] ; do
     "-mpi"          ) USEMPI=1 ;;
     "-intelmpi"     ) USEMPI=2 ;;
     "-openmp"       ) USEOPENMP=1 ;;
+    "-cuda"         ) USECUDA=1 ;;
     "-profile"      ) PROFILE=1 ;;
     "-gprofile"     ) PROFILE=2 ;;
     "-vtune"        ) PROFILE=3 ;;
@@ -604,8 +614,7 @@ while [[ ! -z $1 ]] ; do
     "-shared"       )
       echo "Enabling position-independent code for generating shared library."
       USESHARED=1
-      USE_SANDERLIB=0
-      LIBCPPTRAJ="libcpptraj\$(SHARED_SUFFIX)"
+      USE_LIBCPPTRAJ=1
       ;;
     "-amberlib"     )
       if [[ -z $AMBERHOME ]] ; then
@@ -649,7 +658,7 @@ while [[ ! -z $1 ]] ; do
       ZLIB=""
       ;;
     "-nonetcdf"     )
-      echo "Not using netcdf"
+      echo "Not using NetCDF"
       NETCDFLIB=""
       ;;
     "-nomathlib")
@@ -670,6 +679,12 @@ while [[ ! -z $1 ]] ; do
       READLINE_TARGET="noreadline"
       READLINE=""
       ;;
+    "-noxdrfile")
+      echo "Not using XDRFILE."
+      DIRECTIVES="$DIRECTIVES -DNO_XDRFILE"
+      XDRFILE_TARGET="noxdrfile"
+      XDRFILE=""
+      ;;
     "-windows")
       printf "WINDOWS support requested. Implies -static."
       READLINE_TARGET="noreadline"
@@ -683,11 +698,15 @@ while [[ ! -z $1 ]] ; do
         echo " Native windows build."
         quadmath="-lquadmath"
       fi
-      SFX=".exe"
+      EXE=".exe"
       ;;
     "-openblas")
       echo "Using OpenBLAS"
       USEOPENBLAS=1
+      ;;
+    "-noclean" )
+      echo "Source directory will not be cleaned after 'configure'."
+      CLEAN='no'
       ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -702,13 +721,16 @@ while [[ ! -z $1 ]] ; do
     "--with-netcdf" )
       INCLUDE="$INCLUDE -I$VALUE/include"
       NETCDF_HOME="$VALUE"
-      echo "Using NETCDF in $NETCDF_HOME"
+      echo "Using NetCDF in $NETCDF_HOME"
       ;;
     "--with-pnetcdf" )
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
-      echo "Using parallel NETCDF in $PNETCDF_HOME"
+      echo "Using parallel NetCDF in $PNETCDF_HOME"
       if [[ $USEMPI -eq 0 ]] ; then
+        echo ""
+        echo "Warning: '-lpnetcdf' specified but MPI not specified. Assuming '-mpi'"
+        echo ""
         USEMPI=1
       fi
       ;;
@@ -750,6 +772,12 @@ while [[ ! -z $1 ]] ; do
       READLINE="-L$VALUE/lib -lreadline"
       external_readline="yes"
       ;;
+    "--with-xdrfile")
+      echo "Using external xdrfile"
+      XDRFILE_HOME=$VALUE
+      XDRFILE_TARGET='noxdrfile'
+      XDRFILE="-L$VALUE/lib -lxdrfile"
+      ;;
     "--prefix" )
       CPPTRAJHOME=$VALUE
       CPPTRAJBIN=$VALUE/bin
@@ -781,6 +809,15 @@ fi
 
 # If compiler has not yet been specified, determine from CXX, otherwise default
 # to GNU
+if [ ! -z "$CXX" ] ; then
+  echo "C++ compiler (CXX) set to $CXX"
+fi
+if [ ! -z "$CC" ] ; then
+  echo "C compiler (CC) set to $CC"
+fi
+if [ ! -z "$FC" ] ; then
+  echo "Fortran compiler (FC) set to $FC"
+fi
 if [[ -z $COMPILERS ]] ; then
   if [[ ! -z $CXX ]] ; then
     echo "Determining compilers from CXX ($CXX)"
@@ -836,7 +873,7 @@ fi
 # Only use parallel NETCDF with MPI
 if [[ ! -z $PNETCDFLIB ]] ; then
   if [[ $USEMPI -eq 0 ]] ; then
-    echo "Warning: Parallel NETCDF only supported with '-mpi'/'-intelmpi'"
+    echo "Warning: Parallel NetCDF only supported with '-mpi'/'-intelmpi'"
     PNETCDFLIB=""
     PNETCDF_HOME=""
   else
@@ -872,6 +909,14 @@ if [[ $USE_AMBER_LIB -eq 1 ]] ; then
   fi
   if [[ -z $NETCDF_HOME && ! -z $NETCDFLIB ]] ; then
     NETCDF_HOME=$AMBERHOME
+  fi
+fi
+
+if [ ! -z "$XDRFILE" ] ; then
+  if [ "$XDRFILE_TARGET" = 'noxdrfile' ] ; then
+    INCLUDE="$INCLUDE -I$XDRFILE_HOME/include"
+  else
+    INCLUDE="$INCLUDE -I$XDRFILE_HOME"
   fi
 fi
 
@@ -1000,7 +1045,7 @@ fi
 
 # Set up linking flags if not already set.
 # LDFLAGS contains flags common to cpptraj and ambpdb
-LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $LDFLAGS"
+LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $XDRFILE $LDFLAGS"
 # CPPTRAJ_LIB contains flags specific to cpptraj
 CPPTRAJ_LIB="$ARPACK $LAPACK $BLAS $MKLLIB $FLIBS"
 if [[ ! -z $FFT_LIBDIR ]] ; then
@@ -1026,10 +1071,10 @@ if [[ $USEOPENMP -eq 1 ]] ; then
     echo "OpenMP not currently supported on Windows"
     exit 1
   fi
-  echo "Using OPENMP"
+  echo "Using OpenMP"
   DIRECTIVES="$OMPFLAGS $DIRECTIVES"
   LDFLAGS="$OMPFLAGS $LDFLAGS"
-  SFX=".OMP"
+  SFX=$SFX".OMP"
 fi
 
 # Remove opt flags if specified
@@ -1044,6 +1089,44 @@ if [[ $COMPILERS = "cray" && $USEOPENMP -eq 0 ]] ; then
   DIRECTIVES="-h noomp "$DIRECTIVES
 fi
 
+# Check that CUDA will work.
+if [[ $USECUDA -eq 1 ]] ; then
+  echo "Using CUDA"
+  echo "****************************************************************"
+  echo "* Warning: The CUDA code in cpptraj is currently experimental. *"
+  echo "* Warning: Use at your own risk.                               *"
+  echo "****************************************************************"
+  if [ -z "$CUDA_HOME" ] ; then
+    echo "Error: CUDA_HOME not set." > /dev/stderr
+    echo "       Set CUDA_HOME to point to your NVIDIA tools installation." > /dev/stderr
+    exit 1
+  fi
+  if [ ! -x "$CUDA_HOME/bin/nvcc" ]; then
+    echo "Error: nvcc cuda compiler not found in $CUDA_HOME/bin/" > /dev/stderr
+    exit 1
+  fi
+  if [ -z "$SHADER_MODEL" ] ; then
+    echo "Error: SHADER_MODEL not set. Set based on architecture of your GPU." > /dev/stderr
+    echo "  'sm_53' = SM5.3 = GM200 [Grid] = M60, M40?" > /dev/stderr
+    echo "  'sm_52' = SM5.2 = GM200 = GTX-Titan-X, M6000 etc." > /dev/stderr
+    echo "  'sm_50' = SM5.0 = GM204 = GTX980, 970 etc" > /dev/stderr
+    echo "  'sm_37' = SM3.7 = GK210 = K80" > /dev/stderr
+    echo "  'sm_35' = SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z" > /dev/stderr
+    echo "  'sm_30' = SM3.0 = GK104 = K10, GTX680, 690 etc." > /dev/stderr
+    echo "  'sm_20' = SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc." > /dev/stderr
+    exit 1
+  fi
+  if [ -z "$NVCC" ]; then NVCC="$CUDA_HOME/bin/nvcc"; fi
+  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DEBUGFLAGS -arch=$SHADER_MODEL"; fi
+  DIRECTIVES=$DIRECTIVES" -DCUDA"
+  CUDA_VERSION=`$NVCC --version | grep 'release' | cut -d' ' -f5 | cut -d',' -f1`
+  echo "CUDA version $CUDA_VERSION detected."
+  INCLUDE="$INCLUDE -I$CUDA_HOME/include"
+  LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
+  CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
+  SFX=$SFX".cuda"
+fi
+
 # Change to MPI compiler wrappers if specified
 if [[ $USEMPI -ne 0 ]] ; then
   if [[ "$WINDOWS" = "yes" ]]; then
@@ -1051,13 +1134,13 @@ if [[ $USEMPI -ne 0 ]] ; then
     exit 1
   fi
   if [[ -z $PNETCDFLIB ]] ; then
-    echo ""
-    echo "Warning: No parallel NetCDF library specified."
-    echo "Warning: NetCDF parallel trajectory output requires parallel NetCDF."
-    echo ""
+    echo "************************************************************************"
+    echo "* Warning: No parallel NetCDF library specified.                       *"
+    echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
+    echo "************************************************************************"
   fi
   DIRECTIVES="$DIRECTIVES -DMPI"
-  SFX=".MPI"
+  SFX=$SFX".MPI"
   if [[ $USEMPI -eq 1 ]] ; then
     echo "Using MPI"
     CC=mpicc
@@ -1136,14 +1219,47 @@ if [[ "$CROSS_COMPILE" = "no" ]]; then
   TestSanderlib
 fi
 
+# Determine which targets to build
+CPPTRAJ_TARGET=""
+AMBPDB_TARGET=""
+LIBCPPTRAJ_TARGET=""
+NPROC_TARGET=""
+INSTALL_TARGETS=""
+# Always build cpptraj
+CPPTRAJ_TARGET=cpptraj$SFX$EXE
+INSTALL_TARGETS=$INSTALL_TARGETS" install_cpptraj"
+# Only build ambpdb in serial
+if [ "$USEMPI" -eq 0 -a "$USEOPENMP" -eq 0 -a "$USECUDA" -eq 0 ] ; then
+  AMBPDB_TARGET=ambpdb
+  INSTALL_TARGETS=$INSTALL_TARGETS" install_ambpdb"
+fi
+# Can we build libcpptraj? 
+if [ "$USE_LIBCPPTRAJ" -eq 1 ] ; then
+  LIBCPPTRAJ_TARGET='$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)'
+else
+  LIBCPPTRAJ_TARGET='nolibcpptraj'
+fi
+# Only build nproc for MPI
+if [ "$USEMPI" -ne 0 ] ; then
+  NPROC_TARGET=nproc
+  INSTALL_TARGETS=$INSTALL_TARGETS" $NPROC_TARGET"
+fi
+
 # Write config.h
 cat > config.h <<EOF
 # config.h for cpptraj
 # configured using: $CONFIGURECMD
+EOF
+if [ "$USECUDA" -eq 1 ] ; then
+  echo "# SHADER_MODEL=$SHADER_MODEL" >> config.h
+fi
+cat >> config.h <<EOF
 
 CPPTRAJHOME=$CPPTRAJHOME
 CPPTRAJBIN=$CPPTRAJBIN
 CPPTRAJLIB=$CPPTRAJLIB
+
+INSTALL_TARGETS=$INSTALL_TARGETS
 
 EOF
 if [[ ! -z $DBGFLAGS ]] ; then
@@ -1158,11 +1274,19 @@ CXXFLAGS=$CXXFLAGS \$(DBGFLAGS)
 FFLAGS=$FFLAGS \$(DBGFLAGS)
 SHARED_SUFFIX=$SHARED_SUFFIX
 
+LIBCPPTRAJ_TARGET=$LIBCPPTRAJ_TARGET
+
+NVCC=$NVCC
+NVCCFLAGS=$NVCCFLAGS \$(DBGFLAGS)
+CUDA_TARGET=$CUDA_TARGET
+
 READLINE=$READLINE
 READLINE_HOME=$READLINE_HOME
 READLINE_TARGET=$READLINE_TARGET
 
-LIBCPPTRAJ=$LIBCPPTRAJ
+XDRFILE=$XDRFILE
+XDRFILE_HOME=$XDRFILE_HOME
+XDRFILE_TARGET=$XDRFILE_TARGET
 
 FFT_DEPEND=$FFT_DEPEND
 FFT_LIB=$FFT_LIB
@@ -1170,19 +1294,20 @@ FFT_LIB=$FFT_LIB
 CPPTRAJ_LIB=$CPPTRAJ_LIB
 LDFLAGS=$LDFLAGS
 SFX=$SFX
+EXE=$EXE
 EOF
 
 # Create directories if necessary
-if [[ ! -e $CPPTRAJBIN ]] ; then
+if [ ! -e "$CPPTRAJBIN" ] ; then
   mkdir $CPPTRAJBIN
 fi
-if [[ ! -e $CPPTRAJLIB ]] ; then
+if [ ! -e "$CPPTRAJLIB" ] ; then
   mkdir $CPPTRAJLIB
 fi
 
 # Clean the source directory if necessary.
-if [[ -f "src/main.o" ]] ; then
-  echo "Cleaning previous compile."
+if [ "$CLEAN" = 'yes' ] ; then
+  echo 'Cleaning source directory.'
   cd src && make clean > /dev/null 2> /dev/null
 fi
 

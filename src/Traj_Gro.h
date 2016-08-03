@@ -31,5 +31,6 @@ class Traj_Gro : public TrajectoryIO {
     int currentSet_;
     int linesToRead_; ///< For blank reads
     FileName fname_; ///< File name TODO file_ should save this
+    static const double GMX_VEL_TO_AMBER;
 };
 #endif

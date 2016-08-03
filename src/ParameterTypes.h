@@ -8,6 +8,8 @@ class BondParmType {
     BondParmType(double rk, double req) : rk_(rk), req_(req) {}
     inline double Rk()  const { return rk_;  }
     inline double Req() const { return req_; }
+    inline void SetRk(double rk)   { rk_ = rk;   }
+    inline void SetReq(double req) { req_ = req; }
     bool operator<(const BondParmType& rhs) const {
       if (rk_ == rhs.rk_) {
         return (req_ < rhs.req_);
@@ -45,6 +47,8 @@ class AngleParmType {
     AngleParmType(double tk, double teq) : tk_(tk), teq_(teq) {}
     inline double Tk()  const { return tk_;  }
     inline double Teq() const { return teq_; }
+    inline void SetTk(double tk)   { tk_ = tk;   }
+    inline void SetTeq(double teq) { teq_ = teq; } 
     bool operator<(const AngleParmType& rhs) const {
       if (tk_ == rhs.tk_) {
         return (teq_ < rhs.teq_);
@@ -94,6 +98,9 @@ class DihedralParmType {
     inline double Phase() const { return phase_; }
     inline double SCEE()  const { return scee_;  }
     inline double SCNB()  const { return scnb_;  }
+    void SetPk(double k)        { pk_ = k;       }
+    void SetPn(double n)        { pn_ = n;       }
+    void SetPhase(double p)     { phase_ = p;    }
     void SetSCEE(double s)      { scee_ = s;     }
     void SetSCNB(double s)      { scnb_ = s;     }
     bool operator<(DihedralParmType const& rhs) const {
@@ -166,6 +173,9 @@ class HB_ParmType {
     inline double Asol()  const { return asol_;  }
     inline double Bsol()  const { return bsol_;  }
     inline double HBcut() const { return hbcut_; }
+    void SetAsol(double a)  { asol_ = a;  }
+    void SetBsol(double b)  { bsol_ = b;  }
+    void SetHBcut(double h) { hbcut_ = h; }
   private:
     double asol_;
     double bsol_;
@@ -179,6 +189,8 @@ class NonbondType {
     NonbondType(double a, double b) : A_(a), B_(b) {}
     inline double A() const { return A_; }
     inline double B() const { return B_; }
+    void SetA(double a) { A_ = a; }
+    void SetB(double b) { B_ = b; }
   private:
     double A_;
     double B_;
@@ -191,9 +203,9 @@ typedef std::vector<NonbondType> NonbondArray;
 class NonbondParmType {
   public:
     NonbondParmType() : ntypes_(0) {}
-    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
-                    HB_ParmArray const& hba) :
-                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
+//    NonbondParmType(int n, std::vector<int> const& nbi, NonbondArray const& nba,
+//                    HB_ParmArray const& hba) :
+//                      ntypes_(n), nbindex_(nbi), nbarray_(nba), hbarray_(hba) {}
     inline bool HasNonbond()             const { return ntypes_ > 0; }
     inline int Ntypes()                  const { return ntypes_;     }
     std::vector<int> const& NBindex()    const { return nbindex_;    }
@@ -210,6 +222,16 @@ class NonbondParmType {
       ntypes_ = n;
       nbindex_.assign(ntypes_ * ntypes_, -1); 
     }
+    /// Set number of LJ terms and init LJ array TODO combine with SetNtypes?
+    void SetNLJterms(int n)   { nbarray_.assign( n, NonbondType() ); }
+    /// Set specified LJ term
+    NonbondType& SetLJ(int i) { return nbarray_[i];                  }
+    /// Set number of HB terms and init HB array TODO combine with SetNtypes?
+    void SetNHBterms(int n)   { hbarray_.assign( n, HB_ParmType() ); }
+    /// Set specified HB term
+    HB_ParmType& SetHB(int i) { return hbarray_[i];                  }
+    /// Set specified nbindex location to given value. FIXME no bounds check
+    void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
     void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
       nbindex_[ntypes_ * type1 + type2] = ndx;
@@ -225,19 +247,7 @@ class NonbondParmType {
       nbindex_[ntypes_ * type2 + type1] = ndx;
       hbarray_.push_back( HB );
     }
-    /// 
-    static void NB_to_array(NonbondArray const& nba, std::vector<double>& Rk, std::vector<double>& Req)
-    {
-      Rk.clear();
-      Req.clear();
-      Rk.reserve( nba.size() );
-      Req.reserve( nba.size() );
-      for (NonbondArray::const_iterator nb = nba.begin(); nb != nba.end(); ++nb)
-      {
-        Rk.push_back( nb->A() );
-        Req.push_back( nb->B() );
-      }
-    }
+    void Clear() { ntypes_ = 0; nbindex_.clear(); nbarray_.clear(); hbarray_.clear(); }
   private:
     int ntypes_;               ///< Number of unique atom types
     std::vector<int> nbindex_; ///< Hold indices into arrays nbarray/hbarray for atom type pairs
@@ -253,6 +263,9 @@ class LES_AtomType {
     inline int Type() const { return type_; }
     inline int Copy() const { return cnum_; }
     inline int ID()   const { return id_;   }
+    void SetType(int t) { type_ = t; }
+    void SetCopy(int c) { cnum_ = c; }
+    void SetID(int i)   { id_ = i;   }
   private:
     int type_; ///< LES atom type
     int cnum_; ///< LES copy #
@@ -263,10 +276,14 @@ typedef std::vector<LES_AtomType> LES_Array;
 class LES_ParmType {
   public:
     LES_ParmType() : ntypes_(0), ncopies_(0) {}
-    LES_ParmType(int na, int nt, std::vector<double> const& fac) : 
-                     ntypes_(nt), ncopies_(0), fac_(fac)
-    {
-      array_.reserve( na );
+    /// Prepare LES_ParmType to receive data based on given # atoms and # LES types.
+    void Allocate(int natomsIn, int ntypesIn) {
+      ntypes_ = ntypesIn;
+      ncopies_ = 0;
+      array_.clear();
+      array_.resize( natomsIn );
+      fac_.clear();
+      fac_.resize( ntypes_ * ntypes_ );
     }
     inline bool HasLES()                const { return ntypes_ > 0;      }
     inline int Ntypes()                 const { return ntypes_;          }
@@ -284,6 +301,19 @@ class LES_ParmType {
       if (array_.back().Copy() > ncopies_ )
         ncopies_ = array_.back().Copy();
     }
+    /// Set LES fac at given position.
+    void SetFAC(int idx, double f)  { fac_[idx] = f; }
+    /// Set given LES atom type
+    void SetType(int idx, int type) { array_[idx].SetType( type ); }
+    /// Set given LES atom copy number. FIXME see AddLES_Atom above.
+    void SetCopy(int idx, int cnum) {
+      array_[idx].SetCopy( cnum );
+      if (cnum > ncopies_) ncopies_ = cnum;
+    }
+    /// Set given LES atom ID
+    void SetID(int idx, int id)     { array_[idx].SetID( id ); }
+    /// Clear all data
+    void Clear() { ntypes_ = 0; ncopies_ = 0; array_.clear(); fac_.clear(); }
   private:
     int ntypes_;              ///< Total number of LES types 
     int ncopies_;             ///< Total number of LES copies.
@@ -294,14 +324,18 @@ class LES_ParmType {
 class CapParmType {
   public:
     CapParmType() : natcap_(0), cutcap_(0), xcap_(0), ycap_(0), zcap_(0) {}
-    CapParmType(int n, double c, double x, double y, double z) :
-                    natcap_(n), cutcap_(c), xcap_(x), ycap_(y), zcap_(z) {}
     inline bool HasWaterCap() const { return cutcap_ > 0.0; }
     inline int NatCap()       const { return natcap_; }
     inline double CutCap()    const { return cutcap_; }
     inline double xCap()      const { return xcap_;   }
     inline double yCap()      const { return ycap_;   }
     inline double zCap()      const { return zcap_;   }
+    void Clear() { natcap_ = 0; cutcap_ = 0.0; xcap_ = 0.0; ycap_ = 0.0; zcap_ = 0.0; }
+    void SetNatcap(int n)    { natcap_ = n; }
+    void SetCutCap(double c) { cutcap_ = c; }
+    void SetXcap(double x)   { xcap_ = x;   }
+    void SetYcap(double y)   { ycap_ = y;   }
+    void SetZcap(double z)   { zcap_ = z;   }
   private:
     int natcap_;    ///< last atom before the start of the cap of waters
     double cutcap_; ///< the distance from the center of the cap to the outside
@@ -314,13 +348,14 @@ class CapParmType {
 class CmapGridType {
   public:
     CmapGridType() : resolution_(0) {}
-    CmapGridType(int r, std::vector<double> const& g) :
-                     resolution_(r), grid_(g) {}
-    inline int Resolution()                  const { return resolution_; }
-    inline std::vector<double> const& Grid() const { return grid_;       }
+    CmapGridType(int r) : resolution_(r), grid_(r*r, 0.0) {}
+    inline int Resolution()                  const { return resolution_;       }
+    inline std::vector<double> const& Grid() const { return grid_;             }
+    inline int Size()                        const { return (int)grid_.size(); }
+    void SetGridPt(int idx, double d)              { grid_[idx] = d;           }
   private:
     int resolution_;           ///< Number of steps along each phi/psi CMAP axis
-    std::vector<double> grid_; ///< CMAP grid
+    std::vector<double> grid_; ///< CMAP grid (size is resolution_*resolution_)
 };
 typedef std::vector<CmapGridType> CmapGridArray;
 /// Hold CMAP atom indices and corresponding grid index
@@ -360,20 +395,37 @@ class ChamberParmType {
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
     CmapArray         const& Cmap()         const { return cmap_;         }
     void SetLJ14(NonbondArray const& nb)          { lj14_ = nb;           }
-    void SetChamber(int i, std::string const& s)  { 
+    NonbondType& SetLJ14(int idx)                 { return lj14_[idx];    }
+    CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    /// Set expected number of LJ14 terms TODO combine with SetVersion?
+    void SetNLJ14terms(int n)                     { lj14_.assign( n, NonbondType() ); }
+    void SetVersion(int i, std::string const& s)  { 
       chmff_verno_ = i;
       chmff_type_ = s;
     }
+    void ReserveUBterms(unsigned int n)       { ub_.reserve( n );         }
+    void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );     }
+    void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );      }
+    BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];      }
     void SetUB(BondArray const& ub, BondParmArray const& ubp) {
       ub_ = ub;
       ubparm_ = ubp;
     }
+    void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
+    void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
+    void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
+    DihedralParmType& SetImproperParm(unsigned int i) { return improperparm_[i];     }
     void SetImproper(DihedralArray const& im, DihedralParmArray const& imp) {
       impropers_ = im;
       improperparm_ = imp;
     }
     void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
     void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
+    void Clear() {
+      chmff_verno_=-1; chmff_type_.clear(); ub_.clear(); ubparm_.clear();
+      impropers_.clear(); improperparm_.clear(); lj14_.clear();
+      cmapGrid_.clear(); cmap_.clear();
+    } 
   private:
     int chmff_verno_;                ///< CHARMM FF version number
     std::string chmff_type_;         ///< CHARMM FF type 

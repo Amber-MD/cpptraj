@@ -12,9 +12,37 @@ Trajin_Single::~Trajin_Single() {
     delete trajio_;
   }
   if (velio_!=0) delete velio_;
+  if (frcio_!=0) delete frcio_;
 }
 
-// TODO: Should this take a FileName instead of string?
+/** Used to set up separate traj for forces/velocities. */
+TrajectoryIO* Trajin_Single::SetupSeparateTraj(FileName const& fname, const char* type) const
+{
+  if (fname.empty()) return 0; // SANITY CHECK 
+  if ( !File::Exists( fname ) ) {
+    File::ErrorMsg( fname.full() );
+    return 0;
+  }
+  // Detect format
+  TrajectoryIO* tio = 0;
+  TrajectoryFile::TrajFormatType tformat;
+  if ( (tio = TrajectoryFile::DetectFormat( fname, tformat )) == 0 ) {
+    mprinterr("Error: Could not set up %s file '%s' for reading.\n", type, fname.full());
+    return 0;
+  }
+  tio->SetDebug( debug_ );
+  // Set up the format for reading, get # of frames
+  int traj_frames = tio->setupTrajin(fname, Traj().Parm());
+  if (traj_frames != Traj().Counter().TotalFrames()) {
+    mprinterr("Error: %s file '%s' frames (%i) != traj file frames (%i)\n",
+              type, fname.full(), traj_frames, Traj().Counter().TotalFrames());
+    delete tio;
+    return 0;
+  }
+  return tio;
+}
+
+// Trajin_Single::SetupTrajRead()
 int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn, 
                                  Topology* tparmIn)
 {
@@ -36,7 +64,12 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   // Set up the format for reading and get the number of frames.
   int nframes = trajio_->setupTrajin(Traj().Filename(), Traj().Parm());
   if (nframes == TrajectoryIO::TRAJIN_ERR) {
-    mprinterr("Error: Could not set up %s for reading.\n", Traj().Filename().full());
+    mprinterr("Error: Could not set up '%s' for reading.\n", Traj().Filename().full());
+    return 1;
+  }
+  // Coordinates must be present.
+  if (!trajio_->CoordInfo().HasCrd()) {
+    mprinterr("Error: No coordinates present in trajectory '%s'\n", Traj().Filename().full());
     return 1;
   }
   if (debug_ > 0) {
@@ -52,32 +85,27 @@ int Trajin_Single::SetupTrajRead(FileName const& tnameIn, ArgList& argIn,
   cInfo_ = trajio_->CoordInfo();
   // Check if a separate mdvel file will be read
   if (argIn.Contains("mdvel")) {
-    FileName mdvel_fname( argIn.GetStringKey("mdvel") );
+    std::string mdvel_fname = argIn.GetStringKey("mdvel");
     if (mdvel_fname.empty()) {
       mprinterr("Error: mdvel: Usage 'mdvel <velocity filename>'\n");
       return 1;
     }
-    if ( !File::Exists( mdvel_fname ) ) {
-      File::ErrorMsg( mdvel_fname.full() );
-      return 1;
-    }
-    // Detect mdvel format
-    if ( (velio_ = TrajectoryFile::DetectFormat( mdvel_fname, tformat )) == 0 ) {
-      mprinterr("Error: Could not set up velocity file %s for reading.\n",mdvel_fname.full());
-      return 1;
-    }
-    velio_->SetDebug( debug_ );
-    // Set up the format for reading mdvel, get # of mdvel frames
-    int vel_frames = velio_->setupTrajin(mdvel_fname.Full(), Traj().Parm());
-    if (vel_frames != Traj().Counter().TotalFrames()) {
-      mprinterr("Error: velocity file %s frames (%i) != traj file frames (%i)\n",
-                mdvel_fname.full(), vel_frames, Traj().Counter().TotalFrames());
-      return 1;
-    }
+    velio_ = SetupSeparateTraj( mdvel_fname, "velocity" );
+    if (velio_ == 0) return 1;
     cInfo_.SetVelocity( true );
   }
+  // Check if separate mdfrc file will be read
+  if (argIn.Contains("mdfrc")) {
+    std::string mdfrc_fname = argIn.GetStringKey("mdfrc");
+    if (mdfrc_fname.empty()) {
+      mprinterr("Error: mdfrc: Usage 'mdfrc <force filename>'\n");
+      return 1;
+    }
+    frcio_ = SetupSeparateTraj( mdfrc_fname, "force" );
+    if (frcio_ == 0) return 1;
+    cInfo_.SetForce( true );
+  }
 
-  // TODO add in support for separate mdfrc file
   if (debug_ > 0)
     cInfo_.PrintCoordInfo( Traj().Filename().base(), Traj().Parm()->c_str() );
   return 0;
@@ -94,7 +122,11 @@ int Trajin_Single::BeginTraj() {
     mprinterr("Error: Could not open mdvel file.\n");
     return 1;
   }
-  // TODO open mdfrc file if present
+  // Open mdfrc file if present
+  if (frcio_!=0 && frcio_->openTrajin()) {
+     mprinterr("Error: Could not open mdfrc file.\n");
+     return 1;
+  }
   // Initialize counter.
   SetTraj().Counter().Begin();
   return 0;
@@ -103,7 +135,7 @@ int Trajin_Single::BeginTraj() {
 void Trajin_Single::EndTraj() {
   trajio_->closeTraj();
   if (velio_ != 0) velio_->closeTraj();
-  // TODO close mdfrc file if present
+  if (frcio_ != 0) frcio_->closeTraj();
 }
 
 // Trajin_Single::ReadTrajFrame()
@@ -153,6 +185,11 @@ int Trajin_Single::ParallelBeginTraj( Parallel::Comm const& commIn ) {
     mprinterr("Error: separate velocity file not yet supported in parallel.\n");
     return 1;
   }
+  // Open mdfrc file if present // TODO enable?
+  if (frcio_ != 0) {
+    mprinterr("Error: seprate force file not yet supported in parallel.\n");
+    return 1;
+  }
   //if (velio_!=0 && velio_->openTrajin()) {
   //  mprinterr("Error: Could not open mdvel file.\n");
   //  return 1;
@@ -177,6 +214,6 @@ int Trajin_Single::ParallelReadTrajFrame(int idx, Frame& frameIn) {
 void Trajin_Single::ParallelEndTraj() {
   trajio_->parallelCloseTraj();
   //if (velio_ != 0) velio_->closeTraj();
-  // TODO close mdfrc file if present
+  //if (frcio_ != 0) frcio_->closeTraj();
 }
 #endif

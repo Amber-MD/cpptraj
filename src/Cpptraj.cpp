@@ -8,6 +8,9 @@
 #include "ParmFile.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#ifdef CUDA
+# include <cuda_runtime_api.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -61,6 +64,9 @@ void Cpptraj::Intro() {
 # ifdef _OPENMP
           " OpenMP"
 # endif
+# ifdef CUDA
+          " CUDA"
+# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
@@ -71,6 +77,17 @@ void Cpptraj::Intro() {
   // If empty, available mem could not be calculated correctly.
   if (!available_mem.empty())
     mprintf(  "| Available memory: %s\n", available_mem.c_str());
+# ifdef CUDA
+  int device;
+  if ( cudaGetDevice( &device ) == cudaSuccess ) {
+    cudaDeviceProp deviceProp;
+    if ( cudaGetDeviceProperties( &deviceProp, device ) == cudaSuccess ) {
+      mprintf("| CUDA device: %s\n", deviceProp.name);
+      mprintf("| Available GPU memory: %s\n",
+              ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+    }
+  }
+# endif
   mprintf("\n");
 }
 
@@ -87,6 +104,17 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
   Timer total_time;
   total_time.Start();
+# ifdef CUDA
+  int nGPUs = 0;
+  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
+    mprinterr("Error: Could not get # of GPU devices.\n");
+    return 1;
+  }
+  if (nGPUs < 1) {
+    mprinterr("Error: No CUDA-capable devices found.\n");
+    return 1;
+  }
+# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If State is not empty, run now.
@@ -102,6 +130,9 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   } else if ( cmode == ERROR ) {
     err = 1;
   }
+  // Ensure all data has been written.
+  if (State_.DFL().UnwrittenData())
+    State_.DFL().WriteAllDF();
   total_time.Stop();
   if (cmode != INTERACTIVE)
     mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
@@ -134,6 +165,9 @@ std::string Cpptraj::Defines() {
 #ifdef _OPENMP
   defined_str.append(" -D_OPENMP");
 #endif
+#ifdef CUDA
+  defined_str.append(" -DCUDA"); //TODO SHADER_MODEL?
+#endif
 #ifdef NO_MATHLIB
   defined_str.append(" -DNO_MATHLIB");
 #endif
@@ -149,7 +183,10 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_PNETCDF
   defined_str.append(" -DHAS_PNETCDF");
 #endif
-#ifdef USE_SANDERLIB
+#ifdef NO_XDRFILE
+  defined_str.append(" -DNO_XDRFILE");
+#endif
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
   return defined_str;
@@ -409,7 +446,9 @@ int Cpptraj::Interactive() {
   CpptrajFile logfile_;
   if (logfilename_.empty())
     logfilename_.SetFileName("cpptraj.log");
-#ifndef NO_READLINE
+# if defined (NO_READLINE) || defined (LIBCPPTRAJ)
+  // No need to load history if not using readline (or this is libcpptraj)
+# else
   if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
@@ -428,7 +467,7 @@ int Cpptraj::Interactive() {
       logfile_.CloseFile();
     }
   }
-#endif
+# endif
   logfile_.OpenAppend(logfilename_);
   if (logfile_.IsOpen()) {
     // Write logfile header entry: date, cmd line opts, topologies

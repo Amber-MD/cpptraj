@@ -89,6 +89,7 @@ list<string> *PeakHeader(char *filename, int indent, bool includeStdHeaders) {
       if (strcmp(headername,"sander.h")==0) continue;
       if (strcmp(headername,"omp.h")==0) continue;
       if (strncmp(headername,"readline",8)==0) continue;
+      if (strncmp(headername,"xdrfile",7)==0) continue;
     }
     temp.assign(headername);
     HeaderList->push_back(temp);

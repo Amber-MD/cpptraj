@@ -12,7 +12,7 @@ class DataFile {
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
-      VECTRAJ, XVG, CCP4, UNKNOWN_DATA 
+      VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();

@@ -43,10 +43,12 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     int eptotVID_;
     int binsVID_;
     bool useVelAsCoords_;
+    bool useFrcAsCoords_;
     bool readAccess_;
     bool outputTemp_;
-    bool outputVel_;
-    bool outputFrc_;
+    bool write_mdcrd_;
+    bool write_mdvel_;
+    bool write_mdfrc_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {

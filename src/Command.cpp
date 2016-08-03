@@ -8,6 +8,7 @@
 #include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
 #include "Exec_Calc.h"
+#include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -20,6 +21,7 @@
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SequenceAlign.h"
+#include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -29,6 +31,7 @@
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
 #include "Exec_PermuteDihedrals.h"
+#include "Exec_RotateDihedral.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -118,6 +121,7 @@
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
+#include "Action_Align.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -169,6 +173,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
@@ -192,6 +197,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
 # ifdef MPI
   Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
 # endif
@@ -204,6 +210,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
   Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
   Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
+  Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   // TRAJECTORY
   Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
   Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
@@ -228,6 +235,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
+  Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
   Command::AddCmd( new Action_AtomicCorr(),    Cmd::ACT, 1, "atomiccorr" );
