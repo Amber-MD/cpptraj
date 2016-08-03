@@ -7,12 +7,14 @@
 // CONSTRUCTOR
 Range::Range() { }
 
-// CONSTRUCTOR
-/// Takes argument string as input
+/// CONSTRUCTOR - Takes argument string as input
 Range::Range( std::string const& argIn ) {
   if (!argIn.empty())
     SetRange( argIn );
 }
+
+/// CONSTRUCTOR - Single number
+Range::Range(int start) { SetRange(start, start+1); }
 
 Range::Range( std::string const& argIn, int offsetIn) {
   if (!argIn.empty()) {

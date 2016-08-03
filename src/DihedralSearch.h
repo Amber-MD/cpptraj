@@ -30,6 +30,8 @@ class DihedralSearch {
                          std::string const&, std::string const&);
     /// Add all dihedral types if none have been added yet.
     int SearchForAll();
+    /// \return True if no dihedral tokens
+    bool NoDihedralTokens() const { return dihedralTokens_.empty(); }
     /// Find specified dihedrals for residues in Range.
     int FindDihedrals(Topology const&, Range const&);
     /// Clear found dihedrals and tokens.

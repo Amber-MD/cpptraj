@@ -230,6 +230,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
         Exec_ReadInput.cpp \
+        Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
         Exec_SequenceAlign.cpp \
