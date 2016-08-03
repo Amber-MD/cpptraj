@@ -319,6 +319,9 @@ test.velocityautocorr:
 test.velfrc:
 	@-cd Test_VelFrc && ./RunTest.sh $(OPT)
 
+test.rotatedihedral:
+	@-cd Test_RotateDihedral && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -398,7 +401,8 @@ SHORT_TESTS=test.general \
           test.pdb \
           test.align \
           test.velocityautocorr \
-          test.velfrc
+          test.velfrc \
+          test.rotatedihedral
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -502,7 +506,8 @@ COMPLETETESTS=test.general \
               test.pdb \
               test.align \
               test.velocityautocorr \
-              test.velfrc
+              test.velfrc \
+              test.rotatedihedral
 
 test: test.all 
 
