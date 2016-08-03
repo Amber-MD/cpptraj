@@ -142,3 +142,34 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   return Action::OK;
 }
+
+// Action_GIST::Setup()
+Action::RetType Action_GIST::Setup(ActionSetup& setup) {
+  // We need box info
+  if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
+    mprinterr("Error: Must have explicit solvent with periodic boundaries!");
+    return Action::ERR;
+  }
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+
+  // Get molecule number for each solvent molecule
+  mol_nums_.clear();
+  unsigned int midx = 0;
+  for (Topology::mol_iterator mol = setup.Top().MolStart();
+                              mol != setup.Top().MolEnd(); ++mol, ++midx)
+  {
+    if (mol->IsSolvent())
+      mol_nums_.push_back( midx );
+  }
+
+  water_voxel_.assign( mol_nums_.size(), -1 );
+
+  return Action::OK;
+}
+
+// Action_GIST::DoAction()
+Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
+  NFRAME_++;
+
+  // Loop over each solvent molecule
+  for (Iarray::const_iterator smol = mol_nums

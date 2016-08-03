@@ -12,7 +12,7 @@ class Action_GIST : public Action {
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
-    Action::RetType Setup(ActionSetup&) { return Action::SKIP; }
+    Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&) { return Action::ERR; }
     void Print() {}
 
@@ -32,6 +32,10 @@ class Action_GIST : public Action {
     DataSet_3D* dipolex_;
     DataSet_3D* dipoley_;
     DataSet_3D* dipolez_;
+
+    typedef std::vector<int> Iarray;
+    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.
+    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.
 
     GridBin_Nonortho grid_; ///< Hold common grid parameters
     CpptrajFile* datafile_; ///< GIST output
