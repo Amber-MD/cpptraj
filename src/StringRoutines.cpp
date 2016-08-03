@@ -140,6 +140,28 @@ std::string NoTrailingWhitespace(std::string const& line) {
   return duplicate;
 }
 
+/// Remove all whitespace from string.
+void RemoveAllWhitespace(std::string& line) {
+  if (line.empty()) return;
+  std::string tmp( line );
+  line.clear();
+  for (std::string::const_iterator it = tmp.begin(); it != tmp.end(); ++it) {
+    if (isspace(*it) || *it == '\n' || *it == '\r') continue;
+    line += *it;
+  }
+}
+
+/// \return Given string with all whitespace removed.
+std::string NoWhitespace(std::string const& line) {
+  if (line.empty()) return std::string("");
+  std::string out;
+  for (std::string::const_iterator it = line.begin(); it != line.end(); ++it) {
+    if (isspace(*it) || *it == '\n' || *it == '\r') continue;
+    out += *it;
+  }
+  return out;
+}
+
 // integerToString()
 std::string integerToString(int i) {
   std::ostringstream oss;
