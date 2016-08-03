@@ -190,6 +190,8 @@ class Frame {
     void Scale(AtomMask const&, double, double, double);
     /// Translate atoms to origin.
     Vec3 CenterOnOrigin(bool);
+    // Align on reference
+    void Align(Frame const&, AtomMask const&);
     // Coordinate calculation
     double RMSD(Frame &, bool );
     double RMSD(Frame &, Matrix_3x3&, Vec3&, Vec3&, bool);
