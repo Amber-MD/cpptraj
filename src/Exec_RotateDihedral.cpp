@@ -6,15 +6,15 @@
 
 void Exec_RotateDihedral::Help() const {
   mprintf("\tcrdset <COORDS set> [frame <#>] [name <output set name>]\n"
-          "\t{set <value> | increment <increment>}\n"
+          "\t{value <value> | increment <increment>}\n"
           "\t{ <mask1> <mask2> <mask3> <mask4> |\n"
           "\t  res <#> type <dih type> }\n"
-          "\t\t<dih type> =");
+          "\t<dih type> =");
   DihedralSearch::ListKnownTypes();
   mprintf("  Rotate specified dihedral to specified value or by given increment.\n");
 }
 
-static const char* ModeStr[] = { "set", "increment" };
+static const char* ModeStr[] = { "value", "increment" };
 
 static inline Exec::RetType MaskError(AtomMask const& mask) {
   mprinterr("Error: Mask '%s' selects %i atoms, expected 1.\n",
@@ -74,12 +74,12 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
   // Determine whether we are setting or incrementing.
   enum ModeType { SET = 0, INCREMENT };
   ModeType mode = SET;
-  if (argIn.Contains("set"))
+  if (argIn.Contains("value"))
     mode = SET;
   else if (argIn.Contains("increment"))
     mode = INCREMENT;
   else {
-    mprinterr("Error: Specify 'set <value>' or 'increment <increment>'\n");
+    mprinterr("Error: Specify 'value <value>' or 'increment <increment>'\n");
     return CpptrajState::ERR;
   }
   double value = argIn.getKeyDouble(ModeStr[mode], 0.0);
@@ -139,10 +139,10 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
     A4 = m4[0];
   }
   mprintf("\tRotating dihedral defined by atoms '%s'-'%s'-'%s'-'%s'\n",
-          CRD->Top().AtomMaskName(A1),
-          CRD->Top().AtomMaskName(A2),
-          CRD->Top().AtomMaskName(A3),
-          CRD->Top().AtomMaskName(A4));
+          CRD->Top().AtomMaskName(A1).c_str(),
+          CRD->Top().AtomMaskName(A2).c_str(),
+          CRD->Top().AtomMaskName(A3).c_str(),
+          CRD->Top().AtomMaskName(A4).c_str());
   // Set mask of atoms that will move during dihedral rotation
   AtomMask Rmask = DihedralSearch::MovingAtoms(CRD->Top(), A2, A3);
   // Calculate current value of dihedral
@@ -153,6 +153,8 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
     case SET:       delta = value - torsion; break;
     case INCREMENT: delta = value; break;
   }
+  mprintf("\tOriginal torsion is %g, rotating by %g degrees.\n",
+          torsion*Constants::RADDEG, delta*Constants::RADDEG);
   // Set axis of rotation
   Vec3 axisOfRotation = FRM.SetAxisOfRotation( A2, A3 );
   // Calculate rotation matrix for delta.
