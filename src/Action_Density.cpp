@@ -1,15 +1,7 @@
 #include <cmath>
-
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h"
-#include "DistRoutines.h"
-#include "DataSet_Mesh.h"
-
-
-/** Calculate density along a coordinate.
-  * \author Hannes H. Loeffler.
-  */
+#include "StringRoutines.h" // NoWhitespace()
 
 const std::string Action_Density::emptystring = "";
 
@@ -45,7 +37,6 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     return Action::ERR;
   }
 # endif
-  InitImaging(true);
 
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
@@ -89,14 +80,14 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     MetaData MD(dsname, "avg", idx);
     MD.SetTimeSeries( MetaData::NOT_TS );
     // Hold average density
-    DataSet* ads = init.DSL().AddSet( DataSet::XYMESH, MD );
+    DataSet* ads = init.DSL().AddSet( DataSet::DOUBLE, MD );
     if (ads == 0) return Action::ERR;
     ads->SetLegend( NoWhitespace(masks_.back().MaskExpression()) );
     AvSets_.push_back( ads );
     if (outfile != 0) outfile->AddDataSet( ads );
     // Hold SD density
     MD.SetAspect("sd");
-    DataSet* sds = init.DSL().AddSet( DataSet::XYMESH, MD );
+    DataSet* sds = init.DSL().AddSet( DataSet::DOUBLE, MD );
     if (sds == 0) return Action::ERR;
     sds->SetLegend( NoWhitespace("sd(" + masks_.back().MaskExpression() + ")") );
     SdSets_.push_back( sds );
@@ -169,8 +160,6 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
     mprintf("\n");
   }
 
-  SetupImaging(setup.CoordInfo().TrajBox().Type() );
-
   return Action::OK;  
 }
 
@@ -228,14 +217,11 @@ void Action_Density::Print()
 {
   const unsigned int SMALL = 1.0;
 
-  //bool first_round, scale_area;
   long minus_minidx = 0, minus_maxidx = 0, plus_minidx = 0, plus_maxidx = 0;
   double density, sd, area;
 
   std::map<long,double>::iterator first_idx, last_idx;
   statmap curr;
-
-
 
   area = area_.mean();
   sd = sqrt(area_.variance());
@@ -276,16 +262,6 @@ void Action_Density::Print()
     }
   }
 
-  //output_->Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
-
-  //for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
-  //     mask != masks_.end();
-  //     mask++) {
-  //  output_->Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
-  //}
-
-  //output_->Printf("\n");
-
   // make sure we have zero values at beginning and end as this
   // "correctly" integrates the histogram
   minus_minidx--;
@@ -298,19 +274,12 @@ void Action_Density::Print()
     AvSets_[j]->SetDim(Dimension::X, Xdim);
     SdSets_[j]->SetDim(Dimension::X, Xdim);
   }
-
-  for (long i = minus_minidx; i <= minus_maxidx; i++) {
-    //first_round = true;
-    double Xcoord = -delta_ + ((double) i + 0.5) * delta_;
+  unsigned int didx = 0;
+  for (long i = minus_minidx; i <= minus_maxidx; i++, didx++) {
 
     for (unsigned long j = 0; j < minus_histograms_.size(); j++) {
       curr = minus_histograms_[j];
 
-      //if (first_round) {
-      //  output_->Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
-      //  first_round = false;
-      //}
-      
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
 
@@ -319,26 +288,17 @@ void Action_Density::Print()
         sd /= area;
       }
 
-      //output_->Printf(" %10.3f %10.5f", density, sd);
-      ((DataSet_Mesh*)AvSets_[j])->AddXY( Xcoord, density );
-      ((DataSet_Mesh*)SdSets_[j])->AddXY( Xcoord, sd      );
+      AvSets_[j]->Add( didx, &density );
+      SdSets_[j]->Add( didx, &sd      );
     }
 
-    //output_->Printf("\n");
   }
 
-  for (long i = plus_minidx; i <= plus_maxidx; i++) {
-    //first_round = true;
-    double Xcoord = ((double) i + 0.5) * delta_;
+  for (long i = plus_minidx; i <= plus_maxidx; i++, didx++) {
 
     for (unsigned long j = 0; j < plus_histograms_.size(); j++) {
       curr = plus_histograms_[j];
 
-      //if (first_round) {
-      //  output_->Printf("%10.4f", ((double) i + 0.5) * delta_);
-      //  first_round = false;
-      //}
-
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
 
@@ -347,11 +307,9 @@ void Action_Density::Print()
         sd /= area;
       }
 
-      //output_->Printf(" %10.3f %10.5f", density, sd);
-      ((DataSet_Mesh*)AvSets_[j])->AddXY( Xcoord, density );
-      ((DataSet_Mesh*)SdSets_[j])->AddXY( Xcoord, sd      );
+      AvSets_[j]->Add( didx, &density );
+      SdSets_[j]->Add( didx, &sd      );
     }
 
-    //output_->Printf("\n");
   }
 }

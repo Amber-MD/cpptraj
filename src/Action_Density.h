@@ -7,19 +7,14 @@
 #include <map>
 
 #include "Action.h"
-#include "ImagedAction.h"
 #include "OnlineVarT.h"
-
-
-
-/** \author Hannes H. Loeffler
-  */
 
 #define ROUTINE_VERSION_STRING "1.0.2"
 
-typedef StatsMap<long,double> statmap;
-
-class Action_Density : public Action, ImagedAction {
+/** Calculate density along a coordinate.
+  * \author Hannes H. Loeffler.
+  */
+class Action_Density : public Action {
 public:
   Action_Density();
 
@@ -32,6 +27,8 @@ private:
   Action::RetType Setup(ActionSetup&);
   Action::RetType DoAction(int, ActionFrame&);
   void Print();
+
+  typedef StatsMap<long,double> statmap;
   void Output(long, long, std::vector<statmap>&);
 
   static const std::string emptystring;
