@@ -813,6 +813,17 @@ Vec3 Frame::CenterOnOrigin(bool useMassIn)
   return center;
 }
 
+// Frame::Align()
+void Frame::Align(Frame const& REF, AtomMask const& mask) {
+  Frame tmpRef(REF, mask);
+  Frame tmpFrm(*this, mask);
+  Vec3 refTrans = tmpRef.CenterOnOrigin(false);
+  Matrix_3x3 U;
+  Vec3 Trans;
+  tmpFrm.RMSD_CenteredRef( tmpRef, U, Trans, false );
+  Trans_Rot_Trans( Trans, U, refTrans );
+}
+
 // ---------- COORDINATE CALCULATION ------------------------------------------- 
 // Frame::RMSD()
 double Frame::RMSD( Frame& Ref, bool useMassIn ) {

@@ -48,6 +48,8 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
   // Get target frame
   Frame FRM = CRD->AllocateFrame();
   CRD->GetFrame(frame, FRM);
+  // Save as reference
+  Frame refFrame = FRM;
 
   // Create output COORDS set if necessary
   DataSet_Coords* OUT = 0;
@@ -162,6 +164,10 @@ Exec::RetType Exec_RotateDihedral::Execute(CpptrajState& State, ArgList& argIn) 
   rotationMatrix.CalcRotationMatrix(axisOfRotation, delta);
   // Rotate around axis
   FRM.Rotate(rotationMatrix, Rmask);
+  // RMS-fit the non-moving part of the coords back on original
+  AtomMask refMask = Rmask;
+  refMask.InvertMask();
+  FRM.Align( refFrame, refMask );
   // Update coords
   OUT->SetCRD( outframe, FRM );
 
