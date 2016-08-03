@@ -4,6 +4,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
 #include "DistRoutines.h"
+#include "DataSet_Mesh.h"
 
 
 /** Calculate density along a coordinate.
@@ -32,7 +33,7 @@ const char* Action_Density::PropertyStr_[] = {
   "number", "mass", "charge", "electron"
 };
 
-const char AxisStr[] = { 'X', 'Y', 'Z' };
+const char Action_Density::AxisStr_[] = { 'X', 'Y', 'Z' };
 
 // Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -76,7 +77,8 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 
   // for compatibility with ptraj, ignored because we rely on the atom code to
   // do the right thing, see Atom.{h,cpp}
- actionArgs.GetStringKey("efile");
+  if (actionArgs.hasKey("efile"))
+    mprintf("Warning: The 'efile' keyword is deprecated.\n");
 
   // read the rest of the command line as a series of masks
   std::string maskstr;
@@ -84,18 +86,26 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   unsigned int idx = 1;
   while ( (maskstr = actionArgs.GetMaskNext() ) != emptystring) {
     masks_.push_back( AtomMask(maskstr) );
+    MetaData MD(dsname, "avg", idx);
+    MD.SetTimeSeries( MetaData::NOT_TS );
     // Hold average density
-    DataSet* ds = init.DSL().AddSet( DataSet::XYMESH, MetaData(dsname, "avg", idx) );
-    if (ds == 0) return Action::ERR;
-    ds->SetLegend( masks_.back().MaskExpression() );
-    AvSets_.push_back( ds );
-    if (outfile != 0) outfile->AddDataSet( ds );
+    DataSet* ads = init.DSL().AddSet( DataSet::XYMESH, MD );
+    if (ads == 0) return Action::ERR;
+    ads->SetLegend( NoWhitespace(masks_.back().MaskExpression()) );
+    AvSets_.push_back( ads );
+    if (outfile != 0) outfile->AddDataSet( ads );
     // Hold SD density
-    ds = init.DSL().AddSet( DataSet::XYMESH, MetaData(dsname, "sd", idx++) );
-    if (ds == 0) return Action::ERR;
-    ds->SetLegend( "sd(" + masks_.back().MaskExpression() + ")" );
-    SdSets_.push_back( ds );
-    if (outfile != 0) outfile->AddDataSet( ds );
+    MD.SetAspect("sd");
+    DataSet* sds = init.DSL().AddSet( DataSet::XYMESH, MD );
+    if (sds == 0) return Action::ERR;
+    sds->SetLegend( NoWhitespace("sd(" + masks_.back().MaskExpression() + ")") );
+    SdSets_.push_back( sds );
+    if (outfile != 0) outfile->AddDataSet( sds );
+#   ifdef MPI
+    ads->SetNeedsSync( false ); // Populated in Print()
+    sds->SetNeedsSync( false );
+#   endif
+    idx++;
   }
   if (masks_.empty()) {
     mprinterr("Error: No masks specified.\n");
@@ -213,12 +223,12 @@ Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
 }
 
 
-// Action_Density::print()
+// Action_Density::Print()
 void Action_Density::Print()
 {
   const unsigned int SMALL = 1.0;
 
-  bool first_round, scale_area;
+  //bool first_round, scale_area;
   long minus_minidx = 0, minus_maxidx = 0, plus_minidx = 0, plus_maxidx = 0;
   double density, sd, area;
 
@@ -229,9 +239,9 @@ void Action_Density::Print()
 
   area = area_.mean();
   sd = sqrt(area_.variance());
-  scale_area = (property_ == ELECTRON && area > SMALL);
+  bool scale_area = (property_ == ELECTRON && area > SMALL);
 
-  mprintf("The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
+  mprintf("    DENSITY: The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
           area_coord_[0] + 88, area_coord_[1] + 88, area, sd);
 
   if (scale_area)
@@ -281,16 +291,25 @@ void Action_Density::Print()
   minus_minidx--;
   plus_maxidx++;
 
+  // Set up data set dimensions
+  double Xmin = -delta_ + ((double) minus_minidx + 0.5) * delta_;
+  Dimension Xdim(Xmin, delta_, "density");
+  for (unsigned int j = 0; j != AvSets_.size(); j++) {
+    AvSets_[j]->SetDim(Dimension::X, Xdim);
+    SdSets_[j]->SetDim(Dimension::X, Xdim);
+  }
+
   for (long i = minus_minidx; i <= minus_maxidx; i++) {
-    first_round = true;
+    //first_round = true;
+    double Xcoord = -delta_ + ((double) i + 0.5) * delta_;
 
     for (unsigned long j = 0; j < minus_histograms_.size(); j++) {
       curr = minus_histograms_[j];
 
-      if (first_round) {
-        output_->Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
-        first_round = false;
-      }
+      //if (first_round) {
+      //  output_->Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
+      //  first_round = false;
+      //}
       
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
@@ -300,22 +319,25 @@ void Action_Density::Print()
         sd /= area;
       }
 
-      output_->Printf(" %10.3f %10.5f", density, sd);
+      //output_->Printf(" %10.3f %10.5f", density, sd);
+      ((DataSet_Mesh*)AvSets_[j])->AddXY( Xcoord, density );
+      ((DataSet_Mesh*)SdSets_[j])->AddXY( Xcoord, sd      );
     }
 
-    output_->Printf("\n");
+    //output_->Printf("\n");
   }
 
   for (long i = plus_minidx; i <= plus_maxidx; i++) {
-    first_round = true;
+    //first_round = true;
+    double Xcoord = ((double) i + 0.5) * delta_;
 
     for (unsigned long j = 0; j < plus_histograms_.size(); j++) {
       curr = plus_histograms_[j];
 
-      if (first_round) {
-        output_->Printf("%10.4f", ((double) i + 0.5) * delta_);
-        first_round = false;
-      }
+      //if (first_round) {
+      //  output_->Printf("%10.4f", ((double) i + 0.5) * delta_);
+      //  first_round = false;
+      //}
 
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
@@ -325,9 +347,11 @@ void Action_Density::Print()
         sd /= area;
       }
 
-      output_->Printf(" %10.3f %10.5f", density, sd);
+      //output_->Printf(" %10.3f %10.5f", density, sd);
+      ((DataSet_Mesh*)AvSets_[j])->AddXY( Xcoord, density );
+      ((DataSet_Mesh*)SdSets_[j])->AddXY( Xcoord, sd      );
     }
 
-    output_->Printf("\n");
+    //output_->Printf("\n");
   }
 }
