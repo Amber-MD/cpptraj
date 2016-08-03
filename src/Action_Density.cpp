@@ -15,21 +15,26 @@ const std::string Action_Density::emptystring = "";
 // CONSTRUCTOR
 Action_Density::Action_Density() :
   axis_(DZ),
-  //area_coord_{DZ, DY},		// this is C++11!
+  //area_coord_{DZ, DY},    // this is C++11!
   property_(NUMBER),
-  delta_(0.0),
-  output_(0)
+  delta_(0.0)
 {
   area_coord_[0] = DX; area_coord_[1] = DY;
 }
 
 void Action_Density::Help() const {
-  mprintf("\tout <filename> [delta <resolution>] [x|y|z]\n"
-	  "\t[number|mass|charge|electron] <mask1> ... <maskN>\n"
+  mprintf("\t[out <filename>] [name <set name>] [delta <resolution>] [x|y|z]\n"
+          "\t[number|mass|charge|electron] <mask1> ... <maskN>\n"
           "  Calculate density along a coordinate.\n");
 }
 
-// Action_Density::init()
+const char* Action_Density::PropertyStr_[] = {
+  "number", "mass", "charge", "electron"
+};
+
+const char AxisStr[] = { 'X', 'Y', 'Z' };
+
+// Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef MPI
@@ -41,17 +46,11 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
 # endif
   InitImaging(true);
 
-  std::string outfileName = actionArgs.GetStringKey("out");
+  DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
-  if (outfileName.empty()) {
-    outfileName = "density.dat";
-  }
-
-  output_ = init.DFL().AddCpptrajFile(outfileName, "Density");
-  if (output_ == 0) {
-    mprinterr("Error: Density: Could not open output file %s\n", outfileName.c_str());
-    return Action::ERR;
-  }
+  std::string dsname = actionArgs.GetStringKey("name");
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("DENSITY");
 
   if (actionArgs.hasKey("x") ) {
     axis_ = DX;
@@ -82,12 +81,38 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   // read the rest of the command line as a series of masks
   std::string maskstr;
 
+  unsigned int idx = 1;
   while ( (maskstr = actionArgs.GetMaskNext() ) != emptystring) {
     masks_.push_back( AtomMask(maskstr) );
+    // Hold average density
+    DataSet* ds = init.DSL().AddSet( DataSet::XYMESH, MetaData(dsname, "avg", idx) );
+    if (ds == 0) return Action::ERR;
+    ds->SetLegend( masks_.back().MaskExpression() );
+    AvSets_.push_back( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
+    // Hold SD density
+    ds = init.DSL().AddSet( DataSet::XYMESH, MetaData(dsname, "sd", idx++) );
+    if (ds == 0) return Action::ERR;
+    ds->SetLegend( "sd(" + masks_.back().MaskExpression() + ")" );
+    SdSets_.push_back( ds );
+    if (outfile != 0) outfile->AddDataSet( ds );
+  }
+  if (masks_.empty()) {
+    mprinterr("Error: No masks specified.\n");
+    return Action::ERR;
   }
 
   minus_histograms_.resize(masks_.size() );
   plus_histograms_.resize(masks_.size() );
+
+  mprintf("    DENSITY: Determining %s density for %zu masks.\n", PropertyStr_[property_],
+          masks_.size());
+  mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
+  mprintf("\tDelta is %f\n", delta_);
+  mprintf("\tAxis is %c\n", AxisStr_[axis_]);
+  mprintf("\tData set name is '%s'\n", dsname.c_str());
+  if (outfile != 0)
+    mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
 
   return Action::OK;
 }
@@ -104,25 +129,26 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
     std::vector<double> property;
 
     for (AtomMask::const_iterator idx = mask->begin();
-	 idx != mask->end(); idx++) {
+      idx != mask->end(); idx++)
+    {
       const Atom& atom = setup.Top()[*idx];
 
       switch (property_) {
       case NUMBER:
-	property.push_back(1.0);
-	break;
+        property.push_back(1.0);
+        break;
 
       case MASS:
-	property.push_back(atom.Mass() );
-	break;
+        property.push_back(atom.Mass() );
+        break;
 
       case CHARGE:
-	property.push_back(atom.Charge() );
-	break;
+        property.push_back(atom.Charge() );
+        break;
 
       case ELECTRON:
-	property.push_back(atom.AtomicNumber() - atom.Charge() );
-	break;
+        property.push_back(atom.AtomicNumber() - atom.Charge() );
+        break;
       }
     }
 
@@ -138,35 +164,34 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
-
-// Action_Density::action()
+// Action_Density::DoAction()
 Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
   long slice;
   unsigned long i, j;
   Vec3 coord;
   Box box;
 
-
   i = 0;
 
   for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
        mask != masks_.end();
-       mask++) {
-
+       mask++)
+  {
     j = 0;
 
     std::map<long,double> minus_histo, plus_histo;
 
     for (AtomMask::const_iterator idx = mask->begin();
-	 idx != mask->end();
-	 idx++) {
+         idx != mask->end();
+         idx++)
+    {
       coord = frm.Frm().XYZ(*idx);
       slice = (unsigned long) (coord[axis_] / delta_);
 
       if (coord[axis_] < 0) {
-	minus_histo[slice] += properties_[i][j];
+        minus_histo[slice] += properties_[i][j];
       } else {
-	plus_histo[slice] += properties_[i][j];
+        plus_histo[slice] += properties_[i][j];
       }
 
       j++;
@@ -207,7 +232,7 @@ void Action_Density::Print()
   scale_area = (property_ == ELECTRON && area > SMALL);
 
   mprintf("The average box area in %c/%c is %.2f Angstrom (sd = %.2f).\n",
-	  area_coord_[0] + 88, area_coord_[1] + 88, area, sd);
+          area_coord_[0] + 88, area_coord_[1] + 88, area, sd);
 
   if (scale_area)
     mprintf("The electron density will be scaled by this area.\n");
@@ -241,15 +266,15 @@ void Action_Density::Print()
     }
   }
 
-  output_->Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
+  //output_->Printf("# routine version: %s\n#density", ROUTINE_VERSION_STRING);
 
-  for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
-       mask != masks_.end();
-       mask++) {
-    output_->Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
-  }
+  //for (std::vector<AtomMask>::const_iterator mask = masks_.begin();
+  //     mask != masks_.end();
+  //     mask++) {
+  //  output_->Printf(" %s sd(%s)", mask->MaskString(), mask->MaskString() );
+  //}
 
-  output_->Printf("\n");
+  //output_->Printf("\n");
 
   // make sure we have zero values at beginning and end as this
   // "correctly" integrates the histogram
@@ -264,15 +289,15 @@ void Action_Density::Print()
 
       if (first_round) {
         output_->Printf("%10.4f", -delta_ + ((double) i + 0.5) * delta_);
-	first_round = false;
+        first_round = false;
       }
       
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
 
       if (scale_area) {
-	density /= area;
-	sd /= area;
+        density /= area;
+        sd /= area;
       }
 
       output_->Printf(" %10.3f %10.5f", density, sd);
@@ -289,15 +314,15 @@ void Action_Density::Print()
 
       if (first_round) {
         output_->Printf("%10.4f", ((double) i + 0.5) * delta_);
-	first_round = false;
+        first_round = false;
       }
 
       density = curr.mean(i) / delta_;
       sd = sqrt(curr.variance(i) );
 
       if (scale_area) {
-	density /= area;
-	sd /= area;
+        density /= area;
+        sd /= area;
       }
 
       output_->Printf(" %10.3f %10.5f", density, sd);
