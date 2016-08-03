@@ -33,7 +33,7 @@ private:
 
   static const std::string emptystring;
   static const char* PropertyStr_[];
-  static const char AxisStr_[];
+  static const char* AxisStr_[];
 
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};

@@ -25,7 +25,7 @@ const char* Action_Density::PropertyStr_[] = {
   "number", "mass", "charge", "electron"
 };
 
-const char Action_Density::AxisStr_[] = { 'X', 'Y', 'Z' };
+const char* Action_Density::AxisStr_[] = { "X", "Y", "Z" };
 
 // Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
@@ -110,7 +110,7 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
           masks_.size());
   mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
   mprintf("\tDelta is %f\n", delta_);
-  mprintf("\tAxis is %c\n", AxisStr_[axis_]);
+  mprintf("\tAxis is %s\n", AxisStr_[axis_]);
   mprintf("\tData set name is '%s'\n", dsname.c_str());
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
@@ -269,7 +269,7 @@ void Action_Density::Print()
 
   // Set up data set dimensions
   double Xmin = -delta_ + ((double) minus_minidx + 0.5) * delta_;
-  Dimension Xdim(Xmin, delta_, "density");
+  Dimension Xdim(Xmin, delta_, AxisStr_[axis_]);
   for (unsigned int j = 0; j != AvSets_.size(); j++) {
     AvSets_[j]->SetDim(Dimension::X, Xdim);
     SdSets_[j]->SetDim(Dimension::X, Xdim);
