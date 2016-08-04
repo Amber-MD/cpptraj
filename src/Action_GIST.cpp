@@ -204,9 +204,12 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
         q_O_  = setup.Top()[o_idx  ].Charge();
         q_H1_ = setup.Top()[o_idx+1].Charge();
         q_H2_ = setup.Top()[o_idx+2].Charge();
-        // Sanity check
+        // Sanity checks
         if (NotEqual(q_H1_, q_H2_))
           mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", q_H1_, q_H2_);
+        if (fabs( q_O_ + q_H1_ + q_H2_ ) > 0.0)
+          mprintf("Warning: Charges on water do not sum to 0 (%g)\n", q_O_ + q_H1_ + q_H2_);
+        mprintf("DEBUG: Water charges: O=%g  H1=%g  H2=%g\n", q_O_, q_H1_, q_H2_);
       } else {
         if (NotEqual(q_O_, setup.Top()[o_idx  ].Charge()))
           mprintf("Warning: Charge on water '%s' oxygen %g does not match first water %g.\n",
@@ -356,7 +359,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( z4 );
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
         // ----- DIPOLE --------------------------
-        //Vec3 dipolar_vector
+        dipolex_->UpdateVoxel(voxel, O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_);
+        dipoley_->UpdateVoxel(voxel, O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_);
+        dipolez_->UpdateVoxel(voxel, O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
         // ---------------------------------------
       }
 

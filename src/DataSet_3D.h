@@ -27,7 +27,9 @@ class DataSet_3D : public DataSet {
     /// \return size of Z dimension.
     virtual size_t NZ() const = 0;
     /// \return grid index
-    virtual long int CalcIndex(int i, int j, int k) const = 0;
+    virtual long int CalcIndex(int, int, int) const = 0;
+    /// Increment specified voxel by given amount.
+    virtual void UpdateVoxel(long int, double) = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }

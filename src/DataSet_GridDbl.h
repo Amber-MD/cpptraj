@@ -27,6 +27,7 @@ class DataSet_GridDbl : public DataSet_3D {
     size_t NZ() const { return grid_.NZ(); }
     /// \return grid index
     long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
+    void UpdateVoxel(long int i, double val) { grid_[i] += val; }
     // -------------------------------------------
     void SetElement(int x,int y,int z,double v) { grid_.setGrid(x,y,z,v);     }
     /// Type definition of iterator over grid elements.
