@@ -35,11 +35,13 @@ void AtomMask::InvertMask() {
   invert.reserve( Natom_ - (int)Selected_.size() );
   const_iterator selected_atom = Selected_.begin();
   for (int idx = 0; idx < Natom_; idx++) {
-    if (idx == *selected_atom) { // Atom was selected, ignore.
-      ++selected_atom;
-      if (selected_atom == Selected_.end()) break; // No more in original selection
-    } else                       // Atom was not selected, add.
+    if (selected_atom == Selected_.end() || idx != *selected_atom) {
+      // Atom was not selected or no more selected atoms; add.
       invert.push_back( idx );
+    } else {
+      // Atom was selected; ignore and advance to next selected atom.
+      ++selected_atom;
+    }
   }
   Selected_ = invert;
 }
