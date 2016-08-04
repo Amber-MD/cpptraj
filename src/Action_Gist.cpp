@@ -658,6 +658,7 @@ void Action_Gist::EulerAngle(Frame const& frameIn) {
   q1_vox_[voxel_].push_back(x4);
   q2_vox_[voxel_].push_back(y4);
   q3_vox_[voxel_].push_back(z4);
+  //mprintf("DEBUG0: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
   nw_angle_[voxel_]++;
   //}
   //else mprintf("%i: gimbal lock problem, two z_wat paralell\n", resnum-1);
@@ -811,6 +812,7 @@ void Action_Gist::Print() {
     if (nw_angle_[gr_pt] != nwat_[gr_pt])
       mprintf("DEBUG: voxel %i nw_angle_=%i nwat_=%i\n", gr_pt, nw_angle_[gr_pt], nwat_[gr_pt]);
     int nwtot = nw_angle_[gr_pt];
+    //mprintf("DEBUG0: %i nw_total %i\n", gr_pt, nwtot);
     int bound = 0;
     nwtt += nwtot;
     if (nwtot <= 1) continue;
@@ -826,6 +828,7 @@ void Action_Gist::Print() {
                       + q1_vox_[gr_pt][l] * q1_vox_[gr_pt][n]
                       + q2_vox_[gr_pt][l] * q2_vox_[gr_pt][n]
                       + q3_vox_[gr_pt][l] * q3_vox_[gr_pt][n] );
+        //mprintf("DEBUG0: %g\n", rR);
         if (rR>0 && rR < NNr) NNr = rR;
       }
 
@@ -835,15 +838,18 @@ void Action_Gist::Print() {
         continue;
       } else if (NNr < 9999 && NNr > 0 && NNs > 0) {
         dbl = log(NNr*NNr*NNr*nwtot / (3.0*Constants::TWOPI));
+        //mprintf("DEBUG0: dbl %f\n", dbl);
         dTSorient_norm_[gr_pt] += dbl;
         dTSo += dbl;
       }
     } // END loop over nwtot
     //NFRAME_ *= 0.5;
+    //mprintf("DEBUG0: dTSorient_norm %f\n", dTSorient_norm_[gr_pt]);
     dTSorient_norm_[gr_pt] = Constants::GASK_KCAL * Temp * // FIXME what is this constant?
                              ((dTSorient_norm_[gr_pt]/nwtot)+0.5772156649);
     dTSorient_dens_[gr_pt] = dTSorient_norm_[gr_pt] * nwat_[gr_pt] / (NFRAME_ * Vvox_);
     dTSorienttot_ += dTSorient_dens_[gr_pt];
+    //mprintf("DEBUG0: %f\n", dTSorienttot_);
   } // END loop over MAX_GRID_PT_
   dTSorienttot_ *= Vvox_;
   mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);

@@ -2,6 +2,7 @@
 #include "Action_GIST.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "DataSet_GridFlt.h"
 
 Action_GIST::Action_GIST() :
   gO_(0),
@@ -119,8 +120,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
                  (double)nz * gridspacing + 1.5 );
   N_waters_.assign( gO_->Size(), 0 );
   N_hydrogens_.assign( gO_->Size(), 0 );
-  voxel_xyz_.resize( gO_->Size() );
-  voxel_Q_.resize( gO_->Size() );
+  voxel_xyz_.resize( gO_->Size() ); // [] = X Y Z
+  voxel_Q_.resize( gO_->Size() ); // [] = W4 X4 Y4 Z4
   //Box gbox;
   //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
   //                           (double)ny * gridspacing,
@@ -144,6 +145,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   else
     mprintf("\tDistances will not be imaged.\n");
   gO_->GridInfo();
+  mprintf("\tNumber of voxels: %zu, voxel volume: %f Ang^3\n",
+          gO_->Size(), gO_->VoxelVolume());
   mprintf("\t#Please cite these papers if you use GIST results in a publication:\n"
           "\t#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
           "\t#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
@@ -357,6 +360,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( x4 );
         voxel_Q_[voxel].push_back( y4 );
         voxel_Q_[voxel].push_back( z4 );
+        //mprintf("DEBUG1: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
         // ----- DIPOLE --------------------------
         dipolex_->UpdateVoxel(voxel, O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_);
@@ -375,4 +379,89 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   } // END loop over each solvent molecule
 
   return Action::OK;
+}
+
+void Action_GIST::Print() {
+  unsigned int MAX_GRID_PT = gO_->Size();
+  double Vvox = gO_->VoxelVolume();
+/*  int nx = (int)gO_->NX();
+  int ny = (int)gO_->NY();
+  int nz = (int)gO_->NZ();
+  int addx = nz * ny;
+  int addy = nz;
+  int addz = 1;
+  int subx = -1 * nz * ny;
+  int suby = -1 * nz;
+  int subz = -1;
+  // Implement NN to compute orientational entropy for each voxel
+  //double NNr, rx, ry, rz, rR, dbl;
+  double dTSs = 0.0;
+  double dTSst = 0.0;
+  float NNs = 10000;
+  float ds = 0;
+  float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
+  double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0;
+  int nwts = 0;*/
+
+  Farray dTSorient_norm( MAX_GRID_PT, 0.0 );
+
+  mprintf("    GIST OUTPUT:\n");
+  // LOOP over all voxels
+  DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
+  double dTSorienttot = 0;
+  int nwtt = 0;
+  double dTSo = 0;
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+    dTSorient_dens[gr_pt] = 0;
+    dTSorient_norm[gr_pt] = 0;
+    int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+    //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
+    if (nw_total > 1) {
+      nwtt += nw_total;
+      int bound = 0;
+      for (int n0 = 0; n0 < nw_total; n0++)
+      {
+        double NNr = 10000;
+        float NNs = 10000;
+        //float ds = 0;
+        //float NNd = 10000;
+        //float dd = 0;
+        int q0 = n0 * 4; // Index into voxel_Q_ for n0
+        for (int n1 = 0; n1 < nw_total; n1++)
+        {
+          if (n0 != n1) {
+            int q1 = n1 * 4; // Index into voxel_Q_ for n1
+            double rR = 2.0 * acos(  voxel_Q_[gr_pt][q1  ] * voxel_Q_[gr_pt][q0  ]
+                                   + voxel_Q_[gr_pt][q1+1] * voxel_Q_[gr_pt][q0+1]
+                                   + voxel_Q_[gr_pt][q1+2] * voxel_Q_[gr_pt][q0+2]
+                                   + voxel_Q_[gr_pt][q1+3] * voxel_Q_[gr_pt][q0+3] );
+            //mprintf("DEBUG1: %g\n", rR);
+            if (rR > 0 && rR < NNr) NNr = rR;
+          }
+        } // END inner loop over all waters for this voxel
+
+        //if (bound == 1) { // FIXME this appears never to be triggered.
+        //  double dbl = 0;
+        //  //dTSorient_norm[gr_pt] += dbl; // Why was this even here?
+        //} else
+        if (bound != 1 && NNr < 9999 && NNr > 0 && NNs > 0) {
+          double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
+          //mprintf("DEBUG1: dbl %f\n", dbl);
+          dTSorient_norm[gr_pt] += dbl;
+          dTSo += dbl;
+        }
+      } // END outer loop over all waters for this voxel
+      //mprintf("DEBUG1: dTSorient_norm %f\n", dTSorient_norm[gr_pt]);
+      dTSorient_norm[gr_pt] = Constants::GASK_KCAL * temperature_ * 
+                               ((dTSorient_norm[gr_pt]/nw_total) + Constants::EULER_MASC);
+      dTSorient_dens[gr_pt] = dTSorient_norm[gr_pt] * nw_total / (NFRAME_ * Vvox);
+      dTSorienttot += dTSorient_dens[gr_pt];
+      //mprintf("DEBUG1: %f\n", dTSorienttot);
+    }
+  } // END loop over all grid points (voxels)
+  dTSorienttot *= Vvox;
+  mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
+  mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
+          dTSorienttot, NFRAME_);
+  mprintf("DEBUG: x_vox_ size is %zu\n", voxel_xyz_.size());
 }

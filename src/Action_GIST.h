@@ -14,7 +14,7 @@ class Action_GIST : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
