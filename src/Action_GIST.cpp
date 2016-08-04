@@ -1,6 +1,7 @@
 #include <cmath>
 #include "Action_GIST.h"
 #include "CpptrajStdio.h"
+#include "Constants.h"
 
 Action_GIST::Action_GIST() :
   gO_(0),
@@ -153,6 +154,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
+static inline bool NotEqual(double v1, double v2) {
+  return ( fabs(v1 - v2) > Constants::SMALL );
+}
+
 // Action_GIST::Setup()
 Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // We need box info
@@ -165,6 +170,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // Get molecule number for each solvent molecule
   mol_nums_.clear();
   unsigned int midx = 0;
+  bool isFirstSolvent = true;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol, ++midx)
   {
@@ -193,6 +199,29 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
         return Action::ERR;
       }
+      // If first solvent molecule, save charges. If not, check that charges match.
+      if (isFirstSolvent) {
+        q_O_  = setup.Top()[o_idx  ].Charge();
+        q_H1_ = setup.Top()[o_idx+1].Charge();
+        q_H2_ = setup.Top()[o_idx+2].Charge();
+        // Sanity check
+        if (NotEqual(q_H1_, q_H2_))
+          mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", q_H1_, q_H2_);
+      } else {
+        if (NotEqual(q_O_, setup.Top()[o_idx  ].Charge()))
+          mprintf("Warning: Charge on water '%s' oxygen %g does not match first water %g.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
+                  setup.Top()[o_idx  ].Charge(), q_O_);
+        if (NotEqual(q_H1_, setup.Top()[o_idx+1].Charge()))
+          mprintf("Warning: Charge on water '%s' H1 %g does not match first water %g.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
+                  setup.Top()[o_idx+1].Charge(), q_H1_);
+        if (NotEqual(q_H2_, setup.Top()[o_idx+2].Charge()))
+          mprintf("Warning: Charge on water '%s' H2 %g does not match first water %g.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
+                  setup.Top()[o_idx+2].Charge(), q_H2_);
+      }
+      isFirstSolvent = false;
     }
   }
 
@@ -326,6 +355,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( y4 );
         voxel_Q_[voxel].push_back( z4 );
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
+        // ----- DIPOLE --------------------------
+        //Vec3 dipolar_vector
         // ---------------------------------------
       }
 
