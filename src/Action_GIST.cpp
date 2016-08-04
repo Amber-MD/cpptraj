@@ -381,36 +381,54 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+/** Translational entropy calc between given water and all waters in voxel 2.
+  * \param VX voxel 1 water X
+  * \param VY voxel 1 water Y
+  * \param VZ voxel 1 water Z
+  * \param W4 voxel 1 water W4
+  * \param X4 voxel 1 water X4
+  * \param Y4 voxel 1 water Y4
+  * \param Z4 voxel 1 water Z4
+  * \param voxel2 Index of second voxel
+  */
+void Action_GIST::TransEntropy(float VX, float VY, float VZ,
+                               float W4, float X4, float Y4, float Z4,
+                               int voxel2, double& NNd, double& NNs) const
+{
+  int nw_tot = N_waters_[voxel2];
+  Farray const& V_XYZ = voxel_xyz_[voxel2];
+  Farray const& V_Q   = voxel_Q_[voxel2];
+  for (int n1 = 0; n1 != nw_tot; n1++)
+  {
+    int i1 = n1 * 3; // index into V_XYZ for n1
+    double dx = (double)(VX - V_XYZ[i1  ]);
+    double dy = (double)(VY - V_XYZ[i1+1]);
+    double dz = (double)(VZ - V_XYZ[i1+2]);
+    double dd = dx*dx+dy*dy+dz*dz;
+    if (dd < NNd && dd > 0) { NNd = dd; }
+
+    int q1 = n1 * 4; // index into V_Q for n1
+    double rR = 2.0 * acos( W4 * V_Q[q1  ] +
+                            X4 * V_Q[q1+1] +
+                            Y4 * V_Q[q1+2] +
+                            Z4 * V_Q[q1+3] );
+    double ds = rR*rR + dd;
+    if (ds < NNs && ds > 0) { NNs = ds; }
+  }
+}
+
 void Action_GIST::Print() {
   unsigned int MAX_GRID_PT = gO_->Size();
   double Vvox = gO_->VoxelVolume();
-/*  int nx = (int)gO_->NX();
-  int ny = (int)gO_->NY();
-  int nz = (int)gO_->NZ();
-  int addx = nz * ny;
-  int addy = nz;
-  int addz = 1;
-  int subx = -1 * nz * ny;
-  int suby = -1 * nz;
-  int subz = -1;
-  // Implement NN to compute orientational entropy for each voxel
-  //double NNr, rx, ry, rz, rR, dbl;
-  double dTSs = 0.0;
-  double dTSst = 0.0;
-  float NNs = 10000;
-  float ds = 0;
-  float dx = 0, dy = 0, dz = 0, dd = 0, NNd = 10000;
-  double dTSo = 0, dTSot = 0, dTSt = 0, dTStt = 0;
-  int nwts = 0;*/
-
-  Farray dTSorient_norm( MAX_GRID_PT, 0.0 );
 
   mprintf("    GIST OUTPUT:\n");
-  // LOOP over all voxels
+  // Calculate orientational entropy
   DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
+  Farray dTSorient_norm( MAX_GRID_PT, 0.0 );
   double dTSorienttot = 0;
   int nwtt = 0;
   double dTSo = 0;
+  // LOOP over all voxels
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
     dTSorient_dens[gr_pt] = 0;
     dTSorient_norm[gr_pt] = 0;
@@ -463,5 +481,112 @@ void Action_GIST::Print() {
   mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
   mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
           dTSorienttot, NFRAME_);
-  mprintf("DEBUG: x_vox_ size is %zu\n", voxel_xyz_.size());
+
+  // Compute translational entropy for each voxel
+  double dTStranstot = 0.0;
+  unsigned int nx = gO_->NX();
+  unsigned int ny = gO_->NY();
+  unsigned int nz = gO_->NZ();
+  unsigned int addx = ny * nz;
+  unsigned int addy = nz;
+  unsigned int addz = 1;
+  //Farray W_dens( MAX_GRID_PT, 0.0 ); // Water density
+  DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
+  DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
+  // Loop over all grid points
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+    int numplane = gr_pt / addx;
+    int nwj = 0;
+    double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
+    gO[gr_pt] = W_dens / BULK_DENS_;
+    gH[gr_pt] = 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_);
+
+    int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+    for (int n0 = 0; n0 < nw_total; n0++)
+    {
+      double NNd = 10000;
+      int bound = 0;
+      double NNs = 10000;
+      int i0 = n0 * 3; // index into voxel_xyz_ for n0
+      float VX = voxel_xyz_[gr_pt][i0  ];
+      float VY = voxel_xyz_[gr_pt][i0+1];
+      float VZ = voxel_xyz_[gr_pt][i0+2];
+      int q0 = n0 * 4;  // index into voxel_Q_ for n0
+      float W4 = voxel_Q_[gr_pt][q0  ];
+      float X4 = voxel_Q_[gr_pt][q0+1];
+      float Y4 = voxel_Q_[gr_pt][q0+2];
+      float Z4 = voxel_Q_[gr_pt][q0+3];
+      // First do own voxel // TODO just use TransEntropy()?
+      for (int n1 = 0; n1 < nw_total; n1++) {
+        if ( n1 != n0) {
+          int i1 = n1 * 3; // index into voxel_xyz_ for n1
+          double dx = (double)(VX - voxel_xyz_[gr_pt][i1  ]);
+          double dy = (double)(VY - voxel_xyz_[gr_pt][i1+1]);
+          double dz = (double)(VZ - voxel_xyz_[gr_pt][i1+2]);
+          double dd = dx*dx+dy*dy+dz*dz;
+          if (dd < NNd && dd > 0) { NNd = dd; }
+          int q1 = n0 * 4; // index into voxel_Q_ for n1
+          double rR = 2 * acos( W4*voxel_Q_[gr_pt][q1  ] +
+                                X4*voxel_Q_[gr_pt][q1+1] +
+                                Y4*voxel_Q_[gr_pt][q1+2] +
+                                Z4*voxel_Q_[gr_pt][q1+3] );
+          double ds = rR*rR + dd;
+          if (ds < NNs && ds > 0) { NNs = ds; }
+        }
+      } // END self loop over all waters for this voxel
+      // Add Z
+      if ( nz == 0 || ( gr_pt%nz == nz-1 ) )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz, NNd, NNs);
+      // Add Y
+      if ( (nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz))
+          bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy, NNd, NNs);
+      // Add X
+      if (gr_pt >= addx * (nx-1) && gr_pt < addx * nx )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx, NNd, NNs);
+      // Sub Z
+      if (nz == 0 || gr_pt%nz == 0)
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz, NNd, NNs);
+      // Sub Y
+      if ( (nz == 0 || ny == 0) || (gr_pt%addx < nz) )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy, NNd, NNs);
+      // Sub X
+      if ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx))
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx, NNd, NNs);
+      // Add Z Add Y
+      if ( (nz == 0 || ny-1 == 0) || (gr_pt%nz == nz-1) ||
+           (gr_pt%(nz*(ny-1)+(numplane*addx)) < nz) )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addy, NNd, NNs);
+      // Add Z Sub Y
+      if ((ny == 0 || nz == 0) || (gr_pt%nz == nz-1) || (gr_pt%addx < nz))
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addy, NNd, NNs);
+      // Sub Z Add Y
+      if ((nz == 0 || ny-1 == 0) || (gr_pt%nz == 0) || (gr_pt%(nz*(ny-1)+(numplane*addx))< nz))
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addy, NNd, NNs);
+      // Sub Z Sub Y
+      if ((nz == 0 || ny == 0) || (gr_pt%nz == 0) || (gr_pt%addx < nz))
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt  - addz - addy, NNd, NNs); 
+
+    } // END loop over all waters for this voxel
+
+  } // END loop over all grid points (voxels)
 }

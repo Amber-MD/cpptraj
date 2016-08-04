@@ -855,7 +855,6 @@ void Action_Gist::Print() {
   mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
   mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
           dTSorienttot_, NFRAME_);
-  mprintf("DEBUG: x_vox_ size is %zu\n", x_vox_.size());
 
   // Compute translational entropy for each voxel
   double dTStranstot_ = 0.0;

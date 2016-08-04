@@ -16,6 +16,8 @@ class Action_GIST : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
+    inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
+
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
