@@ -119,6 +119,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   N_waters_.assign( gO_->Size(), 0 );
   N_hydrogens_.assign( gO_->Size(), 0 );
   voxel_xyz_.resize( gO_->Size() );
+  voxel_Q_.resize( gO_->Size() );
   //Box gbox;
   //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
   //                           (double)ny * gridspacing,
@@ -265,6 +266,66 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         double x2 = x1;
         double y2 = y1;
         double z2 = z1;
+
+        Vec3 H_temp;
+        H_temp[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H1_wat[0];
+        H_temp[0] = (2*(x2*y2 - w2*z2)*H1_wat[1]) + H_temp[0];
+        H_temp[0] = (2*(x2*z2-w2*y2)*H1_wat[2]) + H_temp[0];
+
+        H_temp[1] = 2*(x2*y2 - w2*z2)* H1_wat[0];
+        H_temp[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H1_wat[1]) + H_temp[1];
+        H_temp[1] = (2*(y2*z2+w2*x2)*H1_wat[2]) +H_temp[1];
+
+        H_temp[2] = 2*(x2*z2+w2*y2) *H1_wat[0];
+        H_temp[2] = (2*(y2*z2-w2*x2)*H1_wat[1]) + H_temp[2];
+        H_temp[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H1_wat[2]) + H_temp[2];
+
+        H1_wat = H_temp;
+
+        Vec3 H_temp2;
+        H_temp2[0] = ((w2*w2+x2*x2)-(y2*y2+z2*z2))*H2_wat[0];
+        H_temp2[0] = (2*(x2*y2 + w2*z2)*H2_wat[1]) + H_temp2[0];
+        H_temp2[0] = (2*(x2*z2-w2*y2)+H2_wat[2]) +H_temp2[0];
+
+        H_temp2[1] = 2*(x2*y2 - w2*z2) *H2_wat[0];
+        H_temp2[1] = ((w2*w2-x2*x2+y2*y2-z2*z2)*H2_wat[1]) +H_temp2[1];
+        H_temp2[1] = (2*(y2*z2+w2*x2)*H2_wat[2]) +H_temp2[1];
+
+        H_temp2[2] = 2*(x2*z2+w2*y2)*H2_wat[0];
+        H_temp2[2] = (2*(y2*z2-w2*x2)*H2_wat[1]) +H_temp2[2];
+        H_temp2[2] = ((w2*w2-x2*x2-y2*y2+z2*z2)*H2_wat[2]) + H_temp2[2];
+
+        H2_wat = H_temp2;
+
+        Vec3 ar2 = H_temp.Cross(H_temp2);
+        ar2.Normalize();
+        double dp2 = ar2 * z_lab_;
+        theta = acos(dp2);
+
+        sar = ar2.Cross( z_lab_ );
+        sign = sar * H_temp;
+
+        if (sign < 0)
+          theta /= 2.0;
+        else
+          theta /= -2.0;
+
+        double w3 = cos(theta);
+        sin_theta = sin(theta);
+        double x3 = x_lab_[0] * sin_theta;
+        double y3 = x_lab_[1] * sin_theta;
+        double z3 = x_lab_[2] * sin_theta;
+
+        double w4 = w1*w3 - x1*x3 - y1*y3 - z1*z3;
+        double x4 = w1*x3 + x1*w3 + y1*z3 - z1*y3;
+        double y4 = w1*y3 - x1*z3 + y1*w3 + z1*x3;
+        double z4 = w1*z3 + x1*y3 - y1*x3 + z1*w3;
+
+        voxel_Q_[voxel].push_back( w4 );
+        voxel_Q_[voxel].push_back( x4 );
+        voxel_Q_[voxel].push_back( y4 );
+        voxel_Q_[voxel].push_back( z4 );
+        // NOTE: No need for nw_angle_ here, it is same as N_waters_
         // ---------------------------------------
       }
 

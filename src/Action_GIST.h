@@ -47,6 +47,7 @@ class Action_GIST : public Action {
     typedef std::vector<float> Farray;
     typedef std::vector<Farray> Xarray;
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.
+    Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
