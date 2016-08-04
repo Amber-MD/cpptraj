@@ -26,6 +26,8 @@ class DataSet_3D : public DataSet {
     virtual size_t NY() const = 0;
     /// \return size of Z dimension.
     virtual size_t NZ() const = 0;
+    /// \return grid index
+    virtual long int CalcIndex(int i, int j, int k) const = 0;
     // -------------------------------------------
     // TODO: Remove this. Only needed by DataSet_1D.h
     void Add(size_t,const void*) { }
@@ -39,6 +41,7 @@ class DataSet_3D : public DataSet {
     int Allocate_N_O_Box(size_t,size_t,size_t, Vec3 const&, Box const&);
     /// Print grid info.
     void GridInfo() const;
+    // -------------------------------------------
     /// Convert X, Y, and Z coords to indices. Check bounds.
     bool CalcBins(double x,double y,double z,int& i,int& j,int& k) const { 
       return gridBin_->CalcBins(x, y, z, i, j, k);

@@ -25,6 +25,8 @@ class DataSet_GridDbl : public DataSet_3D {
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }
     size_t NZ() const { return grid_.NZ(); }
+    /// \return grid index
+    long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
     // -------------------------------------------
     void SetElement(int x,int y,int z,double v) { grid_.setGrid(x,y,z,v);     }
     /// Type definition of iterator over grid elements.
@@ -38,8 +40,6 @@ class DataSet_GridDbl : public DataSet_3D {
     inline long int Increment(int,int,int,double);
     /// \return grid value at specified bin.
     double GridVal(int x,int y,int z)        const { return grid_.element(x,y,z);   }
-    /// \return grid index
-    long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
   private:
     Grid<double> grid_;
 };
