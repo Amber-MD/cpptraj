@@ -808,6 +808,8 @@ void Action_Gist::Print() {
     //int numplane = gr_pt/(griddim_[1]*griddim_[2]); int nwj = 0;
     dTSorient_dens_[gr_pt]=0;
     dTSorient_norm_[gr_pt]=0;
+    if (nw_angle_[gr_pt] != nwat_[gr_pt])
+      mprintf("DEBUG: voxel %i nw_angle_=%i nwat_=%i\n", gr_pt, nw_angle_[gr_pt], nwat_[gr_pt]);
     int nwtot = nw_angle_[gr_pt];
     int bound = 0;
     nwtt += nwtot;
@@ -847,6 +849,7 @@ void Action_Gist::Print() {
   mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
   mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
           dTSorienttot_, NFRAME_);
+  mprintf("DEBUG: x_vox_ size is %zu\n", x_vox_.size());
 
   // Compute translational entropy for each voxel
   double dTStranstot_ = 0.0;
