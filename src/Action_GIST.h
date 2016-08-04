@@ -13,8 +13,12 @@ class Action_GIST : public Action {
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
-    Action::RetType DoAction(int, ActionFrame&) { return Action::ERR; }
+    Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
+
+    static const Vec3 x_lab_;
+    static const Vec3 y_lab_;
+    static const Vec3 z_lab_;
 
     ImagedAction image_; ///< Imaging routines.
     // GIST float grid datasets
@@ -35,13 +39,22 @@ class Action_GIST : public Action {
 
     typedef std::vector<int> Iarray;
     Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.
-    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.
+    Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.
+    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule. TODO long int?
+    Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.
+    Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.
 
-    GridBin_Nonortho grid_; ///< Hold common grid parameters
+    typedef std::vector<float> Farray;
+    typedef std::vector<Farray> Xarray;
+    Xarray voxel_xyz_; ///< Coords for all waters in each voxel.
+
+    Vec3 G_max_; ///< Grid max + 1.5 Ang.
+
     CpptrajFile* datafile_; ///< GIST output
     double BULK_DENS_; ///< Bulk water density
     double temperature_; ///< Temperature
     int NFRAME_; ///< Total # frames analyzed
+    int max_nwat_; ///< Max number of waters in any voxel
     bool doOrder_; ///< If true do the order calc
     bool doEij_; ///< If true do the i-j energy calc
     bool skipE_; ///< If true skip the nonbond energy calc

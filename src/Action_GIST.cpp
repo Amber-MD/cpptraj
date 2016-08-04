@@ -1,3 +1,4 @@
+#include <cmath>
 #include "Action_GIST.h"
 #include "CpptrajStdio.h"
 
@@ -19,6 +20,7 @@ Action_GIST::Action_GIST() :
   BULK_DENS_(0.0),
   temperature_(0.0),
   NFRAME_(0),
+  max_nwat_(0),
   doOrder_(false),
   doEij_(false),
   skipE_(false)
@@ -110,12 +112,19 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
 
-  // Set up grid params
-  Box gbox;
-  gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
-                             (double)ny * gridspacing,
-                             (double)nz * gridspacing );
-  grid_.Setup_O_Box( nx, ny, nz, gO_->GridOrigin(), gbox );
+  // Set up grid params TODO non-orthogonal as well
+  G_max_ = Vec3( (double)nx * gridspacing + 1.5,
+                 (double)ny * gridspacing + 1.5,
+                 (double)nz * gridspacing + 1.5 );
+  N_waters_.assign( gO_->Size(), 0 );
+  N_hydrogens_.assign( gO_->Size(), 0 );
+  voxel_xyz_.resize( gO_->Size() );
+  //Box gbox;
+  //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
+  //                           (double)ny * gridspacing,
+  //                           (double)nz * gridspacing );
+  //grid_.Setup_O_Box( nx, ny, nz, gO_->GridOrigin(), gbox );
+  //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
   mprintf("    GIST:\n");
   if(doOrder_)
@@ -158,8 +167,32 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol, ++midx)
   {
-    if (mol->IsSolvent())
-      mol_nums_.push_back( midx );
+    if (mol->IsSolvent()) {
+      int o_idx = mol->BeginAtom();
+      // Check that molecule has 3 atoms
+      if (mol->NumAtoms() != 3) {
+        mprinterr("Error: Molecule '%s' has %i atoms, expected 3 for water.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
+                  mol->NumAtoms());
+        return Action::ERR;
+      }
+      mol_nums_.push_back( midx ); // TODO needed?
+      // Check that first atom is actually Oxygen
+      if (setup.Top()[o_idx].Element() != Atom::OXYGEN) {
+        mprinterr("Error: Molecule '%s' is not water or does not have oxygen atom.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
+        return Action::ERR;
+      }
+      O_idxs_.push_back( o_idx );
+      // Check that the next two atoms are Hydrogens
+      if (setup.Top()[o_idx+1].Element() != Atom::HYDROGEN ||
+          setup.Top()[o_idx+2].Element() != Atom::HYDROGEN)
+      {
+        mprinterr("Error: Molecule '%s' does not have hydrogen atoms.\n",
+                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
+        return Action::ERR;
+      }
+    }
   }
 
   water_voxel_.assign( mol_nums_.size(), -1 );
@@ -167,9 +200,82 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
+const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
+const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
+
 // Action_GIST::DoAction()
 Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   NFRAME_++;
 
+  int bin_i, bin_j, bin_k;
+  Vec3 const& Origin = gO_->GridOrigin();
   // Loop over each solvent molecule
-  for (Iarray::const_iterator smol = mol_nums
+  for (unsigned int sidx = 0; sidx < mol_nums_.size(); sidx++)
+  {
+    water_voxel_[sidx] = -1;
+    const double* O_XYZ  = frm.Frm().XYZ( O_idxs_[sidx]     );
+    // Get vector of water oxygen to grid origin.
+    Vec3 W_G( O_XYZ[0] - Origin[0],
+              O_XYZ[1] - Origin[1],
+              O_XYZ[2] - Origin[2] );
+    // Check if water oxygen is no more then 1.5 Ang from grid
+    // NOTE: using <= to be consistent with original code
+    if ( W_G[0] <= G_max_[0] && W_G[0] >= -1.5 &&
+         W_G[1] <= G_max_[1] && W_G[1] >= -1.5 &&
+         W_G[2] <= G_max_[2] && W_G[2] >= -1.5 )
+    {
+      const double* H1_XYZ = frm.Frm().XYZ( O_idxs_[sidx] + 1 );
+      const double* H2_XYZ = frm.Frm().XYZ( O_idxs_[sidx] + 2 );
+      // Try to bin the oxygen
+      if ( gO_->CalcBins( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
+      {
+        // Oxygen is inside the grid. Record the voxel.
+        int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
+        water_voxel_[sidx] = voxel;
+        N_waters_[voxel]++;
+        max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
+        // ----- EULER ---------------------------
+        // Record XYZ coords of water in voxel
+        voxel_xyz_[voxel].push_back( O_XYZ[0] );
+        voxel_xyz_[voxel].push_back( O_XYZ[1] );
+        voxel_xyz_[voxel].push_back( O_XYZ[2] );
+        // Get O-HX vectors
+        Vec3 H1_wat( H1_XYZ[0]-O_XYZ[0], H1_XYZ[1]-O_XYZ[1], H1_XYZ[2]-O_XYZ[2] );
+        Vec3 H2_wat( H2_XYZ[0]-O_XYZ[0], H2_XYZ[1]-O_XYZ[1], H2_XYZ[2]-O_XYZ[2] );
+        H1_wat.Normalize();
+        H2_wat.Normalize();
+
+        Vec3 ar1 = H1_wat.Cross( x_lab_ );
+        Vec3 sar = ar1;
+        ar1.Normalize();
+        double dp1 = x_lab_ * H1_wat;
+        double theta = acos(dp1);
+        double sign = sar * H1_wat;
+        if (sign > 0)
+          theta /= 2.0;
+        else
+          theta /= -2.0;
+        double w1 = cos(theta);
+        double sin_theta = sin(theta);
+        double x1 = ar1[0] * sin_theta;
+        double y1 = ar1[1] * sin_theta;
+        double z1 = ar1[2] * sin_theta;
+        double w2 = w1;
+        double x2 = x1;
+        double y2 = y1;
+        double z2 = z1;
+        // ---------------------------------------
+      }
+
+      // Water is at most 1.5A away from grid, so we need to check for H
+      // even if O is outside grid.
+      if (gO_->CalcBins( H1_XYZ[0], H1_XYZ[1], H1_XYZ[2], bin_i, bin_j, bin_k ) )
+        N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
+      if (gO_->CalcBins( H2_XYZ[0], H2_XYZ[1], H2_XYZ[2], bin_i, bin_j, bin_k ) )
+        N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
+    } // END water is within 1.5 Ang of grid
+  } // END loop over each solvent molecule
+
+  return Action::OK;
+}
