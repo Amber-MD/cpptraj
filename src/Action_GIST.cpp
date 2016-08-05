@@ -484,6 +484,8 @@ void Action_GIST::Print() {
 
   // Compute translational entropy for each voxel
   double dTStranstot = 0.0;
+  double dTSt = 0.0;
+  double dTSs = 0.0;
   unsigned int nx = gO_->NX();
   unsigned int ny = gO_->NY();
   unsigned int nz = gO_->NZ();
@@ -493,6 +495,8 @@ void Action_GIST::Print() {
   //Farray W_dens( MAX_GRID_PT, 0.0 ); // Water density
   DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
   DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
+  Farray dTStrans_norm( MAX_GRID_PT, 0.0 );
+  Farray dTSsix_norm( MAX_GRID_PT, 0.0 );
   // Loop over all grid points
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
     int numplane = gr_pt / addx;
@@ -534,58 +538,120 @@ void Action_GIST::Print() {
           if (ds < NNs && ds > 0) { NNs = ds; }
         }
       } // END self loop over all waters for this voxel
+      // Determine which directions are possible.
+      bool cannotAddZ = (nz == 0 || ( gr_pt%nz == nz-1 ));
+      bool cannotAddY = ((nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz));
+      bool cannotAddX = (gr_pt >= addx * (nx-1) && gr_pt < addx * nx );
+      bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
+      bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
+      bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx));
       // Add Z
-      if ( nz == 0 || ( gr_pt%nz == nz-1 ) )
+      if ( cannotAddZ )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz, NNd, NNs);
       // Add Y
-      if ( (nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz))
+      if ( cannotAddY )
           bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy, NNd, NNs);
       // Add X
-      if (gr_pt >= addx * (nx-1) && gr_pt < addx * nx )
+      if ( cannotAddX )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx, NNd, NNs);
       // Sub Z
-      if (nz == 0 || gr_pt%nz == 0)
+      if ( cannotSubZ )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz, NNd, NNs);
       // Sub Y
-      if ( (nz == 0 || ny == 0) || (gr_pt%addx < nz) )
+      if ( cannotSubY )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy, NNd, NNs);
       // Sub X
-      if ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx))
+      if ( cannotSubX )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx, NNd, NNs);
       // Add Z Add Y
-      if ( (nz == 0 || ny-1 == 0) || (gr_pt%nz == nz-1) ||
-           (gr_pt%(nz*(ny-1)+(numplane*addx)) < nz) )
+      if ( cannotAddZ || cannotAddY )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addy, NNd, NNs);
       // Add Z Sub Y
-      if ((ny == 0 || nz == 0) || (gr_pt%nz == nz-1) || (gr_pt%addx < nz))
+      if ( cannotAddZ || cannotSubY )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addy, NNd, NNs);
       // Sub Z Add Y
-      if ((nz == 0 || ny-1 == 0) || (gr_pt%nz == 0) || (gr_pt%(nz*(ny-1)+(numplane*addx))< nz))
+      if ( cannotSubZ || cannotAddY )
         bound = 1;
       else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addy, NNd, NNs);
       // Sub Z Sub Y
-      if ((nz == 0 || ny == 0) || (gr_pt%nz == 0) || (gr_pt%addx < nz))
+      if ( cannotSubZ || cannotSubY )
         bound = 1;
       else
-        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt  - addz - addy, NNd, NNs); 
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addy, NNd, NNs);
+      // Add Z Add X
+      if ( cannotAddZ || cannotAddX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addx, NNd, NNs);
+      // Add Z Sub X
+      if ( cannotAddZ || cannotSubX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addx, NNd, NNs);
+      // Sub Z Add X
+      if ( cannotSubZ || cannotAddX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addx, NNd, NNs);
+      // Sub Z Sub X
+      if ( cannotSubZ || cannotSubX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addx, NNd, NNs);
+      // Add Y Add X
+      if ( cannotAddY || cannotAddX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy + addx, NNd, NNs);
+      // Add Y Sub X
+      if ( cannotAddY || cannotSubX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy - addx, NNd, NNs);
+      // Sub Y Add X
+      if ( cannotSubY || cannotAddX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy + addx, NNd, NNs);
+      // Sub Y Sub X
+      if ( cannotSubY || cannotSubX )
+        bound = 1;
+      else
+        TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy - addx, NNd, NNs);
 
+      NNd = sqrt(NNd);
+      NNs = sqrt(NNs);
+      //if (bound == 1) {
+      //  dbl = 0;
+      //  dTStrans_norm_[a] += dbl;
+      //  continue;
+      //}// dTSsix_norm_[a] += dbl; continue;}
+      //else
+      if (bound != 1 && NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
+        double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+        dTStrans_norm[gr_pt] += dbl;
+        dTSt += dbl;
+        dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
+        dTSsix_norm[gr_pt] += dbl;
+        dTSs += dbl;
+      }
     } // END loop over all waters for this voxel
 
   } // END loop over all grid points (voxels)
