@@ -433,9 +433,9 @@ void Action_GIST::Print() {
     dTSorient_dens[gr_pt] = 0;
     dTSorient_norm[gr_pt] = 0;
     int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+    nwtt += nw_total;
     //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
     if (nw_total > 1) {
-      nwtt += nw_total;
       int bound = 0;
       for (int n0 = 0; n0 < nw_total; n0++)
       {
@@ -486,6 +486,7 @@ void Action_GIST::Print() {
   double dTStranstot = 0.0;
   double dTSt = 0.0;
   double dTSs = 0.0;
+  int nwts = 0;
   unsigned int nx = gO_->NX();
   unsigned int ny = gO_->NY();
   unsigned int nz = gO_->NZ();
@@ -495,12 +496,13 @@ void Action_GIST::Print() {
   //Farray W_dens( MAX_GRID_PT, 0.0 ); // Water density
   DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
   DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
+  DataSet_GridFlt& dTStrans = static_cast<DataSet_GridFlt&>( *dTStrans_ );
+  DataSet_GridFlt& dTSsix = static_cast<DataSet_GridFlt&>( *dTSsix_ );
   Farray dTStrans_norm( MAX_GRID_PT, 0.0 );
   Farray dTSsix_norm( MAX_GRID_PT, 0.0 );
   // Loop over all grid points
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
     int numplane = gr_pt / addx;
-    int nwj = 0;
     double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
     gO[gr_pt] = W_dens / BULK_DENS_;
     gH[gr_pt] = 1.0 * N_hydrogens_[gr_pt] / (NFRAME_*Vvox*2*BULK_DENS_);
@@ -651,8 +653,30 @@ void Action_GIST::Print() {
         dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
         dTSsix_norm[gr_pt] += dbl;
         dTSs += dbl;
+        mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
       }
     } // END loop over all waters for this voxel
-
+    if (dTStrans_norm[gr_pt] != 0) {
+      nwts += nw_total;
+      dTStrans_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTStrans_norm[gr_pt]/nw_total) +
+                                                                 Constants::EULER_MASC );
+      dTSsix_norm[gr_pt] = Constants::GASK_KCAL*temperature_*( (dTSsix_norm[gr_pt]/nw_total) +
+                                                               Constants::EULER_MASC );
+    }
+    dTStrans[gr_pt] = dTStrans_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
+    dTSsix[gr_pt] = dTSsix_norm[gr_pt]*nw_total/(NFRAME_*Vvox);
+    dTStranstot += dTStrans[gr_pt];
   } // END loop over all grid points (voxels)
+
+  dTStranstot *= Vvox;
+  double dTSst = Constants::GASK_KCAL*temperature_*((dTSs/nwts) + Constants::EULER_MASC);
+  double dTSot = Constants::GASK_KCAL*temperature_*((dTSo/nwtt) + Constants::EULER_MASC);
+  double dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
+  mprintf("watcount in vol = %d\n", nwtt);
+  mprintf("watcount in subvol = %d\n", nwts);
+  mprintf("Total referenced translational entropy of the grid:"
+          " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
+  mprintf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
+  mprintf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
+  mprintf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
 }

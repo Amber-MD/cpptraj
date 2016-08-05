@@ -1333,6 +1333,7 @@ void Action_Gist::Print() {
           dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
           dTSsix_norm_[a] += dbl;
           dTSs += dbl;
+          mprintf("DEBUG0: dbl=%f NNs=%f\n", dbl, NNs);
         }
       }
       if (dTStrans_norm_[a] != 0) {
