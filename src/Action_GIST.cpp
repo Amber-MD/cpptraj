@@ -294,12 +294,10 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
   double r12   = r6 * r6; 
   double f12   = LJ.A() * r12;  // A/r^12
   double f6    = LJ.B() * r6;   // B/r^6
-  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-  Evdw += e_vdw;
+         Evdw  = f12 - f6;      // (A/r^12)-(B/r^6)
   // Coulomb
-  double qiqj = QFAC_ * q1 * q2;
-  double e_elec = qiqj / rij;
-  Eelec += e_elec;
+  double qiqj  = QFAC_ * q1 * q2;
+         Eelec = qiqj / rij;
 }
 
 /** Calculate the energy between the given water and all other
@@ -309,6 +307,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
+  double Evdw, Eelec;
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
   if (image_.ImagingEnabled())
@@ -333,8 +332,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           // Calculate distance
           double rij2 = Dist2(image_.ImageType(), V1_XYZ, U_XYZ, frameIn.BoxCrd(), ucell, recip);
           // Calculate energy
-          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx1, *uidx),
-                 E_UV_VDW_[voxel1], E_UV_Elec_[voxel1] );
+          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx1, *uidx), Evdw, Eelec );
+          E_UV_VDW_[voxel1] += Evdw;
+          E_UV_Elec_[voxel1] += Eelec;
         } // END loop over solute atoms
         // Second do solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
@@ -353,16 +353,23 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               double rij2 = Dist2(image_.ImageType(), V1_XYZ, V2_XYZ, frameIn.BoxCrd(),
                                   ucell, recip);
               // Calculate energy
-              Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2),
-                     E_VV_VDW_[voxel1], E_VV_Elec_[voxel1] );
-              //mprintf("DEBUG1: EVV %i %i sumVdw=%f sumElec=%f\n", vidx1, vidx2, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
+              Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2), Evdw, Eelec );
+              //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", voxel1, voxel2, vidx1, vidx2, Evdw, Eelec);
+              E_VV_VDW_[voxel1] += Evdw;
+              E_VV_Elec_[voxel1] += Eelec;
               // Store water neighbor using only O-O distance
               if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
                 neighbor_[voxel1] += 1.0;
+              // If water2 was also on the grid update its energy as well.
+              if (voxel2 != -1) {
+                E_VV_VDW_[voxel2] += Evdw;
+                E_VV_Elec_[voxel2] += Eelec;
+              }
             }
           } // END loop over water2 atoms
         } // END loop over all other waters
       } // End loop over water1 atoms
+      //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
     } // END water1 is on the grid
   } // END outer loop over solvent molecules (water1)
 
@@ -833,11 +840,11 @@ void Action_GIST::Print() {
     double Ewwtot = 0.0;
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++)
     {
+      //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 1) {
         Esw_dens[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / (NFRAME_ * Vvox);
         Esw_norm[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / nw_total;
-        //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
         Eww_dens[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * NFRAME_ * Vvox);
         Eww_norm[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * nw_total);
         Eswtot += Esw_dens[gr_pt];

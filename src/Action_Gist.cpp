@@ -465,10 +465,10 @@ void Action_Gist::NonbondEnergy(Frame const& frameIn) {
           // solvent-solvent interaction, need to compute for all waters,
           // even those outside the grid but only one water needs to be 
           // inside the grid. 
+          //mprintf("DEBUG0: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", voxel_, voxel2, satom, satom2, e_vdw, e_elec);
           if (voxel_<MAX_GRID_PT_) {
             ww_evdw_[voxel_] +=  e_vdw;
             ww_eelec_[voxel_] += e_elec;
-            //mprintf("DEBUG0: EVV %i %i sumVdw=%f sumElec=%f\n", satom, satom2, ww_evdw_[voxel_], ww_eelec_[voxel_]);
             // Store the water neighbor using only O-O distance
             if (atom2==0 && atom1==0 && rij<3.5)
               neighbor_[voxel_] += 1.0;
@@ -477,7 +477,6 @@ void Action_Gist::NonbondEnergy(Frame const& frameIn) {
           if (voxel2<MAX_GRID_PT_) {
             ww_evdw_[voxel2] +=  e_vdw;
             ww_eelec_[voxel2] += e_elec;
-            //mprintf("DEBUG0: EVV %i %i sumVdw=%f sumElec=%f\n", satom2, satom, ww_evdw_[voxel2], ww_eelec_[voxel2]);
             // Store the water neighbor using only O-O distance
             if (atom2==0 && atom1==0 && rij<3.5)
               neighbor_[voxel2] += 1.0;
@@ -498,6 +497,7 @@ void Action_Gist::NonbondEnergy(Frame const& frameIn) {
     } // END Outer loop solvent atoms
     ++solvmol2_;
   }  // END Inner loop ALL molecules
+  //if (voxel_ < MAX_GRID_PT_) mprintf("DEBUG0: atom %i voxel %i VV evdw=%f eelec=%f\n", solvmol_->BeginAtom(), voxel_, ww_evdw_[voxel_], ww_eelec_[voxel_]);
 }
 
 // Action_Gist::Grid()
@@ -1369,10 +1369,10 @@ void Action_Gist::Print() {
   double Eswtot = 0.0;
   double Ewwtot = 0.0;
   for (int a=0; a<MAX_GRID_PT_; a++) {
+    //mprintf("DEBUG0: VV vdw=%f elec=%f\n", ww_evdw_[a],ww_eelec_[a]);
     if (nwat_[a]>1) {
        Esw_dens_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
        Esw_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
-       //mprintf("DEBUG0: VV vdw=%f elec=%f\n", ww_evdw_[a],ww_eelec_[a]);
        Eww_dens_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_);
        Eww_norm_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]);
        Eswtot += Esw_dens_[a];
