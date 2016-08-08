@@ -315,27 +315,38 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     int voxel1 = water_voxel_[sidx1];
     if (voxel1 != -1)
     {
-      // Loop over water O, H1, H2
-      for (unsigned int widx = 0; widx != 3; widx++)
+      // Loop over water1 O, H1, H2
+      for (unsigned int widx1 = 0; widx1 != 3; widx1++)
       {
-        int vidx = O_idxs_[sidx1] + widx;           // Absolute index of water1 atom
-        const double* V_XYZ = frameIn.XYZ( vidx ); // Coord of water atom
-        double q1 = topIn[ vidx ].Charge();        // Charge of water atom
+        int vidx1 = O_idxs_[sidx1] + widx1;          // Absolute index of water1 atom
+        const double* V1_XYZ = frameIn.XYZ( vidx1 ); // Coord of water atom
+        double q1 = topIn[ vidx1 ].Charge();         // Charge of water atom
         // First do solvent-solute energy.
         for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
         {
           const double* U_XYZ = frameIn.XYZ( *uidx );
           // Calculate distance
-          double rij2 = Dist2(image_.ImageType(), V_XYZ, U_XYZ, frameIn.BoxCrd(), ucell, recip);
+          double rij2 = Dist2(image_.ImageType(), V1_XYZ, U_XYZ, frameIn.BoxCrd(), ucell, recip);
           // Calculate energy
-          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx, *uidx),
+          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx1, *uidx),
                  E_UV_VDW_[voxel1], E_UV_Elec_[voxel1] );
         } // END loop over solute atoms
         // Second do solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
-        //for (unsigned int sidx2 = sidx1 + 1; sidx2 < mol_nums_.size(); sidx2++)
-        //{
-          
+        for (unsigned int sidx2 = sidx1 + 1; sidx2 < mol_nums_.size(); sidx2++)
+        {
+          // Loop over water2 O, H1, H2
+          for (unsigned int widx2 = 0; widx2 != 3; widx2++)
+          {
+            int vidx2 = O_idxs_[sidx2] + widx2;
+            const double* V2_XYZ = frameIn.XYZ( vidx2 );
+            // Calculate distance
+            double rij2 = Dist2(image_.ImageType(), V1_XYZ, V2_XYZ, frameIn.BoxCrd(), ucell, recip);
+            // Calculate energy
+            Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2),
+                   E_VV_VDW_[voxel1], E_VV_Elec_[voxel1] );
+          } // END loop over water2 atoms
+        } // END loop over all other waters
       } // End loop over water1 atoms
     } // END water1 is on the grid
   } // END outer loop over solvent molecules (water1)
