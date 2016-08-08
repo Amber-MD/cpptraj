@@ -531,7 +531,7 @@ void Action_GIST::Print() {
           double dz = (double)(VZ - voxel_xyz_[gr_pt][i1+2]);
           double dd = dx*dx+dy*dy+dz*dz;
           if (dd < NNd && dd > 0) { NNd = dd; }
-          int q1 = n0 * 4; // index into voxel_Q_ for n1
+          int q1 = n1 * 4; // index into voxel_Q_ for n1
           double rR = 2 * acos( W4*voxel_Q_[gr_pt][q1  ] +
                                 X4*voxel_Q_[gr_pt][q1+1] +
                                 Y4*voxel_Q_[gr_pt][q1+2] +
@@ -540,6 +540,7 @@ void Action_GIST::Print() {
           if (ds < NNs && ds > 0) { NNs = ds; }
         }
       } // END self loop over all waters for this voxel
+      //mprintf("DEBUG1: self NNd=%f NNs=%f\n", NNd, NNs);
       // Determine which directions are possible.
       bool cannotAddZ = (nz == 0 || ( gr_pt%nz == nz-1 ));
       bool cannotAddY = ((nz == 0 || ny-1 == 0) || ( gr_pt%(nz*(ny-1)+(numplane*addx)) < nz));
@@ -653,7 +654,7 @@ void Action_GIST::Print() {
         dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
         dTSsix_norm[gr_pt] += dbl;
         dTSs += dbl;
-        mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
+        //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
       }
     } // END loop over all waters for this voxel
     if (dTStrans_norm[gr_pt] != 0) {

@@ -889,6 +889,7 @@ void Action_Gist::Print() {
             if (ds < NNs && ds > 0) { NNs = ds; }
           }
         } // END loop over nwi
+        //mprintf("DEBUG0: self NNd=%f NNs=%f\n", NNd, NNs);
 
         //if (a+addz > MAX_GRID_PT_ || a+addz < 0) {throw exc;}
         if (griddim_[2] == 0 || (a%griddim_[2] == griddim_[2]-1))
@@ -1333,7 +1334,7 @@ void Action_Gist::Print() {
           dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
           dTSsix_norm_[a] += dbl;
           dTSs += dbl;
-          mprintf("DEBUG0: dbl=%f NNs=%f\n", dbl, NNs);
+          //mprintf("DEBUG0: dbl=%f NNs=%f\n", dbl, NNs);
         }
       }
       if (dTStrans_norm_[a] != 0) {
