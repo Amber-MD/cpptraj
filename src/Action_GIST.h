@@ -17,10 +17,12 @@ class Action_GIST : public Action {
     void Print();
 
     inline void TransEntropy(float,float,float,float,float,float,float,int,double&,double&) const;
+    void NonbondEnergy(int, int, Frame const&, Topology const&);
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
+    static const double QFAC_;
 
     ImagedAction image_; ///< Imaging routines.
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
@@ -41,9 +43,10 @@ class Action_GIST : public Action {
     DataSet_3D* dipolez_;    ///< Water dipole (Z)*
 
     typedef std::vector<int> Iarray;
-    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+
+    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
     Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.* TODO long int?
+    Iarray U_idxs_;      ///< Solute atom indices for each solute atom.+
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 
@@ -60,6 +63,7 @@ class Action_GIST : public Action {
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
+    Topology* CurrentParm_; ///< Current topology, for energy calc.
     CpptrajFile* datafile_; ///< GIST output
     double BULK_DENS_;      ///< Bulk water density
     double temperature_;    ///< Temperature

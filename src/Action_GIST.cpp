@@ -18,6 +18,7 @@ Action_GIST::Action_GIST() :
   dipolex_(0),
   dipoley_(0),
   dipolez_(0),
+  CurrentParm_(0),
   datafile_(0),
   BULK_DENS_(0.0),
   temperature_(0.0),
@@ -176,6 +177,7 @@ static inline bool NotEqual(double v1, double v2) {
 
 // Action_GIST::Setup()
 Action::RetType Action_GIST::Setup(ActionSetup& setup) {
+  CurrentParm_ = setup.TopAddress();
   // We need box info
   if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
     mprinterr("Error: Must have explicit solvent with periodic boundaries!");
@@ -185,6 +187,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
 
   // Get molecule number for each solvent molecule
   mol_nums_.clear();
+  O_idxs_.clear();
   unsigned int midx = 0;
   bool isFirstSolvent = true;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
@@ -241,8 +244,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   setup.Top()[o_idx+2].Charge(), q_H2_);
       }
       isFirstSolvent = false;
+    } else {
+      // This is a non-solvent molecule. Save atom indices unless 1 atom (probably ion).
+      if (mol->NumAtoms() > 1) {
+        for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx)
+          U_idxs_.push_back( u_idx );
+      }
     }
   }
+  mprintf("DEBUG: %zu solvent molecules, %zu solute atoms.\n", O_idxs_.size(), U_idxs_.size());
 
   water_voxel_.assign( mol_nums_.size(), -1 );
 
@@ -252,6 +262,54 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
 const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
 const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
 const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
+const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+
+/** Calculate the energy between the given water and all other
+  * waters/solute atoms.
+  * NOTE: Assume that H atom coords follow O in O_XYZ!
+  */
+void Action_GIST::NonbondEnergy(int voxel, int oidx, Frame const& frameIn, Topology const& topIn)
+{
+  // Set up imaging info.
+  Matrix_3x3 ucell, recip;
+  if (image_.ImagingEnabled())
+    frameIn.BoxCrd().ToRecip(ucell, recip);
+
+  // Loop over water O, H1, H2
+  for (unsigned int idx = 0; idx != 3; idx++)
+  {
+    int vidx = oidx + idx;                     // Absolute index of water atom
+    const double* V_XYZ = frameIn.XYZ( vidx ); // Coord of water atom
+    double q1 = topIn[ vidx ].Charge();          // Charge of water atom
+    // First do solvent-solute energy.
+    for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
+    {
+      const double* U_XYZ = frameIn.XYZ( *uidx );
+      // Calculate distance
+      double rij2 = 0.0;
+      switch (image_.ImageType()) {
+        case NOIMAGE : rij2 = DIST2_NoImage( V_XYZ, U_XYZ ); break;
+        case ORTHO   : rij2 = DIST2_ImageOrtho( V_XYZ, U_XYZ, frameIn.BoxCrd() ); break;
+        case NONORTHO: rij2 = DIST2_ImageNonOrtho( V_XYZ, U_XYZ, ucell, recip ); break;
+      }
+      double rij = sqrt(rij2);
+      // VDW
+      NonbondType const& LJ = topIn.GetLJparam(vidx, *uidx);
+      double r2    = 1.0 / rij2;
+      double r6    = r2 * r2 * r2;
+      double r12   = r6 * r6;
+      double f12   = LJ.A() * r12;  // A/r^12
+      double f6    = LJ.B() * r6;   // B/r^6
+      double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+      E_UV_VDW_[voxel] += e_vdw;
+      // Coulomb
+      double qiqj = QFAC_ * q1 * topIn[ *uidx ].Charge();
+      double e_elec = qiqj / rij;
+      E_UV_Elec_[voxel] += e_elec;
+    } // END loop over solute atoms
+  } // End loop over water atoms
+
+}
 
 // Action_GIST::DoAction()
 Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
@@ -263,7 +321,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   for (unsigned int sidx = 0; sidx < mol_nums_.size(); sidx++)
   {
     water_voxel_[sidx] = -1;
-    const double* O_XYZ  = frm.Frm().XYZ( O_idxs_[sidx]     );
+    const double* O_XYZ  = frm.Frm().XYZ( O_idxs_[sidx] );
     // Get vector of water oxygen to grid origin.
     Vec3 W_G( O_XYZ[0] - Origin[0],
               O_XYZ[1] - Origin[1],
@@ -284,6 +342,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         water_voxel_[sidx] = voxel;
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
+        // ----- NONBOND -------------------------
+        if (!skipE_) NonbondEnergy(voxel, O_idxs_[sidx], frm.Frm(), *CurrentParm_);
         // ----- EULER ---------------------------
         // Record XYZ coords of water in voxel
         voxel_xyz_[voxel].push_back( O_XYZ[0] );
