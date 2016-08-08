@@ -417,6 +417,7 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
   }
 }
 
+// Action_GIST::Print()
 void Action_GIST::Print() {
   unsigned int MAX_GRID_PT = gO_->Size();
   double Vvox = gO_->VoxelVolume();

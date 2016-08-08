@@ -23,6 +23,7 @@ class Action_GIST : public Action {
     static const Vec3 z_lab_;
 
     ImagedAction image_; ///< Imaging routines.
+    // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
     // GIST float grid datasets
     DataSet_3D* gO_;        ///< Solvent oxygen density
     DataSet_3D* gH_;        ///< Solvent hydrogen density
@@ -35,21 +36,21 @@ class Action_GIST : public Action {
     DataSet_3D* dipole_; // pol
     // GIST double grid datasets
     DataSet_3D* order_norm_; // qtet
-    DataSet_3D* dipolex_;
-    DataSet_3D* dipoley_;
-    DataSet_3D* dipolez_;
+    DataSet_3D* dipolex_;    ///< Water dipole (X)*
+    DataSet_3D* dipoley_;    ///< Water dipole (Y)*
+    DataSet_3D* dipolez_;    ///< Water dipole (Z)*
 
     typedef std::vector<int> Iarray;
-    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.
-    Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.
-    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule. TODO long int?
-    Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.
-    Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.
+    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+
+    Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
+    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.* TODO long int?
+    Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
+    Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 
     typedef std::vector<float> Farray;
     typedef std::vector<Farray> Xarray;
-    Xarray voxel_xyz_; ///< Coords for all waters in each voxel.
-    Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.
+    Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
+    Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
