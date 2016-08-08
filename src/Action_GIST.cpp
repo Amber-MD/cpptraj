@@ -42,11 +42,16 @@ void Action_GIST::Help() const {
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
+  std::string prefix = actionArgs.GetStringKey("prefix");
+  if (prefix.empty()) prefix.assign("gist");
   std::string gistout = actionArgs.GetStringKey("out");
-  if (gistout.empty()) gistout.assign("gist-output.dat");
+  if (gistout.empty()) gistout.assign(prefix + "-output.dat");
   datafile_ = init.DFL().AddCpptrajFile( gistout, "GIST output" );
   if (datafile_ == 0) return Action::ERR;
+  // Grid files
+  DataFile* file_gO = init.DFL().AddDataFile( prefix + "-gO.dx" );
+  // Other keywords
+  image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
   skipE_ = actionArgs.hasKey("skipE");
@@ -119,6 +124,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+
+  // Add sets to files
+  file_gO->AddDataSet( gO_ );
 
   // Set up grid params TODO non-orthogonal as well
   G_max_ = Vec3( (double)nx * gridspacing + 1.5,
@@ -873,5 +881,25 @@ void Action_GIST::Print() {
     Ewwtot *= Vvox;
     mprintf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
     mprintf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n", Ewwtot);
+  }
+
+  // Write the GIST output file.
+  // TODO: Make data sets?
+  if (datafile_ != 0) {
+    datafile_->Printf("GIST Output, information printed per voxel\n"
+                      "voxel xcoord ycoord zcoord population g_O g_H"
+                      " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
+                      " dTSorient-dens(kcal/mol/A^3) dTSorient-norm(kcal/mol)"
+                      " dTSsix-dens(kcal/mol/A^3) dTSsix-norm (kcal/mol)"
+                      " Esw-dens(kcal/mol/A^3) Esw-norm(kcal/mol)"
+                      " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
+                      " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
+                      " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
+    //for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+    //  Vec3 XYZ = gO_->BinCenter
+    //  datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
+    //                    " %g %g %g %g %g %g %g %g %g %g %g %g \n",
+                        
+                        
   }
 }
