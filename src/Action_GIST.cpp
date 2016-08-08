@@ -45,6 +45,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
   skipE_ = actionArgs.hasKey("skipE");
+  if (!skipE_) doEij_ = false;
   // Set Bulk Density 55.5M
   BULK_DENS_ = actionArgs.getKeyDouble("refdens", 0.0334);
   if ( BULK_DENS_ > (0.0334*1.2) )
@@ -122,6 +123,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   N_hydrogens_.assign( gO_->Size(), 0 );
   voxel_xyz_.resize( gO_->Size() ); // [] = X Y Z
   voxel_Q_.resize( gO_->Size() ); // [] = W4 X4 Y4 Z4
+
+  if (!skipE_) {
+    E_UV_VDW_.assign( gO_->Size(), 0 );
+    E_VV_VDW_.assign( gO_->Size(), 0 );
+    E_UV_Elec_.assign( gO_->Size(), 0 );
+    E_VV_Elec_.assign( gO_->Size(), 0 );
+  }
+
   //Box gbox;
   //gbox.SetBetaLengths( 90.0, (double)nx * gridspacing,
   //                           (double)ny * gridspacing,
@@ -130,14 +139,18 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
   mprintf("    GIST:\n");
-  if(doOrder_)
-    mprintf("\tDo Order calculation\n");
+  if (doOrder_)
+    mprintf("\tDoing order calculation.\n");
   else
-    mprintf("\tSkip Order calculation\n");
-  if(doEij_)
-    mprintf("\tCompute and print water-water Eij matrix\n");
+    mprintf("\tSkipping order calculation.\n");
+  if (skipE_)
+    mprintf("\tSkipping energy calculation.\n");
   else
-    mprintf("\tSkip water-water Eij matrix\n");
+    mprintf("\tPerforming energy calculation.\n");
+  if (doEij_)
+    mprintf("\tComputing and printing water-water Eij matrix\n");
+  else
+    mprintf("\tSkipping water-water Eij matrix\n");
   mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
   if (image_.UseImage())

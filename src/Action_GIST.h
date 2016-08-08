@@ -52,6 +52,12 @@ class Action_GIST : public Action {
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
     Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
 
+    typedef std::vector<double> Darray;
+    Darray E_UV_VDW_;  ///< Solute-solvent van der Waals energy for each voxel.*
+    Darray E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
+    Darray E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
+    Darray E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
+
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
     CpptrajFile* datafile_; ///< GIST output
