@@ -338,21 +338,28 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         } // END loop over solute atoms
         // Second do solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
-        for (unsigned int sidx2 = sidx1 + 1; sidx2 < mol_nums_.size(); sidx2++)
+        for (unsigned int sidx2 = 0; sidx2 < mol_nums_.size(); sidx2++)
         {
-          // Loop over water2 O, H1, H2
-          for (unsigned int widx2 = 0; widx2 != 3; widx2++)
+          int voxel2 = water_voxel_[sidx2];
+          // Only do the energy calculation if not previously done or water2 not on grid
+          if (sidx2 != sidx1 && (sidx2 > sidx1 || voxel2 == -1))
           {
-            int vidx2 = O_idxs_[sidx2] + widx2;
-            const double* V2_XYZ = frameIn.XYZ( vidx2 );
-            // Calculate distance
-            double rij2 = Dist2(image_.ImageType(), V1_XYZ, V2_XYZ, frameIn.BoxCrd(), ucell, recip);
-            // Calculate energy
-            Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2),
-                   E_VV_VDW_[voxel1], E_VV_Elec_[voxel1] );
-            // Store water neighbor using only O-O distance
-            if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
-              neighbor_[voxel1] += 1.0;
+            // Loop over water2 O, H1, H2
+            for (unsigned int widx2 = 0; widx2 != 3; widx2++)
+            {
+              int vidx2 = O_idxs_[sidx2] + widx2;
+              const double* V2_XYZ = frameIn.XYZ( vidx2 );
+              // Calculate distance
+              double rij2 = Dist2(image_.ImageType(), V1_XYZ, V2_XYZ, frameIn.BoxCrd(),
+                                  ucell, recip);
+              // Calculate energy
+              Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2),
+                     E_VV_VDW_[voxel1], E_VV_Elec_[voxel1] );
+              //mprintf("DEBUG1: EVV %i %i sumVdw=%f sumElec=%f\n", vidx1, vidx2, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
+              // Store water neighbor using only O-O distance
+              if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
+                neighbor_[voxel1] += 1.0;
+            }
           } // END loop over water2 atoms
         } // END loop over all other waters
       } // End loop over water1 atoms
@@ -390,6 +397,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         // Oxygen is inside the grid. Record the voxel.
         int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
         water_voxel_[sidx] = voxel;
+        //mprintf("DEBUG1: Water atom %i voxel %i\n", O_idxs_[sidx], voxel);
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
         // ----- EULER ---------------------------
@@ -829,6 +837,7 @@ void Action_GIST::Print() {
       if (nw_total > 1) {
         Esw_dens[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / (NFRAME_ * Vvox);
         Esw_norm[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / nw_total;
+        //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
         Eww_dens[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * NFRAME_ * Vvox);
         Eww_norm[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * nw_total);
         Eswtot += Esw_dens[gr_pt];

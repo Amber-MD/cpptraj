@@ -468,6 +468,7 @@ void Action_Gist::NonbondEnergy(Frame const& frameIn) {
           if (voxel_<MAX_GRID_PT_) {
             ww_evdw_[voxel_] +=  e_vdw;
             ww_eelec_[voxel_] += e_elec;
+            //mprintf("DEBUG0: EVV %i %i sumVdw=%f sumElec=%f\n", satom, satom2, ww_evdw_[voxel_], ww_eelec_[voxel_]);
             // Store the water neighbor using only O-O distance
             if (atom2==0 && atom1==0 && rij<3.5)
               neighbor_[voxel_] += 1.0;
@@ -476,6 +477,7 @@ void Action_Gist::NonbondEnergy(Frame const& frameIn) {
           if (voxel2<MAX_GRID_PT_) {
             ww_evdw_[voxel2] +=  e_vdw;
             ww_eelec_[voxel2] += e_elec;
+            //mprintf("DEBUG0: EVV %i %i sumVdw=%f sumElec=%f\n", satom2, satom, ww_evdw_[voxel2], ww_eelec_[voxel2]);
             // Store the water neighbor using only O-O distance
             if (atom2==0 && atom1==0 && rij<3.5)
               neighbor_[voxel2] += 1.0;
@@ -530,6 +532,7 @@ void Action_Gist::Grid(Frame const& frameIn) {
         // this water belongs to grid point gridindex[0], gridindex[1], gridindex[2]
         voxel_ = (gridindex[0]*griddim_[1] + gridindex[1])*griddim_[2] + gridindex[2];
         gridwat_[resnum_] = voxel_;
+        //mprintf("DEBUG0: Water atom %i voxel %i\n", i, voxel_);
         nwat_[voxel_]++;
         if (max_nwat_ < nwat_[voxel_]) max_nwat_ = nwat_[voxel_];
       }
@@ -1369,6 +1372,7 @@ void Action_Gist::Print() {
     if (nwat_[a]>1) {
        Esw_dens_[a] = (wh_evdw_[a]+wh_eelec_[a])/(NFRAME_*Vvox_);
        Esw_norm_[a] = (wh_evdw_[a]+wh_eelec_[a])/nwat_[a];
+       //mprintf("DEBUG0: VV vdw=%f elec=%f\n", ww_evdw_[a],ww_eelec_[a]);
        Eww_dens_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*NFRAME_*Vvox_);
        Eww_norm_[a] = (ww_evdw_[a]+ww_eelec_[a])/(2*nwat_[a]);
        Eswtot += Esw_dens_[a];
