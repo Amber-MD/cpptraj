@@ -805,4 +805,57 @@ void Action_GIST::Print() {
   mprintf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
   mprintf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
   mprintf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
+
+  // Compute average voxel energy
+  if (!skipE_) {
+    static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
+    DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
+    DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
+    DataSet_GridFlt& qtet = static_cast<DataSet_GridFlt&>( *order_norm_ );
+    DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
+    DataSet_GridFlt& dipolex = static_cast<DataSet_GridFlt&>( *dipolex_ );
+    DataSet_GridFlt& dipoley = static_cast<DataSet_GridFlt&>( *dipoley_ );
+    DataSet_GridFlt& dipolez = static_cast<DataSet_GridFlt&>( *dipolez_ );
+    DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
+    Farray Esw_norm( MAX_GRID_PT, 0.0 );
+    Farray Eww_norm( MAX_GRID_PT, 0.0 );
+    Farray neighbor_dens( MAX_GRID_PT, 0.0 );
+
+    double Eswtot = 0.0;
+    double Ewwtot = 0.0;
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++)
+    {
+      int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
+      if (nw_total > 1) {
+        Esw_dens[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / (NFRAME_ * Vvox);
+        Esw_norm[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / nw_total;
+        Eww_dens[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * NFRAME_ * Vvox);
+        Eww_norm[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * nw_total);
+        Eswtot += Esw_dens[gr_pt];
+        Ewwtot += Eww_dens[gr_pt];
+      } else {
+        Esw_dens[gr_pt]=0;
+        Esw_norm[gr_pt]=0;
+        Eww_norm[gr_pt]=0;
+        Eww_dens[gr_pt]=0;
+      }
+      // Compute the average number of water neighbor, average order parameter,
+      // and average dipole density
+      if (nw_total > 0) {
+        qtet[gr_pt] /= nw_total;
+        neighbor_norm[gr_pt] = 1.0 * neighbor_[gr_pt] / nw_total;
+      }
+      neighbor_dens[gr_pt] = 1.0 * neighbor_[gr_pt] / (NFRAME_ * Vvox);
+      dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
+      pol[gr_pt] = sqrt( dipolex[gr_pt]*dipolex[gr_pt] +
+                         dipoley[gr_pt]*dipoley[gr_pt] +
+                         dipolez[gr_pt]*dipolez[gr_pt] );
+    } // END loop over all grid points (voxels)
+    Eswtot *= Vvox;
+    Ewwtot *= Vvox;
+    mprintf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
+    mprintf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n", Ewwtot);
+  }
 }
