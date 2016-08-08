@@ -22,6 +22,10 @@ Action_GIST::Action_GIST() :
   datafile_(0),
   BULK_DENS_(0.0),
   temperature_(0.0),
+  q_O_(0.0),
+  q_H1_(0.0),
+  q_H2_(0.0),
+  NeighborCut2_(12.25), // 3.5^2
   NFRAME_(0),
   max_nwat_(0),
   doOrder_(false),
@@ -130,6 +134,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     E_VV_VDW_.assign( gO_->Size(), 0 );
     E_UV_Elec_.assign( gO_->Size(), 0 );
     E_VV_Elec_.assign( gO_->Size(), 0 );
+    neighbor_.assign( gO_->Size(), 0 );
   }
 
   //Box gbox;
@@ -345,6 +350,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             // Calculate energy
             Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2),
                    E_VV_VDW_[voxel1], E_VV_Elec_[voxel1] );
+            // Store water neighbor using only O-O distance
+            if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
+              neighbor_[voxel1] += 1.0;
           } // END loop over water2 atoms
         } // END loop over all other waters
       } // End loop over water1 atoms

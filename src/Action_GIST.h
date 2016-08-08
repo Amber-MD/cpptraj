@@ -54,6 +54,8 @@ class Action_GIST : public Action {
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 
     typedef std::vector<float> Farray;
+    Farray neighbor_; ///< Number of water neighbors within 3.5 Ang.*
+
     typedef std::vector<Farray> Xarray;
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
     Xarray voxel_Q_;   ///< w4, x4, y4, z4 for all waters in each voxel.*
@@ -73,6 +75,7 @@ class Action_GIST : public Action {
     double q_O_;            ///< Charge on water oxygen
     double q_H1_;           ///< Charge on water H1
     double q_H2_;           ///< Charge on water H2 (sanity check)
+    double NeighborCut2_;   ///< Cutoff for determining water neighbors (squared).
     int NFRAME_;            ///< Total # frames analyzed
     int max_nwat_;          ///< Max number of waters in any voxel
     bool doOrder_;          ///< If true do the order calc
