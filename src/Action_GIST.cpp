@@ -264,50 +264,81 @@ const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
 const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
 const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
 
+/** Distance calculation, potentially imaged. */
+double Action_GIST::Dist2(ImagingType itype, const double* XYZ1, const double* XYZ2,
+                          Box const& BoxCrd, Matrix_3x3 const& ucell, Matrix_3x3 const& recip)
+{
+  // Calculate distance^2
+  switch (itype) {
+    case NOIMAGE : return DIST2_NoImage( XYZ1, XYZ2 );
+    case ORTHO   : return DIST2_ImageOrtho( XYZ1, XYZ2, BoxCrd );
+    case NONORTHO: return DIST2_ImageNonOrtho( XYZ1, XYZ2, ucell, recip );
+  }
+  // Sanity check
+  return 0.0;
+}
+
+/** Non-bonded energy calc. */
+void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ,
+                        double& Evdw, double& Eelec)
+{
+  double rij = sqrt(rij2);
+  // VDW
+  double r2    = 1.0 / rij2;
+  double r6    = r2 * r2 * r2;
+  double r12   = r6 * r6; 
+  double f12   = LJ.A() * r12;  // A/r^12
+  double f6    = LJ.B() * r6;   // B/r^6
+  double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+  Evdw += e_vdw;
+  // Coulomb
+  double qiqj = QFAC_ * q1 * q2;
+  double e_elec = qiqj / rij;
+  Eelec += e_elec;
+}
+
 /** Calculate the energy between the given water and all other
-  * waters/solute atoms.
+  * waters/solute atoms. This is done after the intial GIST calculations
+  * so that all waters have voxels assigned in water_voxel_.
   * NOTE: Assume that H atom coords follow O in O_XYZ!
   */
-void Action_GIST::NonbondEnergy(int voxel, int oidx, Frame const& frameIn, Topology const& topIn)
+void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
   if (image_.ImagingEnabled())
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
-  // Loop over water O, H1, H2
-  for (unsigned int idx = 0; idx != 3; idx++)
+  // Loop over each solvent molecule
+  for (unsigned int sidx1 = 0; sidx1 < mol_nums_.size(); sidx1++)
   {
-    int vidx = oidx + idx;                     // Absolute index of water atom
-    const double* V_XYZ = frameIn.XYZ( vidx ); // Coord of water atom
-    double q1 = topIn[ vidx ].Charge();          // Charge of water atom
-    // First do solvent-solute energy.
-    for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
+    int voxel1 = water_voxel_[sidx1];
+    if (voxel1 != -1)
     {
-      const double* U_XYZ = frameIn.XYZ( *uidx );
-      // Calculate distance
-      double rij2 = 0.0;
-      switch (image_.ImageType()) {
-        case NOIMAGE : rij2 = DIST2_NoImage( V_XYZ, U_XYZ ); break;
-        case ORTHO   : rij2 = DIST2_ImageOrtho( V_XYZ, U_XYZ, frameIn.BoxCrd() ); break;
-        case NONORTHO: rij2 = DIST2_ImageNonOrtho( V_XYZ, U_XYZ, ucell, recip ); break;
-      }
-      double rij = sqrt(rij2);
-      // VDW
-      NonbondType const& LJ = topIn.GetLJparam(vidx, *uidx);
-      double r2    = 1.0 / rij2;
-      double r6    = r2 * r2 * r2;
-      double r12   = r6 * r6;
-      double f12   = LJ.A() * r12;  // A/r^12
-      double f6    = LJ.B() * r6;   // B/r^6
-      double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
-      E_UV_VDW_[voxel] += e_vdw;
-      // Coulomb
-      double qiqj = QFAC_ * q1 * topIn[ *uidx ].Charge();
-      double e_elec = qiqj / rij;
-      E_UV_Elec_[voxel] += e_elec;
-    } // END loop over solute atoms
-  } // End loop over water atoms
+      // Loop over water O, H1, H2
+      for (unsigned int widx = 0; widx != 3; widx++)
+      {
+        int vidx = O_idxs_[sidx1] + widx;           // Absolute index of water1 atom
+        const double* V_XYZ = frameIn.XYZ( vidx ); // Coord of water atom
+        double q1 = topIn[ vidx ].Charge();        // Charge of water atom
+        // First do solvent-solute energy.
+        for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
+        {
+          const double* U_XYZ = frameIn.XYZ( *uidx );
+          // Calculate distance
+          double rij2 = Dist2(image_.ImageType(), V_XYZ, U_XYZ, frameIn.BoxCrd(), ucell, recip);
+          // Calculate energy
+          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx, *uidx),
+                 E_UV_VDW_[voxel1], E_UV_Elec_[voxel1] );
+        } // END loop over solute atoms
+        // Second do solvent-solvent energy. Need to caclulate for all waters,
+        // even those outside the grid.
+        //for (unsigned int sidx2 = sidx1 + 1; sidx2 < mol_nums_.size(); sidx2++)
+        //{
+          
+      } // End loop over water1 atoms
+    } // END water1 is on the grid
+  } // END outer loop over solvent molecules (water1)
 
 }
 
@@ -342,8 +373,6 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         water_voxel_[sidx] = voxel;
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
-        // ----- NONBOND -------------------------
-        if (!skipE_) NonbondEnergy(voxel, O_idxs_[sidx], frm.Frm(), *CurrentParm_);
         // ----- EULER ---------------------------
         // Record XYZ coords of water in voxel
         voxel_xyz_[voxel].push_back( O_XYZ[0] );
@@ -450,6 +479,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         N_hydrogens_[ (int)gO_->CalcIndex(bin_i, bin_j, bin_k) ]++;
     } // END water is within 1.5 Ang of grid
   } // END loop over each solvent molecule
+
+  // Do energy calculation if requested
+  if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
 
   return Action::OK;
 }
