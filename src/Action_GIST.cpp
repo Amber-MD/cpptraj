@@ -4,6 +4,9 @@
 #include "Constants.h"
 #include "DataSet_GridFlt.h"
 #include "DataSet_GridDbl.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 Action_GIST::Action_GIST() :
   gO_(0),
@@ -187,12 +190,26 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
   voxel_Q_.resize( MAX_GRID_PT_ ); // [] = W4 X4 Y4 Z4
 
+  int numthreads = 1;
+# ifdef _OPENMP
+# pragma omp parallel
+  {
+  if (omp_get_thread_num() == 0)
+    numthreads = omp_get_num_threads();
+  }
+# endif
+
   if (!skipE_) {
     E_UV_VDW_.assign( MAX_GRID_PT_, 0 );
-    E_VV_VDW_.assign( MAX_GRID_PT_, 0 );
     E_UV_Elec_.assign( MAX_GRID_PT_, 0 );
-    E_VV_Elec_.assign( MAX_GRID_PT_, 0 );
-    neighbor_.assign( MAX_GRID_PT_, 0 );
+    E_VV_VDW_.resize( numthreads );
+    E_VV_Elec_.resize( numthreads );
+    neighbor_.resize( numthreads );
+    for (int thread = 0; thread != numthreads; thread++) {
+      E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
+      E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
+      neighbor_[thread].assign( MAX_GRID_PT_, 0 );
+    }
   }
 
   //Box gbox;
@@ -211,8 +228,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSkipping order calculation.\n");
   if (skipE_)
     mprintf("\tSkipping energy calculation.\n");
-  else
+  else {
     mprintf("\tPerforming energy calculation.\n");
+    if (numthreads > 1)
+      mprintf("\tParallelizing solvent-solvent energy calculation with %i threads.\n", numthreads);
+  }
   if (doEij_)
     mprintf("\tComputing and printing water-water Eij matrix\n");
   else
@@ -378,7 +398,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
   // Loop over each solvent molecule
-  for (unsigned int sidx1 = 0; sidx1 < NSOLVENT_; sidx1++)
+  for (int sidx1 = 0; sidx1 < (int)NSOLVENT_; sidx1++)
   {
     int voxel1 = water_voxel_[sidx1];
     if (voxel1 != -1)
@@ -406,7 +426,22 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         // Calculate solvent-solvent energy. Need to calculate for all waters,
         // even those outside the grid.
         gist_nonbond_VV_.Start();
-        for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
+        double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
+        double* E_VV_Elec = &(E_VV_Elec_[0][0]);
+        float* Neighbor = &(neighbor_[0][0]);
+        int sidx2;
+        int Nsolvent = (int)NSOLVENT_;
+#       ifdef _OPENMP
+        int mythread;
+#       pragma omp parallel private(sidx2, mythread, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
+        {
+        mythread = omp_get_thread_num();
+        E_VV_VDW = &(E_VV_VDW_[mythread][0]);
+        E_VV_Elec = &(E_VV_Elec_[mythread][0]);
+        Neighbor = (&neighbor_[mythread][0]);
+#       pragma omp for
+#       endif
+        for (sidx2 = 0; sidx2 < Nsolvent; sidx2++)
         {
           int voxel2 = water_voxel_[sidx2];
           // Only do the energy calculation if not previously done or water2 not on grid
@@ -423,23 +458,26 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               // Calculate energy
               Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2), Evdw, Eelec );
               //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", voxel1, voxel2, vidx1, vidx2, Evdw, Eelec);
-              E_VV_VDW_[voxel1] += Evdw;
-              E_VV_Elec_[voxel1] += Eelec;
+              E_VV_VDW[voxel1] += Evdw;
+              E_VV_Elec[voxel1] += Eelec;
               // Store water neighbor using only O-O distance
               if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
-                neighbor_[voxel1] += 1.0;
+                Neighbor[voxel1] += 1.0;
               // If water2 was also on the grid update its energy as well.
               if (voxel2 != -1) {
-                E_VV_VDW_[voxel2] += Evdw;
-                E_VV_Elec_[voxel2] += Eelec;
+                E_VV_VDW[voxel2] += Evdw;
+                E_VV_Elec[voxel2] += Eelec;
                 if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
-                  neighbor_[voxel2] += 1.0;
+                  Neighbor[voxel2] += 1.0;
                 if (doEij_)
                   ww_Eij_->UpdateElement(voxel1, voxel2, Evdw + Eelec);
               }
             }
           } // END loop over water2 atoms
         } // END loop over all other waters
+#       ifdef _OPENMP
+        } // END omp pragma
+#       endif
         gist_nonbond_VV_.Stop();
       } // End loop over water1 atoms
       //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
@@ -700,6 +738,18 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
                             Z4 * V_Q[q1+3] );
     double ds = rR*rR + dd;
     if (ds < NNs && ds > 0) { NNs = ds; }
+  }
+}
+
+void Action_GIST::SumEVV() {
+  if (E_VV_VDW_.size() > 1) {
+    for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
+      for (unsigned int thread = 1; thread < E_VV_VDW_.size(); thread++) {
+        E_VV_VDW_[0][gr_pt]  += E_VV_VDW_[thread][gr_pt];
+        E_VV_Elec_[0][gr_pt] += E_VV_Elec_[thread][gr_pt];
+        neighbor_[0][gr_pt]  += neighbor_[thread][gr_pt];
+      }
+    }
   }
 }
 
@@ -986,6 +1036,11 @@ void Action_GIST::Print() {
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
   Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
   if (!skipE_) {
+    // Sum values from other threads if necessary
+    Darray const& E_VV_VDW = E_VV_VDW_[0];
+    Darray const& E_VV_Elec = E_VV_Elec_[0];
+    Farray const& Neighbor = neighbor_[0];
+    SumEVV();
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
@@ -996,8 +1051,8 @@ void Action_GIST::Print() {
       if (nw_total > 1) {
         Esw_dens[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / (NFRAME_ * Vvox);
         Esw_norm[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / nw_total;
-        Eww_dens[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = (E_VV_VDW_[gr_pt] + E_VV_Elec_[gr_pt]) / (2 * nw_total);
+        Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt] ) / (2 * NFRAME_ * Vvox);
+        Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt] ) / (2 * nw_total);
         Eswtot += Esw_dens[gr_pt];
         Ewwtot += Eww_dens[gr_pt];
       } else {
@@ -1010,10 +1065,10 @@ void Action_GIST::Print() {
       // and average dipole density
       if (nw_total > 0) {
         qtet[gr_pt] /= nw_total;
-        //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor_[gr_pt], nw_total);
-        neighbor_norm[gr_pt] = 1.0 * neighbor_[gr_pt] / nw_total;
+        //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor[gr_pt], nw_total);
+        neighbor_norm[gr_pt] = 1.0 * Neighbor[gr_pt] / nw_total;
       }
-      neighbor_dens[gr_pt] = 1.0 * neighbor_[gr_pt] / (NFRAME_ * Vvox);
+      neighbor_dens[gr_pt] = 1.0 * Neighbor[gr_pt] / (NFRAME_ * Vvox);
       dipolex[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
       dipoley[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);
       dipolez[gr_pt] /= (DEBYE_EA * NFRAME_ * Vvox);

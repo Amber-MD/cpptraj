@@ -24,6 +24,7 @@ class Action_GIST : public Action {
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy(Frame const&, Topology const&);
     void Order(Frame const&);
+    void SumEVV();
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
@@ -59,7 +60,7 @@ class Action_GIST : public Action {
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
 
     typedef std::vector<float> Farray;
-    Farray neighbor_; ///< Number of water neighbors within 3.5 Ang.*
+    std::vector<Farray> neighbor_; ///< Number of water neighbors within 3.5 Ang.*
 
     typedef std::vector<Farray> Xarray;
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
@@ -67,9 +68,9 @@ class Action_GIST : public Action {
 
     typedef std::vector<double> Darray;
     Darray E_UV_VDW_;  ///< Solute-solvent van der Waals energy for each voxel.*
-    Darray E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
     Darray E_UV_Elec_; ///< Solute-solvent electrostatic energy for each voxel.*
-    Darray E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
+    std::vector<Darray> E_VV_VDW_;  ///< Solvent-solvent van der Waals energy for each voxel.*
+    std::vector<Darray> E_VV_Elec_; ///< Solvent-solvent electrostatic energy for each voxel.*
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
