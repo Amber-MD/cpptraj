@@ -116,7 +116,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("GIST");
 
-  // Set up DataSets. TODO check for nulls
+  // Set up DataSets.
   gO_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gO"));
   gH_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gH"));
   Esw_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Esw"));
@@ -132,8 +132,15 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipoley_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipoley"));
   dipolez_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolez"));
 
-  if (doEij_)
+  if (gO_==0 || gH_==0 || Esw_==0 || Eww_==0 || dTStrans_==0 || dTSorient_==0 ||
+      dTSsix_==0 || neighbor_norm_==0 || dipole_==0 || order_norm_==0 ||
+      dipolex_==0 || dipoley_==0 || dipolez_==0)
+    return Action::ERR;
+
+  if (doEij_) {
     ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname, "Eij"));
+    if (ww_Eij_ == 0) return Action::ERR;
+  }
  
   // Allocate DataSets. TODO non-orthogonal grids as well
   Vec3 v_spacing( gridspacing );
