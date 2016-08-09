@@ -20,6 +20,7 @@ class DataSet_MatrixDbl : public DataSet_2D {
     void Info()                          const { return;                    }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
     // ----- DataSet_2D functions ----------------
+    void UpdateElement(size_t x,size_t y,double v) { mat_.updateElement(x,y,v);       }
     int Allocate2D(size_t x,size_t y)          { kind_=FULL; return mat_.resize(x,y); }
     int AllocateHalf(size_t x)                 { kind_=HALF; return mat_.resize(x,0); }
     int AllocateTriangle(size_t x)             { kind_=TRI;  return mat_.resize(0,x); }
