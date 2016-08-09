@@ -373,6 +373,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               if (voxel2 != -1) {
                 E_VV_VDW_[voxel2] += Evdw;
                 E_VV_Elec_[voxel2] += Eelec;
+                if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
+                  neighbor_[voxel2] += 1.0;
               }
             }
           } // END loop over water2 atoms
@@ -872,6 +874,7 @@ void Action_GIST::Print() {
       // and average dipole density
       if (nw_total > 0) {
         qtet[gr_pt] /= nw_total;
+        //mprintf("DEBUG1: neighbor= %8.1f  nw_total= %8i\n", neighbor_[gr_pt], nw_total);
         neighbor_norm[gr_pt] = 1.0 * neighbor_[gr_pt] / nw_total;
       }
       neighbor_dens[gr_pt] = 1.0 * neighbor_[gr_pt] / (NFRAME_ * Vvox);

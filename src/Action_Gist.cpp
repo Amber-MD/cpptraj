@@ -1384,6 +1384,7 @@ void Action_Gist::Print() {
     // Compute the average number of water neighbor, average order parameter, and average dipole density
     if (nwat_[a]>0) {
       qtet_[a] /= nwat_[a];
+      //mprintf("DEBUG0: neighbor= %8.1f  nw_total= %8i\n",neighbor_[a],nwat_[a]);
       neighbor_norm_[a] = 1.0*neighbor_[a]/nwat_[a];
     }
     neighbor_dens_[a] = 1.0*neighbor_[a]/(NFRAME_*Vvox_);
