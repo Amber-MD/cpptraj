@@ -4,6 +4,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_3D.h"
+#include "DataSet_MatrixFlt.h"
 #include "Timer.h"
 /// Class for applying Grid Inhomogenous Solvation Theory
 class Action_GIST : public Action {
@@ -46,6 +47,8 @@ class Action_GIST : public Action {
     DataSet_3D* dipolex_;    ///< Water dipole (X)*
     DataSet_3D* dipoley_;    ///< Water dipole (Y)*
     DataSet_3D* dipolez_;    ///< Water dipole (Z)*
+    // GIST matrix datasets
+    DataSet_MatrixFlt* ww_Eij_; ///< Water-water interaction energy matrix.*
 
     typedef std::vector<int> Iarray;
     //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
@@ -82,6 +85,7 @@ class Action_GIST : public Action {
 
     Topology* CurrentParm_; ///< Current topology, for energy calc.
     CpptrajFile* datafile_; ///< GIST output
+    std::string prefix_;    ///< Output file name prefix
     double BULK_DENS_;      ///< Bulk water density
     double temperature_;    ///< Temperature
     double q_O_;            ///< Charge on water oxygen

@@ -19,6 +19,7 @@ Action_GIST::Action_GIST() :
   dipolex_(0),
   dipoley_(0),
   dipolez_(0),
+  ww_Eij_(0),
   CurrentParm_(0),
   datafile_(0),
   BULK_DENS_(0.0),
@@ -39,26 +40,31 @@ void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [Temp <tval>]\n"
           "\t[gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
-          "\t[out <filename>] [noimage]\n");
+          "\t[prefix <filename prefix>] [out <output suffix>] [noimage]\n");
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   gist_init_.Start();
-  std::string prefix = actionArgs.GetStringKey("prefix");
-  if (prefix.empty()) prefix.assign("gist");
+  prefix_ = actionArgs.GetStringKey("prefix");
+  if (prefix_.empty()) prefix_.assign("gist");
   std::string gistout = actionArgs.GetStringKey("out");
-  if (gistout.empty()) gistout.assign(prefix + "-output.dat");
+  if (gistout.empty()) gistout.assign(prefix_ + "-output.dat");
   datafile_ = init.DFL().AddCpptrajFile( gistout, "GIST output" );
   if (datafile_ == 0) return Action::ERR;
   // Grid files
-  DataFile* file_gO = init.DFL().AddDataFile( prefix + "-gO.dx" );
+  DataFile* file_gO = init.DFL().AddDataFile( prefix_ + "-gO.dx" );
   // Other keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
   doEij_ = actionArgs.hasKey("doeij");
   skipE_ = actionArgs.hasKey("skipE");
-  if (!skipE_) doEij_ = false;
+  if (skipE_) {
+    if (doEij_) {
+      mprinterr("Error: 'doeij' cannot be specified if 'skipE' is specified.\n");
+      return Action::ERR;
+    }
+  }
   // Set Bulk Density 55.5M
   BULK_DENS_ = actionArgs.getKeyDouble("refdens", 0.0334);
   if ( BULK_DENS_ > (0.0334*1.2) )
@@ -95,7 +101,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (dsname.empty())
     dsname = init.DSL().GenerateDefaultName("GIST");
 
-  // Set up grid data sets
+  // Set up DataSets. TODO check for nulls
   gO_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gO"));
   gH_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "gH"));
   Esw_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_FLT, MetaData(dsname, "Esw"));
@@ -110,8 +116,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipolex_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolex"));
   dipoley_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipoley"));
   dipolez_ = (DataSet_3D*)init.DSL().AddSet(DataSet::GRID_DBL, MetaData(dsname, "dipolez"));
+
+  if (doEij_)
+    ww_Eij_ = (DataSet_MatrixFlt*)init.DSL().AddSet(DataSet::MATRIX_FLT, MetaData(dsname, "Eij"));
  
-  // Set up grids. TODO non-orthogonal as well
+  // Allocate DataSets. TODO non-orthogonal grids as well
   Vec3 v_spacing( gridspacing );
   gO_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   gH_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
@@ -127,6 +136,9 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipolex_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipoley_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+
+  if (ww_Eij_ != 0)
+    ww_Eij_->AllocateTriangle( gO_->Size() );
 
   // Add sets to files
   file_gO->AddDataSet( gO_ );
@@ -340,14 +352,15 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       for (unsigned int widx1 = 0; widx1 != 3; widx1++)
       {
         int vidx1 = O_idxs_[sidx1] + widx1;          // Absolute index of water1 atom
-        const double* V1_XYZ = frameIn.XYZ( vidx1 ); // Coord of water atom
+        Vec3 V1_XYZ( frameIn.XYZ( vidx1 ) );         // Coord of water atom
         double q1 = topIn[ vidx1 ].Charge();         // Charge of water atom
         // First do solvent-solute energy.
         for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
         {
           const double* U_XYZ = frameIn.XYZ( *uidx );
           // Calculate distance
-          double rij2 = Dist2(image_.ImageType(), V1_XYZ, U_XYZ, frameIn.BoxCrd(), ucell, recip);
+          double rij2 = Dist2(image_.ImageType(), V1_XYZ.Dptr(), U_XYZ, frameIn.BoxCrd(),
+                              ucell, recip);
           // Calculate energy
           Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx1, *uidx), Evdw, Eelec );
           E_UV_VDW_[voxel1] += Evdw;
@@ -367,7 +380,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               int vidx2 = O_idxs_[sidx2] + widx2;
               const double* V2_XYZ = frameIn.XYZ( vidx2 );
               // Calculate distance
-              double rij2 = Dist2(image_.ImageType(), V1_XYZ, V2_XYZ, frameIn.BoxCrd(),
+              double rij2 = Dist2(image_.ImageType(), V1_XYZ.Dptr(), V2_XYZ, frameIn.BoxCrd(),
                                   ucell, recip);
               // Calculate energy
               Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2), Evdw, Eelec );
@@ -383,6 +396,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                 E_VV_Elec_[voxel2] += Eelec;
                 if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
                   neighbor_[voxel2] += 1.0;
+                if (doEij_)
+                  ww_Eij_->UpdateElement(voxel1, voxel2, Evdw + Eelec);
               }
             }
           } // END loop over water2 atoms
@@ -994,6 +1009,34 @@ void Action_GIST::Print() {
                         Eww_dens[gr_pt], Eww_norm[gr_pt],
                         dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
                         pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
+    }
+  }
+
+  // Write water-water interaction energy matrix
+  if (ww_Eij_ != 0) {
+    DataSet_MatrixFlt& ww_Eij = static_cast<DataSet_MatrixFlt&>( *ww_Eij_ );
+    double fac = 1.0 / (double)(NFRAME_ * 2);
+    for (unsigned int idx = 0; idx != ww_Eij.Size(); idx++) {
+      if (fabs(ww_Eij[idx]) < Constants::SMALL)
+        ww_Eij[idx] = 0.0;
+      else {
+        double val = (double)ww_Eij[idx];
+        ww_Eij[idx] = (float)(val * fac);
+      }
+    }
+    // DEBUG
+    CpptrajFile outfile;
+    if (outfile.OpenWrite(prefix_ + "-Eww_ij.dat") != 0)
+      mprinterr("Error: Could not open 'Eww_ij.dat' for writing.\n");
+    else {
+      for (unsigned int a = 1; a < MAX_GRID_PT; a++) {
+        for (unsigned int l = 0; l < a; l++) {
+          double dbl = ww_Eij_->GetElement(a, l);
+          if (dbl != 0)
+            outfile.Printf("%10d %10d %12.5E\n", a, l, dbl);
+        }
+      }
+      outfile.CloseFile();
     }
   }
   gist_print_.Stop();
