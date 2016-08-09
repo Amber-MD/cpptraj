@@ -27,6 +27,8 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t NZ() const { return grid_.NZ(); }
     /// \return grid index
     long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
+    void ReverseIndex(long int n, int& i, int& j, int& k) const
+      { return grid_.ReverseIndex(n,i,j,k); }
     void UpdateVoxel(long int i, double val) { grid_[i] += (float)val; }
     // -------------------------------------------
     void SetElement(int x,int y,int z,float v) { grid_.setGrid(x,y,z,v);     }
