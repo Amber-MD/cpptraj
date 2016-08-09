@@ -829,21 +829,21 @@ void Action_GIST::Print() {
   mprintf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
   mprintf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
 
-  // Compute average voxel energy
+  // Compute average voxel energy. Allocate these sets even if skipping energy
+  // to be consistent with previous output.
+  DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
+  DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
+  DataSet_GridFlt& qtet = static_cast<DataSet_GridFlt&>( *order_norm_ );
+  DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
+  DataSet_GridFlt& dipolex = static_cast<DataSet_GridFlt&>( *dipolex_ );
+  DataSet_GridFlt& dipoley = static_cast<DataSet_GridFlt&>( *dipoley_ );
+  DataSet_GridFlt& dipolez = static_cast<DataSet_GridFlt&>( *dipolez_ );
+  DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
+  Farray Esw_norm( MAX_GRID_PT, 0.0 );
+  Farray Eww_norm( MAX_GRID_PT, 0.0 );
+  Farray neighbor_dens( MAX_GRID_PT, 0.0 );
   if (!skipE_) {
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
-    DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
-    DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
-    DataSet_GridFlt& qtet = static_cast<DataSet_GridFlt&>( *order_norm_ );
-    DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
-    DataSet_GridFlt& dipolex = static_cast<DataSet_GridFlt&>( *dipolex_ );
-    DataSet_GridFlt& dipoley = static_cast<DataSet_GridFlt&>( *dipoley_ );
-    DataSet_GridFlt& dipolez = static_cast<DataSet_GridFlt&>( *dipolez_ );
-    DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
-    Farray Esw_norm( MAX_GRID_PT, 0.0 );
-    Farray Eww_norm( MAX_GRID_PT, 0.0 );
-    Farray neighbor_dens( MAX_GRID_PT, 0.0 );
-
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++)
@@ -895,11 +895,20 @@ void Action_GIST::Print() {
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
                       " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
                       " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
-    //for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
-    //  Vec3 XYZ = gO_->BinCenter
-    //  datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
-    //                    " %g %g %g %g %g %g %g %g %g %g %g %g \n",
-                        
-                        
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+      int i, j, k;
+      gO_->ReverseIndex( gr_pt, i, j, k );
+      Vec3 XYZ = gO_->BinCenter( i, j, k );
+      datafile_->Printf("%d %g %g %g %d %g %g %g %g %g %g %g"
+                        " %g %g %g %g %g %g %g %g %g %g %g %g \n",
+                        gr_pt, XYZ[0], XYZ[1], XYZ[2], N_waters_[gr_pt], gO[gr_pt], gH[gr_pt],
+                        dTStrans[gr_pt], dTStrans_norm[gr_pt],
+                        dTSorient_dens[gr_pt], dTSorient_norm[gr_pt],
+                        dTSsix[gr_pt], dTSsix_norm[gr_pt],
+                        Esw_dens[gr_pt], Esw_norm[gr_pt],
+                        Eww_dens[gr_pt], Eww_norm[gr_pt],
+                        dipolex[gr_pt], dipoley[gr_pt], dipolex[gr_pt],
+                        pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
+    }
   }
 }
