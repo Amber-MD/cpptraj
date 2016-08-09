@@ -691,6 +691,7 @@ void Action_Gist::Dipole(Frame const& frameIn) {
     dipolar_vector[1] += (charge * XYZ[1]);
     dipolar_vector[2] += (charge * XYZ[2]);
   }
+  //mprintf("DEBUG0: voxel %i dipole %f %f %f\n", voxel_, dipolar_vector[0], dipolar_vector[1], dipolar_vector[2]);
   dipolex_[voxel_] += dipolar_vector[0];
   dipoley_[voxel_] += dipolar_vector[1];
   dipolez_[voxel_] += dipolar_vector[2];

@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "DataSet_GridFlt.h"
+#include "DataSet_GridDbl.h"
 
 Action_GIST::Action_GIST() :
   gO_(0),
@@ -507,6 +508,10 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         //mprintf("DEBUG1: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
         // ----- DIPOLE --------------------------
+        //mprintf("DEBUG1: voxel %i dipole %f %f %f\n", voxel,
+        //        O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_,
+        //        O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_,
+        //        O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
         dipolex_->UpdateVoxel(voxel, O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_);
         dipoley_->UpdateVoxel(voxel, O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_);
         dipolez_->UpdateVoxel(voxel, O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
@@ -833,12 +838,12 @@ void Action_GIST::Print() {
   // to be consistent with previous output.
   DataSet_GridFlt& Esw_dens = static_cast<DataSet_GridFlt&>( *Esw_ );
   DataSet_GridFlt& Eww_dens = static_cast<DataSet_GridFlt&>( *Eww_ );
-  DataSet_GridFlt& qtet = static_cast<DataSet_GridFlt&>( *order_norm_ );
   DataSet_GridFlt& neighbor_norm = static_cast<DataSet_GridFlt&>( *neighbor_norm_ );
-  DataSet_GridFlt& dipolex = static_cast<DataSet_GridFlt&>( *dipolex_ );
-  DataSet_GridFlt& dipoley = static_cast<DataSet_GridFlt&>( *dipoley_ );
-  DataSet_GridFlt& dipolez = static_cast<DataSet_GridFlt&>( *dipolez_ );
   DataSet_GridFlt& pol = static_cast<DataSet_GridFlt&>( *dipole_ );
+  DataSet_GridDbl& qtet = static_cast<DataSet_GridDbl&>( *order_norm_ );
+  DataSet_GridDbl& dipolex = static_cast<DataSet_GridDbl&>( *dipolex_ );
+  DataSet_GridDbl& dipoley = static_cast<DataSet_GridDbl&>( *dipoley_ );
+  DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
   Farray Esw_norm( MAX_GRID_PT, 0.0 );
   Farray Eww_norm( MAX_GRID_PT, 0.0 );
   Farray neighbor_dens( MAX_GRID_PT, 0.0 );
