@@ -27,6 +27,7 @@ Action_GIST::Action_GIST() :
   q_H1_(0.0),
   q_H2_(0.0),
   NeighborCut2_(12.25), // 3.5^2
+  NSOLVENT_(0),
   NFRAME_(0),
   max_nwat_(0),
   doOrder_(false),
@@ -43,6 +44,7 @@ void Action_GIST::Help() const {
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  gist_init_.Start();
   std::string prefix = actionArgs.GetStringKey("prefix");
   if (prefix.empty()) prefix.assign("gist");
   std::string gistout = actionArgs.GetStringKey("out");
@@ -181,7 +183,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
           "\t#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
           "\t#      J. Chem. Phys. 137, 044101 (2012)\n"
           "\t#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
-
+  gist_init_.Stop();
   return Action::OK;
 }
 
@@ -191,6 +193,7 @@ static inline bool NotEqual(double v1, double v2) {
 
 // Action_GIST::Setup()
 Action::RetType Action_GIST::Setup(ActionSetup& setup) {
+  gist_setup_.Start();
   CurrentParm_ = setup.TopAddress();
   // We need box info
   if (setup.CoordInfo().TrajBox().Type() == Box::NOBOX) {
@@ -200,7 +203,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
 
   // Get molecule number for each solvent molecule
-  mol_nums_.clear();
+  //mol_nums_.clear();
   O_idxs_.clear();
   unsigned int midx = 0;
   bool isFirstSolvent = true;
@@ -216,7 +219,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   mol->NumAtoms());
         return Action::ERR;
       }
-      mol_nums_.push_back( midx ); // TODO needed?
+      //mol_nums_.push_back( midx ); // TODO needed?
       // Check that first atom is actually Oxygen
       if (setup.Top()[o_idx].Element() != Atom::OXYGEN) {
         mprinterr("Error: Molecule '%s' is not water or does not have oxygen atom.\n",
@@ -266,10 +269,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
       }
     }
   }
+  NSOLVENT_ = O_idxs_.size();
   mprintf("DEBUG: %zu solvent molecules, %zu solute atoms.\n", O_idxs_.size(), U_idxs_.size());
+  if (doOrder_ && NSOLVENT_ < 5) {
+    mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
+    doOrder_ = false;
+  }
 
-  water_voxel_.assign( mol_nums_.size(), -1 );
-
+  water_voxel_.assign( NSOLVENT_, -1 );
+  gist_setup_.Stop();
   return Action::OK;
 }
 
@@ -323,7 +331,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
   // Loop over each solvent molecule
-  for (unsigned int sidx1 = 0; sidx1 < mol_nums_.size(); sidx1++)
+  for (unsigned int sidx1 = 0; sidx1 < NSOLVENT_; sidx1++)
   {
     int voxel1 = water_voxel_[sidx1];
     if (voxel1 != -1)
@@ -347,7 +355,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         } // END loop over solute atoms
         // Second do solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
-        for (unsigned int sidx2 = 0; sidx2 < mol_nums_.size(); sidx2++)
+        for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
         {
           int voxel2 = water_voxel_[sidx2];
           // Only do the energy calculation if not previously done or water2 not on grid
@@ -383,7 +391,62 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
     } // END water1 is on the grid
   } // END outer loop over solvent molecules (water1)
+}
 
+// Action_GIST::Order()
+void Action_GIST::Order(Frame const& frameIn) {
+  // Loop over all solvent molecules that are on the grid
+  double maxD = frameIn.BoxCrd().BoxX() + frameIn.BoxCrd().BoxY() + frameIn.BoxCrd().BoxZ();
+  maxD *= maxD;
+  for (unsigned int sidx1 = 0; sidx1 < NSOLVENT_; sidx1++)
+  {
+    int voxel1 = water_voxel_[sidx1];
+    if (voxel1 != -1)
+    {
+      Vec3 XYZ1( frameIn.XYZ( O_idxs_[sidx1] ) );
+      // Find coordinates for 4 closest neighbors to this water (on or off grid).
+      // TODO set up overall grid in DoAction.
+      Vec3 WAT[4];
+      double d1 = maxD;
+      double d2 = maxD;
+      double d3 = maxD;
+      double d4 = maxD;
+      for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
+      {
+        if (sidx2 != sidx1)
+        {
+          const double* XYZ2 = frameIn.XYZ( O_idxs_[sidx2] );
+          double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
+          if        (dist2 < d1) {
+            d4 = d3; d3 = d2; d2 = d1; d1 = dist2;
+            WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
+          } else if (dist2 < d2) {
+            d4 = d3; d3 = d2; d2 = dist2;
+            WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
+          } else if (dist2 < d3) {
+            d4 = d3; d3 = dist2;
+            WAT[3] = WAT[2]; WAT[2] = XYZ2;
+          } else if (dist2 < d4) {
+            d4 = dist2;
+            WAT[3] = XYZ2;
+          }
+        }
+      }
+      // Compute the tetrahedral order parameter
+      double sum = 0.0;
+      for (int mol1 = 0; mol1 < 3; mol1++) {
+        for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
+          Vec3 v1 = WAT[mol1] - XYZ1;
+          Vec3 v2 = WAT[mol2] - XYZ1;
+          double r1 = v1.Magnitude2();
+          double r2 = v2.Magnitude2();
+          double cos = (v1* v2) / sqrt(r1 * r2);
+          sum += (cos + 1.0/3)*(cos + 1.0/3);
+        }
+      }
+      order_norm_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
+    } // END water is on grid
+  } // END loop over all solvent molecules
 }
 
 // Action_GIST::DoAction()
@@ -393,14 +456,16 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   int bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->GridOrigin();
   // Loop over each solvent molecule
-  for (unsigned int sidx = 0; sidx < mol_nums_.size(); sidx++)
+  for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++)
   {
+    gist_grid_.Start();
     water_voxel_[sidx] = -1;
     const double* O_XYZ  = frm.Frm().XYZ( O_idxs_[sidx] );
     // Get vector of water oxygen to grid origin.
     Vec3 W_G( O_XYZ[0] - Origin[0],
               O_XYZ[1] - Origin[1],
               O_XYZ[2] - Origin[2] );
+    gist_grid_.Stop();
     // Check if water oxygen is no more then 1.5 Ang from grid
     // NOTE: using <= to be consistent with original code
     if ( W_G[0] <= G_max_[0] && W_G[0] >= -1.5 &&
@@ -419,6 +484,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
         // ----- EULER ---------------------------
+        gist_euler_.Start();
         // Record XYZ coords of water in voxel
         voxel_xyz_[voxel].push_back( O_XYZ[0] );
         voxel_xyz_[voxel].push_back( O_XYZ[1] );
@@ -509,7 +575,9 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         voxel_Q_[voxel].push_back( z4 );
         //mprintf("DEBUG1: wxyz4= %g %g %g %g\n", w4, x4, y4, z4);
         // NOTE: No need for nw_angle_ here, it is same as N_waters_
+        gist_euler_.Stop();
         // ----- DIPOLE --------------------------
+        gist_dipole_.Start();
         //mprintf("DEBUG1: voxel %i dipole %f %f %f\n", voxel,
         //        O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_,
         //        O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_,
@@ -517,6 +585,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         dipolex_->UpdateVoxel(voxel, O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_);
         dipoley_->UpdateVoxel(voxel, O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_);
         dipolez_->UpdateVoxel(voxel, O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
+        gist_dipole_.Stop();
         // ---------------------------------------
       }
 
@@ -530,7 +599,14 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   } // END loop over each solvent molecule
 
   // Do energy calculation if requested
+  gist_nonbond_.Start();
   if (!skipE_) NonbondEnergy(frm.Frm(), *CurrentParm_);
+  gist_nonbond_.Stop();
+
+  // Do order calculation if requested
+  gist_order_.Start();
+  if (doOrder_) Order(frm.Frm());
+  gist_order_.Stop();
 
   return Action::OK;
 }
@@ -573,6 +649,7 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
 
 // Action_GIST::Print()
 void Action_GIST::Print() {
+  gist_print_.Start();
   unsigned int MAX_GRID_PT = gO_->Size();
   double Vvox = gO_->VoxelVolume();
 
@@ -919,4 +996,19 @@ void Action_GIST::Print() {
                         pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
     }
   }
+  gist_print_.Stop();
+  double total = gist_grid_.Total() + gist_nonbond_.Total() +
+                 gist_euler_.Total() + gist_dipole_.Total() +
+                 gist_init_.Total() + gist_setup_.Total() +
+                 gist_print_.Total() + gist_order_.Total();
+  mprintf("\tGIST timings:\n");
+  gist_init_.WriteTiming(1,    "Init: ", total);
+  gist_setup_.WriteTiming(1,   "Setup:", total);
+  gist_grid_.WriteTiming(2,    "Grid:   ", total);
+  gist_nonbond_.WriteTiming(2, "Nonbond:", total);
+  gist_euler_.WriteTiming(2,   "Euler:  ", total);
+  gist_dipole_.WriteTiming(2,  "Dipole: ", total);
+  gist_order_.WriteTiming(2,   "Order: ", total);
+  gist_print_.WriteTiming(1,   "Print:", total);
+  mprintf("TIME:\tTotal: %.4f s\n", total);
 }

@@ -4,6 +4,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_3D.h"
+#include "Timer.h"
 /// Class for applying Grid Inhomogenous Solvation Theory
 class Action_GIST : public Action {
   public:
@@ -21,6 +22,7 @@ class Action_GIST : public Action {
                                Matrix_3x3 const&, Matrix_3x3 const&);
     static inline void Ecalc(double, double, double, NonbondType const&, double&, double&);
     void NonbondEnergy(Frame const&, Topology const&);
+    void Order(Frame const&);
 
     static const Vec3 x_lab_;
     static const Vec3 y_lab_;
@@ -46,7 +48,7 @@ class Action_GIST : public Action {
     DataSet_3D* dipolez_;    ///< Water dipole (Z)*
 
     typedef std::vector<int> Iarray;
-    Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
+    //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
     Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.* TODO long int?
     Iarray U_idxs_;      ///< Solute atom indices for each solute atom.+
@@ -68,6 +70,16 @@ class Action_GIST : public Action {
 
     Vec3 G_max_; ///< Grid max + 1.5 Ang.
 
+    // Timing data
+    Timer gist_init_;
+    Timer gist_setup_;
+    Timer gist_print_;
+    Timer gist_grid_;
+    Timer gist_nonbond_;
+    Timer gist_euler_;
+    Timer gist_dipole_;
+    Timer gist_order_;
+
     Topology* CurrentParm_; ///< Current topology, for energy calc.
     CpptrajFile* datafile_; ///< GIST output
     double BULK_DENS_;      ///< Bulk water density
@@ -76,6 +88,7 @@ class Action_GIST : public Action {
     double q_H1_;           ///< Charge on water H1
     double q_H2_;           ///< Charge on water H2 (sanity check)
     double NeighborCut2_;   ///< Cutoff for determining water neighbors (squared).
+    unsigned int NSOLVENT_; ///< Number of solvent molecules.
     int NFRAME_;            ///< Total # frames analyzed
     int max_nwat_;          ///< Max number of waters in any voxel
     bool doOrder_;          ///< If true do the order calc

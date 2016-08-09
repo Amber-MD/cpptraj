@@ -44,6 +44,7 @@ class Action_Gist: public Action, ImagedAction  {
     Timer gist_nonbond_;
     Timer gist_euler_;
     Timer gist_dipole_;
+    Timer gist_order_;
     // other constants
     int NFRAME_;                   ///< total number of frames analyzed
     double BULK_DENS_;             ///< bulk water density

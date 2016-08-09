@@ -382,8 +382,9 @@ Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
       gist_dipole_.Stop();
     }
   }
+  gist_order_.Start();
   if(doOrder_) Order( frm.Frm() );
-  
+  gist_order_.Stop();
   //Debug
 //  if (NFRAME_==1) mprintf("GIST  DoAction:  Found %d solvent residues \n", resnum_);
   if (solventMolecules != resnum_) {
@@ -1437,7 +1438,7 @@ void Action_Gist::Print() {
   double total = gist_grid_.Total() + gist_nonbond_.Total() +
                  gist_euler_.Total() + gist_dipole_.Total() +
                  gist_init_.Total() + gist_setup_.Total() +
-                 gist_print_.Total();
+                 gist_print_.Total() + gist_order_.Total();
   mprintf("\tGIST timings:\n");
   gist_init_.WriteTiming(1,    "Init: ", total);
   gist_setup_.WriteTiming(1,   "Setup:", total);
@@ -1445,6 +1446,7 @@ void Action_Gist::Print() {
   gist_nonbond_.WriteTiming(2, "Nonbond:", total);
   gist_euler_.WriteTiming(2,   "Euler:  ", total);
   gist_dipole_.WriteTiming(2,  "Dipole: ", total);
+  gist_order_.WriteTiming(2,   "Order:  ",total);
   gist_print_.WriteTiming(1,   "Print:", total);
   mprintf("TIME:\tTotal: %.4f s\n", total);
 }
