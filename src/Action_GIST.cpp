@@ -28,6 +28,7 @@ Action_GIST::Action_GIST() :
   q_H1_(0.0),
   q_H2_(0.0),
   NeighborCut2_(12.25), // 3.5^2
+  MAX_GRID_PT_(0),
   NSOLVENT_(0),
   NFRAME_(0),
   max_nwat_(0),
@@ -137,6 +138,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Allocate DataSets. TODO non-orthogonal grids as well
   Vec3 v_spacing( gridspacing );
   gO_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
+  MAX_GRID_PT_ = gO_->Size();
   gH_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   Esw_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
   Eww_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
@@ -152,7 +154,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   dipolez_->Allocate_N_C_D(nx, ny, nz, gridcntr, v_spacing);
 
   if (ww_Eij_ != 0)
-    ww_Eij_->AllocateTriangle( gO_->Size() );
+    ww_Eij_->AllocateTriangle( MAX_GRID_PT_ );
 
   // Add sets to files
   file_gO->AddDataSet( gO_ );
@@ -173,17 +175,17 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   G_max_ = Vec3( (double)nx * gridspacing + 1.5,
                  (double)ny * gridspacing + 1.5,
                  (double)nz * gridspacing + 1.5 );
-  N_waters_.assign( gO_->Size(), 0 );
-  N_hydrogens_.assign( gO_->Size(), 0 );
-  voxel_xyz_.resize( gO_->Size() ); // [] = X Y Z
-  voxel_Q_.resize( gO_->Size() ); // [] = W4 X4 Y4 Z4
+  N_waters_.assign( MAX_GRID_PT_, 0 );
+  N_hydrogens_.assign( MAX_GRID_PT_, 0 );
+  voxel_xyz_.resize( MAX_GRID_PT_ ); // [] = X Y Z
+  voxel_Q_.resize( MAX_GRID_PT_ ); // [] = W4 X4 Y4 Z4
 
   if (!skipE_) {
-    E_UV_VDW_.assign( gO_->Size(), 0 );
-    E_VV_VDW_.assign( gO_->Size(), 0 );
-    E_UV_Elec_.assign( gO_->Size(), 0 );
-    E_VV_Elec_.assign( gO_->Size(), 0 );
-    neighbor_.assign( gO_->Size(), 0 );
+    E_UV_VDW_.assign( MAX_GRID_PT_, 0 );
+    E_VV_VDW_.assign( MAX_GRID_PT_, 0 );
+    E_UV_Elec_.assign( MAX_GRID_PT_, 0 );
+    E_VV_Elec_.assign( MAX_GRID_PT_, 0 );
+    neighbor_.assign( MAX_GRID_PT_, 0 );
   }
 
   //Box gbox;
@@ -216,7 +218,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tDistances will not be imaged.\n");
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %zu, voxel volume: %f Ang^3\n",
-          gO_->Size(), gO_->VoxelVolume());
+          MAX_GRID_PT_, gO_->VoxelVolume());
   mprintf("#Please cite these papers if you use GIST results in a publication:\n"
           "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
           "#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
@@ -394,7 +396,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           E_UV_Elec_[voxel1] += Eelec;
         } // END loop over solute atoms
         gist_nonbond_UV_.Stop();
-        // Calculate solvent-solvent energy. Need to caclulate for all waters,
+        // Calculate solvent-solvent energy. Need to calculate for all waters,
         // even those outside the grid.
         gist_nonbond_VV_.Start();
         for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
@@ -697,18 +699,17 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
 // Action_GIST::Print()
 void Action_GIST::Print() {
   gist_print_.Start();
-  unsigned int MAX_GRID_PT = gO_->Size();
   double Vvox = gO_->VoxelVolume();
 
   mprintf("    GIST OUTPUT:\n");
   // Calculate orientational entropy
   DataSet_GridFlt& dTSorient_dens = static_cast<DataSet_GridFlt&>( *dTSorient_ );
-  Farray dTSorient_norm( MAX_GRID_PT, 0.0 );
+  Farray dTSorient_norm( MAX_GRID_PT_, 0.0 );
   double dTSorienttot = 0;
   int nwtt = 0;
   double dTSo = 0;
   // LOOP over all voxels
-  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     dTSorient_dens[gr_pt] = 0;
     dTSorient_norm[gr_pt] = 0;
     int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
@@ -772,15 +773,15 @@ void Action_GIST::Print() {
   unsigned int addx = ny * nz;
   unsigned int addy = nz;
   unsigned int addz = 1;
-  //Farray W_dens( MAX_GRID_PT, 0.0 ); // Water density
+  //Farray W_dens( MAX_GRID_PT_, 0.0 ); // Water density
   DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
   DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
   DataSet_GridFlt& dTStrans = static_cast<DataSet_GridFlt&>( *dTStrans_ );
   DataSet_GridFlt& dTSsix = static_cast<DataSet_GridFlt&>( *dTSsix_ );
-  Farray dTStrans_norm( MAX_GRID_PT, 0.0 );
-  Farray dTSsix_norm( MAX_GRID_PT, 0.0 );
+  Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
+  Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
   // Loop over all grid points
-  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+  for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
     int numplane = gr_pt / addx;
     double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
     gO[gr_pt] = W_dens / BULK_DENS_;
@@ -974,14 +975,14 @@ void Action_GIST::Print() {
   DataSet_GridDbl& dipolex = static_cast<DataSet_GridDbl&>( *dipolex_ );
   DataSet_GridDbl& dipoley = static_cast<DataSet_GridDbl&>( *dipoley_ );
   DataSet_GridDbl& dipolez = static_cast<DataSet_GridDbl&>( *dipolez_ );
-  Farray Esw_norm( MAX_GRID_PT, 0.0 );
-  Farray Eww_norm( MAX_GRID_PT, 0.0 );
-  Farray neighbor_dens( MAX_GRID_PT, 0.0 );
+  Farray Esw_norm( MAX_GRID_PT_, 0.0 );
+  Farray Eww_norm( MAX_GRID_PT_, 0.0 );
+  Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
   if (!skipE_) {
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
-    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++)
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
     {
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
@@ -1031,7 +1032,7 @@ void Action_GIST::Print() {
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
                       " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
                       " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
-    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT; gr_pt++) {
+    for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
       int i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->BinCenter( i, j, k );
@@ -1065,7 +1066,7 @@ void Action_GIST::Print() {
     if (outfile.OpenWrite(prefix_ + "-Eww_ij.dat") != 0)
       mprinterr("Error: Could not open 'Eww_ij.dat' for writing.\n");
     else {
-      for (unsigned int a = 1; a < MAX_GRID_PT; a++) {
+      for (unsigned int a = 1; a < MAX_GRID_PT_; a++) {
         for (unsigned int l = 0; l < a; l++) {
           double dbl = ww_Eij_->GetElement(a, l);
           if (dbl != 0)

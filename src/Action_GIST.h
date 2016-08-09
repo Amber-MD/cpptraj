@@ -86,20 +86,21 @@ class Action_GIST : public Action {
     Timer gist_dipole_;
     Timer gist_order_;
 
-    Topology* CurrentParm_; ///< Current topology, for energy calc.
-    CpptrajFile* datafile_; ///< GIST output
-    std::string prefix_;    ///< Output file name prefix
-    double BULK_DENS_;      ///< Bulk water density
-    double temperature_;    ///< Temperature
-    double q_O_;            ///< Charge on water oxygen
-    double q_H1_;           ///< Charge on water H1
-    double q_H2_;           ///< Charge on water H2 (sanity check)
-    double NeighborCut2_;   ///< Cutoff for determining water neighbors (squared).
-    unsigned int NSOLVENT_; ///< Number of solvent molecules.
-    int NFRAME_;            ///< Total # frames analyzed
-    int max_nwat_;          ///< Max number of waters in any voxel
-    bool doOrder_;          ///< If true do the order calc
-    bool doEij_;            ///< If true do the i-j energy calc
-    bool skipE_;            ///< If true skip the nonbond energy calc
+    Topology* CurrentParm_;    ///< Current topology, for energy calc.
+    CpptrajFile* datafile_;    ///< GIST output
+    std::string prefix_;       ///< Output file name prefix
+    double BULK_DENS_;         ///< Bulk water density
+    double temperature_;       ///< Temperature
+    double q_O_;               ///< Charge on water oxygen
+    double q_H1_;              ///< Charge on water H1
+    double q_H2_;              ///< Charge on water H2 (sanity check)
+    double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
+    unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
+    unsigned int NSOLVENT_;    ///< Number of solvent molecules.
+    int NFRAME_;               ///< Total # frames analyzed
+    int max_nwat_;             ///< Max number of waters in any voxel
+    bool doOrder_;             ///< If true do the order calc
+    bool doEij_;               ///< If true do the i-j energy calc
+    bool skipE_;               ///< If true skip the nonbond energy calc
 };
 #endif
