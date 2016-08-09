@@ -945,9 +945,13 @@ void Action_GIST::Print() {
   } // END loop over all grid points (voxels)
 
   dTStranstot *= Vvox;
-  double dTSst = Constants::GASK_KCAL*temperature_*((dTSs/nwts) + Constants::EULER_MASC);
+  double dTSst = 0.0;
+  double dTStt = 0.0;
+  if (nwts > 0) {
+    dTSst = Constants::GASK_KCAL*temperature_*((dTSs/nwts) + Constants::EULER_MASC);
+    dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
+  }
   double dTSot = Constants::GASK_KCAL*temperature_*((dTSo/nwtt) + Constants::EULER_MASC);
-  double dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
   mprintf("watcount in vol = %d\n", nwtt);
   mprintf("watcount in subvol = %d\n", nwts);
   mprintf("Total referenced translational entropy of the grid:"
