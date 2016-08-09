@@ -76,9 +76,12 @@ class Action_GIST : public Action {
     // Timing data
     Timer gist_init_;
     Timer gist_setup_;
+    Timer gist_action_;
     Timer gist_print_;
     Timer gist_grid_;
     Timer gist_nonbond_;
+    Timer gist_nonbond_UV_;
+    Timer gist_nonbond_VV_;
     Timer gist_euler_;
     Timer gist_dipole_;
     Timer gist_order_;

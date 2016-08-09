@@ -227,9 +227,7 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
-static inline bool NotEqual(double v1, double v2) {
-  return ( fabs(v1 - v2) > Constants::SMALL );
-}
+static inline bool NotEqual(double v1, double v2) { return ( fabs(v1 - v2) > Constants::SMALL ); }
 
 // Action_GIST::Setup()
 Action::RetType Action_GIST::Setup(ActionSetup& setup) {
@@ -383,6 +381,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         Vec3 V1_XYZ( frameIn.XYZ( vidx1 ) );         // Coord of water atom
         double q1 = topIn[ vidx1 ].Charge();         // Charge of water atom
         // Calculate solvent-solute energy.
+        gist_nonbond_UV_.Start();
         for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
         {
           const double* U_XYZ = frameIn.XYZ( *uidx );
@@ -394,8 +393,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           E_UV_VDW_[voxel1] += Evdw;
           E_UV_Elec_[voxel1] += Eelec;
         } // END loop over solute atoms
+        gist_nonbond_UV_.Stop();
         // Calculate solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
+        gist_nonbond_VV_.Start();
         for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
         {
           int voxel2 = water_voxel_[sidx2];
@@ -430,6 +431,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
             }
           } // END loop over water2 atoms
         } // END loop over all other waters
+        gist_nonbond_VV_.Stop();
       } // End loop over water1 atoms
       //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
     } // END water1 is on the grid
@@ -494,6 +496,7 @@ void Action_GIST::Order(Frame const& frameIn) {
 
 // Action_GIST::DoAction()
 Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
+  gist_action_.Start();
   NFRAME_++;
 
   int bin_i, bin_j, bin_k;
@@ -651,6 +654,7 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   if (doOrder_) Order(frm.Frm());
   gist_order_.Stop();
 
+  gist_action_.Stop();
   return Action::OK;
 }
 
@@ -1072,18 +1076,19 @@ void Action_GIST::Print() {
     }
   }
   gist_print_.Stop();
-  double total = gist_grid_.Total() + gist_nonbond_.Total() +
-                 gist_euler_.Total() + gist_dipole_.Total() +
-                 gist_init_.Total() + gist_setup_.Total() +
-                 gist_print_.Total() + gist_order_.Total();
+  double total = gist_init_.Total() + gist_setup_.Total() +
+                 gist_action_.Total() + gist_print_.Total();
   mprintf("\tGIST timings:\n");
-  gist_init_.WriteTiming(1,    "Init: ", total);
-  gist_setup_.WriteTiming(1,   "Setup:", total);
-  gist_grid_.WriteTiming(2,    "Grid:   ", total);
-  gist_nonbond_.WriteTiming(2, "Nonbond:", total);
-  gist_euler_.WriteTiming(2,   "Euler:  ", total);
-  gist_dipole_.WriteTiming(2,  "Dipole: ", total);
-  gist_order_.WriteTiming(2,   "Order: ", total);
+  gist_init_.WriteTiming(1,    "Init:  ", total);
+  gist_setup_.WriteTiming(1,   "Setup: ", total);
+  gist_action_.WriteTiming(1,  "Action:", total);
+  gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
+  gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
+  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
+  gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
+  gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
   gist_print_.WriteTiming(1,   "Print:", total);
   mprintf("TIME:\tTotal: %.4f s\n", total);
 }

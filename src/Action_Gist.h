@@ -39,6 +39,7 @@ class Action_Gist: public Action, ImagedAction  {
     // Timing data
     Timer gist_init_;
     Timer gist_setup_;
+    Timer gist_action_;
     Timer gist_print_;
     Timer gist_grid_;
     Timer gist_nonbond_;

@@ -330,6 +330,7 @@ Action::RetType Action_Gist::Setup(ActionSetup& setup) {
 
 // Action_Gist::DoAction()
 Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
+  gist_action_.Start();
   NFRAME_ ++;
 //  if (NFRAME_==1) mprintf("GIST Action \n");
 
@@ -390,6 +391,7 @@ Action::RetType Action_Gist::DoAction(int frameNum, ActionFrame& frm) {
   if (solventMolecules != resnum_) {
     mprinterr("GIST  DoAction Error: Number of solvent molecules don't match %d %d\n", solventMolecules, resnum_);
   }
+  gist_action_.Stop();
   
   return Action::OK;
 }
@@ -1435,18 +1437,19 @@ void Action_Gist::Print() {
   else
     PrintOutput("gist-output.dat");
   gist_print_.Stop();
-  double total = gist_grid_.Total() + gist_nonbond_.Total() +
-                 gist_euler_.Total() + gist_dipole_.Total() +
-                 gist_init_.Total() + gist_setup_.Total() +
-                 gist_print_.Total() + gist_order_.Total();
+  double total = gist_init_.Total() + gist_setup_.Total() +
+                 gist_action_.Total() + gist_print_.Total();
   mprintf("\tGIST timings:\n");
-  gist_init_.WriteTiming(1,    "Init: ", total);
-  gist_setup_.WriteTiming(1,   "Setup:", total);
-  gist_grid_.WriteTiming(2,    "Grid:   ", total);
-  gist_nonbond_.WriteTiming(2, "Nonbond:", total);
-  gist_euler_.WriteTiming(2,   "Euler:  ", total);
-  gist_dipole_.WriteTiming(2,  "Dipole: ", total);
-  gist_order_.WriteTiming(2,   "Order:  ",total);
+  gist_init_.WriteTiming(1,    "Init:  ", total);
+  gist_setup_.WriteTiming(1,   "Setup: ", total);
+  gist_action_.WriteTiming(1,  "Action:", total);
+  gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
+  gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
+  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
+  gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
+  gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
   gist_print_.WriteTiming(1,   "Print:", total);
   mprintf("TIME:\tTotal: %.4f s\n", total);
 }
