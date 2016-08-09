@@ -48,12 +48,26 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   gist_init_.Start();
   prefix_ = actionArgs.GetStringKey("prefix");
   if (prefix_.empty()) prefix_.assign("gist");
+  std::string ext = actionArgs.GetStringKey("ext");
+  if (ext.empty()) ext.assign(".dx");
   std::string gistout = actionArgs.GetStringKey("out");
   if (gistout.empty()) gistout.assign(prefix_ + "-output.dat");
   datafile_ = init.DFL().AddCpptrajFile( gistout, "GIST output" );
   if (datafile_ == 0) return Action::ERR;
   // Grid files
-  DataFile* file_gO = init.DFL().AddDataFile( prefix_ + "-gO.dx" );
+  DataFile* file_gO = init.DFL().AddDataFile( prefix_ + "-gO" + ext );
+  DataFile* file_gH = init.DFL().AddDataFile( prefix_ + "-gH" + ext );
+  DataFile* file_Esw = init.DFL().AddDataFile(prefix_ + "-Esw-dens" + ext);
+  DataFile* file_Eww = init.DFL().AddDataFile(prefix_ + "-Eww-dens" + ext);
+  DataFile* file_dTStrans = init.DFL().AddDataFile(prefix_ + "-dTStrans-dens" + ext);
+  DataFile* file_dTSorient = init.DFL().AddDataFile(prefix_ + "-dTSorient-dens" + ext);
+  DataFile* file_dTSsix = init.DFL().AddDataFile(prefix_ + "-dTSsix-dens" + ext);
+  DataFile* file_neighbor_norm = init.DFL().AddDataFile(prefix_ + "-neighbor-norm" + ext);
+  DataFile* file_dipole = init.DFL().AddDataFile(prefix_ + "-dipole-dens" + ext);
+  DataFile* file_order_norm = init.DFL().AddDataFile(prefix_ + "-order-norm" + ext);
+  DataFile* file_dipolex = init.DFL().AddDataFile(prefix_ + "-dipolex-dens" + ext);
+  DataFile* file_dipoley = init.DFL().AddDataFile(prefix_ + "-dipoley-dens" + ext);
+  DataFile* file_dipolez = init.DFL().AddDataFile(prefix_ + "-dipolez-dens" + ext);
   // Other keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   doOrder_ = actionArgs.hasKey("doorder");
@@ -142,6 +156,18 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Add sets to files
   file_gO->AddDataSet( gO_ );
+  file_gH->AddDataSet( gH_ );
+  file_Esw->AddDataSet( Esw_ );
+  file_Eww->AddDataSet( Eww_ );
+  file_dTStrans->AddDataSet( dTStrans_ );
+  file_dTSorient->AddDataSet( dTSorient_ );
+  file_dTSsix->AddDataSet( dTSsix_ );
+  file_neighbor_norm->AddDataSet( neighbor_norm_ );
+  file_dipole->AddDataSet( dipole_ );
+  file_order_norm->AddDataSet( order_norm_ );
+  file_dipolex->AddDataSet( dipolex_ );
+  file_dipoley->AddDataSet( dipoley_ );
+  file_dipolez->AddDataSet( dipolez_ );
 
   // Set up grid params TODO non-orthogonal as well
   G_max_ = Vec3( (double)nx * gridspacing + 1.5,
@@ -168,6 +194,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
   mprintf("    GIST:\n");
+  mprintf("\tOutput prefix= '%s', output extension= '%s'\n", prefix_.c_str(), ext.c_str());
+  mprintf("\tName for data sets: %s\n", dsname.c_str());
   if (doOrder_)
     mprintf("\tDoing order calculation.\n");
   else
@@ -189,12 +217,12 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   gO_->GridInfo();
   mprintf("\tNumber of voxels: %zu, voxel volume: %f Ang^3\n",
           gO_->Size(), gO_->VoxelVolume());
-  mprintf("\t#Please cite these papers if you use GIST results in a publication:\n"
-          "\t#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
-          "\t#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
-          "\t#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
-          "\t#      J. Chem. Phys. 137, 044101 (2012)\n"
-          "\t#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
+  mprintf("#Please cite these papers if you use GIST results in a publication:\n"
+          "#    Steven Ramsey, Crystal Nguyen, Romelia Salomon-Ferrer, Ross C. Walker, Michael K. Gilson, and Tom Kurtzman J. Comp. Chem. 37 (21) 2016\n"
+          "#    Crystal Nguyen, Michael K. Gilson, and Tom Young, arXiv:1108.4876v1 (2011)\n"
+          "#    Crystal N. Nguyen, Tom Kurtzman Young, and Michael K. Gilson,\n"
+          "#      J. Chem. Phys. 137, 044101 (2012)\n"
+          "#    Lazaridis, J. Phys. Chem. B 102, 3531–3541 (1998)\n");
   gist_init_.Stop();
   return Action::OK;
 }
@@ -354,7 +382,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
         int vidx1 = O_idxs_[sidx1] + widx1;          // Absolute index of water1 atom
         Vec3 V1_XYZ( frameIn.XYZ( vidx1 ) );         // Coord of water atom
         double q1 = topIn[ vidx1 ].Charge();         // Charge of water atom
-        // First do solvent-solute energy.
+        // Calculate solvent-solute energy.
         for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
         {
           const double* U_XYZ = frameIn.XYZ( *uidx );
@@ -366,7 +394,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
           E_UV_VDW_[voxel1] += Evdw;
           E_UV_Elec_[voxel1] += Eelec;
         } // END loop over solute atoms
-        // Second do solvent-solvent energy. Need to caclulate for all waters,
+        // Calculate solvent-solvent energy. Need to caclulate for all waters,
         // even those outside the grid.
         for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
         {
