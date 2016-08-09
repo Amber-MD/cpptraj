@@ -38,9 +38,9 @@ Action_GIST::Action_GIST() :
 
 void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [Temp <tval>]\n"
-          "\t[gridcntr <xval> <yval> <zval>]\n"
+          "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
-          "\t[prefix <filename prefix>] [out <output suffix>] [noimage]\n");
+          "\t[prefix <filename prefix>] [ext <extension>] [out <output suffix>]\n");
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
