@@ -915,7 +915,7 @@ void Action_GIST::Print() {
                         dTSsix[gr_pt], dTSsix_norm[gr_pt],
                         Esw_dens[gr_pt], Esw_norm[gr_pt],
                         Eww_dens[gr_pt], Eww_norm[gr_pt],
-                        dipolex[gr_pt], dipoley[gr_pt], dipolex[gr_pt],
+                        dipolex[gr_pt], dipoley[gr_pt], dipolez[gr_pt],
                         pol[gr_pt], neighbor_dens[gr_pt], neighbor_norm[gr_pt], qtet[gr_pt]);
     }
   }
