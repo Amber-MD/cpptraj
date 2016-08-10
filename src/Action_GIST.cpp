@@ -272,7 +272,15 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   // Get molecule number for each solvent molecule
   //mol_nums_.clear();
   O_idxs_.clear();
+  A_idxs_.clear();
+  atom_voxel_.clear();
+  // NOTE: these are just guesses
+  O_idxs_.reserve( setup.Top().Nsolvent() );
+  A_idxs_.reserve( setup.Top().Natom() );
+  atom_voxel_.reserve( setup.Top().Natom() );
   unsigned int midx = 0;
+  unsigned int NsolventAtoms = 0;
+  unsigned int NsoluteAtoms = 0;
   bool isFirstSolvent = true;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol, ++midx)
@@ -302,6 +310,13 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
         return Action::ERR;
       }
+      A_idxs_.push_back( o_idx   );
+      A_idxs_.push_back( o_idx+1 );
+      A_idxs_.push_back( o_idx+2 );
+      atom_voxel_.push_back( OFF_GRID_ );
+      atom_voxel_.push_back( OFF_GRID_ );
+      atom_voxel_.push_back( OFF_GRID_ );
+      NsolventAtoms += 3;
       // If first solvent molecule, save charges. If not, check that charges match.
       if (isFirstSolvent) {
         q_O_  = setup.Top()[o_idx  ].Charge();
@@ -331,19 +346,26 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     } else {
       // This is a non-solvent molecule. Save atom indices unless 1 atom (probably ion).
       if (mol->NumAtoms() > 1) {
-        for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx)
-          U_idxs_.push_back( u_idx );
+        for (int u_idx = mol->BeginAtom(); u_idx != mol->EndAtom(); ++u_idx) {
+          A_idxs_.push_back( u_idx );
+          atom_voxel_.push_back( SOLUTE_ );
+          NsoluteAtoms++;
+        }
       }
     }
   }
   NSOLVENT_ = O_idxs_.size();
-  mprintf("DEBUG: %zu solvent molecules, %zu solute atoms.\n", O_idxs_.size(), U_idxs_.size());
+  mprintf("DEBUG: %zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
+          O_idxs_.size(), NsolventAtoms, NsoluteAtoms, A_idxs_.size());
   if (doOrder_ && NSOLVENT_ < 5) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
     doOrder_ = false;
   }
+  // Allocate space for saving indices of water atoms that are on the grid
+  OnGrid_idxs_.resize( O_idxs_.size() * 3 );
+  N_ON_GRID_ = 0;
 
-  water_voxel_.assign( NSOLVENT_, -1 );
+  //water_voxel_.assign( NSOLVENT_, -1 );
   gist_setup_.Stop();
   return Action::OK;
 }
@@ -352,6 +374,8 @@ const Vec3 Action_GIST::x_lab_ = Vec3(1.0, 0.0, 0.0);
 const Vec3 Action_GIST::y_lab_ = Vec3(0.0, 1.0, 0.0);
 const Vec3 Action_GIST::z_lab_ = Vec3(0.0, 0.0, 1.0);
 const double Action_GIST::QFAC_ = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
+const int Action_GIST::SOLUTE_ = -2;
+const int Action_GIST::OFF_GRID_ = -1;
 
 /** Distance calculation, potentially imaged. */
 double Action_GIST::Dist2(ImagingType itype, const double* XYZ1, const double* XYZ2,
@@ -386,8 +410,7 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
 
 /** Calculate the energy between the given water and all other
   * waters/solute atoms. This is done after the intial GIST calculations
-  * so that all waters have voxels assigned in water_voxel_.
-  * NOTE: Assume that H atom coords follow O in O_XYZ!
+  * so that all waters have voxels assigned in atom_voxel_.
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
@@ -397,6 +420,73 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   if (image_.ImagingEnabled())
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
+  mprintf("DEBUG: NsoluteSolventAtoms= %zu  NwatAtomsOnGrid= %u\n",
+          A_idxs_.size(), N_ON_GRID_);
+
+  double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
+  double* E_VV_Elec = &(E_VV_Elec_[0][0]);
+  float* Neighbor = &(neighbor_[0][0]);
+  // Loop over all solute + solvent atoms
+  int aidx;
+  for (aidx = 0; aidx < (int)A_idxs_.size(); aidx++)
+  {
+    int a1 = A_idxs_[aidx];            // Index of atom1
+    int a1_voxel = atom_voxel_[a1];    // Voxel of atom1
+    int a1_mol = topIn[ a1 ].MolNum(); // Molecule # of atom 1
+    Vec3 A1_XYZ( frameIn.XYZ( a1 ) );  // Coord of atom1
+    double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
+    bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
+    // Loop over all solvent atoms on the grid
+    for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
+    {
+      int a2 = OnGrid_idxs_[gidx];              // Index of water on grid
+      int a2_mol = topIn[ a2 ].MolNum();        // Molecule # of atom 2
+      if (a1_mol != a2_mol)
+      {
+        int a2_voxel = atom_voxel_[a2];           // Voxel of water on grid
+        const double* A2_XYZ = frameIn.XYZ( a2 ); // Coord of water on grid
+        if ( a1_voxel == SOLUTE_ ) {
+          // Solute to solvent on grid energy
+          // Calculate distance
+          double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
+                               ucell, recip );
+          // Calculate energy
+          Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
+          E_UV_VDW_[a2_voxel]  += Evdw;
+          E_UV_Elec_[a2_voxel] += Eelec;
+        } else {
+          // Solvent to solvent on grid energy
+          // Only do the energy calculation if not previously done or atom1 not on grid
+          if (a2 != a1 && (a2 > a1 || a1_voxel == OFF_GRID_))
+          {
+            // Calculate distance
+            double rij2 = Dist2( image_.ImageType(), A1_XYZ.Dptr(), A2_XYZ, frameIn.BoxCrd(),
+                                 ucell, recip );
+            // Calculate energy
+            Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
+            //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", a2_voxel, a1_voxel, a2, a1, Evdw, Eelec);
+            E_VV_VDW[a2_voxel] += Evdw;
+            E_VV_Elec[a2_voxel] += Eelec;
+            // Store water neighbor using only O-O distance
+            bool is_O_O = (a1IsO && (topIn[ a2 ].Element() == Atom::OXYGEN));
+            if (is_O_O && rij2 < NeighborCut2_)
+              Neighbor[a2_voxel] += 1.0;
+            // If water atom1 was also on the grid update its energy as well.
+            if ( a1_voxel != OFF_GRID_ ) {
+              E_VV_VDW[a1_voxel] += Evdw;
+              E_VV_Elec[a1_voxel] += Eelec;
+              if (is_O_O && rij2 < NeighborCut2_)
+                Neighbor[a1_voxel] += 1.0;
+              if (doEij_)
+                ww_Eij_->UpdateElement(a1_voxel, a2_voxel, Evdw + Eelec);
+            }
+          }
+        }
+      } // END a1 and a2 not in same molecule
+    } // End loop over all solvent atoms on grid
+  } // End loop over all solvent + solute atoms
+      
+/*
   // Loop over each solvent molecule
   for (int sidx1 = 0; sidx1 < (int)NSOLVENT_; sidx1++)
   {
@@ -483,6 +573,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
     } // END water1 is on the grid
   } // END outer loop over solvent molecules (water1)
+*/
 }
 
 // Action_GIST::Order()
@@ -490,54 +581,53 @@ void Action_GIST::Order(Frame const& frameIn) {
   // Loop over all solvent molecules that are on the grid
   double maxD = frameIn.BoxCrd().BoxX() + frameIn.BoxCrd().BoxY() + frameIn.BoxCrd().BoxZ();
   maxD *= maxD;
-  for (unsigned int sidx1 = 0; sidx1 < NSOLVENT_; sidx1++)
+  for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx += 3)
   {
-    int voxel1 = water_voxel_[sidx1];
-    if (voxel1 != -1)
+    int oidx1 = OnGrid_idxs_[gidx];
+    int voxel1 = atom_voxel_[oidx1];
+    Vec3 XYZ1( frameIn.XYZ( oidx1 ) );
+    // Find coordinates for 4 closest neighbors to this water (on or off grid).
+    // TODO set up overall grid in DoAction.
+    Vec3 WAT[4];
+    double d1 = maxD;
+    double d2 = maxD;
+    double d3 = maxD;
+    double d4 = maxD;
+    for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
     {
-      Vec3 XYZ1( frameIn.XYZ( O_idxs_[sidx1] ) );
-      // Find coordinates for 4 closest neighbors to this water (on or off grid).
-      // TODO set up overall grid in DoAction.
-      Vec3 WAT[4];
-      double d1 = maxD;
-      double d2 = maxD;
-      double d3 = maxD;
-      double d4 = maxD;
-      for (unsigned int sidx2 = 0; sidx2 < NSOLVENT_; sidx2++)
+      int oidx2 = O_idxs_[sidx2];
+      if (oidx2 != oidx1)
       {
-        if (sidx2 != sidx1)
-        {
-          const double* XYZ2 = frameIn.XYZ( O_idxs_[sidx2] );
-          double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
-          if        (dist2 < d1) {
-            d4 = d3; d3 = d2; d2 = d1; d1 = dist2;
-            WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
-          } else if (dist2 < d2) {
-            d4 = d3; d3 = d2; d2 = dist2;
-            WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
-          } else if (dist2 < d3) {
-            d4 = d3; d3 = dist2;
-            WAT[3] = WAT[2]; WAT[2] = XYZ2;
-          } else if (dist2 < d4) {
-            d4 = dist2;
-            WAT[3] = XYZ2;
-          }
+        const double* XYZ2 = frameIn.XYZ( oidx2 );
+        double dist2 = DIST2_NoImage( XYZ1.Dptr(), XYZ2 );
+        if        (dist2 < d1) {
+          d4 = d3; d3 = d2; d2 = d1; d1 = dist2;
+          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = WAT[0]; WAT[0] = XYZ2;
+        } else if (dist2 < d2) {
+          d4 = d3; d3 = d2; d2 = dist2;
+          WAT[3] = WAT[2]; WAT[2] = WAT[1]; WAT[1] = XYZ2;
+        } else if (dist2 < d3) {
+          d4 = d3; d3 = dist2;
+          WAT[3] = WAT[2]; WAT[2] = XYZ2;
+        } else if (dist2 < d4) {
+          d4 = dist2;
+          WAT[3] = XYZ2;
         }
       }
-      // Compute the tetrahedral order parameter
-      double sum = 0.0;
-      for (int mol1 = 0; mol1 < 3; mol1++) {
-        for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
-          Vec3 v1 = WAT[mol1] - XYZ1;
-          Vec3 v2 = WAT[mol2] - XYZ1;
-          double r1 = v1.Magnitude2();
-          double r2 = v2.Magnitude2();
-          double cos = (v1* v2) / sqrt(r1 * r2);
-          sum += (cos + 1.0/3)*(cos + 1.0/3);
-        }
+    }
+    // Compute the tetrahedral order parameter
+    double sum = 0.0;
+    for (int mol1 = 0; mol1 < 3; mol1++) {
+      for (int mol2 = mol1 + 1; mol2 < 4; mol2++) {
+        Vec3 v1 = WAT[mol1] - XYZ1;
+        Vec3 v2 = WAT[mol2] - XYZ1;
+        double r1 = v1.Magnitude2();
+        double r2 = v2.Magnitude2();
+        double cos = (v1* v2) / sqrt(r1 * r2);
+        sum += (cos + 1.0/3)*(cos + 1.0/3);
       }
-      order_norm_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
-    } // END water is on grid
+    }
+    order_norm_->UpdateVoxel(voxel1, (1.0 - (3.0/8)*sum));
   } // END loop over all solvent molecules
 }
 
@@ -545,6 +635,8 @@ void Action_GIST::Order(Frame const& frameIn) {
 Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   gist_action_.Start();
   NFRAME_++;
+  // TODO only !skipE?
+  N_ON_GRID_ = 0;
 
   int bin_i, bin_j, bin_k;
   Vec3 const& Origin = gO_->GridOrigin();
@@ -552,8 +644,11 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   for (unsigned int sidx = 0; sidx < NSOLVENT_; sidx++)
   {
     gist_grid_.Start();
-    water_voxel_[sidx] = -1;
-    const double* O_XYZ  = frm.Frm().XYZ( O_idxs_[sidx] );
+    int oidx = O_idxs_[sidx];
+    atom_voxel_[oidx  ] = OFF_GRID_;
+    atom_voxel_[oidx+1] = OFF_GRID_;
+    atom_voxel_[oidx+2] = OFF_GRID_;
+    const double* O_XYZ  = frm.Frm().XYZ( oidx );
     // Get vector of water oxygen to grid origin.
     Vec3 W_G( O_XYZ[0] - Origin[0],
               O_XYZ[1] - Origin[1],
@@ -565,15 +660,22 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
          W_G[1] <= G_max_[1] && W_G[1] >= -1.5 &&
          W_G[2] <= G_max_[2] && W_G[2] >= -1.5 )
     {
-      const double* H1_XYZ = frm.Frm().XYZ( O_idxs_[sidx] + 1 );
-      const double* H2_XYZ = frm.Frm().XYZ( O_idxs_[sidx] + 2 );
+      const double* H1_XYZ = frm.Frm().XYZ( oidx + 1 );
+      const double* H2_XYZ = frm.Frm().XYZ( oidx + 2 );
       // Try to bin the oxygen
       if ( gO_->CalcBins( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
       {
         // Oxygen is inside the grid. Record the voxel.
+        // NOTE hydrogens always assigned to same voxel for energy purposes.
         int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
-        water_voxel_[sidx] = voxel;
-        //mprintf("DEBUG1: Water atom %i voxel %i\n", O_idxs_[sidx], voxel);
+        atom_voxel_[oidx  ] = voxel;
+        atom_voxel_[oidx+1] = voxel;
+        atom_voxel_[oidx+2] = voxel;
+        OnGrid_idxs_[N_ON_GRID_  ] = oidx;
+        OnGrid_idxs_[N_ON_GRID_+1] = oidx + 1;
+        OnGrid_idxs_[N_ON_GRID_+2] = oidx + 2;
+        N_ON_GRID_ += 3;
+        //mprintf("DEBUG1: Water atom %i voxel %i\n", oidx, voxel);
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
         // ----- EULER ---------------------------

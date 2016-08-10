@@ -30,6 +30,8 @@ class Action_GIST : public Action {
     static const Vec3 y_lab_;
     static const Vec3 z_lab_;
     static const double QFAC_;
+    static const int SOLUTE_;
+    static const int OFF_GRID_;
 
     ImagedAction image_; ///< Imaging routines.
     // NOTE: '*' = Updated in DoAction(). '+' = Updated in Setup().
@@ -54,10 +56,14 @@ class Action_GIST : public Action {
     typedef std::vector<int> Iarray;
     //Iarray mol_nums_;    ///< Absolute molecule number of each solvent molecule.+ //TODO needed?
     Iarray O_idxs_;      ///< Oxygen atom indices for each solvent molecule.+
-    Iarray water_voxel_; ///< Absolute grid voxel for each solvent molecule.* TODO long int?
-    Iarray U_idxs_;      ///< Solute atom indices for each solute atom.+
+    Iarray OnGrid_idxs_; ///< Indices for each water atom on the grid.*
+    Iarray atom_voxel_;  ///< Absolute grid voxel for each atom (SOLUTE_ for solute atoms)
+    Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
+
+    //typedef std::vector<bool> Barray;
+    //Barray IdxIsSolvent_; ///< True if index in A_idxs_ refers to a solvent atom.
 
     typedef std::vector<float> Farray;
     std::vector<Farray> neighbor_; ///< Number of water neighbors within 3.5 Ang.*
@@ -98,6 +104,7 @@ class Action_GIST : public Action {
     double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
+    unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*
     int NFRAME_;               ///< Total # frames analyzed
     int max_nwat_;             ///< Max number of waters in any voxel
     bool doOrder_;             ///< If true do the order calc
