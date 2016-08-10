@@ -410,8 +410,8 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
          Eelec = qiqj / rij;
 }
 
-/** Calculate the energy between the given water and all other
-  * waters/solute atoms. This is done after the intial GIST calculations
+/** Calculate the energy between all solute/solvent atoms and solvent atoms
+  * on the grid. This is done after the intial GIST calculations
   * so that all waters have voxels assigned in atom_voxel_.
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
@@ -429,10 +429,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
   double* E_VV_Elec = &(E_VV_Elec_[0][0]);
   float* Neighbor = &(neighbor_[0][0]);
-  // Loop over all solute + solvent atoms
   double Evdw, Eelec;
   int aidx;
   int maxAidx = (int)A_idxs_.size();
+  // Loop over all solute + solvent atoms
 # ifdef _OPENMP
   int mythread;
 # pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
