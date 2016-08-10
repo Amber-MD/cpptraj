@@ -200,12 +200,14 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
 # endif
 
   if (!skipE_) {
-    E_UV_VDW_.assign( MAX_GRID_PT_, 0 );
-    E_UV_Elec_.assign( MAX_GRID_PT_, 0 );
+    E_UV_VDW_.resize( numthreads );
+    E_UV_Elec_.resize( numthreads );
     E_VV_VDW_.resize( numthreads );
     E_VV_Elec_.resize( numthreads );
     neighbor_.resize( numthreads );
     for (int thread = 0; thread != numthreads; thread++) {
+      E_UV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
+      E_UV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_VDW_[thread].assign( MAX_GRID_PT_, 0 );
       E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
@@ -414,7 +416,6 @@ void Action_GIST::Ecalc(double rij2, double q1, double q2, NonbondType const& LJ
   */
 void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
 {
-  double Evdw, Eelec;
   // Set up imaging info.
   Matrix_3x3 ucell, recip;
   if (image_.ImagingEnabled())
@@ -423,12 +424,28 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   mprintf("DEBUG: NsoluteSolventAtoms= %zu  NwatAtomsOnGrid= %u\n",
           A_idxs_.size(), N_ON_GRID_);
 
+  double* E_UV_VDW  = &(E_UV_VDW_[0][0]);
+  double* E_UV_Elec = &(E_UV_Elec_[0][0]);
   double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
   double* E_VV_Elec = &(E_VV_Elec_[0][0]);
   float* Neighbor = &(neighbor_[0][0]);
   // Loop over all solute + solvent atoms
+  double Evdw, Eelec;
   int aidx;
-  for (aidx = 0; aidx < (int)A_idxs_.size(); aidx++)
+  int maxAidx = (int)A_idxs_.size();
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
+  {
+  mythread = omp_get_thread_num();
+  E_UV_VDW = &(E_UV_VDW_[mythread][0]);
+  E_UV_Elec = &(E_UV_Elec_[mythread][0]);
+  E_VV_VDW = &(E_VV_VDW_[mythread][0]);
+  E_VV_Elec = &(E_VV_Elec_[mythread][0]);
+  Neighbor = (&neighbor_[mythread][0]);
+# pragma omp for
+# endif
+  for (aidx = 0; aidx < maxAidx; aidx++)
   {
     int a1 = A_idxs_[aidx];            // Index of atom1
     int a1_voxel = atom_voxel_[a1];    // Voxel of atom1
@@ -452,8 +469,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
                                ucell, recip );
           // Calculate energy
           Ecalc( rij2, qA1, topIn[ a2 ].Charge(), topIn.GetLJparam(a1, a2), Evdw, Eelec );
-          E_UV_VDW_[a2_voxel]  += Evdw;
-          E_UV_Elec_[a2_voxel] += Eelec;
+          E_UV_VDW[a2_voxel]  += Evdw;
+          E_UV_Elec[a2_voxel] += Eelec;
         } else {
           // Solvent to solvent on grid energy
           // Only do the energy calculation if not previously done or atom1 not on grid
@@ -485,95 +502,9 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
       } // END a1 and a2 not in same molecule
     } // End loop over all solvent atoms on grid
   } // End loop over all solvent + solute atoms
-      
-/*
-  // Loop over each solvent molecule
-  for (int sidx1 = 0; sidx1 < (int)NSOLVENT_; sidx1++)
-  {
-    int voxel1 = water_voxel_[sidx1];
-    if (voxel1 != -1)
-    {
-      // Loop over water1 O, H1, H2
-      for (unsigned int widx1 = 0; widx1 != 3; widx1++)
-      {
-        int vidx1 = O_idxs_[sidx1] + widx1;          // Absolute index of water1 atom
-        Vec3 V1_XYZ( frameIn.XYZ( vidx1 ) );         // Coord of water atom
-        double q1 = topIn[ vidx1 ].Charge();         // Charge of water atom
-        // Calculate solvent-solute energy.
-        gist_nonbond_UV_.Start();
-        for (Iarray::const_iterator uidx = U_idxs_.begin(); uidx != U_idxs_.end(); ++uidx)
-        {
-          const double* U_XYZ = frameIn.XYZ( *uidx );
-          // Calculate distance
-          double rij2 = Dist2(image_.ImageType(), V1_XYZ.Dptr(), U_XYZ, frameIn.BoxCrd(),
-                              ucell, recip);
-          // Calculate energy
-          Ecalc( rij2, q1, topIn[*uidx].Charge(), topIn.GetLJparam(vidx1, *uidx), Evdw, Eelec );
-          E_UV_VDW_[voxel1] += Evdw;
-          E_UV_Elec_[voxel1] += Eelec;
-        } // END loop over solute atoms
-        gist_nonbond_UV_.Stop();
-        // Calculate solvent-solvent energy. Need to calculate for all waters,
-        // even those outside the grid.
-        gist_nonbond_VV_.Start();
-        double* E_VV_VDW  = &(E_VV_VDW_[0][0]);
-        double* E_VV_Elec = &(E_VV_Elec_[0][0]);
-        float* Neighbor = &(neighbor_[0][0]);
-        int sidx2;
-        int Nsolvent = (int)NSOLVENT_;
-#       ifdef _OPENMP
-        int mythread;
-#       pragma omp parallel private(sidx2, mythread, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
-        {
-        mythread = omp_get_thread_num();
-        E_VV_VDW = &(E_VV_VDW_[mythread][0]);
-        E_VV_Elec = &(E_VV_Elec_[mythread][0]);
-        Neighbor = (&neighbor_[mythread][0]);
-#       pragma omp for
-#       endif
-        for (sidx2 = 0; sidx2 < Nsolvent; sidx2++)
-        {
-          int voxel2 = water_voxel_[sidx2];
-          // Only do the energy calculation if not previously done or water2 not on grid
-          if (sidx2 != sidx1 && (sidx2 > sidx1 || voxel2 == -1))
-          {
-            // Loop over water2 O, H1, H2
-            for (unsigned int widx2 = 0; widx2 != 3; widx2++)
-            {
-              int vidx2 = O_idxs_[sidx2] + widx2;
-              const double* V2_XYZ = frameIn.XYZ( vidx2 );
-              // Calculate distance
-              double rij2 = Dist2(image_.ImageType(), V1_XYZ.Dptr(), V2_XYZ, frameIn.BoxCrd(),
-                                  ucell, recip);
-              // Calculate energy
-              Ecalc( rij2, q1, topIn[vidx2].Charge(), topIn.GetLJparam(vidx1, vidx2), Evdw, Eelec );
-              //mprintf("DEBUG1: v1= %i v2= %i EVV %i %i Vdw= %f Elec= %f\n", voxel1, voxel2, vidx1, vidx2, Evdw, Eelec);
-              E_VV_VDW[voxel1] += Evdw;
-              E_VV_Elec[voxel1] += Eelec;
-              // Store water neighbor using only O-O distance
-              if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
-                Neighbor[voxel1] += 1.0;
-              // If water2 was also on the grid update its energy as well.
-              if (voxel2 != -1) {
-                E_VV_VDW[voxel2] += Evdw;
-                E_VV_Elec[voxel2] += Eelec;
-                if (widx1 == 0 && widx2 == 0 && rij2 < NeighborCut2_)
-                  Neighbor[voxel2] += 1.0;
-                if (doEij_)
-                  ww_Eij_->UpdateElement(voxel1, voxel2, Evdw + Eelec);
-              }
-            }
-          } // END loop over water2 atoms
-        } // END loop over all other waters
-#       ifdef _OPENMP
-        } // END omp pragma
-#       endif
-        gist_nonbond_VV_.Stop();
-      } // End loop over water1 atoms
-      //mprintf("DEBUG1: atom %i voxel %i VV evdw=%f eelec=%f\n", O_idxs_[sidx1], voxel1, E_VV_VDW_[voxel1], E_VV_Elec_[voxel1]);
-    } // END water1 is on the grid
-  } // END outer loop over solvent molecules (water1)
-*/
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 }
 
 // Action_GIST::Order()
@@ -843,10 +774,13 @@ void Action_GIST::TransEntropy(float VX, float VY, float VZ,
   }
 }
 
+// Action_GIST::SumEVV()
 void Action_GIST::SumEVV() {
   if (E_VV_VDW_.size() > 1) {
     for (unsigned int gr_pt = 0; gr_pt != MAX_GRID_PT_; gr_pt++) {
       for (unsigned int thread = 1; thread < E_VV_VDW_.size(); thread++) {
+        E_UV_VDW_[0][gr_pt]  += E_UV_VDW_[thread][gr_pt];
+        E_UV_Elec_[0][gr_pt] += E_UV_Elec_[thread][gr_pt];
         E_VV_VDW_[0][gr_pt]  += E_VV_VDW_[thread][gr_pt];
         E_VV_Elec_[0][gr_pt] += E_VV_Elec_[thread][gr_pt];
         neighbor_[0][gr_pt]  += neighbor_[thread][gr_pt];
@@ -1138,10 +1072,12 @@ void Action_GIST::Print() {
   Farray Eww_norm( MAX_GRID_PT_, 0.0 );
   Farray neighbor_dens( MAX_GRID_PT_, 0.0 );
   if (!skipE_) {
-    // Sum values from other threads if necessary
+    Darray const& E_UV_VDW = E_UV_VDW_[0];
+    Darray const& E_UV_Elec = E_UV_Elec_[0];
     Darray const& E_VV_VDW = E_VV_VDW_[0];
     Darray const& E_VV_Elec = E_VV_Elec_[0];
     Farray const& Neighbor = neighbor_[0];
+    // Sum values from other threads if necessary
     SumEVV();
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
@@ -1151,10 +1087,10 @@ void Action_GIST::Print() {
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 1) {
-        Esw_dens[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / (NFRAME_ * Vvox);
-        Esw_norm[gr_pt] = (E_UV_VDW_[gr_pt] + E_UV_Elec_[gr_pt]) / nw_total;
-        Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt] ) / (2 * NFRAME_ * Vvox);
-        Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt] ) / (2 * nw_total);
+        Esw_dens[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / (NFRAME_ * Vvox);
+        Esw_norm[gr_pt] = (E_UV_VDW[gr_pt]  + E_UV_Elec[gr_pt]) / nw_total;
+        Eww_dens[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * NFRAME_ * Vvox);
+        Eww_norm[gr_pt] = (E_VV_VDW[gr_pt]  + E_VV_Elec[gr_pt]) / (2 * nw_total);
         Eswtot += Esw_dens[gr_pt];
         Ewwtot += Eww_dens[gr_pt];
       } else {
