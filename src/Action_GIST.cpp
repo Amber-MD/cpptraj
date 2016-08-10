@@ -341,7 +341,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
           mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", q_H1_, q_H2_);
         if (fabs( q_O_ + q_H1_ + q_H2_ ) > 0.0)
           mprintf("Warning: Charges on water do not sum to 0 (%g)\n", q_O_ + q_H1_ + q_H2_);
-        mprintf("DEBUG: Water charges: O=%g  H1=%g  H2=%g\n", q_O_, q_H1_, q_H2_);
+        //mprintf("DEBUG: Water charges: O=%g  H1=%g  H2=%g\n", q_O_, q_H1_, q_H2_);
       } else {
         if (NotEqual(q_O_, setup.Top()[o_idx  ].Charge()))
           mprintf("Warning: Charge on water '%s' oxygen %g does not match first water %g.\n",
@@ -369,7 +369,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     }
   }
   NSOLVENT_ = O_idxs_.size();
-  mprintf("DEBUG: %zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
+  mprintf("\t%zu solvent molecules, %u solvent atoms, %u solute atoms (%zu total).\n",
           O_idxs_.size(), NsolventAtoms, NsoluteAtoms, A_idxs_.size());
   if (doOrder_ && NSOLVENT_ < 5) {
     mprintf("Warning: Less than 5 solvent molecules. Cannot perform order calculation.\n");
@@ -379,7 +379,13 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   OnGrid_idxs_.resize( O_idxs_.size() * 3 );
   N_ON_GRID_ = 0;
 
-  //water_voxel_.assign( NSOLVENT_, -1 );
+  if (!skipE_) {
+    if (image_.ImagingEnabled())
+      mprintf("\tImaging enabled for energy distance calculations.\n");
+    else
+      mprintf("\tNo imaging will be performed for energy distance calculations.\n");
+  }
+
   gist_setup_.Stop();
   return Action::OK;
 }
@@ -433,8 +439,8 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   if (image_.ImagingEnabled())
     frameIn.BoxCrd().ToRecip(ucell, recip);
 
-  mprintf("DEBUG: NsoluteSolventAtoms= %zu  NwatAtomsOnGrid= %u\n",
-          A_idxs_.size(), N_ON_GRID_);
+  //mprintf("DEBUG: NsoluteSolventAtoms= %zu  NwatAtomsOnGrid= %u\n",
+  //        A_idxs_.size(), N_ON_GRID_);
 
   double* E_UV_VDW  = &(E_UV_VDW_[0][0]);
   double* E_UV_Elec = &(E_UV_Elec_[0][0]);
