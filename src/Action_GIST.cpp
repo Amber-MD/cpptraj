@@ -212,6 +212,18 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       E_VV_Elec_[thread].assign( MAX_GRID_PT_, 0 );
       neighbor_[thread].assign( MAX_GRID_PT_, 0 );
     }
+#   ifdef _OPENMP
+    if (doEij_) {
+      // Since allocating a separate matrix for every thread will consume a lot
+      // of memory and since the Eij matrices tend to be sparse since solute is
+      // often present, each thread will record any interaction energies they
+      // calculate separately and add to the Eij matrix afterwards to avoid
+      // memory clashes. Probably not ideal if the bulk of the grid is water however.
+      EIJ_V1_.resize( numthreads );
+      EIJ_V2_.resize( numthreads );
+      EIJ_EN_.resize( numthreads );
+    }
+#   endif
   }
 
   //Box gbox;
@@ -435,7 +447,10 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   // Loop over all solute + solvent atoms
 # ifdef _OPENMP
   int mythread;
-# pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec)
+  Iarray* eij_v1;
+  Iarray* eij_v2;
+  Farray* eij_en;
+# pragma omp parallel private(aidx, mythread, E_UV_VDW, E_UV_Elec, E_VV_VDW, E_VV_Elec, Neighbor, Evdw, Eelec, eij_v1, eij_v2, eij_en)
   {
   mythread = omp_get_thread_num();
   E_UV_VDW = &(E_UV_VDW_[mythread][0]);
@@ -443,6 +458,14 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   E_VV_VDW = &(E_VV_VDW_[mythread][0]);
   E_VV_Elec = &(E_VV_Elec_[mythread][0]);
   Neighbor = (&neighbor_[mythread][0]);
+  if (doEij_) {
+    eij_v1 = &(EIJ_V1_[mythread]);
+    eij_v2 = &(EIJ_V2_[mythread]);
+    eij_en = &(EIJ_EN_[mythread]);
+    eij_v1->clear();
+    eij_v2->clear();
+    eij_en->clear();
+  }
 # pragma omp for
 # endif
   for (aidx = 0; aidx < maxAidx; aidx++)
@@ -494,8 +517,15 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               E_VV_Elec[a1_voxel] += Eelec;
               if (is_O_O && rij2 < NeighborCut2_)
                 Neighbor[a1_voxel] += 1.0;
-              if (doEij_)
+              if (doEij_) {
+#               ifdef _OPENMP
+                eij_v1->push_back( a1_voxel );
+                eij_v2->push_back( a2_voxel );
+                eij_en->push_back( Evdw + Eelec );
+#               else
                 ww_Eij_->UpdateElement(a1_voxel, a2_voxel, Evdw + Eelec);
+#               endif
+              }
             }
           }
         }
@@ -504,6 +534,12 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
   } // End loop over all solvent + solute atoms
 # ifdef _OPENMP
   } // END pragma omp parallel
+  if (doEij_) {
+    // Add any Eijs to matrix
+    for (unsigned int thread = 0; thread != EIJ_V1_.size(); thread++)
+      for (unsigned int idx = 0; idx != EIJ_V1_[thread].size(); idx++)
+        ww_Eij_->UpdateElement(EIJ_V1_[thread][idx], EIJ_V2_[thread][idx], EIJ_EN_[thread][idx]);
+  }
 # endif
 }
 

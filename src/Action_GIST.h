@@ -61,12 +61,16 @@ class Action_GIST : public Action {
     Iarray A_idxs_;      ///< Atom indices for each solute and solvent atom.+ (energy calc only)
     Iarray N_waters_;    ///< Number of waters (oxygen atoms) in each voxel.*
     Iarray N_hydrogens_; ///< Number of hydrogen atoms in each voxel.*
-
-    //typedef std::vector<bool> Barray;
-    //Barray IdxIsSolvent_; ///< True if index in A_idxs_ refers to a solvent atom.
+#   ifdef _OPENMP
+    std::vector<Iarray> EIJ_V1_; ///< Hold any interaction energy voxel 1 each frame.*
+    std::vector<Iarray> EIJ_V2_; ///< Hold any interaction energy voxel 2 each frame.*
+#   endif
 
     typedef std::vector<float> Farray;
     std::vector<Farray> neighbor_; ///< Number of water neighbors within 3.5 Ang.*
+#   ifdef _OPENMP
+    std::vector<Farray> EIJ_EN_;   ///< Hold any interaction energies each frame.*
+#   endif
 
     typedef std::vector<Farray> Xarray;
     Xarray voxel_xyz_; ///< Coords for all waters in each voxel.*
