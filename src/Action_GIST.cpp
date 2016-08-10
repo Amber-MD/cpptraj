@@ -1185,8 +1185,8 @@ void Action_GIST::Print() {
   gist_action_.WriteTiming(1,  "Action:", total);
   gist_grid_.WriteTiming(2,    "Grid:   ", gist_action_.Total());
   gist_nonbond_.WriteTiming(2, "Nonbond:", gist_action_.Total());
-  gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
-  gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
+  //gist_nonbond_UV_.WriteTiming(3, "UV:", gist_nonbond_.Total());
+  //gist_nonbond_VV_.WriteTiming(3, "VV:", gist_nonbond_.Total());
   gist_euler_.WriteTiming(2,   "Euler:  ", gist_action_.Total());
   gist_dipole_.WriteTiming(2,  "Dipole: ", gist_action_.Total());
   gist_order_.WriteTiming(2,   "Order: ", gist_action_.Total());
