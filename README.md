@@ -99,7 +99,7 @@ Action\_Density, Action\_OrderParameter, Action\_PairDist.
 
 * Crystal N. Nguyen (University of California, San Diego)  
 Romelia F. Salomon (University of California, San Diego)  
-Action\_Gist.
+Original Action\_Gist.
 
 * Pawel Janowski (Rutgers University, NJ, USA)  
 Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_AtomicFluct.
@@ -111,7 +111,7 @@ Original code for Analysis\_Wavelet.
 Support for processing force information in NetCDF trajectories.
 
 * Steven Ramsey (CUNY Lehman College, Bronx, NY)
-Enhancements to entropy calculation in GIST.
+Enhancements to entropy calculation in original Action\_Gist.
 
 * Amit Roy (University of Utah, UT)
 Code for the CUDA version of the 'closest' Action.

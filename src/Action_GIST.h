@@ -1,12 +1,13 @@
-#ifndef INC_ACTION_GIST2_H
-#define INC_ACTION_GIST2_H
-// TODO change protect eventually
+#ifndef INC_ACTION_GIST_H
+#define INC_ACTION_GIST_H
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_3D.h"
 #include "DataSet_MatrixFlt.h"
 #include "Timer.h"
 /// Class for applying Grid Inhomogenous Solvation Theory
+/** \author Daniel R. Roe
+  */
 class Action_GIST : public Action {
   public:
     Action_GIST();
