@@ -34,6 +34,12 @@ template <class T> class Grid {
     // NOTE: This way of calculating overall index is consistent with
     //       how Matrix index is calcd but not used for backwards compat.
     //long int CalcIndex(int x, int y, int z) const { return (z*nx_*ny_)+(y*nx_)+x; }
+    /// Convert linear index to X, Y, and Z bin indices.
+    void ReverseIndex(long int idx, int& x, int& y, int& z) const {
+      x = idx / (ny_*nz_);
+      y = (idx / nz_) % ny_;
+      z = idx % nz_;
+    }
     /// Iterator over grid elements.
     typedef ArrayIterator<T> iterator;
     iterator begin() { return grid_;              }

@@ -25,6 +25,11 @@ class DataSet_GridFlt : public DataSet_3D {
     size_t NX() const { return grid_.NX(); }
     size_t NY() const { return grid_.NY(); }
     size_t NZ() const { return grid_.NZ(); }
+    /// \return grid index
+    long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
+    void ReverseIndex(long int n, int& i, int& j, int& k) const
+      { return grid_.ReverseIndex(n,i,j,k); }
+    void UpdateVoxel(long int i, double val) { grid_[i] += (float)val; }
     // -------------------------------------------
     void SetElement(int x,int y,int z,float v) { grid_.setGrid(x,y,z,v);     }
     /// Type definition of iterator over grid elements.
@@ -38,8 +43,6 @@ class DataSet_GridFlt : public DataSet_3D {
     inline long int Increment(int,int,int,float);
     /// \return grid value at specified bin.
     float GridVal(int x,int y,int z)        const { return grid_.element(x,y,z);   }
-    /// \return grid index
-    long int CalcIndex(int i, int j, int k) const { return grid_.CalcIndex(i,j,k); }
   private:
     Grid<float> grid_;
 };

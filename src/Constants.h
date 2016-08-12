@@ -28,10 +28,12 @@ namespace Constants {
   const double GASK_J       = 8.3144621;
   /// Gas constant in kcal/mol*K
   const double GASK_KCAL    = 0.0019872041;
-  // Avogadro constant
+  /// Avogadro constant
   const double NA = 6.02214129e23;
-  // Speed of light (m/s)
+  /// Speed of light (m/s)
   const double C0 = 299792458;
+  /// Euler-Mascheroni constant
+  const double EULER_MASC = 0.5772156649;
   /// Convert atomic mass unit (amu) to kg
   const double AMU_TO_KG = 1.660539e-27;
   /// Convert Angstroms to nanometers

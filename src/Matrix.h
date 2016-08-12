@@ -34,6 +34,8 @@ template <class T> class Matrix {
     int addElement( const T& );
     /// Set element at col and row.
     void setElement(int,int, const T&);
+    /// Add given value to element at col and row.
+    void updateElement(int, int, const T&);
     /// \return pointer to internal array of elements.
     T const* Ptr()     const { return elements_;  }
     T* Ptr()                 { return elements_;  }
@@ -215,6 +217,11 @@ template<class T> int Matrix<T>::addElement(const T& elementIn) {
 template<class T> void Matrix<T>::setElement(int xIn, int yIn, const T& eltIn) {
   long int idx = calcIndex(ncols_, xIn, yIn);
   elements_[idx] = eltIn;
+}
+// Matrix::updateElement()
+template<class T> void Matrix<T>::updateElement(int xIn, int yIn, const T& eltIn) {
+  long int idx = calcIndex(ncols_, xIn, yIn);
+  elements_[idx] += eltIn;
 }
 // Matrix::element()
 template<class T> const T& Matrix<T>::element(int xIn, int yIn) const {
