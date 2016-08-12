@@ -256,7 +256,7 @@ int Parm_Amber::ReadOldParm(Topology& TopIn) {
   mprintf("\tReading old (<v7) Amber Topology file.\n");
   std::string title = NoTrailingWhitespace( file_.GetLine() );
   TopIn.SetParmName( title, file_.Filename() );
-  int Npointers = 30; // No NEXTRA etc
+  int Npointers = 0; // Number of pointers not known, but definitely no NEXTRA etc
   const FortranData DBL(FDOUBLE, 5, 16, 0);
   const FortranData INT(FINT, 12, 6, 0);
   const FortranData CHAR(FCHAR, 20, 4, 0);
@@ -512,16 +512,42 @@ int Parm_Amber::ReadTitle(Topology& TopIn) {
 
 // Parm_Amber::ReadPointers()
 int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& FMT) {
-  file_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
-  if (file_.ReadFrame()) return 1;
-  values_.reserve(Npointers);
-  for (int idx = 0; idx != Npointers; idx++)
-    values_.push_back( atoi( file_.NextElement() ) );
-
-  //mprintf("DEBUG: POINTERS\n");
-  //for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
-  //  mprintf("%u\t%i\n", it-values_.begin(), *it);
-
+  if (Npointers > 0) {
+    // New >= version 7 topology: number of pointers is consistent.
+    file_.SetupFrameBuffer( Npointers, FMT.Width(), FMT.Ncols() );
+    if (file_.ReadFrame()) return 1;
+    values_.reserve(Npointers);
+    for (int idx = 0; idx != Npointers; idx++)
+      values_.push_back( atoi( file_.NextElement() ) );
+  } else {
+    // Old version. 3 lines, but number of pointers is not consistent.
+    int IVALS[12];
+    int nPointers = 0;
+    for (int line = 0; line != 3; line++) {
+      const char* ptr = file_.NextLine();
+      if (ptr == 0) return 1;
+      // Old pointers format is 12I6
+      int nvals = sscanf(ptr, "%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i%6i",
+                         IVALS  , IVALS+1, IVALS+2, IVALS+3, IVALS+4 , IVALS+5,
+                         IVALS+6, IVALS+7, IVALS+8, IVALS+9, IVALS+10, IVALS+11);
+      nPointers += nvals;
+      // First two lines should always have 12 values.
+      if (line < 2 && nvals < 12) {
+        mprinterr("Error: In old topology file, not enough POINTERS (%i).\n", nPointers);
+        return 1;
+      }
+      for (int ip = 0; ip != nvals; ip++)
+        values_.push_back( IVALS[ip] );
+    }
+    // Make sure there are at least AMBERPOINTERS_ pointers.
+    if (values_.size() < AMBERPOINTERS_)
+      values_.resize( AMBERPOINTERS_, 0 );
+  }
+  if (debug_ > 4) {
+    mprintf("DEBUG: POINTERS\n");
+    for (Iarray::const_iterator it = values_.begin(); it != values_.end(); ++it)
+      mprintf("%u\t%i\n", it-values_.begin(), *it);
+  }
   TopIn.Resize( Topology::Pointers(values_[NATOM], values_[NRES], values_[NATOM],
                                    values_[NUMBND], values_[NUMANG], values_[NPTRA]) );
 
@@ -547,9 +573,9 @@ int Parm_Amber::SetupBuffer(FlagType ftype, int nvals, FortranData const& FMT) {
     if (debug_>0) mprintf("DEBUG: Set up buffer for '%s', %i vals.\n", FLAGS_[ftype].Flag, nvals);
     file_.SetupFrameBuffer( nvals, FMT.Width(), FMT.Ncols() );
     if (file_.ReadFrame()) return 1;
-    //mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
+    if (debug_>5) mprintf("DEBUG: '%s':\n%s", FLAGS_[ftype].Flag, file_.Buffer());
   } else {
-    //mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
+    if (debug_>5) mprintf("DEBUG: No values for flag '%s'\n", FLAGS_[ftype].Flag);
     // Read blank line
     file_.NextLine();
   }
