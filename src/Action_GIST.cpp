@@ -876,14 +876,9 @@ void Action_GIST::Print() {
     nwtt += nw_total;
     //mprintf("DEBUG1: %u nw_total %i\n", gr_pt, nw_total);
     if (nw_total > 1) {
-      int bound = 0;
       for (int n0 = 0; n0 < nw_total; n0++)
       {
         double NNr = 10000;
-        float NNs = 10000;
-        //float ds = 0;
-        //float NNd = 10000;
-        //float dd = 0;
         int q0 = n0 * 4; // Index into voxel_Q_ for n0
         for (int n1 = 0; n1 < nw_total; n1++)
         {
@@ -898,11 +893,7 @@ void Action_GIST::Print() {
           }
         } // END inner loop over all waters for this voxel
 
-        //if (bound == 1) { // FIXME this appears never to be triggered.
-        //  double dbl = 0;
-        //  //dTSorient_norm[gr_pt] += dbl; // Why was this even here?
-        //} else
-        if (bound != 1 && NNr < 9999 && NNr > 0 && NNs > 0) {
+        if (NNr < 9999 && NNr > 0) {
           double dbl = log(NNr*NNr*NNr*nw_total / (3.0*Constants::TWOPI));
           //mprintf("DEBUG1: dbl %f\n", dbl);
           dTSorient_norm[gr_pt] += dbl;
@@ -934,7 +925,6 @@ void Action_GIST::Print() {
   unsigned int addx = ny * nz;
   unsigned int addy = nz;
   unsigned int addz = 1;
-  //Farray W_dens( MAX_GRID_PT_, 0.0 ); // Water density
   DataSet_GridFlt& gO = static_cast<DataSet_GridFlt&>( *gO_ );
   DataSet_GridFlt& gH = static_cast<DataSet_GridFlt&>( *gH_ );
   DataSet_GridFlt& dTStrans = static_cast<DataSet_GridFlt&>( *dTStrans_ );
@@ -955,7 +945,6 @@ void Action_GIST::Print() {
     for (int n0 = 0; n0 < nw_total; n0++)
     {
       double NNd = 10000;
-      int bound = 0;
       double NNs = 10000;
       int i0 = n0 * 3; // index into voxel_xyz_ for n0
       float VX = voxel_xyz_[gr_pt][i0  ];
@@ -966,7 +955,7 @@ void Action_GIST::Print() {
       float X4 = voxel_Q_[gr_pt][q0+1];
       float Y4 = voxel_Q_[gr_pt][q0+2];
       float Z4 = voxel_Q_[gr_pt][q0+3];
-      // First do own voxel // TODO just use TransEntropy()?
+      // First do own voxel
       for (int n1 = 0; n1 < nw_total; n1++) {
         if ( n1 != n0) {
           int i1 = n1 * 3; // index into voxel_xyz_ for n1
@@ -992,113 +981,40 @@ void Action_GIST::Print() {
       bool cannotSubZ = (nz == 0 || gr_pt%nz == 0);
       bool cannotSubY = ((nz == 0 || ny == 0) || (gr_pt%addx < nz));
       bool cannotSubX = ((nz == 0 || ny == 0) || (gr_pt >= 0 && gr_pt < addx));
-      // Add Z
-      if ( cannotAddZ )
-        bound = 1;
-      else
+      bool boundary = ( cannotAddZ || cannotAddY || cannotAddX ||
+                        cannotSubZ || cannotSubY || cannotSubX );
+      if (!boundary) {
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz, NNd, NNs);
-      // Add Y
-      if ( cannotAddY )
-          bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy, NNd, NNs);
-      // Add X
-      if ( cannotAddX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addx, NNd, NNs);
-      // Sub Z
-      if ( cannotSubZ )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz, NNd, NNs);
-      // Sub Y
-      if ( cannotSubY )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy, NNd, NNs);
-      // Sub X
-      if ( cannotSubX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addx, NNd, NNs);
-      // Add Z Add Y
-      if ( cannotAddZ || cannotAddY )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addy, NNd, NNs);
-      // Add Z Sub Y
-      if ( cannotAddZ || cannotSubY )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addy, NNd, NNs);
-      // Sub Z Add Y
-      if ( cannotSubZ || cannotAddY )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addy, NNd, NNs);
-      // Sub Z Sub Y
-      if ( cannotSubZ || cannotSubY )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addy, NNd, NNs);
-      // Add Z Add X
-      if ( cannotAddZ || cannotAddX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz + addx, NNd, NNs);
-      // Add Z Sub X
-      if ( cannotAddZ || cannotSubX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addz - addx, NNd, NNs);
-      // Sub Z Add X
-      if ( cannotSubZ || cannotAddX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz + addx, NNd, NNs);
-      // Sub Z Sub X
-      if ( cannotSubZ || cannotSubX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addz - addx, NNd, NNs);
-      // Add Y Add X
-      if ( cannotAddY || cannotAddX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy + addx, NNd, NNs);
-      // Add Y Sub X
-      if ( cannotAddY || cannotSubX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt + addy - addx, NNd, NNs);
-      // Sub Y Add X
-      if ( cannotSubY || cannotAddX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy + addx, NNd, NNs);
-      // Sub Y Sub X
-      if ( cannotSubY || cannotSubX )
-        bound = 1;
-      else
         TransEntropy(VX, VY, VZ, W4, X4, Y4, Z4, gr_pt - addy - addx, NNd, NNs);
 
-      NNd = sqrt(NNd);
-      NNs = sqrt(NNs);
-      //if (bound == 1) {
-      //  dbl = 0;
-      //  dTStrans_norm_[a] += dbl;
-      //  continue;
-      //}// dTSsix_norm_[a] += dbl; continue;}
-      //else
-      if (bound != 1 && NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
-        double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
-        dTStrans_norm[gr_pt] += dbl;
-        dTSt += dbl;
-        dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
-        dTSsix_norm[gr_pt] += dbl;
-        dTSs += dbl;
-        //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
+        NNd = sqrt(NNd);
+        NNs = sqrt(NNs);
+
+        if (NNd < 3 && NNd > 0/*NNd < 9999 && NNd > 0*/) {
+          double dbl = log((NNd*NNd*NNd*NFRAME_*4*Constants::PI*BULK_DENS_)/3);
+          dTStrans_norm[gr_pt] += dbl;
+          dTSt += dbl;
+          dbl = log((NNs*NNs*NNs*NNs*NNs*NNs*NFRAME_*Constants::PI*BULK_DENS_)/48);
+          dTSsix_norm[gr_pt] += dbl;
+          dTSs += dbl;
+          //mprintf("DEBUG1: dbl=%f NNs=%f\n", dbl, NNs);
+        }
       }
     } // END loop over all waters for this voxel
     if (dTStrans_norm[gr_pt] != 0) {
