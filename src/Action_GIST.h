@@ -99,6 +99,8 @@ class Action_GIST : public Action {
 
     Topology* CurrentParm_;    ///< Current topology, for energy calc.
     CpptrajFile* datafile_;    ///< GIST output
+    CpptrajFile* eijfile_;     ///< Eij matrix output
+    CpptrajFile* infofile_;    ///< GIST info
     std::string prefix_;       ///< Output file name prefix
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature

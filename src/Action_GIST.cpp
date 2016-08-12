@@ -4,6 +4,7 @@
 #include "Constants.h"
 #include "DataSet_GridFlt.h"
 #include "DataSet_GridDbl.h"
+#include "ProgressBar.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif
@@ -25,6 +26,8 @@ Action_GIST::Action_GIST() :
   ww_Eij_(0),
   CurrentParm_(0),
   datafile_(0),
+  eijfile_(0),
+  infofile_(0),
   BULK_DENS_(0.0),
   temperature_(0.0),
   q_O_(0.0),
@@ -44,11 +47,19 @@ void Action_GIST::Help() const {
   mprintf("\t[doorder] [doeij] [skipE] [refdens <rdval>] [Temp <tval>]\n"
           "\t[noimage] [gridcntr <xval> <yval> <zval>]\n"
           "\t[griddim <xval> <yval> <zval>] [gridspacn <spaceval>]\n"
-          "\t[prefix <filename prefix>] [ext <extension>] [out <output suffix>]\n");
+          "\t[prefix <filename prefix>] [ext <grid extension>] [out <output suffix>]\n"
+          "\t[info <info suffix>]\n");
 }
 
 Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'gist' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   gist_init_.Start();
   prefix_ = actionArgs.GetStringKey("prefix");
   if (prefix_.empty()) prefix_.assign("gist");
@@ -58,6 +69,11 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (gistout.empty()) gistout.assign(prefix_ + "-output.dat");
   datafile_ = init.DFL().AddCpptrajFile( gistout, "GIST output" );
   if (datafile_ == 0) return Action::ERR;
+  // Info file: if not specified use STDOUT
+  gistout = actionArgs.GetStringKey("info");
+  if (!gistout.empty()) gistout = prefix_ + "-" + gistout;
+  infofile_ = init.DFL().AddCpptrajFile( gistout, "GIST info", DataFileList::TEXT, true );
+  if (infofile_ == 0) return Action::ERR;
   // Grid files
   DataFile* file_gO = init.DFL().AddDataFile( prefix_ + "-gO" + ext );
   DataFile* file_gH = init.DFL().AddDataFile( prefix_ + "-gH" + ext );
@@ -82,6 +98,10 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprinterr("Error: 'doeij' cannot be specified if 'skipE' is specified.\n");
       return Action::ERR;
     }
+  }
+  if (doEij_) {
+    eijfile_ = init.DFL().AddCpptrajFile(prefix_ + "-Eww_ij.dat", "GIST Eij matrix file");
+    if (eijfile_ == 0) return Action::ERR;
   }
   // Set Bulk Density 55.5M
   BULK_DENS_ = actionArgs.getKeyDouble("refdens", 0.0334);
@@ -234,7 +254,8 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   //grid_.Setup_O_D( nx, ny, nz, gO_->GridOrigin(), v_spacing );
 
   mprintf("    GIST:\n");
-  mprintf("\tOutput prefix= '%s', output extension= '%s'\n", prefix_.c_str(), ext.c_str());
+  mprintf("\tOutput prefix= '%s', grid output extension= '%s'\n", prefix_.c_str(), ext.c_str());
+  mprintf("\tGIST info written to '%s'\n", infofile_->Filename().full());
   mprintf("\tName for data sets: %s\n", dsname.c_str());
   if (doOrder_)
     mprintf("\tDoing order calculation.\n");
@@ -245,12 +266,13 @@ Action::RetType Action_GIST::Init(ArgList& actionArgs, ActionInit& init, int deb
   else {
     mprintf("\tPerforming energy calculation.\n");
     if (numthreads > 1)
-      mprintf("\tParallelizing solvent-solvent energy calculation with %i threads.\n", numthreads);
+      mprintf("\tParallelizing energy calculation with %i threads.\n", numthreads);
   }
   if (doEij_)
-    mprintf("\tComputing and printing water-water Eij matrix\n");
+    mprintf("\tComputing and printing water-water Eij matrix, output to '%s'\n",
+            eijfile_->Filename().full());
   else
-    mprintf("\tSkipping water-water Eij matrix\n");
+    mprintf("\tSkipping water-water Eij matrix.\n");
   mprintf("\tWater reference density: %6.4f\n", BULK_DENS_); // TODO units
   mprintf("\tSimulation temperature: %6.4f K\n", temperature_);
   if (image_.UseImage())
@@ -844,7 +866,10 @@ void Action_GIST::Print() {
   int nwtt = 0;
   double dTSo = 0;
   // LOOP over all voxels
+  mprintf("\tCalculating orientational entropy:\n");
+  ProgressBar oe_progress( MAX_GRID_PT_ );
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+    oe_progress.Update( gr_pt );
     dTSorient_dens[gr_pt] = 0;
     dTSorient_norm[gr_pt] = 0;
     int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
@@ -893,9 +918,10 @@ void Action_GIST::Print() {
     }
   } // END loop over all grid points (voxels)
   dTSorienttot *= Vvox;
-  mprintf("Maximum number of waters found in one voxel for %d frames = %d\n", NFRAME_, max_nwat_);
-  mprintf("Total referenced orientational entropy of the grid: dTSorient = %9.5f kcal/mol, Nf=%d\n",
-          dTSorienttot, NFRAME_);
+  infofile_->Printf("Maximum number of waters found in one voxel for %d frames = %d\n",
+                    NFRAME_, max_nwat_);
+  infofile_->Printf("Total referenced orientational entropy of the grid:"
+                    " dTSorient = %9.5f kcal/mol, Nf=%d\n", dTSorienttot, NFRAME_);
 
   // Compute translational entropy for each voxel
   double dTStranstot = 0.0;
@@ -916,7 +942,10 @@ void Action_GIST::Print() {
   Farray dTStrans_norm( MAX_GRID_PT_, 0.0 );
   Farray dTSsix_norm( MAX_GRID_PT_, 0.0 );
   // Loop over all grid points
+  mprintf("\tCalculating translational entropy:\n");
+  ProgressBar te_progress( MAX_GRID_PT_ );
   for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+    te_progress.Update( gr_pt );
     int numplane = gr_pt / addx;
     double W_dens = 1.0 * N_waters_[gr_pt] / (NFRAME_*Vvox);
     gO[gr_pt] = W_dens / BULK_DENS_;
@@ -1092,13 +1121,13 @@ void Action_GIST::Print() {
     dTStt = Constants::GASK_KCAL*temperature_*((dTSt/nwts) + Constants::EULER_MASC);
   }
   double dTSot = Constants::GASK_KCAL*temperature_*((dTSo/nwtt) + Constants::EULER_MASC);
-  mprintf("watcount in vol = %d\n", nwtt);
-  mprintf("watcount in subvol = %d\n", nwts);
-  mprintf("Total referenced translational entropy of the grid:"
-          " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
-  mprintf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
-  mprintf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
-  mprintf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
+  infofile_->Printf("watcount in vol = %d\n", nwtt);
+  infofile_->Printf("watcount in subvol = %d\n", nwts);
+  infofile_->Printf("Total referenced translational entropy of the grid:"
+                    " dTStrans = %9.5f kcal/mol, Nf=%d\n", dTStranstot, NFRAME_);
+  infofile_->Printf("Total 6d if all one vox: %9.5f kcal/mol\n", dTSst);
+  infofile_->Printf("Total t if all one vox: %9.5f kcal/mol\n", dTStt);
+  infofile_->Printf("Total o if all one vox: %9.5f kcal/mol\n", dTSot);
 
   // Compute average voxel energy. Allocate these sets even if skipping energy
   // to be consistent with previous output.
@@ -1124,8 +1153,11 @@ void Action_GIST::Print() {
     static const double DEBYE_EA = 0.20822678; // 1 Debye in eA
     double Eswtot = 0.0;
     double Ewwtot = 0.0;
+    mprintf("\tCalculating average voxel energies:\n");
+    ProgressBar E_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++)
     {
+      E_progress.Update( gr_pt );
       //mprintf("DEBUG1: VV vdw=%f elec=%f\n", E_VV_VDW_[gr_pt], E_VV_Elec_[gr_pt]);
       int nw_total = N_waters_[gr_pt]; // Total number of waters that have been in this voxel.
       if (nw_total > 1) {
@@ -1158,13 +1190,15 @@ void Action_GIST::Print() {
     } // END loop over all grid points (voxels)
     Eswtot *= Vvox;
     Ewwtot *= Vvox;
-    mprintf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
-    mprintf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n", Ewwtot);
+    infofile_->Printf("Total water-solute energy of the grid: Esw = %9.5f kcal/mol\n", Eswtot);
+    infofile_->Printf("Total unreferenced water-water energy of the grid: Eww = %9.5f kcal/mol\n",
+                      Ewwtot);
   }
 
   // Write the GIST output file.
   // TODO: Make data sets?
   if (datafile_ != 0) {
+    mprintf("\tWriting GIST results for each voxel:\n");
     datafile_->Printf("GIST Output, information printed per voxel\n"
                       "voxel xcoord ycoord zcoord population g_O g_H"
                       " dTStrans-dens(kcal/mol/A^3) dTStrans-norm(kcal/mol)"
@@ -1174,7 +1208,9 @@ void Action_GIST::Print() {
                       " Eww-dens(kcal/mol/A^3) Eww-norm-unref(kcal/mol)"
                       " Dipole_x-dens(D/A^3) Dipole_y-dens(D/A^3) Dipole_z-dens(D/A^3)"
                       " Dipole-dens(D/A^3) neighbor-dens(1/A^3) neighbor-norm order-norm\n");
+    ProgressBar O_progress( MAX_GRID_PT_ );
     for (unsigned int gr_pt = 0; gr_pt < MAX_GRID_PT_; gr_pt++) {
+      O_progress.Update( gr_pt );
       int i, j, k;
       gO_->ReverseIndex( gr_pt, i, j, k );
       Vec3 XYZ = gO_->BinCenter( i, j, k );
@@ -1203,19 +1239,13 @@ void Action_GIST::Print() {
         ww_Eij[idx] = (float)(val * fac);
       }
     }
-    // DEBUG
-    CpptrajFile outfile;
-    if (outfile.OpenWrite(prefix_ + "-Eww_ij.dat") != 0)
-      mprinterr("Error: Could not open 'Eww_ij.dat' for writing.\n");
-    else {
-      for (unsigned int a = 1; a < MAX_GRID_PT_; a++) {
-        for (unsigned int l = 0; l < a; l++) {
-          double dbl = ww_Eij_->GetElement(a, l);
-          if (dbl != 0)
-            outfile.Printf("%10d %10d %12.5E\n", a, l, dbl);
-        }
+    // Eij matrix output, skip any zeros.
+    for (unsigned int a = 1; a < MAX_GRID_PT_; a++) {
+      for (unsigned int l = 0; l < a; l++) {
+        double dbl = ww_Eij_->GetElement(a, l);
+        if (dbl != 0)
+          eijfile_->Printf("%10d %10d %12.5E\n", a, l, dbl);
       }
-      outfile.CloseFile();
     }
   }
   gist_print_.Stop();

@@ -63,7 +63,7 @@ parm ../tz2.ortho.parm7
 trajin ../tz2.ortho.nc 1 10
 autoimage origin
 gist2 doorder refdens 0.033422885325 gridcntr 1.5 1.0 0.0 \
-     griddim 34 44 36 gridspacn 0.50 prefix Gist2
+     griddim 34 44 36 gridspacn 0.50 prefix Gist2 info Info.dat
 go
 EOF
 RunCpptraj "GIST test (new code)"
