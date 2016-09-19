@@ -29,6 +29,7 @@ class CpptrajState {
     DataFileList&       DFL()       { return DFL_;         }
     TrajModeType Mode()       const { return mode_;        }
     int Debug()               const { return debug_;       }
+    bool ShowProgress()       const { return showProgress_;}
     bool ExitOnError()        const { return exitOnError_; }
     bool EmptyState()         const { return (actionList_.Empty() && 
                                               analysisList_.Empty() &&
