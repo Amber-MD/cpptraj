@@ -1398,13 +1398,16 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
       namebuffer = corrOut_;
     else
       namebuffer = "CtFit.dat";
-    outfile.OpenWrite(namebuffer);
-    outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
-    CurveFit::Darray const& Ct_multi = fit.FinalY();
-    for (int n = 0; n != ctMax; n++)
-      outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
-                     Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
-    outfile.CloseFile();
+    if (outfile.OpenWrite(namebuffer))
+      mprinterr("Error: Could not write Ct and fit curves.\n");
+    else {
+      outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
+      CurveFit::Darray const& Ct_multi = fit.FinalY();
+      for (int n = 0; n != ctMax; n++)
+        outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
+                       Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
+      outfile.CloseFile();
+    }
   }
 
   return 0;
@@ -1599,11 +1602,14 @@ int Analysis_Rotdif::DetermineDeffs() {
         namebuffer = AppendNumber( corrOut_, nvec );
       else
         namebuffer = AppendNumber( "p1p2.dat", nvec );
-      outfile.OpenWrite(namebuffer);
-      for (int i = 0; i < maxdat; i++) 
-        //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
-        outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
-      outfile.CloseFile();
+      if (outfile.OpenWrite(namebuffer))
+        mprinterr("Error: Could not write PX to file.\n");
+      else {
+        for (int i = 0; i < maxdat; i++) 
+          //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
+        outfile.CloseFile();
+      }
       //    Write Mesh
       if (debug_>3) {
         namebuffer = AppendNumber( "mesh.dat", nvec );
