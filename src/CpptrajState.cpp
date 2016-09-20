@@ -1249,7 +1249,7 @@ int CpptrajState::RunNormal() {
     while ( (*traj)->GetNextFrame(TrajFrame) )
 #   endif
     {
-        // Since Frame can be modified by actions, save original and use currentFrame
+      // Since Frame can be modified by actions, save original and use currentFrame
       ActionFrame currentFrame( &TrajFrame, actionSet );
       // Check that coords are valid.
       if ( currentFrame.Frm().CheckCoordsInvalid() )

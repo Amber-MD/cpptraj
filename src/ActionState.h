@@ -67,7 +67,6 @@ class ActionFrame {
     Frame const& Frm()  const { return *frm_; }
     Frame& ModifyFrm()        { return *frm_; }
     int TrajoutNum()    const { return trajoutNum_; }
-    void SetTrajoutNum(int t) { trajoutNum_ = t; }
     // NOTE: Used during ensemble.
     Frame* FramePtr()         { return frm_;  }
     void SetFrame( Frame* f ) { frm_ = f;     }
