@@ -53,6 +53,8 @@ int Traj_CharmmCor::setupTrajin(FileName const& fname, Topology* trajParm)
               corAtom_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
+  if (extendedFmt_)
+    mprintf("\tCOR file: extended format.\n");
   file_.CloseFile();
   // Just 1 frame.
   return 1;
@@ -85,9 +87,9 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
     }
     int ncrd;
     if (extendedFmt_)
-      ncrd = sscanf(buffer, "%*5i%*5i%*5s%*5s%10lf%10lf%10lf\n", xptr, xptr+1, xptr+2);
+      ncrd = sscanf(buffer, "%*10i%*10i%*10s%*10s%20lf%20lf%20lf", xptr, xptr+1, xptr+2);
     else
-      ncrd = sscanf(buffer, "%*10i%*10i%*10s%*10s%20lf%20lf%20lf\n", xptr, xptr+1, xptr+2);
+      ncrd = sscanf(buffer, "%*5i%*5i%*5s%*5s%10lf%10lf%10lf", xptr, xptr+1, xptr+2);
     if (ncrd != 3) {
       mprinterr("Error: Reading coordinates for COR atom %i (got %i)\n", at+1, ncrd);
       return 1;
