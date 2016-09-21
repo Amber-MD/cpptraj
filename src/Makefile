@@ -96,7 +96,12 @@ clean:
 	cd cuda_kernels && $(MAKE) clean
 
 uninstall:
-	/bin/rm -f $(CPPTRAJBIN)/cpptraj $(CPPTRAJBIN)/cpp_ambpdb readline/libreadline.a $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) cuda_kernels/libcpptraj_cuda.a
+	/bin/rm -f $(CPPTRAJBIN)/cpptraj$(SFX)$(EXE)
+	/bin/rm -f $(CPPTRAJBIN)/ambpdb$(EXE)
+	/bin/rm -f $(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX)
+	cd readline && make uninstall
+	cd xdrfile && make uninstall
+	cd cuda_kernels && make uninstall
 
 # Header dependencies
 include cpptrajdepend

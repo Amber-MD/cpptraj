@@ -29,6 +29,8 @@ test: $(TARGET) xdrfile_c_test.o
 clean:
 	/bin/rm -f *.o $(TARGET) a.out test.trr test.xtc test.xdr
 
+uninstall: clean
+
 # Dependencies
 xdrfile.o: xdrfile.c xdrfile.h
 

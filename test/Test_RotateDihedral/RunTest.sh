@@ -24,7 +24,7 @@ rotatedihedral crdset TZ2 increment -19.3431 :8@N :8@CA :8@CB :8@CG
 crdout TZ2 tz2.rotate.2.mol2
 EOF
 RunCpptraj "Rotate dihedral by increment"
-DoTest tz2.rotate.1.mol2.save tz2.rotate.1.mol2
+DoTest tz2.rotate.1.mol2.save tz2.rotate.2.mol2
 
 # Rotate as a TRAJ data set
 cat > rotate.in <<EOF

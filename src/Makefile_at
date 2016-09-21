@@ -102,12 +102,14 @@ ReadLine.o: ReadLine.cpp
 clean:
 	/bin/rm -f $(OBJECTS) pub_fft.o cpptraj$(SFX) AmbPDB.o ambpdb$(SFX) *.LIBCPPTRAJ.o
 	cd readline && $(MAKE) -f Makefile_at clean
+	cd xdrfile && $(MAKE) -f Makefile_at clean
 
 uninstall:
 	/bin/rm -f $(BINDIR)/cpptraj$(SFX) $(BINDIR)/cpptraj.OMP$(SFX) $(BINDIR)/cpptraj.MPI$(SFX)
 	/bin/rm -f $(BINDIR)/ambpdb$(SFX)
 	/bin/rm -f $(LIBDIR)/libcpptraj.*
 	cd readline && $(MAKE) -f Makefile_at uninstall
+	cd xdrfile && $(MAKE) -f Makefile_at uninstall
 
 # Header dependencies
 include cpptrajdepend
