@@ -30,6 +30,8 @@ $(TARGET): $(OBJECTS)
 clean:
 	/bin/rm -f *.o $(TARGET)
 
+uninstall: clean
+
 # Dependencies
 core_kernels.o: core_kernels.cu
 
