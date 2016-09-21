@@ -23,13 +23,6 @@ runanalysis cluster crdset CRD1 C1 :2-10 clusters 3 epsilon 4.0 \
 write lifetime.dat C1[Lifetime]
 EOF
 RunCpptraj "Cluster command test, coordinate writes."
-DoTest clusterinfo.txt.save clusterinfo.txt
-DoTest cluster.c0.save cluster.c0
-DoTest rep.1.crd.save rep.c8.1.crd
-DoTest single.save single
-DoTest avg.summary.dat.save avg.summary.dat
-DoTest lifetime.dat.save lifetime.dat
-DoTest Avg.c0.rst7.save Avg.c0.rst7 
 
 cat > cluster.in <<EOF
 parm ../tz2.parm7
@@ -40,6 +33,13 @@ runanalysis cluster crdset CRD1 readinfo infofile clusterinfo.txt \
             clusterout fromInfo
 EOF
 RunCpptraj "Cluster command test, coordinate writes using info file."
+DoTest clusterinfo.txt.save clusterinfo.txt
+DoTest cluster.c0.save cluster.c0
+DoTest rep.1.crd.save rep.c8.1.crd
+DoTest single.save single
+DoTest avg.summary.dat.save avg.summary.dat
+DoTest lifetime.dat.save lifetime.dat
+DoTest Avg.c0.rst7.save Avg.c0.rst7
 DoTest cluster.c0.save fromInfo.c0
 
 EndTest
