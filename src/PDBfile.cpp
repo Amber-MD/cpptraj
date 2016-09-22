@@ -244,9 +244,9 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   resName[4]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
-  while (resnum>9999) resnum-=9999;
+  if (resnum > 9999) resnum = resnum % 9999;
   // Atom number in PDB format can only be 5 digits wide
-  while (anum>99999) anum-=99999;
+  if (anum > 99999) anum = anum % 99999;
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17. 
   // However in Amber residues can be 4 characters long; in this case overwrite
