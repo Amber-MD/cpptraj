@@ -249,11 +249,15 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resNames_.reserve( trajParm->Nres() );
   if (pdbres_) {
     for (Topology::res_iterator res = trajParm->ResStart();
-                                res != trajParm->ResEnd(); ++res) {
+                                res != trajParm->ResEnd(); ++res)
+    {
       NameType rname = res->Name();
+      // First check if this is water.
+      if ( res->NameIsSolvent() )
+        rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
-      if (rname == "HID " || rname == "HIE " ||
-          rname == "HIP " || rname == "HIC "   )
+      else if (rname == "HID " || rname == "HIE " ||
+               rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
       else if (rname == "CYX " || rname == "CYM ")
         rname = "CYS ";
@@ -264,22 +268,26 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else if (rname == "GLH ")
         rname = "GLU ";
       // also for nucleic acid names:
-      else if ( rname[2] == ' ' && rname[3] == ' ' ) {
-        // RNA names
-        if      ( rname[0] == 'G' ) rname="  G ";
-        else if ( rname[0] == 'C' ) rname="  C ";
-        else if ( rname[0] == 'A' ) rname="  A ";
-        else if ( rname[0] == 'U' ) rname="  U ";
-      } else if ( rname[0] == 'D' ) {
-        // DNA names
-        if      ( rname[1] == 'G' ) rname=" DG ";
-        else if ( rname[1] == 'C' ) rname=" DC ";
-        else if ( rname[1] == 'A' ) rname=" DA ";
-        else if ( rname[1] == 'T' ) rname=" DT ";
-      } else if ( rname == "URA" || rname == "URI" )
-        rname="  U ";
-      else if ( rname == "THY" )
-        rname=" DT ";
+      else if ( rname == "C3  " )  rname = "  C ";
+      else if ( rname == "U3  " )  rname = "  U ";
+      else if ( rname == "G3  " )  rname = "  G ";
+      else if ( rname == "A3  " )  rname = "  A ";
+      else if ( rname == "C5  " )  rname = "  C ";
+      else if ( rname == "U5  " )  rname = "  U ";
+      else if ( rname == "G5  " )  rname = "  G ";
+      else if ( rname == "A5  " )  rname = "  A ";
+      else if ( rname == "DC3 " )  rname = " DC ";
+      else if ( rname == "DT3 " )  rname = " DT ";
+      else if ( rname == "DG3 " )  rname = " DG ";
+      else if ( rname == "DA3 " )  rname = " DA ";
+      else if ( rname == "DC5 " )  rname = " DC ";
+      else if ( rname == "DT5 " )  rname = " DT ";
+      else if ( rname == "DG5 " )  rname = " DG ";
+      else if ( rname == "DA5 " )  rname = " DA ";
+      else if ( rname == "URA " || rname == "URI" )
+        rname = "  U ";
+      else if ( rname == "THY " )
+        rname = " DT ";
       else if ( rname == "GUA" || rname == "ADE" || rname == "CYT" ) {
         // Determine if RNA or DNA via existence of O2'
         bool isRNA = false;
