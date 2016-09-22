@@ -318,6 +318,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Set up TER cards.
   TER_idxs_.clear();
   if (terMode_ == BY_RES) {
+    bool lastResWasSolvent = false;
     // Write a TER card every time residue of atom N+1 is not bonded to any
     // atom of residue of atom N. Do not do this for solvent.
     for (Topology::res_iterator res = trajParm->ResStart();
@@ -328,6 +329,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
           TER_idxs_.push_back( res->LastAtom() - 1 );
+        else if ( lastResWasSolvent )
+          TER_idxs_.push_back( (res-1)->LastAtom() - 1 );
         else {
           int r2_first = (res+1)->FirstAtom();
           int r2_last  = (res+1)->LastAtom();
@@ -347,7 +350,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           if (!residues_are_bonded)
             TER_idxs_.push_back( res->LastAtom() - 1 );
         }
-      }
+        lastResWasSolvent = false;
+      } else
+        lastResWasSolvent = true;
     }
   } else if (terMode_ == BY_MOL) {
     // Write a TER card at the end of every molecule
