@@ -74,6 +74,8 @@ int CIFfile::DataBlock::GetColumnData(int NexpectedCols, BufferedLine& infile, b
       idx = 0;
     }
     const char *tkn = infile.NextToken();
+    // Skip blanks
+    if (tkn == 0) continue;
     idx++;
     //mprintf("DEBUG: Token %i '%s'\n", idx, tkn);
     if (isSerial && nReadCols == 0) {
