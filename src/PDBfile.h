@@ -35,7 +35,7 @@ class PDBfile : public CpptrajFile {
     // -------------------------------------------
     /// Write PDB record header.
     void WriteRecordHeader(PDB_RECTYPE, int, NameType const&, char,
-                           NameType const&, char, int, char);
+                           NameType const&, char, int, char, const char*);
     /// Write HETATM record using internal atom numbering
     void WriteHET(int, double, double, double);
     /// Write no-name ATOM record using internal atom numbering
