@@ -237,7 +237,7 @@ int PDBfile::pdb_Bonds(int* bnd) {
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
                                 char altLoc, NameType const& resnameIn, char chain, 
-                                int resnum, char icode)
+                                int resnum, char icode, const char* Elt)
 {
   char resName[5], atomName[5];
 
@@ -262,13 +262,18 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   int rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
-  // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
-  if (name[3]!=' ') { // 4 chars
+  // Determine size in characters of element name if given.
+  int eNameChars = 0;
+  if (Elt != 0) eNameChars = strlen( Elt );
+  // For atoms with element names of 1 character, names in PDB format start
+  // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
+  // 2 characters start from col 13.
+  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
     atomName[0] = name[0];
     atomName[1] = name[1];
     atomName[2] = name[2];
     atomName[3] = name[3];
-  } else {            // <= 3 chars
+  } else {            // <= 3 chars or 1 char elt name
     atomName[0] = ' ';
     atomName[1] = name[0];
     atomName[2] = name[1];
@@ -328,7 +333,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
-  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode);
+  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
   if (highPrecision)
     Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
@@ -340,8 +345,8 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
                           NameType const& resnameIn, char chain, int resnum,
                           int u11, int u22, int u33, int u12, int u13, int u23,
                           const char* Elt, int charge)
-{
-  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' '); // TODO icode, altLoc
+{ // TODO icode, altLoc
+  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
   Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);
 }

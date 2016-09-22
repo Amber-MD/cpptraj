@@ -465,7 +465,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
                               chainID_[res], pdbTop_->Res(res).OriginalResNum(),
-                              pdbTop_->Res(res).Icode());
+                              pdbTop_->Res(res).Icode(), atom.ElementName());
       anum += ter_num_;
       ++terIdx;
     }
