@@ -62,6 +62,7 @@ class Box {
   private:
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
+    static inline bool IsAngle(double,double);
     void SetBoxType();
 
     static const double TRUNCOCTBETA_;
