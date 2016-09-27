@@ -14,6 +14,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int dcdframes_;          ///< Number of frames in DCD file.
     bool isBigEndian_;       ///< True if file is Big endian
     bool is64bit_;           ///< True if file is 64 bit
+    bool hasShapeMatrix_;    ///< Unit cell info is stored as shape matrix.
     unsigned int blockSize_; ///< Size of block bytes: 32 bit = 4, 64 bit = 8
     size_t dcd_dim_;         ///< Number of dimensions in DCD file.
     size_t boxBytes_;        ///< Number of bytes used by box coords if present.

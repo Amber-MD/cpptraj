@@ -12,6 +12,7 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   dcdframes_(0),
   isBigEndian_(false),
   is64bit_(false),
+  hasShapeMatrix_(false),
   blockSize_(4),
   dcd_dim_(3),
   boxBytes_(0),
@@ -297,9 +298,12 @@ int Traj_CharmmDcd::readDcdHeader() {
   // Number of fixed atoms
   nfixedat_  = buffer.i[8];
   // Box information
-  if (buffer.i[10] != 0) 
+  if (buffer.i[10] != 0) {
     boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
-  else
+    // Charmm version >= 22 stores shape matrix instead of unit cell
+    hasShapeMatrix_ = (buffer.i[19] >= 22);
+    if (hasShapeMatrix_) mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
+  } else
     boxBytes_ = 0;
   // Timestep
   float timestep = buffer.f[9];
@@ -379,6 +383,94 @@ static inline double BoxInDeg( double BoxInRad ) {
   return acos( BoxInRad ) * Constants::RADDEG;
 }
 
+/** Convert shape matrix data to unit cell matrix (x, y, z, a, b, g) */
+static inline void ShapeToUcell(double* box, const double* boxtmp)
+{
+  double boxX = sqrt( boxtmp[0]*boxtmp[0] + boxtmp[1]*boxtmp[1] + boxtmp[3]*boxtmp[3] );
+  double boxY = sqrt( boxtmp[1]*boxtmp[1] + boxtmp[2]*boxtmp[2] + boxtmp[4]*boxtmp[4] );
+  double boxZ = sqrt( boxtmp[3]*boxtmp[3] + boxtmp[4]*boxtmp[4] + boxtmp[5]*boxtmp[5] );
+  double boxXY = boxtmp[1]*(boxtmp[0] + boxtmp[2]) + boxtmp[3]*boxtmp[4];
+  double boxYZ = boxtmp[4]*(boxtmp[2] + boxtmp[5]) + boxtmp[1]*boxtmp[3];
+  double boxXZ = boxtmp[3]*(boxtmp[0] + boxtmp[5]) + boxtmp[1]*boxtmp[4];
+  double alpha = acos( boxYZ / (boxY*boxZ) ) * Constants::RADDEG;
+  double beta  = acos( boxXZ / (boxX*boxZ) ) * Constants::RADDEG;
+  double gamma = acos( boxXY / (boxX*boxY) ) * Constants::RADDEG;
+  //mprintf("DEBUG: Box XYZ= %g %g %g  ABG= %g %g %g\n", boxX, boxY, boxZ, alpha, beta, gamma);
+  box[0] = boxX;
+  box[1] = boxY;
+  box[2] = boxZ;
+  box[3] = alpha;
+  box[4] = beta;
+  box[5] = gamma;
+}
+
+/** Convert unit cell matrix data to shape matrix (S11, S12, S22, S13, S23, S33. */
+static inline void UcellToShape(double* shape, const double* box)
+{
+  // Calculate metric tensor HtH:
+  //   HtH(i,j) = vi * vj
+  // where vx are basis vectors i and j. Given that v0 is a, v1 is b, v2 is c:
+  //       a^2 a*b a*c
+  // HtH = b*a b^2 b*c
+  //       c*a c*b c^2
+  Matrix_3x3 HtH;
+
+  HtH[0] = box[0] * box[0];
+  HtH[4] = box[1] * box[1];
+  HtH[8] = box[2] * box[2];
+
+  // Angles near 90 have elements set to 0.0.
+  // XY (gamma)
+  if (fabs(box[5] - 90.0) > Constants::SMALL)
+    HtH[3] = box[0]*box[1]*cos(Constants::DEGRAD*box[5]);
+  else
+    HtH[3] = 0.0;
+  HtH[1] = HtH[3];
+  // XZ (beta)
+  if (fabs(box[4] - 90.0) > Constants::SMALL)
+    HtH[6] = box[0]*box[2]*cos(Constants::DEGRAD*box[4]);
+  else
+    HtH[6] = 0.0;
+  HtH[2] = HtH[6];
+  // YZ (alpha)
+  if (fabs(box[3] - 90.0) > Constants::SMALL)
+    HtH[7] = box[1]*box[2]*cos(Constants::DEGRAD*box[3]);
+  else
+    HtH[7] = 0.0;
+  HtH[5] = HtH[7];
+
+  // Diagonalize HtH
+  HtH.Print("HtH");
+  Vec3 Evals;
+  if (HtH.Diagonalize( Evals )) {
+    mprinterr("Error: Could not diagonalize metric tensor.\n");
+    for (int i=0; i<6; i++) shape[i] = 0.0;
+    return;
+  }
+
+  if (Evals[0] < Constants::SMALL ||
+      Evals[1] < Constants::SMALL ||
+      Evals[2] < Constants::SMALL)
+  {
+    mprinterr("Error: Obtained negative eigenvalues when attempting to"
+              " diagonalize metric tensor.\n");
+    return;
+  }
+  Evals.Print("Cvals");
+  HtH.Print("Cpptraj");
+
+  double A = sqrt( Evals[0] );
+  double B = sqrt( Evals[1] );
+  double C = sqrt( Evals[2] );
+
+  shape[0] = A*HtH[0]*HtH[0] + B*HtH[1]*HtH[1] + C*HtH[2]*HtH[2];
+  shape[2] = A*HtH[3]*HtH[3] + B*HtH[4]*HtH[4] + C*HtH[5]*HtH[5];
+  shape[5] = A*HtH[6]*HtH[6] + B*HtH[7]*HtH[7] + C*HtH[8]*HtH[8];
+  shape[1] = A*HtH[0]*HtH[3] + B*HtH[1]*HtH[4] + C*HtH[2]*HtH[5];
+  shape[3] = A*HtH[0]*HtH[6] + B*HtH[1]*HtH[7] + C*HtH[2]*HtH[8];
+  shape[4] = A*HtH[3]*HtH[6] + B*HtH[4]*HtH[7] + C*HtH[5]*HtH[8];
+}
+
 // Traj_CharmmDcd::ReadBox()
 int Traj_CharmmDcd::ReadBox(double* box) {
   double boxtmp[6];
@@ -386,23 +478,38 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
-  // Box lengths
-  box[0] = boxtmp[0];
-  box[1] = boxtmp[2];
-  box[2] = boxtmp[5];
-  if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
-       boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
-       boxtmp[1] >= -1 && boxtmp[1] <= 1    ) 
-  {
-    // Angles are cos(angle)
-    box[3] = BoxInDeg( boxtmp[4] );
-    box[4] = BoxInDeg( boxtmp[3] );
-    box[5] = BoxInDeg( boxtmp[1] );
+  if (hasShapeMatrix_) {
+    mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
+            boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
+    ShapeToUcell(box, boxtmp);
+    mprintf("DEBUG: Converted Ucell: %g %g %g %g %g %g\n",
+            box[0], box[1], box[2], box[3], box[4], box[5]);
+    double shape[6];
+    UcellToShape(shape, box);
+    mprintf("DEBUG: Test Shape     : %g %g %g %g %g %g\n",
+            shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]);
+    for (int i = 0; i < 6; i++)
+      if (fabs(shape[i] - boxtmp[i]) > Constants::SMALL)
+        mprintf("Warning:\t\tPossible issue with element %i: %g %g\n", i, boxtmp[i], shape[i]);
   } else {
-    // They are already in degrees.
-    box[3] = boxtmp[4];
-    box[4] = boxtmp[3];
-    box[5] = boxtmp[1];
+    // Box lengths
+    box[0] = boxtmp[0];
+    box[1] = boxtmp[2];
+    box[2] = boxtmp[5];
+    if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
+         boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
+         boxtmp[1] >= -1 && boxtmp[1] <= 1    )
+    {
+      // Angles are cos(angle)
+      box[3] = BoxInDeg( boxtmp[4] );
+      box[4] = BoxInDeg( boxtmp[3] );
+      box[5] = BoxInDeg( boxtmp[1] );
+    } else {
+      // They are already in degrees.
+      box[3] = boxtmp[4];
+      box[4] = boxtmp[3];
+      box[5] = boxtmp[1];
+    }
   }
   return 0;
 }
