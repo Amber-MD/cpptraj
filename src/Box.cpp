@@ -165,6 +165,10 @@ bool Box::BadTruncOctAngle(double angle) {
   return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
+bool Box::IsAngle(double angle, double tgt) {
+  return (fabs(tgt - angle) < Constants::SMALL);
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
@@ -188,6 +192,9 @@ void Box::SetBoxType() {
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
     // All 109.47, truncated octahedron
     btype_ = TRUNCOCT;
+  else if ( IsAngle(box_[3],60.0) && IsAngle(box_[4],90.0) && IsAngle(box_[5],60.0) )
+    // 60/90/60, rhombic dodecahedron
+    btype_ = RHOMBIC;
   else if (box_[3] == 0 && box_[4] != 0 && box_[5] == 0) {
     // Only beta angle is set (e.g. from Amber topology).
     if (box_[4] == 90.0) {
@@ -213,8 +220,8 @@ void Box::SetBoxType() {
     }
   }
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
-  // Check for low-precision truncated octahedron angles.
   if (btype_ == TRUNCOCT) {
+    // Check for low-precision truncated octahedron angles.
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
       mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
               "Warning:   If desired, the 'box' command can be used during processing\n"
