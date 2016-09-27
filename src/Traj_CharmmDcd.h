@@ -14,7 +14,6 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int dcdframes_;          ///< Number of frames in DCD file.
     bool isBigEndian_;       ///< True if file is Big endian
     bool is64bit_;           ///< True if file is 64 bit
-    bool hasShapeMatrix_;    ///< Unit cell info is stored as shape matrix.
     unsigned int blockSize_; ///< Size of block bytes: 32 bit = 4, 64 bit = 8
     size_t dcd_dim_;         ///< Number of dimensions in DCD file.
     size_t boxBytes_;        ///< Number of bytes used by box coords if present.
@@ -24,6 +23,8 @@ class Traj_CharmmDcd : public TrajectoryIO {
     size_t coordinate_size_; ///< Size of X|Y|Z coord frame in bytes.
     int nfixedat_;           ///< Number of fixed atoms
     int nfreeat_;            ///< Number of free atoms
+    enum CType { UNKNOWN = 0, SHAPE, UCELL };
+    CType charmmCellType_;   ///< If SHAPE (default), unit cell info is stored as shape matrix.
     int* freeat_;            ///< Free atom indices
     float* xcoord_;          ///< Master coord array, start of X coords
     float* ycoord_;          ///< Pointer to start of Y coords in master coord array

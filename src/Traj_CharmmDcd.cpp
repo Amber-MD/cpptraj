@@ -12,7 +12,6 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   dcdframes_(0),
   isBigEndian_(false),
   is64bit_(false),
-  hasShapeMatrix_(false),
   blockSize_(4),
   dcd_dim_(3),
   boxBytes_(0),
@@ -21,6 +20,7 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   coordinate_size_(0),
   nfixedat_(0),
   nfreeat_(0),
+  charmmCellType_(UNKNOWN),
   freeat_(0),
   xcoord_(0),
   ycoord_(0),
@@ -244,6 +244,8 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   double box[6];
   memset( box, 0, 6*sizeof(double));
   if (boxBytes_) {
+    if (charmmCellType_ == SHAPE)
+       mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
     if (ReadBox( box )) return TRAJIN_ERR;
   }
   // Set traj info: No velocity, temperature, or time.
@@ -298,11 +300,14 @@ int Traj_CharmmDcd::readDcdHeader() {
   // Number of fixed atoms
   nfixedat_  = buffer.i[8];
   // Box information
+  charmmCellType_ = UNKNOWN;
   if (buffer.i[10] != 0) {
     boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
     // Charmm version >= 22 stores shape matrix instead of unit cell
-    hasShapeMatrix_ = (buffer.i[19] >= 22);
-    if (hasShapeMatrix_) mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
+    if (buffer.i[19] >= 22) {
+      charmmCellType_ = SHAPE;
+    } else
+      charmmCellType_ = UCELL;
   } else
     boxBytes_ = 0;
   // Timestep
@@ -372,18 +377,7 @@ int Traj_CharmmDcd::readDcdHeader() {
   return 0;
 }
 
-/** CHARMM and later versions of NAMD store the box angles as cos(angle), so
-  * convert back to angle (degrees) if all of the angles are bounded between
-  * -1 and 1. Special-case 90 degree angles for numerical stability of
-  *  orthorhombic boxes
-  */
-static inline double BoxInDeg( double BoxInRad ) {
-  if ( BoxInRad == 0 )
-    return 90.0;
-  return acos( BoxInRad ) * Constants::RADDEG;
-}
-
-/** Convert shape matrix data to unit cell matrix (x, y, z, a, b, g) */
+/** Convert symmetric shape matrix data to unit cell params (x, y, z, a, b, g) */
 static inline void ShapeToUcell(double* box, const double* boxtmp)
 {
   double boxX = sqrt( boxtmp[0]*boxtmp[0] + boxtmp[1]*boxtmp[1] + boxtmp[3]*boxtmp[3] );
@@ -404,7 +398,9 @@ static inline void ShapeToUcell(double* box, const double* boxtmp)
   box[5] = gamma;
 }
 
-/** Convert unit cell matrix data to shape matrix (S11, S12, S22, S13, S23, S33. */
+/** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
+  * (S11, S12, S22, S13, S23, S33).
+  */
 static inline void UcellToShape(double* shape, const double* box)
 {
   // Calculate metric tensor HtH:
@@ -440,7 +436,7 @@ static inline void UcellToShape(double* shape, const double* box)
   HtH[5] = HtH[7];
 
   // Diagonalize HtH
-  HtH.Print("HtH");
+  //HtH.Print("HtH"); // DEBUG
   Vec3 Evals;
   if (HtH.Diagonalize( Evals )) {
     mprinterr("Error: Could not diagonalize metric tensor.\n");
@@ -456,8 +452,8 @@ static inline void UcellToShape(double* shape, const double* box)
               " diagonalize metric tensor.\n");
     return;
   }
-  Evals.Print("Cvals");
-  HtH.Print("Cpptraj");
+  //Evals.Print("Cvals"); // DEBUG
+  //HtH.Print("Cpptraj"); // DEBUG
 
   double A = sqrt( Evals[0] );
   double B = sqrt( Evals[1] );
@@ -471,6 +467,15 @@ static inline void UcellToShape(double* shape, const double* box)
   shape[4] = A*HtH[3]*HtH[6] + B*HtH[4]*HtH[7] + C*HtH[5]*HtH[8];
 }
 
+/** Convert 'cos( angle in radians)' back to degrees. Trap 0 (90 degrees)
+  * for numerical stability.
+  */
+static inline double CosRadToDeg( double BoxInRad ) {
+  if ( BoxInRad == 0 )
+    return 90.0;
+  return acos( BoxInRad ) * Constants::RADDEG;
+}
+
 // Traj_CharmmDcd::ReadBox()
 int Traj_CharmmDcd::ReadBox(double* box) {
   double boxtmp[6];
@@ -478,10 +483,11 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
-  if (hasShapeMatrix_) {
+  if (charmmCellType_ == SHAPE) {
+    ShapeToUcell(box, boxtmp);
+/*
     mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
             boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
-    ShapeToUcell(box, boxtmp);
     mprintf("DEBUG: Converted Ucell: %g %g %g %g %g %g\n",
             box[0], box[1], box[2], box[3], box[4], box[5]);
     double shape[6];
@@ -490,20 +496,26 @@ int Traj_CharmmDcd::ReadBox(double* box) {
             shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]);
     for (int i = 0; i < 6; i++)
       if (fabs(shape[i] - boxtmp[i]) > Constants::SMALL)
-        mprintf("Warning:\t\tPossible issue with element %i: %g %g\n", i, boxtmp[i], shape[i]);
+        mprintf("Warning:\t\tPossible issue with element %i: %g %g (%g)\n",
+                i, boxtmp[i], shape[i], boxtmp[i] - shape[i]);
+*/
   } else {
     // Box lengths
     box[0] = boxtmp[0];
     box[1] = boxtmp[2];
     box[2] = boxtmp[5];
+    /** Older versions of CHARMM and some versions of NAMD store the box angles
+      * as cos(angle), so convert angle back to degrees if all of the angles are
+      * bounded between -1 and 1.
+      */
     if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
          boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
          boxtmp[1] >= -1 && boxtmp[1] <= 1    )
     {
       // Angles are cos(angle)
-      box[3] = BoxInDeg( boxtmp[4] );
-      box[4] = BoxInDeg( boxtmp[3] );
-      box[5] = BoxInDeg( boxtmp[1] );
+      box[3] = CosRadToDeg( boxtmp[4] );
+      box[4] = CosRadToDeg( boxtmp[3] );
+      box[5] = CosRadToDeg( boxtmp[1] );
     } else {
       // They are already in degrees.
       box[3] = boxtmp[4];
@@ -514,6 +526,7 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   return 0;
 }
 
+// Traj_CharmmDcd::seekToFrame()
 void Traj_CharmmDcd::seekToFrame(int set) {
   if (set == 0)
     file_.Seek( headerBytes_ );
@@ -555,7 +568,9 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
 }
 
 void Traj_CharmmDcd::WriteHelp() {
-  mprintf("\tx64: Use 8 byte block size (default 4 bytes).\n");
+  mprintf("\tx64   : Use 8 byte block size (default 4 bytes).\n");
+  mprintf("\tucell : Write older (v21) format trajectory that stores unit cell params\n"
+          "\t        instead of shape matrix.\n");
 }
 
 // Traj_CharmmDcd::processWriteArgs()
@@ -569,14 +584,15 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
   // Determine 32 bit/64 bit block size 'if (sizeof(void*)!=4)'
   // TODO: Determine OS endianness
   isBigEndian_ = false;
+  if (argIn.hasKey("ucell"))
+    charmmCellType_ = UCELL;
   return 0;
 }
 
 // Traj_CharmmDcd::setupTrajout()
-/** Set up the charmm dcd trajectory for writing. No writing is done here, the
-  * actual write calls are in writeDcdHeader which is called from openTraj.
-  * Set is64bit and isBigEndian, although they are not currently used during
-  * writes; size and endianness will be OS default.
+/** Set up the charmm dcd trajectory for writing. Write the trajectory
+  * header with writeDcdHeader().
+  * Size and endianness will be OS default.
   */
 // TODO: Check OS endianness!
 int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
@@ -642,8 +658,15 @@ int Traj_CharmmDcd::writeDcdHeader() {
   buffer.i[8] = 0;
   // Timestep
   buffer.f[9] = 0.001;
-  // Charmm version - Should this just be set to 0?
-  buffer.i[19] = 35;
+  // Default to SHAPE
+  if (charmmCellType_ == UNKNOWN)
+    charmmCellType_ = SHAPE;
+  // Charmm version. Just set to 35 for now. If storing unit cell params
+  // instead of shape matrix set version to 21.
+  if (charmmCellType_ == UCELL)
+    buffer.i[19] = 21;
+  else
+    buffer.i[19] = 35;
   // Box information
   if (CoordInfo().HasBox()) {
     buffer.i[10] = 1;
@@ -682,18 +705,22 @@ int Traj_CharmmDcd::writeDcdHeader() {
 int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   // Box coords - 6 doubles, 48 bytes
   if (boxBytes_ != 0) {
-    /* The format for the 'box' array used in cpptraj is not the same as the
-     * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
-     * for a description of the box info.
-     */
     double boxtmp[6];
-    boxtmp[0] = frameOut.BoxCrd().BoxX();
-    boxtmp[2] = frameOut.BoxCrd().BoxY();
-    boxtmp[5] = frameOut.BoxCrd().BoxZ();
-    // The angles must be reported in cos(angle) format
-    boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
-    boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
-    boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
+    if (charmmCellType_ == SHAPE)
+      UcellToShape( boxtmp, frameOut.BoxCrd().boxPtr() );
+    else {
+      /* The format for the 'box' array used in cpptraj is not the same as the
+       * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
+       * for a description of the box info.
+       */
+      boxtmp[0] = frameOut.BoxCrd().BoxX();
+      boxtmp[2] = frameOut.BoxCrd().BoxY();
+      boxtmp[5] = frameOut.BoxCrd().BoxZ();
+      // The angles must be reported in cos(angle) format
+      boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
+      boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
+      boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
+    }
     WriteBlock(48);
     file_.Write(boxtmp, sizeof(double)*6);
     WriteBlock(48);
