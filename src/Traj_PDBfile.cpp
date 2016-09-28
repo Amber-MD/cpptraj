@@ -324,7 +324,13 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
     {
-      if (!res->NameIsSolvent()) {
+      bool isIon = false;
+      if (trajParm->Nmol() > 0) {
+        int molNum = (*trajParm)[ res->FirstAtom() ].MolNum();
+        // If this is a one atom molecule assume it is an ion.
+        isIon = trajParm->Mol( molNum ).NumAtoms() == 1; 
+      }
+      if (!res->NameIsSolvent() && !isIon) {
         // If this is the last residue, terminate the chain with final atom.
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
