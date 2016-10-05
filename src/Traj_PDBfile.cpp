@@ -261,7 +261,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else if (rname == "HID " || rname == "HIE " ||
                rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
-      else if (rname == "CYX " || rname == "CYM ")
+      else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
