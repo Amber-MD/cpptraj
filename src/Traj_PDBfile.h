@@ -34,9 +34,10 @@ class Traj_PDBfile: public TrajectoryIO {
     bool writeConect_;  ///< If true write CONECT records for each bond.
     bool prependExt_;
     std::string space_group_;
-    std::vector<double> radii_; ///< Hold radii for PQR format.
-    std::vector<int> TER_idxs_; ///< TER card indices.
-    std::vector<int> atrec_;    ///< Hold ATOM record #s for CONECT
+    std::vector<double> radii_;  ///< Hold radii for PQR format.
+    std::vector<int> TER_idxs_;  ///< TER card indices.
+    std::vector<int> atrec_;     ///< Hold ATOM record #s for CONECT
+    std::vector<bool> resIsHet_; ///< True if residue needs HETATM records
     Topology *pdbTop_;
     PDBfile file_;
 
