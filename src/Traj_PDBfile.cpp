@@ -247,6 +247,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
   resNames_.reserve( trajParm->Nres() );
+  resIsHet_.clear();
+  resIsHet_.reserve( trajParm->Nres() );
   if (pdbres_) {
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
@@ -259,7 +261,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else if (rname == "HID " || rname == "HIE " ||
                rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
-      else if (rname == "CYX " || rname == "CYM ")
+      else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
@@ -309,11 +311,51 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         }
       }
       resNames_.push_back( rname );
+      // Any non-standard residue should get HETATM
+      if ( rname == "ALA " ||
+           rname == "ARG " ||
+           rname == "ASN " ||
+           rname == "ASP " ||
+           rname == "ASX " ||
+           rname == "CYS " ||
+           rname == "GLN " ||
+           rname == "GLU " ||
+           rname == "GLX " ||
+           rname == "GLY " ||
+           rname == "HIS " ||
+           rname == "ILE " ||
+           rname == "LEU " ||
+           rname == "LYS " ||
+           rname == "MET " ||
+           rname == "PHE " ||
+           rname == "PRO " ||
+           rname == "SER " ||
+           rname == "THR " ||
+           rname == "TRP " ||
+           rname == "TYR " ||
+           rname == "UNK " ||
+           rname == "VAL " ||
+           rname == "  C " ||
+           rname == "  G " ||
+           rname == "  A " ||
+           rname == "  U " ||
+           rname == "  I " ||
+           rname == " DC " ||
+           rname == " DG " ||
+           rname == " DA " ||
+           rname == " DU " ||
+           rname == " DT " ||
+           rname == " DI "    )
+        resIsHet_.push_back( false );
+      else
+        resIsHet_.push_back( true );
+      mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
     }
   } else {
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
       resNames_.push_back( res->Name() );
+    resIsHet_.assign( trajParm->Nres(), false );
   }
   // Set up TER cards.
   TER_idxs_.clear();
@@ -324,7 +366,13 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
     {
-      if (!res->NameIsSolvent()) {
+      bool isIon = false;
+      if (trajParm->Nmol() > 0) {
+        int molNum = (*trajParm)[ res->FirstAtom() ].MolNum();
+        // If this is a one atom molecule assume it is an ion.
+        isIon = trajParm->Mol( molNum ).NumAtoms() == 1; 
+      }
+      if (!res->NameIsSolvent() && !isIon) {
         // If this is the last residue, terminate the chain with final atom.
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
@@ -435,6 +483,11 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
     if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
+      PDBfile::PDB_RECTYPE rectype;
+      if ( resIsHet_[res] )
+        rectype = PDBfile::HETATM;
+      else
+        rectype = PDBfile::ATOM;
       if (!pdbTop_->Extra().empty()) {
         Occ = pdbTop_->Extra()[aidx].Occupancy();
         B   = pdbTop_->Extra()[aidx].Bfactor();
@@ -457,7 +510,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
       }
-      file_.WriteCoord(PDBfile::ATOM, anum, atomName, altLoc, resNames_[res],
+      file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
