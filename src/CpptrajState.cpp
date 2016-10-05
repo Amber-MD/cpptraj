@@ -1225,7 +1225,7 @@ int CpptrajState::RunNormal() {
     if (parmHasChanged) {
       // Set up actions for this parm
       if (actionList_.SetupActions( currentSetup, exitOnError_ )) {
-        mprintf("WARNING: Could not set up actions for %s: skipping.\n",
+        mprintf("Warning: Could not set up actions for %s: skipping.\n",
                 currentSetup.Top().c_str());
         continue;
       }
