@@ -1,9 +1,7 @@
 #include "FileIO_Mpi.h"
 #ifdef MPI
-#ifdef MPICH_IGNORE_CXX_SEEK
-// Needed on some old Intel MPI platforms
+// Needed for some older Intel MPI and newer OpenMPI versions
 # include <cstdio>
-#endif
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
   if (comm_.IsNull()) return 1;
