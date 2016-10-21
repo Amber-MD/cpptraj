@@ -349,7 +349,7 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         resIsHet_.push_back( false );
       else
         resIsHet_.push_back( true );
-      mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
+      //mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
     }
   } else {
     for (Topology::res_iterator res = trajParm->ResStart();
