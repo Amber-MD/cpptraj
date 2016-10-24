@@ -1000,7 +1000,8 @@ int Analysis_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int
   pY.assign(nsteps, 0.0);
 
   // Calculate correlation fn
-  CorrF_FFT pubfft( n_of_vecs );
+  CorrF_FFT pubfft;
+  pubfft.CorrSetup( n_of_vecs );
   ComplexArray data1 = pubfft.Array();
   // Loop over m = -olegendre, ..., +olegendre
   for (int midx = -olegendre_; midx <= olegendre_; ++midx) { 

@@ -80,7 +80,8 @@ int DataSet_Vector::CalcVectorCorr(DataSet_Vector const& V2, DataSet_1D& Ct,
   bool crosscorr = (&V2 != this);
   
   unsigned int arraySize = Nvecs * 3; // XYZ
-  CorrF_FFT pubfft( arraySize );
+  CorrF_FFT pubfft;
+  pubfft.CorrSetup( arraySize );
   ComplexArray data1 = pubfft.Array();
   data1.PadWithZero( arraySize );
   ComplexArray data2;

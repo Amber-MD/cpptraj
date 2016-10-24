@@ -269,10 +269,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
   ComplexArray data1_;
   if (drct_) {
     data1_.Allocate( Nframes );
-    corfdir_.Allocate( nsteps );
+    corfdir_.CorrSetup( nsteps );
   } else {
     // Initialize FFT
-    pubfft_.Allocate( Nframes );
+    pubfft_.CorrSetup( Nframes );
     data1_ = pubfft_.Array();
   }
   // ----- Cm(t) CALCULATION ---------------------

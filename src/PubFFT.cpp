@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath> // log, ldexp
 #include "PubFFT.h"
+#include "CpptrajStdio.h"
 
 #ifndef FFTW_FFT
 extern "C" {
@@ -10,10 +11,6 @@ extern "C" {
   void pubfft_back_(int&, double*, double*, int*); // Backward FFT
 }
 #endif
-
-inline static int NextPowOf2(int sizeIn) {
-  return (ldexp( 1.0, (int)(log((double)(4 * sizeIn - 1)) / log(2.0)) + 1));
-}
 
 // CONSTRUCTOR
 PubFFT::PubFFT() :
@@ -36,22 +33,6 @@ PubFFT::~PubFFT() {
   }
 # else
   if (saved_work_ != 0) delete[] saved_work_;
-# endif
-}
-
-// CONSTRUCTOR
-PubFFT::PubFFT(int fft_sizeIn) {
-  fft_size_ = NextPowOf2( fft_sizeIn ) / 2;
-# ifdef FFTW_FFT
-  in_  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fft_size_);
-  forwards_plan_  = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_FORWARD,  FFTW_ESTIMATE);
-  backwards_plan_ = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_BACKWARD, FFTW_ESTIMATE);
-# else
-  saved_work_size_ = 4 * fft_size_;
-  std::fill(saved_factors_, saved_factors_+saved_factors_size_, 0);
-  saved_work_ = new double[ saved_work_size_ ];
-  std::fill(saved_work_, saved_work_+saved_work_size_, 0.0);
-  pubfft_init_( fft_size_, saved_work_, saved_factors_ );
 # endif
 }
 
@@ -142,7 +123,10 @@ void PubFFT::Back(ComplexArray& fft_array) {
 
 // PubFFT::Allocate()
 int PubFFT::Allocate(int sizeIn) {
-  if (sizeIn < 0) return 1;
+  if (sizeIn < 0) {
+    mprinterr("Error: Invalid memory size given for FFT (%i)\n", sizeIn);
+    return 1;
+  }
   fft_size_ = sizeIn;
 # ifdef FFTW_FFT
   // Destroy any existing plans/storage space, allocate new space.
@@ -163,6 +147,9 @@ int PubFFT::Allocate(int sizeIn) {
   if (saved_work_size_ > 0) {
     saved_work_ = new double[ saved_work_size_ ];
     std::fill(saved_work_, saved_work_+saved_work_size_, 0.0);
+  } else if (saved_work_size_ < 0) {
+    mprinterr("Error: Could not allocate memory for FFT; invalid size (%i)\n", saved_work_size_);
+    return 1;
   } else
     saved_work_ = 0;
   // NOTE: Should this be called if fft_size is 0?
@@ -171,8 +158,17 @@ int PubFFT::Allocate(int sizeIn) {
   return 0;
 }
 
+/** \return Next power of 2 >= sizeIn.
+  * NOTE: This function is used when correlation is being calculated with
+  *       FFT. As such the value is multiplied by 2.0 (via the final '+ 1'
+  *       to provide enough space for zero padding to avoid end effects.
+  */
+inline static int NextPowOf2(int sizeIn) {
+  return (ldexp( 1.0, (int)((log((double)sizeIn-1) / log(2.0)) + 1.0) + 1 ));
+}
+
 // PubFFT::SetupFFT_NextPowerOf2()
-int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) { return Allocate( NextPowOf2( sizeIn ) / 2 ); }
+int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) { return Allocate( NextPowOf2( sizeIn ) ); }
 
 // PubFFT::SetupFFTforN()
 int PubFFT::SetupFFTforN(int sizeIn) { return Allocate( sizeIn ); }

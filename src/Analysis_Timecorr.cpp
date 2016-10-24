@@ -231,10 +231,10 @@ Analysis::RetType Analysis_Timecorr::Analyze() {
     data1_.Allocate( frame );
     if (mode_ == CROSSCORR)
       data2_.Allocate( frame ); 
-    corfdir_.Allocate( nsteps ); 
+    corfdir_.CorrSetup( nsteps ); 
   } else {
     // Initialize FFT
-    pubfft_.Allocate( frame );
+    pubfft_.CorrSetup( frame );
     data1_ = pubfft_.Array();
     if (mode_ == CROSSCORR)
       data2_ = data1_;
