@@ -15,8 +15,9 @@ class Analysis_Corr : public Analysis {
   private:
     DataSet *D1_;
     DataSet *D2_;
-    int lagmax_;
     DataSet* Ct_;
+    DataSet* Coeff_;
+    int lagmax_;
     bool usefft_;
     bool calc_covar_;
 };
