@@ -17,6 +17,7 @@ class PubFFT {
     int size() const { return fft_size_; }
     void Forward(ComplexArray&);
     void Back(ComplexArray&);
+    /// Set up FFT with size == to next power of 2, times 2 for zero padding
     int SetupFFT_NextPowerOf2(int);
     int SetupFFTforN(int);
   private:

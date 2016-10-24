@@ -11,8 +11,13 @@ extern "C" {
 }
 #endif
 
+/** \return Next power of 2 >= sizeIn.
++  * NOTE: This function is used when correlation is being calculated with
++  *       FFT. As such the value is multiplied by 2.0 (via the final '+ 1'
++  *       to provide enough space for zero padding to avoid end effects.
++  */
 inline static int NextPowOf2(int sizeIn) {
-  return (ldexp( 1.0, (int)(log((double)(4 * sizeIn - 1)) / log(2.0)) + 1));
+  return (ldexp( 1.0, (int)((log((double)sizeIn-1) / log(2.0)) + 1.0) + 1 ));
 }
 
 // CONSTRUCTOR
@@ -41,7 +46,7 @@ PubFFT::~PubFFT() {
 
 // CONSTRUCTOR
 PubFFT::PubFFT(int fft_sizeIn) {
-  fft_size_ = NextPowOf2( fft_sizeIn ) / 2;
+  fft_size_ = NextPowOf2( fft_sizeIn );
 # ifdef FFTW_FFT
   in_  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fft_size_);
   forwards_plan_  = fftw_plan_dft_1d(fft_size_, in_, in_, FFTW_FORWARD,  FFTW_ESTIMATE);
@@ -172,7 +177,7 @@ int PubFFT::Allocate(int sizeIn) {
 }
 
 // PubFFT::SetupFFT_NextPowerOf2()
-int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) { return Allocate( NextPowOf2( sizeIn ) / 2 ); }
+int PubFFT::SetupFFT_NextPowerOf2(int sizeIn) { return Allocate( NextPowOf2( sizeIn ) ); }
 
 // PubFFT::SetupFFTforN()
 int PubFFT::SetupFFTforN(int sizeIn) { return Allocate( sizeIn ); }
