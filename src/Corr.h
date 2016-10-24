@@ -13,8 +13,7 @@
 class CorrF_Direct {
   public:
     CorrF_Direct() : nsteps_(0) {}
-    CorrF_Direct(int stepsIn) : nsteps_(stepsIn), table_(2*nsteps_, 0.0) {}
-    void Allocate(int);
+    int CorrSetup(int);
     void AutoCorr(ComplexArray&);
     void CrossCorr(ComplexArray&, ComplexArray const&);
   private:
@@ -26,8 +25,7 @@ class CorrF_Direct {
 class CorrF_FFT {
   public:
     CorrF_FFT() {}
-    CorrF_FFT(int stepsIn) : pubfft_( stepsIn ) {}
-    void Allocate(int);
+    int CorrSetup(int);
     void AutoCorr(ComplexArray&);
     void CrossCorr(ComplexArray&, ComplexArray&);
     ComplexArray Array() { return ComplexArray( pubfft_.size() ); }

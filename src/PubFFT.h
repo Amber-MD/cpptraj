@@ -9,8 +9,6 @@ class PubFFT {
   public:
     PubFFT();
     ~PubFFT();
-    /// Takes FFT size as input; ensures size is power of 2
-    PubFFT(int);
     PubFFT(const PubFFT&);
     PubFFT& operator=(const PubFFT&);
     /// \return FFT size in terms of number of complex numbers.

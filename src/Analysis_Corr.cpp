@@ -120,6 +120,7 @@ Analysis::RetType Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
 
+  Analysis::RetType err = Analysis::OK;
   if (D1_->Type() == DataSet::VECTOR) {
     DataSet_Vector const& set1 = static_cast<DataSet_Vector const&>( *D1_ );
     DataSet_Vector const& set2 = static_cast<DataSet_Vector const&>( *D2_ );
@@ -127,12 +128,13 @@ Analysis::RetType Analysis_Corr::Analyze() {
   } else {
     DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
     DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
-    set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
+    if (set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ ))
+      err = Analysis::ERR;
     double coeff = set1.CorrCoeff( set2 );
     mprintf("    CORRELATION COEFFICIENT %s to %s IS %.4f\n",
             D1_->legend(), D2_->legend(), coeff );
     Coeff_->Add(0, &coeff);
   }
 
-  return Analysis::OK;
+  return err;
 }

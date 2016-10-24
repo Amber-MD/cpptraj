@@ -199,7 +199,8 @@ void Action_VelocityAutoCorr::Print() {
     // transformed array after FFT, every 3rd value will be the correlation
     // via dot products that we want (once it is normalized).
     unsigned int total_length = Vel_[0].Size() * 3;
-    CorrF_FFT pubfft( total_length );
+    CorrF_FFT pubfft;
+    pubfft.CorrSetup( total_length );
     ComplexArray data1 = pubfft.Array();
     //mprintf("Complex Array Size is %i (%i actual)\n", data1.size(), data1.size()*2);
     ProgressBar progress( Vel_.size() );

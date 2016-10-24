@@ -1,8 +1,11 @@
 #include "Corr.h"
-// CorrF_Direct::Allocate()
-void CorrF_Direct::Allocate(int stepsIn) {
+// CorrF_Direct::CorrSetup()
+int CorrF_Direct::CorrSetup(int stepsIn) {
   nsteps_ = stepsIn;
-  table_.resize(2*nsteps_, 0.0);
+  int memsize = 2 * nsteps_;
+  if (memsize < 0) return 1;
+  table_.resize(memsize, 0.0);
+  return 0;
 }
 
 // CorrF_Direct::AutoCorr()
@@ -49,9 +52,9 @@ void CorrF_Direct::CrossCorr(ComplexArray& data1, ComplexArray const& data2) {
 }
 
 // -----------------------------------------------------------------------------
-// CorrF_FFT::Allocate()
-void CorrF_FFT::Allocate(int stepsIn) {
-  pubfft_.SetupFFT_NextPowerOf2( stepsIn );
+// CorrF_FFT::CorrSetup()
+int CorrF_FFT::CorrSetup(int stepsIn) {
+  return pubfft_.SetupFFT_NextPowerOf2( stepsIn );
 }
 
 // CorrF_FFT::AutoCorr()

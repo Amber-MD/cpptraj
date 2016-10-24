@@ -145,7 +145,8 @@ int DataSet_1D::CrossCorr( DataSet_1D const& D2, DataSet_1D& Ct,
   double norm = 1.0;
   if ( usefft ) {
     // Calc using FFT
-    CorrF_FFT pubfft1(Nelements);
+    CorrF_FFT pubfft1;
+    if (pubfft1.CorrSetup(Nelements)) return 1;
     ComplexArray data1 = pubfft1.Array();
     data1.PadWithZero(Nelements);
     if (Meta().IsTorsionArray()) {
