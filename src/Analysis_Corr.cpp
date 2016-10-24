@@ -64,12 +64,14 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   }
 
   // Setup output dataset
-  std::string corrname = "C(" + D1_->Meta().Legend();
-  if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
-  corrname += ")";
   Ct_ = setup.DSL().AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
   if (Ct_ == 0) return Analysis::ERR;
-  Ct_->SetLegend( corrname );
+  if (dataset_name.empty()) {
+    std::string corrname = "C(" + D1_->Meta().Legend();
+    if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
+    corrname += ")";
+    Ct_->SetLegend( corrname );
+  }
   outfile->AddDataSet( Ct_ );
 
   if (calc_covar_)
@@ -115,7 +117,7 @@ Analysis::RetType Analysis_Corr::Analyze() {
     DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
     DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
     set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
-    mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
+    mprintf("    CORRELATION COEFFICIENT %s to %s IS %.4f\n",
             D1_->legend(), D2_->legend(), set1.CorrCoeff( set2 ) );
   }
 
