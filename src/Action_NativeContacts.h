@@ -50,7 +50,8 @@ class Action_NativeContacts : public Action {
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
     CpptrajFile* cfile_;  ///< File to write native contact list to.
-    CpptrajFile* pfile_;  ///< File to write contact PDB to.
+    CpptrajFile* pfile_;  ///< File to write native contact PDB to.
+    CpptrajFile* nfile_;  ///< File to write non-native contact PDB to.
     CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
     DataFile* seriesout_; ///< DataFile to write native time series data to.
     DataFile* seriesNNout_; ///< DataFile to write non-native time series data to.
@@ -109,6 +110,7 @@ class Action_NativeContacts : public Action {
       }
     };
     void WriteContacts(contactListType&);
+    void WriteContactPDB(contactListType&, CpptrajFile*);
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Action_NativeContacts::contactType {

@@ -22,7 +22,7 @@ Action_NativeContacts::Action_NativeContacts() :
   usepdbcut_(false),
   seriesUpdated_(false),
   saveNonNative_(false),
-  cfile_(0), pfile_(0), rfile_(0),
+  cfile_(0), pfile_(0), nfile_(0), rfile_(0),
   seriesout_(0),
   seriesNNout_(0),
   numnative_(0),
@@ -42,7 +42,7 @@ void Action_NativeContacts::Help() const {
           "\t[ first | %s ]\n"
           "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
           "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series [seriesout <file>]]\n"
-          "\t[savenonnative [seriesnnout <file>]]\n"
+          "\t[savenonnative [seriesnnout <file>] [nncontactpdb <file>]]\n"
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
@@ -175,7 +175,7 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
       fIn.RecvFrame( 0, trajComm_ );
   }
 # endif
-  if (pfile_ != 0) {
+  if (pfile_ != 0 || nfile_ != 0) {
     refFrame_ = fIn; // Save frame for later PDB output.
     refParm_ = &parmIn;  // Save parm for later PDB output.
   }
@@ -276,6 +276,9 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
                                DataFileList::TEXT, true);
   pfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("contactpdb"), "Contact PDB",
                                DataFileList::PDB);
+  if (saveNonNative_)
+    nfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("nncontactpdb"),
+                                       "Non-native Contact PDB", DataFileList::PDB);
   rfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("resout"), "Contact Res Pairs",
                                DataFileList::TEXT, true);
   if (cfile_ == 0 || rfile_ == 0) return Action::ERR;
@@ -371,6 +374,10 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   mprintf("\tContact res pairs will be written to '%s'\n", rfile_->Filename().full());
   if (pfile_ != 0) {
     mprintf("\tContact PDB will be written to '%s'\n", pfile_->Filename().full());
+    if (usepdbcut_) mprintf("\tOnly atoms with values > %g will be written to PDB.\n", pdbcut_);
+  }
+  if (nfile_ != 0) {
+    mprintf("\tNon-native contact PDB will be written to '%s'\n", nfile_->Filename().full());
     if (usepdbcut_) mprintf("\tOnly atoms with values > %g will be written to PDB.\n", pdbcut_);
   }
   if (nativeMap_ != 0) {
@@ -561,6 +568,7 @@ int Action_NativeContacts::SyncAction() {
 }
 #endif
 
+// Action_NativeContacts::WriteContacts()
 void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
   if (ContactsIn.empty()) return;
   // Map of residue pairs to total contact values.
@@ -606,6 +614,41 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
   }
 }
 
+// Action_NativeContacts::WriteContactPDB()
+void Action_NativeContacts::WriteContactPDB( contactListType& ContactsIn, CpptrajFile* fileIn)
+{
+    std::vector<double> atomContactFrac(refParm_->Natom(), 0.0);
+    double norm = 1.0 / ((double)nframes_ * 2.0);
+    for (contactListType::const_iterator it = ContactsIn.begin();
+                                         it != ContactsIn.end(); ++it)
+    {
+      int a1 = it->first.first;
+      int a2 = it->first.second;
+      contactType const& NC = it->second;
+      double fracShared = (double)NC.Nframes() * norm;
+      atomContactFrac[a1] += fracShared;
+      atomContactFrac[a2] += fracShared;
+    }
+    // Normalize so the strongest contact value is 100.00
+    norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
+    norm = 100.00 / norm;
+    PDBfile& contactPDB = static_cast<PDBfile&>( *fileIn );
+    mprintf("\tWriting contacts PDB to '%s'\n", fileIn->Filename().full());
+    contactPDB.WriteTITLE( numnative_->Meta().Name() + " " + Mask1_.MaskExpression() + " " +
+                           Mask2_.MaskExpression() );
+    int cidx = 0;
+    for (int aidx = 0; aidx != refParm_->Natom(); aidx++, cidx += 3) {
+      float bfac = (float)(atomContactFrac[aidx] * norm);
+      if (!usepdbcut_ || (bfac > pdbcut_)) {
+        int resnum = (*refParm_)[aidx].ResNum();
+        contactPDB.WriteCoord(PDBfile::ATOM, aidx+1, (*refParm_)[aidx].Name(),
+                              refParm_->Res(resnum).Name(), resnum+1,
+                              refFrame_[cidx], refFrame_[cidx+1], refFrame_[cidx+2],
+                              1.0, bfac, (*refParm_)[aidx].ElementName(), 0);
+      }
+    }
+}
+
 // Action_NativeContacts::Print()
 void Action_NativeContacts::Print() {
   if (nativeMap_ != 0) {
@@ -639,38 +682,10 @@ void Action_NativeContacts::Print() {
     WriteContacts( nonNativeContacts_ );
   }
   // Break down contacts by atom, write to PDB.
-  if (pfile_ != 0) {
-    std::vector<double> atomContactFrac(refParm_->Natom(), 0.0);
-    double norm = 1.0 / ((double)nframes_ * 2.0);
-    for (contactListType::const_iterator it = nativeContacts_.begin();
-                                         it != nativeContacts_.end(); ++it)
-    {
-      int a1 = it->first.first;
-      int a2 = it->first.second;
-      contactType const& NC = it->second;
-      double fracShared = (double)NC.Nframes() * norm;
-      atomContactFrac[a1] += fracShared;
-      atomContactFrac[a2] += fracShared;
-    }
-    // Normalize so the strongest contact value is 100.00
-    norm = (double)*std::max_element(atomContactFrac.begin(), atomContactFrac.end());
-    norm = 100.00 / norm;
-    PDBfile& contactPDB = static_cast<PDBfile&>( *pfile_ );
-    mprintf("\tWriting contacts PDB to '%s'\n", pfile_->Filename().full());
-    contactPDB.WriteTITLE( numnative_->Meta().Name() + " " + Mask1_.MaskExpression() + " " +
-                           Mask2_.MaskExpression() );
-    int cidx = 0;
-    for (int aidx = 0; aidx != refParm_->Natom(); aidx++, cidx += 3) {
-      float bfac = (float)(atomContactFrac[aidx] * norm);
-      if (!usepdbcut_ || (bfac > pdbcut_)) {
-        int resnum = (*refParm_)[aidx].ResNum();
-        contactPDB.WriteCoord(PDBfile::ATOM, aidx+1, (*refParm_)[aidx].Name(),
-                              refParm_->Res(resnum).Name(), resnum+1,
-                              refFrame_[cidx], refFrame_[cidx+1], refFrame_[cidx+2],
-                              1.0, bfac, (*refParm_)[aidx].ElementName(), 0);
-      }
-    }
-  }
+  if (pfile_ != 0)
+    WriteContactPDB( nativeContacts_, pfile_ );
+  if (nfile_ != 0)
+    WriteContactPDB( nonNativeContacts_, nfile_ );
 }
 // -----------------------------------------------------------------------------
 void Action_NativeContacts::contactType::Finalize() {
