@@ -26,6 +26,7 @@ class Action_NativeContacts : public Action {
 
     Iarray SetupContactIndices(AtomMask const&, Topology const&);
     int SetupContactLists(Topology const&, Frame const&);
+    
     int DetermineNativeContacts(Topology const&, Frame const&);
     inline bool ValidContact(int, int, Topology const&) const;
     void UpdateSeries();
@@ -42,6 +43,7 @@ class Action_NativeContacts : public Action {
     bool series_;         ///< If true save time series of native contacts.
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
     bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
+    bool saveNonNative_;  ///< If true save details for non native contacts as well.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
@@ -50,7 +52,8 @@ class Action_NativeContacts : public Action {
     CpptrajFile* cfile_;  ///< File to write native contact list to.
     CpptrajFile* pfile_;  ///< File to write contact PDB to.
     CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
-    DataFile* seriesout_; ///< DataFile to write time series data to.
+    DataFile* seriesout_; ///< DataFile to write native time series data to.
+    DataFile* seriesNNout_; ///< DataFile to write non-native time series data to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -72,6 +75,7 @@ class Action_NativeContacts : public Action {
     /// Define list of contacts.
     typedef std::map<Cpair, contactType> contactListType;
     contactListType nativeContacts_; ///< List of native contacts.
+    contactListType nonNativeContacts_; ///< List of non-native contacts.
     /// Hold residue total contact frames and total # contacts.
     class resContact {
       // NOTE: Class must be defined here for subseqent Rpair typedef
@@ -104,6 +108,7 @@ class Action_NativeContacts : public Action {
           return (P1.second < P2.second); // sort by # contacts, # frames
       }
     };
+    void WriteContacts(contactListType&);
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Action_NativeContacts::contactType {
