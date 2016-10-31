@@ -8,22 +8,29 @@ void Exec_DataSetCmd::Help() const {
   mprintf("\t{ legend <legend> <set> |\n"
           "\t  makexy <Xset> <Yset> [name <name>] |\n"
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
-          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
-          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n"
-          "\t<mode>: ");
+          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n"
+          "\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
+          "\t  {mode <mode> | type <type>} <set arg1> [<set arg 2> ...] }\n");
+  mprintf("\t<criterion>: ");
+  for (int i = 1; i < (int)N_C; i++)
+    mprintf(" '%s'", CriterionKeys[i]);
+  mprintf("\n\t<select>: ");
+  for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+    mprintf(" '%s'", ptr->key_);
+  mprintf("\n\t<mode>: ");
   for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
     mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
   mprintf("\n\t<type>: ");
   for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
     mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
   mprintf("\n\tOptions for 'type noe':\n"
-          "\t  %s\n"
-          "  legend: Set the legend for a single data set\n"
+          "\t  %s\n", AssociatedData_NOE::HelpText);
+  mprintf("  legend: Set the legend for a single data set\n"
           "  makexy: Create new data set with X values from one set and Y values from another.\n"
           "  cat   : Concatenate 2 or more data sets.\n"
           "  make2d: Create new 2D data set from 1D data set, assumes row-major ordering.\n"
-          "  Otherwise, change the mode/type for one or more data sets.\n",
-          AssociatedData_NOE::HelpText);
+          "  remove: Remove data sets according to specified criterion and selection.\n"
+          "  Otherwise, change the mode/type for one or more data sets.\n");
 }
 
 // Exec_DataSetCmd::Execute()
