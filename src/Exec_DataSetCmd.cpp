@@ -14,7 +14,7 @@ void Exec_DataSetCmd::Help() const {
   mprintf("\t<criterion>: ");
   for (int i = 1; i < (int)N_C; i++)
     mprintf(" '%s'", CriterionKeys[i]);
-  mprintf("\n\t<select>: ");
+  mprintf("\n\t<select>   : ");
   for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
     mprintf(" '%s'", ptr->key_);
   mprintf("\n\t<mode>: ");
@@ -291,7 +291,7 @@ Exec::RetType Exec_DataSetCmd::Make2D(CpptrajState& State, ArgList& argIn) {
   std::string name = argIn.GetStringKey("name");
   int ncols = argIn.getKeyInt("ncols", 0);
   int nrows = argIn.getKeyInt("nrows", 0);
-  if (ncols < 0 || nrows < 0) {
+  if (ncols <= 0 || nrows <= 0) {
     mprinterr("Error: Must specify both ncols and nrows\n");
     return CpptrajState::ERR;
   }
@@ -305,7 +305,11 @@ Exec::RetType Exec_DataSetCmd::Make2D(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: Size of '%s' (%zu) != nrows X ncols.\n", ds1->legend(), ds1->Size());
     return CpptrajState::ERR;
   }
-  DataSet* ds3 = State.DSL().AddSet( DataSet::MATRIX_DBL, name, "make2d" );
+  if (name.empty())
+    name = State.DSL().GenerateDefaultName("make2d");
+  MetaData md(name, MetaData::M_MATRIX);
+  DataSet* ds3 = State.DSL().AddSet( DataSet::MATRIX_DBL, md );
+  
   if (ds3 == 0) return CpptrajState::ERR;
   mprintf("\tConverting values from 1D set '%s' to 2D matrix '%s' with %i cols, %i rows.\n",
           ds1->legend(), ds3->legend(), ncols, nrows);
