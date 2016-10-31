@@ -25,6 +25,23 @@ void Exec_DataSetCmd::Help() const {
           AssociatedData_NOE::HelpText);
 }
 
+const char* Exec_DataSetCmd::CriterionKeys[] = { 0, "ifaverage", "ifsize", "ifmode", "iftype" };
+
+Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
+  {EQUAL,        "equal"},
+  {EQUAL,        "=="},
+  {NOT_EQUAL,    "notequal"},
+  {NOT_EQUAL,    "!="},
+  {LESS_THAN,    "lessthan"},
+  {LESS_THAN,    "<"},
+  {GREATER_THAN, "greaterthan"},
+  {GREATER_THAN, ">"},
+  {BETWEEN,      "between"},
+  {OUTSIDE,      "outside"},
+  {UNKNOWN_S,    0}
+};
+
+// Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   if (argIn.Contains("legend")) { // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
@@ -32,6 +49,52 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     if (ds == 0) return CpptrajState::ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
+  // ---------------------------------------------
+  } else if (argIn.hasKey("remove")) { // Remove data sets by various criteria
+    std::string status;
+    // Get criterion type
+    CriterionType criterion = UNKNOWN_C;
+    for (int i = 1; i < (int)N_C; i++)
+      if (argIn.hasKey( CriterionKeys[i] )) {
+        criterion = (CriterionType)i;
+        status.assign( CriterionKeys[i] );
+        break;
+      }
+    if (criterion == UNKNOWN_C) {
+      mprinterr("Error: No criterion specified for 'remove'.\n");
+      return CpptrajState::ERR;
+    }
+    // Get select type
+    SelectType select = UNKNOWN_S;
+    std::string val1, val2;
+    for (const SelectPairType* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+      if (argIn.Contains( ptr->key_ )) {
+        select = ptr->type_;
+        val1 = argIn.GetStringKey( ptr->key_ );
+        status.append( " " + std::string(ptr->key_) + " " + val1 );
+        // Get 'and' value for between/outside. TODO put nargs in SelectPairType?
+        if (select == BETWEEN || select == OUTSIDE) {
+          val2 = argIn.GetStringKey("and");
+          if (val2.empty()) {
+            mprinterr("Error: Missing 'and' value for selection '%s'\n", ptr->key_);
+            return CpptrajState::ERR;
+          }
+          status.append(" and " + val2);
+        }
+        break;
+      }
+    if (select == UNKNOWN_S || val1.empty()) {
+      mprinterr("Error: No selection specified for 'remove'.\n");
+      return CpptrajState::ERR;
+    }
+    mprintf("\tRemoving data sets");
+    std::string setSelectArg = argIn.GetStringNext();
+    if (setSelectArg.empty())
+      setSelectArg.assign("*");
+    else
+      mprintf(" within selection '%s'", setSelectArg.c_str());
+    mprintf(" %s\n", status.c_str());
+    
   // ---------------------------------------------
   } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
     std::string name = argIn.GetStringKey("name");
