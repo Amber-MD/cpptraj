@@ -14,7 +14,6 @@ class Action_NativeContacts : public Action {
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_NativeContacts(); }
     void Help() const;
   private:
-    typedef std::vector<int> Iarray;
     Action::RetType Init(ArgList&, ActionInit&, int);
 #   ifdef MPI
     int SyncAction();
@@ -24,6 +23,7 @@ class Action_NativeContacts : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
+    typedef std::vector<int> Iarray;
     Iarray SetupContactIndices(AtomMask const&, Topology const&);
     int SetupContactLists(Topology const&, Frame const&);
     
@@ -77,13 +77,14 @@ class Action_NativeContacts : public Action {
     typedef std::map<Cpair, contactType> contactListType;
     contactListType nativeContacts_; ///< List of native contacts.
     contactListType nonNativeContacts_; ///< List of non-native contacts.
+    typedef std::vector<DataSet_integer*> DSarray;
     /// Hold residue total contact frames and total # contacts.
     class resContact {
       // NOTE: Class must be defined here for subseqent Rpair typedef
       public:
         resContact() : nframes_(0), ncontacts_(0) {}
-        resContact(int nf) : nframes_(nf), ncontacts_(1) {}
-        void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
+        resContact(int nf, DataSet_integer* ds) : nframes_(nf), ncontacts_(1), sets_(1, ds) {}
+        void Increment(int nf, DataSet_integer* ds) { nframes_ += nf; ++ncontacts_; sets_.push_back(ds); }
         int Nframes() const { return nframes_; }
         int Ncontacts() const { return ncontacts_; }
         bool operator<(resContact const& rhs) const {
@@ -96,7 +97,9 @@ class Action_NativeContacts : public Action {
           return (nframes_ == rhs.nframes_ && ncontacts_ == rhs.ncontacts_);
         }
       private:
-        int nframes_, ncontacts_;
+        int nframes_;   ///< Sum of all frames for which contacts present for this residue pair
+        int ncontacts_; ///< Total number of contacts between this residue pair
+        DSarray sets_;  ///< Hold individal sets of contacts belonging to this residue pair if series
     };
     /// For holding residue pair and total fraction contact.
     typedef std::pair<Cpair, resContact> Rpair;
@@ -124,7 +127,8 @@ class Action_NativeContacts::contactType {
     int Res2()       const { return res2_;       }
     double Avg()     const { return dist_;       }
     double Stdev()   const { return dist2_;      }
-    DataSet_integer& Data() { return *data_;     }
+    DataSet_integer& Data()          { return *data_; }
+    DataSet_integer* DataPtr() const { return data_;  }
     void Increment(int fnum, double d, double d2) {
       nframes_++;
       dist_ += d;

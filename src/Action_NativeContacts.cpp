@@ -584,9 +584,9 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
     it->second.Finalize();
     sortedList.push_back( it->second );
     ret = ResContacts.insert( Rpair(Cpair(it->second.Res1(),it->second.Res2()),
-                                    resContact(it->second.Nframes())) );
+                                    resContact(it->second.Nframes(), it->second.DataPtr())) );
     if (!ret.second) // residue pair exists, update it.
-      ret.first->second.Increment( it->second.Nframes() );
+      ret.first->second.Increment( it->second.Nframes(), it->second.DataPtr() );
   }
   std::sort( sortedList.begin(), sortedList.end() );
   // Place residue pairs into an array to be sorted.
