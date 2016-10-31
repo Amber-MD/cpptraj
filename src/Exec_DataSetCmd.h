@@ -17,5 +17,7 @@ class Exec_DataSetCmd : public Exec {
       const char* key_;
     };
     static SelectPairType SelectKeys[];
+
+    RetType Remove(CpptrajState&, ArgList&);
 };
 #endif

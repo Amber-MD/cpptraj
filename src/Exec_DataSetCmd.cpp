@@ -44,6 +44,7 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 
 // Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
+  RetType err = CpptrajState::OK;
   if (argIn.Contains("legend")) { // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
     DataSet* ds = State.DSL().GetDataSet( argIn.GetStringNext() );
@@ -52,100 +53,7 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     ds->SetLegend( legend );
   // ---------------------------------------------
   } else if (argIn.hasKey("remove")) { // Remove data sets by various criteria
-    std::string status;
-    // Get criterion type
-    CriterionType criterion = UNKNOWN_C;
-    for (int i = 1; i < (int)N_C; i++)
-      if (argIn.hasKey( CriterionKeys[i] )) {
-        criterion = (CriterionType)i;
-        status.assign( CriterionKeys[i] );
-        break;
-      }
-    if (criterion == UNKNOWN_C) {
-      mprinterr("Error: No criterion specified for 'remove'.\n");
-      return CpptrajState::ERR;
-    }
-    // Get select type
-    SelectType select = UNKNOWN_S;
-    std::string val1, val2;
-    for (const SelectPairType* ptr = SelectKeys; ptr->key_ != 0; ptr++)
-      if (argIn.Contains( ptr->key_ )) {
-        select = ptr->type_;
-        val1 = argIn.GetStringKey( ptr->key_ );
-        status.append( " " + std::string(ptr->key_) + " " + val1 );
-        // Get 'and' value for between/outside. TODO put nargs in SelectPairType?
-        if (select == BETWEEN || select == OUTSIDE) {
-          val2 = argIn.GetStringKey("and");
-          if (val2.empty()) {
-            mprinterr("Error: Missing 'and' value for selection '%s'\n", ptr->key_);
-            return CpptrajState::ERR;
-          }
-          status.append(" and " + val2);
-        }
-        break;
-      }
-    if (select == UNKNOWN_S || val1.empty()) {
-      mprinterr("Error: No selection specified for 'remove'.\n");
-      return CpptrajState::ERR;
-    }
-    mprintf("\tRemoving data sets");
-    std::string setSelectArg = argIn.GetStringNext();
-    if (setSelectArg.empty())
-      setSelectArg.assign("*");
-    else
-      mprintf(" within selection '%s'", setSelectArg.c_str());
-    mprintf(" %s\n", status.c_str());
-    DataSetList tempDSL = State.DSL().GetMultipleSets( setSelectArg );
-    if (tempDSL.empty()) {
-      mprinterr("Error: No data sets selected.\n");
-      return CpptrajState::ERR;
-    }
-    unsigned int Nsets = tempDSL.size();
-    unsigned int Nremoved = 0;
-    if ( criterion == AVERAGE ) {
-      if (!validDouble( val1 )) {
-        mprinterr("Error: '%s' is not a valid number\n", val1.c_str());
-        return CpptrajState::ERR;
-      }
-      double d_val1 = convertToDouble( val1 );
-      double d_val2  = d_val1;
-      if (!val2.empty()) {
-        if (!validDouble( val2 )) {
-          mprinterr("Error: '%s' is not a valid number\n", val2.c_str());
-          return CpptrajState::ERR;
-        }
-        d_val2 = convertToDouble( val2 );
-      }
-      for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
-      {
-        if ( (*ds)->Group() != DataSet::SCALAR_1D )
-          mprintf("Warning: '%s' is not a valid data set for 'average' criterion.\n", (*ds)->legend());
-        else {
-          DataSet_1D const& ds1 = static_cast<DataSet_1D const&>( *(*ds) );
-          double avg = ds1.Avg();
-          bool remove = false;
-          switch (select) {
-            case EQUAL        : remove = (avg == d_val1); break;
-            case NOT_EQUAL    : remove = (avg != d_val1); break;
-            case LESS_THAN    : remove = (avg < d_val1); break;
-            case GREATER_THAN : remove = (avg > d_val1); break;
-            case BETWEEN      : remove = (avg > d_val1 && avg < d_val2); break;
-            case OUTSIDE      : remove = (avg < d_val1 || avg > d_val2); break;
-            case UNKNOWN_S:
-            case N_S      : return CpptrajState::ERR; // Sanity check
-          }
-          if (remove) {
-            mprintf("\t  Removing set '%s' (avg is %g)\n", (*ds)->legend(), avg);
-            State.RemoveDataSet( *ds );
-            Nremoved++;
-          }
-        }
-      }
-    } else {
-      mprinterr("Internal Error: Criterion not yet implemented.\n");
-      return CpptrajState::ERR;
-    }
-    mprintf("\tRemoved %u of %u sets.\n", Nremoved, Nsets);
+    err = Remove(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
     std::string name = argIn.GetStringKey("name");
@@ -369,5 +277,104 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
       ds_arg = argIn.GetStringNext();
     }
   }
+  return err;
+}
+
+// Exec_DataSetCmd::Remove()
+Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
+  std::string status;
+  // Get criterion type
+  CriterionType criterion = UNKNOWN_C;
+  for (int i = 1; i < (int)N_C; i++)
+    if (argIn.hasKey( CriterionKeys[i] )) {
+      criterion = (CriterionType)i;
+      status.assign( CriterionKeys[i] );
+      break;
+    }
+  if (criterion == UNKNOWN_C) {
+    mprinterr("Error: No criterion specified for 'remove'.\n");
+    return CpptrajState::ERR;
+  }
+  // Get select type
+  SelectType select = UNKNOWN_S;
+  std::string val1, val2;
+  for (const SelectPairType* ptr = SelectKeys; ptr->key_ != 0; ptr++)
+    if (argIn.Contains( ptr->key_ )) {
+      select = ptr->type_;
+      val1 = argIn.GetStringKey( ptr->key_ );
+      status.append( " " + std::string(ptr->key_) + " " + val1 );
+      // Get 'and' value for between/outside. TODO put nargs in SelectPairType?
+      if (select == BETWEEN || select == OUTSIDE) {
+        val2 = argIn.GetStringKey("and");
+        if (val2.empty()) {
+          mprinterr("Error: Missing 'and' value for selection '%s'\n", ptr->key_);
+          return CpptrajState::ERR;
+        }
+        status.append(" and " + val2);
+      }
+      break;
+    }
+  if (select == UNKNOWN_S || val1.empty()) {
+    mprinterr("Error: No selection specified for 'remove'.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tRemoving data sets");
+  std::string setSelectArg = argIn.GetStringNext();
+  if (setSelectArg.empty())
+    setSelectArg.assign("*");
+  else
+    mprintf(" within selection '%s'", setSelectArg.c_str());
+  mprintf(" %s\n", status.c_str());
+  DataSetList tempDSL = State.DSL().GetMultipleSets( setSelectArg );
+  if (tempDSL.empty()) {
+    mprinterr("Error: No data sets selected.\n");
+    return CpptrajState::ERR;
+  }
+  unsigned int Nsets = tempDSL.size();
+  unsigned int Nremoved = 0;
+  if ( criterion == AVERAGE ) {
+    if (!validDouble( val1 )) {
+      mprinterr("Error: '%s' is not a valid number\n", val1.c_str());
+      return CpptrajState::ERR;
+    }
+    double d_val1 = convertToDouble( val1 );
+    double d_val2  = d_val1;
+    if (!val2.empty()) {
+      if (!validDouble( val2 )) {
+        mprinterr("Error: '%s' is not a valid number\n", val2.c_str());
+        return CpptrajState::ERR;
+      }
+      d_val2 = convertToDouble( val2 );
+    }
+    for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
+    {
+      if ( (*ds)->Group() != DataSet::SCALAR_1D )
+        mprintf("Warning: '%s' is not a valid data set for 'average' criterion.\n", (*ds)->legend());
+      else {
+        DataSet_1D const& ds1 = static_cast<DataSet_1D const&>( *(*ds) );
+        double avg = ds1.Avg();
+        bool remove = false;
+        switch (select) {
+          case EQUAL        : remove = (avg == d_val1); break;
+          case NOT_EQUAL    : remove = (avg != d_val1); break;
+          case LESS_THAN    : remove = (avg < d_val1); break;
+          case GREATER_THAN : remove = (avg > d_val1); break;
+          case BETWEEN      : remove = (avg > d_val1 && avg < d_val2); break;
+          case OUTSIDE      : remove = (avg < d_val1 || avg > d_val2); break;
+          case UNKNOWN_S:
+          case N_S      : return CpptrajState::ERR; // Sanity check
+        }
+        if (remove) {
+          mprintf("\t  Removing set '%s' (avg is %g)\n", (*ds)->legend(), avg);
+          State.RemoveDataSet( *ds );
+          Nremoved++;
+        }
+      }
+    }
+  } else {
+    mprinterr("Internal Error: Criterion not yet implemented.\n");
+    return CpptrajState::ERR;
+  }
+  mprintf("\tRemoved %u of %u sets.\n", Nremoved, Nsets);
   return CpptrajState::OK;
 }
