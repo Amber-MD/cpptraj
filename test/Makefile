@@ -322,6 +322,9 @@ test.velfrc:
 test.rotatedihedral:
 	@-cd Test_RotateDihedral && ./RunTest.sh $(OPT)
 
+test.dataset:
+	@-cd Test_DataSetCmd && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -402,7 +405,8 @@ SHORT_TESTS=test.general \
           test.align \
           test.velocityautocorr \
           test.velfrc \
-          test.rotatedihedral
+          test.rotatedihedral \
+          test.dataset
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -507,7 +511,8 @@ COMPLETETESTS=test.general \
               test.align \
               test.velocityautocorr \
               test.velfrc \
-              test.rotatedihedral
+              test.rotatedihedral \
+              test.dataset
 
 test: test.all 
 
