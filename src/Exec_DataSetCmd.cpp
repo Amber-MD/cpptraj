@@ -118,6 +118,12 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: No selection specified for 'remove'.\n");
     return CpptrajState::ERR;
   }
+  if ( (criterion == SMODE || criterion == STYPE) &&
+       (select != EQUAL && select != NOT_EQUAL) )
+  {
+    mprinterr("Error: Specified select not valid for criterion '%s'\n", CriterionKeys[criterion]);
+    return CpptrajState::ERR;
+  }
   mprintf("\tRemoving data sets");
   std::string setSelectArg = argIn.GetStringNext();
   if (setSelectArg.empty())
@@ -201,6 +207,44 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
       }
       if (remove) {
         mprintf("\t  Removing set '%s' (size is %u)\n", (*ds)->legend(), size);
+        State.RemoveDataSet( *ds );
+        ++Nremoved;
+      }
+    }
+  } else if ( criterion == SMODE ) {
+    MetaData::scalarMode mode_val = MetaData::ModeFromKeyword( val1 );
+    if (mode_val == MetaData::UNKNOWN_MODE) {
+      mprinterr("Error: '%s' is not a valid mode.\n", val1.c_str());
+      return CpptrajState::ERR;
+    }
+    for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
+    {
+      bool remove = false;
+      MetaData::scalarMode mode = (*ds)->Meta().ScalarMode();
+      if      (select == EQUAL    ) remove = ( mode == mode_val );
+      else if (select == NOT_EQUAL) remove = ( mode != mode_val );
+      else return CpptrajState::ERR; // Sanity check
+      if (remove) {
+        mprintf("\t  Removing set '%s' (mode is '%s')\n", (*ds)->legend(), MetaData::ModeString(mode));
+        State.RemoveDataSet( *ds );
+        ++Nremoved;
+      }
+    }
+  } else if ( criterion == STYPE ) {
+    MetaData::scalarType type_val = MetaData::TypeFromKeyword( val1, MetaData::UNKNOWN_MODE );
+    if (type_val == MetaData::UNDEFINED) {
+      mprinterr("Error: '%s' is not a valid type.\n", val1.c_str());
+      return CpptrajState::ERR;
+    }
+    for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
+    {
+      bool remove = false;
+      MetaData::scalarType type = (*ds)->Meta().ScalarType();
+      if      (select == EQUAL    ) remove = ( type == type_val );
+      else if (select == NOT_EQUAL) remove = ( type != type_val );
+      else return CpptrajState::ERR; // Sanity check
+      if (remove) {
+        mprintf("\t  Removing set '%s' (typeis '%s')\n", (*ds)->legend(), MetaData::TypeString(type));
         State.RemoveDataSet( *ds );
         ++Nremoved;
       }
