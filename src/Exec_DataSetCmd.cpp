@@ -123,7 +123,7 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: No data sets selected.\n");
     return CpptrajState::ERR;
   }
-  unsigned int Nsets = tempDSL.size();
+  // Remove sets
   unsigned int Nremoved = 0;
   if ( criterion == AVERAGE ) {
     if (!validDouble( val1 )) {
@@ -160,15 +160,49 @@ Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {
         if (remove) {
           mprintf("\t  Removing set '%s' (avg is %g)\n", (*ds)->legend(), avg);
           State.RemoveDataSet( *ds );
-          Nremoved++;
+          ++Nremoved;
         }
+      }
+    }
+  } else if ( criterion == SIZE ) {
+    if (!validInteger( val1 )) {
+      mprinterr("Error: '%s' is not a valid number\n", val1.c_str());
+      return CpptrajState::ERR;
+    }
+    unsigned int i_val1 = (unsigned int)convertToInteger( val1 );
+    unsigned int i_val2 = i_val1;
+    if (!val2.empty()) {
+      if (!validInteger( val2 )) {
+        mprinterr("Error: '%s' is not a valid number\n", val2.c_str());
+        return CpptrajState::ERR;
+      }
+      i_val2 = convertToInteger( val2 );
+    }
+    for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
+    {
+      unsigned int size = (*ds)->Size();
+      bool remove = false;
+      switch ( select ) {
+        case EQUAL        : remove = (size == i_val1); break;
+        case NOT_EQUAL    : remove = (size != i_val1); break;
+        case LESS_THAN    : remove = (size < i_val1); break;
+        case GREATER_THAN : remove = (size > i_val1); break;
+        case BETWEEN      : remove = (size > i_val1 && size < i_val2); break;
+        case OUTSIDE      : remove = (size < i_val1 || size > i_val2); break;
+        case UNKNOWN_S:
+        case N_S      : return CpptrajState::ERR; // Sanity check
+      }
+      if (remove) {
+        mprintf("\t  Removing set '%s' (size is %u)\n", (*ds)->legend(), size);
+        State.RemoveDataSet( *ds );
+        ++Nremoved;
       }
     }
   } else {
     mprinterr("Internal Error: Criterion not yet implemented.\n");
     return CpptrajState::ERR;
   }
-  mprintf("\tRemoved %u of %u sets.\n", Nremoved, Nsets);
+  mprintf("\tRemoved %u of %u sets.\n", Nremoved, tempDSL.size());
   return CpptrajState::OK;
 }
 
