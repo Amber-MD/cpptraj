@@ -19,5 +19,10 @@ class Exec_DataSetCmd : public Exec {
     static SelectPairType SelectKeys[];
 
     RetType Remove(CpptrajState&, ArgList&);
+    RetType MakeXY(CpptrajState&, ArgList&);
+    RetType Make2D(CpptrajState&, ArgList&);
+    RetType Filter(CpptrajState&, ArgList&);
+    RetType Concatenate(CpptrajState&, ArgList&);
+    RetType ChangeModeType(CpptrajState&, ArgList&);
 };
 #endif
