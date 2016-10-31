@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
+#include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{ legend <legend> <set> |\n"
@@ -94,7 +95,57 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
     else
       mprintf(" within selection '%s'", setSelectArg.c_str());
     mprintf(" %s\n", status.c_str());
-    
+    DataSetList tempDSL = State.DSL().GetMultipleSets( setSelectArg );
+    if (tempDSL.empty()) {
+      mprinterr("Error: No data sets selected.\n");
+      return CpptrajState::ERR;
+    }
+    unsigned int Nsets = tempDSL.size();
+    unsigned int Nremoved = 0;
+    if ( criterion == AVERAGE ) {
+      if (!validDouble( val1 )) {
+        mprinterr("Error: '%s' is not a valid number\n", val1.c_str());
+        return CpptrajState::ERR;
+      }
+      double d_val1 = convertToDouble( val1 );
+      double d_val2  = d_val1;
+      if (!val2.empty()) {
+        if (!validDouble( val2 )) {
+          mprinterr("Error: '%s' is not a valid number\n", val2.c_str());
+          return CpptrajState::ERR;
+        }
+        d_val2 = convertToDouble( val2 );
+      }
+      for (DataSetList::const_iterator ds = tempDSL.begin(); ds != tempDSL.end(); ++ds)
+      {
+        if ( (*ds)->Group() != DataSet::SCALAR_1D )
+          mprintf("Warning: '%s' is not a valid data set for 'average' criterion.\n", (*ds)->legend());
+        else {
+          DataSet_1D const& ds1 = static_cast<DataSet_1D const&>( *(*ds) );
+          double avg = ds1.Avg();
+          bool remove = false;
+          switch (select) {
+            case EQUAL        : remove = (avg == d_val1); break;
+            case NOT_EQUAL    : remove = (avg != d_val1); break;
+            case LESS_THAN    : remove = (avg < d_val1); break;
+            case GREATER_THAN : remove = (avg > d_val1); break;
+            case BETWEEN      : remove = (avg > d_val1 && avg < d_val2); break;
+            case OUTSIDE      : remove = (avg < d_val1 || avg > d_val2); break;
+            case UNKNOWN_S:
+            case N_S      : return CpptrajState::ERR; // Sanity check
+          }
+          if (remove) {
+            mprintf("\t  Removing set '%s' (avg is %g)\n", (*ds)->legend(), avg);
+            State.RemoveDataSet( *ds );
+            Nremoved++;
+          }
+        }
+      }
+    } else {
+      mprinterr("Internal Error: Criterion not yet implemented.\n");
+      return CpptrajState::ERR;
+    }
+    mprintf("\tRemoved %u of %u sets.\n", Nremoved, Nsets);
   // ---------------------------------------------
   } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
     std::string name = argIn.GetStringKey("name");

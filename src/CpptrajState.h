@@ -54,6 +54,7 @@ class CpptrajState {
     int ListAll(ArgList&) const;
     int SetListDebug(ArgList&);
     int ClearList(ArgList&);
+    void RemoveDataSet(DataSet*);
     int RemoveDataSet(ArgList&);
     int TrajLength( std::string const&, std::vector<std::string> const&);
     int Run();

@@ -324,6 +324,12 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   return 0;
 }
 
+// CpptrajState::RemoveDataSet()
+void CpptrajState::RemoveDataSet(DataSet* dsIn) {
+  DFL_.RemoveDataSet( dsIn );
+  DSL_.RemoveSet( dsIn );
+}
+
 /** Remove DataSet from State */
 int CpptrajState::RemoveDataSet( ArgList& argIn ) {
   // Need to first make sure they are removed from DataFiles etc also.
@@ -340,8 +346,7 @@ int CpptrajState::RemoveDataSet( ArgList& argIn ) {
                                      ds != tempDSL.end(); ++ds)
     {
       mprintf("\tRemoving \"%s\"\n", (*ds)->legend());
-      DFL_.RemoveDataSet( *ds );
-      DSL_.RemoveSet( *ds );
+      RemoveDataSet( *ds );
     }
   }
   return 0;
