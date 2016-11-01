@@ -240,6 +240,14 @@ int Action_NativeContacts::DetermineNativeContacts(Topology const& parmIn, Frame
   return 0;  
 }
 // -----------------------------------------------------------------------------
+inline bool KeywordError(ArgList& argIn, const char* key) {
+  if (argIn.hasKey(key)) {
+    mprinterr("Error: Keyword '%s' requires 'series'.\n", key);
+    return true;
+  }
+  return false;
+}
+
 // Action_NativeContacts::Init()
 Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
@@ -287,6 +295,11 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
       }
       seriesRout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("resseriesout"), actionArgs);
     }
+  } else {
+    if (KeywordError(actionArgs,"seriesout")) return Action::ERR;
+    if (KeywordError(actionArgs,"seriesnnout")) return Action::ERR;
+    if (KeywordError(actionArgs,"resseries")) return Action::ERR;
+    if (KeywordError(actionArgs,"resseriesout")) return Action::ERR;
   }
   cfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("writecontacts"), "Native Contacts",
                                DataFileList::TEXT, true);
