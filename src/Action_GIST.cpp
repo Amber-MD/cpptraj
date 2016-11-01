@@ -30,12 +30,11 @@ Action_GIST::Action_GIST() :
   infofile_(0),
   BULK_DENS_(0.0),
   temperature_(0.0),
-  q_O_(0.0),
-  q_H1_(0.0),
-  q_H2_(0.0),
   NeighborCut2_(12.25), // 3.5^2
   MAX_GRID_PT_(0),
   NSOLVENT_(0),
+  N_ON_GRID_(0),
+  nMolAtoms_(0),
   NFRAME_(0),
   max_nwat_(0),
   doOrder_(false),
@@ -323,11 +322,16 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
   {
     if (mol->IsSolvent()) {
       int o_idx = mol->BeginAtom();
-      // Check that molecule has 3 atoms
-      if (mol->NumAtoms() != 3) {
-        mprinterr("Error: Molecule '%s' has %i atoms, expected 3 for water.\n",
+      // Check that molecule has correct # of atoms
+      unsigned int molNumAtoms = (unsigned int)mol->NumAtoms();
+      if (nMolAtoms_ == 0) {
+        nMolAtoms_ = molNumAtoms;
+        mprintf("\tEach solvent molecule has %u atoms\n", nMolAtoms_);
+      } else if (molNumAtoms != nMolAtoms_) {
+        mprinterr("Error: All solvent molecules must have same # atoms.\n"
+                  "Error: Molecule '%s' has %u atoms, expected %u.\n",
                   setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
-                  mol->NumAtoms());
+                  molNumAtoms, nMolAtoms_);
         return Action::ERR;
       }
       //mol_nums_.push_back( midx ); // TODO needed?
@@ -346,37 +350,34 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
                   setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str());
         return Action::ERR;
       }
-      A_idxs_.push_back( o_idx   );
-      A_idxs_.push_back( o_idx+1 );
-      A_idxs_.push_back( o_idx+2 );
-      atom_voxel_.push_back( OFF_GRID_ );
-      atom_voxel_.push_back( OFF_GRID_ );
-      atom_voxel_.push_back( OFF_GRID_ );
-      NsolventAtoms += 3;
+      // Save all atom indices for energy calc, including extra points
+      for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+        A_idxs_.push_back( o_idx + IDX );
+        atom_voxel_.push_back( OFF_GRID_ );
+      }
+      NsolventAtoms += nMolAtoms_;
       // If first solvent molecule, save charges. If not, check that charges match.
       if (isFirstSolvent) {
-        q_O_  = setup.Top()[o_idx  ].Charge();
-        q_H1_ = setup.Top()[o_idx+1].Charge();
-        q_H2_ = setup.Top()[o_idx+2].Charge();
-        // Sanity checks
-        if (NotEqual(q_H1_, q_H2_))
-          mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", q_H1_, q_H2_);
-        if (fabs( q_O_ + q_H1_ + q_H2_ ) > 0.0)
-          mprintf("Warning: Charges on water do not sum to 0 (%g)\n", q_O_ + q_H1_ + q_H2_);
+        double q_sum = 0.0;
+        Q_.reserve( nMolAtoms_ );
+        for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+          Q_.push_back( setup.Top()[o_idx+IDX].Charge() );
+          q_sum += Q_.back();
+        }
+        // Sanity checks. FIXME Assuming H1 and H2 are indices 1 and 2
+        if (NotEqual(Q_[1], Q_[2]))
+          mprintf("Warning: Charges on water hydrogens do not match (%g, %g).\n", Q_[1], Q_[2]);
+        if (fabs( q_sum ) > 0.0)
+          mprintf("Warning: Charges on water do not sum to 0 (%g)\n", q_sum);
         //mprintf("DEBUG: Water charges: O=%g  H1=%g  H2=%g\n", q_O_, q_H1_, q_H2_);
       } else {
-        if (NotEqual(q_O_, setup.Top()[o_idx  ].Charge()))
-          mprintf("Warning: Charge on water '%s' oxygen %g does not match first water %g.\n",
-                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
-                  setup.Top()[o_idx  ].Charge(), q_O_);
-        if (NotEqual(q_H1_, setup.Top()[o_idx+1].Charge()))
-          mprintf("Warning: Charge on water '%s' H1 %g does not match first water %g.\n",
-                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
-                  setup.Top()[o_idx+1].Charge(), q_H1_);
-        if (NotEqual(q_H2_, setup.Top()[o_idx+2].Charge()))
-          mprintf("Warning: Charge on water '%s' H2 %g does not match first water %g.\n",
-                  setup.Top().TruncResNameNum( setup.Top()[o_idx].ResNum() ).c_str(),
-                  setup.Top()[o_idx+2].Charge(), q_H2_);
+        for (unsigned int IDX = 0; IDX < nMolAtoms_; IDX++) {
+          double q_atom = setup.Top()[o_idx+IDX].Charge();
+          if (NotEqual(Q_[IDX], q_atom)) {
+            mprintf("Warning: Charge on water '%s' (%g) does not match first water (%g).\n",
+                  setup.Top().TruncResAtomName( o_idx+IDX ).c_str(), q_atom, Q_[IDX]);
+          }
+        }
       }
       isFirstSolvent = false;
     } else {
@@ -398,7 +399,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
     doOrder_ = false;
   }
   // Allocate space for saving indices of water atoms that are on the grid
-  OnGrid_idxs_.resize( O_idxs_.size() * 3 );
+  OnGrid_idxs_.resize( O_idxs_.size() * nMolAtoms_ );
   N_ON_GRID_ = 0;
 
   if (!skipE_) {
@@ -505,6 +506,7 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
     double qA1 = topIn[ a1 ].Charge(); // Charge of atom1
     bool a1IsO = (topIn[ a1 ].Element() == Atom::OXYGEN);
     // Loop over all solvent atoms on the grid
+    // TODO skip calculations that do not contribute
     for (unsigned int gidx = 0; gidx < N_ON_GRID_; gidx++)
     {
       int a2 = OnGrid_idxs_[gidx];              // Index of water on grid
@@ -640,9 +642,8 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
   {
     gist_grid_.Start();
     int oidx = O_idxs_[sidx];
-    atom_voxel_[oidx  ] = OFF_GRID_;
-    atom_voxel_[oidx+1] = OFF_GRID_;
-    atom_voxel_[oidx+2] = OFF_GRID_;
+    for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++)
+      atom_voxel_[oidx+IDX] = OFF_GRID_;
     const double* O_XYZ  = frm.Frm().XYZ( oidx );
     // Get vector of water oxygen to grid origin.
     Vec3 W_G( O_XYZ[0] - Origin[0],
@@ -661,21 +662,19 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
       if ( gO_->CalcBins( O_XYZ[0], O_XYZ[1], O_XYZ[2], bin_i, bin_j, bin_k ) )
       {
         // Oxygen is inside the grid. Record the voxel.
-        // NOTE hydrogens always assigned to same voxel for energy purposes.
+        // NOTE hydrogens/EP always assigned to same voxel for energy purposes.
         int voxel = (int)gO_->CalcIndex(bin_i, bin_j, bin_k);
-        atom_voxel_[oidx  ] = voxel;
-        atom_voxel_[oidx+1] = voxel;
-        atom_voxel_[oidx+2] = voxel;
-        OnGrid_idxs_[N_ON_GRID_  ] = oidx;
-        OnGrid_idxs_[N_ON_GRID_+1] = oidx + 1;
-        OnGrid_idxs_[N_ON_GRID_+2] = oidx + 2;
-        N_ON_GRID_ += 3;
+        for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+          atom_voxel_[oidx+IDX] = voxel;
+          OnGrid_idxs_[N_ON_GRID_+IDX] = oidx + IDX;
+        }
+        N_ON_GRID_ += nMolAtoms_;
         //mprintf("DEBUG1: Water atom %i voxel %i\n", oidx, voxel);
         N_waters_[voxel]++;
         max_nwat_ = std::max( N_waters_[voxel], max_nwat_ );
         // ----- EULER ---------------------------
         gist_euler_.Start();
-        // Record XYZ coords of water in voxel
+        // Record XYZ coords of water atoms (nonEP) in voxel TODO need EP?
         voxel_xyz_[voxel].push_back( O_XYZ[0] );
         voxel_xyz_[voxel].push_back( O_XYZ[1] );
         voxel_xyz_[voxel].push_back( O_XYZ[2] );
@@ -772,9 +771,18 @@ Action::RetType Action_GIST::DoAction(int frameNum, ActionFrame& frm) {
         //        O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_,
         //        O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_,
         //        O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
-        dipolex_->UpdateVoxel(voxel, O_XYZ[0]*q_O_ + H1_XYZ[0]*q_H1_ + H2_XYZ[0]*q_H2_);
-        dipoley_->UpdateVoxel(voxel, O_XYZ[1]*q_O_ + H1_XYZ[1]*q_H1_ + H2_XYZ[1]*q_H2_);
-        dipolez_->UpdateVoxel(voxel, O_XYZ[2]*q_O_ + H1_XYZ[2]*q_H1_ + H2_XYZ[2]*q_H2_);
+        double DPX = 0.0;
+        double DPY = 0.0;
+        double DPZ = 0.0;
+        for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
+          const double* XYZ = frm.Frm().XYZ( oidx+IDX );
+          DPX += XYZ[0] * Q_[IDX];
+          DPY += XYZ[1] * Q_[IDX];
+          DPZ += XYZ[2] * Q_[IDX];
+        }
+        dipolex_->UpdateVoxel(voxel, DPX);
+        dipoley_->UpdateVoxel(voxel, DPY);
+        dipolez_->UpdateVoxel(voxel, DPZ);
         gist_dipole_.Stop();
         // ---------------------------------------
       }
