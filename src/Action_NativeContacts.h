@@ -117,7 +117,7 @@ class Action_NativeContacts : public Action {
           return (P1.second < P2.second); // sort by # contacts, # frames
       }
     };
-    void WriteContacts(contactListType&);
+    void WriteContacts(contactListType&, bool);
     void WriteContactPDB(contactListType&, CpptrajFile*);
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------

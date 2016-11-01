@@ -606,7 +606,7 @@ int Action_NativeContacts::SyncAction() {
 #endif
 
 // Action_NativeContacts::WriteContacts()
-void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
+void Action_NativeContacts::WriteContacts(contactListType& ContactsIn, bool isNative) {
   if (ContactsIn.empty()) return;
   // Map of residue pairs to total contact values.
   typedef std::map<Cpair, resContact> resContactMap;
@@ -628,16 +628,33 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
   std::sort( sortedList.begin(), sortedList.end() );
   // Place residue pairs into an array to be sorted.
   std::vector<Rpair> ResList;
-  unsigned int ridx = 1;
   for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
   {
     ResList.push_back( *it );
     if (Rseries_ != NO_RESSERIES) {
-      int r1 = it->first.first;
-      int r2 = it->first.second;
-      std::string legend(CurrentParm_->TruncResNameNum(r1) + "_" +
+      const char* resDsAspect;
+      std::string lprefix = "";
+      if (isNative)
+        resDsAspect = "NCRES";
+      else {
+        resDsAspect = "NNRES";
+        lprefix = "nn_";
+      }
+      // Ensure r1 < r2 so we can calculate a unique index for residue pairs
+      // that can match between native/non-native contacts
+      int r1, r2;
+      if (it->first.second < it->first.first) {
+        r1 = it->first.second;
+        r2 = it->first.first;
+      } else {
+        r1 = it->first.first;
+        r2 = it->first.second;
+      }
+      int ridx = (r2 * CurrentParm_->Nres()) + r1;
+      std::string legend(lprefix +
+                         CurrentParm_->TruncResNameNum(r1) + "_" +
                          CurrentParm_->TruncResNameNum(r2)); 
-      MetaData md(numnative_->Meta().Name(), "NCRES", ridx++);
+      MetaData md(numnative_->Meta().Name(), resDsAspect, ridx);
       md.SetLegend( legend );
       DataSet_integer* ds = (DataSet_integer*)masterDSL_->AddSet(DataSet::INTEGER, md);
       if (ds != 0) {
@@ -650,7 +667,7 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
                                        set != it->second.Sets().end(); ++set)
             total_present += (*(*set))[f];
           if (Rseries_ == RES_PRESENT && total_present > 0) total_present = 1;
-          (*ds).AddElement( total_present );
+          ds->AddElement( total_present );
         }
       }
     }
@@ -733,7 +750,7 @@ void Action_NativeContacts::Print() {
     cfile_->Printf("\n");
   } else
     mprintf("    CONTACTS: %s\n", numnative_->Meta().Name().c_str());
-  WriteContacts( nativeContacts_ );
+  WriteContacts( nativeContacts_, true );
   if (saveNonNative_) {
     if (!cfile_->IsStream()) {
       mprintf("              %s: Writing non-native contacts to file '%s'\n",
@@ -741,7 +758,7 @@ void Action_NativeContacts::Print() {
       cfile_->Printf("# Non-native Contacts: %s\n", numnative_->Meta().Name().c_str());
     } else
       mprintf("      ------- Non-native %s -------\n", numnative_->Meta().Name().c_str());
-    WriteContacts( nonNativeContacts_ );
+    WriteContacts( nonNativeContacts_, false );
   }
   // Break down contacts by atom, write to PDB.
   if (pfile_ != 0)
