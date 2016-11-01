@@ -11,6 +11,7 @@
 Action_NativeContacts::Action_NativeContacts() :
   distance_(7.0),
   pdbcut_(0.0),
+  Rseries_(NO_RESSERIES),
   debug_(0),
   matrix_min_(0),
   resoffset_(1),
@@ -25,6 +26,7 @@ Action_NativeContacts::Action_NativeContacts() :
   cfile_(0), pfile_(0), nfile_(0), rfile_(0),
   seriesout_(0),
   seriesNNout_(0),
+  seriesRout_(0),
   numnative_(0),
   nonnative_(0),
   mindist_(0),
@@ -43,6 +45,7 @@ void Action_NativeContacts::Help() const {
           "\t[resoffset <n>] [contactpdb <file>] [pdbcut <cut>] [mindist] [maxdist]\n"
           "\t[name <dsname>] [byresidue] [map [mapout <mapfile>]] [series [seriesout <file>]]\n"
           "\t[savenonnative [seriesnnout <file>] [nncontactpdb <file>]]\n"
+          "\t[resseries { present | sum } [resseriesout <file>]]\n"
           "  Calculate number of contacts in <mask1>, or between <mask1> and <mask2>\n"
           "  if both are specified. Native contacts are determined based on the given\n"
           "  reference structure (or first frame if not specified) and the specified\n"
@@ -266,11 +269,24 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
   distance_ = dist * dist; // Square the cutoff
   first_ = actionArgs.hasKey("first");
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  Rseries_ = NO_RESSERIES;
   if (series_) {
     seriesout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("seriesout"), actionArgs);
     init.DSL().SetDataSetsPending( true );
     if (saveNonNative_)
       seriesNNout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("seriesnnout"), actionArgs);
+    std::string rs_arg = actionArgs.GetStringKey("resseries");
+    if (!rs_arg.empty()) {
+      if (rs_arg == "present")
+        Rseries_ = RES_PRESENT;
+      else if (rs_arg == "sum")
+        Rseries_ = RES_SUM;
+      else {
+        mprinterr("Error: '%s' is not a valid 'resseries' keyword.\n", rs_arg.c_str());
+        return Action::ERR;
+      }
+      seriesRout_ = init.DFL().AddDataFile(actionArgs.GetStringKey("resseriesout"), actionArgs);
+    }
   }
   cfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("writecontacts"), "Native Contacts",
                                DataFileList::TEXT, true);
@@ -395,6 +411,14 @@ Action::RetType Action_NativeContacts::Init(ArgList& actionArgs, ActionInit& ini
       mprintf("\tSaving non-native contact time series %s[NN]\n", name.c_str());
       if (seriesNNout_ != 0) mprintf("\tWriting non-native contact time series to %s\n",
                                      seriesNNout_->DataFilename().full());
+    }
+    if (Rseries_ != NO_RESSERIES) {
+      if (Rseries_ == RES_PRESENT)
+        mprintf("\tResidue contact time series will reflect presence of individual contacts.\n");
+      else if (Rseries_ == RES_SUM)
+        mprintf("\tResidue contact time series will reflect sum of individual contacts.\n");
+      if (seriesRout_ != 0) mprintf("\tWriting residue contact time series to %s\n",
+                                    seriesRout_->DataFilename().full());
     }
   }
   // Set up reference if necessary.
@@ -591,8 +615,33 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn) {
   std::sort( sortedList.begin(), sortedList.end() );
   // Place residue pairs into an array to be sorted.
   std::vector<Rpair> ResList;
+  unsigned int ridx = 1;
   for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
+  {
     ResList.push_back( *it );
+    if (Rseries_ != NO_RESSERIES) {
+      int r1 = it->first.first;
+      int r2 = it->first.second;
+      std::string legend(CurrentParm_->TruncResNameNum(r1) + "_" +
+                         CurrentParm_->TruncResNameNum(r2)); 
+      MetaData md(numnative_->Meta().Name(), "NCRES", ridx++);
+      md.SetLegend( legend );
+      DataSet_integer* ds = (DataSet_integer*)masterDSL_->AddSet(DataSet::INTEGER, md);
+      if (ds != 0) {
+        ds->Allocate(DataSet::SizeArray(1, nframes_));
+        if (seriesRout_ != 0) seriesRout_->AddDataSet( ds );
+        // All series will be the same size thanks to UpdateSeries()
+        for (unsigned int f = 0; f != nframes_; f++) {
+          int total_present = 0;
+          for (DSarray::const_iterator set = it->second.Sets().begin();
+                                       set != it->second.Sets().end(); ++set)
+            total_present += (*(*set))[f];
+          if (Rseries_ == RES_PRESENT && total_present > 0) total_present = 1;
+          (*ds).AddElement( total_present );
+        }
+      }
+    }
+  }
   std::sort( ResList.begin(), ResList.end(), res_cmp() );
   // Print out total fraction frames for residue pairs.
   rfile_->Printf("%-8s %8s %10s %10s\n", "#Res1", "#Res2", "TotalFrac", "Contacts");

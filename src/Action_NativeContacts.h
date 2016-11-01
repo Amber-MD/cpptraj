@@ -31,8 +31,11 @@ class Action_NativeContacts : public Action {
     inline bool ValidContact(int, int, Topology const&) const;
     void UpdateSeries();
 
+    enum RSType { NO_RESSERIES = 0, RES_PRESENT, RES_SUM };
+
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
+    RSType Rseries_;      ///< (series only) Determine whether and how to create residue time series
     int debug_;           ///< Action debug level.
     int matrix_min_;      ///< Used for map output
     int resoffset_;       ///< When byResidue, ignore residues spaced this far apart
@@ -55,6 +58,7 @@ class Action_NativeContacts : public Action {
     CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
     DataFile* seriesout_; ///< DataFile to write native time series data to.
     DataFile* seriesNNout_; ///< DataFile to write non-native time series data to.
+    DataFile* seriesRout_;  ///< DataFile to write residue contact time series data to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -96,6 +100,7 @@ class Action_NativeContacts : public Action {
         bool operator==(resContact const& rhs) const {
           return (nframes_ == rhs.nframes_ && ncontacts_ == rhs.ncontacts_);
         }
+        DSarray const& Sets() const { return sets_; }
       private:
         int nframes_;   ///< Sum of all frames for which contacts present for this residue pair
         int ncontacts_; ///< Total number of contacts between this residue pair
