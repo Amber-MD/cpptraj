@@ -674,7 +674,12 @@ void Action_NativeContacts::WriteContacts(contactListType& ContactsIn, bool isNa
   }
   std::sort( ResList.begin(), ResList.end(), res_cmp() );
   // Print out total fraction frames for residue pairs.
-  rfile_->Printf("%-8s %8s %10s %10s\n", "#Res1", "#Res2", "TotalFrac", "Contacts");
+  const char* ctitle;
+  if (isNative)
+    ctitle = "Contacts";
+  else
+    ctitle = "nnContacts";
+  rfile_->Printf("%-8s %8s %10s %10s\n", "#Res1", "#Res2", "TotalFrac", ctitle);
   //for (resContactMap::const_iterator it = ResContacts.begin(); it != ResContacts.end(); ++it)
   for (std::vector<Rpair>::const_iterator it = ResList.begin();
                                           it != ResList.end(); ++it)
