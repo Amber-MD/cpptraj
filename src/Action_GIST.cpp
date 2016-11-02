@@ -363,6 +363,7 @@ Action::RetType Action_GIST::Setup(ActionSetup& setup) {
         for (unsigned int IDX = 0; IDX != nMolAtoms_; IDX++) {
           Q_.push_back( setup.Top()[o_idx+IDX].Charge() );
           q_sum += Q_.back();
+          //mprintf("DEBUG: Q= %20.10E  q_sum= %20.10E\n", setup.Top()[o_idx+IDX].Charge(), q_sum);
         }
         // Sanity checks. FIXME Assuming H1 and H2 are indices 1 and 2
         if (NotEqual(Q_[1], Q_[2]))
