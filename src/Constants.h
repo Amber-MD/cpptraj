@@ -45,6 +45,14 @@ namespace Constants {
   /// Convert Joules to calories
   const double J_TO_CAL = 1.0 / CAL_TO_J;
   /// Convert electron charge to Amber units (w/ prefactor)
+  /** NOTE: This value is actually very low precision, but is used since this
+    *       is the value used by LEaP. The actual conversion of Coulomb's
+    *       constant for use with Amber units (i.e. e-, Ang, and kcal/mol)
+    *       is (with NA representing Avogadro's number):
+    *         (8.987552e9 N*m^2/C^2) * (1.602177e-19 C/e-)^2 * (10^10 Ang/m) *
+    *         (1/4184 kcal/J) * NA = 332.06279350
+    *       The square root of this value is 18.222590197
+    */
   const double ELECTOAMBER  = 18.2223;
   /// Convert Amber charge to electron charge
   const double AMBERTOELEC  = 1.0 / ELECTOAMBER;
