@@ -546,13 +546,15 @@ void Action_GIST::NonbondEnergy(Frame const& frameIn, Topology const& topIn)
               if (is_O_O && rij2 < NeighborCut2_)
                 Neighbor[a1_voxel] += 1.0;
               if (doEij_) {
-#               ifdef _OPENMP
-                eij_v1->push_back( a1_voxel );
-                eij_v2->push_back( a2_voxel );
-                eij_en->push_back( Evdw + Eelec );
-#               else
-                ww_Eij_->UpdateElement(a1_voxel, a2_voxel, Evdw + Eelec);
-#               endif
+                if (a1_voxel != a2_voxel) {
+#                 ifdef _OPENMP
+                  eij_v1->push_back( a1_voxel );
+                  eij_v2->push_back( a2_voxel );
+                  eij_en->push_back( Evdw + Eelec );
+#                 else
+                  ww_Eij_->UpdateElement(a1_voxel, a2_voxel, Evdw + Eelec);
+#                 endif
+                }
               }
             }
           }
