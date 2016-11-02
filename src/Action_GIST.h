@@ -103,15 +103,14 @@ class Action_GIST : public Action {
     CpptrajFile* eijfile_;     ///< Eij matrix output
     CpptrajFile* infofile_;    ///< GIST info
     std::string prefix_;       ///< Output file name prefix
+    Darray Q_;                 ///< Solvent molecule charges (for dipole calc)
     double BULK_DENS_;         ///< Bulk water density
     double temperature_;       ///< Temperature
-    double q_O_;               ///< Charge on water oxygen
-    double q_H1_;              ///< Charge on water H1
-    double q_H2_;              ///< Charge on water H2 (sanity check)
     double NeighborCut2_;      ///< Cutoff for determining water neighbors (squared).
     unsigned int MAX_GRID_PT_; ///< Max number of grid points (voxels).
     unsigned int NSOLVENT_;    ///< Number of solvent molecules.
     unsigned int N_ON_GRID_;   ///< Number of water atoms on the grid.*
+    unsigned int nMolAtoms_;   ///< Number of atoms in a water molecule.+
     int NFRAME_;               ///< Total # frames analyzed
     int max_nwat_;             ///< Max number of waters in any voxel
     bool doOrder_;             ///< If true do the order calc
