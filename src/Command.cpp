@@ -122,6 +122,7 @@
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
 #include "Action_Align.h"
+#include "Action_Remap.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -294,6 +295,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Radgyr(),        Cmd::ACT, 2, "radgyr", "rog" );
   Command::AddCmd( new Action_Radial(),        Cmd::ACT, 2, "radial", "rdf" );
   Command::AddCmd( new Action_RandomizeIons(), Cmd::ACT, 1, "randomizeions" );
+  Command::AddCmd( new Action_Remap(),         Cmd::ACT, 1, "remap" );
   Command::AddCmd( new Action_ReplicateCell(), Cmd::ACT, 1, "replicatecell" );
   Command::AddCmd( new Action_Rmsd(),          Cmd::ACT, 2, "rms", "rmsd" );
   Command::AddCmd( new Action_Rotate(),        Cmd::ACT, 1, "rotate" );

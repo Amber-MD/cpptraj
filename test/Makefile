@@ -325,6 +325,9 @@ test.rotatedihedral:
 test.dataset:
 	@-cd Test_DataSetCmd && ./RunTest.sh $(OPT)
 
+test.remap:
+	@-cd Test_Remap && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -406,7 +409,8 @@ SHORT_TESTS=test.general \
           test.velocityautocorr \
           test.velfrc \
           test.rotatedihedral \
-          test.dataset
+          test.dataset \
+          test.remap
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -512,7 +516,8 @@ COMPLETETESTS=test.general \
               test.velocityautocorr \
               test.velfrc \
               test.rotatedihedral \
-              test.dataset
+              test.dataset \
+              test.remap
 
 test: test.all 
 

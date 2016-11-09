@@ -60,6 +60,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Radgyr.cpp \
         Action_Radial.cpp \
         Action_RandomizeIons.cpp \
+        Action_Remap.cpp \
         Action_ReplicateCell.cpp \
         Action_Rmsd.cpp \
         Action_Rotate.cpp \
