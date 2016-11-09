@@ -59,7 +59,7 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
   } else
     return Action::ERR; // Sanity check
   if (!parmoutName_.empty())
-    mprintf("\tRemapped topology will be written with name '%s'\n", parmoutName_.c_str());
+    mprintf("\tRe-mapped topology will be written with name '%s'\n", parmoutName_.c_str());
   return Action::OK;
 }
 
@@ -78,19 +78,21 @@ Action::RetType Action_Remap::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   setup.SetTopology( newParm_ );
-  newParm_->Brief("Stripped topology:");
+  newParm_->Brief("Re-mapped topology:");
   // Allocate space for new frame
   newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
   // Write output topology if specified
   if (!parmoutName_.empty()) {
     ParmFile pfile;
     if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out remapped topology file '%s'\n", parmoutName_.c_str());
+      mprinterr("Error: Could not write out re-mapped topology file '%s'\n", parmoutName_.c_str());
   }
   return Action::MODIFY_TOPOLOGY;
 }
 
+// Action_Remap::DoAction()
 Action::RetType Action_Remap::DoAction(int frameNum, ActionFrame& frm) {
-  return Action::ERR;
+  newFrame_.SetCoordinatesByMap( frm.Frm(), Map_ );
+  frm.SetFrame( &newFrame_ );
+  return Action::MODIFY_COORDS;
 }
-
