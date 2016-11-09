@@ -39,11 +39,13 @@ Action::RetType Action_Strip::Init(ArgList& actionArgs, ActionInit& init, int de
   // invert the mask selection.
   M1_.InvertMaskExpression();
 
-  mprintf("    STRIP: Stripping atoms in mask [%s]\n",M1_.MaskString());
+  mprintf("    STRIP: Stripping atoms in mask [%s]\n", M1_.MaskString());
   if (!prefix_.empty()) 
-    mprintf("           Stripped topology will be output with prefix %s\n",prefix_.c_str());
+    mprintf("\tStripped topology will be output with prefix '%s'\n", prefix_.c_str());
+  if (!parmoutName_.empty())
+    mprintf("\tStripped topology will be output with name '%s'\n", parmoutName_.c_str());
   if (removeBoxInfo_)
-    mprintf("           Any existing box information will be removed.\n");
+    mprintf("\tAny existing box information will be removed.\n");
   masterDSL_ = init.DslPtr();
   return Action::OK;
 }
@@ -94,7 +96,7 @@ Action::RetType Action_Strip::Setup(ActionSetup& setup) {
   if (!parmoutName_.empty()) {
     ParmFile pfile;
     if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
-      mprinterr("Error: Could not write out stripped topology file %s\n", parmoutName_.c_str());
+      mprinterr("Error: Could not write out stripped topology file '%s'\n", parmoutName_.c_str());
   }
 
   return Action::MODIFY_TOPOLOGY;

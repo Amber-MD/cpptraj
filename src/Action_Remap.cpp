@@ -1,15 +1,26 @@
 #include "Action_Remap.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
+#include "ParmFile.h"
 
+// CONSTRUCTOR
+Action_Remap::Action_Remap() : newParm_(0) {}
+
+// DESTRUCTOR
+Action_Remap::~Action_Remap() {
+  if (newParm_ != 0) delete newParm_;
+}
+
+// Action_Remap::Help()
 void Action_Remap::Help() const {
-  mprintf("\tdata <setname>\n"
+  mprintf("\tdata <setname> [parmout <file>]\n"
           "  Re-map atoms according to the given reference data set which is of the format:\n"
           "    Reference[Target]\n"
           "  with atom numbering starting from 1. E.g. Reference[1] = 10 would mean remap\n"
           "  atom 10 in target to position 1.\n");
 }
 
+// Action_Remap::Init()
 Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Get Keywords
@@ -18,6 +29,7 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
     mprinterr("Error: Atom map data set name not specified.\n");
     return Action::ERR;
   }
+  parmoutName_ = actionArgs.GetStringKey("parmout");
   // Get dataset
   DataSet* mapset = 0;
   if (!mapsetname.empty()) {
@@ -46,11 +58,36 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
             mapset->legend(), Map_.size());
   } else
     return Action::ERR; // Sanity check
+  if (!parmoutName_.empty())
+    mprintf("\tRemapped topology will be written with name '%s'\n", parmoutName_.c_str());
   return Action::OK;
 }
 
+// Action_Remap::Setup()
 Action::RetType Action_Remap::Setup(ActionSetup& setup) {
-  return Action::ERR;
+  if (setup.Top().Natom() != (int)Map_.size()) {
+    mprintf("Warning: Topology '%s' size (%i) does not match map size (%zu). Skipping.\n",
+            setup.Top().c_str(), setup.Top().Natom(), Map_.size());
+    return Action::SKIP;
+  }
+  // Attempt to create remapped topology
+  if (newParm_ != 0) delete newParm_;
+  newParm_ = setup.Top().ModifyByMap( Map_ );
+  if (newParm_ == 0) {
+    mprinterr("Error: Could not create re-mapped topology.\n");
+    return Action::ERR;
+  }
+  setup.SetTopology( newParm_ );
+  newParm_->Brief("Stripped topology:");
+  // Allocate space for new frame
+  newFrame_.SetupFrameV(setup.Top().Atoms(), setup.CoordInfo());
+  // Write output topology if specified
+  if (!parmoutName_.empty()) {
+    ParmFile pfile;
+    if ( pfile.WriteTopology( setup.Top(), parmoutName_, ParmFile::AMBERPARM, 0 ) )
+      mprinterr("Error: Could not write out remapped topology file '%s'\n", parmoutName_.c_str());
+  }
+  return Action::MODIFY_TOPOLOGY;
 }
 
 Action::RetType Action_Remap::DoAction(int frameNum, ActionFrame& frm) {
