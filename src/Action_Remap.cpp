@@ -48,11 +48,12 @@ Action::RetType Action_Remap::Init(ArgList& actionArgs, ActionInit& init, int de
     }
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *mapset );
     Map_.reserve( ds.Size() );
+    // User atom #s start from 1
     for (unsigned int i = 0; i != ds.Size(); i++)
-      Map_.push_back( (int)ds.Dval(i) );
+      Map_.push_back( (int)ds.Dval(i) - 1 );
   }
 
-  mprintf("    REMAP:");
+  mprintf("    REMAP: ");
   if (mapset != 0) {
     mprintf("Remapping atoms according to positions specified by data set '%s' (%zu atoms).\n",
             mapset->legend(), Map_.size());
