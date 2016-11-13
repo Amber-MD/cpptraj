@@ -87,22 +87,25 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     }
   }
   StructureMapper Mapper;
-  if (Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ ))
+  //if (Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ ))
+  if (Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ ))
     return Action::ERR;
   AMap_ = Mapper.Map();
 
   // Print atom map
   if (outputfile != 0) {
+    Topology const& refTop = RefFrame_->Top();
+    Topology const& tgtTop = TgtFrame_->Top();
     outputfile->Printf("%-6s %4s %6s %4s\n","#TgtAt","Tgt","RefAt","Ref");
-    for (int refatom = 0; refatom != Mapper.MapSize(); ++refatom) {
+    for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {
       int tgtatom = AMap_[refatom];
       if (tgtatom < 0)
         outputfile->Printf("%6s %4s %6i %4s\n", "---", "---",
-                           refatom+1, Mapper.RefAtom(refatom).c_str());
+                           refatom+1, refTop[refatom].c_str());
       else
         outputfile->Printf("%6i %4s %6i %4s\n",
-                           tgtatom+1, Mapper.TgtAtom(tgtatom).c_str(),
-                           refatom+1, Mapper.RefAtom(refatom).c_str());
+                           tgtatom+1, tgtTop[tgtatom].c_str(),
+                           refatom+1, refTop[refatom].c_str());
     }
   }
   if (maponly_) return Action::OK;
@@ -121,11 +124,11 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   }
 
   // Check if not all atoms could be mapped
-  if (Mapper.Nmapped() != Mapper.MapSize()) {
+  if (Mapper.Nmapped() != (int)AMap_.size()) {
     // If the number of mapped atoms is less than the number of reference
     // atoms but equal to the number of target atoms, can modify the reference
     // frame to only include mapped atoms
-    if (Mapper.Nmapped()<Mapper.MapSize() && Mapper.AllTgtMapped()) {
+    if (Mapper.Nmapped() < (int)AMap_.size() && Mapper.AllTgtMapped()) {
       // Create mask that includes only reference atoms that could be mapped
       AtomMask M1;
       for (int refatom = 0; refatom != (int)AMap_.size(); ++refatom) {

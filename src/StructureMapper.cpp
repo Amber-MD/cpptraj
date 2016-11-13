@@ -793,8 +793,9 @@ int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
     }
 
     // Store final map
+    int resFirstAtom = TgtFrameIn->Top().Res( res ).FirstAtom();
     for (MapType::const_iterator resmap = AMap_.begin(); resmap != AMap_.end(); ++resmap)
-      mapOut.push_back( *resmap );
+      mapOut.push_back( *resmap + resFirstAtom );
   }
   AMap_ = mapOut;
 

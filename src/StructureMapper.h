@@ -12,8 +12,6 @@ class StructureMapper {
     int operator[](int idx)         const { return AMap_[idx];   }
     int MapSize()                   const { return (int)AMap_.size(); }
     MapType const& Map()            const { return AMap_;        }
-    MapAtom const& RefAtom(int idx) const { return RefMap_[idx]; }
-    MapAtom const& TgtAtom(int idx) const { return TgtMap_[idx]; }
     /// \return Number of target atoms successfully mapper to reference
     int Nmapped()                   const { return Nmapped_;     }
     /// \return true if all target atoms could be mapped.
