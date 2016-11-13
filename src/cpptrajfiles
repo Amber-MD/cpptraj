@@ -285,6 +285,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
         StringRoutines.cpp \
+        StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \
         TextFormat.cpp \
         Timer.cpp \

@@ -1,10 +1,7 @@
 #ifndef INC_ACTION_ATOMMAP_H
 #define INC_ACTION_ATOMMAP_H
 #include "Action.h"
-#include "AtomMap.h"
-#include "DataSet_Coords_REF.h"
-// Class: Action_AtomMap
-/// Action used to map one molecule to another using AtomMaps
+/// Action used to map and reorder atoms in target to reference.
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
@@ -17,13 +14,11 @@ class Action_AtomMap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    int debug_;
-    AtomMap RefMap_;
-    DataSet_Coords_REF* RefFrame_;
-    AtomMap TgtMap_;
     DataSet_Coords_REF* TgtFrame_;
-
+    DataSet_Coords_REF* RefFrame_;
+    int debug_;
     std::vector<int> AMap_;
+
     bool maponly_;
     Frame* newFrame_;
     Topology* newParm_;
@@ -33,13 +28,7 @@ class Action_AtomMap : public Action {
     Frame rmsTgtFrame_;
     bool rmsfit_;
     DataSet* rmsdata_;
-
-    int mapBondsToUnique(AtomMap&, AtomMap&);
-    int mapChiral(AtomMap&, AtomMap&);
-    int mapByIndex(AtomMap&, AtomMap&);
-    int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);
-    int MapAtoms(AtomMap&, AtomMap&);
-    int MapUniqueAtoms(AtomMap&, AtomMap&);
-    int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
+    int tgtPindex_; ///< Topology index of target topology used in mapping
+    int tgtNatom_;  ///< Number of atoms in target topology
 };
 #endif

@@ -699,31 +699,31 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   //   AMap_[reference]=target
   AMap_.resize( RefMap_.Natom(), -1); 
   // Map unique atoms
-  int numMappedAtoms = MapUniqueAtoms(RefMap_, TgtMap_);
+  Nmapped_ = MapUniqueAtoms(RefMap_, TgtMap_);
   if (debug_>0)
-    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",numMappedAtoms);
+    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",Nmapped_);
   // If no unique atoms mapped system is highly symmetric and needs to be
   // iteratively mapped. Otherwise just map remaining atoms.
-  if (numMappedAtoms==0) { 
+  if (Nmapped_==0) { 
     if (MapWithNoUniqueAtoms(RefMap_,TgtMap_)) return 1;
   } else {
     if (MapAtoms(RefMap_,TgtMap_)) return 1;
   }
 
   // Count number of mapped atoms
-  numMappedAtoms = 0;
+  Nmapped_ = 0;
   for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
     if (AMap_[refatom] > -1) { // targetatom
       //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
       //                targetatom,TgtMap_.P->names[targetatom],
       //                refatom,RefMap_.P->names[refatom]);
-      ++numMappedAtoms;
+      ++Nmapped_;
     } //else {
     //  mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
     //                  refatom,RefMap_.P->names[refatom]);
     //}
   }
-  mprintf("      %i total atoms were mapped.\n",numMappedAtoms);
+  mprintf("      %i total atoms were mapped.\n",Nmapped_);
 
   return 0;
 }

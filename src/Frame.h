@@ -140,7 +140,7 @@ class Frame {
     // ----- Frame coordinate remapping ----------
     /// Copy entire input frame, reorder according to input map. 
     void SetCoordinatesByMap(Frame const&, std::vector<int>const&);
-    /// Modify this frame to include only mapped atoms from input frame.
+    /// Modify this frame to include only mapped atoms from input frame. TODO use mask?
     void StripUnmappedAtoms(Frame const&, std::vector<int>const&);
     /// Copy only input coordinates, reorder according to input map.
     void ModifyByMap(Frame const&, std::vector<int>const&);
