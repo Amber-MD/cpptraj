@@ -997,9 +997,10 @@ int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
 // ReadChamberFFtype(Topology& TopIn)
 int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
   const char* ptr = file_.NextLine();
-  char ff_verstr[2];
+  char ff_verstr[3];
   ff_verstr[0] = ptr[0];
   ff_verstr[1] = ptr[1];
+  ff_verstr[2] = '\0';
   int ff_verno = atoi(ff_verstr);
   std::string fftype = NoTrailingWhitespace( ptr+2 );
   TopIn.SetChamber().SetVersion( ff_verno, fftype );
