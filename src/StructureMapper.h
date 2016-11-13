@@ -8,6 +8,7 @@ class StructureMapper {
     typedef std::vector<int> MapType;
     StructureMapper() {}
     int CreateMap(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
+    int CreateMapByResidue(DataSet_Coords_REF*, DataSet_Coords_REF*, int);
     int operator[](int idx)         const { return AMap_[idx];   }
     int MapSize()                   const { return (int)AMap_.size(); }
     MapType const& Map()            const { return AMap_;        }

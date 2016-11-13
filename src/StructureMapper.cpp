@@ -673,8 +673,10 @@ int StructureMapper::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
 void StructureMapper::CountMappedAtoms() {
   // Count number of mapped atoms
   Nmapped_ = 0;
-  for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
-    if (AMap_[refatom] > -1) { // targetatom
+  for (MapType::const_iterator tgtatom = AMap_.begin();
+                               tgtatom != AMap_.end(); ++tgtatom)
+  {
+    if (*tgtatom > -1) {
       //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
       //                targetatom,TgtMap_.P->names[targetatom],
       //                refatom,RefMap_.P->names[refatom]);
@@ -698,11 +700,8 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   debug_ = debugIn; 
   RefMap_.SetDebug(debug_);
   TgtMap_.SetDebug(debug_);
-  // For each map, set up (get element for each atom, initialize map mem),
-  // determine what atoms are bonded to each other via simple distance
-  // cutoffs, the give each atom an ID based on what atoms are bonded to
-  // it, noting which IDs are unique for that map. 
 
+  // Try to map entire Tgt to Ref
   if (RefMap_.Setup(RefFrameIn->Top(), RefFrameIn->RefFrame())!=0) return 1;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
@@ -711,27 +710,93 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
 
+  // Allocate memory for atom map
+  //   AMap_[reference]=target
+  AMap_.resize( RefMap_.Natom(), -1);
+
   // Check if number of atoms in each map is equal
   if (RefMap_.Natom() != TgtMap_.Natom()) {
     mprintf("Warning: # atoms in reference (%i) not equal\n",
             RefMap_.Natom());
     mprintf("Warning:\tto # atoms in target (%i).\n",TgtMap_.Natom());
   }
-
-  // Allocate memory for atom map
-  //   AMap_[reference]=target
-  AMap_.resize( RefMap_.Natom(), -1); 
   // Map unique atoms
-  Nmapped_ = MapUniqueAtoms(RefMap_, TgtMap_);
+  int NuniqueMapped = MapUniqueAtoms(RefMap_, TgtMap_);
   if (debug_>0)
-    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",Nmapped_);
+    mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",NuniqueMapped);
   // If no unique atoms mapped system is highly symmetric and needs to be
   // iteratively mapped. Otherwise just map remaining atoms.
-  if (Nmapped_==0) { 
-    if (MapWithNoUniqueAtoms(RefMap_,TgtMap_)) return 1;
+  if (NuniqueMapped==0) { 
+    if (MapWithNoUniqueAtoms(RefMap_, TgtMap_)) return 1;
   } else {
-    if (MapAtoms(RefMap_,TgtMap_)) return 1;
+    if (MapAtoms(RefMap_, TgtMap_)) return 1;
   }
+
+  CountMappedAtoms();
+
+  return 0;
+}
+
+int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
+                                        DataSet_Coords_REF* TgtFrameIn, int debugIn)
+{
+  if (RefFrameIn == 0 || TgtFrameIn == 0) {
+    mprinterr("Internal Error: One or both reference data sets is null.\n");
+    return 1;
+  }
+  debug_ = debugIn; 
+  RefMap_.SetDebug(debug_);
+  TgtMap_.SetDebug(debug_);
+
+  int maxres = std::min( RefFrameIn->Top().Nres(), TgtFrameIn->Top().Nres());
+  if (RefFrameIn->Top().Nres() != TgtFrameIn->Top().Nres()) {
+    mprintf("Warning: # residues in '%s' (%i) != # residues in '%s' (%i)\n",
+            RefFrameIn->Top().c_str(), RefFrameIn->Top().Nres(),
+            TgtFrameIn->Top().c_str(), TgtFrameIn->Top().Nres());
+    mprintf("Warning: Will only attempt to map %i\n", maxres);
+  }
+
+  // mapOut will hold the final map. AMap will be res to res map during loop.
+  MapType mapOut;
+  mapOut.reserve( RefFrameIn->Top().Natom() );
+  for (int res = 0; res != maxres; res++) {
+    // Try to map residue in Tgt to Ref
+    if (RefMap_.SetupResidue(RefFrameIn->Top(), RefFrameIn->RefFrame(), res))
+      return 1;
+    //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
+    RefMap_.DetermineAtomIDs();
+
+    if (TgtMap_.SetupResidue(TgtFrameIn->Top(), TgtFrameIn->RefFrame(), res))
+      return 1;
+    //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
+    TgtMap_.DetermineAtomIDs();
+
+    // Allocate memory for residue to residue atom map
+    //   AMap_[reference]=target
+    AMap_.assign( RefMap_.Natom(), -1);
+
+    // Check if number of atoms in each map is equal
+    if (RefMap_.Natom() != TgtMap_.Natom()) {
+      mprintf("Warning: Res %i: # atoms in reference (%i) not equal to # atoms in target (%i).\n",
+              RefMap_.Natom(), TgtMap_.Natom());
+    }
+    // Map unique atoms
+    int NuniqueMapped = MapUniqueAtoms(RefMap_, TgtMap_);
+    if (debug_>0)
+      mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",NuniqueMapped);
+    // If no unique atoms mapped system is highly symmetric and needs to be
+    // iteratively mapped. Otherwise just map remaining atoms.
+    if (NuniqueMapped==0) { 
+      if (MapWithNoUniqueAtoms(RefMap_, TgtMap_)) return 1;
+    } else {
+      if (MapAtoms(RefMap_, TgtMap_)) return 1;
+    }
+
+    // Store final map
+    for (MapType::const_iterator resmap = AMap_.begin(); resmap != AMap_.end(); ++resmap)
+      mapOut.push_back( *resmap );
+  }
+  AMap_ = mapOut;
 
   CountMappedAtoms();
 
