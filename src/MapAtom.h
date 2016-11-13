@@ -6,7 +6,7 @@ class MapAtom : public Atom {
   public :
     MapAtom();
     MapAtom(const MapAtom&);
-    MapAtom(const Atom&);
+    MapAtom(const Atom&, const double*);
     MapAtom& operator=(const MapAtom&);
 
     bool IsChiral()             const { return isChiral_; }
@@ -18,6 +18,7 @@ class MapAtom : public Atom {
     const std::string& Unique() const { return unique_;}
     int Nduplicated()           const { return Nduplicated_; }
     char CharName()             const { return name_; }
+    const double* XYZ()         const { return xyz_; }
 
     void IsDuplicated()                  { ++Nduplicated_; }
     void SetMapped()                     { isMapped_ = true; } 
@@ -31,6 +32,7 @@ class MapAtom : public Atom {
     void SetNotChiral()                  { isChiral_ = false; }
   private:
     static const char AtomicElementChar[];
+    double xyz_[3];      ///< Coordinates of atom
     bool isChiral_;      ///< true: Atom is a chiral center
     bool boundToChiral_; ///< true: Atom is bound to a chiral center.
     bool isMapped_;      ///< true: this atom has been mapped

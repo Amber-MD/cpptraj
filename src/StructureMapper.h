@@ -29,10 +29,6 @@ class StructureMapper {
     AtomMap RefMap_; ///< Reference atom order.
     AtomMap TgtMap_; ///< Atoms to be reordered.
     MapType AMap_;
-    Frame rmsRefFrame_;
-    Frame rmsTgtFrame_;
-    DataSet_Coords_REF* RefFrame_;
-    DataSet_Coords_REF* TgtFrame_;
     int debug_;
     int Nmapped_; ///< Number of atoms in tgt actually mapped to ref
 };

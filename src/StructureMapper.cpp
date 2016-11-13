@@ -181,19 +181,19 @@ int StructureMapper::mapChiral(AtomMap& Ref, AtomMap& Tgt) {
     }
     // Calculate reference improper dihedrals
     for (int i=0; i<notunique_r; i++) {
-      dR[i] = Torsion( RefFrame_->RefFrame().XYZ(uR[0]),
-                       RefFrame_->RefFrame().XYZ(uR[1]), 
-                       RefFrame_->RefFrame().XYZ(uR[2]),
-                       RefFrame_->RefFrame().XYZ(nR[i]) );
+      dR[i] = Torsion( RefMap_[uR[0]].XYZ(),
+                       RefMap_[uR[1]].XYZ(), 
+                       RefMap_[uR[2]].XYZ(),
+                       RefMap_[nR[i]].XYZ() );
       if (debug_>1) mprintf("    Ref Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0]+1, uR[1]+1, uR[2]+1, nR[i]+1, dR[i]+1);
     }
     // Calculate target improper dihedrals
     for (int i=0; i<notunique_t; i++) {
-      dT[i] = Torsion( TgtFrame_->RefFrame().XYZ(uT[0]),
-                       TgtFrame_->RefFrame().XYZ(uT[1]),
-                       TgtFrame_->RefFrame().XYZ(uT[2]),
-                       TgtFrame_->RefFrame().XYZ(nT[i]) );
+      dT[i] = Torsion( TgtMap_[uT[0]].XYZ(),
+                       TgtMap_[uT[1]].XYZ(),
+                       TgtMap_[uT[2]].XYZ(),
+                       TgtMap_[nT[i]].XYZ() );
       if (debug_>1) mprintf("    Tgt Improper %i [%3i,%3i,%3i,%3i]= %lf\n",i,
                            uR[0]+1, uR[1]+1, uR[2]+1, nT[i]+1, dT[i]+1);
     }
@@ -533,6 +533,18 @@ int StructureMapper::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
   for (std::list<int>::iterator t=tgtGuess.begin(); t!=tgtGuess.end(); t++)
     mprintf(" %i",(*t)+1);
   mprintf("\n");
+  // Set up RMS frames to be able to hold max # of possible atoms 
+  Frame rmsRefFrame( RefMap_.Natom() );
+  Frame rmsTgtFrame = rmsRefFrame;
+  // Original reference frame
+  Frame REF = rmsRefFrame;
+  REF.ClearAtoms();
+  for (int ridx = 0; ridx != RefMap_.Natom(); ridx++)
+    REF.AddXYZ( RefMap_[ridx].XYZ() );
+  // Original target frame
+  Frame TGT( TgtMap_.Natom() );
+  for (int tidx = 0; tidx != TgtMap_.Natom(); tidx++)
+    TGT.AddXYZ( TgtMap_[tidx].XYZ() );
   // For each pair of atoms in refGuess and tgtGuess that have the same
   // ID string, guess that they are mapped and attempt to perform atom
   // mapping from there.
@@ -561,9 +573,9 @@ int StructureMapper::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
         if (numAtomsMapped<3) continue;
         // Score this mapping with an RMSD ---------------------------------
         // Set up a reference/target frame containing only mapped atoms
-        rmsRefFrame_.StripUnmappedAtoms(RefFrame_->RefFrame(), AMap_);
-        rmsTgtFrame_.ModifyByMap(TgtFrame_->RefFrame(), AMap_);
-        double RmsVal = rmsTgtFrame_.RMSD(rmsRefFrame_, false);
+        rmsRefFrame.StripUnmappedAtoms(REF, AMap_);
+        rmsTgtFrame.ModifyByMap(TGT, AMap_);
+        double RmsVal = rmsTgtFrame.RMSD(rmsRefFrame, false);
         mprintf("\tRMS fit (%i atoms) based on guess Tgt %i -> Ref %i, %lf\n",
                 numAtomsMapped,(*t)+1, (*r)+1, RmsVal);
         // -----------------------------------------------------------------
@@ -666,8 +678,6 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
     mprinterr("Internal Error: One or both reference data sets is null.\n");
     return 1;
   }
-  RefFrame_ = RefFrameIn;
-  TgtFrame_ = TgtFrameIn;
   debug_ = debugIn; 
   RefMap_.SetDebug(debug_);
   TgtMap_.SetDebug(debug_);
@@ -676,11 +686,11 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   // cutoffs, the give each atom an ID based on what atoms are bonded to
   // it, noting which IDs are unique for that map. 
 
-  if (RefMap_.Setup(RefFrame_->Top())!=0) return 1;
+  if (RefMap_.Setup(RefFrameIn->Top(), RefFrameIn->RefFrame())!=0) return 1;
   //RefMap_.WriteMol2((char*)"RefMap.mol2\0"); // DEBUG
   RefMap_.DetermineAtomIDs();
 
-  if (TgtMap_.Setup(TgtFrame_->Top())!=0) return 1;
+  if (TgtMap_.Setup(TgtFrameIn->Top(), TgtFrameIn->RefFrame())!=0) return 1;
   //TgtMap_.WriteMol2((char*)"TgtMap.mol2\0"); // DEBUG
   TgtMap_.DetermineAtomIDs();
 
@@ -690,10 +700,6 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
             RefMap_.Natom());
     mprintf("Warning:\tto # atoms in target (%i).\n",TgtMap_.Natom());
   }
-
-  // Set up RMS frames to be able to hold max # of possible atoms 
-  rmsRefFrame_.SetupFrame(RefMap_.Natom());
-  rmsTgtFrame_.SetupFrame(RefMap_.Natom());
 
   // Allocate memory for atom map
   //   AMap_[reference]=target

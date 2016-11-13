@@ -14,9 +14,9 @@ class AtomMap {
     /// Set the debug level of the AtomMap.
     void SetDebug(int d) { debug_ = d; }
     /// Setup AtomMap with all atoms from input Topology.
-    int Setup(Topology const&);
+    int Setup(Topology const&, Frame const&);
     /// Setup AtomMap with just atoms from specified Residue.
-    int SetupResidue(Topology const&,int);
+    int SetupResidue(Topology const&, Frame const&, int);
     /// Reset any previously set mapping information.
     void ResetMapping();
     bool BondIsRepeated(int,int) const;
