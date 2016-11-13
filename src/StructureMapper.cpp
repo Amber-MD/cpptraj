@@ -670,7 +670,24 @@ int StructureMapper::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
   return 0;
 }
 
-// StructureMapper::Init()
+void StructureMapper::CountMappedAtoms() {
+  // Count number of mapped atoms
+  Nmapped_ = 0;
+  for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
+    if (AMap_[refatom] > -1) { // targetatom
+      //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
+      //                targetatom,TgtMap_.P->names[targetatom],
+      //                refatom,RefMap_.P->names[refatom]);
+      ++Nmapped_;
+    } //else {
+    //  mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
+    //                  refatom,RefMap_.P->names[refatom]);
+    //}
+  }
+  mprintf("\t%i total atoms were mapped.\n",Nmapped_);
+}
+
+// StructureMapper::CreateMap()
 int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
                                DataSet_Coords_REF* TgtFrameIn, int debugIn)
 {
@@ -716,20 +733,7 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
     if (MapAtoms(RefMap_,TgtMap_)) return 1;
   }
 
-  // Count number of mapped atoms
-  Nmapped_ = 0;
-  for (int refatom = 0; refatom != RefMap_.Natom(); ++refatom) {
-    if (AMap_[refatom] > -1) { // targetatom
-      //mprintf("* TargetAtom %6i(%4s) maps to RefAtom %6i(%4s)\n",
-      //                targetatom,TgtMap_.P->names[targetatom],
-      //                refatom,RefMap_.P->names[refatom]);
-      ++Nmapped_;
-    } //else {
-    //  mprintf("* Could not map any TargetAtom to RefAtom %6i(%4s)\n",
-    //                  refatom,RefMap_.P->names[refatom]);
-    //}
-  }
-  mprintf("      %i total atoms were mapped.\n",Nmapped_);
+  CountMappedAtoms();
 
   return 0;
 }

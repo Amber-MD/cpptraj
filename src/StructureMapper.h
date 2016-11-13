@@ -25,6 +25,7 @@ class StructureMapper {
     int MapAtoms(AtomMap&, AtomMap&);
     int MapUniqueAtoms(AtomMap&, AtomMap&);
     int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
+    void CountMappedAtoms();
 
     AtomMap RefMap_; ///< Reference atom order.
     AtomMap TgtMap_; ///< Atoms to be reordered.
