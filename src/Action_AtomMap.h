@@ -19,16 +19,14 @@ class Action_AtomMap : public Action {
     int debug_;
     std::vector<int> AMap_;
 
-    bool maponly_;
-    Frame* newFrame_;
-    Topology* newParm_;
-    Topology* stripParm_; // For stripping reference
+    bool maponly_;      ///< If true only generate map
+    bool byResidue_;    ///< If true create map on residue by residue basis
+    Frame* newFrame_;   ///< Frame for re-mapped target
+    Topology* newParm_; ///< Topology for re-mapped target
 
-    Frame rmsRefFrame_;
-    Frame rmsTgtFrame_;
-    bool rmsfit_;
-    DataSet* rmsdata_;
-    int tgtPindex_; ///< Topology index of target topology used in mapping
-    int tgtNatom_;  ///< Number of atoms in target topology
+    Frame rmsRefFrame_; ///< Ref frame for calculating RMS of remapped target to ref
+    Frame rmsTgtFrame_; ///< Tgt frame for calculating RMS of remapped target to ref
+    bool rmsfit_;       ///< If true, attempt to RMS-fit remapped target to ref
+    DataSet* rmsdata_;  ///< RMS of remapped target to ref.
 };
 #endif

@@ -9,25 +9,26 @@ Action_AtomMap::Action_AtomMap() :
   RefFrame_(0),
   debug_(0),
   maponly_(false),
+  byResidue_(true),
   newFrame_(0),
   newParm_(0),
-  stripParm_(0),
   rmsfit_(false),
   rmsdata_(0)
 {}
 
 void Action_AtomMap::Help() const {
   mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
-          "\t[rmsfit [ rmsout <rmsout> ]]\n"
+          "\t[rmsfit [ rmsout <rmsout> ]] [mapall]\n"
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
-          "  based on how they are bonded; remap <target> so it matches <reference>.\n");
+          "  based on how they are bonded; remap <target> so it matches <reference>.\n"
+          "  If 'rmsfit' is specified, calculate the RMSD of remapped target to reference.\n"
+          "  If 'mapall' is specified, create map all at once instead of residue by residue.\n");
 }
 
 // DESTRUCTOR
 Action_AtomMap::~Action_AtomMap() {
   if (newFrame_!=0) delete newFrame_;
   if (newParm_!=0) delete newParm_;
-  if (stripParm_!=0) delete stripParm_;
 }
 
 // Action_AtomMap::Init()
@@ -44,6 +45,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
 # endif
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
+  if (actionArgs.hasKey("mapall")) byResidue_ = false;
   DataFile* rmsout = 0;
   if (rmsfit_)
     rmsout = init.DFL().AddDataFile( actionArgs.GetStringKey("rmsout"), actionArgs );
@@ -86,10 +88,18 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
       mprintf("\tRMSDs will be written to '%s'\n", rmsout->DataFilename().full());
     }
   }
+  if (byResidue_)
+    mprintf("\tCreating map residue-by-residue; assumes 1-to-1 residue correspondence.\n");
+  else
+    mprintf("\tCreating map using all atoms at once.\n");
+
+  int err = 0;
   StructureMapper Mapper;
-  //if (Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ ))
-  if (Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ ))
-    return Action::ERR;
+  if (byResidue_)
+    err = Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ );
+  else
+    err = Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ );
+  if (err != 0) return Action::ERR;
   AMap_ = Mapper.Map();
 
   // Print atom map

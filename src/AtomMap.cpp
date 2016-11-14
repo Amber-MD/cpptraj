@@ -50,7 +50,8 @@ int AtomMap::SetupResidue(Topology const& topIn, Frame const& FrameIn, int resnu
   mapatoms_.clear();
   int firstAtom = topIn.Res(resnum).FirstAtom();
   int lastAtom = topIn.Res(resnum).LastAtom();
-  mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
+  if (debug_ > 0)
+    mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
   const double* xyz;
   static const double ZERO[3] = {0.0, 0.0, 0.0};
   if (FrameIn.Natom() < 1)
