@@ -72,15 +72,17 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
     return Action::ERR;
   }
  
-  mprintf("    ATOMMAP: Atoms associated with target topology will be remapped to reference.\n"
+  mprintf("    ATOMMAP: Mapping atoms in target topology to given reference.\n"
           "\tTarget topology: '%s'\n\tReference topology: '%s'\n",
           TgtFrame_->Top().c_str(), RefFrame_->Top().c_str());
   if (outputfile != 0)
-    mprintf("\tMap will be written to %s\n", outputfile->Filename().full());
+    mprintf("\tMap will be written to '%s'\n", outputfile->Filename().full());
   if (maponly_)
-    mprintf("\tmaponly: Map will only be written, not used in trajectory read.\n");
+    mprintf("\tMap will only be written, not used to remap input trajectories.\n");
+  else
+    mprintf("\tAtoms in input trajectories matching target will be remapped.\n");
   if (!maponly_ && rmsfit_) {
-    mprintf("\trmsfit: Will rms fit mapped atoms in tgt to reference.\n");
+    mprintf("\tWill RMS-fit mapped atoms in tgt to reference.\n");
     if (rmsout != 0) {
       rmsdata_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "RMSD");
       if (rmsdata_==0) return Action::ERR;
@@ -145,7 +147,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
         if (AMap_[refatom] != -1) M1.AddAtom(refatom);
       }
       // Strip reference parm
-      mprintf("    Modifying reference '%s' topology and frame to match mapped atoms.\n",
+      mprintf("Warning: Modifying reference '%s' topology and frame to match mapped atoms.\n",
               RefFrame_->legend());
       if (RefFrame_->StripRef( M1 )) return Action::ERR;
       // Since AMap[ ref ] = tgt but ref is now missing any stripped atoms,
@@ -157,7 +159,7 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
           AMap_[refIndex++] = targetatom;
       }
     } else {
-      mprintf("Warning: AtomMap: Not all atoms were mapped. Frames will not be modified.\n");
+      mprintf("Warning: Not all atoms were mapped. Frames will not be modified.\n");
       maponly_ = true;
     }
   }
@@ -179,24 +181,24 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
   */
 Action::RetType Action_AtomMap::Setup(ActionSetup& setup) {
   if (maponly_) {
-    mprintf("    ATOMMAP: maponly was specified, not using atom map during traj read.\n");
+    mprintf("\tmaponly was specified, not using atom map during traj read.\n");
     return Action::OK;
   }
   if (setup.Top().Pindex() != TgtFrame_->Top().Pindex() ||
       setup.Top().Natom() != TgtFrame_->Top().Natom()) 
   {
-    mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
+    mprintf("Warning: Map for topology %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
             RefFrame_->Top().c_str(), TgtFrame_->Top().Natom());
-    mprintf("             Current parm %s (%i atom).\n",setup.Top().c_str(),
+    mprintf("Warning: Current topology %s (%i atom).\n",setup.Top().c_str(),
             setup.Top().Natom());
-    mprintf("             Not using map for this parm.\n");
+    mprintf("Warning: Not using map for this topology.\n");
     return Action::SKIP;
   }
   if (rmsfit_) {
-    mprintf("    ATOMMAP: rmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
+    mprintf("\trmsfit specified, %i atoms.\n",rmsRefFrame_.Natom());
     return Action::OK;
   }
-  mprintf("    ATOMMAP: Map for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
+  mprintf("\tMap for parm %s -> %s (%i atom).\n",TgtFrame_->Top().c_str(),
           RefFrame_->Top().c_str(), TgtFrame_->Top().Natom());
 
   setup.SetTopology( newParm_ );
