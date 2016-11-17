@@ -19,6 +19,12 @@ Exec::RetType Exec_Analyze::Execute(CpptrajState& State, ArgList& argIn) {
     mprinterr("Error: No analysis command specified.\n");
     return CpptrajState::ERR;
   }
+  mprintf("Warning: The 'analyze' prefix is no longer necessary and may be soon deprecated.\n");
+  if (arg.CommandIs("matrix"))
+    mprintf("Warning: NOTE: 'analyze matrix' is now 'diagmatrix'.\n");
+  else
+    mprintf("Warning: To add an analysis command the the queue, only the command name needs\n"
+            "Warning: to be specified, e.g. '%s <args>'.\n", arg.Command());
   Cmd const& cmd = Command::SearchTokenType(DispatchObject::ANALYSIS, arg.Command());
   if (cmd.Empty()) {
     mprinterr("Error: Analysis command '%s' not found.\n", arg.Command());
