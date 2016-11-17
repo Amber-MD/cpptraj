@@ -7,6 +7,7 @@
 #include "RPNcalc.h"
 #include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_Analyze.h"
 #include "Exec_Calc.h"
 #include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
@@ -172,6 +173,7 @@ Command::Carray Command::names_ = Command::Carray();
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // HIDDEN
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
   Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
@@ -408,12 +410,6 @@ Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* key
   * \return the token if found, 0 if not.
   */
 Cmd const& Command::SearchToken(ArgList& argIn) {
-  // SPECIAL CASE: For backwards compat. remove analyze prefix
-  if (argIn.CommandIs("analyze")) {
-    argIn.RemoveFirstArg();
-    argIn.MarkArg(0); // Mark new first arg as command
-    return (SearchTokenType(DispatchObject::ANALYSIS, argIn.Command()));
-  }
   // Search for command.
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
