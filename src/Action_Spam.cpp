@@ -15,6 +15,7 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
   bulk_(0.0),
   purewater_(false),
   reorder_(false),
+  calcEnergy_(false),
   cut2_(144.0),
   onecut2_(1.0 / 144.0),
   doublecut_(24.0),
@@ -62,20 +63,25 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   // See if we're doing pure water. If so, we don't need a peak file
   purewater_ = actionArgs.hasKey("purewater");
 
+  // Get data set name.
+  std::string ds_name = actionArgs.GetStringKey("name");
+  if (ds_name.empty())
+    ds_name = init.DSL().GenerateDefaultName("SPAM");
+
+  // Get output data file
+  DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
+
   if (purewater_) {
     // We still need the cutoff
     double cut = actionArgs.getKeyDouble("cut", 12.0);
     cut2_ = cut * cut;
     doublecut_ = 2 * cut;
     onecut2_ = 1 / cut2_;
-    // See if we write to a data file
-    datafile_ = actionArgs.GetStringKey("out");
-    // Generate the data set name, and hold onto the master data set list
-    std::string ds_name = actionArgs.GetStringKey("name");
-    if (ds_name.empty())
-      ds_name = myDSL_.GenerateDefaultName("SPAM");
     // We only have one data set averaging over every water. Add it here
-    myDSL_.AddSet(DataSet::DOUBLE, ds_name, NULL);
+    DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
+    if (ds == 0) return Action::ERR;
+    if (datafile != 0) datafile->AddDataSet( ds );
+    myDSL_.push_back( ds );
     solvname_ = actionArgs.GetStringKey("solv");
     if (solvname_.empty())
       solvname_ = std::string("WAT");
@@ -113,10 +119,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
-    datafile_ = actionArgs.GetStringKey("out");
-    std::string ds_name = actionArgs.GetStringKey("name");
-    if (ds_name.empty())
-      ds_name = myDSL_.GenerateDefaultName("SPAM");
 
     // Parse through the peaks file and extract the peaks
     CpptrajFile peakfile;
@@ -153,18 +155,22 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     MetaData md(ds_name);
     for (int i = 0; i < (int)peaks_.size(); i++) {
       md.SetAspect( integerToString(i+1) ); // TODO: Should this be Idx?
-      if (myDSL_.AddSet(DataSet::DOUBLE, md) == 0) return Action::ERR;
+      DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, md);
+      if (ds == 0) return Action::ERR;
+      myDSL_.push_back( ds );
+      if (datafile != 0) datafile->AddDataSet( ds );
       // Add a new list of integers to keep track of omitted frames
       std::vector<int> vec;
       peakFrameData_.push_back(vec);
     }
   }
+  calcEnergy_ = (!summaryfile_.empty() || datafile != 0);
 
   // Print info now
   if (purewater_) {
     mprintf("SPAM: Calculating bulk value for pure solvent\n");
-    if (!datafile_.empty())
-      mprintf("SPAM: Printing solvent energies to %s\n", datafile_.c_str());
+    if (datafile != 0)
+      mprintf("SPAM: Printing solvent energies to %s\n", datafile->DataFilename().full());
     mprintf("SPAM: Using a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
@@ -186,7 +192,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprintf("SPAM: Re-ordering trajectory so each site always has ");
       mprintf("the same water molecule.\n");
     }
-    if (summaryfile_.empty() && datafile_.empty()) {
+    if (!calcEnergy_) {
       if (!reorder_) {
         mprinterr("SPAM: Error: Not re-ordering trajectory or calculating energies. ");
         mprinterr("Nothing to do!\n");
@@ -417,7 +423,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       occupied[i] = false;
 
   // If we have to calculate energies, do that here
-  if (!summaryfile_.empty() || !datafile_.empty()) {
+  if (calcEnergy_) {
     /* Loop through every peak, then loop through the water molecules to find
      * which one is in that site, and calculate the LJ and EEL energies for that
      * water molecule within a given cutoff.
@@ -502,10 +508,10 @@ void Action_Spam::Print() {
   if (!summaryfile_.empty()) {
     // Not enabled yet -- just print out the data files.
     mprinterr("Warning: SPAM: SPAM calculation not yet enabled.\n");
-    if (datafile_.empty()) datafile_ = summaryfile_;
+    //if (datafile_.empty()) datafile_ = summaryfile_;
   }
   // Now print the energy data
-  if (!datafile_.empty()) {
+/*  if (!datafile_.empty()) {
     // Now write the data file with all of the SPAM energies
     DataFile dfl;
     ArgList dummy;
@@ -514,7 +520,7 @@ void Action_Spam::Print() {
       dfl.AddDataSet(myDSL_[i]);
     }
     dfl.WriteDataOut();
-  }
+  }*/
 }
 
 bool inside_box(Vec3 gp, Vec3 pt, double edge) {
