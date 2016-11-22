@@ -20,12 +20,13 @@ and was rewritten by Jason Swails for the current cpptraj version.
 
  (C) 2012 - 2013
 */
-class Action_Spam: public Action, ImagedAction {
+class Action_Spam: public Action {
   public:
     Action_Spam();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_Spam(); }
     void Help() const;
   private:
+    ImagedAction image_;   ///< Imaging routines.
     std::string solvname_; ///< Name of the solvent residues
     double bulk_;          ///< SPAM free energy of the bulk solvent
     bool purewater_;       ///< True if running a pure water simulation to derive bulk properties

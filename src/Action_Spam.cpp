@@ -56,7 +56,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   }
 # endif
   // Always use imaged distances
-  InitImaging(true);
+  image_.InitImaging(true);
   // This is needed everywhere in this function scope
   FileName filename;
 
@@ -289,7 +289,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
       double dist2;
       // Get imaged distance
       Matrix_3x3 ucell, recip;
-      switch( ImageType() ) {
+      switch( image_.ImageType() ) {
         case NONORTHO:
           frameIn.BoxCrd().ToRecip(ucell, recip);
           dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
