@@ -457,7 +457,7 @@ int StructureMapper::MapUniqueAtoms(AtomMap& Ref, AtomMap& Tgt) {
           if ( Tgt[targetatom].Unique() == Ref[refatom].Unique() ) {
             // Check that number of bonds is consistent
             if (Ref[refatom].Nbonds() != Tgt[targetatom].Nbonds()) {
-              mprintf("\tWarning: AtomMap: Atoms R%i and T%i have same ID but different # bonds!\n",
+              mprintf("\tWarning: Atoms R%i and T%i have same ID but different # bonds!\n",
                       refatom,targetatom);
             }
             AMap_[refatom] = targetatom;
@@ -509,7 +509,7 @@ int StructureMapper::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
     }
   }
   if (refGuess.empty()) {
-    mprinterr("Error: AtomMap: Could not find starting point in reference.\n");
+    mprinterr("Error: Could not find starting point in reference.\n");
     return 1;
   }
   mprintf("Ref guess atoms:");
@@ -526,7 +526,7 @@ int StructureMapper::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
     }
   }
   if (tgtGuess.empty()) {
-    mprinterr("Error: AtomMap: Could not find starting point in target.\n");
+    mprinterr("Error: Could not find starting point in target.\n");
     return 1;
   }
   mprintf("Tgt guess atoms:");
@@ -737,6 +737,7 @@ int StructureMapper::CreateMap(DataSet_Coords_REF* RefFrameIn,
   return 0;
 }
 
+// StructureMapper::CreateMapByResidue()
 int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
                                         DataSet_Coords_REF* TgtFrameIn, int debugIn)
 {
@@ -778,7 +779,7 @@ int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
     // Check if number of atoms in each map is equal
     if (RefMap_.Natom() != TgtMap_.Natom()) {
       mprintf("Warning: Res %i: # atoms in reference (%i) not equal to # atoms in target (%i).\n",
-              RefMap_.Natom(), TgtMap_.Natom());
+              res+1, RefMap_.Natom(), TgtMap_.Natom());
     }
     // Map unique atoms
     int NuniqueMapped = MapUniqueAtoms(RefMap_, TgtMap_);
