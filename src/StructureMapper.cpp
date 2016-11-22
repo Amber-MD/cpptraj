@@ -670,6 +670,7 @@ int StructureMapper::MapAtoms(AtomMap& Ref, AtomMap& Tgt) {
   return 0;
 }
 
+// StructureMapper::CountMappedAtoms()
 void StructureMapper::CountMappedAtoms() {
   // Count number of mapped atoms
   Nmapped_ = 0;
