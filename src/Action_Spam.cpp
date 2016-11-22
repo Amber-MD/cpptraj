@@ -45,7 +45,7 @@ void Action_Spam::Help() const {
           "    <datafile> : Data file with all SPAM energies for each snapshot.\n");
 }
 
-// Action_Spam::init()
+// Action_Spam::Init()
 Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef MPI
@@ -71,6 +71,11 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Get output data file
   DataFile* datafile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
+  // Solvent residue name
+  solvname_ = actionArgs.GetStringKey("solv");
+  if (solvname_.empty())
+    solvname_ = std::string("WAT");
+
   if (purewater_) {
     // We still need the cutoff
     double cut = actionArgs.getKeyDouble("cut", 12.0);
@@ -82,10 +87,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (ds == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet( ds );
     myDSL_.push_back( ds );
-    solvname_ = actionArgs.GetStringKey("solv");
-    if (solvname_.empty())
-      solvname_ = std::string("WAT");
-  }else {
+  } else {
     // Get the file name with the peaks defined in it
     filename.SetFileName( actionArgs.GetStringNext() );
     if (filename.empty()) {
@@ -95,11 +97,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       File::ErrorMsg( filename.full() );
       return Action::ERR;
     }
-
     // Get the remaining optional arguments
-    solvname_ = actionArgs.GetStringKey("solv");
-    if (solvname_.empty())
-      solvname_ = std::string("WAT");
     reorder_ = actionArgs.hasKey("reorder");
     bulk_ = actionArgs.getKeyDouble("bulk", 0.0);
     double cut = actionArgs.getKeyDouble("cut", 12.0);
@@ -164,6 +162,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       peakFrameData_.push_back(vec);
     }
   }
+  // Determine if energy calculation needs to happen
   calcEnergy_ = (!summaryfile_.empty() || datafile != 0);
 
   // Print info now
@@ -212,13 +211,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   return Action::OK;
 }
 
-// Action_Spam::setup()
+// Action_Spam::Setup()
 Action::RetType Action_Spam::Setup(ActionSetup& setup) {
-
   // We need box info
   Box const& currentBox = setup.CoordInfo().TrajBox();
   if (currentBox.Type() == Box::NOBOX) {
-    mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!");
+    mprinterr("Error: SPAM: Must have explicit solvent with periodic boundaries!\n");
     return Action::ERR;
   }
 
@@ -243,8 +241,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     resnum++;
   }
 
-  // DEBUG
-  mprintf("SPAM: Found %d solvent residues [%s]\n", solvent_residues_.size(),
+  mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
           solvname_.c_str());
 
   // Set up the charge array and check that we have enough info
@@ -274,10 +271,13 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
   return 0;
 }
 
+// Action_Spam::Calculate_Energy()
 double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
-
   // The first atom of the solvent residue we want the energy from
   double result = 0;
+  Matrix_3x3 ucell, recip;
+  if ( image_.ImageType() == NONORTHO )
+    frameIn.BoxCrd().ToRecip(ucell, recip);
   /* Now loop through all atoms in the residue and loop through the pairlist to
    * get the energies
    */
@@ -288,17 +288,10 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
       Vec3 atm2 = Vec3(frameIn.XYZ(j));
       double dist2;
       // Get imaged distance
-      Matrix_3x3 ucell, recip;
       switch( image_.ImageType() ) {
-        case NONORTHO:
-          frameIn.BoxCrd().ToRecip(ucell, recip);
-          dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip);
-          break;
-        case ORTHO:
-          dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd());
-          break;
-        default:
-          dist2 = DIST2_NoImage(atm1, atm2);
+        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip); break;
+        case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
+        default       : dist2 = DIST2_NoImage(atm1, atm2); break;
       }
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
@@ -314,7 +307,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   return result;
 }
 
-// Action_Spam::action()
+// Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
 
@@ -346,6 +339,19 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
     wat++;
   }
   return Action::OK;
+}
+
+// inside_box()
+bool inside_box(Vec3 gp, Vec3 pt, double edge) {
+  return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
+          gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
+          gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
+}
+
+// inside_sphere()
+bool inside_sphere(Vec3 gp, Vec3 pt, double rad2) {
+  return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
+           (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
 
 // Action_Spam::DoSPAM
@@ -473,9 +479,9 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   }
 
   return Action::OK;
-
 }
 
+// Action_Spam::Print()
 void Action_Spam::Print() {
   // Print the spam info file if we didn't do pure water
   if (!purewater_) {
@@ -495,7 +501,7 @@ void Action_Spam::Print() {
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++)
         if (peakFrameData_[i][j] < 0) ndouble++;
       infofile_->Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
-                  i, peakFrameData_[i].size(), ndouble);
+                        i, (int)peakFrameData_[i].size(), ndouble);
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++) {
         if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
         infofile_->Printf("%7d ", peakFrameData_[i][j]);
@@ -521,15 +527,4 @@ void Action_Spam::Print() {
     }
     dfl.WriteDataOut();
   }*/
-}
-
-bool inside_box(Vec3 gp, Vec3 pt, double edge) {
-  return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
-          gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
-          gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
-}
-
-bool inside_sphere(Vec3 gp, Vec3 pt, double rad2) {
-  return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
-           (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
