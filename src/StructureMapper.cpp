@@ -787,16 +787,22 @@ int StructureMapper::CreateMapByResidue(DataSet_Coords_REF* RefFrameIn,
       mprintf("*         MapUniqueAtoms: %i atoms mapped.\n",NuniqueMapped);
     // If no unique atoms mapped system is highly symmetric and needs to be
     // iteratively mapped. Otherwise just map remaining atoms.
-    if (NuniqueMapped==0) { 
-      if (MapWithNoUniqueAtoms(RefMap_, TgtMap_)) return 1;
-    } else {
-      if (MapAtoms(RefMap_, TgtMap_)) return 1;
-    }
+    int err = 0;
+    if (NuniqueMapped==0)
+      err = MapWithNoUniqueAtoms(RefMap_, TgtMap_);
+    else
+      err = MapAtoms(RefMap_, TgtMap_);
 
     // Store final map
-    int resFirstAtom = TgtFrameIn->Top().Res( res ).FirstAtom();
-    for (MapType::const_iterator resmap = AMap_.begin(); resmap != AMap_.end(); ++resmap)
-      mapOut.push_back( *resmap + resFirstAtom );
+    if (err == 0) {
+      int resFirstAtom = TgtFrameIn->Top().Res( res ).FirstAtom();
+      for (MapType::const_iterator resmap = AMap_.begin(); resmap != AMap_.end(); ++resmap)
+        mapOut.push_back( *resmap + resFirstAtom );
+    } else {
+      mprintf("Warning: Mapping failed for residue %i\n", res+1);
+      for (int i = 0; i != RefMap_.Natom(); i++)
+        mapOut.push_back( -1 );
+    }
   }
   AMap_ = mapOut;
 
