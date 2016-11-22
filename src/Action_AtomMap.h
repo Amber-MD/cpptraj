@@ -14,15 +14,17 @@ class Action_AtomMap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    DataSet_Coords_REF* TgtFrame_;
-    DataSet_Coords_REF* RefFrame_;
+    DataSet_Coords_REF* TgtFrame_; ///< Coordinates to be re-mapped.
+    DataSet_Coords_REF* RefFrame_; ///< Coordinates to be mapped to.
     int debug_;
-    std::vector<int> AMap_;
+    std::vector<int> AMap_;        ///< Hold the final atom map.
 
-    bool maponly_;      ///< If true only generate map
-    bool byResidue_;    ///< If true create map on residue by residue basis
+    /// Map mode: map all, map by residue.
+    enum ModeType { ALL = 0, BY_RES };
     Frame* newFrame_;   ///< Frame for re-mapped target
     Topology* newParm_; ///< Topology for re-mapped target
+    ModeType mode_;     ///< Mapping mode
+    bool maponly_;      ///< If true only generate map
 
     Frame rmsRefFrame_; ///< Ref frame for calculating RMS of remapped target to ref
     Frame rmsTgtFrame_; ///< Tgt frame for calculating RMS of remapped target to ref

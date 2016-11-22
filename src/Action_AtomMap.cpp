@@ -8,21 +8,22 @@ Action_AtomMap::Action_AtomMap() :
   TgtFrame_(0),
   RefFrame_(0),
   debug_(0),
-  maponly_(false),
-  byResidue_(true),
   newFrame_(0),
   newParm_(0),
+  mode_(ALL),
+  maponly_(false),
   rmsfit_(false),
   rmsdata_(0)
 {}
 
 void Action_AtomMap::Help() const {
   mprintf("\t<target> <reference> [mapout <filename>] [maponly]\n"
-          "\t[rmsfit [ rmsout <rmsout> ]] [mapall]\n"
+          "\t[rmsfit [ rmsout <rmsout> ]] [mode {all | byres}]\n"
           "  Attempt to create a map from atoms in <target> to atoms in <reference> solely\n"
           "  based on how they are bonded; remap <target> so it matches <reference>.\n"
           "  If 'rmsfit' is specified, calculate the RMSD of remapped target to reference.\n"
-          "  If 'mapall' is specified, create map all at once instead of residue by residue.\n");
+          "  Modes: 'all'   : try to map all atoms at once (default).\n"
+          "         'byres' : map residue by residue (assumes 1 to 1 residue correspondence).\n");
 }
 
 // DESTRUCTOR
@@ -45,7 +46,15 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
 # endif
   maponly_ = actionArgs.hasKey("maponly");
   rmsfit_ = actionArgs.hasKey("rmsfit");
-  if (actionArgs.hasKey("mapall")) byResidue_ = false;
+  std::string modestring = actionArgs.GetStringKey("mode");
+  if (!modestring.empty()) {
+    if      (modestring == "all") mode_ = ALL;
+    else if (modestring == "byres") mode_ = BY_RES;
+    else {
+      mprinterr("Error: Unrecognized mode: %s\n", modestring.c_str());
+      return Action::ERR;
+    }
+  }
   DataFile* rmsout = 0;
   if (rmsfit_)
     rmsout = init.DFL().AddDataFile( actionArgs.GetStringKey("rmsout"), actionArgs );
@@ -90,17 +99,20 @@ Action::RetType Action_AtomMap::Init(ArgList& actionArgs, ActionInit& init, int 
       mprintf("\tRMSDs will be written to '%s'\n", rmsout->DataFilename().full());
     }
   }
-  if (byResidue_)
-    mprintf("\tCreating map residue-by-residue; assumes 1-to-1 residue correspondence.\n");
-  else
-    mprintf("\tCreating map using all atoms at once.\n");
+  switch (mode_) {
+    case BY_RES:
+      mprintf("\tCreating map residue-by-residue; assumes 1-to-1 residue correspondence.\n"); break;
+    case ALL:
+      mprintf("\tCreating map using all atoms at once.\n"); break;
+  }
 
+  // ---------------------------------------------
   int err = 0;
   StructureMapper Mapper;
-  if (byResidue_)
-    err = Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ );
-  else
-    err = Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ );
+  switch (mode_) {
+    case BY_RES: err = Mapper.CreateMapByResidue( RefFrame_, TgtFrame_, debug_ ); break;
+    case ALL   : err = Mapper.CreateMap( RefFrame_, TgtFrame_, debug_ ); break;
+  }
   if (err != 0) return Action::ERR;
   AMap_ = Mapper.Map();
 
