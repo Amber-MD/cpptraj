@@ -253,6 +253,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
         InputTrajCommon.cpp \
+        KDE.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \

@@ -1,25 +1,80 @@
+#include <cmath>
+#include <algorithm>
 #include "KDE.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
-#include <cmath>
+#ifdef _OPENMP
+#  include <omp.h>
+#endif
 
-static const double ONE_OVER_ROOT_TWOPI = 1.0 / sqrt( Constants::TWOPI );
+const double KDE::ONE_OVER_ROOT_TWOPI = 1.0 / sqrt( Constants::TWOPI );
 
-static double GaussianKernel(double u) {
+double KDE::GaussianKernel(double u) const {
   return ( ONE_OVER_ROOT_TWOPI * exp( -0.5 * u * u ) );
 }
 
+/// CONSTRUCTOR - Take kernel type
+KDE::KDE() : ktype_(GAUSSIAN), Kernel_(&KDE::GaussianKernel) {}
 
-int KDE::GaussianKDE(DataSet_double& Out, DataSet_1D const& Pdata,
-                     std::vector<double> const& Increments,
-                     HistBin const& Xdim, double bandwidth)
-{
-  return KDE::CalcKDE(GaussianKernel, Out, Pdata, Increments, Xdim, bandwidth);
+int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
+  if (Pdata.Size() < 2) {
+    mprinterr("Error: Not enough data for KDE.\n");
+    return 1;
+  }
+  // Automatically determine min, max, step, and bin values.
+  std::vector<double> data;
+  data.reserve( Pdata.Size() );
+  double N = 0.0;
+  double mean = 0.0;
+  double M2 = 0.0;
+  for (unsigned int i = 0; i != Pdata.Size(); i++) {
+    double x = Pdata.Dval(i);
+    N++;
+    double delta = x - mean;
+    mean += delta / N;
+    M2 += delta * (x - mean);
+    data.push_back( x );
+  }
+  M2 /= (N - 1.0);
+  double stdev = sqrt(M2);
+
+  std::sort(data.begin(), data.end());
+  double min = data.front();
+  double max = data.back();
+  unsigned int upperidx, loweridx;
+  if ( (data.size() % 2) == 0 ) {
+    // Even number of points. Get Q1 as median of lower and Q3 as median of upper.
+    unsigned int halfsize = data.size() / 2;
+    loweridx = ((halfsize - 1) / 2);
+    upperidx = loweridx + halfsize;
+  } else {
+    // Odd number of points. Include the median in both halves
+    unsigned int lsize = (data.size() + 1) / 2;
+    loweridx = ((lsize - 1) / 2);
+    unsigned int usize = (data.size() - 1) / 2;
+    upperidx = loweridx + usize;
+  }
+  double Q1 = data[loweridx];
+  double Q3 = data[upperidx];
+  double step = 2 * ((Q3 - Q1) / pow(data.size(), 1/3));
+  HistBin Xdim;
+  if (Xdim.CalcBinsOrStep(min, max, step, -1.0, Pdata.Meta().Legend()))
+    return 1;
+  Xdim.PrintHistBin();
+
+  // Automatically determine bandwidth
+  double N_to_1_over_5 = pow( (double)Pdata.Size(), (-1.0/5.0) );
+  double bandwidth = 1.06 * stdev * N_to_1_over_5;
+  mprintf("\tBandwidth: %f\n", bandwidth);
+
+  std::vector<double> Increments(Pdata.Size(), 1.0);
+
+  return CalcKDE(Out, Pdata, Increments, Xdim, bandwidth);
 }
 
-int KDE::CalcKDE(FxnPtr Kernel, DataSet_double& Out, DataSet_1D const& Pdata,
+int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
                  std::vector<double> const& Increments,
-                 HistBin const& Xdim, double bandwidth)
+                 HistBin const& Xdim, double bandwidth) const
 {
   int inSize = (int)Pdata.Size();
   // Allocate output set
@@ -71,7 +126,7 @@ int KDE::CalcKDE(FxnPtr Kernel, DataSet_double& Out, DataSet_1D const& Pdata,
 #         else
           Out[bin] +=
 #         endif
-            (increment * (*Kernel)( (Xdim.Coord(bin) - val) / bandwidth ));
+            (increment * (this->*Kernel_)( (Xdim.Coord(bin) - val) / bandwidth ));
       }
 #   ifdef _OPENMP
     } // END parallel block
