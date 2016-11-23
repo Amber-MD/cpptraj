@@ -3,6 +3,9 @@
 #include "Action_Volmap.h"
 #include "Constants.h" // PI
 #include "CpptrajStdio.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 const double Action_Volmap::sqrt_8_pi_cubed = sqrt(8.0*Constants::PI*Constants::PI*Constants::PI);
 // CONSTRUCTOR
@@ -107,6 +110,10 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       if ( grid_->Allocate_X_C_D(Vec3(xsize,ysize,zsize), 
                                  Vec3(xcenter,ycenter,zcenter), 
                                  Vec3(dx_,dy_,dz_)) ) return Action::ERR;
+#     ifdef _OPENMP
+      for (Garray::iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
+        gt->resize( grid_->NX(), grid_->NY(), grid_->NZ() );
+#     endif
       Vec3 const& oxyz = grid_->GridOrigin();
       xmin_ = oxyz[0];
       ymin_ = oxyz[1];
@@ -123,6 +130,15 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 
   // Setup output file
   if (outfile != 0) outfile->AddDataSet( grid_ );
+# ifdef _OPENMP
+  int numthreads = 0;
+# pragma omp parallel
+  {
+    if (omp_get_thread_num() == 0)
+      numthreads = omp_get_num_threads();
+  }
+  GRID_THREAD_.resize( numthreads );
+# endif
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
@@ -139,6 +155,10 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
   if (peakfile_ != 0)
     mprintf("\tDensity peaks above %.3f will be printed to %s in XYZ-format\n",
             peakcut_, peakfile_->Filename().full());
+# ifdef _OPENMP
+  if (GRID_THREAD_.size() > 1)
+    mprintf("\tParallelizing calculation with %zu threads.\n", GRID_THREAD_.size());
+# endif
 
   return Action::OK;
 }
@@ -235,6 +255,10 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
       if (grid_->Allocate_N_O_D( (xmax-xmin)/dx_, (ymax-ymin)/dy_, (zmax-zmin)/dz_,
                                  Vec3(xmin, ymin, zmin), Vec3(dx_, dy_, dz_) ))
         return Action::ERR;
+#     ifdef _OPENMP
+      for (Garray::iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
+        gt->resize( grid_->NX(), grid_->NY(), grid_->NZ() );
+#     endif
       xmin_ = xmin;
       ymin_ = ymin;
       zmin_ = zmin;
@@ -246,23 +270,32 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
   int nX = (int)grid_->NX();
   int nY = (int)grid_->NY();
   int nZ = (int)grid_->NZ();
-  for (AtomMask::const_iterator atom = densitymask_.begin();
-                                atom != densitymask_.end(); ++atom) {
-    Vec3 pt = Vec3(frm.Frm().XYZ(*atom));
+  int maxidx = densitymask_.Nselected();
+  int midx, atom;
+# ifdef _OPENMP
+  int mythread;
+# pragma omp parallel private(midx, atom, mythread)
+  {
+  mythread = omp_get_thread_num();
+# pragma omp for
+# endif
+  for (midx = 0; midx < maxidx; midx++) {
+    atom = densitymask_[midx];
+    Vec3 pt = Vec3(frm.Frm().XYZ(atom));
     int ix = (int) ( floor( (pt[0]-xmin_) / dx_ + 0.5 ) );
     int iy = (int) ( floor( (pt[1]-ymin_) / dy_ + 0.5 ) );
     int iz = (int) ( floor( (pt[2]-zmin_) / dz_ + 0.5 ) );
     /* See how many steps in each dimension we smear out our Gaussian. This
      * formula is taken to be consistent with VMD's volmap tool
      */
-    int nxstep = (int) ceil(4.1 * halfradii_[*atom] / dx_);
-    int nystep = (int) ceil(4.1 * halfradii_[*atom] / dy_);
-    int nzstep = (int) ceil(4.1 * halfradii_[*atom] / dz_);
+    int nxstep = (int) ceil(4.1 * halfradii_[atom] / dx_);
+    int nystep = (int) ceil(4.1 * halfradii_[atom] / dy_);
+    int nzstep = (int) ceil(4.1 * halfradii_[atom] / dz_);
     // Calculate the gaussian normalization factor (in 3 dimensions with the
     // given half-radius)
     double norm = 1 / (sqrt_8_pi_cubed * 
-                       halfradii_[*atom]*halfradii_[*atom]*halfradii_[*atom]);
-    double exfac = -1.0 / (2.0 * halfradii_[*atom] * halfradii_[*atom]);
+                       halfradii_[atom]*halfradii_[atom]*halfradii_[atom]);
+    double exfac = -1.0 / (2.0 * halfradii_[atom] * halfradii_[atom]);
     if (ix < -nxstep || ix > nX + nxstep ||
         iy < -nystep || iy > nY + nystep ||
         iz < -nzstep || iz > nZ + nzstep)
@@ -276,9 +309,16 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
         for (int zval = std::max(iz-nzstep, 0); zval < zend; zval++) {
           Vec3 gridpt = Vec3(xmin_+xval*dx_, ymin_+yval*dy_, zmin_+zval*dz_) - pt;
           double dist2 = gridpt.Magnitude2();
+#         ifdef _OPENMP
+          GRID_THREAD_[mythread].incrementBy(xval, yval, zval, norm * exp(exfac * dist2));
+#         else
           grid_->Increment(xval, yval, zval, norm * exp(exfac * dist2));
+#         endif
         }
   } // END loop over atoms in densitymask_
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
   
   // Increment frame counter
   Nframes_++;
@@ -287,11 +327,26 @@ Action::RetType Action_Volmap::DoAction(int frameNum, ActionFrame& frm) {
 
 #ifdef MPI
 int Action_Volmap::SyncAction() {
+# ifdef _OPENMP
+  CombineGridThreads();
+# endif
   int total_frames = 0;
   trajComm_.Reduce( &total_frames, &Nframes_, 1, MPI_INT, MPI_SUM );
   if (trajComm_.Master())
     Nframes_ = total_frames;
   return 0;
+}
+#endif
+
+#ifdef _OPENMP
+/** Combine results from each GRID_THREAD into main grid */
+void Action_Volmap::CombineGridThreads() {
+  if (!GRID_THREAD_.empty()) {
+    for (Garray::const_iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
+      for (unsigned int idx = 0; idx != gt->size(); idx++)
+        (*grid_)[idx] += (*gt)[idx];
+    GRID_THREAD_.clear();
+  }
 }
 #endif
 
@@ -305,7 +360,10 @@ inline size_t setStart(size_t xIn) {
 
 // Action_Volmap::Print()
 void Action_Volmap::Print() {
-
+  if (Nframes_ < 1) return;
+# ifdef _OPENMP
+  CombineGridThreads();
+# endif
   // Divide our grid by the number of frames
   float nf = (float)Nframes_;
   for (DataSet_GridFlt::iterator gval = grid_->begin(); gval != grid_->end(); ++gval)
