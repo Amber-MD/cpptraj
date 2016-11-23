@@ -43,5 +43,10 @@ class Action_Volmap : public Action {
     /// the scaling factor to divide all radii by
     double radscale_;
     static const double sqrt_8_pi_cubed;
+#   ifdef _OPENMP
+    typedef std::vector< Grid<float> > Garray;
+    Garray GRID_THREAD_;
+    void CombineGridThreads();
+#   endif
 };
 #endif
