@@ -5,8 +5,12 @@
 /// Can be used to calculate 1D histogram using kernel density estimator.
 class KDE {
   public:
-    enum KernelType { NONE = 0, GAUSSIAN };
+    enum KernelType { GAUSSIAN = 0 };
     KDE();
+#   ifdef _OPENMP
+    /// CONSTRUCTOR - Number of threads.
+    KDE(int);
+#   endif
     /// Output, Input
     int CalcKDE(DataSet_double&, DataSet_1D const&) const;
     /// Output, Input, Increments, Histogram dimension, Bandwidth
@@ -16,7 +20,9 @@ class KDE {
     static const double ONE_OVER_ROOT_TWOPI;
     typedef double (KDE::*FxnPtr)(double) const;
     double GaussianKernel(double) const;
-
+#   ifdef _OPENMP
+    int numthreads_;
+#   endif
     KernelType ktype_;
     FxnPtr Kernel_;
 };

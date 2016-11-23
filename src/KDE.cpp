@@ -13,8 +13,16 @@ double KDE::GaussianKernel(double u) const {
   return ( ONE_OVER_ROOT_TWOPI * exp( -0.5 * u * u ) );
 }
 
-/// CONSTRUCTOR - Take kernel type
-KDE::KDE() : ktype_(GAUSSIAN), Kernel_(&KDE::GaussianKernel) {}
+/** CONSTRUCTOR - default to Gaussian kernel. */
+KDE::KDE() :
+# ifdef _OPENMP
+  numthreads_(1),
+# endif
+  ktype_(GAUSSIAN), Kernel_(&KDE::GaussianKernel) {}
+
+#ifdef _OPENMP
+KDE::KDE(int n) : numthreads_(n), ktype_(GAUSSIAN), Kernel_(&KDE::GaussianKernel) {}
+#endif
 
 int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
   if (Pdata.Size() < 2) {
@@ -92,20 +100,21 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
   int outSize = (int)Out.Size();
 
   int frame, bin;
-  double increment;
+  double increment, val;
   double total = 0.0;
 # ifdef _OPENMP
-  int numthreads;
+  int original_num_threads;
 # pragma omp parallel
   {
 #   pragma omp master
     {
-      numthreads = omp_get_num_threads();
-      mprintf("\tParallelizing calculation with %i threads\n", numthreads);
+      original_num_threads = omp_get_num_threads();
     }
   }
+  // Ensure we only execute with the desired number of threads
+  if (numthreads_ < original_num_threads)
+    omp_set_num_threads( numthreads_ );
 # endif
-  double val;
   // Calculate KDE, loop over input data
 # ifdef _OPENMP
   int mythread;
@@ -116,8 +125,8 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
     // Prevent race conditions by giving each thread its own histogram
 #   pragma omp master
     {
-      P_thread = new double*[ numthreads ];
-      for (int nt = 0; nt < numthreads; nt++) {
+      P_thread = new double*[ numthreads_ ];
+      for (int nt = 0; nt < numthreads_; nt++) {
         P_thread[nt] = new double[ outSize ];
         std::fill(P_thread[nt], P_thread[nt] + outSize, 0.0);
       }
@@ -141,12 +150,15 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
 # ifdef _OPENMP
   } // END parallel block
   // Combine results from each thread histogram into Out
-  for (int i = 0; i < numthreads; i++) {
+  for (int i = 0; i < numthreads_; i++) {
     for (int j = 0; j < outSize; j++)
       Out[j] += P_thread[i][j];
     delete[] P_thread[i];
   }
   delete[] P_thread;
+  // Restore original number of threads
+  if (original_num_threads != numthreads_)
+    omp_set_num_threads( original_num_threads );
 # endif
   // Normalize
   for (unsigned int j = 0; j < Out.Size(); j++)
