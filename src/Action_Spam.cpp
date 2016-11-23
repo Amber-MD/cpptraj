@@ -9,6 +9,7 @@
 #include "DataSet_integer.h"
 #include "DistRoutines.h"
 #include "StringRoutines.h" // integerToString
+#include "KDE.h"
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() : Action(HIDDEN),
@@ -481,6 +482,60 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   return Action::OK;
 }
 
+/** Calculate the DELTA G of an individual water site */
+void Action_Spam::Calc_G_Wat(DataSet* dsIn,
+                             double& dg_avg, double& dg_std, double& dh_avg,
+                             double& dh_std, double& ntds)
+{
+  DataSet_1D const& enevec = static_cast<DataSet_1D const&>( *dsIn );
+  DataSet_double kde1;
+  //global DG_BULK, DH_BULK, BW
+  KDE gkde;
+  if (gkde.CalcKDE( kde1, enevec )) {
+    mprinterr("Error: Could not calculate E KDE histogram.\n");
+    return;
+  }
+/*
+   # Set up defaults
+   if sample_size < 1: sample_size = len(enevec)
+   sample_size = min(len(enevec), sample_size)
+   sample_num = max(1, sample_num)
+
+   enthalpy = np.zeros(sample_num)
+   free_energy = np.zeros(sample_num)
+   # We want to do "sample_num" subsamples with "sample_size" elements in each
+   # subsample.  Loop over those now
+   for ii in range(sample_num):
+      # If sample_num is 1, then don't resample
+      if sample_num == 1:
+         skde = gaussian_kde(enevec)
+      else:
+         # Generate the subsample kernel
+         skde = gaussian_kde(kde1.resample(sample_size))
+      # Determine the widths of the bins from the covariance factor method
+      binwidth = skde.covariance_factor()
+      # Determine the number of bins over the range of the data set
+      nbins = int(((skde.dataset.max() - skde.dataset.min()) / binwidth) + 0.5) \
+            + 100
+      # Make a series of points from the minimum to the maximum
+      pts = np.zeros(nbins)
+      for i in range(nbins): pts[i] = skde.dataset.min() + (i-50) * binwidth
+      # Evaluate the KDE at all of those points
+      kdevals = skde.evaluate(pts)
+      # Get the enthalpy and free energy
+      enthalpy[ii] = np.sum(skde.dataset) / sample_size
+      free_energy[ii] = -1.373 * log10(binwidth *
+                                      np.sum(kdevals * np.exp(-pts / 0.596)))
+
+   # Our subsampling is over, now find the average and standard deviation
+   dg_avg = np.sum(free_energy) / sample_num - DG_BULK
+   dg_std = free_energy.std()
+   dh_avg = np.sum(enthalpy) / sample_num - DH_BULK
+   dh_std = enthalpy.std()
+   ntds = dg_avg - dh_avg
+*/
+}
+
 // Action_Spam::Print()
 void Action_Spam::Print() {
   // Print the spam info file if we didn't do pure water
@@ -508,6 +563,10 @@ void Action_Spam::Print() {
       }
       infofile_->Printf("\n\n");
     }
+
+    double dg_avg, dg_std, dh_avg, dh_std, ntds;
+    for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds)
+      Calc_G_Wat( *ds, dg_avg, dg_std, dh_avg, dh_std, ntds );
   }
 
   // Print the summary file with the calculated SPAM energies
@@ -516,15 +575,4 @@ void Action_Spam::Print() {
     mprinterr("Warning: SPAM: SPAM calculation not yet enabled.\n");
     //if (datafile_.empty()) datafile_ = summaryfile_;
   }
-  // Now print the energy data
-/*  if (!datafile_.empty()) {
-    // Now write the data file with all of the SPAM energies
-    DataFile dfl;
-    ArgList dummy;
-    dfl.SetupDatafile(datafile_, dummy, 0);
-    for (int i = 0; i < (int)myDSL_.size(); i++) {
-      dfl.AddDataSet(myDSL_[i]);
-    }
-    dfl.WriteDataOut();
-  }*/
 }

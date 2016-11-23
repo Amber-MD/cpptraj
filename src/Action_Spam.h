@@ -57,6 +57,7 @@ class Action_Spam: public Action {
     // ------------------- Functions -------------------
     int SetupParms(Topology const&);
     double Calculate_Energy(Frame const&, Residue const&);
+    void Calc_G_Wat(DataSet*, double&, double&, double&, double&, double&);
 
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
