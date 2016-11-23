@@ -7,7 +7,11 @@ class KDE {
   public:
     enum KernelType { NONE = 0, GAUSSIAN };
     KDE();
+    /// Output, Input
     int CalcKDE(DataSet_double&, DataSet_1D const&) const;
+    /// Output, Input, Increments, Histogram dimension, Bandwidth
+    int CalcKDE(DataSet_double&, DataSet_1D const&,
+                std::vector<double> const&,HistBin const&,double) const;
   private:
     static const double ONE_OVER_ROOT_TWOPI;
     typedef double (KDE::*FxnPtr)(double) const;
@@ -15,9 +19,5 @@ class KDE {
 
     KernelType ktype_;
     FxnPtr Kernel_;
-    
-    /// Output, Input, Histogram dimension, Bandwidth
-    int CalcKDE(DataSet_double&, DataSet_1D const&,
-                std::vector<double> const&,HistBin const&,double) const;
 };
 #endif
