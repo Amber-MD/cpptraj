@@ -80,6 +80,16 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
 
   // Create new grid or use existing. 
   setupGridOnMask_ = false;
+# ifdef _OPENMP
+  // Always need to allocate temp grid space for each thread.
+  int numthreads = 0;
+# pragma omp parallel
+  {
+    if (omp_get_thread_num() == 0)
+      numthreads = omp_get_num_threads();
+  }
+  GRID_THREAD_.resize( numthreads );
+# endif
   if (!dsname.empty()) {
     // Get existing grid dataset
     grid_ = (DataSet_GridFlt*)init.DSL().FindSetOfType( dsname, DataSet::GRID_FLT );
@@ -110,10 +120,6 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       if ( grid_->Allocate_X_C_D(Vec3(xsize,ysize,zsize), 
                                  Vec3(xcenter,ycenter,zcenter), 
                                  Vec3(dx_,dy_,dz_)) ) return Action::ERR;
-#     ifdef _OPENMP
-      for (Garray::iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
-        gt->resize( grid_->NX(), grid_->NY(), grid_->NZ() );
-#     endif
       Vec3 const& oxyz = grid_->GridOrigin();
       xmin_ = oxyz[0];
       ymin_ = oxyz[1];
@@ -127,18 +133,14 @@ Action::RetType Action_Volmap::Init(ArgList& actionArgs, ActionInit& init, int d
       setupGridOnMask_ = true;
     }
   }
-
+# ifdef _OPENMP
+  // If not setting up grid via mask later, allocate temp space now.
+  if (!setupGridOnMask_)
+    for (Garray::iterator gt = GRID_THREAD_.begin(); gt != GRID_THREAD_.end(); ++gt)
+      gt->resize( grid_->NX(), grid_->NY(), grid_->NZ() );
+# endif
   // Setup output file
   if (outfile != 0) outfile->AddDataSet( grid_ );
-# ifdef _OPENMP
-  int numthreads = 0;
-# pragma omp parallel
-  {
-    if (omp_get_thread_num() == 0)
-      numthreads = omp_get_num_threads();
-  }
-  GRID_THREAD_.resize( numthreads );
-# endif
 
   // Info
   mprintf("    VOLMAP: Grid spacing will be %.2fx%.2fx%.2f Angstroms\n", dx_, dy_, dz_);
