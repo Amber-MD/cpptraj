@@ -30,16 +30,17 @@ class Action_Spam: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
-    // ------------------- Functions -------------------
-    int SetupParms(Topology const&);
-    double Calculate_Energy(Frame const&, Residue const&);
-    void Calc_G_Wat(DataSet*, double&, double&, double&, double&, double&);
-    // Custom Do- routines
-    Action::RetType DoPureWater(int, Frame const&);
-    Action::RetType DoSPAM(int, Frame&);
 
     typedef std::vector<int> Iarray;
     typedef std::vector<Vec3> Varray;
+
+    // ------------------- Functions -------------------
+    int SetupParms(Topology const&);
+    double Calculate_Energy(Frame const&, Residue const&);
+    void Calc_G_Wat(DataSet*, Iarray const&,double&, double&, double&, double&, double&);
+    // Custom Do- routines
+    Action::RetType DoPureWater(int, Frame const&);
+    Action::RetType DoSPAM(int, Frame&);
 
     typedef bool (Action_Spam::*FxnType)(Vec3, Vec3, double) const;
     bool inside_box(Vec3, Vec3, double) const;

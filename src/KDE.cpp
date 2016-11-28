@@ -1,5 +1,5 @@
 #include <cmath>
-#include <algorithm>
+//#inc lude <algorithm>
 #include "KDE.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
@@ -35,8 +35,12 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
   double N = 0.0;
   double mean = 0.0;
   double M2 = 0.0;
+  double min = Pdata.Dval(0);
+  double max = min; 
   for (unsigned int i = 0; i != Pdata.Size(); i++) {
     double x = Pdata.Dval(i);
+    min = std::min(min, x);
+    max = std::max(max, x);
     N++;
     double delta = x - mean;
     mean += delta / N;
@@ -45,7 +49,9 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
   }
   M2 /= (N - 1.0);
   double stdev = sqrt(M2);
-
+  double step = 0.0;
+  int bins = (int)sqrt(Pdata.Size());
+/*
   std::sort(data.begin(), data.end());
   double min = data.front();
   double max = data.back();
@@ -74,6 +80,8 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
     bins = (int)Pdata.Size() / 10;
     step = 0;
   }
+*/
+  mprintf("DEBUG: mean= %g, stdev= %g\n", mean, stdev);
   HistBin Xdim;
   if (Xdim.CalcBinsOrStep(min, max, step, bins, Pdata.Meta().Legend()))
     return 1;
@@ -94,8 +102,8 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
                  HistBin const& Xdim, double bandwidth) const
 {
   int inSize = (int)Pdata.Size();
-  // Allocate output set
-  Out.Resize( Xdim.Bins() );
+  // Allocate output set, set all to zero.
+  Out.Zero( Xdim.Bins() );
   Out.SetDim( Dimension::X, Xdim );
   int outSize = (int)Out.Size();
 

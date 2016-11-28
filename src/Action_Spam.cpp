@@ -484,11 +484,31 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
 }
 
 /** Calculate the DELTA G of an individual water site */
-void Action_Spam::Calc_G_Wat(DataSet* dsIn,
+void Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
                              double& dg_avg, double& dg_std, double& dh_avg,
                              double& dh_std, double& ntds)
 {
-  DataSet_1D const& enevec = static_cast<DataSet_1D const&>( *dsIn );
+  DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
+  // Create energy vector containing only frames that are singly-occupied
+  DataSet_double enevec;
+  Iarray::const_iterator fnum = SkipFrames.begin();
+  int frm = 0;
+  for (; frm != (int)dataIn.Size(); frm++) {
+    if (fnum == SkipFrames.end()) break;
+    int skippedFrame = *fnum;
+    if (skippedFrame < 0) skippedFrame = -skippedFrame;
+    if (frm == skippedFrame)
+      ++fnum;
+    else
+      enevec.AddElement( dataIn.Dval(frm) );
+  }
+  for (; frm != (int)dataIn.Size(); frm++)
+    enevec.AddElement( dataIn.Dval(frm) );
+  if (enevec.Size() < 1) {
+    mprintf("Warning: No energy values for peak. Skipping.\n");
+    return;
+  }
+
   DataSet_double kde1;
   //global DG_BULK, DH_BULK, BW
   KDE gkde;
@@ -579,8 +599,9 @@ void Action_Spam::Print() {
     }
 
     double dg_avg, dg_std, dh_avg, dh_std, ntds;
-    for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds)
-      Calc_G_Wat( *ds, dg_avg, dg_std, dh_avg, dh_std, ntds );
+    unsigned int p = 0;
+    for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
+      Calc_G_Wat( *ds, peakFrameData_[p], dg_avg, dg_std, dh_avg, dh_std, ntds );
   }
 
   // Print the summary file with the calculated SPAM energies
