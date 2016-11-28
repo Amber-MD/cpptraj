@@ -62,7 +62,7 @@ class Action_Spam: public Action {
     /// A list of all omitted frames for each peak
     std::vector<Iarray> peakFrameData_;
     /// For a given frame, peak that each solvent residue is assigned to; -1 is unassigned
-    Iarray reservations_;
+    Iarray resPeakNum_;
     /// Topology, for extracting necessary parameters for energy evaluations
     Topology* CurrentParm_;
     std::vector<double> atom_charge_; ///< List of charges that have been converted to Amber units

@@ -249,7 +249,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     }
     resnum++;
   }
-  reservations_.reserve( solvent_residues_.size() );
+  resPeakNum_.reserve( solvent_residues_.size() );
   comlist_.reserve( solvent_residues_.size() );
 
   mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
@@ -372,7 +372,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    * unreserved solvent residue has an index -1. At the end, we will go through
    * and re-order the frame if requested.
    */
-  reservations_.assign(solvent_residues_.size(), -1);
+  resPeakNum_.assign(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
   comlist_.clear();
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
@@ -388,14 +388,14 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       // If we're inside, make sure this residue is not already `claimed'. If it
       // is, assign it to the closer peak center
       if ((this->*Inside_)(*pk, comlist_[resnum], site_size_)) {
-        if (reservations_[resnum] > 0) {
+        if (resPeakNum_[resnum] > 0) {
           Vec3 diff1 = comlist_[resnum] - *pk;
-          Vec3 diff2 = comlist_[resnum] - peaks_[ reservations_[resnum] ];
+          Vec3 diff2 = comlist_[resnum] - peaks_[ resPeakNum_[resnum] ];
           // If we are closer, update. Otherwise do nothing
           if (diff1.Magnitude2() < diff2.Magnitude2())
-            reservations_[resnum] = pknum;
+            resPeakNum_[resnum] = pknum;
         } else
-          reservations_[resnum] = pknum;
+          resPeakNum_[resnum] = pknum;
       }
     }
   }
@@ -407,8 +407,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    */
   std::vector<bool> occupied(peaks_.size(), false);
   std::vector<bool> doubled(peaks_.size(), false); // to avoid double-additions
-  for (Iarray::const_iterator it = reservations_.begin();
-                              it != reservations_.end(); it++)
+  for (Iarray::const_iterator it = resPeakNum_.begin();
+                              it != resPeakNum_.end(); it++)
   {
     if (*it > -1) {
       if (!occupied[*it])
@@ -442,8 +442,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
         myDSL_[peak]->Add(frameNum, &val);
         continue;
       }
-      for (unsigned int i = 0; i < reservations_.size(); i++) {
-        if (reservations_[i] != peak) continue;
+      for (unsigned int i = 0; i < resPeakNum_.size(); i++) {
+        if (resPeakNum_[i] != peak) continue;
         /* Now we have our residue number. Create a pairlist for each solvent
          * molecule that can be used for each atom in that residue. Should
          * provide some time savings.
@@ -465,15 +465,15 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       if (!occupied[i]) continue;
       for (unsigned int j = 0; j < solvent_residues_.size(); j++) {
         // This is the solvent residue in our site
-        if (reservations_[j] == i) {
+        if (resPeakNum_[j] == i) {
           for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
             frameIn.SwapAtoms(solvent_residues_[i].FirstAtom()+k,
                               solvent_residues_[j].FirstAtom()+k);
           // Since we swapped solvent_residues_ of 2 solvent atoms, we also have
           // to swap reservations[i] and reservations[j]...
-          int tmp = reservations_[j];
-          reservations_[j] = reservations_[i];
-          reservations_[i] = tmp;
+          int tmp = resPeakNum_[j];
+          resPeakNum_[j] = resPeakNum_[i];
+          resPeakNum_[i] = tmp;
         }
       }
     }
