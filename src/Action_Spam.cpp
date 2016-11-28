@@ -25,6 +25,7 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
   sphere_(false),
   Nframes_(0),
   overflow_(false)
+  ,set_counter_(0) // DEBUG
 { }
 
 void Action_Spam::Help() const {
@@ -158,13 +159,18 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       if (ds == 0) return Action::ERR;
       myDSL_.push_back( ds );
       if (datafile != 0) datafile->AddDataSet( ds );
-      // Add a new list of integers to keep track of omitted frames
-      std::vector<int> vec;
-      peakFrameData_.push_back(vec);
     }
+    // peakFrameData will keep track of omitted frames for each peak.
+    peakFrameData_.clear();
+    peakFrameData_.resize( peaks_.size() );
   }
   // Determine if energy calculation needs to happen
   calcEnergy_ = (!summaryfile_.empty() || datafile != 0);
+  // Set function for determining if water is inside peak
+  if (sphere_)
+    Inside_ = &Action_Spam::inside_sphere;
+  else
+    Inside_ = &Action_Spam::inside_box;
 
   // Print info now
   if (purewater_) {
@@ -224,14 +230,16 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // See if our box dimensions are too small for our cutoff...
   if (currentBox.BoxX() < doublecut_ ||
       currentBox.BoxY() < doublecut_ ||
-      currentBox.BoxZ() < doublecut_) {
+      currentBox.BoxZ() < doublecut_)
+  {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
   int resnum = 0;
   for (Topology::res_iterator res = setup.Top().ResStart();
-       res != setup.Top().ResEnd(); res++) {
+                              res != setup.Top().ResEnd(); res++)
+  {
     if (res->Name().Truncated() == solvname_) {
       solvent_residues_.push_back(*res);
       // Tabulate COM
@@ -241,6 +249,8 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     }
     resnum++;
   }
+  reservations_.reserve( solvent_residues_.size() );
+  comlist_.reserve( solvent_residues_.size() );
 
   mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
           solvname_.c_str());
@@ -342,15 +352,15 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   return Action::OK;
 }
 
-// inside_box()
-bool inside_box(Vec3 gp, Vec3 pt, double edge) {
+// Action_Spam::inside_box()
+bool Action_Spam::inside_box(Vec3 gp, Vec3 pt, double edge) const {
   return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
           gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
           gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
 }
 
-// inside_sphere()
-bool inside_sphere(Vec3 gp, Vec3 pt, double rad2) {
+// Action_Spam::inside_sphere()
+bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
   return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
            (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
@@ -358,47 +368,36 @@ bool inside_sphere(Vec3 gp, Vec3 pt, double rad2) {
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
-  // Set up a function pointer to see if we are inside
-  bool (*inside)(Vec3, Vec3, double);
-  if (sphere_)
-    inside = &inside_sphere;
-  else
-    inside = &inside_box;
-
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
    * and re-order the frame if requested.
    */
-  std::vector<int> reservations(solvent_residues_.size(), -1);
+  reservations_.assign(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
-  std::vector<Vec3> comlist;
+  comlist_.clear();
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
-       res != solvent_residues_.end(); res++) {
-    comlist.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
-  }
+                                            res != solvent_residues_.end(); res++)
+    comlist_.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
   // Loop through each peak and then scan through every residue, and assign a
   // solvent residue to each peak
   int pknum = 0;
-  for (std::vector<Vec3>::const_iterator pk = peaks_.begin();
-       pk != peaks_.end(); pk++) {
-    int resnum = 0;
-    for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
-         res != solvent_residues_.end(); res++) {
+  for (Varray::const_iterator pk = peaks_.begin(); pk != peaks_.end(); ++pk, ++pknum)
+  {
+    for (unsigned int resnum = 0; resnum != comlist_.size(); resnum++)
+    {
       // If we're inside, make sure this residue is not already `claimed'. If it
       // is, assign it to the closer peak center
-      if (inside(*pk, comlist[resnum], site_size_)) {
-        if (reservations[resnum] > 0) {
-          Vec3 diff1 = comlist[resnum] - *pk;
-          Vec3 diff2 = comlist[resnum] - peaks_[ reservations[resnum] ];
+      if ((this->*Inside_)(*pk, comlist_[resnum], site_size_)) {
+        if (reservations_[resnum] > 0) {
+          Vec3 diff1 = comlist_[resnum] - *pk;
+          Vec3 diff2 = comlist_[resnum] - peaks_[ reservations_[resnum] ];
           // If we are closer, update. Otherwise do nothing
           if (diff1.Magnitude2() < diff2.Magnitude2())
-            reservations[resnum] = pknum;
-        }else
-          reservations[resnum] = pknum;
+            reservations_[resnum] = pknum;
+        } else
+          reservations_[resnum] = pknum;
       }
-      resnum++;
     }
-    pknum++;
   }
 
   /* Now we have a vector of reservations. We want to make sure that each site
@@ -408,8 +407,9 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    */
   std::vector<bool> occupied(peaks_.size(), false);
   std::vector<bool> doubled(peaks_.size(), false); // to avoid double-additions
-  for (std::vector<int>::const_iterator it = reservations.begin();
-       it != reservations.end(); it++) {
+  for (Iarray::const_iterator it = reservations_.begin();
+                              it != reservations_.end(); it++)
+  {
     if (*it > -1) {
       if (!occupied[*it])
         occupied[*it] = true;
@@ -442,8 +442,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
         myDSL_[peak]->Add(frameNum, &val);
         continue;
       }
-      for (unsigned int i = 0; i < reservations.size(); i++) {
-        if (reservations[i] != peak) continue;
+      for (unsigned int i = 0; i < reservations_.size(); i++) {
+        if (reservations_[i] != peak) continue;
         /* Now we have our residue number. Create a pairlist for each solvent
          * molecule that can be used for each atom in that residue. Should
          * provide some time savings.
@@ -465,14 +465,15 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       if (!occupied[i]) continue;
       for (unsigned int j = 0; j < solvent_residues_.size(); j++) {
         // This is the solvent residue in our site
-        if (reservations[j] == i) {
+        if (reservations_[j] == i) {
           for (int k = 0; k < solvent_residues_[j].NumAtoms(); k++)
             frameIn.SwapAtoms(solvent_residues_[i].FirstAtom()+k,
                               solvent_residues_[j].FirstAtom()+k);
           // Since we swapped solvent_residues_ of 2 solvent atoms, we also have
           // to swap reservations[i] and reservations[j]...
-          int tmp = reservations[j];
-          reservations[j] = reservations[i]; reservations[i] = tmp;
+          int tmp = reservations_[j];
+          reservations_[j] = reservations_[i];
+          reservations_[i] = tmp;
         }
       }
     }
@@ -495,39 +496,52 @@ void Action_Spam::Calc_G_Wat(DataSet* dsIn,
     mprinterr("Error: Could not calculate E KDE histogram.\n");
     return;
   }
-/*
-   # Set up defaults
-   if sample_size < 1: sample_size = len(enevec)
-   sample_size = min(len(enevec), sample_size)
-   sample_num = max(1, sample_num)
+  // DEBUG
+  DataFile rawout;
+  rawout.SetupDatafile( FileName("dbgraw." + integerToString(set_counter_)   + ".dat"), 0 );
+  rawout.AddDataSet( dsIn );
+  rawout.WriteDataOut();
+  DataFile kdeout;
+  kdeout.SetupDatafile( FileName("dbgkde." + integerToString(set_counter_++) + ".dat"), 0 );
+  kdeout.AddDataSet( &kde1 );
+  kdeout.WriteDataOut();
 
-   enthalpy = np.zeros(sample_num)
-   free_energy = np.zeros(sample_num)
-   # We want to do "sample_num" subsamples with "sample_size" elements in each
-   # subsample.  Loop over those now
-   for ii in range(sample_num):
-      # If sample_num is 1, then don't resample
-      if sample_num == 1:
-         skde = gaussian_kde(enevec)
-      else:
-         # Generate the subsample kernel
+  // def calc_g_wat(enevec, sample_size, sample_num)
+/*
+  // Set up defaults
+  unsigned int sample_size = 0;
+  unsigned int sample_num = 0;
+  if (sample_size < 1) sample_size = enevec.Size();
+  sample_size = std::min(enevec.Size(), sample_size);
+  unsigned int sample_num = std::max(1, sample_num);
+
+  std::vector<double> enthalpy(sample_num, 0.0);
+  std::vector<double> free_energy(sample_num, 0.0);
+  // We want to do "sample_num" subsamples with "sample_size" elements in each
+  // subsample.  Loop over those now
+  for (unsigned int ii = 0; ii != sample_num; ii++) {
+    // If sample_num is 1, then don't resample
+      if (sample_num == 1)
+         skde = gaussian_kde(enevec);
+      else
+         // Generate the subsample kernel
          skde = gaussian_kde(kde1.resample(sample_size))
-      # Determine the widths of the bins from the covariance factor method
+      // Determine the widths of the bins from the covariance factor method
       binwidth = skde.covariance_factor()
-      # Determine the number of bins over the range of the data set
+      // Determine the number of bins over the range of the data set
       nbins = int(((skde.dataset.max() - skde.dataset.min()) / binwidth) + 0.5) \
             + 100
-      # Make a series of points from the minimum to the maximum
+      // Make a series of points from the minimum to the maximum
       pts = np.zeros(nbins)
       for i in range(nbins): pts[i] = skde.dataset.min() + (i-50) * binwidth
-      # Evaluate the KDE at all of those points
+      // Evaluate the KDE at all of those points
       kdevals = skde.evaluate(pts)
-      # Get the enthalpy and free energy
+      // Get the enthalpy and free energy
       enthalpy[ii] = np.sum(skde.dataset) / sample_size
       free_energy[ii] = -1.373 * log10(binwidth *
                                       np.sum(kdevals * np.exp(-pts / 0.596)))
 
-   # Our subsampling is over, now find the average and standard deviation
+   // Our subsampling is over, now find the average and standard deviation
    dg_avg = np.sum(free_energy) / sample_num - DG_BULK
    dg_std = free_energy.std()
    dh_avg = np.sum(enthalpy) / sample_num - DH_BULK
