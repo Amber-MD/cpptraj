@@ -342,13 +342,21 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   int wat = 0;
+  int maxwat = (int)solvent_residues_.size();
   int basenum = frameNum * solvent_residues_.size();
-  for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
-        res != solvent_residues_.end(); res++) {
-    double ene = Calculate_Energy(frameIn, *res);
-    myDSL_[0]->Add(basenum + wat, &ene);
-    wat++;
+  DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
+  // Make room for each solvent residue energy this frame.
+  evals.Resize( evals.Size() + solvent_residues_.size() );
+# ifdef _OPENMP
+# pragma omp parallel private(wat)
+  {
+# pragma omp for
+# endif
+  for (wat = 0; wat < maxwat; wat++)
+    evals[basenum + wat] = Calculate_Energy(frameIn, solvent_residues_[wat]);
+# ifdef _OPENMP
   }
+# endif
   return Action::OK;
 }
 
