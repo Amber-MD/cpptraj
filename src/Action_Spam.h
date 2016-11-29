@@ -3,6 +3,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "Vec3.h"
+#include "Timer.h"
 /**
 SPAM is a water profiling technique developed by Guanglei Cui at
 GlaxoSmithKline (GSK). The original implementation involved a set of specialized
@@ -37,7 +38,7 @@ class Action_Spam: public Action {
     // ------------------- Functions -------------------
     int SetupParms(Topology const&);
     double Calculate_Energy(Frame const&, Residue const&);
-    void Calc_G_Wat(DataSet*, Iarray const&,double&, double&, double&, double&, double&);
+    int Calc_G_Wat(DataSet*, Iarray const&,double&, double&, double&, double&, double&);
     // Custom Do- routines
     Action::RetType DoPureWater(int, Frame const&);
     Action::RetType DoSPAM(int, Frame&);
@@ -49,7 +50,8 @@ class Action_Spam: public Action {
     FxnType Inside_;        ///< Function for determining if water is inside peak.
     ImagedAction image_;    ///< Imaging routines.
     std::string solvname_;  ///< Name of the solvent residues
-    double bulk_;           ///< SPAM free energy of the bulk solvent
+    double DG_BULK_;        ///< SPAM free energy of the bulk solvent
+    double DH_BULK_;        ///< SPAM enthalpy of the bulk solvent
     bool purewater_;        ///< True if running a pure water simulation to derive bulk properties
     bool reorder_;          ///< True if solvent should be reordered
     bool calcEnergy_;       ///< True if energy needs to be calculated.
@@ -75,6 +77,13 @@ class Action_Spam: public Action {
     std::vector<Residue> solvent_residues_;
     int Nframes_;                     ///< Total number of frames
     bool overflow_;                   ///< True if cutoff overflowed our box coordinates
+    // Timers
+    Timer t_action_;
+    Timer t_resCom_;
+    Timer t_assign_;
+    Timer t_occupy_;
+    Timer t_energy_;
+    Timer t_reordr_;
     // DEBUG
     int set_counter_;
 };

@@ -10,10 +10,12 @@
 #include "DistRoutines.h"
 #include "StringRoutines.h" // integerToString
 #include "KDE.h"
+#include "OnlineVarT.h" // Stats
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() : Action(HIDDEN),
-  bulk_(0.0),
+  DG_BULK_(-30.3), // Free energy of bulk SPCE water
+  DH_BULK_(-22.2), // Enthalpy of bulk SPCE water
   purewater_(false),
   reorder_(false),
   calcEnergy_(false),
@@ -101,7 +103,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     }
     // Get the remaining optional arguments
     reorder_ = actionArgs.hasKey("reorder");
-    bulk_ = actionArgs.getKeyDouble("bulk", 0.0);
+    DG_BULK_ = actionArgs.getKeyDouble("dgbulk", -30.3);
+    if (!actionArgs.Contains("dgbulk"))
+      mprintf("Warning: 'dgbulk' not specified; using default for SPC/E water.\n");
+    DH_BULK_ = actionArgs.getKeyDouble("dhbulk", -22.2);
+    if (!actionArgs.Contains("dhbulk"))
+      mprintf("Warning: 'dhbulk' not specified; using default for SPC/E water.\n");
     double cut = actionArgs.getKeyDouble("cut", 12.0);
     cut2_ = cut * cut;
     doublecut_ = 2 * cut;
@@ -173,42 +180,41 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     Inside_ = &Action_Spam::inside_box;
 
   // Print info now
+  mprintf("    SPAM:\n");
   if (purewater_) {
-    mprintf("SPAM: Calculating bulk value for pure solvent\n");
+    mprintf("\tCalculating bulk value for pure solvent\n");
     if (datafile != 0)
-      mprintf("SPAM: Printing solvent energies to %s\n", datafile->DataFilename().full());
-    mprintf("SPAM: Using a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
+      mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
+    mprintf("\tUsing a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
-      mprintf("SPAM: Warning: Re-ordering makes no sense for pure solvent.\n");
+      mprintf("\tWarning: Re-ordering makes no sense for pure solvent.\n");
     if (!summaryfile_.empty())
-      mprintf("SPAM: Printing solvent SPAM summary to %s\n", summaryfile_.c_str());
-  }else {
-    mprintf("SPAM: Solvent [%s] density peaks taken from %s.\n",
+      mprintf("\tPrinting solvent SPAM summary to %s\n", summaryfile_.c_str());
+  } else {
+    mprintf("\tSolvent [%s] density peaks taken from %s.\n",
             solvname_.c_str(), filename.base());
-    mprintf("SPAM: %d density peaks will be analyzed from %s.\n",
+    mprintf("\t%zu density peaks will be analyzed from %s.\n",
             peaks_.size(), filename.base());
-    mprintf("SPAM: Occupation information printed to %s.\n", infofile_->Filename().full());
-    mprintf("SPAM: Sites are ");
+    mprintf("\tOccupation information printed to %s.\n", infofile_->Filename().full());
+    mprintf("\tSites are ");
     if (sphere_)
-      mprintf("spheres with diameter %.3lf\n", site_size_);
+      mprintf("spheres with diameter %.3f\n", site_size_);
     else
-      mprintf("boxes with edge length %.3lf\n", site_size_);
-    if (reorder_) {
-      mprintf("SPAM: Re-ordering trajectory so each site always has ");
-      mprintf("the same water molecule.\n");
-    }
+      mprintf("boxes with edge length %.3f\n", site_size_);
+    if (reorder_)
+      mprintf("\tRe-ordering trajectory so each site always has the same water molecule.\n");
     if (!calcEnergy_) {
       if (!reorder_) {
-        mprinterr("SPAM: Error: Not re-ordering trajectory or calculating energies. ");
-        mprinterr("Nothing to do!\n");
+        mprinterr("Error: Not re-ordering trajectory or calculating energies. Nothing to do!\n");
         return Action::ERR;
       }
-      mprintf("SPAM: Not calculating any SPAM energies\n");
-    }else {
-      mprintf("SPAM: Using a non-bonded cutoff of %.2lf Ang. with a EEL shifting function.\n",
+      mprintf("\tNot calculating any SPAM energies\n");
+    } else {
+      mprintf("\tUsing a non-bonded cutoff of %.2f Ang. with a EEL shifting function.\n",
               sqrt(cut2_));
-      mprintf("SPAM: Bulk solvent SPAM energy taken as %.3lf kcal/mol\n", bulk_);
+      mprintf("\tBulk solvent SPAM free energy: %.3f kcal/mol\n", DG_BULK_);
+      mprintf("\tBulk solvent SPAM enthalpy: %.3f kcal/mol\n", DH_BULK_);
     }
   }
   mprintf("#Citation: Cui, G.; Swails, J.M.; Manas, E.S.; \"SPAM: A Simple Approach\n"
@@ -341,12 +347,14 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
    */
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
+  t_action_.Start();
   int wat = 0;
   int maxwat = (int)solvent_residues_.size();
   int basenum = frameNum * solvent_residues_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
+  t_energy_.Start();
 # ifdef _OPENMP
 # pragma omp parallel private(wat)
   {
@@ -357,6 +365,8 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 # ifdef _OPENMP
   }
 # endif
+  t_energy_.Stop();
+  t_action_.Stop();
   return Action::OK;
 }
 
@@ -376,6 +386,8 @@ bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
+  t_action_.Start();
+  t_resCom_.Start();
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
    * and re-order the frame if requested.
@@ -386,6 +398,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
                                             res != solvent_residues_.end(); res++)
     comlist_.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
+  t_resCom_.Stop();
+  t_assign_.Start();
   // Loop through each peak and then scan through every residue, and assign a
   // solvent residue to each peak
   int pknum = 0;
@@ -407,7 +421,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       }
     }
   }
-
+  t_assign_.Stop();
+  t_occupy_.Start();
   /* Now we have a vector of reservations. We want to make sure that each site
    * is occupied once and only once. If a site is unoccupied, add frameNum to
    * this peak's data set in peakFrameData_. If a site is double-occupied, add
@@ -436,7 +451,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   for (unsigned int i = 0; i < peaks_.size(); i++)
     if (doubled[i])
       occupied[i] = false;
-
+  t_occupy_.Stop();
+  t_energy_.Start();
   // If we have to calculate energies, do that here
   if (calcEnergy_) {
     /* Loop through every peak, then loop through the water molecules to find
@@ -462,8 +478,10 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       }
     }
   }
-
+  t_energy_.Stop();
+  t_reordr_.Start();
   // If we have to re-order trajectories, do that here
+  Action::RetType ret = Action::OK;
   if (reorder_) {
     /* Loop over every occupied site and swap the atoms so the same solvent
      * residue is always in the same site
@@ -485,21 +503,25 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
         }
       }
     }
-    return MODIFY_COORDS;
+    ret = MODIFY_COORDS;
   }
+  t_reordr_.Stop();
+  t_action_.Stop();
 
-  return Action::OK;
+  return ret;
 }
 
 /** Calculate the DELTA G of an individual water site */
-void Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
-                             double& dg_avg, double& dg_std, double& dh_avg,
-                             double& dh_std, double& ntds)
+int Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
+                            double& dg_avg, double& dg_std, double& dh_avg,
+                            double& dh_std, double& ntds)
 {
   DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
-  // Create energy vector containing only frames that are singly-occupied
+  // Create energy vector containing only frames that are singly-occupied.
+  // Calculate the mean (enthalpy) while doing this.
   DataSet_double enevec;
   Iarray::const_iterator fnum = SkipFrames.begin();
+  Stats<double> Havg;
   int frm = 0;
   for (; frm != (int)dataIn.Size(); frm++) {
     if (fnum == SkipFrames.end()) break;
@@ -507,22 +529,25 @@ void Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
     if (skippedFrame < 0) skippedFrame = -skippedFrame;
     if (frm == skippedFrame)
       ++fnum;
-    else
+    else {
       enevec.AddElement( dataIn.Dval(frm) );
+      Havg.accumulate( dataIn.Dval(frm) );
+    }
   }
-  for (; frm != (int)dataIn.Size(); frm++)
+  for (; frm != (int)dataIn.Size(); frm++) {
     enevec.AddElement( dataIn.Dval(frm) );
-  if (enevec.Size() < 1) {
-    mprintf("Warning: No energy values for peak. Skipping.\n");
-    return;
+    Havg.accumulate( dataIn.Dval(frm) );
   }
+  if (enevec.Size() < 1)
+    return 1;
+  printf("\t<H>= %g +/- %g\n", Havg.mean() - DH_BULK_, sqrt(Havg.variance()));
 
   DataSet_double kde1;
   //global DG_BULK, DH_BULK, BW
   KDE gkde;
   if (gkde.CalcKDE( kde1, enevec )) {
     mprinterr("Error: Could not calculate E KDE histogram.\n");
-    return;
+    return -1;
   }
   // DEBUG
   DataFile rawout;
@@ -534,6 +559,7 @@ void Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
   kdeout.AddDataSet( &kde1 );
   kdeout.WriteDataOut();
 
+  return 0;
   // def calc_g_wat(enevec, sample_size, sample_num)
 /*
   // Set up defaults
@@ -580,6 +606,14 @@ void Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
 
 // Action_Spam::Print()
 void Action_Spam::Print() {
+  // Timings
+  mprintf("\tSPAM timing data:\n");
+  t_resCom_.WriteTiming(2, "Residue c.o.m. calc:", t_action_.Total());
+  t_assign_.WriteTiming(2, "Peak assignment    :", t_action_.Total());
+  t_occupy_.WriteTiming(2, "Occupancy calc.    :", t_action_.Total());
+  t_energy_.WriteTiming(2, "Energy calc        :", t_action_.Total());
+  t_reordr_.WriteTiming(2, "Residue reordering :", t_action_.Total());
+  t_action_.WriteTiming(1, "SPAM Action Total:");
   // Print the spam info file if we didn't do pure water
   if (!purewater_) {
     // Warn about any overflows
@@ -608,8 +642,17 @@ void Action_Spam::Print() {
 
     double dg_avg, dg_std, dh_avg, dh_std, ntds;
     unsigned int p = 0;
+    int n_peaks_no_energy = 0;
     for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
-      Calc_G_Wat( *ds, peakFrameData_[p], dg_avg, dg_std, dh_avg, dh_std, ntds );
+    {
+      int err = Calc_G_Wat( *ds, peakFrameData_[p], dg_avg, dg_std, dh_avg, dh_std, ntds );
+      if (err == 1)
+        n_peaks_no_energy++;
+      else if (err == -1)
+        mprintf("Warning: Error calculating SPAM energies for peak %zu\n", ds - myDSL_.begin());
+    }
+    if (n_peaks_no_energy > 0)
+      mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
   }
 
   // Print the summary file with the calculated SPAM energies
