@@ -40,7 +40,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "PDB",                0, Traj_PDBfile::WriteHelp, Traj_PDBfile::Alloc        },
   { "Mol2",               0, Traj_Mol2File::WriteHelp, Traj_Mol2File::Alloc       },
   { "CIF",                0, 0, Traj_CIF::Alloc            },
-  { "Charmm DCD",         0, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
+  { "Charmm DCD",         Traj_CharmmDcd::ReadHelp, Traj_CharmmDcd::WriteHelp, Traj_CharmmDcd::Alloc      },
   { "Gromacs TRX",        0, Traj_GmxTrX::WriteHelp, Traj_GmxTrX::Alloc         },
 # ifdef NO_XDRFILE
   { "Gromacs XTC", 0, 0, 0                  },

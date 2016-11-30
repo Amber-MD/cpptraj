@@ -8,6 +8,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     Traj_CharmmDcd();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_CharmmDcd(); }
     static void WriteHelp();
+    static void ReadHelp();
     ~Traj_CharmmDcd();
   private:
     int dcdatom_;            ///< Number of atoms in DCD file.
@@ -50,11 +51,11 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
+    int processReadArgs(ArgList&);
     int processWriteArgs(ArgList&);
 
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
 #   ifdef MPI
     // Parallel functions
     int parallelOpenTrajin(Parallel::Comm const&);
