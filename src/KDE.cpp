@@ -30,8 +30,8 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
     return 1;
   }
   // Automatically determine min, max, step, and bin values.
-  std::vector<double> data;
-  data.reserve( Pdata.Size() );
+//  std::vector<double> data;
+//  data.reserve( Pdata.Size() );
   double N = 0.0;
   double mean = 0.0;
   double M2 = 0.0;
@@ -45,7 +45,7 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
     double delta = x - mean;
     mean += delta / N;
     M2 += delta * (x - mean);
-    data.push_back( x );
+//    data.push_back( x );
   }
   M2 /= (N - 1.0);
   double stdev = sqrt(M2);
@@ -88,12 +88,22 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
   Xdim.PrintHistBin();
 
   // Automatically determine bandwidth
-  double N_to_1_over_5 = pow( (double)Pdata.Size(), (-1.0/5.0) );
-  double bandwidth = 1.06 * stdev * N_to_1_over_5;
+  double bandwidth = 1.06 * stdev * BandwidthFactor(Pdata.Size());
   mprintf("\tBandwidth: %f\n", bandwidth);
 
   std::vector<double> Increments(Pdata.Size(), 1.0);
 
+  return CalcKDE(Out, Pdata, Increments, Xdim, bandwidth);
+}
+
+double KDE::BandwidthFactor(unsigned int N) {
+  return pow( (double)N, (-1.0/5.0) );
+}
+
+int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata,
+                 HistBin const& Xdim, double bandwidth) const
+{
+  std::vector<double> Increments(Pdata.Size(), 1.0);
   return CalcKDE(Out, Pdata, Increments, Xdim, bandwidth);
 }
 

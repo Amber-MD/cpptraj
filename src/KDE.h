@@ -13,9 +13,13 @@ class KDE {
 #   endif
     /// Output, Input
     int CalcKDE(DataSet_double&, DataSet_1D const&) const;
+    /// Output, Input, Histogram dimension, Bandwidth
+    int CalcKDE(DataSet_double&, DataSet_1D const&, HistBin const&,double) const;
     /// Output, Input, Increments, Histogram dimension, Bandwidth
     int CalcKDE(DataSet_double&, DataSet_1D const&,
                 std::vector<double> const&,HistBin const&,double) const;
+    /// \return Bandwidth factor estimate for given N (currently N^(-1/5))
+    static double BandwidthFactor(unsigned int);
   private:
     static const double ONE_OVER_ROOT_TWOPI;
     typedef double (KDE::*FxnPtr)(double) const;
