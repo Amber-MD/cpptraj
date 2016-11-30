@@ -199,6 +199,20 @@ void Traj_CharmmDcd::setFrameSizes() {
   frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
 }
 
+void Traj_CharmmDcd::ReadHelp() {
+  mprintf("\tucell | shape: Force reading of box info as unit cell or shape matrix.\n");
+}
+
+int Traj_CharmmDcd::processReadArgs(ArgList& argIn) {
+  if (argIn.hasKey("ucell"))
+    charmmCellType_ = UCELL;
+  else if (argIn.hasKey("shape"))
+    charmmCellType_ = SHAPE;
+  else
+    charmmCellType_ = UNKNOWN;
+  return 0;
+}
+
 // Traj_CharmmDcd::setupTrajin()
 int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
 {
@@ -300,14 +314,20 @@ int Traj_CharmmDcd::readDcdHeader() {
   // Number of fixed atoms
   nfixedat_  = buffer.i[8];
   // Box information
-  charmmCellType_ = UNKNOWN;
   if (buffer.i[10] != 0) {
     boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
     // Charmm version >= 22 stores shape matrix instead of unit cell
-    if (buffer.i[19] >= 22) {
-      charmmCellType_ = SHAPE;
-    } else
-      charmmCellType_ = UCELL;
+    if (charmmCellType_ == UNKNOWN) {
+      if (buffer.i[19] >= 22) {
+        charmmCellType_ = SHAPE;
+      } else
+        charmmCellType_ = UCELL;
+    } else {
+      // Box info type was specified by option.
+      if (buffer.i[19] >= 22 && charmmCellType_ != SHAPE)
+        mprintf("Warning: CHARMM version is >= 22 but 'ucell' specified.\n"
+                "Warning: Assuming box info is stored as unit cell and not shape matrix.\n");
+    }
   } else
     boxBytes_ = 0;
   // Timestep
