@@ -26,6 +26,9 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
   infofile_(0),
   site_size_(2.5),
   sphere_(false),
+  ds_dg_(0),
+  ds_dh_(0),
+  ds_ds_(0),
   Nframes_(0),
   overflow_(false)
   ,set_counter_(0) // DEBUG
@@ -175,16 +178,20 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     Dimension Pdim( 1.0, 0.0, "Peak" );
     ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
     ds_dh_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DH"));
-    if (ds_dg_==0 || ds_dh_==0) return Action::ERR;
+    ds_ds_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"-TDS"));
+    if (ds_dg_==0 || ds_dh_==0 || ds_ds_==0) return Action::ERR;
     ds_dg_->SetDim(Dimension::X, Pdim);
     ds_dh_->SetDim(Dimension::X, Pdim);
+    ds_ds_->SetDim(Dimension::X, Pdim);
     if (summaryfile != 0) {
       summaryfile->AddDataSet( ds_dg_ );
       summaryfile->AddDataSet( ds_dh_ );
+      summaryfile->AddDataSet( ds_ds_ );
     }
 #   ifdef MPI
     ds_dg_->SetNeedsSync(false);
     ds_dh_->SetNeedsSync(false);
+    ds_ds_->SetNeedsSync(false);
 #   endif
     // peakFrameData will keep track of omitted frames for each peak.
     peakFrameData_.clear();
@@ -533,9 +540,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
 static inline int absval(int i) { if (i < 0) return -i; else return i; }
 
 /** Calculate the DELTA G of an individual water site */
-int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum,
-                            double& dg_avg, double& dg_std, double& dh_avg,
-                            double& dh_std, double& ntds)
+int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 {
   Iarray const& SkipFrames = peakFrameData_[peaknum];
   DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
@@ -595,9 +600,11 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum,
 
   double adjustedDG = DG - DG_BULK_;
   double adjustedDH = Havg.mean() - DH_BULK_;
+  double ntds = adjustedDG - adjustedDH;
   printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
   ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum, adjustedDG);
   ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum, adjustedDH);
+  ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum, ntds);
   
   // DEBUG
   DataFile rawout;
@@ -648,12 +655,11 @@ void Action_Spam::Print() {
       infofile_->Printf("\n\n");
     }
 
-    double dg_avg, dg_std, dh_avg, dh_std, ntds;
     unsigned int p = 0;
     int n_peaks_no_energy = 0;
     for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
     {
-      int err = Calc_G_Wat( *ds, p, dg_avg, dg_std, dh_avg, dh_std, ntds );
+      int err = Calc_G_Wat( *ds, p );
       if (err == 1)
         n_peaks_no_energy++;
       else if (err == -1)
