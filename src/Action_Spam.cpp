@@ -166,10 +166,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %d!\n",
                 filename.full(), npeaks, peaks_.size());
     // Now add all of the data sets
-    MetaData md(ds_name);
     for (int i = 0; i < (int)peaks_.size(); i++) {
-      md.SetAspect( integerToString(i+1) ); // TODO: Should this be Idx?
-      DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, md);
+      DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));
       if (ds == 0) return Action::ERR;
       myDSL_.push_back( ds );
       if (datafile != 0) datafile->AddDataSet( ds );
@@ -602,9 +600,9 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   double adjustedDH = Havg.mean() - DH_BULK_;
   double ntds = adjustedDG - adjustedDH;
   printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
-  ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum, adjustedDG);
-  ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum, adjustedDH);
-  ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum, ntds);
+  ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
+  ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
+  ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
   
   // DEBUG
   DataFile rawout;
@@ -647,10 +645,16 @@ void Action_Spam::Print() {
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++)
         if (peakFrameData_[i][j] < 0) ndouble++;
       infofile_->Printf("# Peak %u has %d omitted frames (%d double-occupied)\n",
-                        i, (int)peakFrameData_[i].size(), ndouble);
+                        i+1, (int)peakFrameData_[i].size(), ndouble);
       for (unsigned int j = 0; j < peakFrameData_[i].size(); j++) {
         if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
-        infofile_->Printf("%7d ", peakFrameData_[i][j]);
+        // Adjust frame number.
+        int fnum = peakFrameData_[i][j];
+        if (fnum < 0)
+         fnum--;
+        else
+          fnum++;
+        infofile_->Printf(" %7d", fnum);
       }
       infofile_->Printf("\n\n");
     }
