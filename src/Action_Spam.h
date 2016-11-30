@@ -38,7 +38,7 @@ class Action_Spam: public Action {
     // ------------------- Functions -------------------
     int SetupParms(Topology const&);
     double Calculate_Energy(Frame const&, Residue const&);
-    int Calc_G_Wat(DataSet*, Iarray const&,double&, double&, double&, double&, double&);
+    int Calc_G_Wat(DataSet*, unsigned int, double&, double&, double&, double&, double&);
     // Custom Do- routines
     Action::RetType DoPureWater(int, Frame const&);
     Action::RetType DoSPAM(int, Frame&);
@@ -52,6 +52,7 @@ class Action_Spam: public Action {
     std::string solvname_;  ///< Name of the solvent residues
     double DG_BULK_;        ///< SPAM free energy of the bulk solvent
     double DH_BULK_;        ///< SPAM enthalpy of the bulk solvent
+    double temperature_;    ///< Temperature at which SPAM simulation was run
     bool purewater_;        ///< True if running a pure water simulation to derive bulk properties
     bool reorder_;          ///< True if solvent should be reordered
     bool calcEnergy_;       ///< True if energy needs to be calculated.
@@ -70,7 +71,9 @@ class Action_Spam: public Action {
     Topology* CurrentParm_;
     std::vector<double> atom_charge_; ///< List of charges that have been converted to Amber units
     bool sphere_;                     ///< Is our site shape a sphere? If no, it's a box.
-    std::vector<DataSet*> myDSL_;     ///< Hold double precision data sets
+    DataSet* ds_dg_;                  ///< Hold final delta G values for each peak
+    DataSet* ds_dh_;                  ///< Hold final delta H values for each peak
+    std::vector<DataSet*> myDSL_;     ///< Hold energy data sets
     Varray peaks_;                    ///< List of each peak location
     Varray comlist_;                  ///< For given frame, each residue C.O.M. coords.
     /// List of the first atom and last atoms of each solvent residue

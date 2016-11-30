@@ -6,16 +6,17 @@
 #include "CpptrajFile.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER
-#include "DataSet_integer.h"
 #include "DistRoutines.h"
 #include "StringRoutines.h" // integerToString
 #include "KDE.h"
 #include "OnlineVarT.h" // Stats
+#include "DataSet_Mesh.h"
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() : Action(HIDDEN),
   DG_BULK_(-30.3), // Free energy of bulk SPCE water
   DH_BULK_(-22.2), // Enthalpy of bulk SPCE water
+  temperature_(300.0),
   purewater_(false),
   reorder_(false),
   calcEnergy_(false),
@@ -31,13 +32,16 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
 { }
 
 void Action_Spam::Help() const {
-  mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>] [bulk <value>]\n"
+  mprintf("\t<filename> [solv <solvname>] [reorder] [name <name>]\n"
           "\t[purewater] [cut <cut>] [info <infofile>] [summary <summary>]\n"
-          "\t[site_size <size>] [sphere] [out <datafile>]\n\n"
+          "\t[site_size <size>] [sphere] [out <datafile>]\n"
+          "\t[dgbulk <dgbulk>] [dhbulk <dhbulk>] [temperature <T>]\n"
           "    <filename> : File with the peak locations present (XYZ- format)\n"
           "    <solvname> : Name of the solvent residues\n"
           "    <cut>      : Non-bonded cutoff for energy evaluation\n"
-          "    <value>    : SPAM free energy of the bulk solvent\n"
+          "    <dgbulk>   : SPAM free energy of the bulk solvent in kcal/mol\n"
+          "    <dhbulk>   : SPAM enthalpy of the bulk solvent in kcal/mol\n"
+          "    <T>        : Temperature at which SPAM calculation was run.\n"
           "    <infofile> : File with stats about which sites are occupied when.\n"
           "    <size>     : Size of the water site around each density peak.\n"
           "    [sphere]   : Treat each site like a sphere.\n"
@@ -109,6 +113,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     DH_BULK_ = actionArgs.getKeyDouble("dhbulk", -22.2);
     if (!actionArgs.Contains("dhbulk"))
       mprintf("Warning: 'dhbulk' not specified; using default for SPC/E water.\n");
+    temperature_ = actionArgs.getKeyDouble("temperature", 300.0);
     double cut = actionArgs.getKeyDouble("cut", 12.0);
     cut2_ = cut * cut;
     doublecut_ = 2 * cut;
@@ -118,8 +123,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       infoname = std::string("spam.info");
     infofile_ = init.DFL().AddCpptrajFile(infoname, "SPAM info");
     if (infofile_ == 0) return Action::ERR;
-    // The default maskstr is the Oxygen atom of the solvent
-    summaryfile_ = actionArgs.GetStringKey("summary");
+    DataFile* summaryfile = init.DFL().AddDataFile(actionArgs.GetStringKey("summary"), actionArgs);
     // Divide site size by 2 to make it half the edge length (or radius)
     site_size_ = actionArgs.getKeyDouble("site_size", 2.5) / 2.0;
     sphere_ = actionArgs.hasKey("sphere");
@@ -167,6 +171,21 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
       myDSL_.push_back( ds );
       if (datafile != 0) datafile->AddDataSet( ds );
     }
+    // Make the peak data sets Mesh so we can skip unoccupied peaks
+    Dimension Pdim( 1.0, 0.0, "Peak" );
+    ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
+    ds_dh_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DH"));
+    if (ds_dg_==0 || ds_dh_==0) return Action::ERR;
+    ds_dg_->SetDim(Dimension::X, Pdim);
+    ds_dh_->SetDim(Dimension::X, Pdim);
+    if (summaryfile != 0) {
+      summaryfile->AddDataSet( ds_dg_ );
+      summaryfile->AddDataSet( ds_dh_ );
+    }
+#   ifdef MPI
+    ds_dg_->SetNeedsSync(false);
+    ds_dh_->SetNeedsSync(false);
+#   endif
     // peakFrameData will keep track of omitted frames for each peak.
     peakFrameData_.clear();
     peakFrameData_.resize( peaks_.size() );
@@ -215,12 +234,12 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
               sqrt(cut2_));
       mprintf("\tBulk solvent SPAM free energy: %.3f kcal/mol\n", DG_BULK_);
       mprintf("\tBulk solvent SPAM enthalpy: %.3f kcal/mol\n", DH_BULK_);
+      mprintf("\tTemperature: %.3f K\n", temperature_);
     }
   }
   mprintf("#Citation: Cui, G.; Swails, J.M.; Manas, E.S.; \"SPAM: A Simple Approach\n"
           "#          for Profiling Bound Water Molecules\"\n"
           "#          J. Chem. Theory Comput., 2013, 9 (12), pp 5539–5549.\n");
-
   return Action::OK;
 }
 
@@ -511,48 +530,79 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   return ret;
 }
 
+static inline int absval(int i) { if (i < 0) return -i; else return i; }
+
 /** Calculate the DELTA G of an individual water site */
-int Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
+int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum,
                             double& dg_avg, double& dg_std, double& dh_avg,
                             double& dh_std, double& ntds)
 {
+  Iarray const& SkipFrames = peakFrameData_[peaknum];
   DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
   // Create energy vector containing only frames that are singly-occupied.
   // Calculate the mean (enthalpy) while doing this.
   DataSet_double enevec;
-  Iarray::const_iterator fnum = SkipFrames.begin();
   Stats<double> Havg;
-  int frm = 0;
-  for (; frm != (int)dataIn.Size(); frm++) {
-    if (fnum == SkipFrames.end()) break;
-    int skippedFrame = *fnum;
-    if (skippedFrame < 0) skippedFrame = -skippedFrame;
-    if (frm == skippedFrame)
+  double min = 0.0, max = 0.0;
+  Iarray::const_iterator fnum = SkipFrames.begin();
+  for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
+    bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
+    if (frameIsSkipped)
       ++fnum;
     else {
-      enevec.AddElement( dataIn.Dval(frm) );
-      Havg.accumulate( dataIn.Dval(frm) );
+      double ene = dataIn.Dval(frm);
+      if (enevec.Size() < 1) {
+        min = ene; 
+        max = ene;
+      } else {
+        min = std::min(min, ene);
+        max = std::max(max, ene);
+      }
+      enevec.AddElement( ene );
+      Havg.accumulate( ene );
     }
-  }
-  for (; frm != (int)dataIn.Size(); frm++) {
-    enevec.AddElement( dataIn.Dval(frm) );
-    Havg.accumulate( dataIn.Dval(frm) );
   }
   if (enevec.Size() < 1)
     return 1;
-  printf("\t<H>= %g +/- %g\n", Havg.mean() - DH_BULK_, sqrt(Havg.variance()));
+  // Calculate distribution of energy values using KDE. Get the bandwidth
+  // factor here since we already know the SD.
+  double BWfac = KDE::BandwidthFactor( enevec.Size() );
+  mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
+  // Estimate number of bins the same way spamstats.py does.
+  int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
 
+  HistBin Xdim(nbins, min - Havg.variance(), BWfac, "P(Ewat)");
+  //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
+  Xdim.PrintHistBin();
   DataSet_double kde1;
-  //global DG_BULK, DH_BULK, BW
   KDE gkde;
-  if (gkde.CalcKDE( kde1, enevec )) {
+  if (gkde.CalcKDE( kde1, enevec, Xdim, 1.06 * sqrt(Havg.variance()) * BWfac )) {
     mprinterr("Error: Could not calculate E KDE histogram.\n");
     return -1;
   }
+  kde1.SetupFormat() = TextFormat(TextFormat::GDOUBLE, 12, 5);
+  // Determine SUM[ P(Ewat) * exp(-Ewat / RT) ]
+  double RT = Constants::GASK_KCAL * temperature_;
+  double KB = 1.0 / RT;
+  double sumQ = 0.0;
+  for (unsigned int i = 0; i != kde1.Size(); i++) {
+    double Ewat = kde1.Xcrd(i);
+    double PEwat = kde1.Dval(i);
+    sumQ += (PEwat * exp( -Ewat * KB ));
+  }
+  mprintf("DEBUG: sumQ= %20.10E\n", sumQ);
+  double DG = -RT * log(sumQ);
+
+  double adjustedDG = DG - DG_BULK_;
+  double adjustedDH = Havg.mean() - DH_BULK_;
+  printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
+  ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum, adjustedDG);
+  ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum, adjustedDH);
+  
   // DEBUG
   DataFile rawout;
   rawout.SetupDatafile( FileName("dbgraw." + integerToString(set_counter_)   + ".dat"), 0 );
-  rawout.AddDataSet( dsIn );
+  rawout.AddDataSet( &enevec );
   rawout.WriteDataOut();
   DataFile kdeout;
   kdeout.SetupDatafile( FileName("dbgkde." + integerToString(set_counter_++) + ".dat"), 0 );
@@ -560,48 +610,6 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, Iarray const& SkipFrames,
   kdeout.WriteDataOut();
 
   return 0;
-  // def calc_g_wat(enevec, sample_size, sample_num)
-/*
-  // Set up defaults
-  unsigned int sample_size = 0;
-  unsigned int sample_num = 0;
-  if (sample_size < 1) sample_size = enevec.Size();
-  sample_size = std::min(enevec.Size(), sample_size);
-  unsigned int sample_num = std::max(1, sample_num);
-
-  std::vector<double> enthalpy(sample_num, 0.0);
-  std::vector<double> free_energy(sample_num, 0.0);
-  // We want to do "sample_num" subsamples with "sample_size" elements in each
-  // subsample.  Loop over those now
-  for (unsigned int ii = 0; ii != sample_num; ii++) {
-    // If sample_num is 1, then don't resample
-      if (sample_num == 1)
-         skde = gaussian_kde(enevec);
-      else
-         // Generate the subsample kernel
-         skde = gaussian_kde(kde1.resample(sample_size))
-      // Determine the widths of the bins from the covariance factor method
-      binwidth = skde.covariance_factor()
-      // Determine the number of bins over the range of the data set
-      nbins = int(((skde.dataset.max() - skde.dataset.min()) / binwidth) + 0.5) \
-            + 100
-      // Make a series of points from the minimum to the maximum
-      pts = np.zeros(nbins)
-      for i in range(nbins): pts[i] = skde.dataset.min() + (i-50) * binwidth
-      // Evaluate the KDE at all of those points
-      kdevals = skde.evaluate(pts)
-      // Get the enthalpy and free energy
-      enthalpy[ii] = np.sum(skde.dataset) / sample_size
-      free_energy[ii] = -1.373 * log10(binwidth *
-                                      np.sum(kdevals * np.exp(-pts / 0.596)))
-
-   // Our subsampling is over, now find the average and standard deviation
-   dg_avg = np.sum(free_energy) / sample_num - DG_BULK
-   dg_std = free_energy.std()
-   dh_avg = np.sum(enthalpy) / sample_num - DH_BULK
-   dh_std = enthalpy.std()
-   ntds = dg_avg - dh_avg
-*/
 }
 
 // Action_Spam::Print()
@@ -645,7 +653,7 @@ void Action_Spam::Print() {
     int n_peaks_no_energy = 0;
     for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
     {
-      int err = Calc_G_Wat( *ds, peakFrameData_[p], dg_avg, dg_std, dh_avg, dh_std, ntds );
+      int err = Calc_G_Wat( *ds, p, dg_avg, dg_std, dh_avg, dh_std, ntds );
       if (err == 1)
         n_peaks_no_energy++;
       else if (err == -1)
@@ -656,9 +664,9 @@ void Action_Spam::Print() {
   }
 
   // Print the summary file with the calculated SPAM energies
-  if (!summaryfile_.empty()) {
+/*  if (!summaryfile_.empty()) {
     // Not enabled yet -- just print out the data files.
     mprinterr("Warning: SPAM: SPAM calculation not yet enabled.\n");
     //if (datafile_.empty()) datafile_ = summaryfile_;
-  }
+  }*/
 }
