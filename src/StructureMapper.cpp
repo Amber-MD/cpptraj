@@ -543,6 +543,7 @@ int StructureMapper::MapWithNoUniqueAtoms( AtomMap& Ref, AtomMap& Tgt ) {
     REF.AddXYZ( RefMap_[ridx].XYZ() );
   // Original target frame
   Frame TGT( TgtMap_.Natom() );
+  TGT.ClearAtoms();
   for (int tidx = 0; tidx != TgtMap_.Natom(); tidx++)
     TGT.AddXYZ( TgtMap_[tidx].XYZ() );
   // For each pair of atoms in refGuess and tgtGuess that have the same
