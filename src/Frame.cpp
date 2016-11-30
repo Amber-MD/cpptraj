@@ -465,6 +465,55 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   return 0; 
 }
 
+// ---------- FRAME Add/remove components --------------------------------------
+int Frame::AddVelocities(Darray const& vIn) {
+  if ((int)vIn.size() != ncoord_) {
+    mprinterr("Error: AddVelocities: # input velocities (%zu) != # coords (%i)\n",
+              vIn.size(), ncoord_);
+    return 1;
+  }
+  if (V_ != 0) delete[] V_;
+  V_ = new double[ vIn.size() ];
+  std::copy(vIn.begin(), vIn.end(), V_);
+  return 0;
+}
+
+int Frame::AddForces(Darray const& fIn) {
+  if ((int)fIn.size() != ncoord_) {
+    mprinterr("Error: AddForces: # input forces (%zu) != # coords (%i)\n",
+              fIn.size(), ncoord_);
+    return 1;
+  }
+  if (F_ != 0) delete[] F_;
+  F_ = new double[ fIn.size() ];
+  std::copy(fIn.begin(), fIn.end(), F_);
+  return 0;
+}
+
+int Frame::AddMasses(Darray const& mIn) {
+  if ((int)mIn.size() != natom_) {
+    mprinterr("Error: AddMasses: # input masses (%zu) != atoms (%i)\n",
+              mIn.size(), natom_);
+    return 1;
+  }
+  Mass_ = mIn;
+  return 0;
+}
+
+void Frame::RemoveVelocities() {
+  if (V_ != 0) delete[] V_;
+  V_ = 0;
+}
+
+void Frame::RemoveForces() {
+  if (F_ != 0) delete[] F_;
+  F_ = 0;
+}
+
+void Frame::RemoveMasses() {
+  Mass_.assign(natom_, 1.0);
+}
+
 // ---------- FRAME SETUP OF COORDINATES ---------------------------------------
 // Frame::SetCoordinates()
 void Frame::SetCoordinates(Frame const& frameIn, AtomMask const& maskIn) {
