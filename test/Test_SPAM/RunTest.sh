@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd
+CleanFiles spam.in spam.dat spam.info spampure.dat test.mdcrd summary.dat
 
 NotParallel "SPAM test."
 if [[ $? -ne 0 ]] ; then
@@ -17,14 +17,15 @@ CheckNetcdf
 cat > spam.in <<EOF
 trajin ../tz2.truncoct.nc
 autoimage
-spam peaks.xyz name SPAM cut 12.0 info spam.info out spam.dat reorder
+spam peaks.xyz name SPAM cut 12.0 info spam.info out spam.dat reorder \
+     summary summary.dat
 trajout test.mdcrd onlyframes 1-2
 EOF
 
 INPUT="spam.in"
 TOP="../tz2.truncoct.parm7"
 RunCpptraj "SPAM Test"
-
+DoTest summary.dat.save summary.dat
 DoTest test.mdcrd.save test.mdcrd
 DoTest spam.info.save spam.info
 DoTest spam.dat.save spam.dat
