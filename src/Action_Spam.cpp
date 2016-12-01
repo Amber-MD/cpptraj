@@ -14,6 +14,7 @@
 
 // CONSTRUCTOR
 Action_Spam::Action_Spam() : Action(HIDDEN),
+  debug_(0),
   DG_BULK_(-30.3), // Free energy of bulk SPCE water
   DH_BULK_(-22.2), // Enthalpy of bulk SPCE water
   temperature_(300.0),
@@ -31,7 +32,6 @@ Action_Spam::Action_Spam() : Action(HIDDEN),
   ds_ds_(0),
   Nframes_(0),
   overflow_(false)
-  ,set_counter_(0) // DEBUG
 { }
 
 void Action_Spam::Help() const {
@@ -66,6 +66,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     return Action::ERR;
   }
 # endif
+  debug_ = debugIn;
   // Always use imaged distances
   image_.InitImaging(true);
   // This is needed everywhere in this function scope
@@ -87,12 +88,13 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
   if (solvname_.empty())
     solvname_ = std::string("WAT");
 
+  // Get energy cutoff
+  double cut = actionArgs.getKeyDouble("cut", 12.0);
+  cut2_ = cut * cut;
+  doublecut_ = 2 * cut;
+  onecut2_ = 1 / cut2_;
+
   if (purewater_) {
-    // We still need the cutoff
-    double cut = actionArgs.getKeyDouble("cut", 12.0);
-    cut2_ = cut * cut;
-    doublecut_ = 2 * cut;
-    onecut2_ = 1 / cut2_;
     // We only have one data set averaging over every water. Add it here
     DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
     if (ds == 0) return Action::ERR;
@@ -117,10 +119,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (!actionArgs.Contains("dhbulk"))
       mprintf("Warning: 'dhbulk' not specified; using default for SPC/E water.\n");
     temperature_ = actionArgs.getKeyDouble("temperature", 300.0);
-    double cut = actionArgs.getKeyDouble("cut", 12.0);
-    cut2_ = cut * cut;
-    doublecut_ = 2 * cut;
-    onecut2_ = 1 / cut2_;
     std::string infoname = actionArgs.GetStringKey("info");
     if (infoname.empty())
       infoname = std::string("spam.info");
@@ -133,7 +131,6 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     // If it's a sphere, square the radius to compare with
     if (sphere_)
       site_size_ *= site_size_;
-
     // Parse through the peaks file and extract the peaks
     CpptrajFile peakfile;
     if (peakfile.OpenRead(filename)) {
@@ -165,14 +162,14 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (npeaks != (int)peaks_.size())
       mprinterr("SPAM: Warning: %s claims to have %d peaks, but really has %d!\n",
                 filename.full(), npeaks, peaks_.size());
-    // Now add all of the data sets
+    // Now add all of the individual peak energy data sets
     for (int i = 0; i < (int)peaks_.size(); i++) {
       DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name,i+1));
       if (ds == 0) return Action::ERR;
       myDSL_.push_back( ds );
       if (datafile != 0) datafile->AddDataSet( ds );
     }
-    // Make the peak data sets Mesh so we can skip unoccupied peaks
+    // Make the peak overall energy sets Mesh so we can skip unoccupied peaks
     Dimension Pdim( 1.0, 0.0, "Peak" );
     ds_dg_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DG"));
     ds_dh_ = init.DSL().AddSet(DataSet::XYMESH, MetaData(ds_name,"DH"));
@@ -279,6 +276,10 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     }
     resnum++;
   }
+  if (solvent_residues_.empty()) {
+    mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
+    return Action::ERR;
+  }
   resPeakNum_.reserve( solvent_residues_.size() );
   comlist_.reserve( solvent_residues_.size() );
 
@@ -288,8 +289,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   // Set up the charge array and check that we have enough info
   if (SetupParms(setup.Top())) return Action::ERR;
 
-  // Back up the parm
-  // NOTE: This is a full copy - use reference instead?
+  // Save topology address so we can get NB params during energy calc. 
   CurrentParm_ = setup.TopAddress();
 
   return Action::OK;
@@ -300,7 +300,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
   * parameters in our topology to calculate nonbonded energy terms
   */
 int Action_Spam::SetupParms(Topology const& ParmIn) {
-  // Store the charges
+  // Store the charges, convert to Amber style so we get energies in kcal/mol
   atom_charge_.clear();
   atom_charge_.reserve( ParmIn.Natom() );
   for (Topology::atom_iterator atom = ParmIn.begin(); atom != ParmIn.end(); ++atom)
@@ -316,12 +316,9 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
 double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   // The first atom of the solvent residue we want the energy from
   double result = 0;
-  Matrix_3x3 ucell, recip;
-  if ( image_.ImageType() == NONORTHO )
-    frameIn.BoxCrd().ToRecip(ucell, recip);
-  /* Now loop through all atoms in the residue and loop through the pairlist to
-   * get the energies
-   */
+
+  // Now loop through all atoms in the residue and loop through the pairlist to
+  // get the energies
   for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
     Vec3 atm1 = Vec3(frameIn.XYZ(i));
     for (int j = 0; j < CurrentParm_->Natom(); j++) {
@@ -330,7 +327,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
       double dist2;
       // Get imaged distance
       switch( image_.ImageType() ) {
-        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell, recip); break;
+        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell_, recip_); break;
         case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
         default       : dist2 = DIST2_NoImage(atm1, atm2); break;
       }
@@ -339,7 +336,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
         NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
         double r2 = 1 / dist2;
         double r6 = r2 * r2 * r2;
-                  // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
         result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
       }
@@ -351,7 +348,9 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
 // Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
-
+  // Calculate unit cell and fractional matrices for non-orthorhombic system
+  if ( image_.ImageType() == NONORTHO )
+    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // Check that our box is still big enough...
   overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
                            frm.Frm().BoxCrd().BoxY() < doublecut_ ||
@@ -576,7 +575,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 
   HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
   //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
-  Xdim.PrintHistBin();
+  if (debug_ > 0) Xdim.PrintHistBin();
   DataSet_double kde1;
   KDE gkde;
   if (gkde.CalcKDE( kde1, enevec, Xdim, 1.06 * sqrt(Havg.variance()) * BWfac )) {
@@ -606,11 +605,11 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   
   // DEBUG
   DataFile rawout;
-  rawout.SetupDatafile( FileName("dbgraw." + integerToString(set_counter_)   + ".dat"), 0 );
+  rawout.SetupDatafile( FileName("dbgraw." + integerToString(peaknum+1) + ".dat"), 0 );
   rawout.AddDataSet( &enevec );
   rawout.WriteDataOut();
   DataFile kdeout;
-  kdeout.SetupDatafile( FileName("dbgkde." + integerToString(set_counter_++) + ".dat"), 0 );
+  kdeout.SetupDatafile( FileName("dbgkde." + integerToString(peaknum+1) + ".dat"), 0 );
   kdeout.AddDataSet( &kde1 );
   kdeout.WriteDataOut();
 
@@ -672,11 +671,4 @@ void Action_Spam::Print() {
     if (n_peaks_no_energy > 0)
       mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
   }
-
-  // Print the summary file with the calculated SPAM energies
-/*  if (!summaryfile_.empty()) {
-    // Not enabled yet -- just print out the data files.
-    mprinterr("Warning: SPAM: SPAM calculation not yet enabled.\n");
-    //if (datafile_.empty()) datafile_ = summaryfile_;
-  }*/
 }

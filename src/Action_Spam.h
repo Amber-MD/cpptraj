@@ -47,8 +47,11 @@ class Action_Spam: public Action {
     bool inside_box(Vec3, Vec3, double) const;
     bool inside_sphere(Vec3, Vec3, double) const;
 
+    int debug_;
     FxnType Inside_;        ///< Function for determining if water is inside peak.
     ImagedAction image_;    ///< Imaging routines.
+    Matrix_3x3 ucell_;      ///< Unit cell matrix
+    Matrix_3x3 recip_;      ///< Fractional matrix
     std::string solvname_;  ///< Name of the solvent residues
     double DG_BULK_;        ///< SPAM free energy of the bulk solvent
     double DH_BULK_;        ///< SPAM enthalpy of the bulk solvent
@@ -88,8 +91,6 @@ class Action_Spam: public Action {
     Timer t_occupy_;
     Timer t_energy_;
     Timer t_reordr_;
-    // DEBUG
-    int set_counter_;
 };
 
 #endif
