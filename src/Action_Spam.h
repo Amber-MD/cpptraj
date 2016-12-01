@@ -34,6 +34,7 @@ class Action_Spam: public Action {
 
     typedef std::vector<int> Iarray;
     typedef std::vector<Vec3> Varray;
+    typedef std::vector<Residue> Rarray;
 
     // ------------------- Functions -------------------
     int SetupParms(Topology const&);
@@ -64,26 +65,22 @@ class Action_Spam: public Action {
     double doublecut_;      ///< twice the cutoff (to test if boxes are big enough)
     CpptrajFile* infofile_; ///< SPAM info file
     AtomMask mask_;         ///< Mask for selecting individual solvent residues
+    Iarray resPeakNum_;     ///< Peak that each solvent residue is assigned to; -1 is unassigned
     std::string summaryfile_; ///< File containing the summary of all SPAM statistics
     double site_size_;        ///< Size of the water site. This is a full edge length or diameter
-    /// A list of all omitted frames for each peak
-    std::vector<Iarray> peakFrameData_;
-    /// For a given frame, peak that each solvent residue is assigned to; -1 is unassigned
-    Iarray resPeakNum_;
-    /// Topology, for extracting necessary parameters for energy evaluations
-    Topology* CurrentParm_;
-    std::vector<double> atom_charge_; ///< List of charges that have been converted to Amber units
-    bool sphere_;                     ///< Is our site shape a sphere? If no, it's a box.
-    DataSet* ds_dg_;                  ///< Hold final delta G values for each peak
-    DataSet* ds_dh_;                  ///< Hold final delta H values for each peak
-    DataSet* ds_ds_;                  ///< Hold final -T*S values for each peak
-    std::vector<DataSet*> myDSL_;     ///< Hold energy data sets
-    Varray peaks_;                    ///< List of each peak location
-    Varray comlist_;                  ///< For given frame, each residue C.O.M. coords.
-    /// List of the first atom and last atoms of each solvent residue
-    std::vector<Residue> solvent_residues_;
-    int Nframes_;                     ///< Total number of frames
-    bool overflow_;                   ///< True if cutoff overflowed our box coordinates
+    std::vector<Iarray> peakFrameData_; ///< A list of all omitted frames for each peak
+    Topology* CurrentParm_;             ///< Current topology (for NB params).
+    std::vector<double> atom_charge_;   ///< Charges that have been converted to Amber units
+    bool sphere_;                       ///< Is our site shape a sphere? If no, it's a box.
+    DataSet* ds_dg_;                    ///< Hold final delta G values for each peak
+    DataSet* ds_dh_;                    ///< Hold final delta H values for each peak
+    DataSet* ds_ds_;                    ///< Hold final -T*S values for each peak
+    std::vector<DataSet*> myDSL_;       ///< Hold energy data sets
+    Varray peaks_;                      ///< List of each peak location
+    Varray comlist_;                    ///< For given frame, each residue C.O.M. coords.
+    Rarray solvent_residues_;           ///< List of each solvent residue
+    int Nframes_;                       ///< Total number of frames
+    bool overflow_;                     ///< True if cutoff overflowed our box coordinates
     // Timers
     Timer t_action_;
     Timer t_resCom_;
