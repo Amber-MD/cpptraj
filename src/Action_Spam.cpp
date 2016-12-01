@@ -1,6 +1,6 @@
 // Action_Spam
 #include <cmath> // sqrt
-#include <cstdio> // sscanf, sprintf
+#include <cstdio> // sscanf
 #include "Action_Spam.h"
 #include "Box.h"
 #include "CpptrajFile.h"
@@ -570,11 +570,11 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   // Calculate distribution of energy values using KDE. Get the bandwidth
   // factor here since we already know the SD.
   double BWfac = KDE::BandwidthFactor( enevec.Size() );
-  mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
+  //mprintf("DEBUG:\tNvals=%zu min=%g max=%g BWfac=%g\n", enevec.Size(), min, max, BWfac);
   // Estimate number of bins the same way spamstats.py does.
   int nbins = (int)(((max - min) / BWfac) + 0.5) + 100;
 
-  HistBin Xdim(nbins, min - Havg.variance(), BWfac, "P(Ewat)");
+  HistBin Xdim(nbins, min - (50*BWfac), BWfac, "P(Ewat)");
   //Xdim.CalcBinsOrStep(min - Havg.variance(), max + Havg.variance(), 0.0, nbins, "P(Ewat)");
   Xdim.PrintHistBin();
   DataSet_double kde1;
@@ -593,13 +593,13 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
     double PEwat = kde1.Dval(i);
     sumQ += (PEwat * exp( -Ewat * KB ));
   }
-  mprintf("DEBUG: sumQ= %20.10E\n", sumQ);
-  double DG = -RT * log(sumQ);
+  //mprintf("DEBUG: sumQ= %20.10E\n", sumQ);
+  double DG = -RT * log(BWfac * sumQ);
 
   double adjustedDG = DG - DG_BULK_;
   double adjustedDH = Havg.mean() - DH_BULK_;
   double ntds = adjustedDG - adjustedDH;
-  printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
+  //printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
   ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
   ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
   ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
