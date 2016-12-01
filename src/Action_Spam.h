@@ -31,6 +31,10 @@ class Action_Spam: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
 
     typedef std::vector<int> Iarray;
     typedef std::vector<Vec3> Varray;

@@ -60,11 +60,7 @@ void Action_Spam::Help() const {
 Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
 # ifdef MPI
-  if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'spam' action does not work with > 1 thread (%i threads currently).\n",
-              init.TrajComm().Size());
-    return Action::ERR;
-  }
+  trajComm_ = init.TrajComm();
 # endif
   debug_ = debugIn;
   // Always use imaged distances
@@ -622,6 +618,48 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 
   return 0;
 }
+
+#ifdef MPI
+int Action_Spam::SyncAction() {
+  // Get total number of frames.
+  std::vector<int> frames_on_rank( trajComm_.Size() );
+  int myframes = Nframes_;
+  trajComm_.GatherMaster( &myframes, 1, MPI_INT, &frames_on_rank[0] );
+  if (trajComm_.Master())
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+      Nframes_ += frames_on_rank[rank];
+  mprintf("DEBUG: %i frames total.\n", Nframes_);
+
+  // Sync peakFrameData_
+  std::vector<int> size_on_rank( trajComm_.Size() );
+  for (unsigned int i = 0; i != peakFrameData_.size(); i++)
+  {
+    Iarray& Data = peakFrameData_[i];
+    int mysize = (int)Data.size();
+    trajComm_.GatherMaster( &mysize, 1, MPI_INT, &size_on_rank[0] );
+    if (trajComm_.Master()) {
+      int total = size_on_rank[0];
+      for (int rank = 1; rank < trajComm_.Size(); rank++)
+        total += size_on_rank[rank];
+      Data.resize( total );
+      int* endptr = &(Data[0]) + size_on_rank[0];
+      // Receive data from each rank
+      for (int rank = 1; rank < trajComm_.Size(); rank++) {
+        trajComm_.SendMaster( endptr, size_on_rank[rank], rank, MPI_INT );
+        // Properly offset the frame numbers
+        for (int j = 0; j != size_on_rank[rank]; j++, endptr++)
+          if (*endptr < 0)
+            *endptr -= frames_on_rank[rank-1];
+          else
+            *endptr += frames_on_rank[rank-1];
+        //endptr += size_on_rank[rank];
+      }
+    } else // Send data to master
+      trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
+  }
+  return 0;
+}
+#endif
 
 // Action_Spam::Print()
 void Action_Spam::Print() {
