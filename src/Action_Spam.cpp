@@ -96,6 +96,8 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     if (ds == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet( ds );
     myDSL_.push_back( ds );
+    DG_BULK_ = 0.0;
+    DH_BULK_ = 0.0;
   } else {
     // Get the file name with the peaks defined in it
     filename.SetFileName( actionArgs.GetStringNext() );
@@ -542,27 +544,39 @@ static inline int absval(int i) { if (i < 0) return -i; else return i; }
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 {
-  Iarray const& SkipFrames = peakFrameData_[peaknum];
   DataSet_1D const& dataIn = static_cast<DataSet_1D const&>( *dsIn );
   // Create energy vector containing only frames that are singly-occupied.
   // Calculate the mean (enthalpy) while doing this.
   DataSet_double enevec;
   Stats<double> Havg;
   double min = 0.0, max = 0.0;
-  Iarray::const_iterator fnum = SkipFrames.begin();
-  for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
-    bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
-    if (frameIsSkipped)
-      ++fnum;
-    else {
-      double ene = dataIn.Dval(frm);
-      if (enevec.Size() < 1) {
-        min = ene; 
-        max = ene;
-      } else {
-        min = std::min(min, ene);
-        max = std::max(max, ene);
+  if (!peakFrameData_.empty()) {
+    Iarray const& SkipFrames = peakFrameData_[peaknum];
+    Iarray::const_iterator fnum = SkipFrames.begin();
+    for (int frm = 0; frm != (int)dataIn.Size(); frm++) {
+      bool frameIsSkipped = (fnum != SkipFrames.end() && absval(*fnum) == frm);
+      if (frameIsSkipped)
+        ++fnum;
+      else {
+        double ene = dataIn.Dval(frm);
+        if (enevec.Size() < 1) {
+          min = ene; 
+          max = ene;
+        } else {
+          min = std::min(min, ene);
+          max = std::max(max, ene);
+        }
+        enevec.AddElement( ene );
+        Havg.accumulate( ene );
       }
+    }
+  } else {
+    min = dataIn.Dval(0);
+    max = dataIn.Dval(0);
+    for (unsigned int frm = 0; frm != dataIn.Size(); frm++) {
+      double ene = dataIn.Dval(frm);
+      min = std::min(min, ene);
+      max = std::max(max, ene);
       enevec.AddElement( ene );
       Havg.accumulate( ene );
     }
@@ -601,20 +615,31 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
   double adjustedDG = DG - DG_BULK_;
   double adjustedDH = Havg.mean() - DH_BULK_;
   double ntds = adjustedDG - adjustedDH;
-  //printf("\t<G>= %g, <H>= %g +/- %g\n", adjustedDG, adjustedDH, sqrt(Havg.variance()));
-  ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
-  ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
-  ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
+  if (ds_dg_ == 0) {
+    mprintf("\tSPAM bulk energy values:\n");
+    mprintf("\t  <G>= %g, <H>= %g +/- %g, -TdS= %g\n", adjustedDG, adjustedDH,
+            sqrt(Havg.variance()), ntds);
+  } else {
+    ((DataSet_Mesh*)ds_dg_)->AddXY(peaknum+1, adjustedDG);
+    ((DataSet_Mesh*)ds_dh_)->AddXY(peaknum+1, adjustedDH);
+    ((DataSet_Mesh*)ds_ds_)->AddXY(peaknum+1, ntds);
+  }
   
   // DEBUG
-  DataFile rawout;
-  rawout.SetupDatafile( FileName("dbgraw." + integerToString(peaknum+1) + ".dat"), 0 );
-  rawout.AddDataSet( &enevec );
-  rawout.WriteDataOut();
-  DataFile kdeout;
-  kdeout.SetupDatafile( FileName("dbgkde." + integerToString(peaknum+1) + ".dat"), 0 );
-  kdeout.AddDataSet( &kde1 );
-  kdeout.WriteDataOut();
+  if (debug_ > 1) {
+    FileName rawname("dbgraw." + integerToString(peaknum+1) + ".dat");
+    FileName kdename("dbgkde." + integerToString(peaknum+1) + ".dat");
+    mprintf("DEBUG: Writing peak %u raw energy values to '%s', KDE histogram to '%s'\n",
+            peaknum+1, rawname.full(), kdename.full());
+    DataFile rawout;
+    rawout.SetupDatafile( rawname, 0 );
+    rawout.AddDataSet( &enevec );
+    rawout.WriteDataOut();
+    DataFile kdeout;
+    kdeout.SetupDatafile( kdename, 0 );
+    kdeout.AddDataSet( &kde1 );
+    kdeout.WriteDataOut();
+  }
 
   return 0;
 }
@@ -628,7 +653,6 @@ int Action_Spam::SyncAction() {
   if (trajComm_.Master())
     for (int rank = 1; rank < trajComm_.Size(); rank++)
       Nframes_ += frames_on_rank[rank];
-  mprintf("DEBUG: %i frames total.\n", Nframes_);
 
   // Sync peakFrameData_
   std::vector<int> size_on_rank( trajComm_.Size() );
@@ -652,7 +676,6 @@ int Action_Spam::SyncAction() {
             *endptr -= frames_on_rank[rank-1];
           else
             *endptr += frames_on_rank[rank-1];
-        //endptr += size_on_rank[rank];
       }
     } else // Send data to master
       trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
@@ -715,5 +738,6 @@ void Action_Spam::Print() {
     }
     if (n_peaks_no_energy > 0)
       mprintf("Warning: No energies for %i peaks.\n", n_peaks_no_energy);
-  }
+  } else
+    Calc_G_Wat( myDSL_[0], 0 );
 }
