@@ -29,6 +29,7 @@
   */
 class Frame {
   public:
+    typedef std::vector<double> Darray;
     // Construction/Destruction/Assignment
     Frame();
     ~Frame();
@@ -121,11 +122,18 @@ class Frame {
     /// Allocate frame for given # atoms with mass, no velocity. 
     int SetupFrameM(std::vector<Atom> const&);
     /// Allocate frame with given XYZ coords and masses, no velocity.
-    int SetupFrameXM(std::vector<double> const&, std::vector<double> const&);
+    int SetupFrameXM(Darray const&, Darray const&);
     /// Allocate frame for given # atoms with mass and opt. velocity/indices.
     int SetupFrameV(std::vector<Atom> const&, CoordinateInfo const&);
     /// Allocate frame for selected # atoms, coords/mass only.
     int SetupFrameFromMask(AtomMask const&, std::vector<Atom> const&);
+    // ----- Add/remove components from Frame ----
+    int AddVelocities(Darray const&);
+    void RemoveVelocities();
+    int AddForces(Darray const&);
+    void RemoveForces();
+    int AddMasses(Darray const&);
+    void RemoveMasses();
     // ----- Frame coords set routines -----------
     /// Copy coordinates, box, and temp. from input frame according to mask. 
     void SetCoordinates(Frame const&, AtomMask const&);
@@ -215,7 +223,6 @@ class Frame {
     int SumToMaster(Parallel::Comm const&);
 #   endif
   private:
-    typedef std::vector<double> Darray;
     static const size_t COORDSIZE_;
     static const size_t BOXSIZE_;
 
