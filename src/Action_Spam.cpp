@@ -478,28 +478,35 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_energy_.Start();
   // If we have to calculate energies, do that here
   if (calcEnergy_) {
-    /* Loop through every peak, then loop through the water molecules to find
-     * which one is in that site, and calculate the LJ and EEL energies for that
-     * water molecule within a given cutoff.
-     */
-    for (int peak = 0; peak < (int)peaks_.size(); peak++) {
-      // Skip unoccupied peaks
-      if (!occupied[peak]) {
-        double val = 0;
-        myDSL_[peak]->Add(frameNum, &val);
-        continue;
-      }
-      for (unsigned int i = 0; i < resPeakNum_.size(); i++) {
-        if (resPeakNum_[i] != peak) continue;
-        /* Now we have our residue number. Create a pairlist for each solvent
-         * molecule that can be used for each atom in that residue. Should
-         * provide some time savings.
-         */
-        double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
-        myDSL_[peak]->Add(frameNum, &ene);
-        break;
-      }
+    int peak;
+    int npeaks = (int)peaks_.size();
+    const double ZERO = 0.0;
+    // Loop through every peak, then loop through the water molecules to find
+    // which one is in that site, and calculate the LJ and EEL energies for that
+    // water molecule within a given cutoff.
+#   ifdef _OPENMP
+#   pragma omp parallel private(peak)
+    {
+#   pragma omp for schedule(dynamic)
+#   endif
+    for (peak = 0; peak < npeaks; peak++)
+    {
+      if (occupied[peak]) {
+        for (unsigned int i = 0; i < resPeakNum_.size(); i++)
+          if (resPeakNum_[i] == peak) {
+            // Now we have our residue number. Create a pairlist for each solvent
+            // molecule that can be used for each atom in that residue. Should
+            // provide some time savings.
+            double ene = Calculate_Energy(frameIn, solvent_residues_[i]);
+            myDSL_[peak]->Add(frameNum, &ene);
+            break;
+          }
+      } else
+        myDSL_[peak]->Add(frameNum, &ZERO);
     }
+#   ifdef _OPENMP
+    }
+#   endif
   }
   t_energy_.Stop();
   t_reordr_.Start();
