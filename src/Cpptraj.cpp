@@ -374,8 +374,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       return ERROR;
     }
     DataFile DF;
-    ArgList tmpArg;
-    if (DF.SetupDatafile( dataOut, tmpArg, State_.Debug() )) return ERROR;
+    if (DF.SetupDatafile( dataOut, State_.Debug() )) return ERROR;
     for (DataSetList::const_iterator ds = State_.DSL().begin(); ds != State_.DSL().end(); ++ds)
       if (DF.AddDataSet( *ds )) {
         mprinterr("Error: Could not add data set '%s' to file '%s'\n", (*ds)->legend(),

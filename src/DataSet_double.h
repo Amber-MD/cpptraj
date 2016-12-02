@@ -13,8 +13,10 @@ class DataSet_double : public DataSet_1D {
     std::vector<double> const& Data() const { return Data_;           }
     void operator=(std::vector<double> const& rhs) { Data_ = rhs;     }
     void AddElement(double d)            { Data_.push_back( d );      }
-    /// Make set size sizeIn, all values set to 0.0.
+    /// Make set size sizeIn, any extra values set to 0.0.
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, 0.0); }
+    /// Make set size sizeIn, all values set to 0.0.
+    void Zero(size_t sizeIn)             { Data_.assign(sizeIn, 0.0); }
     typedef std::vector<double>::iterator iterator;
     iterator begin()                     { return Data_.begin();      }
     iterator end()                       { return Data_.end();        }
