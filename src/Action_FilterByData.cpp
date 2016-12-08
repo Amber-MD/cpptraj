@@ -12,6 +12,8 @@ void Action_FilterByData::Help() const {
 // Action_FilterByData::Init()
 Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  Npassed_ = 0;
+  Nfiltered_ = 0;
   maxmin_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
   if (maxmin_ == 0) return Action::ERR;
   DataFile* maxminfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -88,10 +90,12 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
     // If value from dataset not within min/max, exit now.
     if (dVal < Min_[ds] || dVal > Max_[ds]) {
       maxmin_->Add( frameNum, &ZERO );
+      Nfiltered_++;
       return Action::SUPPRESS_COORD_OUTPUT;
     }
   }
   maxmin_->Add( frameNum, &ONE );
+  Npassed_++;
   return Action::OK;
 }
 
@@ -111,4 +115,11 @@ size_t Action_FilterByData::DetermineFrames() const {
               (*it)->legend(), (*it)->Size(), nframes);
   }
   return nframes;
+}
+
+void Action_FilterByData::Print() {
+  mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
+          Npassed_, Nfiltered_);
+  for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
 }
