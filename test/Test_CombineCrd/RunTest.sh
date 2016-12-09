@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in Final.PRY.mol2
+CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7
 
 INPUT="-i cpptraj.in"
 # Combine Tyr FF14SB backbone + CB with PRY fragment
@@ -25,8 +25,26 @@ crdaction TYR strip !@C,O,CA,HA,N,H,CB,HB2,HB3
 combinecrd TYR PRY parmname Final.PRY crdname Final
 crdout Final Final.PRY.mol2
 EOF
-
 RunCpptraj "Combine COORDS test."
 DoTest Final.PRY.mol2.save Final.PRY.mol2
+
+# Combine triclosan from FtuFabI + NAD + TCS with trpzip2
+cat > cpptraj.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+loadcrd ../FtuFabI.NAD.TCL.nc name TCS
+crdaction TCS strip !:TCS
+
+parm ../tz2.truncoct.parm7
+loadcrd ../tz2.truncoct.nc name TZ2 parmindex 1
+crdaction TZ2 strip :WAT
+
+combinecrd TZ2 TCS parmname combinedParm crdname combinedCrd
+parmwrite out combinedParm.parm7 parm combinedParm
+crdout combinedCrd combinedCrd.crd
+EOF
+RunCpptraj "Combine COORDS test with box info."
+DoTest combinedParm.parm7.save combinedParm.parm7 -I %VERSION
+DoTest combinedCrd.crd.save combinedCrd.crd
+
 EndTest
 exit 0
