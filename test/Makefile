@@ -328,6 +328,9 @@ test.dataset:
 test.remap:
 	@-cd Test_Remap && ./RunTest.sh $(OPT)
 
+test.comparetop:
+	@-cd Test_CompareTop && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -410,7 +413,8 @@ SHORT_TESTS=test.general \
           test.velfrc \
           test.rotatedihedral \
           test.dataset \
-          test.remap
+          test.remap \
+          test.comparetop
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -517,7 +521,8 @@ COMPLETETESTS=test.general \
               test.velfrc \
               test.rotatedihedral \
               test.dataset \
-              test.remap
+              test.remap \
+              test.comparetop
 
 test: test.all 
 

@@ -225,7 +225,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
   Command::AddCmd( new Exec_BondInfo(),      Cmd::EXE, 3, "bonds", "bondinfo", "printbonds" );
   Command::AddCmd( new Exec_ChargeInfo(),    Cmd::EXE, 1, "charge" );
-  Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" ); // HIDDEN
+  Command::AddCmd( new Exec_CompareTop(),    Cmd::EXE, 1, "comparetop" );
   Command::AddCmd( new Exec_DihedralInfo(),Cmd::EXE, 3,"dihedrals","dihedralinfo","printdihedrals");
   Command::AddCmd( new Exec_MassInfo(),      Cmd::EXE, 1, "mass" );
   Command::AddCmd( new Exec_MolInfo(),       Cmd::EXE, 1, "molinfo" );
