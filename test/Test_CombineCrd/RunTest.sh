@@ -4,6 +4,12 @@
 
 CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7
 
+NotParallel "Combine COORDS tests."
+if [ "$?" -ne 0 ] ; then
+  EndTest
+  exit 0
+fi
+
 INPUT="-i cpptraj.in"
 # Combine Tyr FF14SB backbone + CB with PRY fragment
 cat > cpptraj.in <<EOF
