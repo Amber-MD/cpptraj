@@ -11,9 +11,6 @@ TopInfo::~TopInfo() {
 /// CONSTRUCTOR - To Stdout
 TopInfo::TopInfo(Topology* pIn) { SetupTopInfo( 0, pIn ); }
 
-/// CONSTRUCTOR - File already set up
-TopInfo::TopInfo(CpptrajFile* fIn, Topology* pIn) { SetupTopInfo( fIn, pIn ); }
-
 // TopInfo::SetupTopInfo()
 int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn) {
   if (pIn == 0) {

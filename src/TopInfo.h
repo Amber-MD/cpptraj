@@ -7,8 +7,8 @@ class TopInfo {
     TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
     ~TopInfo();
     TopInfo(Topology*);
-    TopInfo(CpptrajFile*, Topology*);
     int SetupTopInfo(CpptrajFile*, Topology*);
+    int SetupTopInfo(Topology* p) { return SetupTopInfo(0, p); }
     int PrintAtomInfo(std::string const&) const;
   private:
     CpptrajFile* outfile_;

@@ -59,15 +59,26 @@ Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_AtomInfo::Help() const {
-  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print information on atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
   Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
-  TopInfo info( parm );
-  if (info.PrintAtomInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
+  std::string outname = argIn.GetStringKey("out");
+  TopInfo info;
+  int err = 0;
+  if (outname.empty())
+    err = info.SetupTopInfo( parm );
+  else {
+    CpptrajFile* outfile = State.DFL().AddCpptrajFile(outname, "Atom info");
+    if (outfile == 0) return CpptrajState::ERR;
+    mprintf("\tOutput to '%s'\n", outfile->Filename().full());
+    err = info.SetupTopInfo( outfile, parm );
+  }
+  if (err == 0) err = info.PrintAtomInfo( argIn.GetMaskNext() );
+  if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 
