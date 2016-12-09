@@ -248,40 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintAtomInfo()
-/** Since this function may be called from command line with worldsilent
-  * set to true, use loudPrintf and mprinterr.
-  */
-void Topology::PrintAtomInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return;
-  if ( mask.None() )
-    mprinterr("\tSelection is empty.\n");
-  else {
-    int width = DigitWidth(atoms_.size());
-    if (width < 5) width = 5;
-    loudPrintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s",
-               width, "#Atom", "Name", 
-               width, "#Res",  "Name",
-               width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
-    if (nonbond_.HasNonbond())
-      loudPrintf(" %8s %8s", "rVDW", "eVDW");
-    loudPrintf("\n");
-    for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
-      const Atom& atom = atoms_[*atnum];
-      int resnum = atom.ResNum();
-      loudPrintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s",
-                 width, *atnum+1, atom.c_str(), 
-                 width, resnum+1, residues_[resnum].c_str(),
-                 width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
-                 atom.Mass(), atom.GBRadius(), atom.ElementName());
-      if (nonbond_.HasNonbond())
-        loudPrintf(" %8.4f %8.4f", GetVDWradius(*atnum), GetVDWdepth(*atnum));
-      loudPrintf("\n");
-    }
-  }
-}
-
 // Topology::PrintBonds()
 /** \param maskIn AtomMask which should have already been set up as a char mask
   */

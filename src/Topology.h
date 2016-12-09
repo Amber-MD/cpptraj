@@ -118,7 +118,6 @@ class Topology {
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
-    void PrintAtomInfo(std::string const&) const;
     void PrintBondInfo(std::string const&) const;
     void PrintAngleInfo(std::string const&) const;
     void PrintDihedralInfo(std::string const&, bool) const;

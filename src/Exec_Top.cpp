@@ -1,6 +1,7 @@
 #include "Exec_Top.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#include "TopInfo.h"
 
 void Exec_LoadParm::Help() const {
   mprintf("\t<filename> [{[TAG] | name <setname>}] [nobondsearch | bondsearch [<offset>]]\n"
@@ -65,9 +66,11 @@ void Exec_AtomInfo::Help() const {
 Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
   Topology* parm = State.DSL().GetTopByIndex( argIn );
   if (parm == 0) return CpptrajState::ERR;
-  parm->PrintAtomInfo( argIn.GetMaskNext() );
+  TopInfo info( parm );
+  if (info.PrintAtomInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
+
 // -----------------------------------------------------------------------------
 void Exec_ResInfo::Help() const {
   mprintf("\t[%s] [<mask>] [short]\n", DataSetList::TopIdxArgs);
