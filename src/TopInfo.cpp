@@ -1,6 +1,7 @@
 #include "TopInfo.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
+#include "Constants.h" // RADDEG
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -86,7 +87,7 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
     if (mask2.MaskStringSet())
       printBond = (mask1.AtomInCharMask(atom1) && mask2.AtomInCharMask(atom2));
     else
-      printBond = (mask1.AtomInCharMask(atom1) || mask1.AtomInCharMask(atom1));
+      printBond = (mask1.AtomInCharMask(atom1) || mask1.AtomInCharMask(atom2));
     if (printBond) {
       outfile_->Printf("%8i:", nb);
       int bidx = batom->Idx();
@@ -106,24 +107,97 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
   outfile_->Printf("\n");
 }
 
+// TopInfo::SetupMask()
+int TopInfo::SetupMask(CharMask& maskIn) const {
+  if (parm_->SetupCharMask( maskIn )) return 1;
+  mprintf("#");
+  maskIn.MaskInfo();
+  if (maskIn.None()) return 1;
+  return 0;
+}
+
+// TopInfo::SetupMask()
+int TopInfo::SetupMask(std::string const& maskexp, CharMask& maskIn) const {
+  if (maskexp.empty()) return 0;
+  maskIn.SetMaskString( maskexp );
+  return SetupMask( maskIn );
+}
+
 // TopInfo::PrintBondInfo()
 int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2exp) const {
   CharMask mask1( mask1exp );
-  if (parm_->SetupCharMask( mask1 )) return 1;
-  mprintf("#");
-  mask1.MaskInfo();
-  if (mask1.None()) return 1;
+  if (SetupMask( mask1 )) return 1;
   CharMask mask2;
-  if (!mask2exp.empty()) {
-    mask2.SetMaskString( mask2exp );
-    if (parm_->SetupCharMask( mask2 )) return 1;
-    mprintf("#");
-    mask2.MaskInfo();
-    if (mask2.None()) return 1;
-  }
+  if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
   outfile_->Printf("#   Bond     Kb     Req       atom names   (numbers)\n");
   int nb = 1;
   PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nb );
   PrintBonds( parm_->Bonds(),  parm_->BondParm(), mask1, mask2, nb );
+  return 0;
+}
+
+// TopInfo::PrintAngles()
+void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& angleparm,
+                          CharMask const& mask1, CharMask const& mask2, CharMask const& mask3,
+                          int& na) const
+{
+  if (aarray.empty()) return;
+  int rwidth = DigitWidth(parm_->Nres()) + 7;
+  for (AngleArray::const_iterator aatom = aarray.begin();
+                                  aatom != aarray.end(); ++aatom)
+  {
+    int atom1 = aatom->A1();
+    int atom2 = aatom->A2();
+    int atom3 = aatom->A3();
+    bool printAngle = false;
+    if (mask2.MaskStringSet() && mask3.MaskStringSet())
+      printAngle = (mask1.AtomInCharMask(atom1) &&
+                    mask2.AtomInCharMask(atom2) &&
+                    mask3.AtomInCharMask(atom3));
+    else
+      printAngle = (mask1.AtomInCharMask(atom1) ||
+                    mask1.AtomInCharMask(atom2) ||
+                    mask1.AtomInCharMask(atom3));
+    if (printAngle) {
+      outfile_->Printf("%8i:", na);
+      int aidx = aatom->Idx();
+      if ( aidx > -1 )
+        outfile_->Printf(" %6.3f %6.2f", angleparm[aidx].Tk(), 
+                         angleparm[aidx].Teq() * Constants::RADDEG);
+      outfile_->Printf(" %-*s %-*s %-*s (%i,%i,%i)",
+              rwidth, parm_->AtomMaskName(atom1).c_str(),
+              rwidth, parm_->AtomMaskName(atom2).c_str(),
+              rwidth, parm_->AtomMaskName(atom3).c_str(),
+              atom1+1, atom2+1, atom3+1);
+      // Atom types
+      const char* atype1 = *((*parm_)[atom1].Type());
+      const char* atype2 = *((*parm_)[atom2].Type());
+      const char* atype3 = *((*parm_)[atom3].Type());
+      outfile_->Printf(" %c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
+              atype3[0],atype3[1]);
+    }
+    na++;
+  }
+  outfile_->Printf("\n");
+}
+
+// TopInfo::PrintAngleInfo()
+int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask2exp,
+                            std::string const& mask3exp) const
+{
+  CharMask mask1( mask1exp );
+  if (SetupMask( mask1 )) return 1;
+  CharMask mask2;
+  CharMask mask3;
+  if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
+  if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
+  if (mask2exp.empty() != mask3exp.empty()) {
+    mprinterr("Error: 2 masks specified. Require 1 or 3\n");
+    return 1;
+  }
+  outfile_->Printf("# Angle   Kthet  degrees        atom names        (numbers)\n");
+  int na = 1;
+  PrintAngles( parm_->AnglesH(), parm_->AngleParm(), mask1, mask2, mask3, na );
+  PrintAngles( parm_->Angles(),  parm_->AngleParm(), mask1, mask2, mask3, na );
   return 0;
 }

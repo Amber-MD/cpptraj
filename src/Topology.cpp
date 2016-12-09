@@ -248,53 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintAngles()
-void Topology::PrintAngles(AngleArray const& aarray, CharMask const& maskIn, int& na) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (AngleArray::const_iterator aatom = aarray.begin();
-                                  aatom != aarray.end(); ++aatom)
-  {
-    int atom1 = (*aatom).A1();
-    int atom2 = (*aatom).A2();
-    int atom3 = (*aatom).A3();
-    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
-        maskIn.AtomInCharMask( atom3 ))
-    {
-      mprintf("%8i:", na);
-      int aidx = (*aatom).Idx();
-      if ( aidx > -1 )
-        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * Constants::RADDEG);
-      mprintf(" %-*s %-*s %-*s (%i,%i,%i)", rwidth, AtomMaskName(atom1).c_str(), 
-              rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
-              atom1+1, atom2+1, atom3+1); 
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      const char* atype3 = *atoms_[atom3].Type();
-      mprintf(" %c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1]);
-    }
-    na++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintAngleInfo()
-void Topology::PrintAngleInfo(std::string const& maskString) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("# Angle   Kthet  degrees        atom names        (numbers)\n");
-  int na = 1;
-  if (!anglesh_.empty())
-    PrintAngles( anglesh_, mask, na );
-  if (!angles_.empty())
-    PrintAngles( angles_, mask, na );
-}
-
 // Topology::PrintDihedrals()
 void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskIn, 
                               int& nd, bool Select_OR) const

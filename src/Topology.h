@@ -118,7 +118,6 @@ class Topology {
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
-    void PrintAngleInfo(std::string const&) const;
     void PrintDihedralInfo(std::string const&, bool) const;
     void PrintMoleculeInfo(std::string const&) const;
     void PrintResidueInfo(std::string const&) const;
@@ -160,7 +159,6 @@ class Topology {
     /// Append topology to this one.
     int AppendTop( Topology const& );
   private:
-    void PrintAngles(AngleArray const&, CharMask const&, int&) const;
     void PrintDihedrals(DihedralArray const&, CharMask const&, int&, bool) const;
     void SetAtomBondInfo(BondArray const&);
     // NOTE: Use set so that elements are always sorted.

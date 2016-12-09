@@ -59,9 +59,11 @@ void Exec_AngleInfo::Help() const {
 }
 
 Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  parm->PrintAngleInfo( argIn.GetMaskNext() );
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Angle info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  std::string mask2 = argIn.GetMaskNext();
+  if (info.PrintAngleInfo( mask1, mask2, argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
