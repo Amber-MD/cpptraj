@@ -331,6 +331,9 @@ test.remap:
 test.filter:
 	@-cd Test_Filter && ./RunTest.sh $(OPT)
 
+test.combinecrd:
+	@-cd Test_CombineCrd && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -414,7 +417,8 @@ SHORT_TESTS=test.general \
           test.rotatedihedral \
           test.dataset \
           test.remap \
-          test.filter
+          test.filter \
+          test.combinecrd
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -522,7 +526,8 @@ COMPLETETESTS=test.general \
               test.rotatedihedral \
               test.dataset \
               test.remap \
-              test.filter
+              test.filter \
+              test.combinecrd
 
 test: test.all 
 
