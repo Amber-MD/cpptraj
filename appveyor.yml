@@ -64,7 +64,7 @@ build_script:
 
 
 after_build:
-  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/cpptraj.lib src/*.h
+  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
   - find C:/msys64/usr/local
 
 test_script:
