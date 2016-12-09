@@ -35,9 +35,12 @@ install:
 
 build_script:
   - sh -lc "mkdir bin/"
+  - sh -lc "mkdir lib/"
   - sh -lc "echo \"CPPTRAJBIN=$(pwd)/bin\" > config.h"
+  - sh -lc "echo \"CPPTRAJLIB=$(pwd)/lib\" >> config.h"
+  - echo SHARED_SUFFIX=.lib >> config.h
+  - echo LIBCPPTRAJ_TARGET=$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) >> config.h
   - echo INSTALL_TARGETS= install_cpptraj install_ambpdb >> config.h
-  - echo LIBCPPTRAJ_TARGET=nolibcpptraj >> config.h
   - echo DBGFLAGS= >> config.h
   - echo CC=gcc >> config.h
   - echo CXX=g++ >> config.h
@@ -56,11 +59,12 @@ build_script:
   - echo SFX= >> config.h
   - echo EXE=.exe >> config.h
   - sh -lc "cat config.h"
+  - sh -lc "make -j2 libcpptraj"
   - sh -lc "make -j2 install"
 
 
 after_build:
-  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe
+  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
   - find C:/msys64/usr/local
 
 test_script:
