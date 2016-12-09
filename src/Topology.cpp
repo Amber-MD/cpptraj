@@ -248,50 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintBonds()
-/** \param maskIn AtomMask which should have already been set up as a char mask
-  */
-void Topology::PrintBonds(BondArray const& barray, CharMask const& maskIn, int& nb) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (BondArray::const_iterator batom = barray.begin();
-                                 batom != barray.end(); ++batom)
-  {
-    int atom1 = (*batom).A1();
-    int atom2 = (*batom).A2();
-    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
-      mprintf("%8i:", nb);
-      int bidx = (*batom).Idx();
-      if ( bidx > -1 )
-        mprintf(" %6.2f %6.3f", bondparm_[bidx].Rk(), bondparm_[bidx].Req());
-      mprintf(" %-*s %-*s (%i,%i)",
-              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
-              atom1+1, atom2+1);
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      mprintf(" %c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1]);
-    }
-    nb++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintBondInfo()
-void Topology::PrintBondInfo(std::string const& maskString) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("#   Bond     Kb     Req       atom names   (numbers)\n");
-  int nb = 1;
-  if (!bondsh_.empty())
-    PrintBonds( bondsh_, mask, nb );
-  if (!bonds_.empty())
-    PrintBonds( bonds_, mask, nb );
-}
-
 // Topology::PrintAngles()
 void Topology::PrintAngles(AngleArray const& aarray, CharMask const& maskIn, int& na) const
 {

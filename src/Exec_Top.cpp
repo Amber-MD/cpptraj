@@ -20,16 +20,36 @@ Exec::RetType Exec_ParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
   parm->Summary();
   return CpptrajState::OK;
 }
+
+// -----------------------------------------------------------------------------
+static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const char* desc)
+{
+  Topology* parm = State.DSL().GetTopByIndex( argIn );
+  if (parm == 0) return 1; 
+  std::string outname = argIn.GetStringKey("out");
+  int err = 0;
+  if (outname.empty())
+    err = info.SetupTopInfo( parm );
+  else {
+    CpptrajFile* outfile = State.DFL().AddCpptrajFile(outname, desc);
+    if (outfile == 0) return CpptrajState::ERR;
+    mprintf("\tOutput to '%s'\n", outfile->Filename().full());
+    err = info.SetupTopInfo( outfile, parm );
+  }
+  return err;
+}
+
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
-  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print bond info for atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  parm->PrintBondInfo( argIn.GetMaskNext() );
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Bond info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  if (info.PrintBondInfo( mask1, argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
@@ -64,21 +84,9 @@ void Exec_AtomInfo::Help() const {
 }
 
 Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  std::string outname = argIn.GetStringKey("out");
   TopInfo info;
-  int err = 0;
-  if (outname.empty())
-    err = info.SetupTopInfo( parm );
-  else {
-    CpptrajFile* outfile = State.DFL().AddCpptrajFile(outname, "Atom info");
-    if (outfile == 0) return CpptrajState::ERR;
-    mprintf("\tOutput to '%s'\n", outfile->Filename().full());
-    err = info.SetupTopInfo( outfile, parm );
-  }
-  if (err == 0) err = info.PrintAtomInfo( argIn.GetMaskNext() );
-  if (err != 0) return CpptrajState::ERR;
+  if (CommonSetup(info, State, argIn, "Atom info")) return CpptrajState::ERR;
+  if (info.PrintAtomInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 
