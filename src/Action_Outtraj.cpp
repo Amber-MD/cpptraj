@@ -145,5 +145,5 @@ void Action_Outtraj::Print() {
   int frames_written = outtraj_.Traj().NframesWritten();
 # endif
   if (frames_written > 0)
-    mprintf("  OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(), frames_written);
+    mprintf("    OUTTRAJ: [%s] Wrote %i frames.\n",outtraj_.Traj().Filename().base(), frames_written);
 }

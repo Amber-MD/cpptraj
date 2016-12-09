@@ -14,11 +14,13 @@ class Action_FilterByData : public Action {
     Action::RetType DoAction(int, ActionFrame&);
   private:
     Action::RetType Setup(ActionSetup&) { return Action::OK; }
-    void Print() {}
+    void Print();
 
     std::vector<double> Max_;
     std::vector<double> Min_;
     Array1D Dsets_;
     DataSet* maxmin_;
+    int Npassed_;
+    int Nfiltered_;
 };
 #endif
