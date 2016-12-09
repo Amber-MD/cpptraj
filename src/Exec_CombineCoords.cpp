@@ -8,6 +8,12 @@ void Exec_CombineCoords::Help() const {
 
 // Exec_CombineCoords::Execute()
 Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
+# ifdef MPI
+  if (Parallel::World().Size() > 1) {
+    mprinterr("Error: '%s' cannot be run in parallel.\n", argIn.Command());
+    return CpptrajState::ERR;
+  }
+# endif
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
   bool nobox = argIn.hasKey("nobox");
