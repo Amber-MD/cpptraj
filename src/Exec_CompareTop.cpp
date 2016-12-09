@@ -1,9 +1,12 @@
 #include <algorithm> // sort
 #include "Exec_CompareTop.h"
 #include "CpptrajStdio.h"
+#include "Constants.h" // SMALL
 
 void Exec_CompareTop::Help() const {
-  mprintf("\t{%s} {%s} [out <file>] [atype] [lj] [bnd] [ang] [dih]\n",
+  mprintf("\t{%s} {%s} [out <file>]\n"
+          "\t[atype] [lj] [bnd] [ang] [dih] [atoms]\n"
+          "  Compare atoms/parameters and report differences between two topologies.\n",
           DataSetList::TopArgs, DataSetList::TopArgs);
 }
 
@@ -362,6 +365,58 @@ template <class T> class Diff {
 };
 
 // -----------------------------------------------------------------------------
+static inline bool IsEqual(double d1, double d2) {
+  double diff = d1 - d2;
+  if (diff < 0.0) diff = -diff;
+  return (diff < Constants::SMALL);
+}
+
+void Exec_CompareTop::CompareAtoms(Topology const& T1, Topology const& T2,
+                                   CpptrajFile& outfile) const
+{
+  if (T1.Natom() != T2.Natom()) {
+    mprintf("Warning: # atoms in '%s' (%i) != # atoms in '%s' (%i) - not comparing atoms.\n",
+            T1.c_str(), T1.Natom(), T2.c_str(), T2.Natom());
+    return;
+  }
+  for (int idx = 0; idx != T1.Natom(); idx++) {
+    Atom const& A1 = T1[idx];
+    Atom const& A2 = T2[idx];
+    // Only compare a few things.
+    //bool diffName = (A1.Name() != A2.Name());
+    bool diffType = (A2.Type() != A2.Type());
+    bool diffNbnd = (A1.Nbonds() != A2.Nbonds());
+    bool diffChrg = !IsEqual(A1.Charge(),   A2.Charge());
+    bool diffMass = !IsEqual(A1.Mass(),     A2.Mass());
+    bool diffGBrd = !IsEqual(A1.GBRadius(), A2.GBRadius());
+    bool diffScrn = !IsEqual(A2.Screen(),   A2.Screen());
+    bool diffPolr = !IsEqual(A1.Polar(),    A2.Polar());
+    if ( diffType || diffNbnd || diffChrg || diffMass ||
+         diffGBrd || diffScrn || diffPolr )
+    {
+      outfile.Printf("< %i %4s", idx+1, A1.c_str());
+      if (diffType) outfile.Printf(" Type=%4s", *(A1.Type()));
+      if (diffNbnd) outfile.Printf(" Nbnd=%2i",   A1.Nbonds());
+      if (diffChrg) outfile.Printf(" Q=%8.4f",    A1.Charge());
+      if (diffMass) outfile.Printf(" M=%8.4f",    A1.Mass());
+      if (diffGBrd) outfile.Printf(" rGB=%8.4f",  A1.GBRadius());
+      if (diffScrn) outfile.Printf(" sGB=%8.4f",  A1.Screen());
+      if (diffPolr) outfile.Printf(" Pol=%8.4f",  A1.Polar());
+      outfile.Printf("\n");
+      outfile.Printf("> %i %4s", idx+1, A2.c_str());
+      if (diffType) outfile.Printf(" Type=%4s", *(A2.Type()));
+      if (diffNbnd) outfile.Printf(" Nbnd=%2i",   A2.Nbonds());
+      if (diffChrg) outfile.Printf(" Q=%8.4f",    A2.Charge());
+      if (diffMass) outfile.Printf(" M=%8.4f",    A2.Mass());
+      if (diffGBrd) outfile.Printf(" rGB=%8.4f",  A2.GBRadius());
+      if (diffScrn) outfile.Printf(" sGB=%8.4f",  A2.Screen());
+      if (diffPolr) outfile.Printf(" Pol=%8.4f",  A2.Polar());
+      outfile.Printf("\n");
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 /// Compare two topologies, find differences
 Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
 {
@@ -378,13 +433,18 @@ Exec::RetType Exec_CompareTop::Execute(CpptrajState& State, ArgList& argIn)
   output.OpenWrite( argIn.GetStringKey("out") );
   mprintf("\tOutput to '%s'\n", output.Filename().full());
   output.Printf("#< %s\n#> %s\n", p1.c_str(), p2.c_str());
+  bool cmp_atoms = argIn.hasKey("atoms");
   bool cmp_atype = argIn.hasKey("atype");
   bool cmp_lj = argIn.hasKey("lj");
   bool cmp_bnd = argIn.hasKey("bnd");
   bool cmp_ang = argIn.hasKey("ang");
   bool cmp_dih = argIn.hasKey("dih");
-  if (!cmp_atype && !cmp_lj && !cmp_bnd && !cmp_ang && !cmp_dih) {
-    cmp_atype = cmp_lj = cmp_bnd = cmp_ang = cmp_dih = true;
+  if (!cmp_atoms && !cmp_atype && !cmp_lj && !cmp_bnd && !cmp_ang && !cmp_dih) {
+    cmp_atoms = cmp_atype = cmp_lj = cmp_bnd = cmp_ang = cmp_dih = true;
+  }
+  if (cmp_atoms) {
+    // Atoms
+    CompareAtoms(p1, p2, output);
   }
   if (cmp_atype) {
     // Atom Types

@@ -328,6 +328,9 @@ test.dataset:
 test.remap:
 	@-cd Test_Remap && ./RunTest.sh $(OPT)
 
+test.comparetop:
+	@-cd Test_CompareTop && ./RunTest.sh $(OPT)
+
 test.filter:
 	@-cd Test_Filter && ./RunTest.sh $(OPT)
 
@@ -417,6 +420,7 @@ SHORT_TESTS=test.general \
           test.rotatedihedral \
           test.dataset \
           test.remap \
+          test.comparetop \
           test.filter \
           test.combinecrd
 
@@ -526,6 +530,7 @@ COMPLETETESTS=test.general \
               test.rotatedihedral \
               test.dataset \
               test.remap \
+              test.comparetop \
               test.filter \
               test.combinecrd
 
