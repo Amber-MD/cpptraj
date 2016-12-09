@@ -2,13 +2,15 @@
 #include "CpptrajStdio.h"
 
 void Exec_CombineCoords::Help() const {
-  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>]\n"
+  mprintf("\t<crd1> <crd2> ... [parmname <topname>] [crdname <crdname>] [nobox]\n"
           "  Combine two or more COORDS data sets.\n");
 }
 
+// Exec_CombineCoords::Execute()
 Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   std::string parmname = argIn.GetStringKey("parmname");
   std::string crdname  = argIn.GetStringKey("crdname");
+  bool nobox = argIn.hasKey("nobox");
   // Get COORDS DataSets.
   std::vector<DataSet_Coords*> CRD;
   std::string setname = argIn.GetStringNext();
@@ -34,38 +36,76 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   }
   CombinedTop.SetParmName( parmname, FileName() );
   // TODO: Check Parm box info.
+  enum BoxStatus {NOT_SET=0, SET, INVALID};
+  BoxStatus boxStatus = NOT_SET;
+  if (nobox) boxStatus = INVALID;
+  Box combinedBox;
   size_t minSize = CRD[0]->Size();
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum) {
     if (CRD[setnum]->Size() < minSize)
       minSize = CRD[setnum]->Size();
+    if (CRD[setnum]->CoordsInfo().HasBox()) {
+      if (boxStatus == NOT_SET) {
+        combinedBox = CRD[setnum]->CoordsInfo().TrajBox();
+        boxStatus = SET;
+      } else if (boxStatus == SET) {
+        // Make sure it is the same type of box. TODO Check angles
+        if (combinedBox.Type() != CRD[setnum]->CoordsInfo().TrajBox().Type())
+        {
+          mprintf("Warning: COORDS '%s' box type '%s' differs from other COORDS. Disabling box.\n",
+                  CRD[setnum]->legend(), CRD[setnum]->CoordsInfo().TrajBox().TypeName());
+          combinedBox.SetNoBox();
+          boxStatus = INVALID;
+        }
+      }
+    }
     CombinedTop.AppendTop( CRD[setnum]->Top() );
   }
+  CombinedTop.SetParmBox( combinedBox );
   CombinedTop.Brief("Combined parm:");
   if (addTop) {
     if (State.AddTopology( CombinedTop, parmname )) return CpptrajState::ERR;
   }
-  // Combine coordinates
+
+  // Combine coordinates from all sets for all frames.
   if (crdname.empty())
     crdname = CRD[0]->Meta().Legend() + "_" + CRD[1]->Meta().Legend();
   mprintf("\tCombining %zu frames from each set into %s\n", minSize, crdname.c_str());
-  DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS, crdname, "CRD");
+  DataSet_Coords* CombinedCrd = (DataSet_Coords*)State.DSL().AddSet(DataSet::COORDS,crdname,"CRD");
   if (CombinedCrd == 0) {
     mprinterr("Error: Could not create COORDS data set.\n");
     return CpptrajState::ERR;
   }
-  // FIXME: Only copying coords for now
-  CombinedCrd->CoordsSetup( CombinedTop, CoordinateInfo() );
-  Frame CombinedFrame( CombinedTop.Natom() * 3 );
+  // FIXME: Only copying coords+box for now
+  CoordinateInfo combinedInfo(combinedBox, false, false, false);
+  CombinedCrd->CoordsSetup( CombinedTop, combinedInfo );
+  Frame CombinedFrame = CombinedCrd->AllocateFrame();
+  // Allocate space for input frames from each COORDS set.
   std::vector<Frame> InputFrames;
   for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
     InputFrames.push_back( CRD[setnum]->AllocateFrame() );
+  // Loop over all frames from each COORDS set.
   for (size_t nf = 0; nf != minSize; ++nf) {
-    CombinedFrame.ClearAtoms();
+    double *output = CombinedFrame.xAddress();
+    // Coords
     for (unsigned int setnum = 0; setnum != CRD.size(); ++setnum)
     {
-      CRD[setnum]->GetFrame( nf, InputFrames[setnum] );
-      for (int atnum = 0; atnum < CRD[setnum]->Top().Natom(); atnum++)
-        CombinedFrame.AddXYZ( InputFrames[setnum].XYZ(atnum) );
+      Frame& input = InputFrames[setnum];
+      CRD[setnum]->GetFrame( nf, input );
+      std::copy(input.xAddress(), input.xAddress()+input.size(), output);
+      output += input.size();
+    }
+    // Box info
+    if (combinedBox.Type() != Box::NOBOX) {
+      double* cBox = CombinedFrame.bAddress();
+      // Only use angles from first coords set.
+      std::copy(InputFrames[0].bAddress(), InputFrames[0].bAddress()+6, cBox);
+      for (unsigned int setnum = 1; setnum < CRD.size(); ++setnum) {
+        // Use max X/Y/Z among coords
+        cBox[0] = std::max(cBox[0], InputFrames[setnum].BoxCrd().BoxX());
+        cBox[1] = std::max(cBox[1], InputFrames[setnum].BoxCrd().BoxY());
+        cBox[2] = std::max(cBox[2], InputFrames[setnum].BoxCrd().BoxZ());
+      }
     }
     CombinedCrd->AddFrame( CombinedFrame );
   }
