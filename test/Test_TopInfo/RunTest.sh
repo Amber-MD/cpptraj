@@ -2,13 +2,18 @@
 
 . ../MasterTest.sh
 
-CleanFiles info.in atoms.dat bonds.dat angles.dat dihedrals.dat
+CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat
 
 INPUT="-i info.in"
 cat > info.in <<EOF
 parm ../tz2.parm7
 atoms :3
 atoms :3 out atoms.dat
+
+resinfo
+resinfo out residues.dat
+resinfo short
+resinfo short out residues.dat
 
 bonds :1
 bonds :1 out bonds.dat
@@ -28,6 +33,7 @@ quit
 EOF
 RunCpptraj "Atom/bond info test."
 DoTest atoms.dat.save atoms.dat
+DoTest residues.dat.save residues.dat
 DoTest bonds.dat.save bonds.dat
 DoTest angles.dat.save angles.dat
 DoTest dihedrals.dat.save dihedrals.dat
