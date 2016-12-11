@@ -42,7 +42,9 @@ static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const
 // -----------------------------------------------------------------------------
 void Exec_BondInfo::Help() const {
   mprintf("\t[%s] [<mask1>] [<mask2>] [out <file>]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print bond info for atoms in <mask> for specified topology (first by default).\n");
+  mprintf("  For specified topology (first by default) either print bond info for all\n"
+          "  atoms in <mask1>, or print info for bonds with first atom in <mask1> and\n"
+          "  second atom in <mask2>.\n");
 }
 
 Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -54,8 +56,10 @@ Exec::RetType Exec_BondInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_AngleInfo::Help() const {
-  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print angle info for atoms in <mask> for specified topology (first by default).\n");
+  mprintf("\t[%s] [<mask1>] [<mask2> <mask3>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  For specified topology (first by default) either print angle info for all\n"
+          "  atoms in <mask1>, or print info for angles with first atom in <mask1>,\n"
+          "  second atom in <mask2>, and third atom in <mask3>.\n");
 }
 
 Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
@@ -68,17 +72,27 @@ Exec::RetType Exec_AngleInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_DihedralInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [and]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print dihedral info for atoms in <mask> for specified topology (first by default).\n"
-          "  If 'and' is specified dihedral must include all atoms specfied by <mask>.\n");
+  mprintf("\t[%s] [<mask1>] [<mask2> <mask3> <mask4>]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  For specified topology (first by default) either print dihedral info for all\n"
+          "  atoms in <mask1>, or print info for dihedrals with first atom in <mask1>,\n"
+          "  second atom in <mask2>, third atom in <mask3>, and fourth atom in <mask4>.\n");
 }
 
 Exec::RetType Exec_DihedralInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  parm->PrintDihedralInfo( argIn.GetMaskNext(), !argIn.hasKey("and") );
+  if (argIn.hasKey("and")) {
+    mprinterr("Error: The 'and' keyword has been deprecated. To restrict dihedral\n"
+              "Error:   selection please use 4 masks.\n");
+    return CpptrajState::ERR;
+  }
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Dihedral info")) return CpptrajState::ERR;
+  std::string mask1 = argIn.GetMaskNext();
+  std::string mask2 = argIn.GetMaskNext();
+  std::string mask3 = argIn.GetMaskNext();
+  if (info.PrintDihedralInfo( mask1, mask2, mask3, argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
+
 // -----------------------------------------------------------------------------
 void Exec_AtomInfo::Help() const {
   mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);

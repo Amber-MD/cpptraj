@@ -201,3 +201,81 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
   PrintAngles( parm_->Angles(),  parm_->AngleParm(), mask1, mask2, mask3, na );
   return 0;
 }
+
+// TopInfo::PrintDihedrals()
+void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray const& dihedralparm,
+                             CharMask const& mask1, CharMask const& mask2,
+                             CharMask const& mask3, CharMask const& mask4, int& nd) const
+{
+  if (darray.empty()) return;
+  int rwidth = DigitWidth(parm_->Nres()) + 7;
+  for (DihedralArray::const_iterator datom = darray.begin();
+                                     datom != darray.end(); ++datom)
+  {
+    int atom1 = datom->A1();
+    int atom2 = datom->A2();
+    int atom3 = datom->A3();
+    int atom4 = datom->A4();
+    bool printDihedral = false;
+    if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
+      printDihedral = (mask1.AtomInCharMask(atom1) &&
+                       mask2.AtomInCharMask(atom2) &&
+                       mask3.AtomInCharMask(atom3) &&
+                       mask4.AtomInCharMask(atom4));
+    else
+      printDihedral = (mask1.AtomInCharMask(atom1) ||
+                       mask1.AtomInCharMask(atom2) ||
+                       mask1.AtomInCharMask(atom3) ||
+                       mask1.AtomInCharMask(atom4));
+    if (printDihedral) {
+      // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
+      char type = ' ';
+      if      (datom->Type() == DihedralType::END     ) type = 'E';
+      else if (datom->Type() == DihedralType::IMPROPER) type = 'I';
+      else if (datom->Type() == DihedralType::BOTH    ) type = 'B';
+      outfile_->Printf("%c %8i:", type, nd);
+      int didx = datom->Idx();
+      if ( didx > -1 )
+        outfile_->Printf(" %6.3f %4.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
+                 dihedralparm[didx].Pn());
+      outfile_->Printf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
+              rwidth, parm_->AtomMaskName(atom1).c_str(),
+              rwidth, parm_->AtomMaskName(atom2).c_str(),
+              rwidth, parm_->AtomMaskName(atom3).c_str(),
+              rwidth, parm_->AtomMaskName(atom4).c_str(),
+              atom1+1, atom2+1, atom3+1, atom4+1);
+      // Atom types
+      const char* atype1 = *((*parm_)[atom1].Type());
+      const char* atype2 = *((*parm_)[atom2].Type());
+      const char* atype3 = *((*parm_)[atom3].Type());
+      const char* atype4 = *((*parm_)[atom4].Type());
+      outfile_->Printf(" %c%c-%c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
+              atype3[0],atype3[1],atype4[0],atype4[1]);
+    }
+    nd++;
+  }
+  outfile_->Printf("\n");
+}
+
+// TopInfo::PrintDihedralInfo()
+int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& mask2exp,
+                               std::string const& mask3exp, std::string const& mask4exp) const
+{
+  CharMask mask1( mask1exp );
+  if (SetupMask( mask1 )) return 1;
+  CharMask mask2;
+  CharMask mask3;
+  CharMask mask4;
+  if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
+  if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
+  if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
+  if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
+    mprinterr("Error: Require either 1 mask or 4 masks\n");
+    return 1;
+  }
+  outfile_->Printf("#Dihedral    pk     phase pn                atoms\n");
+  int nd = 1;
+  PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nd );
+  PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nd );
+  return 0;
+}

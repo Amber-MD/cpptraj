@@ -248,69 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintDihedrals()
-void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskIn, 
-                              int& nd, bool Select_OR) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (DihedralArray::const_iterator datom = darray.begin();
-                                     datom != darray.end(); ++datom)
-  {
-    int atom1 = (*datom).A1();
-    int atom2 = (*datom).A2();
-    int atom3 = (*datom).A3();
-    int atom4 = (*datom).A4();
-    bool selected;
-    if (Select_OR)
-      selected = (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
-                  maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   );
-    else // AND
-      selected = (maskIn.AtomInCharMask( atom1 ) && maskIn.AtomInCharMask( atom2 ) &&
-                  maskIn.AtomInCharMask( atom3 ) && maskIn.AtomInCharMask( atom4 )   );
-    if (selected) {
-      // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
-      char type = ' ';
-      if ((*datom).Type() == DihedralType::END) type = 'E';
-      else if ((*datom).Type() == DihedralType::IMPROPER) type = 'I';
-      else if ((*datom).Type() == DihedralType::BOTH) type = 'B';
-      mprintf("%c %8i:", type, nd);
-      int didx = (*datom).Idx();
-      if ( didx > -1 )
-        mprintf(" %6.3f %4.2f %4.1f", dihedralparm_[didx].Pk(), dihedralparm_[didx].Phase(),
-                 dihedralparm_[didx].Pn());
-      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
-              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
-              rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
-              atom1+1, atom2+1, atom3+1, atom4+1);
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      const char* atype3 = *atoms_[atom3].Type();
-      const char* atype4 = *atoms_[atom4].Type();
-      mprintf(" %c%c-%c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1],atype4[0],atype4[1]);
-    }
-    nd++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintDihedralInfo()
-void Topology::PrintDihedralInfo(std::string const& maskString, bool select_OR) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("#Dihedral    pk     phase pn                atoms\n");
-  int nd = 1;
-  if (!dihedralsh_.empty())
-    PrintDihedrals( dihedralsh_, mask, nd, select_OR );
-  if (!dihedrals_.empty())
-    PrintDihedrals( dihedrals_, mask, nd, select_OR );
-}
-
-
 // Topology::PrintMoleculeInfo()
 void Topology::PrintMoleculeInfo(std::string const& maskString) const {
   if (molecules_.empty())
