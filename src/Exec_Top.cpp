@@ -108,19 +108,21 @@ Exec::RetType Exec_AtomInfo::Execute(CpptrajState& State, ArgList& argIn) {
 
 // -----------------------------------------------------------------------------
 void Exec_ResInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [short]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [short [maxwidth <#res>]]\n\t[out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for residues in <mask> for specified topology (first by default).\n"
           "  If 'short' is specified print residue info in shorter form.\n");
 }
 
 Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
   bool printShort = argIn.hasKey("short");
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Residue info")) return CpptrajState::ERR;
+  int err;
   if (printShort)
-    parm->PrintShortResInfo( argIn.GetMaskNext(), argIn.getKeyInt("maxwidth",50) );
+    err = info.PrintShortResInfo( argIn.GetMaskNext(), argIn.getKeyInt("maxwidth",50) );
   else
-    parm->PrintResidueInfo( argIn.GetMaskNext() );
+    err = info.PrintResidueInfo( argIn.GetMaskNext() );
+  if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------

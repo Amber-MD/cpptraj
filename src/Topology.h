@@ -119,8 +119,6 @@ class Topology {
     void Summary() const;
     void Brief(const char*) const;
     void PrintMoleculeInfo(std::string const&) const;
-    void PrintResidueInfo(std::string const&) const;
-    void PrintShortResInfo(std::string const&, int) const;
     int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info --
     inline Box const& ParmBox()   const { return parmBox_;        }

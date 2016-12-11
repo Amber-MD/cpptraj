@@ -231,12 +231,11 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
         loudPrintf(" %i", *atom + 1);
     loudPrintf("\n");
   } else {
+    TopInfo info(&parm);
     if (residue)
-      parm.PrintResidueInfo( maskexpr );
-    else {
-      TopInfo info(&parm);
+      info.PrintResidueInfo( maskexpr );
+    else
       info.PrintAtomInfo( maskexpr );
-    }
   }
   return 0;
 }

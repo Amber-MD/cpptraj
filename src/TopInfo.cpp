@@ -71,6 +71,90 @@ int TopInfo::PrintAtomInfo(std::string const& maskExpression) const {
   return 0;
 }
 
+// TopInfo::PrintResidueInfo()
+int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
+  AtomMask mask( maskExpression );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  if ( mask.None() )
+    mprinterr("\tSelection is empty.\n");
+  else {
+    int awidth = DigitWidth(parm_->Natom());
+    if (awidth < 5) awidth = 5;
+    int rwidth = DigitWidth(parm_->Nres());
+    if (rwidth < 5) rwidth = 5;
+    int mwidth = DigitWidth(parm_->Nmol());
+    if (mwidth < 5) mwidth = 5;
+    outfile_->Printf("%-*s %4s %*s %*s %*s %*s %*s\n",
+               rwidth, "#Res", "Name",
+               awidth, "First", awidth, "Last",
+               awidth, "Natom", rwidth, "#Orig", mwidth, "#Mol");
+    int rn = -1;
+    for (AtomMask::const_iterator atom = mask.begin();
+                                  atom != mask.end(); ++atom)
+    {
+      if ((*parm_)[*atom].ResNum() > rn) {
+        rn = (*parm_)[*atom].ResNum();
+        Residue const& res = parm_->Res(rn);
+        outfile_->Printf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
+                   awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
+                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
+                   mwidth, (*parm_)[*atom].MolNum()+1, res.ChainID());
+      }
+    }
+  }
+  return 0;
+}
+
+/** Print residue info using single char names. */
+int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const {
+  AtomMask mask( maskString );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  if ( mask.None() )
+    mprinterr("\tSelection is empty.\n");
+  else {
+    // Determine last selected residue.
+    int max_res = (*parm_)[mask.back()].ResNum();
+    int total = 0;
+    int rn = -1, startRes = -1;
+    std::string resLine;
+    for (AtomMask::const_iterator atom = mask.begin();
+                                  atom != mask.end(); ++atom)
+    {
+      int current_res = (*parm_)[*atom].ResNum();
+      if (current_res > rn) {
+        int n_res_skipped = 1;
+        if (startRes == -1)
+          startRes = current_res;
+        else
+          n_res_skipped = current_res - rn;
+        // If we skipped any residues print last consective segment and start a new one.
+        if (n_res_skipped > 1) {
+          outfile_->Printf("%-8i %s\n", startRes+1, resLine.c_str());
+          startRes = current_res;
+          resLine = parm_->Res(current_res).SingleCharName();
+          total = 1;
+        } else {
+          // Convert residue name.
+          resLine += parm_->Res(current_res).SingleCharName();
+          total++;
+        }
+        // Print if max line length reached or final res.
+        if ((total%maxChar)==0 || current_res == max_res)
+        {
+          outfile_->Printf("%-8i %s\n", startRes+1, resLine.c_str());
+          if (current_res == max_res) break;
+          startRes = -1;
+          resLine.clear();
+        } else if ((total % 10) == 0)
+          resLine += ' ';
+        rn = current_res;
+      }
+    }
+  }
+  return 0;
+}
+
+
 // TopInfo::PrintBonds()
 void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
                          CharMask const& mask1, CharMask const& mask2,
