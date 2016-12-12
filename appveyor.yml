@@ -34,7 +34,7 @@ install:
   \""
 
 build_script:
-  - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ -shared -windows gnu
+  - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
 
 after_build:
   - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
