@@ -37,7 +37,7 @@ install:
   \""
 
 build_script:
-  - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
+  - sh configure --with-netcdf=/usr/local/ --with-blas=/mingw64/ -openblas --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-arpack=/mingw64 -shared -windows gnu
 
 after_build:
   - echo "hello"
