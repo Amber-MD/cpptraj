@@ -3,6 +3,7 @@
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // RADDEG
 #include "DistRoutines.h" // DIST_NoImage
+#include "TorsionRoutines.h" // CalcAngle, Torsion
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -198,6 +199,47 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
   return 0;
 }
 
+// TopInfo::PrintChargeInfo()
+int TopInfo::PrintChargeInfo(std::string const& maskExpression) const {
+  AtomMask mask( maskExpression );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  double sumQ = 0.0;
+  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    sumQ += (*parm_)[*idx].Charge();
+  outfile_->Printf("Sum of charges in mask [%s](%i) is %g\n",
+                   mask.MaskString(), mask.Nselected(), sumQ);
+  return 0;
+}
+
+// TopInfo::PrintMassInfo()
+int TopInfo::PrintMassInfo(std::string const& maskExpression) const {
+  AtomMask mask( maskExpression );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  double sumM = 0.0;
+  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    sumM += (*parm_)[*idx].Mass();
+  outfile_->Printf("Sum of masses in mask [%s](%i) is %g\n",
+                   mask.MaskString(), mask.Nselected(), sumM);
+  return 0;
+}
+
+// TopInfo::SetupMask()
+int TopInfo::SetupMask(CharMask& maskIn) const {
+  if (parm_->SetupCharMask( maskIn )) return 1;
+  mprintf("#");
+  maskIn.MaskInfo();
+  if (maskIn.None()) return 1;
+  return 0;
+}
+
+// TopInfo::SetupMask()
+int TopInfo::SetupMask(std::string const& maskexp, CharMask& maskIn) const {
+  if (maskexp.empty()) return 0;
+  maskIn.SetMaskString( maskexp );
+  return SetupMask( maskIn );
+}
+
+
 // TopInfo::PrintBonds()
 void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
                          CharMask const& mask1, CharMask const& mask2,
@@ -234,47 +276,6 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
     nb++;
   }
   outfile_->Printf("\n");
-}
-
-// TopInfo::PrintChargeInfo()
-int TopInfo::PrintChargeInfo(std::string const& maskExpression) const {
-  AtomMask mask( maskExpression );
-  if (parm_->SetupIntegerMask( mask )) return 1;
-  double sumQ = 0.0;
-  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
-    sumQ += (*parm_)[*idx].Charge();
-  outfile_->Printf("Sum of charges in mask [%s](%i) is %g\n",
-                   mask.MaskString(), mask.Nselected(), sumQ);
-  return 0;
-}
-
-// TopInfo::PrintMassInfo()
-int TopInfo::PrintMassInfo(std::string const& maskExpression) const {
-  AtomMask mask( maskExpression );
-  if (parm_->SetupIntegerMask( mask )) return 1;
-  double sumM = 0.0;
-  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
-    sumM += (*parm_)[*idx].Mass();
-  outfile_->Printf("Sum of masses in mask [%s](%i) is %g\n",
-                   mask.MaskString(), mask.Nselected(), sumM);
-  return 0;
-}
-
-
-// TopInfo::SetupMask()
-int TopInfo::SetupMask(CharMask& maskIn) const {
-  if (parm_->SetupCharMask( maskIn )) return 1;
-  mprintf("#");
-  maskIn.MaskInfo();
-  if (maskIn.None()) return 1;
-  return 0;
-}
-
-// TopInfo::SetupMask()
-int TopInfo::SetupMask(std::string const& maskexp, CharMask& maskIn) const {
-  if (maskexp.empty()) return 0;
-  maskIn.SetMaskString( maskexp );
-  return SetupMask( maskIn );
 }
 
 // TopInfo::PrintBondInfo()
@@ -318,6 +319,10 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
       if ( aidx > -1 )
         outfile_->Printf(" %6.3f %6.2f", angleparm[aidx].Tk(), 
                          angleparm[aidx].Teq() * Constants::RADDEG);
+      if ( !coords_.empty() )
+        outfile_->Printf(" %6.2f", CalcAngle(coords_.XYZ(atom1),
+                                             coords_.XYZ(atom2),
+                                             coords_.XYZ(atom3)) * Constants::RADDEG);
       outfile_->Printf(" %-*s %-*s %-*s (%i,%i,%i)",
               rwidth, parm_->AtomMaskName(atom1).c_str(),
               rwidth, parm_->AtomMaskName(atom2).c_str(),
@@ -392,6 +397,11 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
       if ( didx > -1 )
         outfile_->Printf(" %6.3f %4.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
+      if ( !coords_.empty() )
+        outfile_->Printf(" %6.2f", Torsion( coords_.XYZ(atom1),
+                                            coords_.XYZ(atom2),
+                                            coords_.XYZ(atom3),
+                                            coords_.XYZ(atom4) ) * Constants::RADDEG );
       outfile_->Printf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
               rwidth, parm_->AtomMaskName(atom1).c_str(),
               rwidth, parm_->AtomMaskName(atom2).c_str(),
