@@ -1,14 +1,14 @@
 #ifndef INC_TOPINFO_H
 #include "CpptrajFile.h"
-#include "Topology.h"
+#include "DataSet_Coords.h"
 /// Class for printing formatted topology info to a file.
 class TopInfo {
   public:
     TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
     ~TopInfo();
     TopInfo(Topology*);
-    int SetupTopInfo(CpptrajFile*, Topology*);
-    int SetupTopInfo(Topology* p) { return SetupTopInfo(0, p); }
+    int SetupTopInfo(CpptrajFile*, Topology*, DataSet_Coords*);
+    int SetupTopInfo(Topology* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int) const;
     int PrintResidueInfo(std::string const&) const;
@@ -33,6 +33,7 @@ class TopInfo {
 
     CpptrajFile* outfile_;
     Topology* parm_;
+    Frame coords_;
     bool toStdout_;
 };
 #endif

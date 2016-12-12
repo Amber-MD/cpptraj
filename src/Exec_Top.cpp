@@ -24,17 +24,23 @@ Exec::RetType Exec_ParmInfo::Execute(CpptrajState& State, ArgList& argIn) {
 // -----------------------------------------------------------------------------
 static int CommonSetup(TopInfo& info, CpptrajState& State, ArgList& argIn, const char* desc)
 {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return 1; 
+  Topology* parm = 0;
+  ReferenceFrame REF = State.DSL().GetReferenceFrame( argIn );
+  if (REF.error()) return 1;
+  if (REF.empty()) {
+    parm = State.DSL().GetTopByIndex( argIn );
+    if (parm == 0) return 1;
+  } else
+    mprintf("\tUsing '%s'\n", REF.refName());
   std::string outname = argIn.GetStringKey("out");
   int err = 0;
   if (outname.empty())
-    err = info.SetupTopInfo( parm );
+    err = info.SetupTopInfo( parm, REF.RefPtr() );
   else {
     CpptrajFile* outfile = State.DFL().AddCpptrajFile(outname, desc);
     if (outfile == 0) return CpptrajState::ERR;
     mprintf("\tOutput to '%s'\n", outfile->Filename().full());
-    err = info.SetupTopInfo( outfile, parm );
+    err = info.SetupTopInfo( outfile, parm, REF.RefPtr() );
   }
   return err;
 }

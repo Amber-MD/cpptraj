@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth
 #include "Constants.h" // RADDEG
+#include "DistRoutines.h" // DIST_NoImage
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -10,15 +11,20 @@ TopInfo::~TopInfo() {
 }
 
 /// CONSTRUCTOR - To Stdout
-TopInfo::TopInfo(Topology* pIn) { SetupTopInfo( 0, pIn ); }
+TopInfo::TopInfo(Topology* pIn) { SetupTopInfo( 0, pIn, 0 ); }
 
 // TopInfo::SetupTopInfo()
-int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn) {
-  if (pIn == 0) {
+int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn, DataSet_Coords* cIn) {
+  if (cIn == 0 && pIn == 0) {
     mprinterr("Internal Error: TopInfo: Null topology\n");
     return 1;
   }
-  parm_ = pIn;
+  if (cIn != 0) {
+    parm_ = cIn->TopPtr();
+    coords_ = cIn->AllocateFrame();
+    cIn->GetFrame(0, coords_);
+  } else
+    parm_ = pIn;
   if (fIn == 0) {
     toStdout_ = true;
     outfile_ = new CpptrajFile();
@@ -214,6 +220,8 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
       int bidx = batom->Idx();
       if ( bidx > -1 )
         outfile_->Printf(" %6.2f %6.3f", bondparm[bidx].Rk(), bondparm[bidx].Req());
+      if ( !coords_.empty() )
+        outfile_->Printf(" %6.3f", DIST_NoImage(coords_.XYZ(atom1), coords_.XYZ(atom2)));
       outfile_->Printf(" %-*s %-*s (%i,%i)",
               rwidth, parm_->AtomMaskName(atom1).c_str(),
               rwidth, parm_->AtomMaskName(atom2).c_str(),
