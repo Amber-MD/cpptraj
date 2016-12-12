@@ -43,6 +43,11 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn, DataSet_Coords* cIn) 
     toStdout_ = false;
     outfile_ = fIn;
   }
+  awidth_ = std::max(2, DigitWidth(parm_->Natom()));
+  rwidth_ = DigitWidth(parm_->Nres()) + 6; // :, @, 4 char atom name
+  max_type_len_ = 2;
+  for (int i = 0; i != parm_->Natom(); i++)
+    max_type_len_ = std::max( max_type_len_, (*parm_)[i].Type().len() );
   return 0;
 }
 
@@ -351,7 +356,7 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
   if (!mask2exp.empty() && SetupMask( mask2exp, mask2 )) return 1;
   if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
   if (mask2exp.empty() != mask3exp.empty()) {
-    mprinterr("Error: 2 masks specified. Require 1 or 3\n");
+    mprinterr("Error: Require either 1 mask or 3 masks.\n");
     return 1;
   }
   outfile_->Printf("# Angle   Kthet  degrees        atom names        (numbers)\n");
@@ -364,17 +369,16 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
 // TopInfo::PrintDihedrals()
 void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray const& dihedralparm,
                              CharMask const& mask1, CharMask const& mask2,
-                             CharMask const& mask3, CharMask const& mask4, int& nd) const
+                             CharMask const& mask3, CharMask const& mask4, int nw, int& nd) const
 {
   if (darray.empty()) return;
-  int rwidth = DigitWidth(parm_->Nres()) + 7;
-  for (DihedralArray::const_iterator datom = darray.begin();
-                                     datom != darray.end(); ++datom)
+  for (DihedralArray::const_iterator dih = darray.begin();
+                                     dih != darray.end(); ++dih)
   {
-    int atom1 = datom->A1();
-    int atom2 = datom->A2();
-    int atom3 = datom->A3();
-    int atom4 = datom->A4();
+    int atom1 = dih->A1();
+    int atom2 = dih->A2();
+    int atom3 = dih->A3();
+    int atom4 = dih->A4();
     bool printDihedral = false;
     if (mask2.MaskStringSet() && mask3.MaskStringSet() && mask4.MaskStringSet())
       printDihedral = (mask1.AtomInCharMask(atom1) &&
@@ -389,32 +393,34 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
     if (printDihedral) {
       // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
       char type = ' ';
-      if      (datom->Type() == DihedralType::END     ) type = 'E';
-      else if (datom->Type() == DihedralType::IMPROPER) type = 'I';
-      else if (datom->Type() == DihedralType::BOTH    ) type = 'B';
-      outfile_->Printf("%c %8i:", type, nd);
-      int didx = datom->Idx();
+      if      (dih->Type() == DihedralType::END     ) type = 'E';
+      else if (dih->Type() == DihedralType::IMPROPER) type = 'I';
+      else if (dih->Type() == DihedralType::BOTH    ) type = 'B';
+      outfile_->Printf("%c %*i", type, nw, nd);
+      int didx = dih->Idx();
       if ( didx > -1 )
-        outfile_->Printf(" %6.3f %4.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
+        outfile_->Printf(" %6.3f %5.2f %4.1f",dihedralparm[didx].Pk(),dihedralparm[didx].Phase(),
                  dihedralparm[didx].Pn());
       if ( !coords_.empty() )
-        outfile_->Printf(" %6.2f", Torsion( coords_.XYZ(atom1),
+        outfile_->Printf(" %7.2f", Torsion( coords_.XYZ(atom1),
                                             coords_.XYZ(atom2),
                                             coords_.XYZ(atom3),
                                             coords_.XYZ(atom4) ) * Constants::RADDEG );
-      outfile_->Printf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
-              rwidth, parm_->AtomMaskName(atom1).c_str(),
-              rwidth, parm_->AtomMaskName(atom2).c_str(),
-              rwidth, parm_->AtomMaskName(atom3).c_str(),
-              rwidth, parm_->AtomMaskName(atom4).c_str(),
-              atom1+1, atom2+1, atom3+1, atom4+1);
+      outfile_->Printf(" %-*s %-*s %-*s %-*s %*i %*i %*i %*i",
+              rwidth_, parm_->AtomMaskName(atom1).c_str(),
+              rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              rwidth_, parm_->AtomMaskName(atom3).c_str(),
+              rwidth_, parm_->AtomMaskName(atom4).c_str(),
+              awidth_, atom1+1,
+              awidth_, atom2+1,
+              awidth_, atom3+1,
+              awidth_, atom4+1);
       // Atom types
-      const char* atype1 = *((*parm_)[atom1].Type());
-      const char* atype2 = *((*parm_)[atom2].Type());
-      const char* atype3 = *((*parm_)[atom3].Type());
-      const char* atype4 = *((*parm_)[atom4].Type());
-      outfile_->Printf(" %c%c-%c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1],atype4[0],atype4[1]);
+      outfile_->Printf(" %*s %*s %*s %*s\n",
+                       max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
+                       max_type_len_, (*parm_)[atom2].Type().Truncated().c_str(),
+                       max_type_len_, (*parm_)[atom3].Type().Truncated().c_str(),
+                       max_type_len_, (*parm_)[atom4].Type().Truncated().c_str());
     }
     nd++;
   }
@@ -434,12 +440,24 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   if (!mask3exp.empty() && SetupMask( mask3exp, mask3 )) return 1;
   if (!mask4exp.empty() && SetupMask( mask4exp, mask4 )) return 1;
   if (mask2exp.empty() != mask3exp.empty() || mask2exp.empty() != mask4exp.empty()) {
-    mprinterr("Error: Require either 1 mask or 4 masks\n");
+    mprinterr("Error: Require either 1 mask or 4 masks.\n");
     return 1;
   }
-  outfile_->Printf("#Dihedral    pk     phase pn                atoms\n");
+  int nw = std::max(4, DigitWidth(parm_->DihedralsH().size() + parm_->Dihedrals().size()));
+  outfile_->Printf("# %*s", nw, "Dih");
+  if (!parm_->DihedralParm().empty())
+    outfile_->Printf(" %6s %5s %4s", "PK", "Phase", "PN");
+  if (!coords_.empty())
+    outfile_->Printf(" %7s", "Value");
+  outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
+                   rwidth_, "Atom1", rwidth_, "Atom2",
+                   rwidth_, "Atom3", rwidth_, "Atom4",
+                   awidth_, "A1", awidth_, "A2",
+                   awidth_, "A3", awidth_, "A4",
+                   max_type_len_, "T1", max_type_len_, "T2",
+                   max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
-  PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nd );
-  PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nd );
+  PrintDihedrals( parm_->DihedralsH(), parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
+  PrintDihedrals( parm_->Dihedrals(),  parm_->DihedralParm(), mask1, mask2, mask3, mask4, nw, nd );
   return 0;
 }
