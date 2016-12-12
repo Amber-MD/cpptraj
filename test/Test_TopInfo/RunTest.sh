@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat \
-           molecules.dat
+           molecules.dat masscharge.dat
 
 INPUT="-i info.in"
 cat > info.in <<EOF
@@ -31,6 +31,9 @@ dihedralinfo @1 out dihedrals.dat
 dihedralinfo @N @CA @CB @%H1
 dihedralinfo @N @CA @CB @%H1 out dihedrals.dat
 
+mass out masscharge.dat
+charge out masscharge.dat
+
 parm ../dna30.parm7
 molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
@@ -42,6 +45,7 @@ DoTest residues.dat.save residues.dat
 DoTest bonds.dat.save bonds.dat
 DoTest angles.dat.save angles.dat
 DoTest dihedrals.dat.save dihedrals.dat
+DoTest masscharge.dat.save masscharge.dat
 DoTest molecules.dat.save molecules.dat
 
 EndTest

@@ -228,6 +228,31 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
   outfile_->Printf("\n");
 }
 
+// TopInfo::PrintChargeInfo()
+int TopInfo::PrintChargeInfo(std::string const& maskExpression) const {
+  AtomMask mask( maskExpression );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  double sumQ = 0.0;
+  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    sumQ += (*parm_)[*idx].Charge();
+  outfile_->Printf("Sum of charges in mask [%s](%i) is %g\n",
+                   mask.MaskString(), mask.Nselected(), sumQ);
+  return 0;
+}
+
+// TopInfo::PrintMassInfo()
+int TopInfo::PrintMassInfo(std::string const& maskExpression) const {
+  AtomMask mask( maskExpression );
+  if (parm_->SetupIntegerMask( mask )) return 1;
+  double sumM = 0.0;
+  for (AtomMask::const_iterator idx = mask.begin(); idx != mask.end(); ++idx)
+    sumM += (*parm_)[*idx].Mass();
+  outfile_->Printf("Sum of masses in mask [%s](%i) is %g\n",
+                   mask.MaskString(), mask.Nselected(), sumM);
+  return 0;
+}
+
+
 // TopInfo::SetupMask()
 int TopInfo::SetupMask(CharMask& maskIn) const {
   if (parm_->SetupCharMask( maskIn )) return 1;

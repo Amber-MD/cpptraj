@@ -248,29 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintChargeMassInfo()
-int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return 1;
-  if (type == 0 || type == 2) {
-    mprintf("\tSum of charges in mask");
-    mask.BriefMaskInfo();
-    double sumq = 0.0;
-    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
-      sumq += atoms_[*aidx].Charge();
-    mprintf(" is %g\n", sumq);
-  }
-  if (type == 1 || type == 2) {
-    mprintf("\tSum of masses in mask");
-    mask.BriefMaskInfo();
-    double summ = 0.0;
-    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
-      summ += atoms_[*aidx].Mass();
-    mprintf(" is %g\n", summ);
-  }
-  return 0; 
-}
-
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
 int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)

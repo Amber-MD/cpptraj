@@ -139,25 +139,25 @@ Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_ChargeInfo::Help() const {
-  mprintf("\t[%s] <mask>\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total charge of atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_ChargeInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 0 )) return CpptrajState::ERR;
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Charge info")) return CpptrajState::ERR;
+  if (info.PrintChargeInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
 void Exec_MassInfo::Help() const {
-  mprintf("\t[%s] <mask>\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] <mask> [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print total mass of atoms in <mask> for specified topology (first by default).\n");
 }
 
 Exec::RetType Exec_MassInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  if (parm->PrintChargeMassInfo( argIn.GetMaskNext(), 1 )) return CpptrajState::ERR;
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Mass info")) return CpptrajState::ERR;
+  if (info.PrintMassInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }

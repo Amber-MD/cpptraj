@@ -118,7 +118,6 @@ class Topology {
     // ----- Print topology info -----------------
     void Summary() const;
     void Brief(const char*) const;
-    int PrintChargeMassInfo(std::string const&, int) const;
     // ----- Routines to Access/Modify Box info --
     inline Box const& ParmBox()   const { return parmBox_;        }
     void SetParmBox( Box const& bIn )   { parmBox_ = bIn;         }

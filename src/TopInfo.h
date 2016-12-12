@@ -17,6 +17,8 @@ class TopInfo {
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,
                           std::string const&, std::string const&) const;
+    int PrintChargeInfo(std::string const&) const;
+    int PrintMassInfo(std::string const&) const;
   private:
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
