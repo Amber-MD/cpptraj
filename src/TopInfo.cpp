@@ -443,7 +443,7 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
     mprinterr("Error: Require either 1 mask or 4 masks.\n");
     return 1;
   }
-  int nw = std::max(4, DigitWidth(parm_->DihedralsH().size() + parm_->Dihedrals().size()));
+  int nw = std::max(3, DigitWidth(parm_->DihedralsH().size() + parm_->Dihedrals().size()));
   outfile_->Printf("# %*s", nw, "Dih");
   if (!parm_->DihedralParm().empty())
     outfile_->Printf(" %6s %5s %4s", "PK", "Phase", "PN");
