@@ -38,7 +38,7 @@ build_script:
   - sh -lc "mkdir lib/"
   - sh -lc "echo \"CPPTRAJBIN=$(pwd)/bin\" > config.h"
   - sh -lc "echo \"CPPTRAJLIB=$(pwd)/lib\" >> config.h"
-  - echo SHARED_SUFFIX=.lib >> config.h
+  - echo SHARED_SUFFIX=.dll.a >> config.h
   - echo LIBCPPTRAJ_TARGET=$(CPPTRAJLIB)/libcpptraj$(SHARED_SUFFIX) >> config.h
   - echo INSTALL_TARGETS= install_cpptraj install_ambpdb >> config.h
   - echo DBGFLAGS= >> config.h
