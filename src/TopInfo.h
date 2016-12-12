@@ -34,8 +34,8 @@ class TopInfo {
     CpptrajFile* outfile_;
     Topology* parm_;
     Frame coords_;
-    int awidth_; ///< Max width of field for holding atom numbers.
-    int rwidth_; ///< Max width of AtomMaskName for topology
+    int Awidth_; ///< Max width of field for holding atom numbers.
+    int Rwidth_; ///< Max width of AtomMaskName for topology
     int max_type_len_; ///< Max width of atom type name in topology
     bool toStdout_;
 };

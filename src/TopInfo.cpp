@@ -43,8 +43,8 @@ int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn, DataSet_Coords* cIn) 
     toStdout_ = false;
     outfile_ = fIn;
   }
-  awidth_ = std::max(2, DigitWidth(parm_->Natom()));
-  rwidth_ = DigitWidth(parm_->Nres()) + 6; // :, @, 4 char atom name
+  Awidth_ = std::max(2, DigitWidth(parm_->Natom()));
+  Rwidth_ = DigitWidth(parm_->Nres()) + 6; // :, @, 4 char atom name
   max_type_len_ = 2;
   for (int i = 0; i != parm_->Natom(); i++)
     max_type_len_ = std::max( max_type_len_, (*parm_)[i].Type().len() );
@@ -90,12 +90,9 @@ int TopInfo::PrintResidueInfo(std::string const& maskExpression) const {
   if ( mask.None() )
     mprinterr("\tSelection is empty.\n");
   else {
-    int awidth = DigitWidth(parm_->Natom());
-    if (awidth < 5) awidth = 5;
-    int rwidth = DigitWidth(parm_->Nres());
-    if (rwidth < 5) rwidth = 5;
-    int mwidth = DigitWidth(parm_->Nmol());
-    if (mwidth < 5) mwidth = 5;
+    int awidth = std::max(5, DigitWidth(parm_->Natom()));
+    int rwidth = std::max(5, DigitWidth(parm_->Nres()));
+    int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
     outfile_->Printf("%-*s %4s %*s %*s %*s %*s %*s\n",
                rwidth, "#Res", "Name",
                awidth, "First", awidth, "Last",
@@ -176,12 +173,9 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
     if ( mask.None() )
       mprintf("\tSelection is empty.\n");
     else {
-      int mwidth = DigitWidth(parm_->Nmol());
-      if (mwidth < 5) mwidth = 5;
-      int awidth = DigitWidth(parm_->Natom());
-      if (awidth < 5) awidth = 5;
-      int rwidth = DigitWidth(parm_->Nres());
-      if (rwidth < 5) rwidth = 5;
+      int awidth = std::max(5, DigitWidth(parm_->Natom()));
+      int rwidth = std::max(5, DigitWidth(parm_->Nres()));
+      int mwidth = std::max(5, DigitWidth(parm_->Nmol()));
       outfile_->Printf("%-*s %*s %*s %*s %*s %4s\n", mwidth, "#Mol", awidth, "Natom",
               rwidth, "Nres", rwidth, "Res0", rwidth, "Res1", "Name");
       unsigned int mnum = 1;
@@ -269,9 +263,9 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
       if ( !coords_.empty() )
         outfile_->Printf(" %6.3f", DIST_NoImage(coords_.XYZ(atom1), coords_.XYZ(atom2)));
       outfile_->Printf(" %-*s %-*s %*i %*i",
-              rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              rwidth_, parm_->AtomMaskName(atom2).c_str(),
-              awidth_, atom1+1, awidth_, atom2+1);
+              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              Awidth_, atom1+1, Awidth_, atom2+1);
       // Atom types
       outfile_->Printf(" %*s %*s\n",
                        max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
@@ -295,8 +289,8 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
   if (!coords_.empty())
     outfile_->Printf(" %6s", "Value");
   outfile_->Printf(" %-*s %-*s %*s %*s %*s %*s\n",
-                   rwidth_, "Atom1", rwidth_, "Atom2",
-                   awidth_, "A1", awidth_, "A2",
+                   Rwidth_, "Atom1", Rwidth_, "Atom2",
+                   Awidth_, "A1", Awidth_, "A2",
                    max_type_len_, "T1", max_type_len_, "T2");
   int nb = 1;
   PrintBonds( parm_->BondsH(), parm_->BondParm(), mask1, mask2, nw, nb );
@@ -336,12 +330,10 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
                                              coords_.XYZ(atom2),
                                              coords_.XYZ(atom3)) * Constants::RADDEG);
       outfile_->Printf(" %-*s %-*s %-*s %*i %*i %*i",
-              rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              rwidth_, parm_->AtomMaskName(atom2).c_str(),
-              rwidth_, parm_->AtomMaskName(atom3).c_str(),
-              awidth_, atom1+1,
-              awidth_, atom2+1,
-              awidth_, atom3+1);
+              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom3).c_str(),
+              Awidth_, atom1+1, Awidth_, atom2+1, Awidth_, atom3+1);
       // Atom types
       outfile_->Printf(" %*s %*s %*s\n",
                        max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
@@ -374,8 +366,8 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
   if (!coords_.empty())
     outfile_->Printf(" %6s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s\n",
-                   rwidth_, "Atom1", rwidth_, "Atom2", rwidth_, "Atom3",
-                   awidth_, "A1", awidth_, "A2", awidth_, "A3",
+                   Rwidth_, "Atom1", Rwidth_, "Atom2", Rwidth_, "Atom3",
+                   Awidth_, "A1", Awidth_, "A2", Awidth_, "A3",
                    max_type_len_, "T1", max_type_len_, "T2", max_type_len_, "T3");
   int na = 1;
   PrintAngles( parm_->AnglesH(), parm_->AngleParm(), mask1, mask2, mask3, nw, na );
@@ -424,14 +416,12 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
                                             coords_.XYZ(atom3),
                                             coords_.XYZ(atom4) ) * Constants::RADDEG );
       outfile_->Printf(" %-*s %-*s %-*s %-*s %*i %*i %*i %*i",
-              rwidth_, parm_->AtomMaskName(atom1).c_str(),
-              rwidth_, parm_->AtomMaskName(atom2).c_str(),
-              rwidth_, parm_->AtomMaskName(atom3).c_str(),
-              rwidth_, parm_->AtomMaskName(atom4).c_str(),
-              awidth_, atom1+1,
-              awidth_, atom2+1,
-              awidth_, atom3+1,
-              awidth_, atom4+1);
+              Rwidth_, parm_->AtomMaskName(atom1).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom3).c_str(),
+              Rwidth_, parm_->AtomMaskName(atom4).c_str(),
+              Awidth_, atom1+1, Awidth_, atom2+1,
+              Awidth_, atom3+1, Awidth_, atom4+1);
       // Atom types
       outfile_->Printf(" %*s %*s %*s %*s\n",
                        max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
@@ -467,10 +457,10 @@ int TopInfo::PrintDihedralInfo(std::string const& mask1exp, std::string const& m
   if (!coords_.empty())
     outfile_->Printf(" %7s", "Value");
   outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s %*s %*s %*s\n",
-                   rwidth_, "Atom1", rwidth_, "Atom2",
-                   rwidth_, "Atom3", rwidth_, "Atom4",
-                   awidth_, "A1", awidth_, "A2",
-                   awidth_, "A3", awidth_, "A4",
+                   Rwidth_, "Atom1", Rwidth_, "Atom2",
+                   Rwidth_, "Atom3", Rwidth_, "Atom4",
+                   Awidth_, "A1", Awidth_, "A2",
+                   Awidth_, "A3", Awidth_, "A4",
                    max_type_len_, "T1", max_type_len_, "T2",
                    max_type_len_, "T3", max_type_len_, "T4");
   int nd = 1;
