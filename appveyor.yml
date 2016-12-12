@@ -9,6 +9,7 @@ environment:
 
 cache:
   - /usr/local/lib/libnetcdf.a
+  - /usr/local/include/
   
 install:
   - set HOME=.
