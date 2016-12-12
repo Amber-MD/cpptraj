@@ -23,7 +23,7 @@ class TopInfo {
     inline int SetupMask(CharMask&) const;
     inline int SetupMask(std::string const&, CharMask&) const;
     void PrintBonds(BondArray const&, BondParmArray const&,
-                    CharMask const&, CharMask const&, int&) const;
+                    CharMask const&, CharMask const&, int, int&) const;
     void PrintAngles(AngleArray const&, AngleParmArray const&,
                      CharMask const&, CharMask const&, CharMask const&,
                      int, int&) const;
