@@ -36,7 +36,7 @@ molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
 quit
 EOF
-RunCpptraj "Atom/bond info test."
+RunCpptraj "Topology info print test."
 DoTest atoms.dat.save atoms.dat
 DoTest residues.dat.save residues.dat
 DoTest bonds.dat.save bonds.dat
