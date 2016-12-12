@@ -7,6 +7,9 @@ environment:
   matrix:
   - PRINTF_EXPONENT_DIGITS: "2"
 
+cache:
+  - /usr/local/lib/libnetcdf.a
+  
 install:
   - set HOME=.
   - set MSYSTEM=MINGW64
@@ -20,6 +23,8 @@ install:
       mingw-w64-x86_64-readline
       diffutils
     \""
+  - ls C:/msys64/usr/lib/
+  - ls C:/msys64/mingw64/lib
   - "sh -lc \"
      if [ ! -f /usr/local/lib/libnetcdf.a ]; then
        curl -fsS -o netcdf-4.3.3.zip ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.zip &&
@@ -34,15 +39,18 @@ install:
   \""
 
 build_script:
-  - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
+  - echo "hello"
+  # - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
 
 after_build:
-  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
-  - find C:/msys64/usr/local
+  - echo "hello"
+  # - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
+  # - find C:/msys64/usr/local
 
 test_script:
-  - set TEST_OS=windows
-  - sh -lc "cd test; make test.showerrors"
+  - echo "hello"
+  # - set TEST_OS=windows
+  # - sh -lc "cd test; make test.showerrors"
 
-artifacts:
-  - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
+# artifacts:
+#   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
