@@ -11,9 +11,10 @@ install:
   - set HOME=.
   - set MSYSTEM=MINGW64
   - set PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%
-  - set CC=x86_64-w64-mingw32-gcc.exe
-  - set CXX=x86_64-w64-mingw32-g++.exe
-  - set FC=x86_64-w64-mingw32-gfortran.exe
+  - set MINGWPREFIX=x86_64-w64-mingw32
+  - set CC=%MINGWPREFIX%-gcc.exe
+  - set CXX=%MINGWPREFIX%-g++.exe
+  - set FC=%MINGWPREFIX%-gfortran.exe
   - "sh -lc \"pacman -S --noconfirm --needed
       mingw-w64-x86_64-openblas
       mingw-w64-x86_64-arpack
