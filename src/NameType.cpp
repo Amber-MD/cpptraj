@@ -122,12 +122,19 @@ char NameType::operator[](int idx) const {
 }
 
 std::string NameType::Truncated() const {
-  std::string outname( c_array_ );
-  // Remove trailing spaces
-  if (outname[3] == ' ') outname.resize(3);
-  if (outname[2] == ' ') outname.resize(2);
-  if (outname[1] == ' ') outname.resize(1);
-  return outname;
+  unsigned int i = 0;
+  for (; i != NameSize_; i++)
+    if (c_array_[i] == ' ' || c_array_[i] == '\0') break;
+  return std::string( c_array_, c_array_+i );
+}
+
+/** \return Non-space length of name. */
+int NameType::len() const {
+  unsigned int i = 0;
+  for (; i != NameSize_; i++)
+    if (c_array_[i] == ' ' || c_array_[i] == '\0')
+      return (int)i;
+  return (int)i;
 }
 
 /** Replace asterisks with a single quote */

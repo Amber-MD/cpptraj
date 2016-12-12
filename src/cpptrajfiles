@@ -292,6 +292,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \
+        TopInfo.cpp \
         Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp \

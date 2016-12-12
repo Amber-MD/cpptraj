@@ -6,6 +6,7 @@
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
+#include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
 #ifdef CUDA
@@ -230,10 +231,11 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
         loudPrintf(" %i", *atom + 1);
     loudPrintf("\n");
   } else {
+    TopInfo info(&parm);
     if (residue)
-      parm.PrintResidueInfo( maskexpr );
+      info.PrintResidueInfo( maskexpr );
     else
-      parm.PrintAtomInfo( maskexpr );
+      info.PrintAtomInfo( maskexpr );
   }
   return 0;
 }

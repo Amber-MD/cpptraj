@@ -337,6 +337,9 @@ test.filter:
 test.combinecrd:
 	@-cd Test_CombineCrd && ./RunTest.sh $(OPT)
 
+test.topinfo:
+	@-cd Test_TopInfo && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -422,7 +425,8 @@ SHORT_TESTS=test.general \
           test.remap \
           test.comparetop \
           test.filter \
-          test.combinecrd
+          test.combinecrd \
+          test.topinfo
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -532,7 +536,8 @@ COMPLETETESTS=test.general \
               test.remap \
               test.comparetop \
               test.filter \
-              test.combinecrd
+              test.combinecrd \
+              test.topinfo
 
 test: test.all 
 
