@@ -299,10 +299,9 @@ int TopInfo::PrintBondInfo(std::string const& mask1exp, std::string const& mask2
 // TopInfo::PrintAngles()
 void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& angleparm,
                           CharMask const& mask1, CharMask const& mask2, CharMask const& mask3,
-                          int& na) const
+                          int nw, int& na) const
 {
   if (aarray.empty()) return;
-  int rwidth = DigitWidth(parm_->Nres()) + 7;
   for (AngleArray::const_iterator aatom = aarray.begin();
                                   aatom != aarray.end(); ++aatom)
   {
@@ -319,7 +318,7 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
                     mask1.AtomInCharMask(atom2) ||
                     mask1.AtomInCharMask(atom3));
     if (printAngle) {
-      outfile_->Printf("%8i:", na);
+      outfile_->Printf("%*i", nw, na);
       int aidx = aatom->Idx();
       if ( aidx > -1 )
         outfile_->Printf(" %6.3f %6.2f", angleparm[aidx].Tk(), 
@@ -328,17 +327,18 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
         outfile_->Printf(" %6.2f", CalcAngle(coords_.XYZ(atom1),
                                              coords_.XYZ(atom2),
                                              coords_.XYZ(atom3)) * Constants::RADDEG);
-      outfile_->Printf(" %-*s %-*s %-*s (%i,%i,%i)",
-              rwidth, parm_->AtomMaskName(atom1).c_str(),
-              rwidth, parm_->AtomMaskName(atom2).c_str(),
-              rwidth, parm_->AtomMaskName(atom3).c_str(),
-              atom1+1, atom2+1, atom3+1);
+      outfile_->Printf(" %-*s %-*s %-*s %*i %*i %*i",
+              rwidth_, parm_->AtomMaskName(atom1).c_str(),
+              rwidth_, parm_->AtomMaskName(atom2).c_str(),
+              rwidth_, parm_->AtomMaskName(atom3).c_str(),
+              awidth_, atom1+1,
+              awidth_, atom2+1,
+              awidth_, atom3+1);
       // Atom types
-      const char* atype1 = *((*parm_)[atom1].Type());
-      const char* atype2 = *((*parm_)[atom2].Type());
-      const char* atype3 = *((*parm_)[atom3].Type());
-      outfile_->Printf(" %c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1]);
+      outfile_->Printf(" %*s %*s %*s\n",
+                       max_type_len_, (*parm_)[atom1].Type().Truncated().c_str(),
+                       max_type_len_, (*parm_)[atom2].Type().Truncated().c_str(),
+                       max_type_len_, (*parm_)[atom3].Type().Truncated().c_str());
     }
     na++;
   }
@@ -359,10 +359,19 @@ int TopInfo::PrintAngleInfo(std::string const& mask1exp, std::string const& mask
     mprinterr("Error: Require either 1 mask or 3 masks.\n");
     return 1;
   }
-  outfile_->Printf("# Angle   Kthet  degrees        atom names        (numbers)\n");
+  int nw = std::max(4, DigitWidth(parm_->AnglesH().size() + parm_->Angles().size()));
+  outfile_->Printf("%-*s", nw, "#Ang");
+  if (!parm_->AngleParm().empty())
+    outfile_->Printf(" %6s %6s", "TK", "TEQ");
+  if (!coords_.empty())
+    outfile_->Printf(" %6s", "Value");
+  outfile_->Printf(" %-*s %-*s %-*s %-*s %*s %*s %*s %*s %*s\n",
+                   rwidth_, "Atom1", rwidth_, "Atom2", rwidth_, "Atom3",
+                   awidth_, "A1", awidth_, "A2", awidth_, "A3",
+                   max_type_len_, "T1", max_type_len_, "T2", max_type_len_, "T3");
   int na = 1;
-  PrintAngles( parm_->AnglesH(), parm_->AngleParm(), mask1, mask2, mask3, na );
-  PrintAngles( parm_->Angles(),  parm_->AngleParm(), mask1, mask2, mask3, na );
+  PrintAngles( parm_->AnglesH(), parm_->AngleParm(), mask1, mask2, mask3, nw, na );
+  PrintAngles( parm_->Angles(),  parm_->AngleParm(), mask1, mask2, mask3, nw, na );
   return 0;
 }
 

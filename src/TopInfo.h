@@ -26,7 +26,7 @@ class TopInfo {
                     CharMask const&, CharMask const&, int&) const;
     void PrintAngles(AngleArray const&, AngleParmArray const&,
                      CharMask const&, CharMask const&, CharMask const&,
-                     int&) const;
+                     int, int&) const;
     void PrintDihedrals(DihedralArray const&, DihedralParmArray const&,
                         CharMask const&, CharMask const&,
                         CharMask const&, CharMask const&, int, int&) const;
