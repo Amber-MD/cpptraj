@@ -15,8 +15,7 @@ install:
   - set HOME=.
   - set MSYSTEM=MINGW64
   - set PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%
-  - where g++
-  - where gcc
+  - set CXX=C:/msys64/mingw64/bin/g++.exe
   - where gfortran
   - "sh -lc \"pacman -S --noconfirm --needed
       mingw-w64-x86_64-openblas
@@ -27,8 +26,6 @@ install:
       mingw-w64-x86_64-readline
       diffutils
     \""
-  - ls C:/msys64/usr/lib/
-  - ls C:/msys64/mingw64/lib
   - "sh -lc \"
      if [ ! -f /usr/local/lib/libnetcdf.a ]; then
        curl -fsS -o netcdf-4.3.3.zip ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4.3.3.zip &&
@@ -43,8 +40,7 @@ install:
   \""
 
 build_script:
-  - echo "hello"
-  # - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
+  - sh configure --with-netcdf=/usr/local/ --with-lapack=/mingw64/ --with-blas=/mingw64/ --with-arpack=/mingw64/ --with-bzlib=/mingw64/ --with-zlib=/mingw64 -shared -windows gnu
 
 after_build:
   - echo "hello"
