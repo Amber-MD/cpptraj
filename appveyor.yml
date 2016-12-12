@@ -7,15 +7,12 @@ environment:
   matrix:
   - PRINTF_EXPONENT_DIGITS: "2"
 
-cache:
-  - /usr/local/lib/libnetcdf.a
-  - /usr/local/include/
-  
 install:
   - set HOME=.
   - set MSYSTEM=MINGW64
   - set PATH=C:/msys64/usr/bin;C:/msys64/mingw64/bin;%PATH%
   - set CXX=C:/msys64/mingw64/bin/g++.exe
+  - ls C:/msys64/mingw64/bin/
   - where gfortran
   - "sh -lc \"pacman -S --noconfirm --needed
       mingw-w64-x86_64-openblas
