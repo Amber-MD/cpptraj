@@ -127,14 +127,14 @@ Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MolInfo::Help() const {
-  mprintf("\t[%s] [<mask>]\n", DataSetList::TopIdxArgs);
+  mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);
   mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n");
 }
 
 Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
-  Topology* parm = State.DSL().GetTopByIndex( argIn );
-  if (parm == 0) return CpptrajState::ERR;
-  parm->PrintMoleculeInfo( argIn.GetMaskNext() );
+  TopInfo info;
+  if (CommonSetup(info, State, argIn, "Molecule info")) return CpptrajState::ERR;
+  if (info.PrintMoleculeInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------

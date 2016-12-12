@@ -248,41 +248,6 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintMoleculeInfo()
-void Topology::PrintMoleculeInfo(std::string const& maskString) const {
-  if (molecules_.empty())
-    mprintf("\t'%s' No molecule info.\n",c_str());
-  else {
-    CharMask mask( maskString );
-    if (SetupCharMask( mask )) return;
-    if ( mask.None() )
-      mprintf("\tSelection is empty.\n");
-    else {
-      int mwidth = DigitWidth(molecules_.size());
-      if (mwidth < 5) mwidth = 5;
-      int awidth = DigitWidth(atoms_.size());
-      if (awidth < 5) awidth = 5;
-      int rwidth = DigitWidth(residues_.size());
-      if (rwidth < 5) rwidth = 5;
-      mprintf("%-*s %*s %*s %4s\n", mwidth, "#Mol", awidth, "Natom", 
-              rwidth, "#Res", "Name");
-      unsigned int mnum = 1;
-      for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); 
-                                                 mol != molecules_.end(); mol++)
-      {
-        if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
-          int firstres = atoms_[ mol->BeginAtom() ].ResNum();
-          mprintf("%*u %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, firstres+1, residues_[firstres].c_str(), residues_[firstres].ChainID());
-          if ( mol->IsSolvent() ) mprintf(" SOLVENT");
-          mprintf("\n");
-        }
-        ++mnum;
-      }
-    }
-  }
-}
-
 // Topology::PrintChargeMassInfo()
 int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
   AtomMask mask( maskString );

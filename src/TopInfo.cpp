@@ -154,6 +154,43 @@ int TopInfo::PrintShortResInfo(std::string const& maskString, int maxChar) const
   return 0;
 }
 
+// TopInfo::PrintMoleculeInfo()
+int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
+  if (parm_->Nmol() < 1)
+    mprintf("\t'%s' No molecule info.\n", parm_->c_str());
+  else {
+    CharMask mask( maskString );
+    if (parm_->SetupCharMask( mask )) return 1;
+    if ( mask.None() )
+      mprintf("\tSelection is empty.\n");
+    else {
+      int mwidth = DigitWidth(parm_->Nmol());
+      if (mwidth < 5) mwidth = 5;
+      int awidth = DigitWidth(parm_->Natom());
+      if (awidth < 5) awidth = 5;
+      int rwidth = DigitWidth(parm_->Nres());
+      if (rwidth < 5) rwidth = 5;
+      outfile_->Printf("%-*s %*s %*s %*s %*s %4s\n", mwidth, "#Mol", awidth, "Natom",
+              rwidth, "Nres", rwidth, "Res0", rwidth, "Res1", "Name");
+      unsigned int mnum = 1;
+      for (Topology::mol_iterator mol = parm_->MolStart();
+                                  mol != parm_->MolEnd(); ++mol)
+      {
+        if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
+          int firstres = (*parm_)[ mol->BeginAtom() ].ResNum();
+          int lastres  = (*parm_)[ mol->EndAtom()-1 ].ResNum();
+          outfile_->Printf("%*u %*i %*i %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
+                  rwidth, lastres-firstres+1, rwidth, firstres+1,
+                  rwidth, lastres+1, parm_->Res(firstres).c_str(), parm_->Res(firstres).ChainID());
+          if ( mol->IsSolvent() ) outfile_->Printf(" SOLVENT");
+          outfile_->Printf("\n");
+        }
+        ++mnum;
+      }
+    }
+  }
+  return 0;
+}
 
 // TopInfo::PrintBonds()
 void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
