@@ -687,7 +687,7 @@ while [[ ! -z $1 ]] ; do
       ;;
     "-windows")
       printf "WINDOWS support requested. Implies -static."
-      READLINE_TARGET="noreadline"
+      # READLINE_TARGET="noreadline"
       STATIC=1
       WINDOWS="yes"
       uname | grep -i linux > /dev/null 2>&1
@@ -699,6 +699,7 @@ while [[ ! -z $1 ]] ; do
         quadmath="-lquadmath"
       fi
       EXE=".exe"
+      SHARED_SUFFIX='.dll.a'
       ;;
     "-openblas")
       echo "Using OpenBLAS"
