@@ -38,16 +38,17 @@ install:
 
 build_script:
   - sh configure --with-netcdf=/usr/local/ --with-blas=/mingw64/ -openblas --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-arpack=/mingw64 --with-readline=/mingw64/ -shared -windows gnu
+  - make libcpptraj -j2
+  - make install -j2
 
 after_build:
   - echo "hello"
-  # - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
-  # - find C:/msys64/usr/local
+  - 7z a cpptraj-%APPVEYOR_BUILD_ID%.zip bin/ambpdb.exe bin/cpptraj.exe lib/libcpptraj.lib src/*.h
+  - find C:/msys64/usr/local
 
 test_script:
-  - echo "hello"
-  # - set TEST_OS=windows
-  # - sh -lc "cd test; make test.showerrors"
+  - set TEST_OS=windows
+  - sh -lc "cd test; make test.showerrors"
 
-# artifacts:
-#   - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
+artifacts:
+  - path: cpptraj-$(APPVEYOR_BUILD_ID).zip
