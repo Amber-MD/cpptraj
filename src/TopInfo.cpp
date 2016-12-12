@@ -273,7 +273,7 @@ void TopInfo::PrintBonds(BondArray const& barray, BondParmArray const& bondparm,
     }
     nb++;
   }
-  outfile_->Printf("\n");
+  //outfile_->Printf("\n");
 }
 
 // TopInfo::PrintBondInfo()
@@ -342,7 +342,7 @@ void TopInfo::PrintAngles(AngleArray const& aarray, AngleParmArray const& anglep
     }
     na++;
   }
-  outfile_->Printf("\n");
+  //outfile_->Printf("\n");
 }
 
 // TopInfo::PrintAngleInfo()
@@ -431,7 +431,7 @@ void TopInfo::PrintDihedrals(DihedralArray const& darray, DihedralParmArray cons
     }
     nd++;
   }
-  outfile_->Printf("\n");
+  //outfile_->Printf("\n");
 }
 
 // TopInfo::PrintDihedralInfo()

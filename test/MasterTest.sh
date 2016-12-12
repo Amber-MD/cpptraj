@@ -3,6 +3,7 @@
 # Environment variables
 # TEST_OS: Operating system on which tests are being run. If blank assume linux
 # N_THREADS: Set to number of test threads
+# DIFFOPTS: Additional options to pass to DIFF (non-DACDIF only)
 
 # MasterTest.sh command line options
 CLEAN=0             # If 1, only file cleaning needs to be performed.
@@ -97,7 +98,7 @@ DoTest() {
       ((ERRCOUNT++))
     else
       if [[ $USE_NDIFF -eq 0 ]] ; then
-        $DIFFCMD $DIFFARGS $F1 $F2 > temp.diff 2>&1
+        $DIFFCMD $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
       else
         $NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
       fi
@@ -657,6 +658,9 @@ else
     fi
     if [[ -f "$TEST_ERROR" ]] ; then
       $REMOVE $TEST_ERROR
+    fi
+    if [ ! -z "$DIFFOPTS" ] ; then
+      echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
     fi
   fi
   # Only a summary of previous results has been requested.

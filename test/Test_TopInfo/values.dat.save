@@ -1,21 +1,15 @@
 #Bnd     RK    REQ  Value Atom1    Atom2     A1  A2 T1 T2
    1 553.00  0.960  0.960 :1@OG    :1@HG     10  11 OH HO
-
  109 320.00  1.410  1.410 :1@CB    :1@OG      7  10 CT OH
-
 #Ang     TK    TEQ  Value Atom1    Atom2    Atom3     A1  A2  A3 T1 T2 T3
    2 50.000 109.50 107.97 :1@HB3   :1@CB    :1@OG      9   7  10 H1 CT OH
    4 50.000 109.50 103.59 :1@HB2   :1@CB    :1@OG      8   7  10 H1 CT OH
    5 55.000 108.50 118.18 :1@CB    :1@OG    :1@HG      7  10  11 CT OH HO
-
  242 50.000 109.50 112.82 :1@CA    :1@CB    :1@OG      5   7  10 CT CT OH
-
 # Dih     PK Phase   PN   Value Atom1    Atom2    Atom3    Atom4     A1  A2  A3  A4 T1 T2 T3 T4
     5  0.167  0.00  3.0   38.61 :1@HB3   :1@CB    :1@OG    :1@HG      9   7  10  11 H1 CT OH HO
     7  0.167  0.00  3.0  -72.01 :1@HB2   :1@CB    :1@OG    :1@HG      8   7  10  11 H1 CT OH HO
    10  0.156  0.00  3.0  157.67 :1@HA    :1@CA    :1@CB    :1@OG      6   5   7  10 HP CT CT OH
    13  0.167  0.00  3.0  166.20 :1@CA    :1@CB    :1@OG    :1@HG      5   7  10  11 CT CT OH HO
-
   449  0.156  0.00  3.0  -87.61 :1@OG    :1@CB    :1@CA    :1@C      10   7   5  12 OH CT CT  C
   454  0.156  0.00  3.0   40.10 :1@N     :1@CA    :1@CB    :1@OG      1   5   7  10 N3 CT CT OH
-
