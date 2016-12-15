@@ -38,7 +38,14 @@ install:
   \""
 
 build_script:
-  - sh configure --with-netcdf=/usr/local/ --with-blas=/mingw64/ -openblas --with-bzlib=/mingw64/ --with-zlib=/mingw64 --with-arpack=/mingw64 --with-readline=/mingw64/ -shared -windows gnu
+  - "sh configure --with-netcdf=/usr/local/ 
+                  --with-blas=/mingw64/ -openblas
+                  --with-bzlib=/mingw64/
+                  --with-zlib=/mingw64
+                  --with-arpack=/mingw64
+                  --with-readline=/mingw64/
+                  -shared -windows gnu
+    "
   - make libcpptraj -j2
   - make install -j2
 
