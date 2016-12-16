@@ -140,6 +140,7 @@ class Parm_Amber : public ParmIO {
     int WriteAngles(FlagType, AngleArray const&);
     int WriteDihedrals(FlagType, DihedralArray const&);
     void WriteLine(FlagType, std::string const&);
+    int WriteExtra(std::vector<AtomExtra> const&);
  
     static const int AMBERPOINTERS_;
     static const ParmFlag FLAGS_[];
@@ -167,6 +168,7 @@ class Parm_Amber : public ParmIO {
 
     // Write variables
     bool nochamber_;
+    bool writeEmptyArrays_;
 };
 // -----------------------------------------------------------------------------
 class Parm_Amber::FortranData {
