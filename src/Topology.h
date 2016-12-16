@@ -73,6 +73,7 @@ class Topology {
     void AddBond(int i, int j)                    { AddBond(i, j, -1); }
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
+    void AddBond(int, int, BondParmType const&);
     // ----- Angle-specific routines -------------
     int Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
@@ -181,7 +182,7 @@ class Topology {
     void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
     void StripAngleParmArray(AngleArray&, std::vector<int>&, AngleParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
-    inline void AddBondArray(BondArray const&, int);
+    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

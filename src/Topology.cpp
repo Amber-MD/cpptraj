@@ -533,6 +533,23 @@ void Topology::AssignBondParameters() {
     AddBondParam( *bnd, bpMap );
 } 
 
+void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
+  // See if the BondParm exists.
+  int pidx = -1;
+  for (BondParmArray::const_iterator bp = bondparm_.begin(); bp != bondparm_.end(); ++bp)
+    if ( fabs(BPin.Rk()  - bp->Rk() ) < Constants::SMALL &&
+         fabs(BPin.Req() - bp->Req()) < Constants::SMALL )
+    {
+      pidx = (int)(bp - bondparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)bondparm_.size();
+    bondparm_.push_back( BPin );
+  }
+  AddBond( atom1, atom2, pidx );
+}
+
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
@@ -1354,9 +1371,13 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 }
 
 // Topology::AddBondArray()
-void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
+  if (bp.empty())
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+  else
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
 }
 
 // Topology::AppendTop()
@@ -1373,9 +1394,13 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
                                      res.Icode(), res.ChainID()) );
   }
+  // EXTRA ATOM INFO
+  for (Topology::extra_iterator extra = CurrentTop.extraBegin();
+                                extra != CurrentTop.extraEnd(); ++extra)
+    AddExtraAtomInfo( *extra );
   // BONDS
-  AddBondArray(CurrentTop.Bonds(),  atomOffset);
-  AddBondArray(CurrentTop.BondsH(), atomOffset);
+  AddBondArray(CurrentTop.Bonds(),  CurrentTop.BondParm(), atomOffset);
+  AddBondArray(CurrentTop.BondsH(), CurrentTop.BondParm(), atomOffset);
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();
