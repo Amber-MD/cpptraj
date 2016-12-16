@@ -80,7 +80,7 @@ class Topology {
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
     AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
-    void AddAngle(int i, int j, int k)            { return AddAngle(i, j, k, -1); }
+    void AddAngle(int i, int j, int k)            { AddAngle(i, j, k, -1); }
     void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
     void AddAngle(int, int, int, AngleParmType const&); 
@@ -90,8 +90,9 @@ class Topology {
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }
     DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
-    void AddDihedral(int, int, int, int);
+    void AddDihedral(DihedralType const&, int);
     void AddDihedral(DihedralType const&, bool);
+    void AddDihedral(DihedralType const&, DihedralParmType const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -186,6 +187,7 @@ class Topology {
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
     inline void AddBondArray(BondArray const&, BondParmArray const&, int);
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
+    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

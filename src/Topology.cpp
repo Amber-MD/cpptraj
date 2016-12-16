@@ -654,6 +654,7 @@ void Topology::AddAngle(int atom1, int atom2, int atom3, int pidxIn) {
     angles_.push_back( AngleType(atom1, atom2, atom3, pidx) );
 }
 
+// Topology::AddAngle()
 void Topology::AddAngle(AngleType const& angIn, bool isH) {
   if (isH)
     anglesh_.push_back( angIn );
@@ -661,15 +662,55 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
     angles_.push_back( angIn );
 }
 
-void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+{
+  // See if the DihedralParm exists.
+  int pidx = -1;
+  for (DihedralParmArray::const_iterator dp = dihedralparm_.begin();
+                                         dp != dihedralparm_.end(); ++dp)
+    if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
+         fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
+         fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
+         fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
+         fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
+    {
+      pidx = (int)(dp - dihedralparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)dihedralparm_.size();
+    dihedralparm_.push_back( DPin );
+  }
+  AddDihedral( dih, pidx );
+}
+
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
   // FIXME: Check duplicate
-  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
-      atoms_[atom2].Element() == Atom::HYDROGEN ||
-      atoms_[atom3].Element() == Atom::HYDROGEN ||
-      atoms_[atom4].Element() == Atom::HYDROGEN)
-    dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), "dihedral")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)dihedralparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No dihedral parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  DihedralType dih = dihIn;
+  dih.SetIdx( pidx );
+  // Update dihedral arrays
+  if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A3()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A4()].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( dih );
   else
-    dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+    dihedrals_.push_back( dih );
 }
 
 void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
@@ -1415,6 +1456,7 @@ void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, in
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
 }
 
+// Topology::AddAngleArray()
 void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
   if (ap.empty())
     for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
@@ -1426,6 +1468,21 @@ void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap,
       AddAngle( angle->A1() + atomOffset,
                 angle->A2() + atomOffset,
                 angle->A3() + atomOffset, ap[angle->Idx()] );
+}
+
+// Topology::AddDihArray()
+void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const& dp, int atomOffset)
+{
+  if (dp.empty())
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), -1 );
+  else
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), dp[dih->Idx()] );
 }
 
 // Topology::AppendTop()
@@ -1452,6 +1509,9 @@ int Topology::AppendTop(Topology const& CurrentTop) {
   // ANGLES
   AddAngleArray(CurrentTop.Angles(),  CurrentTop.AngleParm(), atomOffset);
   AddAngleArray(CurrentTop.AnglesH(), CurrentTop.AngleParm(), atomOffset);
+  // DIHEDRALS
+  AddDihArray(CurrentTop.Dihedrals(),  CurrentTop.DihedralParm(), atomOffset);
+  AddDihArray(CurrentTop.DihedralsH(), CurrentTop.DihedralParm(), atomOffset);
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();

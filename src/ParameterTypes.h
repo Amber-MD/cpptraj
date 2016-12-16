@@ -136,6 +136,8 @@ class DihedralType {
       else if (a4_ < 0)       { a4_ = -a4;              type_ = IMPROPER;}
       else                                              type_ = NORMAL;
     }
+    DihedralType(int a1, int a2, int a3, int a4, Dtype t) :
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(-1) {}
     DihedralType(int a1, int a2, int a3, int a4, Dtype t, int i) :
                  a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(i) {}
     inline int A1()     const { return a1_;   }

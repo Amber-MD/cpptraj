@@ -138,7 +138,13 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
       int ndihread = sscanf(buffer,"%i %i %i %i %i %i %i %i",bondatoms,bondatoms+1,
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
-      for (int dihidx=0; dihidx < ndihread; dihidx += 4)
+      for (int dihidx=0; dihidx < ndihread; dihidx += 4) {
+        // TODO: Determine end dihedrals
+        parmout.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
+                                          bondatoms[dihidx+1]-1,
+                                          bondatoms[dihidx+2]-1,
+                                          bondatoms[dihidx+3]-1,
+                                          DihedralType::NORMAL, -1)
         parmOut.AddDihedral( bondatoms[dihidx  ]-1,
                              bondatoms[dihidx+1]-1,
                              bondatoms[dihidx+2]-1,
