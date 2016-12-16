@@ -533,6 +533,7 @@ void Topology::AssignBondParameters() {
     AddBondParam( *bnd, bpMap );
 } 
 
+// Topology::AddBond()
 void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
   // See if the BondParm exists.
   int pidx = -1;
@@ -550,20 +551,22 @@ void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
   AddBond( atom1, atom2, pidx );
 }
 
+static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
+  if (atom < 0 || atom >= Natom) {
+    mprintf("Warning: Atom # %i is out of range, cannot create %s.\n", atom+1, type);
+    return 1;
+  }
+  return 0;
+}
+
 // Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2, int pidxIn) {
   // Check if atoms are out of range.
-  if (atom1 < 0 || atom1 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom1+1);
-    return;
-  }
-  if (atom2 < 0 || atom2 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom2+1);
-    return;
-  }
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
   // Check for duplicate bond
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
@@ -609,14 +612,46 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
 }
 
-void Topology::AddAngle(int atom1, int atom2, int atom3) {
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, AngleParmType const& APin) {
+  // See if the AngleParm exists.
+  int pidx = -1;
+  for (AngleParmArray::const_iterator ap = angleparm_.begin(); ap != angleparm_.end(); ++ap)
+    if ( fabs(APin.Tk()  - ap->Tk() ) < Constants::SMALL &&
+         fabs(APin.Teq() - ap->Teq()) < Constants::SMALL )
+    {
+      pidx = (int)(ap - angleparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)angleparm_.size();
+    angleparm_.push_back( APin );
+  }
+  AddAngle( atom1, atom2, atom3, pidx );
+}
+
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, int pidxIn) {
   // FIXME: Check duplicate
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), atom1, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom3, "angle")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)angleparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No angle parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  // Update angle arrays
   if (atoms_[atom1].Element() == Atom::HYDROGEN ||
       atoms_[atom2].Element() == Atom::HYDROGEN ||
       atoms_[atom3].Element() == Atom::HYDROGEN)
-    anglesh_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    anglesh_.push_back( AngleType(atom1, atom2, atom3, pidx) );
   else
-    angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    angles_.push_back( AngleType(atom1, atom2, atom3, pidx) );
 }
 
 void Topology::AddAngle(AngleType const& angIn, bool isH) {
@@ -1380,6 +1415,19 @@ void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, in
       AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
 }
 
+void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
+  if (ap.empty())
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset );
+  else
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset, ap[angle->Idx()] );
+}
+
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& CurrentTop) {
   int atomOffset = (int)atoms_.size();
@@ -1401,6 +1449,9 @@ int Topology::AppendTop(Topology const& CurrentTop) {
   // BONDS
   AddBondArray(CurrentTop.Bonds(),  CurrentTop.BondParm(), atomOffset);
   AddBondArray(CurrentTop.BondsH(), CurrentTop.BondParm(), atomOffset);
+  // ANGLES
+  AddAngleArray(CurrentTop.Angles(),  CurrentTop.AngleParm(), atomOffset);
+  AddAngleArray(CurrentTop.AnglesH(), CurrentTop.AngleParm(), atomOffset);
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();
