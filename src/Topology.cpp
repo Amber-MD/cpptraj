@@ -1485,10 +1485,46 @@ void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const&
                                  dih->Type() ), dp[dih->Idx()] );
 }
 
+typedef std::pair<int,NameType> TypePair;
+
+static inline int AddAtomType(std::set<TypePair>& AtomTypes, Atom const& atom, const char* top)
+{
+  if (atom.TypeIndex() < 0 || atom.Type().len() < 1) {
+    mprintf("Warning: Invalid atom type information in '%s'\n", top);
+    return 1;
+  }
+  mprintf("DEBUG: [%zu] %i %s\n", AtomTypes.size(), atom.TypeIndex(), *(atom.Type()));
+  AtomTypes.insert( TypePair(atom.TypeIndex(), atom.Type()) );
+  return 0;
+}
+
 // Topology::AppendTop()
 int Topology::AppendTop(Topology const& CurrentTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
+  // NON-BOND
+  bool doNonBond = true;
+  if (!atoms_.empty() &&
+      (CurrentTop.Nonbond().HasNonbond() != Nonbond().HasNonbond()))
+  {
+    if (Nonbond().HasNonbond())
+      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", CurrentTop.c_str());
+    else
+      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
+    doNonBond = false;
+  }
+  // Create an array of existing unique atom types and type indices.
+  std::set<TypePair> ExistingAtomTypes;
+  std::set<TypePair> NewAtomTypes;
+  if (doNonBond) {
+    for (atom_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom) {
+      if (AddAtomType(ExistingAtomTypes, *atom, c_str())) {
+        doNonBond = false;
+        break;
+      }
+    }
+  }
+
   // ATOMS
   for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
   {
@@ -1498,6 +1534,43 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     CurrentAtom.ClearBonds();
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
                                      res.Icode(), res.ChainID()) );
+    if (doNonBond) {
+      if (AddAtomType(NewAtomTypes, *atom, CurrentTop.c_str()))
+        doNonBond = false;
+    }
+  }
+  if (!doNonBond) {
+    mprintf("Warning: Removing non-bond parameters\n");
+    nonbond_.Clear();
+  } else {
+    // These should be sorted first by type index, then type name.
+    // DEBUG
+    mprintf("DEBUG: Existing atom types:\n");
+    int nExistingAtomTypes = 0;
+    int currentTypeIndex = -1;
+    for (std::set<TypePair>::const_iterator at = ExistingAtomTypes.begin();
+                                            at != ExistingAtomTypes.end(); ++at)
+    {
+      mprintf("\t%8i %s\n", at->first, *(at->second));
+      if (at->first != currentTypeIndex) { ++nExistingAtomTypes; currentTypeIndex = at->first; }
+    }
+    mprintf("DEBUG: New atom types:\n");
+    int nNewAtomTypes = 0;
+    currentTypeIndex = -1;
+    for (std::set<TypePair>::const_iterator at = NewAtomTypes.begin();
+                                            at != NewAtomTypes.end(); ++at)
+    {
+      mprintf("\t%8i %s\n", at->first, *(at->second));
+      if (at->first != currentTypeIndex) { ++nNewAtomTypes; currentTypeIndex = at->first; }
+    }
+    // NONBONDS
+    // Go through each possible atom type interaction for new atom types, add
+    // any that dont yet exist, add new type index.
+    mprintf("DEBUG: There are %i existing and %i new atom types.\n", nExistingAtomTypes, nNewAtomTypes);
+    NonbondParmType newNonBond;
+    newNonBond.SetupLJforNtypes(nExistingAtomTypes+nNewAtomTypes);
+    // Add existing interactions.
+    
   }
   // EXTRA ATOM INFO
   for (Topology::extra_iterator extra = CurrentTop.extraBegin();
@@ -1512,6 +1585,7 @@ int Topology::AppendTop(Topology const& CurrentTop) {
   // DIHEDRALS
   AddDihArray(CurrentTop.Dihedrals(),  CurrentTop.DihedralParm(), atomOffset);
   AddDihArray(CurrentTop.DihedralsH(), CurrentTop.DihedralParm(), atomOffset);
+
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();

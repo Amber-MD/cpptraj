@@ -226,6 +226,8 @@ class NonbondParmType {
     }
     /// Set number of LJ terms and init LJ array TODO combine with SetNtypes?
     void SetNLJterms(int n)   { nbarray_.assign( n, NonbondType() ); }
+    /// Set number of types, init NB index array, init LJ array.
+    void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
     /// Set specified LJ term
     NonbondType& SetLJ(int i) { return nbarray_[i];                  }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
@@ -236,6 +238,23 @@ class NonbondParmType {
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
     void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
+      nbindex_[ntypes_ * type1 + type2] = ndx;
+      nbindex_[ntypes_ * type2 + type1] = ndx;
+      if (ndx >= (int)nbarray_.size())
+        nbarray_.resize(ndx+1);
+      nbarray_[ndx] = LJ;
+    }
+    /// Add given LJ term to nonbond array and update nonbond index array.
+    void AddLJterm(int type1, int type2, NonbondType const& LJ) {
+      int ibig, isml;
+      if (type1 > type2) {
+        ibig = type1 + 1;
+        isml = type2 + 1;
+      } else {
+        ibig = type2 + 1;
+        isml = type1 + 1;
+      }
+      int ndx = (ibig*(ibig-1)/2+isml)-1;
       nbindex_[ntypes_ * type1 + type2] = ndx;
       nbindex_[ntypes_ * type2 + type1] = ndx;
       if (ndx >= (int)nbarray_.size())

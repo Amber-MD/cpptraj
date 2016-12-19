@@ -90,6 +90,7 @@ class Topology {
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }
     DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
+    void AddDihedral(DihedralType const& d)       { AddDihedral(d, -1);      }
     void AddDihedral(DihedralType const&, int);
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
