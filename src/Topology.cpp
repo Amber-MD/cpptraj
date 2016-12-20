@@ -1501,6 +1501,14 @@ class AtomType {
       return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
                (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
     }
+    NonbondType Combine_LB(AtomType const& rhs) const {
+      double dR = radius_ + rhs.radius_;
+      double dE = sqrt( depth_ * rhs.depth_ );
+      double dR2 = dR * dR;
+      double dR6 = dR2 * dR2 * dR2;
+      double dER6 = dE * dR6;
+      return NonbondType( dER6*dR6, 2.0*dER6 );
+    }
   private:
     double radius_; ///< VDW radius
     double depth_;  ///< LJ well-depth
@@ -1686,7 +1694,8 @@ int Topology::AppendTop(Topology const& CurrentTop) {
               LJ = nonbond_.NBarray( nbidx );
           } else {
             // Mix new and existing.
-            mprintf("DEBUG: NEW AND EXISTING NOT YET SUPPORTED.\n");
+            mprintf("MIX ");
+            LJ = t1->second.Combine_LB( t2->second );
           }
           mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
                   LJ.A(), LJ.B()); 
