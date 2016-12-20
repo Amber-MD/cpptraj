@@ -1537,9 +1537,9 @@ class TypeArray {
       Tarray::iterator it = types_.find( atom.TypeIndex() );
       if (it == types_.end()) {
         AtomType type(top.GetVDWradius(anum), top.GetVDWdepth(anum), atom.TypeIndex());
-        mprintf("\tAdding [%4zu] %4i %s %12.5g %12.5g (%s)\n", types_.size(), 
-                 atom.TypeIndex(), *(atom.Type()),
-                 type.Radius(), type.Depth(), top.c_str());
+        //mprintf("\tAdding [%4zu] %4i %s %12.5g %12.5g (%s)\n", types_.size(), 
+        //         atom.TypeIndex(), *(atom.Type()),
+        //         type.Radius(), type.Depth(), top.c_str());
         std::pair<Tarray::iterator, bool> ret = types_.insert( Tpair(atom.TypeIndex(), type) );
         lastType_ = ret.first;
       }
@@ -1556,7 +1556,8 @@ class TypeArray {
 int Topology::AppendTop(Topology const& CurrentTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
-  // NON-BOND
+
+  // Check non-bond parameters
   bool doNonBond = true;
   if (!atoms_.empty() &&
       (CurrentTop.Nonbond().HasNonbond() != Nonbond().HasNonbond()))
@@ -1567,41 +1568,42 @@ int Topology::AppendTop(Topology const& CurrentTop) {
       mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
     doNonBond = false;
   }
-  // Create an array of existing atom type indices.
-  TypeArray ExistingAtomTypes;
+  // Create an array of existing nonbond types so we can compare to incoming.
+  TypeArray ExistingTypes;
   if (doNonBond) {
     for (atom_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom) {
-      if (ExistingAtomTypes.AddAtomType(*atom, atom-atoms_.begin(), *this)) {
+      if (ExistingTypes.AddAtomType(*atom, atom-atoms_.begin(), *this)) {
         doNonBond = false;
         break;
       }
     }
     // DEBUG
-    if (doNonBond) {
-      mprintf("DEBUG: %zu existing atom type indices:", ExistingAtomTypes.size());
-      for (TypeArray::const_iterator ti = ExistingAtomTypes.begin();
-                                     ti != ExistingAtomTypes.end(); ++ti)
-        mprintf(" %i", ti->first);
-      mprintf("\n");
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu existing atom type indices:\n", ExistingTypes.size());
+      for (TypeArray::const_iterator ti = ExistingTypes.begin();
+                                     ti != ExistingTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
     }
   }
-  int NexistingAtomTypes = (int)ExistingAtomTypes.size();
+  int NexistingAtomTypes = (int)ExistingTypes.size();
   int currentTypeIdx = NexistingAtomTypes;
 
   // ATOMS
   typedef std::map<int,int> TypeMap;
-  TypeMap type_newToExisting;
-  TypeArray NewAtomTypes;
+  TypeMap type_newToExisting; ///< Track what existing atom type new types correspond to.
+  TypeArray NewTypes;
   for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
   {
-    mprintf("DBG: %6u %s %s %4i\n", atom-CurrentTop.begin(), *(atom->Name()), *(atom->Type()), atom->TypeIndex());
+    if (debug_ > 1)
+      mprintf("DBG: %6u %s %s %4i\n", atom-CurrentTop.begin(), 
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
     Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
     // NONBONDS
     if (doNonBond) {
-      if (NewAtomTypes.AddAtomType(*atom, atom-CurrentTop.begin(), CurrentTop)) {
+      if (NewTypes.AddAtomType(*atom, atom-CurrentTop.begin(), CurrentTop)) {
         doNonBond = false;
       } else {
         // Update type index
@@ -1610,27 +1612,31 @@ int Topology::AppendTop(Topology const& CurrentTop) {
         TypeMap::iterator it = type_newToExisting.find( atom->TypeIndex() );
         if (it == type_newToExisting.end()) {
           // Type has not yet been mapped. See if it is an existing type.
-          for (TypeArray::const_iterator et = ExistingAtomTypes.begin();
-                                         et != ExistingAtomTypes.end(); ++et)
-            if (et->second == NewAtomTypes.LastType()) {
+          for (TypeArray::const_iterator et = ExistingTypes.begin();
+                                         et != ExistingTypes.end(); ++et)
+            if (et->second == NewTypes.LastType()) {
               newTypeIdx = et->first;
               type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
-              mprintf("\tType (%i) matches existing type (%i)\n",
-                      atom->TypeIndex(), newTypeIdx);
+              if (debug_ > 1)
+                mprintf("\tType (%i) matches existing type (%i)\n",
+                        atom->TypeIndex(), newTypeIdx);
               break;
             }
           if (newTypeIdx == -1) {
             // Type not found among existing types. Need new type index.
-            mprintf("\tNeed new type. Converting %i to %i\n", atom->TypeIndex(), currentTypeIdx);
+            if (debug_ > 1)
+              mprintf("\tNeed new type. Converting %i to %i\n",
+                      atom->TypeIndex(), currentTypeIdx);
             newTypeIdx = currentTypeIdx;
             type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
-            ExistingAtomTypes.AddType(newTypeIdx, NewAtomTypes.LastType());
+            ExistingTypes.AddType(newTypeIdx, NewTypes.LastType());
             currentTypeIdx++;
           }
         } else {
           // Type has been mapped.
           newTypeIdx = it->second;
-          mprintf("\tType %i already present as %i.\n", atom->TypeIndex(),newTypeIdx);
+          if (debug_ > 1)
+            mprintf("\tType %i already present as %i.\n", atom->TypeIndex(),newTypeIdx);
         }
         // Update type index
         CurrentAtom.SetTypeIndex( newTypeIdx );
@@ -1638,42 +1644,44 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
                                      res.Icode(), res.ChainID()) );
-  }
+  } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {
     mprintf("Warning: Removing non-bond parameters\n");
     nonbond_.Clear();
   } else {
     // DEBUG
-    mprintf("DEBUG: %zu new atom type indices:\n", NewAtomTypes.size());
-    for (TypeArray::const_iterator ti = NewAtomTypes.begin();
-                                   ti != NewAtomTypes.end(); ++ti)
-      mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
-    mprintf("DEBUG: New to existing mapping:\n");
-    for (TypeMap::const_iterator it = type_newToExisting.begin();
-                                 it != type_newToExisting.end(); ++it)
-      mprintf("\t%6i to %6i\n", it->first, it->second);
-    // DEBUG
-    mprintf("DEBUG: Atom Types:\n");
-    for (TypeArray::const_iterator it = ExistingAtomTypes.begin();
-                                   it != ExistingAtomTypes.end(); ++it)
-    {
-      mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
-              it->second.Depth(), it->second.OriginalIdx());
-      if (it->first >= NexistingAtomTypes)
-        mprintf(" (NEW)\n");
-      else
-        mprintf(" (EXISTING)\n");
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu new atom type indices:\n", NewTypes.size());
+      for (TypeArray::const_iterator ti = NewTypes.begin();
+                                     ti != NewTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+      mprintf("DEBUG: New to existing mapping:\n");
+      for (TypeMap::const_iterator it = type_newToExisting.begin();
+                                   it != type_newToExisting.end(); ++it)
+        mprintf("\t%6i to %6i\n", it->first, it->second);
+      // DEBUG
+      mprintf("DEBUG: Atom Types:\n");
+      for (TypeArray::const_iterator it = ExistingTypes.begin();
+                                     it != ExistingTypes.end(); ++it)
+      {
+        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
+                it->second.Depth(), it->second.OriginalIdx());
+        if (it->first >= NexistingAtomTypes)
+          mprintf(" (NEW)\n");
+        else
+          mprintf(" (EXISTING)\n");
+      }
     }
     // Set up new nonbond array.
     NonbondParmType newNB;
-    newNB.SetupLJforNtypes( ExistingAtomTypes.size() );
+    newNB.SetupLJforNtypes( ExistingTypes.size() );
     // Go through all interactions.
-    for (TypeArray::const_iterator t1 = ExistingAtomTypes.begin();
-                                   t1 != ExistingAtomTypes.end(); ++t1)
+    for (TypeArray::const_iterator t1 = ExistingTypes.begin();
+                                   t1 != ExistingTypes.end(); ++t1)
     {
-      for (TypeArray::const_iterator t2 = ExistingAtomTypes.begin();
-                                     t2 != ExistingAtomTypes.end(); ++t2)
+      for (TypeArray::const_iterator t2 = ExistingTypes.begin();
+                                     t2 != ExistingTypes.end(); ++t2)
       {
         if (t1->first >= t2->first)
         {
@@ -1694,11 +1702,11 @@ int Topology::AppendTop(Topology const& CurrentTop) {
               LJ = nonbond_.NBarray( nbidx );
           } else {
             // Mix new and existing.
-            mprintf("MIX ");
             LJ = t1->second.Combine_LB( t2->second );
           }
-          mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
-                  LJ.A(), LJ.B()); 
+          if (debug_ > 1)
+            mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
+                    LJ.A(), LJ.B()); 
           newNB.AddLJterm(t1->first, t2->first, LJ);
         }
       }
