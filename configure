@@ -14,6 +14,7 @@ UsageSimple() {
   echo "    -mpi        : Use mpicc/mpicxx to compile."
   echo "    -intelmpi   : Use mpiicc/mpiicpc to compile."
   echo "    -cray       : Use cray compiler wrappers (cc/CC/ftn)."
+  echo "    -amberlib   : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    --full-help : Display additional options."
   echo ""
 }
@@ -44,7 +45,6 @@ UsageFull() {
 #  echo "   --with-hdf5=<DIR>"
   echo "    -static        : Use static linking."
   echo "    -libstatic     : Use static linking only for specified libraries."
-  echo "    -amberlib      : Use BLAS/ARPACK/LAPACK/NetCDF libraries from \$AMBERHOME"
   echo "    -openblas      : Use OpenBLAS (with LAPACK) instead of separate BLAS/LAPACK"
   echo "    -macAccelerate : Use Accelerate framework for BLAS/LAPACK"
   echo "    -libsci        : Use Cray LibSci for BLAS/LAPACK"
@@ -58,14 +58,15 @@ UsageFull() {
   echo "    -nosanderlib   : Do not try to link to the sander API even if present"
   echo ""
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
-  echo "    CXX        : Name of the C++ compiler."
-  echo "    CC         : Name of the C compiler."
-  echo "    FC         : Name of the fortran compiler."
-  echo "    CXXFLAGS   : Flags to pass to the C++ compiler."
-  echo "    CFLAGS     : Flags to pass to the C compiler."
-  echo "    FFLAGS     : Flags to pass to the Fortran compiler."
-  echo "    LDFLAGS    : Flags to pass to the linker."
-  echo "    DBGFLAGS   : Any additional flags to pass to all compilers."
+  echo "    CXX          : Name of the C++ compiler."
+  echo "    CC           : Name of the C compiler."
+  echo "    FC           : Name of the fortran compiler."
+  echo "    CXXFLAGS     : Flags to pass to the C++ compiler."
+  echo "    CFLAGS       : Flags to pass to the C compiler."
+  echo "    FFLAGS       : Flags to pass to the Fortran compiler."
+  echo "    LDFLAGS      : Flags to pass to the linker."
+  echo "    DBGFLAGS     : Any additional flags to pass to all compilers."
+  echo "    SHADER_MODEL : (-cuda) Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo ""
   echo "  EXPERIMENTAL OPTIONS:"
   echo "    -profile         : Use Gnu compiler profiling (>= V4.5)*"
@@ -73,7 +74,6 @@ UsageFull() {
   echo "    -vtune           : Enable options for use with Intel Vtune"
   echo "    -single-ensemble : Enable support for reading/writing single ensemble trajectories."
   echo "    -cuda            : Enable support for CUDA. Requires SHADER_MODEL be set."
-  echo "    SHADER_MODEL     : Should be set to 'sm_XX', where XX is CUDA compute architecture."
   echo ""
   echo "*NOTE: -profile and -gprofile are mutually exclusive."
   echo ""
@@ -785,7 +785,8 @@ while [[ ! -z $1 ]] ; do
       CPPTRAJLIB=$VALUE/lib
       ;;
     * )
-      echo "Unrecognized OPTION: $1"
+      echo "Unrecognized Option: $1"
+      echo "Use '-h' or '--help' for help."
       exit 1
       ;;
   esac
