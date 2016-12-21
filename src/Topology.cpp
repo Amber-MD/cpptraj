@@ -1054,7 +1054,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     // Set new atom num and residue num
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
     // Check if this atom belongs to a solvent molecule.
-    if (Nmol() > 0)
+    if (!molecules_.empty())
       isSolvent.push_back( Mol(newparmAtom.MolNum()).IsSolvent() );
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );
@@ -1099,19 +1099,28 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Could not set up molecule information for stripped topology %s\n",
             newParm->c_str());
   }
-  // Set new solvent information based on old molecules
-  // For speed just check the first atom. A strip should never create new
-  // molecules, just break up previous ones, so if a new molecule has an atom
-  // that was solvent it is still solvent.
-  newParm->NsolventMolecules_ = 0;
-  for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
-                                       mol != newParm->molecules_.end(); ++mol)
-  {
-    if ( isSolvent[ mol->BeginAtom() ] ) {
-      mol->SetSolvent();
-      newParm->NsolventMolecules_++;
-    } else
-      mol->SetNoSolvent();
+
+  // Determine solvent
+  if (!molecules_.empty()) {
+    // Set new solvent information based on old molecules
+    // For speed just check the first atom. A strip should never create new
+    // molecules, just break up previous ones, so if a new molecule has an atom
+    // that was solvent it is still solvent.
+    newParm->NsolventMolecules_ = 0;
+    for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
+                                         mol != newParm->molecules_.end(); ++mol)
+    {
+      if ( isSolvent[ mol->BeginAtom() ] ) {
+        mol->SetSolvent();
+        newParm->NsolventMolecules_++;
+      } else
+        mol->SetNoSolvent();
+    }
+  } else {
+    // No solvent information previously. Check if there is solvent now,
+    // which could be the case if molecule information was not previously
+    // determined.
+    newParm->SetSolventInfo();
   }
 
   // Set up new angle info
