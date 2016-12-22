@@ -1722,7 +1722,7 @@ int Topology::AppendTop(Topology const& NewTop) {
             // Both types from new topology. Look there for LJ params using
             // the original atom indices.
             int nbidx = NewTop.Nonbond().GetLJindex( t1->second.OriginalIdx(),
-                                                         t2->second.OriginalIdx() );
+                                                     t2->second.OriginalIdx() );
             if (nbidx >= 0)
               LJ = NewTop.Nonbond().NBarray( nbidx );
           } else if (!OneIsNew && !TwoIsNew) {
@@ -1742,25 +1742,6 @@ int Topology::AppendTop(Topology const& NewTop) {
       }
     }
     nonbond_ = newNB;
-/*
-    mprintf("DEBUG: Atom 0 type index=%i|%i, nbindex=%i|%i\n",
-            NewTop.atoms_[0].TypeIndex(),
-            atoms_[0].TypeIndex(),
-            NewTop.nonbond_.GetLJindex(NewTop.atoms_[0].TypeIndex(),
-                                       NewTop.atoms_[0].TypeIndex()),
-            nonbond_.GetLJindex(atoms_[0].TypeIndex(), atoms_[0].TypeIndex()));
-    mprintf("DEBUG: Params for atom 0: %g %g\n", GetVDWradius(0), GetVDWdepth(0));
-    mprintf("DEBUG: Nonbond params:\n");
-    for (unsigned int i = 0; i != newNB.NBarray().size(); i++) {
-      mprintf("\t%12.5g %12.5g | %12.5g %12.5g\n",
-              newNB.NBarray()[i].A(), newNB.NBarray()[i].B(),
-              nonbond_.NBarray()[i].A(), nonbond_.NBarray()[i].B());
-    }
-    mprintf("DEBUG: Nonbond indices not matching:\n");
-    for (unsigned int i = 0; i != newNB.NBindex().size(); i++)
-      if (newNB.NBindex()[i] != nonbond_.NBindex()[i])
-        mprintf("\t%i | %i\n", newNB.NBindex()[i], nonbond_.NBindex()[i]);
-*/
   }
   // EXTRA ATOM INFO
   for (Topology::extra_iterator extra = NewTop.extraBegin();
