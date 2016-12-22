@@ -224,8 +224,6 @@ class NonbondParmType {
       ntypes_ = n;
       nbindex_.assign(ntypes_ * ntypes_, -1); 
     }
-    /// Set number of LJ terms and init LJ array TODO combine with SetNtypes?
-    void SetNLJterms(int n)   { nbarray_.assign( n, NonbondType() ); }
     /// Set number of types, init NB index array, init LJ array.
     void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
     /// Set specified LJ term

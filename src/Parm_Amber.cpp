@@ -556,8 +556,8 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
             "Warning:  Cpptraj currently does not read or write perturbation information.\n",
             file_.Filename().base());
 
-  numLJparm_ = values_[NTYPES] * (values_[NTYPES]+1) / 2;
-  TopIn.SetNonbond().SetNLJterms( numLJparm_ );
+  TopIn.SetNonbond().SetupLJforNtypes( values_[NTYPES] );
+  numLJparm_ = TopIn.Nonbond().NBarray().size();
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
   TopIn.SetNatyp( values_[NATYP] );
   return 0;
@@ -633,7 +633,6 @@ int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadNonbondIndices(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NTYPES]*values_[NTYPES];
   if (SetupBuffer(F_NB_INDEX, nvals, FMT)) return 1;
-  TopIn.SetNonbond().SetNtypes( values_[NTYPES] );
   for (int idx = 0; idx != nvals; idx++)
   {
     // Shift positive indices in NONBONDED index array by -1.
