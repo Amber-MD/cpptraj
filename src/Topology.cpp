@@ -1582,16 +1582,20 @@ int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
 
-  // Check non-bond parameters
+  // NONBONDS
+  // Make sure that either both topologies have non-bond parameters or neither
+  // do. If the current topology is empty just check incoming topology.
   bool doNonBond = true;
-  if (!atoms_.empty() &&
-      (NewTop.Nonbond().HasNonbond() != Nonbond().HasNonbond()))
-  {
-    if (Nonbond().HasNonbond())
-      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", NewTop.c_str());
-    else
-      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
-    doNonBond = false;
+  if (atoms_.empty()) {
+    doNonBond = NewTop.Nonbond().HasNonbond();
+  } else {
+    doNonBond = (Nonbond().HasNonbond() && NewTop.Nonbond().HasNonbond());
+    if (!doNonBond && (Nonbond().HasNonbond() != NewTop.Nonbond().HasNonbond())) {
+      if (Nonbond().HasNonbond())
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", NewTop.c_str());
+      else
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
+    }
   }
   // Create an array of existing nonbond types so we can compare to incoming.
   TypeArray ExistingTypes;
@@ -1672,8 +1676,10 @@ int Topology::AppendTop(Topology const& NewTop) {
   } // END loop over incoming atoms
   // NONBONDS
   if (!doNonBond) {
-    mprintf("Warning: Removing non-bond parameters\n");
-    nonbond_.Clear();
+    if (Nonbond().HasNonbond()) {
+      mprintf("Warning: Removing non-bond parameters\n");
+      nonbond_.Clear();
+    }
   } else {
     // DEBUG
     if (debug_ > 0) {
@@ -1685,7 +1691,6 @@ int Topology::AppendTop(Topology const& NewTop) {
       for (TypeMap::const_iterator it = type_newToExisting.begin();
                                    it != type_newToExisting.end(); ++it)
         mprintf("\t%6i to %6i\n", it->first, it->second);
-      // DEBUG
       mprintf("DEBUG: Atom Types:\n");
       for (TypeArray::const_iterator it = ExistingTypes.begin();
                                      it != ExistingTypes.end(); ++it)
