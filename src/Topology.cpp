@@ -1256,22 +1256,15 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       {
         int atm2 = oldTypeArray[a2idx];
         int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
-        // NOTE: Certain routines in sander (like the 1-4 calcs) do NOT use
-        //       the nonbond index array; instead they expect the nonbond
-        //       arrays to be indexed like '(ibig*(ibig-1)/2+isml)', where
-        //       ibig is the larger atom type index.
-        int ibig = std::max(a1idx, a2idx) + 1;
-        int isml = std::min(a1idx, a2idx) + 1;
-        int testidx = (ibig*(ibig-1)/2+isml)-1;
         if (oldnbidx > -1) {
           // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
           // code is laid out in sander/pmemd the LJ matrix has to be laid out
           // indepdendent of the nonbond index array.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
         } else {
           // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
           // and one to the hbond since that seems to be the convention.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
           newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );

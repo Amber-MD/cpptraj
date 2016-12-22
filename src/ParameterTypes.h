@@ -237,14 +237,11 @@ class NonbondParmType {
     /// Set specified nbindex location to given value. FIXME no bounds check
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
-    void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
-      nbindex_[ntypes_ * type1 + type2] = ndx;
-      nbindex_[ntypes_ * type2 + type1] = ndx;
-      if (ndx >= (int)nbarray_.size())
-        nbarray_.resize(ndx+1);
-      nbarray_[ndx] = LJ;
-    }
-    /// Add given LJ term to nonbond array and update nonbond index array.
+    /** Certain routines in sander (like the 1-4 calcs) do NOT use the 
+      * nonbond index array; instead they expect the nonbond arrays to be
+      * indexed like '(ibig*(ibig-1)/2+isml)', where ibig is the larger atom
+      * type index.
+      */
     void AddLJterm(int type1, int type2, NonbondType const& LJ) {
       int ibig, isml;
       if (type1 > type2) {
