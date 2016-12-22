@@ -1578,17 +1578,17 @@ class TypeArray {
 };
 
 // Topology::AppendTop()
-int Topology::AppendTop(Topology const& CurrentTop) {
+int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
 
   // Check non-bond parameters
   bool doNonBond = true;
   if (!atoms_.empty() &&
-      (CurrentTop.Nonbond().HasNonbond() != Nonbond().HasNonbond()))
+      (NewTop.Nonbond().HasNonbond() != Nonbond().HasNonbond()))
   {
     if (Nonbond().HasNonbond())
-      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", CurrentTop.c_str());
+      mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", NewTop.c_str());
     else
       mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
     doNonBond = false;
@@ -1617,18 +1617,18 @@ int Topology::AppendTop(Topology const& CurrentTop) {
   typedef std::map<int,int> TypeMap;
   TypeMap type_newToExisting; ///< Track what existing atom type new types correspond to.
   TypeArray NewTypes;
-  for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
+  for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
     if (debug_ > 1)
-      mprintf("DBG: %6u %s %s %4i\n", atom-CurrentTop.begin(), 
+      mprintf("DBG: %6u %s %s %4i\n", atom-NewTop.begin(), 
               *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
-    Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
     // NONBONDS
     if (doNonBond) {
-      if (NewTypes.AddAtomType(*atom, atom-CurrentTop.begin(), CurrentTop)) {
+      if (NewTypes.AddAtomType(*atom, atom-NewTop.begin(), NewTop)) {
         doNonBond = false;
       } else {
         // Update type index
@@ -1716,10 +1716,10 @@ int Topology::AppendTop(Topology const& CurrentTop) {
           if (OneIsNew && TwoIsNew) {
             // Both types from new topology. Look there for LJ params using
             // the original atom indices.
-            int nbidx = CurrentTop.Nonbond().GetLJindex( t1->second.OriginalIdx(),
+            int nbidx = NewTop.Nonbond().GetLJindex( t1->second.OriginalIdx(),
                                                          t2->second.OriginalIdx() );
             if (nbidx >= 0)
-              LJ = CurrentTop.Nonbond().NBarray( nbidx );
+              LJ = NewTop.Nonbond().NBarray( nbidx );
           } else if (!OneIsNew && !TwoIsNew) {
             // Both types from existing topology. Look here for LJ params.
             int nbidx = nonbond_.GetLJindex( t1->first, t2->first );
@@ -1739,10 +1739,10 @@ int Topology::AppendTop(Topology const& CurrentTop) {
     nonbond_ = newNB;
 /*
     mprintf("DEBUG: Atom 0 type index=%i|%i, nbindex=%i|%i\n",
-            CurrentTop.atoms_[0].TypeIndex(),
+            NewTop.atoms_[0].TypeIndex(),
             atoms_[0].TypeIndex(),
-            CurrentTop.nonbond_.GetLJindex(CurrentTop.atoms_[0].TypeIndex(),
-                                           CurrentTop.atoms_[0].TypeIndex()),
+            NewTop.nonbond_.GetLJindex(NewTop.atoms_[0].TypeIndex(),
+                                       NewTop.atoms_[0].TypeIndex()),
             nonbond_.GetLJindex(atoms_[0].TypeIndex(), atoms_[0].TypeIndex()));
     mprintf("DEBUG: Params for atom 0: %g %g\n", GetVDWradius(0), GetVDWdepth(0));
     mprintf("DEBUG: Nonbond params:\n");
@@ -1758,18 +1758,18 @@ int Topology::AppendTop(Topology const& CurrentTop) {
 */
   }
   // EXTRA ATOM INFO
-  for (Topology::extra_iterator extra = CurrentTop.extraBegin();
-                                extra != CurrentTop.extraEnd(); ++extra)
+  for (Topology::extra_iterator extra = NewTop.extraBegin();
+                                extra != NewTop.extraEnd(); ++extra)
     AddExtraAtomInfo( *extra );
   // BONDS
-  AddBondArray(CurrentTop.Bonds(),  CurrentTop.BondParm(), atomOffset);
-  AddBondArray(CurrentTop.BondsH(), CurrentTop.BondParm(), atomOffset);
+  AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
+  AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
   // ANGLES
-  AddAngleArray(CurrentTop.Angles(),  CurrentTop.AngleParm(), atomOffset);
-  AddAngleArray(CurrentTop.AnglesH(), CurrentTop.AngleParm(), atomOffset);
+  AddAngleArray(NewTop.Angles(),  NewTop.AngleParm(), atomOffset);
+  AddAngleArray(NewTop.AnglesH(), NewTop.AngleParm(), atomOffset);
   // DIHEDRALS
-  AddDihArray(CurrentTop.Dihedrals(),  CurrentTop.DihedralParm(), atomOffset);
-  AddDihArray(CurrentTop.DihedralsH(), CurrentTop.DihedralParm(), atomOffset);
+  AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
+  AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
 
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
