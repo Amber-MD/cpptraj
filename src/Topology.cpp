@@ -1,5 +1,6 @@
 #include <cmath> // pow
 #include <algorithm> // find
+#include <map> // For atom types in append
 #include <stack> // For large system molecule search
 #include "Topology.h"
 #include "CpptrajStdio.h"
@@ -534,19 +535,39 @@ void Topology::AssignBondParameters() {
 } 
 
 // Topology::AddBond()
+void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
+  // See if the BondParm exists.
+  int pidx = -1;
+  for (BondParmArray::const_iterator bp = bondparm_.begin(); bp != bondparm_.end(); ++bp)
+    if ( fabs(BPin.Rk()  - bp->Rk() ) < Constants::SMALL &&
+         fabs(BPin.Req() - bp->Req()) < Constants::SMALL )
+    {
+      pidx = (int)(bp - bondparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)bondparm_.size();
+    bondparm_.push_back( BPin );
+  }
+  AddBond( atom1, atom2, pidx );
+}
+
+static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
+  if (atom < 0 || atom >= Natom) {
+    mprintf("Warning: Atom # %i is out of range, cannot create %s.\n", atom+1, type);
+    return 1;
+  }
+  return 0;
+}
+
+// Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
   */
 void Topology::AddBond(int atom1, int atom2, int pidxIn) {
   // Check if atoms are out of range.
-  if (atom1 < 0 || atom1 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom1+1);
-    return;
-  }
-  if (atom2 < 0 || atom2 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom2+1);
-    return;
-  }
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
   // Check for duplicate bond
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
@@ -592,16 +613,49 @@ void Topology::AddBond(BondType const& bndIn, bool isH) {
   atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
 }
 
-void Topology::AddAngle(int atom1, int atom2, int atom3) {
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, AngleParmType const& APin) {
+  // See if the AngleParm exists.
+  int pidx = -1;
+  for (AngleParmArray::const_iterator ap = angleparm_.begin(); ap != angleparm_.end(); ++ap)
+    if ( fabs(APin.Tk()  - ap->Tk() ) < Constants::SMALL &&
+         fabs(APin.Teq() - ap->Teq()) < Constants::SMALL )
+    {
+      pidx = (int)(ap - angleparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)angleparm_.size();
+    angleparm_.push_back( APin );
+  }
+  AddAngle( atom1, atom2, atom3, pidx );
+}
+
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, int pidxIn) {
   // FIXME: Check duplicate
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), atom1, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom3, "angle")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)angleparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No angle parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  // Update angle arrays
   if (atoms_[atom1].Element() == Atom::HYDROGEN ||
       atoms_[atom2].Element() == Atom::HYDROGEN ||
       atoms_[atom3].Element() == Atom::HYDROGEN)
-    anglesh_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    anglesh_.push_back( AngleType(atom1, atom2, atom3, pidx) );
   else
-    angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    angles_.push_back( AngleType(atom1, atom2, atom3, pidx) );
 }
 
+// Topology::AddAngle()
 void Topology::AddAngle(AngleType const& angIn, bool isH) {
   if (isH)
     anglesh_.push_back( angIn );
@@ -609,15 +663,55 @@ void Topology::AddAngle(AngleType const& angIn, bool isH) {
     angles_.push_back( angIn );
 }
 
-void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+{
+  // See if the DihedralParm exists.
+  int pidx = -1;
+  for (DihedralParmArray::const_iterator dp = dihedralparm_.begin();
+                                         dp != dihedralparm_.end(); ++dp)
+    if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
+         fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
+         fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
+         fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
+         fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
+    {
+      pidx = (int)(dp - dihedralparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)dihedralparm_.size();
+    dihedralparm_.push_back( DPin );
+  }
+  AddDihedral( dih, pidx );
+}
+
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
   // FIXME: Check duplicate
-  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
-      atoms_[atom2].Element() == Atom::HYDROGEN ||
-      atoms_[atom3].Element() == Atom::HYDROGEN ||
-      atoms_[atom4].Element() == Atom::HYDROGEN)
-    dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), "dihedral")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)dihedralparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No dihedral parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  DihedralType dih = dihIn;
+  dih.SetIdx( pidx );
+  // Update dihedral arrays
+  if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A3()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A4()].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( dih );
   else
-    dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+    dihedrals_.push_back( dih );
 }
 
 void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
@@ -1162,22 +1256,15 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       {
         int atm2 = oldTypeArray[a2idx];
         int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
-        // NOTE: Certain routines in sander (like the 1-4 calcs) do NOT use
-        //       the nonbond index array; instead they expect the nonbond
-        //       arrays to be indexed like '(ibig*(ibig-1)/2+isml)', where
-        //       ibig is the larger atom type index.
-        int ibig = std::max(a1idx, a2idx) + 1;
-        int isml = std::min(a1idx, a2idx) + 1;
-        int testidx = (ibig*(ibig-1)/2+isml)-1;
         if (oldnbidx > -1) {
           // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
           // code is laid out in sander/pmemd the LJ matrix has to be laid out
           // indepdendent of the nonbond index array.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
         } else {
           // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
           // and one to the hbond since that seems to be the convention.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
           newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
@@ -1379,28 +1466,290 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 }
 
 // Topology::AddBondArray()
-void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
+  if (bp.empty())
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+  else
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
 }
 
+// Topology::AddAngleArray()
+void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
+  if (ap.empty())
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset );
+  else
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset, ap[angle->Idx()] );
+}
+
+// Topology::AddDihArray()
+void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const& dp, int atomOffset)
+{
+  if (dp.empty())
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), -1 );
+  else
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), dp[dih->Idx()] );
+}
+
+/// Hold LJ params for a unique atom type
+class AtomType {
+  public:
+    AtomType() : radius_(0.0), depth_(0.0) {}
+    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
+    double Radius() const { return radius_; }
+    double Depth()  const { return depth_;  }
+    int OriginalIdx() const { return oidx_; }
+    bool operator<(AtomType const& rhs)  const {
+      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
+    }
+    bool operator==(AtomType const& rhs) const {
+      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
+               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
+    }
+    NonbondType Combine_LB(AtomType const& rhs) const {
+      double dR = radius_ + rhs.radius_;
+      double dE = sqrt( depth_ * rhs.depth_ );
+      double dR2 = dR * dR;
+      double dR6 = dR2 * dR2 * dR2;
+      double dER6 = dE * dR6;
+      return NonbondType( dER6*dR6, 2.0*dER6 );
+    }
+  private:
+    double radius_; ///< VDW radius
+    double depth_;  ///< LJ well-depth
+    int oidx_; ///< Original atom type index.
+};
+
+/// Map type indices to LJ parameters 
+class TypeArray {
+  public:
+    typedef std::map<int,AtomType> Tarray;
+    typedef Tarray::const_iterator const_iterator;
+    typedef std::pair<int,AtomType> Tpair;
+    TypeArray() {}
+    unsigned int size()    const { return types_.size();  }
+    const_iterator begin() const { return types_.begin(); }
+    const_iterator end()   const { return types_.end();   }
+    AtomType const& LastType() const { return lastType_->second; }
+    /// Add params for atom to array if not present
+    int AddAtomType(Atom const& atom, int anum, Topology const& top) {
+      if (atom.TypeIndex() < 0 || atom.Type().len() < 1) {
+        mprintf("Warning: Invalid atom type information in '%s'\n", top.c_str());
+        return 1;
+      }
+      //mprintf("DEBUG: %s %s %i %s\n", *(atom.Name()), *(atom.Type()), anum, top.c_str());
+      // See if index already present.
+      Tarray::iterator it = types_.find( atom.TypeIndex() );
+      if (it == types_.end()) {
+        AtomType type(top.GetVDWradius(anum), top.GetVDWdepth(anum), atom.TypeIndex());
+        //mprintf("\tAdding [%4zu] %4i %s %12.5g %12.5g (%s)\n", types_.size(), 
+        //         atom.TypeIndex(), *(atom.Type()),
+        //         type.Radius(), type.Depth(), top.c_str());
+        std::pair<Tarray::iterator, bool> ret = types_.insert( Tpair(atom.TypeIndex(), type) );
+        lastType_ = ret.first;
+      }
+      return 0;
+    }
+    /// Add to array
+    void AddType(int idx, AtomType const& typeIn) { types_.insert(Tpair(idx, typeIn)); }
+  private:
+    Tarray types_;
+    Tarray::iterator lastType_;
+};
+
 // Topology::AppendTop()
-int Topology::AppendTop(Topology const& CurrentTop) {
+int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
+
+  // NONBONDS
+  // Make sure that either both topologies have non-bond parameters or neither
+  // do. If the current topology is empty just check incoming topology.
+  bool doNonBond = true;
+  if (atoms_.empty()) {
+    doNonBond = NewTop.Nonbond().HasNonbond();
+  } else {
+    doNonBond = (Nonbond().HasNonbond() && NewTop.Nonbond().HasNonbond());
+    if (!doNonBond && (Nonbond().HasNonbond() != NewTop.Nonbond().HasNonbond())) {
+      if (Nonbond().HasNonbond())
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", NewTop.c_str());
+      else
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
+    }
+  }
+  // Create an array of existing nonbond types so we can compare to incoming.
+  TypeArray ExistingTypes;
+  if (doNonBond) {
+    for (atom_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom) {
+      if (ExistingTypes.AddAtomType(*atom, atom-atoms_.begin(), *this)) {
+        doNonBond = false;
+        break;
+      }
+    }
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu existing atom type indices:\n", ExistingTypes.size());
+      for (TypeArray::const_iterator ti = ExistingTypes.begin();
+                                     ti != ExistingTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+    }
+  }
+  int NexistingAtomTypes = (int)ExistingTypes.size();
+  int currentTypeIdx = NexistingAtomTypes;
+
   // ATOMS
-  for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
+  typedef std::map<int,int> TypeMap;
+  TypeMap type_newToExisting; ///< Track what existing atom type new types correspond to.
+  TypeArray NewTypes;
+  for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
+    if (debug_ > 1)
+      mprintf("DBG: %6u %s %s %4i\n", atom-NewTop.begin(), 
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
-    Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
+    // NONBONDS
+    if (doNonBond) {
+      if (NewTypes.AddAtomType(*atom, atom-NewTop.begin(), NewTop)) {
+        doNonBond = false;
+      } else {
+        // Update type index
+        int newTypeIdx = -1;
+        // Check if this atom type has already been added to existing types.
+        TypeMap::iterator it = type_newToExisting.find( atom->TypeIndex() );
+        if (it == type_newToExisting.end()) {
+          // Type has not yet been mapped. See if it is an existing type.
+          for (TypeArray::const_iterator et = ExistingTypes.begin();
+                                         et != ExistingTypes.end(); ++et)
+            if (et->second == NewTypes.LastType()) {
+              newTypeIdx = et->first;
+              type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
+              if (debug_ > 1)
+                mprintf("\tType (%i) matches existing type (%i)\n",
+                        atom->TypeIndex(), newTypeIdx);
+              break;
+            }
+          if (newTypeIdx == -1) {
+            // Type not found among existing types. Need new type index.
+            if (debug_ > 1)
+              mprintf("\tNeed new type. Converting %i to %i\n",
+                      atom->TypeIndex(), currentTypeIdx);
+            newTypeIdx = currentTypeIdx;
+            type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
+            ExistingTypes.AddType(newTypeIdx, NewTypes.LastType());
+            currentTypeIdx++;
+          }
+        } else {
+          // Type has been mapped.
+          newTypeIdx = it->second;
+          if (debug_ > 1)
+            mprintf("\tType %i already present as %i.\n", atom->TypeIndex(),newTypeIdx);
+        }
+        // Update type index
+        CurrentAtom.SetTypeIndex( newTypeIdx );
+      }
+    }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
                                      res.Icode(), res.ChainID()) );
+  } // END loop over incoming atoms
+  // NONBONDS
+  if (!doNonBond) {
+    if (Nonbond().HasNonbond()) {
+      mprintf("Warning: Removing non-bond parameters\n");
+      nonbond_.Clear();
+    }
+  } else {
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu new atom type indices:\n", NewTypes.size());
+      for (TypeArray::const_iterator ti = NewTypes.begin();
+                                     ti != NewTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+      mprintf("DEBUG: New to existing mapping:\n");
+      for (TypeMap::const_iterator it = type_newToExisting.begin();
+                                   it != type_newToExisting.end(); ++it)
+        mprintf("\t%6i to %6i\n", it->first, it->second);
+      mprintf("DEBUG: Atom Types:\n");
+      for (TypeArray::const_iterator it = ExistingTypes.begin();
+                                     it != ExistingTypes.end(); ++it)
+      {
+        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
+                it->second.Depth(), it->second.OriginalIdx());
+        if (it->first >= NexistingAtomTypes)
+          mprintf(" (NEW)\n");
+        else
+          mprintf(" (EXISTING)\n");
+      }
+    }
+    // Set up new nonbond array.
+    NonbondParmType newNB;
+    newNB.SetupLJforNtypes( ExistingTypes.size() );
+    // Go through all interactions.
+    for (TypeArray::const_iterator t1 = ExistingTypes.begin();
+                                   t1 != ExistingTypes.end(); ++t1)
+    {
+      for (TypeArray::const_iterator t2 = ExistingTypes.begin();
+                                     t2 != ExistingTypes.end(); ++t2)
+      {
+        if (t1->first >= t2->first)
+        {
+          bool OneIsNew = (t1->first >= NexistingAtomTypes);
+          bool TwoIsNew = (t2->first >= NexistingAtomTypes);
+          NonbondType LJ = LJ_EMPTY;
+          if (OneIsNew && TwoIsNew) {
+            // Both types from new topology. Look there for LJ params using
+            // the original atom indices.
+            int nbidx = NewTop.Nonbond().GetLJindex( t1->second.OriginalIdx(),
+                                                     t2->second.OriginalIdx() );
+            if (nbidx >= 0)
+              LJ = NewTop.Nonbond().NBarray( nbidx );
+          } else if (!OneIsNew && !TwoIsNew) {
+            // Both types from existing topology. Look here for LJ params.
+            int nbidx = nonbond_.GetLJindex( t1->first, t2->first );
+            if (nbidx >= 0)
+              LJ = nonbond_.NBarray( nbidx );
+          } else {
+            // Mix new and existing.
+            LJ = t1->second.Combine_LB( t2->second );
+          }
+          if (debug_ > 1)
+            mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
+                    LJ.A(), LJ.B()); 
+          newNB.AddLJterm(t1->first, t2->first, LJ);
+        }
+      }
+    }
+    nonbond_ = newNB;
   }
+  // EXTRA ATOM INFO
+  for (Topology::extra_iterator extra = NewTop.extraBegin();
+                                extra != NewTop.extraEnd(); ++extra)
+    AddExtraAtomInfo( *extra );
   // BONDS
-  AddBondArray(CurrentTop.Bonds(),  atomOffset);
-  AddBondArray(CurrentTop.BondsH(), atomOffset);
+  AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
+  AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
+  // ANGLES
+  AddAngleArray(NewTop.Angles(),  NewTop.AngleParm(), atomOffset);
+  AddAngleArray(NewTop.AnglesH(), NewTop.AngleParm(), atomOffset);
+  // DIHEDRALS
+  AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
+  AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
+
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();

@@ -64,6 +64,7 @@ class Topology {
     inline mol_iterator MolEnd()   const { return molecules_.end();   }
     const Molecule& Mol(int idx)   const { return molecules_[idx];    }
     // ----- Bond-specific routines --------------
+    int Nbonds()                            const { return bonds_.size()+bondsh_.size(); }
     BondArray         const& Bonds()        const { return bonds_;        }
     BondArray         const& BondsH()       const { return bondsh_;       }
     BondParmArray     const& BondParm()     const { return bondparm_;     }
@@ -72,20 +73,27 @@ class Topology {
     void AddBond(int i, int j)                    { AddBond(i, j, -1); }
     void AddBond(int, int, int);
     void AddBond(BondType const&, bool);
+    void AddBond(int, int, BondParmType const&);
     // ----- Angle-specific routines -------------
+    int Nangles()                           const { return angles_.size()+anglesh_.size(); }
     AngleArray        const& Angles()       const { return angles_;       }
     AngleArray        const& AnglesH()      const { return anglesh_;      }
     AngleParmArray    const& AngleParm()    const { return angleparm_;    }
     AngleParmType& SetAngleParm(int i)            { return angleparm_[i]; }
-    void AddAngle(int, int, int);
+    void AddAngle(int i, int j, int k)            { AddAngle(i, j, k, -1); }
+    void AddAngle(int, int, int, int);
     void AddAngle(AngleType const&, bool);
+    void AddAngle(int, int, int, AngleParmType const&); 
     // ----- Dihedral-specific routines ----------
+    int Ndihedrals()                        const { return dihedrals_.size()+dihedralsh_.size(); }
     DihedralArray     const& Dihedrals()    const { return dihedrals_;       }
     DihedralArray     const& DihedralsH()   const { return dihedralsh_;      }
     DihedralParmArray const& DihedralParm() const { return dihedralparm_;    }
     DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
-    void AddDihedral(int, int, int, int);
+    void AddDihedral(DihedralType const& d)       { AddDihedral(d, -1);      }
+    void AddDihedral(DihedralType const&, int);
     void AddDihedral(DihedralType const&, bool);
+    void AddDihedral(DihedralType const&, DihedralParmType const&);
     // ----- Non-bond routines -------------------
     NonbondParmType  const& Nonbond()        const { return nonbond_;      }
     NonbondParmType&        SetNonbond()           { return nonbond_;      }
@@ -178,7 +186,9 @@ class Topology {
     void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
     void StripAngleParmArray(AngleArray&, std::vector<int>&, AngleParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
-    inline void AddBondArray(BondArray const&, int);
+    inline void AddBondArray(BondArray const&, BondParmArray const&, int);
+    inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
+    inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);
 
     static const NonbondType LJ_EMPTY;
     std::vector<Atom> atoms_;

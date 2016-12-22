@@ -556,8 +556,8 @@ int Parm_Amber::ReadPointers(int Npointers, Topology& TopIn, FortranData const& 
             "Warning:  Cpptraj currently does not read or write perturbation information.\n",
             file_.Filename().base());
 
-  numLJparm_ = values_[NTYPES] * (values_[NTYPES]+1) / 2;
-  TopIn.SetNonbond().SetNLJterms( numLJparm_ );
+  TopIn.SetNonbond().SetupLJforNtypes( values_[NTYPES] );
+  numLJparm_ = TopIn.Nonbond().NBarray().size();
   TopIn.SetNonbond().SetNHBterms( values_[NPHB] );
   TopIn.SetNatyp( values_[NATYP] );
   return 0;
@@ -633,7 +633,6 @@ int Parm_Amber::ReadAtomTypeIndex(Topology& TopIn, FortranData const& FMT) {
 int Parm_Amber::ReadNonbondIndices(Topology& TopIn, FortranData const& FMT) {
   int nvals = values_[NTYPES]*values_[NTYPES];
   if (SetupBuffer(F_NB_INDEX, nvals, FMT)) return 1;
-  TopIn.SetNonbond().SetNtypes( values_[NTYPES] );
   for (int idx = 0; idx != nvals; idx++)
   {
     // Shift positive indices in NONBONDED index array by -1.
@@ -1205,12 +1204,14 @@ int Parm_Amber::ReadLESid(Topology& TopIn, FortranData const& FMT) {
 
 // -----------------------------------------------------------------------------
 void Parm_Amber::WriteHelp() {
-  mprintf("\tnochamber: Do not write CHAMBER information to topology (useful for e.g. using"
+  mprintf("\tnochamber  : Do not write CHAMBER information to topology (useful for e.g. using"
           " topology for visualization with VMD).\n");
+  mprintf("\twriteempty : Write Amber tree, join, and rotate info even if not present.\n");
 }
 
 int Parm_Amber::processWriteArgs(ArgList& argIn) {
   nochamber_ = argIn.hasKey("nochamber");
+  writeEmptyArrays_ = argIn.hasKey("writeempty");
   return 0;
 }
 
@@ -1353,6 +1354,26 @@ void Parm_Amber::WriteLine(FlagType flag, std::string const& lineIn) {
   file_.Printf("%%FLAG %-74s\n%-80s\n%-80s\n", FLAGS_[flag].Flag, FLAGS_[flag].Fmt, title.c_str());
 }
 
+// Parm_Amber::WriteExtra()
+int Parm_Amber::WriteExtra(std::vector<AtomExtra> const& extra) {
+  // TREE CHAIN CLASSIFICATION
+  if (BufferAlloc(F_ITREE, extra.size())) return 1;
+  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
+    file_.CharToBuffer( *(it->Itree()) );
+  file_.FlushBuffer();
+  // JOIN
+  if (BufferAlloc(F_JOIN, extra.size())) return 1;
+  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
+    file_.IntToBuffer( it->Join() );
+  file_.FlushBuffer();
+  // IROTAT
+  if (BufferAlloc(F_IROTAT, extra.size())) return 1;
+  for (Topology::extra_iterator it = extra.begin(); it != extra.end(); ++it)
+    file_.IntToBuffer( it->Irotat() );
+  file_.FlushBuffer();
+  return 0;
+}
+
 // Parm_Amber::WriteParm()
 int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   if (file_.OpenWrite( fname )) return 1;
@@ -1367,6 +1388,15 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
       ptype_ = CHAMBER;
     }
   }
+  // Warn about empty parameters
+  if (TopOut.Nbonds()>0 && TopOut.BondParm().empty())
+    mprintf("Warning: No bond parameters.\n");
+  if (TopOut.Nangles()>0 && TopOut.AngleParm().empty())
+    mprintf("Warning: No angle parameters.\n");
+  if (TopOut.Ndihedrals()>0 && TopOut.DihedralParm().empty())
+    mprintf("Warning: No dihedral parameters.\n");
+  if (!TopOut.Nonbond().HasNonbond())
+    mprintf("Warning: No non-bonded parameters.\n");
   // HEADER AND TITLE (4 lines, version, flag, format, title)
   file_.Printf("%-44s%s                  \n",
                "%VERSION  VERSION_STAMP = V0001.000  DATE = ",
@@ -1682,31 +1712,38 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
 
   // AMBER ATOM TYPES
   if (BufferAlloc(F_TYPES, TopOut.Natom())) return 1;
-  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm)
+  // Check that atoms actually have a type.
+  int NemptyTypes = 0;
+  for (Topology::atom_iterator atm = TopOut.begin(); atm != TopOut.end(); ++atm) {
+    if (atm->Type().len() < 1) ++NemptyTypes;
     file_.CharToBuffer( *(atm->Type()) );
+  }
   file_.FlushBuffer();
+  if (NemptyTypes > 0) mprintf("Warning: %i empty atom type names.\n", NemptyTypes);
 
   // TODO: Generate automatically
-  // NOTE: These are required by Amber, but if they are not present it
-  // means this topology was not read from an Amber topology and so
-  // should not be used for simulations - cpptraj is NOT a topology converter.
-  // This is a useful check.
+  // NOTE: These are required by Amber. If they are not present it
+  // may mean this topology was not originally read from an Amber topology
+  // and could cause problems if used for simulations. Create "empty" values,
+  // but warn.
   if (!TopOut.Extra().empty()) {
-    // TREE CHAIN CLASSIFICATION
-    if (BufferAlloc(F_ITREE, TopOut.Extra().size())) return 1;
-    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-      file_.CharToBuffer( *(it->Itree()) );
-    file_.FlushBuffer();
-    // JOIN
-    if (BufferAlloc(F_JOIN, TopOut.Extra().size())) return 1;
-    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-      file_.IntToBuffer( it->Join() );
-    file_.FlushBuffer();
-    // IROTAT
-    if (BufferAlloc(F_IROTAT, TopOut.Extra().size())) return 1;
-    for (Topology::extra_iterator it = TopOut.extraBegin(); it != TopOut.extraEnd(); ++it)
-      file_.IntToBuffer( it->Irotat() );
-    file_.FlushBuffer();
+    if (WriteExtra(TopOut.Extra())) return 1;
+  } else {
+    mprintf("Warning: Topology does not contain tree, join, or rotate entries.\n"
+            "Warning:   These are required by Amber.\n");
+    if (writeEmptyArrays_) {
+      mprintf("Warning: Creating empty entries for tree, join, and rotate,\n"
+              "Warning:   but care should be taken if this topology is used for\n"
+              "Warning:   anything besides analysis or simulation.\n");
+      std::vector<AtomExtra> extra;
+      extra.reserve( TopOut.Natom() );
+      for (int i = 0; i < TopOut.Natom(); i++)
+        extra.push_back( AtomExtra("BLA",  0, 0, ' ') );
+      if (WriteExtra(extra)) return 1;
+    } else
+      mprintf("Warning: These arrays will not be written and the topology\n"
+              "Warning:   will only be usable for basic analysis and visualization.\n"
+              "Warning: To change this behavior specify the 'writeempty' keyword.\n");
   }
 
   // Write solvent info if IFBOX > 0

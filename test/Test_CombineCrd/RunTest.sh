@@ -2,7 +2,8 @@
 
 . ../MasterTest.sh
 
-CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7
+CleanFiles cpptraj.in Final.PRY.mol2 combinedCrd.crd combinedParm.parm7 \
+           E?.dat FabI.NDP.TCS.parm7
 
 NotParallel "Combine COORDS tests."
 if [ "$?" -ne 0 ] ; then
@@ -51,6 +52,31 @@ EOF
 RunCpptraj "Combine COORDS test with box info."
 DoTest combinedParm.parm7.save combinedParm.parm7 -I %VERSION
 DoTest combinedCrd.crd.save combinedCrd.crd
+
+# Split FtuFabI+NDP+TCS apart, then put back together.
+CRD='../FtuFabI.NAD.TCL.nc 1 3'
+cat > cpptraj.in <<EOF
+parm ../FtuFabI.NAD.TCL.parm7
+
+loadcrd $CRD name FabI
+# Get initial system energies
+crdaction FabI energy out E1.dat
+crdaction FabI strip :NDP,TCS
+
+loadcrd $CRD name NDP
+crdaction NDP strip !:NDP
+
+loadcrd $CRD name TCS
+crdaction TCS strip !:TCS
+
+combinecrd FabI NDP TCS parmname combinedParm crdname combinedCrd
+# Get recombined system energies. Should match exactly.
+crdaction combinedCrd energy out E2.dat
+parmwrite out FabI.NDP.TCS.parm7
+EOF
+RunCpptraj "Split coords and recombine test."
+DoTest E1.dat E2.dat -I '#Frame'
+DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
 
 EndTest
 exit 0

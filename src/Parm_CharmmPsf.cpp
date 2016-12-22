@@ -139,10 +139,12 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
                               bondatoms+2,bondatoms+3, bondatoms+4,bondatoms+5,
                               bondatoms+6,bondatoms+7);
       for (int dihidx=0; dihidx < ndihread; dihidx += 4)
-        parmOut.AddDihedral( bondatoms[dihidx  ]-1,
-                             bondatoms[dihidx+1]-1,
-                             bondatoms[dihidx+2]-1,
-                             bondatoms[dihidx+3]-1 );
+        // TODO: Determine end dihedrals
+        parmOut.AddDihedral( DihedralType(bondatoms[dihidx  ]-1,
+                                          bondatoms[dihidx+1]-1,
+                                          bondatoms[dihidx+2]-1,
+                                          bondatoms[dihidx+3]-1,
+                                          DihedralType::NORMAL) );
     }
   } else
     mprintf("Warning: PSF has no dihedrals.\n");

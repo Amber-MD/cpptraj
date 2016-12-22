@@ -36,6 +36,7 @@ Exec::RetType Exec_CombineCoords::Execute(CpptrajState& State, ArgList& argIn) {
   // Only add the topology to the list if parmname specified
   bool addTop = true;
   Topology CombinedTop;
+  CombinedTop.SetDebug( State.Debug() );
   if (parmname.empty()) {
     parmname = CRD[0]->Top().ParmName() + "_" + CRD[1]->Top().ParmName();
     addTop = false;

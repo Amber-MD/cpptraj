@@ -136,6 +136,8 @@ class DihedralType {
       else if (a4_ < 0)       { a4_ = -a4;              type_ = IMPROPER;}
       else                                              type_ = NORMAL;
     }
+    DihedralType(int a1, int a2, int a3, int a4, Dtype t) :
+                 a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(-1) {}
     DihedralType(int a1, int a2, int a3, int a4, Dtype t, int i) :
                  a1_(a1), a2_(a2), a3_(a3), a4_(a4), type_(t), idx_(i) {}
     inline int A1()     const { return a1_;   }
@@ -222,8 +224,8 @@ class NonbondParmType {
       ntypes_ = n;
       nbindex_.assign(ntypes_ * ntypes_, -1); 
     }
-    /// Set number of LJ terms and init LJ array TODO combine with SetNtypes?
-    void SetNLJterms(int n)   { nbarray_.assign( n, NonbondType() ); }
+    /// Set number of types, init NB index array, init LJ array.
+    void SetupLJforNtypes(int n) { SetNtypes(n); nbarray_.assign((n*(n+1))/2, NonbondType()); }
     /// Set specified LJ term
     NonbondType& SetLJ(int i) { return nbarray_[i];                  }
     /// Set number of HB terms and init HB array TODO combine with SetNtypes?
@@ -233,7 +235,21 @@ class NonbondParmType {
     /// Set specified nbindex location to given value. FIXME no bounds check
     void SetNbIdx(int idx, int nbidx) { nbindex_[idx] = nbidx; }
     /// Add given LJ term to nonbond array and update nonbond index array.
-    void AddLJterm(int ndx, int type1, int type2, NonbondType const& LJ) {
+    /** Certain routines in sander (like the 1-4 calcs) do NOT use the 
+      * nonbond index array; instead they expect the nonbond arrays to be
+      * indexed like '(ibig*(ibig-1)/2+isml)', where ibig is the larger atom
+      * type index.
+      */
+    void AddLJterm(int type1, int type2, NonbondType const& LJ) {
+      int ibig, isml;
+      if (type1 > type2) {
+        ibig = type1 + 1;
+        isml = type2 + 1;
+      } else {
+        ibig = type2 + 1;
+        isml = type1 + 1;
+      }
+      int ndx = (ibig*(ibig-1)/2+isml)-1;
       nbindex_[ntypes_ * type1 + type2] = ndx;
       nbindex_[ntypes_ * type2 + type1] = ndx;
       if (ndx >= (int)nbarray_.size())
