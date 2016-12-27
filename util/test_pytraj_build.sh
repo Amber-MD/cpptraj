@@ -19,7 +19,7 @@ export CPPTRAJHOME=/cpptraj
 
 git clone https://github.com/amber-md/pytraj
 cd pytraj
-/opt/conda/bin/python setup.py install
+/opt/python/cp35-cp35m/bin/python setup.py install
 # make sure we can run very simple test
-python run_tests.py -s
+/opt/python/cp35-cp35m/bin/python run_tests.py -s
 EOF
