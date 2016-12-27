@@ -1,0 +1,11 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - docker pull hainm/pytraj-manylinux-build-box
+
+test:
+  override:
+    - bash utils/test_pytraj_build.sh
