@@ -15,11 +15,11 @@ cd /cpptraj/
 
 bash configure -shared -openmp gnu
 make libcpptraj -j4
-export CPPTRAJHOME=`pwd`
+export CPPTRAJHOME=/cpptraj
 
 git clone https://github.com/amber-md/pytraj
 cd pytraj
-python setup.py install
+/opt/conda/bin/python setup.py install
 # make sure we can run very simple test
 python run_tests.py -s
 EOF
