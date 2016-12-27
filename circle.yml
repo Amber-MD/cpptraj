@@ -8,4 +8,4 @@ dependencies:
 
 test:
   override:
-    - bash utils/test_pytraj_build.sh
+    - bash util/test_pytraj_build.sh
