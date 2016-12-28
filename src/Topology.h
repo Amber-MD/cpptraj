@@ -92,6 +92,7 @@ class Topology {
     DihedralParmType& SetDihedralParm(int i)      { return dihedralparm_[i]; }
     void AddDihedral(DihedralType const& d)       { AddDihedral(d, -1);      }
     void AddDihedral(DihedralType const&, int);
+    void AddDihedral(int i, int j, int k, int l) { AddDihedral(DihedralType(i,j,k,l,-1), -1); }
     void AddDihedral(DihedralType const&, bool);
     void AddDihedral(DihedralType const&, DihedralParmType const&);
     // ----- Non-bond routines -------------------
