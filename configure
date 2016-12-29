@@ -278,6 +278,17 @@ TestSanderlib() {
 #include <cstdio>
 #include "sander.h"
 int main() {
+  sander_input input_;
+  input_.extdiel = 78.5; input_.intdiel = 1.0;  input_.rgbmax = 25.0;
+  input_.saltcon = 0.0;  input_.cut = 8.0;      input_.dielc = 1.0;
+  input_.rdt = 0.0;      input_.fswitch = -1.0; input_.restraint_wt = 0.0;
+
+  input_.igb = 0; input_.alpb = 0;  input_.gbsa = 0;    input_.lj1264 = -1;
+  input_.ipb = 0; input_.inp = 2;   input_.vdwmeth = 1; input_.ew_type = 0;
+  input_.ntb = 0; input_.ifqnt = 0; input_.jfastw = 0;  input_.ntf = 2;
+  input_.ntc = 2; input_.ntr = 0;   input_.ibelly = 0;
+
+  input_.restraintmask[0] = '\0'; input_.bellymask[0] = '\0'; input_.refc[0] = '\0';
   if (is_setup()) sander_cleanup();
   printf("Testing\n"); return 0;
 }
