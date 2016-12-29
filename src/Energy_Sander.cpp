@@ -125,8 +125,11 @@ void Energy_Sander::SetDefaultInput() {
   input_.ntf = 2;
   input_.ntc = 2;
   input_.ntr = 0;
+  input_.ibelly = 0;
 
   input_.restraintmask[0] = '\0';
+  input_.bellymask[0] = '\0';
+  input_.refc[0] = '\0';
 }
 
 const char* Energy_Sander::supportedNamelist_ = 
