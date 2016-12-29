@@ -340,6 +340,10 @@ test.combinecrd:
 test.topinfo:
 	@-cd Test_TopInfo && ./RunTest.sh $(OPT)
 
+test.gromacs:
+	@-cd Test_GromacsTrr && ./RunTest.sh $(OPT)
+	@-cd Test_GromacsXtc && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -537,7 +541,8 @@ COMPLETETESTS=test.general \
               test.comparetop \
               test.filter \
               test.combinecrd \
-              test.topinfo
+              test.topinfo \
+              test.gromacs
 
 test: test.all 
 
