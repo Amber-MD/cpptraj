@@ -60,7 +60,7 @@ parm ../FtuFabI.NAD.TCL.parm7
 
 loadcrd $CRD name FabI
 # Get initial system energies
-crdaction FabI energy out E1.dat
+crdaction FabI energy out E1.dat noheader
 crdaction FabI strip :NDP,TCS
 
 loadcrd $CRD name NDP
@@ -71,11 +71,11 @@ crdaction TCS strip !:TCS
 
 combinecrd FabI NDP TCS parmname combinedParm crdname combinedCrd
 # Get recombined system energies. Should match exactly.
-crdaction combinedCrd energy out E2.dat
+crdaction combinedCrd energy out E2.dat noheader
 parmwrite out FabI.NDP.TCS.parm7
 EOF
 RunCpptraj "Split coords and recombine test."
-DoTest E1.dat E2.dat -I '#Frame'
+DoTest E1.dat E2.dat
 DoTest ../FtuFabI.NAD.TCL.parm7 FabI.NDP.TCS.parm7 -I %VERSION
 
 EndTest
