@@ -254,12 +254,12 @@ EOF
 # check whether the library is usable and set flags accordingly.
 TestSanderlib() {
   SL_ERR=0
-  if [[ $USE_SANDERLIB -eq 1 ]] ; then
+  if [ "$USE_SANDERLIB" -gt 0 ] ; then
     echo "Checking availability of the SANDER API from AmberTools"
     if [[ -z $SANDERLIB_HOME ]] ; then
       if [[ -z $AMBERHOME ]] ; then
-        echo "  Warning: Compilation with the SANDER API requires AMBERHOME to be set"
-        echo "           if '--with-sanderlib' not specified."
+        echo "Warning: Compilation with the SANDER API requires AMBERHOME to be set"
+        echo "         if '--with-sanderlib' not specified."
         SL_ERR=1
       else
         SANDERLIB_HOME=$AMBERHOME
@@ -267,7 +267,7 @@ TestSanderlib() {
     fi
     if [[ $SL_ERR -eq 0 ]] ; then
       if [[ ! -f "$SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX" ]] ; then
-        echo "  Warning: $SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX not present."
+        echo "Warning: $SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX not present."
         SL_ERR=1
       else
         SANDERINC="-I$SANDERLIB_HOME/include"
@@ -300,11 +300,13 @@ EOF
           SL_ERR=$?
         fi
         if [[ $SL_ERR -ne 0 ]] ; then
-          echo "  Warning: Compilation with the SANDER API failed. Error follows:"
+          echo "Warning: Compilation with the SANDER API failed. Error follows:"
           echo "  --------------------"
           cat compile.err
           echo "  --------------------"
-          exit 1
+          if [ "$USE_SANDERLIB" -eq 2 ] ; then
+            exit 1
+          fi
         else
           echo "  OK"
           CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
@@ -315,7 +317,13 @@ EOF
     fi
   fi
   if [[ $SL_ERR -ne 0 ]] ; then
-    echo "  Warning: CPPTRAJ will be built without the SANDER API."
+    if [ "$USE_SANDERLIB" -eq 2 ] ; then
+      echo "Error: Could not configure the SANDER API."
+      echo ""
+      exit 1
+    else
+      echo "Warning: CPPTRAJ will be built without the SANDER API."
+    fi
   fi
 }
 
@@ -518,7 +526,7 @@ FFT_LIB="pub_fft.o"
 FFT_LIBDIR=""
 FFT_DEPEND=$FFT_LIB
 USE_LIBCPPTRAJ=0 # Set to 1 if libcpptraj will be built
-USE_SANDERLIB=1
+USE_SANDERLIB=1  # 1=search for sanderlib, 2=specify location
 SANDERLIB_HOME=""
 USE_AMBER_LIB=0
 USEMKL=0
@@ -771,7 +779,7 @@ while [[ ! -z $1 ]] ; do
        ;;
      "--with-sanderlib" )
        SANDERLIB_HOME=$VALUE
-       USE_SANDERLIB=1
+       USE_SANDERLIB=2
        ;;
 #    "--with-hdf5" )
 #      INCLUDE="$INCLUDE -I$VALUE/include"
@@ -804,8 +812,10 @@ while [[ ! -z $1 ]] ; do
   shift
 done
 
-if [[ $USE_SANDERLIB -eq 1 ]] ; then
-  echo "SANDER API will be used if found."
+if [ "$USE_SANDERLIB" -eq 1 ] ; then
+  echo "SANDER API will be used if found in '$AMBERHOME'."
+elif [ "$USE_SANDERLIB" -eq 2 ] ; then
+  echo "Using SANDER API in '$SANDERLIB_HOME'."
 else
   echo "CPPTRAJ will be compiled without the SANDER API."
 fi
