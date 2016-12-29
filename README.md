@@ -20,6 +20,11 @@ Build Status
 [![Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 
+PYTRAJ Compatibility Status
+===========================
+[Pytraj GitHub](https://github.com/Amber-MD/pytraj) 
+[![CircleCI](https://circleci.com/gh/Amber-MD/cpptraj.svg?style=svg)](https://circleci.com/gh/Amber-MD/cpptraj)
+
 Disclaimer and Copyright
 ========================
 
