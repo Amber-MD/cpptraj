@@ -272,7 +272,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   // Outer loop over atoms (i)
   for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
-    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
+//    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
     const double* crd1 = fIn.XYZ( *atom1 );
     Vec3 T1(crd1);
     // Set up exclusion list for atom i
@@ -290,26 +290,23 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
         {
           for (int iz = -n_points; iz <= n_points; iz++)
           {
-            mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
+//            mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
             double rij2 = 0.0;
             if (ix == 0 && iy == 0 && iz == 0) {
               // Self image
               if (*atom1 == *atom2) {
-                // Same atom in same image, or already calcd
-                //if (*atom1 == *atom2)
-                  mprintf(" Self!\n");
-                //else
-                //  mprintf(" Already calcd!\n");
+                // Same atom in same image, skip.
+//                  mprintf(" Self!\n");
                 continue;
               } else if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom) {
                 // Atom j is excluded, just increment to next excluded atom.
-                mprintf(" Excluded!\n");
+//                mprintf(" Excluded!\n");
                 ++excluded_atom;
                 continue;
               } else
                 rij2 = DIST2_NoImage( crd1, crd2 );
             } else {
-              // Image offsets
+              // Offset image
               Vec3 ixyz(ix, iy, iz);
               // atom j image back in Cartesian space
               Vec3 t2 = ucell.TransposeMult(frac2 + ixyz);
@@ -317,15 +314,13 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
               rij2 = dxyz.Magnitude2();
             }
             double rij = sqrt(rij2);
-            mprintf(" Distance= %g\n", rij);
+//            mprintf(" Distance= %g\n", rij);
             double e_elec = qiqj / rij;
             EQ += e_elec;
           } // iz
         } // iy
       } // ix
     } // atom j
-    if (atom1 == mask.begin())
-      mprintf("Sum for first atom= %g\n", EQ);
   } // atom i
   return EQ/2;
 }
