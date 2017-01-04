@@ -261,6 +261,47 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
   return Evdw;
 }
 
+// -----------------------------------------------------------------------------
+double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                                 Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
+                                 int n_points)
+{
+  double EQ = 0.0;
+  // Outer loop over atoms (i)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  {
+    const double* crd1 = fIn.XYZ( *atom1 );
+    // Inner loop over atoms (j)
+    for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
+    {
+      const double* crd2 = fIn.XYZ( *atom2 );
+      // Loop over images
+      for (int ix = -npoints; ix <= n_points; ix++)
+      {
+        for (int iy = -npoints; iy <= n_points; iy++)
+        {
+          for (int iz = -npoints; iz <= n_points; iz++)
+          {
+            if (
+
+    // Set up exclusion list for this atom
+    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
+    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
+                                  maskatom2 != mask.end();
+                                ++maskatom2)
+    {
+      // If atom is excluded, just increment to next excluded atom.
+      if (excluded_atom != tIn[*maskatom1].excludedend() &&
+          *maskatom2 == *excluded_atom)
+      {
+        ++excluded_atom;
+      }
+      else
+      {
+        // TODO: imaged distance
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+
+// -----------------------------------------------------------------------------
 void Energy_Amber::PrintTiming() const {
   double total = time_bond_.Total() + time_angle_.Total() +
                  time_tors_.Total() + time_14_.Total() +
