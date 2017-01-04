@@ -14,6 +14,9 @@ class Energy_Amber {
     double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
     double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&);
 
+    double E_DirectSum(Frame const&, Topology const&, AtomMask const&, int);
+
+
     void SetDebug(int d) { debug_ = d; }
     void PrintTiming() const;
   private:

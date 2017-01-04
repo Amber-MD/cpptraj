@@ -263,43 +263,71 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
 
 // -----------------------------------------------------------------------------
 double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
-                                 Matrix_3x3 const& ucell, Matrix_3x3 const& recip,
                                  int n_points)
 {
   double EQ = 0.0;
+
+  Matrix_3x3 ucell, recip;
+  fIn.BoxCrd().ToRecip(ucell, recip);
   // Outer loop over atoms (i)
   for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
+    mprintf("DEBUG:\tAtom %i\n", *atom1+1);
     const double* crd1 = fIn.XYZ( *atom1 );
+    Vec3 T1(crd1);
+    // Set up exclusion list for atom i
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
+      mprintf("DEBUG:\t\tAtom %i\n", *atom2+1);
       const double* crd2 = fIn.XYZ( *atom2 );
-      // Loop over images
-      for (int ix = -npoints; ix <= n_points; ix++)
+      Vec3 frac2 = recip * Vec3(crd2); // atom j in fractional coords
+      double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
+      // Loop over images of atom j
+      for (int ix = -n_points; ix <= n_points; ix++)
       {
-        for (int iy = -npoints; iy <= n_points; iy++)
+        for (int iy = -n_points; iy <= n_points; iy++)
         {
-          for (int iz = -npoints; iz <= n_points; iz++)
+          for (int iz = -n_points; iz <= n_points; iz++)
           {
-            if (
-
-    // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
-    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
-                                  maskatom2 != mask.end();
-                                ++maskatom2)
-    {
-      // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*maskatom1].excludedend() &&
-          *maskatom2 == *excluded_atom)
-      {
-        ++excluded_atom;
-      }
-      else
-      {
-        // TODO: imaged distance
-        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+            mprintf("DEBUG:\t\t\tImage %3i %3i %3i\n", ix, iy, iz);
+            double rij2 = 0.0;
+            if (ix == 0 && iy == 0 && iz == 0) {
+              // Self image
+              if (*atom1 >= *atom2) {
+                // Same atom in same image, or already calcd
+                if (*atom1 == *atom2)
+                  mprintf("\t\t\t\tSelf!\n");
+                else
+                  mprintf("\t\t\t\tAlready calcd!\n");
+                continue;
+              } else if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom) {
+                // Atom j is excluded, just increment to next excluded atom.
+                mprintf("\t\t\t\tExcluded!\n");
+                ++excluded_atom;
+                continue;
+              } else
+                rij2 = DIST2_NoImage( crd1, crd2 );
+            } else {
+              // Image offsets
+              Vec3 ixyz(ix, iy, iz);
+              // atom j image back in Cartesian space
+              Vec3 t2 = ucell.TransposeMult(frac2 + ixyz);
+              Vec3 dxyz = t2 - T1;
+              rij2 = dxyz.Magnitude2();
+            }
+            double rij = sqrt(rij2);
+            mprintf("\t\t\t\tDistance= %g\n", rij);
+            double e_elec = qiqj / rij;
+            EQ += e_elec;
+          } // iz
+        } // iy
+      } // ix
+    } // atom j
+  } // atom i
+  return EQ;
+}
 
 // -----------------------------------------------------------------------------
 void Energy_Amber::PrintTiming() const {
