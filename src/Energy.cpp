@@ -272,7 +272,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   // Outer loop over atoms (i)
   for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
-    mprintf("DEBUG:\tAtom %i\n", *atom1+1);
+    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
     const double* crd1 = fIn.XYZ( *atom1 );
     Vec3 T1(crd1);
     // Set up exclusion list for atom i
@@ -280,7 +280,6 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
-      mprintf("DEBUG:\t\tAtom %i\n", *atom2+1);
       const double* crd2 = fIn.XYZ( *atom2 );
       Vec3 frac2 = recip * Vec3(crd2); // atom j in fractional coords
       double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
@@ -291,20 +290,20 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
         {
           for (int iz = -n_points; iz <= n_points; iz++)
           {
-            mprintf("DEBUG:\t\t\tImage %3i %3i %3i\n", ix, iy, iz);
+            mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
             double rij2 = 0.0;
             if (ix == 0 && iy == 0 && iz == 0) {
               // Self image
-              if (*atom1 >= *atom2) {
+              if (*atom1 == *atom2) {
                 // Same atom in same image, or already calcd
-                if (*atom1 == *atom2)
-                  mprintf("\t\t\t\tSelf!\n");
-                else
-                  mprintf("\t\t\t\tAlready calcd!\n");
+                //if (*atom1 == *atom2)
+                  mprintf(" Self!\n");
+                //else
+                //  mprintf(" Already calcd!\n");
                 continue;
               } else if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom) {
                 // Atom j is excluded, just increment to next excluded atom.
-                mprintf("\t\t\t\tExcluded!\n");
+                mprintf(" Excluded!\n");
                 ++excluded_atom;
                 continue;
               } else
@@ -318,15 +317,17 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
               rij2 = dxyz.Magnitude2();
             }
             double rij = sqrt(rij2);
-            mprintf("\t\t\t\tDistance= %g\n", rij);
+            mprintf(" Distance= %g\n", rij);
             double e_elec = qiqj / rij;
             EQ += e_elec;
           } // iz
         } // iy
       } // ix
     } // atom j
+    if (atom1 == mask.begin())
+      mprintf("Sum for first atom= %g\n", EQ);
   } // atom i
-  return EQ;
+  return EQ/2;
 }
 
 // -----------------------------------------------------------------------------
