@@ -146,9 +146,9 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
 
   // DEBUG
   double lastEQ = 0.0;
-  for (int npoints = 1; npoints < 6; npoints++) {
+  for (int npoints = 1; npoints < 11; npoints++) {
     double EQ = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, npoints);
-    mprintf("DEBUG: %i points DirectSum= %g", npoints, EQ);
+    mprintf("DEBUG: %i points DirectSum= %12.4f", npoints, EQ);
     if (npoints > 1) {
       mprintf(" delta= %g", EQ - lastEQ);
     }
