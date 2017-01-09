@@ -17,8 +17,10 @@ class Action_Energy: public Action {
     enum Etype { BOND = 0, ANGLE, DIHEDRAL, V14, Q14, VDW, ELEC, TOTAL};
     /// Add energy data set of specified type.
     int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
+    /// For debugging the direct sum convergence
+    double Dbg_Direct(Frame const&,int);
     /// Corresponds to calculations.
-    enum CalcType { BND, ANG, DIH, N14, NBD, LJ, COULOMB };
+    enum CalcType { BND, ANG, DIH, N14, NBD, LJ, COULOMB, DIRECT };
     std::vector<DataSet*> Energy_; ///< Hold output data sets
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
     typedef std::vector<CalcType>::const_iterator calc_it;
@@ -26,5 +28,6 @@ class Action_Energy: public Action {
     CharMask Mask1_;               ///< Char mask for all but NB calc
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
+    int npoints_;                  ///< # unit cells in each direction for elec. direct sum
 };
 #endif

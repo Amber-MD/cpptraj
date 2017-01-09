@@ -8,6 +8,7 @@ Action_Energy::Action_Energy() : currentParm_(0) {}
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
           "\t[bond] [angle] [dihedral] [nb14] {[nonbond] | [elec] [vdw]}\n"
+          "\t[ etype {simple | directsum [npoints <N>]} ]\n"
           "  Calculate energy for atoms in mask.\n");
 }
 
@@ -15,8 +16,8 @@ void Action_Energy::Help() const {
 static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
 
 /// Calculation types
-static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4_Nonbond", "Nonbond",
-                                "Electrostatics", "van_der_Waals" };
+static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4 Nonbond", "Nonbond",
+                                "Electrostatics", "van der Waals", "Electrostatics (Direct Sum)" };
 
 // Action_Energy::AddSet()
 int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
@@ -34,6 +35,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   ENE_.SetDebug( debugIn );
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+
   // Which terms will be calculated?
   bool calc_vdw  = actionArgs.hasKey("vdw" );
   bool calc_elec = actionArgs.hasKey("elec");
@@ -44,6 +46,28 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     calc_vdw = false;
     calc_elec = false;
   }
+  // Electrostatics type. If specified always split the Elec/VDW calc.
+  enum ElecType { SIMPLE, DIRECTSUM };
+  ElecType etype = SIMPLE;
+  std::string etypearg = actionArgs.GetStringKey("etype");
+  if (!etypearg.empty()) {
+    if (calc_nb) {
+      calc_nb = false;
+      calc_vdw = true;
+    }
+    if (etypearg == "directsum") {
+      etype = DIRECTSUM;
+      calc_elec = true;
+      npoints_ = actionArgs.getKeyInt("npoints", 0);
+    } else if (etypearg == "simple") {
+      etype = SIMPLE;
+      if (!calc_nb && !calc_elec) calc_elec = true;
+    } else {
+      mprinterr("Error: Unrecognized option for 'etype': %s\n", etypearg.c_str());
+      return Action::ERR;
+    }
+  }
+  // Set up calculations
   Ecalcs_.clear();
   if (actionArgs.hasKey("bond"))     Ecalcs_.push_back(BND);
   if (actionArgs.hasKey("angle"))    Ecalcs_.push_back(ANG);
@@ -51,7 +75,12 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   if (actionArgs.hasKey("nb14"))     Ecalcs_.push_back(N14);
   if (calc_nb)                       Ecalcs_.push_back(NBD);
   if (calc_vdw)                      Ecalcs_.push_back(LJ);
-  if (calc_elec)                     Ecalcs_.push_back(COULOMB);
+  if (calc_elec) {
+    switch (etype) {
+      case SIMPLE:    Ecalcs_.push_back(COULOMB); break;
+      case DIRECTSUM: Ecalcs_.push_back(DIRECT); break;
+    }
+  }
   // If nothing is selected, select all.
   if (Ecalcs_.empty()) {
     for (int c = 0; c <= (int)NBD; c++)
@@ -85,6 +114,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR; break;
       case COULOMB:
         if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
+      case DIRECT:
+        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
     }
   }
 //  if (Ecalcs_.size() > 1) {
@@ -93,10 +124,19 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       
   mprintf("    ENERGY: Calculating energy for atoms in mask '%s'\n", Mask1_.MaskString());
   mprintf("\tCalculating terms:");
-  for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
+  for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc) {
+    if (calc != Ecalcs_.begin()) mprintf(",");
     mprintf(" %s", Cstring[*calc]);
+  }
   mprintf("\n");
-
+  if (etype == DIRECTSUM) {
+    if (npoints_ < 0)
+      mprintf("\tDirect sum energy for up to %i unit cells in each direction will be calculated.\n",
+              -npoints_);
+    else
+      mprintf("\tDirect sum energy for %i unit cells in each direction will be calculated.\n",
+              npoints_);
+  }
   return Action::OK;
 }
 
@@ -121,6 +161,22 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
     }
   currentParm_ = setup.TopAddress();
   return Action::OK;
+}
+
+/// For debugging the direct sum convergence
+double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
+  // DEBUG
+  double lastEQ = 0.0;
+  for (int npoints = 0; npoints < maxpoints; npoints++) {
+    double EQ = ENE_.E_DirectSum(frameIn, *currentParm_, Imask_, npoints);
+    mprintf("DEBUG: %i points DirectSum= %12.4f", npoints, EQ);
+    if (npoints > 0) {
+      mprintf(" delta= %g", EQ - lastEQ);
+    }
+    mprintf("\n");
+    lastEQ = EQ;
+  }
+  return lastEQ;
 }
 
 // Action_Energy::DoAction()
@@ -166,22 +222,18 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
+      case DIRECT:
+        if (npoints_ < 0)
+          ene = Dbg_Direct(frm.Frm(), (-npoints_)+1);
+        else
+          ene = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, npoints_);
+        Energy_[ELEC]->Add(frameNum, &ene);
+        Etot += ene;
+        break;
     }
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
-
-  // DEBUG
-  double lastEQ = 0.0;
-  for (int npoints = 0; npoints < 11; npoints++) {
-    double EQ = ENE_.E_DirectSum(frm.Frm(), *currentParm_, Imask_, npoints);
-    mprintf("DEBUG: %i points DirectSum= %12.4f", npoints, EQ);
-    if (npoints > 0) {
-      mprintf(" delta= %g", EQ - lastEQ);
-    }
-    mprintf("\n");
-    lastEQ = EQ;
-  }
 
   return Action::OK;
 }
