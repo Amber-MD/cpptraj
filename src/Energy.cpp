@@ -353,6 +353,7 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
 double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
                                  int n_points)
 {
+  time_NB_.Start();
   double EQ = 0.0;
 
   Matrix_3x3 ucell, recip;
@@ -410,6 +411,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
       } // ix
     } // atom j
   } // atom i
+  time_NB_.Stop();
   return EQ/2;
 }
 
