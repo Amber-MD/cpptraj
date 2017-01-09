@@ -357,7 +357,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   // Direct sum
   double Edirect = E_Elec(fIn, tIn, mask);
   // Reciprocal sum
-  double Erecip = 0.0;
+  double Eimage = 0.0;
   Matrix_3x3 ucell, recip;
   fIn.BoxCrd().ToRecip(ucell, recip);
   // Outer loop over atoms (i)
@@ -391,7 +391,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
               double rij = sqrt(rij2);
 //              mprintf(" Distance= %g\n", rij);
               double e_elec = qiqj / rij;
-              Erecip += e_elec;
+              Eimage += e_elec;
             }
           } // iz
         } // iy
@@ -399,7 +399,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     } // atom j
   } // atom i
   time_NB_.Stop();
-  return Edirect + (Erecip/2.0);
+  return Edirect + (Eimage/2.0);
 }
 
 // -----------------------------------------------------------------------------
