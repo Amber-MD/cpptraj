@@ -364,8 +364,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
 //    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
-    const double* crd1 = fIn.XYZ( *atom1 );
-    Vec3 T1(crd1);
+    Vec3 T1( fIn.XYZ(*atom1) );
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
@@ -384,9 +383,8 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
             if (ix != 0 || iy != 0 || iz != 0) {
               // Offset image
               Vec3 ixyz(ix, iy, iz);
-              // atom j image back in Cartesian space
-              Vec3 t2 = ucell.TransposeMult(frac2 + ixyz);
-              Vec3 dxyz = t2 - T1;
+              // atom j image back in Cartesian space minus atom i in Cartesian space.
+              Vec3 dxyz = ucell.TransposeMult(frac2 + ixyz) - T1;
               rij2 = dxyz.Magnitude2();
               double rij = sqrt(rij2);
 //              mprintf(" Distance= %g\n", rij);
