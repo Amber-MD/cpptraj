@@ -18,7 +18,7 @@ class Action_Energy: public Action {
     /// Add energy data set of specified type.
     int AddSet(Etype, DataSetList&, DataFile*, std::string const&);
     /// Corresponds to calculations.
-    enum CalcType { BND, ANG, DIH, N14, NBD };
+    enum CalcType { BND, ANG, DIH, N14, NBD, LJ, COULOMB };
     std::vector<DataSet*> Energy_; ///< Hold output data sets
     std::vector<CalcType> Ecalcs_; ///< Hold which calcs to perform
     typedef std::vector<CalcType>::const_iterator calc_it;

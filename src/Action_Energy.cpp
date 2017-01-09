@@ -7,7 +7,7 @@ Action_Energy::Action_Energy() : currentParm_(0) {}
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
-          "\t[bond] [angle] [dihedral] [nb14] [nonbond]\n"
+          "\t[bond] [angle] [dihedral] [nb14] {[nonbond] | [elec] [vdw]}\n"
           "  Calculate energy for atoms in mask.\n");
 }
 
@@ -15,8 +15,10 @@ void Action_Energy::Help() const {
 static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw", "elec", "total"};
 
 /// Calculation types
-static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4_Nonbond", "Nonbond" };
+static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4_Nonbond", "Nonbond",
+                                "Electrostatics", "van_der_Waals" };
 
+// Action_Energy::AddSet()
 int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
                           std::string const& setname)
 {
@@ -33,12 +35,23 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Which terms will be calculated?
+  bool calc_vdw  = actionArgs.hasKey("vdw" );
+  bool calc_elec = actionArgs.hasKey("elec");
+  bool calc_nb   = actionArgs.hasKey("nonbond");
+  if (calc_vdw && calc_elec)
+    calc_nb = true;
+  if (calc_nb) {
+    calc_vdw = false;
+    calc_elec = false;
+  }
   Ecalcs_.clear();
   if (actionArgs.hasKey("bond"))     Ecalcs_.push_back(BND);
   if (actionArgs.hasKey("angle"))    Ecalcs_.push_back(ANG);
   if (actionArgs.hasKey("dihedral")) Ecalcs_.push_back(DIH);
   if (actionArgs.hasKey("nb14"))     Ecalcs_.push_back(N14);
-  if (actionArgs.hasKey("nonbond"))  Ecalcs_.push_back(NBD);
+  if (calc_nb)                       Ecalcs_.push_back(NBD);
+  if (calc_vdw)                      Ecalcs_.push_back(LJ);
+  if (calc_elec)                     Ecalcs_.push_back(COULOMB);
   // If nothing is selected, select all.
   if (Ecalcs_.empty()) {
     for (int c = 0; c <= (int)NBD; c++)
@@ -68,6 +81,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
         if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR;
         if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR;
         break;
+      case LJ:
+        if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR; break;
+      case COULOMB:
+        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
     }
   }
 //  if (Ecalcs_.size() > 1) {
@@ -138,6 +155,16 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[VDW]->Add(frameNum, &ene);
         Energy_[ELEC]->Add(frameNum, &ene2);
         Etot += (ene + ene2);
+        break;
+      case LJ:
+        ene = ENE_.E_VDW(frm.Frm(), *currentParm_, Imask_);
+        Energy_[VDW]->Add(frameNum, &ene);
+        Etot += ene;
+        break;
+      case COULOMB:
+        ene = ENE_.E_Elec(frm.Frm(), *currentParm_, Imask_);
+        Energy_[ELEC]->Add(frameNum, &ene);
+        Etot += ene;
         break;
     }
   }
