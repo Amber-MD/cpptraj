@@ -354,8 +354,10 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
                                  int n_points)
 {
   time_NB_.Start();
-  double EQ = 0.0;
-
+  // Direct sum
+  double Edirect = E_Elec(fIn, tIn, mask);
+  // Reciprocal sum
+  double Erecip = 0.0;
   Matrix_3x3 ucell, recip;
   fIn.BoxCrd().ToRecip(ucell, recip);
   // Outer loop over atoms (i)
@@ -364,8 +366,6 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
 //    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
     const double* crd1 = fIn.XYZ( *atom1 );
     Vec3 T1(crd1);
-    // Set up exclusion list for atom i
-    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
@@ -381,38 +381,25 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
           {
 //            mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
             double rij2 = 0.0;
-            if (ix == 0 && iy == 0 && iz == 0) {
-              // Self image
-              if (*atom1 == *atom2) {
-                // Same atom in same image, skip.
-//                  mprintf(" Self!\n");
-                continue;
-              } else if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom) {
-                // Atom j is excluded, just increment to next excluded atom.
-//                mprintf(" Excluded!\n");
-                ++excluded_atom;
-                continue;
-              } else
-                rij2 = DIST2_NoImage( crd1, crd2 );
-            } else {
+            if (ix != 0 || iy != 0 || iz != 0) {
               // Offset image
               Vec3 ixyz(ix, iy, iz);
               // atom j image back in Cartesian space
               Vec3 t2 = ucell.TransposeMult(frac2 + ixyz);
               Vec3 dxyz = t2 - T1;
               rij2 = dxyz.Magnitude2();
+              double rij = sqrt(rij2);
+//              mprintf(" Distance= %g\n", rij);
+              double e_elec = qiqj / rij;
+              Erecip += e_elec;
             }
-            double rij = sqrt(rij2);
-//            mprintf(" Distance= %g\n", rij);
-            double e_elec = qiqj / rij;
-            EQ += e_elec;
           } // iz
         } // iy
       } // ix
     } // atom j
   } // atom i
   time_NB_.Stop();
-  return EQ/2;
+  return Edirect + (Erecip/2.0);
 }
 
 // -----------------------------------------------------------------------------
