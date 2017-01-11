@@ -211,31 +211,22 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
   time_NB_.Start();
   double Evdw = 0.0;
   Eelec = 0.0;
-  for (AtomMask::const_iterator maskatom1 = mask.begin();
-                                maskatom1 != mask.end();
-                                ++maskatom1)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
     // Set up coord for this atom
-    const double* crd1 = fIn.XYZ( *maskatom1 );
+    const double* crd1 = fIn.XYZ( *atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
-    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
-                                  maskatom2 != mask.end();
-                                ++maskatom2)
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
     {
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*maskatom1].excludedend() &&
-          *maskatom2 == *excluded_atom)
-      {
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
         ++excluded_atom;
-      }
-      else
-      {
-        // TODO: imaged distance
-        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
         double rij = sqrt( rij2 );
         // VDW
-        NonbondType const& LJ = tIn.GetLJparam(*maskatom1, *maskatom2);
+        NonbondType const& LJ = tIn.GetLJparam(*atom1, *atom2);
         double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
@@ -244,14 +235,14 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
         Evdw += e_vdw;
         // Coulomb
-        double qiqj = QFAC * tIn[*maskatom1].Charge() * tIn[*maskatom2].Charge();
+        double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
         mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
-                *maskatom1+1, *maskatom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
+                *atom1+1, *atom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
         mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
-                *maskatom1, *maskatom2, tIn[*maskatom1].Charge(), tIn[*maskatom2].Charge(),
+                *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
                 rij, e_elec);
 #       endif
       }
@@ -266,29 +257,21 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
 {
   time_NB_.Start();
   double Evdw = 0.0;
-  for (AtomMask::const_iterator maskatom1 = mask.begin();
-                                maskatom1 != mask.end();
-                                ++maskatom1)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
     // Set up coord for this atom
-    const double* crd1 = fIn.XYZ( *maskatom1 );
+    const double* crd1 = fIn.XYZ( *atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
-    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
-                                  maskatom2 != mask.end();
-                                ++maskatom2)
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
     {
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*maskatom1].excludedend() &&
-          *maskatom2 == *excluded_atom)
-      {
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
         ++excluded_atom;
-      }
-      else
-      {
-        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
         // VDW
-        NonbondType const& LJ = tIn.GetLJparam(*maskatom1, *maskatom2);
+        NonbondType const& LJ = tIn.GetLJparam(*atom1, *atom2);
         double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
@@ -298,7 +281,7 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
         Evdw += e_vdw;
 #       ifdef DEBUG_ENERGY
         mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
-                *maskatom1+1, *maskatom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
+                *atom1+1, *atom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
 #       endif
       }
     }
@@ -312,35 +295,27 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
 {
   time_NB_.Start();
   double Eelec = 0.0;
-  for (AtomMask::const_iterator maskatom1 = mask.begin();
-                                maskatom1 != mask.end();
-                                ++maskatom1)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
     // Set up coord for this atom
-    const double* crd1 = fIn.XYZ( *maskatom1 );
+    const double* crd1 = fIn.XYZ( *atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
-    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
-                                  maskatom2 != mask.end();
-                                ++maskatom2)
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
     {
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*maskatom1].excludedend() &&
-          *maskatom2 == *excluded_atom)
-      {
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
         ++excluded_atom;
-      }
-      else
-      {
-        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
         double rij = sqrt( rij2 );
         // Coulomb
-        double qiqj = QFAC * tIn[*maskatom1].Charge() * tIn[*maskatom2].Charge();
+        double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
         mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
-                *maskatom1, *maskatom2, tIn[*maskatom1].Charge(), tIn[*maskatom2].Charge(),
+                *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
                 rij, e_elec);
 #       endif
       }
