@@ -72,9 +72,14 @@ void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
   }
 }
 
-//double Ewald::Self() {
-//  double d0 = -ew_coeff_ * 
-//  double ene = sumq2_ * d0;
+double Ewald::Self(double volume) {
+  double d0 = -ew_coeff_ * INVSQRTPI_;
+  double ene = sumq2_ * d0;
+  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
+  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
+  ene += ee_plasma;
+  return ene;
+}
 
 // Original Code: SANDER: findewaldcof
 void Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
