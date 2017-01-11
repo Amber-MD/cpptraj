@@ -1,9 +1,12 @@
+#include <cmath>
 #include "Ewald.h"
 #include "CpptrajStdio.h"
-#include <cmath>
+#include "Constants.h"
 
 Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0)
 {}
+
+double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
 
 // Original code: SANDER: erfcfun.F90
 double Ewald::erfc_func(double xIn) const {
@@ -58,7 +61,21 @@ double Ewald::erfc_func(double xIn) const {
   }
   return erfc;
 }
-  
+
+/** Calculate sum of charges and squared charges. */
+void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
+  sumq_ = 0.0;
+  sumq2_ = 0.0;
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
+    sumq_ += topIn[*atom].Charge();
+    sumq2_ += topIn[*atom].Charge() * topIn[*atom].Charge();
+  }
+}
+
+//double Ewald::Self() {
+//  double d0 = -ew_coeff_ * 
+//  double ene = sumq2_ * d0;
+
 // Original Code: SANDER: findewaldcof
 void Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
 {
