@@ -209,6 +209,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
+        Ewald.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_ClusterMap.cpp \

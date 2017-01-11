@@ -1,5 +1,6 @@
 #include "Action_Energy.h"
 #include "CpptrajStdio.h"
+#include "Ewald.h" // DEBUG
 
 // CONSTRUCTOR
 Action_Energy::Action_Energy() : currentParm_(0) {}
@@ -234,6 +235,10 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
+
+  // DEBUG
+  Ewald ew;
+  ew.FindEwaldCoefficient(5.6, 0.0000001);
 
   return Action::OK;
 }
