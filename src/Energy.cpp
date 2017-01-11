@@ -356,10 +356,19 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
   time_NB_.Start();
   // Direct sum
   double Edirect = E_Elec(fIn, tIn, mask);
-  // Reciprocal sum
+  // Sum over images.
   double Eimage = 0.0;
   Matrix_3x3 ucell, recip;
   fIn.BoxCrd().ToRecip(ucell, recip);
+  // Cache npoints values, excluding this cell (0,0,0)
+  std::vector<Vec3> Cells;
+  int Ncells = (2*n_points)+1;
+  Cells.reserve( (Ncells*Ncells*Ncells) - 1 );
+  for (int ix = -n_points; ix <= n_points; ix++)
+    for (int iy = -n_points; iy <= n_points; iy++)
+      for (int iz = -n_points; iz <= n_points; iz++)
+        if (ix != 0 || iy != 0 || iz != 0)
+          Cells.push_back( Vec3(ix, iy, iz) );
   // Outer loop over atoms (i)
   for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
@@ -372,28 +381,17 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
       Vec3 frac2 = recip * Vec3(crd2); // atom j in fractional coords
       double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
-      for (int ix = -n_points; ix <= n_points; ix++)
+      for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
       {
-        for (int iy = -n_points; iy <= n_points; iy++)
-        {
-          for (int iz = -n_points; iz <= n_points; iz++)
-          {
-//            mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
-            double rij2 = 0.0;
-            if (ix != 0 || iy != 0 || iz != 0) {
-              // Offset image
-              Vec3 ixyz(ix, iy, iz);
-              // atom j image back in Cartesian space minus atom i in Cartesian space.
-              Vec3 dxyz = ucell.TransposeMult(frac2 + ixyz) - T1;
-              rij2 = dxyz.Magnitude2();
-              double rij = sqrt(rij2);
-//              mprintf(" Distance= %g\n", rij);
-              double e_elec = qiqj / rij;
-              Eimage += e_elec;
-            }
-          } // iz
-        } // iy
-      } // ix
+//        mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
+        // atom j image back in Cartesian space minus atom i in Cartesian space.
+        Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - T1;
+        double rij2 = dxyz.Magnitude2();
+        double rij = sqrt(rij2);
+//        mprintf(" Distance= %g\n", rij);
+        double e_elec = qiqj / rij;
+        Eimage += e_elec;
+      }
     } // atom j
   } // atom i
   time_NB_.Stop();
