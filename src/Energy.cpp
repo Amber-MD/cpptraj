@@ -352,8 +352,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
     // Inner loop over atoms (j)
     for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
     {
-      const double* crd2 = fIn.XYZ( *atom2 );
-      Vec3 frac2 = recip * Vec3(crd2); // atom j in fractional coords
+      Vec3 frac2 = recip * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
       double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
       // Loop over images of atom j
       for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
