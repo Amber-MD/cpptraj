@@ -3,13 +3,19 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 
-Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0), cutoff_(0.0), dsumTol_(0.0),
-  needSumQ_(true)
-{}
+Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0), maxexp_(0.0),
+  cutoff_(0.0), dsumTol_(0.0),
+  rsumTol_(0.0), needSumQ_(true)
+{
+  mlimit_[0] = 0;
+  mlimit_[1] = 0;
+  mlimit_[2] = 0;
+}
 
 double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
 
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
+static inline int    IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
 
 // Original code: SANDER: erfcfun.F90
 double Ewald::erfc_func(double xIn) {
@@ -94,18 +100,108 @@ double Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
   return xval;
 }
 
+/** \return maxexp value based on mlimits */
+double Ewald::FindMaxexpFromMlim(const int* mlimit, Matrix_3x3 const& recip) {
+  double maxexp = DABS( (double)mlimit[0] * recip[0] );
+  double z2     = DABS( (double)mlimit[1] * recip[4] );
+  maxexp = std::max(maxexp, z2);
+  double z3     = DABS( (double)mlimit[2] * recip[8] );
+  maxexp = std::max(maxexp, z3);
+  return maxexp;
+}
+
+/** \return maxexp value based on Ewald coefficient and reciprocal sum tolerance. */
+double Ewald::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
+  double xval = 0.5;
+  int nloop = 0;
+  double term = 0.0;
+  do {
+    xval = 2.0 * xval;
+    nloop++;
+    double yval = Constants::PI * xval / ewCoeff;
+    term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
+  } while (term >= rsumTol);
+
+  // Binary search tolerance is 2^-60
+  int ntimes = nloop + 60;
+  double xlo = 0.0;
+  double xhi = xval;
+  for (int i = 0; i != ntimes; i++) {
+    xval = (xlo + xhi) / 2.0;
+    double yval = Constants::PI * xval / ewCoeff;
+    double term = 2.0 * ewCoeff * erfc_func(yval) * INVSQRTPI_;
+    if (term > rsumTol)
+      xlo = xval;
+    else
+      xhi = xval;
+  }
+  mprintf("DEBUG: MaxExp for ewcoeff=%g, direct sum tol=%g is %g\n",
+          ewCoeff, rsumTol, xval);
+  return xval;
+}
+
+/** Get mlimits. */
+void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin, 
+                       Vec3 const& reclng, Matrix_3x3 const& recip)
+{
+  mprintf("DEBUG: Recip lengths %12.4f%12.4f%12.4f\n", reclng[0], reclng[1], reclng[2]);
+
+  int mtop1 = (int)(reclng[0] * maxexp / sqrt(eigmin));
+  int mtop2 = (int)(reclng[1] * maxexp / sqrt(eigmin));
+  int mtop3 = (int)(reclng[2] * maxexp / sqrt(eigmin));
+
+  int nrecvecs = 0;
+  mlimit[0] = 0;
+  mlimit[1] = 0;
+  mlimit[2] = 0;
+  double maxexp2 = maxexp * maxexp;
+  for (int m1 = -mtop1; m1 <= mtop1; m1++) {
+    for (int m2 = -mtop2; m2 <= mtop2; m2++) {
+      for (int m3 = -mtop3; m3 <= mtop3; m3++) {
+        Vec3 Zvec = recip.TransposeMult( Vec3(m1,m2,m3) );
+        if ( Zvec.Magnitude2() <= maxexp2 ) {
+          nrecvecs++;
+          mlimit[0] = std::max( mlimit[0], IABS(m1) );
+          mlimit[1] = std::max( mlimit[1], IABS(m2) );
+          mlimit[2] = std::max( mlimit[2], IABS(m3) );
+        }
+      }
+    }
+  }
+  mprintf("DEBUG: Number of reciprocal vectors: %i\n", nrecvecs);
+}
+
+
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
-int Ewald::SetupParams(double cutoffIn, double dsumTolIn, double ew_coeffIn)
+int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
+                       double ew_coeffIn, double maxexpIn,
+                       const int* mlimitsIn)
 {
   needSumQ_ = true;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
+  rsumTol_ = rsumTolIn;
   ew_coeff_ = ew_coeffIn;
+  maxexp_ = maxexpIn;
+  boxIn.ToRecip(ucell_, recip_);
+  if (mlimitsIn != 0)
+    std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
 
   // Check input
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
+    return 1;
+  }
+  if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
+    mprinterr("Error: Cannot specify negative mlimit values.\n");
+    return 1;
+  }
+  int maxmlim = mlimit_[0];
+  maxmlim = std::max(maxmlim, mlimit_[1]);
+  maxmlim = std::max(maxmlim, mlimit_[2]);
+  if (maxexp_ < 0.0) {
+    mprinterr("Error: maxexp is less than 0.0\n");
     return 1;
   }
 
@@ -114,10 +210,28 @@ int Ewald::SetupParams(double cutoffIn, double dsumTolIn, double ew_coeffIn)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (dsumTol_ < Constants::SMALL)
     dsumTol_ = 1E-5;
+  if (rsumTol_ < Constants::SMALL)
+    rsumTol_ = 5E-5;
+  if (maxmlim > 0)
+    maxexp_ = FindMaxexpFromMlim(mlimit_, recip_);
+  else {
+    if ( maxexp_ < Constants::SMALL )
+      maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
+    // Calculate lengths of reciprocal vectors
+    Vec3 reclng( 1.0/sqrt(recip_[0]*recip_[0] + recip_[1]*recip_[1] + recip_[2]*recip_[2]),
+                 1.0/sqrt(recip_[3]*recip_[3] + recip_[4]*recip_[4] + recip_[5]*recip_[5]),
+                 1.0/sqrt(recip_[6]*recip_[6] + recip_[7]*recip_[7] + recip_[8]*recip_[8]) );
+    // eigmin typically bigger than this unless cell is badly distorted.
+    double eigmin = 0.5;
+    GetMlimits(mlimit_, maxexp_, eigmin, reclng, recip_);
+  }
 
   mprintf("DEBUG: Ewald params:\n");
   mprintf("\tcutoff= %g\n\tdirect sum tol= %g\n\tEwald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
+  mprintf("\tmaxexp= %g\n\trecip. sum tol= %g\n",
+          maxexp_, rsumTol_);
+  mprintf("\tmlimits= {%i,%i,%i}\n", mlimit_[0], mlimit_[1], mlimit_[2]);
   return 0;
 }
 
