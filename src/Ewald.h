@@ -5,6 +5,7 @@ class Ewald {
   public:
     Ewald();
     void CalcSumQ(Topology const&, AtomMask const&);
+    double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
     double Self(double);
     void FindEwaldCoefficient(double,double);
   private:

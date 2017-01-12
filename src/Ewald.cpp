@@ -67,18 +67,30 @@ void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
   sumq_ = 0.0;
   sumq2_ = 0.0;
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
-    sumq_ += topIn[*atom].Charge();
-    sumq2_ += topIn[*atom].Charge() * topIn[*atom].Charge();
+    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    sumq_ += qi;
+    sumq2_ += (qi * qi);
   }
+  mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
 }
 
 double Ewald::Self(double volume) {
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
+  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
   double ee_plasma = -0.5 * factor * sumq_ * sumq_;
   ene += ee_plasma;
   return ene;
+}
+
+double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
+{
+  Matrix_3x3 ucell, recip;
+  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double e_self = Self( volume );
+
+  return e_self;
 }
 
 // Original Code: SANDER: findewaldcof
