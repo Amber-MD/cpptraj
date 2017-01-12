@@ -3,19 +3,18 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 
-Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0)
+Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0), cutoff_(0.0), dsumTol_(0.0),
+  needSumQ_(true)
 {}
 
 double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
 
+static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
+
 // Original code: SANDER: erfcfun.F90
-double Ewald::erfc_func(double xIn) const {
+double Ewald::erfc_func(double xIn) {
   double erfc;
-  double absx;
-  if (xIn < 0.0)
-    absx = -xIn;
-  else
-    absx = xIn;
+  double absx = DABS( xIn );
     
   if (xIn > 26.0)
     erfc = 0.0;
@@ -62,39 +61,8 @@ double Ewald::erfc_func(double xIn) const {
   return erfc;
 }
 
-/** Calculate sum of charges and squared charges. */
-void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
-  sumq_ = 0.0;
-  sumq2_ = 0.0;
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
-    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
-    sumq_ += qi;
-    sumq2_ += (qi * qi);
-  }
-  mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
-}
-
-double Ewald::Self(double volume) {
-  double d0 = -ew_coeff_ * INVSQRTPI_;
-  double ene = sumq2_ * d0;
-  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
-  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
-  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
-  ene += ee_plasma;
-  return ene;
-}
-
-double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
-{
-  Matrix_3x3 ucell, recip;
-  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
-  double e_self = Self( volume );
-
-  return e_self;
-}
-
 // Original Code: SANDER: findewaldcof
-void Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
+double Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
 {
   // First get direct sum tolerance. How big must the Ewald coefficient be to
   // get terms outside the cutoff below tolerance?
@@ -121,7 +89,70 @@ void Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
     else
       xhi = xval;
   }
-  ew_coeff_ = xval;
   mprintf("DEBUG: Ewald coefficient for cut=%g, direct sum tol=%g is %g\n",
-          cutoff, dsum_tol, ew_coeff_);
+          cutoff, dsum_tol, xval);
+  return xval;
 }
+
+// -----------------------------------------------------------------------------
+/** Set up parameters. */
+int Ewald::SetupParams(double cutoffIn, double dsumTolIn, double ew_coeffIn)
+{
+  needSumQ_ = true;
+  cutoff_ = cutoffIn;
+  dsumTol_ = dsumTolIn;
+  ew_coeff_ = ew_coeffIn;
+
+  // Check input
+  if (cutoff_ < Constants::SMALL) {
+    mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
+    return 1;
+  }
+
+  // Set defaults if necessary
+  if (DABS(ew_coeff_) < Constants::SMALL)
+    ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
+  if (dsumTol_ < Constants::SMALL)
+    dsumTol_ = 1E-5;
+
+  mprintf("DEBUG: Ewald params:\n");
+  mprintf("\tcutoff= %g\n\tdirect sum tol= %g\n\tEwald coeff.= %g\n",
+          cutoff_, dsumTol_, ew_coeff_);
+  return 0;
+}
+
+/** Calculate sum of charges and squared charges. */
+void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
+  sumq_ = 0.0;
+  sumq2_ = 0.0;
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
+    double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    sumq_ += qi;
+    sumq2_ += (qi * qi);
+  }
+  mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+  needSumQ_ = false;
+}
+
+/** Self energy. */
+double Ewald::Self(double volume) {
+  double d0 = -ew_coeff_ * INVSQRTPI_;
+  double ene = sumq2_ * d0;
+  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
+  double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
+  double ee_plasma = -0.5 * factor * sumq_ * sumq_;
+  ene += ee_plasma;
+  return ene;
+}
+
+/** Calculate Ewald energy. */
+double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
+{
+  Matrix_3x3 ucell, recip;
+  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double e_self = Self( volume );
+
+  return e_self;
+}
+
+

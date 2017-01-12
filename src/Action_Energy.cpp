@@ -238,7 +238,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
 
   // DEBUG
   Ewald ew;
-  ew.FindEwaldCoefficient(5.6, 0.0000001);
+  ew.SetupParams(5.6, 0.0000001, 0.0);
   ew.CalcSumQ(*currentParm_, Imask_);
   double ew_ene = ew.CalcEnergy(frm.Frm(), *currentParm_, Imask_);
   mprintf("DEBUG: EW energy= %g\n", ew_ene);
