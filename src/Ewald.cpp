@@ -250,14 +250,16 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
 /** Take Cartesian coords of input atoms and map to fractional coords. */
 void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& recip, AtomMask const& maskIn) {
   Frac_.clear();
-  Frac_.reserve( maskIn.Nselected() * 3 );
+  Frac_.reserve( maskIn.Nselected() );
 
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
     Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
     // Wrap back into primary cell
-    Frac_.push_back( Vec3(floor(fc[0]), floor(fc[1]), floor(fc[2])) );
+    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
+    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
   }
+  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
 }
 
 /** Calculate sum of charges and squared charges. */
@@ -314,6 +316,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   }
   // M1
   for (unsigned int i = 0; i != Frac_.size(); i++) {
+    //mprintf("FRAC: %6i%20.10f%20.10f%20.10f\n", i+1, Frac_[i][0], Frac_[i][1], Frac_[i][2]);
     cosf1.push_back( cos(Constants::TWOPI * Frac_[i][0]) );
     cosf2.push_back( cos(Constants::TWOPI * Frac_[i][1]) );
     cosf3.push_back( cos(Constants::TWOPI * Frac_[i][2]) );
@@ -333,11 +336,19 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
       cosf1.push_back( cosf1[idx]*cosf1[m1idx] - sinf1[idx]*sinf1[m1idx] );
       cosf2.push_back( cosf2[idx]*cosf2[m1idx] - sinf2[idx]*sinf2[m1idx] );
       cosf3.push_back( cosf3[idx]*cosf3[m1idx] - sinf3[idx]*sinf3[m1idx] );
-      sinf1.push_back( sinf1[idx]*cosf1[m1idx] - cosf1[idx]*sinf1[m1idx] );
-      sinf2.push_back( sinf2[idx]*cosf2[m1idx] - cosf2[idx]*sinf2[m1idx] );
-      sinf3.push_back( sinf3[idx]*cosf3[m1idx] - cosf3[idx]*sinf3[m1idx] );
+      sinf1.push_back( sinf1[idx]*cosf1[m1idx] + cosf1[idx]*sinf1[m1idx] );
+      sinf2.push_back( sinf2[idx]*cosf2[m1idx] + cosf2[idx]*sinf2[m1idx] );
+      sinf3.push_back( sinf3[idx]*cosf3[m1idx] + cosf3[idx]*sinf3[m1idx] );
     }
   }
+  // DEBUG
+/*  unsigned int midx = 0;
+  for (int m = 0; m != mmax; m++) {
+    for (unsigned int i = 0; i != Frac_.size(); i++, midx++)
+      mprintf("TRIG: %6i%6u%12.6f%12.6f%12.6f%12.6f%12.6f%12.6f\n", m,i+1,
+               cosf1[midx], cosf2[midx], cosf3[midx],
+               sinf1[midx], sinf2[midx], sinf3[midx]);
+  }*/
 
   double mult = 1.0;
 //  int count = -1;
@@ -352,10 +363,8 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 //      count++;
 //      if ( iproc == (count % nproc) )
 //      {
-        int mp1 = m1 + 1;
-        int mp2 = IABS(m2) + 1;
-        int m1idx = Frac_.size() * mp1;
-        int m2idx = Frac_.size() * mp2;
+        int m1idx = Frac_.size() * m1;
+        int m2idx = Frac_.size() * IABS(m2);
         if (m2 < 0) {
           for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
             c12[i] = cosf1[m1idx]*cosf2[m2idx] + sinf1[m1idx]*sinf2[m2idx];
@@ -384,8 +393,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
           // with eterm.
           eterm *= mult;
           if (msq < maxexp2) {
-            int mp3 = IABS(m3) + 1;
-            int m3idx = Frac_.size() * mp3;
+            int m3idx = Frac_.size() * IABS(m3);
             // Get the product of complex exponentials.
             if (m3 < 0) {
               for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
@@ -407,6 +415,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
             }
             double struc2 = cstruct*cstruct + sstruct*sstruct;
             ene += eterm * struc2;
+            //mprintf("LOOP: %3i%3i%3i ENE= %20.10f\n", m1, m2, m3, ene);
           } // END IF msq < maxexp2
         } // END loop over m3
 //      } // END IF iproc == (count % nproc)
