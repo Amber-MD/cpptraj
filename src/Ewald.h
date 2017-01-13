@@ -8,7 +8,7 @@ class Ewald {
     void CalcSumQ(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
     double Self(double);
-    double Recip_Regular();
+    double Recip_Regular(Matrix_3x3 const&, double);
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);
@@ -21,6 +21,7 @@ class Ewald {
     typedef std::vector<double> Darray;
 
     std::vector<Vec3> Frac_; ///< Hold fractional coords back in primary cell
+    Darray Charge_; ///< Hold atomic charges converted to Amber units.
 
     static double INVSQRTPI_;
     double sumq_; ///< Sum of charges

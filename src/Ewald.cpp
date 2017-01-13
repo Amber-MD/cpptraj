@@ -193,6 +193,7 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
   ew_coeff_ = ew_coeffIn;
   maxexp_ = maxexpIn;
   Matrix_3x3 ucell, recip;
+  boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
     std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
 
@@ -238,11 +239,11 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
   }
 
   mprintf("DEBUG: Ewald params:\n");
-  mprintf("\tcutoff= %g\n\tdirect sum tol= %g\n\tEwald coeff.= %g\n",
+  mprintf("DEBUG:   cutoff= %g   direct sum tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
-  mprintf("\tmaxexp= %g\n\trecip. sum tol= %g\n",
+  mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g\n",
           maxexp_, rsumTol_);
-  mprintf("\tmlimits= {%i,%i,%i}\n", mlimit_[0], mlimit_[1], mlimit_[2]);
+  mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   return 0;
 }
 
@@ -263,8 +264,10 @@ void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& recip, AtomMask cons
 void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
   sumq_ = 0.0;
   sumq2_ = 0.0;
+  Charge_.clear();
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) {
     double qi = topIn[*atom].Charge() * Constants::ELECTOAMBER;
+    Charge_.push_back(qi);
     sumq_ += qi;
     sumq2_ += (qi * qi);
   }
@@ -284,7 +287,7 @@ double Ewald::Self(double volume) {
 }
 
 /** Recip energy. */
-double Ewald::Recip_Regular() {
+double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
   double ene = 0.0;
@@ -336,7 +339,82 @@ double Ewald::Recip_Regular() {
     }
   }
 
-  return ene;
+  double mult = 1.0;
+//  int count = -1;
+  Darray c12(Frac_.size(), 0.0);
+  Darray s12(Frac_.size(), 0.0);
+  Darray c3(Frac_.size(), 0.0);
+  Darray s3(Frac_.size(), 0.0);
+  for (int m1 = 0; m1 <= mlimit_[0]; m1++)
+  {
+    for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++)
+    {
+//      count++;
+//      if ( iproc == (count % nproc) )
+//      {
+        int mp1 = m1 + 1;
+        int mp2 = IABS(m2) + 1;
+        int m1idx = Frac_.size() * mp1;
+        int m2idx = Frac_.size() * mp2;
+        if (m2 < 0) {
+          for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
+            c12[i] = cosf1[m1idx]*cosf2[m2idx] + sinf1[m1idx]*sinf2[m2idx];
+            s12[i] = sinf1[m1idx]*cosf2[m2idx] - cosf1[m1idx]*sinf2[m2idx];
+          }
+        } else {
+          for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
+            c12[i] = cosf1[m1idx]*cosf2[m2idx] - sinf1[m1idx]*sinf2[m2idx];
+            s12[i] = sinf1[m1idx]*cosf2[m2idx] + cosf1[m1idx]*sinf2[m2idx];
+          }
+        }
+        for (int m3 = -mlimit_[2]; m3 <= mlimit_[2]; m3++)
+        {
+          // Columns of recip are reciprocal unit cell vecs, so
+          // mhat contains Cartesian components of recip vector M.
+          Vec3 mhat = recip.TransposeMult( Vec3(m1, m2, m3) );
+          double msq = mhat.Magnitude2();
+          double denom = Constants::PI * volume * msq;
+          double eterm = 0.0;
+//          double vterm = 0.0;
+          if ( m1*m1 + m2*m2 + m3*m3 > 0 ) {
+            eterm = exp(-fac*msq) / denom;
+//            vterm = 2.0 * (fac*msq + 1.0) / msq;
+          }
+          // mult takes care to double count for symmetry. Can take care of
+          // with eterm.
+          eterm *= mult;
+          if (msq < maxexp2) {
+            int mp3 = IABS(m3) + 1;
+            int m3idx = Frac_.size() * mp3;
+            // Get the product of complex exponentials.
+            if (m3 < 0) {
+              for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
+                c3[i] = c12[i]*cosf3[m3idx] + s12[i]*sinf3[m3idx];
+                s3[i] = s12[i]*cosf3[m3idx] - c12[i]*sinf3[m3idx];
+              }
+            } else {
+              for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
+                c3[i] = c12[i]*cosf3[m3idx] - s12[i]*sinf3[m3idx];
+                s3[i] = s12[i]*cosf3[m3idx] + c12[i]*sinf3[m3idx];
+              }
+            }
+            // Get the structure factor
+            double cstruct = 0.0;
+            double sstruct = 0.0;
+            for (unsigned int i = 0; i != Frac_.size(); i++) {
+              cstruct += Charge_[i] * c3[i];
+              sstruct += Charge_[i] * s3[i];
+            }
+            double struc2 = cstruct*cstruct + sstruct*sstruct;
+            ene += eterm * struc2;
+          } // END IF msq < maxexp2
+        } // END loop over m3
+//      } // END IF iproc == (count % nproc)
+    } // END loop over m2
+    mult = 2.0;
+  } // END loop over m1
+
+  return ene * 0.5;
 }
 
 /** Calculate Ewald energy. */
@@ -347,6 +425,9 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
   double e_self = Self( volume );
 
   MapCoords(frameIn, recip, maskIn);
+  double e_recip = Recip_Regular( recip, volume );
+
+  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f\n", e_self, e_recip);
 
   return e_self;
 }
