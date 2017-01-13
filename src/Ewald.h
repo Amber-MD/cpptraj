@@ -8,6 +8,7 @@ class Ewald {
     void CalcSumQ(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
     double Self(double);
+    double Recip_Regular();
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);
@@ -15,8 +16,11 @@ class Ewald {
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
 
-    Matrix_3x3 ucell_;
-    Matrix_3x3 recip_;
+    void MapCoords(Frame const&, Matrix_3x3 const&, AtomMask const&);
+
+    typedef std::vector<double> Darray;
+
+    std::vector<Vec3> Frac_; ///< Hold fractional coords back in primary cell
 
     static double INVSQRTPI_;
     double sumq_; ///< Sum of charges
@@ -27,6 +31,7 @@ class Ewald {
     double dsumTol_; ///< Direct space sum tolerance.
     double rsumTol_; ///< Reciprocal space sum tolerance.
     int mlimit_[3];
+    int maxmlim_;
     bool needSumQ_; ///< True if sum over charges needs to be calcd. (TODO)
 };
 #endif

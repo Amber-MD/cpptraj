@@ -3,10 +3,18 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 
-Ewald::Ewald() : sumq_(0.0), sumq2_(0.0), ew_coeff_(0.0), maxexp_(0.0),
-  cutoff_(0.0), dsumTol_(0.0),
-  rsumTol_(0.0), needSumQ_(true)
+Ewald::Ewald() :
+  sumq_(0.0),
+  sumq2_(0.0),
+  ew_coeff_(0.0),
+  maxexp_(0.0),
+  cutoff_(0.0),
+  dsumTol_(0.0),
+  rsumTol_(0.0),
+  maxmlim_(0),
+  needSumQ_(true)
 {
+  
   mlimit_[0] = 0;
   mlimit_[1] = 0;
   mlimit_[2] = 0;
@@ -184,7 +192,7 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
   rsumTol_ = rsumTolIn;
   ew_coeff_ = ew_coeffIn;
   maxexp_ = maxexpIn;
-  boxIn.ToRecip(ucell_, recip_);
+  Matrix_3x3 ucell, recip;
   if (mlimitsIn != 0)
     std::copy(mlimitsIn, mlimitsIn+3, mlimit_);
 
@@ -197,9 +205,9 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
     mprinterr("Error: Cannot specify negative mlimit values.\n");
     return 1;
   }
-  int maxmlim = mlimit_[0];
-  maxmlim = std::max(maxmlim, mlimit_[1]);
-  maxmlim = std::max(maxmlim, mlimit_[2]);
+  maxmlim_ = mlimit_[0];
+  maxmlim_ = std::max(maxmlim_, mlimit_[1]);
+  maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   if (maxexp_ < 0.0) {
     mprinterr("Error: maxexp is less than 0.0\n");
     return 1;
@@ -212,18 +220,21 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
     dsumTol_ = 1E-5;
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
-  if (maxmlim > 0)
-    maxexp_ = FindMaxexpFromMlim(mlimit_, recip_);
+  if (maxmlim_ > 0)
+    maxexp_ = FindMaxexpFromMlim(mlimit_, recip);
   else {
     if ( maxexp_ < Constants::SMALL )
       maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
     // Calculate lengths of reciprocal vectors
-    Vec3 reclng( 1.0/sqrt(recip_[0]*recip_[0] + recip_[1]*recip_[1] + recip_[2]*recip_[2]),
-                 1.0/sqrt(recip_[3]*recip_[3] + recip_[4]*recip_[4] + recip_[5]*recip_[5]),
-                 1.0/sqrt(recip_[6]*recip_[6] + recip_[7]*recip_[7] + recip_[8]*recip_[8]) );
+    Vec3 reclng( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
+                 1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
+                 1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
-    GetMlimits(mlimit_, maxexp_, eigmin, reclng, recip_);
+    GetMlimits(mlimit_, maxexp_, eigmin, reclng, recip);
+    maxmlim_ = mlimit_[0];
+    maxmlim_ = std::max(maxmlim_, mlimit_[1]);
+    maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   }
 
   mprintf("DEBUG: Ewald params:\n");
@@ -233,6 +244,19 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
           maxexp_, rsumTol_);
   mprintf("\tmlimits= {%i,%i,%i}\n", mlimit_[0], mlimit_[1], mlimit_[2]);
   return 0;
+}
+
+/** Take Cartesian coords of input atoms and map to fractional coords. */
+void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& recip, AtomMask const& maskIn) {
+  Frac_.clear();
+  Frac_.reserve( maskIn.Nselected() * 3 );
+
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
+    // Wrap back into primary cell
+    Frac_.push_back( Vec3(floor(fc[0]), floor(fc[1]), floor(fc[2])) );
+  }
 }
 
 /** Calculate sum of charges and squared charges. */
@@ -259,12 +283,70 @@ double Ewald::Self(double volume) {
   return ene;
 }
 
+/** Recip energy. */
+double Ewald::Recip_Regular() {
+  double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
+  double maxexp2 = maxexp_ * maxexp_;
+  double ene = 0.0;
+  // Number of M values is the max + 1.
+  int mmax = maxmlim_ + 1;
+  // Build exponential factors for use in structure factors.
+  // These arrays are laid out in 1D; value for each atom at each m, i.e.
+  // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
+  Darray cosf1, cosf2, cosf3, sinf1, sinf2, sinf3;
+  cosf1.reserve( Frac_.size()*mmax );
+  cosf2.reserve( Frac_.size()*mmax );
+  cosf3.reserve( Frac_.size()*mmax );
+  sinf1.reserve( Frac_.size()*mmax );
+  sinf2.reserve( Frac_.size()*mmax );
+  sinf3.reserve( Frac_.size()*mmax );
+  // M0
+  for (unsigned int i = 0; i != Frac_.size(); i++) {
+    cosf1.push_back( 1.0 );
+    cosf2.push_back( 1.0 );
+    cosf3.push_back( 1.0 );
+    sinf1.push_back( 0.0 );
+    sinf2.push_back( 0.0 );
+    sinf3.push_back( 0.0 );
+  }
+  // M1
+  for (unsigned int i = 0; i != Frac_.size(); i++) {
+    cosf1.push_back( cos(Constants::TWOPI * Frac_[i][0]) );
+    cosf2.push_back( cos(Constants::TWOPI * Frac_[i][1]) );
+    cosf3.push_back( cos(Constants::TWOPI * Frac_[i][2]) );
+    sinf1.push_back( sin(Constants::TWOPI * Frac_[i][0]) );
+    sinf2.push_back( sin(Constants::TWOPI * Frac_[i][1]) );
+    sinf3.push_back( sin(Constants::TWOPI * Frac_[i][2]) );
+  }
+  // M2-MX
+  // Get the higher factors by recursion using trig addition rules.
+  // Negative values of M by complex conjugation, or even cosf, odd sinf.
+  // idx will always point to M-1 values
+  unsigned int idx = Frac_.size();
+  for (int m = 2; m < mmax; m++) {
+    // Set m1idx to beginning of M1 values.
+    unsigned int m1idx = Frac_.size();
+    for (unsigned int i = 0; i != Frac_.size(); i++, idx++, m1idx++) {
+      cosf1.push_back( cosf1[idx]*cosf1[m1idx] - sinf1[idx]*sinf1[m1idx] );
+      cosf2.push_back( cosf2[idx]*cosf2[m1idx] - sinf2[idx]*sinf2[m1idx] );
+      cosf3.push_back( cosf3[idx]*cosf3[m1idx] - sinf3[idx]*sinf3[m1idx] );
+      sinf1.push_back( sinf1[idx]*cosf1[m1idx] - cosf1[idx]*sinf1[m1idx] );
+      sinf2.push_back( sinf2[idx]*cosf2[m1idx] - cosf2[idx]*sinf2[m1idx] );
+      sinf3.push_back( sinf3[idx]*cosf3[m1idx] - cosf3[idx]*sinf3[m1idx] );
+    }
+  }
+
+  return ene;
+}
+
 /** Calculate Ewald energy. */
 double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
 {
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
+
+  MapCoords(frameIn, recip, maskIn);
 
   return e_self;
 }
