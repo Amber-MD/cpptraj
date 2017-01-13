@@ -9,6 +9,7 @@ class Ewald {
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
     double Self(double);
     double Recip_Regular(Matrix_3x3 const&, double);
+    double Direct(Frame const&, Topology const&, AtomMask const&);
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);

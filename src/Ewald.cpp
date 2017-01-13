@@ -426,6 +426,48 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   return ene * 0.5;
 }
 
+/** Direct space energy. */
+double Ewald::Direct(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+{
+//  time_NB_.Start();
+  double cut2 = cutoff_ * cutoff_;
+  double Eelec = 0.0;
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  {
+    // Set up coord for this atom
+    const double* crd1 = fIn.XYZ( *atom1 );
+    // Set up exclusion list for this atom
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
+    {
+      // If atom is excluded, just increment to next excluded atom.
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
+        ++excluded_atom;
+      else {
+        const double* crd2 = fIn.XYZ( *atom2 );
+        double dx = crd1[0]-crd2[0];
+        double dy = crd1[1]-crd2[1];
+        double dz = crd1[2]-crd2[2];
+        double rij2 = dx*dx + dy*dy + dz*dz;
+        if ( rij2 < cut2 ) {
+          double rij = sqrt( rij2 );
+          // Coulomb
+          double qiqj = Charge_[*atom1] * Charge_[*atom2];
+          double e_elec = qiqj / rij;
+          Eelec += e_elec;
+#         ifdef DEBUG_ENERGY
+          mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
+                  *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
+                  rij, e_elec);
+#         endif
+        }
+      }
+    }
+  }
+//  time_NB_.Stop();
+  return Eelec;
+}
+
 /** Calculate Ewald energy. */
 double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
 {
@@ -436,9 +478,10 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
   MapCoords(frameIn, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
 
-  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f\n", e_self, e_recip);
+  double e_direct = Direct(frameIn, topIn, maskIn);
 
-  return e_self;
+  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
+          e_self, e_recip, e_direct);
+
+  return e_self + e_recip + e_direct;
 }
-
-
