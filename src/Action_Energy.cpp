@@ -220,6 +220,7 @@ double Action_Energy::Dbg_Direct(Frame const& frameIn, int maxpoints) {
 
 // Action_Energy::DoAction()
 Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
+  etime_.Start();
   double Etot = 0.0, ene, ene2;
   for (calc_it calc = Ecalcs_.begin(); calc != Ecalcs_.end(); ++calc)
   {
@@ -278,12 +279,14 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
-
+  etime_.Stop();
   return Action::OK;
 }
 
 void Action_Energy::Print() {
   mprintf("Timing for energy: '%s' ('%s')\n", Energy_[TOTAL]->legend(),
            Mask1_.MaskString());
-  ENE_.PrintTiming();
+  ENE_.PrintTiming(etime_.Total());
+  if (etype_ == EW)
+    EW_.Timing(etime_.Total());
 }

@@ -20,7 +20,7 @@ class Energy_Amber {
 
 
     void SetDebug(int d) { debug_ = d; }
-    void PrintTiming() const;
+    void PrintTiming(double) const;
   private:
     double CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
                           CharMask const&);

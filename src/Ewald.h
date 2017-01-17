@@ -1,12 +1,14 @@
 #ifndef INC_EWALD_H
 #define INC_EWALD_H
 #include "Topology.h"
+#include "Timer.h"
 class Ewald {
   public:
     Ewald();
     int EwaldInit(Box const&, double, double, double, double, double, const int*);
     void EwaldSetup(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
+    void Timing(double) const;
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);
@@ -38,5 +40,10 @@ class Ewald {
     int mlimit_[3];
     int maxmlim_;
     bool needSumQ_; ///< True if sum over charges needs to be calcd. (TODO)
+    Timer t_total_;
+    Timer t_map_;
+    Timer t_self_;
+    Timer t_recip_;
+    Timer t_direct_;
 };
 #endif

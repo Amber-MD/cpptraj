@@ -260,26 +260,6 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   return 0;
 }
 
-/** Take Cartesian coords of input atoms and map to fractional coords. */
-void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
-                      Matrix_3x3 const& recip, AtomMask const& maskIn)
-{
-  Frac_.clear();
-  Frac_.reserve( maskIn.Nselected() );
-  Image_.clear();
-  Image_.reserve( maskIn.Nselected() );
-
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-  {
-    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
-    // Wrap back into primary cell
-    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
-    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
-    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
-  }
-  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
-}
-
 /** Convert charges to Amber units. Calculate sum of charges and squared charges. */
 void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   sumq_ = 0.0;
@@ -295,19 +275,44 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   needSumQ_ = false;
 }
 
+/** Take Cartesian coords of input atoms and map to fractional coords. */
+void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
+                      Matrix_3x3 const& recip, AtomMask const& maskIn)
+{
+  t_map_.Start();
+  Frac_.clear();
+  Frac_.reserve( maskIn.Nselected() );
+  Image_.clear();
+  Image_.reserve( maskIn.Nselected() );
+
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
+    // Wrap back into primary cell
+    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
+    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
+    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
+  }
+  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
+  t_map_.Stop();
+}
+
 /** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double Ewald::Self(double volume) {
+  t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
   mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
   double ee_plasma = -0.5 * factor * sumq_ * sumq_;
   ene += ee_plasma;
+  t_self_.Stop();
   return ene;
 }
 
 /** "Reciprocal space" energy counteracting the neutralizing charge distribution. */
 double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
+  t_recip_.Start();
   double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
   double ene = 0.0;
@@ -440,14 +445,14 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
     } // END loop over m2
     mult = 2.0;
   } // END loop over m1
-
+  t_recip_.Stop();
   return ene * 0.5;
 }
 
 /** Direct space energy. */
 double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask const& mask)
 {
-//  time_NB_.Start();
+  t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   unsigned int maxidx = Image_.size();
@@ -489,13 +494,14 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
       }
     }
   }
-//  time_NB_.Stop();
+  t_direct_.Stop();
   return Eelec;
 }
 
 /** Calculate Ewald energy. */
 double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
 {
+  t_total_.Start();
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
@@ -507,6 +513,14 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
 
   mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
           e_self, e_recip, e_direct);
-
+  t_total_.Stop();
   return e_self + e_recip + e_direct;
+}
+
+void Ewald::Timing(double total) const {
+  t_map_.WriteTiming(2,    "MapCoords: ", t_total_.Total());
+  t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
+  t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  t_total_.WriteTiming(1,  "EwaldTotal:", total);
 }

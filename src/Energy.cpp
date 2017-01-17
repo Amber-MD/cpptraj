@@ -373,7 +373,7 @@ double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask
 }
 
 // -----------------------------------------------------------------------------
-void Energy_Amber::PrintTiming() const {
+void Energy_Amber::PrintTiming(double totalIn) const {
   double total = time_bond_.Total() + time_angle_.Total() +
                  time_tors_.Total() + time_14_.Total() +
                  time_NB_.Total();
@@ -382,5 +382,5 @@ void Energy_Amber::PrintTiming() const {
   time_tors_.WriteTiming(1, "TORSION", total);
   time_14_.WriteTiming(1, "1-4_NONBOND", total);
   time_NB_.WriteTiming(1, "NONBOND", total);
-  mprintf("TIME: Total= %.4f\n", total);
+  mprintf("TIME: Total= %.4f (%6.2f%%)\n", total, total/totalIn);
 }

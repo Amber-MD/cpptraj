@@ -41,5 +41,6 @@ class Action_Energy: public Action {
     double ewcoeff_;               ///< Ewald coefficient.
     double maxexp_;
     int mlimits_[3];
+    Timer etime_;
 };
 #endif
