@@ -1,15 +1,20 @@
 #include "Action_Energy.h"
 #include "CpptrajStdio.h"
-#include "Ewald.h" // DEBUG
 
 // CONSTRUCTOR
-Action_Energy::Action_Energy() : currentParm_(0) {}
+Action_Energy::Action_Energy() : currentParm_(0)
+{
+  std::fill(mlimits_, mlimits_+3, 0);
+}
 
 
 void Action_Energy::Help() const {
   mprintf("\t[<name>] [<mask1>] [out <filename>]\n"
           "\t[bond] [angle] [dihedral] [nb14] {[nonbond] | [elec] [vdw]}\n"
-          "\t[ etype {simple | directsum [npoints <N>]} ]\n"
+          "\t[ etype {simple | directsum [npoints <N>] |\n"
+          "\t         ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
+          "\t               [ewcoeff <coeff>] [maxexp <max>]\n"
+          "\t               [mlimits <X>,<Y>,<Z>]} ]\n"
           "  Calculate energy for atoms in mask.\n");
 }
 
@@ -18,7 +23,8 @@ static const char* Estring[] = {"bond", "angle", "dih", "vdw14", "elec14", "vdw"
 
 /// Calculation types
 static const char* Cstring[] = {"Bond", "Angle", "Torsion", "1-4 Nonbond", "Nonbond",
-                                "Electrostatics", "van der Waals", "Electrostatics (Direct Sum)" };
+                                "Electrostatics", "van der Waals", "Electrostatics (Direct Sum)",
+                                "Electrostatics (Ewald)" };
 
 // Action_Energy::AddSet()
 int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
@@ -48,8 +54,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     calc_elec = false;
   }
   // Electrostatics type. If specified always split the Elec/VDW calc.
-  enum ElecType { SIMPLE, DIRECTSUM };
-  ElecType etype = SIMPLE;
+  etype_ = SIMPLE;
   std::string etypearg = actionArgs.GetStringKey("etype");
   if (!etypearg.empty()) {
     if (calc_nb) {
@@ -57,11 +62,34 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       calc_vdw = true;
     }
     if (etypearg == "directsum") {
-      etype = DIRECTSUM;
+      // Direct sum method
+      etype_ = DIRECTSUM;
       calc_elec = true;
       npoints_ = actionArgs.getKeyInt("npoints", 0);
+    } else if (etypearg == "ewald") {
+      // Ewald method
+      etype_ = EW;
+      calc_elec = true;
+      cutoff_ = actionArgs.getKeyDouble("cut", 8.0);
+      dsumtol_ = actionArgs.getKeyDouble("dsumtol", 1E-5);
+      rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
+      ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
+      maxexp_ = actionArgs.getKeyDouble("maxexp", 0.0);
+      std::string marg = actionArgs.GetStringKey("mlimits");
+      if (!marg.empty()) {
+        ArgList mlim(marg, ",");
+        if (mlim.Nargs() != 3) {
+          mprinterr("Error: Need 3 integers in comma-separated list for 'mlimits'\n");
+          return Action::ERR;
+        }
+        mlimits_[0] = mlim.getNextInteger(0);
+        mlimits_[1] = mlim.getNextInteger(0);
+        mlimits_[2] = mlim.getNextInteger(0);
+      } else
+        std::fill(mlimits_, mlimits_+3, 0);
     } else if (etypearg == "simple") {
-      etype = SIMPLE;
+      // Simple method
+      etype_ = SIMPLE;
       if (!calc_nb && !calc_elec) calc_elec = true;
     } else {
       mprinterr("Error: Unrecognized option for 'etype': %s\n", etypearg.c_str());
@@ -77,9 +105,10 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
   if (calc_nb)                       Ecalcs_.push_back(NBD);
   if (calc_vdw)                      Ecalcs_.push_back(LJ);
   if (calc_elec) {
-    switch (etype) {
+    switch (etype_) {
       case SIMPLE:    Ecalcs_.push_back(COULOMB); break;
       case DIRECTSUM: Ecalcs_.push_back(DIRECT); break;
+      case EW:        Ecalcs_.push_back(EWALD); break;
     }
   }
   // If nothing is selected, select all.
@@ -114,8 +143,8 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       case LJ:
         if (AddSet(VDW, init.DSL(), outfile, setname)) return Action::ERR; break;
       case COULOMB:
-        if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
       case DIRECT:
+      case EWALD:
         if (AddSet(ELEC, init.DSL(), outfile, setname)) return Action::ERR; break;
     }
   }
@@ -130,13 +159,15 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
     mprintf(" %s", Cstring[*calc]);
   }
   mprintf("\n");
-  if (etype == DIRECTSUM) {
+  if (etype_ == DIRECTSUM) {
     if (npoints_ < 0)
       mprintf("\tDirect sum energy for up to %i unit cells in each direction will be calculated.\n",
               -npoints_);
     else
       mprintf("\tDirect sum energy for %i unit cells in each direction will be calculated.\n",
               npoints_);
+  } else if (etype_ == EW) {
+    mprintf("\tCalculating electrostatics with Ewald method.\n");
   }
   return Action::OK;
 }
@@ -160,6 +191,13 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
                 "Error:   does not have non-bonded parameters.\n", setup.Top().c_str());
       return Action::ERR;
     }
+  // Set up Ewald if necessary.
+  if (etype_ == EW) {
+    if (EW_.EwaldInit(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
+                      ewcoeff_, maxexp_, mlimits_))
+      return Action::ERR;
+    EW_.EwaldSetup( setup.Top(), Imask_ );
+  }
   currentParm_ = setup.TopAddress();
   return Action::OK;
 }
@@ -231,17 +269,15 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;
+      case EWALD:
+        ene = EW_.CalcEnergy(frm.Frm(), *currentParm_, Imask_);
+        Energy_[ELEC]->Add(frameNum, &ene);
+        Etot += ene;
+        break;
     }
   }
 
   Energy_[TOTAL]->Add(frameNum, &Etot);
-
-  // DEBUG
-  Ewald ew;
-  ew.EwaldInit(frm.Frm().BoxCrd(), 5.6, 0.0000001, 0.0000001, 0.0, 0.0, 0);
-  ew.EwaldSetup(*currentParm_, Imask_);
-  double ew_ene = ew.CalcEnergy(frm.Frm(), *currentParm_, Imask_);
-  mprintf("DEBUG: EW energy= %12.4f\n", ew_ene);
 
   return Action::OK;
 }
