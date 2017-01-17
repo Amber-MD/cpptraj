@@ -241,7 +241,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
   ew.SetupParams(frm.Frm().BoxCrd(), 5.6, 0.0000001, 0.0000001, 0.0, 0.0, 0);
   ew.CalcSumQ(*currentParm_, Imask_);
   double ew_ene = ew.CalcEnergy(frm.Frm(), *currentParm_, Imask_);
-  mprintf("DEBUG: EW energy= %g\n", ew_ene);
+  mprintf("DEBUG: EW energy= %12.4f\n", ew_ene);
 
   return Action::OK;
 }

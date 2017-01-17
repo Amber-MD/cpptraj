@@ -14,10 +14,15 @@ Ewald::Ewald() :
   maxmlim_(0),
   needSumQ_(true)
 {
-  
   mlimit_[0] = 0;
   mlimit_[1] = 0;
   mlimit_[2] = 0;
+  /// Save fractional translations for 1 cell in each direction (and primary cell).
+  Cells_.reserve( 27 );
+  for (int ix = -1; ix < 2; ix++)
+    for (int iy = -1; iy < 2; iy++)
+      for (int iz = -1; iz < 2; iz++)
+        Cells_.push_back( Vec3(ix, iy, iz) );
 }
 
 double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
@@ -248,9 +253,13 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
 }
 
 /** Take Cartesian coords of input atoms and map to fractional coords. */
-void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& recip, AtomMask const& maskIn) {
+void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
+                      Matrix_3x3 const& recip, AtomMask const& maskIn)
+{
   Frac_.clear();
   Frac_.reserve( maskIn.Nselected() );
+  Image_.clear();
+  Image_.reserve( maskIn.Nselected() );
 
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
@@ -258,6 +267,7 @@ void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& recip, AtomMask cons
     // Wrap back into primary cell
     //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
     Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
+    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
   }
   mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
 }
@@ -427,39 +437,45 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 }
 
 /** Direct space energy. */
-double Ewald::Direct(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask const& mask)
 {
 //  time_NB_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
-  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  unsigned int maxidx = Image_.size();
+  for (unsigned int idx1 = 0; idx1 != maxidx; idx1++)
   {
     // Set up coord for this atom
-    const double* crd1 = fIn.XYZ( *atom1 );
+    Vec3 const& crd1 = Image_[idx1];
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
-    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
+    int atom1 = mask[idx1];
+    Atom::excluded_iterator excluded_atom = tIn[atom1].excludedbegin();
+    for (unsigned int idx2 = idx1 + 1; idx2 != maxidx; idx2++)
     {
+      int atom2 = mask[idx2];
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
+      mprintf("ATOM: Atom %4i to %4i", atom1+1, atom2+1);
+      if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom) {
         ++excluded_atom;
-      else {
-        const double* crd2 = fIn.XYZ( *atom2 );
-        double dx = crd1[0]-crd2[0];
-        double dy = crd1[1]-crd2[1];
-        double dz = crd1[2]-crd2[2];
-        double rij2 = dx*dx + dy*dy + dz*dz;
-        if ( rij2 < cut2 ) {
-          double rij = sqrt( rij2 );
-          // Coulomb
-          double qiqj = Charge_[*atom1] * Charge_[*atom2];
-          double e_elec = qiqj / rij;
-          Eelec += e_elec;
-#         ifdef DEBUG_ENERGY
-          mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
-                  *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
-                  rij, e_elec);
-#         endif
+        mprintf(" excluded.\n");
+      } else {
+        // Only need to check nearest neighbors.
+        Vec3 const& frac2 = Frac_[idx2];
+        for (Varray::const_iterator ixyz = Cells_.begin(); ixyz != Cells_.end(); ++ixyz)
+        {
+          Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - crd1;
+          double rij2 = dxyz.Magnitude2();
+          if ( rij2 < cut2 ) {
+            mprintf("\n");
+            double rij = sqrt( rij2 );
+            // Coulomb
+            double qiqj = Charge_[idx1] * Charge_[idx2];
+            double erfc = erfc_func(ew_coeff_ * rij);
+            double e_elec = qiqj * erfc / rij;
+            Eelec += e_elec;
+            mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f\n", atom1+1, atom2+1, rij, erfc, e_elec);
+          } else
+            mprintf(" outside cut, %g > %g.\n", sqrt(rij2), cutoff_);
         }
       }
     }
@@ -475,10 +491,10 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
 
-  MapCoords(frameIn, recip, maskIn);
+  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
 
-  double e_direct = Direct(frameIn, topIn, maskIn);
+  double e_direct = Direct( ucell, topIn, maskIn );
 
   mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
           e_self, e_recip, e_direct);

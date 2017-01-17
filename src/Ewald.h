@@ -9,7 +9,7 @@ class Ewald {
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
     double Self(double);
     double Recip_Regular(Matrix_3x3 const&, double);
-    double Direct(Frame const&, Topology const&, AtomMask const&);
+    double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);
@@ -17,11 +17,14 @@ class Ewald {
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
 
-    void MapCoords(Frame const&, Matrix_3x3 const&, AtomMask const&);
+    void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
 
     typedef std::vector<double> Darray;
+    typedef std::vector<Vec3> Varray;
 
-    std::vector<Vec3> Frac_; ///< Hold fractional coords back in primary cell
+    Varray Cells_;  ///< Hold fractional translations to neighbor cells.
+    Varray Frac_;   ///< Hold fractional coords back in primary cell.
+    Varray Image_;  ///< Hold Cartesian coords back in primary cell.
     Darray Charge_; ///< Hold atomic charges converted to Amber units.
 
     static double INVSQRTPI_;
