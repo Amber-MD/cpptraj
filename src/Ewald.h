@@ -28,6 +28,12 @@ class Ewald {
     Varray Frac_;   ///< Hold fractional coords back in primary cell.
     Varray Image_;  ///< Hold Cartesian coords back in primary cell.
     Darray Charge_; ///< Hold atomic charges converted to Amber units.
+    Darray cosf1_;
+    Darray cosf2_;
+    Darray cosf3_;
+    Darray sinf1_;
+    Darray sinf2_;
+    Darray sinf3_;
 
     static double INVSQRTPI_;
     double sumq_; ///< Sum of charges

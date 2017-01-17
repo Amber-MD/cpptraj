@@ -273,6 +273,27 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   }
   mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
   needSumQ_ = false;
+  // Build exponential factors for use in structure factors.
+  // These arrays are laid out in 1D; value for each atom at each m, i.e.
+  // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
+  // Number of M values is the max + 1.
+  int mmax = maxmlim_ + 1;
+  unsigned int tsize = maskIn.Nselected() * mmax;
+  cosf1_.assign( tsize, 1.0 );
+  cosf2_.assign( tsize, 1.0 );
+  cosf3_.assign( tsize, 1.0 );
+  sinf1_.assign( tsize, 0.0 );
+  sinf2_.assign( tsize, 0.0 );
+  sinf3_.assign( tsize, 0.0 );
+  // M0
+//  for (int i = 0; i != maskIn.Nselected(); i++) {
+//    cosf1_.push_back( 1.0 );
+//    cosf2_.push_back( 1.0 );
+//    cosf3_.push_back( 1.0 );
+//    sinf1_.push_back( 0.0 );
+//    sinf2_.push_back( 0.0 );
+//    sinf3_.push_back( 0.0 );
+// }
 }
 
 /** Take Cartesian coords of input atoms and map to fractional coords. */
@@ -321,31 +342,17 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
-  Darray cosf1, cosf2, cosf3, sinf1, sinf2, sinf3;
-  cosf1.reserve( Frac_.size()*mmax );
-  cosf2.reserve( Frac_.size()*mmax );
-  cosf3.reserve( Frac_.size()*mmax );
-  sinf1.reserve( Frac_.size()*mmax );
-  sinf2.reserve( Frac_.size()*mmax );
-  sinf3.reserve( Frac_.size()*mmax );
-  // M0
-  for (unsigned int i = 0; i != Frac_.size(); i++) {
-    cosf1.push_back( 1.0 );
-    cosf2.push_back( 1.0 );
-    cosf3.push_back( 1.0 );
-    sinf1.push_back( 0.0 );
-    sinf2.push_back( 0.0 );
-    sinf3.push_back( 0.0 );
-  }
+  // M0 is done in EwaldSetup()
+  unsigned int mnidx = Frac_.size();
   // M1
-  for (unsigned int i = 0; i != Frac_.size(); i++) {
+  for (unsigned int i = 0; i != Frac_.size(); i++, mnidx++) {
     //mprintf("FRAC: %6i%20.10f%20.10f%20.10f\n", i+1, Frac_[i][0], Frac_[i][1], Frac_[i][2]);
-    cosf1.push_back( cos(Constants::TWOPI * Frac_[i][0]) );
-    cosf2.push_back( cos(Constants::TWOPI * Frac_[i][1]) );
-    cosf3.push_back( cos(Constants::TWOPI * Frac_[i][2]) );
-    sinf1.push_back( sin(Constants::TWOPI * Frac_[i][0]) );
-    sinf2.push_back( sin(Constants::TWOPI * Frac_[i][1]) );
-    sinf3.push_back( sin(Constants::TWOPI * Frac_[i][2]) );
+    cosf1_[mnidx] = cos(Constants::TWOPI * Frac_[i][0]);
+    cosf2_[mnidx] = cos(Constants::TWOPI * Frac_[i][1]);
+    cosf3_[mnidx] = cos(Constants::TWOPI * Frac_[i][2]);
+    sinf1_[mnidx] = sin(Constants::TWOPI * Frac_[i][0]);
+    sinf2_[mnidx] = sin(Constants::TWOPI * Frac_[i][1]);
+    sinf3_[mnidx] = sin(Constants::TWOPI * Frac_[i][2]);
   }
   // M2-MX
   // Get the higher factors by recursion using trig addition rules.
@@ -355,13 +362,13 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   for (int m = 2; m < mmax; m++) {
     // Set m1idx to beginning of M1 values.
     unsigned int m1idx = Frac_.size();
-    for (unsigned int i = 0; i != Frac_.size(); i++, idx++, m1idx++) {
-      cosf1.push_back( cosf1[idx]*cosf1[m1idx] - sinf1[idx]*sinf1[m1idx] );
-      cosf2.push_back( cosf2[idx]*cosf2[m1idx] - sinf2[idx]*sinf2[m1idx] );
-      cosf3.push_back( cosf3[idx]*cosf3[m1idx] - sinf3[idx]*sinf3[m1idx] );
-      sinf1.push_back( sinf1[idx]*cosf1[m1idx] + cosf1[idx]*sinf1[m1idx] );
-      sinf2.push_back( sinf2[idx]*cosf2[m1idx] + cosf2[idx]*sinf2[m1idx] );
-      sinf3.push_back( sinf3[idx]*cosf3[m1idx] + cosf3[idx]*sinf3[m1idx] );
+    for (unsigned int i = 0; i != Frac_.size(); i++, idx++, m1idx++, mnidx++) {
+      cosf1_[mnidx] = cosf1_[idx]*cosf1_[m1idx] - sinf1_[idx]*sinf1_[m1idx];
+      cosf2_[mnidx] = cosf2_[idx]*cosf2_[m1idx] - sinf2_[idx]*sinf2_[m1idx];
+      cosf3_[mnidx] = cosf3_[idx]*cosf3_[m1idx] - sinf3_[idx]*sinf3_[m1idx];
+      sinf1_[mnidx] = sinf1_[idx]*cosf1_[m1idx] + cosf1_[idx]*sinf1_[m1idx];
+      sinf2_[mnidx] = sinf2_[idx]*cosf2_[m1idx] + cosf2_[idx]*sinf2_[m1idx];
+      sinf3_[mnidx] = sinf3_[idx]*cosf3_[m1idx] + cosf3_[idx]*sinf3_[m1idx];
     }
   }
   // DEBUG
@@ -369,8 +376,8 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   for (int m = 0; m != mmax; m++) {
     for (unsigned int i = 0; i != Frac_.size(); i++, midx++)
       mprintf("TRIG: %6i%6u%12.6f%12.6f%12.6f%12.6f%12.6f%12.6f\n", m,i+1,
-               cosf1[midx], cosf2[midx], cosf3[midx],
-               sinf1[midx], sinf2[midx], sinf3[midx]);
+               cosf1_[midx], cosf2_[midx], cosf3_[midx],
+               sinf1_[midx], sinf2_[midx], sinf3_[midx]);
   }*/
 
   double mult = 1.0;
@@ -390,13 +397,13 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
         int m2idx = Frac_.size() * IABS(m2);
         if (m2 < 0) {
           for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
-            c12[i] = cosf1[m1idx]*cosf2[m2idx] + sinf1[m1idx]*sinf2[m2idx];
-            s12[i] = sinf1[m1idx]*cosf2[m2idx] - cosf1[m1idx]*sinf2[m2idx];
+            c12[i] = cosf1_[m1idx]*cosf2_[m2idx] + sinf1_[m1idx]*sinf2_[m2idx];
+            s12[i] = sinf1_[m1idx]*cosf2_[m2idx] - cosf1_[m1idx]*sinf2_[m2idx];
           }
         } else {
           for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
-            c12[i] = cosf1[m1idx]*cosf2[m2idx] - sinf1[m1idx]*sinf2[m2idx];
-            s12[i] = sinf1[m1idx]*cosf2[m2idx] + cosf1[m1idx]*sinf2[m2idx];
+            c12[i] = cosf1_[m1idx]*cosf2_[m2idx] - sinf1_[m1idx]*sinf2_[m2idx];
+            s12[i] = sinf1_[m1idx]*cosf2_[m2idx] + cosf1_[m1idx]*sinf2_[m2idx];
           }
         }
         for (int m3 = -mlimit_[2]; m3 <= mlimit_[2]; m3++)
@@ -420,13 +427,13 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
             // Get the product of complex exponentials.
             if (m3 < 0) {
               for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
-                c3[i] = c12[i]*cosf3[m3idx] + s12[i]*sinf3[m3idx];
-                s3[i] = s12[i]*cosf3[m3idx] - c12[i]*sinf3[m3idx];
+                c3[i] = c12[i]*cosf3_[m3idx] + s12[i]*sinf3_[m3idx];
+                s3[i] = s12[i]*cosf3_[m3idx] - c12[i]*sinf3_[m3idx];
               }
             } else {
               for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
-                c3[i] = c12[i]*cosf3[m3idx] - s12[i]*sinf3[m3idx];
-                s3[i] = s12[i]*cosf3[m3idx] + c12[i]*sinf3[m3idx];
+                c3[i] = c12[i]*cosf3_[m3idx] - s12[i]*sinf3_[m3idx];
+                s3[i] = s12[i]*cosf3_[m3idx] + c12[i]*sinf3_[m3idx];
               }
             }
             // Get the structure factor
