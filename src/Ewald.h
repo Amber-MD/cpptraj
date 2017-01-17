@@ -4,12 +4,9 @@
 class Ewald {
   public:
     Ewald();
-    int SetupParams(Box const&, double, double, double, double, double, const int*);
-    void CalcSumQ(Topology const&, AtomMask const&);
+    int EwaldInit(Box const&, double, double, double, double, double, const int*);
+    void EwaldSetup(Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
-    double Self(double);
-    double Recip_Regular(Matrix_3x3 const&, double);
-    double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
   private:
     static double erfc_func(double);
     static double FindEwaldCoefficient(double,double);
@@ -18,6 +15,9 @@ class Ewald {
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
 
     void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
+    double Self(double);
+    double Recip_Regular(Matrix_3x3 const&, double);
+    double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
 
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;

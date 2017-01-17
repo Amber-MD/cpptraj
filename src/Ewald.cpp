@@ -187,9 +187,9 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
 
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
-int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                       double ew_coeffIn, double maxexpIn,
-                       const int* mlimitsIn)
+int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
+                     double ew_coeffIn, double maxexpIn,
+                     const int* mlimitsIn)
 {
   needSumQ_ = true;
   cutoff_ = cutoffIn;
@@ -206,6 +206,14 @@ int Ewald::SetupParams(Box const& boxIn, double cutoffIn, double dsumTolIn, doub
   if (cutoff_ < Constants::SMALL) {
     mprinterr("Error: Direct space cutoff (%g) is too small.\n", cutoff_);
     return 1;
+  }
+  char dir[3] = {'X', 'Y', 'Z'};
+  for (int i = 0; i < 3; i++) {
+    if (cutoff_ > boxIn[i]/2.0) {
+      mprinterr("Error: Cutoff must be less than half the box length (%g > %g, %c)\n",
+                cutoff_, boxIn[i]/2.0, dir[i]);
+      return 1;
+    }
   }
   if (mlimit_[0] < 0 || mlimit_[1] < 0 || mlimit_[2] < 0) {
     mprinterr("Error: Cannot specify negative mlimit values.\n");
@@ -272,8 +280,8 @@ void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
   mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
 }
 
-/** Calculate sum of charges and squared charges. */
-void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
+/** Convert charges to Amber units. Calculate sum of charges and squared charges. */
+void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   sumq_ = 0.0;
   sumq2_ = 0.0;
   Charge_.clear();
@@ -287,7 +295,7 @@ void Ewald::CalcSumQ(Topology const& topIn, AtomMask const& maskIn) {
   needSumQ_ = false;
 }
 
-/** Self energy. */
+/** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double Ewald::Self(double volume) {
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
@@ -298,7 +306,7 @@ double Ewald::Self(double volume) {
   return ene;
 }
 
-/** Recip energy. */
+/** "Reciprocal space" energy counteracting the neutralizing charge distribution. */
 double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
@@ -454,10 +462,9 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
     {
       int atom2 = mask[idx2];
       // If atom is excluded, just increment to next excluded atom.
-      mprintf("ATOM: Atom %4i to %4i", atom1+1, atom2+1);
       if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom) {
         ++excluded_atom;
-        mprintf(" excluded.\n");
+        //mprintf("ATOM: Atom %4i to %4i excluded.\n", atom1+1, atom2+1);
       } else {
         // Only need to check nearest neighbors.
         Vec3 const& frac2 = Frac_[idx2];
@@ -466,16 +473,18 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
           Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - crd1;
           double rij2 = dxyz.Magnitude2();
           if ( rij2 < cut2 ) {
-            mprintf("\n");
             double rij = sqrt( rij2 );
             // Coulomb
             double qiqj = Charge_[idx1] * Charge_[idx2];
             double erfc = erfc_func(ew_coeff_ * rij);
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
-            mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f\n", atom1+1, atom2+1, rij, erfc, e_elec);
-          } else
-            mprintf(" outside cut, %g > %g.\n", sqrt(rij2), cutoff_);
+            //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
+            //        atom1+1, atom2+1, rij, erfc, e_elec,(*ixyz)[0],(*ixyz)[1],(*ixyz)[2]);
+            // TODO can we break here?
+          } //else
+            //mprintf("ATOM: Atom %4i to %4i outside cut, %6.2f > %6.2f %3.0f%3.0f%3.0f\n",
+            //         atom1+1, atom2+1,sqrt(rij2),cutoff_,(*ixyz)[0],(*ixyz)[1],(*ixyz)[2]);
         }
       }
     }
