@@ -319,6 +319,9 @@ int CpptrajState::ClearList( ArgList& argIn ) {
   }
   if ( enabled[L_DATASET]  ) {
     mprintf("\tClearing data sets.\n");
+    // Make sure sets are cleared from data files as well.
+    for (DataSetList::const_iterator ds = DSL_.begin(); ds != DSL_.end(); ++ds)
+      DFL_.RemoveDataSet( *ds );
     DSL_.Clear();
   }
   return 0;
