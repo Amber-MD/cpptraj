@@ -14,6 +14,7 @@
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
 #include "DataSet_2D.h"
 #include "DataSet_3D.h"
+#include "DataSet_Cmatrix.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -432,7 +433,10 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     CpptrajFile file;
     if (file.OpenWrite( fname )) return 1;
     // Base write type off first data set dimension FIXME
-    if (SetList[0]->Ndim() == 1) {
+    if (SetList[0]->Group() == DataSet::CLUSTERMATRIX) {
+      // Special case of 2D - may have sieved frames.
+      err = WriteCmatrix(file, SetList);
+    } else if (SetList[0]->Ndim() == 1) {
       if (isInverted_)
         err = WriteDataInverted(file, SetList);
       else
@@ -444,6 +448,42 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     file.CloseFile();
   }
   return err;
+}
+
+// DataIO_Std::WriteCmatrix()
+int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
+  for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+  {
+    if ( (*ds)->Group() != DataSet::CLUSTERMATRIX) {
+      mprinterr("Error: Write of cluster matrix and other sets to same file not supported.\n"
+                "Error: Skipping '%s'\n", (*ds)->legend());
+      continue;
+    }
+    DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
+    int nrows = cm.Nrows();
+    int col_width = std::min(3, DigitWidth( nrows ) + 1);
+    int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
+    WriteNameToBuffer(file, "F1",               col_width, true);
+    WriteNameToBuffer(file, "F2",               col_width, false);
+    WriteNameToBuffer(file, cm.Meta().Legend(), dat_width, false);
+    file.Printf("\n");
+    TextFormat col_fmt(TextFormat::INTEGER, col_width);
+    TextFormat dat_fmt = cm.Format();
+    dat_fmt.SetFormatAlign(TextFormat::RIGHT);
+    dat_fmt.SetFormatWidth( dat_width );
+    std::string total_fmt = col_fmt.Fmt() + col_fmt.Fmt() + dat_fmt.Fmt() + "\n";
+    //mprintf("DEBUG: format '%s'\n", total_fmt.c_str());
+    ClusterSieve::SievedFrames const& frames = cm.FramesToCluster();
+    int ntotal = (int)frames.size();
+    for (int idx1 = 0; idx1 != ntotal; idx1++) {
+      int row = frames[idx1];
+      for (int idx2 = idx1 + 1; idx2 != ntotal; idx2++) {
+        int col = frames[idx2];
+        file.Printf(total_fmt.c_str(), row+1, col+1, cm.GetFdist(col, row)); 
+      }
+    }
+  }
+  return 0;
 }
 
 // DataIO_Std::WriteDataNormal()

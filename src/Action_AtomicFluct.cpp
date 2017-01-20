@@ -48,10 +48,13 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   std::string setname = actionArgs.GetStringNext();
   // Add output dataset
   MetaData md( setname, "", MetaData::NOT_TS );
-  if (bfactor_)
-    md.SetLegend("B-factors");
-  else
-    md.SetLegend("AtomicFlx");
+  if (setname.empty()) {
+    // Only overwrite legend if no name specified.
+    if (bfactor_)
+      md.SetLegend("B-factors");
+    else
+      md.SetLegend("AtomicFlx");
+  }
   dataout_ = init.DSL().AddSet( DataSet::XYMESH, md, "Fluct" );
   if (dataout_ == 0) {
     mprinterr("Error: AtomicFluct: Could not allocate dataset for output.\n");
