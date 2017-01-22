@@ -266,6 +266,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
+        PairList.cpp \
         Parallel.cpp \
         ParallelNetcdf.cpp \
         ParmFile.cpp \

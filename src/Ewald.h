@@ -2,6 +2,7 @@
 #define INC_EWALD_H
 #include "Topology.h"
 #include "Timer.h"
+#include "PairList.h"
 class Ewald {
   public:
     Ewald();
@@ -34,6 +35,8 @@ class Ewald {
     Darray sinf1_;
     Darray sinf2_;
     Darray sinf3_;
+
+    PairList pairList_;
 
     static double INVSQRTPI_;
     double sumq_; ///< Sum of charges
