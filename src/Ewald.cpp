@@ -25,13 +25,15 @@ Ewald::Ewald() :
         Cells_.push_back( Vec3(ix, iy, iz) );
 }
 
-double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
+const double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
+Timer Ewald::t_erfc_ = Timer();
 
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
 static inline int    IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
 
 // Original code: SANDER: erfcfun.F90
 double Ewald::erfc_func(double xIn) {
+  t_erfc_.Start();
   double erfc;
   double absx = DABS( xIn );
     
@@ -77,6 +79,7 @@ double Ewald::erfc_func(double xIn) {
       nonexperfc = 2.0*exp(xIn*xIn) - cval;
     erfc = exp(-absx*absx)*nonexperfc;
   }
+  t_erfc_.Stop();
   return erfc;
 }
 
@@ -530,6 +533,7 @@ void Ewald::Timing(double total) const {
   t_map_.WriteTiming(2,    "MapCoords: ", t_total_.Total());
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
+  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
   t_total_.WriteTiming(1,  "EwaldTotal:", total);
 }

@@ -38,7 +38,7 @@ class Ewald {
 
     PairList pairList_;
 
-    static double INVSQRTPI_;
+    static const double INVSQRTPI_;
     double sumq_; ///< Sum of charges
     double sumq2_; ///< Sum of charges squared
     double ew_coeff_; ///< Ewald coefficient
@@ -54,5 +54,6 @@ class Ewald {
     Timer t_self_;
     Timer t_recip_;
     Timer t_direct_;
+    static Timer t_erfc_; // DEBUG
 };
 #endif
