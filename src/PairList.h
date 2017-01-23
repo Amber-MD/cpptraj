@@ -8,6 +8,7 @@
 class PairList {
   public:
     PairList();
+    int InitPairList();
   private:
     int Fill_CellNeighbor();
 

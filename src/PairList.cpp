@@ -1,10 +1,12 @@
 #include "PairList.h"
 #include "CpptrajStdio.h"
 
-PairList::PairList()
-{
+PairList::PairList() {}
+
+int PairList::InitPairList() {
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
-  Fill_CellNeighbor();
+  if (Fill_CellNeighbor()) return 1;
+  return 0;
 }
 
 /** This leads to cellNeighbor_ dimensions of 7x10 */
@@ -44,18 +46,18 @@ const int PairList::cellOffset_ = 3;
   * The cases represent whether the neighbors extend out of the unit cell by
   * one, two, or three cells. Entry 1 is for cell A and must be 0 since it
   * must be in the unit cell. (last 4 entries are ignored for this set).
-  *          (*,2) (0001000)
-  *          (*,3) (0011000)
-  *          (*,4) (0111000)
-  * Cases 5,6,7 are same as 2,3,4 except that there are 7 cells in all other
+  *          (*,2)  ( 0 0 0 1 0 0 0)
+  *          (*,3)  ( 0 0 1 1 0 0 0)
+  *          (*,4)  ( 0 1 1 1 0 0 0)
+  * Cases 5,6,7 are for neighbors that extend to the left out of the UC.
+  *          (*,5)  (-1 0 0 0 0 0 0)
+  *          (*,6)  (-1-1 0 0 0 0 0)
+  *          (*,7)  (-1-1-1 0 0 0 0)
+  * Cases 8,9,10 are same as 2,3,4 except that there are 7 cells in all other
   * rows:
-  *          (*,5) (0000001)
-  *          (*,6) (0000011)
-  *          (*,7) (0000111)
-  * Cases 8,9,10 are for neighbors that extend to the left out of the UC.
-  *          (*,8) (-1000000)
-  *          (*,9) (-1-100000)
-  *          (*,10)(-1-1-10000)
+  *          (*,8)  ( 0 0 0 0 0 0 1)
+  *          (*,9)  ( 0 0 0 0 0 1 1)
+  *          (*,10) ( 0 0 0 0 1 1 1)
   */
 int PairList::Fill_CellNeighbor() {
   // Sanity check. Currently wired for 3 cells in forward direction.
@@ -77,17 +79,22 @@ int PairList::Fill_CellNeighbor() {
     for (int i = cellOffset_-j; i < cellOffset_+1; i++)
       cellNeighbor_[i][j+1] = 1;
   // CASES 5,6,7
-  for (int i = 0; i < cellOffset_; i++)
-    for (int j = 0; j < i; j++)
-      cellNeighbor_[j][cellOffset_+1+i] = -1;
+  for (int j = 0; j < cellOffset_; j++)
+    for (int i = 0; i <= j; i++)
+      cellNeighbor_[i][cellOffset_+j+1] = -1;
   // CASES 8,9,10
-  for (int i = -1; i < cellOffset_-1; i++)
-    for (int j = -1; j < i; j++)
-      cellNeighbor_[2*cellOffset_+1-j][2*cellOffset_+2+i] = 1;
+  for (int j = 0; j < cellOffset_; j++)
+    for (int i = 0; i < j+1; i++) 
+      cellNeighbor_[2*cellOffset_-i][2*cellOffset_+1+j] = 1;
 
-  for (int i = 0; i < 7; i++)
-    for (int j = 0; j < 10; j++)
-      mprintf("XTRAN %3i%3i%3i\n", i+1, j+1, cellNeighbor_[i][j]);
- 
+//  for (int i = 0; i < 7; i++)
+//    for (int j = 0; j < 10; j++)
+//      mprintf("XTRAN %3i%3i%3i\n", i+1, j+1, cellNeighbor_[i][j]);
+  for (int j = 0; j < 10; j++) {
+    mprintf("XTRAN %3i", cellNeighbor_[0][j]);
+    for (int i = 1; i < 7; i++)
+      mprintf("%3i", cellNeighbor_[i][j]);
+    mprintf("\n");
+  }
   return 0;
-} 
+}

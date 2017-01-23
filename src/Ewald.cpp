@@ -257,6 +257,8 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g\n",
           maxexp_, rsumTol_);
   mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
+
+  if (pairList_.InitPairList()) return 1;
   return 0;
 }
 
