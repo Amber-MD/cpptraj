@@ -518,6 +518,9 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
 
+  // DEBUG
+  pairList_.CreatePairList(frameIn, maskIn);
+
   MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
 

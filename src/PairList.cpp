@@ -3,6 +3,7 @@
 
 PairList::PairList() {}
 
+// PairList::InitPairList()
 int PairList::InitPairList() {
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
   if (Fill_CellNeighbor()) return 1;
@@ -97,4 +98,48 @@ int PairList::Fill_CellNeighbor() {
     mprintf("\n");
   }
   return 0;
+}
+
+// PairList::MapCoords()
+void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
+                         Matrix_3x3 const& recip, AtomMask const& maskIn)
+{
+  t_map_.Start();
+  Frac_.clear();
+  Frac_.reserve( maskIn.Nselected() );
+  Image_.clear();
+  Image_.reserve( maskIn.Nselected() );
+
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
+    // Wrap back into primary cell
+    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
+    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
+    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
+  }
+  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
+  t_map_.Stop();
+}
+
+// PairList::FillTranslateVec()
+void PairList::FillTranslateVec(Matrix_3x3 const& ucell) {
+  int iv = 0;
+  for (int i3 = 0; i3 < 2; i3++)
+    for (int i2 = -1; i2 < 2; i2++)
+      for (int i1 = -1; i1 < 2; i1++)
+        translateVec_[iv++] = ucell.TransposeMult( Vec3(i1, i2, i3) );
+  for (int i = 0; i < 18; i++)
+    mprintf("TRANVEC %3i%12.5f%12.5f%12.5f\n", i+1, translateVec_[i][0],
+            translateVec_[i][1], translateVec_[i][2]);
+}
+
+// PairList::CreatePairList()
+void PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
+  Matrix_3x3 ucell, recip;
+  frmIn.BoxCrd().ToRecip(ucell, recip);
+  MapCoords(frmIn, ucell, recip, maskIn);
+
+  FillTranslateVec(ucell);
+
 }
