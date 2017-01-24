@@ -4,9 +4,11 @@
 PairList::PairList() {}
 
 // PairList::InitPairList()
-int PairList::InitPairList() {
+int PairList::InitPairList(double cutIn, double skinNBin) {
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
   if (Fill_CellNeighbor()) return 1;
+  cutList_ = cutIn + skinNBin;
+  mprintf("DEBUG: cutList= %12.5f\n", cutList_);
   return 0;
 }
 
@@ -134,12 +136,58 @@ void PairList::FillTranslateVec(Matrix_3x3 const& ucell) {
             translateVec_[i][1], translateVec_[i][2]);
 }
 
+// PairList::SetupGrids()
+int PairList::SetupGrids(Vec3 const& recipLengths) {
+
+  int nghb0 = cellOffset_;
+  int nghb1 = nghb0;
+  int nghb2 = nghb0;
+  int nghb3 = nghb0;
+
+  double dc1 = cutList_ / (double)nghb1;
+  double dc2 = cutList_ / (double)nghb2;
+  double dc3 = cutList_ / (double)nghb3;
+
+  nGridX_ = std::max(1, (int)(recipLengths[0] / dc1)); // nucgrd1
+  nGridY_ = std::max(1, (int)(recipLengths[1] / dc2));
+  nGridZ_ = std::max(1, (int)(recipLengths[2] / dc3));
+
+  // TODO Add non-periodic case
+  // Check short range cutoff
+  dc1 = recipLengths[0] / (double)nGridX_;
+  dc2 = recipLengths[1] / (double)nGridY_;
+  dc3 = recipLengths[2] / (double)nGridZ_;
+  double cut = (double)nghb1 * dc1;
+  if (nghb2*dc2 < cut)
+    cut = (double)nghb2*dc2;
+  if (nghb3*dc3 < cut)
+    cut = (double)nghb3*dc3;
+  //if(nogrdptrs)cut=cutlist
+  // DEBUG
+  mprintf("Number of grids per unit cell in each dimension: %i %i %i\n",
+          nGridX_, nGridY_, nGridZ_);
+  //mprintf("Unit cell edge lengths in each dimension: %9.3f %9.3f %9.3f\n",);
+  mprintf("Distance between parallel faces of unit cell: %9.3f %9.3f %9.3f\n",
+          recipLengths[0], recipLengths[1], recipLengths[2]);
+  mprintf("Distance between faces of short range grid subcells: %9.3f %9.3f %9.3f\n",
+          dc1, dc2, dc3);
+  mprintf("Resulting cutoff from subcell neighborhoods is %f\n", cut);
+  if (cut < cutList_) {
+    mprinterr("Error: Resulting cutoff %f too small for lower limit %f\n", cut, cutList_);
+    return 1;
+  }
+  return 0;
+}
+
 // PairList::CreatePairList()
-void PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
+int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
   Matrix_3x3 ucell, recip;
   frmIn.BoxCrd().ToRecip(ucell, recip);
   MapCoords(frmIn, ucell, recip, maskIn);
 
   FillTranslateVec(ucell);
 
+  if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return 1;
+
+  return 0;
 }

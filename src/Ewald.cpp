@@ -242,13 +242,10 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   else {
     if ( maxexp_ < Constants::SMALL )
       maxexp_ = FindMaxexpFromTol(ew_coeff_, rsumTol_);
-    // Calculate lengths of reciprocal vectors
-    Vec3 reclng( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
-                 1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
-                 1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
-    GetMlimits(mlimit_, maxexp_, eigmin, reclng, recip);
+    // Calculate lengths of reciprocal vectors
+    GetMlimits(mlimit_, maxexp_, eigmin, boxIn.RecipLengths(recip), recip);
     maxmlim_ = mlimit_[0];
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
@@ -261,7 +258,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
           maxexp_, rsumTol_);
   mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
 
-  if (pairList_.InitPairList()) return 1;
+  if (pairList_.InitPairList(cutoff_, 0.01)) return 1; //TODO skinnb parameter
   return 0;
 }
 
