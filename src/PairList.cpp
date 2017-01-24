@@ -142,6 +142,7 @@ void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
   mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
   // Allocate memory
   atomCell_.resize( Frac_.size() );
+  atomGridIdx_.resize( Frac_.size() );
   t_map_.Stop();
 }
 
@@ -239,10 +240,22 @@ void PairList::GridUnitCell() {
   idxOffset_[0] = 0;
   for (int i = 1; i < nGridMax_; i++) {
     idxOffset_[i] = idxOffset_[i-1] + nAtomsInGrid_[i-1];
-    mprintf("INDOFF %6i\n", idxOffset_[i]);
+//    mprintf("INDOFF %6i\n", idxOffset_[i]);
     // Reset atom count in each cell.
     nAtomsInGrid_[i-1] = 0;
   }
+  nAtomsInGrid_[nGridMax_-1] = 0;
+
+  // Get list of atoms sorted by grid cell so that atoms in first subcell
+  // are first, atoms in second subcell come after that, etc.
+  for (unsigned int i = 0; i != Frac_.size(); i++) {
+    int idx = atomCell_[i];
+    int j = nAtomsInGrid_[idx] + idxOffset_[idx];
+    nAtomsInGrid_[idx]++;
+    atomGridIdx_[j] = (int)i;
+  }
+  for (unsigned int j = 0; j != atomGridIdx_.size(); j++)
+    mprintf("INDATG %6i\n", atomGridIdx_[j]+1);
 }
 
 // PairList::CreatePairList()

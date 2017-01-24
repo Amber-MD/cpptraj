@@ -33,6 +33,7 @@ class PairList {
     Iarray nAtomsInGrid_;     ///< Number of atoms in each grid cell.
     Iarray idxOffset_;        ///< Offset of starting atom in each grid cell.
     Iarray atomCell_;         ///< Grid cell index for each atom.
+    Iarray atomGridIdx_;      ///< List of atoms sorted by grid cell.
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int nGridX_;              ///< Number of grid cells in X direction.
     int nGridY_;              ///< Number of grid cells in Y direction.
