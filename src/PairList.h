@@ -16,8 +16,10 @@ class PairList {
     void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
     void FillTranslateVec(Matrix_3x3 const&);
     int SetupGrids(Vec3 const&);
+    void GridUnitCell();
 
     typedef std::vector<Vec3> Varray;
+    typedef std::vector<int> Iarray;
 
     static const int cellOffset_; ///< Number of cells in forward direction to check
 
@@ -25,10 +27,17 @@ class PairList {
     int cellNeighbor_[7][10]; ///< Cell neighbor index array based on cellOffset_.
     Varray Frac_;             ///< Hold fractional coords back in primary cell.
     Varray Image_;            ///< Hold Cartesian coords back in primary cell.
+    Iarray nLoGrid_;
+    Iarray nHiGrid_;
+    Iarray MyGrids_;
+    Iarray nAtomsInGrid_;     ///< Number of atoms in each grid cell.
+    Iarray idxOffset_;        ///< Offset of starting atom in each grid cell.
+    Iarray atomCell_;         ///< Grid cell index for each atom.
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int nGridX_;              ///< Number of grid cells in X direction.
     int nGridY_;              ///< Number of grid cells in Y direction.
     int nGridZ_;              ///< Number of grid cells in Z direction.
+    int nGridMax_;            ///< Total number of grid cells.
     Timer t_map_;
 };
 #endif

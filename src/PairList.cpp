@@ -1,5 +1,7 @@
+#include <cmath>
 #include "PairList.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 PairList::PairList() {}
 
@@ -102,6 +104,19 @@ int PairList::Fill_CellNeighbor() {
   return 0;
 }
 
+/// Round floating point to nearest whole number.
+static inline double ANINT(double xIn) {
+  double fpart, ipart;
+  fpart = modf(xIn, &ipart);
+  if (fpart < 0.0) fpart = -fpart;
+  if (fpart < 0.5)
+    return ipart;
+  if (xIn > 0.0)
+    return ipart + 1.0;
+  else
+    return ipart - 1.0;
+}
+
 // PairList::MapCoords()
 void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
                          Matrix_3x3 const& recip, AtomMask const& maskIn)
@@ -115,12 +130,18 @@ void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
   {
     Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
-    // Wrap back into primary cell
+    // TODO: Use ANINT below to have frac coords/grid that matches sander
+    //       for now. Should eventually just use the floor() call to bound
+    //       between 0.0 and 1.0
     //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
-    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
+    // Wrap back into primary cell between -.5 and .5
+    Frac_.push_back( Vec3(fc[0]-ANINT(fc[0]), fc[1]-ANINT(fc[1]), fc[2]-ANINT(fc[2])) );
+    //mprintf("FRAC %10.5f%10.5f%10.5f\n", Frac_.back()[0], Frac_.back()[1], Frac_.back()[2]);
     Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
   }
   mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
+  // Allocate memory
+  atomCell_.resize( Frac_.size() );
   t_map_.Stop();
 }
 
@@ -176,7 +197,52 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
     mprinterr("Error: Resulting cutoff %f too small for lower limit %f\n", cut, cutList_);
     return 1;
   }
+  // Allocation
+  nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
+  nLoGrid_.resize( nGridMax_ );
+  nHiGrid_.resize( nGridMax_ );
+  MyGrids_.resize( nGridMax_ );
+  nAtomsInGrid_.resize( nGridMax_ );
+  idxOffset_.resize( nGridMax_ );
+  mprintf("DEBUG: Grid memory total: %s\n", 
+          ByteString((nLoGrid_.size() + nHiGrid_.size() + MyGrids_.size() +
+                      nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int),
+                     BYTE_DECIMAL).c_str());
   return 0;
+}
+
+/** Grid mapped atoms in the unit cell into grid subcells according
+  * to the fractional coordinates.
+  */
+void PairList::GridUnitCell() {
+  nAtomsInGrid_.assign( nGridMax_, 0 ); // TODO do in setup?
+  //TODO for non-periodic
+  double shift = 0.5;
+  // Find out which grid subcell each atom is in.
+  for (unsigned int i = 0; i != Frac_.size(); i++) {
+    Vec3 const& frac = Frac_[i];
+    int i1 = (int)((frac[0] + shift) * (double)nGridX_);
+    int i2 = (int)((frac[1] + shift) * (double)nGridY_);
+    int i3 = (int)((frac[2] + shift) * (double)nGridZ_);
+    int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
+    atomCell_[i] = idx;
+//    mprintf("GRID atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n", i+1, idx+1,
+//            frac[0],frac[1],frac[2]);
+    if (idx < 0 || idx >= nGridMax_) { // Sanity check
+      mprinterr("Internal Error: Grid is out of range (>= %i || < 0)\n", nGridMax_);
+      return;
+    }
+    nAtomsInGrid_[idx]++;
+  }
+
+  // Find the offset of the starting atoms for each grid subcell.
+  idxOffset_[0] = 0;
+  for (int i = 1; i < nGridMax_; i++) {
+    idxOffset_[i] = idxOffset_[i-1] + nAtomsInGrid_[i-1];
+    mprintf("INDOFF %6i\n", idxOffset_[i]);
+    // Reset atom count in each cell.
+    nAtomsInGrid_[i-1] = 0;
+  }
 }
 
 // PairList::CreatePairList()
@@ -188,6 +254,12 @@ int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
   FillTranslateVec(ucell);
 
   if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return 1;
+
+  // Maybe for parallelization later.
+  int myindexlo = 0;
+  int myindexhi = nGridMax_;
+
+  GridUnitCell();
 
   return 0;
 }
