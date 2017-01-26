@@ -5,17 +5,22 @@
 
 PairList::PairList() {}
 
+/** This leads to cellNeighbor_ dimensions of 7x10 */
+const int PairList::cellOffset_ = 3;
+
 // PairList::InitPairList()
 int PairList::InitPairList(double cutIn, double skinNBin) {
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
   if (Fill_CellNeighbor()) return 1;
   cutList_ = cutIn + skinNBin;
   mprintf("DEBUG: cutList= %12.5f\n", cutList_);
+  nGridX_0_ = -1;
+  nGridY_0_ = -1;
+  nGridZ_0_ = -1;
+  maxNptrs_ = ((2*cellOffset_ + 1) * (2*cellOffset_ + 1) + 1 ) / 2;
+  mprintf("DEBUG: max number of pointers= %i\n", maxNptrs_);
   return 0;
 }
-
-/** This leads to cellNeighbor_ dimensions of 7x10 */
-const int PairList::cellOffset_ = 3;
 
 /** Set up the cellNeighbor_ array.
   * The neighbor cells of a cell of interest (call it A) that are only
@@ -202,12 +207,21 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
   nLoGrid_.resize( nGridMax_ );
   nHiGrid_.resize( nGridMax_ );
-  MyGrids_.resize( nGridMax_ );
   nAtomsInGrid_.resize( nGridMax_ );
   idxOffset_.resize( nGridMax_ );
+  myGrids_.resize( nGridMax_ );
+  neighborPtr_.resize( nGridMax_ );
+  neighborTrans_.resize( nGridMax_ );
+  for (int i = 0; i != nGridMax_; i++) {
+    neighborPtr_[i].resize( maxNptrs_ );
+    neighborTrans_[i].resize( maxNptrs_ );
+  }
+  size_t nbrSize = (size_t)(nGridMax_ * maxNptrs_) * sizeof(int);
   mprintf("DEBUG: Grid memory total: %s\n", 
-          ByteString((nLoGrid_.size() + nHiGrid_.size() + MyGrids_.size() +
-                      nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int),
+          ByteString(((nLoGrid_.size() + nHiGrid_.size() + myGrids_.size() +
+                       nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int)) +
+                     (2 * nbrSize) +
+                     ((myGrids_.size()) * sizeof(bool)),
                      BYTE_DECIMAL).c_str());
   return 0;
 }
@@ -258,6 +272,129 @@ void PairList::GridUnitCell() {
     mprintf("INDATG %6i\n", atomGridIdx_[j]+1);
 }
 
+/** Determine list of nearby cell line centers that need to be searched 
+  * for pair list.
+  * Example: 2d grid of cells, X is cell of interest. Here we are using 3
+  *          cells to the cutoff, so need 3 cells distant in each direction.
+  *          We only point to the center of each string of 7 cells in the
+  *          x direction, and the pair list routine knows to check this cell
+  *          and three on each side of it in the +x and -x directions.
+  *          This routine will list the center of cell strings:
+  *         A                          B
+  *    ..................    ..................   and three more like layer B
+  *    ..................    ..................
+  *    .....ooo#ooo......    .....ooo#ooo......
+  *    .....ooo#ooo......    .....ooo#ooo......
+  *    .....ooo#ooo......    .....ooo#ooo......
+  *    ........Xooo......    .....ooo#ooo......
+  *    ..................    .....ooo#ooo......
+  *    ..................    .....ooo#ooo......
+  *    ..................    .....ooo#ooo......
+  *    ..................    ..................
+  *         cell X and its      Next layer ahead
+  *         neighbors o
+  *         center cell #
+  *         (ahead only search)
+  *
+  * The pointer list contains the identity of all the # cells and the X cell.
+  */
+void PairList::GridPointers(int myindexlo, int myindexhi) {
+  for (std::vector<Iarray>::iterator it = neighborPtr_.begin();
+                                     it != neighborPtr_.end(); ++it)
+    it->clear();
+  int index0_min = 999999999; // TODO FIXME
+  int index0_max = -1;
+  int nGridXY = nGridX_ * nGridY_;
+  int nghb1 = cellOffset_;
+  int nghb2 = cellOffset_;
+  int nghb3 = cellOffset_;
+  for (int i3 = 0; i3 < nGridZ_; i3++)
+  {
+    int i3grd = nGridXY * i3;
+    for (int i2 = 0; i2 < nGridY_; i2++)
+    {
+      int i2grd = i3grd + nGridX_ * i2;
+      for (int i1 = 0; i1 < nGridX_; i1++)
+      {
+        int idx = i2grd + i1;
+        if (idx >= myindexlo && idx < myindexhi)
+        {
+          myGrids_[idx] = 1;
+          int index0 = idx - myindexlo;
+          index0_max = std::max(index0_max, index0);
+          index0_min = std::min(index0_min, index0);
+          // Setup xtran index for this cell
+          int xtindex_1, xtindex_2;
+          if (i1 + nghb1 >= nGridX_) {
+            xtindex_1 = 1 + i1 + nghb1 - nGridX_;
+            xtindex_2 = xtindex_1 + 2*nghb1;
+          } else if (i1 - nghb1 < 0) {
+            xtindex_1 = 0;
+            xtindex_2 = 2*nghb1 + 2 - i1;
+          } else {
+            xtindex_1 = 0;
+            xtindex_2 = 0;
+          }
+          // First do the plane that this cell is in.
+          // First row of neighbors starts with the cell itself (Cell0)
+          int num = 0;
+          neighborPtr_[index0][num] = idx;
+          // No y or z translate, this cell has to be in unit cell.
+          neighborTrans_[index0][num] = 5 + (xtindex_1 << 8) ;
+          for (int jj2 = 0; jj2 < nghb1; jj2++)
+            myGrids_[ idx + jj2 - nGridX_*cellNeighbor_[jj2][xtindex_1] ] = 1;
+          // Next rows of neighbors are the nghb2 rows of 2*nghb1+1 cells
+          // above. Use the center cell of the row as the pointer (with
+          // the same x position as Cell0). This way the pointer cell
+          // must be in the unit cell w.r.t. the x direction.
+          num = 1;
+          for (int j2 = 0; j2 < nghb2; j2++, num++) {
+            int j2grd = idx + j2*nGridX_;
+            if (j2 + i2 <= nGridY_)
+              neighborTrans_[index0][num] = 5 + (xtindex_2 << 8);
+            else {
+              j2grd -= nGridXY;
+              neighborTrans_[index0][num] = 8 + (xtindex_2 << 8);
+            }
+            neighborPtr_[index0][num] = j2grd;
+            for (int jj2 = -nghb1; jj2 <= nghb1; jj2++)
+              myGrids_[ j2grd + jj2 - nGridX_*cellNeighbor_[jj2+nghb1][xtindex_2] ] = 1;
+          }
+          // Now there are nghb3 planes of (2*nghb1+1)(2*nghb2+1) cells
+          // ahead that are good neighbors.
+          for (int j3 = 0; j3 < nghb3; j3++) {
+            int j3grd = j3 * nGridXY;
+            int k3off;
+            if (j3 + i3 >= nGridZ_) {
+              j3grd = j3grd - nGridXY * nGridZ_;
+              k3off = 9;
+            } else
+              k3off = 0;
+            for (int j2 = -nghb2; j2 <= nghb2; nghb2++, num++) {
+              int j2grd = idx + j3grd + j2*nGridX_;
+              if(j2+i2 >= nGridY_) {
+                neighborTrans_[index0][num] = 8 + k3off + (xtindex_2 << 8);
+                j2grd -= nGridXY;
+              } else if (j2+i2 < 0) {
+                neighborTrans_[index0][num] = 2 + k3off + (xtindex_2 << 8);
+                j2grd = j2grd + nGridXY;
+              } else
+                neighborTrans_[index0][num] = 5 + k3off + (xtindex_2 << 8);
+              neighborPtr_[index0][num] = j2grd;
+              for (int jj2=-nghb1; jj2 <= nghb1; jj2++) {
+                myGrids_[ j2grd + jj2 - nGridX_*cellNeighbor_[jj2+nghb1][xtindex_2] ] = 1;
+              }
+            }
+          }
+        } // end if grid index is mine
+      } // end for i1
+    } // end for i2
+  } // end for i3
+  for (int i1 = 0; i1 < nGridMax_; i1++)
+    for (int i2 = 0; i2 < maxNptrs_; i2++)
+      mprintf("NGHBPTR %6i%6i%6i\n", i1, i2, neighborPtr_[i1][i2]);
+}
+
 // PairList::CreatePairList()
 int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
   Matrix_3x3 ucell, recip;
@@ -273,6 +410,17 @@ int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
   int myindexhi = nGridMax_;
 
   GridUnitCell();
+
+  // Only calculate grid pointers if number of grids has changed.
+  if (nGridX_ != nGridX_0_ ||
+      nGridY_ != nGridY_0_ ||
+      nGridZ_ != nGridZ_0_)
+  {
+    nGridX_0_ = nGridX_;
+    nGridY_0_ = nGridY_;
+    nGridZ_0_ = nGridZ_;
+    GridPointers(myindexlo, myindexhi);
+  }
 
   return 0;
 }

@@ -17,28 +17,37 @@ class PairList {
     void FillTranslateVec(Matrix_3x3 const&);
     int SetupGrids(Vec3 const&);
     void GridUnitCell();
+    void GridPointers(int,int);
 
     typedef std::vector<Vec3> Varray;
     typedef std::vector<int> Iarray;
+    typedef std::vector<Iarray> Iarray2D;
+    typedef std::vector<bool> Barray;
 
     static const int cellOffset_; ///< Number of cells in forward direction to check
 
     Vec3 translateVec_[18];   ///< Translate vector array
     int cellNeighbor_[7][10]; ///< Cell neighbor index array based on cellOffset_.
+    Iarray2D neighborPtr_;    ///< For each grid cell, hold indexes into neighbor cells.
+    Iarray2D neighborTrans_;
     Varray Frac_;             ///< Hold fractional coords back in primary cell.
     Varray Image_;            ///< Hold Cartesian coords back in primary cell.
     Iarray nLoGrid_;
     Iarray nHiGrid_;
-    Iarray MyGrids_;
     Iarray nAtomsInGrid_;     ///< Number of atoms in each grid cell.
     Iarray idxOffset_;        ///< Offset of starting atom in each grid cell.
     Iarray atomCell_;         ///< Grid cell index for each atom.
     Iarray atomGridIdx_;      ///< List of atoms sorted by grid cell.
+    Barray myGrids_;          ///< True if I am responsible for this grid cell.
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int nGridX_;              ///< Number of grid cells in X direction.
     int nGridY_;              ///< Number of grid cells in Y direction.
     int nGridZ_;              ///< Number of grid cells in Z direction.
     int nGridMax_;            ///< Total number of grid cells.
+    int nGridX_0_;
+    int nGridY_0_;
+    int nGridZ_0_;
+    int maxNptrs_;            ///< Max number of neighbor pointers.
     Timer t_map_;
 };
 #endif
