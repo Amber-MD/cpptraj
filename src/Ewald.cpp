@@ -33,7 +33,6 @@ static inline int    IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return 
 
 // Original code: SANDER: erfcfun.F90
 double Ewald::erfc_func(double xIn) {
-  t_erfc_.Start();
   double erfc;
   double absx = DABS( xIn );
     
@@ -79,7 +78,6 @@ double Ewald::erfc_func(double xIn) {
       nonexperfc = 2.0*exp(xIn*xIn) - cval;
     erfc = exp(-absx*absx)*nonexperfc;
   }
-  t_erfc_.Stop();
   return erfc;
 }
 
@@ -490,7 +488,9 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
             double rij = sqrt( rij2 );
             // Coulomb
             double qiqj = Charge_[idx1] * Charge_[idx2];
+            t_erfc_.Start();
             double erfc = erfc_func(ew_coeff_ * rij);
+            t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
             //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
@@ -533,7 +533,7 @@ void Ewald::Timing(double total) const {
   t_map_.WriteTiming(2,    "MapCoords: ", t_total_.Total());
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
-  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
   t_total_.WriteTiming(1,  "EwaldTotal:", total);
 }
