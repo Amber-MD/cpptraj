@@ -17,8 +17,11 @@ int PairList::InitPairList(double cutIn, double skinNBin) {
   nGridX_0_ = -1;
   nGridY_0_ = -1;
   nGridZ_0_ = -1;
-  maxNptrs_ = ((2*cellOffset_ + 1) * (2*cellOffset_ + 1) + 1 ) / 2;
-  mprintf("DEBUG: max number of pointers= %i\n", maxNptrs_);
+//  offsetX_ = cellOffset_;
+//  offsetY_ = cellOffset_;
+//  offsetZ_ = cellOffset_;
+  //maxNptrs_ = ((2*cellOffset_ + 1) * (2*cellOffset_ + 1) + 1 ) / 2;
+  //mprintf("DEBUG: max number of pointers= %i\n", maxNptrs_);
   return 0;
 }
 
@@ -179,6 +182,11 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   nGridY_ = std::max(1, (int)(recipLengths[1] / dc2));
   nGridZ_ = std::max(1, (int)(recipLengths[2] / dc3));
 
+  // Check cell offsets
+  //CheckOffset(nGridX_, offsetX_, 'X');
+  //CheckOffset(nGridY_, offsetY_, 'Y');
+  //CheckOffset(nGridZ_, offsetZ_, 'Z');
+
   // TODO Add non-periodic case
   // Check short range cutoff
   dc1 = recipLengths[0] / (double)nGridX_;
@@ -205,6 +213,7 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   }
   // Allocation
   nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
+  mprintf("DEBUG: %i total grid cells\n", nGridMax_);
   nLoGrid_.resize( nGridMax_ );
   nHiGrid_.resize( nGridMax_ );
   nAtomsInGrid_.resize( nGridMax_ );
@@ -212,11 +221,12 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   myGrids_.resize( nGridMax_ );
   neighborPtr_.resize( nGridMax_ );
   neighborTrans_.resize( nGridMax_ );
-  for (int i = 0; i != nGridMax_; i++) {
-    neighborPtr_[i].resize( maxNptrs_ );
-    neighborTrans_[i].resize( maxNptrs_ );
-  }
-  size_t nbrSize = (size_t)(nGridMax_ * maxNptrs_) * sizeof(int);
+  //for (int i = 0; i != nGridMax_; i++) {
+  //  neighborPtr_[i].resize( maxNptrs_ );
+  //  neighborTrans_[i].resize( maxNptrs_ );
+  //}
+  //size_t nbrSize = (size_t)(nGridMax_ * maxNptrs_) * sizeof(int);
+  size_t nbrSize = (size_t)(nGridMax_) * sizeof(int);
   mprintf("DEBUG: Grid memory total: %s\n", 
           ByteString(((nLoGrid_.size() + nHiGrid_.size() + myGrids_.size() +
                        nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int)) +
@@ -298,6 +308,7 @@ void PairList::GridUnitCell() {
   *
   * The pointer list contains the identity of all the # cells and the X cell.
   */
+/*
 void PairList::GridPointers(int myindexlo, int myindexhi) {
   for (std::vector<Iarray>::iterator it = neighborPtr_.begin();
                                      it != neighborPtr_.end(); ++it)
@@ -394,9 +405,170 @@ void PairList::GridPointers(int myindexlo, int myindexhi) {
     for (int i2 = 0; i2 < maxNptrs_; i2++)
       mprintf("NGHBPTR %6i%6i%6i\n", i1, i2, neighborPtr_[i1][i2]);
 }
+*/
+#include "Matrix.h" // DEBUG
+
+static inline void CheckOffset(int nGrid, int& offset, char dir) {
+  if ((nGrid+1) / 2 <= offset) {
+    offset = std::max((nGrid / 2) - 1, 1);
+    mprintf("Warning: %c cell offset reset to %i\n", dir, offset);
+  }
+}
+
+void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
+  //Matrix<bool> PairCalcd;
+  //PairCalcd.resize(nGridMax_, 0); // Half matrix
+  //std::fill(PairCalcd.begin(), PairCalcd.end(), false);
+  //  int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
+  int offsetX = cellOffset_;
+  int offsetY = cellOffset_;
+  int offsetZ = cellOffset_;
+  CheckOffset(nGridX_, offsetX, 'X');
+  CheckOffset(nGridY_, offsetY, 'Y');
+  CheckOffset(nGridZ_, offsetZ, 'Z');
+
+  int nGridXY = nGridX_ * nGridY_;
+  for (int nz = 0; nz != nGridZ_; nz++)
+  {
+    int idx3 = nz * nGridXY;
+    for (int ny = 0; ny != nGridY_; ny++)
+    {
+      int idx2 = idx3 + (ny*nGridX_);
+      for (int nx = 0; nx != nGridX_; nx++)
+      {
+        int idx = idx2 + nx; // Absolute grid cell index
+        if (idx >= myindexlo && idx < myindexhi) {
+          Iarray& Nbr = neighborPtr_[idx];
+          Iarray& Ntr = neighborTrans_[idx];
+          int NP = 0;
+//          mprintf("DBG: Cell %3i%3i%3i (%i):", nx,ny,nz, idx);
+          // Get this cell and all cells ahead in the X direction.
+          // This cell is always a "neighbor" of itself.
+          int maxX = offsetX + 1;
+          for (int ix = 0; ix < maxX; ix++, NP++) {
+            // Wrap ix if necessary
+            if (ix < nGridX_) {
+//              mprintf(" %i+0", idx+ix);
+              Nbr.push_back( idx+ix );
+              //Ntr[NP] = X_000; // No translation.
+            } else {
+//              mprintf(" %i+1", idx+ix - nGridX_);
+              Nbr.push_back( idx+ix - nGridX_ );
+              //Ntr[NP] = X_1_0_0; // Translate by +1 in X
+            }
+          }
+          // Get all cells in the Y+ direction
+          int minX = nx - offsetX;
+          int minY = ny + 1;
+          int maxY = ny + offsetY + 1;
+          for (int iy = minY; iy < maxY; iy++) {
+            // Wrap iy if necessary
+            int wy, oy;
+            if (iy < nGridY_) {
+              wy = iy;
+              oy = 0;
+            } else {
+              wy = iy - nGridY_;
+              oy = 1;
+            }
+            int jdx2 = idx3 + (wy*nGridX_);
+            for (int ix = minX; ix < maxX; ix++, NP++) {
+              // Wrap ix if necessary
+              int wx, ox;
+              if (ix < 0) {
+                wx = ix + nGridX_;
+                ox = -1;
+              } else if (ix < nGridX_) {
+                wx = ix;
+                ox = 0;
+              } else {
+                wx = ix - nGridX_;
+                ox = 1;
+              }
+              // Calc new index
+              int jdx = jdx2 + wx; // Absolute neighbor grid cell index
+//              mprintf(" %i%+i%+i", jdx, ox, oy);
+              Nbr.push_back( jdx );
+              //Ntr[NP] = ??
+            }
+          }
+          // Get all cells in the +Z direction
+          int minZ = nz + 1;
+          int maxZ = nz + offsetZ + 1;
+          for (int iz = minZ; iz < maxZ; iz++) {
+            // Wrap iz if necessary
+            int wz, oz;
+            if (iz < nGridZ_) {
+              wz = iz;
+              oz = 0;
+            } else {
+              wz = iz - nGridZ_;
+              oz = 1;
+            }
+            int jdx3 = wz * nGridXY;
+            minY = ny - offsetY;
+            for (int iy = minY; iy < maxY; iy++) {
+              // Wrap iy if necessary
+              int wy, oy;
+              if (iy < 0) {
+                wy = iy + nGridY_;
+                oy = -1;
+              } else if (iy < nGridY_) {
+                wy = iy;
+                oy = 0;
+              } else {
+                wy = iy - nGridY_;
+                oy = 1;
+              }
+              int jdx2 = jdx3 + (wy*nGridX_);
+              for (int ix = minX; ix < maxX; ix++, NP++) {
+                // Wrap ix if necessary
+                int wx, ox;
+                if (ix < 0) {
+                  wx = ix + nGridX_;
+                  ox = -1;
+                } else if (ix < nGridX_) {
+                  wx = ix;
+                  ox = 0;
+                } else {
+                  wx = ix - nGridX_;
+                  ox = 1;
+                }
+                // Calc new index
+                int jdx = jdx2 + wx; // Absolute neighbor grid cell index
+//                mprintf(" %i%+i%+i%+i", jdx, ox, oy, oz);
+                Nbr.push_back( jdx );
+                //Ntr[NP] = ??
+              }
+            }
+          }
+
+//          mprintf("\n");
+          //if (NP > maxNptrs_) {
+          //  mprinterr("Error: You overflowed! (%i)\n", NP);
+          //  return;
+          //}
+//          mprintf("Grid %3i%3i%3i (%i): %zu neighbors\n", nx,ny,nz, idx, Nbr.size());
+          //for (int i = 0; i < NP; i++)
+          //for (unsigned int i = 0; i != Nbr.size(); i++) mprintf(" %i", Nbr[i]);
+          //mprintf("\n");
+/*          for (unsigned int i = 0; i != Nbr.size(); i++) {
+            if (PairCalcd.element(idx,Nbr[i]))
+              mprintf("Warning: Interaction %i %i already calcd.\n", idx, Nbr[i]);
+            else
+              PairCalcd.setElement(idx,Nbr[i], true);
+          }*/
+        } // END my cell
+      } // nx
+    } // ny
+  } // nz
+}
+  
+
 
 // PairList::CreatePairList()
 int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
+  t_total_.Start();
   Matrix_3x3 ucell, recip;
   frmIn.BoxCrd().ToRecip(ucell, recip);
   MapCoords(frmIn, ucell, recip, maskIn);
@@ -419,8 +591,13 @@ int PairList::CreatePairList(Frame const& frmIn, AtomMask const& maskIn) {
     nGridX_0_ = nGridX_;
     nGridY_0_ = nGridY_;
     nGridZ_0_ = nGridZ_;
-    GridPointers(myindexlo, myindexhi);
+    t_gridpointers_.Start();
+    CalcGridPointers(myindexlo, myindexhi);
+    t_gridpointers_.Stop();
   }
-
+  t_total_.Stop();
+  t_map_.WriteTiming(2,          "Map Coords:    ", t_total_.Total());
+  t_gridpointers_.WriteTiming( 2,"Calc Grid Ptrs:", t_total_.Total());
+  t_total_.WriteTiming(1, "Pair List Total:");
   return 0;
 }

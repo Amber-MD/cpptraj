@@ -17,7 +17,7 @@ class PairList {
     void FillTranslateVec(Matrix_3x3 const&);
     int SetupGrids(Vec3 const&);
     void GridUnitCell();
-    void GridPointers(int,int);
+    void CalcGridPointers(int,int);
 
     typedef std::vector<Vec3> Varray;
     typedef std::vector<int> Iarray;
@@ -47,7 +47,12 @@ class PairList {
     int nGridX_0_;
     int nGridY_0_;
     int nGridZ_0_;
-    int maxNptrs_;            ///< Max number of neighbor pointers.
+//    int offsetX_;
+//    int offsetY_;
+//    int offsetZ_;
+//    int maxNptrs_;            ///< Max number of neighbor pointers.
     Timer t_map_;
+    Timer t_gridpointers_;
+    Timer t_total_;
 };
 #endif
