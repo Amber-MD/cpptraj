@@ -415,6 +415,16 @@ static inline void CheckOffset(int nGrid, int& offset, char dir) {
   }
 }
 
+/** Calculate all of the forward neighbors for each grid cell and if
+  * needed which translate vector is appropriate.
+  * +X: need self and offsetX cells to the "right".
+  * +Y: need 2*offsetX+1 cells in "above" offsetY rows.
+  * +Z: need 2*offsetX+1 by 2*offsetY+1 cells in "above" offsetZ rows.
+  * The translate vector is calculated based on offset indices. The x
+  * and y offset indices are actually +1 so we can calculate an index
+  * via idx = oz*3*3 + oy*3 + ox. oz is either 0 or 1 since we only
+  * care about forward direction.
+  */
 void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   //Matrix<bool> PairCalcd;
   //PairCalcd.resize(nGridMax_, 0); // Half matrix
@@ -450,11 +460,11 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
             if (ix < nGridX_) {
 //              mprintf(" %i+0", idx+ix);
               Nbr.push_back( idx+ix );
-              //Ntr[NP] = X_000; // No translation.
+              Ntr.push_back( 4 ); // No translation. 0 0 0
             } else {
 //              mprintf(" %i+1", idx+ix - nGridX_);
               Nbr.push_back( idx+ix - nGridX_ );
-              //Ntr[NP] = X_1_0_0; // Translate by +1 in X
+              Ntr.push_back( 5 ); // Translate by +1 in X. 1 0 0
             }
           }
           // Get all cells in the Y+ direction
@@ -466,10 +476,10 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
             int wy, oy;
             if (iy < nGridY_) {
               wy = iy;
-              oy = 0;
+              oy = 1; // 0
             } else {
               wy = iy - nGridY_;
-              oy = 1;
+              oy = 2; // 1
             }
             int jdx2 = idx3 + (wy*nGridX_);
             for (int ix = minX; ix < maxX; ix++, NP++) {
@@ -477,19 +487,20 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
               int wx, ox;
               if (ix < 0) {
                 wx = ix + nGridX_;
-                ox = -1;
+                ox = 0; // -1
               } else if (ix < nGridX_) {
                 wx = ix;
-                ox = 0;
+                ox = 1; // 0
               } else {
                 wx = ix - nGridX_;
-                ox = 1;
+                ox = 2; // 1
               }
               // Calc new index
               int jdx = jdx2 + wx; // Absolute neighbor grid cell index
-//              mprintf(" %i%+i%+i", jdx, ox, oy);
+//              mprintf(" %i%+i%+i", jdx, ox-1, oy-1);
               Nbr.push_back( jdx );
-              //Ntr[NP] = ??
+              int tidx = oy*3 + ox;
+              Ntr.push_back( tidx );
             }
           }
           // Get all cells in the +Z direction
@@ -500,10 +511,10 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
             int wz, oz;
             if (iz < nGridZ_) {
               wz = iz;
-              oz = 0;
+              oz = 0; // 0
             } else {
               wz = iz - nGridZ_;
-              oz = 1;
+              oz = 1; // 1
             }
             int jdx3 = wz * nGridXY;
             minY = ny - offsetY;
@@ -512,13 +523,13 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
               int wy, oy;
               if (iy < 0) {
                 wy = iy + nGridY_;
-                oy = -1;
+                oy = 0; // -1
               } else if (iy < nGridY_) {
                 wy = iy;
-                oy = 0;
+                oy = 1; // 0
               } else {
                 wy = iy - nGridY_;
-                oy = 1;
+                oy = 2; // 1
               }
               int jdx2 = jdx3 + (wy*nGridX_);
               for (int ix = minX; ix < maxX; ix++, NP++) {
@@ -526,19 +537,20 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
                 int wx, ox;
                 if (ix < 0) {
                   wx = ix + nGridX_;
-                  ox = -1;
+                  ox = 0; // -1
                 } else if (ix < nGridX_) {
                   wx = ix;
-                  ox = 0;
+                  ox = 1; // 0
                 } else {
                   wx = ix - nGridX_;
-                  ox = 1;
+                  ox = 2; // 1
                 }
                 // Calc new index
                 int jdx = jdx2 + wx; // Absolute neighbor grid cell index
-//                mprintf(" %i%+i%+i%+i", jdx, ox, oy, oz);
+//                mprintf(" %i%+i%+i%+i", jdx, ox-1, oy-1, oz);
                 Nbr.push_back( jdx );
-                //Ntr[NP] = ??
+                int tidx = oz*9 + oy*3 + ox;
+                Ntr.push_back( tidx );
               }
             }
           }
@@ -549,8 +561,8 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
           //  return;
           //}
 //          mprintf("Grid %3i%3i%3i (%i): %zu neighbors\n", nx,ny,nz, idx, Nbr.size());
-          //for (int i = 0; i < NP; i++)
-          //for (unsigned int i = 0; i != Nbr.size(); i++) mprintf(" %i", Nbr[i]);
+//          for (unsigned int i = 0; i != Nbr.size(); i++)
+//            mprintf("\t%i [%i]\n", Nbr[i], Ntr[i]);
           //mprintf("\n");
 /*          for (unsigned int i = 0; i != Nbr.size(); i++) {
             if (PairCalcd.element(idx,Nbr[i]))
