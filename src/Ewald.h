@@ -39,6 +39,9 @@ class Ewald {
 
     PairList pairList_;
 
+    typedef std::vector< std::set<int> > Iarray2D;
+    Iarray2D Excluded_; ///< Full exclusion list for each atom.
+
     static const double INVSQRTPI_;
     double sumq_; ///< Sum of charges
     double sumq2_; ///< Sum of charges squared

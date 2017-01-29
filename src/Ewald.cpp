@@ -294,6 +294,20 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf2_.push_back( 0.0 );
 //    sinf3_.push_back( 0.0 );
 // }
+  // Set up full exclusion lists.
+  Excluded_.clear();
+  Excluded_.resize( topIn.Natom() );
+  for (int at = 0; at != topIn.Natom(); at++) {
+    // Always exclude self
+    Excluded_[at].insert( at );
+    for (Atom::excluded_iterator excluded_atom = topIn[at].excludedbegin();
+                                 excluded_atom != topIn[at].excludedend();
+                               ++excluded_atom)
+    {
+      Excluded_[at            ].insert( *excluded_atom );
+      Excluded_[*excluded_atom].insert( at             );
+    }
+  }
 }
 
 /** Take Cartesian coords of input atoms and map to fractional coords. */
@@ -494,8 +508,7 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
             //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
-            //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f\n",
-            //        atom1, atom2, rij, erfc, e_elec);
+//            mprintf("EELEC %6i%6i%12.5f%12.5f%12.5f\n", atom1, atom2, rij, erfc, e_elec);
             // TODO can we break here?
           } //else
             //mprintf("ATOM: Atom %4i to %4i outside cut, %6.2f > %6.2f %3.0f%3.0f%3.0f\n",
@@ -520,7 +533,7 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
     PairList::Iarray const& cell = PL.Cell( cidx );
     PairList::Iarray const& trans = PL.Trans( cidx );
     if (cell.empty()) {
-//      mprintf("CELL idx %i is empty.\n", cidx);
+      mprintf("CELL idx %i is empty.\n", cidx);
       continue; //FIXME
     }
     // cell contains this cell index and all neighbors.
@@ -530,24 +543,54 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
     int myCell = cell[0];
     int beg0 = PL.IdxOffset( myCell );           // Start index into AtomGridIdx
     int end0 = beg0 + PL.NatomsInGrid( myCell ); // End index into AtomGridIdx
-//    mprintf("CELL %i (idxs %i - %i)\n", myCell, beg0, end0);
-    // Loop over every atom in myCell.
+    mprintf("CELL %i (idxs %i - %i)\n", myCell, beg0, end0);
+    // Calc interaction of all atoms in this cell with each other.
+    for (int atidx0 = beg0; atidx0 < end0; atidx0++) {
+      int atnum0 = PL.AtomGridIdx( atidx0 );
+      Vec3 const& at0 = PL.ImageCoords( atnum0 );
+      double q0 = Charge_[atnum0];
+      for (int atidx1 = atidx0 + 1; atidx1 < end0; atidx1++) {
+        int atnum1 = PL.AtomGridIdx( atidx1 );
+        if (Excluded_[atnum0].find( atnum1 ) == Excluded_[atnum0].end())
+        {
+          Vec3 const& at1 = PL.ImageCoords( atnum1 );
+          double q1 = Charge_[atnum1];
+          Vec3 dxyz = at1 - at0;
+          double rij2 = dxyz.Magnitude2();
+          if ( rij2 < cut2 ) {
+            double rij = sqrt( rij2 );
+            double qiqj = q0 * q1;
+            double erfc = erfc_func(ew_coeff_ * rij);
+            double e_elec = qiqj * erfc / rij;
+            Eelec += e_elec;
+            int ta0, ta1;
+            if (atnum0 < atnum1) {
+              ta0=atnum0; ta1=atnum1;
+            } else {
+              ta1=atnum0; ta0=atnum1;
+            }
+            mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+          }
+        }
+      }
+    }
+    // Loop over every atom in myCell with atoms in neighbor cells.
     for (int atidx0 = beg0; atidx0 < end0; atidx0++)
     {
       // Get atom number
       int atnum0 = PL.AtomGridIdx( atidx0 );
-//      mprintf("\tCellAtom %06i\n", atnum0);
+      mprintf("\tCellAtom %06i\n", atnum0);
       // Get atom coords
       Vec3 const& at0 = PL.ImageCoords( atnum0 );
       // Get atom charge FIXME need index not atom num for Charge_
       double q0 = Charge_[atnum0]; //topIn[atnum0].Charge();
       // Loop over all neighbor cells
-      for (unsigned int nidx = 0; nidx != cell.size(); nidx++)
+      for (unsigned int nidx = 1; nidx != cell.size(); nidx++)
       {
         int nbrCell = cell[nidx];
         int beg1 = PL.IdxOffset( nbrCell );           // Start index for nbr
         int end1 = beg1 + PL.NatomsInGrid( nbrCell ); // End index for nbr
-//        mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+        mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
         int tidx = trans[nidx];
         Vec3 const& tVec = PL.TransVec( tidx );       // Translate vector for nbr
         // Loop over every atom in nbrCell
@@ -555,8 +598,9 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
         {
           int atnum1 = PL.AtomGridIdx( atidx1 );
           // TODO must be a better way of checking this
-//          mprintf("\t\tNbrAtom %06i\n",atnum1);
-          if (atnum1 == atnum0) continue;
+          mprintf("\t\tNbrAtom %06i\n",atnum1);
+          if (Excluded_[atnum0].find( atnum1 ) != Excluded_[atnum0].end())
+            continue;
           Vec3 const& at1 = PL.ImageCoords( atnum1 );
           double q1 = Charge_[atnum1]; //topIn[atnum1].Charge();
 
@@ -573,13 +617,13 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
             //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
-            /*int ta0, ta1;
+            int ta0, ta1;
             if (atnum0 < atnum1) {
               ta0=atnum0; ta1=atnum1;
             } else {
               ta1=atnum0; ta0=atnum1;
             }
-            mprintf("PELEC %4i%4i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);*/
+            mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
           }
         } // Loop over nbrCell atoms
       } // Loop over neighbor cells
