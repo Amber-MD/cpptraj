@@ -8,9 +8,20 @@
   */
 class PairList {
   public:
+    typedef std::vector<int> Iarray;
+    typedef std::vector<Iarray> Iarray2D;
     PairList();
     int InitPairList(double,double);
     int CreatePairList(Frame const&, AtomMask const&);
+
+    int NGridMax() const { return nGridMax_; }
+    Iarray const& Cell(int i) const { return neighborPtr_[i]; }
+    Iarray const& Trans(int i) const { return neighborTrans_[i]; }
+    int IdxOffset(int i) const { return idxOffset_[i]; }
+    int NatomsInGrid(int i) const { return nAtomsInGrid_[i]; }
+    int AtomGridIdx(int a) const { return atomGridIdx_[a]; }
+    Vec3 const& ImageCoords(int n) const { return Image_[n]; }
+    Vec3 const& TransVec(int t) const { return translateVec_[t]; }
   private:
     int Fill_CellNeighbor();
     void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
@@ -20,8 +31,6 @@ class PairList {
     void CalcGridPointers(int,int);
 
     typedef std::vector<Vec3> Varray;
-    typedef std::vector<int> Iarray;
-    typedef std::vector<Iarray> Iarray2D;
     typedef std::vector<bool> Barray;
 
     static const int cellOffset_; ///< Number of cells in forward direction to check

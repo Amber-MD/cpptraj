@@ -280,6 +280,8 @@ void PairList::GridUnitCell() {
   }
   for (unsigned int j = 0; j != atomGridIdx_.size(); j++)
     mprintf("INDATG %6i\n", atomGridIdx_[j]+1);
+  for (unsigned int i = 0; i != idxOffset_.size(); i++)
+    mprintf("Grid %6i idxOffset= %6i nAtomsInGrid= %6i\n", i, idxOffset_[i], nAtomsInGrid_[i]);
 }
 
 /** Determine list of nearby cell line centers that need to be searched 
@@ -437,6 +439,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   CheckOffset(nGridY_, offsetY, 'Y');
   CheckOffset(nGridZ_, offsetZ, 'Z');
 
+  int NP = 0;
   int nGridXY = nGridX_ * nGridY_;
   for (int nz = 0; nz != nGridZ_; nz++)
   {
@@ -450,20 +453,20 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
         if (idx >= myindexlo && idx < myindexhi) {
           Iarray& Nbr = neighborPtr_[idx];
           Iarray& Ntr = neighborTrans_[idx];
-          int NP = 0;
+          //int NP = 0;
 //          mprintf("DBG: Cell %3i%3i%3i (%i):", nx,ny,nz, idx);
           // Get this cell and all cells ahead in the X direction.
           // This cell is always a "neighbor" of itself.
           int maxX = offsetX + 1;
-          for (int ix = 0; ix < maxX; ix++, NP++) {
+          for (int ix = nx; ix < maxX; ix++, NP++) {
             // Wrap ix if necessary
             if (ix < nGridX_) {
-//              mprintf(" %i+0", idx+ix);
-              Nbr.push_back( idx+ix );
+//              mprintf(" %i+0", idx2+ix);
+              Nbr.push_back( idx2 + ix );
               Ntr.push_back( 4 ); // No translation. 0 0 0
             } else {
-//              mprintf(" %i+1", idx+ix - nGridX_);
-              Nbr.push_back( idx+ix - nGridX_ );
+//              mprintf(" %i+1", idx2+ix - nGridX_);
+              Nbr.push_back( idx2 + ix - nGridX_ );
               Ntr.push_back( 5 ); // Translate by +1 in X. 1 0 0
             }
           }
@@ -574,6 +577,8 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
       } // nx
     } // ny
   } // nz
+  mprintf("DEBUG: Neighbor lists memory= %s\n",
+          ByteString(NP * 2 * sizeof(int), BYTE_DECIMAL).c_str());
 }
   
 

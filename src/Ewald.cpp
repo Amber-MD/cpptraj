@@ -507,6 +507,80 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
   return Eelec;
 }
 
+double Ewald::Direct(PairList const& PL, Topology const& topIn)
+{
+  Timer t_direct_pl_;
+  t_direct_pl_.Start();
+  double cut2 = cutoff_ * cutoff_;
+  double Eelec = 0.0;
+  for (int cidx = 0; cidx < PL.NGridMax(); cidx++)
+  {
+    PairList::Iarray const& cell = PL.Cell( cidx );
+    PairList::Iarray const& trans = PL.Trans( cidx );
+    if (cell.empty()) {
+      mprintf("CELL idx %i is empty.\n", cidx);
+      continue; //FIXME
+    }
+    // cell contains this cell index and all neighbors.
+    // trans contains index to translation for the neighbor.
+    // Loop through all atoms of this cell. Calculate between all
+    // atoms of this cell and all neighbors.
+    int myCell = cell[0];
+    int beg0 = PL.IdxOffset( myCell );           // Start index into AtomGridIdx
+    int end0 = beg0 + PL.NatomsInGrid( myCell ); // End index into AtomGridIdx
+    mprintf("CELL %i (idxs %i - %i)\n", myCell, beg0, end0);
+    // Loop over every atom in myCell.
+    for (int atidx0 = beg0; atidx0 < end0; atidx0++)
+    {
+      // Get atom number
+      int atnum0 = PL.AtomGridIdx( atidx0 );
+      mprintf("\tatom %i\n", atnum0);
+      // Get atom coords
+      Vec3 const& at0 = PL.ImageCoords( atnum0 );
+      // Get atom charge
+      double q0 = topIn[atnum0].Charge();
+      // Loop over all neighbor cells
+      for (unsigned int nidx = 0; nidx != cell.size(); nidx++)
+      {
+        int nbrCell = cell[nidx];
+        int beg1 = PL.IdxOffset( nbrCell );           // Start index for nbr
+        int end1 = beg1 + PL.NatomsInGrid( nbrCell ); // End index for nbr
+        mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+        int tidx = trans[nidx];
+        Vec3 const& tVec = PL.TransVec( tidx );       // Translate vector for nbr
+        // Loop over every atom in nbrCell
+        for (int atidx1 = beg1; atidx1 < end1; atidx1++)
+        {
+          int atnum1 = PL.AtomGridIdx( atidx1 );
+          // TODO must be a better way of checking this
+          mprintf("\t\tatom %i\n",atnum1);
+          if (atnum1 == atnum0) continue;
+          Vec3 const& at1 = PL.ImageCoords( atnum1 );
+          double q1 = topIn[atnum1].Charge();
+
+          Vec3 dxyz = at1 + tVec - at0;
+          double rij2 = dxyz.Magnitude2();
+          if ( rij2 < cut2 ) {
+            double rij = sqrt( rij2 );
+            // Coulomb
+            double qiqj = q0 * q1;
+            //t_erfc_.Start();
+            double erfc = erfc_func(ew_coeff_ * rij);
+            //t_erfc_.Stop();
+            double e_elec = qiqj * erfc / rij;
+            Eelec += e_elec;
+          }
+        } // Loop over nbrCell atoms
+      } // Loop over neighbor cells
+    } // Loop over myCell atoms
+  } // Loop over cells
+  mprintf("DEBUG: PairList Eelec= %20.10f\n", Eelec);
+  t_direct_pl_.Stop();
+  t_direct_pl_.WriteTiming(1, "Direct Pairlist:");
+  return Eelec;
+}
+   
+
 /** Calculate Ewald energy. */
 double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
 {
@@ -523,6 +597,7 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
 
   double e_direct = Direct( ucell, topIn, maskIn );
 
+  Direct( pairList_, topIn );
   mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
           e_self, e_recip, e_direct);
   t_total_.Stop();
