@@ -654,9 +654,9 @@ double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask c
   MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
 
-  double e_direct = Direct( ucell, topIn, maskIn );
+  //double e_direct = Direct( ucell, topIn, maskIn );
 
-  Direct( pairList_, topIn );
+  double e_direct = Direct( pairList_, topIn );
   mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
           e_self, e_recip, e_direct);
   t_total_.Stop();
