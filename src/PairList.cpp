@@ -457,7 +457,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
 //          mprintf("DBG: Cell %3i%3i%3i (%i):", nx,ny,nz, idx);
           // Get this cell and all cells ahead in the X direction.
           // This cell is always a "neighbor" of itself.
-          int maxX = offsetX + 1;
+          int maxX = nx + offsetX + 1;
           for (int ix = nx; ix < maxX; ix++, NP++) {
             // Wrap ix if necessary
             if (ix < nGridX_) {
