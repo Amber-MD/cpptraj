@@ -226,11 +226,11 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   //  neighborTrans_[i].resize( maxNptrs_ );
   //}
   //size_t nbrSize = (size_t)(nGridMax_ * maxNptrs_) * sizeof(int);
-  size_t nbrSize = (size_t)(nGridMax_) * sizeof(int);
+  //size_t nbrSize = (size_t)(nGridMax_) * sizeof(int);
   mprintf("DEBUG: Grid memory total: %s\n", 
           ByteString(((nLoGrid_.size() + nHiGrid_.size() + myGrids_.size() +
                        nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int)) +
-                     (2 * nbrSize) +
+                     //(2 * nbrSize) +
                      ((myGrids_.size()) * sizeof(bool)),
                      BYTE_DECIMAL).c_str());
   return 0;
@@ -278,10 +278,12 @@ void PairList::GridUnitCell() {
     nAtomsInGrid_[idx]++;
     atomGridIdx_[j] = (int)i;
   }
+/*
   for (unsigned int j = 0; j != atomGridIdx_.size(); j++)
     mprintf("INDATG %6i\n", atomGridIdx_[j]+1);
   for (unsigned int i = 0; i != idxOffset_.size(); i++)
     mprintf("Grid %6i idxOffset= %6i nAtomsInGrid= %6i\n", i, idxOffset_[i], nAtomsInGrid_[i]);
+*/
 }
 
 /** Determine list of nearby cell line centers that need to be searched 
@@ -408,7 +410,7 @@ void PairList::GridPointers(int myindexlo, int myindexhi) {
       mprintf("NGHBPTR %6i%6i%6i\n", i1, i2, neighborPtr_[i1][i2]);
 }
 */
-#include "Matrix.h" // DEBUG
+//#incl ude "Matrix.h" // DEBUG
 
 static inline void CheckOffset(int nGrid, int& offset, char dir) {
   if ((nGrid+1) / 2 <= offset) {
