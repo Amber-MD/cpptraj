@@ -494,11 +494,13 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
             //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
-            //        atom1+1, atom2+1, rij, erfc, e_elec,(*ixyz)[0],(*ixyz)[1],(*ixyz)[2]);
+            mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f\n",
+                    atom1, atom2, rij, erfc, e_elec);
             // TODO can we break here?
           } //else
             //mprintf("ATOM: Atom %4i to %4i outside cut, %6.2f > %6.2f %3.0f%3.0f%3.0f\n",
-            //         atom1+1, atom2+1,sqrt(rij2),cutoff_,(*ixyz)[0],(*ixyz)[1],(*ixyz)[2]);
+            //mprintf("ATOM: Atom %4i to %4i outside cut, %6.2f > %6.2f\n",
+            //         atom1, atom2,sqrt(rij2),cutoff_);
         }
       }
     }
@@ -534,11 +536,11 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
     {
       // Get atom number
       int atnum0 = PL.AtomGridIdx( atidx0 );
-      mprintf("\tatom %i\n", atnum0);
+      mprintf("\tCellAtom %06i\n", atnum0);
       // Get atom coords
       Vec3 const& at0 = PL.ImageCoords( atnum0 );
-      // Get atom charge
-      double q0 = topIn[atnum0].Charge();
+      // Get atom charge FIXME need index not atom num for Charge_
+      double q0 = Charge_[atnum0]; //topIn[atnum0].Charge();
       // Loop over all neighbor cells
       for (unsigned int nidx = 0; nidx != cell.size(); nidx++)
       {
@@ -553,13 +555,14 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
         {
           int atnum1 = PL.AtomGridIdx( atidx1 );
           // TODO must be a better way of checking this
-          mprintf("\t\tatom %i\n",atnum1);
+          mprintf("\t\tNbrAtom %06i\n",atnum1);
           if (atnum1 == atnum0) continue;
           Vec3 const& at1 = PL.ImageCoords( atnum1 );
-          double q1 = topIn[atnum1].Charge();
+          double q1 = Charge_[atnum1]; //topIn[atnum1].Charge();
 
           Vec3 dxyz = at1 + tVec - at0;
           double rij2 = dxyz.Magnitude2();
+          mprintf("\t\t\tdist= %f\n", sqrt(rij2));
           if ( rij2 < cut2 ) {
             double rij = sqrt( rij2 );
             // Coulomb
@@ -569,6 +572,14 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
             //t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
+            //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
+            int ta0, ta1;
+            if (atnum0 < atnum1) {
+              ta0=atnum0; ta1=atnum1;
+            } else {
+              ta1=atnum0; ta0=atnum1;
+            }
+            mprintf("PELEC %4i%4i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
           }
         } // Loop over nbrCell atoms
       } // Loop over neighbor cells
