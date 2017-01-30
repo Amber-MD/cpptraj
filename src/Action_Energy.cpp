@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_Energy::Action_Energy() : currentParm_(0)
+Action_Energy::Action_Energy() : currentParm_(0), debug_(0)
 {
   std::fill(mlimits_, mlimits_+3, 0);
 }
@@ -39,7 +39,8 @@ int Action_Energy::AddSet(Etype typeIn, DataSetList& DslIn, DataFile* outfile,
 // Action_Energy::Init()
 Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  ENE_.SetDebug( debugIn );
+  debug_ = debugIn;
+  ENE_.SetDebug( debug_ );
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
 
@@ -169,6 +170,24 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
               npoints_);
   } else if (etype_ == EW) {
     mprintf("\tCalculating electrostatics with Ewald method.\n");
+    mprintf("\tDirect space cutoff= %.4f\n", cutoff_);
+    if (dsumtol_ != 0.0)
+      mprintf("\tDirect sum tolerance= %g\n", dsumtol_);
+    if (rsumtol_ != 0.0)
+      mprintf("\tReciprocal sum tolerance= %g\n", rsumtol_);
+    if (ewcoeff_ == 0.0)
+      mprintf("\tWill determine Ewald coefficient from cutoff and direct sum tolerance.\n");
+    else
+      mprintf("\tEwald coefficient= %.4f\n", ewcoeff_);
+    if (maxexp_ == 0.0)
+      mprintf("\tWill determine MaxExp from Ewald coefficient and direct sum tolerance.\n");
+    else
+      mprintf("\tMaxExp= %g\n", maxexp_);
+    if (mlimits_[0] < 1 && mlimits_[1] < 1 && mlimits_[2] < 1)
+      mprintf("\tWill determine number of reciprocal vectors from MaxExp.\n");
+    else
+      mprintf("\tNumber of reciprocal vectors in each direction= {%i,%i,%i}\n",
+              mlimits_[0], mlimits_[1], mlimits_[2]);
   }
   return Action::OK;
 }
@@ -195,7 +214,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   // Set up Ewald if necessary.
   if (etype_ == EW) {
     if (EW_.EwaldInit(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                      ewcoeff_, maxexp_, skinnb_, mlimits_))
+                      ewcoeff_, maxexp_, skinnb_, debug_, mlimits_))
       return Action::ERR;
     EW_.EwaldSetup( setup.Top(), Imask_ );
   }

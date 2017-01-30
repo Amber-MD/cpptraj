@@ -34,6 +34,7 @@ class Action_Energy: public Action {
     AtomMask Imask_;               ///< Int mask for NB calc
     Energy_Amber ENE_;             ///< Energy calc class.
     int npoints_;                  ///< # unit cells in each direction for elec. direct sum
+    int debug_;
     Ewald EW_;                     ///< Ewald energy class.
     double cutoff_;                ///< Ewald cutoff.
     double dsumtol_;               ///< Ewald direct sum tolerance.

@@ -9,17 +9,14 @@ PairList::PairList() {}
 const int PairList::cellOffset_ = 3;
 
 // PairList::InitPairList()
-int PairList::InitPairList(double cutIn, double skinNBin) {
+int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
+  debug_ = debugIn;
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
   //if (Fill_CellNeighbor()) return 1;
   cutList_ = cutIn + skinNBin;
-  mprintf("DEBUG: cutList= %12.5f\n", cutList_);
   nGridX_0_ = -1;
   nGridY_0_ = -1;
   nGridZ_0_ = -1;
-//  offsetX_ = cellOffset_;
-//  offsetY_ = cellOffset_;
-//  offsetZ_ = cellOffset_;
   //maxNptrs_ = ((2*cellOffset_ + 1) * (2*cellOffset_ + 1) + 1 ) / 2;
   //mprintf("DEBUG: max number of pointers= %i\n", maxNptrs_);
   return 0;
@@ -57,7 +54,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   CheckOffset(nGridY_, offsetY, 'Y');
   CheckOffset(nGridZ_, offsetZ, 'Z');
 
-  int NP = 0;
+  NP_ = 0;
   int nGridXY = nGridX_ * nGridY_;
   for (int nz = 0; nz != nGridZ_; nz++)
   {
@@ -76,7 +73,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
           // Get this cell and all cells ahead in the X direction.
           // This cell is always a "neighbor" of itself.
           int maxX = nx + offsetX + 1;
-          for (int ix = nx; ix < maxX; ix++, NP++) {
+          for (int ix = nx; ix < maxX; ix++, NP_++) {
             // Wrap ix if necessary
             if (ix < nGridX_) {
 //              mprintf(" %i+0", idx2+ix);
@@ -103,7 +100,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
               oy = 2; // 1
             }
             int jdx2 = idx3 + (wy*nGridX_);
-            for (int ix = minX; ix < maxX; ix++, NP++) {
+            for (int ix = minX; ix < maxX; ix++, NP_++) {
               // Wrap ix if necessary
               int wx, ox;
               if (ix < 0) {
@@ -153,7 +150,7 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
                 oy = 2; // 1
               }
               int jdx2 = jdx3 + (wy*nGridX_);
-              for (int ix = minX; ix < maxX; ix++, NP++) {
+              for (int ix = minX; ix < maxX; ix++, NP_++) {
                 // Wrap ix if necessary
                 int wx, ox;
                 if (ix < 0) {
@@ -195,10 +192,16 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
       } // nx
     } // ny
   } // nz
-  mprintf("DEBUG: Neighbor lists memory= %s\n",
-          ByteString(NP * 2 * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
+// PairList::PrintMemory()
+void PairList::PrintMemory() const {
+  mprintf("\tNeighbor lists memory= %s\n",
+          ByteString(NP_ * 2 * sizeof(int), BYTE_DECIMAL).c_str());
+  mprintf("\tGrid memory total: %s\n", 
+          ByteString((nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int),
+                     BYTE_DECIMAL).c_str());
+}
 
 // PairList::SetupGrids()
 /** Determine grid sizes. If this is the first time this routine is called
@@ -242,22 +245,23 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   if (offsetZ*dc3 < cut)
     cut = (double)offsetZ*dc3;
   //if(nogrdptrs)cut=cutlist
-  // DEBUG
-  mprintf("Number of grids per unit cell in each dimension: %i %i %i\n",
-          nGridX_, nGridY_, nGridZ_);
-  //mprintf("Unit cell edge lengths in each dimension: %9.3f %9.3f %9.3f\n",);
-  mprintf("Distance between parallel faces of unit cell: %9.3f %9.3f %9.3f\n",
-          recipLengths[0], recipLengths[1], recipLengths[2]);
-  mprintf("Distance between faces of short range grid subcells: %9.3f %9.3f %9.3f\n",
-          dc1, dc2, dc3);
-  mprintf("Resulting cutoff from subcell neighborhoods is %f\n", cut);
+  nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
+  if (debug_ > 0) {
+    mprintf("DEBUG: Number of grids per unit cell in each dimension: %i %i %i\n",
+            nGridX_, nGridY_, nGridZ_);
+    //mprintf("Unit cell edge lengths in each dimension: %9.3f %9.3f %9.3f\n",);
+    mprintf("DEBUG: Distance between parallel faces of unit cell: %9.3f %9.3f %9.3f\n",
+            recipLengths[0], recipLengths[1], recipLengths[2]);
+    mprintf("DEBUG: Distance between faces of short range grid subcells: %9.3f %9.3f %9.3f\n",
+            dc1, dc2, dc3);
+    mprintf("DEBUG: Resulting cutoff from subcell neighborhoods is %f\n", cut);
+    mprintf("%i total grid cells\n", nGridMax_);
+  }
   if (cut < cutList_) {
     mprinterr("Error: Resulting cutoff %f too small for lower limit %f\n", cut, cutList_);
     return 1;
   }
   // Allocation
-  nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
-  mprintf("DEBUG: %i total grid cells\n", nGridMax_);
 //  nLoGrid_.resize( nGridMax_ );
 //  nHiGrid_.resize( nGridMax_ );
   nAtomsInGrid_.resize( nGridMax_ );
@@ -275,11 +279,8 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   int myindexhi = nGridMax_;
   CalcGridPointers(myindexlo, myindexhi);
 
-  mprintf("DEBUG: Grid memory total: %s\n", 
-          ByteString((( //nLoGrid_.size() + nHiGrid_.size() + myGrids_.size() +
-                       nAtomsInGrid_.size() + idxOffset_.size()) * sizeof(int)),
-                     //+((myGrids_.size()) * sizeof(bool)),
-                     BYTE_DECIMAL).c_str());
+  PrintMemory();
+
   return 0;
 }
 
@@ -297,6 +298,10 @@ static inline double ANINT(double xIn) {
 }
 
 // PairList::MapCoords()
+/** Convert Cartesian coords to fractional coords which are wrapped back
+  * into the primary cell. Save the wrapped version of these coords in
+  * Cartesian space as well.
+  */
 void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
                          Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
@@ -306,19 +311,30 @@ void PairList::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
   Image_.clear();
   Image_.reserve( maskIn.Nselected() );
 
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-  {
-    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
-    // TODO: Use ANINT below to have frac coords/grid that matches sander
-    //       for now. Should eventually just use the floor() call to bound
-    //       between 0.0 and 1.0
-    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
-    // Wrap back into primary cell between -.5 and .5
-    Frac_.push_back( Vec3(fc[0]-ANINT(fc[0]), fc[1]-ANINT(fc[1]), fc[2]-ANINT(fc[2])) );
-    //mprintf("FRAC %10.5f%10.5f%10.5f\n", Frac_.back()[0], Frac_.back()[1], Frac_.back()[2]);
-    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
+  // FIXME: Use ANINT below to have frac coords/grid that matches sander
+  //        for now. Should eventually just use the floor() call to bound
+  //        between 0.0 and 1.0
+  if (frmIn.BoxCrd().Type() == Box::ORTHO) {
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      const double* XYZ = frmIn.XYZ(*atom);
+      Vec3 fc(XYZ[0]*recip[0], XYZ[1]*recip[4], XYZ[2]*recip[8]);
+      Frac_.push_back( Vec3(fc[0]-ANINT(fc[0]), fc[1]-ANINT(fc[1]), fc[2]-ANINT(fc[2])) );
+      Vec3 const& fcw = Frac_.back();
+      Image_.push_back( Vec3(fcw[0]*ucell[0], fcw[1]*ucell[4], fcw[2]*ucell[8]) );
+    }
+  } else {
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
+      //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
+      // Wrap back into primary cell between -.5 and .5
+      Frac_.push_back( Vec3(fc[0]-ANINT(fc[0]), fc[1]-ANINT(fc[1]), fc[2]-ANINT(fc[2])) );
+      //mprintf("FRAC %10.5f%10.5f%10.5f\n", Frac_.back()[0], Frac_.back()[1], Frac_.back()[2]);
+      Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
+    }
   }
-  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
+  //mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
   // Allocate memory. This should do nothing if memory already allocated.
   atomCell_.resize( Frac_.size() );
   atomGridIdx_.resize( Frac_.size() );
@@ -335,9 +351,9 @@ void PairList::FillTranslateVec(Matrix_3x3 const& ucell) {
     for (int i2 = -1; i2 < 2; i2++)
       for (int i1 = -1; i1 < 2; i1++)
         translateVec_[iv++] = ucell.TransposeMult( Vec3(i1, i2, i3) );
-  for (int i = 0; i < 18; i++)
-    mprintf("TRANVEC %3i%12.5f%12.5f%12.5f\n", i+1, translateVec_[i][0],
-            translateVec_[i][1], translateVec_[i][2]);
+  //for (int i = 0; i < 18; i++)
+  //  mprintf("TRANVEC %3i%12.5f%12.5f%12.5f\n", i+1, translateVec_[i][0],
+  //          translateVec_[i][1], translateVec_[i][2]);
 }
 
 /** Grid mapped atoms in the unit cell into grid subcells according

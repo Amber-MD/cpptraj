@@ -12,10 +12,11 @@ class PairList {
     typedef std::vector<Iarray> Iarray2D;
     typedef std::vector<Vec3> Varray;
     PairList();
-    int InitPairList(double,double);
+    int InitPairList(double,double,int);
     int SetupPairList(Box::BoxType, Vec3 const&);
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
     void Timing(double) const;
+    void PrintMemory() const;
 
     int NGridMax()                 const { return nGridMax_;         }
     Iarray const& Cell(int i)      const { return neighborPtr_[i];   }
@@ -54,6 +55,8 @@ class PairList {
     Iarray atomGridIdx_;      ///< List of atoms sorted by grid cell.
 //    Barray myGrids_;          ///< True if I am responsible for this grid cell.
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
+    int debug_;
+    int NP_;                  ///< Total number of elements in neighborPtr_/neighborTrans_
     int nGridX_;              ///< Number of grid cells in X direction.
     int nGridY_;              ///< Number of grid cells in Y direction.
     int nGridZ_;              ///< Number of grid cells in Z direction.
@@ -61,9 +64,6 @@ class PairList {
     int nGridX_0_;            ///< Previous number of cells in X direction
     int nGridY_0_;            ///< Previous number of cells in Y direction
     int nGridZ_0_;            ///< Previous number of cells in Z direction
-//    int offsetX_;
-//    int offsetY_;
-//    int offsetZ_;
 //    int maxNptrs_;            ///< Max number of neighbor pointers.
     Timer t_map_;
     Timer t_gridpointers_;

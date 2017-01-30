@@ -110,7 +110,7 @@ double Ewald::FindEwaldCoefficient(double cutoff, double dsum_tol)
     else
       xhi = xval;
   }
-  mprintf("DEBUG: Ewald coefficient for cut=%g, direct sum tol=%g is %g\n",
+  mprintf("\tEwald coefficient for cut=%g, direct sum tol=%g is %g\n",
           cutoff, dsum_tol, xval);
   return xval;
 }
@@ -150,7 +150,7 @@ double Ewald::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
     else
       xhi = xval;
   }
-  mprintf("DEBUG: MaxExp for ewcoeff=%g, direct sum tol=%g is %g\n",
+  mprintf("\tMaxExp for Ewald coefficient %g, direct sum tol %g is %g\n",
           ewCoeff, rsumTol, xval);
   return xval;
 }
@@ -159,7 +159,7 @@ double Ewald::FindMaxexpFromTol(double ewCoeff, double rsumTol) {
 void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin, 
                        Vec3 const& reclng, Matrix_3x3 const& recip)
 {
-  mprintf("DEBUG: Recip lengths %12.4f%12.4f%12.4f\n", reclng[0], reclng[1], reclng[2]);
+  //mprintf("DEBUG: Recip lengths %12.4f%12.4f%12.4f\n", reclng[0], reclng[1], reclng[2]);
 
   int mtop1 = (int)(reclng[0] * maxexp / sqrt(eigmin));
   int mtop2 = (int)(reclng[1] * maxexp / sqrt(eigmin));
@@ -183,14 +183,14 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
       }
     }
   }
-  mprintf("DEBUG: Number of reciprocal vectors: %i\n", nrecvecs);
+  mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
 }
 
 
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
 int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                     double ew_coeffIn, double maxexpIn, double skinnbIn,
+                     double ew_coeffIn, double maxexpIn, double skinnbIn, int debugIn,
                      const int* mlimitsIn)
 {
   cutoff_ = cutoffIn;
@@ -233,13 +233,13 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   }
 
   // Set defaults if necessary
-  Vec3 recipLengths = boxIn.RecipLengths(recip);
-  if (DABS(ew_coeff_) < Constants::SMALL)
-    ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (dsumTol_ < Constants::SMALL)
     dsumTol_ = 1E-5;
   if (rsumTol_ < Constants::SMALL)
     rsumTol_ = 5E-5;
+  Vec3 recipLengths = boxIn.RecipLengths(recip);
+  if (DABS(ew_coeff_) < Constants::SMALL)
+    ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (maxmlim_ > 0)
     maxexp_ = FindMaxexpFromMlim(mlimit_, recip);
   else {
@@ -254,14 +254,14 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   }
 
-  mprintf("DEBUG: Ewald params:\n");
-  mprintf("DEBUG:   cutoff= %g   direct sum tol= %g   Ewald coeff.= %g\n",
+  mprintf("\tEwald params:\n");
+  mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
-  mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g   NB skin= %g\n",
+  mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
-  mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
+  mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (pairList_.InitPairList(cutoff_, skinnbIn)) return 1;
+  if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
 
   return 0;
@@ -278,7 +278,7 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
     sumq_ += qi;
     sumq2_ += (qi * qi);
   }
-  mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
+  //mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
@@ -291,7 +291,7 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   sinf1_.assign( tsize, 0.0 );
   sinf2_.assign( tsize, 0.0 );
   sinf3_.assign( tsize, 0.0 );
-  mprintf("DEBUG: Memory used by trig tables: %s\n",
+  mprintf("\tMemory used by trig tables: %s\n",
           ByteString(6*tsize*sizeof(double), BYTE_DECIMAL).c_str());
   // M0
 //  for (int i = 0; i != maskIn.Nselected(); i++) {
@@ -319,7 +319,7 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   unsigned int ex_size = 0;
   for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
     ex_size += it->size();
-  mprintf("DEBUG: Memory used by full exclusion list: %s\n",
+  mprintf("\tMemory used by full exclusion list: %s\n",
           ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
@@ -328,7 +328,7 @@ double Ewald::Self(double volume) {
   t_self_.Start();
   double d0 = -ew_coeff_ * INVSQRTPI_;
   double ene = sumq2_ * d0;
-  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
+//  mprintf("DEBUG: d0= %20.10f   ene= %20.10f\n", d0, ene);
   double factor = Constants::PI / (ew_coeff_ * ew_coeff_ * volume);
   double ee_plasma = -0.5 * factor * sumq_ * sumq_;
   ene += ee_plasma;
@@ -464,6 +464,18 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   return ene * 0.5;
 }
 
+// Ewald::Adjust()
+void Ewald::Adjust(double q0, double q1, double rij) {
+  t_adjust_.Start();
+  t_erfc_.Start();
+  double erfc = erfc_func(ew_coeff_ * rij);
+  t_erfc_.Stop();
+  double d0 = (erfc - 1.0) / rij;
+  t_adjust_.Stop();
+  double eea = (q0 * q1 * d0);
+  e_adjust_ += eea;
+}
+
 /** Calculate direct space energy. This is the slow version that doesn't
   * use a pair list; for debug purposes only.
   */
@@ -518,17 +530,6 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
   }
   t_direct_.Stop();
   return Eelec;
-}
-
-void Ewald::Adjust(double q0, double q1, double rij) {
-  t_adjust_.Start();
-  t_erfc_.Start();
-  double erfc = erfc_func(ew_coeff_ * rij);
-  t_erfc_.Stop();
-  double d0 = (erfc - 1.0) / rij;
-  t_adjust_.Stop();
-  double eea = (q0 * q1 * d0);
-  e_adjust_ += eea;
 }
 
 //  Ewald::Direct()
@@ -669,8 +670,8 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
   double e_recip = Recip_Regular( recip, volume );
 
   double e_direct = Direct( pairList_ );
-  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-          e_self, e_recip, e_direct, e_adjust_);
+  //mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
+  //        e_self, e_recip, e_direct, e_adjust_);
   t_total_.Stop();
   return e_self + e_recip + e_direct + e_adjust_;
 }
@@ -678,6 +679,7 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
 /** Calculate Ewald energy.
   * Slow version that does not use pair list. Note that pair list is still
   * called since we require the fractional and imaged coords.
+  * FIXME No Eadjust calc.
   */
 double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
                                     AtomMask const& maskIn)
@@ -693,8 +695,8 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
 
   double e_direct = Direct( ucell, topIn, maskIn );
 
-  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
-          e_self, e_recip, e_direct);
+  //mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
+  //        e_self, e_recip, e_direct);
   t_total_.Stop();
   return e_self + e_recip + e_direct;
 }
