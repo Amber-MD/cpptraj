@@ -2,6 +2,7 @@
 #include "Ewald.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "StringRoutines.h"
 
 Ewald::Ewald() :
   sumq_(0.0),
@@ -290,6 +291,8 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   sinf1_.assign( tsize, 0.0 );
   sinf2_.assign( tsize, 0.0 );
   sinf3_.assign( tsize, 0.0 );
+  mprintf("DEBUG: Memory used by trig tables: %s\n",
+          ByteString(6*tsize*sizeof(double), BYTE_DECIMAL).c_str());
   // M0
 //  for (int i = 0; i != maskIn.Nselected(); i++) {
 //    cosf1_.push_back( 1.0 );
@@ -313,6 +316,11 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
       Excluded_[*excluded_atom].insert( at             );
     }
   }
+  unsigned int ex_size = 0;
+  for (Iarray2D::const_iterator it = Excluded_.begin(); it != Excluded_.end(); ++it)
+    ex_size += it->size();
+  mprintf("DEBUG: Memory used by full exclusion list: %s\n",
+          ByteString(ex_size * sizeof(int), BYTE_DECIMAL).c_str());
 }
 
 /** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
@@ -512,6 +520,17 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
   return Eelec;
 }
 
+void Ewald::Adjust(double q0, double q1, double rij) {
+  t_adjust_.Start();
+  t_erfc_.Start();
+  double erfc = erfc_func(ew_coeff_ * rij);
+  t_erfc_.Stop();
+  double d0 = (erfc - 1.0) / rij;
+  t_adjust_.Stop();
+  double eea = (q0 * q1 * d0);
+  e_adjust_ += eea;
+}
+
 //  Ewald::Direct()
 /** Calculate direct space energy. This is the faster version that uses
   * a pair list.
@@ -521,6 +540,7 @@ double Ewald::Direct(PairList const& PL)
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
+  e_adjust_ = 0.0;
   for (int cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
     PairList::Iarray const& cell = PL.Cell( cidx );
@@ -544,12 +564,13 @@ double Ewald::Direct(PairList const& PL)
       double q0 = Charge_[atnum0];
       for (int atidx1 = atidx0 + 1; atidx1 < end0; atidx1++) {
         int atnum1 = PL.AtomGridIdx( atidx1 );
+        Vec3 const& at1 = PL.ImageCoords( atnum1 );
+        double q1 = Charge_[atnum1];
+        Vec3 dxyz = at1 - at0;
+        double rij2 = dxyz.Magnitude2();
         if (Excluded_[atnum0].find( atnum1 ) == Excluded_[atnum0].end())
         {
-          Vec3 const& at1 = PL.ImageCoords( atnum1 );
-          double q1 = Charge_[atnum1];
-          Vec3 dxyz = at1 - at0;
-          double rij2 = dxyz.Magnitude2();
+
           if ( rij2 < cut2 ) {
             double rij = sqrt( rij2 );
             double qiqj = q0 * q1;
@@ -568,7 +589,8 @@ double Ewald::Direct(PairList const& PL)
             mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
 */
           }
-        }
+        } else
+          Adjust(q0, q1, sqrt(rij2));
       }
     }
     // Loop over every atom in myCell with atoms in neighbor cells.
@@ -594,41 +616,41 @@ double Ewald::Direct(PairList const& PL)
         for (int atidx1 = beg1; atidx1 < end1; atidx1++)
         {
           int atnum1 = PL.AtomGridIdx( atidx1 );
-          // TODO Is there better way of checking this?
-//          mprintf("\t\tNbrAtom %06i\n",atnum1);
-          if (Excluded_[atnum0].find( atnum1 ) != Excluded_[atnum0].end())
-            continue;
           Vec3 const& at1 = PL.ImageCoords( atnum1 );
           double q1 = Charge_[atnum1];
-
           Vec3 dxyz = at1 + tVec - at0;
           double rij2 = dxyz.Magnitude2();
-//          mprintf("\t\t\tdist= %f\n", sqrt(rij2));
-          if ( rij2 < cut2 ) {
-            double rij = sqrt( rij2 );
-            // Coulomb
-            double qiqj = q0 * q1;
-            t_erfc_.Start();
-            double erfc = erfc_func(ew_coeff_ * rij);
-            t_erfc_.Stop();
-            double e_elec = qiqj * erfc / rij;
-            Eelec += e_elec;
-            //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
+          // TODO Is there better way of checking this?
+//          mprintf("\t\tNbrAtom %06i\n",atnum1);
+          if (Excluded_[atnum0].find( atnum1 ) == Excluded_[atnum0].end())
+          {
+//            mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+            if ( rij2 < cut2 ) {
+              double rij = sqrt( rij2 );
+              // Coulomb
+              double qiqj = q0 * q1;
+              t_erfc_.Start();
+              double erfc = erfc_func(ew_coeff_ * rij);
+              t_erfc_.Stop();
+              double e_elec = qiqj * erfc / rij;
+              Eelec += e_elec;
+              //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
 /*
-            int ta0, ta1;
-            if (atnum0 < atnum1) {
-              ta0=atnum0; ta1=atnum1;
-            } else {
-              ta1=atnum0; ta0=atnum1;
-            }
-            mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+              int ta0, ta1;
+              if (atnum0 < atnum1) {
+                ta0=atnum0; ta1=atnum1;
+              } else {
+                ta1=atnum0; ta0=atnum1;
+              }
+              mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
 */
-          }
+            }
+          } else
+            Adjust(q0, q1, sqrt(rij2));
         } // Loop over nbrCell atoms
       } // Loop over neighbor cells
     } // Loop over myCell atoms
   } // Loop over cells
-  mprintf("DEBUG: PairList Eelec= %20.10f\n", Eelec);
   t_direct_.Stop();
   return Eelec;
 }
@@ -647,10 +669,10 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
   double e_recip = Recip_Regular( recip, volume );
 
   double e_direct = Direct( pairList_ );
-  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
-          e_self, e_recip, e_direct);
+  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
+          e_self, e_recip, e_direct, e_adjust_);
   t_total_.Stop();
-  return e_self + e_recip + e_direct;
+  return e_self + e_recip + e_direct + e_adjust_;
 }
 
 /** Calculate Ewald energy.
@@ -684,6 +706,7 @@ void Ewald::Timing(double total) const {
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
+  t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
+  t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
   pairList_.Timing(total);
 }

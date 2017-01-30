@@ -22,6 +22,7 @@ class Ewald {
     double Recip_Regular(Matrix_3x3 const&, double);
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
     double Direct(PairList const&);
+    inline void Adjust(double,double,double);
 
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
@@ -48,6 +49,7 @@ class Ewald {
     double cutoff_; ///< Direct space cutoff
     double dsumTol_; ///< Direct space sum tolerance.
     double rsumTol_; ///< Reciprocal space sum tolerance.
+    double e_adjust_; ///< Adjustment for excluded pairs.
     int mlimit_[3];
     int maxmlim_;
     Timer t_total_;
@@ -56,5 +58,6 @@ class Ewald {
     Timer t_trig_tables_;
     Timer t_direct_;
     Timer t_erfc_;
+    Timer t_adjust_;
 };
 #endif
