@@ -286,6 +286,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
 void Action_Energy::Print() {
   mprintf("Timing for energy: '%s' ('%s')\n", Energy_[TOTAL]->legend(),
            Mask1_.MaskString());
+  etime_.WriteTiming(0, " Total:");
   ENE_.PrintTiming(etime_.Total());
   if (etype_ == EW)
     EW_.Timing(etime_.Total());

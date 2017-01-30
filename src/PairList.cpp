@@ -44,7 +44,6 @@ static inline void CheckOffset(int nGrid, int& offset, char dir) {
   * care about forward direction.
   */
 void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
-  t_gridpointers_.Start();
   //Matrix<bool> PairCalcd;
   //PairCalcd.resize(nGridMax_, 0); // Half matrix
   //std::fill(PairCalcd.begin(), PairCalcd.end(), false);
@@ -198,7 +197,6 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   } // nz
   mprintf("DEBUG: Neighbor lists memory= %s\n",
           ByteString(NP * 2 * sizeof(int), BYTE_DECIMAL).c_str());
-  t_gridpointers_.Stop();
 }
 
 
@@ -394,6 +392,8 @@ void PairList::GridUnitCell() {
 
 // PairList::SetupPairList()
 int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
+  Timer t_setup;
+  t_setup.Start();
   if (typeIn == Box::NOBOX) {
     mprinterr("Error: Pair list code currently requires box coordinates.\n");
     return 1;
@@ -401,6 +401,8 @@ int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
 
   // Allocate/reallocate memory
   if (SetupGrids(recipLengthsIn)) return 1;
+  t_setup.Stop();
+  t_setup.WriteTiming(1, "Pair List Setup:");
   return 0;
 }
 
@@ -414,7 +416,9 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   // Calculate translation vectors based on current unit cell.
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
+  t_gridpointers_.Start();
   if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return 1;
+  t_gridpointers_.Stop();
   // Place atoms in grid cells
   GridUnitCell();
 
@@ -423,9 +427,9 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
 }
 
 void PairList::Timing(double total) const {
-  t_map_.WriteTiming(3,          "Map Coords:    ", t_total_.Total());
-  t_gridpointers_.WriteTiming( 3,"Calc Grid Ptrs:", t_total_.Total());
-  t_total_.WriteTiming(2, "Pair List Total:", total);
+  t_total_.WriteTiming(2, "Pair List: ", total);
+  t_map_.WriteTiming(3,          "Map Coords:      ", t_total_.Total());
+  t_gridpointers_.WriteTiming( 3,"Recalc Grid Ptrs:", t_total_.Total());
 }
 
 // *****************************************************************************

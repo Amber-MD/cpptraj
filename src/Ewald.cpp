@@ -337,6 +337,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
   // M0 is done in EwaldSetup()
+  t_trig_tables_.Start();
   unsigned int mnidx = Frac.size();
   // M1
   for (unsigned int i = 0; i != Frac.size(); i++, mnidx++) {
@@ -373,6 +374,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
                cosf1_[midx], cosf2_[midx], cosf3_[midx],
                sinf1_[midx], sinf2_[midx], sinf3_[midx]);
   }*/
+  t_trig_tables_.Stop();
 
   double mult = 1.0;
 //  int count = -1;
@@ -673,10 +675,11 @@ double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
 
 // Ewald::Timing()
 void Ewald::Timing(double total) const {
+  t_total_.WriteTiming(1,  "EwaldTotal:", total);
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
-  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
+  t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
-  pairList_.Timing(t_total_.Total());
-  t_total_.WriteTiming(1,  "EwaldTotal:", total);
+  t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
+  pairList_.Timing(total);
 }
