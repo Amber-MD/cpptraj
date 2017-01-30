@@ -271,7 +271,7 @@ Action::RetType Action_Energy::DoAction(int frameNum, ActionFrame& frm) {
         Etot += ene;
         break;
       case EWALD:
-        ene = EW_.CalcEnergy(frm.Frm(), *currentParm_, Imask_);
+        ene = EW_.CalcEnergy(frm.Frm(), Imask_);
         Energy_[ELEC]->Add(frameNum, &ene);
         Etot += ene;
         break;

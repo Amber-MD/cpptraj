@@ -11,13 +11,14 @@ Ewald::Ewald() :
   cutoff_(0.0),
   dsumTol_(0.0),
   rsumTol_(0.0),
-  maxmlim_(0),
-  needSumQ_(true)
+  maxmlim_(0)
 {
   mlimit_[0] = 0;
   mlimit_[1] = 0;
   mlimit_[2] = 0;
-  /// Save fractional translations for 1 cell in each direction (and primary cell).
+  // Save fractional translations for 1 cell in each direction (and primary cell).
+  // This is only for the non-pairlist version of direct but it doesn't
+  // tale that much memory.
   Cells_.reserve( 27 );
   for (int ix = -1; ix < 2; ix++)
     for (int iy = -1; iy < 2; iy++)
@@ -26,7 +27,6 @@ Ewald::Ewald() :
 }
 
 const double Ewald::INVSQRTPI_ = 1.0 / sqrt(Constants::PI);
-Timer Ewald::t_erfc_ = Timer();
 
 static inline double DABS(double xIn) { if (xIn < 0.0) return -xIn; else return xIn; }
 static inline int    IABS(int    xIn) { if (xIn < 0  ) return -xIn; else return xIn; }
@@ -192,7 +192,6 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
                      double ew_coeffIn, double maxexpIn,
                      const int* mlimitsIn)
 {
-  needSumQ_ = true;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   rsumTol_ = rsumTolIn;
@@ -229,6 +228,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   }
 
   // Set defaults if necessary
+  Vec3 recipLengths = boxIn.RecipLengths(recip);
   if (DABS(ew_coeff_) < Constants::SMALL)
     ew_coeff_ = FindEwaldCoefficient( cutoff_, dsumTol_ );
   if (dsumTol_ < Constants::SMALL)
@@ -243,7 +243,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
     // eigmin typically bigger than this unless cell is badly distorted.
     double eigmin = 0.5;
     // Calculate lengths of reciprocal vectors
-    GetMlimits(mlimit_, maxexp_, eigmin, boxIn.RecipLengths(recip), recip);
+    GetMlimits(mlimit_, maxexp_, eigmin, recipLengths, recip);
     maxmlim_ = mlimit_[0];
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
@@ -255,8 +255,10 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g\n",
           maxexp_, rsumTol_);
   mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
-
+  // Set up pair list
   if (pairList_.InitPairList(cutoff_, 0.01)) return 1; //TODO skinnb parameter
+  if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+
   return 0;
 }
 
@@ -272,7 +274,6 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
     sumq2_ += (qi * qi);
   }
   mprintf("DEBUG: sumq= %20.10f   sumq2= %20.10f\n", sumq_, sumq2_);
-  needSumQ_ = false;
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
@@ -310,28 +311,6 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
   }
 }
 
-/** Take Cartesian coords of input atoms and map to fractional coords. */
-void Ewald::MapCoords(Frame const& frmIn, Matrix_3x3 const& ucell,
-                      Matrix_3x3 const& recip, AtomMask const& maskIn)
-{
-  t_map_.Start();
-  Frac_.clear();
-  Frac_.reserve( maskIn.Nselected() );
-  Image_.clear();
-  Image_.reserve( maskIn.Nselected() );
-
-  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
-  {
-    Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
-    // Wrap back into primary cell
-    //Frac_.push_back( Vec3(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2])) );
-    Frac_.push_back( Vec3(fc[0]-(int)fc[0], fc[1]-(int)fc[1], fc[2]-(int)fc[2]) );
-    Image_.push_back( ucell.TransposeMult( Frac_.back() ) );
-  }
-  mprintf("DEBUG: Mapped coords for %zu atoms.\n", Frac_.size());
-  t_map_.Stop();
-}
-
 /** Self energy. This is the cancelling Gaussian plus the "neutralizing plasma". */
 double Ewald::Self(double volume) {
   t_self_.Start();
@@ -351,32 +330,33 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   double fac = (Constants::PI*Constants::PI) / (ew_coeff_ * ew_coeff_);
   double maxexp2 = maxexp_ * maxexp_;
   double ene = 0.0;
+  Varray const& Frac = pairList_.FracCoords();
   // Number of M values is the max + 1.
   int mmax = maxmlim_ + 1;
   // Build exponential factors for use in structure factors.
   // These arrays are laid out in 1D; value for each atom at each m, i.e.
   // A0M0 A1M0 A2M0 ... ANM0 A0M1 ... ANMX
   // M0 is done in EwaldSetup()
-  unsigned int mnidx = Frac_.size();
+  unsigned int mnidx = Frac.size();
   // M1
-  for (unsigned int i = 0; i != Frac_.size(); i++, mnidx++) {
-    //mprintf("FRAC: %6i%20.10f%20.10f%20.10f\n", i+1, Frac_[i][0], Frac_[i][1], Frac_[i][2]);
-    cosf1_[mnidx] = cos(Constants::TWOPI * Frac_[i][0]);
-    cosf2_[mnidx] = cos(Constants::TWOPI * Frac_[i][1]);
-    cosf3_[mnidx] = cos(Constants::TWOPI * Frac_[i][2]);
-    sinf1_[mnidx] = sin(Constants::TWOPI * Frac_[i][0]);
-    sinf2_[mnidx] = sin(Constants::TWOPI * Frac_[i][1]);
-    sinf3_[mnidx] = sin(Constants::TWOPI * Frac_[i][2]);
+  for (unsigned int i = 0; i != Frac.size(); i++, mnidx++) {
+    //mprintf("FRAC: %6i%20.10f%20.10f%20.10f\n", i+1, Frac[i][0], Frac[i][1], Frac[i][2]);
+    cosf1_[mnidx] = cos(Constants::TWOPI * Frac[i][0]);
+    cosf2_[mnidx] = cos(Constants::TWOPI * Frac[i][1]);
+    cosf3_[mnidx] = cos(Constants::TWOPI * Frac[i][2]);
+    sinf1_[mnidx] = sin(Constants::TWOPI * Frac[i][0]);
+    sinf2_[mnidx] = sin(Constants::TWOPI * Frac[i][1]);
+    sinf3_[mnidx] = sin(Constants::TWOPI * Frac[i][2]);
   }
   // M2-MX
   // Get the higher factors by recursion using trig addition rules.
   // Negative values of M by complex conjugation, or even cosf, odd sinf.
   // idx will always point to M-1 values
-  unsigned int idx = Frac_.size();
+  unsigned int idx = Frac.size();
   for (int m = 2; m < mmax; m++) {
     // Set m1idx to beginning of M1 values.
-    unsigned int m1idx = Frac_.size();
-    for (unsigned int i = 0; i != Frac_.size(); i++, idx++, m1idx++, mnidx++) {
+    unsigned int m1idx = Frac.size();
+    for (unsigned int i = 0; i != Frac.size(); i++, idx++, m1idx++, mnidx++) {
       cosf1_[mnidx] = cosf1_[idx]*cosf1_[m1idx] - sinf1_[idx]*sinf1_[m1idx];
       cosf2_[mnidx] = cosf2_[idx]*cosf2_[m1idx] - sinf2_[idx]*sinf2_[m1idx];
       cosf3_[mnidx] = cosf3_[idx]*cosf3_[m1idx] - sinf3_[idx]*sinf3_[m1idx];
@@ -388,7 +368,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   // DEBUG
 /*  unsigned int midx = 0;
   for (int m = 0; m != mmax; m++) {
-    for (unsigned int i = 0; i != Frac_.size(); i++, midx++)
+    for (unsigned int i = 0; i != Frac.size(); i++, midx++)
       mprintf("TRIG: %6i%6u%12.6f%12.6f%12.6f%12.6f%12.6f%12.6f\n", m,i+1,
                cosf1_[midx], cosf2_[midx], cosf3_[midx],
                sinf1_[midx], sinf2_[midx], sinf3_[midx]);
@@ -396,10 +376,10 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 
   double mult = 1.0;
 //  int count = -1;
-  Darray c12(Frac_.size(), 0.0);
-  Darray s12(Frac_.size(), 0.0);
-  Darray c3(Frac_.size(), 0.0);
-  Darray s3(Frac_.size(), 0.0);
+  Darray c12(Frac.size(), 0.0);
+  Darray s12(Frac.size(), 0.0);
+  Darray c3(Frac.size(), 0.0);
+  Darray s3(Frac.size(), 0.0);
   for (int m1 = 0; m1 <= mlimit_[0]; m1++)
   {
     for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++)
@@ -407,15 +387,15 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 //      count++;
 //      if ( iproc == (count % nproc) )
 //      {
-        int m1idx = Frac_.size() * m1;
-        int m2idx = Frac_.size() * IABS(m2);
+        int m1idx = Frac.size() * m1;
+        int m2idx = Frac.size() * IABS(m2);
         if (m2 < 0) {
-          for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
+          for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
             c12[i] = cosf1_[m1idx]*cosf2_[m2idx] + sinf1_[m1idx]*sinf2_[m2idx];
             s12[i] = sinf1_[m1idx]*cosf2_[m2idx] - cosf1_[m1idx]*sinf2_[m2idx];
           }
         } else {
-          for (unsigned int i = 0; i != Frac_.size(); i++, m1idx++, m2idx++) {
+          for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
             c12[i] = cosf1_[m1idx]*cosf2_[m2idx] - sinf1_[m1idx]*sinf2_[m2idx];
             s12[i] = sinf1_[m1idx]*cosf2_[m2idx] + cosf1_[m1idx]*sinf2_[m2idx];
           }
@@ -437,15 +417,15 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
           // with eterm.
           eterm *= mult;
           if (msq < maxexp2) {
-            int m3idx = Frac_.size() * IABS(m3);
+            int m3idx = Frac.size() * IABS(m3);
             // Get the product of complex exponentials.
             if (m3 < 0) {
-              for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
+              for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
                 c3[i] = c12[i]*cosf3_[m3idx] + s12[i]*sinf3_[m3idx];
                 s3[i] = s12[i]*cosf3_[m3idx] - c12[i]*sinf3_[m3idx];
               }
             } else {
-              for (unsigned int i = 0; i != Frac_.size(); i++, m3idx++) {
+              for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
                 c3[i] = c12[i]*cosf3_[m3idx] - s12[i]*sinf3_[m3idx];
                 s3[i] = s12[i]*cosf3_[m3idx] + c12[i]*sinf3_[m3idx];
               }
@@ -453,7 +433,7 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
             // Get the structure factor
             double cstruct = 0.0;
             double sstruct = 0.0;
-            for (unsigned int i = 0; i != Frac_.size(); i++) {
+            for (unsigned int i = 0; i != Frac.size(); i++) {
               cstruct += Charge_[i] * c3[i];
               sstruct += Charge_[i] * s3[i];
             }
@@ -470,17 +450,21 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
   return ene * 0.5;
 }
 
-/** Direct space energy. */
+/** Calculate direct space energy. This is the slow version that doesn't
+  * use a pair list; for debug purposes only.
+  */
 double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask const& mask)
 {
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
-  unsigned int maxidx = Image_.size();
+  Varray const& Image = pairList_.ImageCoords();
+  Varray const& Frac = pairList_.FracCoords();
+  unsigned int maxidx = Image.size();
   for (unsigned int idx1 = 0; idx1 != maxidx; idx1++)
   {
     // Set up coord for this atom
-    Vec3 const& crd1 = Image_[idx1];
+    Vec3 const& crd1 = Image[idx1];
     // Set up exclusion list for this atom
     int atom1 = mask[idx1];
     Atom::excluded_iterator excluded_atom = tIn[atom1].excludedbegin();
@@ -493,7 +477,7 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
         //mprintf("ATOM: Atom %4i to %4i excluded.\n", atom1+1, atom2+1);
       } else {
         // Only need to check nearest neighbors.
-        Vec3 const& frac2 = Frac_[idx2];
+        Vec3 const& frac2 = Frac[idx2];
         for (Varray::const_iterator ixyz = Cells_.begin(); ixyz != Cells_.end(); ++ixyz)
         {
           Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - crd1;
@@ -522,10 +506,13 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
   return Eelec;
 }
 
-double Ewald::Direct(PairList const& PL, Topology const& topIn)
+//  Ewald::Direct()
+/** Calculate direct space energy. This is the faster version that uses
+  * a pair list.
+  */
+double Ewald::Direct(PairList const& PL)
 {
-  Timer t_direct_pl_;
-  t_direct_pl_.Start();
+  t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   for (int cidx = 0; cidx < PL.NGridMax(); cidx++)
@@ -560,7 +547,9 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
           if ( rij2 < cut2 ) {
             double rij = sqrt( rij2 );
             double qiqj = q0 * q1;
+            t_erfc_.Start();
             double erfc = erfc_func(ew_coeff_ * rij);
+            t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
 /*
@@ -584,8 +573,8 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
 //      mprintf("\tCellAtom %06i\n", atnum0);
       // Get atom coords
       Vec3 const& at0 = PL.ImageCoords( atnum0 );
-      // Get atom charge FIXME need index not atom num for Charge_
-      double q0 = Charge_[atnum0]; //topIn[atnum0].Charge();
+      // Get atom charge
+      double q0 = Charge_[atnum0];
       // Loop over all neighbor cells
       for (unsigned int nidx = 1; nidx != cell.size(); nidx++)
       {
@@ -599,12 +588,12 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
         for (int atidx1 = beg1; atidx1 < end1; atidx1++)
         {
           int atnum1 = PL.AtomGridIdx( atidx1 );
-          // TODO must be a better way of checking this
+          // TODO Is there better way of checking this?
 //          mprintf("\t\tNbrAtom %06i\n",atnum1);
           if (Excluded_[atnum0].find( atnum1 ) != Excluded_[atnum0].end())
             continue;
           Vec3 const& at1 = PL.ImageCoords( atnum1 );
-          double q1 = Charge_[atnum1]; //topIn[atnum1].Charge();
+          double q1 = Charge_[atnum1];
 
           Vec3 dxyz = at1 + tVec - at0;
           double rij2 = dxyz.Magnitude2();
@@ -613,9 +602,9 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
             double rij = sqrt( rij2 );
             // Coulomb
             double qiqj = q0 * q1;
-            //t_erfc_.Start();
+            t_erfc_.Start();
             double erfc = erfc_func(ew_coeff_ * rij);
-            //t_erfc_.Stop();
+            t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
             //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
@@ -634,40 +623,60 @@ double Ewald::Direct(PairList const& PL, Topology const& topIn)
     } // Loop over myCell atoms
   } // Loop over cells
   mprintf("DEBUG: PairList Eelec= %20.10f\n", Eelec);
-  t_direct_pl_.Stop();
-  t_direct_pl_.WriteTiming(1, "Direct Pairlist:");
+  t_direct_.Stop();
   return Eelec;
 }
-   
 
-/** Calculate Ewald energy. */
-double Ewald::CalcEnergy(Frame const& frameIn, Topology const& topIn, AtomMask const& maskIn)
+/** Calculate Ewald energy. Faster version that uses pair list. */
+double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
 {
   t_total_.Start();
   Matrix_3x3 ucell, recip;
   double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
   double e_self = Self( volume );
 
-  // DEBUG
-  pairList_.CreatePairList(frameIn, maskIn);
+  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
 
-  MapCoords(frameIn, ucell, recip, maskIn);
+//  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
 
-  //double e_direct = Direct( ucell, topIn, maskIn );
-
-  double e_direct = Direct( pairList_, topIn );
+  double e_direct = Direct( pairList_ );
   mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
           e_self, e_recip, e_direct);
   t_total_.Stop();
   return e_self + e_recip + e_direct;
 }
 
+/** Calculate Ewald energy.
+  * Slow version that does not use pair list. Note that pair list is still
+  * called since we require the fractional and imaged coords.
+  */
+double Ewald::CalcEnergy_NoPairList(Frame const& frameIn, Topology const& topIn,
+                                    AtomMask const& maskIn)
+{
+  t_total_.Start();
+  Matrix_3x3 ucell, recip;
+  double volume = frameIn.BoxCrd().ToRecip(ucell, recip);
+  double e_self = Self( volume );
+  // Place atoms in pairlist. This calcs frac/imaged coords.
+  pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+
+  double e_recip = Recip_Regular( recip, volume );
+
+  double e_direct = Direct( ucell, topIn, maskIn );
+
+  mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f\n",
+          e_self, e_recip, e_direct);
+  t_total_.Stop();
+  return e_self + e_recip + e_direct;
+}
+
+// Ewald::Timing()
 void Ewald::Timing(double total) const {
-  t_map_.WriteTiming(2,    "MapCoords: ", t_total_.Total());
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
-  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
   t_erfc_.WriteTiming(3,"ERFC: ", t_direct_.Total());
+  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  pairList_.Timing(t_total_.Total());
   t_total_.WriteTiming(1,  "EwaldTotal:", total);
 }

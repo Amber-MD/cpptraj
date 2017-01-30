@@ -8,7 +8,8 @@ class Ewald {
     Ewald();
     int EwaldInit(Box const&, double, double, double, double, double, const int*);
     void EwaldSetup(Topology const&, AtomMask const&);
-    double CalcEnergy(Frame const&, Topology const&, AtomMask const&);
+    double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
+    double CalcEnergy(Frame const&, AtomMask const&);
     void Timing(double) const;
   private:
     static double erfc_func(double);
@@ -17,18 +18,15 @@ class Ewald {
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
 
-    void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
     double Self(double);
     double Recip_Regular(Matrix_3x3 const&, double);
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
-    double Direct(PairList const&, Topology const&);
+    double Direct(PairList const&);
 
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
 
-    Varray Cells_;  ///< Hold fractional translations to neighbor cells.
-    Varray Frac_;   ///< Hold fractional coords back in primary cell.
-    Varray Image_;  ///< Hold Cartesian coords back in primary cell.
+    Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
     Darray Charge_; ///< Hold atomic charges converted to Amber units.
     Darray cosf1_;
     Darray cosf2_;
@@ -52,12 +50,10 @@ class Ewald {
     double rsumTol_; ///< Reciprocal space sum tolerance.
     int mlimit_[3];
     int maxmlim_;
-    bool needSumQ_; ///< True if sum over charges needs to be calcd. (TODO)
     Timer t_total_;
-    Timer t_map_;
     Timer t_self_;
     Timer t_recip_;
     Timer t_direct_;
-    static Timer t_erfc_; // DEBUG
+    Timer t_erfc_;
 };
 #endif
