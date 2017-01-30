@@ -40,6 +40,7 @@ class Action_Energy: public Action {
     double rsumtol_;               ///< Ewald reciprocal sum tolerance.
     double ewcoeff_;               ///< Ewald coefficient.
     double maxexp_;
+    double skinnb_;                ///< Size of non-bonded "skin"
     int mlimits_[3];
     Timer etime_;
 };

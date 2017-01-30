@@ -189,7 +189,7 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
 int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                     double ew_coeffIn, double maxexpIn,
+                     double ew_coeffIn, double maxexpIn, double skinnbIn,
                      const int* mlimitsIn)
 {
   cutoff_ = cutoffIn;
@@ -226,6 +226,10 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
     mprinterr("Error: maxexp is less than 0.0\n");
     return 1;
   }
+  if (skinnbIn < 0.0) {
+    mprinterr("Error: skinnb is less than 0.0\n");
+    return 1;
+  }
 
   // Set defaults if necessary
   Vec3 recipLengths = boxIn.RecipLengths(recip);
@@ -252,11 +256,11 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   mprintf("DEBUG: Ewald params:\n");
   mprintf("DEBUG:   cutoff= %g   direct sum tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
-  mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g\n",
-          maxexp_, rsumTol_);
+  mprintf("DEBUG:   maxexp= %g   recip. sum tol= %g   NB skin= %g\n",
+          maxexp_, rsumTol_, skinnbIn);
   mprintf("DEBUG:   mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
-  if (pairList_.InitPairList(cutoff_, 0.01)) return 1; //TODO skinnb parameter
+  if (pairList_.InitPairList(cutoff_, skinnbIn)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
 
   return 0;

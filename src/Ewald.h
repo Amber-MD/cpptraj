@@ -6,7 +6,7 @@
 class Ewald {
   public:
     Ewald();
-    int EwaldInit(Box const&, double, double, double, double, double, const int*);
+    int EwaldInit(Box const&, double, double, double, double, double, double, const int*);
     void EwaldSetup(Topology const&, AtomMask const&);
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, AtomMask const&);

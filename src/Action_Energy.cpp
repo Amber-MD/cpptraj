@@ -13,7 +13,7 @@ void Action_Energy::Help() const {
           "\t[bond] [angle] [dihedral] [nb14] {[nonbond] | [elec] [vdw]}\n"
           "\t[ etype {simple | directsum [npoints <N>] |\n"
           "\t         ewald [cut <cutoff>] [dsumtol <dtol>] [rsumtol <rtol>]\n"
-          "\t               [ewcoeff <coeff>] [maxexp <max>]\n"
+          "\t               [ewcoeff <coeff>] [maxexp <max>] [skinnb <skinnb>]\n"
           "\t               [mlimits <X>,<Y>,<Z>]} ]\n"
           "  Calculate energy for atoms in mask.\n");
 }
@@ -75,6 +75,7 @@ Action::RetType Action_Energy::Init(ArgList& actionArgs, ActionInit& init, int d
       rsumtol_ = actionArgs.getKeyDouble("rsumtol", 5E-5);
       ewcoeff_ = actionArgs.getKeyDouble("ewcoeff", 0.0);
       maxexp_ = actionArgs.getKeyDouble("maxexp", 0.0);
+      skinnb_ = actionArgs.getKeyDouble("skinnb", 2.0);
       std::string marg = actionArgs.GetStringKey("mlimits");
       if (!marg.empty()) {
         ArgList mlim(marg, ",");
@@ -194,7 +195,7 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
   // Set up Ewald if necessary.
   if (etype_ == EW) {
     if (EW_.EwaldInit(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                      ewcoeff_, maxexp_, mlimits_))
+                      ewcoeff_, maxexp_, skinnb_, mlimits_))
       return Action::ERR;
     EW_.EwaldSetup( setup.Top(), Imask_ );
   }
