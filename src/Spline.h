@@ -6,8 +6,8 @@ class Spline {
   public:
     typedef std::vector<double> Darray;
     Spline() {}
-    void cubicSpline_coeff(Darray const&, Darray const&);
-    Darray cubicSpline_eval(Darray const&, Darray const&, Darray const&) const;
+    int CubicSpline_Coeff(Darray const&, Darray const&);
+    Darray CubicSpline_Eval(Darray const&, Darray const&, Darray const&) const;
   private:
     // Cubic spline coefficients.
     Darray b_;

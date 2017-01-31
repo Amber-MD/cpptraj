@@ -18,11 +18,11 @@
   * \param xIn Input X values
   * \param yIn Y values corresponding to input X values.
   */
-void Spline::cubicSpline_coeff(Darray const& xIn, Darray const& yIn) 
+int Spline::CubicSpline_Coeff(Darray const& xIn, Darray const& yIn) 
 {
   if (xIn.size() < 2) {
     mprinterr("Error: Cannot spline with less than 2 values.\n");
-    return;
+    return 1;
   }
   int n = (int)xIn.size();
 
@@ -91,6 +91,7 @@ void Spline::cubicSpline_coeff(Darray const& xIn, Darray const& yIn)
     c_[1] = 0.0; 
     d_[1] = 0.0;
   }
+  return 0;
 }
 
 // Spline::cubicSpline_eval() 
@@ -101,13 +102,13 @@ void Spline::cubicSpline_coeff(Darray const& xIn, Darray const& yIn)
   * \param mesh_x New input X coordinates.
   * \return New output Y coordinates.
   */
-Spline::Darray Spline::cubicSpline_eval(Darray const& xIn, Darray const& yIn, 
+Spline::Darray Spline::CubicSpline_Eval(Darray const& xIn, Darray const& yIn, 
                                         Darray const& mesh_x) const
 {
+  Darray mesh_y;
   int xidx = 0;
   int n = (int)xIn.size();
   int mesh_size = (int)mesh_x.size();
-  Darray mesh_y;
   mesh_y.reserve( mesh_size );
 
   for (int uidx = 0; uidx < mesh_size; uidx++) {
