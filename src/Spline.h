@@ -13,11 +13,21 @@ class Spline {
     /// Calculate interpolated curve from original X and Y values for given new X values.
     Darray CubicSpline_Eval(Darray const&, Darray const&, Darray const&) const;
     /// Calculate interpolated Y value from regularly spaced original X values.
-    double CubicSpline_Eval(double, double, Darray const&, double) const;
+    inline double CubicSpline_Eval(double, double, Darray const&, double) const;
   private:
     // Cubic spline coefficients.
     Darray b_;
     Darray c_;
     Darray d_;
 };
+// ----- INLINE FUNCTIONS ------------------------------------------------------
+/** This version of Eval can be used when the original input X values
+  * are regularly spaced.
+  */
+double Spline::CubicSpline_Eval(double del, double one_over_del, Darray const& yIn, double U) const
+{
+  int xidx = (int)(one_over_del * U);
+  double dx = U - ((double)xidx * del);
+  return yIn[xidx] + dx*(b_[xidx] + dx*(c_[xidx] + dx*d_[xidx]));
+} 
 #endif

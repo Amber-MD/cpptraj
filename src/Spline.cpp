@@ -126,16 +126,6 @@ double Spline::CubicSpline_Eval(Darray const& xIn, Darray const& yIn, double U) 
   return yIn[xidx] + dx*(b_[xidx] + dx*(c_[xidx] + dx*d_[xidx])); 
 }
 
-/** This version of Eval can be used when the original input X values
-  * are regularly spaced.
-  */
-double Spline::CubicSpline_Eval(double del, double one_over_del, Darray const& yIn, double U) const
-{
-  int xidx = (int)(one_over_del * U);
-  double dx = U - ((double)xidx * del);
-  return yIn[xidx] + dx*(b_[xidx] + dx*(c_[xidx] + dx*d_[xidx]));
-} 
-
 /** Evaluate cubic spline function with pre-calcd coefficients in b, c, and
   * d from coordinates x/y for all points in given mesh.
   * \param xIn Original input X coordinates.

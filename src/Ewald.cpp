@@ -204,10 +204,12 @@ void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
     xval += erfcTableDx_;
   }
   cspline_.CubicSpline_Coeff(erfc_table_X, erfc_table_Y_);
+  // Memory saved Y values plus spline B, C, and D coefficient arrays.
   mprintf("\tMemory used by Erfc table and splines: %s\n",
           ByteString(4 * erfc_table_Y_.size() * sizeof(double), BYTE_DECIMAL).c_str());
 }
 
+// Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
   return cspline_.CubicSpline_Eval(erfcTableDx_, one_over_Dx_, erfc_table_Y_, xIn);
 }
