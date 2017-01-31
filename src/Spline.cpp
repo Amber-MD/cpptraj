@@ -1,7 +1,6 @@
 #include "Spline.h"
 #include "CpptrajStdio.h"
 
-// Spline::cubicSpline_coeff()
 /** Given a set of x and y values of size n, compute the b, c, and d
   * coefficients for n interpolating cubic splines of form:
   *
@@ -94,7 +93,39 @@ int Spline::CubicSpline_Coeff(Darray const& xIn, Darray const& yIn)
   return 0;
 }
 
-// Spline::cubicSpline_eval() 
+/** Evaluate cubic spline function for single X value.
+  * \param xIn Original input X coordinates.
+  * \param yIn Original input Y coordinates.
+  * \param U New X coordinate.
+  * \return New Y coordinate.
+  */
+double Spline::CubicSpline_Eval(Darray const& xIn, Darray const& yIn, double U) const
+{
+  int xidx = 0;
+  int n = (int)xIn.size();
+  // Search for U in x
+  if (U < xIn[0])
+    xidx = 0;
+  else if (U > xIn[n-1])
+    xidx = n - 1;
+  else {
+    int i0 = 0;
+    int i1 = n - 1;
+    while (i0 <= i1) {
+      xidx = (i0 + i1) / 2;
+      if ( U < xIn[xidx] )
+        i1 = xidx - 1;
+      else if ( U > xIn[xidx+1] )
+        i0 = xidx + 1;
+      else
+        break;
+    }
+  }
+  // Evaluate v for this u
+  double dx = U - xIn[xidx];
+  return yIn[xidx] + dx*(b_[xidx] + dx*(c_[xidx] + dx*d_[xidx])); 
+}
+
 /** Evaluate cubic spline function with pre-calcd coefficients in b, c, and
   * d from coordinates x/y for all points in given mesh.
   * \param xIn Original input X coordinates.
