@@ -204,6 +204,10 @@ void Ewald::FillErfcTable(double erfcTableDx, double cutoff, double dxdr) {
           ByteString(5 * erfc_table_X_.size() * sizeof(double), BYTE_DECIMAL).c_str());
 }
 
+double Ewald::ERFC(double xIn) const {
+  return cspline_.CubicSpline_Eval(erfc_table_X_, erfc_table_Y_, xIn);
+}
+
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
 int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
@@ -490,7 +494,8 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 void Ewald::Adjust(double q0, double q1, double rij) {
   t_adjust_.Start();
   t_erfc_.Start();
-  double erfc = erfc_func(ew_coeff_ * rij);
+  //double erfc = erfc_func(ew_coeff_ * rij);
+  double erfc = ERFC(ew_coeff_ * rij);
   t_erfc_.Stop();
   double d0 = (erfc - 1.0) / rij;
   t_adjust_.Stop();
@@ -535,7 +540,8 @@ double Ewald::Direct(Matrix_3x3 const& ucell, Topology const& tIn, AtomMask cons
             // Coulomb
             double qiqj = Charge_[idx1] * Charge_[idx2];
             t_erfc_.Start();
-            double erfc = erfc_func(ew_coeff_ * rij);
+            //double erfc = erfc_func(ew_coeff_ * rij);
+            double erfc = ERFC(ew_coeff_ * rij);
             t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
@@ -598,7 +604,8 @@ double Ewald::Direct(PairList const& PL)
             double rij = sqrt( rij2 );
             double qiqj = q0 * q1;
             t_erfc_.Start();
-            double erfc = erfc_func(ew_coeff_ * rij);
+            //double erfc = erfc_func(ew_coeff_ * rij);
+            double erfc = ERFC(ew_coeff_ * rij);
             t_erfc_.Stop();
             double e_elec = qiqj * erfc / rij;
             Eelec += e_elec;
@@ -653,7 +660,8 @@ double Ewald::Direct(PairList const& PL)
               // Coulomb
               double qiqj = q0 * q1;
               t_erfc_.Start();
-              double erfc = erfc_func(ew_coeff_ * rij);
+              //double erfc = erfc_func(ew_coeff_ * rij);
+              double erfc = ERFC(ew_coeff_ * rij);
               t_erfc_.Stop();
               double e_elec = qiqj * erfc / rij;
               Eelec += e_elec;

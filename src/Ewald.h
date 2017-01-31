@@ -20,6 +20,7 @@ class Ewald {
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
     void FillErfcTable(double,double,double);
+    inline double ERFC(double) const;
 
     double Self(double);
     double Recip_Regular(Matrix_3x3 const&, double);
