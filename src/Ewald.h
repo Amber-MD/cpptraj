@@ -19,7 +19,7 @@ class Ewald {
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
-    void FillErfcTable(double,double,double);
+    void FillErfcTable(double,double);
     inline double ERFC(double) const;
 
     double Self(double);
@@ -43,7 +43,6 @@ class Ewald {
     PairList pairList_;
 
     Spline cspline_;
-    Darray erfc_table_X_;
     Darray erfc_table_Y_;
 
     typedef std::vector< std::set<int> > Iarray2D;
@@ -58,6 +57,8 @@ class Ewald {
     double dsumTol_; ///< Direct space sum tolerance.
     double rsumTol_; ///< Reciprocal space sum tolerance.
     double e_adjust_; ///< Adjustment for excluded pairs.
+    double erfcTableDx_;
+    double one_over_Dx_;
     int mlimit_[3];
     int maxmlim_;
     Timer t_total_;

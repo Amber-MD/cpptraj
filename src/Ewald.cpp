@@ -12,6 +12,8 @@ Ewald::Ewald() :
   cutoff_(0.0),
   dsumTol_(0.0),
   rsumTol_(0.0),
+  erfcTableDx_(0.0),
+  one_over_Dx_(0.0),
   maxmlim_(0)
 {
   mlimit_[0] = 0;
@@ -187,25 +189,27 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
 }
 
 // Ewald::FillErfcTable()
-void Ewald::FillErfcTable(double erfcTableDx, double cutoff, double dxdr) {
-  int erfcTableSize = (int)(dxdr * (1.0/erfcTableDx) * cutoff * 1.5);
-  erfc_table_X_.reserve( erfcTableSize );
+void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
+  one_over_Dx_ = 1.0 / erfcTableDx_;
+  int erfcTableSize = (int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
+  Darray erfc_table_X;
+  erfc_table_X.reserve( erfcTableSize );
   erfc_table_Y_.reserve( erfcTableSize );
   
   double xval = 0.0;
   for (int i = 0; i != erfcTableSize; i++) {
     double yval = erfc_func( xval );
-    erfc_table_X_.push_back( xval );
+    erfc_table_X.push_back( xval );
     erfc_table_Y_.push_back( yval );
-    xval += erfcTableDx;
+    xval += erfcTableDx_;
   }
-  cspline_.CubicSpline_Coeff(erfc_table_X_, erfc_table_Y_);
+  cspline_.CubicSpline_Coeff(erfc_table_X, erfc_table_Y_);
   mprintf("\tMemory used by Erfc table and splines: %s\n",
-          ByteString(5 * erfc_table_X_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+          ByteString(4 * erfc_table_Y_.size() * sizeof(double), BYTE_DECIMAL).c_str());
 }
 
 double Ewald::ERFC(double xIn) const {
-  return cspline_.CubicSpline_Eval(erfc_table_X_, erfc_table_Y_, xIn);
+  return cspline_.CubicSpline_Eval(erfcTableDx_, one_over_Dx_, erfc_table_Y_, xIn);
 }
 
 // -----------------------------------------------------------------------------
@@ -219,7 +223,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   rsumTol_ = rsumTolIn;
   ew_coeff_ = ew_coeffIn;
   maxexp_ = maxexpIn;
-  double erfcTableDx = erfcTableDxIn;
+  erfcTableDx_ = erfcTableDxIn;
   Matrix_3x3 ucell, recip;
   boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
@@ -275,16 +279,16 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   }
-  if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
+  if (erfcTableDx_ <= 0.0) erfcTableDx_ = 1.0 / 5000;
   // TODO make this optional
-  FillErfcTable( erfcTableDx, cutoff_, ew_coeff_ );
+  FillErfcTable( cutoff_, ew_coeff_ );
 
   mprintf("\tEwald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx, erfc_table_X_.size());
+  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_Y_.size());
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
