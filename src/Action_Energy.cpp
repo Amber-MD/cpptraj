@@ -212,9 +212,9 @@ Action::RetType Action_Energy::Setup(ActionSetup& setup) {
       return Action::ERR;
     }
   // Set up Ewald if necessary.
-  if (etype_ == EW) {
+  if (etype_ == EW) { // TODO erfc table dx option
     if (EW_.EwaldInit(setup.CoordInfo().TrajBox(), cutoff_, dsumtol_, rsumtol_,
-                      ewcoeff_, maxexp_, skinnb_, debug_, mlimits_))
+                      ewcoeff_, maxexp_, skinnb_, 0.0, debug_, mlimits_))
       return Action::ERR;
     EW_.EwaldSetup( setup.Top(), Imask_ );
   }

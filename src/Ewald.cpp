@@ -186,18 +186,36 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
   mprintf("\tNumber of reciprocal vectors: %i\n", nrecvecs);
 }
 
+// Ewald::FillErfcTable()
+void Ewald::FillErfcTable(double erfcTableDx, double cutoff, double dxdr) {
+  int erfcTableSize = (int)(dxdr * (1.0/erfcTableDx) * cutoff * 1.5);
+  erfc_table_X_.reserve( erfcTableSize );
+  erfc_table_Y_.reserve( erfcTableSize );
+  
+  double xval = 0.0;
+  for (int i = 0; i != erfcTableSize; i++) {
+    double yval = erfc_func( xval );
+    erfc_table_X_.push_back( xval );
+    erfc_table_Y_.push_back( yval );
+    xval += erfcTableDx;
+  }
+  cspline_.CubicSpline_Coeff(erfc_table_X_, erfc_table_Y_);
+  mprintf("\tMemory used by Erfc table and splines: %s\n",
+          ByteString(5 * erfc_table_X_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+}
 
 // -----------------------------------------------------------------------------
 /** Set up parameters. */
 int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double rsumTolIn,
-                     double ew_coeffIn, double maxexpIn, double skinnbIn, int debugIn,
-                     const int* mlimitsIn)
+                     double ew_coeffIn, double maxexpIn, double skinnbIn,
+                     double erfcTableDxIn, int debugIn, const int* mlimitsIn)
 {
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   rsumTol_ = rsumTolIn;
   ew_coeff_ = ew_coeffIn;
   maxexp_ = maxexpIn;
+  double erfcTableDx = erfcTableDxIn;
   Matrix_3x3 ucell, recip;
   boxIn.ToRecip(ucell, recip);
   if (mlimitsIn != 0)
@@ -253,12 +271,16 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
     maxmlim_ = std::max(maxmlim_, mlimit_[1]);
     maxmlim_ = std::max(maxmlim_, mlimit_[2]);
   }
+  if (erfcTableDx <= 0.0) erfcTableDx = 1.0 / 5000;
+  // TODO make this optional
+  FillErfcTable( erfcTableDx, cutoff_, ew_coeff_ );
 
   mprintf("\tEwald params:\n");
   mprintf("\t  Cutoff= %g   Direct Sum Tol= %g   Ewald coeff.= %g\n",
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
+  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx, erfc_table_X_.size());
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;

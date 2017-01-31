@@ -3,10 +3,12 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
+#include "Spline.h"
 class Ewald {
   public:
     Ewald();
-    int EwaldInit(Box const&, double, double, double, double, double, double, int, const int*);
+    int EwaldInit(Box const&, double, double, double, double, double, double,
+                  double, int, const int*);
     void EwaldSetup(Topology const&, AtomMask const&);
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
     double CalcEnergy(Frame const&, AtomMask const&);
@@ -17,6 +19,7 @@ class Ewald {
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
     static double FindMaxexpFromTol(double, double);
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
+    void FillErfcTable(double,double,double);
 
     double Self(double);
     double Recip_Regular(Matrix_3x3 const&, double);
@@ -37,6 +40,10 @@ class Ewald {
     Darray sinf3_;
 
     PairList pairList_;
+
+    Spline cspline_;
+    Darray erfc_table_X_;
+    Darray erfc_table_Y_;
 
     typedef std::vector< std::set<int> > Iarray2D;
     Iarray2D Excluded_; ///< Full exclusion list for each atom.
