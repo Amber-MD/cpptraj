@@ -512,7 +512,11 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 }
 
 // Ewald::Adjust()
-void Ewald::Adjust(double q0, double q1, double rij) {
+double Ewald::Adjust(double q0, double q1, double rij) const {
+# ifdef _OPENMP
+  double erfc = ERFC(ew_coeff_ * rij);
+  double d0 = (erfc - 1.0) / rij;
+# else
   t_adjust_.Start();
   t_erfc_.Start();
   //double erfc = erfc_func(ew_coeff_ * rij);
@@ -520,8 +524,8 @@ void Ewald::Adjust(double q0, double q1, double rij) {
   t_erfc_.Stop();
   double d0 = (erfc - 1.0) / rij;
   t_adjust_.Stop();
-  double eea = (q0 * q1 * d0);
-  e_adjust_ += eea;
+# endif
+  return (q0 * q1 * d0);
 }
 
 /** Calculate direct space energy. This is the slow version that doesn't
@@ -590,8 +594,14 @@ double Ewald::Direct(PairList const& PL)
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
-  e_adjust_ = 0.0;
-  for (int cidx = 0; cidx < PL.NGridMax(); cidx++)
+  double e_adjust = 0.0;
+  int cidx;
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, e_adjust)
+  {
+# pragma omp for
+# endif
+  for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
     if (PL.NatomsInGrid( cidx ) > 0)
     {
@@ -621,10 +631,14 @@ double Ewald::Direct(PairList const& PL)
             if ( rij2 < cut2 ) {
               double rij = sqrt( rij2 );
               double qiqj = q0 * q1;
+#             ifndef _OPENMP
               t_erfc_.Start();
+#             endif
               //double erfc = erfc_func(ew_coeff_ * rij);
               double erfc = ERFC(ew_coeff_ * rij);
+#             ifndef _OPENMP
               t_erfc_.Stop();
+#             endif
               double e_elec = qiqj * erfc / rij;
               Eelec += e_elec;
 /*
@@ -638,7 +652,7 @@ double Ewald::Direct(PairList const& PL)
 */
             }
           } else
-            Adjust(q0, q1, sqrt(rij2));
+            e_adjust += Adjust(q0, q1, sqrt(rij2));
         }
         // Loop over all neighbor cells
         for (unsigned int nidx = 1; nidx != cell.size(); nidx++)
@@ -665,10 +679,14 @@ double Ewald::Direct(PairList const& PL)
               if ( rij2 < cut2 ) {
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
+#               ifndef _OPENMP
                 t_erfc_.Start();
+#               endif
                 //double erfc = erfc_func(ew_coeff_ * rij);
                 double erfc = ERFC(ew_coeff_ * rij);
+#               ifndef _OPENMP
                 t_erfc_.Stop();
+#               endif
                 double e_elec = qiqj * erfc / rij;
                 Eelec += e_elec;
                 //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
@@ -683,14 +701,17 @@ double Ewald::Direct(PairList const& PL)
 */
               }
             } else
-              Adjust(q0, q1, sqrt(rij2));
+              e_adjust += Adjust(q0, q1, sqrt(rij2));
           } // Loop over nbrCell atoms
         } // Loop over neighbor cells
       } // Loop over myCell atoms
     } // END if cell is not empty
   } // Loop over cells
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
   t_direct_.Stop();
-  return Eelec;
+  return Eelec + e_adjust;
 }
 
 /** Calculate Ewald energy. Faster version that uses pair list. */
@@ -745,7 +766,9 @@ void Ewald::Timing(double total) const {
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
   t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+# ifndef _OPENMP
   t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
   t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
+# endif
   pairList_.Timing(total);
 }

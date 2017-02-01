@@ -31,7 +31,7 @@ class Ewald {
     double Recip_Regular(Matrix_3x3 const&, double);
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
     double Direct(PairList const&);
-    inline void Adjust(double,double,double);
+    inline double Adjust(double,double,double) const;
 
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
