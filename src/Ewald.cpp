@@ -349,6 +349,10 @@ void Ewald::EwaldSetup(Topology const& topIn, AtomMask const& maskIn) {
 //    sinf2_.push_back( 0.0 );
 //    sinf3_.push_back( 0.0 );
 // }
+  c12_.resize( maskIn.Nselected() );
+  s12_.resize( maskIn.Nselected() );
+  c3_.resize( maskIn.Nselected() );
+  s3_.resize( maskIn.Nselected() );
   // Set up full exclusion lists.
   Excluded_.clear();
   Excluded_.resize( topIn.Natom() );
@@ -437,10 +441,6 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
 
   double mult = 1.0;
 //  int count = -1;
-  Darray c12(Frac.size(), 0.0);
-  Darray s12(Frac.size(), 0.0);
-  Darray c3(Frac.size(), 0.0);
-  Darray s3(Frac.size(), 0.0);
   for (int m1 = 0; m1 <= mlimit_[0]; m1++)
   {
     for (int m2 = -mlimit_[1]; m2 <= mlimit_[1]; m2++)
@@ -452,13 +452,13 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
         int m2idx = Frac.size() * IABS(m2);
         if (m2 < 0) {
           for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
-            c12[i] = cosf1_[m1idx]*cosf2_[m2idx] + sinf1_[m1idx]*sinf2_[m2idx];
-            s12[i] = sinf1_[m1idx]*cosf2_[m2idx] - cosf1_[m1idx]*sinf2_[m2idx];
+            c12_[i] = cosf1_[m1idx]*cosf2_[m2idx] + sinf1_[m1idx]*sinf2_[m2idx];
+            s12_[i] = sinf1_[m1idx]*cosf2_[m2idx] - cosf1_[m1idx]*sinf2_[m2idx];
           }
         } else {
           for (unsigned int i = 0; i != Frac.size(); i++, m1idx++, m2idx++) {
-            c12[i] = cosf1_[m1idx]*cosf2_[m2idx] - sinf1_[m1idx]*sinf2_[m2idx];
-            s12[i] = sinf1_[m1idx]*cosf2_[m2idx] + cosf1_[m1idx]*sinf2_[m2idx];
+            c12_[i] = cosf1_[m1idx]*cosf2_[m2idx] - sinf1_[m1idx]*sinf2_[m2idx];
+            s12_[i] = sinf1_[m1idx]*cosf2_[m2idx] + cosf1_[m1idx]*sinf2_[m2idx];
           }
         }
         for (int m3 = -mlimit_[2]; m3 <= mlimit_[2]; m3++)
@@ -482,21 +482,21 @@ double Ewald::Recip_Regular(Matrix_3x3 const& recip, double volume) {
             // Get the product of complex exponentials.
             if (m3 < 0) {
               for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
-                c3[i] = c12[i]*cosf3_[m3idx] + s12[i]*sinf3_[m3idx];
-                s3[i] = s12[i]*cosf3_[m3idx] - c12[i]*sinf3_[m3idx];
+                c3_[i] = c12_[i]*cosf3_[m3idx] + s12_[i]*sinf3_[m3idx];
+                s3_[i] = s12_[i]*cosf3_[m3idx] - c12_[i]*sinf3_[m3idx];
               }
             } else {
               for (unsigned int i = 0; i != Frac.size(); i++, m3idx++) {
-                c3[i] = c12[i]*cosf3_[m3idx] - s12[i]*sinf3_[m3idx];
-                s3[i] = s12[i]*cosf3_[m3idx] + c12[i]*sinf3_[m3idx];
+                c3_[i] = c12_[i]*cosf3_[m3idx] - s12_[i]*sinf3_[m3idx];
+                s3_[i] = s12_[i]*cosf3_[m3idx] + c12_[i]*sinf3_[m3idx];
               }
             }
             // Get the structure factor
             double cstruct = 0.0;
             double sstruct = 0.0;
             for (unsigned int i = 0; i != Frac.size(); i++) {
-              cstruct += Charge_[i] * c3[i];
-              sstruct += Charge_[i] * s3[i];
+              cstruct += Charge_[i] * c3_[i];
+              sstruct += Charge_[i] * s3_[i];
             }
             double struc2 = cstruct*cstruct + sstruct*sstruct;
             ene += eterm * struc2;

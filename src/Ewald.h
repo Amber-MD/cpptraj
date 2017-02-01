@@ -45,6 +45,10 @@ class Ewald {
     Darray sinf1_;
     Darray sinf2_;
     Darray sinf3_;
+    Darray c12_;
+    Darray s12_;
+    Darray c3_;
+    Darray s3_;
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
