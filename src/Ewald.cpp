@@ -3,6 +3,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 #include "StringRoutines.h"
+#include "Spline.h"
 
 Ewald::Ewald() :
   sumq_(0.0),
@@ -191,27 +192,41 @@ void Ewald::GetMlimits(int* mlimit, double maxexp, double eigmin,
 // Ewald::FillErfcTable()
 void Ewald::FillErfcTable(double cutoffIn, double dxdr) {
   one_over_Dx_ = 1.0 / erfcTableDx_;
-  int erfcTableSize = (int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
-  Darray erfc_table_X;
-  erfc_table_X.reserve( erfcTableSize );
-  erfc_table_Y_.reserve( erfcTableSize );
-  
+  unsigned int erfcTableSize = (unsigned int)(dxdr * one_over_Dx_ * cutoffIn * 1.5);
+  Darray erfc_X, erfc_Y;
+  erfc_X.reserve( erfcTableSize );
+  erfc_Y.reserve( erfcTableSize );
+  // Save X and Y values so we can calc the spline coefficients
   double xval = 0.0;
-  for (int i = 0; i != erfcTableSize; i++) {
+  for (unsigned int i = 0; i != erfcTableSize; i++) {
     double yval = erfc_func( xval );
-    erfc_table_X.push_back( xval );
-    erfc_table_Y_.push_back( yval );
+    erfc_X.push_back( xval );
+    erfc_Y.push_back( yval );
     xval += erfcTableDx_;
   }
-  cspline_.CubicSpline_Coeff(erfc_table_X, erfc_table_Y_);
+  Spline cspline;
+  cspline.CubicSpline_Coeff(erfc_X, erfc_Y);
+  erfc_X.clear();
+  // Store values in Spline table
+  erfc_table_.reserve( erfcTableSize * 4 ); // Y B C D
+  for (unsigned int i = 0; i != erfcTableSize; i++) {
+    erfc_table_.push_back( erfc_Y[i] );
+    erfc_table_.push_back( cspline.B_coeff()[i] );
+    erfc_table_.push_back( cspline.C_coeff()[i] );
+    erfc_table_.push_back( cspline.D_coeff()[i] );
+  }
   // Memory saved Y values plus spline B, C, and D coefficient arrays.
   mprintf("\tMemory used by Erfc table and splines: %s\n",
-          ByteString(4 * erfc_table_Y_.size() * sizeof(double), BYTE_DECIMAL).c_str());
+          ByteString(erfc_table_.size() * sizeof(double), BYTE_DECIMAL).c_str());
 }
 
 // Ewald::ERFC()
 double Ewald::ERFC(double xIn) const {
-  return cspline_.CubicSpline_Eval(erfcTableDx_, one_over_Dx_, erfc_table_Y_, xIn);
+  int xidx = ((int)(one_over_Dx_ * xIn));
+  double dx = xIn - ((double)xidx * erfcTableDx_);
+  xidx *= 4;
+  return erfc_table_[xidx] + 
+         dx*(erfc_table_[xidx+1] + dx*(erfc_table_[xidx+2] + dx*erfc_table_[xidx+3]));
 }
 
 // -----------------------------------------------------------------------------
@@ -290,7 +305,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
           cutoff_, dsumTol_, ew_coeff_);
   mprintf("\t  MaxExp= %g   Recip. Sum Tol= %g   NB skin= %g\n",
           maxexp_, rsumTol_, skinnbIn);
-  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_Y_.size());
+  mprintf("\t  Erfc table dx= %g, size= %zu\n", erfcTableDx_, erfc_table_.size()/4);
   mprintf("\t  mlimits= {%i,%i,%i} Max=%i\n", mlimit_[0], mlimit_[1], mlimit_[2], maxmlim_);
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;

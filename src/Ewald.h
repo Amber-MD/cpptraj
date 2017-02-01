@@ -3,7 +3,6 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
-#include "Spline.h"
 /// Class for calculating electrostatics using Ewald summation.
 class Ewald {
   public:
@@ -47,8 +46,7 @@ class Ewald {
     Darray sinf2_;
     Darray sinf3_;
     PairList pairList_;   ///< Atom pair list for direct sum.
-    Spline cspline_;      ///< Hold cubic spline parameters.
-    Darray erfc_table_Y_; ///< Hold Erfc table Y values.
+    Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
