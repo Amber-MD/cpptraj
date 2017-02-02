@@ -2,9 +2,11 @@
 #define INC_PAIRLIST_H
 #include "Topology.h"
 #include "Timer.h"
-/// Class for creating a lists of potential pairing atoms via spatial grid cutoff.
-/** NOTE: The code in this class is largely based on that from the SANDER
+/// Class for creating a lists of potential pairing atoms via spatial grid.
+/** NOTE: The code in this class is based on that from the SANDER
   *       program of Amber/AmberTools, particularly nonbond_list.F90.
+  *       However, it is more memory-hungry since it stores full cell
+  *       neighbor lists instead of cell centers.
   */
 class PairList {
   public:
@@ -12,32 +14,49 @@ class PairList {
     typedef std::vector<Iarray> Iarray2D;
     typedef std::vector<Vec3> Varray;
     PairList();
+    /// Initialize pair list with given cutoff, "skin", and debug level.
     int InitPairList(double,double,int);
+    /// Setup pair list grid cells based on given box and vector of recip lengths.
     int SetupPairList(Box::BoxType, Vec3 const&);
+    /// Create pair list from Frame, unit cell and recip matrices, and mask.
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
+    /// Print timing info.
     void Timing(double) const;
+    /// Print memory usage.
     void PrintMemory() const;
-
+    /// \return Total number of grid cells.
     int NGridMax()                 const { return nGridMax_;         }
+    /// \return Array of neighbor grid cell indices for specified grid cell.
     Iarray const& Cell(int i)      const { return neighborPtr_[i];   }
+    /// \return Array of indices into TransVec for each neighbor grid cell in Cell(i).
     Iarray const& Trans(int i)     const { return neighborTrans_[i]; }
+    /// \return Starting index into AtomGridIdx for given grid cell.
     int IdxOffset(int i)           const { return idxOffset_[i];     }
+    /// \return Number of atoms in given grid cell.
     int NatomsInGrid(int i)        const { return nAtomsInGrid_[i];  }
+    /// \return Atom index for given index (related to IdxOffset)
     int AtomGridIdx(int a)         const { return atomGridIdx_[a];   }
+    /// \return Imaged coordinates for given atom index.
     Vec3 const& ImageCoords(int n) const { return Image_[n];         }
+    /// \return Translation vector for given translation index (from Trans()).
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
 
     Varray const& ImageCoords()    const { return Image_; }
     Varray const& FracCoords()     const { return Frac_;  }
   private:
 //    int Fill_CellNeighbor();
+    /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
+    /// Check grid dimensions using given recip lengths and (re)allocate mem if necessary.
     int SetupGrids(Vec3 const&);
+    /// Convert selected coords to wrapped fraction coords and save wrapped Cartesian coords.
     void MapCoords(Frame const&, Matrix_3x3 const&,Matrix_3x3 const&, AtomMask const&);
+    /// Update the translation vectors based on given unit cell matrix.
     void FillTranslateVec(Matrix_3x3 const&);
+    /// Assign fraction coords to grid cells.
     void GridUnitCell();
 
-    typedef std::vector<bool> Barray;
+//    typedef std::vector<bool> Barray;
 
     static const int cellOffset_; ///< Number of cells in forward direction to check
 
