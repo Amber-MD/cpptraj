@@ -19,26 +19,44 @@ class Ewald {
     /// Slow non-pairlist version of energy calc. For debug only.
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
   private:
+    /// Complimentary error function, erfc.
     static double erfc_func(double);
+    /// Determine Ewald coefficient from cutoff and direct sum tolerance.
     static double FindEwaldCoefficient(double,double);
+    /// Determine max length for reciprocal calcs based on reciprocal limits
     static double FindMaxexpFromMlim(const int*, Matrix_3x3 const&);
+    /// Determine max length for reciprocal calcs based on Ewald coefficient and recip tol.
     static double FindMaxexpFromTol(double, double);
+    /// Determine reciprocal limits based on unit cell reciprocal vectors
     static void GetMlimits(int*, double, double, Vec3 const&, Matrix_3x3 const&);
+    /// Fill erfc lookup table using cubic spline interpolation.
     void FillErfcTable(double,double);
+    /// \return erfc value from erfc lookup table.
     inline double ERFC(double) const;
-
+    /// Ewald "self" energy
     double Self(double);
+    /// Ewald reciprocal energy
     double Recip_Regular(Matrix_3x3 const&, double);
+#   ifdef DEBUG_EWALD
+    /// Slow version of direct space energy, no pairlist.
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
+#   endif
+    /// Fast version of direct space energy using a pairlist
     double Direct(PairList const&);
+    /// \return adjusted energy for excluded atom pair
+#   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
-
+#   else
+    inline double Adjust(double,double,double); // Cannot be const bc timers
+#   endif
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
     typedef std::vector< std::set<int> > Iarray2D;
-
+#   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
+#   endif
     Darray Charge_; ///< Hold atomic charges converted to Amber units.
+    // Hold trig tables
     Darray cosf1_;
     Darray cosf2_;
     Darray cosf3_;
@@ -52,6 +70,12 @@ class Ewald {
     PairList pairList_;   ///< Atom pair list for direct sum.
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
+#   ifdef _OPENMP
+    typedef std::vector<int> Iarray;
+    Iarray mlim1_;        ///< Hold m1 reciprocal indices
+    Iarray mlim2_;        ///< Hold m2 reciprocal indices
+    int multCut_;         ///< Hold index after which multiplier should be 2.0.
+#   endif
     static const double INVSQRTPI_;
     double sumq_;         ///< Sum of charges
     double sumq2_;        ///< Sum of charges squared
