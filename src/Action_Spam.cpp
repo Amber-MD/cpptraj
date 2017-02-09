@@ -668,14 +668,16 @@ int Action_Spam::SyncAction() {
       Data.resize( total );
       int* endptr = &(Data[0]) + size_on_rank[0];
       // Receive data from each rank
+      int offset = 0;
       for (int rank = 1; rank < trajComm_.Size(); rank++) {
+        offset += frames_on_rank[rank-1];
         trajComm_.SendMaster( endptr, size_on_rank[rank], rank, MPI_INT );
         // Properly offset the frame numbers
         for (int j = 0; j != size_on_rank[rank]; j++, endptr++)
           if (*endptr < 0)
-            *endptr -= frames_on_rank[rank-1];
+            *endptr -= offset;
           else
-            *endptr += frames_on_rank[rank-1];
+            *endptr += offset;
       }
     } else // Send data to master
       trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
