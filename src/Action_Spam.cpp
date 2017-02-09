@@ -458,7 +458,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       if (!occupied[*it])
         occupied[*it] = true;
       else if (!doubled[*it]) {
-        peakFrameData_[*it].push_back(-frameNum); // double-occupied, frameNum will be ignored
+        peakFrameData_[*it].push_back(-frameNum-1); // double-occupied, frameNum will be ignored
         doubled[*it] = true;
       }
     }
@@ -539,7 +539,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   return ret;
 }
 
-static inline int absval(int i) { if (i < 0) return -i; else return i; }
+static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
 
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
@@ -719,9 +719,7 @@ void Action_Spam::Print() {
         if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
         // Adjust frame number.
         int fnum = peakFrameData_[i][j];
-        if (fnum < 0)
-         fnum--;
-        else
+        if (fnum > -1)
           fnum++;
         infofile_->Printf(" %7d", fnum);
       }
