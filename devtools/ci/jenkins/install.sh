@@ -16,7 +16,7 @@ if [ "${COMPILER_FLAGS}" = "-mpi" ]; then
   export DO_PARALLEL='mpirun -np 4'
   make check
 elif [ "${COMPILER_FLAGS}" = "-openmp" ]; then
-  export OMP_NUM_THREADS=2
+  export OPT=openmp OMP_NUM_THREADS=2
   make check
   export OMP_NUM_THREADS=4
   make check
