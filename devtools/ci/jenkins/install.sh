@@ -3,7 +3,7 @@
 # set. This is set up exclusively to test the Intel compilers.
 
 # Load the Intel compilers (this also sets MKL_HOME)
-module load intel openmpi-intel amber
+module load intel openmpi-intel amber/17
 
 ./configure ${COMPILER_FLAGS} -mkl intel
 
