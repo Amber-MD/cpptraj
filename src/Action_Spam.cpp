@@ -458,7 +458,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
       if (!occupied[*it])
         occupied[*it] = true;
       else if (!doubled[*it]) {
-        peakFrameData_[*it].push_back(-frameNum); // double-occupied, frameNum will be ignored
+        peakFrameData_[*it].push_back(-frameNum-1); // double-occupied, frameNum will be ignored
         doubled[*it] = true;
       }
     }
@@ -539,7 +539,7 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   return ret;
 }
 
-static inline int absval(int i) { if (i < 0) return -i; else return i; }
+static inline int absval(int i) { if (i < 0) return -(i+1); else return i; }
 
 /** Calculate the DELTA G of an individual water site */
 int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
@@ -668,14 +668,16 @@ int Action_Spam::SyncAction() {
       Data.resize( total );
       int* endptr = &(Data[0]) + size_on_rank[0];
       // Receive data from each rank
+      int offset = 0;
       for (int rank = 1; rank < trajComm_.Size(); rank++) {
+        offset += frames_on_rank[rank-1];
         trajComm_.SendMaster( endptr, size_on_rank[rank], rank, MPI_INT );
         // Properly offset the frame numbers
         for (int j = 0; j != size_on_rank[rank]; j++, endptr++)
           if (*endptr < 0)
-            *endptr -= frames_on_rank[rank-1];
+            *endptr -= offset;
           else
-            *endptr += frames_on_rank[rank-1];
+            *endptr += offset;
       }
     } else // Send data to master
       trajComm_.SendMaster( &(Data[0]), Data.size(), trajComm_.Rank(), MPI_INT );
@@ -717,9 +719,7 @@ void Action_Spam::Print() {
         if (j > 0 && j % 10 == 0) infofile_->Printf("\n");
         // Adjust frame number.
         int fnum = peakFrameData_[i][j];
-        if (fnum < 0)
-         fnum--;
-        else
+        if (fnum > -1)
           fnum++;
         infofile_->Printf(" %7d", fnum);
       }
