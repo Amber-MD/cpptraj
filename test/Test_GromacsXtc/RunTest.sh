@@ -19,6 +19,8 @@ GmxXtcRead() {
   if [ "$?" -eq 0 ] ; then
     if [ -z "$NETCDFLIB" ] ; then
       echo "XTC read/write test requires NetCDF, skipping."
+    elif [ ! -z "$DO_PARALLEL" -a -z "$PNETCDFLIB" ] ; then
+      echo "XTC read/write test requires parallel NetCDF, skipping."
     else
       cat > ptraj.in <<EOF
 parm ../Test_GromacsTrr/nvt.protein.mol2

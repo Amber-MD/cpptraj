@@ -11,6 +11,8 @@ GmxTrrRead() {
   if [ "$?" -eq 0 ] ; then
     if [ -z "$NETCDFLIB" ] ; then
       echo "TRR force/velocity read/write test requires NetCDF, skipping."
+    elif [ ! -z "$DO_PARALLEL" -a -z "$PNETCDFLIB" ] ; then
+      echo "TRR force/velocity read/write test requires parallel NetCDF, skipping."
     else
       cat > ptraj.in <<EOF
 parm nvt.protein.mol2
