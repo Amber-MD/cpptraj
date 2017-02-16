@@ -32,6 +32,7 @@ DEBUG=""            # Can be set to pass global debug flag to CPPTRAJ.
 NUMTEST=0           # Total number of times DoTest has been called this test.
 ERRCOUNT=0          # Total number of errors detected by DoTest this test.
 WARNCOUNT=0         # Total number of warnings detected by DoTest this test.
+PROGERROR=0         # Total number of program errors this test
 
 # Options used in tests
 TOP=""   # CPPTRAJ topology file/command line arg
@@ -190,6 +191,11 @@ RunCpptraj() {
     echo "$TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR"
   fi
   $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR
+  STATUS=$?
+  if [ "$STATUS" -ne 0 ] ; then
+    echo "Error: cpptraj exited with status $STATUS" 2> /dev/stderr
+    echo "Error: cpptraj exited with status $STATUS" > $TEST_RESULTS
+  fi
 }
 
 # ------------------------------------------------------------------------------
@@ -389,17 +395,18 @@ Summary() {
   if [[ ! -z $RESULTFILES ]] ; then
     cat $RESULTFILES > $TEST_RESULTS
     # DoTest - Number of comparisons OK
-    OK=`cat $TEST_RESULTS | grep OK | wc -l`
+    OK=`grep OK $TEST_RESULTS | wc -l`
     # DoTest - Number of warnings
-    WARN=`cat $TEST_RESULTS | grep Warning | wc -l`
+    WARN=`grep Warning $TEST_RESULTS | wc -l`
     # DoTest - Number of comparisons different
-    ERR=`cat $TEST_RESULTS | grep different | wc -l`
-    NOTFOUND=`cat $TEST_RESULTS | grep "not found" | wc -l`
-    ((ERR = $ERR + $NOTFOUND))
+    ERR=`grep different $TEST_RESULTS | wc -l`
+    NOTFOUND=`grep "not found" $TEST_RESULTS | wc -l`
+    PERR=`grep "Error:" $TEST_RESULTS | wc -l`
+    ((ERR = $ERR + $NOTFOUND + $PERR))
     # Number of tests run
-    NTESTS=`cat $TEST_RESULTS | grep "TEST:" | wc -l`
+    NTESTS=`grep "TEST:" $TEST_RESULTS | wc -l`
     # Number of tests successfully finished
-    PASSED=`cat $TEST_RESULTS | grep "comparisons passed" | wc -l`
+    PASSED=`grep "comparisons passed" $TEST_RESULTS | wc -l`
     ((NCOMPS = $OK + $ERR + $WARN))
     echo "  $OK out of $NCOMPS comparisons OK ($ERR failed, $WARN warnings)."
     echo "  $PASSED out of $NTESTS tests completed with no issues."
@@ -423,11 +430,11 @@ Summary() {
     if [[ ! -z $RESULTFILES ]] ; then
       echo "---------------------------------------------------------"
       echo "Valgrind summary:"
-      NUMVGERR=`cat $RESULTFILES | grep ERROR | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum;}'`
+      NUMVGERR=`grep ERROR $RESULTFILES | awk 'BEGIN{sum=0;}{sum+=$4;}END{print sum;}'`
       echo "    $NUMVGERR errors."
-      NUMVGOK=`cat $RESULTFILES | grep "All heap" | wc -l`
+      NUMVGOK=`grep "All heap" $RESULTFILES | wc -l`
       echo "    $NUMVGOK memory leak checks OK."
-      NUMVGLEAK=`cat $RESULTFILES | grep LEAK | wc -l`
+      NUMVGLEAK=`grep LEAK $RESULTFILES | wc -l`
       echo "    $NUMVGLEAK memory leak reports."
     else
       echo "No valgrind test results found."
@@ -603,14 +610,17 @@ SetBinaries() {
   fi
   if [[ ! -f "$DIFFCMD" ]] ; then
     echo "Error: diff command '$DIFFCMD' not found." > /dev/stderr
+    echo "Error: diff command '$DIFFCMD' not found." > $TEST_RESULTS
     exit 1
   fi
   if [[ $STANDALONE -eq 0 && $USEDACDIF -eq 1 && ! -f "$DACDIF" ]] ; then
     echo "Error: dacdiff command '$DACDIFF' not found." > /dev/stderr
+    echo "Error: dacdiff command '$DACDIFF' not found." > $TEST_RESULTS
     exit 1
   fi
   if [[ ! -f "$CPPTRAJ" ]] ; then
     echo "Error: cpptraj binary '$CPPTRAJ' not found." > /dev/stderr
+    echo "Error: cpptraj binary '$CPPTRAJ' not found." > $TEST_RESULTS
     exit 1
   fi
   if [[ ! -z $DEBUG || -z $DACDIF ]] ; then
