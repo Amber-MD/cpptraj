@@ -266,15 +266,16 @@ TestSanderlib() {
       fi
     fi
     if [[ $SL_ERR -eq 0 ]] ; then
-      if [[ ! -f "$SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX" ]] ; then
+      if [ "$SKIP_CHECKS" = 'no' -a ! -f "$SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX" ] ; then
         echo "Warning: $SANDERLIB_HOME/lib/libsander$SHARED_SUFFIX not present."
         SL_ERR=1
       else
         SANDERINC="-I$SANDERLIB_HOME/include"
         SANDERLIB="-L$SANDERLIB_HOME/lib -lsander"
-        echo "  Using SANDER API from $SANDERLIB_HOME"
-        # Test that libsander can be linked
-        cat > testp.cpp <<EOF
+        if [ "$SKIP_CHECKS" = 'no' ] ; then
+          echo "  Using SANDER API from $SANDERLIB_HOME"
+          # Test that libsander can be linked
+          cat > testp.cpp <<EOF
 #include <cstdio>
 #include "sander.h"
 int main() {
@@ -293,26 +294,31 @@ int main() {
   printf("Testing\n"); return 0;
 }
 EOF
-        $CXX $SANDERINC -o testp testp.cpp $SANDERLIB > /dev/null 2> compile.err
-        SL_ERR=$?
-        if [[ $SL_ERR -eq 0 ]] ; then
-          ./testp | grep "Testing" > /dev/null 2>> compile.err
+          $CXX $SANDERINC -o testp testp.cpp $SANDERLIB > /dev/null 2> compile.err
           SL_ERR=$?
-        fi
-        if [[ $SL_ERR -ne 0 ]] ; then
-          echo "Warning: Compilation with the SANDER API failed. Error follows:"
-          echo "  --------------------"
-          cat compile.err
-          echo "  --------------------"
-          if [ "$USE_SANDERLIB" -eq 2 ] ; then
-            exit 1
+          if [[ $SL_ERR -eq 0 ]] ; then
+            ./testp | grep "Testing" > /dev/null 2>> compile.err
+            SL_ERR=$?
           fi
+          if [[ $SL_ERR -ne 0 ]] ; then
+            echo "Warning: Compilation with the SANDER API failed. Error follows:"
+            echo "  --------------------"
+            cat compile.err
+            echo "  --------------------"
+            if [ "$USE_SANDERLIB" -eq 2 ] ; then
+              exit 1
+            fi
+          else
+            echo "  OK"
+            CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
+            CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
+          fi
+          /bin/rm -f testp.cpp testp
         else
-          echo "  OK"
+          # No check
           CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
           CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
         fi
-        /bin/rm -f testp.cpp testp
       fi
     fi
   fi
@@ -537,6 +543,7 @@ CROSS_COMPILE="no"
 USECUDA=0
 CUDA_TARGET=""
 CLEAN='yes' # Clean source directory if configure is successful
+SKIP_CHECKS='no' # If 'yes', skip all tests.
 
 # Private variables
 quadmath=""
@@ -728,6 +735,7 @@ while [[ ! -z $1 ]] ; do
       echo "Source directory will not be cleaned after 'configure'."
       CLEAN='no'
       ;;
+    "--skip-checks" ) SKIP_CHECKS='yes' ;;
     "--with-bzlib"  )
       INCLUDE="$INCLUDE -I$VALUE/include"
       BZLIB_HOME="$VALUE"
@@ -1008,7 +1016,7 @@ if [[ $USEMKL -eq 1 ]] ; then
   fi
   # Assume GNU linker.
   if [[ $USEOPENMP -eq 1 ]] ; then
-    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl, --start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
   else
     MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_sequential.a $MKLROOT/libmkl_core.a -Wl,--end-group -lpthread"
   fi
@@ -1128,7 +1136,7 @@ if [[ $USECUDA -eq 1 ]] ; then
     echo "Error: nvcc cuda compiler not found in $CUDA_HOME/bin/" > /dev/stderr
     exit 1
   fi
-  if [ -z "$SHADER_MODEL" ] ; then
+  if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
     echo "Error: SHADER_MODEL not set. Set based on architecture of your GPU." > /dev/stderr
     echo "  'sm_53' = SM5.3 = GM200 [Grid] = M60, M40?" > /dev/stderr
     echo "  'sm_52' = SM5.2 = GM200 = GTX-Titan-X, M6000 etc." > /dev/stderr
@@ -1231,14 +1239,16 @@ fi
 # Test compilers (if we are not cross-compiling)
 if [[ "$CROSS_COMPILE" = "no" ]]; then
   echo ""
-  TestCompile
-  TestBzlib
-  TestZlib
-  TestNetcdf
-  TestPnetcdf
-  TestMathlib
-  TestArpack
-  TestFFTW3
+  if [ "$SKIP_CHECKS" = 'no' ] ; then
+    TestCompile
+    TestBzlib
+    TestZlib
+    TestNetcdf
+    TestPnetcdf
+    TestMathlib
+    TestArpack
+    TestFFTW3
+  fi
   TestSanderlib
 fi
 
