@@ -27,6 +27,9 @@ elif [ "${COMPILER_FLAGS}" = "-openmp" ]; then
   make check
   export OMP_NUM_THREADS=4
   make check
+elif [ "${COMPILER_FLAGS}" = "-cuda" ]; then
+  export OPT=cuda
+  make check
 else
   make check
 fi
