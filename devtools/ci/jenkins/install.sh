@@ -4,7 +4,7 @@
 
 # Load the Intel compilers (this also sets MKL_HOME)
 if [ "${label}" = "linux" ]; then
-  module load intel openmpi-intel amber/17
+  module load intel openmpi-intel amber/17 cuda
   ./configure ${COMPILER_FLAGS} -mkl intel
 else
   # Mac OS X
