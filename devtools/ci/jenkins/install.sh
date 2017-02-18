@@ -5,6 +5,8 @@
 # Load the Intel compilers (this also sets MKL_HOME)
 if [ "${label}" = "linux" ]; then
   module load intel openmpi-intel amber/17 cuda
+  # Export the shader model of a GTX-680 (which is on the Jenkins machine)
+  export SHADER_MODEL=sm_30
   ./configure ${COMPILER_FLAGS} -mkl intel
 else
   # Mac OS X
