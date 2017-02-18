@@ -6,7 +6,7 @@
 if [ "${label}" = "linux" ]; then
   module load intel openmpi-intel amber/17
   ./configure ${COMPILER_FLAGS} -mkl intel
-elif [ "${label}" = "macos" ]
+elif [ "${label}" = "macos" ]; then
   # Mac OS X
   ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpac ${COMPILER_FLAGS} clang
 fi
