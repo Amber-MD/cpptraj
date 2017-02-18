@@ -3,6 +3,7 @@
 # set, as is label. This is set up exclusively to test the Intel compilers.
 
 # Load the Intel compilers (this also sets MKL_HOME)
+export TEST_OS="${label}"
 if [ "${label}" = "linux" ]; then
   module load intel openmpi-intel amber/17 cuda
   # Export the shader model of a GTX-680 (which is on the Jenkins machine)
