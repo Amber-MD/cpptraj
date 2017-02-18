@@ -8,7 +8,7 @@ if [ "${label}" = "linux" ]; then
   ./configure ${COMPILER_FLAGS} -mkl intel
 else
   # Mac OS X
-  ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpac ${COMPILER_FLAGS} clang
+  ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpack ${COMPILER_FLAGS} clang
 fi
 
 # If the compiler flag is -mpi, set DO_PARALLEL. Test both 2 and 4 CPUs for
