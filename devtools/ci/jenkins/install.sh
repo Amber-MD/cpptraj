@@ -1,15 +1,19 @@
 # This script is sourced from the main build script, and the executing directory
 # is the top-level cpptraj directory. The environment variable COMPILER_FLAGS is
-# set. This is set up exclusively to test the Intel compilers.
+# set, as is label. This is set up exclusively to test the Intel compilers.
 
 # Load the Intel compilers (this also sets MKL_HOME)
-module load intel openmpi-intel amber/17
-
-./configure ${COMPILER_FLAGS} -mkl intel
+if [ "${label}" = "linux" ]; then
+  module load intel openmpi-intel amber/17
+  ./configure ${COMPILER_FLAGS} -mkl intel
+elif [ "${label}" = "macos" ]
+  # Mac OS X
+  ./configure -macAccelerate --with-fftw3=/opt/local --with-netcdf=/opt/local -noarpac ${COMPILER_FLAGS} clang
+fi
 
 # If the compiler flag is -mpi, set DO_PARALLEL. Test both 2 and 4 CPUs for
 # parallel builds.
-make -j6 install
+make -j4 install
 if [ "${COMPILER_FLAGS}" = "-mpi" ]; then
   export DO_PARALLEL='mpirun -np 2'
   make check
