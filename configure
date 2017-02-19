@@ -1136,22 +1136,47 @@ if [[ $USECUDA -eq 1 ]] ; then
     echo "Error: nvcc cuda compiler not found in $CUDA_HOME/bin/" > /dev/stderr
     exit 1
   fi
-  if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
-    echo "Error: SHADER_MODEL not set. Set based on architecture of your GPU." > /dev/stderr
-    echo "  'sm_53' = SM5.3 = GM200 [Grid] = M60, M40?" > /dev/stderr
-    echo "  'sm_52' = SM5.2 = GM200 = GTX-Titan-X, M6000 etc." > /dev/stderr
-    echo "  'sm_50' = SM5.0 = GM204 = GTX980, 970 etc" > /dev/stderr
-    echo "  'sm_37' = SM3.7 = GK210 = K80" > /dev/stderr
-    echo "  'sm_35' = SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z" > /dev/stderr
-    echo "  'sm_30' = SM3.0 = GK104 = K10, GTX680, 690 etc." > /dev/stderr
-    echo "  'sm_20' = SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc." > /dev/stderr
-    exit 1
-  fi
   if [ -z "$NVCC" ]; then NVCC="$CUDA_HOME/bin/nvcc"; fi
-  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DEBUGFLAGS -arch=$SHADER_MODEL"; fi
   DIRECTIVES=$DIRECTIVES" -DCUDA"
   CUDA_VERSION=`$NVCC --version | grep 'release' | cut -d' ' -f5 | cut -d',' -f1`
   echo "CUDA version $CUDA_VERSION detected."
+  if [ -z "$NVCCFLAGS" -a -z "$SHADER_MODEL" ] ; then
+    echo "Warning: SHADER_MODEL not set. Compiling for multiple architectures."
+    echo "Warning: To compile for a specific architecture set SHADER_MODEL"
+    echo "Warning: to 'sm_XX', where XX is the shader model version."
+    # NOTE: From AmberTools configure2
+    #Note at present we do not include SM3.5 or SM3.7 since they sometimes show performance
+    #regressions over just using SM3.0.
+    #SM6.2 = ??? 
+    sm62flags='-gencode arch=compute_62,code=sm_62'
+    #SM6.1 = GP106 = GTX-1070, GP104 = GTX-1080, GP102 = Titan-X[P]
+    sm61flags='-gencode arch=compute_61,code=sm_61'
+    #SM6.0 = GP100 / P100 = DGX-1
+    sm60flags='-gencode arch=compute_60,code=sm_60'
+    #SM5.3 = GM200 [Grid] = M60, M40?
+    sm53flags='-gencode arch=compute_53,code=sm_53'
+    #SM5.2 = GM200 = GTX-Titan-X, M6000 etc.
+    sm52flags='-gencode arch=compute_52,code=sm_52'
+    #SM5.0 = GM204 = GTX980, 970 etc
+    sm50flags='-gencode arch=compute_50,code=sm_50'
+    #SM3.7 = GK210 = K80
+    sm37flags='-gencode arch=compute_37,code=sm_37'
+    #SM3.5 = GK110 + 110B = K20, K20X, K40, GTX780, GTX-Titan, GTX-Titan-Black, GTX-Titan-Z
+    sm35flags='-gencode arch=compute_35,code=sm_35'
+    #SM3.0 = GK104 = K10, GTX680, 690 etc.
+    sm30flags='-gencode arch=compute_30,code=sm_30'
+    #SM2.0 = All GF variants = C2050, 2075, M2090, GTX480, GTX580 etc.
+    sm20flags='-gencode arch=compute_20,code=sm_20'
+    if [ "$CUDA_VERSION" = "8.0" ]; then
+      echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2, SM5.3, SM6.0 and SM6.1"
+      NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags $sm60flags $sm61flags"
+    else
+      echo "Configuring for SM2.0, SM3.0, SM5.0, SM5.2 and SM5.3"
+      echo "BE AWARE: CUDA 7.5 does not support GTX-1080, Titan-XP, DGX-1 or other Pascal based GPUs."
+      NVCCFLAGS="$sm20flags $sm30flags $sm50flags $sm52flags $sm53flags"
+    fi
+  fi
+  if [ -z "$NVCCFLAGS" ]; then NVCCFLAGS="$DEBUGFLAGS -arch=$SHADER_MODEL"; fi
   INCLUDE="$INCLUDE -I$CUDA_HOME/include"
   LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
   CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
