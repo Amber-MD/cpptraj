@@ -1016,7 +1016,7 @@ if [[ $USEMKL -eq 1 ]] ; then
   fi
   # Assume GNU linker.
   if [[ $USEOPENMP -eq 1 ]] ; then
-    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl, --start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
+    MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_intel_thread.a $MKLROOT/libmkl_core.a -Wl,--end-group -liomp5 -lpthread"
   else
     MKLLIB="-L$MKLROOT $LAPACK $BLAS -Wl,--start-group $MKLROOT/$MKLINTERFACE $MKLROOT/libmkl_sequential.a $MKLROOT/libmkl_core.a -Wl,--end-group -lpthread"
   fi
