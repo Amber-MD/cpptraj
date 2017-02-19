@@ -169,6 +169,14 @@ void Parallel::Lock() {
     PleaseWait *= 1;
 }
 
+/** \return TrajComm if TrajComm defined, otherwise world. */
+Parallel::Comm const& Parallel::ActiveComm() {
+  if (TrajComm().IsNull())
+    return World();
+  else
+    return TrajComm();
+}
+
 #else /* MPI */
 // ----- NON-MPI VERSIONS OF ROUTINES ------------------------------------------
 int Parallel::Init(int argc, char** argv) { return 0; }
