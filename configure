@@ -672,7 +672,6 @@ while [[ ! -z $1 ]] ; do
       lgfortran=""
       BLAS="-framework Accelerate"
       LAPACK=""
-      ARPACK=""
       ;;
     "-nosanderlib"  ) USE_SANDERLIB=0 ;;
     "-nobzlib"      )
