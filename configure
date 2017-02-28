@@ -1037,9 +1037,9 @@ if [[ $PLATFORM = "Darwin" ]] ; then
     # fortran.
     FLIBS=""
   fi
-  # On OSX with clang, some libraries may be built with libstdc++ and will
-  # fail to link without this flag.
   if [[ $COMPILERS = "clang" ]] ; then
+    # On OSX with clang, some libraries may be built with libstdc++ and will
+    # fail to link without this flag.
     cat > testp.cpp <<EOF
 #include <cstdio>
 #include <string>
@@ -1066,6 +1066,46 @@ EOF
       exit 1
     fi
     /bin/rm -f testp testp.cpp
+    # Test that we can link between C++ and Fortran
+    printf "Testing clang++/gfortran linking...\n"
+    cat > testc.cpp <<EOF
+#include <cstdio>
+extern "C" { void mytest_(int&); } int main() { int ival=14; printf("Testing"); mytest_(ival); }
+EOF
+    cat > testf.f <<EOF
+subroutine mytest(ival)
+  implicit none
+  integer, intent(in) :: ival
+  write(6,'(a,i6)') ' cross-link ', ival
+end subroutine mytest
+EOF
+    $FC $FFLAGS -c -o testf.o testf.f
+    if [ "$?" -ne 0 ] ; then CompileError "$FC $FFLAGS" ; fi
+    $CXX $CXXFLAGS -c -o  testc.o testc.cpp
+    if [ "$?" -ne 0 ] ; then CompileError "$CXX $CXXFLAGS" ; fi
+    FORTLIB_DIR=""
+    $CXX -o testp testc.o testf.o $FLIBS $LDFLAGS
+    if [ "$?" -ne 0 ] ; then
+      echo "Initial link failed, attempting to find Fortran libraries..." 
+      # Probably missing lgfortran. Search for it.
+      for FL_DIR in `$FC -print-search-dirs | grep "libraries:" | awk 'BEGIN{FS="[=:]";}{
+        for (col=2; col <= NF; col++)
+          print $col;
+      }'` ; do
+        $CXX -o testp testc.o testf.o -L$FL_DIR $FLIBS $LDFLAGS 2> /dev/null
+        if [ "$?" -eq 0 ] ; then
+          FORTLIB_DIR="-L$FL_DIR"
+          break
+        fi
+      done
+      if [ -z "$FORTLIB_DIR" ] ; then CompileError "$CXX $FLIBS $LDFLAGS" ; fi
+      echo "Fortran libraries found."
+    fi
+    # At this point we should have a binary. Run it.
+    ./testp | grep Testing > /dev/null
+    if [ "$?" -ne 0 ] ; then CompileError "$CXX $FORTLIB_DIR $FLIBS $LDFLAGS" ; fi
+    /bin/rm -f testp test?.o testf.f testc.cpp
+    FLIBS="$FORTLIB_DIR $FLIBS"
   fi
 elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
   echo "Detected Cygwin system."
