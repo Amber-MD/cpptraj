@@ -550,45 +550,52 @@ SetBinaries() {
   # Set default command locations
   DIFFCMD=`which diff`
   NCDUMP=`which ncdump`
-  # Set CPPTRAJ binary location if not already set.
-  if [[ -z $CPPTRAJ ]] ; then
-    if [[ $STANDALONE -eq 0 ]] ; then
-      # AmberTools
-      if [[ -z $AMBERHOME ]] ; then
-        echo "Warning: AMBERHOME is not set."
-        # Assume we are running in $AMBERHOME/AmberTools/src/test/Test_X
-        DIRPREFIX=../../../../
-      else
-        DIRPREFIX=$AMBERHOME
-      fi
-      if [[ $USEDACDIF -eq 1 ]] ; then
-        DACDIF=$DIRPREFIX/test/dacdif
-      fi
-      if [[ -f "$DIRPREFIX/bin/ncdump" && -e "$DIRPREFIX/bin/ncdump" ]]; then
-        NCDUMP=$DIRPREFIX/bin/ncdump
-      fi
-      CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
-      AMBPDB=$DIRPREFIX/bin/ambpdb
-      NPROC=$DIRPREFIX/AmberTools/test/numprocs
+  # Set locations for CPPTRAJ, AMBPDB, NPROC, NDIFF if not already set.
+  if [ "$STANDALONE" -eq 0 ] ; then
+    # AmberTools
+    if [ -z "$AMBERHOME" ] ; then
+      echo "Warning: AMBERHOME is not set."
+      # Assume we are running in $AMBERHOME/AmberTools/src/test/Test_X
+      DIRPREFIX=../../../../
     else
-      # Standalone: GitHub etc
-      if [[ ! -z $CPPTRAJHOME ]] ; then
-        CPPTRAJ=$CPPTRAJHOME/bin/cpptraj$SFX
-        AMBPDB=$CPPTRAJHOME/bin/ambpdb
-        NPROC=$CPPTRAJHOME/test/nproc
-        NDIFF="$CPPTRAJHOME/util/ndiff/ndiff.awk"
-      else
-        CPPTRAJ=../../bin/cpptraj$SFX
-        AMBPDB=../../bin/ambpdb
-        NPROC=../../test/nproc
-        NDIFF="../../util/ndiff/ndiff.awk"
-      fi
-      if [[ ! -f "$NDIFF" ]] ; then
-        echo "Error: 'ndiff.awk' not present in cpptraj 'util/ndiff/'."
+      DIRPREFIX=$AMBERHOME
+    fi
+    # If not using DACDIF, NDIFF needs to be set.
+    if [ "$USEDACDIF" -eq 1 ] ; then
+      DACDIF=$DIRPREFIX/test/dacdif
+      if [[ ! -f "$DACDIF" ]] ; then
+        echo "Error: dacdiff command '$DACDIFF' not found." > /dev/stderr
+        echo "Error: dacdiff command '$DACDIFF' not found." > $TEST_RESULTS
         exit 1
       fi
-      NDIFF="awk -f $NDIFF"
+    else
+      NDIFF=$DIRPREFIX/test/ndiff.awk
     fi
+    if [ -f "$DIRPREFIX/bin/ncdump" ] ; then
+      NCDUMP=$DIRPREFIX/bin/ncdump
+    fi
+    if [ -z "$CPPTRAJ" ] ; then CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX ; fi
+    if [ -z "$AMBPDB"  ] ; then AMBPDB=$DIRPREFIX/bin/ambpdb ; fi
+    NPROC=$DIRPREFIX/AmberTools/test/numprocs
+  else
+    # Standalone: GitHub etc
+    if [ -z "$CPPTRAJHOME" ] ; then
+      echo "Warning: CPPTRAJHOME is not set."
+      DIRPREFIX=../../
+    else
+      DIRPREFIX=$CPPTRAJHOME
+    fi
+    if [ -z "$CPPTRAJ" ] ; then CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX ; fi
+    if [ -z "$AMBPDB"  ] ; then AMBPDB=$DIRPREFIX/bin/ambpdb ; fi
+    NPROC=$DIRPREFIX/test/nproc
+    NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
+    if [ ! -f "$NDIFF" ] ; then
+      echo "Error: 'ndiff.awk' not present in cpptraj: $NDIFF"
+      exit 1
+    fi
+  fi
+  if [ ! -z "$NDIFF" ] ; then
+    NDIFF="awk -f $NDIFF"
   fi
   # Print DEBUG info
   if [[ ! -z $DEBUG ]] ; then
@@ -603,34 +610,31 @@ SetBinaries() {
     echo "DEBUG: NCDUMP:  $NCDUMP"
     echo "DEBUG: DIFFCMD: $DIFFCMD"
     echo "DEBUG: DACDIF:  $DACDIF"
+    echo "DEBUG: NDIFF:   $NDIFF"
   fi
   # Check binaries
-  if [[ ! -f "$NCDUMP" ]] ; then
+  if [ ! -f "$NCDUMP" ] ; then
     echo "Warning: 'ncdump' not found; NetCDF file comparisons cannot be performed."
   fi
-  if [[ ! -f "$DIFFCMD" ]] ; then
+  if [ ! -f "$DIFFCMD" ] ; then
     echo "Error: diff command '$DIFFCMD' not found." > /dev/stderr
     echo "Error: diff command '$DIFFCMD' not found." > $TEST_RESULTS
     exit 1
   fi
-  if [[ $STANDALONE -eq 0 && $USEDACDIF -eq 1 && ! -f "$DACDIF" ]] ; then
-    echo "Error: dacdiff command '$DACDIFF' not found." > /dev/stderr
-    echo "Error: dacdiff command '$DACDIFF' not found." > $TEST_RESULTS
-    exit 1
-  fi
-  if [[ ! -f "$CPPTRAJ" ]] ; then
+  if [ ! -f "$CPPTRAJ" ] ; then
     echo "Error: cpptraj binary '$CPPTRAJ' not found." > /dev/stderr
     echo "Error: cpptraj binary '$CPPTRAJ' not found." > $TEST_RESULTS
     exit 1
   fi
-  if [[ ! -z $DEBUG || -z $DACDIF ]] ; then
+  if [ ! -z "$DEBUG" -o -z "$DACDIF" ] ; then
     ls -l $CPPTRAJ
   fi
-  if [[ ! -f "$AMBPDB" ]] ; then
+  if [ ! -f "$AMBPDB" ] ; then
     # Try to locate it based on the location of CPPTRAJ
     DIRPREFIX=`dirname $CPPTRAJ`
     AMBPDB=$DIRPREFIX/ambpdb
-    if [[ ! -f "$AMBPDB" ]] ; then
+    if [ ! -f "$AMBPDB" ] ; then
+      echo "Warning: AMBPDB not present."
       AMBPDB=""
     fi
   fi
