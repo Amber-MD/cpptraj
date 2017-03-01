@@ -167,6 +167,8 @@ void Traj_PDBfile::WriteHelp() {
           "\tpdbv3      : Use PDB V3 residue/atom names.\n"
           "\tteradvance : Increment record (atom) # for TER records (default no).\n"
           "\tterbyres   : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tpdbter     : Print TER cards according to original PDB TER (if available).\n"
+          "\tnoter      : Do not write TER cards.\n"
           "\tmodel      : Write to single file separated by MODEL records.\n"
           "\tmulti      : Write each frame to separate files.\n"
           "\tchainid <c>: Write character 'c' in chain ID column.\n"
@@ -191,6 +193,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   }
   if (argIn.hasKey("terbyres"))   terMode_ = BY_RES;
   else if (argIn.hasKey("noter")) terMode_ = NO_TER;
+  else if (argIn.hasKey("pdbter"))terMode_ = ORIGINAL_PDB;
   else                            terMode_ = BY_MOL;
   pdbres_ = argIn.hasKey("pdbres");
   pdbatom_ = argIn.hasKey("pdbatom");
@@ -359,7 +362,17 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   }
   // Set up TER cards.
   TER_idxs_.clear();
-  if (terMode_ == BY_RES) {
+  if (terMode_ == ORIGINAL_PDB) {
+    // Write a TER card only after residues that originally have a TER card
+    // or when chain ID changes.
+    Topology::res_iterator res = trajParm->ResStart();
+    for (; res != trajParm->ResEnd(); ++res) {
+      if (res->IsTerminal() || res+1 == trajParm->ResEnd())
+        TER_idxs_.push_back( res->LastAtom() - 1 );
+      else if ((res+1)->ChainID() != res->ChainID())
+        TER_idxs_.push_back( res->LastAtom() - 1 );
+    }
+  } else if (terMode_ == BY_RES) {
     bool lastResWasSolvent = false;
     // Write a TER card every time residue of atom N+1 is not bonded to any
     // atom of residue of atom N. Do not do this for solvent.
