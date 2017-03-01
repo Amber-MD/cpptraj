@@ -364,15 +364,26 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   TER_idxs_.clear();
   if (terMode_ == ORIGINAL_PDB) {
     // Write a TER card only after residues that originally have a TER card
-    // or when chain ID changes.
+    // or when chain ID changes. If no chain ID or TER info is present switch
+    // mode to BY_RES.
+    bool has_chainID = false;
+    bool has_ter = false;
     Topology::res_iterator res = trajParm->ResStart();
     for (; res != trajParm->ResEnd(); ++res) {
+      if (res->ChainID() != ' ') has_chainID = true;
+      if (res->IsTerminal()) has_ter = true;
       if (res->IsTerminal() || res+1 == trajParm->ResEnd())
         TER_idxs_.push_back( res->LastAtom() - 1 );
       else if ((res+1)->ChainID() != res->ChainID())
         TER_idxs_.push_back( res->LastAtom() - 1 );
     }
-  } else if (terMode_ == BY_RES) {
+    if (has_chainID == false && has_ter == false) {
+      mprintf("Warning: 'pdbter': Topology '%s' has no chain ID info and no TER info.\n"
+              "Warning:   Cannot use 'pdbter' - using 'terbyres' instead.\n", trajParm->c_str());
+      terMode_ = BY_RES;
+    }
+  }
+  if (terMode_ == BY_RES) {
     bool lastResWasSolvent = false;
     // Write a TER card every time residue of atom N+1 is not bonded to any
     // atom of residue of atom N. Do not do this for solvent.
