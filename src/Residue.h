@@ -5,21 +5,22 @@
 /// Hold information for a residue.
 class Residue {
   public:
-    Residue() : resname_(""), firstAtom_(0), lastAtom_(0), icode_(' '), chainID_(' ') {}
+    Residue() : resname_(""), firstAtom_(0), lastAtom_(0), icode_(' '), chainID_(' '), isTerminal_(false) {}
     /// CONSTRUCTOR - Copy given Residue, set first and last atom indices.
     Residue(Residue const& r, int first, int last) :
       resname_(r.resname_), firstAtom_(first), lastAtom_(last),
-      originalResNum_(r.originalResNum_), icode_(r.icode_), chainID_(r.chainID_)
+      originalResNum_(r.originalResNum_), icode_(r.icode_), chainID_(r.chainID_), isTerminal_(false)
     {}
     /// CONSTRUCTOR - Res name, original resnum, icode, chain ID
     Residue(NameType const& n, int r, char ic, char cid) :
-            resname_(n), originalResNum_(r), icode_(ic), chainID_(cid) {}
+            resname_(n), originalResNum_(r), icode_(ic), chainID_(cid), isTerminal_(false) {}
     inline void SetFirstAtom(int i)        { firstAtom_ = i;      }
     inline void SetLastAtom(int i)         { lastAtom_ = i;       }
     inline void SetOriginalNum(int i)      { originalResNum_ = i; }
     inline void SetIcode(char c)           { icode_ = c;          }
     inline void SetChainID(char c)         { chainID_ = c;        }
     inline void SetName(NameType const& n) { resname_ = n;        }
+    inline void SetTerminal(bool t)        { isTerminal_ = t;     }
     /// \return First atom in residue, indexing from 0
     inline int FirstAtom()        const { return firstAtom_;      }
     /// \return Atom _after_ the last in residue, indexing from 0
@@ -29,6 +30,7 @@ class Residue {
     inline char ChainID()         const { return chainID_;        }
     inline const char *c_str()    const { return *resname_;       }
     inline NameType const& Name() const { return resname_;        }
+    inline bool IsTerminal()      const { return isTerminal_;     }
     inline int NumAtoms()         const { return (lastAtom_ - firstAtom_); }
     inline bool NameIsSolvent()   const {
       return (resname_=="WAT " || resname_=="HOH " || resname_=="TIP3" ||
@@ -46,6 +48,7 @@ class Residue {
     int lastAtom_;       ///< Atom index after last atom in residue.
     int originalResNum_; ///< Original residue number.
     char icode_;         ///< Residue insertion code.
-    char chainID_;
+    char chainID_;       ///< Residue chain ID
+    bool isTerminal_;    ///< True if residue was originally a terminal residue
 };
 #endif

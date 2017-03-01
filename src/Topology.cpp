@@ -290,6 +290,7 @@ void Topology::StartNewMol() {
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
   }
+  residues_.back().SetTerminal( true );
 }
 
 // Topology::CommonSetup()
