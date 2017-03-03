@@ -10,6 +10,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
   sets_(0),
   bfactor_(false),
   calc_adp_(false),
+  usePdbRes_(false),
   adpoutfile_(0),
   fluctParm_(0),
   outtype_(BYATOM),
@@ -17,7 +18,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() const {
-  mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n"
+  mprintf("\t[out <filename>] [<mask>] [byres [pdbres] | byatom | bymask] [bfactor]\n"
           "\t[calcadp [adpout <file>]]\n"
           "\t%s\n"
           "  Calculate atomic fluctuations of atoms in <mask>\n", ActionFrameCounter::HelpText);
@@ -36,9 +37,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   if (adpoutfile_!=0) calc_adp_ = true; // adpout implies calcadp
   if (calc_adp_ && !bfactor_) bfactor_ = true;
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
-  if (actionArgs.hasKey("byres"))
+  if (actionArgs.hasKey("byres")) {
     outtype_ = BYRES;
-  else if (actionArgs.hasKey("bymask"))
+    usePdbRes_ = actionArgs.hasKey("pdbres");
+  } else if (actionArgs.hasKey("bymask"))
     outtype_ = BYMASK;
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
@@ -72,9 +74,15 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf(" B factors");
   else
     mprintf(" atomic positional fluctuations");
+  switch (outtype_) {
+    case BYATOM: mprintf(" for atoms.\n"); break;
+    case BYRES : mprintf(" over residues.\n"); break;
+    case BYMASK: mprintf(" over entire atom mask.\n"); break;
+  }
+  if (usePdbRes_) mprintf("\tUsing PDB residue numbers if present in topology.\n");
   if (outfile != 0)
-    mprintf(", output to file %s", outfile->DataFilename().full());
-  mprintf("\n                 Atom mask: [%s]\n",Mask_.MaskString());
+    mprintf("\tOutput to file %s\n", outfile->DataFilename().full());
+  mprintf("\tAtom mask: [%s]\n",Mask_.MaskString());
   FrameCounterInfo();
   if (calc_adp_) {
     mprintf("\tCalculating anisotropic displacement parameters.\n");
@@ -242,7 +250,12 @@ void Action_AtomicFluct::Print() {
       } else
         nextres = -1;
       if (nextres != currentres) {
-        dset.AddXY( currentres + 1, fluct / xi );
+        int resnum;
+        if (usePdbRes_)
+          resnum = fluctParm_->Res(currentres).OriginalResNum();
+        else
+          resnum = currentres + 1;
+        dset.AddXY( resnum, fluct / xi );
         xi = 0.0;
         fluct = 0.0;
       }
