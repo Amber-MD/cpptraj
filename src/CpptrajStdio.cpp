@@ -6,13 +6,13 @@
 
 enum IO_LEVEL_TYPE {
   IO_ALL = 0,    // Normal output
-  IO_SILENT,     // Supress STDOUT output
-  IO_STAY_SILENT // Supress All STDOUT output forever.
+  IO_SILENT,     // Suppress STDOUT output
+  IO_STAY_SILENT // Suppress All STDOUT output forever.
 };
 /// Controls mprintf/rprintf output.
 static IO_LEVEL_TYPE world_io_level = IO_ALL;
 /// Controls mprinterr/rprinterr output.
-static bool supressErrorMsg = false;
+static bool suppressErrorMsg = false;
 
 // mflush()
 /** Call flush on STDOUT only if this is the master thread */
@@ -34,7 +34,7 @@ void loudPrintf(const char* format, ...) {
   va_end(args);
 }
 
-/** Print message to STDERR even if supressErrorMsg */
+/** Print message to STDERR even if suppressErrorMsg */
 void loudPrinterr(const char *format, ...) {
 # ifdef MPI
   if (!Parallel::World().Master()) return;
@@ -86,7 +86,7 @@ void mprintf(const char *format, ...) {
 
 /** Print message to STDERR only if this is the master thread */
 void mprinterr(const char *format, ...) {
-  if (supressErrorMsg) return;
+  if (suppressErrorMsg) return;
 # ifdef MPI
   if (!Parallel::World().Master()) return;
 # endif
@@ -118,7 +118,7 @@ void rprintf(const char *format, ...) {
 /** Print message to STDERR for this worldrank */
 void rprinterr(const char *format, ...) {
   va_list args;
-  if (supressErrorMsg) return;
+  if (suppressErrorMsg) return;
   va_start(args,format);
 # ifdef MPI
   char buffer[1024];
@@ -131,7 +131,7 @@ void rprinterr(const char *format, ...) {
   va_end(args);
 }
 
-/** Change status of STDOUT output as long as SupressAllOutput has not
+/** Change status of STDOUT output as long as SuppressAllOutput has not
   * been called.
   * \param silentIn if true, silence STDOUT output, otherwise enable.
   */
@@ -144,7 +144,7 @@ void SetWorldSilent(bool silentIn) {
   }
 }
 
-/** Supress all STDOUT output for the entire run. */
-void SupressAllOutput() { world_io_level = IO_STAY_SILENT; }
+/** Suppress all STDOUT output for the entire run. */
+void SuppressAllOutput() { world_io_level = IO_STAY_SILENT; }
 
-void SupressErrorMsg(bool supressIn) { supressErrorMsg = supressIn; }
+void SuppressErrorMsg(bool suppressIn) { suppressErrorMsg = suppressIn; }

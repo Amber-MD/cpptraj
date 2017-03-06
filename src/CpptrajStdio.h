@@ -17,6 +17,6 @@ void mprinterr(const char *, ...);
 void rprintf(const char *, ...);
 void rprinterr(const char *, ...);
 void SetWorldSilent(bool);
-void SupressAllOutput();
-void SupressErrorMsg(bool);
+void SuppressAllOutput();
+void SuppressErrorMsg(bool);
 #endif
