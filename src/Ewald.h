@@ -16,8 +16,10 @@ class Ewald {
     double CalcEnergy(Frame const&, AtomMask const&);
     /// Report timings.
     void Timing(double) const;
+#   ifdef DEBUG_EWALD
     /// Slow non-pairlist version of energy calc. For debug only.
     double CalcEnergy_NoPairList(Frame const&, Topology const&, AtomMask const&);
+#   endif
   private:
     /// Complimentary error function, erfc.
     static double erfc_func(double);
@@ -42,7 +44,7 @@ class Ewald {
     double Direct(Matrix_3x3 const&, Topology const&, AtomMask const&);
 #   endif
     /// Fast version of direct space energy using a pairlist
-    double Direct(PairList const&);
+    double Direct(PairList const&, double&);
     /// \return adjusted energy for excluded atom pair
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
@@ -84,11 +86,11 @@ class Ewald {
     double cutoff_;       ///< Direct space cutoff
     double dsumTol_;      ///< Direct space sum tolerance.
     double rsumTol_;      ///< Reciprocal space sum tolerance.
-    double e_adjust_;     ///< Adjustment for excluded pairs, calcd during direct sum.
     double erfcTableDx_;  ///< Spacing of X values in Erfc table.
     double one_over_Dx_;  ///< One over erfcTableDx_.
     int mlimit_[3];       ///< Number of units in each direction to calc recip. sum.
     int maxmlim_;         ///< The max of the three mlimit_ values.
+    int debug_;
     Timer t_total_;
     Timer t_self_;
     Timer t_recip_;

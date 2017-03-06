@@ -18,7 +18,8 @@ Ewald::Ewald() :
   rsumTol_(0.0),
   erfcTableDx_(0.0),
   one_over_Dx_(0.0),
-  maxmlim_(0)
+  maxmlim_(0),
+  debug_(0)
 {
   mlimit_[0] = 0;
   mlimit_[1] = 0;
@@ -243,6 +244,7 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
                      double ew_coeffIn, double maxexpIn, double skinnbIn,
                      double erfcTableDxIn, int debugIn, const int* mlimitsIn)
 {
+  debug_ = debugIn;
   cutoff_ = cutoffIn;
   dsumTol_ = dsumTolIn;
   rsumTol_ = rsumTolIn;
@@ -600,9 +602,10 @@ double Ewald::Adjust(double q0, double q1, double rij) {
 
 //  Ewald::Direct()
 /** Calculate direct space energy. This is the faster version that uses
-  * a pair list.
+  * a pair list. Also calculate the energy adjustment for excluded
+  * atoms.
   */
-double Ewald::Direct(PairList const& PL)
+double Ewald::Direct(PairList const& PL, double& e_adjust_out)
 {
   t_direct_.Start();
   double cut2 = cutoff_ * cutoff_;
@@ -724,7 +727,8 @@ double Ewald::Direct(PairList const& PL)
   } // END pragma omp parallel
 # endif
   t_direct_.Stop();
-  return Eelec + e_adjust;
+  e_adjust_out = e_adjust;
+  return Eelec;
 }
 
 /** Calculate Ewald energy. Faster version that uses pair list. */
@@ -739,12 +743,13 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
-
-  double e_direct = Direct( pairList_ );
-  //mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
-  //        e_self, e_recip, e_direct, e_adjust_);
+  double e_adjust = 0.0;
+  double e_direct = Direct( pairList_, e_adjust );
+  if (debug_ > 0)
+    mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
+            e_self, e_recip, e_direct, e_adjust);
   t_total_.Stop();
-  return e_self + e_recip + e_direct + e_adjust_;
+  return e_self + e_recip + e_direct + e_adjust;
 }
 
 #ifdef DEBUG_EWALD
