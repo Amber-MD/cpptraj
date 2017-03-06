@@ -300,7 +300,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
     if ( arg == "--interactive" )
       interactive = true;
-    else if ( arg == "-debug" && i+1 != argc) {
+    else if ( arg == "--suppress-all-output") {
+      mprintf("Info: All further output will be suppressed.\n");
+      SuppressAllOutput();
+    } else if ( arg == "-debug" && i+1 != argc) {
       // -debug: Set overall debug level
       ArgList dbgarg( argv[++i] );
       State_.SetListDebug( dbgarg );
