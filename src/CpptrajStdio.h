@@ -17,7 +17,8 @@ void mprinterr(const char *, ...);
 void rprintf(const char *, ...);
 void rprinterr(const char *, ...);
 void SetWorldSilent(bool);
-void SupressErrorMsg(bool);
-//void printerr(const char *, const char *, ...);
-//void printwar(const char *, const char *, ...);
+void SuppressAllOutput();
+void SuppressErrorMsg(bool);
+void FinalizeIO();
+int OutputToFile(const char*);
 #endif
