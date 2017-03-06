@@ -32,7 +32,7 @@ Cpptraj::~Cpptraj() { Command::Free(); }
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
-            "               [-c <reference>] [-d <datain>] [-w <dataout>]\n"
+            "               [-c <reference>] [-d <datain>] [-w <dataout>] [-o <output>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
@@ -44,6 +44,7 @@ void Cpptraj::Usage() {
             "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
             "\t-d <datain>      : Read data in from file <datain> ('readdata <datain>').\n"
             "\t-w <dataout>     : Write data from <datain> as file <dataout> ('writedata <dataout>).\n"
+            "\t-o <output>      : Write CPPTRAJ STDOUT output to file <output>.\n"
             "\t-h | --help      : Print command line help and exit.\n"
             "\t-V | --version   : Print version and exit.\n"
             "\t--defines        : Print compiler defines and exit.\n"
@@ -142,6 +143,7 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   else
     mprinterr("Error: Error(s) occurred during execution.\n");
   mprintf("\n");
+  FinalizeIO();
   return err;
 }
 
@@ -331,6 +333,14 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
       AddFiles( inputFiles, argc, argv, i );
+    } else if (arg == "-o" && i+1 != argc) {
+      // -o: Output file
+      FileName ofilename(argv[++i]);
+      if (ofilename.empty()) {
+        mprinterr("Error: Could not set up output file with name '%s'\n", ofilename.full());
+        return ERROR;
+      }
+      if (OutputToFile(ofilename.full())) return ERROR;
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;

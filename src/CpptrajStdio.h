@@ -19,4 +19,6 @@ void rprinterr(const char *, ...);
 void SetWorldSilent(bool);
 void SuppressAllOutput();
 void SuppressErrorMsg(bool);
+void FinalizeIO();
+int OutputToFile(const char*);
 #endif

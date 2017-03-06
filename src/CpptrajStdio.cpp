@@ -150,3 +150,24 @@ void SetWorldSilent(bool silentIn) {
 void SuppressAllOutput() { world_io_level_ = IO_STAY_SILENT; }
 
 void SuppressErrorMsg(bool suppressIn) { suppressErrorMsg_ = suppressIn; }
+
+void FinalizeIO() {
+  if (STDOUT_ != stdout) {
+    fclose(STDOUT_);
+    STDOUT_ = stdout;
+  }
+}
+
+/** Redirect output to file. If no name given assume STDOUT. */
+int OutputToFile(const char* fname) {
+  FinalizeIO();
+  if (fname != 0) {
+    mprintf("Info: Redirecting output to file '%s'\n", fname);
+    STDOUT_ = fopen(fname, "wb");
+    if (STDOUT_ == 0) {
+      loudPrinterr("Error: Could not open output file '%s'\n", fname);
+      return 1;
+    }
+  }
+  return 0;
+}
