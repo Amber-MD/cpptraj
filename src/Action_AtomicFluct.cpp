@@ -10,6 +10,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
   sets_(0),
   bfactor_(false),
   calc_adp_(false),
+  usePdbRes_(false),
   adpoutfile_(0),
   fluctParm_(0),
   outtype_(BYATOM),
@@ -17,7 +18,7 @@ Action_AtomicFluct::Action_AtomicFluct() :
 {}
 
 void Action_AtomicFluct::Help() const {
-  mprintf("\t[out <filename>] [<mask>] [byres | byatom | bymask] [bfactor]\n"
+  mprintf("\t[out <filename>] [<mask>] [byres [pdbres] | byatom | bymask] [bfactor]\n"
           "\t[calcadp [adpout <file>]]\n"
           "\t%s\n"
           "  Calculate atomic fluctuations of atoms in <mask>\n", ActionFrameCounter::HelpText);
@@ -36,9 +37,10 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
   if (adpoutfile_!=0) calc_adp_ = true; // adpout implies calcadp
   if (calc_adp_ && !bfactor_) bfactor_ = true;
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs ); 
-  if (actionArgs.hasKey("byres"))
+  if (actionArgs.hasKey("byres")) {
     outtype_ = BYRES;
-  else if (actionArgs.hasKey("bymask"))
+    usePdbRes_ = actionArgs.hasKey("pdbres");
+  } else if (actionArgs.hasKey("bymask"))
     outtype_ = BYMASK;
   else if (actionArgs.hasKey("byatom") || actionArgs.hasKey("byatm"))
     outtype_ = BYATOM;
@@ -72,9 +74,15 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf(" B factors");
   else
     mprintf(" atomic positional fluctuations");
+  switch (outtype_) {
+    case BYATOM: mprintf(" for atoms.\n"); break;
+    case BYRES : mprintf(" over residues.\n"); break;
+    case BYMASK: mprintf(" over entire atom mask.\n"); break;
+  }
+  if (usePdbRes_) mprintf("\tUsing PDB residue numbers if present in topology.\n");
   if (outfile != 0)
-    mprintf(", output to file %s", outfile->DataFilename().full());
-  mprintf("\n                 Atom mask: [%s]\n",Mask_.MaskString());
+    mprintf("\tOutput to file %s\n", outfile->DataFilename().full());
+  mprintf("\tAtom mask: [%s]\n",Mask_.MaskString());
   FrameCounterInfo();
   if (calc_adp_) {
     mprintf("\tCalculating anisotropic displacement parameters.\n");
@@ -88,50 +96,61 @@ Action::RetType Action_AtomicFluct::Init(ArgList& actionArgs, ActionInit& init, 
 
 // Action_AtomicFluct::Setup()
 Action::RetType Action_AtomicFluct::Setup(ActionSetup& setup) {
-
+  // Set up atom mask
+  if (setup.Top().SetupIntegerMask( Mask_ )) return Action::ERR;
+  Mask_.MaskInfo();
+  if (Mask_.None()) {
+    mprintf("Warning: No atoms selected for mask [%s]\n", Mask_.MaskString());
+    return Action::SKIP;
+  }
   if (SumCoords_.Natom()==0) {
-    // Set up frames if not already set
-    SumCoords_.SetupFrame(setup.Top().Natom());
-    SumCoords2_.SetupFrame(setup.Top().Natom());
+    // First time setup
+    SumCoords_.SetupFrame(Mask_.Nselected());
+    SumCoords2_.SetupFrame(Mask_.Nselected());
     SumCoords_.ZeroCoords();
     SumCoords2_.ZeroCoords();
     if (calc_adp_) {
-      Cross_.SetupFrame(setup.Top().Natom());
+      Cross_.SetupFrame(Mask_.Nselected());
       Cross_.ZeroCoords();
     }
     // This is the parm that will be used for this calc
     fluctParm_ = setup.TopAddress();
-    // Set up atom mask
-    if (setup.Top().SetupCharMask( Mask_ )) {
-      mprinterr("Error: Could not set up mask [%s]\n",Mask_.MaskString());
-      return Action::ERR;
-    }
-    Mask_.MaskInfo();
-    if (Mask_.None()) {
-      mprintf("Warning: No atoms selected [%s]\n",Mask_.MaskString());
-      return Action::SKIP;
-    }
-  } else if (setup.Top().Natom() != SumCoords_.Natom()) {
+  } else if (Mask_.Nselected() != SumCoords_.Natom()) {
     // Check that current #atoms matches
     mprinterr("Error: AtomicFluct not yet supported for mulitple topologies with different\n");
     mprinterr("       #s of atoms (set up for %i, this topology has %i\n",
-              SumCoords_.Natom(), setup.Top().Natom());
+              SumCoords_.Natom(), Mask_.Nselected());
     return Action::ERR;
-  } 
-  // NOTE: Print warning here when setting up multiple topologies?
+  } else {
+    if (fluctParm_ != setup.TopAddress())
+      mprintf("Warning: Topology is changing. Will base output only using topology '%s'.\n",
+              fluctParm_->c_str());
+  }
   return Action::OK;
 }
 
 // Action_AtomicFluct::DoAction()
 Action::RetType Action_AtomicFluct::DoAction(int frameNum, ActionFrame& frm) {
   if ( CheckFrameCounter( frm.TrajoutNum() ) ) return Action::OK;
-  SumCoords_ += frm.Frm();
-  SumCoords2_ += ( frm.Frm() * frm.Frm() );
+  int sidx = 0;
+  for (AtomMask::const_iterator atm = Mask_.begin(); atm != Mask_.end(); ++atm, sidx += 3)
+  {
+    int fidx = *atm * 3;
+    SumCoords_[sidx  ]  +=  frm.Frm()[fidx  ];
+    SumCoords2_[sidx  ] += (frm.Frm()[fidx  ]*frm.Frm()[fidx  ]);
+    SumCoords_[sidx+1]  +=  frm.Frm()[fidx+1];
+    SumCoords2_[sidx+1] += (frm.Frm()[fidx+1]*frm.Frm()[fidx+1]);
+    SumCoords_[sidx+2]  +=  frm.Frm()[fidx+2];
+    SumCoords2_[sidx+2] += (frm.Frm()[fidx+2]*frm.Frm()[fidx+2]);
+  }
   if (calc_adp_) {
-    for (int i = 0; i < SumCoords_.size(); i+=3) {
-      Cross_[i  ] += frm.Frm()[i  ] * frm.Frm()[i+1]; // U12
-      Cross_[i+1] += frm.Frm()[i  ] * frm.Frm()[i+2]; // U13
-      Cross_[i+2] += frm.Frm()[i+1] * frm.Frm()[i+2]; // U23
+    sidx = 0;
+    for (AtomMask::const_iterator atm = Mask_.begin(); atm != Mask_.end(); ++atm, sidx += 3)
+    {
+      int fidx = *atm * 3;
+      Cross_[sidx  ] += frm.Frm()[fidx  ] * frm.Frm()[fidx+1]; // U12
+      Cross_[sidx+1] += frm.Frm()[fidx  ] * frm.Frm()[fidx+2]; // U13
+      Cross_[sidx+2] += frm.Frm()[fidx+1] * frm.Frm()[fidx+2]; // U23
     }
   }
   ++sets_;
@@ -179,22 +198,21 @@ void Action_AtomicFluct::Print() {
         *result = bfac * fluct;
       ++result;
       if (calc_adp_) {
-        int atom = (i/3);
-        if (Mask_.AtomInCharMask(atom)) {
-          int resnum = (*fluctParm_)[atom].ResNum();
-          int u11 = (int)(SumCoords2_[i  ] * 10000);
-          int u22 = (int)(SumCoords2_[i+1] * 10000);
-          int u33 = (int)(SumCoords2_[i+2] * 10000);
-          // Calculate covariance: <XY> - <X><Y> etc.
-          int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
-          int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
-          int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
-          PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
-          adpout.WriteANISOU(
-            atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
-            fluctParm_->Res(resnum).ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
-            u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
-        }
+        int idx = (i/3);
+        int atom = Mask_[idx];
+        int resnum = (*fluctParm_)[atom].ResNum();
+        int u11 = (int)(SumCoords2_[i  ] * 10000);
+        int u22 = (int)(SumCoords2_[i+1] * 10000);
+        int u33 = (int)(SumCoords2_[i+2] * 10000);
+        // Calculate covariance: <XY> - <X><Y> etc.
+        int u12 = (int)((Cross_[i  ] - SumCoords_[i  ] * SumCoords_[i+1]) * 10000);
+        int u13 = (int)((Cross_[i+1] - SumCoords_[i  ] * SumCoords_[i+2]) * 10000);
+        int u23 = (int)((Cross_[i+2] - SumCoords_[i+1] * SumCoords_[i+2]) * 10000);
+        PDBfile& adpout = static_cast<PDBfile&>( *adpoutfile_ );
+        adpout.WriteANISOU(
+          atom+1, (*fluctParm_)[atom].c_str(), fluctParm_->Res(resnum).c_str(),
+          fluctParm_->Res(resnum).ChainID(), fluctParm_->Res(resnum).OriginalResNum(),
+          u11, u22, u33, u12, u13, u23, (*fluctParm_)[atom].ElementName(), 0 );
       }
     }
   } else {
@@ -211,38 +229,47 @@ void Action_AtomicFluct::Print() {
   if (outtype_ == BYATOM) {
     // By atom output
     dset.ModifyDim(Dimension::X).SetLabel("Atom");
-    for (int atom = 0; atom < (int)Results.size(); atom++ ) {
-      if (Mask_.AtomInCharMask(atom))
-        dset.AddXY( atom+1, Results[atom] );
-    }
-  } else if (outtype_ == BYRES) { 
+    for (int idx = 0; idx < (int)Results.size(); idx++)
+      dset.AddXY( Mask_[idx]+1, Results[idx] );
+  } else if (outtype_ == BYRES) {
     // By residue output
     dset.ModifyDim(Dimension::X).SetLabel("Res");
-    for (Topology::res_iterator residue = fluctParm_->ResStart();
-                                residue != fluctParm_->ResEnd(); ++residue) {
-      double xi = 0.0;
-      double fluct = 0.0;
-      for (int atom = (*residue).FirstAtom(); atom < (*residue).LastAtom(); atom++) {
-        if ( Mask_.AtomInCharMask(atom) ) {
-          double mass = (*fluctParm_)[atom].Mass(); 
-          xi += mass;
-          fluct += Results[atom] * mass;
-        }
+    int lastidx = (int)Results.size() - 1;
+    double fluct = 0.0;
+    double xi = 0.0;
+    for (int idx = 0; idx < (int)Results.size(); idx++) {
+      int atom = Mask_[idx];
+      double mass = (*fluctParm_)[atom].Mass();
+      fluct += Results[idx] * mass;
+      xi += mass;
+      int currentres = (*fluctParm_)[atom].ResNum();
+      int nextres;
+      if (idx != lastidx) {
+        int nextatom = Mask_[idx+1];
+        nextres = (*fluctParm_)[nextatom].ResNum();
+      } else
+        nextres = -1;
+      if (nextres != currentres) {
+        int resnum;
+        if (usePdbRes_)
+          resnum = fluctParm_->Res(currentres).OriginalResNum();
+        else
+          resnum = currentres + 1;
+        dset.AddXY( resnum, fluct / xi );
+        xi = 0.0;
+        fluct = 0.0;
       }
-      if (xi > Constants::SMALL) 
-        dset.AddXY( residue - fluctParm_->ResStart() + 1, fluct / xi );
     }
   } else if (outtype_ == BYMASK) {
     // By mask output
     dset.ModifyDim(Dimension::X).SetLabel( Mask_.MaskExpression() );
     double xi = 0.0;
     double fluct = 0.0;
-    for (int atom = 0; atom < (int)Results.size(); atom++) {
-      if (Mask_.AtomInCharMask(atom)) {
-        double mass = (*fluctParm_)[atom].Mass();
-        xi += mass;
-        fluct += Results[atom] * mass;
-      }
+    for (int idx = 0; idx < (int)Results.size(); idx++) {
+      int atom = Mask_[idx];
+      double mass = (*fluctParm_)[atom].Mass();
+      xi += mass;
+      fluct += Results[idx] * mass;
     }
     if (xi > Constants::SMALL) 
       dset.AddXY( 1, fluct / xi );

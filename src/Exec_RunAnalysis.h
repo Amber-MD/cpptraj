@@ -7,5 +7,7 @@ class Exec_RunAnalysis : public Exec {
     void Help() const;
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_RunAnalysis(); }
     RetType Execute(CpptrajState&, ArgList&);
+  private:
+    int DoRunAnalysis(CpptrajState&, ArgList&) const;
 };
 #endif

@@ -18,7 +18,7 @@ class Traj_PDBfile: public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
     static void WriteHelp();
   private:
-    enum TER_Mode { BY_MOL = 0, BY_RES = 1, NO_TER = 2 };
+    enum TER_Mode { BY_MOL = 0, BY_RES, ORIGINAL_PDB, NO_TER };
     enum Radii_Mode { GB = 0, PARSE, VDW };
     Radii_Mode radiiMode_; ///< Radii to use if PQR.
     TER_Mode terMode_;     ///< TER card mode.

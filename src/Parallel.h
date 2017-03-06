@@ -55,6 +55,7 @@ class Parallel {
     static void Lock();
     static Comm const& EnsembleComm()   { return ensembleComm_;   }
     static Comm const& TrajComm()       { return trajComm_;       }
+    static Comm const& ActiveComm();
 #   ifdef PARALLEL_DEBUG_VERBOSE
     static FILE* mpidebugfile_;
 #   endif /* PARALLEL_DEBUG_VERBOSE */

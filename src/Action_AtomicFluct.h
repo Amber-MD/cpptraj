@@ -22,10 +22,11 @@ class Action_AtomicFluct : public Action, ActionFrameCounter {
     Frame SumCoords_;         ///< Hold the average coordinates.
     Frame SumCoords2_;        ///< Hold the variance of coordinates.
     Frame Cross_;             ///< Hold cross-terms for calculating covariance.
-    CharMask Mask_;
+    AtomMask Mask_;
     int sets_;
     bool bfactor_;
     bool calc_adp_;
+    bool usePdbRes_;
     CpptrajFile* adpoutfile_;
     std::string outfilename_;
     Topology *fluctParm_;

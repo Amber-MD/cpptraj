@@ -356,53 +356,55 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
 # ifdef MPI
-  if (!Parallel::TrajComm().Master()) {
+  if (!Parallel::ActiveComm().Master()) {
     if (debug_ > 0)
       rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
-    return;
-  }
+  } else {
 # endif
-  if (debug_ > 0)
-    rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
-  //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
-  //        SetList_.size(), dimenison_, maxFrames);
-  // Loop over all sets, decide which ones should be written.
-  // All DataSets should have same dimension (enforced by AddDataSet()).
-  DataSetList setsToWrite;
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
-    DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
-    // Check if set has no data.
-    if ( ds.Empty() ) {
-      mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
-      continue;
+    if (debug_ > 0)
+      rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
+    //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
+    //        SetList_.size(), dimenison_, maxFrames);
+    // Loop over all sets, decide which ones should be written.
+    // All DataSets should have same dimension (enforced by AddDataSet()).
+    DataSetList setsToWrite;
+    for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
+      DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
+      // Check if set has no data.
+      if ( ds.Empty() ) {
+        mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
+        continue;
+      }
+      // Setup formats with a leading space initially. Maintains backwards compat. 
+      ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
+      // Ensure current DataIO is valid for this set. May not be needed right now
+      // but useful in case file format can be changed later on.
+      if (!dataio_->CheckValidFor( ds )) {
+        mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                   ds.legend(), filename_.base());
+        continue;
+      }
+      setsToWrite.AddCopyOfSet( SetList_[idx] );
     }
-    // Setup formats with a leading space initially. Maintains backwards compat. 
-    ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
-    // Ensure current DataIO is valid for this set. May not be needed right now
-    // but useful in case file format can be changed later on.
-    if (!dataio_->CheckValidFor( ds )) {
-      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
-                 ds.legend(), filename_.base());
-      continue;
+    if (setsToWrite.empty())
+      mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
+    else {
+#     ifdef TIMER
+      Timer dftimer;
+      dftimer.Start();
+#     endif
+      int err = dataio_->WriteData(filename_, setsToWrite); 
+#     ifdef TIMER
+      dftimer.Stop();
+      mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
+              dftimer.Total());
+#     endif
+      if (err > 0) 
+        mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
     }
-    setsToWrite.AddCopyOfSet( SetList_[idx] );
-  }
-  if (setsToWrite.empty()) {
-    mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
-    return;
-  }
-#ifdef TIMER
-  Timer dftimer;
-  dftimer.Start();
-#endif
-  int err = dataio_->WriteData(filename_, setsToWrite); 
-#ifdef TIMER
-  dftimer.Stop();
-  mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
-          dftimer.Total());
-#endif
-  if (err > 0) 
-    mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
+# ifdef MPI
+  } // END if not master
+# endif
 }
 
 // DataFile::SetDataFilePrecision()
