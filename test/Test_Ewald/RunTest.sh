@@ -66,29 +66,11 @@ EOF
   DoTest tz2_ortho.dat.save tz2_ortho.dat
 }
 
-FtuFabI() {
-  cat > ene.in <<EOF
-noprogress
-parm ../ChainA_1-268_NAD_TCL-gaff.tip3p.parm7
-trajin ../run9.nc 1 1
-energy out run9.dat etype ewald
-EOF
-  RunCpptraj "Ewald test (FtuFabI)"
-  DoTest run9.dat.save run9.dat
-}
-
 Direct
 NaCl
 Trpzip
 Tz2_10
 Ortho
-if [ ! -z "$OPENMP" ] ; then
-  FtuFabI
-else
-  echo ""
-  echo "FtuFabI test only run for OpenMP."
-  echo ""
-fi
 
 EndTest
 exit 0 
