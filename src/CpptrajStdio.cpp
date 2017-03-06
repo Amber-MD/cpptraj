@@ -4,8 +4,15 @@
 #  include "Parallel.h"
 #endif
 
-static bool worldsilent = false; // If true suppress all mprintf output.
-static bool supressErrorMsg = false; // If true supress all mprinterr output.
+enum IO_LEVEL_TYPE {
+  IO_ALL = 0,    // Normal output
+  IO_SILENT,     // Supress STDOUT output
+  IO_STAY_SILENT // Supress All STDOUT output forever.
+};
+/// Controls mprintf/rprintf output.
+static IO_LEVEL_TYPE world_io_level = IO_ALL;
+/// Controls mprinterr/rprinterr output.
+static bool supressErrorMsg = false;
 
 // mflush()
 /** Call flush on STDOUT only if this is the master thread */
@@ -16,7 +23,7 @@ void mflush() {
   fflush(stdout);
 }
 
-/** Print message to STDOUT even if worldsilent */
+/** Print message to STDOUT even if IO_SILENT */
 void loudPrintf(const char* format, ...) {
 # ifdef MPI
   if (!Parallel::World().Master()) return;
@@ -66,14 +73,15 @@ void mprinterr(const char *format, ...) {
 #else
 /** Print message to STDOUT only if this is the master thread */
 void mprintf(const char *format, ...) {
-  if (worldsilent) return;
-# ifdef MPI
-  if (!Parallel::World().Master()) return;
-# endif
-  va_list args;
-  va_start(args,format);
-  vfprintf(stdout,format,args);
-  va_end(args);
+  if (world_io_level == IO_ALL) {
+#   ifdef MPI
+    if (!Parallel::World().Master()) return;
+#   endif
+    va_list args;
+    va_start(args,format);
+    vfprintf(stdout,format,args);
+    va_end(args);
+  }
 }
 
 /** Print message to STDERR only if this is the master thread */
@@ -91,18 +99,19 @@ void mprinterr(const char *format, ...) {
 // rprintf()
 /** Print message to STDOUT for this worldrank */
 void rprintf(const char *format, ...) {
-  va_list args;
-  if (worldsilent) return;
-  va_start(args, format);
-# ifdef MPI
-  char buffer[1024];
-  int nc = sprintf(buffer, "[%i]\t", Parallel::World().Rank());
-  nc += vsprintf(buffer + nc, format, args);
-  fwrite(buffer, 1, nc, stdout);
-# else
-  vfprintf(stdout,format,args);
-# endif
-  va_end(args);
+  if (world_io_level == IO_ALL) {
+    va_list args;
+    va_start(args, format);
+#   ifdef MPI
+    char buffer[1024];
+    int nc = sprintf(buffer, "[%i]\t", Parallel::World().Rank());
+    nc += vsprintf(buffer + nc, format, args);
+    fwrite(buffer, 1, nc, stdout);
+#   else
+    vfprintf(stdout,format,args);
+#   endif
+    va_end(args);
+  }
 }
 
 // rprinterr()
@@ -122,34 +131,20 @@ void rprinterr(const char *format, ...) {
   va_end(args);
 }
 
-void SetWorldSilent(bool silentIn)   { worldsilent = silentIn;      }
+/** Change status of STDOUT output as long as SupressAllOutput has not
+  * been called.
+  * \param silentIn if true, silence STDOUT output, otherwise enable.
+  */
+void SetWorldSilent(bool silentIn) {
+  if (world_io_level != IO_STAY_SILENT) {
+    if (silentIn)
+      world_io_level = IO_SILENT;
+    else
+      world_io_level = IO_ALL;
+  }
+}
+
+/** Supress all STDOUT output for the entire run. */
+void SupressAllOutput() { world_io_level = IO_STAY_SILENT; }
 
 void SupressErrorMsg(bool supressIn) { supressErrorMsg = supressIn; }
-
-// printerr()
-/** Print error message along with calling routine.  */
-/*void printerr(const char *ROUTINE, const char *format, ...) {
-  va_list args;
-
-  va_start(args,format);
-  fprintf(stdout,"Error: ");
-  if (ROUTINE!=0)
-    fprintf(stdout, "%s: ",ROUTINE);
-  vfprintf(stdout,format,args);
-  va_end(args);
-  fprintf(stdout,"\n");
-}*/
-
-// printwar()
-/** Print warning message along with calling routine.  */
-/*void printwar(const char *ROUTINE, const char *format, ...) {
-  va_list args;
-
-  va_start(args,format);
-  fprintf(stdout, "Warning: ");
-  if (ROUTINE!=0)
-    fprintf(stdout,"%s: ",ROUTINE);
-  vfprintf(stdout,format,args);
-  va_end(args);
-  fprintf(stdout,"\n");
-}*/
