@@ -13,9 +13,14 @@ class Energy_Amber {
     double E_torsion(Frame const&, Topology const&, CharMask const&);
     double E_14_Nonbond(Frame const&, Topology const&, CharMask const&, double&);
     double E_Nonbond(Frame const&, Topology const&, AtomMask const&, double&);
+    double E_VDW(Frame const&, Topology const&, AtomMask const&);
+    double E_Elec(Frame const&, Topology const&, AtomMask const&);
+
+    double E_DirectSum(Frame const&, Topology const&, AtomMask const&, int);
+
 
     void SetDebug(int d) { debug_ = d; }
-    void PrintTiming() const;
+    void PrintTiming(double) const;
   private:
     double CalcBondEnergy(Frame const&, BondArray const&, BondParmArray const&,
                           CharMask const&);

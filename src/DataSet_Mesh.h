@@ -2,6 +2,7 @@
 #define INC_DATASET_MESH_H
 #include <vector>
 #include "DataSet_1D.h"
+#include "Spline.h"
 /// Hold a mesh of X-Y values
 class DataSet_Mesh : public DataSet_1D {
   public:
@@ -50,15 +51,10 @@ class DataSet_Mesh : public DataSet_1D {
     /// Calculate single exponential regression via log and linear regression.
     int SingleExpRegression(double&, double&, double&, CpptrajFile*);
   private:
-    void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
-    void cubicSpline_eval(std::vector<double> const&, std::vector<double> const&);
-
     std::vector<double> mesh_x_;
     std::vector<double> mesh_y_;
-    // Cubic spline coefficients.
-    std::vector<double> b;
-    std::vector<double> c;
-    std::vector<double> d;
+    // Cubic spline coefficients. TODO Split out completely?
+    Spline cspline_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void DataSet_Mesh::AddXY(double x, double y) {

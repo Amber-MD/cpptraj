@@ -209,6 +209,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
         EnsembleOutList.cpp \
+        Ewald.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
         Exec_ClusterMap.cpp \
@@ -265,6 +266,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
+        PairList.cpp \
         Parallel.cpp \
         ParallelNetcdf.cpp \
         ParmFile.cpp \
@@ -286,6 +288,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
+        Spline.cpp \
         StringRoutines.cpp \
         StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \

@@ -331,6 +331,13 @@ Matrix_3x3 Box::UnitCell(double scale) const {
   return ucell;
 }
 
+//  Box::RecipLengths()
+Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
+  return Vec3( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
+               1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
+               1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
+}
+
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
