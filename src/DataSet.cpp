@@ -35,6 +35,16 @@ DataSet::DataSet(const DataSet& rhs) :
     associatedData_.push_back( (*a)->Copy() );
 }
 
+/** Clear all associated data. */
+void DataSet::ClearAssociatedData() {
+  for (AdataArray::iterator ad = associatedData_.begin(); ad != associatedData_.end(); ++ad)
+    delete *ad;
+  associatedData_.clear();
+}
+
+// DESTRUCTOR
+DataSet::~DataSet() { ClearAssociatedData(); }
+
 // ASSIGNMENT
 DataSet& DataSet::operator=(const DataSet& rhs) {
   if (this != &rhs) {
@@ -43,7 +53,7 @@ DataSet& DataSet::operator=(const DataSet& rhs) {
     dType_ = rhs.dType_;
     dGroup_ = rhs.dGroup_;
     meta_ = rhs.meta_;
-    associatedData_.clear();
+    ClearAssociatedData(); 
 #   ifdef MPI
     needsSync_ = rhs.needsSync_;
 #   endif
