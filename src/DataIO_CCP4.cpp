@@ -15,6 +15,7 @@ bool DataIO_CCP4::ID_DataFormat( CpptrajFile& infile ) {
   bool isCCP4 = false;
   if (!infile.OpenFile()) {
     unsigned char MAP[4];
+    MAP[0] = ' '; MAP[1] = ' '; MAP[2] = ' '; MAP[3] = ' ';
     if (infile.Seek(52 * wSize) == 0) {
       infile.Read( MAP, wSize );
       isCCP4 = MapCharsValid( MAP );

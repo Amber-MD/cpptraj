@@ -38,7 +38,8 @@ class DataSet {
     DataSet(DataType,DataGroup,TextFormat const&,int);
     DataSet(const DataSet&);
     DataSet& operator=(const DataSet&);
-    virtual ~DataSet() {} // Destructor - virtual since this class is inherited
+    /// Destructor. Virtual since this class is inherited.
+    virtual ~DataSet();
     // ----------===== Inheritable functions =====----------
     /// \return the number of data elements stored in the DataSet.
     virtual size_t Size() const = 0;
@@ -124,6 +125,9 @@ class DataSet {
     typedef std::vector<Dimension> DimArray;
     /// Type to hold any additional data associated with this data set.
     typedef std::vector<AssociatedData*> AdataArray;
+
+    /// Clear any associated data.
+    void ClearAssociatedData();
 
     DimArray dim_;              ///< Holds info for each dimension in the DataSet.
     AdataArray associatedData_; ///< Holds any additonal data associated with this DataSet
