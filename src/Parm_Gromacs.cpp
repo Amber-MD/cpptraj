@@ -216,6 +216,7 @@ int Parm_Gromacs::ReadMolsSection(BufferedLine& infile) {
     mols_.push_back( std::string(infile.NextToken()) );
     nums_.push_back( atoi(infile.NextToken()) );
     ptr = infile.Line();
+    if (ptr == 0) break;
     currentCols = infile.TokenizeLine(SEP);
   }
   if (debug_ > 0)
