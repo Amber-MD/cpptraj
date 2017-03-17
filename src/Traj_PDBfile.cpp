@@ -5,16 +5,16 @@
 Traj_PDBfile::Traj_PDBfile() :
   radiiMode_(GB),
   terMode_(BY_MOL),
+  conectMode_(NO_CONECT),
+  pdbWriteMode_(NONE),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
-  pdbWriteMode_(NONE),
   dumpq_(false),
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
   include_ep_(false),
-  writeConect_(false),
   prependExt_(false),
   pdbTop_(0),
   chainchar_(' ')
@@ -208,7 +208,12 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
-  writeConect_ = argIn.hasKey("conect");
+  if (argIn.hasKey("conect"))
+    conectMode_ = ALL_BONDS;
+  else if (pdbres_)
+    conectMode_ = HETATM_ONLY;
+  else
+    conectMode_ = NO_CONECT;
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
@@ -430,9 +435,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     // Write a TER card at the end of every molecule
     // NOTE: For backwards compat. dont do this for last mol. FIXME Is this ok?
     if ( trajParm->Nmol() > 0 ) {
-      Topology::mol_iterator finalMol = trajParm->MolEnd() - 1;
       for (Topology::mol_iterator mol = trajParm->MolStart();
-                                  mol != finalMol; ++mol)
+                                  mol != trajParm->MolEnd(); ++mol)
         TER_idxs_.push_back( mol->EndAtom() - 1 );
     }
   }
@@ -444,7 +448,8 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     mprintf("\n");
   }
   // Allocate space to hold ATOM record #s if writing CONECT records
-  if (writeConect_) atrec_.resize( trajParm->Natom() );
+  if (conectMode_ != NO_CONECT)
+    atrec_.resize( trajParm->Natom() );
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
   if (append || (pdbWriteMode_==SINGLE && NframesToWrite>1)) 
@@ -539,7 +544,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
-      if (writeConect_) atrec_[aidx] = anum; // Store ATOM record #
+      if (conectMode_ != NO_CONECT)
+        atrec_[aidx] = anum; // Store ATOM record #
     }
     anum++;
     // Check and see if a TER card should be written.
@@ -552,16 +558,25 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       ++terIdx;
     }
   }
-  // Write CONECT records for each ATOM
-  if (writeConect_) {
+  if (conectMode_ == ALL_BONDS) {
+    // Write CONECT records for all atoms
     for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
       file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+  } else if (conectMode_ == HETATM_ONLY) {
+    // Write CONECT records for each HETATM residue EXCEPT water
+    for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
+      Residue const& res = pdbTop_->Res(ridx);
+      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+        for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
+          file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+      }
+    }
   }
-  if (pdbWriteMode_==MULTI) {
+  if (pdbWriteMode_ == MULTI) {
     // If writing 1 pdb per frame, close output file
     file_.WriteEND();
     file_.CloseFile();
-  } else if (pdbWriteMode_==MODEL) {
+  } else if (pdbWriteMode_ == MODEL) {
     // If MODEL keyword was written, write corresponding ENDMDL record
     file_.WriteENDMDL();
   }
@@ -577,7 +592,7 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (writeConect_) mprintf(" with CONECT records");
+    if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
     if (dumpq_) {
       mprintf(", writing charges to occupancy column and ");
       switch (radiiMode_) {
