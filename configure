@@ -1112,7 +1112,7 @@ EOF
       ./testp | grep Testing > /dev/null
       if [ "$?" -ne 0 ] ; then CompileError "$CXX $FORTLIB_DIR $FLIBS $LDFLAGS" ; fi
       /bin/rm -f testp test?.o testf.f testc.cpp
-      FLIBS="$FORTLIB_DIR $FLIBS"
+      FLIBS="-L/usr/lib $FORTLIB_DIR $FLIBS"
     fi # END clang++/gfortran link test
   fi # END clang tests
 elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
