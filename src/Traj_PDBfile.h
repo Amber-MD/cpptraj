@@ -10,6 +10,8 @@ class Traj_PDBfile: public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_PDBfile(); }
     static void WriteHelp();
   private:
+    typedef std::vector<int> Iarray;
+    typedef PDBfile::SSBOND SSBOND;
     /** PDBWRITEMODE: Indicate how the pdb should be written.
       *  SINGLE: Writing only a single frame.
       *  MODEL: Multiple frames written to the same file separated with 
@@ -33,11 +35,14 @@ class Traj_PDBfile: public TrajectoryIO {
     bool write_cryst1_; ///< If false write CRYST1 for first frame only.
     bool include_ep_;   ///< If true include extra points.
     bool prependExt_;
+    bool firstframe_;   ///< Set to false after first call to writeFrame
     std::string space_group_;
     std::vector<double> radii_;  ///< Hold radii for PQR format.
-    std::vector<int> TER_idxs_;  ///< TER card indices.
-    std::vector<int> atrec_;     ///< Hold ATOM record #s for CONECT
+    Iarray TER_idxs_;  ///< TER card indices.
+    Iarray atrec_;     ///< Hold ATOM record #s for CONECT
     std::vector<bool> resIsHet_; ///< True if residue needs HETATM records
+    std::vector<SSBOND> ss_residues_;
+    Iarray ss_atoms_;
     Topology *pdbTop_;
     PDBfile file_;
 
@@ -66,5 +71,6 @@ class Traj_PDBfile: public TrajectoryIO {
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj() {}
 #   endif
+    void WriteDisulfides(Frame const&);
 };
 #endif

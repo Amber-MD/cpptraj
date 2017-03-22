@@ -6,6 +6,7 @@
 /// Used to access PDB files
 class PDBfile : public CpptrajFile {
   public:
+    class SSBOND;
     // NOTE: PDB_RECNAME must correspond with this.
     enum PDB_RECTYPE {ATOM=0, HETATM, CRYST1, TER, END, ANISOU, END_OF_FILE, 
                       CONECT, UNKNOWN};
@@ -64,6 +65,8 @@ class PDBfile : public CpptrajFile {
     void WriteCONECT(int, std::vector<int> const&, Atom const&);
     /// Write single CONECT
     void WriteCONECT(int, int);
+    /// Write SSBOND record
+    void WriteSSBOND(int, SSBOND const&, float);
     /// Write ENDMDL
     void WriteENDMDL();
     /// Write END
@@ -76,5 +79,35 @@ class PDBfile : public CpptrajFile {
     PDB_RECTYPE recType_; ///< Current record type.
     bool lineLengthWarning_; ///< True if any read line is shorter than 80 char
     static const char* PDB_RECNAME[];
+};
+/// Hold information for an SSBOND record.
+class PDBfile::SSBOND {
+  public:
+    SSBOND();
+    SSBOND(int, int, Residue const&, Residue const&);
+    SSBOND(SSBOND const&);
+    SSBOND operator=(SSBOND const&);
+    const char* name1() const { return name1_; }
+    const char* name2() const { return name2_; }
+    int Idx1()  const { return idx1_;  }
+    int Idx2()  const { return idx2_;  }
+    int Rnum1() const { return rnum1_; }
+    int Rnum2() const { return rnum2_; }
+    char Chain1() const { return chain1_; }
+    char Chain2() const { return chain2_; }
+    char Icode1() const { return icode1_; }
+    char Icode2() const { return icode2_; }
+  private:
+    // TODO SymOP
+    int idx1_; ///< Index into Topology for first SG
+    int idx2_; ///< Index into Topology for second SG
+    int rnum1_;
+    int rnum2_;
+    char chain1_;
+    char chain2_;
+    char icode1_;
+    char icode2_;
+    char name1_[4];
+    char name2_[4];
 };
 #endif

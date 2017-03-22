@@ -411,6 +411,58 @@ void PDBfile::WriteCONECT(int atnum1, int atnum2) {
   Printf("CONECT%5i%5i\n", atnum1, atnum2);
 }
 
+void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
+  // TODO: SymOp
+  //Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6i %6i %5.2f\n", num,
+  Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6s %6s %5.2f\n", num,
+         ss.name1(), ss.Chain1(), ss.Rnum1(), ss.Icode1(),
+         ss.name2(), ss.Chain2(), ss.Rnum2(), ss.Icode2(), "", "", distIn);
+}
+
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
 
 void PDBfile::WriteEND()    { Printf("END   \n"); }
+// -----------------------------------------------------------------------------
+PDBfile::SSBOND::SSBOND() :
+  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
+  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(name1_, name1_+4, '\0');
+  std::fill(name2_, name1_+4, '\0');
+}
+
+PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
+  idx1_(  idx1),                idx2_(  idx2),
+  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
+  chain1_(r1.ChainID()),        chain2_(r2.ChainID()),
+  icode1_(r1.Icode()),          icode2_(r2.Icode())
+{
+  std::copy(r1.c_str(), r1.c_str()+3, name1_);
+  std::copy(r2.c_str(), r2.c_str()+3, name2_);
+}
+
+PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
+  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
+  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
+  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
+{
+  std::copy(rhs.name1_, rhs.name1_+3, name1_);
+  std::copy(rhs.name2_, rhs.name2_+3, name2_);
+}
+
+PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+  if (this != &rhs) {
+    idx1_ = rhs.idx1_;
+    idx2_ = rhs.idx2_;
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    std::copy(rhs.name1_, rhs.name1_+3, name1_);
+    std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  }
+  return *this;
+}
