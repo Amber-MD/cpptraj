@@ -406,6 +406,11 @@ void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& 
   }
 }
 
+/** This version is primarily intended for writing CONECT for disulfides. */
+void PDBfile::WriteCONECT(int atnum1, int atnum2) {
+  Printf("CONECT%5i%5i\n", atnum1, atnum2);
+}
+
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
 
 void PDBfile::WriteEND()    { Printf("END   \n"); }

@@ -563,10 +563,29 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
       file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
   } else if (conectMode_ == HETATM_ONLY) {
-    // Write CONECT records for each HETATM residue EXCEPT water
+    // Write CONECT records for each disulfide and HETATM residue EXCEPT water
     for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
       Residue const& res = pdbTop_->Res(ridx);
-      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+      // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
+      //       when 'pdbres' has been specified.
+      if (resNames_[ridx] == "CYS ") {
+        // Check for disulfide
+        int sg_idx = pdbTop_->FindAtomInResidue(ridx, "SG");
+        if (sg_idx > -1) {
+          Atom const& sg_atom = (*pdbTop_)[sg_idx];
+          for (Atom::bond_iterator bidx = sg_atom.bondbegin();
+                                   bidx != sg_atom.bondend(); ++bidx)
+          {
+            int ridx2 = (*pdbTop_)[*bidx].ResNum();
+            if (ridx2 != ridx && resNames_[ridx2] == "CYS ") {
+              int sg_idx2 = pdbTop_->FindAtomInResidue(ridx2, "SG");
+              if (sg_idx2 > -1)
+                file_.WriteCONECT( atrec_[sg_idx], atrec_[sg_idx2] );
+              // NOTE: could probably break here.
+            }
+          }
+        }
+      } else if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
         for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
           file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
       }
