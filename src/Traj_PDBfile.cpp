@@ -1,5 +1,6 @@
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
@@ -519,11 +520,15 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   return 0;
 }
 
+// Traj_PDBfile::WriteDisulfides()
 void Traj_PDBfile::WriteDisulfides(Frame const& fIn) {
   int sidx = 1;
   for (std::vector<SSBOND>::const_iterator ss = ss_residues_.begin();
                                            ss != ss_residues_.end(); ++ss)
-    file_.WriteSSBOND( sidx++, *ss, 0.0 );
+  {
+    double dist = DIST_NoImage(fIn.XYZ(ss->Idx1()), fIn.XYZ(ss->Idx2()));
+    file_.WriteSSBOND( sidx++, *ss, dist );
+  }
 }
 
 // Traj_PDBfile::writeFrame()
