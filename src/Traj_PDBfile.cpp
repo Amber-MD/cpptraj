@@ -1,21 +1,23 @@
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
   radiiMode_(GB),
   terMode_(BY_MOL),
+  conectMode_(NO_CONECT),
+  pdbWriteMode_(NONE),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
-  pdbWriteMode_(NONE),
   dumpq_(false),
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
   include_ep_(false),
-  writeConect_(false),
   prependExt_(false),
+  firstframe_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -30,7 +32,10 @@ bool Traj_PDBfile::ID_TrajFormat(CpptrajFile& fileIn) {
 void Traj_PDBfile::closeTraj() {
   if ( (pdbWriteMode_ == SINGLE || pdbWriteMode_ == MODEL) &&
         file_.IsOpen() )
+  {
+    WriteBonds();
     file_.WriteEND();
+  }
   if (pdbWriteMode_ != MULTI)
     file_.CloseFile();
 }
@@ -208,7 +213,12 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
-  writeConect_ = argIn.hasKey("conect");
+  if (argIn.hasKey("conect"))
+    conectMode_ = ALL_BONDS;
+  else if (pdbres_)
+    conectMode_ = HETATM_ONLY;
+  else
+    conectMode_ = NO_CONECT;
   prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
   if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
@@ -252,7 +262,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   resNames_.reserve( trajParm->Nres() );
   resIsHet_.clear();
   resIsHet_.reserve( trajParm->Nres() );
+  ss_residues_.clear();
+  ss_atoms_.clear();
   if (pdbres_) {
+    Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
     {
@@ -315,6 +328,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       }
       resNames_.push_back( rname );
       // Any non-standard residue should get HETATM
+      if ( rname == "CYS " )
+        // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
+        //       when 'pdbres' has been specified.
+        cys_idxs_.push_back( res - trajParm->ResStart() );
       if ( rname == "ALA " ||
            rname == "ARG " ||
            rname == "ASN " ||
@@ -353,6 +370,32 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else
         resIsHet_.push_back( true );
       //mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
+    } // END loop over residues
+    // For each cysteine, determine if there is a disulfide
+    for (Iarray::const_iterator ridx1 = cys_idxs_.begin(); ridx1 != cys_idxs_.end(); ++ridx1)
+    {
+      // Check for disulfide
+      int sg_idx1 = trajParm->FindAtomInResidue(*ridx1, "SG");
+      if (sg_idx1 > -1) {
+        Atom const& sg_atom = (*trajParm)[sg_idx1];
+        for (Atom::bond_iterator bidx = sg_atom.bondbegin();
+                                 bidx != sg_atom.bondend(); ++bidx)
+        {
+          int ridx2 = (*trajParm)[*bidx].ResNum();
+          if (ridx2 != *ridx1 && resNames_[ridx2] == "CYS ") {
+            int sg_idx2 = trajParm->FindAtomInResidue(ridx2, "SG");
+            if (sg_idx2 > -1) {
+              if (ridx2 > *ridx1)
+                ss_residues_.push_back( SSBOND(sg_idx1, sg_idx2,
+                                               trajParm->Res(*ridx1),
+                                               trajParm->Res( ridx2)) );
+              ss_atoms_.push_back( sg_idx1 );
+              ss_atoms_.push_back( sg_idx2 );
+            }
+            // NOTE: could probably break here.
+          }
+        }
+      }
     }
   } else {
     for (Topology::res_iterator res = trajParm->ResStart();
@@ -430,21 +473,21 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
     // Write a TER card at the end of every molecule
     // NOTE: For backwards compat. dont do this for last mol. FIXME Is this ok?
     if ( trajParm->Nmol() > 0 ) {
-      Topology::mol_iterator finalMol = trajParm->MolEnd() - 1;
       for (Topology::mol_iterator mol = trajParm->MolStart();
-                                  mol != finalMol; ++mol)
+                                  mol != trajParm->MolEnd(); ++mol)
         TER_idxs_.push_back( mol->EndAtom() - 1 );
     }
   }
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.
   if (debug_ > 0) {
     mprintf("DEBUG: TER indices:");
-    for (std::vector<int>::const_iterator idx = TER_idxs_.begin(); idx != TER_idxs_.end(); ++idx)
+    for (Iarray::const_iterator idx = TER_idxs_.begin(); idx != TER_idxs_.end(); ++idx)
       mprintf(" %i", *idx + 1);
     mprintf("\n");
   }
   // Allocate space to hold ATOM record #s if writing CONECT records
-  if (writeConect_) atrec_.resize( trajParm->Natom() );
+  if (conectMode_ != NO_CONECT)
+    atrec_.resize( trajParm->Natom() );
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
   if (append || (pdbWriteMode_==SINGLE && NframesToWrite>1)) 
@@ -473,7 +516,40 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       }
     }
   }
+  firstframe_ = true;
   return 0;
+}
+
+// Traj_PDBfile::WriteDisulfides()
+void Traj_PDBfile::WriteDisulfides(Frame const& fIn) {
+  int sidx = 1;
+  for (std::vector<SSBOND>::const_iterator ss = ss_residues_.begin();
+                                           ss != ss_residues_.end(); ++ss)
+  {
+    double dist = DIST_NoImage(fIn.XYZ(ss->Idx1()), fIn.XYZ(ss->Idx2()));
+    file_.WriteSSBOND( sidx++, *ss, dist );
+  }
+}
+
+// Traj_PDBfile::WriteBonds()
+void Traj_PDBfile::WriteBonds() {
+  if (conectMode_ == ALL_BONDS) {
+    // Write CONECT records for all atoms
+    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
+      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+  } else if (conectMode_ == HETATM_ONLY) {
+    // Write CONECT records for each disulfide
+    for (Iarray::const_iterator sgidx = ss_atoms_.begin(); sgidx != ss_atoms_.end(); sgidx+=2)
+      file_.WriteCONECT( atrec_[*sgidx], atrec_[*(sgidx+1)] );
+    // Write CONECT records for each HETATM residue EXCEPT water
+    for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
+      Residue const& res = pdbTop_->Res(ridx);
+      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+        for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
+          file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+      }
+    }
+  }
 }
 
 // Traj_PDBfile::writeFrame()
@@ -484,13 +560,16 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
     if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
+    WriteDisulfides(frameOut);
     if (write_cryst1_)
       file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
   } else {
-    // Write box coords, first frame only.
-    if (write_cryst1_) {
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
-      write_cryst1_ = false;
+    // Write disulfides/box coords, first frame only.
+    if (firstframe_) {
+      WriteDisulfides(frameOut);
+      if (write_cryst1_)
+        file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+      firstframe_ = false;
     }
   }
   // If specified, write MODEL keyword
@@ -502,7 +581,7 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   char altLoc = ' ';
   int anum = 1; // Actual PDB ATOM record number
   const double *Xptr = frameOut.xAddress();
-  std::vector<int>::const_iterator terIdx = TER_idxs_.begin();
+  Iarray::const_iterator terIdx = TER_idxs_.begin();
   for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++, Xptr += 3) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
@@ -539,7 +618,8 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
-      if (writeConect_) atrec_[aidx] = anum; // Store ATOM record #
+      if (conectMode_ != NO_CONECT)
+        atrec_[aidx] = anum; // Store ATOM record #
     }
     anum++;
     // Check and see if a TER card should be written.
@@ -552,16 +632,12 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       ++terIdx;
     }
   }
-  // Write CONECT records for each ATOM
-  if (writeConect_) {
-    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
-      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
-  }
-  if (pdbWriteMode_==MULTI) {
+  if (pdbWriteMode_ == MULTI) {
     // If writing 1 pdb per frame, close output file
+    WriteBonds();
     file_.WriteEND();
     file_.CloseFile();
-  } else if (pdbWriteMode_==MODEL) {
+  } else if (pdbWriteMode_ == MODEL) {
     // If MODEL keyword was written, write corresponding ENDMDL record
     file_.WriteENDMDL();
   }
@@ -577,7 +653,7 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (writeConect_) mprintf(" with CONECT records");
+    if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
     if (dumpq_) {
       mprintf(", writing charges to occupancy column and ");
       switch (radiiMode_) {
