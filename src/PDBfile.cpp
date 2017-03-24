@@ -438,7 +438,9 @@ PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2
   icode1_(r1.Icode()),          icode2_(r2.Icode())
 {
   std::copy(r1.c_str(), r1.c_str()+3, name1_);
+  name1_[3] = '\0';
   std::copy(r2.c_str(), r2.c_str()+3, name2_);
+  name2_[3] = '\0';
 }
 
 PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
@@ -447,8 +449,8 @@ PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
   chain1_(rhs.chain1_), chain2_(rhs.chain2_),
   icode1_(rhs.icode1_), icode2_(rhs.icode2_)
 {
-  std::copy(rhs.name1_, rhs.name1_+3, name1_);
-  std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  std::copy(rhs.name1_, rhs.name1_+4, name1_);
+  std::copy(rhs.name2_, rhs.name2_+4, name2_);
 }
 
 PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
