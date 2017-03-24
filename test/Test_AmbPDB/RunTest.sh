@@ -25,7 +25,7 @@ else
   DoTest out.pdb.save out1.pdb
 
   if [ ! -z "$NETCDFLIB" ] ; then
-    $VALGRIND $AMBPDB -p ../FtuFabI.NAD.TCL.parm7 -c ../FtuFabI.NAD.TCL.nc -bres > fabi.pdb
+    $VALGRIND $AMBPDB -p ../FtuFabI.NAD.TCL.parm7 -c ../FtuFabI.NAD.TCL.nc -bres > fabi.pdb 2>> $ERROR
     DoTest fabi.pdb.save fabi.pdb
   fi
 
