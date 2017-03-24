@@ -32,7 +32,10 @@ bool Traj_PDBfile::ID_TrajFormat(CpptrajFile& fileIn) {
 void Traj_PDBfile::closeTraj() {
   if ( (pdbWriteMode_ == SINGLE || pdbWriteMode_ == MODEL) &&
         file_.IsOpen() )
+  {
+    WriteBonds();
     file_.WriteEND();
+  }
   if (pdbWriteMode_ != MULTI)
     file_.CloseFile();
 }
@@ -382,13 +385,10 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           if (ridx2 != *ridx1 && resNames_[ridx2] == "CYS ") {
             int sg_idx2 = trajParm->FindAtomInResidue(ridx2, "SG");
             if (sg_idx2 > -1) {
-              if (ridx2 > *ridx1) {
+              if (ridx2 > *ridx1)
                 ss_residues_.push_back( SSBOND(sg_idx1, sg_idx2,
                                                trajParm->Res(*ridx1),
                                                trajParm->Res( ridx2)) );
-                mprintf("DEBUG: Disulfide between residues %i and %i\n",
-                        ss_residues_.back().Rnum1(), ss_residues_.back().Rnum2());
-              }
               ss_atoms_.push_back( sg_idx1 );
               ss_atoms_.push_back( sg_idx2 );
             }
@@ -531,6 +531,27 @@ void Traj_PDBfile::WriteDisulfides(Frame const& fIn) {
   }
 }
 
+// Traj_PDBfile::WriteBonds()
+void Traj_PDBfile::WriteBonds() {
+  if (conectMode_ == ALL_BONDS) {
+    // Write CONECT records for all atoms
+    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
+      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+  } else if (conectMode_ == HETATM_ONLY) {
+    // Write CONECT records for each disulfide
+    for (Iarray::const_iterator sgidx = ss_atoms_.begin(); sgidx != ss_atoms_.end(); sgidx+=2)
+      file_.WriteCONECT( atrec_[*sgidx], atrec_[*(sgidx+1)] );
+    // Write CONECT records for each HETATM residue EXCEPT water
+    for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
+      Residue const& res = pdbTop_->Res(ridx);
+      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+        for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
+          file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+      }
+    }
+  }
+}
+
 // Traj_PDBfile::writeFrame()
 /** Write the frame (model) to PDB file. */
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
@@ -611,25 +632,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       ++terIdx;
     }
   }
-  if (conectMode_ == ALL_BONDS) {
-    // Write CONECT records for all atoms
-    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
-      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
-  } else if (conectMode_ == HETATM_ONLY) {
-    // Write CONECT records for each disulfide
-    for (Iarray::const_iterator sgidx = ss_atoms_.begin(); sgidx != ss_atoms_.end(); sgidx+=2)
-      file_.WriteCONECT( atrec_[*sgidx], atrec_[*(sgidx+1)] );
-    // Write CONECT records for each HETATM residue EXCEPT water
-    for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
-      Residue const& res = pdbTop_->Res(ridx);
-      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
-        for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
-          file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
-      }
-    }
-  }
   if (pdbWriteMode_ == MULTI) {
     // If writing 1 pdb per frame, close output file
+    WriteBonds();
     file_.WriteEND();
     file_.CloseFile();
   } else if (pdbWriteMode_ == MODEL) {

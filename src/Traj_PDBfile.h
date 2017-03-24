@@ -72,5 +72,6 @@ class Traj_PDBfile: public TrajectoryIO {
     void parallelCloseTraj() {}
 #   endif
     void WriteDisulfides(Frame const&);
+    void WriteBonds();
 };
 #endif
