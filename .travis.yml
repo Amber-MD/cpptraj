@@ -36,13 +36,13 @@ before_install:
       brew update;
       brew install netcdf fftw;
       curl -L http://ambermd.org/downloads/ambertools-rc/conda/osx-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
-      tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h dat/*;
       shell_session_update() { echo "Overriding shell_session_update"; };
     else
       curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
-      tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h dat/* ;
     fi
-  - mv lib include $HOME
+  - mv lib include dat $HOME
 
 install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
