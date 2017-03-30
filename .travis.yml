@@ -30,6 +30,7 @@ matrix:
 before_install:
   - set -e
   - export AMBERTOOLS=ambertools-17.0-0.tar.bz2
+  - export AMBERHOME=$HOME
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew tap homebrew/science;
       brew update;
