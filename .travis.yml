@@ -38,7 +38,7 @@ before_install:
       tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h;
       shell_session_update() { echo "Overriding shell_session_update"; };
     else
-      curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/AMBERTOOLS;
+      curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
       tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h;
     fi
   - mv lib include $HOME
