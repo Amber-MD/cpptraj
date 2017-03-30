@@ -36,11 +36,11 @@ before_install:
       brew update;
       brew install netcdf fftw;
       curl -L http://ambermd.org/downloads/ambertools-rc/conda/osx-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
-      tar jxf --wildcards $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h dat/*;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h --wildcards dat/*;
       shell_session_update() { echo "Overriding shell_session_update"; };
     else
       curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
-      tar jxf --wildcards $HOME/$AMBERTOOLS lib/libsander.so include/sander.h dat/* ;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h  --wildcards dat/* ;
     fi
   - mv lib include dat $HOME
 
