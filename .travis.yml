@@ -34,12 +34,12 @@ before_install:
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
-      curl -L http://ambermd.org/downloads/ambertools-rc/conda/osx-64/$AMBERTOOLS;
-      tar jxf $AMBERTOOLS lib/libsander.dylib include/sander.h;
+      curl -L http://ambermd.org/downloads/ambertools-rc/conda/osx-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h;
       shell_session_update() { echo "Overriding shell_session_update"; };
     else
-      curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS;
-      tar jxf $AMBERTOOLS lib/libsander.so include/sander.h;
+      curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/AMBERTOOLS;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h;
     fi
   - mv lib include $HOME
 
