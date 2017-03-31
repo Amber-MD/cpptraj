@@ -50,7 +50,7 @@ int KDE::CalcKDE(DataSet_double& Out, DataSet_1D const& Pdata) const {
   M2 /= (N - 1.0);
   double stdev = sqrt(M2);
   double step = 0.0;
-  int bins = (int)sqrt(Pdata.Size());
+  int bins = (int)sqrt((double)Pdata.Size());
 /*
   std::sort(data.begin(), data.end());
   double min = data.front();
