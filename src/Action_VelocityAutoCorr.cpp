@@ -12,12 +12,14 @@
 // CONSTRUCTOR
 Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
   useVelInfo_(false), useFFT_(false), normalize_(false), VAC_(0), tstep_(0.0),
-  maxLag_(0) {}
+  maxLag_(0), diffout_(0) {}
 
 void Action_VelocityAutoCorr::Help() const {
-  mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>]\n"
+  mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>] [diffout <file>]\n"
           "\t[maxlag <time>] [tstep <timestep>] [direct] [norm]\n"
-          "  Calculate velocity auto-correlation function for atoms in <mask>\n");
+          "  Calculate velocity auto-correlation function for atoms in <mask>. If\n"
+          "  'diffout' specified write calculated diffusion constants to <file>,\n"
+          "  otherwise they will be written to STDOUT.\n");
 }
 
 // Action_VelocityAutoCorr::Init()
@@ -26,6 +28,8 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
   useVelInfo_ = actionArgs.hasKey("usevelocity");
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   DataFile* outfile =  init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  diffout_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("diffout"),
+                                        "VAC diffusion constants", DataFileList::TEXT, true );
   maxLag_ = actionArgs.getKeyInt("maxlag", -1);
   tstep_ = actionArgs.getKeyDouble("tstep", 1.0);
   useFFT_ = !actionArgs.hasKey("direct");
@@ -51,6 +55,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
   if (outfile != 0)
     mprintf("\tOutput data set '%s' to '%s'\n", VAC_->legend(), 
             outfile->DataFilename().full());
+  mprintf("\tWriting diffusion constants to '%s'\n", diffout_->Filename().full());
   if (maxLag_ < 1)
     mprintf("\tMaximum lag will be half total # of frames");
   else
@@ -249,10 +254,16 @@ void Action_VelocityAutoCorr::Print() {
   DataSet_Mesh mesh;
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
   double total = mesh.Integrate_Trapezoid();
-  const double ANG2_PS_TO_CM2_S = 10.0 / 6.0;
-  mprintf("\t3D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total, total * ANG2_PS_TO_CM2_S);
-  mprintf("\t D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total / 3.0, total * ANG2_PS_TO_CM2_S / 3.0);
-  mprintf("\t6D= %g Å^2/ps, %g x10^-5 cm^2/s\n", total * 2.0, total * ANG2_PS_TO_CM2_S * 2.0);
+  const double ANG2_PS_TO_CM2_S = 10.0; // Convert Ang^2/ps to 1E-5 cm^2/s
+  const char* tab = "\t";
+  if (!diffout_->IsStream()) {
+    mprintf("\tDiffusion constants output to '%s'\n", diffout_->Filename().full());
+    diffout_->Printf("# Diffusion constants from VAC for atoms in '%s'\n", mask_.MaskString());
+    tab = "";
+  } 
+  diffout_->Printf("%s3D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total,     total * ANG2_PS_TO_CM2_S);
+  diffout_->Printf("%s D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total/3.0, total*ANG2_PS_TO_CM2_S/3.0);
+  diffout_->Printf("%s6D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total*2.0, total*ANG2_PS_TO_CM2_S*2.0);
   if (normalize_) {
     // Normalize VAC fn to 1.0
     mprintf("\tNormalizing VAC function to 1.0, C[0]= %g\n", Ct[0]);

@@ -30,5 +30,6 @@ class Action_VelocityAutoCorr : public Action {
     DataSet* VAC_; ///< Hold values of the velocity auto-correlation function
     double tstep_; ///< Time step
     int maxLag_;   ///< Maximum lag to calculate VAC fn for.
+    CpptrajFile* diffout_; ///< File to write diffusion constants to (or STDOUT)
 };
 #endif
