@@ -11,14 +11,14 @@
 
 // CONSTRUCTOR
 Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
-  useVelInfo_(false),
-  useFFT_(false),
-  normalize_(false),
+  diffout_(0),
   VAC_(0),
+  diffConst_(0),
   tstep_(0.0),
   maxLag_(0),
-  diffout_(0),
-  diffConst_(0)
+  useVelInfo_(false),
+  useFFT_(false),
+  normalize_(false)
 {}
 
 void Action_VelocityAutoCorr::Help() const {

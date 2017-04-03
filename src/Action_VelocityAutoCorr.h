@@ -19,18 +19,18 @@ class Action_VelocityAutoCorr : public Action {
 #   endif
     void Print();
 
-    bool useVelInfo_;     ///< If true use actual velocities in frame if present
-    bool useFFT_;         ///< Use FFT to calculate VAC functions
-    bool normalize_;      ///< Normalize VAC fn to 1.0 
-    AtomMask mask_;       ///< Atoms to calculate VAC fn for.
-    Frame previousFrame_; ///< Hold previous frame coords (!useVelInfo only)
     typedef DataSet_Vector Varray;
     typedef std::vector<Varray> VelArray;
-    VelArray Vel_; ///< Hold velocity info for each selected atom at each frame.
-    DataSet* VAC_; ///< Hold values of the velocity auto-correlation function
-    double tstep_; ///< Time step
-    int maxLag_;   ///< Maximum lag to calculate VAC fn for.
+    VelArray Vel_;         ///< Hold velocity info for each selected atom at each frame.
+    AtomMask mask_;        ///< Atoms to calculate VAC fn for.
+    Frame previousFrame_;  ///< Hold previous frame coords (!useVelInfo only)
     CpptrajFile* diffout_; ///< File to write diffusion constants to (or STDOUT)
+    DataSet* VAC_;         ///< Hold values of the velocity auto-correlation function
     DataSet* diffConst_;   ///< Hold value of diffusion constant in E-5 cm^2/s
+    double tstep_;         ///< Time step between frames
+    int maxLag_;           ///< Maximum lag to calculate VAC fn for.
+    bool useVelInfo_;      ///< If true use actual velocities in frame if present
+    bool useFFT_;          ///< Use FFT to calculate VAC functions
+    bool normalize_;       ///< Normalize VAC fn to 1.0 
 };
 #endif
