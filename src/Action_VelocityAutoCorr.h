@@ -31,5 +31,6 @@ class Action_VelocityAutoCorr : public Action {
     double tstep_; ///< Time step
     int maxLag_;   ///< Maximum lag to calculate VAC fn for.
     CpptrajFile* diffout_; ///< File to write diffusion constants to (or STDOUT)
+    DataSet* diffConst_;   ///< Hold value of diffusion constant in E-5 cm^2/s
 };
 #endif

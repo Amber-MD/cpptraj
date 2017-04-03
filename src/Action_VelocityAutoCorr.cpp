@@ -11,8 +11,15 @@
 
 // CONSTRUCTOR
 Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
-  useVelInfo_(false), useFFT_(false), normalize_(false), VAC_(0), tstep_(0.0),
-  maxLag_(0), diffout_(0) {}
+  useVelInfo_(false),
+  useFFT_(false),
+  normalize_(false),
+  VAC_(0),
+  tstep_(0.0),
+  maxLag_(0),
+  diffout_(0),
+  diffConst_(0)
+{}
 
 void Action_VelocityAutoCorr::Help() const {
   mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>] [diffout <file>]\n"
@@ -37,6 +44,10 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
   // Set up output data set
   VAC_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "VAC");
   if (VAC_ == 0) return Action::ERR;
+  // TODO: This should just be a scalar
+  diffConst_ = init.DSL().AddSet(DataSet::DOUBLE,
+                                 MetaData(VAC_->Meta().Name(), "D", MetaData::NOT_TS));
+  if (diffConst_ == 0) return Action::ERR;
   if (outfile != 0) outfile->AddDataSet( VAC_ );
 # ifdef MPI
   trajComm_ = init.TrajComm(); 
@@ -44,6 +55,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
     mprintf("\nWarning: When calculating velocities between consecutive frames,\n"
             "\nWarning:   'velocityautocorr' in parallel will not work correctly if\n"
             "\nWarning:   coordinates have been modified by previous actions (e.g. 'rms').\n\n");
+  diffConst_->SetNeedsSync( false );
 # endif
   mprintf("    VELOCITYAUTOCORR:\n"
           "\tCalculate velocity auto-correlation function for atoms in mask '%s'\n",
@@ -263,8 +275,10 @@ void Action_VelocityAutoCorr::Print() {
   } 
   diffout_->Printf("%s3D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total,
                    total * ANG2_PS_TO_CM2_S);
+  double diffusionConst = total * ANG2_PS_TO_CM2_S / 3.0;
   diffout_->Printf("%s D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total/3.0,
-                   total * ANG2_PS_TO_CM2_S / 3.0);
+                   diffusionConst);
+  diffConst_->Add(0, &diffusionConst);
   diffout_->Printf("%s6D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total*2.0,
                    total * ANG2_PS_TO_CM2_S * 2.0);
   if (normalize_) {
