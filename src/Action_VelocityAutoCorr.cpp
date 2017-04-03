@@ -65,14 +65,14 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
   else
     mprintf("\tCalculating velocities between consecutive frames.\n");
   if (outfile != 0)
-    mprintf("\tOutput data set '%s' to '%s'\n", VAC_->legend(), 
+    mprintf("\tOutput velocity autocorrelation function '%s' to '%s'\n", VAC_->legend(), 
             outfile->DataFilename().full());
   mprintf("\tWriting diffusion constants to '%s'\n", diffout_->Filename().full());
   if (maxLag_ < 1)
     mprintf("\tMaximum lag will be half total # of frames");
   else
     mprintf("\tMaximum lag is %i frames", maxLag_);
-  mprintf(", time step is %f ps\n", tstep_);
+  mprintf(", time step between frames is %f ps\n", tstep_);
   if (useFFT_)
     mprintf("\tUsing FFT to calculate autocorrelation function.\n");
   else
@@ -136,12 +136,14 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm
 }
 
 #ifdef MPI
+// Action_VelocityAutoCorr::ParallelPreloadFrames()
 int Action_VelocityAutoCorr::ParallelPreloadFrames(FArray const& preload_frames) {
   unsigned int idx = preload_frames.size() - 1;
   previousFrame_ = preload_frames[idx];
   return 0;
 }
 
+// Action_VelocityAutoCorr::SyncAction()
 int Action_VelocityAutoCorr::SyncAction() {
   if (Vel_.empty()) return 0;
   // Get total number of frames. Assume same # vectors in each thread.
@@ -163,12 +165,12 @@ int Action_VelocityAutoCorr::SyncAction() {
 void Action_VelocityAutoCorr::Print() {
   if (Vel_.empty()) return;
   mprintf("    VELOCITYAUTOCORR:\n");
-  mprintf("\t%zu vectors have been saved, total length of each = %zu\n",
+  mprintf("\t%zu vectors have been saved, total length of each = %zu frames.\n",
           Vel_.size(), Vel_[0].Size());
   int maxlag;
   if (maxLag_ <= 0) {
     maxlag = (int)Vel_[0].Size() / 2;
-    mprintf("\tSetting maximum lag to 1/2 total time (%i)\n", maxlag);
+    mprintf("\tSetting maximum lag to 1/2 total frames (%i)\n", maxlag);
   } else if (maxLag_ > (int)Vel_[0].Size()) {
     maxlag = (int)Vel_[0].Size();
     mprintf("\tSpecified maximum lag > total length, setting to %i\n", maxlag);
