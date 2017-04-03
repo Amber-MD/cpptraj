@@ -261,9 +261,12 @@ void Action_VelocityAutoCorr::Print() {
     diffout_->Printf("# Diffusion constants from VAC for atoms in '%s'\n", mask_.MaskString());
     tab = "";
   } 
-  diffout_->Printf("%s3D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total,     total * ANG2_PS_TO_CM2_S);
-  diffout_->Printf("%s D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total/3.0, total*ANG2_PS_TO_CM2_S/3.0);
-  diffout_->Printf("%s6D= %g Å^2/ps, %g x10^-5 cm^2/s\n",tab,total*2.0, total*ANG2_PS_TO_CM2_S*2.0);
+  diffout_->Printf("%s3D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total,
+                   total * ANG2_PS_TO_CM2_S);
+  diffout_->Printf("%s D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total/3.0,
+                   total * ANG2_PS_TO_CM2_S / 3.0);
+  diffout_->Printf("%s6D= %g Ang.^2/ps, %g x10^-5 cm^2/s\n", tab, total*2.0,
+                   total * ANG2_PS_TO_CM2_S * 2.0);
   if (normalize_) {
     // Normalize VAC fn to 1.0
     mprintf("\tNormalizing VAC function to 1.0, C[0]= %g\n", Ct[0]);
