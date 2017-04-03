@@ -181,11 +181,11 @@ Action::RetType Action_Diffusion::Init(ArgList& actionArgs, ActionInit& init, in
   // If one file defined, assume all are.
   if (outputx_ != 0) {
     mprintf("\tOutput files:\n"
-            "\t  %s: (x) Mean square displacement(s) in the X direction (in Å^2).\n"
-            "\t  %s: (y) Mean square displacement(s) in the Y direction (in Å^2).\n"
-            "\t  %s: (z) Mean square displacement(s) in the Z direction (in Å^2).\n"
-            "\t  %s: (r) Overall mean square displacement(s) (in Å^2).\n"
-            "\t  %s: (a) Total distance travelled (in Å).\n",
+            "\t  %s: (x) Mean square displacement(s) in the X direction (in Ang.^2).\n"
+            "\t  %s: (y) Mean square displacement(s) in the Y direction (in Ang.^2).\n"
+            "\t  %s: (z) Mean square displacement(s) in the Z direction (in Ang.^2).\n"
+            "\t  %s: (r) Overall mean square displacement(s) (in Ang.^2).\n"
+            "\t  %s: (a) Total distance travelled (in Ang.).\n",
             outputx_->DataFilename().full(), outputy_->DataFilename().full(),
             outputz_->DataFilename().full(), outputr_->DataFilename().full(),
             outputa_->DataFilename().full());
