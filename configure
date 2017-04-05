@@ -1121,6 +1121,53 @@ elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
   SHARED_SUFFIX=".dll"
 fi
 
+# Change to MPI compiler wrappers if specified
+if [[ $USEMPI -ne 0 ]] ; then
+  if [[ "$WINDOWS" = "yes" ]]; then
+    echo "MPI not currently supported on Windows"
+    exit 1
+  fi
+  if [[ -z $PNETCDFLIB ]] ; then
+    echo "************************************************************************"
+    echo "* Warning: No parallel NetCDF library specified.                       *"
+    echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
+    echo "************************************************************************"
+  fi
+  DIRECTIVES="$DIRECTIVES -DMPI"
+  SFX=$SFX".MPI"
+  if [[ $USEMPI -eq 1 ]] ; then
+    echo "Using MPI"
+    CC=mpicc
+    CXX=mpicxx
+    FC=mpif90
+  elif [[ $USEMPI -eq 2 ]] ; then
+    echo "Using Intel MPI"
+    CC=mpiicc
+    CXX=mpiicpc
+    FC=mpiifort
+  fi
+  # Older Intel compilers have a problem with the order of stdio vs mpi
+  cat > testp.cpp <<EOF
+#include <cstdio>
+#include <mpi.h>
+int main() { printf("Testing a C++ MPI program.\n"); return 0; }
+EOF
+  $CXX -o testp testp.cpp > /dev/null 2> compile.err 
+  if [ "$?" -ne 0 ] ; then
+    # Try to fix with -DMPICH_IGNORE_CXX_SEEK
+    $CXX -o testp -DMPICH_IGNORE_CXX_SEEK testp.cpp > /dev/null 2> compile.err
+    if [ "$?" -eq 0 ] ; then
+      # That worked. Add to CXXFLAGS
+      CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
+    else
+      echo "Error: Could not compile an MPI program with $CXX." > /dev/stderr
+      cat compile.err
+      exit 1
+    fi
+  fi
+  rm -f testp.cpp testp compile.err
+fi
+
 # Set up linking flags if not already set.
 # LDFLAGS contains flags common to cpptraj and ambpdb
 LDFLAGS="$NETCDFLIB $PNETCDFLIB $BZLIB $ZLIB $XDRFILE $LDFLAGS"
@@ -1224,53 +1271,6 @@ if [[ $USECUDA -eq 1 ]] ; then
   LDFLAGS="$LDFLAGS -L$CUDA_HOME/lib64 -L$CUDA_HOME/lib -lcuda -lcudart"
   CUDA_TARGET="cuda_kernels/libcpptraj_cuda.a"
   SFX=$SFX".cuda"
-fi
-
-# Change to MPI compiler wrappers if specified
-if [[ $USEMPI -ne 0 ]] ; then
-  if [[ "$WINDOWS" = "yes" ]]; then
-    echo "MPI not currently supported on Windows"
-    exit 1
-  fi
-  if [[ -z $PNETCDFLIB ]] ; then
-    echo "************************************************************************"
-    echo "* Warning: No parallel NetCDF library specified.                       *"
-    echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
-    echo "************************************************************************"
-  fi
-  DIRECTIVES="$DIRECTIVES -DMPI"
-  SFX=$SFX".MPI"
-  if [[ $USEMPI -eq 1 ]] ; then
-    echo "Using MPI"
-    CC=mpicc
-    CXX=mpicxx
-    FC=mpif90
-  elif [[ $USEMPI -eq 2 ]] ; then
-    echo "Using Intel MPI"
-    CC=mpiicc
-    CXX=mpiicpc
-    FC=mpiifort
-  fi
-  # Older Intel compilers have a problem with the order of stdio vs mpi
-  cat > testp.cpp <<EOF
-#include <cstdio>
-#include <mpi.h>
-int main() { printf("Testing a C++ MPI program.\n"); return 0; }
-EOF
-  $CXX -o testp testp.cpp > /dev/null 2> compile.err 
-  if [ "$?" -ne 0 ] ; then
-    # Try to fix with -DMPICH_IGNORE_CXX_SEEK
-    $CXX -o testp -DMPICH_IGNORE_CXX_SEEK testp.cpp > /dev/null 2> compile.err
-    if [ "$?" -eq 0 ] ; then
-      # That worked. Add to CXXFLAGS
-      CXXFLAGS="$CXXFLAGS -DMPICH_IGNORE_CXX_SEEK"
-    else
-      echo "Error: Could not compile an MPI program with $CXX." > /dev/stderr
-      cat compile.err
-      exit 1
-    fi
-  fi
-  rm -f testp.cpp testp compile.err
 fi
 
 # Set up compiler flags if not already set
