@@ -37,6 +37,7 @@ Action_NAstruct::Action_NAstruct() :
 void Action_NAstruct::Help() const {
   mprintf("\t[<dataset name>] [resrange <range>] [naout <suffix>]\n"
           "\t[noheader] [resmap <ResName>:{A,C,G,T,U} ...] [calcnohb]\n"
+          "\t[baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
           "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
