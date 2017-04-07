@@ -263,7 +263,7 @@ void Action_VelocityAutoCorr::Print() {
       //Ct[t] /= (double)Vel_.size();
   }
   // Integration to get diffusion coefficient.
-  VAC_->SetDim(Dimension::X, Dimension(1.0, tstep_, "Frame"));
+  VAC_->SetDim(Dimension::X, Dimension(0.0, tstep_, "Time (ps)"));
   mprintf("\tIntegrating data set %s, step is %f\n", VAC_->legend(), VAC_->Dim(0).Step());
   DataSet_Mesh mesh;
   mesh.SetMeshXY( static_cast<DataSet_1D const&>(*VAC_) );
