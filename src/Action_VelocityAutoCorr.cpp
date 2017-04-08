@@ -23,7 +23,7 @@ Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
 
 void Action_VelocityAutoCorr::Help() const {
   mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>] [diffout <file>]\n"
-          "\t[maxlag <time>] [tstep <timestep>] [direct] [norm]\n"
+          "\t[maxlag <frames>] [tstep <timestep>] [direct] [norm]\n"
           "  Calculate velocity auto-correlation function for atoms in <mask>. If\n"
           "  'diffout' specified write calculated diffusion constants to <file>,\n"
           "  otherwise they will be written to STDOUT.\n");

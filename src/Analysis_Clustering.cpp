@@ -63,7 +63,7 @@ void Analysis_Clustering::Help() const {
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
           "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
-          "\t[pairwisecache {mem | none}] [includesieveincalc]\n"
+          "\t[pairwisecache {mem | disk | none}] [includesieveincalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
