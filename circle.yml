@@ -2,10 +2,6 @@ machine:
   services:
     - docker
 
-dependencies:
-  override:
-    - docker pull hainm/pytraj-build-box
-
 test:
   override:
     - bash util/test_pytraj_build.sh
