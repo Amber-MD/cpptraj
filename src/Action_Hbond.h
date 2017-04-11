@@ -6,6 +6,7 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_integer.h"
+#include "Timer.h"
 /// Action to calculate the Hbonds present in each frame.
 class Action_Hbond : public Action {
   public:
@@ -117,5 +118,10 @@ class Action_Hbond : public Action {
     void SyncMap(HBmapType&, std::vector<int> const&, std::vector<int> const&,
                  const char*, Parallel::Comm const&) const;
 #   endif
+    Timer t_action_;
+    Timer t_uu_;
+    Timer t_ud_va_;
+    Timer t_vd_ua_;
+    Timer t_bridge_;
 };
 #endif

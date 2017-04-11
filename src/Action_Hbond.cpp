@@ -576,11 +576,13 @@ int Action_Hbond::AtomsAreHbonded(Frame const& currentFrame, int frameNum,
 /** Calculate distance between all donors and acceptors. Store Hbond info.
   */    
 Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
+  t_action_.Start();
   int D, H;
   // accept ... H-D
   if (Image_.ImagingEnabled())
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
   // SOLUTE-SOLUTE HBONDS
+  t_uu_.Start();
 # ifdef HBOND_OPENMP
   int dAt, hAt, aAt, didx, aidx, hbidx, mol1 = -1, numHB = 0;
   double dist, dist2, angle;
@@ -674,7 +676,9 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
   NumHbonds_->Add(frameNum, &numHB);
   //mprintf("HBOND: Scanned %i hbonds.\n",hbidx);
 # endif 
+  t_uu_.Stop();
   if (calcSolvent_) {
+    t_ud_va_.Start();
     // Contains info about which residue(s) a Hbonding solvent mol is
     // Hbonded to.
     std::map< int, std::set<int> > solvent2solute;
@@ -704,6 +708,8 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
       //mprintf("DEBUG: # Solvent Acceptor to Solute Donor Hbonds is %i\n", numHB);
       solventHbonds += numHB;
     }
+    t_ud_va_.Stop();
+    t_vd_ua_.Start();
     // SOLVENT DONOR-SOLUTE ACCEPTOR
     // Index by solute acceptor atom
     if (hasSolventDonor_) {
@@ -729,9 +735,11 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
       //mprintf("DEBUG: # Solvent Donor to Solute Acceptor Hbonds is %i\n", numHB);
       solventHbonds += numHB;
     }
+    t_vd_ua_.Stop();
     NumSolvent_->Add(frameNum, &solventHbonds);
 
     // Determine number of bridging waters.
+    t_bridge_.Start();
     numHB = 0;
     std::string bridgeID;
     for (std::map< int, std::set<int> >::const_iterator bridge = solvent2solute.begin();
@@ -759,10 +767,12 @@ Action::RetType Action_Hbond::DoAction(int frameNum, ActionFrame& frm) {
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
     BridgeID_->Add(frameNum, bridgeID.c_str());
+    t_bridge_.Stop();
   }
 
   ++Nframes_;
 
+  t_action_.Stop();
   return Action::OK;
 }
 
@@ -1004,6 +1014,14 @@ void Action_Hbond::Print() {
    mprintf("\t%zu solute-solvent hydrogen bonds.\n", SolventMap_.size());
    mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
   }
+
+  t_uu_.WriteTiming(    2,"Solute-Solute                 :",t_action_.Total());
+  if (calcSolvent_) {
+    t_ud_va_.WriteTiming( 2,"Solute Donor-Solvent Acceptor :",t_action_.Total());
+    t_vd_ua_.WriteTiming( 2,"Solvent Donor-Solute Acceptor :",t_action_.Total());
+    t_bridge_.WriteTiming(2,"Bridging waters               :",t_action_.Total());
+  }
+  t_action_.WriteTiming(1,"Total:");
 
   // Ensure all series have been updated for all frames.
   UpdateSeries();
