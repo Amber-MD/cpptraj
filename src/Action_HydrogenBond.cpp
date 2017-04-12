@@ -429,8 +429,8 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       double dist = sqrt(dist2);
       // Index UU hydrogen bonds by DonorH-Acceptor
       Hpair hbidx(*h_atom, a_atom);
-      HBmapType::iterator it = UU_Map_.find( hbidx );
-      if (it == UU_Map_.end())
+      HBmapType::iterator it = UU_Map_.lower_bound( hbidx );
+      if (it == UU_Map_.end() || it->first != hbidx)
       {
 //        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
         DataSet_integer* ds = 0;
