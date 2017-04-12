@@ -227,6 +227,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
   }
 
+  Sarray donorOnly;
   // DONOR/ACCEPTOR SETUP
   if (hasDonorMask_) {
     // Donor heavy atom mask specified
@@ -270,7 +271,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
         if (isDonor && isAcceptor)
           Both_.push_back( Site(at, H_at) );
         else if (isDonor)
-          Donor_.push_back( Site(at, H_at) );
+          donorOnly.push_back( Site(at, H_at) );
         else if (isAcceptor)
           Acceptor_.push_back( at );
       }
@@ -300,7 +301,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
         if (isDonor && isAcceptor)
           Both_.push_back( Site(at, Hatoms) );
         else if (isDonor)
-          Donor_.push_back( Site(at, Hatoms) );
+          donorOnly.push_back( Site(at, Hatoms) );
         else if (isAcceptor)
           Acceptor_.push_back( at );
       }
@@ -333,11 +334,15 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       if (isDonor && isAcceptor)
         Both_.push_back( Site(at, Hatoms) );
       else if (isDonor)
-        Donor_.push_back( Site(at, Hatoms) );
+        donorOnly.push_back( Site(at, Hatoms) );
       else if (isAcceptor)
         Acceptor_.push_back( at );
     }
   }
+  // Place donor-only sites at the end of Both_
+  bothEnd_ = Both_.size();
+  for (Sarray::const_iterator site = donorOnly.begin(); site != donorOnly.end(); ++site)
+    Both_.push_back( *site );
 
   if (calcSolvent_) {
     // Set up solvent donor/acceptor masks
@@ -360,15 +365,16 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   mprintf("Acceptor atoms (%zu):\n", Acceptor_.size());
   for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
     mprintf("\t%20s %8i\n", setup.Top().TruncResAtomName(*at).c_str(), *at+1);
-  mprintf("Donor/acceptor sites (%zu):\n", Both_.size());
-  for (Sarray::const_iterator si = Both_.begin(); si != Both_.end(); ++si) {
+  mprintf("Donor/acceptor sites (%u):\n", bothEnd_);
+  Sarray::const_iterator END = Both_.begin() + bothEnd_;
+  for (Sarray::const_iterator si = Both_.begin(); si != END; ++si) {
     mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
     for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
       mprintf(" %s", setup.Top()[*at].c_str());
     mprintf("\n");
   }
-  mprintf("Donor sites (%zu):\n", Donor_.size());
-  for (Sarray::const_iterator si = Donor_.begin(); si != Donor_.end(); ++si) {
+  mprintf("Donor sites (%zu):\n", Both_.size() - bothEnd_);
+  for (Sarray::const_iterator si = END; si != Both_.end(); ++si) {
     mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
     for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
       mprintf(" %s", setup.Top()[*at].c_str());
@@ -448,11 +454,12 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
 
   int numHB = 0;
   int hbidx = 0;
+  // Loop over all donor sites
   for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
   {
     const double* XYZ0 = frm.Frm().XYZ( Both_[sidx0].Idx() );
     // Loop over sites that can be both donor and acceptor
-    for (unsigned int sidx1 = sidx0 + 1; sidx1 != Both_.size(); sidx1++, hbidx++)
+    for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++, hbidx++)
     {
       const double* XYZ1 = frm.Frm().XYZ( Both_[sidx1].Idx() );
       double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );

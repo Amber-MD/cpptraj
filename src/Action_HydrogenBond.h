@@ -33,8 +33,7 @@ class Action_HydrogenBond : public Action {
     typedef std::map<int,Hbond> HBmapType;
 
     ImagedAction Image_; ///< Hold imaging info.
-    Sarray Donor_;    ///< Array of sites that are just donor.
-    Sarray Both_;     ///< Array of sites that are donor and acceptor
+    Sarray Both_;     ///< Array of donor sites that can also be acceptors
     Iarray Acceptor_; ///< Array of acceptor-only atom indices
 
     HBmapType UU_Map_;
@@ -62,6 +61,7 @@ class Action_HydrogenBond : public Action {
     CpptrajFile* bridgeout_;
     double dcut2_;
     double acut_;
+    unsigned int bothEnd_; ///< Index in Both_ where donor-only sites begin
     int debug_;
     bool series_;
     bool useAtomNum_;
