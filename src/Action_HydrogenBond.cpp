@@ -412,7 +412,7 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
 }
 
 // Action_HydrogenBond::CalcSiteHbonds()
-void Action_HydrogenBond::CalcSiteHbonds(int hbidx, int frameNum, double dist2,
+void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
                                          Frame const& frmIn, int& numHB)
@@ -428,23 +428,27 @@ void Action_HydrogenBond::CalcSiteHbonds(int hbidx, int frameNum, double dist2,
       ++numHB;
       double dist = sqrt(dist2);
       // Index UU hydrogen bonds by DonorH-Acceptor
+      Hpair hbidx(*h_atom, a_atom);
       HBmapType::iterator it = UU_Map_.find( hbidx );
       if (it == UU_Map_.end())
       {
+//        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
         DataSet_integer* ds = 0;
         if (series_) {
           std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
                                  CurrentParm_->TruncResAtomName(d_atom) + "-" +
                                  (*CurrentParm_)[*h_atom].Name().Truncated();
           ds = (DataSet_integer*)
-               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",hbidx));
+               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Map_.size()));
           if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
           ds->SetLegend( hblegend );
           ds->AddVal( frameNum, 1 );
         }
-        UU_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,*h_atom,d_atom)));
-      } else
+        UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,*h_atom,d_atom)));
+      } else {
+//        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
         it->second.Update(dist,angle,frameNum);
+      }
     }
   }
 }
@@ -455,33 +459,32 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   if (Image_.ImagingEnabled())
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
 
-  int numHB = 0;
-  int hbidx = 0;
   // Loop over all donor sites
+  int numHB = 0;
   t_uu_.Start();
   for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
   {
     const double* XYZ0 = frm.Frm().XYZ( Both_[sidx0].Idx() );
     // Loop over sites that can be both donor and acceptor
-    for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++, hbidx++)
+    for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
     {
       const double* XYZ1 = frm.Frm().XYZ( Both_[sidx1].Idx() );
       double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
       if ( !(dist2 > dcut2_) )
       {
         // Site 0 donor, Site 1 acceptor
-        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx0], XYZ0, Both_[sidx1].Idx(), XYZ1, frm.Frm(), numHB);
+        CalcSiteHbonds(frameNum, dist2, Both_[sidx0], XYZ0, Both_[sidx1].Idx(), XYZ1, frm.Frm(), numHB);
         // Site 1 donor, Site 0 acceptor
-        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx1], XYZ1, Both_[sidx0].Idx(), XYZ0, frm.Frm(), numHB);
+        CalcSiteHbonds(frameNum, dist2, Both_[sidx1], XYZ1, Both_[sidx0].Idx(), XYZ0, frm.Frm(), numHB);
       }
     }
     // Loop over acceptor-only
-    for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom, hbidx++)
+    for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
     {
       const double* XYZ1 = frm.Frm().XYZ( *a_atom );
       double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
       if ( !(dist2 > dcut2_) )
-        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx0], XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+        CalcSiteHbonds(frameNum, dist2, Both_[sidx0], XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
     }
   }
   t_uu_.Stop();

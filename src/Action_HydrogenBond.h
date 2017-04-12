@@ -26,7 +26,7 @@ class Action_HydrogenBond : public Action {
     class Hbond;
 
     inline double Angle(const double*, const double*, const double*) const;
-    void CalcSiteHbonds(int,int,double,Site const&,const double*,int,const double*,
+    void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&);
     /// Update all hydrogen bond time series
     void UpdateSeries();
@@ -34,7 +34,8 @@ class Action_HydrogenBond : public Action {
     std::string MemoryUsage(size_t, size_t) const;
 
     typedef std::vector<Site> Sarray;
-    typedef std::map<int,Hbond> HBmapType;
+    typedef std::pair<int,int> Hpair;
+    typedef std::map<Hpair,Hbond> HBmapType;
 
     ImagedAction Image_; ///< Hold imaging info.
     Sarray Both_;     ///< Array of donor sites that can also be acceptors
