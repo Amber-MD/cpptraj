@@ -1,6 +1,8 @@
+#include <cmath> // sqrt
 #include "Action_HydrogenBond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
+#include "TorsionRoutines.h"
 
 // CONSTRUCTOR
 Action_HydrogenBond::Action_HydrogenBond() :
@@ -186,6 +188,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   return Action::OK;
 }
 
+//  IsFON()
 inline bool IsFON(Atom const& atm) {
   return (atm.Element() == Atom::FLUORINE ||
           atm.Element() == Atom::OXYGEN ||
@@ -207,7 +210,6 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   }
 
   // ACCEPTOR MASK SETUP
-  CharMask Amask;
   if (hasAcceptorMask_) {
     // Acceptor mask specified
     if ( setup.Top().SetupIntegerMask( AcceptorMask_ ) ) return Action::ERR;
@@ -215,19 +217,14 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       mprintf("Warning: AcceptorMask has no atoms.\n");
       return Action::SKIP;
     }
-    Acceptor_ = AcceptorMask_.Selected();
-    // Set up the char mask
-    Amask = CharMask(AcceptorMask_.ConvertToCharMask(), AcceptorMask_.Nselected());
   } else {
     // No specified acceptor mask; search generic mask.
-    // Setup the char mask
-    Amask = CharMask( setup.Top().Natom() );
+    AcceptorMask_.ResetMask();
     for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at) {
-      if (IsFON( setup.Top()[*at] )) {
-        Amask.Select(*at);
-        Acceptor_.push_back( *at );
-      }
+      if (IsFON( setup.Top()[*at] ))
+        AcceptorMask_.AddSelectedAtom( *at );
     }
+    AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
   }
 
   // DONOR/ACCEPTOR SETUP
@@ -251,45 +248,97 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
                   DonorHmask_.Nselected());
         return Action::ERR;
       }
-      for (int midx = 0; midx != DonorMask_.Nselected(); midx++)
-        if ( Amask.AtomInCharMask(DonorMask_[midx]) )
-          Both_.push_back( Site(DonorMask_[midx], DonorHmask_[midx]) );
-        else
-          Donor_.push_back( Site(DonorMask_[midx], DonorHmask_[midx]) );
+      int maxAtom = std::max( AcceptorMask_.back(), DonorMask_.back() ) + 1;
+      AtomMask::const_iterator a_atom = AcceptorMask_.begin();
+      AtomMask::const_iterator d_atom = DonorMask_.begin();
+      AtomMask::const_iterator h_atom = DonorHmask_.begin();
+      bool isDonor, isAcceptor;
+      int H_at = -1;
+      for (int at = 0; at != maxAtom; at++)
+      {
+        isDonor = false;
+        isAcceptor = false;
+        if ( d_atom != DonorMask_.end() && *d_atom == at ) {
+          isDonor = true;
+          ++d_atom;
+          H_at = *(h_atom++);
+        } 
+        if ( a_atom != AcceptorMask_.end() && *a_atom == at ) {
+          isAcceptor = true;
+          ++a_atom;
+        }
+        if (isDonor && isAcceptor)
+          Both_.push_back( Site(at, H_at) );
+        else if (isDonor)
+          Donor_.push_back( Site(at, H_at) );
+        else if (isAcceptor)
+          Acceptor_.push_back( at );
+      }
     } else {
       // No donor hydrogen mask; use any hydrogens bonded to donor heavy atoms.
-      for (AtomMask::const_iterator at = DonorMask_.begin(); at != DonorMask_.end(); ++at) {
+      int maxAtom = std::max( AcceptorMask_.back(), DonorMask_.back() ) + 1;
+      AtomMask::const_iterator a_atom = AcceptorMask_.begin();
+      AtomMask::const_iterator d_atom = DonorMask_.begin();
+      bool isDonor, isAcceptor;
+      for (int at = 0; at != maxAtom; at++)
+      {
         Iarray Hatoms;
-        for (Atom::bond_iterator batom = setup.Top()[*at].bondbegin();
-                                 batom != setup.Top()[*at].bondend(); ++batom)
-          if (setup.Top()[*batom].Element() == Atom::HYDROGEN)
-            Hatoms.push_back( *batom );
-        if (!Hatoms.empty()) {
-          if ( Amask.AtomInCharMask(*at) )
-            Both_.push_back( Site(*at, Hatoms) );
-          else
-            Donor_.push_back( Site(*at, Hatoms) );
-        }  
+        isDonor = false;
+        isAcceptor = false;
+        if ( d_atom != DonorMask_.end() && *d_atom == at ) {
+          ++d_atom;
+          for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
+                                   H_at != setup.Top()[at].bondend(); ++H_at)
+            if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
+              Hatoms.push_back( *H_at );
+          isDonor = !Hatoms.empty();
+        }
+        if ( a_atom != AcceptorMask_.end() && *a_atom == at ) {
+          isAcceptor = true;
+          ++a_atom;
+        }
+        if (isDonor && isAcceptor)
+          Both_.push_back( Site(at, Hatoms) );
+        else if (isDonor)
+          Donor_.push_back( Site(at, Hatoms) );
+        else if (isAcceptor)
+          Acceptor_.push_back( at );
       }
     }
   } else {
     // No specified donor mask; search generic mask.
-    for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at) {
-      if (IsFON( setup.Top()[*at] )) {
-        Iarray Hatoms;
-        for (Atom::bond_iterator batom = setup.Top()[*at].bondbegin();
-                                 batom != setup.Top()[*at].bondend(); ++batom)
-          if (setup.Top()[*batom].Element() == Atom::HYDROGEN)
-            Hatoms.push_back( *batom );
-        if (!Hatoms.empty()) {
-          if ( Amask.AtomInCharMask(*at) )
-            Both_.push_back( Site(*at, Hatoms) );
-          else
-            Donor_.push_back( Site(*at, Hatoms) );
+    int maxAtom = std::max( AcceptorMask_.back(), Mask_.back() ) + 1;
+    AtomMask::const_iterator a_atom = AcceptorMask_.begin();
+    AtomMask::const_iterator d_atom = Mask_.begin();
+    bool isDonor, isAcceptor;
+    for (int at = 0; at != maxAtom; at++)
+    {
+      Iarray Hatoms;
+      isDonor = false;
+      isAcceptor = false;
+      if ( d_atom != Mask_.end() && *d_atom == at) {
+        ++d_atom;
+        if ( IsFON( setup.Top()[at] ) ) {
+          for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
+                                   H_at != setup.Top()[at].bondend(); ++H_at)
+            if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
+              Hatoms.push_back( *H_at );
+          isDonor = !Hatoms.empty();
         }
       }
+      if ( a_atom != AcceptorMask_.end() && *a_atom == at ) {
+        isAcceptor = true;
+        ++a_atom;
+      }
+      if (isDonor && isAcceptor)
+        Both_.push_back( Site(at, Hatoms) );
+      else if (isDonor)
+        Donor_.push_back( Site(at, Hatoms) );
+      else if (isAcceptor)
+        Acceptor_.push_back( at );
     }
   }
+
   if (calcSolvent_) {
     // Set up solvent donor/acceptor masks
     if (hasSolventDonor_) {
@@ -330,12 +379,109 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+// Action_HydrogenBond::Angle()
+double Action_HydrogenBond::Angle(const double* XA, const double* XH, const double* XD) const
+{
+  if (Image_.ImageType() == NOIMAGE)
+    return (CalcAngle(XA, XH, XD));
+  else {
+    double angle;
+    Vec3 VH = Vec3(XH);
+    Vec3 H_A = MinImagedVec(VH, Vec3(XA), ucell_, recip_);
+    Vec3 H_D = Vec3(XD) - VH;
+    double rha = H_A.Magnitude2();
+    double rhd = H_D.Magnitude2();
+    if (rha > Constants::SMALL && rhd > Constants::SMALL) {
+      angle = (H_A * H_D) / sqrt(rha * rhd);
+      if      (angle >  1.0) angle =  1.0;
+      else if (angle < -1.0) angle = -1.0;
+      angle = acos(angle);
+    } else
+      angle = 0.0;
+    return angle;
+  }
+}
+
+// Action_HydrogenBond::CalcSiteHbonds()
+void Action_HydrogenBond::CalcSiteHbonds(int hbidx, int frameNum, double dist2,
+                                         Site const& SiteD, const double* XYZD,
+                                         int a_atom,        const double* XYZA,
+                                         Frame const& frmIn, int& numHB)
+{
+  // The two sites are close enough to hydrogen bond.
+  int d_atom = SiteD.Idx();
+  // Determine if angle cutoff is satisfied
+  for (Iarray::const_iterator h_atom = SiteD.Hbegin(); h_atom != SiteD.Hend(); ++h_atom)
+  {
+    double angle = Angle(XYZA, frmIn.XYZ(*h_atom), XYZD);
+    if ( !(angle < acut_) )
+    {
+      ++numHB;
+      double dist = sqrt(dist2);
+      // Index UU hydrogen bonds by DonorH-Acceptor
+      HBmapType::iterator it = UU_Map_.find( hbidx );
+      if (it == UU_Map_.end())
+      {
+        DataSet_integer* ds = 0;
+        if (series_) {
+          std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
+                                 CurrentParm_->TruncResAtomName(d_atom) + "-" +
+                                 (*CurrentParm_)[*h_atom].Name().Truncated();
+          ds = (DataSet_integer*)
+               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",hbidx));
+          if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
+          ds->SetLegend( hblegend );
+          ds->AddVal( frameNum, 1 );
+        }
+        UU_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,*h_atom,d_atom)));
+      } else
+        it->second.Update(dist,angle,frameNum);
+    }
+  }
+}
+
 // Action_HydrogenBond::DoAction()
 Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
+  t_action_.Start();
+  if (Image_.ImagingEnabled())
+    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
 
+  int numHB = 0;
+  int hbidx = 0;
+  for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
+  {
+    const double* XYZ0 = frm.Frm().XYZ( Both_[sidx0].Idx() );
+    // Loop over sites that can be both donor and acceptor
+    for (unsigned int sidx1 = sidx0 + 1; sidx1 != Both_.size(); sidx1++, hbidx++)
+    {
+      const double* XYZ1 = frm.Frm().XYZ( Both_[sidx1].Idx() );
+      double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+      if ( !(dist2 > dcut2_) )
+      {
+        // Site 0 donor, Site 1 acceptor
+        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx0], XYZ0, Both_[sidx1].Idx(), XYZ1, frm.Frm(), numHB);
+        // Site 1 donor, Site 0 acceptor
+        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx1], XYZ1, Both_[sidx0].Idx(), XYZ0, frm.Frm(), numHB);
+      }
+    }
+    // Loop over acceptor-only
+    for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom, hbidx++)
+    {
+      const double* XYZ1 = frm.Frm().XYZ( *a_atom );
+      double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+      if ( !(dist2 > dcut2_) )
+        CalcSiteHbonds(hbidx, frameNum, dist2, Both_[sidx0], XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+    }
+  }
+
+  NumHbonds_->Add(frameNum, &numHB);
+
+  t_action_.Stop();
   return Action::OK;
 }
 
 // Action_HydrogenBond::Print()
 void Action_HydrogenBond::Print() {
+  mprintf("    HBOND:\n");
+  t_action_.WriteTiming(1,"Total:");
 }

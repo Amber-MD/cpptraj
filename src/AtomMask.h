@@ -37,6 +37,8 @@ class AtomMask : public MaskTokenArray {
     int back()                          const { return Selected_.back();      }
     /// \return selected atom at idx
     const int& operator[](int idx)      const { return Selected_[idx];        }
+    /// \return Number of atoms from corresponding topology.
+    int NmaskAtoms()                    const { return Natom_;                }
     /// Flip current mask expression.
     void InvertMaskExpression();
     /// Invert current mask

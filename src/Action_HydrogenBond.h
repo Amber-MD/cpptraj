@@ -1,5 +1,6 @@
 #ifndef INC_ACTION_HYDROGENBOND_H
 #define INC_ACTION_HYDROGENBOND_H
+#include <map>
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_integer.h"
@@ -24,12 +25,20 @@ class Action_HydrogenBond : public Action {
     class Site;
     class Hbond;
 
+    inline double Angle(const double*, const double*, const double*) const;
+    void CalcSiteHbonds(int,int,double,Site const&,const double*,int,const double*,
+                        Frame const&, int&);
+
     typedef std::vector<Site> Sarray;
+    typedef std::map<int,Hbond> HBmapType;
 
     ImagedAction Image_; ///< Hold imaging info.
     Sarray Donor_;    ///< Array of sites that are just donor.
     Sarray Both_;     ///< Array of sites that are donor and acceptor
     Iarray Acceptor_; ///< Array of acceptor-only atom indices
+
+    HBmapType UU_Map_;
+    HBmapType UV_Map_;
 
     std::string hbsetname_;
     AtomMask DonorMask_;
@@ -38,6 +47,8 @@ class Action_HydrogenBond : public Action {
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
+    Matrix_3x3 ucell_, recip_;
+    Timer t_action_;
     Topology* CurrentParm_; ///< Used to set atom/residue labels
     DataSetList* masterDSL_;
     DataSet* NumHbonds_;
@@ -61,8 +72,8 @@ class Action_HydrogenBond : public Action {
     bool hasSolventDonor_;
     bool calcSolvent_;
     bool hasSolventAcceptor_;
-    
 };
+
 // ----- CLASSES ---------------------------------------------------------------
 class Action_HydrogenBond::Site {
   public:
@@ -86,6 +97,14 @@ class Action_HydrogenBond::Site {
 class Action_HydrogenBond::Hbond {
   public:
     Hbond() : dist_(0.0), angle_(0.0), data_(0), A_(-1), H_(-1), D_(-1), frames_(0) {}
+    /// New hydrogen bond
+    Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
+      dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
+    void Update(double d, double a, int f) {
+      dist_ += d;
+      angle_ += a;
+      if (data_ != 0) data_->AddVal(f, 1);
+    }
   private:
     double dist_;  ///< Used to calculate average distance of hydrogen bond
     double angle_; ///< Used to calculate average angle of hydrogen bond
