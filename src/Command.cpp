@@ -124,6 +124,7 @@
 #include "Action_Volume.h"
 #include "Action_Align.h"
 #include "Action_Remap.h"
+#include "Action_HydrogenBond.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -273,6 +274,7 @@ void Command::Init() {
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
   Command::AddCmd( new Action_Hbond(),         Cmd::ACT, 1, "hbond" );
+  Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond2" );
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
