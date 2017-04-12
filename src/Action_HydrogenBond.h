@@ -28,6 +28,10 @@ class Action_HydrogenBond : public Action {
     inline double Angle(const double*, const double*, const double*) const;
     void CalcSiteHbonds(int,int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&);
+    /// Update all hydrogen bond time series
+    void UpdateSeries();
+    /// Determine memory usage from # hbonds and time series
+    std::string MemoryUsage(size_t, size_t) const;
 
     typedef std::vector<Site> Sarray;
     typedef std::map<int,Hbond> HBmapType;
@@ -48,6 +52,10 @@ class Action_HydrogenBond : public Action {
     AtomMask Mask_;
     Matrix_3x3 ucell_, recip_;
     Timer t_action_;
+    Timer t_uu_;
+    Timer t_ud_va_;
+    Timer t_vd_ua_;
+    Timer t_bridge_;
     Topology* CurrentParm_; ///< Used to set atom/residue labels
     DataSetList* masterDSL_;
     DataSet* NumHbonds_;
@@ -62,9 +70,11 @@ class Action_HydrogenBond : public Action {
     double dcut2_;
     double acut_;
     unsigned int bothEnd_; ///< Index in Both_ where donor-only sites begin
+    int Nframes_;        ///< Number of frames action has been active
     int debug_;
-    bool series_;
-    bool useAtomNum_;
+    bool series_;        ///< If true track hbond time series.
+    bool seriesUpdated_; ///< If false hbond time series need to be finished.
+    bool useAtomNum_;    ///< If true include atom numbers in labels/legends
     bool noIntramol_;
     bool hasDonorMask_;
     bool hasDonorHmask_;
@@ -75,6 +85,7 @@ class Action_HydrogenBond : public Action {
 };
 
 // ----- CLASSES ---------------------------------------------------------------
+/// Potential hydrogen bond site. Can be either donor or donor/acceptor.
 class Action_HydrogenBond::Site {
   public:
     Site() : idx_(-1), isV_(false) {}
@@ -94,18 +105,37 @@ class Action_HydrogenBond::Site {
     bool isV_;     ///< True if site is solvent
 };
 
+/// Track specific hydrogen bond.
 class Action_HydrogenBond::Hbond {
   public:
     Hbond() : dist_(0.0), angle_(0.0), data_(0), A_(-1), H_(-1), D_(-1), frames_(0) {}
     /// New hydrogen bond
     Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
       dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
+    double Dist()  const { return dist_;   }
+    double Angle() const { return angle_;  }
+    int Frames()   const { return frames_; }
+    int A()        const { return A_;      }
+    int H()        const { return H_;      }
+    int D()        const { return D_;      }
+    /// First sort by frames (descending), then distance (ascending).
+    bool operator<(const Hbond& rhs) const {
+      if (frames_ == rhs.frames_)
+        return (dist_ < rhs.dist_);
+      else
+        return (frames_ > rhs.frames_);
+    }
+    /// Update distance/angle/time series
     void Update(double d, double a, int f) {
       dist_ += d;
       angle_ += a;
+      ++frames_;
       if (data_ != 0) data_->AddVal(f, 1);
     }
+    void CalcAvg();
+    void FinishSeries(unsigned int);
   private:
+    static const int ZERO;
     double dist_;  ///< Used to calculate average distance of hydrogen bond
     double angle_; ///< Used to calculate average angle of hydrogen bond
     DataSet_integer* data_; ///< Hold time series data
