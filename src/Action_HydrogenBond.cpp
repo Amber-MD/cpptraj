@@ -667,7 +667,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it)
     it->clear();
   int mythread;
-# pragma omp parallel private(sidx0, mythread) reduction(+:numHB)
+# pragma omp parallel private(sidx0, mythread) firstprivate(mol0) reduction(+:numHB)
   {
   mythread = omp_get_thread_num();
 # pragma omp for
