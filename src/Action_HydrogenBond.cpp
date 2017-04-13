@@ -347,24 +347,6 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   for (Sarray::const_iterator site = donorOnly.begin(); site != donorOnly.end(); ++site)
     Both_.push_back( *site );
 
-  if (calcSolvent_) {
-    // Set up solvent donor/acceptor masks
-    if (hasSolventDonor_) {
-      if (setup.Top().SetupIntegerMask( SolventDonorMask_ )) return Action::ERR;
-      if (SolventDonorMask_.None()) {
-        mprintf("Warning: SolventDonorMask has no atoms.\n");
-        return Action::SKIP;
-      }
-    }
-    if (hasSolventAcceptor_) {
-      if (setup.Top().SetupIntegerMask( SolventAcceptorMask_ )) return Action::ERR;
-      if (SolventAcceptorMask_.None()) {
-        mprintf("Warning: SolventAcceptorMask has no atoms.\n");
-        return Action::SKIP;
-      }
-    }
-  }
-
   mprintf("Acceptor atoms (%zu):\n", Acceptor_.size());
   for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
     mprintf("\t%20s %8i\n", setup.Top().TruncResAtomName(*at).c_str(), *at+1);
@@ -384,6 +366,67 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     mprintf("\n");
   }
 
+  if (calcSolvent_) {
+    int at_beg = 0;
+    int at_end = 0;
+    // Set up solvent donor/acceptor masks
+    if (hasSolventDonor_) {
+      if (setup.Top().SetupIntegerMask( SolventDonorMask_ )) return Action::ERR;
+      if (SolventDonorMask_.None()) {
+        mprintf("Warning: SolventDonorMask has no atoms.\n");
+        return Action::SKIP;
+      }
+      at_beg = SolventDonorMask_[0];
+      at_end = SolventDonorMask_.back() + 1;
+    }
+    if (hasSolventAcceptor_) {
+      if (setup.Top().SetupIntegerMask( SolventAcceptorMask_ )) return Action::ERR;
+      if (SolventAcceptorMask_.None()) {
+        mprintf("Warning: SolventAcceptorMask has no atoms.\n");
+        return Action::SKIP;
+      }
+      if (!hasSolventDonor_) {
+        at_beg = SolventAcceptorMask_[0];
+        at_end = SolventAcceptorMask_.back() + 1;
+      } else {
+        at_beg = std::min( SolventDonorMask_[0], SolventAcceptorMask_[0] );
+        at_end = std::max( SolventDonorMask_.back(), SolventAcceptorMask_.back() ) + 1;
+      }
+    }
+    AtomMask::const_iterator a_atom = SolventAcceptorMask_.begin();
+    AtomMask::const_iterator d_atom = SolventDonorMask_.begin();
+    bool isDonor, isAcceptor;
+    for (int at = at_beg; at != at_end; at++)
+    {
+      Iarray Hatoms;
+      isDonor = false;
+      isAcceptor = false;
+      if ( d_atom != SolventDonorMask_.end() && *d_atom == at ) {
+        ++d_atom;
+        if ( IsFON( setup.Top()[at] ) ) {
+          for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
+                                   H_at != setup.Top()[at].bondend(); ++H_at)
+            if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
+              Hatoms.push_back( *H_at );
+        }
+        isDonor = !Hatoms.empty();
+      }
+      if ( a_atom != SolventAcceptorMask_.end() && *a_atom == at ) {
+        isAcceptor = true;
+        ++a_atom;
+      }
+      if (isDonor || isAcceptor)
+        SolventSites_.push_back( Site(at, Hatoms) );
+    }
+
+    mprintf("Solvent sites (%zu):\n", SolventSites_.size());
+    for (Sarray::const_iterator si = SolventSites_.begin(); si != SolventSites_.end(); ++si) {
+      mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
+      for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
+        mprintf(" %s", setup.Top()[*at].c_str());
+      mprintf("\n");
+    }
+  }
 
   return Action::OK;
 }
@@ -391,6 +434,8 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 // Action_HydrogenBond::Angle()
 double Action_HydrogenBond::Angle(const double* XA, const double* XH, const double* XD) const
 {
+  if (acut_ < 0.0) // Indicates skip angle calc
+    return 0.0;
   if (Image_.ImageType() == NOIMAGE)
     return (CalcAngle(XA, XH, XD));
   else {
@@ -408,6 +453,63 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
     } else
       angle = 0.0;
     return angle;
+  }
+}
+
+//  Action_HydrogenBond::CalcSolvHbonds()
+void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
+                                         Site const& SiteD, const double* XYZD,
+                                         int a_atom,        const double* XYZA,
+                                         Frame const& frmIn, int& numHB, bool soluteDonor)
+{
+  // The two sites are close enough to hydrogen bond.
+  int d_atom = SiteD.Idx();
+  // Determine if angle cutoff is satisfied
+  for (Iarray::const_iterator h_atom = SiteD.Hbegin(); h_atom != SiteD.Hend(); ++h_atom)
+  {
+    double angle = 0.0;
+    bool angleSatisfied = true;
+    // For ions, donor atom will be same as h atom so no angle needed.
+    if (d_atom != *h_atom) {
+      angle = Angle(XYZA, frmIn.XYZ(*h_atom), XYZD);
+      angleSatisfied = !(angle < acut_);
+    }
+    if (angleSatisfied)
+    {
+      ++numHB;
+      double dist = sqrt(dist2);
+      // Index U-H .. V hydrogen bonds by solute H atom.
+      // Index U .. H-V hydrogen bonds by solute A atom.
+      int hbidx;
+      if (soluteDonor)
+        hbidx = *h_atom;
+      else
+        hbidx = a_atom;
+      UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
+      if (it == UV_Map_.end() || it->first != hbidx)
+      {
+//        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
+        DataSet_integer* ds = 0;
+        if (series_) {
+          ds = (DataSet_integer*)
+               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
+          if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
+          ds->AddVal( frameNum, 1 );
+        }
+        Hbond hb;
+        if (soluteDonor) { // Do not care about which solvent acceptor
+          if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(*h_atom) + "-V" );
+          hb = Hbond(dist,angle,ds,-1,*h_atom,d_atom);
+        } else {           // Do not care about which solvent donor
+          if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(a_atom) + "-V" );
+          hb = Hbond(dist,angle,ds,a_atom,-1,-1);
+        }
+        UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
+      } else {
+//        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
+        it->second.Update(dist,angle,frameNum);
+      }
+    }
   }
 }
 
@@ -459,13 +561,13 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   if (Image_.ImagingEnabled())
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
 
-  // Loop over all donor sites
-  int numHB = 0;
+  // Loop over all solute donor sites
   t_uu_.Start();
+  int numHB = 0;
   for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
   {
     const double* XYZ0 = frm.Frm().XYZ( Both_[sidx0].Idx() );
-    // Loop over sites that can be both donor and acceptor
+    // Loop over solute sites that can be both donor and acceptor
     for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
     {
       const double* XYZ1 = frm.Frm().XYZ( Both_[sidx1].Idx() );
@@ -478,7 +580,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         CalcSiteHbonds(frameNum, dist2, Both_[sidx1], XYZ1, Both_[sidx0].Idx(), XYZ0, frm.Frm(), numHB);
       }
     }
-    // Loop over acceptor-only
+    // Loop over solute acceptor-only
     for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
     {
       const double* XYZ1 = frm.Frm().XYZ( *a_atom );
@@ -487,9 +589,52 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         CalcSiteHbonds(frameNum, dist2, Both_[sidx0], XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
     }
   }
+  NumHbonds_->Add(frameNum, &numHB);
   t_uu_.Stop();
 
-  NumHbonds_->Add(frameNum, &numHB);
+  // Loop over all solvent sites
+  if (calcSolvent_) {
+    t_uv_.Start();
+    numHB = 0;
+    for (unsigned int vidx = 0; vidx != SolventSites_.size(); vidx++)
+    {
+      Site const& Vsite = SolventSites_[vidx];
+      const double* VXYZ = frm.Frm().XYZ( Vsite.Idx() );
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx = 0; sidx < bothEnd_; sidx++)
+      {
+        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
+        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+        if ( !(dist2 > dcut2_) )
+        {
+          // Solvent site donor, solute site acceptor
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false);
+          // Solvent site acceptor, solute site donor
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+        }
+      }
+      // Loop over solute sites that are donor only
+      for (unsigned int sidx = bothEnd_; sidx < Both_.size(); sidx++)
+      {
+        const double* UXYZ = frm.Frm().XYZ( Both_[sidx].Idx() );
+        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+        if ( !(dist2 > dcut2_) )
+          // Solvent site acceptor, solute site donor
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+      }
+      // Loop over solute sites that are acceptor only
+      for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+      {
+        const double* UXYZ = frm.Frm().XYZ( *a_atom );
+        double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+        if ( !(dist2 > dcut2_) )
+          // Solvent site donor, solute site acceptor
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);
+      }
+    } // END loop over solvent sites
+    NumSolvent_->Add(frameNum, &numHB);
+    t_uv_.Stop();
+  }
 
   Nframes_++;
   t_action_.Stop();
@@ -699,7 +844,7 @@ void Action_HydrogenBond::UpdateSeries() {
   if (series_ && Nframes_ > 0) {
     for (HBmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
       hb->second.FinishSeries(Nframes_);
-    for (HBmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
+    for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
       hb->second.FinishSeries(Nframes_);
   }
   // Should only be called once.
@@ -743,11 +888,10 @@ void Action_HydrogenBond::Print() {
 //   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
   }
 
-  t_uu_.WriteTiming(    2,"Solute-Solute                 :",t_action_.Total());
+  t_uu_.WriteTiming(    2,  "Solute-Solute   :",t_action_.Total());
   if (calcSolvent_) {
-    t_ud_va_.WriteTiming( 2,"Solute Donor-Solvent Acceptor :",t_action_.Total());
-    t_vd_ua_.WriteTiming( 2,"Solvent Donor-Solute Acceptor :",t_action_.Total());
-    t_bridge_.WriteTiming(2,"Bridging waters               :",t_action_.Total());
+    t_uv_.WriteTiming( 2,   "Solute-Solvent  :",t_uv_.Total());
+    t_bridge_.WriteTiming(2,"Bridging waters :",t_action_.Total());
   }
   t_action_.WriteTiming(1,"Total:");
 
@@ -794,7 +938,7 @@ void Action_HydrogenBond::Print() {
   // Solute-solvent Hbonds 
   if (solvout_ != 0 && calcSolvent_) {
     HbondList.clear();
-    for (HBmapType::const_iterator it = UV_Map_.begin(); it != UV_Map_.end(); ++it) {
+    for (UVmapType::const_iterator it = UV_Map_.begin(); it != UV_Map_.end(); ++it) {
       HbondList.push_back( it->second );
       // Calculate average distance and angle for this hbond.
       HbondList.back().CalcAvg();

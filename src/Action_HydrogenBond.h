@@ -28,6 +28,8 @@ class Action_HydrogenBond : public Action {
     inline double Angle(const double*, const double*, const double*) const;
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&);
+    void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
+                        Frame const&, int&, bool);
     /// Update all hydrogen bond time series
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
@@ -36,13 +38,15 @@ class Action_HydrogenBond : public Action {
     typedef std::vector<Site> Sarray;
     typedef std::pair<int,int> Hpair;
     typedef std::map<Hpair,Hbond> HBmapType;
+    typedef std::map<int,Hbond> UVmapType;
 
     ImagedAction Image_; ///< Hold imaging info.
     Sarray Both_;     ///< Array of donor sites that can also be acceptors
     Iarray Acceptor_; ///< Array of acceptor-only atom indices
+    Sarray SolventSites_;
 
     HBmapType UU_Map_;
-    HBmapType UV_Map_;
+    UVmapType UV_Map_;
 
     std::string hbsetname_;
     AtomMask DonorMask_;
@@ -54,8 +58,7 @@ class Action_HydrogenBond : public Action {
     Matrix_3x3 ucell_, recip_;
     Timer t_action_;
     Timer t_uu_;
-    Timer t_ud_va_;
-    Timer t_vd_ua_;
+    Timer t_uv_;
     Timer t_bridge_;
     Topology* CurrentParm_; ///< Used to set atom/residue labels
     DataSetList* masterDSL_;
