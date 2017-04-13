@@ -37,7 +37,7 @@ class Action_HydrogenBond : public Action {
 
     typedef std::vector<Site> Sarray;
     typedef std::pair<int,int> Hpair;
-    typedef std::map<Hpair,Hbond> HBmapType;
+    typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;
 
     ImagedAction Image_; ///< Hold imaging info.
@@ -45,7 +45,7 @@ class Action_HydrogenBond : public Action {
     Iarray Acceptor_; ///< Array of acceptor-only atom indices
     Sarray SolventSites_;
 
-    HBmapType UU_Map_;
+    UUmapType UU_Map_;
     UVmapType UV_Map_;
 
     std::string hbsetname_;

@@ -531,7 +531,7 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       double dist = sqrt(dist2);
       // Index UU hydrogen bonds by DonorH-Acceptor
       Hpair hbidx(*h_atom, a_atom);
-      HBmapType::iterator it = UU_Map_.lower_bound( hbidx );
+      UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
       if (it == UU_Map_.end() || it->first != hbidx)
       {
 //        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
@@ -656,7 +656,7 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
 }
 
 // Action_HydrogenBond::SyncMap
-void Action_HydrogenBond::SyncMap(HBmapType& mapIn, std::vector<int> const& rank_frames,
+void Action_HydrogenBond::SyncMap(UUmapType& mapIn, std::vector<int> const& rank_frames,
                            std::vector<int> const& rank_offsets,
                            const char* aspect, Parallel::Comm const& commIn)
 const
@@ -680,7 +680,7 @@ const
         HbondType HB;
         int ii = 0, id = 0;
         for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
-          HBmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
+          UUmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
           if (it == mapIn.end() ) {
             // Hbond on rank that has not been found on master
             HB.dist  = dArray[id  ];
@@ -730,7 +730,7 @@ const
     // updated to reflect overall # frames.
     if (series_) {
       const int ZERO = 0;
-      for (HBmapType::iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb)
+      for (UUmapType::iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb)
         if ((int)hb->second.data_->Size() < Nframes_) {
           hb->second.data_->SetNeedsSync( false );
           hb->second.data_->Add( Nframes_-1, &ZERO );
@@ -740,7 +740,7 @@ const
     if (mapIn.size() > 0) {
       dArray.reserve( 2 * mapIn.size() );
       iArray.reserve( 5 * mapIn.size() );
-      for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
+      for (UUmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
         dArray.push_back( hb->second.dist );
         dArray.push_back( hb->second.angle );
         iArray.push_back( hb->first );
@@ -754,7 +754,7 @@ const
       // Send series data to master
       if (series_) {
         int in = 0; // For tag
-        for (HBmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
+        for (UUmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
           commIn.Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
                                   MPI_INT, 0, 1304 + in );
           hb->second.data_->SetNeedsSync( false );
@@ -842,7 +842,7 @@ int Action_HydrogenBond::SyncAction() {
 void Action_HydrogenBond::UpdateSeries() {
   if (seriesUpdated_) return;
   if (series_ && Nframes_ > 0) {
-    for (HBmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
+    for (UUmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
       hb->second.FinishSeries(Nframes_);
     for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
       hb->second.FinishSeries(Nframes_);
@@ -908,7 +908,7 @@ void Action_HydrogenBond::Print() {
   // Solute Hbonds 
   if (avgout_ != 0) { 
     // Place all detected Hbonds in a list and sort.
-    for (HBmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
+    for (UUmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
       HbondList.push_back( it->second );
       // Calculate average distance and angle for this hbond.
       HbondList.back().CalcAvg();
