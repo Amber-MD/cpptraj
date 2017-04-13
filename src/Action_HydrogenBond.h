@@ -26,8 +26,13 @@ class Action_HydrogenBond : public Action {
     class Hbond;
 
     inline double Angle(const double*, const double*, const double*) const;
+    void AddUU(double,double,int,int,int,int);
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&);
+                        Frame const&, int&
+#                       ifdef _OPENMP
+                        ,int
+#                       endif
+                       );
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&, bool);
     /// Update all hydrogen bond time series
@@ -44,6 +49,7 @@ class Action_HydrogenBond : public Action {
     typedef std::map<int,Hbond> UVmapType;
     typedef std::map< int,std::set<int> > RmapType;
     typedef std::map< std::set<int>,int > BmapType;
+    typedef std::vector<Hbond> Harray;
 
     ImagedAction Image_;  ///< Hold imaging info.
     Sarray Both_;         ///< Array of donor sites that can also be acceptors
@@ -54,6 +60,10 @@ class Action_HydrogenBond : public Action {
     UVmapType UV_Map_;
     RmapType solvent2solute_; ///< Map solvent mol # to residues it is bound to each frame
     BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
+
+#   ifdef _OPENMP
+    std::vector<Harray> thread_HBs_; ///< Hold hbonds found by each thread each frame.
+#   endif
 
     std::string hbsetname_;
     AtomMask DonorMask_;
@@ -140,6 +150,11 @@ class Action_HydrogenBond::Hbond {
     /// New hydrogen bond
     Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id) :
       dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(1) {}
+#   ifdef _OPENMP
+    /// Just record that hbond exists
+    Hbond(double d, double a, int ia, int ih, int id) :
+      dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(0) {}
+#   endif
     double Dist()  const { return dist_;   }
     double Angle() const { return angle_;  }
     int Frames()   const { return frames_; }

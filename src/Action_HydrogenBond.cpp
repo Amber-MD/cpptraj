@@ -5,6 +5,9 @@
 #include "Constants.h"
 #include "TorsionRoutines.h"
 #include "StringRoutines.h" // ByteString
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 // CONSTRUCTOR
 Action_HydrogenBond::Action_HydrogenBond() :
@@ -144,6 +147,17 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     solvout_ = init.DFL().AddCpptrajFile(solvname,"Avg. solute-solvent HBonds");
     bridgeout_ = init.DFL().AddCpptrajFile(bridgename,"Solvent bridging info");
   }
+# ifdef _OPENMP
+  // Each thread needs temp. space to store found hbonds every frame
+  // to avoid memory clashes when adding/updating in map.
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  thread_HBs_.resize( omp_get_num_threads() );
+  }
+  }
+# endif
 
   mprintf( "  HBOND: ");
   if (!hasDonorMask_ && !hasAcceptorMask_)
@@ -160,6 +174,10 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
             DonorMask_.MaskString(), AcceptorMask_.MaskString());
   if (hasDonorHmask_)
     mprintf("\tSeparate donor H mask is %s\n", DonorHmask_.MaskString() );
+# ifdef _OPENMP
+  if (thread_HBs_.size() > 1)
+    mprintf("\tParallelizing calculation with %zu threads.\n", thread_HBs_.size());
+# endif
   if (noIntramol_)
     mprintf("\tOnly looking for intermolecular hydrogen bonds.\n");
   if (hasSolventDonor_)
@@ -554,11 +572,41 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
   }
 }
 
+void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom)
+{
+  // Index UU hydrogen bonds by DonorH-Acceptor
+  Hpair hbidx(h_atom, a_atom);
+  UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
+  if (it == UU_Map_.end() || it->first != hbidx)
+  {
+//      mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+    DataSet_integer* ds = 0;
+    if (series_) {
+      std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
+                             CurrentParm_->TruncResAtomName(d_atom) + "-" +
+                             (*CurrentParm_)[h_atom].Name().Truncated();
+      ds = (DataSet_integer*)
+           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Map_.size()));
+      if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
+      ds->SetLegend( hblegend );
+      ds->AddVal( fnum, 1 );
+    }
+    UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,h_atom,d_atom)));
+  } else {
+//      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+    it->second.Update(dist,angle,fnum);
+  }
+}
+
 // Action_HydrogenBond::CalcSiteHbonds()
 void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB)
+                                         Frame const& frmIn, int& numHB
+#                                        ifdef _OPENMP
+                                         , int mythread
+#                                        endif
+                                        )
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -569,6 +617,12 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
     if ( !(angle < acut_) )
     {
       ++numHB;
+#     ifdef _OPENMP
+      thread_HBs_[mythread].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
+#     else
+      AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom);
+#     endif
+/*
       double dist = sqrt(dist2);
       // Index UU hydrogen bonds by DonorH-Acceptor
       Hpair hbidx(*h_atom, a_atom);
@@ -592,6 +646,7 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
 //        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
         it->second.Update(dist,angle,frameNum);
       }
+*/
     }
   }
 }
@@ -606,7 +661,18 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   t_uu_.Start();
   int numHB = 0;
   int mol0 = -1;
-  for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
+  int sidx0;
+  int sidx0end = (int)Both_.size();
+# ifdef _OPENMP
+  for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it)
+    it->clear();
+  int mythread;
+# pragma omp parallel private(sidx0, mythread) reduction(+:numHB)
+  {
+  mythread = omp_get_thread_num();
+# pragma omp for
+# endif
+  for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
   {
     Site const& Site0 = Both_[sidx0];
     const double* XYZ0 = frm.Frm().XYZ( Site0.Idx() );
@@ -621,10 +687,15 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
         {
+#         ifdef _OPENMP
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB, mythread);
+          CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB, mythread);
+#         else
           // Site 0 donor, Site 1 acceptor
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
           // Site 1 donor, Site 0 acceptor
           CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
+#         endif
         }
       }
     }
@@ -635,10 +706,21 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
+#         ifdef _OPENMP
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, mythread);
+#         else
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+#         endif
       }
     }
   }
+# ifdef _OPENMP
+  } // END pragma omp parallel
+  // Add all found hydrogen bonds 
+  for (std::vector<Harray>::const_iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it)
+    for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+      AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D());
+# endif
   NumHbonds_->Add(frameNum, &numHB);
   t_uu_.Stop();
 
@@ -996,7 +1078,6 @@ std::string Action_HydrogenBond::MemoryUsage(size_t nPairs, size_t nFrames) cons
 // Action_HydrogenBond::Print()
 /** Print average occupancies over all frames for all detected Hbonds. */
 void Action_HydrogenBond::Print() {
-  typedef std::vector<Hbond> Harray;
   Harray HbondList; // For sorting
   std::string Aname, Hname, Dname;
 
