@@ -39,14 +39,18 @@ class Action_HydrogenBond : public Action {
     typedef std::pair<int,int> Hpair;
     typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;
+    typedef std::map< int,std::set<int> > RmapType;
+    typedef std::map< std::set<int>,int > BmapType;
 
-    ImagedAction Image_; ///< Hold imaging info.
-    Sarray Both_;     ///< Array of donor sites that can also be acceptors
-    Iarray Acceptor_; ///< Array of acceptor-only atom indices
+    ImagedAction Image_;  ///< Hold imaging info.
+    Sarray Both_;         ///< Array of donor sites that can also be acceptors
+    Iarray Acceptor_;     ///< Array of acceptor-only atom indices
     Sarray SolventSites_; ///< Array of solvent donor/acceptor sites
 
     UUmapType UU_Map_;
     UVmapType UV_Map_;
+    RmapType solvent2solute_; ///< Map solvent mol # to residues it is bound to each frame
+    BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
 
     std::string hbsetname_;
     AtomMask DonorMask_;
@@ -86,6 +90,20 @@ class Action_HydrogenBond : public Action {
     bool hasSolventDonor_;
     bool calcSolvent_;
     bool hasSolventAcceptor_;
+    // TODO replace with class
+    /// Return true if first bridge has more frames than second.
+    struct bridge_cmp {
+      inline bool operator()(std::pair< std::set<int>, int> const& first, 
+                             std::pair< std::set<int>, int> const& second) const
+      {
+        if (first.second > second.second)
+          return true;
+        else if (first.second < second.second)
+          return false;
+        else
+          return (first.second < second.second);
+      }
+    };
 };
 
 // ----- CLASSES ---------------------------------------------------------------

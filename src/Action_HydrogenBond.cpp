@@ -503,13 +503,20 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
     {
       ++numHB;
       double dist = sqrt(dist2);
-      // Index U-H .. V hydrogen bonds by solute H atom.
-      // Index U .. H-V hydrogen bonds by solute A atom.
-      int hbidx;
-      if (soluteDonor)
+      int hbidx, solventmol, soluteres;
+      // TODO: Option to use solvent mol num?
+      if (soluteDonor) {
+        // Index U-H .. V hydrogen bonds by solute H atom.
         hbidx = *h_atom;
-      else
+        soluteres = (*CurrentParm_)[d_atom].ResNum();
+        solventmol = (*CurrentParm_)[a_atom].ResNum();
+      } else {
+        // Index U .. H-V hydrogen bonds by solute A atom.
         hbidx = a_atom;
+        soluteres = (*CurrentParm_)[a_atom].ResNum();
+        solventmol = (*CurrentParm_)[d_atom].ResNum();
+      }
+      solvent2solute_[solventmol].insert( soluteres );
       UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
       if (it == UV_Map_.end() || it->first != hbidx)
       {
@@ -620,6 +627,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   // Loop over all solvent sites
   if (calcSolvent_) {
     t_uv_.Start();
+    solvent2solute_.clear();
     numHB = 0;
     for (unsigned int vidx = 0; vidx != SolventSites_.size(); vidx++)
     {
@@ -659,6 +667,40 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     } // END loop over solvent sites
     NumSolvent_->Add(frameNum, &numHB);
     t_uv_.Stop();
+
+    // Determine number of bridging waters
+    t_bridge_.Start();
+    numHB = 0;
+    std::string bridgeID;
+    for (RmapType::const_iterator bridge = solvent2solute_.begin();
+                                  bridge != solvent2solute_.end(); ++bridge)
+    {
+      // If solvent molecule is bound to 2 or more different residues,
+      // it is bridging. 
+      if ( bridge->second.size() > 1) {
+        ++numHB;
+        // Bridging Solvent residue number
+        bridgeID.append(integerToString( bridge->first+1 ) + "(");
+        for (std::set<int>::const_iterator res = bridge->second.begin();
+                                           res != bridge->second.end(); ++res)
+          // Solute residue number being bridged
+          bridgeID.append( integerToString( *res+1 ) + "+" );
+        bridgeID.append("),");
+        // Find bridge in map based on this combo of residues (bridge.second)
+        BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
+        if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
+          // New Bridge 
+          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
+        else
+          // Increment bridge #frames
+          b_it->second++;
+      }
+    }
+    if (bridgeID.empty())
+      bridgeID.assign("None");
+    NumBridge_->Add(frameNum, &numHB);
+    BridgeID_->Add(frameNum, bridgeID.c_str());
+    t_bridge_.Stop();
   }
 
   Nframes_++;
@@ -835,7 +877,7 @@ int Action_HydrogenBond::SyncAction() {
           unsigned int i2 = idx + 1;
           for (int ir = 0; ir != iArray[idx]; ir++, i2++)
             residues.insert( iArray[i2] );
-          BridgeType::iterator b_it = BridgeMap_.find( residues );
+          BmapType::iterator b_it = BridgeMap_.find( residues );
           if (b_it == BridgeMap_.end() ) // New Bridge 
             BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(residues, iArray[i2]) );
           else                           // Increment bridge #frames
@@ -845,7 +887,7 @@ int Action_HydrogenBond::SyncAction() {
       }
     } else {
        // Construct bridge info array.
-       for (BridgeType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
+       for (BmapType::const_iterator b = BridgeMap_.begin(); b != BridgeMap_.end(); ++b)
        {
          iArray.push_back( b->first.size() ); // # of bridging res
          for ( std::set<int>::const_iterator r = b->first.begin(); r != b->first.end(); ++r)
@@ -878,22 +920,20 @@ void Action_HydrogenBond::UpdateSeries() {
 
 // Action_Hbond::MemoryUsage()
 std::string Action_HydrogenBond::MemoryUsage(size_t nPairs, size_t nFrames) const {
-  static const size_t HBmapTypeElt = 32 + sizeof(int) + 
-                                     (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
-  size_t memTotal = nPairs * HBmapTypeElt;
+  static const size_t sizeUUmap = 32 + sizeof(int) + 
+                                  (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
+  size_t memTotal = nPairs * sizeUUmap;
   // If calculating series every hbond will have time series.
   // NOTE: This does not include memory used by DataSet.
   if (series_ && nFrames > 0) {
     size_t seriesSet = (nFrames * sizeof(int)) + sizeof(std::vector<int>);
     memTotal += (seriesSet * nPairs);
   }
-/*
   // Current memory used by bridging solvent
-  static const size_t BridgeTypeElt = 32 + sizeof(std::set<int>) + sizeof(int);
-  for (BridgeType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
+  static const size_t sizeBmap = 32 + sizeof(std::set<int>) + sizeof(int);
+  for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (it->first.size() * sizeof(int));
-  memTotal += (BridgeMap_.size() * BridgeTypeElt);
-*/
+  memTotal += (BridgeMap_.size() * sizeBmap);
   return ByteString( memTotal, BYTE_DECIMAL );
 }
 
@@ -1001,19 +1041,17 @@ void Action_HydrogenBond::Print() {
                      hbond->Frames(), avg, hbond->Dist(), hbond->Angle());
     }
   }
-/*
   // BRIDGING INFO
   if (bridgeout_ != 0 && calcSolvent_) {
     bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
-    std::vector<std::pair< std::set<int>, int> > bridgevector;
-    for (BridgeType::const_iterator it = BridgeMap_.begin();
-                                    it != BridgeMap_.end(); ++it)
+    typedef std::vector<std::pair< std::set<int>, int> > Bvec;
+    Bvec bridgevector;
+    for (BmapType::const_iterator it = BridgeMap_.begin();
+                                  it != BridgeMap_.end(); ++it)
       bridgevector.push_back( *it );
     std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
-    for (std::vector<std::pair< std::set<int>, int> >::const_iterator bv = bridgevector.begin();
-                                                                      bv != bridgevector.end();
-                                                                    ++bv)
+    for (Bvec::const_iterator bv = bridgevector.begin(); bv != bridgevector.end(); ++bv)
     {
       bridgeout_->Printf("Bridge Res");
       for (std::set<int>::const_iterator res = bv->first.begin();
@@ -1022,7 +1060,6 @@ void Action_HydrogenBond::Print() {
       bridgeout_->Printf(", %i frames.\n", bv->second);
     } 
   }
-*/
 }
 
 // ===== Action_HydrogenBond::Hbond ============================================
