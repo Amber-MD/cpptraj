@@ -110,11 +110,11 @@ class Action_HydrogenBond : public Action {
 /// Potential hydrogen bond site. Can be either donor or donor/acceptor.
 class Action_HydrogenBond::Site {
   public:
-    Site() : idx_(-1), isV_(false) {}
+    Site() : idx_(-1) {}
     /// Solute site - heavy atom, hydrogen atom
-    Site(int d, int h) : hlist_(1,h), idx_(d), isV_(false) {}
+    Site(int d, int h) : hlist_(1,h), idx_(d) {}
     /// Solute site - heavy atom, list of hydrogen atoms
-    Site(int d, Iarray const& H) : hlist_(H), idx_(d), isV_(false) {}
+    Site(int d, Iarray const& H) : hlist_(H), idx_(d) {}
     /// \return heavy atom index
     int Idx() const { return idx_; }
     /// \return number of hydrogen indices
@@ -128,7 +128,6 @@ class Action_HydrogenBond::Site {
   private:
     Iarray hlist_; ///< List of hydrogen indices
     int idx_;      ///< Heavy atom index
-    bool isV_;     ///< True if site is solvent
 };
 
 /// Track specific hydrogen bond.
