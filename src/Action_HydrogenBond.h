@@ -99,6 +99,10 @@ class Action_HydrogenBond::Site {
     Site(int d, Iarray const& H) : hlist_(H), idx_(d), isV_(false) {}
     /// \return heavy atom index
     int Idx() const { return idx_; }
+    /// \return number of hydrogen indices
+    unsigned int n_hydrogens()      const { return hlist_.size(); }
+    /// \return true if site is an ion (D atom == H atom)
+    bool IsIon() const { return (hlist_.size()==1 && hlist_[0] == idx_); }
     /// \return iterator to beginning of hydrogen indices
     Iarray::const_iterator Hbegin() const { return hlist_.begin(); }
     /// \return iterator to end of hydrogen indices
