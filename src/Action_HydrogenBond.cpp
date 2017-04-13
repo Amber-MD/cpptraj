@@ -890,14 +890,18 @@ int Action_HydrogenBond::SyncAction() {
   std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond
   std::vector<int> Ivals;              // Hold A_, H_, D_, and frames_ for each hbond
   // Need to know how many hbonds on each thread.
-  std::vector<int> nhb_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
+  std::vector<int> nuu_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
+  std::vector<int> nuv_on_rank = GetRankNhbonds( UV_Map_.size(), trajComm_ );
   if (trajComm_.Master()) {
     for (int rank = 1; rank < trajComm_.Size(); rank++)
     {
-      if (nhb_on_rank[rank] > 0)
+      int n_total_on_rank = nuu_on_rank[rank] + nuv_on_rank[rank];
+      if (n_total_on_rank > 0)
       {
-        Dvals.resize( 2 * nhb_on_rank[rank] );
-        Ivals.resize( 4 * nhb_on_rank[rank] );
+        std::vector<DataSet_integer*> Svals;
+        if (series_) Svals.reserve( n_total_on_rank );
+        Dvals.resize( 2 * n_total_on_rank );
+        Ivals.resize( 4 * n_total_on_rank );
         trajComm_.Recv( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, rank, 1300 );
         trajComm_.Recv( &(Ivals[0]), Ivals.size(), MPI_INT,    rank, 1301 );
         // Loop over all received hydrogen bonds
@@ -905,7 +909,8 @@ int Action_HydrogenBond::SyncAction() {
         // Avals = A, H, D, frames
         const int* IV = &Ivals[0];
         const double* DV = &Dvals[0];
-        for (int in = 0; in != nhb_on_rank[rank]; in++, IV += 4, DV += 2)
+        // UU Hbonds
+        for (int in = 0; in != nuu_on_rank[rank]; in++, IV += 4, DV += 2)
         {
           Hpair hbidx(IV[1], IV[0]);
           UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
@@ -924,8 +929,40 @@ int Action_HydrogenBond::SyncAction() {
             it->second.Combine(DV[0], DV[1], IV[3]);
             ds = it->second.Data();
           }
-          // Update time series
-          if (series_) {
+          Svals.push_back( ds );
+        }
+        // UV Hbonds
+        for (int in = 0; in != nuv_on_rank[rank]; in++, IV += 4, DV += 2)
+        {
+          int hbidx;
+          if (IV[1] != -1)
+            // Index U-H .. V hydrogen bonds by solute H atom.
+            hbidx = IV[1];
+          else
+            // Index U .. H-V hydrogen bonds by solute A atom.
+            hbidx = IV[0];
+          DataSet_integer* ds = 0;
+          UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
+          if (it == UV_Map_.end() || it->first != hbidx)
+          {
+            // Hbond on rank that has not been found on master
+            if (series_) {
+              ds = (DataSet_integer*)
+                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solventhb",hbidx));
+              ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
+            }
+            UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+          } else {
+            // Hbond on rank and master. Update on master.
+            it->second.Combine(DV[0], DV[1], IV[3]);
+            ds = it->second.Data();
+          }
+          Svals.push_back( ds );
+        }
+        // Update all time series
+        if (series_) {
+          for (int in = 0; in != n_total_on_rank; in++) {
+            DataSet_integer* ds = Svals[in]; 
             ds->Resize( Nframes_ );
             int* d_beg = ds->Ptr() + rank_offsets[ rank ];
             //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
@@ -935,13 +972,32 @@ int Action_HydrogenBond::SyncAction() {
           }
         }
       }
+    } // END master loop over ranks
+    // At this point we have all hbond sets from all ranks. Mark all HB sets
+    // smaller than Nframes_ as synced and ensure the time series has been
+    // updated to reflect overall # frames.
+    if (series_) {
+      for (UUmapType::iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb)
+        hb->second.FinishSeries( Nframes_ );
+      for (UVmapType::iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb)
+        hb->second.FinishSeries( Nframes_ );
     }
   } else {
     if (!UU_Map_.empty()) {
+      unsigned int ntotal = UU_Map_.size() + UV_Map_.size();
+      Dvals.reserve( ntotal * 2 );
+      Ivals.reserve( ntotal * 4 );
       // Store UU bonds in flat arrays.
-      Dvals.reserve( UU_Map_.size() * 2 );
-      Ivals.reserve( UU_Map_.size() * 4 );
       for (UUmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
+        Dvals.push_back( it->second.Dist() );
+        Dvals.push_back( it->second.Angle() );
+        Ivals.push_back( it->second.A() );
+        Ivals.push_back( it->second.H() );
+        Ivals.push_back( it->second.D() );
+        Ivals.push_back( it->second.Frames() );
+      }
+      // Store UV bonds in flat arrays
+      for (UVmapType::const_iterator it = UV_Map_.begin(); it != UV_Map_.end(); ++it) {
         Dvals.push_back( it->second.Dist() );
         Dvals.push_back( it->second.Angle() );
         Ivals.push_back( it->second.A() );
@@ -955,6 +1011,10 @@ int Action_HydrogenBond::SyncAction() {
       if (series_) {
         int in = 0; // For tag
         for (UUmapType::const_iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb, in++) {
+          trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
+          hb->second.Data()->SetNeedsSync( false );
+        }
+        for (UVmapType::const_iterator hb = UV_Map_.begin(); hb != UV_Map_.end(); ++hb, in++) {
           trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
           hb->second.Data()->SetNeedsSync( false );
         }
@@ -1186,6 +1246,11 @@ const int Action_HydrogenBond::Hbond::ZERO = 0;
 /** Calculate average angle/distance. */
 void Action_HydrogenBond::Hbond::FinishSeries(unsigned int N) {
   if (data_ != 0 && N > 0) {
-    if ( data_->Size() < N ) data_->Add( N-1, &ZERO );
+    if ( data_->Size() < N ) {
+      data_->Add( N-1, &ZERO );
+#     ifdef MPI
+      data_->SetNeedsSync( false );
+#     endif
+    }
   }
 }
