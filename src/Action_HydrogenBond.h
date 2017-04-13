@@ -43,7 +43,7 @@ class Action_HydrogenBond : public Action {
     ImagedAction Image_; ///< Hold imaging info.
     Sarray Both_;     ///< Array of donor sites that can also be acceptors
     Iarray Acceptor_; ///< Array of acceptor-only atom indices
-    Sarray SolventSites_;
+    Sarray SolventSites_; ///< Array of solvent donor/acceptor sites
 
     UUmapType UU_Map_;
     UVmapType UV_Map_;

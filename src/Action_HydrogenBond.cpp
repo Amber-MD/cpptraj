@@ -224,14 +224,16 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     // No specified acceptor mask; search generic mask.
     AcceptorMask_.ResetMask();
     for (AtomMask::const_iterator at = Mask_.begin(); at != Mask_.end(); ++at) {
-      if (IsFON( setup.Top()[*at] ))
+      // Since an acceptor mask was not specified ignore solvent.
+      int molnum = setup.Top()[*at].MolNum();
+      if (!setup.Top().Mol(molnum).IsSolvent() && IsFON( setup.Top()[*at] ))
         AcceptorMask_.AddSelectedAtom( *at );
     }
     AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
   }
 
+  // SOLUTE DONOR/ACCEPTOR SITE SETUP
   Sarray donorOnly;
-  // DONOR/ACCEPTOR SETUP
   if (hasDonorMask_) {
     // Donor heavy atom mask specified
     if ( setup.Top().SetupIntegerMask( DonorMask_ ) ) return Action::ERR;
@@ -317,29 +319,34 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     bool isDonor, isAcceptor;
     for (int at = 0; at != maxAtom; at++)
     {
-      Iarray Hatoms;
-      isDonor = false;
-      isAcceptor = false;
-      if ( d_atom != Mask_.end() && *d_atom == at) {
-        ++d_atom;
-        if ( IsFON( setup.Top()[at] ) ) {
-          for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
-                                   H_at != setup.Top()[at].bondend(); ++H_at)
-            if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
-              Hatoms.push_back( *H_at );
-          isDonor = !Hatoms.empty();
+      // Since an acceptor mask was not specified ignore solvent.
+      int molnum = setup.Top()[at].MolNum();
+      if (!setup.Top().Mol(molnum).IsSolvent())
+      {
+        Iarray Hatoms;
+        isDonor = false;
+        isAcceptor = false;
+        if ( d_atom != Mask_.end() && *d_atom == at) {
+          ++d_atom;
+          if ( IsFON( setup.Top()[at] ) ) {
+            for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
+                                     H_at != setup.Top()[at].bondend(); ++H_at)
+              if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
+                Hatoms.push_back( *H_at );
+            isDonor = !Hatoms.empty();
+          }
         }
+        if ( a_atom != AcceptorMask_.end() && *a_atom == at ) {
+          isAcceptor = true;
+          ++a_atom;
+        }
+        if (isDonor && isAcceptor)
+          Both_.push_back( Site(at, Hatoms) );
+        else if (isDonor)
+          donorOnly.push_back( Site(at, Hatoms) );
+        else if (isAcceptor)
+          Acceptor_.push_back( at );
       }
-      if ( a_atom != AcceptorMask_.end() && *a_atom == at ) {
-        isAcceptor = true;
-        ++a_atom;
-      }
-      if (isDonor && isAcceptor)
-        Both_.push_back( Site(at, Hatoms) );
-      else if (isDonor)
-        donorOnly.push_back( Site(at, Hatoms) );
-      else if (isAcceptor)
-        Acceptor_.push_back( at );
     }
   }
   // Place donor-only sites at the end of Both_
@@ -366,6 +373,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     mprintf("\n");
   }
 
+  // SOLVENT SITE SETUP
   if (calcSolvent_) {
     int at_beg = 0;
     int at_end = 0;
