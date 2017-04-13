@@ -357,11 +357,11 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   for (Sarray::const_iterator site = donorOnly.begin(); site != donorOnly.end(); ++site)
     Both_.push_back( *site );
 
-  mprintf("    Acceptor atoms (%zu):\n", Acceptor_.size());
+  mprintf("    Acceptor-only atoms (%zu)\n", Acceptor_.size());
   for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
     mprintf("\t%20s %8i\n", setup.Top().TruncResAtomName(*at).c_str(), *at+1);
   unsigned int hcount = 0;
-  mprintf("    Donor/acceptor sites (%u):\n", bothEnd_);
+  mprintf("    Donor/acceptor sites (%u)\n", bothEnd_);
   Sarray::const_iterator END = Both_.begin() + bothEnd_;
   for (Sarray::const_iterator si = Both_.begin(); si != END; ++si) {
     hcount += si->n_hydrogens();
@@ -370,7 +370,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       mprintf(" %s", setup.Top()[*at].c_str());
     mprintf("\n");
   }
-  mprintf("    Donor sites (%zu):\n", Both_.size() - bothEnd_);
+  mprintf("    Donor-only sites (%zu)\n", Both_.size() - bothEnd_);
   for (Sarray::const_iterator si = END; si != Both_.end(); ++si) {
     hcount += si->n_hydrogens();
     mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
@@ -441,7 +441,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 
     hcount = 0;
     unsigned int icount = 0;
-    mprintf("    Solvent sites (%zu):\n", SolventSites_.size());
+    mprintf("    Solvent sites (%zu)\n", SolventSites_.size());
     for (Sarray::const_iterator si = SolventSites_.begin(); si != SolventSites_.end(); ++si) {
       if (si->IsIon())
         icount++;
@@ -598,29 +598,38 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   // Loop over all solute donor sites
   t_uu_.Start();
   int numHB = 0;
+  int mol0 = -1;
   for (unsigned int sidx0 = 0; sidx0 != Both_.size(); sidx0++)
   {
-    const double* XYZ0 = frm.Frm().XYZ( Both_[sidx0].Idx() );
+    Site const& Site0 = Both_[sidx0];
+    const double* XYZ0 = frm.Frm().XYZ( Site0.Idx() );
+    if (noIntramol_)
+      mol0 = (*CurrentParm_)[Site0.Idx()].MolNum(); 
     // Loop over solute sites that can be both donor and acceptor
     for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
     {
-      const double* XYZ1 = frm.Frm().XYZ( Both_[sidx1].Idx() );
-      double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
-      if ( !(dist2 > dcut2_) )
-      {
-        // Site 0 donor, Site 1 acceptor
-        CalcSiteHbonds(frameNum, dist2, Both_[sidx0], XYZ0, Both_[sidx1].Idx(), XYZ1, frm.Frm(), numHB);
-        // Site 1 donor, Site 0 acceptor
-        CalcSiteHbonds(frameNum, dist2, Both_[sidx1], XYZ1, Both_[sidx0].Idx(), XYZ0, frm.Frm(), numHB);
+      Site const& Site1 = Both_[sidx1];
+      if (mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
+        const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
+        double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+        if ( !(dist2 > dcut2_) )
+        {
+          // Site 0 donor, Site 1 acceptor
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
+          // Site 1 donor, Site 0 acceptor
+          CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
+        }
       }
     }
     // Loop over solute acceptor-only
     for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
     {
-      const double* XYZ1 = frm.Frm().XYZ( *a_atom );
-      double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
-      if ( !(dist2 > dcut2_) )
-        CalcSiteHbonds(frameNum, dist2, Both_[sidx0], XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+      if (mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+        const double* XYZ1 = frm.Frm().XYZ( *a_atom );
+        double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+        if ( !(dist2 > dcut2_) )
+          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+      }
     }
   }
   NumHbonds_->Add(frameNum, &numHB);
