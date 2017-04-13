@@ -508,6 +508,49 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
   }
 }
 
+// Action_HydrogenBond::AddUV()
+void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor)
+{
+  int hbidx, solventmol, soluteres;
+  // TODO: Option to use solvent mol num?
+  if (udonor) {
+    // Index U-H .. V hydrogen bonds by solute H atom.
+    hbidx = h_atom;
+    soluteres = (*CurrentParm_)[d_atom].ResNum();
+    solventmol = (*CurrentParm_)[a_atom].ResNum();
+  } else {
+    // Index U .. H-V hydrogen bonds by solute A atom.
+    hbidx = a_atom;
+    soluteres = (*CurrentParm_)[a_atom].ResNum();
+    solventmol = (*CurrentParm_)[d_atom].ResNum();
+  }
+  solvent2solute_[solventmol].insert( soluteres );
+  UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
+  if (it == UV_Map_.end() || it->first != hbidx)
+  {
+//      mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+    DataSet_integer* ds = 0;
+    if (series_) {
+      ds = (DataSet_integer*)
+           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
+      if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
+      ds->AddVal( fnum, 1 );
+    }
+    Hbond hb;
+    if (udonor) { // Do not care about which solvent acceptor
+      if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(h_atom) + "-V" );
+      hb = Hbond(dist,angle,ds,-1,h_atom,d_atom);
+    } else {           // Do not care about which solvent donor
+      if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(a_atom) + "-V" );
+      hb = Hbond(dist,angle,ds,a_atom,-1,-1);
+    }
+    UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
+  } else {
+//      mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
+    it->second.Update(dist,angle,fnum);
+  }
+}
+
 //  Action_HydrogenBond::CalcSolvHbonds()
 void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
@@ -529,6 +572,8 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
     if (angleSatisfied)
     {
       ++numHB;
+      AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor);
+/*
       double dist = sqrt(dist2);
       int hbidx, solventmol, soluteres;
       // TODO: Option to use solvent mol num?
@@ -568,10 +613,12 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
 //        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
         it->second.Update(dist,angle,frameNum);
       }
+*/
     }
   }
 }
 
+// Action_HydrogenBond::AddUU()
 void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom)
 {
   // Index UU hydrogen bonds by DonorH-Acceptor

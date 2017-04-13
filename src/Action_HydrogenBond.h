@@ -27,6 +27,7 @@ class Action_HydrogenBond : public Action {
 
     inline double Angle(const double*, const double*, const double*) const;
     void AddUU(double,double,int,int,int,int);
+    void AddUV(double,double,int,int,int,int,bool);
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
                         Frame const&, int&
 #                       ifdef _OPENMP
