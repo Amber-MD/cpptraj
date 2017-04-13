@@ -739,116 +739,6 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
             topIn.TruncResAtomName(d_atom) + "-" +
             topIn[h_atom].Name().Truncated());
 }
-/*
-// Action_HydrogenBond::SyncMap
-void Action_HydrogenBond::SyncMap(UUmapType& mapIn, std::vector<int> const& rank_frames,
-                           std::vector<int> const& rank_offsets,
-                           const char* aspect, Parallel::Comm const& commIn)
-const
-{
-  // Need to know how many hbonds on each thread.
-  int num_hb = (int)mapIn.size();
-  std::vector<int> nhb_on_rank;
-  if (commIn.Master())
-    nhb_on_rank.resize( commIn.Size() );
-  commIn.GatherMaster( &num_hb, 1, MPI_INT, &nhb_on_rank[0] );
-  std::vector<double> dArray;
-  std::vector<int> iArray;
-  if (commIn.Master()) {
-    for (int rank = 1; rank < commIn.Size(); rank++) {
-      if (nhb_on_rank[rank] > 0) {
-        //mprintf("DEBUG:\tReceiving %i hbonds from rank %i.\n", nhb_on_rank[rank], rank);
-        dArray.resize( 2 * nhb_on_rank[rank] );
-        iArray.resize( 5 * nhb_on_rank[rank] );
-        commIn.Recv( &(dArray[0]), dArray.size(), MPI_DOUBLE, rank, 1300 );
-        commIn.Recv( &(iArray[0]), iArray.size(), MPI_INT,    rank, 1301 );
-        HbondType HB;
-        int ii = 0, id = 0;
-        for (int in = 0; in != nhb_on_rank[rank]; in++, ii += 5, id += 2) {
-          UUmapType::iterator it = mapIn.find( iArray[ii] ); // hbidx
-          if (it == mapIn.end() ) {
-            // Hbond on rank that has not been found on master
-            HB.dist  = dArray[id  ];
-            HB.angle = dArray[id+1];
-            HB.A      = iArray[ii+1];
-            HB.H      = iArray[ii+2];
-            HB.D      = iArray[ii+3];
-            HB.Frames = iArray[ii+4];
-            HB.data_ = 0;
-            //mprintf("\tNEW Hbond %i: %i-%i-%i D=%g A=%g %i frames", iArray[ii],
-            //        HB.A+1, HB.H+1, HB.D+1, HB.dist,
-            //        HB.angle, HB.Frames);
-            if (series_) {
-              HB.data_ = (DataSet_integer*)
-                         masterDSL_->AddSet( DataSet::INTEGER,
-                                             MetaData(hbsetname_, aspect, iArray[ii]) );
-              // FIXME: This may be incorrect if CurrentParm_ has changed
-              HB.data_->SetLegend( CreateHBlegend(*CurrentParm_, HB.A, HB.H, HB.D) );
-             // mprintf(" \"%s\"", HB.data_->legend());
-            }
-            //mprintf("\n");
-            mapIn.insert( it, std::pair<int,HbondType>(iArray[ii], HB) );
-          } else {
-            // Hbond on rank and master. Update on master.
-            //mprintf("\tAPPENDING Hbond %i: %i-%i-%i D=%g A=%g %i frames\n", iArray[ii],
-            //        it->second.A+1, it->second.H+1, it->second.D+1, dArray[id],
-            //        dArray[id+1], iArray[ii+4]);
-            it->second.dist  += dArray[id  ];
-            it->second.angle += dArray[id+1];
-            it->second.Frames += iArray[ii+4];
-            if (series_)
-              HB.data_ = it->second.data_;
-          }
-          if (series_) {
-            HB.data_->Resize( Nframes_ );
-            int* d_beg = HB.data_->Ptr() + rank_offsets[ rank ];
-            //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
-            //        Nframes_, rank_offsets[rank], rank_frames[rank]);
-            commIn.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
-            HB.data_->SetNeedsSync( false );
-          }
-        } // END master loop over hbonds from rank
-      }
-    } // END master loop over ranks
-    // At this point we have all hbond sets from all ranks. Mark all HB sets
-    // smaller than Nframes_ as synced and ensure the time series has been
-    // updated to reflect overall # frames.
-    if (series_) {
-      const int ZERO = 0;
-      for (UUmapType::iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb)
-        if ((int)hb->second.data_->Size() < Nframes_) {
-          hb->second.data_->SetNeedsSync( false );
-          hb->second.data_->Add( Nframes_-1, &ZERO );
-        }
-    }
-  } else {
-    if (mapIn.size() > 0) {
-      dArray.reserve( 2 * mapIn.size() );
-      iArray.reserve( 5 * mapIn.size() );
-      for (UUmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb) {
-        dArray.push_back( hb->second.dist );
-        dArray.push_back( hb->second.angle );
-        iArray.push_back( hb->first );
-        iArray.push_back( hb->second.A );
-        iArray.push_back( hb->second.H );
-        iArray.push_back( hb->second.D );
-        iArray.push_back( hb->second.Frames );
-      }
-      commIn.Send( &(dArray[0]), dArray.size(), MPI_DOUBLE, 0, 1300 );
-      commIn.Send( &(iArray[0]), iArray.size(), MPI_INT,    0, 1301 );
-      // Send series data to master
-      if (series_) {
-        int in = 0; // For tag
-        for (UUmapType::const_iterator hb = mapIn.begin(); hb != mapIn.end(); ++hb, in++) {
-          commIn.Send( hb->second.data_->Ptr(), hb->second.data_->Size(),
-                                  MPI_INT, 0, 1304 + in );
-          hb->second.data_->SetNeedsSync( false );
-        }
-      }
-    }
-  }
-}
-*/
 
 // Action_HydrogenBond::GetRankNhbonds()
 std::vector<int> Action_HydrogenBond::GetRankNhbonds( int num_hb, Parallel::Comm const& commIn )
@@ -922,6 +812,7 @@ int Action_HydrogenBond::SyncAction() {
               ds = (DataSet_integer*)
                    masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solutehb",UU_Map_.size()));
               ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
+              if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
             }
             UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
           } else {
@@ -950,6 +841,7 @@ int Action_HydrogenBond::SyncAction() {
               ds = (DataSet_integer*)
                    masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solventhb",hbidx));
               ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
+              if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
             }
             UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
           } else {
@@ -1022,13 +914,8 @@ int Action_HydrogenBond::SyncAction() {
     }
   }
 
-/*
-  SyncMap( UU_Map_, rank_frames, rank_offsets, "solutehb", trajComm_ );
-*/
   if (calcSolvent_) {
-/*
-    SyncMap( UV_Map_, rank_frames, rank_offsets, "solventhb", trajComm_ );
-*/
+    // Sync bridging data
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
