@@ -38,6 +38,8 @@ class DataSetList {
     const_iterator end()   const { return DataList_.end();   }
     /// Clear all non-Topology and non-Reference DataSets
     void Clear();
+    /// Sort sets in the DataSetList
+    void Sort();
     /// True if no DataSets in list.
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 

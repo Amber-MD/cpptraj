@@ -29,6 +29,7 @@ DataFile::DataFile() :
   dfType_(DATAFILE),
   dflWrite_(true),
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
+  sortSets_(false),
   default_width_(-1),
   default_precision_(-1),
   dataio_(0),
@@ -83,7 +84,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
 
 void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
-          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
 }
 
@@ -302,6 +303,7 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
 // DataFile::ProcessArgs() // FIXME make WriteArgs
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
+  sortSets_ = argIn.hasKey("sort");
   // Dimension labels 
   defaultDim_[0].label_ = argIn.GetStringKey("xlabel");
   defaultDim_[1].label_ = argIn.GetStringKey("ylabel");
@@ -389,6 +391,7 @@ void DataFile::WriteDataOut() {
     if (setsToWrite.empty())
       mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
     else {
+      if (sortSets_) setsToWrite.Sort();
 #     ifdef TIMER
       Timer dftimer;
       dftimer.Start();
