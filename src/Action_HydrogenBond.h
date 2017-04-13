@@ -29,17 +29,9 @@ class Action_HydrogenBond : public Action {
     void AddUU(double,double,int,int,int,int);
     void AddUV(double,double,int,int,int,int,bool);
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&
-#                       ifdef _OPENMP
-                        ,int
-#                       endif
-                       );
+                        Frame const&, int&);
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&, bool
-#                       ifdef _OPENMP
-                        ,int
-#                       endif
-                       );
+                        Frame const&, int&, bool);
     /// Update all hydrogen bond time series
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series

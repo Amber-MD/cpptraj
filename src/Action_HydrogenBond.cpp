@@ -555,11 +555,7 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
 void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB, bool soluteDonor
-#                                        ifdef _OPENMP
-                                         , int mythread
-#                                        endif
-                                         )
+                                         Frame const& frmIn, int& numHB, bool soluteDonor)
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -575,10 +571,11 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
     }
     if (angleSatisfied)
     {
-      ++numHB;
 #     ifdef _OPENMP
-      thread_HBs_[mythread].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
+      // numHB holds thread number, will be counted later on.
+      thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
 #     else
+      ++numHB;
       AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor);
 #     endif
 /*
@@ -657,11 +654,7 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB
-#                                        ifdef _OPENMP
-                                         , int mythread
-#                                        endif
-                                        )
+                                         Frame const& frmIn, int& numHB)
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -671,10 +664,11 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
     double angle = Angle(XYZA, frmIn.XYZ(*h_atom), XYZD);
     if ( !(angle < acut_) )
     {
-      ++numHB;
 #     ifdef _OPENMP
-      thread_HBs_[mythread].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
+      // numHB holds thread number, will be counted later on.
+      thread_HBs_[numHB].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom) );
 #     else
+      ++numHB;
       AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom);
 #     endif
 /*
@@ -719,10 +713,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   int sidx0;
   int sidx0end = (int)Both_.size();
 # ifdef _OPENMP
-  int mythread;
-# pragma omp parallel private(sidx0, mythread) firstprivate(mol0) reduction(+:numHB)
+  // Use numHB to track thread. Will be actually counted after the parallel section.
+# pragma omp parallel private(sidx0, numHB) firstprivate(mol0)
   {
-  mythread = omp_get_thread_num();
+  numHB = omp_get_thread_num();
 # pragma omp for
 # endif
   for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
@@ -740,15 +734,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
         {
-#         ifdef _OPENMP
-          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB, mythread);
-          CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB, mythread);
-#         else
           // Site 0 donor, Site 1 acceptor
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
           // Site 1 donor, Site 0 acceptor
           CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
-#         endif
         }
       }
     }
@@ -759,18 +748,16 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
-#         ifdef _OPENMP
-          CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB, mythread);
-#         else
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
-#         endif
       }
     }
   }
 # ifdef _OPENMP
   } // END pragma omp parallel
-  // Add all found hydrogen bonds 
+  // Add all found hydrogen bonds
+  numHB = 0; 
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
+    numHB += (int)it->size();
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
       AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D());
     it->clear();
@@ -787,10 +774,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     int vidx;
     int vidxend = (int)SolventSites_.size();
 #   ifdef _OPENMP
-    int mythread;
-#   pragma omp parallel private(vidx, mythread) reduction(+:numHB)
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(vidx, numHB)
     {
-    mythread = omp_get_thread_num();
+    numHB = omp_get_thread_num();
 #   pragma omp for
 #   endif
     for (vidx = 0; vidx < vidxend; vidx++)
@@ -804,15 +791,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
         {
-#         ifdef _OPENMP
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, mythread);
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, mythread);
-#         else
           // Solvent site donor, solute site acceptor
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false);
           // Solvent site acceptor, solute site donor
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
-#         endif
         }
       }
       // Loop over solute sites that are donor only
@@ -822,11 +804,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
-#         ifdef _OPENMP
-          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, mythread);
-#         else
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
-#         endif
       }
       // Loop over solute sites that are acceptor only
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
@@ -835,17 +813,15 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
-#         ifdef _OPENMP
-          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, mythread);
-#         else
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);
-#         endif
       }
     } // END loop over solvent sites
 #   ifdef _OPENMP
     } // END pragma omp parallel
-    // Add all found hydrogen bonds 
+    // Add all found hydrogen bonds
+    numHB = 0; 
     for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
+      numHB += (int)it->size();
       for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
         AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames());
       it->clear();
