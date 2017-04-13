@@ -35,7 +35,11 @@ class Action_HydrogenBond : public Action {
 #                       endif
                        );
     void CalcSolvHbonds(int,double,Site const&,const double*,int,const double*,
-                        Frame const&, int&, bool);
+                        Frame const&, int&, bool
+#                       ifdef _OPENMP
+                        ,int
+#                       endif
+                       );
     /// Update all hydrogen bond time series
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
@@ -155,6 +159,9 @@ class Action_HydrogenBond::Hbond {
     /// Just record that hbond exists
     Hbond(double d, double a, int ia, int ih, int id) :
       dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(0) {}
+    /// This version is for UV hbonds; a 1 in frames_ indicates soluteDonor
+    Hbond(double d, double a, int ia, int ih, int id, int sd) :
+      dist_(d), angle_(a), data_(0), A_(ia), H_(ih), D_(id), frames_(sd) {}
 #   endif
     double Dist()  const { return dist_;   }
     double Angle() const { return angle_;  }

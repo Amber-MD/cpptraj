@@ -555,7 +555,11 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
 void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
                                          Site const& SiteD, const double* XYZD,
                                          int a_atom,        const double* XYZA,
-                                         Frame const& frmIn, int& numHB, bool soluteDonor)
+                                         Frame const& frmIn, int& numHB, bool soluteDonor
+#                                        ifdef _OPENMP
+                                         , int mythread
+#                                        endif
+                                         )
 {
   // The two sites are close enough to hydrogen bond.
   int d_atom = SiteD.Idx();
@@ -572,7 +576,11 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
     if (angleSatisfied)
     {
       ++numHB;
+#     ifdef _OPENMP
+      thread_HBs_[mythread].push_back( Hbond(sqrt(dist2), angle, a_atom, *h_atom, d_atom, (int)soluteDonor) );
+#     else
       AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor);
+#     endif
 /*
       double dist = sqrt(dist2);
       int hbidx, solventmol, soluteres;
@@ -711,8 +719,6 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   int sidx0;
   int sidx0end = (int)Both_.size();
 # ifdef _OPENMP
-  for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it)
-    it->clear();
   int mythread;
 # pragma omp parallel private(sidx0, mythread) firstprivate(mol0) reduction(+:numHB)
   {
@@ -764,9 +770,11 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
 # ifdef _OPENMP
   } // END pragma omp parallel
   // Add all found hydrogen bonds 
-  for (std::vector<Harray>::const_iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it)
+  for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
     for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
       AddUU(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D());
+    it->clear();
+  }
 # endif
   NumHbonds_->Add(frameNum, &numHB);
   t_uu_.Stop();
@@ -776,7 +784,16 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     t_uv_.Start();
     solvent2solute_.clear();
     numHB = 0;
-    for (unsigned int vidx = 0; vidx != SolventSites_.size(); vidx++)
+    int vidx;
+    int vidxend = (int)SolventSites_.size();
+#   ifdef _OPENMP
+    int mythread;
+#   pragma omp parallel private(vidx, mythread) reduction(+:numHB)
+    {
+    mythread = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (vidx = 0; vidx < vidxend; vidx++)
     {
       Site const& Vsite = SolventSites_[vidx];
       const double* VXYZ = frm.Frm().XYZ( Vsite.Idx() );
@@ -787,10 +804,15 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
         {
+#         ifdef _OPENMP
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false, mythread);
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, mythread);
+#         else
           // Solvent site donor, solute site acceptor
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, Both_[sidx].Idx(), UXYZ, frm.Frm(), numHB, false);
           // Solvent site acceptor, solute site donor
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+#         endif
         }
       }
       // Loop over solute sites that are donor only
@@ -800,7 +822,11 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
           // Solvent site acceptor, solute site donor
+#         ifdef _OPENMP
+          CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true, mythread);
+#         else
           CalcSolvHbonds(frameNum, dist2, Both_[sidx], UXYZ, Vsite.Idx(), VXYZ, frm.Frm(), numHB, true);
+#         endif
       }
       // Loop over solute sites that are acceptor only
       for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
@@ -809,9 +835,22 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
         double dist2 = DIST2( VXYZ, UXYZ, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
           // Solvent site donor, solute site acceptor
+#         ifdef _OPENMP
+          CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false, mythread);
+#         else
           CalcSolvHbonds(frameNum, dist2, Vsite, VXYZ, *a_atom, UXYZ, frm.Frm(), numHB, false);
+#         endif
       }
     } // END loop over solvent sites
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+    // Add all found hydrogen bonds 
+    for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
+      for (Harray::const_iterator hb = it->begin(); hb != it->end(); ++hb)
+        AddUV(hb->Dist(), hb->Angle(), frameNum, hb->A(), hb->H(), hb->D(), (bool)hb->Frames());
+      it->clear();
+    }
+#   endif
     NumSolvent_->Add(frameNum, &numHB);
     t_uv_.Stop();
 
