@@ -578,47 +578,6 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
       ++numHB;
       AddUV(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom, soluteDonor);
 #     endif
-/*
-      double dist = sqrt(dist2);
-      int hbidx, solventmol, soluteres;
-      // TODO: Option to use solvent mol num?
-      if (soluteDonor) {
-        // Index U-H .. V hydrogen bonds by solute H atom.
-        hbidx = *h_atom;
-        soluteres = (*CurrentParm_)[d_atom].ResNum();
-        solventmol = (*CurrentParm_)[a_atom].ResNum();
-      } else {
-        // Index U .. H-V hydrogen bonds by solute A atom.
-        hbidx = a_atom;
-        soluteres = (*CurrentParm_)[a_atom].ResNum();
-        solventmol = (*CurrentParm_)[d_atom].ResNum();
-      }
-      solvent2solute_[solventmol].insert( soluteres );
-      UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
-      if (it == UV_Map_.end() || it->first != hbidx)
-      {
-//        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
-        DataSet_integer* ds = 0;
-        if (series_) {
-          ds = (DataSet_integer*)
-               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solventhb",hbidx));
-          if (UVseriesout_ != 0) UVseriesout_->AddDataSet( ds );
-          ds->AddVal( frameNum, 1 );
-        }
-        Hbond hb;
-        if (soluteDonor) { // Do not care about which solvent acceptor
-          if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(*h_atom) + "-V" );
-          hb = Hbond(dist,angle,ds,-1,*h_atom,d_atom);
-        } else {           // Do not care about which solvent donor
-          if (ds != 0) ds->SetLegend( CurrentParm_->TruncResAtomName(a_atom) + "-V" );
-          hb = Hbond(dist,angle,ds,a_atom,-1,-1);
-        }
-        UV_Map_.insert(it, std::pair<int,Hbond>(hbidx,hb));
-      } else {
-//        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
-        it->second.Update(dist,angle,frameNum);
-      }
-*/
     }
   }
 }
@@ -671,31 +630,6 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
       ++numHB;
       AddUU(sqrt(dist2), angle, frameNum, a_atom, *h_atom, d_atom);
 #     endif
-/*
-      double dist = sqrt(dist2);
-      // Index UU hydrogen bonds by DonorH-Acceptor
-      Hpair hbidx(*h_atom, a_atom);
-      UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
-      if (it == UU_Map_.end() || it->first != hbidx)
-      {
-//        mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
-        DataSet_integer* ds = 0;
-        if (series_) {
-          std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
-                                 CurrentParm_->TruncResAtomName(d_atom) + "-" +
-                                 (*CurrentParm_)[*h_atom].Name().Truncated();
-          ds = (DataSet_integer*)
-               masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Map_.size()));
-          if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
-          ds->SetLegend( hblegend );
-          ds->AddVal( frameNum, 1 );
-        }
-        UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,*h_atom,d_atom)));
-      } else {
-//        mprintf("DBG1: OLD hbond : %8i .. %8i - %8i\n", a_atom+1,*h_atom+1,d_atom+1);
-        it->second.Update(dist,angle,frameNum);
-      }
-*/
     }
   }
 }
