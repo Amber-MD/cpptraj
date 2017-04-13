@@ -320,7 +320,8 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     for (int at = 0; at != maxAtom; at++)
     {
       // Since an acceptor mask was not specified ignore solvent.
-      int molnum = setup.Top()[at].MolNum();
+      Atom const& atom = setup.Top()[at];
+      int molnum = atom.MolNum();
       if (!setup.Top().Mol(molnum).IsSolvent())
       {
         Iarray Hatoms;
@@ -328,9 +329,9 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
         isAcceptor = false;
         if ( d_atom != Mask_.end() && *d_atom == at) {
           ++d_atom;
-          if ( IsFON( setup.Top()[at] ) ) {
-            for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
-                                     H_at != setup.Top()[at].bondend(); ++H_at)
+          if ( IsFON( atom ) ) {
+            for (Atom::bond_iterator H_at = atom.bondbegin();
+                                     H_at != atom.bondend(); ++H_at)
               if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
                 Hatoms.push_back( *H_at );
             isDonor = !Hatoms.empty();
@@ -411,11 +412,16 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       isAcceptor = false;
       if ( d_atom != SolventDonorMask_.end() && *d_atom == at ) {
         ++d_atom;
-        if ( IsFON( setup.Top()[at] ) ) {
-          for (Atom::bond_iterator H_at = setup.Top()[at].bondbegin();
-                                   H_at != setup.Top()[at].bondend(); ++H_at)
+        Atom const& atom = setup.Top()[at];
+        if ( IsFON( atom ) ) {
+          for (Atom::bond_iterator H_at = atom.bondbegin();
+                                   H_at != atom.bondend(); ++H_at)
             if (setup.Top()[*H_at].Element() == Atom::HYDROGEN)
               Hatoms.push_back( *H_at );
+        } else if ( atom.Nbonds() == 0 ) {
+          // If no bonds to this atom assume it is an ion. Set the H atom
+          // to be the same as D atom; this will skip the angle calc.
+          Hatoms.push_back( at );
         }
         isDonor = !Hatoms.empty();
       }
