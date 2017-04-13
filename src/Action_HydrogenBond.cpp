@@ -21,9 +21,11 @@ Action_HydrogenBond::Action_HydrogenBond() :
   bridgeout_(0),
   dcut2_(0.0),
   acut_(0.0),
+  bothEnd_(0),
   Nframes_(0),
   debug_(0),
-  series_(0),
+  series_(false),
+  seriesUpdated_(false),
   useAtomNum_(false),
   noIntramol_(false),
   hasDonorMask_(false),
@@ -953,9 +955,9 @@ void Action_HydrogenBond::Print() {
 //   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
   }
 
-  t_uu_.WriteTiming(    2,  "Solute-Solute   :",t_action_.Total());
+  t_uu_.WriteTiming(      2,"Solute-Solute   :",t_action_.Total());
   if (calcSolvent_) {
-    t_uv_.WriteTiming( 2,   "Solute-Solvent  :",t_uv_.Total());
+    t_uv_.WriteTiming(    2,"Solute-Solvent  :",t_uv_.Total());
     t_bridge_.WriteTiming(2,"Bridging waters :",t_action_.Total());
   }
   t_action_.WriteTiming(1,"Total:");
