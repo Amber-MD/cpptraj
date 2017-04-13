@@ -34,6 +34,9 @@ class Action_HydrogenBond : public Action {
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
     std::string MemoryUsage(size_t, size_t) const;
+#   ifdef MPI
+    static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
+#   endif
 
     typedef std::vector<Site> Sarray;
     typedef std::pair<int,int> Hpair;
@@ -143,6 +146,18 @@ class Action_HydrogenBond::Hbond {
     int A()        const { return A_;      }
     int H()        const { return H_;      }
     int D()        const { return D_;      }
+#   ifdef MPI
+    DataSet_integer* Data() const { return data_; }
+    /// New hydrogen bond with given # frames
+    Hbond(double d, double a, DataSet_integer* s, int ia, int ih, int id, int n) :
+      dist_(d), angle_(a), data_(s), A_(ia), H_(ih), D_(id), frames_(n) {}
+    /// Update distance/angle/number frames
+    void Combine(double d, double a, int n) {
+      dist_ += d;
+      angle_ += a;
+      frames_ += n;
+    }
+#   endif
     /// First sort by frames (descending), then distance (ascending).
     bool operator<(const Hbond& rhs) const {
       if (frames_ == rhs.frames_)

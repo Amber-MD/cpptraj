@@ -732,7 +732,7 @@ static inline std::string CreateHBlegend(Topology const& topIn, int a_atom, int 
             topIn.TruncResAtomName(d_atom) + "-" +
             topIn[h_atom].Name().Truncated());
 }
-
+/*
 // Action_HydrogenBond::SyncMap
 void Action_HydrogenBond::SyncMap(UUmapType& mapIn, std::vector<int> const& rank_frames,
                            std::vector<int> const& rank_offsets,
@@ -841,6 +841,17 @@ const
     }
   }
 }
+*/
+
+// Action_HydrogenBond::GetRankNhbonds()
+std::vector<int> Action_HydrogenBond::GetRankNhbonds( int num_hb, Parallel::Comm const& commIn )
+{
+  std::vector<int> nhb_on_rank;
+  if (commIn.Master())
+    nhb_on_rank.resize( commIn.Size() );
+  commIn.GatherMaster( &num_hb, 1, MPI_INT, &nhb_on_rank[0] );
+  return nhb_on_rank;
+}
 
 /** PARALLEL NOTES:
   * The following tags are used for MPI send/receive:
@@ -867,10 +878,90 @@ int Action_HydrogenBond::SyncAction() {
     for (int rank = 1; rank < trajComm_.Size(); rank++)
       rank_offsets[rank] = rank_offsets[rank-1] + rank_frames[rank-1];
   }
+
   // Need to send hbond data from all ranks to master.
+  std::vector<double> Dvals;           // Hold dist_ and angle_ for each hbond
+  std::vector<int> Ivals;              // Hold A_, H_, D_, and frames_ for each hbond
+  // Need to know how many hbonds on each thread.
+  std::vector<int> nhb_on_rank = GetRankNhbonds( UU_Map_.size(), trajComm_ );
+  if (trajComm_.Master()) {
+    for (int rank = 1; rank < trajComm_.Size(); rank++)
+    {
+      if (nhb_on_rank[rank] > 0)
+      {
+        Dvals.resize( 2 * nhb_on_rank[rank] );
+        Ivals.resize( 4 * nhb_on_rank[rank] );
+        trajComm_.Recv( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, rank, 1300 );
+        trajComm_.Recv( &(Ivals[0]), Ivals.size(), MPI_INT,    rank, 1301 );
+        // Loop over all received hydrogen bonds
+        // Dvals = dist, angle
+        // Avals = A, H, D, frames
+        const int* IV = &Ivals[0];
+        const double* DV = &Dvals[0];
+        for (int in = 0; in != nhb_on_rank[rank]; in++, IV += 4, DV += 2)
+        {
+          Hpair hbidx(IV[1], IV[0]);
+          UUmapType::iterator it = UU_Map_.lower_bound( hbidx );
+          DataSet_integer* ds = 0;
+          if (it == UU_Map_.end() || it->first != hbidx)
+          {
+            // Hbond on rank that has not been found on master
+            if (series_) {
+              ds = (DataSet_integer*)
+                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solutehb",UU_Map_.size()));
+              ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
+            }
+            UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
+          } else {
+            // Hbond on rank and master. Update on master.
+            it->second.Combine(DV[0], DV[1], IV[3]);
+            ds = it->second.Data();
+          }
+          // Update time series
+          if (series_) {
+            ds->Resize( Nframes_ );
+            int* d_beg = ds->Ptr() + rank_offsets[ rank ];
+            //mprintf("\tResizing hbond series data to %i, starting frame %i, # frames %i\n",
+            //        Nframes_, rank_offsets[rank], rank_frames[rank]);
+            trajComm_.Recv( d_beg, rank_frames[ rank ], MPI_INT, rank, 1304 + in );
+            ds->SetNeedsSync( false );
+          }
+        }
+      }
+    }
+  } else {
+    if (!UU_Map_.empty()) {
+      // Store UU bonds in flat arrays.
+      Dvals.reserve( UU_Map_.size() * 2 );
+      Ivals.reserve( UU_Map_.size() * 4 );
+      for (UUmapType::const_iterator it = UU_Map_.begin(); it != UU_Map_.end(); ++it) {
+        Dvals.push_back( it->second.Dist() );
+        Dvals.push_back( it->second.Angle() );
+        Ivals.push_back( it->second.A() );
+        Ivals.push_back( it->second.H() );
+        Ivals.push_back( it->second.D() );
+        Ivals.push_back( it->second.Frames() );
+      }
+      trajComm_.Send( &(Dvals[0]), Dvals.size(), MPI_DOUBLE, 0, 1300 );
+      trajComm_.Send( &(Ivals[0]), Ivals.size(), MPI_INT,    0, 1301 );
+      // Send series data to master
+      if (series_) {
+        int in = 0; // For tag
+        for (UUmapType::const_iterator hb = UU_Map_.begin(); hb != UU_Map_.end(); ++hb, in++) {
+          trajComm_.Send( hb->second.Data()->Ptr(), hb->second.Data()->Size(), MPI_INT, 0, 1304 + in );
+          hb->second.Data()->SetNeedsSync( false );
+        }
+      }
+    }
+  }
+
+/*
   SyncMap( UU_Map_, rank_frames, rank_offsets, "solutehb", trajComm_ );
+*/
   if (calcSolvent_) {
+/*
     SyncMap( UV_Map_, rank_frames, rank_offsets, "solventhb", trajComm_ );
+*/
     // iArray will contain for each bridge: Nres, res1, ..., resN, Frames
     std::vector<int> iArray;
     int iSize;
