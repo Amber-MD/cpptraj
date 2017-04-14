@@ -5,7 +5,8 @@
 # Clean
 CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
-           crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat
+           crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
+           ud.dat uh.dat ua.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
@@ -83,10 +84,27 @@ EOF
   DoTest mol.avg.dat.save mol.avg.dat
 }
 
+# Solute specified donor mask.
+SpecifiedSoluteMask() {
+  cat > hbond.in <<EOF
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+hbond UDmask donormask    @N=                        avgout ud.dat
+hbond UHmask donormask    @N&!:PRO,NHE donorhmask @H avgout uh.dat
+hbond UAmask acceptormask @O                         avgout ua.dat
+EOF
+  RunCpptraj "Hbond, specified solute masks."
+  DoTest ud.dat.save ud.dat
+  DoTest uh.dat.save uh.dat
+  DoTest ua.dat.save ua.dat
+}
+
+
 TestUU
 TestUV
 TestImage
 TestNointramol
+SpecifiedSoluteMask
 EndTest
 
 exit 0
