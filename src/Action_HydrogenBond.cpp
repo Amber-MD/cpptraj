@@ -486,8 +486,6 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 // Action_HydrogenBond::Angle()
 double Action_HydrogenBond::Angle(const double* XA, const double* XH, const double* XD) const
 {
-  if (acut_ < 0.0) // Indicates skip angle calc
-    return 0.0;
   if (Image_.ImageType() == NOIMAGE)
     return (CalcAngle(XA, XH, XD));
   else {
