@@ -99,12 +99,22 @@ EOF
   DoTest ua.dat.save ua.dat
 }
 
+NoAngleCut() {
+  cat > hbond.in <<EOF
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+hbond BB donormask :2-6@N acceptormask :9-13@O angle -1.0 dist 2.9 avgout noacut.dat
+EOF
+  RunCpptraj "Hbond, no angle cutoff test."
+  DoTest noacut.dat.save noacut.dat
+}
 
 TestUU
 TestUV
 TestImage
 TestNointramol
 SpecifiedSoluteMask
+NoAngleCut
 EndTest
 
 exit 0

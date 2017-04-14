@@ -1,0 +1,6 @@
+#Acceptor          DonorH        Donor   Frames         Frac      AvgDist       AvgAng
+TYR_11@O          ILE_4@H      ILE_4@N       35       0.3500       2.8250     158.7224
+LYS_9@O           SER_6@H      SER_6@N       14       0.1400       2.8378     161.1375
+GLU_13@O          VAL_2@H      VAL_2@N       13       0.1300       2.8510     161.2761
+GLU_13@O          PHE_3@H      PHE_3@N        4       0.0400       2.8274     158.5894
+TYR_11@O          SER_6@H      SER_6@N        3       0.0300       2.8085     170.5647
