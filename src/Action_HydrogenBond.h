@@ -24,6 +24,7 @@ class Action_HydrogenBond : public Action {
 
     class Site;
     class Hbond;
+    class Bridge;
 
     inline double Angle(const double*, const double*, const double*) const;
     void AddUU(double,double,int,int,int,int);
@@ -198,5 +199,29 @@ class Action_HydrogenBond::Hbond {
     int H_; ///< Hydrogen atom index
     int D_; ///< Donor atom index
     int frames_; ///< # frames this hydrogen bond has been present
+};
+
+/// Track solvent bridge between 2 or more solute residues.
+class Action_HydrogenBond::Bridge {
+  public:
+    Bridge() : frames_(0) {}
+    int Frames() const { return frames_; }
+    /// Update frames/time series
+    void Update(int f) {
+      ++frames_;
+      if (data_ != 0) data_->AddVal(f, 1);
+    }
+    /// \return true if bridge has more frames than rhs.
+    bool operator()(Bridge const& rhs) const {
+      if (frames_ > rhs.frames_)
+        return true;
+      else if (frames_ < rhs.frames_)
+        return false;
+      else
+        return (frames_ < rhs.frames_);
+    }
+  private:
+    DataSet_integer* data_; ///< Hold time series data
+    int frames_; ///< # frames this bridge has been present.
 };
 #endif
