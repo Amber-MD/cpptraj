@@ -772,22 +772,41 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       // If solvent molecule is bound to 2 or more different residues,
       // it is bridging. 
       if ( bridge->second.size() > 1) {
-        ++numHB;
-        // Bridging Solvent residue number
-        bridgeID.append(integerToString( bridge->first+1 ) + "(");
-        for (std::set<int>::const_iterator res = bridge->second.begin();
-                                           res != bridge->second.end(); ++res)
-          // Solute residue number being bridged
-          bridgeID.append( integerToString( *res+1 ) + "+" );
-        bridgeID.append("),");
-        // Find bridge in map based on this combo of residues (bridge.second)
-        BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
-        if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
-          // New Bridge 
-          BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
-        else
-          // Increment bridge #frames
-          b_it->second++;
+        bool isBridge = true;
+        if (noIntramol_) {
+          // If all residues belong to the same molecule and 'nointramol',
+          // do not consider this bridge.
+          int firstmol = -1;
+          unsigned int nequal = 1;
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+          {
+            int currentMol = (*CurrentParm_)[CurrentParm_->Res(*res).FirstAtom()].MolNum();
+            if ( firstmol == -1 )
+              firstmol = currentMol;
+            else if (currentMol == firstmol)
+              ++nequal;
+          }
+          isBridge = (nequal < bridge->second.size());
+        }
+        if (isBridge) {
+          ++numHB;
+          // Bridging Solvent residue number
+          bridgeID.append(integerToString( bridge->first+1 ) + "(");
+          for (std::set<int>::const_iterator res = bridge->second.begin();
+                                             res != bridge->second.end(); ++res)
+            // Solute residue number being bridged
+            bridgeID.append( integerToString( *res+1 ) + "+" );
+          bridgeID.append("),");
+          // Find bridge in map based on this combo of residues (bridge.second)
+          BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
+          if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
+            // New Bridge 
+            BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
+          else
+            // Increment bridge #frames
+            b_it->second++;
+        }
       }
     }
     if (bridgeID.empty())
@@ -795,7 +814,7 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     NumBridge_->Add(frameNum, &numHB);
     BridgeID_->Add(frameNum, bridgeID.c_str());
     t_bridge_.Stop();
-  }
+  } // END if calcSolvent_
 
   Nframes_++;
   t_action_.Stop();
