@@ -27,6 +27,7 @@ class Action_HydrogenBond : public Action {
     class Bridge;
 
     inline double Angle(const double*, const double*, const double*) const;
+    inline int UU_Set_Idx(int,int) const;
     void AddUU(double,double,int,int,int,int);
     void AddUV(double,double,int,int,int,int,bool);
     void CalcSiteHbonds(int,double,Site const&,const double*,int,const double*,
@@ -48,6 +49,7 @@ class Action_HydrogenBond : public Action {
     typedef std::map< int,std::set<int> > RmapType;
     typedef std::map< std::set<int>,Bridge > BmapType;
     typedef std::vector<Hbond> Harray;
+    typedef std::map<int,int> IdxMapType;
 
     ImagedAction Image_;  ///< Hold imaging info.
     Sarray Both_;         ///< Array of donor sites that can also be acceptors
@@ -58,6 +60,8 @@ class Action_HydrogenBond : public Action {
     UVmapType UV_Map_;
     RmapType solvent2solute_; ///< Map solvent mol # to residues it is bound to each frame
     BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
+    IdxMapType DidxMap_; ///< Map solute hydrogen donor atom # to index (series only)
+    IdxMapType AidxMap_; ///< Map solute acceptor atom # to index (series only).
 
 #   ifdef _OPENMP
     std::vector<Harray> thread_HBs_; ///< Hold hbonds found by each thread each frame.

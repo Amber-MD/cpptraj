@@ -252,6 +252,11 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
   }
 
+  // Clear existing sites
+  Both_.clear();
+  Acceptor_.clear();
+  SolventSites_.clear(); 
+
   // SOLUTE DONOR/ACCEPTOR SITE SETUP
   Sarray donorOnly;
   if (hasDonorMask_) {
@@ -375,6 +380,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
   for (Sarray::const_iterator site = donorOnly.begin(); site != donorOnly.end(); ++site)
     Both_.push_back( *site );
 
+  // Print solute site stats
   mprintf("    Acceptor-only atoms (%zu)\n", Acceptor_.size());
   if (debug_ > 0)
     for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
@@ -402,6 +408,31 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     }
   }
   mprintf("    %u solute hydrogens.\n", hcount);
+
+  // For backwards compat. store donor/acceptor indices for determining data set index.
+  if (series_) {
+    // Donor hydrogen indices
+    Iarray at_array;
+    at_array.reserve( hcount );
+    for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
+      for (Iarray::const_iterator at = site->Hbegin(); at != site->Hend(); ++at)
+        at_array.push_back( *at );
+    std::sort(at_array.begin(), at_array.end());
+    int didx = 0;
+    for (Iarray::const_iterator at = at_array.begin(); at != at_array.end(); ++at)
+      DidxMap_[*at] = didx++;
+    // Acceptor indices
+    at_array.clear();
+    at_array.reserve( Both_.size() + Acceptor_.size() );
+    for (Sarray::const_iterator site = Both_.begin(); site != Both_.end(); ++site)
+      at_array.push_back( site->Idx() );
+    for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
+      at_array.push_back( *at );
+    std::sort(at_array.begin(), at_array.end());
+    int aidx = 0;
+    for (Iarray::const_iterator at = at_array.begin(); at != at_array.end(); ++at)
+      AidxMap_[*at] = aidx++;
+  }
 
   // SOLVENT SITE SETUP
   if (calcSolvent_) {
@@ -580,6 +611,18 @@ void Action_HydrogenBond::CalcSolvHbonds(int frameNum, double dist2,
   }
 }
 
+// Action_HydrogenBond::UU_Set_Idx()
+/** Determine solute-solute hbond index for backwards compatibility:
+  *   hbidx = (donorIndex * #acceptors) + acceptorIndex
+  */
+int Action_HydrogenBond::UU_Set_Idx(int a_atom, int h_atom) const {
+  IdxMapType::const_iterator it = DidxMap_.find( h_atom );
+  int didx = it->second;
+  it = AidxMap_.find( a_atom );
+  int aidx = it->second;
+  return (didx * AidxMap_.size()) + aidx;
+}
+
 // Action_HydrogenBond::AddUU()
 void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom)
 {
@@ -595,7 +638,7 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
                              CurrentParm_->TruncResAtomName(d_atom) + "-" +
                              (*CurrentParm_)[h_atom].Name().Truncated();
       ds = (DataSet_integer*)
-           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Map_.size()));
+           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Set_Idx(a_atom,h_atom)));
       if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
       ds->SetLegend( hblegend );
       ds->AddVal( fnum, 1 );
