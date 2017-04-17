@@ -948,7 +948,7 @@ int Action_HydrogenBond::SyncAction() {
             // Hbond on rank that has not been found on master
             if (series_) {
               ds = (DataSet_integer*)
-                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solutehb",UU_Map_.size()));
+                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solutehb",UU_Set_Idx(IV[0],IV[1])));
               ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
               if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
             }
