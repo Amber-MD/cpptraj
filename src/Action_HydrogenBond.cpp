@@ -1240,7 +1240,7 @@ void Action_HydrogenBond::Print() {
   if (bridgeout_ != 0 && calcSolvent_) {
     bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
-    typedef std::vector<std::pair< std::set<int>, int> > Bvec;
+    typedef std::vector<Bpair> Bvec;
     Bvec bridgevector;
     for (BmapType::const_iterator it = BridgeMap_.begin();
                                   it != BridgeMap_.end(); ++it)
