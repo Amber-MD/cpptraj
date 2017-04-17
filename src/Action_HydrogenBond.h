@@ -46,7 +46,7 @@ class Action_HydrogenBond : public Action {
     typedef std::map<Hpair,Hbond> UUmapType;
     typedef std::map<int,Hbond> UVmapType;
     typedef std::map< int,std::set<int> > RmapType;
-    typedef std::map< std::set<int>,int > BmapType;
+    typedef std::map< std::set<int>,Bridge > BmapType;
     typedef std::vector<Hbond> Harray;
 
     ImagedAction Image_;  ///< Hold imaging info.
@@ -102,10 +102,10 @@ class Action_HydrogenBond : public Action {
     bool calcSolvent_;
     bool hasSolventAcceptor_;
     // TODO replace with class
-    /// Return true if first bridge has more frames than second.
+    typedef std::pair< std::set<int>,int > Bpair;
+    /// \return true if first bridge has more frames than second.
     struct bridge_cmp {
-      inline bool operator()(std::pair< std::set<int>, int> const& first, 
-                             std::pair< std::set<int>, int> const& second) const
+      inline bool operator()(Bpair const& first, Bpair const& second) const
       {
         if (first.second > second.second)
           return true;
@@ -204,7 +204,12 @@ class Action_HydrogenBond::Hbond {
 /// Track solvent bridge between 2 or more solute residues.
 class Action_HydrogenBond::Bridge {
   public:
-    Bridge() : frames_(0) {}
+    /// Constructor - new bridge
+    Bridge() : frames_(1) {}
+#   ifdef MPI
+    /// Constructor - new bridge with given # frames
+    Bridge(int f) : frames_(f) {}
+#   endif
     int Frames() const { return frames_; }
     /// Update frames/time series
     void Update(int f) {

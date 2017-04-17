@@ -802,10 +802,10 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           BmapType::iterator b_it = BridgeMap_.lower_bound( bridge->second );
           if (b_it == BridgeMap_.end() || b_it->first != bridge->second)
             // New Bridge 
-            BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(bridge->second, 1) );
+            BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(bridge->second, Bridge()) );
           else
             // Increment bridge #frames
-            b_it->second++;
+            b_it->second.Update(frameNum);
         }
       }
     }
@@ -1028,9 +1028,9 @@ int Action_HydrogenBond::SyncAction() {
           unsigned int i2 = idx + 1;
           for (int ir = 0; ir != iArray[idx]; ir++, i2++)
             residues.insert( iArray[i2] );
-          BmapType::iterator b_it = BridgeMap_.find( residues );
-          if (b_it == BridgeMap_.end() ) // New Bridge 
-            BridgeMap_.insert( b_it, std::pair<std::set<int>,int>(residues, iArray[i2]) );
+          BmapType::iterator b_it = BridgeMap_.lower_bound( residues );
+          if (b_it == BridgeMap_.end() || b_it->first != residues ) // New Bridge 
+            BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(iArray[i2])) );
           else                           // Increment bridge #frames
             b_it->second += iArray[i2];
           idx = i2 + 1;
@@ -1043,7 +1043,7 @@ int Action_HydrogenBond::SyncAction() {
          iArray.push_back( b->first.size() ); // # of bridging res
          for ( std::set<int>::const_iterator r = b->first.begin(); r != b->first.end(); ++r)
            iArray.push_back( *r ); // Bridging res
-         iArray.push_back( b->second ); // # frames
+         iArray.push_back( b->second.Frames() ); // # frames
       }
       // Since the size of each bridge can be different (i.e. differing #s of
       // residues may be bridged), first send size of the transport array.
@@ -1080,8 +1080,8 @@ std::string Action_HydrogenBond::MemoryUsage(size_t nPairs, size_t nFrames) cons
     size_t seriesSet = (nFrames * sizeof(int)) + sizeof(std::vector<int>);
     memTotal += (seriesSet * nPairs);
   }
-  // Current memory used by bridging solvent
-  static const size_t sizeBmap = 32 + sizeof(std::set<int>) + sizeof(int);
+  // Current memory used by bridging solvent // TODO bridge series
+  static const size_t sizeBmap = 32 + sizeof(std::set<int>) + sizeof(Bridge);
   for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
     memTotal += (it->first.size() * sizeof(int));
   memTotal += (BridgeMap_.size() * sizeBmap);
@@ -1199,7 +1199,7 @@ void Action_HydrogenBond::Print() {
     Bvec bridgevector;
     for (BmapType::const_iterator it = BridgeMap_.begin();
                                   it != BridgeMap_.end(); ++it)
-      bridgevector.push_back( *it );
+      bridgevector.push_back( Bpair(it->first, it->second.Frames()) );
     std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
     for (Bvec::const_iterator bv = bridgevector.begin(); bv != bridgevector.end(); ++bv)
     {
