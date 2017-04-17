@@ -209,6 +209,8 @@ class Action_HydrogenBond::Bridge {
 #   ifdef MPI
     /// Constructor - new bridge with given # frames
     Bridge(int f) : frames_(f) {}
+    /// Increment number of frames
+    void Combine(int n) { frames_ += n; }
 #   endif
     int Frames() const { return frames_; }
     /// Update frames/time series

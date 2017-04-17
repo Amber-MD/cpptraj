@@ -1029,10 +1029,12 @@ int Action_HydrogenBond::SyncAction() {
           for (int ir = 0; ir != iArray[idx]; ir++, i2++)
             residues.insert( iArray[i2] );
           BmapType::iterator b_it = BridgeMap_.lower_bound( residues );
-          if (b_it == BridgeMap_.end() || b_it->first != residues ) // New Bridge 
+          if (b_it == BridgeMap_.end() || b_it->first != residues )
+            // New Bridge 
             BridgeMap_.insert( b_it, std::pair<std::set<int>,Bridge>(residues, Bridge(iArray[i2])) );
-          else                           // Increment bridge #frames
-            b_it->second += iArray[i2];
+          else
+            // Increment bridge #frames
+            b_it->second.Combine( iArray[i2] );
           idx = i2 + 1;
         }
       }
