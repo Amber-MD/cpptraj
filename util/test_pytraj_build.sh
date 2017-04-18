@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 FEEDSTOCK_ROOT=$(cd "$(dirname "$0")/../"; pwd;)
-DOCKER_IMAGE=hainm/pytraj-build-box
+DOCKER_IMAGE=hainm/pytraj-build-box:17.0
 
 docker info
 cat << EOF | docker run -i \
