@@ -35,8 +35,8 @@ Action_HydrogenBond::Action_HydrogenBond() :
   hasDonorHmask_(false),
   hasAcceptorMask_(false),
   hasSolventDonor_(false),
-  calcSolvent_(false),
   hasSolventAcceptor_(false),
+  calcSolvent_(false),
   bridgeByAtom_(false)
 {}
 

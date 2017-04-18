@@ -52,13 +52,12 @@ class Action_HydrogenBond : public Action {
     typedef std::vector<Hbond> Harray;
     typedef std::map<int,int> IdxMapType;
 
-    ImagedAction Image_;  ///< Hold imaging info.
     Sarray Both_;         ///< Array of donor sites that can also be acceptors
     Iarray Acceptor_;     ///< Array of acceptor-only atom indices
     Sarray SolventSites_; ///< Array of solvent donor/acceptor sites
 
-    UUmapType UU_Map_;
-    UVmapType UV_Map_;
+    UUmapType UU_Map_;        ///< Map solute donorH/acceptor pair to UU hbond
+    UVmapType UV_Map_;        ///< Map solute donorH or solute acceptor to UV hbond
     RmapType solvent2solute_; ///< Map solvent res # to solute residues it is bound to each frame
     BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
     IdxMapType DidxMap_; ///< Map solute hydrogen donor atom # to index (series only)
@@ -68,45 +67,46 @@ class Action_HydrogenBond : public Action {
     std::vector<Harray> thread_HBs_; ///< Hold hbonds found by each thread each frame.
 #   endif
 
-    std::string hbsetname_;
+    std::string hbsetname_; ///< DataSet name
     AtomMask DonorMask_;
     AtomMask DonorHmask_;
     AtomMask AcceptorMask_;
     AtomMask SolventDonorMask_;
     AtomMask SolventAcceptorMask_;
     AtomMask Mask_;
-    Matrix_3x3 ucell_, recip_;
+    ImagedAction Image_;       ///< Hold imaging info.
+    Matrix_3x3 ucell_, recip_; ///< Unit/recip cell for imaging.
     Timer t_action_;
     Timer t_uu_;
     Timer t_uv_;
     Timer t_bridge_;
-    Topology* CurrentParm_; ///< Used to set atom/residue labels
-    DataSetList* masterDSL_;
-    DataSet* NumHbonds_;
-    DataSet* NumSolvent_;
-    DataSet* NumBridge_;
-    DataSet* BridgeID_;
-    DataFile* UUseriesout_;
-    DataFile* UVseriesout_;
-    CpptrajFile* avgout_;
-    CpptrajFile* solvout_;
-    CpptrajFile* bridgeout_;
-    double dcut2_;
-    double acut_;
-    unsigned int bothEnd_; ///< Index in Both_ where donor-only sites begin
-    int Nframes_;        ///< Number of frames action has been active
+    Topology* CurrentParm_;  ///< Used to set atom/residue labels
+    DataSetList* masterDSL_; ///< Used to add series data
+    DataSet* NumHbonds_;     ///< Hold # UU hbonds per frame.
+    DataSet* NumSolvent_;    ///< Hold # UV hbonds per frame.
+    DataSet* NumBridge_;     ///< Hold # solute-solvent bridges per frame.
+    DataSet* BridgeID_;      ///< Hold info on each bridge per frame.
+    DataFile* UUseriesout_;  ///< File to write UU time series to.
+    DataFile* UVseriesout_;  ///< File to write UN time series to.
+    CpptrajFile* avgout_;    ///< File to write UU averages to.
+    CpptrajFile* solvout_;   ///< File to write UV averages to.
+    CpptrajFile* bridgeout_; ///< File to write bridge totals to.
+    double dcut2_;           ///< Heavy atom distance cutoff squared.
+    double acut_;            ///< Angle cutoff in radians.
+    unsigned int bothEnd_;   ///< Index in Both_ where donor-only sites begin
+    int Nframes_;            ///< Number of frames action has been active
     int debug_;
-    bool series_;        ///< If true track hbond time series.
-    bool seriesUpdated_; ///< If false hbond time series need to be finished.
-    bool useAtomNum_;    ///< If true include atom numbers in labels/legends
-    bool noIntramol_;
-    bool hasDonorMask_;
-    bool hasDonorHmask_;
-    bool hasAcceptorMask_;
-    bool hasSolventDonor_;
-    bool calcSolvent_;
-    bool hasSolventAcceptor_;
-    bool bridgeByAtom_; ///< If true determine bridging by atom.
+    bool series_;             ///< If true track hbond time series.
+    bool seriesUpdated_;      ///< If false hbond time series need to be finished.
+    bool useAtomNum_;         ///< If true include atom numbers in labels/legends
+    bool noIntramol_;         ///< If true ignore intramolecular hydrogen bonds/bridges.
+    bool hasDonorMask_;       ///< If true a donor mask was specified.
+    bool hasDonorHmask_;      ///< If true a donor H mask was specified.
+    bool hasAcceptorMask_;    ///< If true an acceptor mask was specified.
+    bool hasSolventDonor_;    ///< If true a solvent donor mask was specified.
+    bool hasSolventAcceptor_; ///< If true a solvent acceptor mask was specified.
+    bool calcSolvent_;        ///< If true solute-solvent hbonds and bridges will be calcd.
+    bool bridgeByAtom_;       ///< If true determine bridging by atom.
     // TODO replace with class
     typedef std::pair< std::set<int>,int > Bpair;
     /// \return true if first bridge has more frames than second.
