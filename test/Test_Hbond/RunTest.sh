@@ -21,14 +21,7 @@ trajin ../DPDP.nc
 hbond HB out nhb.dat avgout avghb.dat
 hbond BB out nbb.dat @N,H,C,O series avgout hbavg.dat printatomnum
 run
-#write solutehb.agr BB[solutehb]
-write solutehb.agr BB[solutehb]:24  BB[solutehb]:104 BB[solutehb]:414 \
-                   BB[solutehb]:422 BB[solutehb]:494 BB[solutehb]:652 \
-                   BB[solutehb]:184 BB[solutehb]:732 BB[solutehb]:342 \
-                   BB[solutehb]:352 BB[solutehb]:264 BB[solutehb]:262 \
-                   BB[solutehb]:424 BB[solutehb]:218 BB[solutehb]:66 \
-                   BB[solutehb]:188 BB[solutehb]:42  BB[solutehb]:86 \
-                   BB[solutehb]:794
+write solutehb.agr BB[solutehb] sort
 runanalysis lifetime BB[solutehb] out lifehb.gnu window 10
 EOF
   RunCpptraj "Solute Hbond test."
@@ -116,8 +109,8 @@ BridgeIntermol() {
     cat > hbond.in <<EOF
 parm ../dna30.parm7
 trajin ../Test_AutoImage/split.duplex.nc
-hbond2 hb out bridgeintermol.dat avgout avgbridgeintermol.dat :1-60 \
-       solventacceptor :WAT@O solventdonor :WAT nointramol image
+hbond hb out bridgeintermol.dat avgout avgbridgeintermol.dat :1-60 \
+      solventacceptor :WAT@O solventdonor :WAT nointramol image
 EOF
     RunCpptraj "Hbond, Bridge nointramol test."
     DoTest bridgeintermol.dat.save bridgeintermol.dat
@@ -131,7 +124,7 @@ TestImage
 TestNointramol
 SpecifiedSoluteMask
 NoAngleCut
-#BridgeIntermol
+BridgeIntermol
 EndTest
 
 exit 0
