@@ -623,6 +623,18 @@ int Action_HydrogenBond::UU_Set_Idx(int a_atom, int h_atom) const {
   return (didx * AidxMap_.size()) + aidx;
 }
 
+//  Action_HydrogenBond::UUset()
+DataSet_integer* Action_HydrogenBond::UUset(int a_atom, int h_atom, int d_atom) {
+  std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
+                         CurrentParm_->TruncResAtomName(d_atom) + "-" +
+                         (*CurrentParm_)[h_atom].Name().Truncated();
+  DataSet_integer* ds = (DataSet_integer*)
+    masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Set_Idx(a_atom,h_atom)));
+  if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
+  ds->SetLegend( hblegend );
+  return ds;
+}
+
 // Action_HydrogenBond::AddUU()
 void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom, int h_atom, int d_atom)
 {
@@ -634,13 +646,7 @@ void Action_HydrogenBond::AddUU(double dist, double angle, int fnum, int a_atom,
 //      mprintf("DBG1: NEW hbond : %8i .. %8i - %8i\n", a_atom+1,h_atom+1,d_atom+1);
     DataSet_integer* ds = 0;
     if (series_) {
-      std::string hblegend = CurrentParm_->TruncResAtomName(a_atom) + "-" +
-                             CurrentParm_->TruncResAtomName(d_atom) + "-" +
-                             (*CurrentParm_)[h_atom].Name().Truncated();
-      ds = (DataSet_integer*)
-           masterDSL_->AddSet(DataSet::INTEGER,MetaData(hbsetname_,"solutehb",UU_Set_Idx(a_atom,h_atom)));
-      if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
-      ds->SetLegend( hblegend );
+      ds = UUset(a_atom, h_atom, d_atom);
       ds->AddVal( fnum, 1 );
     }
     UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(dist,angle,ds,a_atom,h_atom,d_atom)));
@@ -946,12 +952,8 @@ int Action_HydrogenBond::SyncAction() {
           if (it == UU_Map_.end() || it->first != hbidx)
           {
             // Hbond on rank that has not been found on master
-            if (series_) {
-              ds = (DataSet_integer*)
-                   masterDSL_->AddSet(DataSet::INTEGER, MetaData(hbsetname_,"solutehb",UU_Set_Idx(IV[0],IV[1])));
-              ds->SetLegend( CreateHBlegend(*CurrentParm_, IV[0], IV[1], IV[2]) );
-              if (UUseriesout_ != 0) UUseriesout_->AddDataSet( ds );
-            }
+            if (series_)
+              ds = UUset(IV[0], IV[1], IV[2]);
             UU_Map_.insert(it, std::pair<Hpair,Hbond>(hbidx,Hbond(DV[0],DV[1],ds,IV[0],IV[1],IV[2],IV[3])));
           } else {
             // Hbond on rank and master. Update on master.
