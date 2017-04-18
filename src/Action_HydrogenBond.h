@@ -38,7 +38,7 @@ class Action_HydrogenBond : public Action {
     /// Update all hydrogen bond time series
     void UpdateSeries();
     /// Determine memory usage from # hbonds and time series
-    std::string MemoryUsage(size_t, size_t) const;
+    std::string MemoryUsage(size_t, size_t, size_t) const;
 #   ifdef MPI
     static std::vector<int> GetRankNhbonds(int,Parallel::Comm const&);
 #   endif

@@ -519,6 +519,12 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     mprintf("\t%u solvent hydrogens, %u ions.\n", hcount, icount);
   }
 
+  mprintf("\tEstimated max potential memory usage: %s\n",
+          MemoryUsage(Both_.size()         * bothEnd_+Acceptor_.size(),
+                      SolventSites_.size() * bothEnd_+Acceptor_.size() +
+                      Both_.size()         * SolventSites_.size(),
+                      masterDSL_->MaxFrames()).c_str());
+
   return Action::OK;
 }
 
@@ -1135,21 +1141,29 @@ void Action_HydrogenBond::UpdateSeries() {
 }
 
 // Action_Hbond::MemoryUsage()
-std::string Action_HydrogenBond::MemoryUsage(size_t nPairs, size_t nFrames) const {
-  static const size_t sizeUUmap = 32 + sizeof(int) + 
-                                  (2*sizeof(double) + sizeof(DataSet_integer*) + 4*sizeof(int));
-  size_t memTotal = nPairs * sizeUUmap;
-  // If calculating series every hbond will have time series.
-  // NOTE: This does not include memory used by DataSet.
+std::string Action_HydrogenBond::MemoryUsage(size_t n_uu_pairs, size_t n_uv_pairs, size_t nFrames) const
+{
+  static const size_t sizeHbond = sizeof(Hbond);
+  // NOTE: Assuming an overhead of 32 bytes per map element.
+  static const size_t sizeElt = 32;
+  static const size_t sizeUUmapElt = sizeElt + sizeof(Hpair) + sizeHbond;
+  static const size_t sizeUVmapElt = sizeElt + sizeof(int) + sizeHbond;
+  static const size_t sizeBRmapElt = sizeElt + sizeof(std::set<int>) + sizeof(Bridge);
+  // Solute-solute pairs
+  size_t memTotal = sizeof(UUmapType) + (n_uu_pairs * sizeUUmapElt);
+  // Solute-solvent pairs
+  memTotal += sizeof(UVmapType) + (n_uv_pairs * sizeUVmapElt);
+  // Time series TODO bridge series
   if (series_ && nFrames > 0) {
-    size_t seriesSet = (nFrames * sizeof(int)) + sizeof(std::vector<int>);
-    memTotal += (seriesSet * nPairs);
+    size_t seriesSet = (nFrames * sizeof(int)) + sizeof(DataSet_integer);
+    memTotal += (seriesSet * (n_uu_pairs + n_uv_pairs));
   }
-  // Current memory used by bridging solvent // TODO bridge series
-  static const size_t sizeBmap = 32 + sizeof(std::set<int>) + sizeof(Bridge);
+  // Solute-solvent bridges
+  // Cannot really estimate bridging, so always base it on BridgeMap_
+  memTotal += sizeof(BmapType);
   for (BmapType::const_iterator it = BridgeMap_.begin(); it != BridgeMap_.end(); ++it)
-    memTotal += (it->first.size() * sizeof(int));
-  memTotal += (BridgeMap_.size() * sizeBmap);
+    memTotal += (sizeBRmapElt + it->first.size()*sizeof(int));
+ 
   return ByteString( memTotal, BYTE_DECIMAL );
 }
 
@@ -1161,7 +1175,7 @@ void Action_HydrogenBond::Print() {
 
   // Final memory usage
   mprintf("    HBOND: Actual memory usage is %s\n",
-          MemoryUsage(UU_Map_.size()+UV_Map_.size(), Nframes_).c_str());
+          MemoryUsage(UU_Map_.size(), UV_Map_.size(), Nframes_).c_str());
   mprintf("\t%zu solute-solute hydrogen bonds.\n", UU_Map_.size());
   if (calcSolvent_) {
    mprintf("\t%zu solute-solvent hydrogen bonds.\n", UV_Map_.size());
@@ -1255,6 +1269,7 @@ void Action_HydrogenBond::Print() {
                      NUM, Aname.c_str(), NUM, Hname.c_str(), NUM, Dname.c_str(),
                      hbond->Frames(), avg, hbond->Dist(), hbond->Angle());
     }
+    HbondList.clear();
   }
   // BRIDGING INFO
   if (bridgeout_ != 0 && calcSolvent_) {
