@@ -113,16 +113,14 @@ class Action_HydrogenBond : public Action {
     bool bridgeByAtom_;       ///< If true determine bridging by atom.
     // TODO replace with class
     typedef std::pair< std::set<int>,int > Bpair;
-    /// \return true if first bridge has more frames than second.
+    /// \return true if 1) p0 frames > p1 frames, 2) p0 res < p1 res
     struct bridge_cmp {
-      inline bool operator()(Bpair const& first, Bpair const& second) const
+      inline bool operator()(Bpair const& p0, Bpair const& p1) const
       {
-        if (first.second > second.second)
-          return true;
-        else if (first.second < second.second)
-          return false;
+        if (p0.second == p1.second)
+          return (p0.first < p1.first);
         else
-          return (first.second < second.second);
+          return (p0.second > p1.second);
       }
     };
 };
