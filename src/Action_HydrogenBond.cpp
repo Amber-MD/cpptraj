@@ -1,5 +1,5 @@
 #include <cmath> // sqrt
-#include <algorithm> // sort TODO may be able to do without this
+#include <algorithm> // sort
 #include "Action_HydrogenBond.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
@@ -219,7 +219,8 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   return Action::OK;
 }
 
-//  IsFON()
+// IsFON()
+/** Default criterion for being a hydrogen bond donor/acceptor. */
 inline bool IsFON(Atom const& atm) {
   return (atm.Element() == Atom::FLUORINE ||
           atm.Element() == Atom::OXYGEN ||
@@ -703,12 +704,16 @@ void Action_HydrogenBond::CalcSiteHbonds(int frameNum, double dist2,
 
 // Action_HydrogenBond::DoAction()
 Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
+# ifdef TIMER
   t_action_.Start();
+# endif
   if (Image_.ImagingEnabled())
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
 
   // Loop over all solute donor sites
+# ifdef TIMER
   t_uu_.Start();
+# endif
   int numHB = 0;
   int sidx0;
   int sidx0end = (int)Both_.size();
@@ -809,11 +814,14 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   }
 # endif
   NumHbonds_->Add(frameNum, &numHB);
+# ifdef TIMER
   t_uu_.Stop();
-
+# endif
   // Loop over all solvent sites
   if (calcSolvent_) {
+#   ifdef TIMER
     t_uv_.Start();
+#   endif
     solvent2solute_.clear();
     numHB = 0;
     int vidx;
@@ -873,10 +881,13 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
     }
 #   endif
     NumSolvent_->Add(frameNum, &numHB);
+#   ifdef TIMER
     t_uv_.Stop();
-
+#   endif
     // Determine number of bridging waters
+#   ifdef TIMER
     t_bridge_.Start();
+#   endif
     numHB = 0;
     std::string bridgeID;
     for (RmapType::const_iterator bridge = solvent2solute_.begin();
@@ -930,11 +941,15 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
       bridgeID.assign("None");
     NumBridge_->Add(frameNum, &numHB);
     BridgeID_->Add(frameNum, bridgeID.c_str());
+#   ifdef TIMER
     t_bridge_.Stop();
+#   endif
   } // END if calcSolvent_
 
   Nframes_++;
+# ifdef TIMER
   t_action_.Stop();
+# endif
   return Action::OK;
 }
 
@@ -1223,16 +1238,16 @@ void Action_HydrogenBond::Print() {
   mprintf("\t%zu solute-solute hydrogen bonds.\n", UU_Map_.size());
   if (calcSolvent_) {
    mprintf("\t%zu solute-solvent hydrogen bonds.\n", UV_Map_.size());
-//   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
+   mprintf("\t%zu unique solute-solvent bridging interactions.\n", BridgeMap_.size());
   }
-
+# ifdef TIMER
   t_uu_.WriteTiming(      2,"Solute-Solute   :",t_action_.Total());
   if (calcSolvent_) {
     t_uv_.WriteTiming(    2,"Solute-Solvent  :",t_uv_.Total());
     t_bridge_.WriteTiming(2,"Bridging waters :",t_action_.Total());
   }
   t_action_.WriteTiming(1,"Total:");
-
+# endif
   // Ensure all series have been updated for all frames.
   UpdateSeries();
 

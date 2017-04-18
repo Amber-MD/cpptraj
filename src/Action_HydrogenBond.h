@@ -4,7 +4,9 @@
 #include "Action.h"
 #include "ImagedAction.h"
 #include "DataSet_integer.h"
-#include "Timer.h"
+#ifdef TIMER
+# include "Timer.h"
+#endif
 class Action_HydrogenBond : public Action {
   public:
     Action_HydrogenBond();
@@ -76,10 +78,12 @@ class Action_HydrogenBond : public Action {
     AtomMask Mask_;
     ImagedAction Image_;       ///< Hold imaging info.
     Matrix_3x3 ucell_, recip_; ///< Unit/recip cell for imaging.
+#   ifdef TIMER
     Timer t_action_;
     Timer t_uu_;
     Timer t_uv_;
     Timer t_bridge_;
+#   endif
     Topology* CurrentParm_;  ///< Used to set atom/residue labels
     DataSetList* masterDSL_; ///< Used to add series data
     DataSet* NumHbonds_;     ///< Hold # UU hbonds per frame.
