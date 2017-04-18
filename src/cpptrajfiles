@@ -35,7 +35,6 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_GIST.cpp \
         Action_Grid.cpp \
         Action_GridFreeEnergy.cpp \
-        Action_Hbond.cpp \
         Action_HydrogenBond.cpp \
         Action_Image.cpp \
         Action_Jcoupling.cpp \
