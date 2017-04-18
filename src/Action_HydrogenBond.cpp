@@ -553,12 +553,18 @@ void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,i
   if (udonor) {
     // Index U-H .. V hydrogen bonds by solute H atom.
     hbidx = h_atom;
-    soluteres = (*CurrentParm_)[d_atom].ResNum();
+    if (bridgeByAtom_)
+      soluteres = h_atom;
+    else
+      soluteres = (*CurrentParm_)[d_atom].ResNum();
     solventres = (*CurrentParm_)[a_atom].ResNum();
   } else {
     // Index U .. H-V hydrogen bonds by solute A atom.
     hbidx = a_atom;
-    soluteres = (*CurrentParm_)[a_atom].ResNum();
+    if (bridgeByAtom_)
+      soluteres = a_atom;
+    else
+      soluteres = (*CurrentParm_)[a_atom].ResNum();
     solventres = (*CurrentParm_)[d_atom].ResNum();
   }
   solvent2solute_[solventres].insert( soluteres );
@@ -838,7 +844,11 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           for (std::set<int>::const_iterator res = bridge->second.begin();
                                              res != bridge->second.end(); ++res)
           {
-            int currentMol = (*CurrentParm_)[CurrentParm_->Res(*res).FirstAtom()].MolNum();
+            int currentMol;
+            if (bridgeByAtom_)
+              currentMol = (*CurrentParm_)[*res].MolNum();
+            else
+              currentMol = (*CurrentParm_)[CurrentParm_->Res(*res).FirstAtom()].MolNum();
             if ( firstmol == -1 )
               firstmol = currentMol;
             else if (currentMol == firstmol)
@@ -1248,7 +1258,10 @@ void Action_HydrogenBond::Print() {
   }
   // BRIDGING INFO
   if (bridgeout_ != 0 && calcSolvent_) {
-    bridgeout_->Printf("#Bridging Solute Residues:\n");
+    if (bridgeByAtom_)
+      bridgeout_->Printf("#Bridging Solute Atoms:\n");
+    else
+      bridgeout_->Printf("#Bridging Solute Residues:\n");
     // Place bridging values in a vector for sorting
     typedef std::vector<Bpair> Bvec;
     Bvec bridgevector;
@@ -1258,10 +1271,17 @@ void Action_HydrogenBond::Print() {
     std::sort( bridgevector.begin(), bridgevector.end(), bridge_cmp() );
     for (Bvec::const_iterator bv = bridgevector.begin(); bv != bridgevector.end(); ++bv)
     {
-      bridgeout_->Printf("Bridge Res");
-      for (std::set<int>::const_iterator res = bv->first.begin();
-                                         res != bv->first.end(); ++res)
-        bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
+      if (bridgeByAtom_) {
+        bridgeout_->Printf("Bridge Atm");
+        for (std::set<int>::const_iterator atm = bv->first.begin();
+                                           atm != bv->first.end(); ++atm)
+          bridgeout_->Printf(" %s", CurrentParm_->TruncAtomNameNum(*atm).c_str());
+      } else {
+        bridgeout_->Printf("Bridge Res");
+        for (std::set<int>::const_iterator res = bv->first.begin();
+                                           res != bv->first.end(); ++res)
+          bridgeout_->Printf(" %i:%s", *res+1, CurrentParm_->Res( *res ).c_str());
+      }
       bridgeout_->Printf(", %i frames.\n", bv->second);
     } 
   }
