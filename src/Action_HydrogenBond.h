@@ -213,10 +213,10 @@ class Action_HydrogenBond::Hbond {
 class Action_HydrogenBond::Bridge {
   public:
     /// Constructor - new bridge
-    Bridge() : frames_(1) {}
+    Bridge() : data_(0), frames_(1) {}
 #   ifdef MPI
     /// Constructor - new bridge with given # frames
-    Bridge(int f) : frames_(f) {}
+    Bridge(int f) : data_(0), frames_(f) {}
     /// Increment number of frames
     void Combine(int n) { frames_ += n; }
 #   endif
