@@ -389,33 +389,33 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     Both_.push_back( *site );
 
   // Print solute site stats
-  mprintf("    Acceptor-only atoms (%zu)\n", Acceptor_.size());
+  mprintf("\tAcceptor-only atoms: %zu\n", Acceptor_.size());
   if (debug_ > 0)
     for (Iarray::const_iterator at = Acceptor_.begin(); at != Acceptor_.end(); ++at)
-      mprintf("\t%20s %8i\n", setup.Top().TruncResAtomName(*at).c_str(), *at+1);
+      mprintf("\t  %20s %8i\n", setup.Top().TruncResAtomName(*at).c_str(), *at+1);
   unsigned int hcount = 0;
-  mprintf("    Donor/acceptor sites (%u)\n", bothEnd_);
+  mprintf("\tDonor/acceptor sites: %u\n", bothEnd_);
   Sarray::const_iterator END = Both_.begin() + bothEnd_;
   for (Sarray::const_iterator si = Both_.begin(); si != END; ++si) {
     hcount += si->n_hydrogens();
     if (debug_ > 0) {
-      mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
+      mprintf("\t  %20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
       for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
         mprintf(" %s", setup.Top()[*at].c_str());
       mprintf("\n");
     }
   }
-  mprintf("    Donor-only sites (%zu)\n", Both_.size() - bothEnd_);
+  mprintf("\tDonor-only sites: %zu\n", Both_.size() - bothEnd_);
   for (Sarray::const_iterator si = END; si != Both_.end(); ++si) {
     hcount += si->n_hydrogens();
     if (debug_ > 0) {
-      mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
+      mprintf("\t  %20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
       for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
         mprintf(" %s", setup.Top()[*at].c_str());
       mprintf("\n");
     }
   }
-  mprintf("    %u solute hydrogens.\n", hcount);
+  mprintf("\t%u solute hydrogens.\n", hcount);
 
   // For backwards compat. store donor/acceptor indices for determining data set index.
   if (series_) {
@@ -503,20 +503,20 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
 
     hcount = 0;
     unsigned int icount = 0;
-    mprintf("    Solvent sites (%zu)\n", SolventSites_.size());
+    mprintf("\tSolvent sites (%zu)\n", SolventSites_.size());
     for (Sarray::const_iterator si = SolventSites_.begin(); si != SolventSites_.end(); ++si) {
       if (si->IsIon())
         icount++;
       else
         hcount += si->n_hydrogens();
       if (debug_ > 0) {
-        mprintf("\t%20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
+        mprintf("\t  %20s %8i", setup.Top().TruncResAtomName(si->Idx()).c_str(), si->Idx()+1);
         for (Iarray::const_iterator at = si->Hbegin(); at != si->Hend(); ++at)
           mprintf(" %s", setup.Top()[*at].c_str());
         mprintf("\n");
       }
     }
-    mprintf("    %u solvent hydrogens, %u ions.\n", hcount, icount);
+    mprintf("\t%u solvent hydrogens, %u ions.\n", hcount, icount);
   }
 
   return Action::OK;
