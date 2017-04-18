@@ -710,27 +710,70 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
   // Loop over all solute donor sites
   t_uu_.Start();
   int numHB = 0;
-  int mol0 = -1;
   int sidx0;
   int sidx0end = (int)Both_.size();
-# ifdef _OPENMP
-  // Use numHB to track thread. Will be actually counted after the parallel section.
-# pragma omp parallel private(sidx0, numHB) firstprivate(mol0)
-  {
-  numHB = omp_get_thread_num();
-# pragma omp for
-# endif
-  for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
-  {
-    Site const& Site0 = Both_[sidx0];
-    const double* XYZ0 = frm.Frm().XYZ( Site0.Idx() );
-    if (noIntramol_)
-      mol0 = (*CurrentParm_)[Site0.Idx()].MolNum(); 
-    // Loop over solute sites that can be both donor and acceptor
-    for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
+  if (noIntramol_) {
+    // Ignore intramolecular hydrogen bonds
+    int mol0 = -1;
+#   ifdef _OPENMP
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(sidx0, numHB) firstprivate(mol0)
     {
-      Site const& Site1 = Both_[sidx1];
-      if (mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
+    numHB = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
+    {
+      Site const& Site0 = Both_[sidx0];
+      const double* XYZ0 = frm.Frm().XYZ( Site0.Idx() );
+      mol0 = (*CurrentParm_)[Site0.Idx()].MolNum(); 
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
+      {
+        Site const& Site1 = Both_[sidx1];
+        if (mol0 != (*CurrentParm_)[Site1.Idx()].MolNum()) {
+          const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
+          double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+          if ( !(dist2 > dcut2_) )
+          {
+            // Site 0 donor, Site 1 acceptor
+            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, Site1.Idx(), XYZ1, frm.Frm(), numHB);
+            // Site 1 donor, Site 0 acceptor
+            CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
+          }
+        }
+      }
+      // Loop over solute acceptor-only
+      for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+      {
+        if (mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+          const double* XYZ1 = frm.Frm().XYZ( *a_atom );
+          double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
+          if ( !(dist2 > dcut2_) )
+            CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
+        }
+      }
+    }
+#   ifdef _OPENMP
+    } // END pragma omp parallel, nointramol
+#   endif
+  } else {
+    // All hydrogen bonds
+#   ifdef _OPENMP
+    // Use numHB to track thread. Will be actually counted after the parallel section.
+#   pragma omp parallel private(sidx0, numHB)
+    {
+    numHB = omp_get_thread_num();
+#   pragma omp for
+#   endif
+    for (sidx0 = 0; sidx0 < sidx0end; sidx0++)
+    {
+      Site const& Site0 = Both_[sidx0];
+      const double* XYZ0 = frm.Frm().XYZ( Site0.Idx() );
+      // Loop over solute sites that can be both donor and acceptor
+      for (unsigned int sidx1 = sidx0 + 1; sidx1 < bothEnd_; sidx1++)
+      {
+        Site const& Site1 = Both_[sidx1];
         const double* XYZ1 = frm.Frm().XYZ( Site1.Idx() );
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
@@ -741,20 +784,21 @@ Action::RetType Action_HydrogenBond::DoAction(int frameNum, ActionFrame& frm) {
           CalcSiteHbonds(frameNum, dist2, Site1, XYZ1, Site0.Idx(), XYZ0, frm.Frm(), numHB);
         }
       }
-    }
-    // Loop over solute acceptor-only
-    for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
-    {
-      if (mol0 != (*CurrentParm_)[*a_atom].MolNum()) {
+      // Loop over solute acceptor-only
+      for (Iarray::const_iterator a_atom = Acceptor_.begin(); a_atom != Acceptor_.end(); ++a_atom)
+      {
         const double* XYZ1 = frm.Frm().XYZ( *a_atom );
         double dist2 = DIST2( XYZ0, XYZ1, Image_.ImageType(), frm.Frm().BoxCrd(), ucell_, recip_ );
         if ( !(dist2 > dcut2_) )
           CalcSiteHbonds(frameNum, dist2, Site0, XYZ0, *a_atom, XYZ1, frm.Frm(), numHB);
       }
     }
-  }
+#   ifdef _OPENMP
+    } // END pragma omp parallel
+#    endif
+  } // END if nointramol
+
 # ifdef _OPENMP
-  } // END pragma omp parallel
   // Add all found hydrogen bonds
   numHB = 0; 
   for (std::vector<Harray>::iterator it = thread_HBs_.begin(); it != thread_HBs_.end(); ++it) {
