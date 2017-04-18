@@ -6,7 +6,8 @@
 CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
            crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
-           ud.dat uh.dat ua.dat
+           ud.dat uh.dat ua.dat \
+           bridgeintermol.dat avgbridgeintermol.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
@@ -58,7 +59,7 @@ EOF
 # Imaged hbond test
 TestImage() {
   MaxThreads 1 "Hbond with imaging"
-  if [[ $? -eq 0 ]] ; then
+  if [ "$?" -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm strip.4lztSc_nowat.parm7
 trajin strip.4lztSc.rst7
@@ -109,12 +110,28 @@ EOF
   DoTest noacut.dat.save noacut.dat
 }
 
+BridgeIntermol() {
+  MaxThreads 2 "Hbond, Bridge nointramol test."
+  if [ "$?" -eq 0 ] ; then
+    cat > hbond.in <<EOF
+parm ../dna30.parm7
+trajin ../Test_AutoImage/split.duplex.nc
+hbond2 hb out bridgeintermol.dat avgout avgbridgeintermol.dat :1-60 \
+       solventacceptor :WAT@O solventdonor :WAT nointramol image
+EOF
+    RunCpptraj "Hbond, Bridge nointramol test."
+    DoTest bridgeintermol.dat.save bridgeintermol.dat
+    DoTest avgbridgeintermol.dat.save avgbridgeintermol.dat
+  fi
+}
+
 TestUU
 TestUV
 TestImage
 TestNointramol
 SpecifiedSoluteMask
 NoAngleCut
+#BridgeIntermol
 EndTest
 
 exit 0
