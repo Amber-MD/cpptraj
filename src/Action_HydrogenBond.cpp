@@ -36,7 +36,8 @@ Action_HydrogenBond::Action_HydrogenBond() :
   hasAcceptorMask_(false),
   hasSolventDonor_(false),
   calcSolvent_(false),
-  hasSolventAcceptor_(false)
+  hasSolventAcceptor_(false),
+  bridgeByAtom_(false)
 {}
 
 // void Action_HydrogenBond::Help()
@@ -45,7 +46,7 @@ void Action_HydrogenBond::Help() const {
           "\t[donormask <dmask> [donorhmask <dhmask>]] [acceptormask <amask>]\n"
           "\t[avgout <filename>] [printatomnum] [nointramol] [image]\n"
           "\t[solventdonor <sdmask>] [solventacceptor <samask>]\n"
-          "\t[solvout <filename>] [bridgeout <filename>]\n"
+          "\t[solvout <filename>] [bridgeout <filename>] [bridgebyatom]\n"
           "\t[series [uuseries <filename>] [uvseries <filename>]]\n"
           "  Hydrogen bond is defined as A-HD, where A is acceptor heavy atom, H is\n"
           "  hydrogen, D is donor heavy atom. Hydrogen bond is formed when\n"
@@ -86,6 +87,7 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
   useAtomNum_ = actionArgs.hasKey("printatomnum");
   acut_ = actionArgs.getKeyDouble("angle",135.0);
   noIntramol_ = actionArgs.hasKey("nointramol");
+  bridgeByAtom_ = actionArgs.hasKey("bridgebyatom");
   // Convert angle cutoff to radians
   acut_ *= Constants::DEGRAD;
   double dcut = actionArgs.getKeyDouble("dist",3.0);
@@ -191,10 +193,16 @@ Action::RetType Action_HydrogenBond::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\tWriting # Hbond v time results to %s\n", DF->DataFilename().full());
   if (avgout_ != 0)
     mprintf("\tWriting Hbond avgs to %s\n",avgout_->Filename().full());
-  if (calcSolvent_ && solvout_ != 0)
-    mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
-  if (calcSolvent_ && bridgeout_ != 0)
-    mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
+  if (calcSolvent_) {
+    if (solvout_ != 0)
+      mprintf("\tWriting solute-solvent hbond avgs to %s\n", solvout_->Filename().full());
+    if (bridgeout_ != 0)
+      mprintf("\tWriting solvent bridging info to %s\n", bridgeout_->Filename().full());
+    if (bridgeByAtom_)
+      mprintf("\tSolvent bridges will be determined between solute atoms.\n");
+    else
+      mprintf("\tSolvent bridges will be determined between solute residues.\n");
+  }
   if (useAtomNum_)
     mprintf("\tAtom numbers will be written to output.\n");
   if (series_) {

@@ -106,6 +106,7 @@ class Action_HydrogenBond : public Action {
     bool hasSolventDonor_;
     bool calcSolvent_;
     bool hasSolventAcceptor_;
+    bool bridgeByAtom_; ///< If true determine bridging by atom.
     // TODO replace with class
     typedef std::pair< std::set<int>,int > Bpair;
     /// \return true if first bridge has more frames than second.
