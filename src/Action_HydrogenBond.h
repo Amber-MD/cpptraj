@@ -59,7 +59,7 @@ class Action_HydrogenBond : public Action {
 
     UUmapType UU_Map_;
     UVmapType UV_Map_;
-    RmapType solvent2solute_; ///< Map solvent mol # to residues it is bound to each frame
+    RmapType solvent2solute_; ///< Map solvent res # to solute residues it is bound to each frame
     BmapType BridgeMap_; ///< Map residues involved in bridging to # frames bridge present
     IdxMapType DidxMap_; ///< Map solute hydrogen donor atom # to index (series only)
     IdxMapType AidxMap_; ///< Map solute acceptor atom # to index (series only).

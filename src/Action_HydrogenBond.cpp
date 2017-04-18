@@ -540,20 +540,20 @@ double Action_HydrogenBond::Angle(const double* XA, const double* XH, const doub
 // Action_HydrogenBond::AddUV()
 void Action_HydrogenBond::AddUV(double dist, double angle,int fnum, int a_atom,int h_atom,int d_atom,bool udonor)
 {
-  int hbidx, solventmol, soluteres;
+  int hbidx, solventres, soluteres;
   // TODO: Option to use solvent mol num?
   if (udonor) {
     // Index U-H .. V hydrogen bonds by solute H atom.
     hbidx = h_atom;
     soluteres = (*CurrentParm_)[d_atom].ResNum();
-    solventmol = (*CurrentParm_)[a_atom].ResNum();
+    solventres = (*CurrentParm_)[a_atom].ResNum();
   } else {
     // Index U .. H-V hydrogen bonds by solute A atom.
     hbidx = a_atom;
     soluteres = (*CurrentParm_)[a_atom].ResNum();
-    solventmol = (*CurrentParm_)[d_atom].ResNum();
+    solventres = (*CurrentParm_)[d_atom].ResNum();
   }
-  solvent2solute_[solventmol].insert( soluteres );
+  solvent2solute_[solventres].insert( soluteres );
   UVmapType::iterator it = UV_Map_.lower_bound( hbidx );
   if (it == UV_Map_.end() || it->first != hbidx)
   {
