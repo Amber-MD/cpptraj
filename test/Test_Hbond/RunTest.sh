@@ -5,7 +5,9 @@
 # Clean
 CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
-           crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat
+           crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
+           ud.dat uh.dat ua.dat \
+           bridgeintermol.dat avgbridgeintermol.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
@@ -19,14 +21,7 @@ trajin ../DPDP.nc
 hbond HB out nhb.dat avgout avghb.dat
 hbond BB out nbb.dat @N,H,C,O series avgout hbavg.dat printatomnum
 run
-#write solutehb.agr BB[solutehb]
-write solutehb.agr BB[solutehb]:24  BB[solutehb]:104 BB[solutehb]:414 \
-                   BB[solutehb]:422 BB[solutehb]:494 BB[solutehb]:652 \
-                   BB[solutehb]:184 BB[solutehb]:732 BB[solutehb]:342 \
-                   BB[solutehb]:352 BB[solutehb]:264 BB[solutehb]:262 \
-                   BB[solutehb]:424 BB[solutehb]:218 BB[solutehb]:66 \
-                   BB[solutehb]:188 BB[solutehb]:42  BB[solutehb]:86 \
-                   BB[solutehb]:794
+write solutehb.agr BB[solutehb] sort
 runanalysis lifetime BB[solutehb] out lifehb.gnu window 10
 EOF
   RunCpptraj "Solute Hbond test."
@@ -57,7 +52,7 @@ EOF
 # Imaged hbond test
 TestImage() {
   MaxThreads 1 "Hbond with imaging"
-  if [[ $? -eq 0 ]] ; then
+  if [ "$?" -eq 0 ] ; then
     cat > hbond.in <<EOF
 parm strip.4lztSc_nowat.parm7
 trajin strip.4lztSc.rst7
@@ -83,10 +78,53 @@ EOF
   DoTest mol.avg.dat.save mol.avg.dat
 }
 
+# Solute specified donor mask.
+SpecifiedSoluteMask() {
+  cat > hbond.in <<EOF
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+hbond UDmask donormask    @N=                        avgout ud.dat
+hbond UHmask donormask    @N&!:PRO,NHE donorhmask @H avgout uh.dat
+hbond UAmask acceptormask @O                         avgout ua.dat
+EOF
+  RunCpptraj "Hbond, specified solute masks."
+  DoTest ud.dat.save ud.dat
+  DoTest uh.dat.save uh.dat
+  DoTest ua.dat.save ua.dat
+}
+
+NoAngleCut() {
+  cat > hbond.in <<EOF
+parm ../DPDP.parm7
+trajin ../DPDP.nc
+hbond BB donormask :2-6@N acceptormask :9-13@O angle -1.0 dist 2.9 avgout noacut.dat
+EOF
+  RunCpptraj "Hbond, no angle cutoff test."
+  DoTest noacut.dat.save noacut.dat
+}
+
+BridgeIntermol() {
+  MaxThreads 2 "Hbond, Bridge nointramol test."
+  if [ "$?" -eq 0 ] ; then
+    cat > hbond.in <<EOF
+parm ../dna30.parm7
+trajin ../Test_AutoImage/split.duplex.nc
+hbond hb out bridgeintermol.dat avgout avgbridgeintermol.dat :1-60 \
+      solventacceptor :WAT@O solventdonor :WAT nointramol image
+EOF
+    RunCpptraj "Hbond, Bridge nointramol test."
+    DoTest bridgeintermol.dat.save bridgeintermol.dat
+    DoTest avgbridgeintermol.dat.save avgbridgeintermol.dat
+  fi
+}
+
 TestUU
 TestUV
 TestImage
 TestNointramol
+SpecifiedSoluteMask
+NoAngleCut
+BridgeIntermol
 EndTest
 
 exit 0

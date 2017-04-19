@@ -98,6 +98,10 @@ void DataSetList::Clear() {
   DataList_ = setsToKeep;
 }
 
+void DataSetList::Sort() {
+  std::sort( DataList_.begin(), DataList_.end(), DataSet::DS_PtrCmp() );
+}
+
 // DataSetList::Push_Back()
 void DataSetList::Push_Back(DataSet* ds) {
   DataList_.push_back( ds );
