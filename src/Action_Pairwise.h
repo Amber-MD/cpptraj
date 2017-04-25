@@ -26,6 +26,8 @@ class Action_Pairwise: public Action {
     typedef std::vector<double> Darray;
     enum EoutType {VDWOUT = 0, ELECOUT};
     enum PairCalcType { SET_REF, COMPARE_REF, NORMAL };
+    enum PrintModeType { ONLY_CUT = 0, OR_CUT, AND_CUT };
+    PrintModeType printMode_;  ///< Output print mode.
     PairCalcType nb_calcType_; ///< Type of nonbonded calc being performed
     AtomMask Mask0_;           ///< Calculate energy for atoms in mask
     AtomMask RefMask_;         ///< Reference mask
@@ -54,8 +56,6 @@ class Action_Pairwise: public Action {
     };
     /// Hold nonbond energy for each pair of atoms in reference
     std::vector<NonbondEnergyType> ref_nonbondEnergy_;
-    /// Hold cumulative LJ and elec energy for each atom
-    //std::vector<NonbondEnergyType> atom_nonbondEnergy;
 
     /// Count number of pairwise interactions that will actually be calcd.
     static int SetupNonbondParm(AtomMask const&, Topology const&);

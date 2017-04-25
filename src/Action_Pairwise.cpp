@@ -8,6 +8,7 @@
 
 // CONSTRUCTOR
 Action_Pairwise::Action_Pairwise() :
+  printMode_(ONLY_CUT),
   nb_calcType_(NORMAL),
   CurrentParm_(0),
   N_ref_interactions_(0),
@@ -25,14 +26,17 @@ Action_Pairwise::Action_Pairwise() :
 
 void Action_Pairwise::Help() const {
   mprintf("\t[<name>] [<mask>] [out <filename>] [cuteelec <ecut>] [cutevdw <vcut>]\n"
-          "\t[ %s ] [cutout <cut mol2 prefix>]\n"
-          "\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
-          "\t[eout <eout file>] [pdbout <pdb file>]\n"
+          "\t[ %s ] [cutout <cut mol2 prefix>]\n", DataSetList::RefArgs);
+  mprintf("\t[vmapout <vdw map>] [emapout <elec map>] [avgout <avg file>]\n"
+          "\t[eout <eout file>] [pdbout <pdb file>] [printmode {only|or|and}]\n"
           "  Calculate pairwise (non-bonded) energy for atoms in <mask>.\n"
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
           "  Eref - Eframe. Only energies with absolute value greater than <ecut> and\n"
-          "  <vcut> will be printed.\n" , DataSetList::RefArgs);
+          "  <vcut> will be printed.\n"
+          "  printmode only : Only print energy cutoff is satisfied.\n"
+          "            or   : Print both energies if either cutoff is satisfied.\n"
+          "            and  : Print both energies if both cutoffs are satisfied.\n");
 }
 
 const double Action_Pairwise::QFAC = Constants::ELECTOAMBER * Constants::ELECTOAMBER;
@@ -57,6 +61,17 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
   cut_evdw_ = fabs(actionArgs.getKeyDouble("cutevdw",1.0));
   mol2Prefix_ = actionArgs.GetStringKey("cutout");
   std::string pdbout = actionArgs.GetStringKey("pdbout");
+  printMode_ = ONLY_CUT;
+  std::string pmode = actionArgs.GetStringKey("printmode");
+  if (!pmode.empty()) {
+    if (pmode == "only") printMode_ = ONLY_CUT;
+    else if (pmode == "or") printMode_ = OR_CUT;
+    else if (pmode == "and") printMode_ = AND_CUT;
+    else {
+      mprinterr("Error: Unrecognized print mode: %s\n", pmode.c_str());
+      return Action::ERR;
+    }
+  }
   ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
   
   // Get Masks
@@ -479,6 +494,7 @@ Action::RetType Action_Pairwise::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+// Action_Pairwise::Print()
 void Action_Pairwise::Print() {
   if (nframes_ < 1) return;
   // Divide matrices by # of frames
@@ -508,13 +524,27 @@ void Action_Pairwise::Print() {
       double EE = eleMat_->GetElement(idx1, idx2);
       bool outputv = ( fabs(EV) > cut_evdw_ );
       bool outpute = ( fabs(EE) > cut_eelec_ );
-      if (outputv || outpute) {
-        AvgOut.Printf("%16s %5i -- %16s %5i :",
-                CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
-                CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1);
-        if (outputv) AvgOut.Printf("  EVDW= %12.5e", EV);
-        if (outpute) AvgOut.Printf(" EELEC= %12.5e", EE);
-        AvgOut.Printf("\n");
+      if (printMode_ == ONLY_CUT) {
+        if (outputv || outpute) {
+          AvgOut.Printf("%16s %5i -- %16s %5i :",
+                  CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
+                  CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1);
+          if (outputv) AvgOut.Printf("  EVDW= %12.5e", EV);
+          if (outpute) AvgOut.Printf(" EELEC= %12.5e", EE);
+          AvgOut.Printf("\n");
+        }
+      } else if (printMode_ == OR_CUT) {
+        if (outputv || outpute)
+          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+                        CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
+                        CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
+                        EV, EE);
+      } else if (printMode_ == AND_CUT) {
+        if (outputv && outpute)
+          AvgOut.Printf("%16s %5i -- %16s %5i :  EVDW= %12.5e EELEC= %12.5e\n",
+                        CurrentParm_->TruncResAtomName(m1).c_str(), m1 + 1,
+                        CurrentParm_->TruncResAtomName(m2).c_str(), m2 + 1,
+                        EV, EE);
       }
     }
   }
