@@ -516,6 +516,18 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       }
     }
   }
+  // If not including extra points, warn if topology has them.
+  if (!include_ep_) {
+    unsigned int n_not_included = 0;
+    for (int aidx = 0; aidx != trajParm->Natom(); aidx++)
+      if ((*trajParm)[aidx].Element() == Atom::EXTRAPT) ++n_not_included;
+    if (n_not_included > 0)
+      mprintf("Warning: Topology '%s' has %u extra points\n"
+              "Warning:   that will not be included in output PDB.\n"
+              "Warning: To include them, specify 'include_ep'. Otherwise, use output PDB as\n"
+              "Warning:   topology or create a new topology with 'strip' or 'parmstrip'.\n",
+              trajParm->c_str(), n_not_included);
+  }
   firstframe_ = true;
   return 0;
 }
