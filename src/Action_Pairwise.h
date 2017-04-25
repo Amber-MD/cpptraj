@@ -57,8 +57,8 @@ class Action_Pairwise: public Action {
     /// Hold cumulative LJ and elec energy for each atom
     //std::vector<NonbondEnergyType> atom_nonbondEnergy;
 
-    /// Set up nonbondParm for given Parm and atoms in mask
-    int SetupNonbondParm(AtomMask const&, Topology const&);
+    /// Count number of pairwise interactions that will actually be calcd.
+    static int SetupNonbondParm(AtomMask const&, Topology const&);
     /// Write energies to file
     inline void WriteEnergies(Topology const&, int, int, double, double, const char*);
     /// Calculate nonbond energy using nonbondParm for given frame
