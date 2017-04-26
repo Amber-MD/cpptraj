@@ -29,18 +29,20 @@ matrix:
 
 before_install:
   - set -e
+  - export AMBERTOOLS=ambertools-17.0-0.tar.bz2
+  - export AMBERHOME=$HOME
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew tap homebrew/science;
       brew update;
       brew install netcdf fftw;
-      curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
-      tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
+      curl -L http://ambermd.org/downloads/ambertools-rc/conda/osx-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.dylib include/sander.h --wildcards dat/*;
       shell_session_update() { echo "Overriding shell_session_update"; };
     else
-      curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
-      tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
+      curl -L http://ambermd.org/downloads/ambertools-rc/conda/linux-64/$AMBERTOOLS > $HOME/$AMBERTOOLS;
+      tar jxf $HOME/$AMBERTOOLS lib/libsander.so include/sander.h  --wildcards dat/* ;
     fi
-  - mv lib include $HOME
+  - mv lib include dat $HOME
 
 install:
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
