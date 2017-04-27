@@ -21,6 +21,11 @@ class Analysis_CurveFit : public Analysis {
     DataSet* dset_;     ///< DataSet to fit.
     DataSet* finalY_;   ///< Final output DataSet.
     typedef std::vector<double> Darray;
+    std::vector<DataSet*> A_param_sets_; ///< Hold final equation parameters.
+    DataSet* set_corr_; ///< Hold correlation coefficient.
+    DataSet* set_chi_;  ///< Hold chi-squared.
+    DataSet* set_unc_;  ///< Hold uncertainty.
+    DataSet* set_rms_;  ///< Hold RMS percent error.
     Darray Params_;     ///< Equation parameters.
     double tolerance_;  ///< Curve fit tolerance.
     double outXmin_;    ///< Output X min.

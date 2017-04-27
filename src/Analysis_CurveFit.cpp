@@ -296,6 +296,15 @@ Analysis::RetType Analysis_CurveFit::Internal_setup(std::string const& suffixIn,
   finalY_ = DSLin.AddSet(DataSet::XYMESH, dsoutName, "FIT");
   if (finalY_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( finalY_ );
+  // Set up parameter data sets
+  A_param_sets_.reserve( Params_.size() );
+  for (int ia = 0; ia != (int)Params_.size(); ia++)
+    A_param_sets_.push_back(DSLin.AddSet(DataSet::DOUBLE,
+                                         MetaData(dsoutName,"A"+integerToString(ia))));
+  set_corr_ = DSLin.AddSet(DataSet::DOUBLE,MetaData(dsoutName,"corr"));
+  set_chi_  = DSLin.AddSet(DataSet::DOUBLE,MetaData(dsoutName,"chi"));
+  set_unc_  = DSLin.AddSet(DataSet::DOUBLE,MetaData(dsoutName,"uncertainty"));
+  set_rms_  = DSLin.AddSet(DataSet::DOUBLE,MetaData(dsoutName,"rms"));
 
   mprintf("    CURVEFIT: Fitting set '%s' to equation '%s'\n",
           dset_->legend(), equation_.c_str());
@@ -396,8 +405,11 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
     HASH_TAB = "#";
   Results_->Printf("%sFit equation '%s' to set '%s'\n", HASH_TAB, 
                    equation_.c_str(), dset_->legend());
-  for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip)
+  int ia = 0;
+  for (Darray::const_iterator ip = Params_.begin(); ip != Params_.end(); ++ip, ++ia) {
     Results_->Printf("%sFinal Param A%u = %g\n", HASH_TAB, ip - Params_.begin(), *ip);
+    A_param_sets_[ia]->Add(0, &(*ip));
+  }
 
   // Construct output data.
   DataSet_Mesh& Yout = static_cast<DataSet_Mesh&>( *finalY_ );
@@ -433,6 +445,10 @@ Analysis::RetType Analysis_CurveFit::Analyze() {
                  "%sUncertainty coefficient: %g\n%sRMS percent error: %g\n",
                  HASH_TAB, corr_coeff, HASH_TAB, ChiSq, 
                  HASH_TAB, TheilU, HASH_TAB, rms_percent_error);
+  set_corr_->Add(0, &corr_coeff);
+  set_chi_->Add( 0, &ChiSq     );
+  set_unc_->Add( 0, &TheilU    );
+  set_rms_->Add( 0, &rms_percent_error);
 
   // Stats specific to multi-exp forms.
   if (nexp_ > 0) {
