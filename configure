@@ -1330,7 +1330,7 @@ elif [[ $PROFILE -eq 3 ]] ; then
 fi
 
 # Use cray wrappers
-if [[ $USECRAY -eq 1 ]] ; then
+if [ $USECRAY -eq 1 ] ; then
   CC=cc
   CXX=CC
   FC=ftn
@@ -1342,7 +1342,7 @@ if [[ $STATIC -eq 1 ]]; then
 fi
 
 # Test compilers (if we are not cross-compiling)
-if [[ "$CROSS_COMPILE" = "no" ]]; then
+if [ "$CROSS_COMPILE" = "no" ] ; then
   echo ""
   if [ "$SKIP_CHECKS" = 'no' ] ; then
     TestCompile
