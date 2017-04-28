@@ -9,6 +9,7 @@ void Analysis_TI::Help() const {
           "  Calculate free energy from Amber TI output.\n");
 }
 
+// Analysis_TI::SetQuadAndWeights()
 int Analysis_TI::SetQuadAndWeights(int nq) {
   if (nq < 1) return 0;
   xval_.resize(nq);
@@ -77,6 +78,7 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
 // Analysis_TI::Setup()
 Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
+  debug_ = debugIn;
   int nq = analyzeArgs.getKeyInt("nq", 0);
   ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
   if (nskipArg.empty())
@@ -192,7 +194,8 @@ Analysis::RetType Analysis_TI::Analyze() {
     // Store average DV/DL for each value of skip
     for (unsigned int j = 0; j != nskip_.size(); j++) {
       avg[j] /= Npoints[j];
-      //mprintf("\t<DV/DL>=%g\n", avg);
+      if (debug_ > 0)
+        mprintf("\t%s Skip= %i <DV/DL>= %g\n", ds.legend(), nskip_[j], avg[j]);
       DataSet_Mesh& CR = static_cast<DataSet_Mesh&>( *(curve_[j]) );
       CR.AddXY(xval_[idx], avg[j]);
       if (mode_ == GAUSSIAN_QUAD)
@@ -206,6 +209,7 @@ Analysis::RetType Analysis_TI::Analyze() {
       sum[j] = CR.Integrate_Trapezoid();
     }
   }
+  DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
   for (unsigned int j = 0; j != nskip_.size(); j++)
     DA.AddXY(nskip_[j], sum[j]);
 
