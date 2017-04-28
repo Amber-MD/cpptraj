@@ -753,12 +753,6 @@ while [[ ! -z $1 ]] ; do
       PNETCDF_HOME="$VALUE"
       PNETCDFLIB="-lpnetcdf"
       echo "Using parallel NetCDF in $PNETCDF_HOME"
-      if [[ $USEMPI -eq 0 ]] ; then
-        echo ""
-        echo "Warning: '-lpnetcdf' specified but MPI not specified. Assuming '-mpi'"
-        echo ""
-        USEMPI=1
-      fi
       ;;
     "--with-blas" )
       INCLUDE="$INCLUDE -I$VALUE/include"
@@ -901,18 +895,20 @@ fi
 #fi
 
 # OpenBLAS
-if [[ $USEOPENBLAS -eq 1 ]] ; then
+if [ $USEOPENBLAS -eq 1 ] ; then
   BLAS="-lopenblas"
   LAPACK=""
 fi
 
-# Only use parallel NETCDF with MPI
-if [[ ! -z $PNETCDFLIB ]] ; then
-  if [[ $USEMPI -eq 0 ]] ; then
-    echo "Warning: Parallel NetCDF only supported with '-mpi'/'-intelmpi'"
-    PNETCDFLIB=""
-    PNETCDF_HOME=""
-  else
+# If parallel NetCDF specified, ensure MPI is active. 
+if [ ! -z "$PNETCDFLIB" ] ; then
+  if [ $USEMPI -eq 0 ] ; then
+    echo ""
+    echo "Warning: '-lpnetcdf' specified but MPI not specified. Assuming '-mpi'"
+    echo ""
+    USEMPI=1
+  fi
+  if [ ! -z "$PNETCDF_HOME" ] ; then
     INCLUDE="$INCLUDE -I$PNETCDF_HOME/include"
   fi
 fi
@@ -1122,12 +1118,12 @@ elif [[ ! -z `echo $PLATFORM | grep -i cygwin` ]] ; then
 fi
 
 # Change to MPI compiler wrappers if specified
-if [[ $USEMPI -ne 0 ]] ; then
-  if [[ "$WINDOWS" = "yes" ]]; then
+if [ $USEMPI -ne 0 ] ; then
+  if [ "$WINDOWS" = "yes" ] ; then
     echo "MPI not currently supported on Windows"
     exit 1
   fi
-  if [[ -z $PNETCDFLIB ]] ; then
+  if [ -z "$PNETCDFLIB" ] ; then
     echo "************************************************************************"
     echo "* Warning: No parallel NetCDF library specified.                       *"
     echo "* Warning: NetCDF parallel trajectory output requires parallel NetCDF. *"
@@ -1135,16 +1131,34 @@ if [[ $USEMPI -ne 0 ]] ; then
   fi
   DIRECTIVES="$DIRECTIVES -DMPI"
   SFX=$SFX".MPI"
-  if [[ $USEMPI -eq 1 ]] ; then
+  if [ "$USEMPI" -eq 1 ] ; then
     echo "Using MPI"
-    CC=mpicc
-    CXX=mpicxx
-    FC=mpif90
-  elif [[ $USEMPI -eq 2 ]] ; then
+    mpi_cc='mpicc'
+    mpi_cxx='mpicxx'
+    mpi_f90='mpif90'
+  elif [ "$USEMPI" -eq 2 ] ; then
     echo "Using Intel MPI"
-    CC=mpiicc
-    CXX=mpiicpc
-    FC=mpiifort
+    mpi_cc='mpiicc'
+    mpi_cxx='mpiicpc'
+    mpi_f90='mpiifort'
+  fi
+  if [ -z "$MPICC" ] ; then
+    CC=$mpi_cc
+  else
+    echo "MPI C compiler (MPICC) set to $MPICC"
+    CC=$MPICC
+  fi
+  if [ -z "$MPICXX" ] ; then
+    CXX=$mpi_cxx
+  else
+    echo "MPI C++ compiler (MPICXX) set to $MPICXX"
+    CXX=$MPICXX
+  fi
+  if [ -z "$MPIF90" ] ; then
+    FC=$mpi_f90
+  else
+    echo "MPI Fortran compiler (MPIF90) set to $MPIF90"
+    FC=$MPIF90
   fi
   # Older Intel compilers have a problem with the order of stdio vs mpi
   cat > testp.cpp <<EOF
