@@ -1443,12 +1443,48 @@ if [ ! -e "$CPPTRAJLIB" ] ; then
   mkdir $CPPTRAJLIB
 fi
 
+# Create a resource file. If SKIP_CHECKS is 'yes' assume we are in
+# AmberTools, no resource file needed.
+RFILE=''
+if [ "$SKIP_CHECKS" = 'no' ] ; then
+  if [ -z "`echo $SHELL | grep csh`" ] ; then
+    # We have a sane shell
+    RFILE=$CPPTRAJHOME/cpptraj.sh
+    cat > $RFILE <<EOF
+export CPPTRAJHOME="$CPPTRAJHOME"
+export PATH=$CPPTRAJBIN:\${PATH}
+EOF
+    if [ "$PLATFORM" != "Darwin" ] ; then
+      echo "export LD_LIBRARY_PATH=$CPPTRAJLIB:\${LD_LIBRARY_PATH}" >> $RFILE
+    fi
+  else
+    # C-shell - blech
+    RFILE=$CPPTRAJHOME/cpptraj.csh
+    cat > $RFILE <<EOF
+setenv CPPTRAJHOME "$CPPTRAJHOME"
+setenv PATH "$CPPTRAJBIN:\${PATH}"
+EOF
+    if [ "$PLATFORM" != "Darwin" ] ; then
+      echo "setenv LD_LIBRARY_PATH \"$CPPTRAJLIB:\${LD_LIBRARY_PATH}\"" >> $RFILE
+    fi
+  fi
+fi
+
 # Clean the source directory if necessary.
 if [ "$CLEAN" = 'yes' ] ; then
   echo 'Cleaning source directory.'
   cd src && make clean > /dev/null 2> /dev/null
 fi
 
-echo "CPPTRAJ configuration complete."
-echo ""
+if [ ! -z "$RFILE" ] ; then
+  echo ""
+  echo "--------------------------------------------------------------------------------"
+  echo "An environment resource file for CPPTRAJ has been created:"
+  echo "  $RFILE"
+  echo "You may 'source' this file to set up your environment for CPPTRAJ."
+  echo "--------------------------------------------------------------------------------"
+  echo ""
+  echo "CPPTRAJ configuration complete."
+  echo ""
+fi
 exit 0
