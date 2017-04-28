@@ -2,6 +2,7 @@
 #define INC_DATASET_MESH_H
 #include <vector>
 #include "DataSet_1D.h"
+#include "Spline.h"
 /// Hold a mesh of X-Y values
 class DataSet_Mesh : public DataSet_1D {
   public:
@@ -11,9 +12,11 @@ class DataSet_Mesh : public DataSet_1D {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Mesh();            }
     void Resize(size_t n)   { mesh_x_.resize(n, 0.0); mesh_y_.resize(n, 0.0); }
     // ----- DataSet functions -------------------
-    size_t Size()            const { return mesh_x_.size();     }
-    int Sync()                     { return 0;                  }
-    void Info()              const { return;                    }
+    size_t Size()                       const { return mesh_x_.size();     }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
+    void Info()                         const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );
     void WriteBuffer(CpptrajFile&, SizeArray const&) const;
@@ -48,15 +51,10 @@ class DataSet_Mesh : public DataSet_1D {
     /// Calculate single exponential regression via log and linear regression.
     int SingleExpRegression(double&, double&, double&, CpptrajFile*);
   private:
-    void cubicSpline_coeff(std::vector<double> const&, std::vector<double> const&);
-    void cubicSpline_eval(std::vector<double> const&, std::vector<double> const&);
-
     std::vector<double> mesh_x_;
     std::vector<double> mesh_y_;
-    // Cubic spline coefficients.
-    std::vector<double> b;
-    std::vector<double> c;
-    std::vector<double> d;
+    // Cubic spline coefficients. TODO Split out completely?
+    Spline cspline_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 void DataSet_Mesh::AddXY(double x, double y) {

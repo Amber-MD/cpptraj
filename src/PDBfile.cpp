@@ -45,6 +45,9 @@ bool PDBfile::IsPDBkeyword(std::string const& recname) {
   if (recname.compare(0,5,"ORIGX" )==0) return true; // ORIGXn
   if (recname.compare(0,5,"MTRIX" )==0) return true; // MTRIXn
   if (recname.compare(0,9,"USER  MOD")==0) return true; // reduce
+  // Bookkeeping Section
+  if (recname.compare(0,6,"MASTER")==0) return true;
+  if (recname.compare(0,3,"END"   )==0) return true;
   return false;
 }
 
@@ -56,7 +59,7 @@ bool PDBfile::ID_PDB(CpptrajFile& fileIn) {
   std::string line2 = fileIn.GetLine();
   fileIn.CloseFile();
   if (!IsPDBkeyword( line1 )) return false;
-  if (!IsPDBkeyword( line2 )) return false;
+  if (!line2.empty() && !IsPDBkeyword( line2 )) return false;
   return true;
 }
 
@@ -150,12 +153,26 @@ void PDBfile::pdb_XYZ(double *Xout) {
   linebuffer_[54] = savechar;
 }
 
+// PDBfile::pdb_OccupancyAndBfactor()
 void PDBfile::pdb_OccupancyAndBfactor(float& occ, float& bfac) {
-  // Occupancy (54-59) | charge
-  // B-factor (60-65) | radius
-  // NOTE: sscanf is used here since occupancy and B-factor could be different
-  //       widths if this is a PQR file - potentially bad?
-  sscanf(linebuffer_+54, "%f %f", &occ, &bfac);
+  // Occupancy (54-60)
+  char savechar = linebuffer_[60];
+  linebuffer_[60] = '\0';
+  occ = atof(linebuffer_ + 54);
+  linebuffer_[60] = savechar;
+  // B-factor (60-66)
+  savechar = linebuffer_[66];
+  linebuffer_[66] = '\0';
+  bfac = atof(linebuffer_ + 60);
+  linebuffer_[66] = savechar;
+}
+  
+/** Read charge and radius from PQR file (where occupancy and B-factor would be
+  * in a PDB). Use sscanf() since these columns could have different widths.
+  * Could fail if reading a PDB with values > 99.99 in B-factor column.
+  */
+void PDBfile::pdb_ChargeAndRadius(float& charge, float& radius) {
+  sscanf(linebuffer_+54, "%f %f", &charge, &radius);
 }
 
 void PDBfile::pdb_Box(double* box) {
@@ -220,16 +237,16 @@ int PDBfile::pdb_Bonds(int* bnd) {
 // PDBfile::WriteRecordHeader()
 void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& name,
                                 char altLoc, NameType const& resnameIn, char chain, 
-                                int resnum, char icode)
+                                int resnum, char icode, const char* Elt)
 {
   char resName[5], atomName[5];
 
   resName[4]='\0';
   atomName[4]='\0';
   // Residue number in PDB format can only be 4 digits wide
-  while (resnum>9999) resnum-=9999;
+  if (resnum > 9999) resnum = resnum % 10000;
   // Atom number in PDB format can only be 5 digits wide
-  while (anum>99999) anum-=99999;
+  if (anum > 99999) anum = anum % 100000;
   // Residue names in PDB format are 3 chars long, right-justified, starting
   // at column 18, while the alternate location indicator is column 17. 
   // However in Amber residues can be 4 characters long; in this case overwrite
@@ -245,13 +262,18 @@ void PDBfile::WriteRecordHeader(PDB_RECTYPE Record, int anum, NameType const& na
   int rn_idx = 3;
   for (int i = rn_size - 1; i > -1; i--, rn_idx--)
     resName[rn_idx] = resnameIn[i];
-  // Atom names in PDB format start from col 14 when <= 3 chars, 13 when 4 chars.
-  if (name[3]!=' ') { // 4 chars
+  // Determine size in characters of element name if given.
+  int eNameChars = 0;
+  if (Elt != 0) eNameChars = strlen( Elt );
+  // For atoms with element names of 1 character, names in PDB format start
+  // from col 14 when <= 3 chars, 13 when 4 chars. Atoms with element names of
+  // 2 characters start from col 13.
+  if (eNameChars == 2 || name[3] != ' ') { // 4 chars or 2 char elt name
     atomName[0] = name[0];
     atomName[1] = name[1];
     atomName[2] = name[2];
     atomName[3] = name[3];
-  } else {            // <= 3 chars
+  } else {            // <= 3 chars or 1 char elt name
     atomName[0] = ' ';
     atomName[1] = name[0];
     atomName[2] = name[1];
@@ -311,7 +333,7 @@ void PDBfile::WriteCoord(PDB_RECTYPE Record, int anum, NameType const& name,
                          double X, double Y, double Z, float Occ, float B, 
                          const char* Elt, int charge, bool highPrecision) 
 {
-  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode);
+  WriteRecordHeader(Record, anum, name, altLoc, resnameIn,  chain, resnum, icode, Elt);
   if (highPrecision)
     Printf("   %8.3f%8.3f%8.3f%8.4f%8.4f      %2s%2s\n", X, Y, Z, Occ, B, Elt, "");
   else
@@ -323,8 +345,8 @@ void PDBfile::WriteANISOU(int anum, NameType const& name,
                           NameType const& resnameIn, char chain, int resnum,
                           int u11, int u22, int u33, int u12, int u13, int u23,
                           const char* Elt, int charge)
-{
-  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' '); // TODO icode, altLoc
+{ // TODO icode, altLoc
+  WriteRecordHeader(ANISOU, anum, name, ' ', resnameIn, chain, resnum, ' ', Elt);
   Printf(" %7i%7i%7i%7i%7i%7i      %2s%2i\n", u11, u22, u33, 
          u12, u13, u23, Elt, charge);
 }
@@ -384,6 +406,65 @@ void PDBfile::WriteCONECT(int atnum, std::vector<int> const& atrec, Atom const& 
   }
 }
 
+/** This version is primarily intended for writing CONECT for disulfides. */
+void PDBfile::WriteCONECT(int atnum1, int atnum2) {
+  Printf("CONECT%5i%5i\n", atnum1, atnum2);
+}
+
+void PDBfile::WriteSSBOND(int num, SSBOND const& ss, float distIn) {
+  // TODO: SymOp
+  //Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6i %6i %5.2f\n", num,
+  Printf("SSBOND %3i %3s %c %4i%c   %3s %c %4i%c                       %6s %6s %5.2f\n", num,
+         ss.name1(), ss.Chain1(), ss.Rnum1(), ss.Icode1(),
+         ss.name2(), ss.Chain2(), ss.Rnum2(), ss.Icode2(), "", "", distIn);
+}
+
 void PDBfile::WriteENDMDL() { Printf("ENDMDL\n"); }
 
 void PDBfile::WriteEND()    { Printf("END   \n"); }
+// -----------------------------------------------------------------------------
+PDBfile::SSBOND::SSBOND() :
+  idx1_(-1), idx2_(-1), rnum1_(-1), rnum2_(-1), 
+  chain1_(' '), chain2_(' '), icode1_(' '), icode2_(' ')
+{
+  std::fill(name1_, name1_+4, '\0');
+  std::fill(name2_, name1_+4, '\0');
+}
+
+PDBfile::SSBOND::SSBOND(int idx1, int idx2, Residue const& r1, Residue const& r2) :
+  idx1_(  idx1),                idx2_(  idx2),
+  rnum1_( r1.OriginalResNum()), rnum2_( r2.OriginalResNum()),
+  chain1_(r1.ChainID()),        chain2_(r2.ChainID()),
+  icode1_(r1.Icode()),          icode2_(r2.Icode())
+{
+  std::copy(r1.c_str(), r1.c_str()+3, name1_);
+  name1_[3] = '\0';
+  std::copy(r2.c_str(), r2.c_str()+3, name2_);
+  name2_[3] = '\0';
+}
+
+PDBfile::SSBOND::SSBOND(SSBOND const& rhs) :
+  idx1_(  rhs.idx1_),   idx2_(  rhs.idx2_),
+  rnum1_( rhs.rnum1_),  rnum2_( rhs.rnum2_),
+  chain1_(rhs.chain1_), chain2_(rhs.chain2_),
+  icode1_(rhs.icode1_), icode2_(rhs.icode2_)
+{
+  std::copy(rhs.name1_, rhs.name1_+4, name1_);
+  std::copy(rhs.name2_, rhs.name2_+4, name2_);
+}
+
+PDBfile::SSBOND PDBfile::SSBOND::operator=(SSBOND const& rhs) {
+  if (this != &rhs) {
+    idx1_ = rhs.idx1_;
+    idx2_ = rhs.idx2_;
+    rnum1_ = rhs.rnum1_;
+    rnum2_ = rhs.rnum2_;
+    chain1_ = rhs.chain1_;
+    chain2_ = rhs.chain2_;
+    icode1_ = rhs.icode1_;
+    icode2_ = rhs.icode2_;
+    std::copy(rhs.name1_, rhs.name1_+3, name1_);
+    std::copy(rhs.name2_, rhs.name2_+3, name2_);
+  }
+  return *this;
+}

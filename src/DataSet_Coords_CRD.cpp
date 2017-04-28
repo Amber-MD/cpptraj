@@ -43,3 +43,24 @@ void DataSet_Coords_CRD::Info() const {
           ByteString(sizeInBytes(coords_.size(), top_.Natom(), numBoxCrd_), BYTE_DECIMAL).c_str());
   CommonInfo();
 }
+
+#ifdef MPI
+int DataSet_Coords_CRD::Sync(size_t total, std::vector<int> const& rank_frames,
+                             Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
+    // Resize for total number of frames.
+    coords_.resize( total, std::vector<float>( numCrd_+numBoxCrd_ ) );
+    int cidx = rank_frames[0]; // Index on master
+    // Receive data from each rank
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, cidx++)
+        commIn.SendMaster( &(coords_[cidx][0]), numCrd_+numBoxCrd_, rank, MPI_FLOAT );
+    }
+  } else // Send data to master
+    for (unsigned int ridx = 0; ridx != coords_.size(); ++ridx)
+      commIn.SendMaster( &(coords_[ridx][0]), numCrd_+numBoxCrd_, commIn.Rank(), MPI_FLOAT );
+  return 0;
+}
+#endif

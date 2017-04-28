@@ -6,6 +6,13 @@
 // CONSTRUCTOR
 HistBin::HistBin() : max_(0.0), bins_(-1) {}
 
+HistBin::HistBin(int b, double m, double s, std::string const& l) :
+  Dimension(m, s, l),
+  bins_(b)
+{
+  max_ = (Step() * (double)bins_) + Min();
+}
+
 // COPY CONSTRUCTOR
 HistBin::HistBin(const HistBin& rhs) : Dimension(rhs), max_(rhs.max_), bins_(rhs.bins_) {}
 

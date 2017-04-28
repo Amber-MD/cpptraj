@@ -5,7 +5,7 @@
 class Analysis_TI : public Analysis {
     enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
   public:
-    Analysis_TI() : nskip_(0), dAout_(0), mode_(GAUSSIAN_QUAD) {}
+    Analysis_TI() : Analysis(HIDDEN), nskip_(0), dAout_(0), mode_(GAUSSIAN_QUAD) {}
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_TI(); }
     void Help() const;
 

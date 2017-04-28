@@ -2,6 +2,7 @@
 #include <cstdlib> // atoi, atof
 #include <cstring> // strchr
 #include <cctype>  // isdigit, isalpha
+#include <cmath>   // modf TODO put function in StringRoutines?
 #include "DataIO_Std.h"
 #include "CpptrajStdio.h" 
 #include "StringRoutines.h" // SetStringFormatString
@@ -11,8 +12,9 @@
 #include "DataSet_string.h" // For reading TODO remove dependency?
 #include "DataSet_Vector.h" // For reading TODO remove dependency?
 #include "DataSet_Mat3x3.h" // For reading TODO remove dependency?
-#include "DataSet_MatrixDbl.h" // For reading TODO remove dependency?
+#include "DataSet_2D.h"
 #include "DataSet_3D.h"
+#include "DataSet_Cmatrix.h"
 
 // CONSTRUCTOR
 DataIO_Std::DataIO_Std() :
@@ -239,15 +241,7 @@ int DataIO_Std::Read_2D(std::string const& fname,
     mprinterr("Error: No data detected in %s\n", buffer.Filename().full());
     return 1;
   }
-  DataSet* ds = datasetlist.AddSet(DataSet::MATRIX_DBL, dsname, "Mat");
-  if (ds == 0) return 1;
-  //ds->SetupMeta().SetScalarType( MetaData::DIST ); // TODO: FIXME Allow type keywords
-  DataSet::SizeArray dims(2);
-  dims[0] = ncols;
-  dims[1] = nrows;
-  ds->Allocate( dims );
-  DataSet_MatrixDbl& Mat = static_cast<DataSet_MatrixDbl&>( *ds );
-  std::copy( matrixArray.begin(), matrixArray.end(), Mat.begin() );
+  if ( DetermineMatrixType( matrixArray, nrows, ncols, datasetlist, dsname )==0 ) return 1;
 
   return 0;
 }
@@ -399,11 +393,11 @@ int DataIO_Std::processWriteArgs(ArgList &argIn) {
 
 // WriteNameToBuffer()
 void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label,
-                                   int width,  bool leftAlign) 
+                                   int width,  bool isLeftCol)
 {
   std::string temp_name = label;
   // If left aligning, add '#' to name; 
-  if (leftAlign) {
+  if (isLeftCol) {
     if (temp_name[0]!='#') {
       temp_name.insert(0,"#");
       // Ensure that name will not be larger than column width.
@@ -421,7 +415,7 @@ void DataIO_Std::WriteNameToBuffer(CpptrajFile& fileIn, std::string const& label
   else {
     // Set up header format string
     TextFormat::AlignType align;
-    if (leftAlign)
+    if (isLeftCol)
       align = TextFormat::LEFT;
     else
       align = TextFormat::RIGHT;
@@ -439,7 +433,10 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
     CpptrajFile file;
     if (file.OpenWrite( fname )) return 1;
     // Base write type off first data set dimension FIXME
-    if (SetList[0]->Ndim() == 1) {
+    if (SetList[0]->Group() == DataSet::CLUSTERMATRIX) {
+      // Special case of 2D - may have sieved frames.
+      err = WriteCmatrix(file, SetList);
+    } else if (SetList[0]->Ndim() == 1) {
       if (isInverted_)
         err = WriteDataInverted(file, SetList);
       else
@@ -453,6 +450,42 @@ int DataIO_Std::WriteData(FileName const& fname, DataSetList const& SetList)
   return err;
 }
 
+// DataIO_Std::WriteCmatrix()
+int DataIO_Std::WriteCmatrix(CpptrajFile& file, DataSetList const& Sets) {
+  for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds)
+  {
+    if ( (*ds)->Group() != DataSet::CLUSTERMATRIX) {
+      mprinterr("Error: Write of cluster matrix and other sets to same file not supported.\n"
+                "Error: Skipping '%s'\n", (*ds)->legend());
+      continue;
+    }
+    DataSet_Cmatrix const& cm = static_cast<DataSet_Cmatrix const&>( *(*ds) );
+    int nrows = cm.Nrows();
+    int col_width = std::min(3, DigitWidth( nrows ) + 1);
+    int dat_width = std::max(cm.Format().Width(), (int)cm.Meta().Legend().size()) + 1;
+    WriteNameToBuffer(file, "F1",               col_width, true);
+    WriteNameToBuffer(file, "F2",               col_width, false);
+    WriteNameToBuffer(file, cm.Meta().Legend(), dat_width, false);
+    file.Printf("\n");
+    TextFormat col_fmt(TextFormat::INTEGER, col_width);
+    TextFormat dat_fmt = cm.Format();
+    dat_fmt.SetFormatAlign(TextFormat::RIGHT);
+    dat_fmt.SetFormatWidth( dat_width );
+    std::string total_fmt = col_fmt.Fmt() + col_fmt.Fmt() + dat_fmt.Fmt() + "\n";
+    //mprintf("DEBUG: format '%s'\n", total_fmt.c_str());
+    ClusterSieve::SievedFrames const& frames = cm.FramesToCluster();
+    int ntotal = (int)frames.size();
+    for (int idx1 = 0; idx1 != ntotal; idx1++) {
+      int row = frames[idx1];
+      for (int idx2 = idx1 + 1; idx2 != ntotal; idx2++) {
+        int col = frames[idx2];
+        file.Printf(total_fmt.c_str(), row+1, col+1, cm.GetFdist(col, row)); 
+      }
+    }
+  }
+  return 0;
+}
+
 // DataIO_Std::WriteDataNormal()
 int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // Assume all 1D data sets.
@@ -464,7 +497,7 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   // TODO: Check for empty dim.
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) );
-  int xcol_width = Xdim.Label().size() + 1;
+  int xcol_width = Xdim.Label().size() + 1; // Only used if hasXcolumn_
   if (xcol_width < 8) xcol_width = 8;
   int xcol_precision = 3;
 
@@ -475,29 +508,47 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   TextFormat x_col_format;
   if (hasXcolumn_) {
     // Create format string for X column based on dimension in first data set.
-    if (Xdata->Type() != DataSet::XYMESH && Xdim.Step() == 1.0)
+    // Adjust X col precision as follows: if the step is set and has a 
+    // fractional component set the X col width/precision to either the data
+    // width/precision or the current width/precision, whichever is larger. If
+    // the set is XYMESH but step has not been set (so we do not know spacing 
+    // between X values) use default precision. Otherwise the step has no
+    // fractional component so make the precision zero.
+    double step_i;
+    double step_f = modf( Xdim.Step(), &step_i );
+    double min_f  = modf( Xdim.Min(),  &step_i );
+    if (Xdim.Step() > 0.0 && (step_f > 0.0 || min_f > 0.0)) {
+      xcol_precision = std::max(xcol_precision, Xdata->Format().Precision());
+      xcol_width = std::max(xcol_width, Xdata->Format().Width());
+    } else if (Xdata->Type() != DataSet::XYMESH)
       xcol_precision = 0;
     x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
   } else {
     // If not writing an X-column, no leading space for the first dataset.
-    Sets[0]->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
+    Xdata->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
   }
 
   // Write header to buffer
+  std::vector<int> Original_Column_Widths;
   if (writeHeader_) {
     // If x-column present, write x-label
     if (hasXcolumn_)
       WriteNameToBuffer( file, Xdim.Label(), xcol_width, true );
     // To prevent truncation of DataSet legends, adjust the width of each
     // DataSet if necessary.
-    bool labelLeftAligned = !hasXcolumn_;
     for (DataSetList::const_iterator ds = Sets.begin(); ds != Sets.end(); ++ds) {
-      int requiredColSize = (int)(*ds)->Meta().Legend().size();
-      if (!labelLeftAligned || (ds == Sets.begin() && !hasXcolumn_))
-        requiredColSize++;
-      if ( requiredColSize > (*ds)->Format().ColumnWidth() )
-        (*ds)->SetupFormat().SetFormatWidth( (*ds)->Meta().Legend().size() );
-      labelLeftAligned = false;
+      // Record original column widths in case they are changed.
+      Original_Column_Widths.push_back( (*ds)->Format().Width() );
+      int colLabelSize;
+      if (ds == Sets.begin() && !hasXcolumn_)
+        colLabelSize = (int)(*ds)->Meta().Legend().size() + 1;
+      else
+        colLabelSize = (int)(*ds)->Meta().Legend().size();
+      //mprintf("DEBUG: Set '%s', fmt width= %i, colWidth= %i, colLabelSize= %i\n",
+      //        (*ds)->legend(), (*ds)->Format().Width(), (*ds)->Format().ColumnWidth(),
+      //        colLabelSize);
+      if (colLabelSize >= (*ds)->Format().ColumnWidth())
+        (*ds)->SetupFormat().SetFormatWidth( colLabelSize );
     }
     // Write dataset names to header, left-aligning first set if no X-column
     DataSetList::const_iterator set = Sets.begin();
@@ -521,6 +572,10 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
       (*set)->WriteBuffer(file, positions);
     file.Printf("\n"); 
   }
+  // Restore original column widths if necessary
+  if (!Original_Column_Widths.empty())
+    for (unsigned int i = 0; i != Original_Column_Widths.size(); i++)
+      Sets[i]->SetupFormat().SetFormatWidth( Original_Column_Widths[i] );
   return 0;
 }
 

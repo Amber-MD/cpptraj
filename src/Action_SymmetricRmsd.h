@@ -14,7 +14,6 @@ class Action_SymmetricRmsd : public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
-
     DataSet* rmsd_;           ///< Output DataSet
     Action::RetType action_return_; ///< Used to indicate if frame has been modified.
     ReferenceAction REF_;     ///< Hold reference frame/traj/options

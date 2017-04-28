@@ -211,31 +211,22 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
   time_NB_.Start();
   double Evdw = 0.0;
   Eelec = 0.0;
-  for (AtomMask::const_iterator maskatom1 = mask.begin();
-                                maskatom1 != mask.end();
-                                ++maskatom1)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
   {
     // Set up coord for this atom
-    const double* crd1 = fIn.XYZ( *maskatom1 );
+    const double* crd1 = fIn.XYZ( *atom1 );
     // Set up exclusion list for this atom
-    Atom::excluded_iterator excluded_atom = tIn[*maskatom1].excludedbegin();
-    for (AtomMask::const_iterator maskatom2 = maskatom1 + 1;
-                                  maskatom2 != mask.end();
-                                ++maskatom2)
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
     {
       // If atom is excluded, just increment to next excluded atom.
-      if (excluded_atom != tIn[*maskatom1].excludedend() &&
-          *maskatom2 == *excluded_atom)
-      {
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
         ++excluded_atom;
-      }
-      else
-      {
-        // TODO: imaged distance
-        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *maskatom2 ) );
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
         double rij = sqrt( rij2 );
         // VDW
-        NonbondType const& LJ = tIn.GetLJparam(*maskatom1, *maskatom2);
+        NonbondType const& LJ = tIn.GetLJparam(*atom1, *atom2);
         double r2    = 1.0 / rij2;
         double r6    = r2 * r2 * r2;
         double r12   = r6 * r6;
@@ -244,14 +235,14 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
         double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
         Evdw += e_vdw;
         // Coulomb
-        double qiqj = QFAC * tIn[*maskatom1].Charge() * tIn[*maskatom2].Charge();
+        double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
         double e_elec = qiqj / rij;
         Eelec += e_elec;
 #       ifdef DEBUG_ENERGY
         mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
-                *maskatom1+1, *maskatom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
+                *atom1+1, *atom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
         mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
-                *maskatom1, *maskatom2, tIn[*maskatom1].Charge(), tIn[*maskatom2].Charge(),
+                *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
                 rij, e_elec);
 #       endif
       }
@@ -261,78 +252,131 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
   return Evdw;
 }
 
-void Energy_Amber::PrintTiming() const {
-  double total = time_bond_.Total() + time_angle_.Total() +
-                 time_tors_.Total() + time_14_.Total() +
-                 time_NB_.Total();
-  time_bond_.WriteTiming(1, "BOND", total);
-  time_angle_.WriteTiming(1, "ANGLE", total);
-  time_tors_.WriteTiming(1, "TORSION", total);
-  time_14_.WriteTiming(1, "1-4_NONBOND", total);
-  time_NB_.WriteTiming(1, "NONBOND", total);
-  mprintf("TIME: Total= %.4f\n", total);
-}
-#ifdef USE_SANDERLIB
-// =============================================================================
-Energy_Sander::~Energy_Sander() { if (is_setup()) sander_cleanup(); }
-
-int Energy_Sander::Initialize(Topology* topIn, Frame& fIn) { // TODO const&
-  if (topIn == 0) return 1;
-  if (fIn.Natom() != topIn->Natom()) return 3;
-  if (is_setup()) sander_cleanup();
-  // FIXME: requires file name be set for now
-  if (topIn->OriginalFilename().empty()) return 2;
-  top_ = topIn;
-
-  input_.extdiel = 80.0;
-  input_.intdiel = 1.0;
-  input_.rgbmax = 25.0;
-  input_.saltcon = 0.0;
-  input_.dielc = 1.0;
-  input_.rdt = 0.0;
-  input_.gbsa = 0;
-  input_.alpb = 0;
-  input_.lj1264 = 0;
-  input_.ipb = 0;
-  input_.inp = 0;
-  input_.vdwmeth = 1;
-  input_.ew_type = 0;
-  input_.ifqnt = 0;
-  input_.jfastw = 1;
-  if (top_->BoxType() == Box::NOBOX) {
-    input_.cut = 9999.0;
-    input_.igb = 1;
-    input_.ntb = 0;
-  } else {
-    input_.cut = 10.0;
-    input_.igb = 0;
-    input_.ntb = 1;
+// -----------------------------------------------------------------------------
+double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+{
+  time_NB_.Start();
+  double Evdw = 0.0;
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  {
+    // Set up coord for this atom
+    const double* crd1 = fIn.XYZ( *atom1 );
+    // Set up exclusion list for this atom
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
+    {
+      // If atom is excluded, just increment to next excluded atom.
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
+        ++excluded_atom;
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
+        // VDW
+        NonbondType const& LJ = tIn.GetLJparam(*atom1, *atom2);
+        double r2    = 1.0 / rij2;
+        double r6    = r2 * r2 * r2;
+        double r12   = r6 * r6;
+        double f12   = LJ.A() * r12;  // A/r^12
+        double f6    = LJ.B() * r6;   // B/r^6
+        double e_vdw = f12 - f6;      // (A/r^12)-(B/r^6)
+        Evdw += e_vdw;
+#       ifdef DEBUG_ENERGY
+        mprintf("\tEVDW  %4i -- %4i: A=  %12.5e  B=  %12.5e  r2= %12.5f  E= %12.5e\n",
+                *atom1+1, *atom2+1, LJ.A(), LJ.B(), rij2, e_vdw);
+#       endif
+      }
+    }
   }
-
-  mprintf("\textdiel= %g intdiel=%g rgbmax= %g saltcon= %g cut= %g\n"
-          "\tdielc= %g rdt= %g igb= %i alpb= %i gbsa= %i ntb= %i\n"
-          "\tlj1264= %i ipb= %i inp= %i vdwmeth= %i ew_type= %i\n"
-          "\tifqnt= %i jfastw= %i\n", input_.extdiel, input_.intdiel,
-          input_.rgbmax, input_.saltcon, input_.cut, input_.dielc,
-          input_.rdt, input_.igb, input_.alpb, input_.gbsa, 
-          input_.ntb, input_.lj1264, input_.ipb, input_.inp, input_.vdwmeth,
-          input_.ew_type, input_.ifqnt, input_.jfastw);
-
-  forces_.resize( top_->Natom() * 3, 0.0 );
-  
-  return sander_setup_mm(top_->OriginalFilename().full(), fIn.xAddress(),
-                         fIn.bAddress(), &input_);
+  time_NB_.Stop();
+  return Evdw;
 }
 
-int Energy_Sander::CalcEnergy(Topology* topIn, Frame& fIn) {
-  if (top_ == 0 || topIn != top_) {
-    int err = Initialize(topIn, fIn);
-    if (err != 0) return err;
+// -----------------------------------------------------------------------------
+double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask const& mask)
+{
+  time_NB_.Start();
+  double Eelec = 0.0;
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  {
+    // Set up coord for this atom
+    const double* crd1 = fIn.XYZ( *atom1 );
+    // Set up exclusion list for this atom
+    Atom::excluded_iterator excluded_atom = tIn[*atom1].excludedbegin();
+    for (AtomMask::const_iterator atom2 = atom1 + 1; atom2 != mask.end(); ++atom2)
+    {
+      // If atom is excluded, just increment to next excluded atom.
+      if (excluded_atom != tIn[*atom1].excludedend() && *atom2 == *excluded_atom)
+        ++excluded_atom;
+      else {
+        double rij2 = DIST2_NoImage( crd1, fIn.XYZ( *atom2 ) );
+        double rij = sqrt( rij2 );
+        // Coulomb
+        double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
+        double e_elec = qiqj / rij;
+        Eelec += e_elec;
+#       ifdef DEBUG_ENERGY
+        mprintf("\tEELEC %4i -- %4i: q1= %12.5e  q2= %12.5e  r=  %12.5f  E= %12.5e\n",
+                *atom1, *atom2, tIn[*atom1].Charge(), tIn[*atom2].Charge(),
+                rij, e_elec);
+#       endif
+      }
+    }
   }
-  set_positions( fIn.xAddress() );
-  set_box( fIn.BoxCrd().BoxX(), fIn.BoxCrd().BoxY(), fIn.BoxCrd().BoxZ(),
-           fIn.BoxCrd().Alpha(), fIn.BoxCrd().Beta(), fIn.BoxCrd().Gamma() );
-  energy_forces( &energy_, &(forces_[0]) );
-  return 0;
-};
-#endif
+  time_NB_.Stop();
+  return Eelec;
+}
+// -----------------------------------------------------------------------------
+double Energy_Amber::E_DirectSum(Frame const& fIn, Topology const& tIn, AtomMask const& mask,
+                                 int n_points)
+{
+  time_NB_.Start();
+  // Direct sum
+  double Edirect = E_Elec(fIn, tIn, mask);
+  // Sum over images.
+  double Eimage = 0.0;
+  Matrix_3x3 ucell, recip;
+  fIn.BoxCrd().ToRecip(ucell, recip);
+  // Cache npoints values, excluding this cell (0,0,0)
+  std::vector<Vec3> Cells;
+  int Ncells = (2*n_points)+1;
+  Cells.reserve( (Ncells*Ncells*Ncells) - 1 );
+  for (int ix = -n_points; ix <= n_points; ix++)
+    for (int iy = -n_points; iy <= n_points; iy++)
+      for (int iz = -n_points; iz <= n_points; iz++)
+        if (ix != 0 || iy != 0 || iz != 0)
+          Cells.push_back( Vec3(ix, iy, iz) );
+  // Outer loop over atoms (i)
+  for (AtomMask::const_iterator atom1 = mask.begin(); atom1 != mask.end(); ++atom1)
+  {
+//    mprintf("\nDEBUG: Atom %i\n", *atom1+1);
+    Vec3 T1( fIn.XYZ(*atom1) );
+    // Inner loop over atoms (j)
+    for (AtomMask::const_iterator atom2 = mask.begin(); atom2 != mask.end(); ++atom2)
+    {
+      Vec3 frac2 = recip * Vec3(fIn.XYZ( *atom2 )); // atom j in fractional coords
+      double qiqj = QFAC * tIn[*atom1].Charge() * tIn[*atom2].Charge();
+      // Loop over images of atom j
+      for (std::vector<Vec3>::const_iterator ixyz = Cells.begin(); ixyz != Cells.end(); ++ixyz)
+      {
+//        mprintf("DEBUG: Atom %4i to %4i Image %3i %3i %3i", *atom1+1, *atom2+1, ix, iy, iz);
+        // atom j image back in Cartesian space minus atom i in Cartesian space.
+        Vec3 dxyz = ucell.TransposeMult(frac2 + *ixyz) - T1;
+        double rij2 = dxyz.Magnitude2();
+        double rij = sqrt(rij2);
+//        mprintf(" Distance= %g\n", rij);
+        double e_elec = qiqj / rij;
+        Eimage += e_elec;
+      }
+    } // atom j
+  } // atom i
+  time_NB_.Stop();
+  return Edirect + (Eimage/2.0);
+}
+
+// -----------------------------------------------------------------------------
+void Energy_Amber::PrintTiming(double totalIn) const {
+  time_bond_.WriteTiming(1,  "BOND:      ", totalIn);
+  time_angle_.WriteTiming(1, "ANGLE:     ", totalIn);
+  time_tors_.WriteTiming(1,  "TORSION:   ", totalIn);
+  time_14_.WriteTiming(1,    "1-4_NONBOND", totalIn);
+  time_NB_.WriteTiming(1,    "NONBOND:   ", totalIn);
+}

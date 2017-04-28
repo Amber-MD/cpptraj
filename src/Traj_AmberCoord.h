@@ -2,7 +2,6 @@
 #define INC_TRAJ_AMBERCOORD_H
 #include "TrajectoryIO.h"
 #include "BufferedFrame.h"
-// Class: Traj_AmberCoord
 /// Reads and writes formatted (ASCII text) amber trajectories. 
 class Traj_AmberCoord: public TrajectoryIO {
   public:
@@ -38,5 +37,15 @@ class Traj_AmberCoord: public TrajectoryIO {
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }
     int processReadArgs(ArgList&)  { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj();
+#   endif
 };
 #endif

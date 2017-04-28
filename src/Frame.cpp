@@ -3,22 +3,6 @@
 #include "Frame.h"
 #include "Constants.h" // SMALL
 #include "CpptrajStdio.h"
-#ifdef MPI
-# include "MpiRoutines.h"
-#endif
-
-// DEBUG
-void Frame::PrintCoordInfo(const char* name, const char* parm, CoordinateInfo const& cInfo) {
-  mprintf("DBG: '%s' parm '%s' CoordInfo={ box type %s", name, parm, cInfo.TrajBox().TypeName());
-  if (cInfo.ReplicaDimensions().Ndims() > 0) mprintf(", %i rep dims", cInfo.ReplicaDimensions().Ndims());
-  if (cInfo.HasVel()) mprintf(", velocities");
-  if (cInfo.HasTemp()) mprintf(", temps");
-  if (cInfo.HasTime()) mprintf(", times");
-  if (cInfo.HasForce()) mprintf(", forces");
-  if (cInfo.EnsembleSize() > 0) mprintf(", ensemble size %i", cInfo.EnsembleSize());
-  mprintf(" }\n");
-}
-// DEBUG
 
 const size_t Frame::COORDSIZE_ = 3 * sizeof(double);
 
@@ -165,27 +149,21 @@ Frame::Frame(const Frame& rhs) :
   F_(0),
   remd_indices_(rhs.remd_indices_),
   Mass_(rhs.Mass_),
-  memIsExternal_(rhs.memIsExternal_)
+  memIsExternal_(false)
 {
-  if (memIsExternal_) {
-    X_ = rhs.X_;
-    V_ = rhs.V_;
-    F_ = rhs.F_;
-  } else {
-    // Copy coords/velo/forces; allocate for maxnatom but copy natom
-    int maxncoord = maxnatom_ * 3;
-    if (rhs.X_!=0) {
-      X_ = new double[ maxncoord ];
-      memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
-    }
-    if (rhs.V_!=0) {
-      V_ = new double[ maxncoord ];
-      memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
-    }
-    if (rhs.F_!=0) {
-      F_ = new double[ maxncoord ];
-      memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
-    }
+  // Copy coords/velo/forces; allocate for maxnatom but copy natom
+  int maxncoord = maxnatom_ * 3;
+  if (rhs.X_!=0) {
+    X_ = new double[ maxncoord ];
+    memcpy(X_, rhs.X_, natom_ * COORDSIZE_);
+  }
+  if (rhs.V_!=0) {
+    V_ = new double[ maxncoord ];
+    memcpy(V_, rhs.V_, natom_ * COORDSIZE_);
+  }
+  if (rhs.F_!=0) {
+    F_ = new double[ maxncoord ];
+    memcpy(F_, rhs.F_, natom_ * COORDSIZE_);
   }
 }
 
@@ -203,12 +181,7 @@ void Frame::swap(Frame &first, Frame &second) {
   first.remd_indices_.swap(second.remd_indices_);
   first.Mass_.swap(second.Mass_);
   swap(first.memIsExternal_, second.memIsExternal_);
-  swap( first.box_[0], second.box_[0] );
-  swap( first.box_[1], second.box_[1] );
-  swap( first.box_[2], second.box_[2] );
-  swap( first.box_[3], second.box_[3] );
-  swap( first.box_[4], second.box_[4] );
-  swap( first.box_[5], second.box_[5] );
+  first.box_.swap( second.box_ );
 }
 
 // Frame::operator=()
@@ -468,6 +441,8 @@ int Frame::SetupFrameV(std::vector<Atom> const& atoms, CoordinateInfo const& cin
   for (std::vector<Atom>::const_iterator atom = atoms.begin();
                                          atom != atoms.end(); ++atom)
     *(mass++) = (*atom).Mass();
+  // Box
+  box_ = cinfo.TrajBox();
   // Replica indices
   remd_indices_.assign( cinfo.ReplicaDimensions().Ndims(), 0 );
   return 0;
@@ -488,6 +463,55 @@ int Frame::SetupFrameFromMask(AtomMask const& maskIn, std::vector<Atom> const& a
   for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom) 
     *(mass++) = atoms[ *atom ].Mass();
   return 0; 
+}
+
+// ---------- FRAME Add/remove components --------------------------------------
+int Frame::AddVelocities(Darray const& vIn) {
+  if ((int)vIn.size() != ncoord_) {
+    mprinterr("Error: AddVelocities: # input velocities (%zu) != # coords (%i)\n",
+              vIn.size(), ncoord_);
+    return 1;
+  }
+  if (V_ != 0) delete[] V_;
+  V_ = new double[ vIn.size() ];
+  std::copy(vIn.begin(), vIn.end(), V_);
+  return 0;
+}
+
+int Frame::AddForces(Darray const& fIn) {
+  if ((int)fIn.size() != ncoord_) {
+    mprinterr("Error: AddForces: # input forces (%zu) != # coords (%i)\n",
+              fIn.size(), ncoord_);
+    return 1;
+  }
+  if (F_ != 0) delete[] F_;
+  F_ = new double[ fIn.size() ];
+  std::copy(fIn.begin(), fIn.end(), F_);
+  return 0;
+}
+
+int Frame::AddMasses(Darray const& mIn) {
+  if ((int)mIn.size() != natom_) {
+    mprinterr("Error: AddMasses: # input masses (%zu) != atoms (%i)\n",
+              mIn.size(), natom_);
+    return 1;
+  }
+  Mass_ = mIn;
+  return 0;
+}
+
+void Frame::RemoveVelocities() {
+  if (V_ != 0) delete[] V_;
+  V_ = 0;
+}
+
+void Frame::RemoveForces() {
+  if (F_ != 0) delete[] F_;
+  F_ = 0;
+}
+
+void Frame::RemoveMasses() {
+  Mass_.assign(natom_, 1.0);
 }
 
 // ---------- FRAME SETUP OF COORDINATES ---------------------------------------
@@ -524,6 +548,11 @@ void Frame::SetCoordinates(Frame const& frameIn) {
   memcpy(X_, frameIn.X_, natom_ * COORDSIZE_);
 }
 
+void Frame::SetCoordAndBox(Frame const& frameIn) {
+  SetCoordinates(frameIn);
+  box_ = frameIn.box_;
+}
+
 int Frame::SetCoordinates(int natom, double* Xptr) {
   if (!memIsExternal_)
     mprinterr("Internal Error: Frame memory is internal, not setting from external pointer.\n");
@@ -553,27 +582,30 @@ void Frame::SetFrame(Frame const& frameIn, AtomMask const& maskIn) {
   remd_indices_ = frameIn.remd_indices_;
   double* newXptr = X_;
   Darray::iterator mass = Mass_.begin();
+  // Copy coords/mass
+  for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+  {
+    memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
+    newXptr += 3;
+    *mass = frameIn.Mass_[*atom];
+    ++mass;
+  }
+  // Copy velocity if necessary
   if (frameIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo
-    double *newVptr = V_;
+    double* newVptr = V_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
-      int oldcrd = ((*atom) * 3);
-      memcpy( newXptr, frameIn.X_ + oldcrd, COORDSIZE_);
-      newXptr += 3;
-      memcpy( newVptr, frameIn.V_ + oldcrd, COORDSIZE_);
+      memcpy( newVptr, frameIn.V_ + ((*atom) * 3), COORDSIZE_);
       newVptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
     }
-  } else {
-    // Copy coords/mass only
+  }
+  // Copy force if necessary
+  if (frameIn.F_ != 0 && F_ != 0) {
+    double* newFptr = F_;
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
     {
-      memcpy( newXptr, frameIn.X_ + ((*atom) * 3), COORDSIZE_);
-      newXptr += 3;
-      *mass = frameIn.Mass_[*atom];
-      ++mass;
+      memcpy( newFptr, frameIn.F_ + ((*atom) * 3), COORDSIZE_);
+      newFptr += 3;
     }
   }
 }
@@ -828,6 +860,17 @@ Vec3 Frame::CenterOnOrigin(bool useMassIn)
   // -center is translation from Ref -> origin.
   NegTranslate(center);
   return center;
+}
+
+// Frame::Align()
+void Frame::Align(Frame const& REF, AtomMask const& mask) {
+  Frame tmpRef(REF, mask);
+  Frame tmpFrm(*this, mask);
+  Vec3 refTrans = tmpRef.CenterOnOrigin(false);
+  Matrix_3x3 U;
+  Vec3 Trans;
+  tmpFrm.RMSD_CenteredRef( tmpRef, U, Trans, false );
+  Trans_Rot_Trans( Trans, U, refTrans );
 }
 
 // ---------- COORDINATE CALCULATION ------------------------------------------- 
@@ -1116,6 +1159,17 @@ Vec3 Frame::SetAxisOfRotation(int atom1, int atom2) {
   return U;
 }
 
+Vec3 Frame::SetAxisOfRotation(Vec3 const& a0, Vec3 const& a1) {
+  // Calculate vector of axis between two points, which will be the new rot. axis
+  Vec3 U = a1 - a0;
+  // Normalize Vector for axis of rotation or scaling will occur!
+  U.Normalize();
+  // Now the rest of the coordinates need to be translated to match the new 
+  // rotation axis.
+  NegTranslate( a0 );
+  return U;
+}
+
 // Frame::CalculateInertia()
 /** \return Center of mass of coordinates in mask. */
 Vec3 Frame::CalculateInertia(AtomMask const& Mask, Matrix_3x3& Inertia) const
@@ -1206,32 +1260,44 @@ double Frame::CalcTemperature(AtomMask const& mask, int deg_of_freedom) const {
 #ifdef MPI
 // TODO: Change Frame class so everything can be sent in one MPI call.
 /** Send contents of this Frame to recvrank. */
-int Frame::SendFrame(int recvrank) {
+int Frame::SendFrame(int recvrank, Parallel::Comm const& commIn) {
   //rprintf("SENDING TO %i\n", recvrank); // DEBUG
-  parallel_send( X_,                ncoord_, PARA_DOUBLE, recvrank, 1212 );
+  commIn.Send( X_,                ncoord_, MPI_DOUBLE, recvrank, 1212 );
   if (V_ != 0)
-    parallel_send( V_,              ncoord_, PARA_DOUBLE, recvrank, 1215 );
+    commIn.Send( V_,              ncoord_, MPI_DOUBLE, recvrank, 1215 );
   if (F_ != 0)
-    parallel_send( F_,              ncoord_, PARA_DOUBLE, recvrank, 1218 );
-  parallel_send( box_.boxPtr(),     6,       PARA_DOUBLE, recvrank, 1213 );
-  parallel_send( &T_,               1,       PARA_DOUBLE, recvrank, 1214 );
-  parallel_send( &time_,            1,       PARA_DOUBLE, recvrank, 1217 );
-  parallel_send( &remd_indices_[0], remd_indices_.size(), PARA_INT, recvrank, 1216 );
+    commIn.Send( F_,              ncoord_, MPI_DOUBLE, recvrank, 1218 );
+  commIn.Send( box_.boxPtr(),     6,       MPI_DOUBLE, recvrank, 1213 );
+  commIn.Send( &T_,               1,       MPI_DOUBLE, recvrank, 1214 );
+  commIn.Send( &time_,            1,       MPI_DOUBLE, recvrank, 1217 );
+  commIn.Send( &remd_indices_[0], remd_indices_.size(), MPI_INT, recvrank, 1216 );
   return 0;
 }
 
 /** Receive contents of Frame from sendrank. */
-int Frame::RecvFrame(int sendrank) {
+int Frame::RecvFrame(int sendrank, Parallel::Comm const& commIn) {
   //rprintf("RECEIVING FROM %i\n", sendrank); // DEBUG
-  parallel_recv( X_,                ncoord_, PARA_DOUBLE, sendrank, 1212 );
+  commIn.Recv( X_,                ncoord_, MPI_DOUBLE, sendrank, 1212 );
   if (V_ != 0)
-    parallel_recv( V_,              ncoord_, PARA_DOUBLE, sendrank, 1215 );
+    commIn.Recv( V_,              ncoord_, MPI_DOUBLE, sendrank, 1215 );
   if (F_ != 0)
-    parallel_recv( F_,              ncoord_, PARA_DOUBLE, sendrank, 1218 );
-  parallel_recv( box_.boxPtr(),     6,       PARA_DOUBLE, sendrank, 1213 );
-  parallel_recv( &T_,               1,       PARA_DOUBLE, sendrank, 1214 );
-  parallel_recv( &time_,            1,       PARA_DOUBLE, sendrank, 1217 );
-  parallel_recv( &remd_indices_[0], remd_indices_.size(), PARA_INT, sendrank, 1216 );
+    commIn.Recv( F_,              ncoord_, MPI_DOUBLE, sendrank, 1218 );
+  commIn.Recv( box_.boxPtr(),     6,       MPI_DOUBLE, sendrank, 1213 );
+  commIn.Recv( &T_,               1,       MPI_DOUBLE, sendrank, 1214 );
+  commIn.Recv( &time_,            1,       MPI_DOUBLE, sendrank, 1217 );
+  commIn.Recv( &remd_indices_[0], remd_indices_.size(), MPI_INT, sendrank, 1216 );
+  return 0;
+}
+
+/** Sum across all ranks, store in master. */
+int Frame::SumToMaster(Parallel::Comm const& commIn) {
+  if (commIn.Master()) {
+    double* total = new double[ ncoord_ ];
+    commIn.Reduce( total, X_, ncoord_, MPI_DOUBLE, MPI_SUM );
+    std::copy( total, total + ncoord_, X_ );
+    delete[] total;
+  } else
+    commIn.Reduce( 0,     X_, ncoord_, MPI_DOUBLE, MPI_SUM );
   return 0;
 }
 #endif

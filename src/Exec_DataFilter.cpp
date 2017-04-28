@@ -22,10 +22,11 @@ Exec::RetType Exec_DataFilter::Execute(CpptrajState& State, ArgList& argIn) {
     return CpptrajState::ERR;
   }
   ProgressBar progress( nframes );
-  ActionFrame frm;
   for (size_t frame = 0; frame != nframes; frame++) {
     progress.Update( frame );
-    filterAction.DoAction(frame, frm); // Filter does not need frame.
+    // Filter does not need frame but does need trajout num.
+    ActionFrame frm(0, frame);
+    filterAction.DoAction(frame, frm);
   }
   // Trigger master datafile write just in case
   State.MasterDataFileWrite();

@@ -12,7 +12,7 @@ class ActionList {
     /// Clear the list
     void Clear();
     /// Set the debug level for actions.
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     /// Set whether to supress Action Init/Setup output.
     void SetSilent(bool b) { actionsAreSilent_ = b; }
     /// Add given action to the action list and initialize.
@@ -22,7 +22,15 @@ class ActionList {
     /// Perform Actions on the given Frame.
     bool DoActions(int, ActionFrame&);
     /// Call print for each Action.
-    void Print();
+    void PrintActions();
+#   ifdef MPI
+    /// Figure out the max number previous frames required for non-master ranks
+    int NumPreviousFramesReqd() const;
+    /// Call preload for Actions
+    int ParallelProcessPreload(Action::FArray const&);
+    /// Call sync for each Action (parallel only)
+    void SyncActions();
+#   endif
     /// List all Actions in the list.
     void List() const;
     /// \return Current debug level.

@@ -4,7 +4,7 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // FOURTHIRDSPI
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR
@@ -58,6 +58,9 @@ inline Action::RetType RDF_ERR(const char* msg) {
 // Action_Radial::Init()
 Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
@@ -109,8 +112,9 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   if (outfilename.empty() && actionArgs.Nargs() > 1 && !actionArgs.Marked(1))
     outfilename = actionArgs.GetStringNext();
 
-  // Set up output dataset. 
-  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, actionArgs.GetStringNext(), "g(r)");
+  // Set up output dataset.
+  Dset_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(actionArgs.GetStringNext(), "",
+                                                       MetaData::NOT_TS), "g(r)");
   if (Dset_ == 0) return RDF_ERR("Could not allocate RDF data set.");
   DataFile* outfile = init.DFL().AddDataFile(outfilename, actionArgs);
   if (outfile != 0) outfile->AddDataSet( Dset_ );
@@ -130,7 +134,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
   Dset_->SetDim(Dimension::X, Rdim);
   // Set up output for integral of mask2 if specified.
   if (intrdfFile != 0) {
-    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int" ));
+    intrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "int",
+                                                           MetaData::NOT_TS) );
     if (intrdf_ == 0) return RDF_ERR("Could not allocate RDF integral data set.");
     intrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     intrdf_->SetLegend("Int[" + Mask2_.MaskExpression() + "]");
@@ -140,7 +145,8 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     intrdf_ = 0;
   // Set up output for raw rdf
   if (rawrdfFile != 0) {
-    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw" ));
+    rawrdf_ = init.DSL().AddSet( DataSet::DOUBLE, MetaData(Dset_->Meta().Name(), "raw",
+                                                           MetaData::NOT_TS) );
     if (rawrdf_ == 0) return RDF_ERR("Could not allocate raw RDF data set.");
     rawrdf_->SetupFormat().SetFormatWidthPrecision(12,6);
     rawrdf_->SetLegend("Raw[" + Dset_->Meta().Legend() + "]");
@@ -148,7 +154,12 @@ Action::RetType Action_Radial::Init(ArgList& actionArgs, ActionInit& init, int d
     rawrdfFile->AddDataSet( rawrdf_ );
   } else
     rawrdf_ = 0;
-
+# ifdef MPI
+  // These do not need to be synced since they are not time series
+  Dset_->SetNeedsSync( false );
+  if (intrdf_ != 0) intrdf_->SetNeedsSync( false );
+  if (rawrdf_ != 0) rawrdf_->SetNeedsSync( false );
+# endif
   // Set up histogram
   RDF_ = new int[ numBins_ ];
   std::fill(RDF_, RDF_ + numBins_, 0);
@@ -401,6 +412,39 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 } 
 
+#ifdef MPI
+int Action_Radial::SyncAction() {
+# ifdef _OPENMP
+  CombineRdfThreads();
+# endif
+  int total_frames = 0;
+  trajComm_.Reduce( &total_frames, &numFrames_, 1, MPI_INT, MPI_SUM );
+  if (trajComm_.Master()) {
+    numFrames_ = total_frames;
+    int* sum_bins = new int[ numBins_ ];
+    trajComm_.Reduce( sum_bins, RDF_, numBins_, MPI_INT, MPI_SUM );
+    std::copy( sum_bins, sum_bins + numBins_, RDF_ );
+    delete[] sum_bins;
+  } else
+    trajComm_.Reduce( 0,        RDF_, numBins_, MPI_INT, MPI_SUM );
+  return 0;
+}
+#endif
+
+#ifdef _OPENMP
+/** Combine results from each rdf_thread into rdf. */
+void Action_Radial::CombineRdfThreads() {
+  if (rdf_thread_ == 0) return;
+  for (int thread = 0; thread < numthreads_; thread++) { 
+    for (int bin = 0; bin < numBins_; bin++)
+      RDF_[bin] += rdf_thread_[thread][bin];
+    delete[] rdf_thread_[thread];
+  }
+  delete[] rdf_thread_;
+  rdf_thread_ = 0;
+}
+#endif
+
 // Action_Radial::Print()
 /** Convert the histogram to a dataset, normalize, create datafile.
   */
@@ -409,13 +453,9 @@ Action::RetType Action_Radial::DoAction(int frameNum, ActionFrame& frm) {
 //       prmtop to prmtop this will throw off normalization.
 void Action_Radial::Print() {
   if (numFrames_==0) return;
-# ifdef _OPENMP 
-  // Combine results from each rdf_thread into rdf
-  for (int thread=0; thread < numthreads_; thread++) 
-    for (int bin = 0; bin < numBins_; bin++) 
-      RDF_[bin] += rdf_thread_[thread][bin];
+# ifdef _OPENMP
+  CombineRdfThreads(); 
 # endif
-
   mprintf("    RADIAL: %i frames,", numFrames_);
   double nmask1 = (double)Mask1_.Nselected();
   double nmask2 = (double)Mask2_.Nselected();

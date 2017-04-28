@@ -1,9 +1,11 @@
-#ifdef TIMER
-#include "Timer.h" 
-#endif
 #include "DataFile.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // integerToString
+#ifdef TIMER
+# include "Timer.h"
+#endif
+#ifdef MPI
+# include "Parallel.h"
+#endif
 // All DataIO classes go here
 #include "DataIO_Std.h"
 #include "DataIO_Grace.h"
@@ -15,6 +17,9 @@
 #include "DataIO_Evecs.h"
 #include "DataIO_VecTraj.h"
 #include "DataIO_XVG.h"
+#include "DataIO_CCP4.h"
+#include "DataIO_Cmatrix.h"
+#include "DataIO_NC_Cmatrix.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -24,6 +29,7 @@ DataFile::DataFile() :
   dfType_(DATAFILE),
   dflWrite_(true),
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
+  sortSets_(false),
   default_width_(-1),
   default_precision_(-1),
   dataio_(0),
@@ -47,6 +53,13 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
   { "Evecs file",         DataIO_Evecs::ReadHelp,  0,                        DataIO_Evecs::Alloc  },
   { "Vector pseudo-traj", 0,                       DataIO_VecTraj::WriteHelp,DataIO_VecTraj::Alloc},
   { "XVG file",           0,                       0,                        DataIO_XVG::Alloc    },
+  { "CCP4 file",          0,                       DataIO_CCP4::WriteHelp,   DataIO_CCP4::Alloc   },
+  { "Cluster matrix file",0,                       0,                        DataIO_Cmatrix::Alloc},
+# ifdef BINTRAJ
+  { "NetCDF Cluster matrix file", 0,               0,                     DataIO_NC_Cmatrix::Alloc},
+# else
+  { "NetCDF Cluster matrix file", 0, 0, 0 },
+# endif
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -63,12 +76,15 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { EVECS,        "evecs",  ".evecs" },
   { VECTRAJ,      "vectraj",".vectraj" },
   { XVG,          "xvg",    ".xvg"   },
+  { CCP4,         "ccp4",   ".ccp4"  },
+  { CMATRIX,      "cmatrix",".cmatrix" },
+  { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
 void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
-          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>]\n"
+          "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
           "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
 }
 
@@ -107,7 +123,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists(fnameIn)) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;
@@ -142,6 +158,7 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
 # endif
   int err = dataio_->processReadArgs(argIn);
   if (err == 0) {
+    // FIXME in parallel mark data sets as synced if all threads read.
     err += dataio_->ReadData( filename_, datasetlist, dsname );
     // Treat any remaining arguments as file names.
     std::string nextFile = argIn.GetStringNext();
@@ -168,7 +185,7 @@ int DataFile::ReadDataOfType(FileName const& fnameIn, DataFormatType typeIn,
   if (dataio_ != 0) delete dataio_;
   dataio_ = 0;
   if (!File::Exists( fnameIn )) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   filename_ = fnameIn;
@@ -205,28 +222,16 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   return 0;
 }
 
-int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
+int DataFile::SetupStdout(ArgList const& argIn, int debugIn) {
   SetDebug( debugIn );
   filename_.clear();
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, DATAFILE, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
-  if (!argIn.empty())
-    ProcessArgs( argIn );
+  if (!argIn.empty()) {
+    ArgList args( argIn );
+    ProcessArgs( args );
+  }
   return 0;
-}
-
-/** Assumes file has been already created by e.g. an Action, but we are now
-  * in CpptrajState::RunEnsemble() and this file needs to be set up for a
-  * particular member (only if not already done).
-  */
-void DataFile::SetMember(int memberIn) {
-  if (member_ == -1) { // Not yet designated member of ensemble.
-    member_ = memberIn;
-    if (filename_.AppendFileName( "." + integerToString(member_) ))
-      rprinterr("Internal Error: DataFile::SetMember(): No filename set.\n");
-  } else if (member_ != memberIn) // Another sanity check.
-    rprinterr("Internal Error: DataFile::SetMember(): Trying to change member %i to %i\n",
-              member_, memberIn);
 }
 
 // DataFile::AddDataSet()
@@ -298,6 +303,7 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
 // DataFile::ProcessArgs() // FIXME make WriteArgs
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
+  sortSets_ = argIn.hasKey("sort");
   // Dimension labels 
   defaultDim_[0].label_ = argIn.GetStringKey("xlabel");
   defaultDim_[1].label_ = argIn.GetStringKey("ylabel");
@@ -351,45 +357,57 @@ int DataFile::ProcessArgs(std::string const& argsIn) {
 
 // DataFile::WriteDataOut()
 void DataFile::WriteDataOut() {
-  //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
-  //        SetList_.size(), dimenison_, maxFrames);
-  // Loop over all sets, decide which ones should be written.
-  // All DataSets should have same dimension (enforced by AddDataSet()).
-  DataSetList setsToWrite;
-  for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
-    DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
-    // Check if set has no data.
-    if ( ds.Empty() ) {
-      mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
-      continue;
+# ifdef MPI
+  if (!Parallel::ActiveComm().Master()) {
+    if (debug_ > 0)
+      rprintf("DEBUG: Not a trajectory master: skipping data file write on this rank.\n");
+  } else {
+# endif
+    if (debug_ > 0)
+      rprintf("DEBUG: Writing file '%s'\n", DataFilename().full());
+    //mprintf("DEBUG:\tFile %s has %i sets, dimension=%i, maxFrames=%i\n", dataio_->FullFileStr(),
+    //        SetList_.size(), dimenison_, maxFrames);
+    // Loop over all sets, decide which ones should be written.
+    // All DataSets should have same dimension (enforced by AddDataSet()).
+    DataSetList setsToWrite;
+    for (unsigned int idx = 0; idx < SetList_.size(); ++idx) {
+      DataSet& ds = static_cast<DataSet&>( *SetList_[idx] );
+      // Check if set has no data.
+      if ( ds.Empty() ) {
+        mprintf("Warning: Set '%s' contains no data.\n", ds.legend());
+        continue;
+      }
+      // Setup formats with a leading space initially. Maintains backwards compat. 
+      ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
+      // Ensure current DataIO is valid for this set. May not be needed right now
+      // but useful in case file format can be changed later on.
+      if (!dataio_->CheckValidFor( ds )) {
+        mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
+                   ds.legend(), filename_.base());
+        continue;
+      }
+      setsToWrite.AddCopyOfSet( SetList_[idx] );
     }
-    // Setup formats with a leading space initially. Maintains backwards compat. 
-    ds.SetupFormat().SetFormatAlign(TextFormat::LEADING_SPACE);
-    // Ensure current DataIO is valid for this set. May not be needed right now
-    // but useful in case file format can be changed later on.
-    if (!dataio_->CheckValidFor( ds )) {
-      mprinterr("Error: DataSet '%s' is not valid for DataFile '%s' format.\n",
-                 ds.legend(), filename_.base());
-      continue;
+    if (setsToWrite.empty())
+      mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
+    else {
+      if (sortSets_) setsToWrite.Sort();
+#     ifdef TIMER
+      Timer dftimer;
+      dftimer.Start();
+#     endif
+      int err = dataio_->WriteData(filename_, setsToWrite); 
+#     ifdef TIMER
+      dftimer.Stop();
+      mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
+              dftimer.Total());
+#     endif
+      if (err > 0) 
+        mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
     }
-    setsToWrite.AddCopyOfSet( SetList_[idx] );
-  }
-  if (setsToWrite.empty()) {
-    mprintf("Warning: File '%s' has no sets containing data.\n", filename_.base());
-    return;
-  }
-#ifdef TIMER
-  Timer dftimer;
-  dftimer.Start();
-#endif
-  int err = dataio_->WriteData(filename_, setsToWrite); 
-#ifdef TIMER
-  dftimer.Stop();
-  mprintf("TIME: DataFile %s Write took %.4f seconds.\n", filename_.base(),
-          dftimer.Total());
-#endif
-  if (err > 0) 
-    mprinterr("Error writing %iD Data to %s\n", dimension_, filename_.base());
+# ifdef MPI
+  } // END if not master
+# endif
 }
 
 // DataFile::SetDataFilePrecision()

@@ -62,7 +62,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
     return 1;
   }
   if (!File::Exists( fnameIn )) {
-    mprinterr("Error: Topology '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   parmName_ = fnameIn;
@@ -71,6 +71,9 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   ParmIO* parmio = 0;
   Top.SetDebug( debugIn );
   double bondoffset = argIn.getKeyDouble("bondsearch", -1.0);
+  bool molsearch = !argIn.hasKey("nomolsearch");
+  if (!molsearch)
+    mprintf("\tDisabling molecule search. Topology will have no molecule info.\n");
   // Only force bond search when 'bondsearch' is specified.
 //  bool bondsearch = false;
 //  if (argIn.Contains("bondsearch")) {
@@ -100,7 +103,7 @@ int ParmFile::ReadTopology(Topology& Top, FileName const& fnameIn,
   int err = parmio->ReadParm( parmName_.Full(), Top);
   // Perform setup common to all parm files.
   if (err == 0) 
-    err = Top.CommonSetup();
+    err = Top.CommonSetup( molsearch );
   else
     mprinterr("Error reading topology file '%s'\n", parmName_.full());
   delete parmio;

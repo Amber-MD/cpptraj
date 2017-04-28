@@ -1,5 +1,5 @@
 language: cpp
-compiler: gcc
+dist: trusty
 sudo: false
 addons:
   apt:
@@ -12,17 +12,44 @@ addons:
       - liblapack-dev
       - libarpack2-dev
       - libnetcdf-dev
+      - libfftw3-dev
       - netcdf-bin
       - clang
-env:
-    - COMPILER=gnu
-    - COMPILER=clang
-    - COMPILER=gnu OPENMP="-openmp" OPT=openmp
+      - openmpi-bin
+      - openmpi-common
+      - libopenmpi-dev
+matrix:
+  include:
+    - { os: linux, env: COMPILER=gnu BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=clang BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp" OPT=openmp OMP_NUM_THREADS=4 BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-mpi" DO_PARALLEL="mpiexec -n 2" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+#   - { os: osx, env: COMPILER=clang BUILD_FLAGS="-macAccelerate --with-fftw3=/usr/local --with-netcdf=/usr/local -noarpack" BUILD_TYPE=install TEST_TYPE=test.showerrors }
+    - { os: linux, env: COMPILER=gnu BUILD_FLAGS="-openmp -shared" OPT=openmp OMP_NUM_THREADS=1 BUILD_TYPE=libcpptraj TEST_TYPE=test.libcpptraj }
+
+before_install:
+  - set -e
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew tap homebrew/science;
+      brew update;
+      brew install netcdf fftw;
+      curl -L https://anaconda.org/AmberMD/pysander/16.0/download/osx-64/pysander-16.0-py27_1.tar.bz2 > $HOME/osx_libsander.tar.bz2;
+      tar jxf $HOME/osx_libsander.tar.bz2 lib/libsander.dylib include/sander.h;
+      shell_session_update() { echo "Overriding shell_session_update"; };
+    else
+      curl -OL https://anaconda.org/AmberMD/pysander/16.0/download/linux-64/pysander-16.0-py27_1.tar.bz2;
+      tar jxf pysander-16.0-py27_1.tar.bz2 lib/libsander.so include/sander.h;
+    fi
+  - mv lib include $HOME
 
 install:
-    - ./configure $OPENMP $COMPILER
-    - make -j2 install
-      # Hack to get ambpdb installed with OpenMP
-    - make -C src ambpdb && mv src/ambpdb bin/
+    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+          export DYLD_FALLBACK_LIBRARY_PATH=$HOME/lib:$DYLD_FALLBACK_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+      else
+          export LD_LIBRARY_PATH=$HOME/lib:$LD_LIBRARY_PATH;
+          ./configure $BUILD_FLAGS CFLAGS="-lnetcdf -lfftw3" $COMPILER;
+      fi
+    - make -j2 $BUILD_TYPE 
 script:
-    - cd test && make test.showerrors
+    - cd test && make $TEST_TYPE

@@ -1,4 +1,3 @@
-// Action_RunningAvg
 #include "Action_RunningAvg.h"
 #include "CpptrajStdio.h"
 
@@ -39,7 +38,12 @@ Action::RetType Action_RunningAvg::Init(ArgList& actionArgs, ActionInit& init, i
 
   mprintf("    RUNNINGAVG: Running average of size %i will be performed over input coords.\n",
           Nwindow_);
-
+# ifdef MPI
+  if (init.TrajComm().Size() > 1)
+    mprintf("\nWarning: 'runavg' in parallel will not work correctly if coordinates have\n"
+              "Warning:   been modified by previous actions (e.g. 'rms').\n"
+              "Warning: In addition, certain output trajectory formats may not write correctly\n\n");
+# endif
   return Action::OK;
 }
 
@@ -73,33 +77,44 @@ Action::RetType Action_RunningAvg::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
+#ifdef MPI
+int Action_RunningAvg::ParallelPreloadFrames(FArray const& preload_frames) {
+  int start_idx = (int)preload_frames.size() - Nwindow_ + 1;
+  for (int idx = start_idx; idx != (int)preload_frames.size(); idx++) {
+    avgFrame_ += preload_frames[idx];
+    Window_[currentWindow_++] = preload_frames[idx];
+    Window_[currentWindow_].ZeroCoords();
+  }
+  return 0;
+}
+#endif
+
 // Action_RunningAvg::action()
 Action::RetType Action_RunningAvg::DoAction(int frameNum, ActionFrame& frm) {
   // If frameNum is >= Nwindow, subtract from avgFrame. currentWindow is at
   // the frame that should be subtracted.
-  if (frameNum > frameThreshold_) { 
+  if (frm.TrajoutNum() > frameThreshold_) {
     //mprintf("DBG:\tSubtracting Window[%i] from avgFrame.\n",currentWindow_);
     avgFrame_ -= Window_[currentWindow_];
   }
 
   // Add current coordinates to avgFrame
-  //mprintf("DBG:\tAdding frame %i to avgFrame.\n",frameNum);
+  //mprintf("DBG:\tAdding frame %i to avgFrame.\n",frm.TrajoutNum());
   avgFrame_ += frm.Frm();
 
   // Store current coordinates in Window
-  //mprintf("DBG:\tAssigning frame %i to window %i (%i = %i)\n",frameNum,currentWindow_,
+  //mprintf("DBG:\tAssigning frame %i to window %i (%i = %i)\n",frm.TrajoutNum(),currentWindow_,
   //        Window_[currentWindow_].natom, frm.Frm().natom);
-  Window_[currentWindow_] = frm.Frm();
-  ++currentWindow_;
+  Window_[currentWindow_++] = frm.Frm();
   // If currentWindow is out of range, reset
   if (currentWindow_==Nwindow_) currentWindow_=0;
 
   // If not enough frames to average yet return 3 to indicate further
   // processing should be suppressed.
-  if (frameNum < frameThreshold_)
+  if (frm.TrajoutNum() < frameThreshold_)
     return Action::SUPPRESS_COORD_OUTPUT;
   // Otherwise there are enough frames to start processing the running average
-  //mprintf("DBG:\tCalculating average for frame %i\n",frameNum); 
+  //mprintf("DBG:\tCalculating average for frame %i\n",frm.TrajoutNum());
   resultFrame_.Divide( avgFrame_, d_Nwindow_ );
   // Set frame
   frm.SetFrame( &resultFrame_ );

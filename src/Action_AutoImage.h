@@ -29,6 +29,7 @@ class Action_AutoImage : public Action {
     pairList fixedList_;
     pairList mobileList_;
 
+    static pairList SetupAtomRanges(Topology const&, std::string const&, bool);
     static pairList SetupAtomRanges(Topology const&, std::string const&);
 };
 #endif

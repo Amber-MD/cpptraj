@@ -1,6 +1,9 @@
 #ifndef INC_TRAJIN_H
 #define INC_TRAJIN_H
 #include "InputTrajCommon.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Read in 1 frame at a time.
 class Trajin {
   public:
@@ -18,6 +21,12 @@ class Trajin {
     InputTrajCommon const& Traj() const { return traj_; }
 
     void SetDebug(int d)                { debug_ = d;         }
+#   ifdef MPI
+    // TODO pure virtual
+    virtual int ParallelBeginTraj( Parallel::Comm const& ) { return 1; }
+    virtual int ParallelReadTrajFrame(int, Frame&) { return 1; }
+    virtual void ParallelEndTraj() { return; }
+#   endif
   protected:
     InputTrajCommon& SetTraj() { return traj_; }
 

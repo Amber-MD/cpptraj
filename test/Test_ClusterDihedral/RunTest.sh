@@ -3,7 +3,12 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in cd.dat cf.dat ci.dat 
-
+CheckNetcdf
+NotParallel "clusterdihedral test"
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
 # clusterdihedral
 TOP="../tz2.parm7"
 INPUT="ptraj.in"

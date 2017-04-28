@@ -7,7 +7,9 @@
 #include "RPNcalc.h"
 #include "Deprecated.h"
 // ----- GENERAL ---------------------------------------------------------------
+#include "Exec_Analyze.h"
 #include "Exec_Calc.h"
+#include "Exec_ClusterMap.h"
 #include "Exec_Commands.h"
 #include "Exec_DataFile.h"
 #include "Exec_DataFilter.h"
@@ -20,6 +22,7 @@
 #include "Exec_ReadInput.h"
 #include "Exec_RunAnalysis.h"
 #include "Exec_SequenceAlign.h"
+#include "Exec_ViewRst.h"
 // ----- SYSTEM ----------------------------------------------------------------
 #include "Exec_System.h"
 // ----- COORDS ----------------------------------------------------------------
@@ -28,6 +31,8 @@
 #include "Exec_CrdOut.h"
 #include "Exec_LoadCrd.h"
 #include "Exec_LoadTraj.h"
+#include "Exec_PermuteDihedrals.h"
+#include "Exec_RotateDihedral.h"
 // ----- TRAJECTORY ------------------------------------------------------------
 #include "Exec_Traj.h"
 // ----- TOPOLOGY --------------------------------------------------------------
@@ -48,7 +53,6 @@
 #include "Action_Unstrip.h"
 #include "Action_DSSP.h"
 #include "Action_Center.h"
-#include "Action_Hbond.h"
 #include "Action_Image.h"
 #include "Action_Surf.h"
 #include "Action_Radgyr.h"
@@ -64,7 +68,6 @@
 #include "Action_Pairwise.h"
 #include "Action_Molsurf.h"
 #include "Action_CheckStructure.h"
-#include "Action_DihedralScan.h"
 #include "Action_RunningAvg.h"
 #include "Action_AtomicFluct.h"
 #include "Action_Watershell.h"
@@ -97,7 +100,7 @@
 #include "Action_Volmap.h"
 #include "Action_Spam.h"
 #include "Action_Temperature.h"
-#include "Action_Gist.h"
+#include "Action_GIST.h"
 #include "Action_CreateReservoir.h"
 #include "Action_Density.h"
 #include "Action_PairDist.h"
@@ -114,9 +117,13 @@
 #include "Action_ReplicateCell.h"
 #include "Action_AreaPerMol.h"
 #include "Action_Energy.h"
+#include "Action_Esander.h"
 #include "Action_CheckChirality.h"
 #include "Action_Channel.h" // EXPERIMENTAL
 #include "Action_Volume.h"
+#include "Action_Align.h"
+#include "Action_Remap.h"
+#include "Action_HydrogenBond.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -166,8 +173,10 @@ Command::Carray Command::names_ = Command::Carray();
 void Command::Init() {
   // GENERAL
   Command::AddCmd( new Exec_ActiveRef(),       Cmd::EXE, 1, "activeref" );
+  Command::AddCmd( new Exec_Analyze(),         Cmd::EXE, 1, "analyze" ); // HIDDEN
   Command::AddCmd( new Exec_Calc(),            Cmd::EXE, 1, "calc" );
   Command::AddCmd( new Exec_Clear(),           Cmd::EXE, 1, "clear" );
+  Command::AddCmd( new Exec_ClusterMap(),      Cmd::EXE, 1, "clustermap" ); // HIDDEN
   Command::AddCmd( new Exec_CreateDataFile(),  Cmd::EXE, 1, "create" );
   Command::AddCmd( new Exec_DataFileCmd(),     Cmd::EXE, 1, "datafile" );
   Command::AddCmd( new Exec_DataFilter(),      Cmd::EXE, 1, "datafilter" );
@@ -191,19 +200,26 @@ void Command::Init() {
   Command::AddCmd( new Exec_SilenceActions(),  Cmd::EXE, 1, "silenceactions" );
   Command::AddCmd( new Exec_SequenceAlign(),   Cmd::EXE, 1, "sequencealign" );
   Command::AddCmd( new Exec_WriteDataFile(),   Cmd::EXE, 2, "write", "writedata" );
+  Command::AddCmd( new Exec_ViewRst(),         Cmd::EXE, 1, "viewrst" ); // HIDDEN
+# ifdef MPI
+  Command::AddCmd( new Exec_ForceParaEnsemble(), Cmd::EXE, 1, "forceparaensemble" );
+# endif
   // SYSTEM
   Command::AddCmd( new Exec_System(), Cmd::EXE, 6, "gnuplot", "head", "less", "ls", "pwd", "xmgrace" );
   // COORDS
-  Command::AddCmd( new Exec_CombineCoords(),Cmd::EXE, 1, "combinecrd" ); 
-  Command::AddCmd( new Exec_CrdAction(),    Cmd::EXE, 1, "crdaction" );
-  Command::AddCmd( new Exec_CrdOut(),       Cmd::EXE, 1, "crdout" );
-  Command::AddCmd( new Exec_LoadCrd(),      Cmd::EXE, 1, "loadcrd" );
-  Command::AddCmd( new Exec_LoadTraj(),     Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_CombineCoords(),    Cmd::EXE, 1, "combinecrd" ); 
+  Command::AddCmd( new Exec_CrdAction(),        Cmd::EXE, 1, "crdaction" );
+  Command::AddCmd( new Exec_CrdOut(),           Cmd::EXE, 1, "crdout" );
+  Command::AddCmd( new Exec_LoadCrd(),          Cmd::EXE, 1, "loadcrd" );
+  Command::AddCmd( new Exec_LoadTraj(),         Cmd::EXE, 1, "loadtraj" );
+  Command::AddCmd( new Exec_PermuteDihedrals(), Cmd::EXE, 1, "permutedihedrals" );
+  Command::AddCmd( new Exec_RotateDihedral(),   Cmd::EXE, 1, "rotatedihedral" );
   // TRAJECTORY
-  Command::AddCmd( new Exec_Ensemble(),  Cmd::EXE, 1, "ensemble" );
-  Command::AddCmd( new Exec_Reference(), Cmd::EXE, 1, "reference" );
-  Command::AddCmd( new Exec_Trajin(),    Cmd::EXE, 1, "trajin" );
-  Command::AddCmd( new Exec_Trajout(),   Cmd::EXE, 1, "trajout" );
+  Command::AddCmd( new Exec_Ensemble(),     Cmd::EXE, 1, "ensemble" );
+  Command::AddCmd( new Exec_EnsembleSize(), Cmd::EXE, 1, "ensemblesize" );
+  Command::AddCmd( new Exec_Reference(),    Cmd::EXE, 1, "reference" );
+  Command::AddCmd( new Exec_Trajin(),       Cmd::EXE, 1, "trajin" );
+  Command::AddCmd( new Exec_Trajout(),      Cmd::EXE, 1, "trajout" );
   // TOPOLOGY COMMANDS
   Command::AddCmd( new Exec_AngleInfo(),     Cmd::EXE, 3, "angles", "angleinfo", "printangles" );
   Command::AddCmd( new Exec_AtomInfo(),      Cmd::EXE, 3, "atoms", "atominfo", "printatoms" );
@@ -222,6 +238,7 @@ void Command::Init() {
   Command::AddCmd( new Exec_ResInfo(),       Cmd::EXE, 1, "resinfo" );
   Command::AddCmd( new Exec_ScaleDihedralK(),Cmd::EXE, 1, "scaledihedralk" );
   // ACTION
+  Command::AddCmd( new Action_Align(),         Cmd::ACT, 1, "align" );
   Command::AddCmd( new Action_Angle(),         Cmd::ACT, 1, "angle" );
   Command::AddCmd( new Action_AreaPerMol(),    Cmd::ACT, 1, "areapermol" );
   Command::AddCmd( new Action_AtomicCorr(),    Cmd::ACT, 1, "atomiccorr" );
@@ -243,19 +260,19 @@ void Command::Init() {
   Command::AddCmd( new Action_Density(),       Cmd::ACT, 1, "density" );
   Command::AddCmd( new Action_Diffusion(),     Cmd::ACT, 1, "diffusion" );
   Command::AddCmd( new Action_Dihedral(),      Cmd::ACT, 1, "dihedral" );
-  Command::AddCmd( new Action_DihedralScan(),  Cmd::ACT, 1, "dihedralscan" );
   Command::AddCmd( new Action_Dipole(),        Cmd::ACT, 1, "dipole" );
   Command::AddCmd( new Action_Distance(),      Cmd::ACT, 1, "distance" );
   Command::AddCmd( new Action_DNAionTracker(), Cmd::ACT, 1, "dnaiontracker" ); // HIDDEN
   Command::AddCmd( new Action_DistRmsd(),      Cmd::ACT, 2, "drms", "drmsd" );
   Command::AddCmd( new Action_DSSP(),          Cmd::ACT, 2, "dssp", "secstruct" );
   Command::AddCmd( new Action_Energy(),        Cmd::ACT, 1, "energy" );
+  Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
-  Command::AddCmd( new Action_Gist(),          Cmd::ACT, 1, "gist" );
+  Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
-  Command::AddCmd( new Action_Hbond(),         Cmd::ACT, 1, "hbond" );
+  Command::AddCmd( new Action_HydrogenBond(),  Cmd::ACT, 1, "hbond" );
   Command::AddCmd( new Action_Image(),         Cmd::ACT, 1, "image" );
   Command::AddCmd( new Action_Jcoupling(),     Cmd::ACT, 1, "jcoupling" );
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
@@ -270,7 +287,7 @@ void Command::Init() {
   Command::AddCmd( new Action_MultiVector(),   Cmd::ACT, 1, "multivector" );
   Command::AddCmd( new Action_NAstruct(),      Cmd::ACT, 1, "nastruct" );
   Command::AddCmd( new Action_NativeContacts(),Cmd::ACT, 1, "nativecontacts" );
-  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" );
+  Command::AddCmd( new Action_NMRrst(),        Cmd::ACT, 1, "nmrrst" ); // HIDDEN
   Command::AddCmd( new Action_Outtraj(),       Cmd::ACT, 1, "outtraj" );
   Command::AddCmd( new Action_PairDist(),      Cmd::ACT, 1, "pairdist" );
   Command::AddCmd( new Action_Pairwise(),      Cmd::ACT, 1, "pairwise" );
@@ -280,13 +297,14 @@ void Command::Init() {
   Command::AddCmd( new Action_Radgyr(),        Cmd::ACT, 2, "radgyr", "rog" );
   Command::AddCmd( new Action_Radial(),        Cmd::ACT, 2, "radial", "rdf" );
   Command::AddCmd( new Action_RandomizeIons(), Cmd::ACT, 1, "randomizeions" );
+  Command::AddCmd( new Action_Remap(),         Cmd::ACT, 1, "remap" );
   Command::AddCmd( new Action_ReplicateCell(), Cmd::ACT, 1, "replicatecell" );
   Command::AddCmd( new Action_Rmsd(),          Cmd::ACT, 2, "rms", "rmsd" );
   Command::AddCmd( new Action_Rotate(),        Cmd::ACT, 1, "rotate" );
   Command::AddCmd( new Action_RunningAvg(),    Cmd::ACT, 2, "runavg", "runningaverage" );
   Command::AddCmd( new Action_Scale(),         Cmd::ACT, 1, "scale" );
   Command::AddCmd( new Action_SetVelocity(),   Cmd::ACT, 1, "setvelocity" );
-  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" );
+  Command::AddCmd( new Action_Spam(),          Cmd::ACT, 1, "spam" ); // HIDDEN
   Command::AddCmd( new Action_STFC_Diffusion(),Cmd::ACT, 1, "stfcdiffusion" );
   Command::AddCmd( new Action_Strip(),         Cmd::ACT, 1, "strip" );
   Command::AddCmd( new Action_Surf(),          Cmd::ACT, 1, "surf" );
@@ -301,15 +319,17 @@ void Command::Init() {
   Command::AddCmd( new Action_Volume(),        Cmd::ACT, 1, "volume" );
   Command::AddCmd( new Action_Watershell(),    Cmd::ACT, 1, "watershell" );
   // ANALYSIS
-  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" );
+  Command::AddCmd( new Analysis_AmdBias(),     Cmd::ANA, 1, "amdbias" ); // HIDDEN
   Command::AddCmd( new Analysis_AutoCorr(),    Cmd::ANA, 1, "autocorr" );
   Command::AddCmd( new Analysis_Average(),     Cmd::ANA, 1, "avg" );
+  Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Clustering(),  Cmd::ANA, 1, "cluster" );
   Command::AddCmd( new Analysis_Corr(),        Cmd::ANA, 2, "corr", "correlationcoe" );
   Command::AddCmd( new Analysis_CrankShaft(),  Cmd::ANA, 2, "crank", "crankshaft" );
   Command::AddCmd( new Analysis_CrdFluct(),    Cmd::ANA, 1, "crdfluct" );
   Command::AddCmd( new Analysis_CrossCorr(),   Cmd::ANA, 1, "crosscorr" );
   Command::AddCmd( new Analysis_CurveFit(),    Cmd::ANA, 1, "curvefit" );
+  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_Divergence(),  Cmd::ANA, 1, "divergence" );
   Command::AddCmd( new Analysis_FFT(),         Cmd::ANA, 1, "fft" );
   Command::AddCmd( new Analysis_Hist(),        Cmd::ANA, 2, "hist", "histogram" );
@@ -318,12 +338,11 @@ void Command::Init() {
   Command::AddCmd( new Analysis_KDE(),         Cmd::ANA, 1, "kde" );
   Command::AddCmd( new Analysis_Lifetime(),    Cmd::ANA, 1, "lifetime" );
   Command::AddCmd( new Analysis_LowestCurve(), Cmd::ANA, 1, "lowestcurve" );
-  Command::AddCmd( new Analysis_Matrix(),      Cmd::ANA, 2, "diagmatrix", "matrix" );
   Command::AddCmd( new Analysis_MeltCurve(),   Cmd::ANA, 1, "meltcurve" );
   Command::AddCmd( new Analysis_Modes(),       Cmd::ANA, 1, "modes" );
   Command::AddCmd( new Analysis_Multicurve(),  Cmd::ANA, 1, "multicurve" );
   Command::AddCmd( new Analysis_MultiHist(),   Cmd::ANA, 1, "multihist" );
-  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" );
+  Command::AddCmd( new Analysis_Overlap(),     Cmd::ANA, 1, "overlap" ); // HIDDEN
   Command::AddCmd( new Analysis_PhiPsi(),      Cmd::ANA, 1, "phipsi" );
   Command::AddCmd( new Analysis_Regression(),  Cmd::ANA, 1, "regress" );
   Command::AddCmd( new Analysis_RemLog(),      Cmd::ANA, 1, "remlog" );
@@ -332,14 +351,14 @@ void Command::Init() {
   Command::AddCmd( new Analysis_Rotdif(),      Cmd::ANA, 1, "rotdif" );
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
-  Command::AddCmd( new Analysis_State(),       Cmd::ANA, 1, "calcstate" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
-  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
+  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" ); // HIDDEN
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
   // DEPRECATED COMMANDS
   Command::AddCmd( new Deprecated_AvgCoord(),    Cmd::DEP, 1, "avgcoord" );
+  Command::AddCmd( new Deprecated_DihScan(),     Cmd::DEP, 1, "dihedralscan" );
   Command::AddCmd( new Deprecated_Hbond(),       Cmd::DEP, 2, "acceptor", "donor" );
   Command::AddCmd( new Deprecated_MinDist(),     Cmd::DEP, 2, "mindist", "maxdist" );
   Command::AddCmd( new Deprecated_ParmBondInfo(),Cmd::DEP, 1, "parmbondinfo" );
@@ -391,12 +410,6 @@ Cmd const& Command::SearchTokenType(DispatchObject::Otype catIn, const char* key
   * \return the token if found, 0 if not.
   */
 Cmd const& Command::SearchToken(ArgList& argIn) {
-  // SPECIAL CASE: For backwards compat. remove analyze prefix
-  if (argIn.CommandIs("analyze")) {
-    argIn.RemoveFirstArg();
-    argIn.MarkArg(0); // Mark new first arg as command
-    return (SearchTokenType(DispatchObject::ANALYSIS, argIn.Command()));
-  }
   // Search for command.
   for (CmdList::const_iterator cmd = commands_.begin(); cmd != commands_.end(); ++cmd)
   {
@@ -475,8 +488,8 @@ CpptrajState::RetType Command::Dispatch(CpptrajState& State, std::string const& 
         ret_val = ((Exec*)obj)->Execute( State, cmdArg );
         delete obj;
         break;
-      case Cmd::ACT: State.AddToActionQueue( (Action*)obj, cmdArg ); break;
-      case Cmd::ANA: State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
+      case Cmd::ACT: ret_val = State.AddToActionQueue( (Action*)obj, cmdArg ); break;
+      case Cmd::ANA: ret_val = State.AddToAnalysisQueue( (Analysis*)obj, cmdArg ); break;
       case Cmd::DEP:
         mprinterr("Error: '%s' is deprecated.\n", cmdArg.Command());
         cmd.Help();
@@ -511,8 +524,16 @@ CpptrajState::RetType Command::ProcessInput(CpptrajState& State, std::string con
     if (!input.Empty()) {
       // Print the input line that will be sent to dispatch
       mprintf("  [%s]\n", input.str());
+#     ifdef TIMER
+      Timer time_cmd; // DEBUG
+      time_cmd.Start(); // DEBUG
+#     endif
       // Call Dispatch to convert input to ArgList and process.
       cmode = Command::Dispatch(State, input.Str());
+#     ifdef TIMER
+      time_cmd.Stop(); // DEBUG
+      time_cmd.WriteTiming(0," Command time: "); // DEBUG
+#     endif
       if (cmode == CpptrajState::ERR) {
         nInputErrors++;
         if (State.ExitOnError()) break;

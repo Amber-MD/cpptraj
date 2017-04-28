@@ -47,9 +47,11 @@ class DataSet_RemLog : public DataSet {
     void TrimLastExchange(); 
     
     // ----- DataSet routines --------------------
-    size_t Size() const { return ensemble_.size(); }
-    int Sync()          { return 1;                }
-    void Info()   const { return;                  }
+    size_t Size()                       const { return ensemble_.size(); }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
+    void Info()                         const { return;                  }
     void WriteBuffer(CpptrajFile&, SizeArray const&) const { return; }
     int Allocate(SizeArray const&) { return 0; } // TODO implement?
     // TODO: Remove

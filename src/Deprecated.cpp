@@ -28,3 +28,8 @@ void Deprecated_ParmMolInfo::Help() const {
 void Deprecated_AvgCoord::Help() const {
   mprinterr("  Use 'vector center' (optionally with keyword 'magnitude') instead.\n");
 }
+
+void Deprecated_DihScan::Help() const {
+  mprinterr("  Use the 'permutedihedrals' command instead.\n"
+            "  See 'help permutedihedrals' for more details.\n");
+}

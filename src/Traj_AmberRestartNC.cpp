@@ -3,22 +3,24 @@
 // (and writing?) netcdf restart files used with amber.
 // Dan Roe 2011-01-07
 #include "Traj_AmberRestartNC.h"
+#include <netcdf.h>
+#include "NC_Routines.h"
 #include "CpptrajStdio.h"
-#include "StringRoutines.h" // NumberFilename
-#include "netcdf.h"
+#include "StringRoutines.h" // integerToString 
 
 // CONSTRUCTOR
 Traj_AmberRestartNC::Traj_AmberRestartNC() :
   restartTime_(0),
+  time0_(1.0),
+  dt_(1.0),
+  n_atoms_(0),
   singleWrite_(false),
   useVelAsCoords_(false),
+  useFrcAsCoords_(false),
   outputTemp_(false),
-  outputVel_(false),
-  outputTime_(false),
   readAccess_(false),
-  time0_(1.0),
-  dt_(1.0)
-{ }
+  prependExt_(false)
+{}
 
 // DESTRUCTOR
 Traj_AmberRestartNC::~Traj_AmberRestartNC() {
@@ -49,11 +51,13 @@ int Traj_AmberRestartNC::openTrajin() {
 }
 
 void Traj_AmberRestartNC::ReadHelp() {
-  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n");
+  mprintf("\tusevelascoords: Use velocities instead of coordinates if present.\n"
+          "\tusefrcascoords: Use forces instead of coordinates if present.\n");
 }
 
 int Traj_AmberRestartNC::processReadArgs(ArgList& argIn) {
   useVelAsCoords_ = argIn.hasKey("usevelascoords");
+  useFrcAsCoords_ = argIn.hasKey("usefrcascoords");
   return 0;
 }
 
@@ -72,15 +76,12 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
               filename_.base());
     return TRAJIN_ERR;
   }
-  // Get global attributes
-  std::string attrText = GetAttrText("ConventionVersion");
-  if (attrText!="1.0")
-    mprintf("Warning: Netcdf restart file %s has ConventionVersion that is not 1.0 (%s)\n",
-            filename_.base(), attrText.c_str());
+  // This will warn if conventions are not 1.0 
+  CheckConventionsVersion();
   // Get title
-  SetTitle( GetAttrText("title") );
+  SetTitle( GetNcTitle() );
   // Setup Coordinates/Velocities
-  if ( SetupCoordsVelo( useVelAsCoords_ )!=0 ) return TRAJIN_ERR;
+  if ( SetupCoordsVelo( useVelAsCoords_, useFrcAsCoords_ )!=0 ) return TRAJIN_ERR;
   // Check that specified number of atoms matches expected number.
   if (Ncatom() != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in NetCDF restart file %s (%i) does not\n",
@@ -91,8 +92,8 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
   // Setup Time - FIXME: allowed to fail silently
   SetupTime();
   // Box info
-  double boxcrd[6];
-  if (SetupBox(boxcrd, NC_AMBERRESTART) == 1) // 1 indicates an error
+  Box nc_box;
+  if (SetupBox(nc_box, NC_AMBERRESTART) == 1) // 1 indicates an error
     return TRAJIN_ERR;
   // Replica Temperatures - FIXME: allowed to fail silently 
   SetupTemperature();
@@ -100,7 +101,7 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
   ReplicaDimArray remdDim;
   if ( SetupMultiD(remdDim) == -1 ) return TRAJIN_ERR;
   // Set traj info: FIXME - no forces yet
-  SetCoordInfo( CoordinateInfo(remdDim, Box(boxcrd), HasVelocities(),
+  SetCoordInfo( CoordinateInfo(remdDim, nc_box, HasVelocities(),
                                HasTemperatures(), HasTimes(), false) );
   // NOTE: TO BE ADDED
   // labelDID;
@@ -112,19 +113,16 @@ int Traj_AmberRestartNC::setupTrajin(FileName const& fname, Topology* trajParm)
 }
 
 void Traj_AmberRestartNC::WriteHelp() {
-  mprintf("\tnovelocity: Do not write velocities to restart file.\n"
-          "\tnotime:     Do not write time to restart file.\n"
-          "\tremdtraj:   Write temperature to restart file.\n"
-          "\ttime0:      Time for first frame (default 1.0).\n"
-          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
+  mprintf("\tremdtraj: Write temperature to restart file.\n"
+          "\ttime0   : Time for first frame (default 1.0).\n"
+          "\tdt      : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestartNC::processWriteArgs()
 int Traj_AmberRestartNC::processWriteArgs(ArgList& argIn) {
-  // For write, assume we want velocities unless specified
-  outputVel_ = !argIn.hasKey("novelocity");
-  outputTime_ = !argIn.hasKey("notime");
   outputTemp_ = argIn.hasKey("remdtraj");
+  prependExt_ = argIn.hasKey("keepext");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
   return 0;
@@ -143,14 +141,10 @@ int Traj_AmberRestartNC::setupTrajout(FileName const& fname, Topology* trajParm,
   readAccess_ = false;
   CoordinateInfo cInfo = cInfoIn;
   if (!cInfo.HasTemp() && outputTemp_) cInfo.SetTemperature(true);
-  if (cInfo.HasVel() && !outputVel_) cInfo.SetVelocity(false);
-  if (outputTime_) {
-    if (!cInfo.HasTime() && time0_ >= 0) cInfo.SetTime(true);
-  } else
-    cInfo.SetTime(false);
+  if (!cInfo.HasTime() && time0_ >= 0) cInfo.SetTime(true);
   SetCoordInfo( cInfo );
   filename_ = fname;
-  SetNcatom( trajParm->Natom() );
+  n_atoms_ = trajParm->Natom();
   // If number of frames to write == 1 set singleWrite so we dont append
   // frame # to filename.
   if (NframesToWrite == 1) singleWrite_ = true;
@@ -167,7 +161,7 @@ int Traj_AmberRestartNC::setupTrajout(FileName const& fname, Topology* trajParm,
 int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   // Get time
   if (timeVID_ != -1) {
-    if ( checkNCerr(nc_get_var_double(ncid_, timeVID_, frameIn.mAddress())) ) {
+    if ( NC::CheckErr(nc_get_var_double(ncid_, timeVID_, frameIn.mAddress())) ) {
       mprinterr("Error: Getting restart time.\n");
       return 1;
     }
@@ -175,7 +169,7 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 
   // Get temperature
   if (TempVID_!=-1) {
-    if ( checkNCerr(nc_get_var_double(ncid_, TempVID_, frameIn.tAddress())) ) {
+    if ( NC::CheckErr(nc_get_var_double(ncid_, TempVID_, frameIn.tAddress())) ) {
       mprinterr("Error: Getting replica temperature.\n");
       return 1;
     }
@@ -188,14 +182,14 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   start_[1] = 0;
   count_[0] = Ncatom();
   count_[1] = 3;
-  if ( checkNCerr(nc_get_vara_double(ncid_, coordVID_, start_, count_, frameIn.xAddress())) ) {
+  if ( NC::CheckErr(nc_get_vara_double(ncid_, coordVID_, start_, count_, frameIn.xAddress())) ) {
     mprinterr("Error: Getting Coords\n");
     return 1;
   }
 
   // Read Velocity
   if (velocityVID_!=-1 && frameIn.HasVelocity()) {
-    if ( checkNCerr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, frameIn.vAddress())) ) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, velocityVID_, start_, count_, frameIn.vAddress())) ) {
       mprinterr("Error: Getting velocities\n"); 
       return 1;
     }
@@ -204,7 +198,7 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   // Read replica indices
   if (indicesVID_!=-1) {
     count_[0] = remd_dimension_;
-    if ( checkNCerr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
+    if ( NC::CheckErr(nc_get_vara_int(ncid_, indicesVID_, start_, count_, frameIn.iAddress())) ) {
       mprinterr("Error: Getting replica indices from restart.\n");
       return 1;
     }
@@ -217,11 +211,11 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
     count_[1] = 0;
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, cellLengthVID_, start_, count_, frameIn.bAddress())) ) {
       mprinterr("Error: Getting cell lengths.\n"); 
       return 1;
     }
-    if ( checkNCerr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
+    if ( NC::CheckErr(nc_get_vara_double(ncid_, cellAngleVID_, start_, count_, frameIn.bAddress()+3)) ) {
       mprinterr("Error: Getting cell angles.\n");
       return 1;
     }
@@ -234,29 +228,31 @@ int Traj_AmberRestartNC::readFrame(int set, Frame& frameIn) {
 int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // Set up file for this set
   bool V_present = (CoordInfo().HasVel() && frameOut.HasVelocity());
-  std::string fname;
+  FileName fname;
   // Create filename for this set
   // If just writing 1 frame dont modify output filename
   if (singleWrite_)
-    fname = filename_.Full();
+    fname = filename_;
+  else if (prependExt_)
+    fname = filename_.PrependExt( "." + integerToString(set+1) );
   else
-    fname = AppendNumber(filename_.Full(), set+1);
+    fname = filename_.AppendFileName( "." + integerToString(set+1) );
   // Create Netcdf file 
-  if ( NC_create( fname, NC_AMBERRESTART, Ncatom(), CoordInfo(), Title() ) )
+  if ( NC_create( fname.full(), NC_AMBERRESTART, n_atoms_, CoordInfo(), Title() ) )
     return 1;
   // write coords
   start_[0] = 0;
   start_[1] = 0;
   count_[0] = Ncatom(); 
   count_[1] = 3;
-  if (checkNCerr(nc_put_vara_double(ncid_,coordVID_,start_,count_,frameOut.xAddress())) ) {
+  if (NC::CheckErr(nc_put_vara_double(ncid_,coordVID_,start_,count_,frameOut.xAddress())) ) {
     mprinterr("Error: Netcdf restart Writing coordinates %i\n",set);
     return 1;
   }
   // write velocity
   if (V_present) {
     //mprintf("DEBUG: Writing V, VID=%i\n",velocityVID_);
-    if (checkNCerr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,frameOut.vAddress())) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,velocityVID_,start_,count_,frameOut.vAddress())) ) {
       mprinterr("Error: Netcdf restart writing velocity %i\n",set);
       return 1;
     }
@@ -265,11 +261,11 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   if (cellLengthVID_ != -1) {
     count_[0] = 3;
     count_[1] = 0;
-    if (checkNCerr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellLengthVID_,start_,count_,frameOut.bAddress())) ) {
       mprinterr("Error: Writing cell lengths.\n");
       return 1;
     }
-    if (checkNCerr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
+    if (NC::CheckErr(nc_put_vara_double(ncid_,cellAngleVID_,start_,count_, frameOut.bAddress()+3)) ) {
       mprinterr("Error: Writing cell angles.\n");
       return 1;
     }
@@ -280,14 +276,14 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
       restartTime_ = (time0_ + (double)set) * dt_;
     else
       restartTime_ = frameOut.Time();
-    if (checkNCerr(nc_put_var_double(ncid_,timeVID_,&restartTime_)) ) {
+    if (NC::CheckErr(nc_put_var_double(ncid_,timeVID_,&restartTime_)) ) {
       mprinterr("Error: Writing restart time.\n");
       return 1;
     }
   }
   // write temperature
   if (TempVID_ != -1) {
-    if (checkNCerr(nc_put_var_double(ncid_,TempVID_,frameOut.tAddress())) ) {
+    if (NC::CheckErr(nc_put_var_double(ncid_,TempVID_,frameOut.tAddress())) ) {
       mprinterr("Error: Writing restart temperature.\n"); 
       return 1;
     }
@@ -295,7 +291,7 @@ int Traj_AmberRestartNC::writeFrame(int set, Frame const& frameOut) {
   // write indices
   if (indicesVID_ != -1) {
     count_[0] = remd_dimension_;
-    if ( checkNCerr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
+    if ( NC::CheckErr(nc_put_vara_int(ncid_,indicesVID_,start_,count_,frameOut.iAddress())) ) {
       mprinterr("Error: Writing indices frame %i.\n", set+1);
       return 1;
     }
@@ -315,8 +311,25 @@ void Traj_AmberRestartNC::Info() {
     if (remd_dimension_ > 0) mprintf(", with %i dimensions", remd_dimension_);
   } else {
     if (outputTemp_) mprintf(", with temperature");
-    if (!outputVel_) mprintf(", no velocities");
-    if (!outputTime_) mprintf(", no time");
   }
 }
+#ifdef MPI
+/// Since files are opened on write this does not need to do anything
+int Traj_AmberRestartNC::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+/** No file access during setupTrajout, so have all threads call it.
+  * No need to sync.
+  */
+int Traj_AmberRestartNC::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                             CoordinateInfo const& cInfoIn,
+                                             int NframesToWrite, bool append,
+                                             Parallel::Comm const& commIn)
+{
+  return (setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append));
+}
+
+int Traj_AmberRestartNC::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif
 #endif

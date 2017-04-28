@@ -74,6 +74,8 @@ class Action_NMRrst: public Action {
     bool useMass_;
     bool findNOEs_;
     bool series_; ///< If true save NOE distance data.
+    Topology* rsttop_;
+    std::string viewrst_;
 };
 // ----- Associated Classes ----------------------------------------------------
 /// Potential NOE site.

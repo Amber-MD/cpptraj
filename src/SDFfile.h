@@ -21,7 +21,6 @@ class SDFfile : public CpptrajFile {
     int SDF_Nbonds()                    const { return Nbonds_; }
     std::string const& SDF_Title()      const { return title_;  }
   private:
-    int debug_;
     int Natoms_;
     int Nbonds_;
     char Name_[5]; 

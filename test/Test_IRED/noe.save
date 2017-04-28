@@ -1,4 +1,4 @@
-#Frame   MyIred[T1] MyIred[T2] MyIred[NOE]
+#Vec     MyIred[T1] MyIred[T2] MyIred[NOE]
        1   65.76219   64.99882    -3.58049
        2   13.49444   13.33785    -3.58075
        3   15.53434   15.35388    -3.57995

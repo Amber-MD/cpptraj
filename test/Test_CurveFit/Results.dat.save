@@ -1,0 +1,12 @@
+#Fit equation 'PKFitY = A0 +(A1 * exp(X * A2)) + (A3 * exp(X * A4))' to set 'Y=(0.6*exp(-0.004*X))+(0.4*exp(-0.02*X))'
+#Final Param A0 = 0.000657119
+#Final Param A1 = 0.399727
+#Final Param A2 = -0.0200052
+#Final Param A3 = 0.599616
+#Final Param A4 = -0.00400834
+#Correlation coefficient: 1
+#Chi squared: 6.62317e-13
+#Uncertainty coefficient: 1.18345e-07
+#RMS percent error: 1.36125e-07
+#Sum of prefactors = 1
+#Time constants (-1.0/A<n>):      49.9871       249.48

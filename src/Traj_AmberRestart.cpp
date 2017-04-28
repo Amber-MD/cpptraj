@@ -16,8 +16,8 @@ Traj_AmberRestart::Traj_AmberRestart() :
   readAccess_(false),
   useVelAsCoords_(false),
   outputTemp_(false),
-  outputVel_(false),
-  outputTime_(false)
+  outputTime_(true), // For backwards compat.
+  prependExt_(false)
 {}
 
 /** Check for an integer (I5) followed by 0-2 scientific floats (E15.7) */
@@ -56,22 +56,19 @@ void Traj_AmberRestart::closeTraj() {
 int Traj_AmberRestart::openTrajin() { return 0; }
 
 void Traj_AmberRestart::WriteHelp() {
-  mprintf("\tnovelocity: Do not write velocities to restart file.\n"
-          "\tnotime:     Do not write time to restart file.\n"
-          "\tremdtraj:   Write temperature to restart file (will also write time).\n"
-          "\ttime0:      Time for first frame (if not specified time is not written).\n"
-          "\tdt:         Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n");
+  mprintf("\tremdtraj: Write temperature to restart file (will also write time).\n"
+          "\ttime0   : Time for first frame (if not specified time is not written).\n"
+          "\tdt      : Time step for subsequent frames, t=(time0+frame)*dt; (default 1.0)\n"
+          "\tkeepext : Keep filename extension; write '<name>.<num>.<ext>' instead.\n");
 }
 
 // Traj_AmberRestart::processWriteArgs()
 int Traj_AmberRestart::processWriteArgs(ArgList& argIn) {
-  // For write, assume we want velocities unless specified
-  outputVel_ = !argIn.hasKey("novelocity");
-  outputTime_ = !argIn.hasKey("notime");
   outputTemp_ = argIn.hasKey("remdtraj");
   time0_ = argIn.getKeyDouble("time0", -1.0);
   dt_ = argIn.getKeyDouble("dt",1.0);
   singleWrite_ = argIn.hasKey("single");
+  prependExt_ = argIn.hasKey("keepext");
   return 0;
 }
 
@@ -94,7 +91,6 @@ int Traj_AmberRestart::setupTrajout(FileName const& fname, Topology* trajParm,
     outputTime_ = true;
     if (!cInfo.HasTime() && time0_ < 0.0) time0_ = 1.0;
   }
-  if (cInfo.HasVel() && !outputVel_) cInfo.SetVelocity(false);
   if (outputTime_) {
     if (!cInfo.HasTime() && time0_ >= 0) cInfo.SetTime(true);
   } else
@@ -225,10 +221,18 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   natom3_ = restartAtoms * 3;
   // Calculate the length of coordinate frame in bytes
   infile.SetupFrameBuffer( natom3_, 12, 6 );
-  // Read past restart coords 
-  if ( infile.ReadFrame() ) {
-    mprinterr("Error: AmberRestart::setupTrajin(): Error reading coordinates.\n");
-    return TRAJIN_ERR; 
+  // Read past restart coords
+  int bytesRead = infile.AttemptReadFrame();
+  //mprintf("DEBUG: %i bytes read, frame size is %zu\n", bytesRead, infile.FrameSize());
+  if (bytesRead != (int)infile.FrameSize()) {
+    // See if we are just missing EOL
+    if (bytesRead + 1 + (int)infile.IsDos() == (int)infile.FrameSize())
+      mprintf("Warning: File '%s' missing EOL.\n", infile.Filename().full());
+    else {
+      mprinterr("Error: Error reading coordinates from Amber restart '%s'.\n",
+                 infile.Filename().full());
+      return TRAJIN_ERR;
+    }
   }
   // Save coordinates
   CRD_.resize( natom3_ );
@@ -246,7 +250,12 @@ int Traj_AmberRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   //mprintf("DEBUG: Restart readSize on second read = %i\n",readSize);
   // If 0 no box or velo 
   if (readSize > 0) {
-    if (readSize == infile.FrameSize()) {
+    bool velocitiesRead = (readSize == infile.FrameSize());
+    if (readSize + 1 + (unsigned int)infile.IsDos() == infile.FrameSize()) {
+      mprintf("Warning: File '%s' missing EOL.\n", infile.Filename().full());
+      velocitiesRead = true;
+    }
+    if (velocitiesRead) {
       // If filled framebuffer again, has velocity info. 
       hasVel = true;
       VEL_.resize( natom3_ );
@@ -323,7 +332,7 @@ int Traj_AmberRestart::writeFrame(int set, Frame const& frameOut) {
   if (singleWrite_) {
     if (file_.OpenFile()) return 1;
   } else {
-    if (file_.OpenWriteNumbered( set + 1 ) ) return 1;
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ ) ) return 1;
   }
 
   // Write out title
@@ -370,11 +379,24 @@ void Traj_AmberRestart::Info() {
     else
       mprintf(", no velocities");
     if (useVelAsCoords_) mprintf(" (using velocities as coords)");
-  } else {
-    // If write, not sure yet whether velocities will be written since
-    // it also depends on if the frame has velocity info, so only state
-    // if novelocity was specified.
-    if (!outputVel_) mprintf(", no velocities");
-    if (!outputTime_) mprintf(", no time");
   }
 }
+#ifdef MPI
+/// Since files are opened on write this does not need to do anything
+int Traj_AmberRestart::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+/** No file access during setupTrajout, so have all threads call it.
+  * No need to sync.
+  */
+int Traj_AmberRestart::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  return (setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append));
+}
+
+int Traj_AmberRestart::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif

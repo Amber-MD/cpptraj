@@ -17,7 +17,7 @@ int Cluster_ReadInfo::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_ReadInfo::ClusteringInfo() {
+void Cluster_ReadInfo::ClusteringInfo() const {
   mprintf("\tREADINFO: Reading cluster information from previous run, file %s.\n",
           filename_.c_str());
 }
@@ -42,9 +42,9 @@ int Cluster_ReadInfo::Cluster() {
   if (nclusters == -1) return Err(2);
   int nframes = infoLine.getKeyInt("clusters", -1);
   if (nframes == -1) return Err(3);
-  if (nframes != (int)FrameDistances_.Nframes()) {
+  if (nframes != (int)FrameDistances().OriginalNframes()) {
     mprinterr("Error: # frames in cluster info file (%i) does not match"
-              " current # frames (%zu)\n", nframes, FrameDistances_.Nframes());
+              " current # frames (%zu)\n", nframes, FrameDistances().OriginalNframes());
     return 1;
   }
   // Scan down to clusters
@@ -70,13 +70,11 @@ int Cluster_ReadInfo::Cluster() {
     ptr = infile.Line();
   }
   infile.CloseFile();
-  mprintf("\tCalculating the distances between each cluster based on centroids.\n");
-  CalcClusterDistances();
   return 0;
 }
 
 void Cluster_ReadInfo::ClusterResults(CpptrajFile& outfile) const {
   outfile.Printf("#Algorithm: Read from file '%s'\n", filename_.c_str());
   if (!algorithm_.empty())
-    outfile.Printf("#Original algorithm: %s", algorithm_.c_str());
+    outfile.Printf("#Original algorithm: %s\n", algorithm_.c_str());
 }

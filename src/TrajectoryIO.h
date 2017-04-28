@@ -6,7 +6,9 @@
 #include "CpptrajFile.h"
 #include "ArgList.h"
 #include "BaseIOtype.h"
-// Class: TrajectoryIO
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Abstract base class for performing trajectory reading and writing.
 /** This is the generic interface for a trajectory format used by 
   * TrajectoryFile-derived classes.
@@ -70,12 +72,24 @@ class TrajectoryIO : public BaseIOtype {
     /// Process arguments relevant to reading trajectory (optional)
     virtual int processReadArgs(ArgList&) = 0;
 #   ifdef ENABLE_SINGLE_ENSEMBLE
+    // -----------------------------------------------------
     /// \return true if this IO is suitable for single file ensemble IO
     virtual bool CanProcessEnsemble() { return false; } // TODO: Pure virtual/make part of CoordinateInfo?
     /// Read frame array
     virtual int readArray(int, FrameArray&) { return 1; }
     /// Write frame array
     virtual int writeArray(int, FramePtrArray const&) { return 1; }
+#   endif
+#   ifdef MPI
+    // -----------------------------------------------------
+    // Parallel functions TODO pure virtual
+    virtual int parallelOpenTrajin(Parallel::Comm const&) { return 1; }
+    virtual int parallelOpenTrajout(Parallel::Comm const&) { return 1; }
+    virtual int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                                     int, bool, Parallel::Comm const&) { return 1; }
+    virtual int parallelReadFrame(int, Frame&) { return 1; }
+    virtual int parallelWriteFrame(int, Frame const&) { return 1; }
+    virtual void parallelCloseTraj() { return ; }
 #   endif
     // -----------------------------------------------------
     CoordinateInfo const& CoordInfo() const { return coordInfo_; }
@@ -86,6 +100,10 @@ class TrajectoryIO : public BaseIOtype {
   protected:
     void SetCoordInfo(CoordinateInfo const& cIn) { coordInfo_ = cIn; }
     int debug_;               ///< Trajectory debug level.
+#   ifdef MPI
+    /// Sync up coordinate info etc.
+    int SyncTrajIO(Parallel::Comm const&);
+#   endif
   private:
     CoordinateInfo coordInfo_; ///< Metadata associated with coordinate Frame
     std::string title_;        ///< Set to trajectory title.

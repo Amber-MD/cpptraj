@@ -1,8 +1,8 @@
 #!/bin/bash
 
 . ../MasterTest.sh
-
 CleanFiles crank.in crank.dat results.dat stat.dat
+CheckNetcdf
 INPUT="crank.in"
 TOP=../tz2.parm7
 cat > crank.in <<EOF

@@ -25,7 +25,9 @@ MapAtom::MapAtom() :
   complete_(false), 
   Nduplicated_(0),
   name_(0) 
-{}
+{
+  std::fill( xyz_, xyz_ + 3, 0.0 );
+}
 
 // COPY CONSTRUCTOR
 MapAtom::MapAtom(const MapAtom& rhs) : Atom(rhs),
@@ -37,18 +39,22 @@ MapAtom::MapAtom(const MapAtom& rhs) : Atom(rhs),
    unique_(rhs.unique_), 
    Nduplicated_(rhs.Nduplicated_),
    name_(rhs.name_) 
-{}
+{
+  std::copy( rhs.xyz_, rhs.xyz_ + 3, xyz_ );
+}
 
 // COPY CONSTRUCTOR
 /// Copy base atom to this MapAtom
-MapAtom::MapAtom(const Atom& rhs) : Atom(rhs),
+MapAtom::MapAtom(const Atom& rhs, const double* xyzIn) : Atom(rhs),
   isChiral_(false),
   boundToChiral_(false),
   isMapped_(false),
   complete_(false),
   Nduplicated_(0),
   name_(AtomicElementChar[Element()])
-{}
+{
+  std::copy( xyzIn, xyzIn + 3, xyz_ );
+}
 
 // Assignment
 MapAtom& MapAtom::operator=(const MapAtom& rhs) {
@@ -62,5 +68,6 @@ MapAtom& MapAtom::operator=(const MapAtom& rhs) {
   unique_   = rhs.unique_;
   Nduplicated_ = rhs.Nduplicated_;
   name_ = rhs.name_;
+  std::copy( rhs.xyz_, rhs.xyz_ + 3, xyz_ );
   return *this;
 }

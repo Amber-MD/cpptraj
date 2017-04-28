@@ -1,6 +1,4 @@
-// DataSet_float
 #include "DataSet_float.h"
-#include "MpiRoutines.h"
 
 // DataSet_float::Allocate()
 /** Reserve space in the Data and Frames arrays. */
@@ -46,62 +44,23 @@ int DataSet_float::Append(DataSet* dsIn) {
   return 0;
 }
 
+#ifdef MPI
 // DataSet_float::Sync()
-/** First, non-master threads convert their vectors into C-arrays.
-  * These arrays are then sent to the master, where they are put 
-  * into the master arrays. It is assumed that master (rank 0) has 
-  * first chunk of data, rank 1 has next and so on.
-  */
-int DataSet_float::Sync() {
-  unsigned int dataSize;
-  unsigned int masterSize = 0;
-  float* values = 0;
-
-  if (worldsize==1) return 0;
-
-  for ( int rank = 1; rank < worldsize; ++rank) {
-    if ( worldrank == rank ) {
-      // ----- RANK -------
-      // Get size of data on rank.
-      dataSize = Data_.size();
-      // Send rank size to master
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size is 0 on rank, skip this rank.
-      if (dataSize == 0) continue;
-      // Allocate space for temp array on rank, put Data_ into values.
-      values = new float[ dataSize ];
-      std::copy(Data_.begin(), Data_.end(), values);
-      //frames = new int[ dataSize ];
-      // Send arrays to master
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, dataSize, rank, PARA_FLOAT);
-      // Free arrays on rank
-      delete[] values;
-    } else if (worldrank == 0) {
-      // ----- MASTER -----
-      // Master receives size from rank
-      parallel_sendMaster(&dataSize, 1, rank, PARA_INT);
-      // If size was 0 on rank, skip rank.
-      if (dataSize == 0) continue;
-      // Reallocate temp array on master if necessary
-      if (dataSize > masterSize) {
-        if ( values != 0 ) delete[] values;
-        values = new float[ dataSize ];
-        masterSize = dataSize;
-      }
-      // Master receives arrays
-      //parallel_sendMaster(frames, dataSize, rank, PARA_INT);
-      parallel_sendMaster(values, dataSize, rank, PARA_FLOAT);
-      // Insert frames and values to master arrays
-      for (unsigned int i = 0; i < dataSize; ++i) {
-        //Frames_.push_back( frames[i] );
-        Data_.push_back( values[i] );
-      }
+int DataSet_float::Sync(size_t total, std::vector<int> const& rank_frames,
+                        Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
+    // Resize for total number of frames.
+    Data_.resize( total );
+    float* endptr = &(Data_[0]) + rank_frames[0];
+    // Receive data from each rank
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      commIn.SendMaster( endptr, rank_frames[rank], rank, MPI_FLOAT );
+      endptr += rank_frames[rank];
     }
-  } // End loop over ranks > 0
-
-  // Free master array
-  if (worldrank == 0 && values != 0 ) delete[] values;
-
+  } else // Send data to master //TODO adjust for repeated additions?
+    commIn.SendMaster( &(Data_[0]), Data_.size(), commIn.Rank(), MPI_FLOAT );
   return 0;
 }
+#endif

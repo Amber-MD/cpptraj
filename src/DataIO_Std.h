@@ -21,6 +21,7 @@ class DataIO_Std : public DataIO {
     int Read_Vector(std::string const&,DataSetList&,std::string const&);
     int Read_Mat3x3(std::string const&,DataSetList&,std::string const&);
     static void WriteNameToBuffer(CpptrajFile&, std::string const&, int,  bool);
+    int WriteCmatrix(CpptrajFile&, DataSetList const&);
     int WriteDataNormal(CpptrajFile&,DataSetList const&);
     int WriteDataInverted(CpptrajFile&,DataSetList const&);
     int WriteData2D(CpptrajFile&, DataSetList const&);

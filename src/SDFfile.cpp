@@ -3,7 +3,7 @@
 #include "StringRoutines.h" // RemoveTrailingWhitespace
 
 // CONSTRUCTOR
-SDFfile::SDFfile() : debug_(0), Natoms_(0), Nbonds_(0) {}
+SDFfile::SDFfile() : Natoms_(0), Nbonds_(0) {}
 
 
 bool SDFfile::ID_SDF(CpptrajFile& fileIn) {

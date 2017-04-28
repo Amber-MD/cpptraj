@@ -2,12 +2,12 @@
 # Daniel R. Roe
 # 2014-12-10
 
-# Create cpptraj binary in ./src/
+# Make all targets
 all: install
 
-# Create cpptraj binary and move to ./bin/
+# Install all targets 
 install: config.h
-	cd src && $(MAKE) install 
+	cd src && $(MAKE) install
 
 # Create libcpptraj.so
 libcpptraj: config.h

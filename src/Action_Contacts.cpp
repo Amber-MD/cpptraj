@@ -51,7 +51,14 @@ int Action_Contacts::SetupContacts(Frame const& refframe, Topology const& refpar
 // Action_Contacts::Init()
 Action::RetType Action_Contacts::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-
+# ifdef MPI
+  // Since output is to CpptrajFiles, not practical in parallel.
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'contacts' action does not work with > 1 thread (%i threads currently).\n"
+              "Error:   Consider using 'nativecontacts' instead.\n", init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   byResidue_ = actionArgs.hasKey("byresidue");
   double dist = actionArgs.getKeyDouble("distance", 7.0);
   dt_ = actionArgs.getKeyDouble("time", 1.0);

@@ -7,16 +7,22 @@ class Analysis_Lifetime : public Analysis {
     Analysis_Lifetime();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_Lifetime(); }
     void Help() const;
-    Analysis::RetType ExternalSetup(Array1D const&, CpptrajFile*);
+    Analysis::RetType ExternalSetup(Array1D const&, DataSetList&, DataFile*, std::string const&);
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
+    int SetupTotalSets(std::string const&, DataSetList&, DataFile*);
+
     Array1D inputDsets_;
     Array1D outputDsets_;
     Array1D curveSets_;
     Array1D maxDsets_;
     Array1D avgDsets_;
-    CpptrajFile* standalone_;
+    DataSet* tot_Nlifetimes_;
+    DataSet* tot_MaxLT_;
+    DataSet* tot_AvgLT_;
+    DataSet* tot_Frames_;
+    DataSet* tot_Name_;
     int windowSize_;
     int fuzzCut_;
     double cut_;

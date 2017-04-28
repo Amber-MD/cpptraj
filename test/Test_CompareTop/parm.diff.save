@@ -1,0 +1,1160 @@
+#< Protein.ff14SB.parm7
+#> Protein.ff99.parm7
+< 23 HB   rGB=  1.2000
+> 23 HB   rGB=  1.3000
+< 39 HB2  rGB=  1.2000
+> 39 HB2  rGB=  1.3000
+< 40 HB3  rGB=  1.2000
+> 40 HB3  rGB=  1.3000
+< 42 HG   rGB=  1.2000
+> 42 HG   rGB=  1.3000
+< 58 HB   rGB=  1.2000
+> 58 HB   rGB=  1.3000
+< 64 HG12 rGB=  1.2000
+> 64 HG12 rGB=  1.3000
+< 65 HG13 rGB=  1.2000
+> 65 HG13 rGB=  1.3000
+< 111 HB2  rGB=  1.2000
+> 111 HB2  rGB=  1.3000
+< 112 HB3  rGB=  1.2000
+> 112 HB3  rGB=  1.3000
+< 122 HB   rGB=  1.2000
+> 122 HB   rGB=  1.3000
+< 157 HB2  rGB=  1.2000
+> 157 HB2  rGB=  1.3000
+< 158 HB3  rGB=  1.2000
+> 158 HB3  rGB=  1.3000
+< 168 HB2  rGB=  1.2000
+> 168 HB2  rGB=  1.3000
+< 169 HB3  rGB=  1.2000
+> 169 HB3  rGB=  1.3000
+< 171 HG2  rGB=  1.2000
+> 171 HG2  rGB=  1.3000
+< 172 HG3  rGB=  1.2000
+> 172 HG3  rGB=  1.3000
+< 272 HB2  rGB=  1.2000
+> 272 HB2  rGB=  1.3000
+< 273 HB3  rGB=  1.2000
+> 273 HB3  rGB=  1.3000
+< 284 HB2  rGB=  1.2000
+> 284 HB2  rGB=  1.3000
+< 285 HB3  rGB=  1.2000
+> 285 HB3  rGB=  1.3000
+< 287 HG2  rGB=  1.2000
+> 287 HG2  rGB=  1.3000
+< 288 HG3  rGB=  1.2000
+> 288 HG3  rGB=  1.3000
+< 299 HB2  rGB=  1.2000
+> 299 HB2  rGB=  1.3000
+< 300 HB3  rGB=  1.2000
+> 300 HB3  rGB=  1.3000
+< 313 HB2  rGB=  1.2000
+> 313 HB2  rGB=  1.3000
+< 314 HB3  rGB=  1.2000
+> 314 HB3  rGB=  1.3000
+< 316 HG2  rGB=  1.2000
+> 316 HG2  rGB=  1.3000
+< 317 HG3  rGB=  1.2000
+> 317 HG3  rGB=  1.3000
+# Atom types
+< 2C  
+< 3C  
+< C8  
+< CO  
+< CX  
+# LJ params
+< 2C   Rmin= 1.908  Eps= 0.1094
+< 3C   Rmin= 1.908  Eps= 0.1094
+< C8   Rmin= 1.908  Eps= 0.1094
+< CO   Rmin= 1.908  Eps= 0.086
+< CX   Rmin= 1.908  Eps= 0.1094
+# Bonds
+# Bond Parameters
+< Rk= 227  Req= 1.81
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 310  Req= 1.526
+< Rk= 317  Req= 1.522
+< Rk= 317  Req= 1.522
+< Rk= 320  Req= 1.41
+< Rk= 337  Req= 1.449
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+< Rk= 340  Req= 1.09
+# Angles
+# Angle Parameters
+< Tk= 35  Teq= 1.91114
+< Tk= 35  Teq= 1.91114
+< Tk= 35  Teq= 1.91114
+< Tk= 35  Teq= 1.91114
+< Tk= 35  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 40  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 1.91114
+< Tk= 50  Teq= 2.12756
+< Tk= 55  Teq= 1.89368
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 63  Teq= 1.93906
+< Tk= 70  Teq= 2.03505
+< Tk= 80  Teq= 1.91463
+< Tk= 80  Teq= 1.91463
+< Tk= 80  Teq= 1.91463
+< Tk= 80  Teq= 1.91463
+< Tk= 80  Teq= 2.10138
+# Dihedrals
+< :1@N - :1@CA - :1@C - :2@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :1@N - :1@CA - :1@C - :2@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :1@N - :1@CA - :1@C - :2@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :1@N - :1@CA - :1@C - :2@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :1@N - :1@CA - :1@C - :2@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :1@N - :1@CA - :1@C - :2@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :1@C - :2@N - :2@CA - :2@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :1@C - :2@N - :2@CA - :2@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :2@CB - :2@CA - :2@C - :3@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :2@CB - :2@CA - :2@C - :3@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :2@CB - :2@CA - :2@C - :3@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :2@CB - :2@CA - :2@C - :3@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :2@CB - :2@CA - :2@C - :3@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :2@CB - :2@CA - :2@C - :3@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :2@N - :2@CA - :2@C - :3@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :2@N - :2@CA - :2@C - :3@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :2@N - :2@CA - :2@C - :3@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :2@N - :2@CA - :2@C - :3@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :2@N - :2@CA - :2@C - :3@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :2@N - :2@CA - :2@C - :3@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@CB {C   -N   -CX  -3C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :2@C - :3@N - :3@CA - :3@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@CB {C   -N   -CX  -3C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@CB {C   -N   -CX  -3C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :2@C - :3@N - :3@CA - :3@CB {C   -N   -CX  -3C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@CG1 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.112 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :3@CG1 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :3@CG1 - :3@CB - :3@CA - :3@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@CG1 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.289 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@CG1 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.406 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@CG2 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.112 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :3@CG2 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :3@CG2 - :3@CB - :3@CA - :3@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@CG2 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.289 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@CG2 - :3@CB - :3@CA - :3@C {CT  -3C  -CX  -C   } Pk=0.406 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG1 {N   -CX  -3C  -CT  } Pk=0.001 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG1 {N   -CX  -3C  -CT  } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :3@N - :3@CA - :3@CB - :3@CG1 {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG1 {N   -CX  -3C  -CT  } Pk=0.216 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG1 {N   -CX  -3C  -CT  } Pk=0.337 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG2 {N   -CX  -3C  -CT  } Pk=0.001 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG2 {N   -CX  -3C  -CT  } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :3@N - :3@CA - :3@CB - :3@CG2 {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG2 {N   -CX  -3C  -CT  } Pk=0.216 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@CB - :3@CG2 {N   -CX  -3C  -CT  } Pk=0.337 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@CB - :3@CA - :3@C - :4@N {3C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :3@CB - :3@CA - :3@C - :4@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :3@CB - :3@CA - :3@C - :4@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :3@CB - :3@CA - :3@C - :4@N {3C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@CB - :3@CA - :3@C - :4@N {3C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :3@CB - :3@CA - :3@C - :4@N {3C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@C - :4@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@C - :4@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@C - :4@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@N - :3@CA - :3@C - :4@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :3@N - :3@CA - :3@C - :4@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :3@N - :3@CA - :3@C - :4@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :3@C - :4@N - :4@CA - :4@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :3@C - :4@N - :4@CA - :4@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD1 {CX  -2C  -3C  -CT  } Pk=0.027 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD1 {CX  -2C  -3C  -CT  } Pk=0.142 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD1 {CX  -2C  -3C  -CT  } Pk=0.179 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD1 {CT  -CT  -CT  -CT  } Pk=0.18 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD1 {CT  -CT  -CT  -CT  } Pk=0.2 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD1 {CT  -CT  -CT  -CT  } Pk=0.25 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD1 {CX  -2C  -3C  -CT  } Pk=0.379 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD2 {CX  -2C  -3C  -CT  } Pk=0.027 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD2 {CX  -2C  -3C  -CT  } Pk=0.142 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD2 {CX  -2C  -3C  -CT  } Pk=0.179 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD2 {CT  -CT  -CT  -CT  } Pk=0.18 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD2 {CT  -CT  -CT  -CT  } Pk=0.2 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@CA - :4@CB - :4@CG - :4@CD2 {CT  -CT  -CT  -CT  } Pk=0.25 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CA - :4@CB - :4@CG - :4@CD2 {CX  -2C  -3C  -CT  } Pk=0.379 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@CG - :4@CB - :4@CA - :4@C {3C  -2C  -CX  -C   } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :4@CG - :4@CB - :4@CA - :4@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@CG - :4@CB - :4@CA - :4@C {3C  -2C  -CX  -C   } Pk=0.19 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :4@CG - :4@CB - :4@CA - :4@C {3C  -2C  -CX  -C   } Pk=0.62 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CG - :4@CB - :4@CA - :4@C {3C  -2C  -CX  -C   } Pk=0.706 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@CB - :4@CG {N   -CX  -2C  -3C  } Pk=0.073 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@CB - :4@CG {N   -CX  -2C  -3C  } Pk=0.098 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@CB - :4@CG {N   -CX  -2C  -3C  } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :4@N - :4@CA - :4@CB - :4@CG {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@CB - :4@CG {N   -CX  -2C  -3C  } Pk=0.259 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@CB - :4@CA - :4@C - :5@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :4@CB - :4@CA - :4@C - :5@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :4@CB - :4@CA - :4@C - :5@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :4@CB - :4@CA - :4@C - :5@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@CB - :4@CA - :4@C - :5@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :4@CB - :4@CA - :4@C - :5@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@C - :5@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@C - :5@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@C - :5@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@N - :4@CA - :4@C - :5@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@N - :4@CA - :4@C - :5@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@N - :4@CA - :4@C - :5@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@CB {C   -N   -CX  -3C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :4@C - :5@N - :5@CA - :5@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@CB {C   -N   -CX  -3C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@CB {C   -N   -CX  -3C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :4@C - :5@N - :5@CA - :5@CB {C   -N   -CX  -3C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CA - :5@CB - :5@CG1 - :5@CD1 {CX  -3C  -2C  -CT  } Pk=0.053 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :5@CA - :5@CB - :5@CG1 - :5@CD1 {CX  -3C  -2C  -CT  } Pk=0.107 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@CA - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.18 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@CA - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.2 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CA - :5@CB - :5@CG1 - :5@CD1 {CX  -3C  -2C  -CT  } Pk=0.23 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :5@CA - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.25 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CA - :5@CB - :5@CG1 - :5@CD1 {CX  -3C  -2C  -CT  } Pk=0.447 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG1 - :5@CB - :5@CA - :5@C {2C  -3C  -CX  -C   } Pk=0.113 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG1 - :5@CB - :5@CA - :5@C {2C  -3C  -CX  -C   } Pk=0.115 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :5@CG1 - :5@CB - :5@CA - :5@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG1 - :5@CB - :5@CA - :5@C {2C  -3C  -CX  -C   } Pk=0.162 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG1 - :5@CB - :5@CA - :5@C {2C  -3C  -CX  -C   } Pk=0.735 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CA - :5@C {CT  -3C  -CX  -C   } Pk=0.112 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CA - :5@C {CT  -3C  -CX  -C   } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@CG2 - :5@CB - :5@CA - :5@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CA - :5@C {CT  -3C  -CX  -C   } Pk=0.289 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CA - :5@C {CT  -3C  -CX  -C   } Pk=0.406 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -3C  -2C  -CT  } Pk=0.077 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -3C  -2C  -CT  } Pk=0.107 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.18 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.2 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -3C  -2C  -CT  } Pk=0.202 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -3C  -2C  -CT  } Pk=0.224 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :5@CG2 - :5@CB - :5@CG1 - :5@CD1 {CT  -CT  -CT  -CT  } Pk=0.25 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG1 {N   -CX  -3C  -2C  } Pk=0.097 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG1 {N   -CX  -3C  -2C  } Pk=0.113 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG1 {N   -CX  -3C  -2C  } Pk=0.144 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@N - :5@CA - :5@CB - :5@CG1 {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG1 {N   -CX  -3C  -2C  } Pk=0.31 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG2 {N   -CX  -3C  -CT  } Pk=0.001 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG2 {N   -CX  -3C  -CT  } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@N - :5@CA - :5@CB - :5@CG2 {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG2 {N   -CX  -3C  -CT  } Pk=0.216 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@CB - :5@CG2 {N   -CX  -3C  -CT  } Pk=0.337 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CB - :5@CA - :5@C - :6@N {3C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :5@CB - :5@CA - :5@C - :6@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :5@CB - :5@CA - :5@C - :6@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :5@CB - :5@CA - :5@C - :6@N {3C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@CB - :5@CA - :5@C - :6@N {3C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :5@CB - :5@CA - :5@C - :6@N {3C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@C - :6@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@C - :6@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@C - :6@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@N - :5@CA - :5@C - :6@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@N - :5@CA - :5@C - :6@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@N - :5@CA - :5@C - :6@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :5@C - :6@N - :6@CA - :6@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :5@C - :6@N - :6@CA - :6@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD1 {CX  -CT  -CA  -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :6@CA - :6@CB - :6@CG - :6@CD1 {CT  -CT  -CA  -CA  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD1 {CX  -CT  -CA  -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD1 {CX  -CT  -CA  -CA  } Pk=0.048 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD1 {CX  -CT  -CA  -CA  } Pk=0.069 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD2 {CX  -CT  -CA  -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :6@CA - :6@CB - :6@CG - :6@CD2 {CT  -CT  -CA  -CA  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD2 {CX  -CT  -CA  -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD2 {CX  -CT  -CA  -CA  } Pk=0.048 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CA - :6@CB - :6@CG - :6@CD2 {CX  -CT  -CA  -CA  } Pk=0.069 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CG - :6@CB - :6@CA - :6@C {CA  -CT  -CX  -C   } Pk=0.012 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CG - :6@CB - :6@CA - :6@C {CA  -CT  -CX  -C   } Pk=0.055 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :6@CG - :6@CB - :6@CA - :6@C {CA  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@CG - :6@CB - :6@CA - :6@C {CA  -CT  -CX  -C   } Pk=0.192 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@CG - :6@CB - :6@CA - :6@C {CA  -CT  -CX  -C   } Pk=0.469 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@CB - :6@CG {N   -CX  -CT  -CA  } Pk=0.007 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@CB - :6@CG {N   -CX  -CT  -CA  } Pk=0.012 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@N - :6@CA - :6@CB - :6@CG {N   -CT  -CT  -CA  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@CB - :6@CG {N   -CX  -CT  -CA  } Pk=0.192 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@CB - :6@CG {N   -CX  -CT  -CA  } Pk=0.29 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@CB - :6@CA - :6@C - :7@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :6@CB - :6@CA - :6@C - :7@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :6@CB - :6@CA - :6@C - :7@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :6@CB - :6@CA - :6@C - :7@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@CB - :6@CA - :6@C - :7@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@CB - :6@CA - :6@C - :7@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@C - :7@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@C - :7@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@C - :7@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@N - :6@CA - :6@C - :7@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@N - :6@CA - :6@C - :7@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@N - :6@CA - :6@C - :7@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CA - :7@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CA - :7@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :6@C - :7@N - :7@CD - :7@CG {C   -N   -CT  -CT  } Pk=2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :7@CB - :7@CA - :7@C - :8@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :7@CB - :7@CA - :7@C - :8@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :7@CB - :7@CA - :7@C - :8@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :7@CB - :7@CA - :7@C - :8@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :7@CB - :7@CA - :7@C - :8@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :7@CB - :7@CA - :7@C - :8@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :7@N - :7@CA - :7@C - :8@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :7@N - :7@CA - :7@C - :8@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :7@N - :7@CA - :7@C - :8@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :7@N - :7@CA - :7@C - :8@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :7@N - :7@CA - :7@C - :8@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :7@N - :7@CA - :7@C - :8@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :7@C - :8@N - :8@CA - :8@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :7@C - :8@N - :8@CA - :8@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@CA - :8@CB - :8@OG - :8@HG {CX  -2C  -OH  -HO  } Pk=0.007 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :8@CA - :8@CB - :8@OG - :8@HG {CT  -CT  -OH  -HO  } Pk=0.16 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@CA - :8@CB - :8@OG - :8@HG {CX  -2C  -OH  -HO  } Pk=0.211 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :8@CA - :8@CB - :8@OG - :8@HG {CT  -CT  -OH  -HO  } Pk=0.25 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@CA - :8@CB - :8@OG - :8@HG {CX  -2C  -OH  -HO  } Pk=0.267 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@CA - :8@CB - :8@OG - :8@HG {CX  -2C  -OH  -HO  } Pk=0.444 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :8@N - :8@CA - :8@CB - :8@OG {N   -CT  -CT  -OH  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@CB - :8@OG {N   -CX  -2C  -OH  } Pk=0.16 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@CB - :8@OG {N   -CX  -2C  -OH  } Pk=0.246 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@CB - :8@OG {N   -CX  -2C  -OH  } Pk=0.401 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@CB - :8@OG {N   -CX  -2C  -OH  } Pk=0.666 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@OG - :8@CB - :8@CA - :8@C {OH  -2C  -CX  -C   } Pk=0.129 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :8@OG - :8@CB - :8@CA - :8@C {OH  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@OG - :8@CB - :8@CA - :8@C {OH  -2C  -CX  -C   } Pk=0.218 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@OG - :8@CB - :8@CA - :8@C {OH  -2C  -CX  -C   } Pk=0.401 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@OG - :8@CB - :8@CA - :8@C {OH  -2C  -CX  -C   } Pk=0.661 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@CB - :8@CA - :8@C - :9@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :8@CB - :8@CA - :8@C - :9@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :8@CB - :8@CA - :8@C - :9@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :8@CB - :8@CA - :8@C - :9@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@CB - :8@CA - :8@C - :9@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :8@CB - :8@CA - :8@C - :9@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@C - :9@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@C - :9@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@C - :9@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@N - :8@CA - :8@C - :9@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :8@N - :8@CA - :8@C - :9@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :8@N - :8@CA - :8@C - :9@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@CB {C   -N   -CX  -3C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :8@C - :9@N - :9@CA - :9@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@CB {C   -N   -CX  -3C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@CB {C   -N   -CX  -3C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :8@C - :9@N - :9@CA - :9@CB {C   -N   -CX  -3C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@CA - :9@CB - :9@OG1 - :9@HG1 {CX  -3C  -OH  -HO  } Pk=0.006 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@CA - :9@CB - :9@OG1 - :9@HG1 {CX  -3C  -OH  -HO  } Pk=0.013 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :9@CA - :9@CB - :9@OG1 - :9@HG1 {CT  -CT  -OH  -HO  } Pk=0.16 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@CA - :9@CB - :9@OG1 - :9@HG1 {CX  -3C  -OH  -HO  } Pk=0.236 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :9@CA - :9@CB - :9@OG1 - :9@HG1 {CT  -CT  -OH  -HO  } Pk=0.25 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@CA - :9@CB - :9@OG1 - :9@HG1 {CX  -3C  -OH  -HO  } Pk=0.251 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@CA - :9@C {CT  -3C  -CX  -C   } Pk=0.112 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@CA - :9@C {CT  -3C  -CX  -C   } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :9@CG2 - :9@CB - :9@CA - :9@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@CA - :9@C {CT  -3C  -CX  -C   } Pk=0.289 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@CA - :9@C {CT  -3C  -CX  -C   } Pk=0.406 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -3C  -OH  -HO  } Pk=0.048 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -3C  -OH  -HO  } Pk=0.079 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -CT  -OH  -HO  } Pk=0.16 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -3C  -OH  -HO  } Pk=0.236 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -CT  -OH  -HO  } Pk=0.25 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@CG2 - :9@CB - :9@OG1 - :9@HG1 {CT  -3C  -OH  -HO  } Pk=0.643 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@CG2 {N   -CX  -3C  -CT  } Pk=0.001 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@CG2 {N   -CX  -3C  -CT  } Pk=0.148 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :9@N - :9@CA - :9@CB - :9@CG2 {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@CG2 {N   -CX  -3C  -CT  } Pk=0.216 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@CG2 {N   -CX  -3C  -CT  } Pk=0.337 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@OG1 {N   -CX  -3C  -OH  } Pk=0.006 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@OG1 {N   -CX  -3C  -OH  } Pk=0.095 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :9@N - :9@CA - :9@CB - :9@OG1 {N   -CT  -CT  -OH  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@OG1 {N   -CX  -3C  -OH  } Pk=0.315 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@CB - :9@OG1 {N   -CX  -3C  -OH  } Pk=0.674 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@OG1 - :9@CB - :9@CA - :9@C {OH  -3C  -CX  -C   } Pk=0.119 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@OG1 - :9@CB - :9@CA - :9@C {OH  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@OG1 - :9@CB - :9@CA - :9@C {OH  -3C  -CX  -C   } Pk=0.156 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@OG1 - :9@CB - :9@CA - :9@C {OH  -3C  -CX  -C   } Pk=0.315 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@OG1 - :9@CB - :9@CA - :9@C {OH  -3C  -CX  -C   } Pk=0.697 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@CB - :9@CA - :9@C - :10@N {3C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :9@CB - :9@CA - :9@C - :10@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :9@CB - :9@CA - :9@C - :10@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@CB - :9@CA - :9@C - :10@N {3C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@CB - :9@CA - :9@C - :10@N {3C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@CB - :9@CA - :9@C - :10@N {3C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@C - :10@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@C - :10@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@C - :10@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@N - :9@CA - :9@C - :10@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@N - :9@CA - :9@C - :10@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@N - :9@CA - :9@C - :10@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :9@C - :10@N - :10@CA - :10@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :9@C - :10@N - :10@CA - :10@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD1 {CX  -CT  -CA  -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :10@CA - :10@CB - :10@CG - :10@CD1 {CT  -CT  -CA  -CA  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD1 {CX  -CT  -CA  -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD1 {CX  -CT  -CA  -CA  } Pk=0.048 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD1 {CX  -CT  -CA  -CA  } Pk=0.069 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD2 {CX  -CT  -CA  -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :10@CA - :10@CB - :10@CG - :10@CD2 {CT  -CT  -CA  -CA  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD2 {CX  -CT  -CA  -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD2 {CX  -CT  -CA  -CA  } Pk=0.048 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CA - :10@CB - :10@CG - :10@CD2 {CX  -CT  -CA  -CA  } Pk=0.069 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CE1 - :10@CZ - :10@OH - :10@HH {CA  -C   -OH  -HO  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@CE1 - :10@CZ - :10@OH - :10@HH {CA  -C   -OH  -HO  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@CE1 - :10@CZ - :10@OH - :10@HH {CA  -C   -OH  -HO  } Pk=0.065 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :10@CE1 - :10@CZ - :10@OH - :10@HH {CA  -C   -OH  -HO  } Pk=0.883 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@CE1 - :10@CZ - :10@OH - :10@HH {CA  -C   -OH  -HO  } Pk=2.3 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CG - :10@CB - :10@CA - :10@C {CA  -CT  -CX  -C   } Pk=0.012 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CG - :10@CB - :10@CA - :10@C {CA  -CT  -CX  -C   } Pk=0.055 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :10@CG - :10@CB - :10@CA - :10@C {CA  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@CG - :10@CB - :10@CA - :10@C {CA  -CT  -CX  -C   } Pk=0.192 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@CG - :10@CB - :10@CA - :10@C {CA  -CT  -CX  -C   } Pk=0.469 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@HH - :10@OH - :10@CZ - :10@CE2 {HO  -OH  -C   -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@HH - :10@OH - :10@CZ - :10@CE2 {HO  -OH  -C   -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@HH - :10@OH - :10@CZ - :10@CE2 {HO  -OH  -C   -CA  } Pk=0.065 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :10@HH - :10@OH - :10@CZ - :10@CE2 {HO  -OH  -C   -CA  } Pk=0.883 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@HH - :10@OH - :10@CZ - :10@CE2 {HO  -OH  -C   -CA  } Pk=2.3 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@CB - :10@CG {N   -CX  -CT  -CA  } Pk=0.007 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@CB - :10@CG {N   -CX  -CT  -CA  } Pk=0.012 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@N - :10@CA - :10@CB - :10@CG {N   -CT  -CT  -CA  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@CB - :10@CG {N   -CX  -CT  -CA  } Pk=0.192 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@CB - :10@CG {N   -CX  -CT  -CA  } Pk=0.29 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@CB - :10@CA - :10@C - :11@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :10@CB - :10@CA - :10@C - :11@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :10@CB - :10@CA - :10@C - :11@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :10@CB - :10@CA - :10@C - :11@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@CB - :10@CA - :10@C - :11@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@CB - :10@CA - :10@C - :11@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@C - :11@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@C - :11@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@C - :11@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@N - :10@CA - :10@C - :11@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@N - :10@CA - :10@C - :11@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@N - :10@CA - :10@C - :11@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :10@C - :11@N - :11@CA - :11@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :10@C - :11@N - :11@CA - :11@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :11@CA - :11@CB - :11@SG - :11@HG {CX  -2C  -SH  -HS  } Pk=0.03 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :11@CA - :11@CB - :11@SG - :11@HG {CX  -2C  -SH  -HS  } Pk=0.092 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :11@CA - :11@CB - :11@SG - :11@HG {CT  -CT  -SH  -HS  } Pk=0.25 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@CA - :11@CB - :11@SG - :11@HG {CX  -2C  -SH  -HS  } Pk=0.252 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@CA - :11@CB - :11@SG - :11@HG {CX  -2C  -SH  -HS  } Pk=0.612 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@CB - :11@SG {N   -CX  -2C  -SH  } Pk=0.033 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@CB - :11@SG {N   -CX  -2C  -SH  } Pk=0.154 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :11@N - :11@CA - :11@CB - :11@SG {N   -CT  -CT  -SH  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@CB - :11@SG {N   -CX  -2C  -SH  } Pk=0.251 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@CB - :11@SG {N   -CX  -2C  -SH  } Pk=0.486 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@SG - :11@CB - :11@CA - :11@C {SH  -2C  -CX  -C   } Pk=0.075 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :11@SG - :11@CB - :11@CA - :11@C {SH  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@SG - :11@CB - :11@CA - :11@C {SH  -2C  -CX  -C   } Pk=0.251 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@SG - :11@CB - :11@CA - :11@C {SH  -2C  -CX  -C   } Pk=0.269 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@SG - :11@CB - :11@CA - :11@C {SH  -2C  -CX  -C   } Pk=0.337 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@CB - :11@CA - :11@C - :12@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :11@CB - :11@CA - :11@C - :12@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :11@CB - :11@CA - :11@C - :12@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :11@CB - :11@CA - :11@C - :12@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :11@CB - :11@CA - :11@C - :12@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :11@CB - :11@CA - :11@C - :12@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@C - :12@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@C - :12@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@C - :12@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@N - :11@CA - :11@C - :12@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :11@N - :11@CA - :11@C - :12@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :11@N - :11@CA - :11@C - :12@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :11@C - :12@N - :12@CA - :12@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :11@C - :12@N - :12@CA - :12@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :12@CA - :12@CB - :12@CG - :12@SD {CX  -2C  -2C  -S   } Pk=0.016 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CA - :12@CB - :12@CG - :12@SD {CX  -2C  -2C  -S   } Pk=0.028 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :12@CA - :12@CB - :12@CG - :12@SD {CT  -CT  -CT  -S   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CA - :12@CB - :12@CG - :12@SD {CX  -2C  -2C  -S   } Pk=0.245 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@CA - :12@CB - :12@CG - :12@SD {CX  -2C  -2C  -S   } Pk=0.417 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CG - :12@SD - :12@CE {2C  -2C  -S   -CT  } Pk=0.057 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CG - :12@SD - :12@CE {2C  -2C  -S   -CT  } Pk=0.247 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@CB - :12@CG - :12@SD - :12@CE {CT  -CT  -S   -CT  } Pk=0.333333 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CG - :12@SD - :12@CE {2C  -2C  -S   -CT  } Pk=0.414 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CG - :12@SD - :12@CE {2C  -2C  -S   -CT  } Pk=0.442 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@CG - :12@CB - :12@CA - :12@C {2C  -2C  -CX  -C   } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CG - :12@CB - :12@CA - :12@C {2C  -2C  -CX  -C   } Pk=0.145 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :12@CG - :12@CB - :12@CA - :12@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@CG - :12@CB - :12@CA - :12@C {2C  -2C  -CX  -C   } Pk=0.393 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@CG - :12@CB - :12@CA - :12@C {2C  -2C  -CX  -C   } Pk=0.421 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@CB - :12@CG {N   -CX  -2C  -2C  } Pk=0.078 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@CB - :12@CG {N   -CX  -2C  -2C  } Pk=0.1 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@CB - :12@CG {N   -CX  -2C  -2C  } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :12@N - :12@CA - :12@CB - :12@CG {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@CB - :12@CG {N   -CX  -2C  -2C  } Pk=0.184 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@CB - :12@CA - :12@C - :13@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :12@CB - :12@CA - :12@C - :13@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :12@CB - :12@CA - :12@C - :13@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CA - :12@C - :13@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CA - :12@C - :13@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@CB - :12@CA - :12@C - :13@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@C - :13@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@C - :13@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@C - :13@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@N - :12@CA - :12@C - :13@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@N - :12@CA - :12@C - :13@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@N - :12@CA - :12@C - :13@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@CB {C   -N   -CX  -C8  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :12@C - :13@N - :13@CA - :13@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@CB {C   -N   -CX  -C8  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@CB {C   -N   -CX  -C8  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :12@C - :13@N - :13@CA - :13@CB {C   -N   -CX  -C8  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :13@CB - :13@CA - :13@C - :14@N {C8  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :13@CB - :13@CA - :13@C - :14@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :13@CB - :13@CA - :13@C - :14@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :13@CB - :13@CA - :13@C - :14@N {C8  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :13@CB - :13@CA - :13@C - :14@N {C8  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :13@CB - :13@CA - :13@C - :14@N {C8  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :13@N - :13@CA - :13@C - :14@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :13@N - :13@CA - :13@C - :14@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :13@N - :13@CA - :13@C - :14@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :13@N - :13@CA - :13@C - :14@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :13@N - :13@CA - :13@C - :14@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :13@N - :13@CA - :13@C - :14@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@CB {C   -N   -CX  -C8  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :13@C - :14@N - :14@CA - :14@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@CB {C   -N   -CX  -C8  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@CB {C   -N   -CX  -C8  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :13@C - :14@N - :14@CA - :14@CB {C   -N   -CX  -C8  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :14@CD - :14@NE - :14@CZ - :14@NH1 {C8  -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@CD - :14@NE - :14@CZ - :14@NH2 {C8  -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@CG - :14@CD - :14@NE - :14@CZ {C8  -C8  -N2  -CA  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :14@CG - :14@CD - :14@NE - :14@CZ {CT  -CT  -N2  -CA  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :14@HE - :14@NE - :14@CZ - :14@NH1 {H   -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@HE - :14@NE - :14@CZ - :14@NH2 {H   -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@HH11 - :14@NH1 - :14@CZ - :14@NH2 {H   -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@HH12 - :14@NH1 - :14@CZ - :14@NH2 {H   -N2  -CA  -N2  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NE - :14@CZ - :14@NH1 - :14@HH11 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NE - :14@CZ - :14@NH1 - :14@HH12 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NE - :14@CZ - :14@NH2 - :14@HH21 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NE - :14@CZ - :14@NH2 - :14@HH22 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NH1 - :14@CZ - :14@NH2 - :14@HH21 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@NH1 - :14@CZ - :14@NH2 - :14@HH22 {N2  -CA  -N2  -H   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@CB - :14@CA - :14@C - :15@N {C8  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :14@CB - :14@CA - :14@C - :15@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :14@CB - :14@CA - :14@C - :15@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@CB - :14@CA - :14@C - :15@N {C8  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :14@CB - :14@CA - :14@C - :15@N {C8  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :14@CB - :14@CA - :14@C - :15@N {C8  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :14@N - :14@CA - :14@C - :15@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@N - :14@CA - :14@C - :15@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :14@N - :14@CA - :14@C - :15@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :14@N - :14@CA - :14@C - :15@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :14@N - :14@CA - :14@C - :15@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :14@N - :14@CA - :14@C - :15@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :14@C - :15@N - :15@CA - :15@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :14@C - :15@N - :15@CA - :15@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :15@CA - :15@CB - :15@CG - :15@ND1 {CT  -CT  -CC  -NB  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@CA - :15@CB - :15@CG - :15@ND1 {CX  -CT  -CC  -NB  } Pk=0.047 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@CA - :15@CB - :15@CG - :15@ND1 {CX  -CT  -CC  -NB  } Pk=0.204 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@CA - :15@CB - :15@CG - :15@ND1 {CX  -CT  -CC  -NB  } Pk=0.69 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :15@CA - :15@CB - :15@CG - :15@ND1 {CX  -CT  -CC  -NB  } Pk=0.74 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@CG - :15@CB - :15@CA - :15@C {CC  -CT  -CX  -C   } Pk=0.025 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :15@CG - :15@CB - :15@CA - :15@C {CC  -CT  -CX  -C   } Pk=0.143 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@CG - :15@CB - :15@CA - :15@C {CC  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@CG - :15@CB - :15@CA - :15@C {CC  -CT  -CX  -C   } Pk=0.219 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@CG - :15@CB - :15@CA - :15@C {CC  -CT  -CX  -C   } Pk=0.244 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@CB - :15@CG {N   -CX  -CT  -CC  } Pk=0.089 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :15@N - :15@CA - :15@CB - :15@CG {N   -CT  -CT  -CC  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@CB - :15@CG {N   -CX  -CT  -CC  } Pk=0.219 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@CB - :15@CG {N   -CX  -CT  -CC  } Pk=0.221 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@CB - :15@CG {N   -CX  -CT  -CC  } Pk=0.306 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@CB - :15@CA - :15@C - :16@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :15@CB - :15@CA - :15@C - :16@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :15@CB - :15@CA - :15@C - :16@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :15@CB - :15@CA - :15@C - :16@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :15@CB - :15@CA - :15@C - :16@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@CB - :15@CA - :15@C - :16@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@C - :16@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@C - :16@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@C - :16@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@N - :15@CA - :15@C - :16@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@N - :15@CA - :15@C - :16@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@N - :15@CA - :15@C - :16@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@CB {C   -N   -CX  -CT  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :15@C - :16@N - :16@CA - :16@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@CB {C   -N   -CX  -CT  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@CB {C   -N   -CX  -CT  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :15@C - :16@N - :16@CA - :16@CB {C   -N   -CX  -CT  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD1 {CX  -CT  -C*  -CW  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD1 {CX  -CT  -C*  -CW  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD1 {CX  -CT  -C*  -CW  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :16@CA - :16@CB - :16@CG - :16@CD2 {CT  -CT  -C*  -CB  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD2 {CX  -CT  -C*  -CB  } Pk=0.095 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD2 {CX  -CT  -C*  -CB  } Pk=0.365 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD2 {CX  -CT  -C*  -CB  } Pk=0.408 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@CA - :16@CB - :16@CG - :16@CD2 {CX  -CT  -C*  -CB  } Pk=0.819 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@CG - :16@CB - :16@CA - :16@C {C*  -CT  -CX  -C   } Pk=0.017 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@CG - :16@CB - :16@CA - :16@C {C*  -CT  -CX  -C   } Pk=0.074 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :16@CG - :16@CB - :16@CA - :16@C {C*  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@CG - :16@CB - :16@CA - :16@C {C*  -CT  -CX  -C   } Pk=0.234 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@CG - :16@CB - :16@CA - :16@C {C*  -CT  -CX  -C   } Pk=0.353 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@CB - :16@CG {N   -CX  -CT  -C*  } Pk=0.031 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@CB - :16@CG {N   -CX  -CT  -C*  } Pk=0.079 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :16@N - :16@CA - :16@CB - :16@CG {N   -CT  -CT  -C*  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@CB - :16@CG {N   -CX  -CT  -C*  } Pk=0.234 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@CB - :16@CG {N   -CX  -CT  -C*  } Pk=0.313 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@CB - :16@CA - :16@C - :17@N {CT  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :16@CB - :16@CA - :16@C - :17@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :16@CB - :16@CA - :16@C - :17@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :16@CB - :16@CA - :16@C - :17@N {CT  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@CB - :16@CA - :16@C - :17@N {CT  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@CB - :16@CA - :16@C - :17@N {CT  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@C - :17@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@C - :17@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@C - :17@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@N - :16@CA - :16@C - :17@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :16@N - :16@CA - :16@C - :17@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :16@N - :16@CA - :16@C - :17@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :16@C - :17@N - :17@CA - :17@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :16@C - :17@N - :17@CA - :17@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD1 {CX  -2C  -CO  -O2  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :17@CA - :17@CB - :17@CG - :17@OD1 {CT  -CT  -C   -O2  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD1 {CX  -2C  -CO  -O2  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD1 {CX  -2C  -CO  -O2  } Pk=0.031 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD1 {CX  -2C  -CO  -O2  } Pk=0.769 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD2 {CX  -2C  -CO  -O2  } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :17@CA - :17@CB - :17@CG - :17@OD2 {CT  -CT  -C   -O2  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD2 {CX  -2C  -CO  -O2  } Pk=0 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD2 {CX  -2C  -CO  -O2  } Pk=0.031 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@CA - :17@CB - :17@CG - :17@OD2 {CX  -2C  -CO  -O2  } Pk=0.769 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@CG - :17@CB - :17@CA - :17@C {CO  -2C  -CX  -C   } Pk=0.058 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@CG - :17@CB - :17@CA - :17@C {CO  -2C  -CX  -C   } Pk=0.154 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :17@CG - :17@CB - :17@CA - :17@C {C   -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@CG - :17@CB - :17@CA - :17@C {CO  -2C  -CX  -C   } Pk=0.424 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :17@CG - :17@CB - :17@CA - :17@C {CO  -2C  -CX  -C   } Pk=0.459 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@CB - :17@CG {N   -CX  -2C  -CO  } Pk=0.058 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@CB - :17@CG {N   -CX  -2C  -CO  } Pk=0.089 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :17@N - :17@CA - :17@CB - :17@CG {N   -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@CB - :17@CG {N   -CX  -2C  -CO  } Pk=0.647 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@CB - :17@CG {N   -CX  -2C  -CO  } Pk=2.154 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@CB - :17@CA - :17@C - :18@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :17@CB - :17@CA - :17@C - :18@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :17@CB - :17@CA - :17@C - :18@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :17@CB - :17@CA - :17@C - :18@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :17@CB - :17@CA - :17@C - :18@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@CB - :17@CA - :17@C - :18@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@C - :18@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@C - :18@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@C - :18@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@N - :17@CA - :17@C - :18@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :17@N - :17@CA - :17@C - :18@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :17@N - :17@CA - :17@C - :18@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :17@C - :18@N - :18@CA - :18@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :17@C - :18@N - :18@CA - :18@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :18@CA - :18@CB - :18@CG - :18@CD {CX  -2C  -2C  -CO  } Pk=0.056 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@CA - :18@CB - :18@CG - :18@CD {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@CA - :18@CB - :18@CG - :18@CD {CX  -2C  -2C  -CO  } Pk=0.222 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@CA - :18@CB - :18@CG - :18@CD {CX  -2C  -2C  -CO  } Pk=0.608 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@CA - :18@CB - :18@CG - :18@CD {CX  -2C  -2C  -CO  } Pk=1.367 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@CB - :18@CG - :18@CD - :18@OE1 {CT  -CT  -C   -O2  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CG - :18@CD - :18@OE1 {2C  -2C  -CO  -O2  } Pk=0.064 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CG - :18@CD - :18@OE1 {2C  -2C  -CO  -O2  } Pk=0.39 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@CB - :18@CG - :18@CD - :18@OE2 {CT  -CT  -C   -O2  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CG - :18@CD - :18@OE2 {2C  -2C  -CO  -O2  } Pk=0.064 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CG - :18@CD - :18@OE2 {2C  -2C  -CO  -O2  } Pk=0.39 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@CG - :18@CB - :18@CA - :18@C {2C  -2C  -CX  -C   } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@CG - :18@CB - :18@CA - :18@C {2C  -2C  -CX  -C   } Pk=0.145 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :18@CG - :18@CB - :18@CA - :18@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@CG - :18@CB - :18@CA - :18@C {2C  -2C  -CX  -C   } Pk=0.393 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@CG - :18@CB - :18@CA - :18@C {2C  -2C  -CX  -C   } Pk=0.421 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@CB - :18@CG {N   -CX  -2C  -2C  } Pk=0.078 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@CB - :18@CG {N   -CX  -2C  -2C  } Pk=0.1 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@CB - :18@CG {N   -CX  -2C  -2C  } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :18@N - :18@CA - :18@CB - :18@CG {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@CB - :18@CG {N   -CX  -2C  -2C  } Pk=0.184 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@CB - :18@CA - :18@C - :19@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :18@CB - :18@CA - :18@C - :19@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :18@CB - :18@CA - :18@C - :19@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CA - :18@C - :19@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CA - :18@C - :19@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@CB - :18@CA - :18@C - :19@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@C - :19@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@C - :19@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@C - :19@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@N - :18@CA - :18@C - :19@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@N - :18@CA - :18@C - :19@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@N - :18@CA - :18@C - :19@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :18@C - :19@N - :19@CA - :19@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :18@C - :19@N - :19@CA - :19@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :19@CA - :19@CB - :19@CG - :19@ND2 {CX  -2C  -C   -N   } Pk=0.008 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :19@CA - :19@CB - :19@CG - :19@ND2 {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :19@CA - :19@CB - :19@CG - :19@ND2 {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :19@CA - :19@CB - :19@CG - :19@ND2 {CX  -2C  -C   -N   } Pk=0.301 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@CA - :19@CB - :19@CG - :19@ND2 {CX  -2C  -C   -N   } Pk=0.485 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@CA - :19@CB - :19@CG - :19@ND2 {CX  -2C  -C   -N   } Pk=0.828 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@CA - :19@CB - :19@CG - :19@OD1 {CX  -2C  -C   -O   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :19@CA - :19@CB - :19@CG - :19@OD1 {CT  -CT  -C   -O   } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :19@CG - :19@CB - :19@CA - :19@C {C   -2C  -CX  -C   } Pk=0.033 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@CG - :19@CB - :19@CA - :19@C {C   -2C  -CX  -C   } Pk=0.107 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :19@CG - :19@CB - :19@CA - :19@C {C   -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@CG - :19@CB - :19@CA - :19@C {C   -2C  -CX  -C   } Pk=0.303 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@CG - :19@CB - :19@CA - :19@C {C   -2C  -CX  -C   } Pk=1.046 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@CB - :19@CG {N   -CX  -2C  -C   } Pk=0.033 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@CB - :19@CG {N   -CX  -2C  -C   } Pk=0.059 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :19@N - :19@CA - :19@CB - :19@CG {N   -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@CB - :19@CG {N   -CX  -2C  -C   } Pk=0.297 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@CB - :19@CG {N   -CX  -2C  -C   } Pk=0.688 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@CB - :19@CA - :19@C - :20@N {2C  -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :19@CB - :19@CA - :19@C - :20@N {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+> :19@CB - :19@CA - :19@C - :20@N {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :19@CB - :19@CA - :19@C - :20@N {2C  -CX  -C   -N   } Pk=0.2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :19@CB - :19@CA - :19@C - :20@N {2C  -CX  -C   -N   } Pk=0.2 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :19@CB - :19@CA - :19@C - :20@N {2C  -CX  -C   -N   } Pk=0.4 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@C - :20@N {N   -CX  -C   -N   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@C - :20@N {N   -CX  -C   -N   } Pk=0.45 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@C - :20@N {N   -CX  -C   -N   } Pk=0.55 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@N - :19@CA - :19@C - :20@N {N   -CX  -C   -N   } Pk=1.58 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :19@N - :19@CA - :19@C - :20@N {N   -CT  -C   -N   } Pk=1.7 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+> :19@N - :19@CA - :19@C - :20@N {N   -CT  -C   -N   } Pk=2 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@C {C   -N   -CX  -C   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@C {C   -N   -CX  -C   } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@C {C   -N   -CX  -C   } Pk=0.27 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@C {C   -N   -CX  -C   } Pk=0.42 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@C {C   -N   -CT  -C   } Pk=0.8 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@C {C   -N   -CT  -C   } Pk=0.85 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@CB {C   -N   -CT  -CT  } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@CB {C   -N   -CX  -2C  } Pk=0 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@CB {C   -N   -CT  -CT  } Pk=0.15 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@CB {C   -N   -CT  -CT  } Pk=0.5 Pn=4 Phase=3.14159 SCEE=1.2 SCNB=2
+> :19@C - :20@N - :20@CA - :20@CB {C   -N   -CT  -CT  } Pk=0.53 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@CB {C   -N   -CX  -2C  } Pk=0.8 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@CB {C   -N   -CX  -2C  } Pk=1.8 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :19@C - :20@N - :20@CA - :20@CB {C   -N   -CX  -2C  } Pk=2 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+< :20@CA - :20@CB - :20@CG - :20@CD {CX  -2C  -2C  -C   } Pk=0.083 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :20@CA - :20@CB - :20@CG - :20@CD {CX  -2C  -2C  -C   } Pk=0.138 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :20@CA - :20@CB - :20@CG - :20@CD {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :20@CA - :20@CB - :20@CG - :20@CD {CX  -2C  -2C  -C   } Pk=0.196 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@CA - :20@CB - :20@CG - :20@CD {CX  -2C  -2C  -C   } Pk=0.412 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@CB - :20@CG - :20@CD - :20@NE2 {2C  -2C  -C   -N   } Pk=0.042 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :20@CB - :20@CG - :20@CD - :20@NE2 {CT  -CT  -C   -N   } Pk=0.07 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :20@CB - :20@CG - :20@CD - :20@NE2 {2C  -2C  -C   -N   } Pk=0.085 Pn=3 Phase=3.14159 SCEE=1.2 SCNB=2
+> :20@CB - :20@CG - :20@CD - :20@NE2 {CT  -CT  -C   -N   } Pk=0.1 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :20@CB - :20@CG - :20@CD - :20@NE2 {2C  -2C  -C   -N   } Pk=0.609 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@CB - :20@CG - :20@CD - :20@NE2 {2C  -2C  -C   -N   } Pk=0.845 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@CB - :20@CG - :20@CD - :20@OE1 {2C  -2C  -C   -O   } Pk=0 Pn=1 Phase=0 SCEE=1.2 SCNB=2
+> :20@CB - :20@CG - :20@CD - :20@OE1 {CT  -CT  -C   -O   } Pk=0 Pn=2 Phase=0 SCEE=1.2 SCNB=2
+< :20@CG - :20@CB - :20@CA - :20@C {2C  -2C  -CX  -C   } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :20@CG - :20@CB - :20@CA - :20@C {2C  -2C  -CX  -C   } Pk=0.145 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+> :20@CG - :20@CB - :20@CA - :20@C {CT  -CT  -CT  -C   } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :20@CG - :20@CB - :20@CA - :20@C {2C  -2C  -CX  -C   } Pk=0.393 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@CG - :20@CB - :20@CA - :20@C {2C  -2C  -CX  -C   } Pk=0.421 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@N - :20@CA - :20@CB - :20@CG {N   -CX  -2C  -2C  } Pk=0.078 Pn=4 Phase=0 SCEE=1.2 SCNB=2
+< :20@N - :20@CA - :20@CB - :20@CG {N   -CX  -2C  -2C  } Pk=0.1 Pn=1 Phase=3.14159 SCEE=1.2 SCNB=2
+< :20@N - :20@CA - :20@CB - :20@CG {N   -CX  -2C  -2C  } Pk=0.144 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+> :20@N - :20@CA - :20@CB - :20@CG {N   -CT  -CT  -CT  } Pk=0.155556 Pn=3 Phase=0 SCEE=1.2 SCNB=2
+< :20@N - :20@CA - :20@CB - :20@CG {N   -CX  -2C  -2C  } Pk=0.184 Pn=2 Phase=3.14159 SCEE=1.2 SCNB=2
+# Dihedral Parameters
+< Pk= 0  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.001  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.006  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.006  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.007  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.007  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.008  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.012  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.012  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.013  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.016  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.017  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.025  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.027  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.028  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.03  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.031  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.031  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.033  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.033  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.042  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.047  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.048  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.048  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.053  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.055  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.056  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.057  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.058  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.059  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.064  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.065  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.069  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 0.07  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.073  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.074  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.075  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.077  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.078  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.079  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.079  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.083  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.085  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.089  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.092  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.095  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.095  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.097  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.098  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.1  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 0.1  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.107  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.107  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.112  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.113  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.115  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.119  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.129  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.138  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.142  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.143  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.144  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.144  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.145  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.148  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+> Pk= 0.15  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.154  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.154  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.156  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.16  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.162  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.179  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.184  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.19  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.192  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.196  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.2  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.2  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.202  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.204  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.211  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.216  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.218  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.219  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.221  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.222  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.224  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.23  Pn= 4  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.234  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.236  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.244  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.245  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.246  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.247  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.251  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.251  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.252  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.259  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.267  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.269  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.27  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.289  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.29  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.297  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.301  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.303  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.306  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.31  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.313  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.315  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.337  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.337  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.353  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.365  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.379  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.39  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.393  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.4  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.401  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.406  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.408  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.412  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.414  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.417  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.42  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.421  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.424  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.442  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.444  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.447  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.45  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.459  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.469  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.485  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.486  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 0.5  Pn= 4  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 0.53  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.55  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.608  Pn= 3  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.609  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.612  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.62  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.643  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.647  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.661  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.666  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.674  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.688  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.69  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.697  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.706  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.735  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.74  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.769  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.8  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.819  Pn= 3  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 0.828  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.845  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 0.85  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 0.883  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 1.046  Pn= 1  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 1.367  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 1.58  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 1.7  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 1.8  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+< Pk= 2  Pn= 2  Phase= 0  SCEE= 1.2  SCNB= 2
+> Pk= 2  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+< Pk= 2.154  Pn= 1  Phase= 3.14159  SCEE= 1.2  SCNB= 2
+> Pk= 2.3  Pn= 2  Phase= 3.14159  SCEE= 1.2  SCNB= 2

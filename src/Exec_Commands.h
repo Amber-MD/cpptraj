@@ -30,7 +30,16 @@ class Exec_NoProgress : public Exec {
     DispatchObject* Alloc() const { return (DispatchObject*)new Exec_NoProgress(); }
     RetType Execute(CpptrajState&, ArgList&);
 };
-
+#ifdef MPI
+/// Tell CpptrajState to run parallel ensemble even with 1 thread/member
+class Exec_ForceParaEnsemble : public Exec {
+  public:
+    Exec_ForceParaEnsemble() : Exec(HIDDEN) {}
+    void Help() const;
+    DispatchObject* Alloc() const { return (DispatchObject*)new Exec_ForceParaEnsemble(); }
+    RetType Execute(CpptrajState&, ArgList&);
+};
+#endif
 /// Exit CPPTRAJ
 class Exec_Quit : public Exec {
   public:

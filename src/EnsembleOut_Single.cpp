@@ -29,8 +29,11 @@ int EnsembleOut_Single::InitEnsembleWrite(std::string const& tnameIn,
   }
   ArgList trajout_args = argIn;
   // Get onlymembers range
-  Range members_to_write = MembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_);
-  if (members_to_write.Empty()) return 1;
+  //if (SetMembersToWrite(trajout_args.GetStringKey("onlymembers"), ensembleSize_)) return 1;
+  if (trajout_args.hasKey("onlymembers")) {
+    mprinterr("Error: 'onlymembers' not yet supported for single ensemble output.\n");
+    return 1;
+  }
   // Process common args
   if (SetTraj().CommonTrajoutSetup(tnameIn, trajout_args, writeFormatIn))
     return 1;
@@ -73,10 +76,16 @@ void EnsembleOut_Single::EndEnsemble() {
 }
 
 // EnsembleOut_Single::SetupEnsembleWrite()
-int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn, int nFrames) {
+int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo const& cInfoIn,
+                                           int nFrames)
+{
   // Set up topology and coordinate info.
   if (SetTraj().SetupCoordInfo(tparmIn, nFrames, cInfoIn))
     return 1;
+# ifdef MPI
+  if (!trajComm_.IsNull() && trajComm_.Size() > 1)
+    return ParallelSetupEnsembleWrite();
+# endif
   if (debug_ > 0)
     rprintf("\tSetting up single ensemble %s for WRITE, topology '%s' (%i atoms).\n",
             Traj().Filename().base(), tparmIn->c_str(), tparmIn->Natom());
@@ -85,7 +94,7 @@ int EnsembleOut_Single::SetupEnsembleWrite(Topology* tparmIn, CoordinateInfo con
                          Traj().NframesToWrite(), Traj().Append()))
     return 1;
   if (debug_ > 0)
-    Frame::PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str(), eio_->CoordInfo());
+    eio_->CoordInfo().PrintCoordInfo(Traj().Filename().base(), Traj().Parm()->c_str());
   // First frame setup
   //if (!TrajIsOpen()) { //}
   return 0;
@@ -109,4 +118,10 @@ void EnsembleOut_Single::PrintInfo(int expectedNframes) const {
   eio_->Info();
   Traj().CommonInfo();
 }
+#ifdef MPI
+int EnsembleOut_Single::ParallelSetupEnsembleWrite() {
+  mprinterr("Error: Multiple threads per ensemble not supported for single ensemble write.\n");
+  return 1;
+}
 #endif
+#endif /* ENABLE_SINGLE_ENSEMBLE */

@@ -1,5 +1,8 @@
-SOURCES=ActionFrameCounter.cpp \
+# These files are common to cpptraj/libcpptraj. Files that need to be built
+# differently for each will go into SOURCES/LIBCPPTRAJ_OBJECTS respectively.
+COMMON_SOURCES=ActionFrameCounter.cpp \
         ActionList.cpp \
+        Action_Align.cpp \
         Action_Angle.cpp \
         Action_AreaPerMol.cpp \
         Action_AtomMap.cpp \
@@ -23,17 +26,16 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Density.cpp \
         Action_Diffusion.cpp \
         Action_Dihedral.cpp \
-        Action_DihedralScan.cpp \
         Action_Dipole.cpp \
         Action_Distance.cpp \
         Action_DistRmsd.cpp \
         Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
-        Action_Gist.cpp \
+        Action_GIST.cpp \
         Action_Grid.cpp \
         Action_GridFreeEnergy.cpp \
-        Action_Hbond.cpp \
+        Action_HydrogenBond.cpp \
         Action_Image.cpp \
         Action_Jcoupling.cpp \
         Action_LESsplit.cpp \
@@ -58,6 +60,7 @@ SOURCES=ActionFrameCounter.cpp \
         Action_Radgyr.cpp \
         Action_Radial.cpp \
         Action_RandomizeIons.cpp \
+        Action_Remap.cpp \
         Action_ReplicateCell.cpp \
         Action_Rmsd.cpp \
         Action_Rotate.cpp \
@@ -132,6 +135,7 @@ SOURCES=ActionFrameCounter.cpp \
         CIFfile.cpp \
         ClusterDist.cpp \
         ClusterList.cpp \
+        ClusterMap.cpp \
         ClusterMatrix.cpp \
         ClusterNode.cpp \
         ClusterSieve.cpp \
@@ -143,10 +147,9 @@ SOURCES=ActionFrameCounter.cpp \
         Cmd.cpp \
         CmdInput.cpp \
         CmdList.cpp \
-        Command.cpp \
         ComplexArray.cpp \
+        CoordinateInfo.cpp \
         Corr.cpp \
-        Cpptraj.cpp \
         CpptrajFile.cpp \
         CpptrajState.cpp \
         CpptrajStdio.cpp \
@@ -154,11 +157,14 @@ SOURCES=ActionFrameCounter.cpp \
         DataFile.cpp \
         DataFileList.cpp \
         DataIO.cpp \
+        DataIO_CCP4.cpp \
+        DataIO_Cmatrix.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
         DataIO_Grace.cpp \
         DataIO_OpenDx.cpp \
         DataIO_Mdout.cpp \
+        DataIO_NC_Cmatrix.cpp \
         DataIO_RemLog.cpp \
         DataIO_Std.cpp \
         DataIO_VecTraj.cpp \
@@ -168,10 +174,15 @@ SOURCES=ActionFrameCounter.cpp \
         DataSetList.cpp \
         DataSet_1D.cpp \
         DataSet_3D.cpp \
+        DataSet_Cmatrix.cpp \
+        DataSet_Cmatrix_DISK.cpp \
+        DataSet_Cmatrix_MEM.cpp \
+        DataSet_Cmatrix_NOMEM.cpp \
         DataSet_Coords.cpp \
         DataSet_Coords_CRD.cpp \
         DataSet_Coords_REF.cpp \
         DataSet_Coords_TRJ.cpp \
+        DataSet_GridDbl.cpp \
         DataSet_GridFlt.cpp \
         DataSet_Mat3x3.cpp \
         DataSet_MatrixDbl.cpp \
@@ -193,10 +204,15 @@ SOURCES=ActionFrameCounter.cpp \
         EnsembleIn.cpp \
         EnsembleIn_Multi.cpp \
         EnsembleIn_Single.cpp \
+        EnsembleNavigator.cpp \
         EnsembleOut.cpp \
         EnsembleOut_Multi.cpp \
         EnsembleOut_Single.cpp \
+        EnsembleOutList.cpp \
+        Ewald.cpp \
+        Exec_Analyze.cpp \
         Exec_Calc.cpp \
+        Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
         Exec_CompareTop.cpp \
@@ -213,16 +229,19 @@ SOURCES=ActionFrameCounter.cpp \
         Exec_ParmSolvent.cpp \
         Exec_ParmStrip.cpp \
         Exec_ParmWrite.cpp \
+        Exec_PermuteDihedrals.cpp \
         Exec_Precision.cpp \
         Exec_PrintData.cpp \
         Exec_ReadData.cpp \
         Exec_ReadInput.cpp \
+        Exec_RotateDihedral.cpp \
         Exec_RunAnalysis.cpp \
         Exec_ScaleDihedralK.cpp \
         Exec_SequenceAlign.cpp \
         Exec_System.cpp \
         Exec_Top.cpp \
         Exec_Traj.cpp \
+        Exec_ViewRst.cpp \
         FileIO_Bzip2.cpp \
         FileIO_Gzip.cpp \
         FileIO_Mpi.cpp \
@@ -235,15 +254,21 @@ SOURCES=ActionFrameCounter.cpp \
         Hungarian.cpp \
         ImageRoutines.cpp \
         InputTrajCommon.cpp \
+        KDE.cpp \
         MapAtom.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
         Mol2File.cpp \
         NameType.cpp \
+        NC_Cmatrix.cpp \
+        NC_Routines.cpp \
         NetcdfFile.cpp \
         OutputTrajCommon.cpp \
         PDBfile.cpp \
+        PairList.cpp \
+        Parallel.cpp \
+        ParallelNetcdf.cpp \
         ParmFile.cpp \
         Parm_Amber.cpp \
         Parm_CharmmPsf.cpp \
@@ -254,20 +279,23 @@ SOURCES=ActionFrameCounter.cpp \
         Parm_SDF.cpp \
         Parm_Tinker.cpp \
         ProgressBar.cpp \
+        ProgressTimer.cpp \
         PubFFT.cpp \
         Random.cpp \
         Range.cpp \
         RPNcalc.cpp \
-        ReadLine.cpp \
         ReferenceAction.cpp \
         Residue.cpp \
         SDFfile.cpp \
         SimplexMin.cpp \
+        Spline.cpp \
         StringRoutines.cpp \
+        StructureMapper.cpp \
         SymmetricRmsdCalc.cpp \
         TextFormat.cpp \
         Timer.cpp \
         TinkerFile.cpp \
+        TopInfo.cpp \
         Topology.cpp \
         TorsionRoutines.cpp \
         Traj_AmberCoord.cpp \
@@ -280,6 +308,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \
+        Traj_GmxXtc.cpp \
         Traj_Gro.cpp \
         Traj_Mol2File.cpp \
         Traj_NcEnsemble.cpp \
@@ -288,6 +317,7 @@ SOURCES=ActionFrameCounter.cpp \
         Traj_SQM.cpp \
         Traj_Tinker.cpp \
         TrajectoryFile.cpp \
+        TrajectoryIO.cpp \
         TrajFrameCounter.cpp \
         TrajinList.cpp \
         Trajin_Multi.cpp \
@@ -296,9 +326,27 @@ SOURCES=ActionFrameCounter.cpp \
         Trajout_Single.cpp \
         TrajoutList.cpp \
         Vec3.cpp \
+        ViewRst.cpp
+
+CSOURCES= molsurf.c
+
+# The files below are used by cpptraj and libcpptraj but must be compiled
+# differently for libcpptraj.
+SOURCES=$(COMMON_SOURCES) \
+        Action_Esander.cpp \
+        Command.cpp \
+        Cpptraj.cpp \
+        Energy_Sander.cpp \
+        ReadLine.cpp \
         main.cpp
 
-CSOURCES=MpiRoutines.c \
-         molsurf.c
-
+# These objects are used by libcpptraj. The specified objects are special
+# versions used only by libcpptraj. They MUST have the '.LIBCPPTRAJ.o'
+# extension.
+LIBCPPTRAJ_OBJECTS=$(COMMON_SOURCES:.cpp=.o) $(CSOURCES:.c=.o) \
+        Action_Esander.LIBCPPTRAJ.o \
+        Command.LIBCPPTRAJ.o \
+        Cpptraj.LIBCPPTRAJ.o \
+        Energy_Sander.LIBCPPTRAJ.o \
+        ReadLine.LIBCPPTRAJ.o
 

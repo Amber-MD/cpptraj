@@ -3,7 +3,6 @@
 #ifdef BINTRAJ
 #include "TrajectoryIO.h"
 #include "NetcdfFile.h"
-// Class: Traj_AmberNetcdf
 /// Reads and writes Amber Netcdf format trajectories. 
 class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
   public:
@@ -28,16 +27,28 @@ class Traj_AmberNetcdf : public TrajectoryIO, private NetcdfFile {
     // Reservoir functions
     inline int createReservoir(bool,double,int);
     int writeReservoir(int, Frame const&, double, int);
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj();
+#   endif
   private:
     float *Coord_;
     FileName filename_;
     int eptotVID_;
     int binsVID_;
     bool useVelAsCoords_;
+    bool useFrcAsCoords_;
     bool readAccess_;
     bool outputTemp_;
-    bool outputVel_;
-    bool outputFrc_;
+    bool write_mdcrd_;
+    bool write_mdvel_;
+    bool write_mdfrc_;
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 int Traj_AmberNetcdf::createReservoir(bool hasBins, double reservoirT, int iseed) {

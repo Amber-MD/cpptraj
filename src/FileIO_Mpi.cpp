@@ -1,77 +1,49 @@
-// FileIO_Mpi
-#include <cstdio>
-#include <cstdlib>
 #include "FileIO_Mpi.h"
-
-// CONSTRUCTOR
-FileIO_Mpi::FileIO_Mpi() {
-  pfile_ = (parallelType) malloc( sizeof(parallelType));
-}
-
-// DESTRUCTOR
-FileIO_Mpi::~FileIO_Mpi() {
-  free(pfile_);
-}
-
+#ifdef MPI
+// Needed for some older Intel MPI and newer OpenMPI versions
+# include <cstdio>
 // FileIO_Mpi::Open()
 int FileIO_Mpi::Open(const char *filename, const char *mode) {
+  if (comm_.IsNull()) return 1;
   if (filename == 0) return 1;
-  int err=0;
-  switch( mode[0] ) {
-    case 'r' : err=parallel_openFile_read(pfile_, filename); break;
-    case 'w' : err=parallel_open_file_write(pfile_, filename); break;
-    case 'a' : err=1; break; // NOTE: No MPI append for now
-    default  : err=1; break;
-  }
-
-  return err;
+  return pfile_.OpenFile(filename, mode, comm_);
 }
 
 // FileIO_Mpi::Close()
-int FileIO_Mpi::Close() {
-  parallel_closeFile(pfile_);
-  return 0;
-}
+int FileIO_Mpi::Close() { return (pfile_.CloseFile()); }
 
 // FileIO_Mpi::Read()
 int FileIO_Mpi::Read(void *buffer, size_t num_bytes) {
-  return (parallel_fread(pfile_, buffer, num_bytes));
+  return (pfile_.Fread(buffer, num_bytes, MPI_CHAR));
 }
 
 // FileIO_Mpi::Write()
 int FileIO_Mpi::Write(const void *buffer, size_t num_bytes) {
-  if ( parallel_fwrite(pfile_, buffer, num_bytes) ) return 1;
+  if (pfile_.Fwrite(buffer, num_bytes, MPI_CHAR)) return 1;
   // NOTE: Check for errors here.
   return 0;
 }
 
-int FileIO_Mpi::Flush() {
-  return parallel_flush( pfile_ );
-}
+int FileIO_Mpi::Flush() { return pfile_.Flush(); }
 
 // FileIO_Mpi::Seek()
 int FileIO_Mpi::Seek(off_t offset) {
-
-  if ( parallel_fseek(pfile_, offset, SEEK_SET) ) return 1;
-
+  if (pfile_.Fseek(offset, SEEK_SET)) return 1;
   return 0;
 }
 
 // FileIO_Mpi::Rewind()
 int FileIO_Mpi::Rewind() {
-  if ( parallel_fseek(pfile_, 0L, SEEK_SET) ) return 1;
+  if (pfile_.Fseek(0L, SEEK_SET)) return 1;
   return 0;
 }
 
 // FileIO_Mpi::Tell()
-off_t FileIO_Mpi::Tell() {
-  return ( parallel_position(pfile_) );
-}
+off_t FileIO_Mpi::Tell() { return ( pfile_.Position() ); }
 
 // FileIO_Mpi::Gets()
 int FileIO_Mpi::Gets(char *str, int num) {
-
-  if ( parallel_fgets(pfile_,str,num) == NULL ) return 1;
+  if ( pfile_.Fgets(str, num) == 0 ) return 1;
   return 0;
 }
 
@@ -79,8 +51,7 @@ int FileIO_Mpi::Gets(char *str, int num) {
 /** Set size of mpi file, required when splitting up writes.
   */
 int FileIO_Mpi::SetSize(long int offset) {
-
-  if ( parallel_setSize(pfile_, offset) ) return 1;
+  if ( pfile_.SetSize(offset) ) return 1;
   return 0;
 }
-
+#endif

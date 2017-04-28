@@ -10,12 +10,12 @@ AMBPDBSOURCES=AmbPDB.cpp \
               ByteRoutines.cpp \
               CharMask.cpp \
               CIFfile.cpp \
+              CoordinateInfo.cpp \
               CpptrajFile.cpp \
               CpptrajStdio.cpp \
               DistRoutines.cpp \
               FileIO_Bzip2.cpp \
               FileIO_Gzip.cpp \
-              FileIO_Mpi.cpp \
               FileIO_Std.cpp \
               FileName.cpp \
               FileTypes.cpp \
@@ -25,6 +25,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Matrix_3x3.cpp \
               Mol2File.cpp \
               NameType.cpp \
+              NC_Routines.cpp \
               NetcdfFile.cpp \
               OutputTrajCommon.cpp \
               ParmFile.cpp \
@@ -63,6 +64,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_CharmmCor.cpp \
               Traj_CharmmDcd.cpp \
               Traj_GmxTrX.cpp \
+              Traj_GmxXtc.cpp \
               Traj_Gro.cpp \
               Traj_PDBfile.cpp \
               Traj_Tinker.cpp \

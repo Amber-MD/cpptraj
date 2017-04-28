@@ -1,109 +1,12 @@
 #include "TrajoutList.h"
 #include "CpptrajStdio.h"
-#include "EnsembleOut_Single.h"
-#include "EnsembleOut_Multi.h"
-
-void EnsembleOutList::Clear() {
-  for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
-    delete *ens;
-  ensout_.clear();
-  ensTops_.clear();
-  active_.clear();
-  open_.clear();
-}
-
-int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& args,
-                                    Topology* eParm, int ensembleSize,
-                                    TrajectoryFile::TrajFormatType fmt)
-{
-  ArgList argIn = args;
-  EnsembleOut* ens = 0;
-# ifdef ENABLE_SINGLE_ENSEMBLE
-  // See if single ensemble output desired. // FIXME: Should not depend on keyword
-  if (argIn.hasKey("ensemble"))
-    ens = new EnsembleOut_Single();
-  else
-# endif
-    // Create new multi output trajectory
-    ens = new EnsembleOut_Multi();
-  if (ens == 0) return 1;
-  if (ens->InitEnsembleWrite(fname, argIn, ensembleSize, fmt)) {
-    delete ens;
-    return 1;
-  }
-  ensout_.push_back( ens );
-  ensTops_.push_back( eParm );
-  open_.push_back(false);
-  return 0;
-}
-
-int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo const& cInfo,
-                                      int Nframes)
-{
-  active_.clear();
-  for (unsigned int i = 0; i != ensout_.size(); i++) {
-    // Check that input parm matches setup parm - if not, skip
-    if (CurrentParm->Pindex() == ensTops_[i]->Pindex()) {
-      if (!open_[i]) {
-        if ( ensout_[i]->SetupEnsembleWrite( CurrentParm, cInfo, Nframes ) )
-        {
-          mprinterr("Error: Setting up output ensemble %s\n", ensout_[i]->Traj().Filename().full());
-          return 1;
-        }
-        open_[i] = true;
-      }
-      active_.push_back( ensout_[i] );
-    }
-  }
-  return 0;
-}
-
-/** Go through each active output traj, call write. */
-int EnsembleOutList::WriteEnsembleOut(int set, FramePtrArray const& Farray)
-{
-  for (EnsArray::const_iterator ens = active_.begin(); ens != active_.end(); ++ens) {
-    if ( (*ens)->WriteEnsemble(set, Farray) ) {
-      mprinterr("Error writing output ensemble, frame %i.\n", set+1);
-      return 1;
-    }
-  }
-  return 0;
-}
-
-/** Close output trajectories. Called after input traj processing completed. */
-void EnsembleOutList::CloseEnsembleOut() {
-  for (EnsArray::const_iterator ens = ensout_.begin(); ens != ensout_.end(); ++ens)
-    (*ens)->EndEnsemble();
-  Clear();
-}
-
-void EnsembleOutList::List(std::vector<int> const& PindexFrames) const {
-  if (!ensout_.empty()) {
-    mprintf("\nOUTPUT ENSEMBLE:\n");
-    if (PindexFrames.empty())
-      for (unsigned int i = 0; i != ensout_.size(); i++)
-        ensout_[i]->PrintInfo( 0 );
-    else
-      for (unsigned int i = 0; i != ensout_.size(); i++)
-        ensout_[i]->PrintInfo( PindexFrames[ensTops_[i]->Pindex()] );
-  }
-}
-
-// =============================================================================
-void TrajoutList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0)
-    mprintf("TrajoutList debug level set to %i\n", debug_);
-}
 
 void TrajoutList::Clear() {
   for (ListType::iterator traj = trajout_.begin(); traj != trajout_.end(); ++traj)
     delete *traj;
   trajout_.clear();
-  trajoutArgs_.clear();
-  trajoutTops_.clear();
-  trajoutNames_.clear();
   active_.clear();
+  trajoutTops_.clear();
   open_.clear();
 }
 
@@ -133,6 +36,7 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
   }
   // Create Trajout_Single
   Trajout_Single* to = new Trajout_Single();
+  to->SetDebug( debug_ );
   // Initialize output trajectory
   ArgList args = argIn;
   if (to->InitTrajWrite(filename, args, TrajectoryFile::UNKNOWN_TRAJ)) {
@@ -141,24 +45,8 @@ int TrajoutList::AddTrajout(std::string const& filename, ArgList const& argIn, T
     return 1;
   }
   trajout_.push_back( to );
-  // For potentially setting up ensemble later, save trajout arg.
-  trajoutArgs_.push_back( argIn );
-  trajoutTops_.push_back( tParm );
-  trajoutNames_.push_back( filename );
+  trajoutTops_.push_back( tParm ); 
   open_.push_back( false );
-  return 0;
-}
-
-// TODO Pass in more ensemble information, maps etc?
-int TrajoutList::MakeEnsembleTrajout(EnsembleOutList& ensembleList,
-                                     int ensembleSize) const
-{
-  ensembleList.Clear();
-  for (unsigned int i = 0; i != trajoutArgs_.size(); i++) {
-    if (ensembleList.AddEnsembleOut(trajoutNames_[i], trajoutArgs_[i], trajoutTops_[i],
-                                    ensembleSize, trajout_[i]->Traj().WriteFormat()))
-      return 1;
-  }
   return 0;
 }
 
@@ -173,7 +61,8 @@ int TrajoutList::SetupTrajout(Topology* CurrentParm, CoordinateInfo const& cInfo
       if (!open_[i]) { // Only set up if not already open.
         if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )
         {
-          mprinterr("Error: Setting up output trajectory %s\n", trajoutNames_[i].c_str());
+          mprinterr("Error: Setting up output trajectory '%s'\n",
+                     trajout_[i]->Traj().Filename().full());
           return 1;
         }
         open_[i] = true;
@@ -220,3 +109,34 @@ void TrajoutList::List(std::vector<int> const& PindexFrames) const {
         trajout_[i]->PrintInfo( PindexFrames[trajoutTops_[i]->Pindex()] );
   }
 }
+#ifdef MPI
+// -----------------------------------------------------------------------------
+int TrajoutList::ParallelSetupTrajout(Topology* CurrentParm,
+                                      CoordinateInfo const& cInfo, int Nframes,
+                                      Parallel::Comm const& commIn)
+{
+  active_.clear();
+  for (unsigned int i = 0; i != trajout_.size(); i++) {
+    // Check that input parm matches setup parm - if not, skip
+    if (CurrentParm->Pindex() == trajoutTops_[i]->Pindex()) {
+      if (!open_[i]) { // Only set up if not already open.
+        trajout_[i]->SetTrajComm( commIn );
+        if ( trajout_[i]->SetupTrajWrite( CurrentParm, cInfo, Nframes) )
+        {
+          mprinterr("Error: Setting up output trajectory '%s' in parallel.\n",
+                    trajout_[i]->Traj().Filename().full());
+          return 1;
+        }
+        open_[i] = true;
+      }
+      active_.push_back( trajout_[i] );
+    } else {
+      mprintf("Warning: Output traj '%s' was set up for topology '%s', but\n"
+              "Warning:   parallel run topology is '%s' - skipping.\n",
+              trajout_[i]->Traj().Filename().full(), trajoutTops_[i]->c_str(),
+              CurrentParm->c_str());
+    }
+  }
+  return 0;
+}
+#endif

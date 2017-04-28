@@ -1,6 +1,7 @@
 #ifndef INC_ACTION_ATOMICCORR_H
 #define INC_ACTION_ATOMICCORR_H
 #include "Action.h"
+/// Calculate the correlation (average dot product) between motion vectors.
 class Action_AtomicCorr : public Action {
   public:
     Action_AtomicCorr();
@@ -9,9 +10,15 @@ class Action_AtomicCorr : public Action {
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
+#   ifdef MPI
+    int ParallelPreviousFramesRequired() const { return 1; }
+    int ParallelPreloadFrames(FArray const&);
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
-
+    /// Hold a series of position vectors ([X1 - X0], [X2 - X1], ..., [XN - XN-1])
     class AtomVector {
       public:
         AtomVector() : idx_(0) {}
@@ -24,25 +31,27 @@ class Action_AtomicCorr : public Action {
         Vec3 VXYZ(int idx) const { return Vec3((double)vec_[idx  ], 
                                                (double)vec_[idx+1], 
                                                (double)vec_[idx+2]); }
+        void resize(size_t n) { vec_.resize( n ); }
+        float* Fptr() { return &(vec_[0]); }
       private:
-        std::vector<float> vec_;
-        std::string lbl_;
-        int idx_;
+        std::vector<float> vec_; ///< Array of position vectors for N-1 steps (XYZ)
+        std::string lbl_;        ///< Label for this vector array
+        int idx_;                ///< Index for this vector array.
     };
 
     enum AcorrModeType { ATOM = 0, RES };
     static const char* ModeString[];
     AcorrModeType acorr_mode_;
-    double cut_;
-    int min_;
+    double cut_;        ///< Do not record correlations less than cut_
+    int min_;           ///< Only calculate correlations for residues separated by at least min_
     int debug_;
-    DataSet* dset_;
-    DataFile* outfile_;
+    DataSet* dset_;     ///< Output matrix data set
+    DataFile* outfile_; ///< Output file
 
     typedef std::vector< AtomVector > ACvector;
-    ACvector atom_vectors_;
-    AtomMask mask_;
-    std::vector<AtomMask> resmasks_;
-    Frame refframe_;
+    ACvector atom_vectors_;          ///< AtomVector for each atom/residue
+    AtomMask mask_;                  ///< Selected atoms for ATOM
+    std::vector<AtomMask> resmasks_; ///< Masks for selected residues for RESDIUE
+    Frame previousFrame_;            ///< Hold the previous frame
 };
 #endif

@@ -12,6 +12,8 @@ void Action_FilterByData::Help() const {
 // Action_FilterByData::Init()
 Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  Npassed_ = 0;
+  Nfiltered_ = 0;
   maxmin_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
   if (maxmin_ == 0) return Action::ERR;
   DataFile* maxminfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -66,7 +68,12 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
     mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
-
+# ifdef MPI
+  if (init.TrajComm().Size() > 1)
+    mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
+            "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
+            init.TrajComm().Size());
+# endif
   return Action::OK;
 }
 
@@ -78,15 +85,17 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
   // Check if frame is within max/min
   for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
   {
-    double dVal = Dsets_[ds]->Dval(frameNum);
+    double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
     //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
     // If value from dataset not within min/max, exit now.
     if (dVal < Min_[ds] || dVal > Max_[ds]) {
       maxmin_->Add( frameNum, &ZERO );
+      Nfiltered_++;
       return Action::SUPPRESS_COORD_OUTPUT;
     }
   }
   maxmin_->Add( frameNum, &ONE );
+  Npassed_++;
   return Action::OK;
 }
 
@@ -106,4 +115,11 @@ size_t Action_FilterByData::DetermineFrames() const {
               (*it)->legend(), (*it)->Size(), nframes);
   }
   return nframes;
+}
+
+void Action_FilterByData::Print() {
+  mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
+          Npassed_, Nfiltered_);
+  for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
+    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
 }

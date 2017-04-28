@@ -12,7 +12,7 @@ class DataFile {
     /// Known data file formats.
     enum DataFormatType {
       DATAFILE=0, XMGRACE, GNUPLOT, XPLOR, OPENDX, REMLOG, MDOUT, EVECS,
-      VECTRAJ, XVG, UNKNOWN_DATA 
+      VECTRAJ, XVG, CCP4, CMATRIX, NCCMATRIX, UNKNOWN_DATA 
     };
     DataFile();
     ~DataFile();
@@ -41,12 +41,14 @@ class DataFile {
     int ReadDataIn(FileName const&, ArgList const&, DataSetList&);
     /// Read data from specific type of DataFile
     int ReadDataOfType(FileName const&, DataFormatType, DataSetList&);
-    /// Set up DataFile for writing.
+    /// Set up DataFile for writing with optional args.
     int SetupDatafile(FileName const&, ArgList&, int);
     /// Set up DataFile for writing with specific format.
     int SetupDatafile(FileName const&, ArgList&, DataFormatType, int);
     /// Set up DataFile for writing to STDOUT (DataIO_Std)
-    int SetupStdout(ArgList&, int);
+    int SetupStdout(ArgList const&, int);
+    /// Set up DataFile for writing, no args.
+    int SetupDatafile(FileName const& f, int d) { ArgList a; return SetupDatafile(f, a, d); }
     /// Add a previously set-up DataSet to DataFile.
     int AddDataSet(DataSet*);
     /// Remove a set from the DataFile.
@@ -69,7 +71,7 @@ class DataFile {
     /// \return DataFile member num.
     int Member()                   const { return member_;   }
     /// Set DataFile member num.
-    void SetMember(int);
+    void SetMember(int m) { member_ = m; }
   private:
     static DataIO* DetectFormat(FileName const&, DataFormatType&);
 
@@ -79,6 +81,7 @@ class DataFile {
     DataFormatType dfType_;    ///< Format to read/write data in DataFile.
     bool dflWrite_;            ///< True: write file when DataFileList::WriteAllDF called.
     bool setDataSetPrecision_; ///< True: set default precision of incoming DataSets.
+    bool sortSets_;            ///< True: Sort sets before write.
     int default_width_;        ///< Default width of data sets added to this file.
     int default_precision_;    ///< Default precision of data sets added to this file.
     DataSetList SetList_;      ///< Array of pointers to associated DataSets.

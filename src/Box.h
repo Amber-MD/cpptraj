@@ -1,6 +1,9 @@
 #ifndef INC_BOX_H
 #define INC_BOX_H
 #include "Matrix_3x3.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Hold box information; 3xlengths, 3xangles.
 class Box {
   public:
@@ -8,6 +11,7 @@ class Box {
 
     Box();
     Box(const double*);
+    Box(const float*);
     Box(Matrix_3x3 const&);
     Box(const Box&);
     Box& operator=(const Box&);
@@ -16,12 +20,15 @@ class Box {
 
     void SetBetaLengths(double,double,double,double);
     void SetBox(const double*);
+    void SetBox(const float*);
     void SetBox(Matrix_3x3 const&);
     void SetTruncOct();
     void SetNoBox();
     void SetMissingInfo(const Box&);
     /// Calculate Frac->Cart and Cart->Frac matrices.
     double ToRecip(Matrix_3x3&, Matrix_3x3&) const;
+    /// Calculate unit cell matrix, optionally scaling lengths.
+    Matrix_3x3 UnitCell(double) const;
     /// Print Box info to STDOUT
     void PrintInfo() const;
 
@@ -42,15 +49,21 @@ class Box {
     bool HasBox()  const { return (btype_ != NOBOX); }
     Vec3 Center()  const { return Vec3(box_[0]/2.0, box_[1]/2.0, box_[2]/2.0); }
     Vec3 Lengths() const { return Vec3(box_[0], box_[1], box_[2]);             }
+    static Vec3 RecipLengths(Matrix_3x3 const&);
+    void swap(Box&);
     // For interfacing with file IO
     double* boxPtr()             { return box_; }
     const double* boxPtr() const { return box_; }
 
     double const& operator[](int idx) const { return box_[idx]; }
     double&       operator[](int idx)       { return box_[idx]; }
+#   ifdef MPI
+    int SyncBox(Parallel::Comm const&);
+#   endif
   private:
     static inline bool IsTruncOct(double);
     static inline bool BadTruncOctAngle(double);
+    static inline bool IsAngle(double,double);
     void SetBoxType();
 
     static const double TRUNCOCTBETA_;

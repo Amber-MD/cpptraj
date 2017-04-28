@@ -1,10 +1,7 @@
 #ifndef INC_ACTION_ATOMMAP_H
 #define INC_ACTION_ATOMMAP_H
 #include "Action.h"
-#include "AtomMap.h"
-#include "DataSet_Coords_REF.h"
-// Class: Action_AtomMap
-/// Action used to map one molecule to another using AtomMaps
+/// Action used to map and reorder atoms in target to reference.
 class Action_AtomMap : public Action {
   public:
     Action_AtomMap(); 
@@ -17,29 +14,21 @@ class Action_AtomMap : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    DataSet_Coords_REF* TgtFrame_; ///< Coordinates to be re-mapped.
+    DataSet_Coords_REF* RefFrame_; ///< Coordinates to be mapped to.
     int debug_;
-    AtomMap RefMap_;
-    DataSet_Coords_REF* RefFrame_;
-    AtomMap TgtMap_;
-    DataSet_Coords_REF* TgtFrame_;
+    std::vector<int> AMap_;        ///< Hold the final atom map.
 
-    std::vector<int> AMap_;
-    bool maponly_;
-    Frame* newFrame_;
-    Topology* newParm_;
-    Topology* stripParm_; // For stripping reference
+    /// Map mode: map all, map by residue.
+    enum ModeType { ALL = 0, BY_RES };
+    Frame* newFrame_;   ///< Frame for re-mapped target
+    Topology* newParm_; ///< Topology for re-mapped target
+    ModeType mode_;     ///< Mapping mode
+    bool maponly_;      ///< If true only generate map
 
-    Frame rmsRefFrame_;
-    Frame rmsTgtFrame_;
-    bool rmsfit_;
-    DataSet* rmsdata_;
-
-    int mapBondsToUnique(AtomMap&, AtomMap&);
-    int mapChiral(AtomMap&, AtomMap&);
-    int mapByIndex(AtomMap&, AtomMap&);
-    int mapUniqueRefToTgt(AtomMap&, AtomMap&, int);
-    int MapAtoms(AtomMap&, AtomMap&);
-    int MapUniqueAtoms(AtomMap&, AtomMap&);
-    int MapWithNoUniqueAtoms( AtomMap&, AtomMap& );
+    Frame rmsRefFrame_; ///< Ref frame for calculating RMS of remapped target to ref
+    Frame rmsTgtFrame_; ///< Tgt frame for calculating RMS of remapped target to ref
+    bool rmsfit_;       ///< If true, attempt to RMS-fit remapped target to ref
+    DataSet* rmsdata_;  ///< RMS of remapped target to ref.
 };
 #endif

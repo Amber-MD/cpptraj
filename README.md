@@ -20,10 +20,15 @@ Build Status
 [![Build Status](https://travis-ci.org/Amber-MD/cpptraj.svg?branch=master)](https://travis-ci.org/Amber-MD/cpptraj)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/Amber-MD/cpptraj?branch=master&svg=true&retina=true)](https://ci.appveyor.com/project/drroe/cpptraj-aof9y/branch/master)
 
+PYTRAJ Compatibility Status
+===========================
+[Pytraj GitHub](https://github.com/Amber-MD/pytraj) 
+[![CircleCI](https://circleci.com/gh/Amber-MD/cpptraj.svg?style=svg)](https://circleci.com/gh/Amber-MD/cpptraj)
+
 Disclaimer and Copyright
 ========================
 
-CPPTRAJ is Copyright (c) 2010-2015 Daniel R. Roe.   
+CPPTRAJ is Copyright (c) 2010-2016 Daniel R. Roe.
 The terms for using, copying, modifying, and distributing CPPTRAJ are 
 specified in the file LICENSE.
 
@@ -40,15 +45,19 @@ libraries:
 * Bzip2
 * Gzip
 
+For NetCDF trajectory output when processing trajectories in parallel,
+parallel NetCDF is also required (MPI build only).
+
 `./configure gnu` should be adequate to set up compilation for most systems.
 For systems without BLAS/LAPACK/ARPACK and/or NETCDF libraries installed,
 the `-amberlib` flag can be specified to use the ones already compiled in
 an AmberTools installation (`$AMBERHOME` must be set), e.g.
 `./configure -amberlib gnu`. For multicore systems, the `-openmp` flag can
 be specified to enable OpenMP parallelization, e.g. `./configure -openmp gnu`.
-An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag;
-currently MPI can only be used for `ensemble` processing (see the manual for
-further details).
+An MPI-parallelized version of CPPTRAJ can also be built using the `-mpi` flag.
+CPPTRAJ can be built with both MPI and OpenMP; when running this build users 
+should take care to properly set OMP_NUM_THREADS if using more than 1 MPI
+thread per node.
 
 The configure script by default sets everything up to link dynamically. The
 `-static` flag can be used to force static linking. If linking errors are
@@ -95,13 +104,22 @@ Action\_Density, Action\_OrderParameter, Action\_PairDist.
 
 * Crystal N. Nguyen (University of California, San Diego)  
 Romelia F. Salomon (University of California, San Diego)  
-Action\_Gist.
+Original Action\_Gist.
 
 * Pawel Janowski (Rutgers University, NJ, USA)  
 Normal mode wizard (nmwiz) output, original code for ADP calculation in Action\_AtomicFluct.
 
 * Zahra Heidari (Faculty of Chemistry, K. N. Toosi University of Technology, Tehran, Iran)  
 Original code for Analysis\_Wavelet.
+
+* Chris Lee (University of California, San Diego)
+Support for processing force information in NetCDF trajectories.
+
+* Steven Ramsey (CUNY Lehman College, Bronx, NY)
+Enhancements to entropy calculation in original Action\_Gist.
+
+* Amit Roy (University of Utah, UT)
+Code for the CUDA version of the 'closest' Action.
 
 #### Various Contributions
 * David A. Case (Rutgers University, Piscataway, NJ, USA)
@@ -128,6 +146,12 @@ Original implementation of the Amber NetCDF trajectory format.
 
 * Hannes H. Loeffler (STFC Daresbury, Scientific Computing Department, Warrington, WA4 4AD, UK)  
 Diffusion calculation code adapted for use in Action\_STFC\_Diffusion.
+
+## External libraries bundled with CPPTRAJ
+
+* CPPTRAJ makes use of the GNU readline library for the interactive command line (https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html).
+
+* CPPTRAJ uses the xdrfile library for reading XTC files (http://www.gromacs.org/Developer\_Zone/Programming\_Guide/XTC\_Library); specifically a somewhat updated version from MDTRAJ (https://github.com/mdtraj/mdtraj) that includes some bugfixes and enhancements. See `src/xdrfile/README` for details.
 
 Documentation
 =============

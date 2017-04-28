@@ -1,0 +1,10 @@
+object 1 class gridpositions counts 1 1 1
+origin 0 0 0
+delta 1 0 0
+delta 0 1 0
+delta 0 0 1
+object 2 class gridconnections counts 1 1 1
+object 3 class array type double rank 0 items 1 data follows
+0.958873
+
+object "density [A^-3]" class field

@@ -3,7 +3,7 @@
 #include "Action_MinImage.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR
@@ -42,16 +42,17 @@ Action::RetType Action_MinImage::Init(ArgList& actionArgs, ActionInit& init, int
   md.SetScalarMode( MetaData::M_DISTANCE );
   dist_ = init.DSL().AddSet(DataSet::DOUBLE, md, "MID");
   if (dist_==0) return Action::ERR;
-  md.SetAspect("A1");
-  atom1_ = init.DSL().AddSet(DataSet::INTEGER, md);
-  md.SetAspect("A2");
-  atom2_ = init.DSL().AddSet(DataSet::INTEGER, md);
-  if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
-  // Add DataSets to data file
-  if (outfile != 0) {
-    outfile->AddDataSet( dist_ );
-    outfile->AddDataSet( atom1_ );
-    outfile->AddDataSet( atom2_ );
+  if (outfile != 0) outfile->AddDataSet( dist_ );
+  if (!calcUsingMask_) {
+    md.SetAspect("A1");
+    atom1_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("A2");
+    atom2_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    if (atom1_ == 0 || atom2_ == 0) return Action::ERR;
+    if (outfile != 0) {
+      outfile->AddDataSet( atom1_ );
+      outfile->AddDataSet( atom2_ );
+    }
   }
   int numthreads = 1;
 # ifdef _OPENMP

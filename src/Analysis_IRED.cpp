@@ -142,6 +142,7 @@ Analysis::RetType Analysis_IRED::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
   mprintf("\tData set name: %s\n", dsname_.c_str());
   if (orderout != 0)
     mprintf("\tOrder parameters will be written to '%s'\n", orderout->DataFilename().full());
+  mprintf("\tOrder of Legendre polynomials for calculating spherical harmonics: %i\n", order_);
   mprintf("\tCorrelation time %g, time step %g\n", tcorr_, tstep_);
   mprintf("\tCorrelation functions are");
   if (norm_)
@@ -216,9 +217,12 @@ Analysis::RetType Analysis_IRED::Analyze() {
   if (data_ds2_mat_ != 0) {
     if (((DataSet_MatrixDbl*)data_ds2_mat_)->Allocate2D(modinfo_->Nmodes(), modinfo_->VectorSize()))
       return Analysis::ERR;
+    data_ds2_mat_->SetDim(Dimension::X, Dimension(1, 1, "Mod"));
+    data_ds2_mat_->SetDim(Dimension::Y, Dimension(1, 1, "Vec"));
     startMode = 0;
   }
   // Loop over all vector elements
+  data_s2_->SetDim(Dimension::X, Dimension(1, 1, "Vec"));
   for (int vi = 0; vi < modinfo_->VectorSize(); ++vi) {
     // Sum according to Eq. A22 in Prompers & Brüschweiler, JACS 124, 4522, 2002
     double sum = 0.0;
@@ -265,10 +269,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
   ComplexArray data1_;
   if (drct_) {
     data1_.Allocate( Nframes );
-    corfdir_.Allocate( nsteps );
+    corfdir_.CorrSetup( nsteps );
   } else {
     // Initialize FFT
-    pubfft_.Allocate( Nframes );
+    pubfft_.CorrSetup( Nframes );
     data1_ = pubfft_.Array();
   }
   // ----- Cm(t) CALCULATION ---------------------
@@ -479,6 +483,10 @@ Analysis::RetType Analysis_IRED::Analyze() {
       mprintf("DEBUG: Jw(0, omega_h-omega_n)= %g\n", Jw(0, omega_h - omega_n, TauM_s));
     }
     // Calculate Spectral Densities and NMR relaxation parameters
+    Dimension Vdim(1, 1, "Vec");
+    data_t1_->SetDim(Dimension::X, Vdim);
+    data_t2_->SetDim(Dimension::X, Vdim);
+    data_noe_->SetDim(Dimension::X, Vdim);
     for (unsigned int ivec = 0; ivec != IredVectors_.size(); ivec++)
     {
       double JomegaN = Jw(ivec, omega_n, TauM_s);

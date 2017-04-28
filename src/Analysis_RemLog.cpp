@@ -32,6 +32,7 @@ void Analysis_RemLog::Help() const {
 Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
+  Setup_ = setup;
   // Get remlog dataset
   std::string remlogName = analyzeArgs.GetStringNext();
   if (remlogName.empty()) {
@@ -51,7 +52,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   acceptout_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("acceptout"), "replica acceptance",
                                       DataFileList::TEXT, true );
   if (acceptout_ == 0) return Analysis::ERR;
-  lifetimes_ = setup.DFL().AddCpptrajFile( analyzeArgs.GetStringKey("lifetime"), "remlog lifetimes" );
+  lifetimes_ = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("lifetime") );
   calculateLifetimes_ = (lifetimes_ != 0);
   calculateStats_ = analyzeArgs.hasKey("stats");
   if (calculateStats_) {
@@ -80,7 +81,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     mode_ = REPIDX;
   else
     mode_ = NONE;
-  const char* def_name = 0;
+  const char* def_name = "remlog";
   const char* yaxis = 0;
   if (mode_ == CRDIDX) {
     def_name = "repidx";
@@ -89,6 +90,10 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     def_name = "crdidx";
     yaxis = "ylabel RepIdx";
   }
+  // Set up data set name
+  dsname_ = analyzeArgs.GetStringKey("name");
+  if ((mode_ != NONE || calculateLifetimes_) && dsname_.empty())
+    dsname_ = setup.DSL().GenerateDefaultName(def_name);
   // Set up an output set for each replica
   DataFile* dfout = 0;
   if (mode_ != NONE) {
@@ -99,10 +104,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       if (dfout == 0 ) return Analysis::ERR;
       if (yaxis != 0 ) dfout->ProcessArgs(yaxis);
     }
-    std::string dsname = analyzeArgs.GetStringKey("name");
-    if (dsname.empty())
-      dsname = setup.DSL().GenerateDefaultName(def_name);
-    MetaData md(dsname);
+    MetaData md(dsname_);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
       md.SetIdx(i+1);
       DataSet_integer* ds = (DataSet_integer*)setup.DSL().AddSet(DataSet::INTEGER, md);
@@ -175,7 +177,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
-    if (Lifetime.ExternalSetup( dsLifetime, lifetimes_ ) == Analysis::ERR) {
+    if (Lifetime.ExternalSetup( dsLifetime, Setup_.DSL(), lifetimes_, dsname_ ) == Analysis::ERR) {
       mprinterr("Error: Could not set up remlog lifetime analysis.\n");
       return Analysis::ERR;
     }

@@ -19,6 +19,8 @@ Box::Box(const double* bIn) //: debug_(0)
   SetBox( bIn );
 }
 
+Box::Box(const float* bIn) { SetBox( bIn ); }
+
 Box::Box(Matrix_3x3 const& ucell) { SetBox( ucell ); }
 
 // COPY CONSTRUCTOR
@@ -91,6 +93,21 @@ void Box::SetBox(const double* xyzabg) {
   SetBoxType();
 }
 
+/** Set box from float[6] array */
+void Box::SetBox(const float* xyzabg) {
+  if (xyzabg == 0) {
+    mprinterr("Error: Box input array is null\n");
+    return;
+  }
+  box_[0] = (double)xyzabg[0];
+  box_[1] = (double)xyzabg[1];
+  box_[2] = (double)xyzabg[2];
+  box_[3] = (double)xyzabg[3];
+  box_[4] = (double)xyzabg[4];
+  box_[5] = (double)xyzabg[5];
+  SetBoxType();
+}
+
 /** Set box from unit cell matrix. */
 void Box::SetBox(Matrix_3x3 const& ucell) {
   Vec3 x_axis = ucell.Row1();
@@ -148,6 +165,10 @@ bool Box::BadTruncOctAngle(double angle) {
   return (fabs( TRUNCOCTBETA_ - angle ) > TruncOctEps_);
 }
 
+bool Box::IsAngle(double angle, double tgt) {
+  return (fabs(tgt - angle) < Constants::SMALL);
+}
+
 // Box::SetBoxType()
 /** Determine box type (none/ortho/nonortho) based on box angles. */
 void Box::SetBoxType() {
@@ -171,6 +192,9 @@ void Box::SetBoxType() {
   else if ( IsTruncOct( box_[3] ) && IsTruncOct( box_[4] ) && IsTruncOct( box_[5] ) )
     // All 109.47, truncated octahedron
     btype_ = TRUNCOCT;
+  else if ( IsAngle(box_[3],60.0) && IsAngle(box_[4],90.0) && IsAngle(box_[5],60.0) )
+    // 60/90/60, rhombic dodecahedron
+    btype_ = RHOMBIC;
   else if (box_[3] == 0 && box_[4] != 0 && box_[5] == 0) {
     // Only beta angle is set (e.g. from Amber topology).
     if (box_[4] == 90.0) {
@@ -196,12 +220,27 @@ void Box::SetBoxType() {
     }
   }
   //if (debug_>0) mprintf("\tBox type is %s (beta=%lf)\n",TypeName(), box_[4]);
-  // Check for low-precision truncated octahedron angles.
   if (btype_ == TRUNCOCT) {
+    // Check for low-precision truncated octahedron angles.
     if ( BadTruncOctAngle(box_[3]) || BadTruncOctAngle(box_[4]) || BadTruncOctAngle(box_[5]) )
       mprintf("Warning: Low precision truncated octahedron angles detected (%g vs %g).\n"
               "Warning:   If desired, the 'box' command can be used during processing\n"
               "Warning:   to set higher-precision angles.\n", box_[4], TRUNCOCTBETA_);
+  } else if (btype_ == NONORTHO) {
+    // Check for skewed box.
+    const double boxFactor = 0.5005;
+    double Xaxis_X = box_[0];
+    double Yaxis_X = box_[1]*cos(Constants::DEGRAD*box_[5]);
+    double Yaxis_Y = box_[1]*sin(Constants::DEGRAD*box_[5]);
+    double Zaxis_X = box_[2]*cos(Constants::DEGRAD*box_[4]);
+    double Zaxis_Y = (box_[1]*box_[2]*cos(Constants::DEGRAD*box_[3]) - Zaxis_X*Yaxis_X) / Yaxis_Y;
+    if ( fabs(Yaxis_X) > boxFactor * Xaxis_X ||
+         fabs(Zaxis_X) > boxFactor * Xaxis_X ||
+         fabs(Zaxis_Y) > boxFactor * Yaxis_Y )
+    {
+      mprintf("Warning: Non-orthogonal box is too skewed to perform accurate imaging.\n"
+              "Warning:  Images and imaged distances may not be the absolute minimum.\n");
+    }
   }
 }
 
@@ -256,7 +295,79 @@ double Box::ToRecip(Matrix_3x3& ucell, Matrix_3x3& recip) const {
   return volume;
 }
 
+// Box::UnitCell()
+Matrix_3x3 Box::UnitCell(double scale) const {
+  Matrix_3x3 ucell;
+  double by, bz;
+  switch (btype_) {
+    case NOBOX: ucell.Zero(); break;
+    case ORTHO:
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = 0.0;
+      ucell[4] = box_[1] * scale;
+      ucell[5] = 0.0;
+      ucell[6] = 0.0;
+      ucell[7] = 0.0;
+      ucell[8] = box_[2] * scale;
+      break;
+    case TRUNCOCT:
+    case RHOMBIC:
+    case NONORTHO:
+      by = box_[1] * scale;
+      bz = box_[2] * scale;
+      ucell[0] = box_[0] * scale;
+      ucell[1] = 0.0;
+      ucell[2] = 0.0;
+      ucell[3] = by*cos(Constants::DEGRAD*box_[5]);
+      ucell[4] = by*sin(Constants::DEGRAD*box_[5]);
+      ucell[5] = 0.0;
+      ucell[6] = bz*cos(Constants::DEGRAD*box_[4]);
+      ucell[7] = (by*bz*cos(Constants::DEGRAD*box_[3]) - ucell[6]*ucell[3]) / ucell[4];
+      ucell[8] = sqrt(bz*bz - ucell[6]*ucell[6] - ucell[7]*ucell[7]);
+      break;
+  }
+  return ucell;
+}
+
+//  Box::RecipLengths()
+Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
+  return Vec3( 1.0/sqrt(recip[0]*recip[0] + recip[1]*recip[1] + recip[2]*recip[2]),
+               1.0/sqrt(recip[3]*recip[3] + recip[4]*recip[4] + recip[5]*recip[5]),
+               1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
+}
+
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);
 }
+
+static inline void dswap(double& d1, double& d2) {
+  double dtemp = d1;
+  d1 = d2;
+  d2 = dtemp;
+}
+
+static inline void bswap(Box::BoxType& b1, Box::BoxType& b2) {
+  Box::BoxType btemp = b1;
+  b1 = b2;
+  b2 = btemp;
+}
+
+void Box::swap(Box& rhs) {
+  bswap( btype_,  rhs.btype_ );
+  dswap( box_[0], rhs.box_[0] );
+  dswap( box_[1], rhs.box_[1] );
+  dswap( box_[2], rhs.box_[2] );
+  dswap( box_[3], rhs.box_[3] );
+  dswap( box_[4], rhs.box_[4] );
+  dswap( box_[5], rhs.box_[5] );
+}
+#ifdef MPI
+int Box::SyncBox(Parallel::Comm const& commIn) {
+  commIn.MasterBcast( &btype_, 1, MPI_INT );
+  commIn.MasterBcast( box_,    6, MPI_DOUBLE );
+  return 0;
+}
+#endif

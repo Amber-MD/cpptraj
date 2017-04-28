@@ -1,20 +1,23 @@
 #include "Traj_PDBfile.h"
 #include "CpptrajStdio.h"
+#include "DistRoutines.h"
 
 // CONSTRUCTOR
 Traj_PDBfile::Traj_PDBfile() :
   radiiMode_(GB),
   terMode_(BY_MOL),
+  conectMode_(NO_CONECT),
+  pdbWriteMode_(NONE),
   pdbAtom_(0),
   currentSet_(0),
   ter_num_(0),
-  pdbWriteMode_(NONE),
   dumpq_(false),
   pdbres_(false),
   pdbatom_(false),
   write_cryst1_(false),
   include_ep_(false),
-  writeConect_(false),
+  prependExt_(false),
+  firstframe_(false),
   pdbTop_(0),
   chainchar_(' ')
 {}
@@ -29,7 +32,10 @@ bool Traj_PDBfile::ID_TrajFormat(CpptrajFile& fileIn) {
 void Traj_PDBfile::closeTraj() {
   if ( (pdbWriteMode_ == SINGLE || pdbWriteMode_ == MODEL) &&
         file_.IsOpen() )
+  {
+    WriteBonds();
     file_.WriteEND();
+  }
   if (pdbWriteMode_ != MULTI)
     file_.CloseFile();
 }
@@ -158,20 +164,23 @@ int Traj_PDBfile::readFrame(int set, Frame& frameIn)
 }
 
 void Traj_PDBfile::WriteHelp() {
-  mprintf("\tdumpq:       Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
-          "\tparse:       Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
-          "\tvdw:         Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
-          "\tpdbres:      Use PDB V3 residue names.\n"
-          "\tpdbatom:     Use PDB V3 atom names.\n"
-          "\tpdbv3:       Use PDB V3 residue/atom names.\n"
-          "\tteradvance:  Increment record (atom) # for TER records (default no).\n"
-          "\tterbyres:    Print TER cards based on residue sequence instead of molecules.\n"
-          "\tmodel:       Write to single file separated by MODEL records.\n"
-          "\tmulti:       Write each frame to separate files.\n"
+  mprintf("\tdumpq      : Write atom charge/GB radius in occupancy/B-factor columns (PQR format).\n"
+          "\tparse      : Write atom charge/PARSE radius in occupancy/B-factor columns (PQR format).\n"
+          "\tvdw        : Write atom charge/VDW radius in occupancy/B-factor columns (PQR format).\n"
+          "\tpdbres     : Use PDB V3 residue names.\n"
+          "\tpdbatom    : Use PDB V3 atom names.\n"
+          "\tpdbv3      : Use PDB V3 residue/atom names.\n"
+          "\tteradvance : Increment record (atom) # for TER records (default no).\n"
+          "\tterbyres   : Print TER cards based on residue sequence instead of molecules.\n"
+          "\tpdbter     : Print TER cards according to original PDB TER (if available).\n"
+          "\tnoter      : Do not write TER cards.\n"
+          "\tmodel      : Write to single file separated by MODEL records.\n"
+          "\tmulti      : Write each frame to separate files.\n"
           "\tchainid <c>: Write character 'c' in chain ID column.\n"
-          "\tsg <group>:  Space group for CRYST1 record, only if box coordinates written.\n"
-          "\tinclude_ep:  Include extra points.\n"
-          "\tconect:      Write CONECT records using bond information.\n");
+          "\tsg <group> : Space group for CRYST1 record, only if box coordinates written.\n"
+          "\tinclude_ep : Include extra points.\n"
+          "\tconect     : Write CONECT records using bond information.\n"
+          "\tkeepext    : Keep filename extension; write '<name>.<num>.<ext>' instead (implies 'multi').\n");
 }
 
 // Traj_PDBfile::processWriteArgs()
@@ -189,6 +198,7 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   }
   if (argIn.hasKey("terbyres"))   terMode_ = BY_RES;
   else if (argIn.hasKey("noter")) terMode_ = NO_TER;
+  else if (argIn.hasKey("pdbter"))terMode_ = ORIGINAL_PDB;
   else                            terMode_ = BY_MOL;
   pdbres_ = argIn.hasKey("pdbres");
   pdbatom_ = argIn.hasKey("pdbatom");
@@ -203,7 +213,14 @@ int Traj_PDBfile::processWriteArgs(ArgList& argIn) {
   if (argIn.hasKey("model")) pdbWriteMode_ = MODEL;
   if (argIn.hasKey("multi")) pdbWriteMode_ = MULTI;
   include_ep_ = argIn.hasKey("include_ep");
-  writeConect_ = argIn.hasKey("conect");
+  if (argIn.hasKey("conect"))
+    conectMode_ = ALL_BONDS;
+  else if (pdbres_)
+    conectMode_ = HETATM_ONLY;
+  else
+    conectMode_ = NO_CONECT;
+  prependExt_ = argIn.hasKey("keepext"); // Implies MULTI
+  if (prependExt_) pdbWriteMode_ = MULTI;
   space_group_ = argIn.GetStringKey("sg");
   std::string temp = argIn.GetStringKey("chainid");
   if (!temp.empty()) chainchar_ = temp[0];
@@ -243,15 +260,24 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
   // Save residue names. If pdbres specified convert to PDBV3 residue names.
   resNames_.clear();
   resNames_.reserve( trajParm->Nres() );
+  resIsHet_.clear();
+  resIsHet_.reserve( trajParm->Nres() );
+  ss_residues_.clear();
+  ss_atoms_.clear();
   if (pdbres_) {
+    Iarray cys_idxs_; ///< Hold CYS residue indices
     for (Topology::res_iterator res = trajParm->ResStart();
-                                res != trajParm->ResEnd(); ++res) {
+                                res != trajParm->ResEnd(); ++res)
+    {
       NameType rname = res->Name();
+      // First check if this is water.
+      if ( res->NameIsSolvent() )
+        rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
-      if (rname == "HID " || rname == "HIE " ||
-          rname == "HIP " || rname == "HIC "   )
+      else if (rname == "HID " || rname == "HIE " ||
+               rname == "HIP " || rname == "HIC "   )
         rname = "HIS ";
-      else if (rname == "CYX " || rname == "CYM ")
+      else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
       else if (rname == "MEM ") 
         rname = "MET ";
@@ -260,39 +286,166 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       else if (rname == "GLH ")
         rname = "GLU ";
       // also for nucleic acid names:
-      else if ( rname[2] == ' ' && rname[3] == ' ' ) {
-        // RNA names
-        if      ( rname[0] == 'G' ) rname="  G ";
-        else if ( rname[0] == 'C' ) rname="  C ";
-        else if ( rname[0] == 'A' ) rname="  A ";
-        else if ( rname[0] == 'U' ) rname="  U ";
-      } else if ( rname[0] == 'D' ) {
-        // DNA names
-        if      ( rname[1] == 'G' ) rname=" DG ";
-        else if ( rname[1] == 'C' ) rname=" DC ";
-        else if ( rname[1] == 'A' ) rname=" DA ";
-        else if ( rname[1] == 'T' ) rname=" DT ";
+      else if ( rname == "C3  " )  rname = "  C ";
+      else if ( rname == "U3  " )  rname = "  U ";
+      else if ( rname == "G3  " )  rname = "  G ";
+      else if ( rname == "A3  " )  rname = "  A ";
+      else if ( rname == "C5  " )  rname = "  C ";
+      else if ( rname == "U5  " )  rname = "  U ";
+      else if ( rname == "G5  " )  rname = "  G ";
+      else if ( rname == "A5  " )  rname = "  A ";
+      else if ( rname == "DC3 " )  rname = " DC ";
+      else if ( rname == "DT3 " )  rname = " DT ";
+      else if ( rname == "DG3 " )  rname = " DG ";
+      else if ( rname == "DA3 " )  rname = " DA ";
+      else if ( rname == "DC5 " )  rname = " DC ";
+      else if ( rname == "DT5 " )  rname = " DT ";
+      else if ( rname == "DG5 " )  rname = " DG ";
+      else if ( rname == "DA5 " )  rname = " DA ";
+      else if ( rname == "URA " || rname == "URI" )
+        rname = "  U ";
+      else if ( rname == "THY " )
+        rname = " DT ";
+      else if ( rname == "GUA" || rname == "ADE" || rname == "CYT" ) {
+        // Determine if RNA or DNA via existence of O2'
+        bool isRNA = false;
+        for (int ratom = res->FirstAtom(); ratom != res->LastAtom(); ++ratom)
+          if ( (*trajParm)[ratom].Name() == "O2'" ||
+               (*trajParm)[ratom].Name() == "O2*" )
+          {
+            isRNA = true;
+            break;
+          }
+        if (isRNA) {
+          if      (rname[0] == 'G') rname="  G ";
+          else if (rname[0] == 'A') rname="  A ";
+          else if (rname[0] == 'C') rname="  C ";
+        } else {
+          if      (rname[0] == 'G') rname=" DG ";
+          else if (rname[0] == 'A') rname=" DA ";
+          else if (rname[0] == 'C') rname=" DC ";
+        }
       }
       resNames_.push_back( rname );
+      // Any non-standard residue should get HETATM
+      if ( rname == "CYS " )
+        // NOTE: Comparing to CYS works here since HETATM_ONLY is only active
+        //       when 'pdbres' has been specified.
+        cys_idxs_.push_back( res - trajParm->ResStart() );
+      if ( rname == "ALA " ||
+           rname == "ARG " ||
+           rname == "ASN " ||
+           rname == "ASP " ||
+           rname == "ASX " ||
+           rname == "CYS " ||
+           rname == "GLN " ||
+           rname == "GLU " ||
+           rname == "GLX " ||
+           rname == "GLY " ||
+           rname == "HIS " ||
+           rname == "ILE " ||
+           rname == "LEU " ||
+           rname == "LYS " ||
+           rname == "MET " ||
+           rname == "PHE " ||
+           rname == "PRO " ||
+           rname == "SER " ||
+           rname == "THR " ||
+           rname == "TRP " ||
+           rname == "TYR " ||
+           rname == "UNK " ||
+           rname == "VAL " ||
+           rname == "  C " ||
+           rname == "  G " ||
+           rname == "  A " ||
+           rname == "  U " ||
+           rname == "  I " ||
+           rname == " DC " ||
+           rname == " DG " ||
+           rname == " DA " ||
+           rname == " DU " ||
+           rname == " DT " ||
+           rname == " DI "    )
+        resIsHet_.push_back( false );
+      else
+        resIsHet_.push_back( true );
+      //mprintf("DEBUG: ResName='%s' IsHet=%i\n", *(resNames_.back()), (int)resIsHet_.back());
+    } // END loop over residues
+    // For each cysteine, determine if there is a disulfide
+    for (Iarray::const_iterator ridx1 = cys_idxs_.begin(); ridx1 != cys_idxs_.end(); ++ridx1)
+    {
+      // Check for disulfide
+      int sg_idx1 = trajParm->FindAtomInResidue(*ridx1, "SG");
+      if (sg_idx1 > -1) {
+        Atom const& sg_atom = (*trajParm)[sg_idx1];
+        for (Atom::bond_iterator bidx = sg_atom.bondbegin();
+                                 bidx != sg_atom.bondend(); ++bidx)
+        {
+          int ridx2 = (*trajParm)[*bidx].ResNum();
+          if (ridx2 != *ridx1 && resNames_[ridx2] == "CYS ") {
+            int sg_idx2 = trajParm->FindAtomInResidue(ridx2, "SG");
+            if (sg_idx2 > -1) {
+              if (ridx2 > *ridx1)
+                ss_residues_.push_back( SSBOND(sg_idx1, sg_idx2,
+                                               trajParm->Res(*ridx1),
+                                               trajParm->Res( ridx2)) );
+              ss_atoms_.push_back( sg_idx1 );
+              ss_atoms_.push_back( sg_idx2 );
+            }
+            // NOTE: could probably break here.
+          }
+        }
+      }
     }
   } else {
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
       resNames_.push_back( res->Name() );
+    resIsHet_.assign( trajParm->Nres(), false );
   }
   // Set up TER cards.
   TER_idxs_.clear();
+  if (terMode_ == ORIGINAL_PDB) {
+    // Write a TER card only after residues that originally have a TER card
+    // or when chain ID changes. If no chain ID or TER info is present switch
+    // mode to BY_RES.
+    bool has_chainID = false;
+    bool has_ter = false;
+    Topology::res_iterator res = trajParm->ResStart();
+    for (; res != trajParm->ResEnd(); ++res) {
+      if (res->ChainID() != ' ') has_chainID = true;
+      if (res->IsTerminal()) has_ter = true;
+      if (res->IsTerminal() || res+1 == trajParm->ResEnd())
+        TER_idxs_.push_back( res->LastAtom() - 1 );
+      else if ((res+1)->ChainID() != res->ChainID())
+        TER_idxs_.push_back( res->LastAtom() - 1 );
+    }
+    if (has_chainID == false && has_ter == false) {
+      mprintf("Warning: 'pdbter': Topology '%s' has no chain ID info and no TER info.\n"
+              "Warning:   Cannot use 'pdbter' - using 'terbyres' instead.\n", trajParm->c_str());
+      terMode_ = BY_RES;
+    }
+  }
   if (terMode_ == BY_RES) {
+    bool lastResWasSolvent = false;
     // Write a TER card every time residue of atom N+1 is not bonded to any
     // atom of residue of atom N. Do not do this for solvent.
     for (Topology::res_iterator res = trajParm->ResStart();
                                 res != trajParm->ResEnd(); ++res)
     {
-      if (!res->NameIsSolvent()) {
+      bool isIon = false;
+      if (trajParm->Nmol() > 0) {
+        int molNum = (*trajParm)[ res->FirstAtom() ].MolNum();
+        // If this is a one atom molecule assume it is an ion.
+        isIon = trajParm->Mol( molNum ).NumAtoms() == 1; 
+      }
+      if (!res->NameIsSolvent() && !isIon) {
         // If this is the last residue, terminate the chain with final atom.
         // FIXME build this into the loop.
         if ( res+1 == trajParm->ResEnd() )
           TER_idxs_.push_back( res->LastAtom() - 1 );
+        else if ( lastResWasSolvent )
+          TER_idxs_.push_back( (res-1)->LastAtom() - 1 );
         else {
           int r2_first = (res+1)->FirstAtom();
           int r2_last  = (res+1)->LastAtom();
@@ -312,27 +465,29 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
           if (!residues_are_bonded)
             TER_idxs_.push_back( res->LastAtom() - 1 );
         }
-      }
+        lastResWasSolvent = false;
+      } else
+        lastResWasSolvent = true;
     }
   } else if (terMode_ == BY_MOL) {
     // Write a TER card at the end of every molecule
     // NOTE: For backwards compat. dont do this for last mol. FIXME Is this ok?
     if ( trajParm->Nmol() > 0 ) {
-      Topology::mol_iterator finalMol = trajParm->MolEnd() - 1;
       for (Topology::mol_iterator mol = trajParm->MolStart();
-                                  mol != finalMol; ++mol)
+                                  mol != trajParm->MolEnd(); ++mol)
         TER_idxs_.push_back( mol->EndAtom() - 1 );
     }
   }
   TER_idxs_.push_back( -1 ); // Indicates that final TER has been written.
   if (debug_ > 0) {
     mprintf("DEBUG: TER indices:");
-    for (std::vector<int>::const_iterator idx = TER_idxs_.begin(); idx != TER_idxs_.end(); ++idx)
+    for (Iarray::const_iterator idx = TER_idxs_.begin(); idx != TER_idxs_.end(); ++idx)
       mprintf(" %i", *idx + 1);
     mprintf("\n");
   }
   // Allocate space to hold ATOM record #s if writing CONECT records
-  if (writeConect_) atrec_.resize( trajParm->Natom() );
+  if (conectMode_ != NO_CONECT)
+    atrec_.resize( trajParm->Natom() );
   // If number of frames to write > 1 and not doing 1 pdb file per frame,
   // set write mode to MODEL
   if (append || (pdbWriteMode_==SINGLE && NframesToWrite>1)) 
@@ -361,7 +516,52 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
       }
     }
   }
+  // If not including extra points, warn if topology has them.
+  if (!include_ep_) {
+    unsigned int n_not_included = 0;
+    for (int aidx = 0; aidx != trajParm->Natom(); aidx++)
+      if ((*trajParm)[aidx].Element() == Atom::EXTRAPT) ++n_not_included;
+    if (n_not_included > 0)
+      mprintf("Warning: Topology '%s' has %u extra points\n"
+              "Warning:   that will not be included in output PDB.\n"
+              "Warning: To include them, specify 'include_ep'. Otherwise, use output PDB as\n"
+              "Warning:   topology or create a new topology with 'strip' or 'parmstrip'.\n",
+              trajParm->c_str(), n_not_included);
+  }
+  firstframe_ = true;
   return 0;
+}
+
+// Traj_PDBfile::WriteDisulfides()
+void Traj_PDBfile::WriteDisulfides(Frame const& fIn) {
+  int sidx = 1;
+  for (std::vector<SSBOND>::const_iterator ss = ss_residues_.begin();
+                                           ss != ss_residues_.end(); ++ss)
+  {
+    double dist = DIST_NoImage(fIn.XYZ(ss->Idx1()), fIn.XYZ(ss->Idx2()));
+    file_.WriteSSBOND( sidx++, *ss, dist );
+  }
+}
+
+// Traj_PDBfile::WriteBonds()
+void Traj_PDBfile::WriteBonds() {
+  if (conectMode_ == ALL_BONDS) {
+    // Write CONECT records for all atoms
+    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
+      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+  } else if (conectMode_ == HETATM_ONLY) {
+    // Write CONECT records for each disulfide
+    for (Iarray::const_iterator sgidx = ss_atoms_.begin(); sgidx != ss_atoms_.end(); sgidx+=2)
+      file_.WriteCONECT( atrec_[*sgidx], atrec_[*(sgidx+1)] );
+    // Write CONECT records for each HETATM residue EXCEPT water
+    for (int ridx = 0; ridx != pdbTop_->Nres(); ridx++) {
+      Residue const& res = pdbTop_->Res(ridx);
+      if (resIsHet_[ridx] && ! res.NameIsSolvent()) {
+        for (int aidx = res.FirstAtom(); aidx < res.LastAtom(); aidx++)
+          file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
+      }
+    }
+  }
 }
 
 // Traj_PDBfile::writeFrame()
@@ -369,16 +569,19 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
 int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   if (pdbWriteMode_==MULTI) {
     // If writing 1 pdb per frame set up output filename and open
-    if (file_.OpenWriteNumbered( set + 1 )) return 1;
+    if (file_.OpenWriteNumbered( set + 1, prependExt_ )) return 1;
     if (!Title().empty()) 
       file_.WriteTITLE( Title() );
+    WriteDisulfides(frameOut);
     if (write_cryst1_)
       file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
   } else {
-    // Write box coords, first frame only.
-    if (write_cryst1_) {
-      file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
-      write_cryst1_ = false;
+    // Write disulfides/box coords, first frame only.
+    if (firstframe_) {
+      WriteDisulfides(frameOut);
+      if (write_cryst1_)
+        file_.WriteCRYST1( frameOut.BoxCrd().boxPtr(), space_group_.c_str() );
+      firstframe_ = false;
     }
   }
   // If specified, write MODEL keyword
@@ -390,11 +593,16 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
   char altLoc = ' ';
   int anum = 1; // Actual PDB ATOM record number
   const double *Xptr = frameOut.xAddress();
-  std::vector<int>::const_iterator terIdx = TER_idxs_.begin();
+  Iarray::const_iterator terIdx = TER_idxs_.begin();
   for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++, Xptr += 3) {
     Atom const& atom = (*pdbTop_)[aidx];
     int res = atom.ResNum();
     if (include_ep_ || atom.Element() != Atom::EXTRAPT) {
+      PDBfile::PDB_RECTYPE rectype;
+      if ( resIsHet_[res] )
+        rectype = PDBfile::HETATM;
+      else
+        rectype = PDBfile::ATOM;
       if (!pdbTop_->Extra().empty()) {
         Occ = pdbTop_->Extra()[aidx].Occupancy();
         B   = pdbTop_->Extra()[aidx].Bfactor();
@@ -417,12 +625,13 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
       }
-      file_.WriteCoord(PDBfile::ATOM, anum, atomName, altLoc, resNames_[res],
+      file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
                        pdbTop_->Res(res).Icode(),
                        Xptr[0], Xptr[1], Xptr[2], Occ, B,
                        atom.ElementName(), 0, dumpq_);
-      if (writeConect_) atrec_[aidx] = anum; // Store ATOM record #
+      if (conectMode_ != NO_CONECT)
+        atrec_[aidx] = anum; // Store ATOM record #
     }
     anum++;
     // Check and see if a TER card should be written.
@@ -430,21 +639,17 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
       // FIXME: Should anum not be incremented until after? 
       file_.WriteRecordHeader(PDBfile::TER, anum, "", ' ', resNames_[res],
                               chainID_[res], pdbTop_->Res(res).OriginalResNum(),
-                              pdbTop_->Res(res).Icode());
+                              pdbTop_->Res(res).Icode(), atom.ElementName());
       anum += ter_num_;
       ++terIdx;
     }
   }
-  // Write CONECT records for each ATOM
-  if (writeConect_) {
-    for (int aidx = 0; aidx != pdbTop_->Natom(); aidx++)
-      file_.WriteCONECT( atrec_[aidx], atrec_, (*pdbTop_)[aidx] );
-  }
-  if (pdbWriteMode_==MULTI) {
+  if (pdbWriteMode_ == MULTI) {
     // If writing 1 pdb per frame, close output file
+    WriteBonds();
     file_.WriteEND();
     file_.CloseFile();
-  } else if (pdbWriteMode_==MODEL) {
+  } else if (pdbWriteMode_ == MODEL) {
     // If MODEL keyword was written, write corresponding ENDMDL record
     file_.WriteENDMDL();
   }
@@ -460,7 +665,7 @@ void Traj_PDBfile::Info() {
       mprintf(" (1 file per frame)");
     else if (pdbWriteMode_==MODEL)
       mprintf(" (1 MODEL per frame)");
-    if (writeConect_) mprintf(" with CONECT records");
+    if (conectMode_ != NO_CONECT) mprintf(" with CONECT records");
     if (dumpq_) {
       mprintf(", writing charges to occupancy column and ");
       switch (radiiMode_) {
@@ -478,3 +683,23 @@ void Traj_PDBfile::Info() {
       mprintf(", using PDB V3 atom names");
   }
 }
+#ifdef MPI
+/// Not valid for MODEL (checked in setup) so no need to do anything.
+int Traj_PDBfile::parallelOpenTrajout(Parallel::Comm const& commIn) { return 0; }
+
+int Traj_PDBfile::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                           CoordinateInfo const& cInfoIn,
+                                           int NframesToWrite, bool append,
+                                           Parallel::Comm const& commIn)
+{
+  if (pdbWriteMode_ != MULTI) {
+    mprinterr("Error: PDB write in parallel requires 'multi' keyword.\n");
+    return 1;
+  }
+  return setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+}
+
+int Traj_PDBfile::parallelWriteFrame(int set, Frame const& frameOut) {
+  return ( writeFrame(set, frameOut) );
+}
+#endif

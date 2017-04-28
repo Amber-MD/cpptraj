@@ -3,7 +3,7 @@
 #include "ParmFile.h"
 
 void Exec_ParmWrite::Help() const {
-  mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>] [nochamber]\n",
+  mprintf("\tout <filename> [{%s | crdset <setname>}] [<fmt>]\n\t[<Format Options>]\n",
           DataSetList::TopIdxArgs);
   mprintf("  Write specified topology or topology from COORDS set to <filename>.\n");
   ParmFile::WriteOptions();

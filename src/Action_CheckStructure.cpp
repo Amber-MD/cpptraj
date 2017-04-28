@@ -2,7 +2,7 @@
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR
@@ -11,6 +11,7 @@ Action_CheckStructure::Action_CheckStructure() :
   nonbondcut2_(0.64), // 0.8^2
   outfile_(0),
   CurrentParm_(0),
+  num_problems_(0),
   silent_(false),
   skipBadFrames_(false),
   bondcheck_(true)
@@ -53,6 +54,10 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   // DoAction-only keywords.
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
+  DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
+  num_problems_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringNext(), "CHECK" );
+  if (num_problems_ == 0) return Action::ERR;
+  if (dfile != 0) dfile->AddDataSet( num_problems_ );
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'",Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
@@ -62,6 +67,11 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (outfile_ != 0)
     mprintf(", output to %s", outfile_->Filename().full());
   mprintf(".\n");
+  mprintf("\tNumber of problems in each frame will be saved to set '%s'\n",
+          num_problems_->legend());
+  if (dfile != 0)
+    mprintf("\tNumber of problems each frame will be written to '%s'\n",
+            dfile->DataFilename().full());
   if (!bondcheck_) {
     mprintf("\tChecking inter-atomic distances only.\n");
     mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
@@ -71,10 +81,18 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
             bondoffset_);
     mprintf("\tand non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
   }
-  if (skipBadFrames_)
+  if (skipBadFrames_) {
     mprintf("\tFrames with problems will be skipped.\n");
+#   ifdef MPI
+    if (init.TrajComm().Size() > 1)
+      mprintf("Warning: Skipping frames in parallel can cause certain actions "
+                       "(e.g. 'rms') to hang.\n"
+              "Warning:   In addition, trajectories written after skipping "
+                       "frames may have issues.\n");
+#   endif
+  }
   if (silent_)
-    mprintf("\tWarning messages will be suppressed.\n");
+    mprintf("\tStructure warning messages will be suppressed.\n");
 # ifdef _OPENMP
 # pragma omp parallel
   {
@@ -301,7 +319,7 @@ Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) 
   int total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
   if (bondcheck_)
     total_problems += CheckBonds(frameNum+1, frm.Frm(), *CurrentParm_);
-
+  num_problems_->Add( frameNum, &total_problems );
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;
   return Action::OK;

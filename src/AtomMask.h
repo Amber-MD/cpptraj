@@ -37,6 +37,8 @@ class AtomMask : public MaskTokenArray {
     int back()                          const { return Selected_.back();      }
     /// \return selected atom at idx
     const int& operator[](int idx)      const { return Selected_[idx];        }
+    /// \return Number of atoms from corresponding topology.
+    int NmaskAtoms()                    const { return Natom_;                }
     /// Flip current mask expression.
     void InvertMaskExpression();
     /// Invert current mask
@@ -55,6 +57,8 @@ class AtomMask : public MaskTokenArray {
     void AddMaskAtPosition(AtomMask const&, int);
     /// Convert from integer mask to char mask.
     std::vector<char> ConvertToCharMask() const;
+    /// Set total number of atoms; needed for conversion to CharMask
+    void SetNatoms(int n) { Natom_ = n; }
     // -------------------------------------------
     /// Print all mask atoms in to a line
     void PrintMaskAtoms(const char*) const;

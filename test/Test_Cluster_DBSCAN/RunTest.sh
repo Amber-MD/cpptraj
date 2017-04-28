@@ -5,6 +5,7 @@
 CleanFiles dbscan.in summary.dat info.dat rvc.dat sievesummary.dat.? \
   sieveinfo.dat.? Kdist.dat Kdist.4.dat rms2d.gnu Kmatrix.gnu Kmatrix.max.dat
 INPUT="-i dbscan.in"
+CheckNetcdf
 # Test clustering
 cat > dbscan.in <<EOF
 parm ../tz2.parm7
@@ -51,7 +52,8 @@ DoTest Kmatrix.gnu.save Kmatrix.gnu
 cat > dbscan.in <<EOF
 parm ../tz2.parm7
 trajin ../tz2.nc
-cluster C0 @CA dbscan epsilon 1.7 minpoints 5 summary sievesummary.dat.2 info sieveinfo.dat.2 sieve 5
+cluster C0 @CA dbscan epsilon 1.7 minpoints 5 bestrep cumulative \
+        summary sievesummary.dat.2 info sieveinfo.dat.2 sieve 5
 EOF
 RunCpptraj "DBSCAN with sieve"
 DoTest sieveinfo.dat.2.save sieveinfo.dat.2

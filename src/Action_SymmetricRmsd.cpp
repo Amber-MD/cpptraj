@@ -9,11 +9,9 @@ Action_SymmetricRmsd::Action_SymmetricRmsd() :
   rmsd_(0), action_return_(Action::OK), remap_(false) {}
 
 void Action_SymmetricRmsd::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit] [mass] [remap]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <trajname> [parm <parmname> | parmindex <#>] ]\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit] [mass] [remap]\n%s"
           "  Perform symmetry-corrected RMSD calculation. If 'remap' is specified\n"
-          "  frames will be modified for symmetry as well.\n", DataSetList::RefArgs);
+          "  frames will be modified for symmetry as well.\n", ReferenceAction::Help());
 }
 
 // Action_SymmetricRmsd::Init()
@@ -25,23 +23,18 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   remap_ = actionArgs.hasKey("remap");
   // Reference keywords
-  bool previous = actionArgs.hasKey("previous");
-  bool first = actionArgs.hasKey("first");
-  ReferenceFrame REF = init.DSL().GetReferenceFrame( actionArgs );
-  std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  Topology* RefParm = init.DSL().GetTopology( actionArgs );
+  REF_.InitRef(actionArgs, init.DSL(), fit, useMass);
   // Get the RMS mask string for target
   std::string tMaskExpr = actionArgs.GetMaskNext();
   if (tgtMask_.SetMaskString( tMaskExpr )) return Action::ERR;
-  // Initialize Symmetric RMSD calc.
-  if (SRMSD_.InitSymmRMSD( fit, useMass, debugIn )) return Action::ERR;
-  // Initialize reference
+  // Get the RMS mask string for reference 
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  if (REF_.InitRef(previous, first, useMass, fit, reftrajname, REF, RefParm,
-                   rMaskExpr, actionArgs, "symmrmsd"))
-    return Action::ERR;
+  REF_.SetRefMask( rMaskExpr );
+  // Initialize Symmetric RMSD calc.
+  if (SRMSD_.InitSymmRMSD( fit, useMass, debugIn )) return Action::ERR;
+
   // Set up the RMSD data set.
   MetaData md(actionArgs.GetStringNext(), MetaData::M_RMS); 
   rmsd_ = init.DSL().AddSet(DataSet::DOUBLE, md, "RMSD");
@@ -52,9 +45,11 @@ Action::RetType Action_SymmetricRmsd::Init(ArgList& actionArgs, ActionInit& init
     action_return_ = Action::MODIFY_COORDS;
   else
     action_return_ = Action::OK;
-  
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    SYMMRMSD: (%s), reference is %s", tgtMask_.MaskString(),
-          REF_.RefModeString());
+          REF_.RefModeString().c_str());
   if (!SRMSD_.Fit())
     mprintf(", no fitting");
   else
@@ -86,7 +81,7 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
     targetMap_.resize( setup.Top().Natom() );
   }
   // Reference frame setup
-  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected(), "symmrmsd"))
+  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::ERR;
   return Action::OK;
 }
@@ -94,7 +89,7 @@ Action::RetType Action_SymmetricRmsd::Setup(ActionSetup& setup) {
 // Action_SymmetricRmsd::DoAction()
 Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frm.Frm(), SRMSD_.Fit(), SRMSD_.UseMass() );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate symmetric RMSD
   selectedTgt_.SetCoordinates( frm.Frm(), tgtMask_ );
   double rmsdval = SRMSD_.SymmRMSD_CenteredRef( selectedTgt_, REF_.SelectedRef() );
@@ -111,6 +106,7 @@ Action::RetType Action_SymmetricRmsd::DoAction(int frameNum, ActionFrame& frm) {
   }
   if ( SRMSD_.Fit() )
     frm.ModifyFrm().Trans_Rot_Trans( SRMSD_.TgtTrans(), SRMSD_.RotMatrix(), REF_.RefTrans() );
+  REF_.PreviousRef( frm.Frm() );
 
   return action_return_;
 }

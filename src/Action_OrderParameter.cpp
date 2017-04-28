@@ -34,6 +34,13 @@ void Action_OrderParameter::Help() const {
 // Action_OrderParameter::init()
 Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  if (init.TrajComm().Size() > 1) {
+    mprinterr("Error: 'lipidorder' action does not work with > 1 thread (%i threads currently).\n",
+              init.TrajComm().Size());
+    return Action::ERR;
+  }
+# endif
   size_t nGroups;
   std::string mask;
 
@@ -128,7 +135,6 @@ Action::RetType Action_OrderParameter::Init(ArgList& actionArgs, ActionInit& ini
 
   return Action::OK;
 }
-
 
 // Action_OrderParameter::Setup()
 Action::RetType Action_OrderParameter::Setup(ActionSetup& setup) {

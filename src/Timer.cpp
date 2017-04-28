@@ -14,6 +14,12 @@
 
 Timer::Timer() : start_sec_(0), start_ns_(0), total_(0.0) {}
 
+void Timer::Reset() {
+  start_sec_ = 0;
+  start_ns_ = 0;
+  total_ = 0.0;
+}
+
 #ifdef _MSC_VER 
 /* tw 
  * replacement for gettimeofday based on  
@@ -70,6 +76,7 @@ void Timer::GetWallTime(int& sec, int& ns) {
 # endif
 };
 
+/** Increment the Total time by time elapsed since Start() was called. */
 void Timer::Stop() {
   int stop_sec, stop_ns;
   GetWallTime(stop_sec,  stop_ns);
@@ -79,7 +86,23 @@ void Timer::Stop() {
   total_ += ( seconds + (nano / 1000000000) );
 # else
   total_ += ( seconds + (nano / 1000000) );
-#endif
+# endif
+}
+
+/** Set the Total time to the time elapsed since Start() was called.
+  * \return Total time elapsed.
+  */
+double Timer::Elapsed() {
+  int stop_sec, stop_ns;
+  GetWallTime(stop_sec,  stop_ns);
+  double seconds = (double)( stop_sec - start_sec_ );
+  double nano = (double)( stop_ns - start_ns_ );
+# ifdef TIMER
+  total_ = ( seconds + (nano / 1000000000) );
+# else
+  total_ = ( seconds + (nano / 1000000) );
+# endif
+  return total_;
 }
 
 void Timer::WriteTiming(int indents, const char* header, double FracTotal) const
@@ -90,6 +113,6 @@ void Timer::WriteTiming(int indents, const char* header, double FracTotal) const
     ptr += sprintf(ptr, "\t");
   ptr += sprintf(ptr, "%s %.4f s", header, total_);
   if (FracTotal > 0.0)
-    ptr += sprintf(ptr, " (%.2f%%)", (total_ / FracTotal) * 100.0);
+    ptr += sprintf(ptr, " (%6.2f%%)", (total_ / FracTotal) * 100.0);
   mprintf("TIME:%s\n", buffer);
 }

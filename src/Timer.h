@@ -10,15 +10,17 @@
 class Timer {
   public:
     Timer();
+    void Reset();
     void Start() { GetWallTime(start_sec_, start_ns_); }
     void Stop();
+    double Elapsed();
     double Total() const { return total_; }
     void WriteTiming(int, const char*, double) const;
     void WriteTiming(int i, const char* h) const {
       return WriteTiming(i, h, 0.0);
     }
   private:
-    void GetWallTime(int&, int&);
+    static void GetWallTime(int&, int&);
     int start_sec_;
     int start_ns_;
     double total_;

@@ -10,6 +10,12 @@ out4=electron_density.dat
 
 CleanFiles $in $out1 $out2 $out3 $out4
 
+NotParallel "Density test."
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
+
 INPUT="-i $in"
 
 del='delta 0.25'

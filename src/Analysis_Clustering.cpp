@@ -23,22 +23,28 @@ Analysis_Clustering::Analysis_Clustering() :
   drawGraph_(0),
   draw_maxit_(0),
   draw_tol_(0.0),
+  refCut_(1.0),
   cnumvtime_(0),
   clustersVtime_(0),
+  pw_dist_(0),
   cpopvtimefile_(0),
+  pwd_file_(0),
   nofitrms_(false),
   metric_(ClusterList::RMS),
   useMass_(false),
   grace_color_(false),
   norm_pop_(NONE),
-  load_pair_(false),
+  bestRep_(CUMULATIVE),
   calc_lifetimes_(false),
   writeRepFrameNum_(false),
+  includeSieveInCalc_(false),
   clusterfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   singlerepfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   reptrajfmt_(TrajectoryFile::UNKNOWN_TRAJ),
   debug_(0)
 { } 
+
+const TrajectoryFile::TrajFormatType Analysis_Clustering::DEF_TRAJ_FMT_ = TrajectoryFile::AMBERTRAJ;
 
 // DESTRUCTOR
 Analysis_Clustering::~Analysis_Clustering() {
@@ -56,13 +62,15 @@ void Analysis_Clustering::Help() const {
   mprintf("  Distance metric options: {rms | srmsd | dme | data}\n"
           "\t{ [[rms | srmsd] [<mask>] [mass] [nofit]] | [dme [<mask>]] |\n"
           "\t   [data <dset0>[,<dset1>,...]] }\n"
-          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <file>]\n"
+          "\t[sieve <#> [random [sieveseed <#>]]] [loadpairdist] [savepairdist] [pairdist <name>]\n"
+          "\t[pairwisecache {mem | disk | none}] [includesieveincalc]\n"
           "  Output options:\n"
           "\t[out <cnumvtime>] [gracecolor] [summary <summaryfile>] [info <infofile>]\n"
           "\t[summarysplit <splitfile>] [splitframe <comma-separated frame list>]\n"
+          "\t[bestrep {cumulative|centroid|cumulative_nosieve}]\n"
           "\t[clustersvtime <filename> cvtwindow <window size>]\n"
           "\t[cpopvtime <file> [normpop | normframe]] [lifetime]\n"
-          "\t[sil <silhouette file prefix>]\n"
+          "\t[sil <silhouette file prefix>] [assignrefs [refcut <rms>] [refmask <mask>]]\n"
           "  Coordinate output options:\n"
           "\t[ clusterout <trajfileprefix> [clusterfmt <trajformat>] ]\n"
           "\t[ singlerepout <trajfilename> [singlerepfmt <trajformat>] ]\n"
@@ -75,8 +83,28 @@ void Analysis_Clustering::Help() const {
           /// pytraj can turn off cluster info by specifying 'noinfo' keyword
 }
 
-const char* Analysis_Clustering::PAIRDISTFILE = "CpptrajPairDist";
+const char* Analysis_Clustering::PAIRDISTFILE_ = "CpptrajPairDist";
+DataFile::DataFormatType Analysis_Clustering::PAIRDISTTYPE_ =
+# ifdef BINTRAJ
+  DataFile::NCCMATRIX;
+# else
+  DataFile::CMATRIX;
+# endif
 
+// Analysis_Clustering::GetClusterTrajArgs()
+void Analysis_Clustering::GetClusterTrajArgs(ArgList& argIn,
+                                             const char* trajKey, const char* fmtKey,
+                                             std::string& trajName,
+                                             TrajectoryFile::TrajFormatType& fmt) const
+{
+  trajName = argIn.GetStringKey( trajKey );
+  fmt = TrajectoryFile::GetFormatFromString( argIn.GetStringKey(fmtKey), fmt );
+  // If file name specified but not format, try to guess from name
+  if (!trajName.empty() && fmt == TrajectoryFile::UNKNOWN_TRAJ)
+    fmt = TrajectoryFile::GetTypeFromExtension( trajName, DEF_TRAJ_FMT_ );
+}
+
+// Analysis_Clustering::Setup()
 Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
 {
   debug_ = debugIn;
@@ -129,6 +157,16 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     else if (userms)  metric_ = ClusterList::RMS;
     else if (usesrms) metric_ = ClusterList::SRMSD;
   }
+  // Get all loaded reference structures
+  if (analyzeArgs.hasKey("assignrefs")) {
+    refs_ = setup.DSL().GetSetsOfType("*", DataSet::REF_FRAME);
+    if (refs_.empty()) {
+      mprinterr("Error: 'assignrefs' specified but no references loaded.\n");
+      return Analysis::ERR;
+    }
+    refCut_ = analyzeArgs.getKeyDouble("refcut", 1.0);
+    refmaskexpr_ = analyzeArgs.GetStringKey("refmask");
+  }
   // Get clustering algorithm
   if (CList_ != 0) delete CList_;
   CList_ = 0;
@@ -148,6 +186,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   // Get algorithm-specific keywords
   if (CList_->SetupCluster( analyzeArgs )) return Analysis::ERR; 
   // Get keywords
+  includeSieveInCalc_ = analyzeArgs.hasKey("includesieveincalc");
+  if (includeSieveInCalc_)
+    mprintf("Warning: 'includesieveincalc' may be very slow.\n");
   useMass_ = analyzeArgs.hasKey("mass");
   sieveSeed_ = analyzeArgs.getKeyInt("sieveseed", -1);
   sieve_ = analyzeArgs.getKeyInt("sieve", 1);
@@ -174,6 +215,25 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
         splits.CheckForMoreArgs();
         return Analysis::ERR;
       }
+    }
+  }
+  std::string bestRepStr = analyzeArgs.GetStringKey("bestrep");
+  if (bestRepStr.empty()) {
+    // For sieving, cumulative can get very expensive. Default to centroid.
+    if (sieve_ != 1)
+      bestRep_ = CENTROID;
+    else
+      bestRep_ = CUMULATIVE;
+  } else {
+    if (bestRepStr == "cumulative")
+      bestRep_ = CUMULATIVE;
+    else if (bestRepStr == "centroid")
+      bestRep_ = CENTROID;
+    else if (bestRepStr == "cumulative_nosieve")
+      bestRep_ = CUMULATIVE_NOSIEVE;
+    else {
+      mprinterr("Error: Invalid 'bestRep' option (%s)\n", bestRepStr.c_str());
+      return Analysis::ERR;
     }
   }
   if (analyzeArgs.hasKey("drawgraph"))
@@ -204,26 +264,83 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       norm_pop_ = NONE;
   }
   sil_file_ = analyzeArgs.GetStringKey("sil");
+  // ---------------------------------------------
   // Options for loading/saving pairwise distance file
-  load_pair_ = analyzeArgs.hasKey("loadpairdist");
+  DataSet::DataType pw_type = DataSet::CMATRIX;
+  std::string pw_typeString = analyzeArgs.GetStringKey("pairwisecache");
+  if (!pw_typeString.empty()) {
+    if (pw_typeString == "mem")
+      pw_type = DataSet::CMATRIX;
+    else if (pw_typeString == "disk")
+      pw_type = DataSet::CMATRIX_DISK;
+    else if (pw_typeString == "none")
+      pw_type = DataSet::CMATRIX_NOMEM;
+    else {
+      mprinterr("Error: Unrecognized option for 'pairwisecache' ('%s')\n", pw_typeString.c_str());
+      return Analysis::ERR;
+    }
+  }
+  std::string pairdistname = analyzeArgs.GetStringKey("pairdist");
+  DataFile::DataFormatType pairdisttype = DataFile::UNKNOWN_DATA;
+  bool load_pair = analyzeArgs.hasKey("loadpairdist");
   bool save_pair = analyzeArgs.hasKey("savepairdist");
-  pairdistfile_ = analyzeArgs.GetStringKey("pairdist");
-  if ( (load_pair_ || save_pair) && pairdistfile_.empty() )
-    pairdistfile_ = PAIRDISTFILE;
-  else if (!pairdistfile_.empty())
-    load_pair_ = true;
+  pw_dist_ = 0;
+  if (load_pair) {
+    // If 'loadpairdist' specified, assume we want to load from file.
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    if (File::Exists( pairdistname )) {
+      DataFile dfIn;
+      if (dfIn.ReadDataIn( pairdistname, ArgList(), setup.DSL() )) return Analysis::ERR;
+      pw_dist_ = setup.DSL().GetDataSet( pairdistname );
+      if (pw_dist_ == 0) return Analysis::ERR;
+    } else
+      pairdisttype = PAIRDISTTYPE_;
+  }
+  if (pw_dist_ == 0 && !pairdistname.empty()) {
+    // Just 'pairdist' specified or loadpairdist specified and file not found.
+    // Look for Cmatrix data set. 
+    pw_dist_ = setup.DSL().FindSetOfType( pairdistname, DataSet::CMATRIX );
+    //if (pw_dist_ == 0) { // TODO: Convert general matrix to cluster matrix
+    //  mprinterr("Error: Cluster matrix with name '%s' not found.\n");
+    //  return Analysis::ERR;
+    //}
+    if (pw_dist_ == 0 && load_pair) {
+    // If the file (or dataset) does not yet exist we will assume we want to save.
+      mprintf("Warning: 'loadpairdist' specified but '%s' not found; will save distances.\n",
+              pairdistname.c_str());
+      save_pair = true;
+    }
+  }
+  // Create file for saving pairwise distances
+  pwd_file_ = 0;
+  if (save_pair) {
+    if (pairdistname.empty()) {
+      pairdistname = PAIRDISTFILE_;
+      pairdisttype = PAIRDISTTYPE_;
+    }
+    pwd_file_ = setup.DFL().AddDataFile( pairdistname, pairdisttype, ArgList() );
+  }
+  // ---------------------------------------------
   // Output trajectory stuff
-  clusterfile_ = analyzeArgs.GetStringKey("clusterout");
-  clusterfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("clusterfmt") ); 
-  singlerepfile_ = analyzeArgs.GetStringKey("singlerepout");
-  singlerepfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("singlerepfmt") );
-  reptrajfile_ = analyzeArgs.GetStringKey("repout");
-  reptrajfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("repfmt") );
   writeRepFrameNum_ = analyzeArgs.hasKey("repframe");
-  avgfile_ = analyzeArgs.GetStringKey("avgout");
-  avgfmt_ = TrajectoryFile::GetFormatFromString( analyzeArgs.GetStringKey("avgfmt") );
+  GetClusterTrajArgs(analyzeArgs, "clusterout",   "clusterfmt",   clusterfile_,   clusterfmt_);
+  GetClusterTrajArgs(analyzeArgs, "singlerepout", "singlerepfmt", singlerepfile_, singlerepfmt_);
+  GetClusterTrajArgs(analyzeArgs, "repout",       "repfmt",       reptrajfile_,   reptrajfmt_);
+  GetClusterTrajArgs(analyzeArgs, "avgout",       "avgfmt",       avgfile_,       avgfmt_);
+
   // Get the mask string 
   maskexpr_ = analyzeArgs.GetMaskNext();
+  if (!refs_.empty() && refmaskexpr_.empty()) {
+    refmaskexpr_ = maskexpr_;
+    if (refmaskexpr_.empty()) {
+      refmaskexpr_.assign("!@H=");
+      mprintf("Warning: 'assignrefs' specified but no 'refmask' given.\n"
+              "Warning:   Using default mask expression: '%s'\n", refmaskexpr_.c_str());
+    }
+  }
 
   // Output option for cluster info
   suppressInfo_ = analyzeArgs.hasKey("noinfo");
@@ -232,6 +349,19 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   cnumvtime_ = setup.DSL().AddSet(DataSet::INTEGER, analyzeArgs.GetStringNext(), "Cnum");
   if (cnumvtime_==0) return Analysis::ERR;
   if (cnumvtimefile != 0) cnumvtimefile->AddDataSet( cnumvtime_ );
+  // If no pairwise distance matrix yet, allocate one
+  if (pw_dist_ == 0) {
+    MetaData md;
+    if (pairdistname.empty())
+      md = MetaData( cnumvtime_->Meta().Name(), "PWD" );
+    else
+      md = MetaData( pairdistname );
+    if (pw_type == DataSet::CMATRIX_DISK)
+      md.SetFileName("CpptrajPairwiseCache");
+    pw_dist_ = setup.DSL().AddSet(pw_type, md);
+    if (pw_dist_ == 0) return Analysis::ERR;
+  }
+
   // DataSet for # clusters seen v time
   if (clustersvtimefile != 0) {
     if (windowSize_ < 2) {
@@ -276,6 +406,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     if (sieveSeed_ > 0) mprintf(" using random seed %i", sieveSeed_);
     mprintf(".\n");
   }
+  if (sieve_ != 1) {
+    if (includeSieveInCalc_)
+      mprintf("\tAll frames (including sieved) will be used to calc within-cluster average.\n");
+    else
+      mprintf("\tOnly non-sieved frames will be used to calc within-cluster average.\n");
+  }
   if (cnumvtimefile != 0)
     mprintf("\tCluster # vs time will be written to %s\n", cnumvtimefile->DataFilename().base());
   if (clustersvtimefile != 0)
@@ -291,9 +427,13 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
     mprintf("\tGrace color instead of cluster number (1-15) will be saved.\n");
   if (calc_lifetimes_)
     mprintf("\tCluster lifetime data sets will be calculated.\n");
-  if (load_pair_)
-    mprintf("\tPreviously calcd pair distances %s will be used if found.\n",
-            pairdistfile_.full());
+  mprintf("\tPairwise distance data set is '%s'\n", pw_dist_->legend());
+  if (pw_dist_->Type() == DataSet::CMATRIX_NOMEM)
+    mprintf("\tPairwise distances will not be cached (will slow clustering calcs)\n");
+  else if (pw_dist_->Type() == DataSet::CMATRIX_DISK)
+    mprintf("\tPairwise distances will be cached to disk (will slow clustering calcs)\n");
+  if (pwd_file_ != 0)
+    mprintf("\tSaving pair-wise distances to '%s'\n", pwd_file_->DataFilename().full());
   if (!clusterinfo_.empty())
     mprintf("\tCluster information will be written to %s\n",clusterinfo_.c_str());
   if (!summaryfile_.empty())
@@ -301,8 +441,12 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!sil_file_.empty()) {
     mprintf("\tFrame silhouettes will be written to %s.frame.dat, cluster silhouettes\n"
             "\t  will be written to %s.cluster.dat\n", sil_file_.c_str(), sil_file_.c_str());
-    if (sieve_ > 1)
-      mprintf("\tSilhouette calculation will use sieved frames ONLY.\n");
+    if (sieve_ != 1) {
+      if (includeSieveInCalc_)
+        mprintf("\tSilhouette calculation will use all frames.\n");
+      else
+        mprintf("\tSilhouette calculation will use non-sieved frames ONLY.\n");
+    }
   }
   if (!halffile_.empty()) {
     mprintf("\tSummary comparing parts of trajectory data for clusters will be written to %s\n",
@@ -314,6 +458,14 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
       mprintf("\n");
     } else
       mprintf("\t\tFrames will be split at the halfway point.\n");
+  }
+  mprintf("\tRepresentative frames will be chosen by");
+  switch (bestRep_) {
+    case CUMULATIVE: mprintf(" lowest cumulative distance to all other frames.\n"); break;
+    case CENTROID  : mprintf(" closest distance to cluster centroid.\n"); break;
+    case CUMULATIVE_NOSIEVE:
+      mprintf(" lowest cumulative distance to all other frames (ignore sieved frames).\n");
+      break;
   }
   if (!clusterfile_.empty())
     mprintf("\tCluster trajectories will be written to %s, format %s\n",
@@ -331,6 +483,9 @@ Analysis::RetType Analysis_Clustering::Setup(ArgList& analyzeArgs, AnalysisSetup
   if (!avgfile_.empty())
     mprintf("\tAverage structures for clusters will be written to %s, format %s\n",
             avgfile_.c_str(), TrajectoryFile::FormatString(avgfmt_));
+  if (!refs_.empty())
+    mprintf("\tClusters will be identified with loaded reference structures if RMSD\n"
+            "\t  (mask '%s') to representative frame is < %g Ang.\n", refmaskexpr_.c_str(),refCut_);
   if (drawGraph_ > 0)
     mprintf("\tEXPERIMENTAL: Force-directed graph will be drawn from pairwise distances.\n"
             "\t              Max iterations= %i, min tolerance= %g\n",
@@ -353,12 +508,6 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_total.Start();
   mprintf("\tStarting clustering.\n");
   cluster_setup.Start();
-  // Default: USE_FRAMES  - Calculate pair distances from frames.
-  //          USE_FILE    - If pairdistfile exists, load pair distances from there.
-  // Calculated distances will be saved if not loaded from file.
-  ClusterList::DistModeType pairdist_mode = ClusterList::USE_FRAMES; 
-  if (load_pair_ && File::Exists(pairdistfile_))
-    pairdist_mode = ClusterList::USE_FILE;
   // If no dataset specified, use COORDS
   if (cluster_dataset_.empty()) {
     if (coords_ == 0) {
@@ -368,8 +517,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     cluster_dataset_.push_back( (DataSet*)coords_ );
   }
   // Test that cluster data set contains data
-  // FIXME make unsigned
-  int clusterDataSetSize = (int)cluster_dataset_[0]->Size();
+  unsigned int clusterDataSetSize = cluster_dataset_[0]->Size();
   if (clusterDataSetSize < 1) {
     mprinterr("Error: cluster data set %s does not contain data.\n", 
               cluster_dataset_[0]->legend());
@@ -379,8 +527,8 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   for (ClusterDist::DsArray::iterator ds = cluster_dataset_.begin();
                                       ds != cluster_dataset_.end(); ++ds)
   {
-    if ((int)(*ds)->Size() != clusterDataSetSize) {
-      mprinterr("Error: data set %s size (%i) != first data set %s size (%i)\n",
+    if ((*ds)->Size() != clusterDataSetSize) {
+      mprinterr("Error: data set '%s' size (%zu) != first data set '%s' size (%u)\n",
                 (*ds)->legend(), (*ds)->Size(), 
                 cluster_dataset_[0]->legend(), clusterDataSetSize);
       return Analysis::ERR;
@@ -394,41 +542,99 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     has_coords = false;
   }
   cluster_setup.Stop();
-  // Calculate distances between frames
-  cluster_pairwise.Start();
-  if (CList_->CalcFrameDistances( pairdistfile_.full(), cluster_dataset_, pairdist_mode,
-                                  metric_, nofitrms_, useMass_, maskexpr_, 
-                                  sieve_, sieveSeed_ ))
+
+  // Set up cluster distance calculation
+  if (CList_->SetupCdist( cluster_dataset_, metric_, nofitrms_, useMass_, maskexpr_ ))
     return Analysis::ERR;
+
+  // Check or calculate pairwise distances between frames
+  cluster_pairwise.Start();
+  // Do some sanity checking first
+  if (pw_dist_ == 0) {
+    mprinterr("Internal Error: Empty cluster matrix.\n");
+    return Analysis::ERR;
+  }
+  if (pw_dist_->Group() != DataSet::CLUSTERMATRIX) {
+    mprinterr("Internal Error: Wrong cluster matrix type.\n");
+    return Analysis::ERR;
+  }
+  if (pw_dist_->Size() > 0) {
+    // Check if existing pw dist matrix matches expected size. If not, need to
+    // allocate a new data set and recalculate.
+    int sval = sieve_;
+    if (sval < 0) sval = -sval;
+    unsigned int expected_nrows = cluster_dataset_[0]->Size() / (unsigned int)sval;
+    if ( (cluster_dataset_[0]->Size() % (unsigned int)sval) != 0 )
+      expected_nrows++;
+    if ( ((DataSet_Cmatrix*)pw_dist_)->Nrows() != expected_nrows ) {
+      mprintf("Warning: ClusterMatrix has %zu rows, expected %zu; recalculating matrix.\n",
+              ((DataSet_Cmatrix*)pw_dist_)->Nrows(), expected_nrows);
+      pw_dist_ = masterDSL_->AddSet(DataSet::CMATRIX, "", "CMATRIX");
+      if (pw_dist_ == 0) return Analysis::ERR;
+    }
+  }
+  if (CList_->CalcFrameDistances( pw_dist_, cluster_dataset_, sieve_, sieveSeed_ ))
+    return Analysis::ERR;
+  // If we want to save the pairwise distances add to file now
+  if (pwd_file_ != 0)
+    pwd_file_->AddDataSet( pw_dist_ );
   cluster_pairwise.Stop();
+
   // Cluster
   cluster_cluster.Start();
   CList_->Cluster();
   cluster_cluster.Stop();
   cluster_post.Start();
+  Timer cluster_post_renumber;
+  Timer cluster_post_bestrep;
+  Timer cluster_post_info;
+  Timer cluster_post_summary;
+  Timer cluster_post_coords;
   if (CList_->Nclusters() > 0) {
-    // Sort clusters and renumber; also finds centroids for printing
-    // representative frames. If sieving, add remaining frames.
+    // Sort clusters and renumber; also finds centroids. If sieving,
+    // add remaining frames.
+    cluster_post_renumber.Start();
     CList_->Renumber( (sieve_ != 1) );
+    cluster_post_renumber.Stop();
+    // Find best representative frames for each cluster.
+    cluster_post_bestrep.Start();
+    switch (bestRep_) {
+      case CUMULATIVE: CList_->FindBestRepFrames_CumulativeDist(); break;
+      case CENTROID  : CList_->FindBestRepFrames_Centroid(); break;
+      case CUMULATIVE_NOSIEVE: CList_->FindBestRepFrames_NoSieve_CumulativeDist(); break;
+    }
+    cluster_post_bestrep.Stop();
     // DEBUG
     if (debug_ > 0) {
       mprintf("\nFINAL CLUSTERS:\n");
       CList_->PrintClusters();
     }
+    // Attempt to assign reference names to clusters if any specified.
+    if (!refs_.empty()) {
+      if (has_coords)
+        AssignRefsToClusters( *CList_ );
+      else
+        mprintf("Warning: References were specified but no COORDS. Cannot assign ref names.\n");
+    }
 
     // Print ptraj-like cluster info.
     // If no filename is written and no noinfo, some info will still be written to STDOUT
     if (!suppressInfo_) {
-      CList_->PrintClustersToFile(clusterinfo_, clusterDataSetSize);
+      cluster_post_info.Start();
+      CList_->PrintClustersToFile(clusterinfo_);
+      cluster_post_info.Stop();
     }
 
     // Calculate cluster silhouette
     if (!sil_file_.empty())
-      CList_->CalcSilhouette( sil_file_ );
+      CList_->CalcSilhouette( sil_file_, includeSieveInCalc_ );
 
     // Print a summary of clusters
-    if (!summaryfile_.empty())
-      CList_->Summary(summaryfile_, clusterDataSetSize);
+    if (!summaryfile_.empty()) {
+      cluster_post_summary.Start();
+      CList_->Summary(summaryfile_, includeSieveInCalc_);
+      cluster_post_summary.Stop();
+    }
 
     // Print a summary comparing first half to second half of data for clusters
     if (!halffile_.empty()) {
@@ -439,11 +645,11 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       std::vector<int> actualSplitFrames;
       for (std::vector<int>::const_iterator f = splitFrames_.begin();
                                             f != splitFrames_.end(); ++f)
-        if ( *f < 1 || *f >= clusterDataSetSize )
+        if ( *f < 1 || *f >= (int)clusterDataSetSize )
           mprintf("Warning: split frame %i is out of bounds; ignoring.\n", *f);
         else
           actualSplitFrames.push_back( *f );
-      CList_->Summary_Part(halffile_, clusterDataSetSize, actualSplitFrames);
+      CList_->Summary_Part(halffile_, actualSplitFrames);
     }
 
     // Create cluster v time data from clusters.
@@ -477,6 +683,7 @@ Analysis::RetType Analysis_Clustering::Analyze() {
     }
     // Coordinate output.
     if (has_coords) {
+      cluster_post_coords.Start();
       // Write clusters to trajectories
       if (!clusterfile_.empty())
         WriteClusterTraj( *CList_ ); 
@@ -486,8 +693,10 @@ Analysis::RetType Analysis_Clustering::Analyze() {
       // Write all representative frames to separate trajs
       if (!reptrajfile_.empty())
         WriteRepTraj( *CList_ );
+      // Write average structures for each cluster to separate files.
       if (!avgfile_.empty())
         WriteAvgStruct( *CList_ );
+      cluster_post_coords.Stop();
     }
   } else
     mprintf("\tNo clusters found.\n");
@@ -498,15 +707,72 @@ Analysis::RetType Analysis_Clustering::Analyze() {
   cluster_setup.WriteTiming(1,    "  Cluster Init. :", cluster_total.Total());
   cluster_pairwise.WriteTiming(1, "  Pairwise Calc.:", cluster_total.Total());
   cluster_cluster.WriteTiming(1,  "  Clustering    :", cluster_total.Total());
+# ifdef TIMER
+  CList_->Timing( cluster_cluster.Total() );
+# endif
   cluster_post.WriteTiming(1,     "  Cluster Post. :", cluster_total.Total());
+  cluster_post_renumber.WriteTiming(2, "Cluster renumbering/sieve restore", cluster_post.Total());
+  cluster_post_bestrep.WriteTiming(2, "Find best rep.", cluster_post.Total());
+  cluster_post_info.WriteTiming(2, "Info calc", cluster_post.Total());
+  cluster_post_summary.WriteTiming(2, "Summary calc", cluster_post.Total());
+  cluster_post_coords.WriteTiming(2, "Coordinate writes", cluster_post.Total());
   cluster_total.WriteTiming(1,    "Total:");
   return Analysis::OK;
 }
 
 // -----------------------------------------------------------------------------
+void Analysis_Clustering::AssignRefsToClusters( ClusterList& CList ) const {
+  // Pre-center all reference coords at the origin. No need to store trans vectors.
+  std::vector<Frame> refFrames;
+  refFrames.reserve( refs_.size() );
+  for (unsigned int idx = 0; idx != refs_.size(); idx++) {
+    AtomMask rMask( refmaskexpr_ );
+    DataSet_Coords_REF* REF_ds = (DataSet_Coords_REF*)refs_[idx];
+    if ( REF_ds->Top().SetupIntegerMask( rMask, REF_ds->RefFrame() ) ) {
+      mprintf("Warning: Could not set up mask for reference '%s'\n", REF_ds->legend());
+      continue;
+    }
+    refFrames.push_back( Frame(REF_ds->RefFrame(), rMask) );
+    refFrames.back().CenterOnOrigin( useMass_ );
+  }
+  // For each cluster, assign the reference name with the lowest RMSD
+  // to the representative frame that is below the cutoff.
+  AtomMask tMask( refmaskexpr_ );
+  if (coords_->Top().SetupIntegerMask( tMask )) {
+    mprinterr("Error: Could not set up mask for assigning references.\n");
+    return;
+  }
+  Frame TGT( coords_->AllocateFrame(), tMask );
+  unsigned int cidx = 0;
+  for (ClusterList::cluster_it cluster = CList.begin();
+                               cluster != CList.end(); ++cluster, ++cidx)
+  {
+    coords_->GetFrame( cluster->BestRepFrame(), TGT, tMask );
+    double minRms = TGT.RMSD_CenteredRef( refFrames[0], useMass_ );
+    unsigned int minIdx = 0;
+    for (unsigned int idx = 1; idx < refs_.size(); idx++) {
+      double rms = TGT.RMSD_CenteredRef( refFrames[idx], useMass_ );
+      if (rms < minRms) {
+        minRms = rms;
+        minIdx = idx;
+      }
+    }
+    if (minRms < refCut_) {
+      //mprintf("DEBUG: Assigned cluster %i to reference \"%s\" (%g)\n", cidx,
+      //        refs_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetNameAndRms( refs_[minIdx]->Meta().Name(), minRms );
+    } else {
+      //mprintf("DEBUG: Cluster %i was closest to reference \"(%s)\" (%g)\n", cidx,
+      //        refs_[minIdx]->Meta().Name().c_str(), minRms);
+      cluster->SetNameAndRms( "(" + refs_[minIdx]->Meta().Name() + ")", minRms );
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Analysis_Clustering::CreateCnumvtime()
 /** Put cluster number vs frame into dataset.  */
-void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, unsigned int maxFrames ) {
   // FIXME:
   // Cast generic DataSet for cnumvtime back to integer dataset to 
   // access specific integer dataset functions for resizing and []
@@ -536,7 +802,7 @@ void Analysis_Clustering::CreateCnumvtime( ClusterList const& CList, int maxFram
 
 // Analysis_Clustering::CreateCpopvtime()
 // NOTE: Should not be called if cpopvtimefile is NULL
-void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, unsigned int maxFrames ) {
   std::vector<int> Pop(CList.Nclusters(), 0);
   // Set up output data sets
   std::vector<DataSet*> DSL;
@@ -562,7 +828,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
   // Assumes cnumvtime has been calcd and not gracecolor!
   double norm = 1.0;
   DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>( *cnumvtime_ );
-  for (int frame = 0; frame < maxFrames; ++frame) {
+  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
@@ -581,7 +847,7 @@ void Analysis_Clustering::CreateCpopvtime( ClusterList const& CList, int maxFram
 }
 
 // Analysis_Clustering::ClusterLifetimes()
-void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, unsigned int maxFrames ) {
   // Set up output data sets. TODO: use ChildDSL
   std::vector<DataSet_integer*> DSL;
   MetaData md(cnumvtime_->Meta().Name(), "Lifetime");
@@ -596,7 +862,7 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
   }
   // For each frame, assign cluster frame belongs to 1.
   DataSet_integer const& cnum_temp = static_cast<DataSet_integer const&>(*cnumvtime_);
-  for (int frame = 0; frame < maxFrames; ++frame) {
+  for (unsigned int frame = 0; frame < maxFrames; ++frame) {
     int cluster_num = cnum_temp[frame];
     // Noise points are -1
     if (cluster_num > -1)
@@ -607,13 +873,13 @@ void Analysis_Clustering::ClusterLifetimes( ClusterList const& CList, int maxFra
 /** Determine how many different clusters are observed within a given time
   * window.
   */
-void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFrames ) {
+void Analysis_Clustering::NclustersObserved( ClusterList const& CList, unsigned int maxFrames ) {
   DataSet_integer const& CVT = static_cast<DataSet_integer const&>( *cnumvtime_ );
   if (CVT.Size() < 1 || CList.Nclusters() < 1) return;
   int dataIdx = 0;
   // True if cluster was observed during window
   std::vector<bool> observed( CList.Nclusters(), false );
-  for (int frame = 0; frame < maxFrames; frame++) {
+  for (unsigned int frame = 0; frame < maxFrames; frame++) {
     if (CVT[frame] != -1)
       observed[ CVT[frame] ] = true;
     if ( ((frame+1) % windowSize_) == 0 ) {
@@ -624,7 +890,7 @@ void Analysis_Clustering::NclustersObserved( ClusterList const& CList, int maxFr
           ++nClustersObserved;
           *ob = false;
         }
-      mprintf("DEBUG: WINDOW at frame %i; %i clusters observed\n", frame+1, nClustersObserved);
+      //mprintf("DEBUG: WINDOW at frame %i; %i clusters observed\n", frame+1, nClustersObserved);
       clustersVtime_->Add( dataIdx++, &nClustersObserved );
     }
   }

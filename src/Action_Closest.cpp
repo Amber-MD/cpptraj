@@ -2,14 +2,27 @@
 #include <algorithm> // sort
 #include <cfloat> // DBL_MAX
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 #include "Action_Closest.h"
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
+#include "ImageRoutines.h"
+
+#ifdef CUDA
+// CUDA kernel wrappers
+extern void Action_Closest_Center(const double*,double*,const double*,double,int,int,ImagingType,const double*,const double*,const double*);
+extern void Action_Closest_NoCenter(const double*,double*,const double*,double,int,int,int,ImagingType,const double*,const double*,const double*);
+#endif
 
 // CONSTRUCTOR
 Action_Closest::Action_Closest() :
+# ifdef CUDA
+  GPU_MEM_(0),
+  V_atom_coords_(0),
+  U_atom_coords_(0),
+  V_distances_(0),
+# endif
   outFile_(0),
   framedata_(0),
   moldata_(0),
@@ -36,11 +49,17 @@ void Action_Closest::Help() const {
 // DESTRUCTOR
 Action_Closest::~Action_Closest() {
   if (newParm_!=0) delete newParm_;
+# ifdef CUDA
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
+# endif
 }
 
 // Action_Closest::Init()
 Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   debug_ = debugIn;
   // Get Keywords
   closestWaters_ = actionArgs.getNextInteger(-1);
@@ -106,6 +125,9 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   if (!prefix_.empty())
     mprintf("\tStripped topology file will be written with prefix %s\n",
             prefix_.c_str());
+# ifdef CUDA
+  mprintf("\tDistance calculations will be GPU-accelerated with CUDA.\n");
+# endif
   return Action::OK;
 }
 
@@ -237,6 +259,27 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
     if ( pfile.WriteTopology(*newParm_, parmoutName_, ParmFile::AMBERPARM, debug_) )
       mprinterr("Error: Could not write out topology to file %s\n", parmoutName_.c_str());
   }
+# ifdef CUDA
+  // Allocate space for simple arrays that will be sent to GPU.
+  if (GPU_MEM_ != 0) delete[] GPU_MEM_;
+  size_t gpu_mem_size = SolventMols_.size() + // V_distances_
+                        (NsolventAtoms * SolventMols_.size() * 3); // V_atom_coords_
+  if (!useMaskCenter_) gpu_mem_size += (distanceMask_.Nselected() * 3); // U_atom_coords_
+  GPU_MEM_ = new double[ gpu_mem_size ];
+  V_atom_coords_ = GPU_MEM_;
+  if (useMaskCenter_) {
+    V_distances_   = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+  } else {
+    U_atom_coords_ = V_atom_coords_ + (NsolventAtoms * SolventMols_.size() * 3);
+    V_distances_   = U_atom_coords_ + (distanceMask_.Nselected() * 3);
+  }
+# else
+  // Allocate temp space for selected solute atom coords
+  if (useMaskCenter_)
+    U_cell0_coords_.resize( 3 );
+  else
+    U_cell0_coords_.resize( distanceMask_.Nselected() * 3 );
+# endif
 
   return Action::MODIFY_TOPOLOGY;
 }
@@ -246,14 +289,10 @@ Action::RetType Action_Closest::Setup(ActionSetup& setup) {
   * solvent Mask.
   */
 Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
-  int solventMol; 
-  double Dist, maxD;
-  Matrix_3x3 ucell, recip;
-  AtomMask::const_iterator solute_atom;
+  double maxD, Dist2;
   Iarray::const_iterator solvent_atom;
 
   if (image_.ImagingEnabled()) {
-    frm.Frm().BoxCrd().ToRecip(ucell, recip);
     // Calculate max possible imaged distance
     maxD = frm.Frm().BoxCrd().BoxX() + frm.Frm().BoxCrd().BoxY() + 
            frm.Frm().BoxCrd().BoxZ();
@@ -262,73 +301,166 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     // If not imaging, set max distance to an arbitrarily large number
     maxD = DBL_MAX;
   }
+#ifdef CUDA
+// -----------------------------------------------------------------------------
+  // Copy solvent atom coords to array
+  int NAtoms = SolventMols_[0].solventAtoms.size(); // guaranteed to be same size due to setup
+  for (int sMol = 0; sMol < NsolventMolecules_; ++sMol) {
+    for(int sAtom = 0; sAtom < NAtoms; sAtom++) {
+      int index =  (sAtom * 3 ) + (sMol * 3 * NAtoms);
+      const double *a = frm.Frm().XYZ(SolventMols_[sMol].solventAtoms[sAtom]);
+      V_atom_coords_[index + 0] = a[0];
+      V_atom_coords_[index + 1] = a[1];
+      V_atom_coords_[index + 2] = a[2];
+    }
+  }
+  
+  Matrix_3x3 ucell, recip;
+  if (image_.ImageType() == NONORTHO)
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
 
-  // Loop over all solvent molecules in original frame
   if (useMaskCenter_) {
     Vec3 maskCenter = frm.Frm().VGeometricCenter( distanceMask_ );
-#ifdef _OPENMP
-#pragma omp parallel private(solventMol,Dist,solvent_atom)
-{
+    Action_Closest_Center( V_atom_coords_, V_distances_, maskCenter.Dptr(),
+                           maxD, NsolventMolecules_, NAtoms, image_.ImageType(),
+                           frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+  } else {
+    int NSAtoms = distanceMask_.Nselected();
+    for (int nsAtom = 0; nsAtom < NSAtoms; ++nsAtom) {
+      const double* a = frm.Frm().XYZ(distanceMask_[nsAtom]);
+      U_atom_coords_[nsAtom*3 + 0] = a[0];
+      U_atom_coords_[nsAtom*3 + 1] = a[1];
+      U_atom_coords_[nsAtom*3 + 2] = a[2];
+    }
+
+    Action_Closest_NoCenter( V_atom_coords_, V_distances_, U_atom_coords_,
+                             maxD, NsolventMolecules_, NAtoms, NSAtoms, image_.ImageType(),
+                             frm.Frm().BoxCrd().boxPtr(), ucell.Dptr(), recip.Dptr() );
+  }
+  // Copy distances back into SolventMols_
+  for (int sMol = 0; sMol < NsolventMolecules_; sMol++)
+    SolventMols_[sMol].D = V_distances_[sMol];
+
+#else /* Not CUDA */
+// -----------------------------------------------------------------------------
+  if (image_.ImageType() == NONORTHO) {
+    // ----- NON-ORTHORHOMBIC IMAGING ------------
+    Matrix_3x3 ucell, recip;
+    frm.Frm().BoxCrd().ToRecip(ucell, recip);
+    // Wrap all solute atoms back into primary cell and save coords
+    if (useMaskCenter_) {
+      double* uFrac = &U_cell0_coords_[0];
+      //  Calc COM and convert to frac coords
+      Vec3 center = recip * frm.Frm().VGeometricCenter( distanceMask_ );
+      // Wrap to primary unit cell
+      center[0] = center[0] - floor(center[0]);
+      center[1] = center[1] - floor(center[1]);
+      center[2] = center[2] - floor(center[2]);
+      // Convert back to Cartesian
+      ucell.TransposeMult( uFrac, center.Dptr() );
+    } else {
+      Image::WrapToCell0( U_cell0_coords_, frm.Frm(), distanceMask_, ucell, recip );
+    }
+    // Calculate closest distance of every solvent image to solute
+    int mnum;
+#   ifdef _OPENMP
+#   pragma omp parallel private(mnum, Dist2, solvent_atom)
+    {
 #   pragma omp for
-#endif
-    for (solventMol=0; solventMol < NsolventMolecules_; solventMol++) {
-      SolventMols_[solventMol].D = maxD;
-      for (solvent_atom = SolventMols_[solventMol].solventAtoms.begin();
-           solvent_atom != SolventMols_[solventMol].solventAtoms.end(); ++solvent_atom)
+#   endif
+    for (mnum = 0; mnum < NsolventMolecules_; mnum++)
+    {
+      MolDist& Mol = SolventMols_[mnum];
+      Mol.D = maxD;
+      for (solvent_atom = Mol.solventAtoms.begin();
+           solvent_atom != Mol.solventAtoms.end(); ++solvent_atom)
       {
-        Dist = DIST2( maskCenter.Dptr(),
-                      frm.Frm().XYZ(*solvent_atom), image_.ImageType(),
-                      frm.Frm().BoxCrd(), ucell, recip);
-        if (Dist < SolventMols_[solventMol].D) 
-          SolventMols_[solventMol].D = Dist;
+        // Convert to frac coords
+        Vec3 vFrac = recip * Vec3( frm.Frm().XYZ( *solvent_atom ) );
+        // Wrap to primary unit cell
+        vFrac[0] = vFrac[0] - floor(vFrac[0]);
+        vFrac[1] = vFrac[1] - floor(vFrac[1]);
+        vFrac[2] = vFrac[2] - floor(vFrac[2]);
+        // Loop over all images of this solvent atom
+        for (int ix = -1; ix != 2; ix++)
+          for (int iy = -1; iy != 2; iy++)
+            for (int iz = -1; iz != 2; iz++)
+            {
+              // Convert image back to Cartesian
+              Vec3 vCart = ucell.TransposeMult( vFrac + Vec3(ix, iy, iz) );
+              // Loop over all solute atoms
+              for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
+              {
+                double x = vCart[0] - U_cell0_coords_[idx  ];
+                double y = vCart[1] - U_cell0_coords_[idx+1];
+                double z = vCart[2] - U_cell0_coords_[idx+2];
+                Dist2 = x*x + y*y + z*z;
+                Mol.D = std::min(Dist2, Mol.D);
+              } // END loop over solute atoms
+            } // END loop over images (Z)
+      } // END loop over solvent mol atoms
+    } // END loop over solvent molecules
+#   ifdef _OPENMP
+    } /* END pragma omp parallel */
+#   endif
+  } else {
+    // ----- ORTHORHOMBIC/NO IMAGING -------------
+    if (useMaskCenter_) {
+      //  Calc COM
+      Vec3 center = frm.Frm().VGeometricCenter( distanceMask_ );
+      U_cell0_coords_[0] = center[0];
+      U_cell0_coords_[1] = center[1];
+      U_cell0_coords_[2] = center[2];
+    } else {
+      // Store selected solute coordinates.
+      int idx = 0;
+      for (AtomMask::const_iterator atm = distanceMask_.begin();
+                                    atm != distanceMask_.end(); ++atm, idx += 3)
+      {
+        const double* XYZ = frm.Frm().XYZ( *atm );
+        U_cell0_coords_[idx  ] = XYZ[0];
+        U_cell0_coords_[idx+1] = XYZ[1];
+        U_cell0_coords_[idx+2] = XYZ[2];
       }
     }
-#ifdef _OPENMP
-}
-#endif
-  } else {
-#ifdef _OPENMP
-#pragma omp parallel private(solventMol,solute_atom,Dist,solvent_atom)
-{
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
+    // Loop over all solvent molecules
+    int mnum;
+#   ifdef _OPENMP
+#   pragma omp parallel private(mnum, Dist2, solvent_atom)
+    {
 #   pragma omp for
-#endif
-    for (solventMol=0; solventMol < NsolventMolecules_; solventMol++) {
-      //mprintf("[%i] Calculating distance for molecule %i\n",omp_get_thread_num(),solventMol);
-      // Set the initial minimum distance for this solvent mol to be the
-      // max possible distance.
-      SolventMols_[solventMol].D = maxD;
-      // Calculate distance between each atom in distanceMask and atoms in solvent Mask
-      for (solvent_atom = SolventMols_[solventMol].solventAtoms.begin();
-           solvent_atom != SolventMols_[solventMol].solventAtoms.end(); ++solvent_atom)
+#   endif
+    for (mnum = 0; mnum < NsolventMolecules_; mnum++)
+    {
+      MolDist& Mol = SolventMols_[mnum];
+      Mol.D = maxD;
+      for (solvent_atom = Mol.solventAtoms.begin();
+           solvent_atom != Mol.solventAtoms.end(); ++solvent_atom)
       {
-        for (solute_atom = distanceMask_.begin(); 
-             solute_atom != distanceMask_.end(); ++solute_atom)
+        Vec3 Vcoord( frm.Frm().XYZ( *solvent_atom ) );
+        // Loop over all solute atoms
+        for (unsigned int idx = 0; idx < U_cell0_coords_.size(); idx += 3)
         {
-          Dist = DIST2(frm.Frm().XYZ(*solute_atom),
-                       frm.Frm().XYZ(*solvent_atom), image_.ImageType(), 
-                       frm.Frm().BoxCrd(), ucell, recip);
-          if (Dist < SolventMols_[solventMol].D) 
-            SolventMols_[solventMol].D = Dist;
-          //mprintf("DBG: SolvMol %i, soluteAtom %i, solventAtom %i, D= %f, minD= %f\n",
-          //        solventMol, *solute_atom, *solvent_atom, Dist, sqrt(SolventMols_[solventMol].D));
-        }
-      }
-      // DEBUG - Print distances
-      //mprintf("DEBUG:\tMol %8i minD= %lf\n",solventMol, SolventMols[solventMol].D);
-    } // END for loop over solventMol
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
+          Vec3 Ucoord( U_cell0_coords_[idx], U_cell0_coords_[idx+1], U_cell0_coords_[idx+2] );
+          if (image_.ImageType() == ORTHO)
+            Dist2 = DIST2_ImageOrtho( Vcoord, Ucoord, frm.Frm().BoxCrd() );
+          else
+            Dist2 = DIST2_NoImage( Vcoord, Ucoord );
+          Mol.D = std::min(Dist2, Mol.D);
+        } // END loop over solute atoms
+      } // END loop over solvent mol atoms
+    } // END loop over solvent molecules
+#   ifdef _OPENMP
+    } /* END pragma omp parallel */
+#   endif
   }
-  // DEBUG
-  //mprintf("Closest: End parallel loop for %i, got %i Distances.\n",frameNum,(int)SolventMols.size());
-  // DEBUG
+#endif /* CUDA */
+// -----------------------------------------------------------------------------
 
   // Sort distances
   std::sort( SolventMols_.begin(), SolventMols_.end(), moldist_cmp() );
   // Add first closestWaters solvent atoms to stripMask
-  std::vector<MolDist>::iterator solventend = SolventMols_.begin() + closestWaters_;
+  std::vector<MolDist>::const_iterator solventend = SolventMols_.begin() + closestWaters_;
   Iarray::const_iterator katom = keptWaterAtomNum_.begin();
   for ( std::vector<MolDist>::const_iterator solvent = SolventMols_.begin();
                                              solvent != solventend;
@@ -339,11 +471,11 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
     stripMask_.AddMaskAtPosition( solvent->mask, *katom );
     // Record which water molecules are closest if requested
     if (outFile_!=0) {
-      int fnum = frameNum + 1;
+      int fnum = frm.TrajoutNum() + 1;
       framedata_->Add(Nclosest_, &fnum);
       moldata_->Add(Nclosest_, &(solvent->mol));
-      Dist = sqrt( solvent->D );
-      distdata_->Add(Nclosest_, &Dist);
+      Dist2 = sqrt( solvent->D );
+      distdata_->Add(Nclosest_, &Dist2);
       solvent_atom = solvent->mask.begin();
       int solvent_first_atom = *solvent_atom + 1; 
       atomdata_->Add(Nclosest_, &solvent_first_atom);
@@ -361,3 +493,26 @@ Action::RetType Action_Closest::DoAction(int frameNum, ActionFrame& frm) {
 
   return Action::MODIFY_COORDS;
 }
+
+#ifdef MPI
+/** Since datasets are actually # frames * closestWaters_ in length, need to
+  * sync here.
+  */
+int Action_Closest::SyncAction() {
+  if (outFile_ == 0) return 0;
+  // Get total number of closest entries.
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &Nclosest_, 1, MPI_INT, &(rank_frames[0]) );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    Nclosest_ += rank_frames[ rank ];
+  framedata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  framedata_->SetNeedsSync( false );
+  moldata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  moldata_->SetNeedsSync( false );
+  distdata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  distdata_->SetNeedsSync( false );
+  atomdata_->Sync( Nclosest_, rank_frames, trajComm_ );
+  atomdata_->SetNeedsSync( false );
+  return 0;
+}
+#endif

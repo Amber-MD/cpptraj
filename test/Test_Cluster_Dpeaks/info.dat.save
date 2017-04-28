@@ -1,0 +1,12 @@
+#Clustering: 3 clusters 101 frames
+#Cluster 0 has average-distance-to-centroid 1.685202
+#Cluster 1 has average-distance-to-centroid 1.230475
+#Cluster 2 has average-distance-to-centroid 1.647563
+#DBI: 0.974558
+#pSF: 89.637090
+#SSR/SST: 0.646559
+#Algorithm: DPeaks epsilon 1.7
+.XXXXX...XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.....................................
+......XXX....................................................................XXXXXXXXXXXXXXXXXXXXXXXX
+X...............................................................XXXXXXXXXXXXX........................
+#Representative frames: 24 101 76

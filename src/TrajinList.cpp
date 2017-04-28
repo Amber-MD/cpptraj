@@ -7,7 +7,7 @@
 #include "EnsembleIn_Multi.h"
 #include "StringRoutines.h" // ExpandToFilenames
 
-TrajinList::TrajinList() : debug_(0), maxframes_(0), mode_(UNDEFINED) {}
+TrajinList::TrajinList() : debug_(0), maxframes_(0), ensembleSize_(-1) {}
 
 TrajinList::~TrajinList() { Clear(); }
 
@@ -18,9 +18,9 @@ void TrajinList::Clear() {
   for (eListType::iterator ens = ensemble_.begin(); ens != ensemble_.end(); ++ens)
     delete *ens;
   ensemble_.clear();
-  mode_ = UNDEFINED;
   maxframes_ = 0;
   topFrames_.clear();
+  ensembleSize_ = -1;
 }
 
 /** Update max # of frames in the list and # frames associated with Topologies
@@ -42,18 +42,13 @@ void TrajinList::UpdateMaxFrames(InputTrajCommon const& traj) {
   }
 }
 
-// TrajinList::AddEnsemble()
-int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList const& argIn)
+// TrajinList::AddEnsembleIn()
+int TrajinList::AddEnsembleIn(std::string const& fname, Topology* topIn, ArgList const& argIn)
 {
   if (topIn == 0) {
     mprinterr("Error: No topology for input ensemble '%s'\n", fname.c_str());
     return 1;
   }
-  if (mode_ == NORMAL) {
-    mprinterr("Error: 'ensemble' and 'trajin' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = ENSEMBLE;
   int err = 0;
   File::NameArray fnames = File::ExpandToFilenames( fname );
   if (fnames.empty()) return 1;
@@ -89,6 +84,14 @@ int TrajinList::AddEnsemble(std::string const& fname, Topology* topIn, ArgList c
       delete tio;
       err++;
       continue;
+    }
+    // Currently all input ensembles must be same size.
+    if (ensembleSize_ == -1)
+      ensembleSize_ = ensemble->EnsembleCoordInfo().EnsembleSize();
+    else if (ensembleSize_ != ensemble->EnsembleCoordInfo().EnsembleSize()) {
+      mprinterr("Error: Ensemble size (%i) does not match first ensemble size (%i).\n",
+                ensemble->EnsembleCoordInfo().EnsembleSize(), ensembleSize_);
+      return 1;
     }
     // CRDIDXARG: If trajectory is REMD ensemble and sorting by CRDIDX, need to
     //            save final CRDIDX for next ensemble command.
@@ -130,11 +133,6 @@ int TrajinList::AddTrajin(std::string const& fname, Topology* topIn, ArgList con
     mprinterr("Error: No topology for input trajectory '%s'\n", fname.c_str());
     return 1;
   }
-  if (mode_ == ENSEMBLE) {
-    mprinterr("Error: 'trajin' and 'ensemble' are mutually exclusive.\n");
-    return 1;
-  }
-  mode_ = NORMAL;
   // CRDIDXARG
   finalCrdIndicesArg_.clear();
   ArgList trajin_args = argIn;

@@ -23,6 +23,7 @@ void Exec_SequenceAlign::Help() const {
 }
     
 Exec::RetType Exec_SequenceAlign::Execute(CpptrajState& State, ArgList& argIn) {
+  mprintf("Warning: THIS COMMAND IS NOT FULLY IMPLEMENTED.\n");
   std::string blastfile = argIn.GetStringKey("blastfile");
   if (blastfile.empty()) {
     mprinterr("Error: 'blastfile' must be specified.\n");

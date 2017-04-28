@@ -9,9 +9,11 @@ class DataSet_Modes : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_Modes();}
     static const char* DeprecateFileMsg;
     // ----- DataSet functions -------------------
-    size_t Size() const { return nmodes_; }
-    int Sync()          { return 1;       }
-    void Info()   const { return;         }
+    size_t Size()                       const { return nmodes_; }
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&) { return 1; }
+#   endif
+    void Info()                         const { return;         }
     void Add( size_t, const void* ) {}
     void WriteBuffer(CpptrajFile&, SizeArray const&) const {} // TODO implement?
     int Allocate(SizeArray const&) { return 0; } // TODO implement?
@@ -28,12 +30,12 @@ class DataSet_Modes : public DataSet {
     const double* AvgFramePtr()      const { return &avgcrd_[0];          }
     void AllocateAvgCoords(int n)          { avgcrd_.resize(n, 0.0);      }
 
-    void SetAvgCoords(DataSet_2D const&);
+    int SetAvgCoords(DataSet_2D const&);
     int SetModes(bool, int, int, const double*, const double*);
     int CalcEigen(DataSet_2D const&,int);
     void PrintModes();
     int EigvalToFreq(double);
-    int MassWtEigvect( DataSet_MatrixDbl::Darray const& );
+    int MassWtEigvect();
     int ReduceVectors();
     int Thermo(CpptrajFile&, int, double, double) const;
 
@@ -43,16 +45,20 @@ class DataSet_Modes : public DataSet {
     int Nmodes()                     const { return nmodes_;                    } // Project
     int VectorSize()                 const { return vecsize_;                   } // Project
     bool IsReduced()                 const { return reduced_;                   }
+    bool EvecsAreMassWtd()           const { return evecsAreMassWtd_;           }
+    bool EvalsAreFreq()              const { return evalsAreFreq_;              }
   private:
     int ReduceCovar();
     int ReduceDistCovar();
 
-    Darray avgcrd_;               ///< Average coordinates
-    Darray mass_;                 ///< Masses
-    double* evalues_;             ///< Array of eigenvalues
-    double* evectors_;            ///< Array of eigenvectors
-    int nmodes_;                  ///< Number of eigenmodes
-    int vecsize_;                 ///< Size of each eigenvector
-    bool reduced_;                ///< True if modes have been reduced
+    Darray avgcrd_;        ///< Average coordinates
+    Darray mass_;          ///< Masses
+    double* evalues_;      ///< Array of eigenvalues
+    double* evectors_;     ///< Array of eigenvectors
+    int nmodes_;           ///< Number of eigenmodes
+    int vecsize_;          ///< Size of each eigenvector
+    bool reduced_;         ///< True if modes have been reduced
+    bool evecsAreMassWtd_; ///< True if eigenvectors have been mass-weighted
+    bool evalsAreFreq_;    ///< True if eigenvalues are in units of cm^-1
 };
 #endif

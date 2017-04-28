@@ -1,12 +1,13 @@
 #ifndef INC_PARM_AMBER_H
 #define INC_PARM_AMBER_H
 #include "ParmIO.h"
+#include "BufferedFrame.h"
 class Parm_Amber : public ParmIO {
   public :
     Parm_Amber();
-    ~Parm_Amber();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Parm_Amber(); }
     static void WriteHelp();
+    // ----- Inherited functions -----------------
     bool ID_ParmFormat(CpptrajFile&);
     int processReadArgs(ArgList&) { return 0; }
     int ReadParm(FileName const&, Topology&);
@@ -15,12 +16,12 @@ class Parm_Amber : public ParmIO {
   private :
     typedef std::vector<double> Darray;
     typedef std::vector<int> Iarray;
+    /// Class for determining data size from Fortran format string.
+    class FortranData;
     /// Enumerated type for Fortran data type
-    enum FortranType {
-      UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT
-    };
+    enum Type { UNKNOWN_FTYPE=0, FINT, FDOUBLE, FCHAR, FFLOAT };
     /// Enumerated type for Amber Parmtop Flags
-    enum AmberParmFlagType {
+    enum FlagType {
       F_POINTERS = 0, F_NAMES,     F_CHARGE,    F_MASS,     F_RESNAMES,
       F_RESNUMS,      F_TYPES,     F_BONDSH,    F_BONDS,    F_SOLVENT_POINTER,
       F_ATOMSPERMOL,  F_PARMBOX,   F_ATYPEIDX,  F_NUMEX,    F_NB_INDEX,
@@ -37,62 +38,159 @@ class Parm_Amber : public ParmIO {
       F_CHM_CMAPR,    F_CHM_CMAPP, F_CHM_CMAPI, F_FF_TYPE,  F_PDB_RES,
       F_PDB_CHAIN,    F_PDB_ICODE, F_PDB_ALT
     };
-    static const int AMBERPOINTERS;
+    /// Used to hold %FLAG/FORMAT string pairs. Corresponds to FlagType.
     struct ParmFlag {
       const char* Flag; ///< %FLAG name in topology.
       const char* Fmt;  ///< Fortran format string for writing.
     };
-    static const ParmFlag FLAGS[];
-
+    typedef const ParmFlag* ParmPtr;
     // NOTE: Although amber topology files should only ever require 83 chars
     //       to read each line (80 chars + newline + CR (if dos) + NULL)
     //       increase the size to handle non-standard files.
     static const size_t BUF_SIZE = 256;
-    char lineBuffer_[BUF_SIZE];
-    bool nochamber_; ///< For writes when true do not print chamber info
+    /// Amber topology subtype
     enum ParmType { OLDPARM = 0, NEWPARM, CHAMBER };
+
+    int ReadOldParm(Topology&);
+    int ReadNewParm(Topology&);
+    int ReadFormatLine(FortranData&);
+    inline const char* SkipToNextFlag();
+    int ReadTitle(Topology&);
+    int ReadPointers(int, Topology&, FortranData const&);
+    inline int SetupBuffer(FlagType, int, FortranData const&);
+    int ReadAtomNames(Topology&, FortranData const&);
+    int ReadAtomCharges(Topology&, FortranData const&);
+    int ReadAtomicNum(FortranData const&);
+    int ReadAtomicMass(Topology&, FortranData const&);
+    int ReadAtomTypeIndex(Topology&, FortranData const&);
+    int ReadNonbondIndices(Topology&, FortranData const&);
+    int ReadResidueNames(Topology&, FortranData const&);
+    int ReadResidueAtomNums(Topology&, FortranData const&);
+    int ReadBondRK(Topology&, FortranData const&);
+    int ReadBondREQ(Topology&, FortranData const&);
+    int ReadAngleTK(Topology&, FortranData const&);
+    int ReadAngleTEQ(Topology&, FortranData const&);
+    int ReadDihedralPK(Topology&, FortranData const&);
+    int ReadDihedralPN(Topology&, FortranData const&);
+    int ReadDihedralPHASE(Topology&, FortranData const&);
+    int ReadDihedralSCEE(Topology&, FortranData const&);
+    int ReadDihedralSCNB(Topology&, FortranData const&);
+    int ReadLJA(Topology&, FortranData const&);
+    int ReadLJB(Topology&, FortranData const&);
+    inline BondType GetBond();
+    int ReadBondsH(Topology&, FortranData const&);
+    int ReadBonds(Topology&, FortranData const&);
+    inline AngleType GetAngle();
+    int ReadAnglesH(Topology&, FortranData const&);
+    int ReadAngles(Topology&, FortranData const&);
+    inline DihedralType GetDihedral();
+    int ReadDihedralsH(Topology&, FortranData const&);
+    int ReadDihedrals(Topology&, FortranData const&);
+    int ReadAsol(Topology&, FortranData const&);
+    int ReadBsol(Topology&, FortranData const&);
+    int ReadHBcut(Topology&, FortranData const&);
+    int ReadAtomTypes(Topology&, FortranData const&);
+    int ReadItree(Topology&, FortranData const&);
+    int ReadJoin(Topology&, FortranData const&);
+    int ReadIrotat(Topology&, FortranData const&);
+    int ReadBox(FortranData const&);
+    int ReadCapInfo(Topology&, FortranData const&);
+    int ReadCapInfo2(Topology&, FortranData const&);
+    int ReadGBradiiSet(Topology&);
+    int ReadGBradii(Topology&, FortranData const&);
+    int ReadGBscreen(Topology&, FortranData const&);
+    int ReadIpol(Topology&, FortranData const&);
+    int ReadPolar(Topology&, FortranData const&);
+    // Extra PDB Info
+    int ReadPdbRes(Topology&, FortranData const&);
+    int ReadPdbChainID(Topology&, FortranData const&);
+    int ReadPdbIcode(Topology&, FortranData const&);
+    int ReadPdbAlt(Topology&, FortranData const&);
+    // CHAMBER
+    int ReadChamberFFtype(Topology&);
+    int ReadChamberUBCount(Topology&, FortranData const&);
+    int ReadChamberUBTerms(Topology&, FortranData const&);
+    int ReadChamberUBFC(Topology&, FortranData const&);
+    int ReadChamberUBEQ(Topology&, FortranData const&);
+    int ReadChamberNumImpropers(Topology&, FortranData const&);
+    int ReadChamberNumImpTerms(Topology&, FortranData const&);
+    int ReadChamberImpropers(Topology&, FortranData const&);
+    int ReadChamberImpFC(Topology&, FortranData const&);
+    int ReadChamberImpPHASE(Topology&, FortranData const&);
+    int ReadChamberLJ14A(Topology&, FortranData const&);
+    int ReadChamberLJ14B(Topology&, FortranData const&);
+    int ReadChamberCmapCounts(FortranData const&);
+    int ReadChamberCmapRes(Topology&, FortranData const&);
+    int ReadChamberCmapGrid(const char*, Topology&, FortranData const&);
+    int ReadChamberCmapTerms(Topology&, FortranData const&);
+    // LES
+    int ReadLESntyp(Topology&, FortranData const&);
+    int ReadLESfac(Topology&, FortranData const&);
+    int ReadLEStypes(Topology&, FortranData const&);
+    int ReadLEScnum(Topology&, FortranData const&);
+    int ReadLESid(Topology&, FortranData const&);
+
+    // ----- Write -------------------------------
+    FortranData WriteFormat(FlagType) const;
+    int BufferAlloc(FlagType, int, int);
+    int BufferAlloc(FlagType f, int n) { return BufferAlloc(f, n, -1); }
+    int WriteLJ(FlagType, FlagType, NonbondArray const&);
+    int WriteBondParm(FlagType, FlagType, BondParmArray const&);
+    int WriteBonds(FlagType, BondArray const&);
+    int WriteAngles(FlagType, AngleArray const&);
+    int WriteDihedrals(FlagType, DihedralArray const&);
+    void WriteLine(FlagType, std::string const&);
+    int WriteExtra(std::vector<AtomExtra> const&);
+ 
+    static const int AMBERPOINTERS_;
+    static const ParmFlag FLAGS_[];
+
     ParmType ptype_;
-    std::string fformat_;
-    FortranType ftype_;
+    BufferedFrame file_;
+
+    // Read variables
+    Iarray values_; ///< Values read in from POINTERS
+    Iarray atomicNums_; ///< Set to atomic numbers if ATOMIC_NUMBER section found.
+    Box parmbox_; ///< Box coords/type, set from beta, x, y, and z.
+    int numLJparm_; ///< Number of LJ parameters
+    bool SCEE_set_; ///< True if SCEE section found
+    bool SCNB_set_; ///< True if SCNB section found
+
+    // CHAMBER variables
+    int UB_count_[2];   ///< Urey-Bradley count: # bonds (x3), # parameters
+    int N_impropers_;   ///< Number of impropers (x5)
+    int N_impTerms_;    ///< Number of improper terms
+    int n_cmap_terms_;  ///< Number of CMAP terms
+    int n_cmap_grids_;  ///< Number of CMAP grids
+
+    // LES variables
+    int nlestyp_; ///< Number of LES types
+
+    // Write variables
+    bool nochamber_;
+    bool writeEmptyArrays_;
+};
+// -----------------------------------------------------------------------------
+class Parm_Amber::FortranData {
+  public:
+    FortranData() : fstr_(0), ftype_(UNKNOWN_FTYPE), fncols_(0), fwidth_(0), fprecision_(0) {}
+    /// CONSTRUCTOR - from format string
+    FortranData(const char*);
+    /// CONSTRUCTOR - does not set format string 
+    FortranData(Type tIn, int colsIn, int widthIn, int precIn) :
+      ftype_(tIn), fncols_(colsIn), fwidth_(widthIn), fprecision_(precIn) {}
+    int ParseFortranFormat(const char*);
+
+    const char* Fstr() const { return fstr_; }
+    Type Ftype()       const { return ftype_; }
+    int Ncols()        const { return fncols_; }
+    int Width()        const { return fwidth_; }
+    int Precision()    const { return fprecision_; }
+  private:
+    const char* fstr_;
+    Type ftype_;
     int fncols_;
-    int fprecision_;
     int fwidth_;
-    int error_count_;
-    char *buffer_;
-    size_t buffer_size_;
-    size_t buffer_max_size_;
-    CpptrajFile file_;
-
-    int ReadAmberParm(Topology&);
-
-    std::string GetLine();
-    std::vector<int> GetInteger(int,int,int);
-    std::vector<double> GetDouble(int,int,int);
-    std::vector<NameType> GetName(int,int,int);
-    std::vector<int> GetFlagInteger(AmberParmFlagType,int);
-    std::vector<double> GetFlagDouble(AmberParmFlagType,int);
-    std::vector<NameType> GetFlagName(AmberParmFlagType,int);
-    bool SeekToFlag(AmberParmFlagType);
-    int AllocateAndRead(int,int,int);
-    bool PositionFileAtFlag(AmberParmFlagType);
-    bool PositionFileAtFlag(const char*);
-
-    static void ArrayFromBondParm(BondParmArray const&, Darray&, Darray&);
-    static void ArrayFromAngleParm(AngleParmArray const&, Darray&, Darray&);
-    static void ArrayFromCharmmUB(BondParmArray const&, int, Darray&, Darray&, Iarray&);
-    static void ArrayFromDihedralParm(DihedralParmArray const&, Darray&, Darray&, Darray&, Darray&, Darray&);
-    static void ArrayFromCharmmImproper(DihedralParmArray const&, Darray&, Darray&);
-
-    static void CheckNameWidth(const char*, NameType const&);
-    static int AmberIfbox(const Box&);
-    int WriteFlagAndFormat(const char*, size_t);
-    int WriteSetup(AmberParmFlagType,size_t);
-    int WriteInteger(AmberParmFlagType,std::vector<int>const&);
-    int WriteDouble(AmberParmFlagType,std::vector<double>const&);
-    int WriteDoubleArray(std::vector<double>const&);
-    int WriteName(AmberParmFlagType,std::vector<NameType>const&);
-
-    size_t GetFortranBufferSize(int,int,int);
-    bool SetFortranType();
+    int fprecision_;
 };
 #endif

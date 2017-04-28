@@ -22,7 +22,6 @@ class Analysis_Matrix : public Analysis {
     int nevec_;
     bool thermopt_;
     bool reduce_;
-    bool eigenvaluesOnly_;
     bool nmwizopt_;
     int nmwizvecs_;
     CpptrajFile* nmwizfile_;

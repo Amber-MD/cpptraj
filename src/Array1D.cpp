@@ -25,8 +25,8 @@ int Array1D::push_back( DataSet* val ) {
     mprinterr("Internal Error: Blank pointer passed to Array1D.\n");
     return 1;
   } else if (val->Group() != DataSet::SCALAR_1D) {
-    mprinterr("Error: Only 1D data sets allowed.\n");
-    return 1;
+    mprintf("Warning: Cannot add '%s'; only 1D data sets allowed.\n", val->legend());
+    return 0;
   }
   array_.push_back( (DataSet_1D*)val );
   return 0;

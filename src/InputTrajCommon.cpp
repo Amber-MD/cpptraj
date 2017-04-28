@@ -13,7 +13,7 @@ int InputTrajCommon::SetNameAndParm(FileName const& fname, Topology* top) {
   }
   trajName_ = fname;
   if (!File::Exists( trajName_ )) {
-    mprinterr("Error: File '%s' does not exist.\n", trajName_.full());
+    File::ErrorMsg( trajName_.full() );
     return 1;
   }
   return 0;

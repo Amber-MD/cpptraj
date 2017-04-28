@@ -8,6 +8,7 @@ class Traj_CharmmDcd : public TrajectoryIO {
     Traj_CharmmDcd();
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_CharmmDcd(); }
     static void WriteHelp();
+    static void ReadHelp();
     ~Traj_CharmmDcd();
   private:
     int dcdatom_;            ///< Number of atoms in DCD file.
@@ -23,6 +24,8 @@ class Traj_CharmmDcd : public TrajectoryIO {
     size_t coordinate_size_; ///< Size of X|Y|Z coord frame in bytes.
     int nfixedat_;           ///< Number of fixed atoms
     int nfreeat_;            ///< Number of free atoms
+    enum CType { UNKNOWN = 0, SHAPE, UCELL };
+    CType charmmCellType_;   ///< If SHAPE (default), unit cell info is stored as shape matrix.
     int* freeat_;            ///< Free atom indices
     float* xcoord_;          ///< Master coord array, start of X coords
     float* ycoord_;          ///< Pointer to start of Y coords in master coord array
@@ -36,6 +39,8 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int readDcdHeader();
     int ReadBox(double*);
     int writeDcdHeader();
+    inline void seekToFrame(int);
+    void setFrameSizes();
 
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
@@ -46,10 +51,22 @@ class Traj_CharmmDcd : public TrajectoryIO {
     int readFrame(int,Frame&);
     int writeFrame(int,Frame const&);
     void Info();
+    int processReadArgs(ArgList&);
     int processWriteArgs(ArgList&);
 
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
-    int processReadArgs(ArgList&) { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajin(Parallel::Comm const&);
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelReadFrame(int, Frame&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj();
+
+    bool master_;
+#   endif
 };
 #endif

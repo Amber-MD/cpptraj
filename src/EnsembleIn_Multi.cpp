@@ -2,9 +2,6 @@
 #include "CpptrajStdio.h"
 #include "DataFile.h" // TODO remove
 #include "StringRoutines.h" // integerToString TODO remove
-#ifdef MPI
-#  include "MpiRoutines.h"
-#endif
 
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
@@ -28,9 +25,38 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
   if (argIn.Contains("crdidx"))
     crdidxarg.SetList( "crdidx " + argIn.GetStringKey("crdidx"), " " );
   // Set up replica file names.
+# ifdef MPI
+  int err = 0;
+  if (!Parallel::EnsembleComm().IsNull())
+    err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn, Parallel::EnsembleComm(),
+                                           Parallel::TrajComm() );
+  else {
+    mprintf("Warning: Ensemble setup efficiency in parallel is greatly\n"
+            "Warning:   improved via the 'ensemblesize' command.\n");
+    err = REMDtraj_.SetupReplicaFilenames( tnameIn, argIn );
+  }
+  if (Parallel::World().CheckError( err )) return 1;
+# else
   if (REMDtraj_.SetupReplicaFilenames( tnameIn, argIn )) return 1;
+# endif
   // Set up TrajectoryIO classes for all file names.
+# ifdef MPI
+  if (!Parallel::EnsembleComm().IsNull())
+    err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm(),
+                                 Parallel::EnsembleComm(), Parallel::TrajComm() );
+  else
+    err = REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm());
+  if (Parallel::World().CheckError( err )) return 1;
+  // Set up communicators if not already done
+  if (Parallel::EnsembleComm().IsNull()) {
+    if (Parallel::SetupComms( REMDtraj_.size() )) return 1;
+  } else
+    mprintf("\tAll ranks set up total of %zu replicas.\n", REMDtraj_.size());
+  // Set ensemble member number.
+  SetEnsembleMemberNum( EnsembleComm().Rank() );
+# else
   if (REMDtraj_.SetupIOarray(argIn, SetTraj().Counter(), cInfo_, Traj().Parm())) return 1;
+# endif
   // Unless nosort was specified, figure out target type
   if (no_sort)
     targetType_ = ReplicaInfo::NONE;
@@ -98,31 +124,52 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       allIndices.resize( REMDtraj_.size() );
 #   ifdef MPI
     int err = 0;
-    if (REMDtraj_[worldrank]->openTrajin()) {
-      rprinterr("Error: Opening %s\n", REMDtraj_.f_name(worldrank));
-      err = 1;
-    }
-    if (err == 0) {
-      if (REMDtraj_[worldrank]->readFrame( Traj().Counter().Start(), frameIn )) {
-        rprinterr("Error: Reading %s\n", REMDtraj_.f_name(worldrank));
-        err = 2;
+    if (Parallel::TrajComm().Master()) {
+      // Only TrajComm masters get initial temps/indices.
+      if (REMDtraj_[Member()]->openTrajin()) {
+        rprinterr("Error: Opening %s\n", REMDtraj_.f_name(Member()));
+        err = 1;
       }
-      REMDtraj_[worldrank]->closeTraj();
+      if (err == 0) {
+        if (REMDtraj_[Member()]->readFrame( Traj().Counter().Start(), frameIn )) {
+          rprinterr("Error: Reading %s\n", REMDtraj_.f_name(Member()));
+          err = 2;
+        }
+        REMDtraj_[Member()]->closeTraj();
+      }
+      if (err == 0) {
+        if (targetType_ == ReplicaInfo::TEMP) {
+          if (GatherTemperatures(frameIn.tAddress(), allTemps, EnsembleComm()))
+            err = 3;
+        } else if (targetType_ == ReplicaInfo::INDICES) {
+          if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims(),
+                            EnsembleComm()))
+            err = 4;
+        }
+      }
     }
-    int total_error;
-    parallel_allreduce( &total_error, &err, 1, PARA_INT, PARA_SUM );
-    if (total_error != 0) {
+    if (Parallel::World().CheckError( err )) {
       mprinterr("Error: Cannot setup ensemble trajectories.\n");
       return 1;
     }
-    if (targetType_ == ReplicaInfo::TEMP) {
-      if (GatherTemperatures(frameIn.tAddress(), allTemps))
-        return 1;
-    } else if (targetType_ == ReplicaInfo::INDICES) {
-      if (GatherIndices(frameIn.iAddress(), allIndices, cInfo_.ReplicaDimensions().Ndims()))
-        return 1;
+    // If TrajComm size is greater than 1, bcast temps/indices to  TrajComm ranks
+    if (Parallel::TrajComm().Size() > 1) {
+      if (targetType_ == ReplicaInfo::TEMP)
+        Parallel::TrajComm().MasterBcast( &allTemps[0], allTemps.size(), MPI_DOUBLE );
+      else if (targetType_ == ReplicaInfo::INDICES) {
+        for (std::vector<RemdIdxType>::iterator it = allIndices.begin();
+                                                it != allIndices.end(); ++it)
+        {
+          if (Parallel::TrajComm().Master())
+            Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_INT );
+          else {
+            it->resize( cInfo_.ReplicaDimensions().Ndims() );
+            Parallel::TrajComm().MasterBcast( &((*it)[0]), it->size(), MPI_INT );
+          }
+        }
+      }
     }
-#   else
+#   else /* MPI */
     for (unsigned int member = 0; member != REMDtraj_.size(); member++) {
       if ( REMDtraj_[member]->openTrajin() ) return 1;
       if ( REMDtraj_[member]->readFrame( Traj().Counter().Start(), frameIn ) ) return 1;
@@ -132,7 +179,7 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
       else if (targetType_ == ReplicaInfo::INDICES)
         allIndices[member] = frameIn.RemdIndices();
     }
-#   endif
+#   endif /* MPI */
     if (targetType_ == ReplicaInfo::TEMP) {
       if (SetTemperatureMap(allTemps)) return 1;
     } else if (targetType_ == ReplicaInfo::INDICES) {
@@ -152,10 +199,10 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
   // Read in all replicas
   //mprintf("DBG: Ensemble frame %i:",currentFrame+1); // DEBUG
 # ifdef MPI
-  int repIdx = worldrank; // for targetType==CRDIDX
+  int repIdx = Member(); // for targetType==CRDIDX
   unsigned int member = 0;
   // Read REMDtraj for this rank
-  if ( REMDtraj_[worldrank]->readFrame( currentFrame, f_ensemble[0]) )
+  if ( REMDtraj_[Member()]->readFrame( currentFrame, f_ensemble[0]) )
     return 1;
 # else
   int repIdx = 0; // for targetType==CRDIDX
@@ -191,7 +238,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 #   ifdef TIMER
     mpi_allgather_timer_.Start();
 #   endif
-    if (parallel_allgather( &fidx, 1, PARA_INT, &frameidx_[0], 1, PARA_INT)) {
+    if (EnsembleComm().AllGather( &fidx, 1, MPI_INT, &frameidx_[0])) {
       rprinterr("Error: Gathering frame indices.\n");
       return 0; // TODO: Better parallel error check
     }
@@ -209,10 +256,10 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
       for (int sendrank = 0; sendrank != (int)REMDtraj_.size(); sendrank++) {
         int recvrank = frameidx_[sendrank];
         if (sendrank != recvrank) {
-          if (sendrank == worldrank)
-            f_ensemble[0].SendFrame( recvrank ); 
-          else if (recvrank == worldrank) {
-            f_ensemble[1].RecvFrame( sendrank );
+          if (sendrank == Member())
+            f_ensemble[0].SendFrame( recvrank, EnsembleComm() ); 
+          else if (recvrank == Member()) {
+            f_ensemble[1].RecvFrame( sendrank, EnsembleComm() );
             // Since a frame was received, indicate position 1 should be used
             ensembleFrameNum = 1; 
           }
@@ -231,12 +278,12 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
 }
 
 int EnsembleIn_Multi::BeginEnsemble() {
-  mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
+  if (debug_ > 0) mprintf("\tENSEMBLE: OPENING %zu REMD TRAJECTORIES\n", REMDtraj_.size());
 # ifdef MPI
   // Open the trajectory this thread will be dealing with.
-  if (REMDtraj_[worldrank]->openTrajin()) {
+  if (REMDtraj_[Member()]->openTrajin()) {
     rprinterr("Error: Trajin_Multi::BeginTraj: Could not open replica %s\n",
-              REMDtraj_.f_name(worldrank));
+              REMDtraj_.f_name(Member()));
     return 1;
   }
 # else
@@ -257,7 +304,8 @@ int EnsembleIn_Multi::BeginEnsemble() {
 
 void EnsembleIn_Multi::EndEnsemble() {
 # ifdef MPI
-  REMDtraj_[worldrank]->closeTraj();
+  if (Member() != -1)
+    REMDtraj_[Member()]->closeTraj();
 # ifdef TIMER
   total_mpi_allgather_ += mpi_allgather_timer_.Total();
   total_mpi_sendrecv_  += mpi_sendrecv_timer_.Total();

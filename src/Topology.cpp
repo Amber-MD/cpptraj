@@ -1,5 +1,7 @@
 #include <cmath> // pow
 #include <algorithm> // find
+#include <map> // For atom types in append
+#include <stack> // For large system molecule search
 #include "Topology.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString 
@@ -247,341 +249,14 @@ void Topology::Brief(const char* heading) const {
     mprintf("\n");
 }
 
-// Topology::PrintAtomInfo()
-/** Since this function may be called from command line with worldsilent
-  * set to true, use loudPrintf and mprinterr.
-  */
-void Topology::PrintAtomInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return;
-  if ( mask.None() )
-    mprinterr("\tSelection is empty.\n");
-  else {
-    int width = DigitWidth(atoms_.size());
-    if (width < 5) width = 5;
-    loudPrintf("%-*s %4s %*s %4s %*s %4s %8s %8s %8s %2s",
-               width, "#Atom", "Name", 
-               width, "#Res",  "Name",
-               width, "#Mol",  "Type", "Charge", "Mass", "GBradius", "El");
-    if (nonbond_.HasNonbond())
-      loudPrintf(" %8s %8s", "rVDW", "eVDW");
-    loudPrintf("\n");
-    for (AtomMask::const_iterator atnum = mask.begin(); atnum != mask.end(); atnum++) {
-      const Atom& atom = atoms_[*atnum];
-      int resnum = atom.ResNum();
-      loudPrintf("%*i %4s %*i %4s %*i %4s %8.4f %8.4f %8.4f %2s",
-                 width, *atnum+1, atom.c_str(), 
-                 width, resnum+1, residues_[resnum].c_str(),
-                 width, atom.MolNum()+1, *(atom.Type()), atom.Charge(), 
-                 atom.Mass(), atom.GBRadius(), atom.ElementName());
-      if (nonbond_.HasNonbond())
-        loudPrintf(" %8.4f %8.4f", GetVDWradius(*atnum), GetVDWdepth(*atnum));
-      loudPrintf("\n");
-    }
-  }
-}
-
-// Topology::PrintBonds()
-/** \param maskIn AtomMask which should have already been set up as a char mask
-  */
-void Topology::PrintBonds(BondArray const& barray, CharMask const& maskIn, int& nb) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (BondArray::const_iterator batom = barray.begin();
-                                 batom != barray.end(); ++batom)
-  {
-    int atom1 = (*batom).A1();
-    int atom2 = (*batom).A2();
-    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 )) {
-      mprintf("%8i:", nb);
-      int bidx = (*batom).Idx();
-      if ( bidx > -1 )
-        mprintf(" %6.2f %6.3f", bondparm_[bidx].Rk(), bondparm_[bidx].Req());
-      mprintf(" %-*s %-*s (%i,%i)",
-              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(),
-              atom1+1, atom2+1);
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      mprintf(" %c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1]);
-    }
-    nb++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintBondInfo()
-void Topology::PrintBondInfo(std::string const& maskString) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("#   Bond     Kb     Req       atom names   (numbers)\n");
-  int nb = 1;
-  if (!bondsh_.empty())
-    PrintBonds( bondsh_, mask, nb );
-  if (!bonds_.empty())
-    PrintBonds( bonds_, mask, nb );
-}
-
-// Topology::PrintAngles()
-void Topology::PrintAngles(AngleArray const& aarray, CharMask const& maskIn, int& na) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (AngleArray::const_iterator aatom = aarray.begin();
-                                  aatom != aarray.end(); ++aatom)
-  {
-    int atom1 = (*aatom).A1();
-    int atom2 = (*aatom).A2();
-    int atom3 = (*aatom).A3();
-    if (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
-        maskIn.AtomInCharMask( atom3 ))
-    {
-      mprintf("%8i:", na);
-      int aidx = (*aatom).Idx();
-      if ( aidx > -1 )
-        mprintf(" %6.3f %6.2f", angleparm_[aidx].Tk(), angleparm_[aidx].Teq() * Constants::RADDEG);
-      mprintf(" %-*s %-*s %-*s (%i,%i,%i)", rwidth, AtomMaskName(atom1).c_str(), 
-              rwidth, AtomMaskName(atom2).c_str(), rwidth, AtomMaskName(atom3).c_str(),
-              atom1+1, atom2+1, atom3+1); 
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      const char* atype3 = *atoms_[atom3].Type();
-      mprintf(" %c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1]);
-    }
-    na++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintAngleInfo()
-void Topology::PrintAngleInfo(std::string const& maskString) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("# Angle   Kthet  degrees        atom names        (numbers)\n");
-  int na = 1;
-  if (!anglesh_.empty())
-    PrintAngles( anglesh_, mask, na );
-  if (!angles_.empty())
-    PrintAngles( angles_, mask, na );
-}
-
-// Topology::PrintDihedrals()
-void Topology::PrintDihedrals(DihedralArray const& darray, CharMask const& maskIn, 
-                              int& nd, bool Select_OR) const
-{
-  int rwidth = DigitWidth(residues_.size()) + 7;
-  for (DihedralArray::const_iterator datom = darray.begin();
-                                     datom != darray.end(); ++datom)
-  {
-    int atom1 = (*datom).A1();
-    int atom2 = (*datom).A2();
-    int atom3 = (*datom).A3();
-    int atom4 = (*datom).A4();
-    bool selected;
-    if (Select_OR)
-      selected = (maskIn.AtomInCharMask( atom1 ) || maskIn.AtomInCharMask( atom2 ) ||
-                  maskIn.AtomInCharMask( atom3 ) || maskIn.AtomInCharMask( atom4 )   );
-    else // AND
-      selected = (maskIn.AtomInCharMask( atom1 ) && maskIn.AtomInCharMask( atom2 ) &&
-                  maskIn.AtomInCharMask( atom3 ) && maskIn.AtomInCharMask( atom4 )   );
-    if (selected) {
-      // Determine dihedral type: 'E'nd, 'I'mproper, or 'B'oth
-      char type = ' ';
-      if ((*datom).Type() == DihedralType::END) type = 'E';
-      else if ((*datom).Type() == DihedralType::IMPROPER) type = 'I';
-      else if ((*datom).Type() == DihedralType::BOTH) type = 'B';
-      mprintf("%c %8i:", type, nd);
-      int didx = (*datom).Idx();
-      if ( didx > -1 )
-        mprintf(" %6.3f %4.2f %4.1f", dihedralparm_[didx].Pk(), dihedralparm_[didx].Phase(),
-                 dihedralparm_[didx].Pn());
-      mprintf(" %-*s %-*s %-*s %-*s (%i,%i,%i,%i)",
-              rwidth, AtomMaskName(atom1).c_str(), rwidth, AtomMaskName(atom2).c_str(), 
-              rwidth, AtomMaskName(atom3).c_str(), rwidth, AtomMaskName(atom4).c_str(),
-              atom1+1, atom2+1, atom3+1, atom4+1);
-      // Atom types
-      const char* atype1 = *atoms_[atom1].Type();
-      const char* atype2 = *atoms_[atom2].Type();
-      const char* atype3 = *atoms_[atom3].Type();
-      const char* atype4 = *atoms_[atom4].Type();
-      mprintf(" %c%c-%c%c-%c%c-%c%c\n",atype1[0],atype1[1],atype2[0],atype2[1],
-              atype3[0],atype3[1],atype4[0],atype4[1]);
-    }
-    nd++;
-  }
-  mprintf("\n");
-}
-
-// Topology::PrintDihedralInfo()
-void Topology::PrintDihedralInfo(std::string const& maskString, bool select_OR) const {
-  CharMask mask( maskString );
-  if (SetupCharMask( mask )) return;
-  mprintf("#");
-  mask.MaskInfo();
-  if (mask.None()) return;
-  mprintf("#Dihedral    pk     phase pn                atoms\n");
-  int nd = 1;
-  if (!dihedralsh_.empty())
-    PrintDihedrals( dihedralsh_, mask, nd, select_OR );
-  if (!dihedrals_.empty())
-    PrintDihedrals( dihedrals_, mask, nd, select_OR );
-}
-
-
-// Topology::PrintMoleculeInfo()
-void Topology::PrintMoleculeInfo(std::string const& maskString) const {
-  if (molecules_.empty())
-    mprintf("\t'%s' No molecule info.\n",c_str());
-  else {
-    CharMask mask( maskString );
-    if (SetupCharMask( mask )) return;
-    if ( mask.None() )
-      mprintf("\tSelection is empty.\n");
-    else {
-      int mwidth = DigitWidth(molecules_.size());
-      if (mwidth < 5) mwidth = 5;
-      int awidth = DigitWidth(atoms_.size());
-      if (awidth < 5) awidth = 5;
-      int rwidth = DigitWidth(residues_.size());
-      if (rwidth < 5) rwidth = 5;
-      mprintf("%-*s %*s %*s %4s\n", mwidth, "#Mol", awidth, "Natom", 
-              rwidth, "#Res", "Name");
-      unsigned int mnum = 1;
-      for (std::vector<Molecule>::const_iterator mol = molecules_.begin(); 
-                                                 mol != molecules_.end(); mol++)
-      {
-        if ( mask.AtomsInCharMask( mol->BeginAtom(), mol->EndAtom() ) ) {
-          int firstres = atoms_[ mol->BeginAtom() ].ResNum();
-          mprintf("%*u %*i %*i %4s %c", mwidth, mnum, awidth, mol->NumAtoms(),
-                  rwidth, firstres+1, residues_[firstres].c_str(), residues_[firstres].ChainID());
-          if ( mol->IsSolvent() ) mprintf(" SOLVENT");
-          mprintf("\n");
-        }
-        ++mnum;
-      }
-    }
-  }
-}
-
-// Topology::PrintResidueInfo()
-/** Since this function may be called from command line with worldsilent
-  * set to true, use loudPrintf and mprinterr.
-  */
-void Topology::PrintResidueInfo(std::string const& maskString) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return;
-  if ( mask.None() )
-    mprinterr("\tSelection is empty.\n");
-  else {
-    int awidth = DigitWidth(atoms_.size());
-    if (awidth < 5) awidth = 5;
-    int rwidth = DigitWidth(residues_.size());
-    if (rwidth < 5) rwidth = 5;
-    int mwidth = DigitWidth(molecules_.size());
-    if (mwidth < 5) mwidth = 5;
-    loudPrintf("%-*s %4s %*s %*s %*s %*s %*s\n", rwidth, "#Res", "Name",
-               awidth, "First", awidth, "Last", 
-               awidth, "Natom", rwidth, "#Orig", mwidth, "#Mol");
-    int rn = -1;
-    for (AtomMask::const_iterator atom = mask.begin();
-                                  atom != mask.end(); ++atom)
-    {
-      if (atoms_[*atom].ResNum() > rn) {
-        rn = atoms_[*atom].ResNum();
-        Residue const& res = residues_[rn];
-        loudPrintf("%*i %4s %*i %*i %*i %*i %*i %c\n", rwidth, rn+1, res.c_str(),
-                   awidth, res.FirstAtom()+1, awidth, res.LastAtom(),
-                   awidth, res.NumAtoms(), rwidth, res.OriginalResNum(),
-                   mwidth, atoms_[*atom].MolNum()+1, res.ChainID());
-      }
-    }
-  }
-}
-
-/** Print residue info using single char names. */
-void Topology::PrintShortResInfo(std::string const& maskString, int maxChar) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return;
-  if ( mask.None() )
-    mprinterr("\tSelection is empty.\n");
-  else {
-    // Determine last selected residue.
-    int max_res = atoms_[mask.back()].ResNum();
-    int total = 0;
-    int rn = -1, startRes = -1;
-    std::string resLine;
-    for (AtomMask::const_iterator atom = mask.begin();
-                                  atom != mask.end(); ++atom)
-    {
-      int current_res = atoms_[*atom].ResNum();
-      if (current_res > rn) {
-        int n_res_skipped = 1;
-        if (startRes == -1)
-          startRes = current_res;
-        else
-          n_res_skipped = current_res - rn;
-        // If we skipped any residues print last consective segment and start a new one.
-        if (n_res_skipped > 1) {
-          mprintf("%-8i %s\n", startRes+1, resLine.c_str());
-          startRes = current_res;
-          resLine = residues_[current_res].SingleCharName();
-          total = 1;
-        } else {
-          // Convert residue name.
-          resLine += residues_[current_res].SingleCharName();
-          total++;
-        }
-        // Print if max line length reached or final res.
-        if ((total%maxChar)==0 || current_res == max_res)
-        {
-          mprintf("%-8i %s\n", startRes+1, resLine.c_str());
-          if (current_res == max_res) break;
-          startRes = -1;
-          resLine.clear();
-        } else if ((total % 10) == 0)
-          resLine += ' ';
-        rn = current_res;
-      }
-    }
-  }
-}
-
-// Topology::PrintChargeMassInfo()
-int Topology::PrintChargeMassInfo(std::string const& maskString, int type) const {
-  AtomMask mask( maskString );
-  if (SetupIntegerMask( mask )) return 1;
-  if (type == 0 || type == 2) {
-    mprintf("\tSum of charges in mask");
-    mask.BriefMaskInfo();
-    double sumq = 0.0;
-    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
-      sumq += atoms_[*aidx].Charge();
-    mprintf(" is %g\n", sumq);
-  }
-  if (type == 1 || type == 2) {
-    mprintf("\tSum of masses in mask");
-    mask.BriefMaskInfo();
-    double summ = 0.0;
-    for (AtomMask::const_iterator aidx = mask.begin(); aidx != mask.end(); ++aidx)
-      summ += atoms_[*aidx].Mass();
-    mprintf(" is %g\n", summ);
-  }
-  return 0; 
-}
-
 // -----------------------------------------------------------------------------
 // Topology::AddTopAtom()
 int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
-  if ( residues_.empty() || residues_.back().OriginalResNum() != resIn.OriginalResNum() )
+  if ( residues_.empty() || 
+       residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
+       residues_.back().Icode() != resIn.Icode() )
   {
     // Last atom of old residue is == current # atoms.
     if (!residues_.empty())
@@ -615,17 +290,20 @@ void Topology::StartNewMol() {
     //mprintf("DEBUG:\tMolecule %zu, atoms %i to %zu\n",
     //       molecules_.size(), lastAtom, atoms_.size());
   }
+  residues_.back().SetTerminal( true );
 }
 
 // Topology::CommonSetup()
-int Topology::CommonSetup() {
+int Topology::CommonSetup(bool molsearch) {
   // TODO: Make bond parm assignment / molecule search optional?
   // Assign default lengths if necessary (for e.g. CheckStructure)
   if (bondparm_.empty())
     AssignBondParameters();
-  // Always determine molecule info from bonds
-  if (DetermineMolecules())
-    mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  if (molsearch) {
+    // Determine molecule info from bonds
+    if (DetermineMolecules())
+      mprinterr("Error: Could not determine molecule information for %s.\n", c_str());
+  }
   // Check that molecules do not share residue numbers. Only when bond searching.
   // FIXME always check? 
   if (!molecules_.empty() && molecules_.size() > 1) {
@@ -757,67 +435,39 @@ static inline int NoAtomsErr(const char* msg) {
   return 1;
 }
 
-// Topology::SetBondInfo()
-int Topology::SetBondInfo(BondArray const& bondsIn, BondArray const& bondshIn,
-                          BondParmArray const& bondparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("bonds");
-  // Clear away bond info from atoms array.
-  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    atom->ClearBonds();
-  bonds_ = bondsIn;
-  bondsh_ = bondshIn;
-  // Create bonds in atom array.
-  SetAtomBondInfo( bonds_ );
-  SetAtomBondInfo( bondsh_ );
-  bondparm_ = bondparmIn;
+// Topology::Resize()
+void Topology::Resize(Pointers const& pIn) {
+  atoms_.clear();
+  residues_.clear();
+  molecules_.clear();
+  radius_set_.clear();
+  bonds_.clear();
+  bondsh_.clear();
+  bondparm_.clear();
+  angles_.clear();
+  anglesh_.clear();
+  angleparm_.clear();
+  dihedrals_.clear();
+  dihedralsh_.clear();
+  dihedralparm_.clear();
+  nonbond_.Clear();
+  cap_.Clear();
+  lesparm_.Clear();
+  chamber_.Clear();
+  extra_.clear();
+  parmBox_.SetNoBox();
+  refCoords_ = Frame();
+  ipol_ = 0;
+  NsolventMolecules_ = 0;
+  n_extra_pts_ = 0;
+  n_atom_types_ = 0;
 
-  return 0;
-}
-
-// Topology::SetAngleInfo()
-int Topology::SetAngleInfo(AngleArray const& anglesIn, AngleArray const& angleshIn,
-                           AngleParmArray const& angleparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("angles"); 
-  angles_ = anglesIn;
-  anglesh_ = angleshIn;
-  angleparm_ = angleparmIn;
-  return 0;
-}
-
-// Topology::SetDihedralInfo()
-int Topology::SetDihedralInfo(DihedralArray const& dihedralsIn, DihedralArray const& dihedralshIn,
-                              DihedralParmArray const& dihedralparmIn)
-{
-  if (atoms_.empty()) return NoAtomsErr("dihedrals"); 
-  dihedrals_ = dihedralsIn;
-  dihedralsh_ = dihedralshIn;
-  dihedralparm_ = dihedralparmIn;
-  return 0;
-}
-
-/** This is for any extra information that is not necessarily pertinent to
-  * all topologies, like Ambers ITREE or PDB B factors etc.
-  */
-int Topology::SetExtraAtomInfo(int natyp, std::vector<AtomExtra> const& extraIn)
-{
-  n_atom_types_ = natyp;
-  if (!extraIn.empty()) {
-    if (extraIn.size() != atoms_.size()) {
-      mprinterr("Error: Size of extra atom info (%zu) != # atoms (%zu)\n",
-                 extraIn.size(), atoms_.size());
-      return 1;
-    }
-    extra_ = extraIn;
-  }
-  return 0;
-}
-
-// Topology::SetNonbondInfo()
-int Topology::SetNonbondInfo(NonbondParmType const& nonbondIn) {
-  nonbond_ = nonbondIn;
-  return 0;
+  atoms_.resize( pIn.natom_ );
+  residues_.resize( pIn.nres_ );
+  extra_.resize( pIn.nextra_ );
+  bondparm_.resize( pIn.nBndParm_ );
+  angleparm_.resize( pIn.nAngParm_ );
+  dihedralparm_.resize( pIn.nDihParm_ );
 }
 
 double Topology::GetVDWradius(int a1) const {
@@ -886,19 +536,39 @@ void Topology::AssignBondParameters() {
 } 
 
 // Topology::AddBond()
+void Topology::AddBond(int atom1, int atom2, BondParmType const& BPin) {
+  // See if the BondParm exists.
+  int pidx = -1;
+  for (BondParmArray::const_iterator bp = bondparm_.begin(); bp != bondparm_.end(); ++bp)
+    if ( fabs(BPin.Rk()  - bp->Rk() ) < Constants::SMALL &&
+         fabs(BPin.Req() - bp->Req()) < Constants::SMALL )
+    {
+      pidx = (int)(bp - bondparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)bondparm_.size();
+    bondparm_.push_back( BPin );
+  }
+  AddBond( atom1, atom2, pidx );
+}
+
+static inline int WarnOutOfRange(int Natom, int atom, const char* type) {
+  if (atom < 0 || atom >= Natom) {
+    mprintf("Warning: Atom # %i is out of range, cannot create %s.\n", atom+1, type);
+    return 1;
+  }
+  return 0;
+}
+
+// Topology::AddBond()
 /** Create a bond between atom1 and atom2, update the atoms array.
   * For bonds to H always insert the H second.
   */
-void Topology::AddBond(int atom1, int atom2) {
+void Topology::AddBond(int atom1, int atom2, int pidxIn) {
   // Check if atoms are out of range.
-  if (atom1 < 0 || atom1 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom1+1);
-    return;
-  }
-  if (atom2 < 0 || atom2 >= (int)atoms_.size()) {
-    mprintf("Warning: Atom # %i is out of range, cannot create bond.\n", atom2+1);
-    return;
-  }
+  if (WarnOutOfRange(atoms_.size(), atom1, "bond")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "bond")) return;
   // Check for duplicate bond
   for (Atom::bond_iterator ba = atoms_[atom1].bondbegin();
                            ba != atoms_[atom1].bondend(); ++ba)
@@ -907,45 +577,153 @@ void Topology::AddBond(int atom1, int atom2) {
         mprintf("Warning: Bond between atoms %i and %i already exists.\n", atom1+1, atom2+1);
       return;
     }
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)bondparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No bond parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
   bool a1H = (atoms_[atom1].Element() == Atom::HYDROGEN);
   bool a2H = (atoms_[atom2].Element() == Atom::HYDROGEN);
   //mprintf("\t\t\tAdding bond %i to %i (isH=%i)\n",atom1+1,atom2+1,(int)isH);
   // Update bonds arrays
   if (a1H || a2H) {
     if (a1H)
-      bondsh_.push_back( BondType(atom2, atom1, -1) );
+      bondsh_.push_back( BondType(atom2, atom1, pidx) );
     else
-      bondsh_.push_back( BondType(atom1, atom2, -1) );
+      bondsh_.push_back( BondType(atom1, atom2, pidx) );
   } else
-    bonds_.push_back( BondType( atom1, atom2, -1 ) );
+    bonds_.push_back( BondType( atom1, atom2, pidx ) );
   // Update atoms
   atoms_[atom1].AddBondToIdx( atom2 );
   atoms_[atom2].AddBondToIdx( atom1 );
 }
 
-void Topology::AddAngle(int atom1, int atom2, int atom3) {
+/** For use when element data may not yet be available. If isH, it is
+  * assumed that the second atom is the H.
+  */
+void Topology::AddBond(BondType const& bndIn, bool isH) {
+  if (isH)
+    bondsh_.push_back( bndIn );
+  else
+    bonds_.push_back( bndIn );
+  // Update atoms
+  atoms_[bndIn.A1()].AddBondToIdx( bndIn.A2() );
+  atoms_[bndIn.A2()].AddBondToIdx( bndIn.A1() );
+}
+
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, AngleParmType const& APin) {
+  // See if the AngleParm exists.
+  int pidx = -1;
+  for (AngleParmArray::const_iterator ap = angleparm_.begin(); ap != angleparm_.end(); ++ap)
+    if ( fabs(APin.Tk()  - ap->Tk() ) < Constants::SMALL &&
+         fabs(APin.Teq() - ap->Teq()) < Constants::SMALL )
+    {
+      pidx = (int)(ap - angleparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)angleparm_.size();
+    angleparm_.push_back( APin );
+  }
+  AddAngle( atom1, atom2, atom3, pidx );
+}
+
+// Topology::AddAngle() 
+void Topology::AddAngle(int atom1, int atom2, int atom3, int pidxIn) {
   // FIXME: Check duplicate
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), atom1, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom2, "angle")) return;
+  if (WarnOutOfRange(atoms_.size(), atom3, "angle")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)angleparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No angle parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  // Update angle arrays
   if (atoms_[atom1].Element() == Atom::HYDROGEN ||
       atoms_[atom2].Element() == Atom::HYDROGEN ||
       atoms_[atom3].Element() == Atom::HYDROGEN)
-    anglesh_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    anglesh_.push_back( AngleType(atom1, atom2, atom3, pidx) );
   else
-    angles_.push_back( AngleType(atom1, atom2, atom3, -1) );
+    angles_.push_back( AngleType(atom1, atom2, atom3, pidx) );
 }
 
-void Topology::AddDihedral(int atom1, int atom2, int atom3, int atom4) {
+// Topology::AddAngle()
+void Topology::AddAngle(AngleType const& angIn, bool isH) {
+  if (isH)
+    anglesh_.push_back( angIn );
+  else
+    angles_.push_back( angIn );
+}
+
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dih, DihedralParmType const& DPin)
+{
+  // See if the DihedralParm exists.
+  int pidx = -1;
+  for (DihedralParmArray::const_iterator dp = dihedralparm_.begin();
+                                         dp != dihedralparm_.end(); ++dp)
+    if ( fabs(DPin.Pk()    - dp->Pk()   ) < Constants::SMALL &&
+         fabs(DPin.Pn()    - dp->Pn()   ) < Constants::SMALL &&
+         fabs(DPin.Phase() - dp->Phase()) < Constants::SMALL &&
+         fabs(DPin.SCEE()  - dp->SCEE() ) < Constants::SMALL &&
+         fabs(DPin.SCNB()  - dp->SCNB() ) < Constants::SMALL )
+    {
+      pidx = (int)(dp - dihedralparm_.begin());
+      break;
+    }
+  if (pidx == -1) {
+    pidx = (int)dihedralparm_.size();
+    dihedralparm_.push_back( DPin );
+  }
+  AddDihedral( dih, pidx );
+}
+
+// Topology::AddDihedral()
+void Topology::AddDihedral(DihedralType const& dihIn, int pidxIn) {
   // FIXME: Check duplicate
-  if (atoms_[atom1].Element() == Atom::HYDROGEN ||
-      atoms_[atom2].Element() == Atom::HYDROGEN ||
-      atoms_[atom3].Element() == Atom::HYDROGEN ||
-      atoms_[atom4].Element() == Atom::HYDROGEN)
-    dihedralsh_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+  // Check if atoms are out of range.
+  if (WarnOutOfRange(atoms_.size(), dihIn.A1(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A2(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A3(), "dihedral")) return;
+  if (WarnOutOfRange(atoms_.size(), dihIn.A4(), "dihedral")) return;
+  // Check if parm index is out of range;
+  int pidx;
+  if (pidxIn < (int)dihedralparm_.size())
+    pidx = pidxIn;
+  else {
+    mprintf("Warning: No dihedral parameters for index %i\n", pidxIn);
+    pidx = -1;
+  }
+  DihedralType dih = dihIn;
+  dih.SetIdx( pidx );
+  // Update dihedral arrays
+  if (atoms_[dih.A1()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A2()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A3()].Element() == Atom::HYDROGEN ||
+      atoms_[dih.A4()].Element() == Atom::HYDROGEN)
+    dihedralsh_.push_back( dih );
   else
-    dihedrals_.push_back( DihedralType(atom1, atom2, atom3, atom4, -1) );
+    dihedrals_.push_back( dih );
 }
 
+void Topology::AddDihedral(DihedralType const& dihIn, bool isH) {
+  if (isH)
+    dihedralsh_.push_back( dihIn );
+  else
+    dihedrals_.push_back( dihIn );
+}
+
+// -----------------------------------------------------------------------------
 // Topology::VisitAtom()
-// NOTE: Use iterator instead of atom num?
 void Topology::VisitAtom(int atomnum, int mol) {
   // Return if this atom already has a molecule number
   if (!atoms_[atomnum].NoMol()) return;
@@ -957,21 +735,13 @@ void Topology::VisitAtom(int atomnum, int mol) {
     VisitAtom(*bondedatom, mol);
 }
 
-// Topology::DetermineMolecules()
-/** Determine individual molecules using bond information. Performs a 
-  * recursive search over the bonds of each atom.
-  */
-int Topology::DetermineMolecules() {
-  std::vector<Atom>::iterator atom;
-  // Since this is always done only print when debugging
-  if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
-  // Reset molecule info for each atom
-  for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-    atom->SetMol( -1 );
-  // Perform recursive search along bonds of each atom
-  int mol = 0;
+/** Recursive search for molecules along bonds of each atom. */
+int Topology::RecursiveMolSearch() {
+  //Timer t_stack;
+  //t_stack.Start();
   int atomnum = 0;
-  for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
+  int mol = 0;
+  for (std::vector<Atom>::const_iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
   {
     if ( atom->NoMol() ) {
       VisitAtom( atomnum, mol );
@@ -979,19 +749,115 @@ int Topology::DetermineMolecules() {
     }
     ++atomnum;
   }
-  if (debug_>0) {
-    mprintf("\t%i molecules.\n",mol);
+  //t_stack.Stop();
+  //t_stack.WriteTiming(1, "Recursive mol search:");
+  return mol;
+}
+
+/** Non-recursive molecule search. Better for larger systems, uses the heap. */
+int Topology::NonrecursiveMolSearch() {
+  if (debug_ > 0) mprintf("DEBUG: Beginning non-recursive molecule search.\n");
+  // Recursive search for high atom counts can blow the stack away.
+  //Timer t_nostack;
+  //t_nostack.Start();
+  std::stack<unsigned int> nextAtomToSearch;
+  bool unassignedAtomsRemain = true;
+  unsigned int currentAtom = 0;
+  unsigned int currentMol = 0;
+  unsigned int lowestUnassignedAtom = 0;
+  while (unassignedAtomsRemain) {
+    // This atom is in molecule.
+    atoms_[currentAtom].SetMol( currentMol );
+    //mprintf("DEBUG:\tAssigned atom %u to mol %u\n", currentAtom, currentMol);
+    // All atoms bonded to this one are in molecule.
+    for (Atom::bond_iterator batom = atoms_[currentAtom].bondbegin();
+                             batom != atoms_[currentAtom].bondend(); ++batom)
+    {
+      if (atoms_[*batom].NoMol()) {
+        if (atoms_[*batom].Nbonds() > 1)
+          // Bonded atom has more than 1 bond; needs to be searched.
+          nextAtomToSearch.push( *batom );
+        else {
+          // Bonded atom only bonded to current atom. No more search needed.
+          atoms_[*batom].SetMol( currentMol );
+          //mprintf("DEBUG:\t\tAssigned bonded atom %i to mol %u\n", *batom, currentMol);
+        }
+      }
+    }
+    if (nextAtomToSearch.empty()) {
+      //mprintf("DEBUG:\tNo atoms left in stack. Searching for next unmarked atom.\n");
+      // No more atoms to search. Find next unmarked atom.
+      currentMol++;
+      unsigned int idx = lowestUnassignedAtom;
+      for (; idx != atoms_.size(); idx++)
+        if (atoms_[idx].NoMol()) break;
+      if (idx == atoms_.size())
+        unassignedAtomsRemain = false;
+      else {
+        currentAtom = idx;
+        lowestUnassignedAtom = idx + 1;
+      }
+    } else {
+      currentAtom = nextAtomToSearch.top();
+      nextAtomToSearch.pop();
+      //mprintf("DEBUG:\tNext atom from stack: %u\n", currentAtom);
+    }
+  }
+  //t_nostack.Stop();
+  //t_nostack.WriteTiming(1, "Non-recursive mol search:");
+  return (int)currentMol;
+}
+
+// Topology::ClearMolecules()
+/** Clear molecules and reset molecule info for each atom. */
+void Topology::ClearMolecules() {
+  molecules_.clear();
+  for (std::vector<Atom>::iterator atom = atoms_.begin(); atom != atoms_.end(); atom++)
+    atom->SetMol( -1 );
+}
+
+// Topology::DetermineMolecules()
+/** Determine individual molecules using bond information. Performs a 
+  * recursive search over the bonds of each atom.
+  */
+int Topology::DetermineMolecules() {
+  // Since this is always done only print when debugging
+  if (debug_>0) mprintf("\t%s: determining molecule info from bonds.\n",c_str());
+  // Reset molecule info for each atom
+  ClearMolecules();
+  int numberOfMolecules = 0;
+  if (atoms_.size() > 150000) // Seems to be when performance of nonrecursive approaches recursive
+    numberOfMolecules = NonrecursiveMolSearch();
+  else
+    numberOfMolecules = RecursiveMolSearch();
+/*// DEBUG Compare both methods
+  int test_nmol = NonrecursiveMolSearch();
+  std::vector<int> molNums( atoms_.size() );
+  for (unsigned int idx = 0; idx != atoms_.size(); idx++)
+    molNums[idx] = atoms_[idx].MolNum();
+  ClearMolecules();
+  numberOfMolecules = RecursiveMolSearch();
+  if (test_nmol != numberOfMolecules)
+    mprintf("Num mols found with non-recursive search (%i) does not match (%i)\n",
+            test_nmol, numberOfMolecules);
+  for (unsigned int idx = 0; idx != atoms_.size(); idx++)
+    if (molNums[idx] != atoms_[idx].MolNum())
+      mprintf("%u: Mol num in non-recursive search %i does not match %i\n",
+              idx, molNums[idx], atoms_[idx].MolNum());
+*/
+  if (debug_ > 0) {
+    mprintf("\t%i molecules.\n", numberOfMolecules);
     if (debug_ > 1)
-    for (atom = atoms_.begin(); atom != atoms_.end(); ++atom)
+    for (std::vector<Atom>::const_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom)
       mprintf("\t\tAtom %i assigned to molecule %i\n", atom - atoms_.begin(), atom->MolNum());
   }
 
   // Update molecule information
-  molecules_.resize( mol );
-  if (mol == 0) return 0;
+  molecules_.resize( numberOfMolecules );
+  if (numberOfMolecules == 0) return 0;
   std::vector<Molecule>::iterator molecule = molecules_.begin();
   molecule->SetFirst(0);
-  atom = atoms_.begin(); 
+  std::vector<Atom>::const_iterator atom = atoms_.begin(); 
   int lastMol = atom->MolNum();
   int atomNum = 0;
   for (; atom != atoms_.end(); atom++)
@@ -1015,10 +881,7 @@ int Topology::DetermineMolecules() {
                 "Error:   associated coordinates.\n"
                 "Error: - Use the 'setMolecules' command in parmed to reorder only the\n"
                 "Error:   topology.\n", atom - atoms_.begin() + 1);
-      molecules_.clear();
-      // Reset molecule info for each atom
-      for (atom = atoms_.begin(); atom != atoms_.end(); atom++)
-        atom->SetMol( -1 );
+      ClearMolecules();
       return 1;
     }
     ++atomNum;
@@ -1027,6 +890,7 @@ int Topology::DetermineMolecules() {
   return 0;
 }
 
+// -----------------------------------------------------------------------------
 // Topology::AtomDistance()
 void Topology::AtomDistance(int originalAtom, int atom, int dist, std::set<int> &excluded) const 
 {
@@ -1253,6 +1117,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
 
   // Reverse Atom map
   std::vector<int> atomMap( atoms_.size(),-1 );
+  // Save solvent status of atoms
+  std::vector<bool> isSolvent;
+  isSolvent.reserve( MapIn.size() );
 
   // Copy atoms from this parm that are in Mask to newParm.
   int oldres = -1;
@@ -1281,6 +1148,9 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     newparmAtom.ClearBonds();
     // Set new atom num and residue num
     newparmAtom.SetResNum( newParm->residues_.size() - 1 );
+    // Check if this atom belongs to a solvent molecule.
+    if (!molecules_.empty())
+      isSolvent.push_back( Mol(newparmAtom.MolNum()).IsSolvent() );
     // Place new atom in newParm
     newParm->atoms_.push_back( newparmAtom );
   }
@@ -1324,11 +1194,30 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Could not set up molecule information for stripped topology %s\n",
             newParm->c_str());
   }
-  // Set new solvent information based on new molecules
-  if (newParm->SetSolventInfo()) {
-    mprintf("Warning: Could not set up solvent information for stripped topology %s\n",
-            newParm->c_str());
-  } 
+
+  // Determine solvent
+  if (!molecules_.empty()) {
+    // Set new solvent information based on old molecules
+    // For speed just check the first atom. A strip should never create new
+    // molecules, just break up previous ones, so if a new molecule has an atom
+    // that was solvent it is still solvent.
+    newParm->NsolventMolecules_ = 0;
+    for (std::vector<Molecule>::iterator mol = newParm->molecules_.begin();
+                                         mol != newParm->molecules_.end(); ++mol)
+    {
+      if ( isSolvent[ mol->BeginAtom() ] ) {
+        mol->SetSolvent();
+        newParm->NsolventMolecules_++;
+      } else
+        mol->SetNoSolvent();
+    }
+  } else {
+    // No solvent information previously. Check if there is solvent now,
+    // which could be the case if molecule information was not previously
+    // determined.
+    newParm->SetSolventInfo();
+  }
+
   // Set up new angle info
   newParm->angles_ = StripAngleArray( angles_, atomMap );
   newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
@@ -1368,22 +1257,15 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
       {
         int atm2 = oldTypeArray[a2idx];
         int oldnbidx = nonbond_.GetLJindex( atm1, atm2 );
-        // NOTE: Certain routines in sander (like the 1-4 calcs) do NOT use
-        //       the nonbond index array; instead they expect the nonbond
-        //       arrays to be indexed like '(ibig*(ibig-1)/2+isml)', where
-        //       ibig is the larger atom type index.
-        int ibig = std::max(a1idx, a2idx) + 1;
-        int isml = std::min(a1idx, a2idx) + 1;
-        int testidx = (ibig*(ibig-1)/2+isml)-1;
         if (oldnbidx > -1) {
           // This is a traditional LJ 6-12 term. Because of the way the LJ 1-4
           // code is laid out in sander/pmemd the LJ matrix has to be laid out
           // indepdendent of the nonbond index array.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, nonbond_.NBarray(oldnbidx) );
         } else {
           // This is an old LJ 10-12 hbond term. Add one to the LJ 6-12 matrix
           // and one to the hbond since that seems to be the convention.
-          newParm->nonbond_.AddLJterm( testidx, a1idx, a2idx, NonbondType() );
+          newParm->nonbond_.AddLJterm( a1idx, a2idx, NonbondType() );
           newParm->nonbond_.AddHBterm( a1idx, a2idx, nonbond_.HBarray((-oldnbidx)-1) );
         }
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
@@ -1411,7 +1293,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
   // CHAMBER info - Parameters remain intact
   if (chamber_.HasChamber()) {
-    newParm->chamber_.SetChamber( chamber_.FF_Version(), chamber_.FF_Type() );
+    newParm->chamber_.SetVersion( chamber_.FF_Version(), chamber_.FF_Type() );
     newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
     newParm->chamber_.SetImproper( StripDihedralArray(chamber_.Impropers(),atomMap),
                                    chamber_.ImproperParm() );
@@ -1585,28 +1467,290 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
 }
 
 // Topology::AddBondArray()
-void Topology::AddBondArray(BondArray const& barray, int atomOffset) {
-  for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
-    AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+void Topology::AddBondArray(BondArray const& barray, BondParmArray const& bp, int atomOffset) {
+  if (bp.empty())
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset );
+  else
+    for (BondArray::const_iterator bond = barray.begin(); bond != barray.end(); ++bond)
+      AddBond( bond->A1() + atomOffset, bond->A2() + atomOffset, bp[bond->Idx()] );
 }
 
+// Topology::AddAngleArray()
+void Topology::AddAngleArray(AngleArray const& aarray, AngleParmArray const& ap, int atomOffset) {
+  if (ap.empty())
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset );
+  else
+    for (AngleArray::const_iterator angle = aarray.begin(); angle != aarray.end(); ++angle)
+      AddAngle( angle->A1() + atomOffset,
+                angle->A2() + atomOffset,
+                angle->A3() + atomOffset, ap[angle->Idx()] );
+}
+
+// Topology::AddDihArray()
+void Topology::AddDihArray(DihedralArray const& darray, DihedralParmArray const& dp, int atomOffset)
+{
+  if (dp.empty())
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), -1 );
+  else
+    for (DihedralArray::const_iterator dih = darray.begin(); dih != darray.end(); ++dih)
+      AddDihedral( DihedralType( dih->A1() + atomOffset, dih->A2() + atomOffset,
+                                 dih->A3() + atomOffset, dih->A4() + atomOffset,
+                                 dih->Type() ), dp[dih->Idx()] );
+}
+
+/// Hold LJ params for a unique atom type
+class AtomType {
+  public:
+    AtomType() : radius_(0.0), depth_(0.0) {}
+    AtomType(double r, double d, int o) : radius_(r), depth_(d), oidx_(o) {}
+    double Radius() const { return radius_; }
+    double Depth()  const { return depth_;  }
+    int OriginalIdx() const { return oidx_; }
+    bool operator<(AtomType const& rhs)  const {
+      return ( (radius_ < rhs.radius_) && (depth_ < rhs.depth_) );
+    }
+    bool operator==(AtomType const& rhs) const {
+      return ( (fabs(radius_ - rhs.radius_) < Constants::SMALL) &&
+               (fabs(depth_  - rhs.depth_ ) < Constants::SMALL) );
+    }
+    NonbondType Combine_LB(AtomType const& rhs) const {
+      double dR = radius_ + rhs.radius_;
+      double dE = sqrt( depth_ * rhs.depth_ );
+      double dR2 = dR * dR;
+      double dR6 = dR2 * dR2 * dR2;
+      double dER6 = dE * dR6;
+      return NonbondType( dER6*dR6, 2.0*dER6 );
+    }
+  private:
+    double radius_; ///< VDW radius
+    double depth_;  ///< LJ well-depth
+    int oidx_; ///< Original atom type index.
+};
+
+/// Map type indices to LJ parameters 
+class TypeArray {
+  public:
+    typedef std::map<int,AtomType> Tarray;
+    typedef Tarray::const_iterator const_iterator;
+    typedef std::pair<int,AtomType> Tpair;
+    TypeArray() {}
+    unsigned int size()    const { return types_.size();  }
+    const_iterator begin() const { return types_.begin(); }
+    const_iterator end()   const { return types_.end();   }
+    AtomType const& LastType() const { return lastType_->second; }
+    /// Add params for atom to array if not present
+    int AddAtomType(Atom const& atom, int anum, Topology const& top) {
+      if (atom.TypeIndex() < 0 || atom.Type().len() < 1) {
+        mprintf("Warning: Invalid atom type information in '%s'\n", top.c_str());
+        return 1;
+      }
+      //mprintf("DEBUG: %s %s %i %s\n", *(atom.Name()), *(atom.Type()), anum, top.c_str());
+      // See if index already present.
+      Tarray::iterator it = types_.find( atom.TypeIndex() );
+      if (it == types_.end()) {
+        AtomType type(top.GetVDWradius(anum), top.GetVDWdepth(anum), atom.TypeIndex());
+        //mprintf("\tAdding [%4zu] %4i %s %12.5g %12.5g (%s)\n", types_.size(), 
+        //         atom.TypeIndex(), *(atom.Type()),
+        //         type.Radius(), type.Depth(), top.c_str());
+        std::pair<Tarray::iterator, bool> ret = types_.insert( Tpair(atom.TypeIndex(), type) );
+        lastType_ = ret.first;
+      }
+      return 0;
+    }
+    /// Add to array
+    void AddType(int idx, AtomType const& typeIn) { types_.insert(Tpair(idx, typeIn)); }
+  private:
+    Tarray types_;
+    Tarray::iterator lastType_;
+};
+
 // Topology::AppendTop()
-int Topology::AppendTop(Topology const& CurrentTop) {
+int Topology::AppendTop(Topology const& NewTop) {
   int atomOffset = (int)atoms_.size();
   int resOffset = (int)residues_.size();
+
+  // NONBONDS
+  // Make sure that either both topologies have non-bond parameters or neither
+  // do. If the current topology is empty just check incoming topology.
+  bool doNonBond = true;
+  if (atoms_.empty()) {
+    doNonBond = NewTop.Nonbond().HasNonbond();
+  } else {
+    doNonBond = (Nonbond().HasNonbond() && NewTop.Nonbond().HasNonbond());
+    if (!doNonBond && (Nonbond().HasNonbond() != NewTop.Nonbond().HasNonbond())) {
+      if (Nonbond().HasNonbond())
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", NewTop.c_str());
+      else
+        mprintf("Warning: Topology '%s' does not have non-bond parameters.\n", c_str());
+    }
+  }
+  // Create an array of existing nonbond types so we can compare to incoming.
+  TypeArray ExistingTypes;
+  if (doNonBond) {
+    for (atom_iterator atom = atoms_.begin(); atom != atoms_.end(); ++atom) {
+      if (ExistingTypes.AddAtomType(*atom, atom-atoms_.begin(), *this)) {
+        doNonBond = false;
+        break;
+      }
+    }
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu existing atom type indices:\n", ExistingTypes.size());
+      for (TypeArray::const_iterator ti = ExistingTypes.begin();
+                                     ti != ExistingTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+    }
+  }
+  int NexistingAtomTypes = (int)ExistingTypes.size();
+  int currentTypeIdx = NexistingAtomTypes;
+
   // ATOMS
-  for (atom_iterator atom = CurrentTop.begin(); atom != CurrentTop.end(); ++atom)
+  typedef std::map<int,int> TypeMap;
+  TypeMap type_newToExisting; ///< Track what existing atom type new types correspond to.
+  TypeArray NewTypes;
+  for (atom_iterator atom = NewTop.begin(); atom != NewTop.end(); ++atom)
   {
+    if (debug_ > 1)
+      mprintf("DBG: %6u %s %s %4i\n", atom-NewTop.begin(), 
+              *(atom->Name()), *(atom->Type()), atom->TypeIndex());
     Atom CurrentAtom = *atom;
-    Residue const& res = CurrentTop.Res( CurrentAtom.ResNum() );
+    Residue const& res = NewTop.Res( CurrentAtom.ResNum() );
     // Bonds need to be cleared and re-added.
     CurrentAtom.ClearBonds();
+    // NONBONDS
+    if (doNonBond) {
+      if (NewTypes.AddAtomType(*atom, atom-NewTop.begin(), NewTop)) {
+        doNonBond = false;
+      } else {
+        // Update type index
+        int newTypeIdx = -1;
+        // Check if this atom type has already been added to existing types.
+        TypeMap::iterator it = type_newToExisting.find( atom->TypeIndex() );
+        if (it == type_newToExisting.end()) {
+          // Type has not yet been mapped. See if it is an existing type.
+          for (TypeArray::const_iterator et = ExistingTypes.begin();
+                                         et != ExistingTypes.end(); ++et)
+            if (et->second == NewTypes.LastType()) {
+              newTypeIdx = et->first;
+              type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
+              if (debug_ > 1)
+                mprintf("\tType (%i) matches existing type (%i)\n",
+                        atom->TypeIndex(), newTypeIdx);
+              break;
+            }
+          if (newTypeIdx == -1) {
+            // Type not found among existing types. Need new type index.
+            if (debug_ > 1)
+              mprintf("\tNeed new type. Converting %i to %i\n",
+                      atom->TypeIndex(), currentTypeIdx);
+            newTypeIdx = currentTypeIdx;
+            type_newToExisting.insert(std::pair<int,int>(atom->TypeIndex(), newTypeIdx));
+            ExistingTypes.AddType(newTypeIdx, NewTypes.LastType());
+            currentTypeIdx++;
+          }
+        } else {
+          // Type has been mapped.
+          newTypeIdx = it->second;
+          if (debug_ > 1)
+            mprintf("\tType %i already present as %i.\n", atom->TypeIndex(),newTypeIdx);
+        }
+        // Update type index
+        CurrentAtom.SetTypeIndex( newTypeIdx );
+      }
+    }
     AddTopAtom( CurrentAtom, Residue(res.Name(), CurrentAtom.ResNum() + resOffset,
                                      res.Icode(), res.ChainID()) );
+  } // END loop over incoming atoms
+  // NONBONDS
+  if (!doNonBond) {
+    if (Nonbond().HasNonbond()) {
+      mprintf("Warning: Removing non-bond parameters\n");
+      nonbond_.Clear();
+    }
+  } else {
+    // DEBUG
+    if (debug_ > 0) {
+      mprintf("DEBUG: %zu new atom type indices:\n", NewTypes.size());
+      for (TypeArray::const_iterator ti = NewTypes.begin();
+                                     ti != NewTypes.end(); ++ti)
+        mprintf("\t%8i %12.5g %12.5g\n", ti->first, ti->second.Radius(), ti->second.Depth());
+      mprintf("DEBUG: New to existing mapping:\n");
+      for (TypeMap::const_iterator it = type_newToExisting.begin();
+                                   it != type_newToExisting.end(); ++it)
+        mprintf("\t%6i to %6i\n", it->first, it->second);
+      mprintf("DEBUG: Atom Types:\n");
+      for (TypeArray::const_iterator it = ExistingTypes.begin();
+                                     it != ExistingTypes.end(); ++it)
+      {
+        mprintf("\t%8i %12.5g %12.5g (%8i)", it->first, it->second.Radius(),
+                it->second.Depth(), it->second.OriginalIdx());
+        if (it->first >= NexistingAtomTypes)
+          mprintf(" (NEW)\n");
+        else
+          mprintf(" (EXISTING)\n");
+      }
+    }
+    // Set up new nonbond array.
+    NonbondParmType newNB;
+    newNB.SetupLJforNtypes( ExistingTypes.size() );
+    // Go through all interactions.
+    for (TypeArray::const_iterator t1 = ExistingTypes.begin();
+                                   t1 != ExistingTypes.end(); ++t1)
+    {
+      for (TypeArray::const_iterator t2 = ExistingTypes.begin();
+                                     t2 != ExistingTypes.end(); ++t2)
+      {
+        if (t1->first >= t2->first)
+        {
+          bool OneIsNew = (t1->first >= NexistingAtomTypes);
+          bool TwoIsNew = (t2->first >= NexistingAtomTypes);
+          NonbondType LJ = LJ_EMPTY;
+          if (OneIsNew && TwoIsNew) {
+            // Both types from new topology. Look there for LJ params using
+            // the original atom indices.
+            int nbidx = NewTop.Nonbond().GetLJindex( t1->second.OriginalIdx(),
+                                                     t2->second.OriginalIdx() );
+            if (nbidx >= 0)
+              LJ = NewTop.Nonbond().NBarray( nbidx );
+          } else if (!OneIsNew && !TwoIsNew) {
+            // Both types from existing topology. Look here for LJ params.
+            int nbidx = nonbond_.GetLJindex( t1->first, t2->first );
+            if (nbidx >= 0)
+              LJ = nonbond_.NBarray( nbidx );
+          } else {
+            // Mix new and existing.
+            LJ = t1->second.Combine_LB( t2->second );
+          }
+          if (debug_ > 1)
+            mprintf("DEBUG: Adding LJ term for %i %i A=%g B=%g\n", t1->first, t2->first,
+                    LJ.A(), LJ.B()); 
+          newNB.AddLJterm(t1->first, t2->first, LJ);
+        }
+      }
+    }
+    nonbond_ = newNB;
   }
+  // EXTRA ATOM INFO
+  for (Topology::extra_iterator extra = NewTop.extraBegin();
+                                extra != NewTop.extraEnd(); ++extra)
+    AddExtraAtomInfo( *extra );
   // BONDS
-  AddBondArray(CurrentTop.Bonds(),  atomOffset);
-  AddBondArray(CurrentTop.BondsH(), atomOffset);
+  AddBondArray(NewTop.Bonds(),  NewTop.BondParm(), atomOffset);
+  AddBondArray(NewTop.BondsH(), NewTop.BondParm(), atomOffset);
+  // ANGLES
+  AddAngleArray(NewTop.Angles(),  NewTop.AngleParm(), atomOffset);
+  AddAngleArray(NewTop.AnglesH(), NewTop.AngleParm(), atomOffset);
+  // DIHEDRALS
+  AddDihArray(NewTop.Dihedrals(),  NewTop.DihedralParm(), atomOffset);
+  AddDihArray(NewTop.DihedralsH(), NewTop.DihedralParm(), atomOffset);
+
   // Re-set up this topology
   // TODO: Could get expensive for multiple appends.
   return CommonSetup();

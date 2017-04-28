@@ -3,7 +3,12 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
-
+CheckNetcdf
+NotParallel "Contacts test."
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
 TOP="../tz2.truncoct.parm7"
 INPUT="ptraj.in"
 cat > ptraj.in <<EOF

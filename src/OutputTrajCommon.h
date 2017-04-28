@@ -38,6 +38,8 @@ class OutputTrajCommon {
     void CommonInfo() const;
     /// \return 1 if set should not be written.
     inline int CheckFrameRange(int);
+    /// \return 'true' if output frame range has been set up
+    inline bool HasRange() const { return hasRange_ || !frameCount_.DefaultSettings(); }
   private:
     FileName trajName_; // FIXME: Save this here?
     Topology* trajParm_;// FIXME: Save this here?
@@ -51,7 +53,12 @@ class OutputTrajCommon {
     // Trajout arguments
     TrajectoryFile::TrajFormatType writeFormat_;
     std::string title_;                ///< Output traj title.
-    bool nobox_;                       ///< If true do not put box information in output traj
+    bool noBox_;                       ///< If true do not put box information in output traj
+    bool noVel_;
+    bool noTemp_;
+    bool noTime_;
+    bool noFrc_;
+    bool noReps_;
     bool append_;                      ///< If true, append to this file.
     bool hasRange_;                    ///< If true a frame range is defined.
 };

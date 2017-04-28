@@ -3,6 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ac.in ac.agr dist.agr vac.agr
+CheckNetcdf
 INPUT="-i ac.in"
 cat > ac.in <<EOF
 parm ../tz2.parm7

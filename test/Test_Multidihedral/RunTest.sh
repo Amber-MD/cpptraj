@@ -5,10 +5,10 @@
 CleanFiles dih.in multidih.dat dihedral.dat custom.dat dihedral2.dat all.dat chin.dat
 
 INPUT="-i dih.in"
-
+CheckNetcdf
 cat > dih.in <<EOF
 parm ../tz2.parm7
-trajin ../tz2.nc 1 1
+trajin ../tz2.nc 1 10
 multidihedral out multidih.dat phi psi
 EOF
 for ((res = 1; res <= 12; res++)) ; do
@@ -31,14 +31,16 @@ DoTest dihedral2.dat custom.dat
 DoTest all.dat.save all.dat
 
 # Test nucleic acid chi
-cat > dih.in <<EOF
+MaxThreads 3 "Multidihedral Nucleotide CHI test."
+if [[ $? -eq 0 ]] ; then
+  cat > dih.in <<EOF
 parm ../adh026.3.pdb 
 trajin ../adh026.3.pdb 
 multidihedral chin out chin.dat
 EOF
-RunCpptraj "Multidihedral Nucleotide CHI test."
-DoTest chin.dat.save chin.dat
-
+  RunCpptraj "Multidihedral Nucleotide CHI test."
+  DoTest chin.dat.save chin.dat
+fi
 EndTest
 
 exit 0

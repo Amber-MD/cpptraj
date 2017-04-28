@@ -2,6 +2,9 @@
 #define INC_CPPTRAJFILE_H
 #include "FileName.h" 
 #include "FileIO.h"
+#ifdef MPI
+# include "Parallel.h"
+#endif
 /// Class to abstract handling of basic file routines.
 class CpptrajFile {
   public:
@@ -33,8 +36,8 @@ class CpptrajFile {
     int OpenRead(FileName const&);
     /// Set up and open file for writing.
     int OpenWrite(FileName const&);
-    /// Open file previously set up for write with given numeric suffix.
-    int OpenWriteNumbered(int);
+    /// Open file previously set up for write with given numeric suffix/extension prefix.
+    int OpenWriteNumbered(int,bool);
     /// Set up and open file for appending.
     int OpenAppend(FileName const&);
     // -------------------------------------------
@@ -47,6 +50,11 @@ class CpptrajFile {
     /// Prepare file for appending. 
     int SetupAppend(FileName const&, int);
     // -------------------------------------------
+#   ifdef MPI
+    int ParallelOpenFile(AccessType, Parallel::Comm const&);
+    int ParallelOpenFile(Parallel::Comm const& c) { return ParallelOpenFile(access_, c); }
+    // -------------------------------------------
+#   endif
     /// \return the access file is currently set up for.
     AccessType Access()         const { return access_;               }
     /// \return the compression type

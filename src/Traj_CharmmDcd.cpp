@@ -20,6 +20,7 @@ Traj_CharmmDcd::Traj_CharmmDcd() :
   coordinate_size_(0),
   nfixedat_(0),
   nfreeat_(0),
+  charmmCellType_(UNKNOWN),
   freeat_(0),
   xcoord_(0),
   ycoord_(0),
@@ -187,6 +188,31 @@ void Traj_CharmmDcd::AllocateCoords() {
   zcoord_ = ycoord_ + dcdatom_;
 }
 
+void Traj_CharmmDcd::setFrameSizes() {
+  size_t dimBytes = dcd_dim_ * sizeof(float);
+  size_t extraBytes;
+  if (is64bit_)
+    extraBytes = 4;
+  else
+    extraBytes = 2;
+  frame1Bytes_ = (((size_t) dcdatom_ + extraBytes) * dimBytes) + boxBytes_;
+  frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
+}
+
+void Traj_CharmmDcd::ReadHelp() {
+  mprintf("\tucell | shape: Force reading of box info as unit cell or shape matrix.\n");
+}
+
+int Traj_CharmmDcd::processReadArgs(ArgList& argIn) {
+  if (argIn.hasKey("ucell"))
+    charmmCellType_ = UCELL;
+  else if (argIn.hasKey("shape"))
+    charmmCellType_ = SHAPE;
+  else
+    charmmCellType_ = UNKNOWN;
+  return 0;
+}
+
 // Traj_CharmmDcd::setupTrajin()
 int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
 {
@@ -203,19 +229,14 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   AllocateCoords();
   // DCD file may have less frames than is stored in the header.
   // Check the file size against the reported number of frames.
-  size_t extraBytes;
   size_t file_size = (size_t)file_.UncompressedSize();
   if (file_size > 0) {
-    size_t dimBytes = dcd_dim_ * sizeof(float);
-    if (is64bit_)
-      extraBytes = 4;
-    else
-      extraBytes = 2;
-    frame1Bytes_ = (((size_t) dcdatom_ + extraBytes) * dimBytes) + boxBytes_;
-    frameNBytes_ = (((size_t) nfreeat_ + extraBytes) * dimBytes) + boxBytes_;
+    setFrameSizes();
     // Header size should be current position after open, which automatically
     // reads DCD header.
     headerBytes_ = (size_t)file_.Tell();
+    if (debug_ > 0) mprintf("DEBUG:\tDCD header bytes= %zu  frame1= %zu  frameN= %zu\n",
+                            headerBytes_, frame1Bytes_, frameNBytes_);
     file_size = file_size - headerBytes_ - frame1Bytes_;
     if ( (file_size % frameNBytes_) != 0 ) {
       mprintf("Warning: %s: Number of frames in DCD file could not be accurately determined.\n"
@@ -237,6 +258,8 @@ int Traj_CharmmDcd::setupTrajin(FileName const& fname, Topology* trajParm)
   double box[6];
   memset( box, 0, 6*sizeof(double));
   if (boxBytes_) {
+    if (charmmCellType_ == SHAPE)
+       mprintf("\tVersion >= 22; assuming shape matrix is stored.\n");
     if (ReadBox( box )) return TRAJIN_ERR;
   }
   // Set traj info: No velocity, temperature, or time.
@@ -291,9 +314,21 @@ int Traj_CharmmDcd::readDcdHeader() {
   // Number of fixed atoms
   nfixedat_  = buffer.i[8];
   // Box information
-  if (buffer.i[10] != 0) 
+  if (buffer.i[10] != 0) {
     boxBytes_ = 48 + (2 * blockSize_); // 6(crds) * 8(double) + (hdr) + (end hdr)
-  else
+    // Charmm version >= 22 stores shape matrix instead of unit cell
+    if (charmmCellType_ == UNKNOWN) {
+      if (buffer.i[19] >= 22) {
+        charmmCellType_ = SHAPE;
+      } else
+        charmmCellType_ = UCELL;
+    } else {
+      // Box info type was specified by option.
+      if (buffer.i[19] >= 22 && charmmCellType_ != SHAPE)
+        mprintf("Warning: CHARMM version is >= 22 but 'ucell' specified.\n"
+                "Warning: Assuming box info is stored as unit cell and not shape matrix.\n");
+    }
+  } else
     boxBytes_ = 0;
   // Timestep
   float timestep = buffer.f[9];
@@ -362,12 +397,100 @@ int Traj_CharmmDcd::readDcdHeader() {
   return 0;
 }
 
-/** CHARMM and later versions of NAMD store the box angles as cos(angle), so
-  * convert back to angle (degrees) if all of the angles are bounded between
-  * -1 and 1. Special-case 90 degree angles for numerical stability of
-  *  orthorhombic boxes
+/** Convert symmetric shape matrix data to unit cell params (x, y, z, a, b, g) */
+static inline void ShapeToUcell(double* box, const double* boxtmp)
+{
+  double boxX = sqrt( boxtmp[0]*boxtmp[0] + boxtmp[1]*boxtmp[1] + boxtmp[3]*boxtmp[3] );
+  double boxY = sqrt( boxtmp[1]*boxtmp[1] + boxtmp[2]*boxtmp[2] + boxtmp[4]*boxtmp[4] );
+  double boxZ = sqrt( boxtmp[3]*boxtmp[3] + boxtmp[4]*boxtmp[4] + boxtmp[5]*boxtmp[5] );
+  double boxXY = boxtmp[1]*(boxtmp[0] + boxtmp[2]) + boxtmp[3]*boxtmp[4];
+  double boxYZ = boxtmp[4]*(boxtmp[2] + boxtmp[5]) + boxtmp[1]*boxtmp[3];
+  double boxXZ = boxtmp[3]*(boxtmp[0] + boxtmp[5]) + boxtmp[1]*boxtmp[4];
+  double alpha = acos( boxYZ / (boxY*boxZ) ) * Constants::RADDEG;
+  double beta  = acos( boxXZ / (boxX*boxZ) ) * Constants::RADDEG;
+  double gamma = acos( boxXY / (boxX*boxY) ) * Constants::RADDEG;
+  //mprintf("DEBUG: Box XYZ= %g %g %g  ABG= %g %g %g\n", boxX, boxY, boxZ, alpha, beta, gamma);
+  box[0] = boxX;
+  box[1] = boxY;
+  box[2] = boxZ;
+  box[3] = alpha;
+  box[4] = beta;
+  box[5] = gamma;
+}
+
+/** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
+  * (S11, S12, S22, S13, S23, S33).
   */
-static inline double BoxInDeg( double BoxInRad ) {
+static inline void UcellToShape(double* shape, const double* box)
+{
+  // Calculate metric tensor HtH:
+  //   HtH(i,j) = vi * vj
+  // where vx are basis vectors i and j. Given that v0 is a, v1 is b, v2 is c:
+  //       a^2 a*b a*c
+  // HtH = b*a b^2 b*c
+  //       c*a c*b c^2
+  Matrix_3x3 HtH;
+
+  HtH[0] = box[0] * box[0];
+  HtH[4] = box[1] * box[1];
+  HtH[8] = box[2] * box[2];
+
+  // Angles near 90 have elements set to 0.0.
+  // XY (gamma)
+  if (fabs(box[5] - 90.0) > Constants::SMALL)
+    HtH[3] = box[0]*box[1]*cos(Constants::DEGRAD*box[5]);
+  else
+    HtH[3] = 0.0;
+  HtH[1] = HtH[3];
+  // XZ (beta)
+  if (fabs(box[4] - 90.0) > Constants::SMALL)
+    HtH[6] = box[0]*box[2]*cos(Constants::DEGRAD*box[4]);
+  else
+    HtH[6] = 0.0;
+  HtH[2] = HtH[6];
+  // YZ (alpha)
+  if (fabs(box[3] - 90.0) > Constants::SMALL)
+    HtH[7] = box[1]*box[2]*cos(Constants::DEGRAD*box[3]);
+  else
+    HtH[7] = 0.0;
+  HtH[5] = HtH[7];
+
+  // Diagonalize HtH
+  //HtH.Print("HtH"); // DEBUG
+  Vec3 Evals;
+  if (HtH.Diagonalize( Evals )) {
+    mprinterr("Error: Could not diagonalize metric tensor.\n");
+    for (int i=0; i<6; i++) shape[i] = 0.0;
+    return;
+  }
+
+  if (Evals[0] < Constants::SMALL ||
+      Evals[1] < Constants::SMALL ||
+      Evals[2] < Constants::SMALL)
+  {
+    mprinterr("Error: Obtained negative eigenvalues when attempting to"
+              " diagonalize metric tensor.\n");
+    return;
+  }
+  //Evals.Print("Cvals"); // DEBUG
+  //HtH.Print("Cpptraj"); // DEBUG
+
+  double A = sqrt( Evals[0] );
+  double B = sqrt( Evals[1] );
+  double C = sqrt( Evals[2] );
+
+  shape[0] = A*HtH[0]*HtH[0] + B*HtH[1]*HtH[1] + C*HtH[2]*HtH[2];
+  shape[2] = A*HtH[3]*HtH[3] + B*HtH[4]*HtH[4] + C*HtH[5]*HtH[5];
+  shape[5] = A*HtH[6]*HtH[6] + B*HtH[7]*HtH[7] + C*HtH[8]*HtH[8];
+  shape[1] = A*HtH[0]*HtH[3] + B*HtH[1]*HtH[4] + C*HtH[2]*HtH[5];
+  shape[3] = A*HtH[0]*HtH[6] + B*HtH[1]*HtH[7] + C*HtH[2]*HtH[8];
+  shape[4] = A*HtH[3]*HtH[6] + B*HtH[4]*HtH[7] + C*HtH[5]*HtH[8];
+}
+
+/** Convert 'cos( angle in radians)' back to degrees. Trap 0 (90 degrees)
+  * for numerical stability.
+  */
+static inline double CosRadToDeg( double BoxInRad ) {
   if ( BoxInRad == 0 )
     return 90.0;
   return acos( BoxInRad ) * Constants::RADDEG;
@@ -380,33 +503,60 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   file_.Read(boxtmp, sizeof(double)*6);
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
-  // Box lengths
-  box[0] = boxtmp[0];
-  box[1] = boxtmp[2];
-  box[2] = boxtmp[5];
-  if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
-       boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
-       boxtmp[1] >= -1 && boxtmp[1] <= 1    ) 
-  {
-    // Angles are cos(angle)
-    box[3] = BoxInDeg( boxtmp[4] );
-    box[4] = BoxInDeg( boxtmp[3] );
-    box[5] = BoxInDeg( boxtmp[1] );
+  if (charmmCellType_ == SHAPE) {
+    ShapeToUcell(box, boxtmp);
+/*
+    mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
+            boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
+    mprintf("DEBUG: Converted Ucell: %g %g %g %g %g %g\n",
+            box[0], box[1], box[2], box[3], box[4], box[5]);
+    double shape[6];
+    UcellToShape(shape, box);
+    mprintf("DEBUG: Test Shape     : %g %g %g %g %g %g\n",
+            shape[0], shape[1], shape[2], shape[3], shape[4], shape[5]);
+    for (int i = 0; i < 6; i++)
+      if (fabs(shape[i] - boxtmp[i]) > Constants::SMALL)
+        mprintf("Warning:\t\tPossible issue with element %i: %g %g (%g)\n",
+                i, boxtmp[i], shape[i], boxtmp[i] - shape[i]);
+*/
   } else {
-    // They are already in degrees.
-    box[3] = boxtmp[4];
-    box[4] = boxtmp[3];
-    box[5] = boxtmp[1];
+    // Box lengths
+    box[0] = boxtmp[0];
+    box[1] = boxtmp[2];
+    box[2] = boxtmp[5];
+    /** Older versions of CHARMM and some versions of NAMD store the box angles
+      * as cos(angle), so convert angle back to degrees if all of the angles are
+      * bounded between -1 and 1.
+      */
+    if ( boxtmp[4] >= -1 && boxtmp[4] <= 1 &&
+         boxtmp[3] >= -1 && boxtmp[3] <= 1 &&
+         boxtmp[1] >= -1 && boxtmp[1] <= 1    )
+    {
+      // Angles are cos(angle)
+      box[3] = CosRadToDeg( boxtmp[4] );
+      box[4] = CosRadToDeg( boxtmp[3] );
+      box[5] = CosRadToDeg( boxtmp[1] );
+    } else {
+      // They are already in degrees.
+      box[3] = boxtmp[4];
+      box[4] = boxtmp[3];
+      box[5] = boxtmp[1];
+    }
   }
   return 0;
 }
 
-// Traj_CharmmDcd::readFrame()
-int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
+// Traj_CharmmDcd::seekToFrame()
+void Traj_CharmmDcd::seekToFrame(int set) {
   if (set == 0)
     file_.Seek( headerBytes_ );
-  else 
+  else
     file_.Seek( headerBytes_ + frame1Bytes_ + ((size_t)(set - 1) * frameNBytes_) );
+}
+
+// Traj_CharmmDcd::readFrame()
+int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
+  seekToFrame( set );
   // Load box info
   if (boxBytes_ != 0) {
     if (ReadBox( frameIn.bAddress() )) return 1;
@@ -438,7 +588,9 @@ int Traj_CharmmDcd::readFrame(int set, Frame& frameIn) {
 }
 
 void Traj_CharmmDcd::WriteHelp() {
-  mprintf("\tx64: Use 8 byte block size (default 4 bytes).\n");
+  mprintf("\tx64   : Use 8 byte block size (default 4 bytes).\n");
+  mprintf("\tucell : Write older (v21) format trajectory that stores unit cell params\n"
+          "\t        instead of shape matrix.\n");
 }
 
 // Traj_CharmmDcd::processWriteArgs()
@@ -452,14 +604,15 @@ int Traj_CharmmDcd::processWriteArgs(ArgList& argIn) {
   // Determine 32 bit/64 bit block size 'if (sizeof(void*)!=4)'
   // TODO: Determine OS endianness
   isBigEndian_ = false;
+  if (argIn.hasKey("ucell"))
+    charmmCellType_ = UCELL;
   return 0;
 }
 
 // Traj_CharmmDcd::setupTrajout()
-/** Set up the charmm dcd trajectory for writing. No writing is done here, the
-  * actual write calls are in writeDcdHeader which is called from openTraj.
-  * Set is64bit and isBigEndian, although they are not currently used during
-  * writes; size and endianness will be OS default.
+/** Set up the charmm dcd trajectory for writing. Write the trajectory
+  * header with writeDcdHeader().
+  * Size and endianness will be OS default.
   */
 // TODO: Check OS endianness!
 int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
@@ -491,6 +644,7 @@ int Traj_CharmmDcd::setupTrajout(FileName const& fname, Topology* trajParm,
     if (file_.SetupAppend( fname, debug_ )) return 1;
     if (file_.OpenFile()) return 1;
   }
+  
   return 0;
 }
 
@@ -524,8 +678,15 @@ int Traj_CharmmDcd::writeDcdHeader() {
   buffer.i[8] = 0;
   // Timestep
   buffer.f[9] = 0.001;
-  // Charmm version - Should this just be set to 0?
-  buffer.i[19] = 35;
+  // Default to SHAPE
+  if (charmmCellType_ == UNKNOWN)
+    charmmCellType_ = SHAPE;
+  // Charmm version. Just set to 35 for now. If storing unit cell params
+  // instead of shape matrix set version to 21.
+  if (charmmCellType_ == UCELL)
+    buffer.i[19] = 21;
+  else
+    buffer.i[19] = 35;
   // Box information
   if (CoordInfo().HasBox()) {
     buffer.i[10] = 1;
@@ -564,18 +725,22 @@ int Traj_CharmmDcd::writeDcdHeader() {
 int Traj_CharmmDcd::writeFrame(int set, Frame const& frameOut) {
   // Box coords - 6 doubles, 48 bytes
   if (boxBytes_ != 0) {
-    /* The format for the 'box' array used in cpptraj is not the same as the
-     * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
-     * for a description of the box info.
-     */
     double boxtmp[6];
-    boxtmp[0] = frameOut.BoxCrd().BoxX();
-    boxtmp[2] = frameOut.BoxCrd().BoxY();
-    boxtmp[5] = frameOut.BoxCrd().BoxZ();
-    // The angles must be reported in cos(angle) format
-    boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
-    boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
-    boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
+    if (charmmCellType_ == SHAPE)
+      UcellToShape( boxtmp, frameOut.BoxCrd().boxPtr() );
+    else {
+      /* The format for the 'box' array used in cpptraj is not the same as the
+       * one used for NAMD/CHARMM dcd files.  Refer to the reading routine above
+       * for a description of the box info.
+       */
+      boxtmp[0] = frameOut.BoxCrd().BoxX();
+      boxtmp[2] = frameOut.BoxCrd().BoxY();
+      boxtmp[5] = frameOut.BoxCrd().BoxZ();
+      // The angles must be reported in cos(angle) format
+      boxtmp[1] = cos(frameOut.BoxCrd().Gamma() * Constants::DEGRAD);
+      boxtmp[3] = cos(frameOut.BoxCrd().Beta()  * Constants::DEGRAD);
+      boxtmp[4] = cos(frameOut.BoxCrd().Alpha() * Constants::DEGRAD);
+    }
     WriteBlock(48);
     file_.Write(boxtmp, sizeof(double)*6);
     WriteBlock(48);
@@ -616,3 +781,124 @@ void Traj_CharmmDcd::Info() {
   else 
     mprintf(" 32 bit");
 }
+#ifdef MPI
+// =============================================================================
+int Traj_CharmmDcd::parallelOpenTrajin(Parallel::Comm const& commIn) {
+  mprinterr("Error: Parallel read not supported for Charmm DCD.\n");
+  return 1;
+}
+
+/** This assumes file has been previously set up with parallelSetupTrajout
+  * and header has been written, so open append.
+  */
+int Traj_CharmmDcd::parallelOpenTrajout(Parallel::Comm const& commIn) {
+  return (file_.ParallelOpenFile( CpptrajFile::APPEND, commIn ));
+}
+
+/** First master performs all necessary setup, then sends info to all children.
+  */
+int Traj_CharmmDcd::parallelSetupTrajout(FileName const& fname, Topology* trajParm,
+                                         CoordinateInfo const& cInfoIn,
+                                         int NframesToWrite, bool append,
+                                         Parallel::Comm const& commIn)
+{
+  int err = 0;
+  // In parallel MUST know # of frames to write in order to correctly set size
+  if (NframesToWrite < 1) {
+    mprinterr("Error: # frames to write must be known for Charmm DCD output in parallel.\n");
+    err = 1;
+  } else if (commIn.Master()) {
+    // NOTE: This writes the header.
+    err = setupTrajout(fname, trajParm, cInfoIn, NframesToWrite, append);
+    // Calculate number of free atoms (#total - #fixed) // TODO put in setupTrajout?
+    nfreeat_ = dcdatom_ - nfixedat_;
+    // Setup frame sizes // TODO put in setupTrajout?
+    setFrameSizes();
+    // Header size should be current position since header has just been written.
+    headerBytes_ = (size_t)file_.Tell(); // TODO put in setupTrajout?
+    // NOTE: setupTrajout leaves file open. Should this change?
+    file_.CloseFile();
+  }
+  commIn.MasterBcast(&err, 1, MPI_INT);
+  if (err != 0) return 1;
+  // Synchronize info on non-master threads.
+  SyncTrajIO( commIn );
+  // TODO for simplicity converting everything to int. Should be double for larger #s?
+  int* buf = new int[ 13 ];
+  if (commIn.Master()) {
+    master_ = true;
+    buf[0]  = dcdatom_;
+    buf[1]  = dcdframes_;
+    buf[2]  = (int)isBigEndian_;
+    buf[3]  = (int)is64bit_;
+    buf[4]  = (int)blockSize_;
+    buf[5]  = (int)dcd_dim_;
+    buf[6]  = (int)boxBytes_;
+    buf[7]  = (int)frame1Bytes_;
+    buf[8]  = (int)frameNBytes_;
+    buf[9]  = (int)headerBytes_;
+    buf[10] = (int)coordinate_size_;
+    buf[11] = nfixedat_;
+    buf[12] = nfreeat_;
+    commIn.MasterBcast(buf, 13, MPI_INT);
+    if (nfixedat_ != 0)
+      commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
+  } else {
+    master_ = false;
+    commIn.MasterBcast(buf, 13, MPI_INT);
+    dcdatom_         = buf[0];
+    dcdframes_       = buf[1];
+    isBigEndian_     = (bool)buf[2];
+    is64bit_         = (bool)buf[3];
+    blockSize_       = (size_t)buf[4];
+    dcd_dim_         = (size_t)buf[5];
+    boxBytes_        = (size_t)buf[6];
+    frame1Bytes_     = (size_t)buf[7];
+    frameNBytes_     = (size_t)buf[8];
+    headerBytes_     = (size_t)buf[9];
+    coordinate_size_ = (size_t)buf[10];
+    nfixedat_        = buf[11];
+    nfreeat_         = buf[12];
+    if (nfixedat_ > 0) {
+      freeat_ = new int[ nfreeat_ ];
+      commIn.MasterBcast(freeat_, nfreeat_, MPI_INT);
+    }
+    if (append)
+      file_.SetupWrite( fname, debug_ );
+    else
+      file_.SetupAppend( fname, debug_ );
+    AllocateCoords();
+  }
+  if (debug_ > 0)
+    rprintf("Charmm DCD: headerBytes_=%zu  frame1Bytes_=%zu  frameNBytes_=%zu\n",
+            headerBytes_, frame1Bytes_, frameNBytes_);
+  return 0;
+}
+
+int Traj_CharmmDcd::parallelReadFrame(int set, Frame& frameIn) { return 1; }
+
+int Traj_CharmmDcd::parallelWriteFrame(int set, Frame const& frameOut) {
+  // Seek to given frame.
+  seekToFrame( set );
+  return ( writeFrame(set, frameOut) );
+}
+
+void Traj_CharmmDcd::parallelCloseTraj() {
+  byte8 framecount;
+  if (file_.IsOpen() && file_.Access() != CpptrajFile::READ) {
+    file_.CloseFile();
+    framecount.i[1] = 0;
+    framecount.i[0] = dcdframes_;
+    if (debug_>0) mprintf("\tDEBUG: Parallel updated DCD frame count is %i\n", dcdframes_);
+    if (master_) {
+      file_.OpenFile(CpptrajFile::UPDATE);
+      file_.Seek( blockSize_+4 );
+      // NOTE: Here we are ensuring that ONLY 4 bytes are written. This could
+      //       overflow for large # of frames.
+      file_.Write(framecount.c,sizeof(unsigned char)*4);
+    }
+    file_.CloseFile();
+  } else
+    file_.CloseFile();
+}
+#endif

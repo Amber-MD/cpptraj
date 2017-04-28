@@ -5,7 +5,11 @@
 
 // CONSTRUCTOR
 Analysis_Lifetime::Analysis_Lifetime() :
-  standalone_(0),
+  tot_Nlifetimes_(0),
+  tot_MaxLT_(0),
+  tot_AvgLT_(0),
+  tot_Frames_(0),
+  tot_Name_(0),
   windowSize_(0),
   fuzzCut_(-1),
   cut_(0.5),
@@ -27,9 +31,10 @@ void Analysis_Lifetime::Help() const {
 }
 
 // Analysis_Lifetime::Setup()
-Analysis::RetType Analysis_Lifetime::ExternalSetup(Array1D const& dsArray, CpptrajFile* outfile) {
+Analysis::RetType Analysis_Lifetime::ExternalSetup(Array1D const& dsArray, DataSetList& DSL,
+                                                   DataFile* outfile, std::string const& setname)
+{
   if (dsArray.empty()) return Analysis::ERR;
-  standalone_ = outfile;
   inputDsets_ = dsArray;
   windowSize_ = -1;
   averageonly_ = false;
@@ -39,9 +44,49 @@ Analysis::RetType Analysis_Lifetime::ExternalSetup(Array1D const& dsArray, Cpptr
   cut_ = 0.5;
   fuzzCut_ = -1;
   Compare_ = Compare_GreaterThan;
+  if ( SetupTotalSets(setname, DSL, outfile) ) return Analysis::ERR;
   return Analysis::OK;
 }
 
+// Analysis_Lifetime::SetupTotalSets()
+int Analysis_Lifetime::SetupTotalSets(std::string const& setname, DataSetList& DSL,
+                                      DataFile* outfile)
+{
+  Dimension Xdim(1, 1, "Set");
+  // Add DataSets
+  MetaData md(setname);
+  tot_Nlifetimes_ = DSL.AddSet(DataSet::INTEGER, md);
+  md.SetAspect("max");
+  tot_MaxLT_      = DSL.AddSet(DataSet::INTEGER, md);
+  md.SetAspect("avg");
+  tot_AvgLT_      = DSL.AddSet(DataSet::FLOAT, md);
+  md.SetAspect("frames");
+  tot_Frames_     = DSL.AddSet(DataSet::INTEGER, md);
+  md.SetAspect("name");
+  tot_Name_       = DSL.AddSet(DataSet::STRING, md);
+  if (tot_Nlifetimes_ == 0 || tot_MaxLT_ == 0 || tot_AvgLT_ == 0 ||
+      tot_Frames_ == 0     || tot_Name_ == 0)
+    return 1;
+  tot_Nlifetimes_->SetDim(Dimension::X, Xdim);
+  tot_Nlifetimes_->SetupFormat().SetFormatWidth(10);
+  tot_MaxLT_->SetDim(Dimension::X, Xdim);
+  tot_MaxLT_->SetupFormat().SetFormatWidth(10);
+  tot_AvgLT_->SetDim(Dimension::X, Xdim);
+  tot_AvgLT_->SetupFormat().SetFormatWidthPrecision(10,4);
+  tot_Frames_->SetDim(Dimension::X, Xdim);
+  tot_Frames_->SetupFormat().SetFormatWidth(10);
+  tot_Name_->SetDim(Dimension::X, Xdim);
+  if (outfile != 0) {
+    outfile->AddDataSet( tot_Nlifetimes_ );
+    outfile->AddDataSet( tot_MaxLT_ );
+    outfile->AddDataSet( tot_AvgLT_ );
+    outfile->AddDataSet( tot_Frames_ );
+    outfile->AddDataSet( tot_Name_ );
+  }
+  return 0;
+}
+
+// CheckDsetError()
 inline static int CheckDsetError(DataSet_1D* ds, const char* msg, const char* legend) {
   if (ds == 0) {
     mprinterr("Error: lifetime: Could not allocate %s set for %s\n", msg, legend);
@@ -80,19 +125,16 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   if (sortSets) inputDsets_.SortArray1D(); 
 
   // Create output datasets
-  DataFile* outfile = 0;
+  DataFile* outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
   DataFile* maxfile = 0;
   DataFile* avgfile = 0;
   if (setname.empty())
     setname = setup.DSL().GenerateDefaultName( "lifetime" );
   if ( windowSize_ != -1) {
     Dimension Xdim(1.0, windowSize_, "Frame");
-    outfile = setup.DFL().AddDataFile(outfileName, analyzeArgs);
     if (!averageonly_ && outfile != 0) {
-      maxfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "max." + 
-                                   outfileName.Base(), analyzeArgs);
-      avgfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "avg." + 
-                                   outfileName.Base(), analyzeArgs);
+      maxfile = setup.DFL().AddDataFile(outfileName.PrependFileName("max."), analyzeArgs);
+      avgfile = setup.DFL().AddDataFile(outfileName.PrependFileName("avg."), analyzeArgs);
     }
     int didx = 0;
     for (Array1D::const_iterator set = inputDsets_.begin(); set != inputDsets_.end(); ++set)
@@ -135,8 +177,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   DataFile* crvfile = 0;
   if (!averageonly_) {
     if (!outfileName.empty()) {
-      crvfile = setup.DFL().AddDataFile(outfileName.DirPrefix() + "crv." + 
-                                   outfileName.Base(), analyzeArgs);
+      crvfile = setup.DFL().AddDataFile(outfileName.PrependFileName("crv."), analyzeArgs);
     }
     MetaData md(setname, "curve");
     for (int didx = 0; didx != (int)inputDsets_.size(); didx++)
@@ -149,12 +190,10 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
       if (crvfile != 0) crvfile->AddDataSet( outSet );
     }
   }
-  // Non-window output file
+  // Non-windowed DataSet setup 
   if (!averageonly_ && windowSize_ == -1) {
-    standalone_ = setup.DFL().AddCpptrajFile( outfileName, "Lifetimes", DataFileList::TEXT, true );
-    if (standalone_ == 0) return Analysis::ERR;
-  } else
-    standalone_ = 0; 
+    if (SetupTotalSets(setname, setup.DSL(), outfile)) return Analysis::ERR;
+  }
 
   if (!averageonly_)
     mprintf("    LIFETIME: Calculating average lifetime using a cutoff of %f", cut_);
@@ -180,7 +219,7 @@ Analysis::RetType Analysis_Lifetime::Setup(ArgList& analyzeArgs, AnalysisSetup& 
   }
   if (outfile != 0) {
     mprintf("\tOutfile: %s", outfile->DataFilename().full());
-    if (!averageonly_ && outfile != 0)
+    if (maxfile != 0 && avgfile != 0)
       mprintf(", %s, %s", maxfile->DataFilename().base(), avgfile->DataFilename().base());
     mprintf("\n");
   }
@@ -226,10 +265,6 @@ inline static void RecordCurrentLifetime(int start, int stop, int length,
 Analysis::RetType Analysis_Lifetime::Analyze() {
   float favg;
   int current = 0;
-  if (standalone_ != 0) {
-    standalone_->Printf("%-10s %10s %10s %10s %10s %s\n","#Set","Nlifetimes",
-                          "MaxLT","AvgLT","TotFrames","SetName");
-  }
   ProgressBar progress( inputDsets_.size() );
   std::vector<int> lifetimeCurve;
   std::vector<int> localCurve;
@@ -237,7 +272,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
     lifetimeCurve.clear();
     localCurve.clear();
     DataSet_1D const& DS = static_cast<DataSet_1D const&>( *inputDsets_[setIdx] );
-    if (standalone_ != 0)
+    if (tot_Nlifetimes_ != 0)
       mprintf("\t\tCalculating lifetimes for set %s\n", DS.legend());
     else
       progress.Update( current++ );
@@ -421,7 +456,7 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
       }
     } // END loop over data points.
     // Print lifetime information if no window
-    if ( standalone_ != 0 ) {
+    if ( tot_Nlifetimes_ != 0 ) {
       // Update current lifetime total
       if  (location == INSIDE || location == OUTER_FUZZ) {
         // Were there enough frames?
@@ -441,9 +476,12 @@ Analysis::RetType Analysis_Lifetime::Analyze() {
         favg = 0.0;
       else
         favg = (float)sumLifetimes / (float)Nlifetimes;
-      standalone_->Printf("%10u %10i %10i %10.4f %10.0f %s\n",setIdx,
-                            Nlifetimes, maximumLifetimeCount, favg, sum,
-                            DS.legend());
+      tot_Nlifetimes_->Add( setIdx, &Nlifetimes );
+      tot_MaxLT_->Add( setIdx, &maximumLifetimeCount );
+      tot_AvgLT_->Add( setIdx, &favg );
+      int isum = (int)sum;
+      tot_Frames_->Add( setIdx, &isum );
+      tot_Name_->Add( setIdx, DS.legend() );
     }
     // Calculate normalized lifetime curve
     if (!lifetimeCurve.empty() && !curveSets_.empty()) {

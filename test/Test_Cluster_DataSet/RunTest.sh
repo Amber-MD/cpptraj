@@ -7,7 +7,7 @@ CleanFiles ds.in *.summary.dat *.info.dat *.gnu *.d1.c1.dat \
            cvt.dat
 
 INPUT="-i ds.in"
-
+CheckNetcdf
 OneDS() {
   TOP=../tz2.parm7
   cat > ds.in <<EOF
@@ -23,7 +23,6 @@ EOF
   DoTest oneds.info.dat.save oneds.info.dat
   DoTest eps_v_n.dat.save eps_v_n.dat
   DoTest cvt.dat.save cvt.dat
-  CheckTest
 }
 
 TwoDS() {
@@ -38,7 +37,6 @@ create twods.d1.c1.dat d1 hb1[UU] c1
 EOF
   RunCpptraj "Clustering, Two DataSets"
   DoTest twods.info.dat.save twods.info.dat
-  CheckTest
 }
 
 OneDihDS() {
@@ -52,7 +50,6 @@ create onedihds.d1.c1.dat gly7phi c1
 EOF
   RunCpptraj "Clustering, dihedral DataSet"
   DoTest onedihds.info.dat.save onedihds.info.dat 
-  CheckTest
 }
 
 TwoDihDS() {
@@ -68,7 +65,6 @@ create twodihds.d1.c1.dat gly7phi gly7psi c1 noxcol
 EOF
   RunCpptraj "Clustering, two dihedral DataSets"
   DoTest twodihds.info.dat.save twodihds.info.dat
-  CheckTest
 }
 
 OneDihDSKmeans() {
@@ -82,7 +78,6 @@ create onedihds.d1.c1.dat gly7phi c1
 EOF
   RunCpptraj "Clustering, dihedral DataSet, K-means"
   DoTest onedihds.kmeans.info.dat.save onedihds.kmeans.info.dat
-  CheckTest
 }
 
 TwoDihDSKmeans() {
@@ -97,7 +92,6 @@ cluster crdset crd1 c1 kmeans data gly7phi,gly7psi clusters 5 out twodihds.gnu s
 EOF
   RunCpptraj "Clustering, two dihedral DataSets, K-means"
   DoTest twodihds.kmeans.info.dat.save twodihds.kmeans.info.dat
-  CheckTest
 }
 
 OneDS

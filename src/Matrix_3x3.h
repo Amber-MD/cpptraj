@@ -35,6 +35,15 @@ class Matrix_3x3 {
     void CalcRotationMatrix(double, double, double);
     double RotationAngle();
     Vec3 AxisOfRotation(double);
+    /// Multiply 3x3 matrix times double[3]
+    void TimesVec(double* result, const double* rhs) const {
+      double x = rhs[0];
+      double y = rhs[1];
+      double z = rhs[2];
+      result[0] = ((M_[0]*x) + (M_[1]*y) + (M_[2]*z));
+      result[1] = ((M_[3]*x) + (M_[4]*y) + (M_[5]*z));
+      result[2] = ((M_[6]*x) + (M_[7]*y) + (M_[8]*z));
+    }
     /// Multiply 3x3 matrix times 1x3 vector
     Vec3 operator*(Vec3 const& rhs) const {
       double x = rhs[0]; 
@@ -43,6 +52,15 @@ class Matrix_3x3 {
       return Vec3( ((M_[0]*x) + (M_[1]*y) + (M_[2]*z)),
                    ((M_[3]*x) + (M_[4]*y) + (M_[5]*z)),
                    ((M_[6]*x) + (M_[7]*y) + (M_[8]*z))  );
+    }
+    /// Multiply transpose of 3x3 matrix times double[3]
+    void TransposeMult(double* result, const double* rhs) const {
+      double x = rhs[0];
+      double y = rhs[1];
+      double z = rhs[2];
+      result[0] = ((M_[0]*x) + (M_[3]*y) + (M_[6]*z));
+      result[1] = ((M_[1]*x) + (M_[4]*y) + (M_[7]*z));
+      result[2] = ((M_[2]*x) + (M_[5]*y) + (M_[8]*z));
     }
     /// Multiply transpose of 3x3 matrix times 1x3 vector
     Vec3 TransposeMult(Vec3 const& rhs) const {

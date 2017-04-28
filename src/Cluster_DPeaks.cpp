@@ -62,7 +62,7 @@ int Cluster_DPeaks::SetupCluster(ArgList& analyzeArgs) {
   return 0;
 }
 
-void Cluster_DPeaks::ClusteringInfo() {
+void Cluster_DPeaks::ClusteringInfo() const {
   mprintf("---------------------------------------------------------------------------\n"
           "Warning: The dpeaks algorithm is still under development. USE WITH CAUTION!\n"
           "---------------------------------------------------------------------------\n");
@@ -105,7 +105,8 @@ int Cluster_DPeaks::Cluster() {
   if (choosePoints_ == PLOT_ONLY) {
     mprintf("Info: Cutoffs for choosing points can be determined visually from the\n"
             "Info:   density versus min distance to cluster with next highest density file,\n"
-            "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n");
+            "Info:   '%s'. Re-run the algorithm with appropriate distancecut and densitycut.\n",
+            dvdfile_.c_str());
     return 0;
   } else if (choosePoints_ == MANUAL)
     nclusters = ChoosePointsManually();
@@ -166,7 +167,7 @@ int Cluster_DPeaks::Cluster() {
           for (unsigned int i1 = *idx1; i1 != *(idx1+1); i1++)
           {
             Cpoint const& other_point = Points_[i1];
-            if (FrameDistances_.GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
+            if (FrameDistances().GetFdist(point.Fnum(), other_point.Fnum()) < epsilon_) {
               //mprintf("\tBorder frame: %i (to cluster %i frame %i)\n",
               //        point.Fnum() + 1, c1, other_point.Fnum() + 1);
               borderIndices[c0].push_back( i0 );
@@ -227,8 +228,6 @@ int Cluster_DPeaks::Cluster() {
     if (!frames.empty())
       AddCluster( frames );
   }
-  // Calculate the distances between each cluster based on centroids
-  CalcClusterDistances();
   return 0;
 }
 
@@ -238,8 +237,8 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
   // First determine which frames are being clustered.
   Points_.clear();
   int oidx = 0;
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
-    if (!FrameDistances_.IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); ++frame)
+    if (!FrameDistances().FrameWasSieved( frame ))
       Points_.push_back( Cpoint(frame, oidx++) );
   // Sanity check.
   if (Points_.size() < 2) {
@@ -249,9 +248,9 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
 
   // Sort distances
   std::vector<float> Distances;
-  for (ClusterMatrix::const_iterator mat = FrameDistances_.begin();
-                                     mat != FrameDistances_.end(); ++mat)
-    Distances.push_back( *mat );
+  Distances.reserve( FrameDistances().Nelements() );
+  for (unsigned int idx = 0; idx != FrameDistances().Nelements(); idx++)
+    Distances.push_back( FrameDistances().GetElement(idx) );
   std::sort( Distances.begin(), Distances.end() );
   unsigned int idx = (unsigned int)((double)Distances.size() * 0.02);
   double bandwidth = (double)Distances[idx];
@@ -261,7 +260,7 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
   double maxDist = -1.0;
   for (unsigned int i = 0; i != Points_.size(); i++) {
     for (unsigned int j = i+1; j != Points_.size(); j++) {
-      double dist = FrameDistances_.GetFdist(Points_[i].Fnum(), Points_[j].Fnum());
+      double dist = FrameDistances().GetFdist(Points_[i].Fnum(), Points_[j].Fnum());
       maxDist = std::max( maxDist, dist );
       dist /= bandwidth;
       double gk = exp(-(dist *dist));
@@ -294,7 +293,7 @@ int Cluster_DPeaks::Cluster_GaussianKernel() {
     Points_[ord_i].SetDist( maxDist );
     for (unsigned int jj = 0; jj != ii; jj++) {
       int ord_j = Points_[jj].Oidx();
-      double dist = FrameDistances_.GetFdist(Points_[ord_i].Fnum(), Points_[ord_j].Fnum());
+      double dist = FrameDistances().GetFdist(Points_[ord_i].Fnum(), Points_[ord_j].Fnum());
       if (dist < Points_[ord_i].Dist()) {
         Points_[ord_i].SetDist( dist );
         Points_[ord_j].SetNearestIdx( ord_j );
@@ -317,8 +316,8 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
   mprintf("\tStarting DPeaks clustering, discrete density calculation.\n");
   Points_.clear();
   // First determine which frames are being clustered.
-  for (int frame = 0; frame < (int)FrameDistances_.Nframes(); ++frame)
-    if (!FrameDistances_.IgnoringRow( frame ))
+  for (int frame = 0; frame < (int)FrameDistances().OriginalNframes(); ++frame)
+    if (!FrameDistances().FrameWasSieved( frame ))
       Points_.push_back( Cpoint(frame) );
   // Sanity check.
   if (Points_.size() < 2) {
@@ -339,7 +338,7 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
                                 point1 != Points_.end(); ++point1)
     {
       if (point0 != point1) {
-        double dist = FrameDistances_.GetFdist(point0->Fnum(), point1->Fnum());
+        double dist = FrameDistances().GetFdist(point0->Fnum(), point1->Fnum());
         maxDist = std::max(maxDist, dist);
         if ( dist < epsilon_ )
           density++;
@@ -347,13 +346,15 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
     }
     point0->SetPointsWithinEps( density );
   }
-  mprintf("DBG: Max dist= %g\n", maxDist);
-  // DEBUG: Frame/Density
-  CpptrajFile fdout;
-  fdout.OpenWrite("fd.dat");
-  for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
-    fdout.Printf("%i %i\n", point->Fnum()+1, point->PointsWithinEps());
-  fdout.CloseFile();
+  if (debug_ > 0) {
+    mprintf("DBG: Max dist= %g\n", maxDist);
+    // DEBUG: Frame/Density
+    CpptrajFile fdout;
+    fdout.OpenWrite("fd.dat");
+    for (Carray::const_iterator point = Points_.begin(); point != Points_.end(); ++point)
+      fdout.Printf("%i %i\n", point->Fnum()+1, point->PointsWithinEps());
+    fdout.CloseFile();
+  }
   // Sort by density here. Otherwise array indices will be invalid later.
   std::sort( Points_.begin(), Points_.end(), Cpoint::pointsWithinEps_sort() );
   // For each point, find the closest point that has higher density. Since 
@@ -374,7 +375,7 @@ int Cluster_DPeaks::Cluster_DiscreteDensity() {
     for (unsigned int idx1 = idx0+1; idx1 != Points_.size(); idx1++)
     {
       Cpoint const& point1 = Points_[idx1];
-      double dist1_2 = FrameDistances_.GetFdist(point0.Fnum(), point1.Fnum());
+      double dist1_2 = FrameDistances().GetFdist(point0.Fnum(), point1.Fnum());
       if (point1.PointsWithinEps() > point0.PointsWithinEps())
       {
         if (dist1_2 < min_dist) {

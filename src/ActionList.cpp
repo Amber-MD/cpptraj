@@ -15,13 +15,6 @@ void ActionList::Clear() {
   actionList_.clear();
 }
 
-// ActionList::SetDebug()
-void ActionList::SetDebug(int debugIn) {
-  debug_ = debugIn;
-  if (debug_ > 0)
-    mprintf("ActionList DEBUG LEVEL SET TO %i\n",debug_);
-}
-
 // ActionList::AddAction()
 int ActionList::AddAction(Action* actIn, ArgList& argIn, ActionInit& init)
 {
@@ -119,14 +112,53 @@ bool ActionList::DoActions(int frameNumIn, ActionFrame& frm) {
 }
 
 // ActionList::Print()
-void ActionList::Print() {
+void ActionList::PrintActions() {
   for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
   { // Skip deactivated actions
     if (act->status_ != INACTIVE)
       act->ptr_->Print();
   }
 }
+#ifdef MPI
+int ActionList::NumPreviousFramesReqd() const {
+  int nrequired = 0;
+  for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE)
+      nrequired = std::max( nrequired, act->ptr_->ParallelPreviousFramesRequired() );
+  }
+  if (debug_ > 0) rprintf("DEBUG: Action(s) require %i previous frames.\n", nrequired);
+  return nrequired;
+}
 
+/** Should not be called by master. */
+int ActionList::ParallelProcessPreload(Action::FArray const& preload_frames) {
+  int err = 0;
+  for (Aarray::iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE) {
+      //rprintf("DEBUG: Calling ParallelPreloadFrames() for '%s'\n", act->args_.Command());
+      if (act->ptr_->ParallelPreloadFrames( preload_frames )) {
+        rprintf("Warning: Parallel Preload failed for Action '%s'\n", act->args_.Command());
+        act->status_ = INACTIVE;
+        err++;
+      }
+    }
+  }
+  return err;
+}
+
+void ActionList::SyncActions() {
+  for (Aarray::const_iterator act = actionList_.begin(); act != actionList_.end(); ++act)
+  { // Skip deactivated actions
+    if (act->status_ != INACTIVE) {
+      //rprintf("DEBUG: Calling SyncAction() for '%s'\n", act->args_.Command());
+      if (act->ptr_->SyncAction())
+        rprintf("Warning: Sync failed for Action '%s'\n", act->args_.Command());
+    }
+  }
+}
+#endif
 void ActionList::List() const {
   if (!actionList_.empty()) {
     mprintf("\nACTIONS (%zu total):\n", actionList_.size());

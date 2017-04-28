@@ -56,6 +56,11 @@ Action::RetType Action_Bounds::Init(ArgList& actionArgs, ActionInit& init, int d
             "\t  spacings dX= %g  dY= %g  dZ= %g  offset= %i Bins.\n",
             grid_->legend(), dxyz_[0], dxyz_[1], dxyz_[2], offset_);
   }
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+  // Since grid is not allocated until Print(), no sync needed.
+  if (grid_ != 0) grid_->SetNeedsSync(false);
+# endif
   return Action::OK;
 }
 
@@ -84,6 +89,19 @@ Action::RetType Action_Bounds::DoAction(int frameNum, ActionFrame& frm) {
   }
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_Bounds::SyncAction() {
+  double buf[3];
+  trajComm_.Reduce( &buf, min_, 3, MPI_DOUBLE, MPI_MIN );
+  if (trajComm_.Master())
+    std::copy( buf, buf+3, min_ );
+  trajComm_.Reduce( &buf, max_, 3, MPI_DOUBLE, MPI_MAX );
+  if (trajComm_.Master())
+    std::copy( buf, buf+3, max_ );
+  return 0;
+}
+#endif
 
 void Action_Bounds::Print() {
   static const char cXYZ[3] = {'X', 'Y', 'Z'};

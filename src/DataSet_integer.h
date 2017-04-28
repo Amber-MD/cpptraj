@@ -2,7 +2,6 @@
 #define INC_DATASET_INTEGER_H
 #include <vector>
 #include "DataSet_1D.h"
-// Class: DataSet_integer
 /// Hold an array of integer values.
 class DataSet_integer : public DataSet_1D {
   public:
@@ -16,7 +15,9 @@ class DataSet_integer : public DataSet_1D {
     inline void AddVal(size_t, int);
     // ----- DataSet functions -------------------
     size_t Size()               const { return Data_.size();       }
-    int Sync();
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
     void Info()                 const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );
@@ -29,6 +30,7 @@ class DataSet_integer : public DataSet_1D {
     typedef std::vector<int>::iterator iterator;
     iterator begin()                  { return Data_.begin();      }
     iterator end()                    { return Data_.end();        }
+    int* Ptr()                        { return &(Data_[0]);        }
   private:
     std::vector<int> Data_;
 };

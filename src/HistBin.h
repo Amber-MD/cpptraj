@@ -5,6 +5,8 @@
 class HistBin : public Dimension {
   public:
     HistBin();
+    /// CONSTRUCTOR - Bins, Min, Step, Label
+    HistBin(int, double, double, std::string const&);
     HistBin(const HistBin&);
     HistBin& operator=(const HistBin&);
  

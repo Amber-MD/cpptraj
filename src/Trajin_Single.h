@@ -22,7 +22,14 @@ class Trajin_Single : public Trajin {
     CoordinateInfo const& TrajCoordInfo() const { return cInfo_; }
     // ---------------------------------------------
     std::string const& Title() const { return trajio_->Title(); } //TODO Check for segfault
+#   ifdef MPI
+    int ParallelBeginTraj( Parallel::Comm const& );
+    int ParallelReadTrajFrame(int, Frame&);
+    void ParallelEndTraj();
+#   endif
   private:
+    TrajectoryIO* SetupSeparateTraj(FileName const&, const char*) const;
+
     TrajectoryIO* trajio_; ///< Hold class that will interface with traj format.
     TrajectoryIO* velio_;  ///< Hold class that will interface with opt. mdvel file.
     TrajectoryIO* frcio_;  ///< Hold class taht will interface with opt. mdfrc file.

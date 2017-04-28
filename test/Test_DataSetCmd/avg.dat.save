@@ -1,0 +1,5 @@
+#Set     MyAvg[avg]  MyAvg[sd] MyAvg[ymin] MyAvg[ymax] MyAvg[yminidx] MyAvg[ymaxidx] MyAvg[names]
+       1         -1        175        -176         174              2              1      "Value"
+       2        179          5        -176         174              2              1      "Alpha"
+       3        2.5      1.118           1           4              1              4        "D12"
+       4        3.5        0.5           3           4              1              2        "Dxy"

@@ -7,7 +7,6 @@ class TrajinList {
     typedef std::vector<Trajin*> tListType;
     typedef std::vector<EnsembleIn*> eListType;
   public:
-    enum TrajModeType { UNDEFINED = 0, NORMAL, ENSEMBLE };
     TrajinList();
     ~TrajinList();
     void Clear();
@@ -15,7 +14,7 @@ class TrajinList {
     /// Add a trajectory file to the list.
     int AddTrajin(std::string const&, Topology*, ArgList const&);
     /// Add an ensemble to the list.
-    int AddEnsemble(std::string const&, Topology*, ArgList const&);
+    int AddEnsembleIn(std::string const&, Topology*, ArgList const&);
 
     typedef tListType::const_iterator trajin_it;
     trajin_it trajin_begin() const { return trajin_.begin(); }
@@ -27,11 +26,14 @@ class TrajinList {
     void FirstEnsembleReplicaInfo() const {
       if (!ensemble_.empty()) ensemble_.front()->PrintReplicaInfo();
     }
-
+#   ifdef MPI
+    EnsembleIn* EnsPtr(int idx) { return ensemble_[idx]; }
+#   endif
     bool empty()         const { return trajin_.empty() && ensemble_.empty(); }
-    TrajModeType Mode()  const { return mode_; }
     int MaxFrames()      const { return maxframes_; }
     int TopFrames(int i) const { return topFrames_[i]; }
+    int EnsembleSize()   const { return ensembleSize_; }
+    unsigned int Size()  const { return trajin_.size() + ensemble_.size(); }
     std::vector<int> const& PindexFrames() const { return topFrames_; }
     void List() const;
   private:
@@ -41,10 +43,11 @@ class TrajinList {
     eListType ensemble_;
     int debug_;
     int maxframes_;
-    TrajModeType mode_;
     typedef std::vector<int> Iarray;
     Iarray topFrames_; ///< Record how many frames currently associated with each topology.
     /// CRDIDXARG: Used when processing ensemble and sorting by CRDIDX
     std::string finalCrdIndicesArg_;
+    /// Current ensemble size. All input ensembles in given run must be same size.
+    int ensembleSize_;
 };
 #endif

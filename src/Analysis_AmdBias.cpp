@@ -2,7 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_double.h"
 
-Analysis_AmdBias::Analysis_AmdBias() : 
+Analysis_AmdBias::Analysis_AmdBias() : Analysis(HIDDEN),  
   ds1_(0), 
   Ethresh_(0.0),
   alpha_(0.0),

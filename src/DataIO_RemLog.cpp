@@ -394,7 +394,7 @@ int DataIO_RemLog::processReadArgs(ArgList& argIn) {
   while (!log_name.empty()) {
     FileName log(log_name);
     if (!File::Exists( log ))
-      mprintf("Warning: '%s' does not exist.\n", log.full());
+      File::ErrorMsg( log.full() );
     else
       logFilenames_.push_back( log.Full() );
     log_name = argIn.GetStringNext();
@@ -415,7 +415,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
 {
   bool processMREMD_ = false;
   if (!File::Exists( fnameIn )) {
-    mprinterr("Error: File '%s' does not exist.\n", fnameIn.full());
+    File::ErrorMsg( fnameIn.full() );
     return 1;
   }
   if (logFilenames_.empty()) // processReadArgs not called

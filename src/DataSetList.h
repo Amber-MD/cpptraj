@@ -27,7 +27,6 @@ class DataSetList {
     DataSetList();
     ~DataSetList();
 
-    void Clear();
     DataSetList& operator+=(DataSetList const&);
     /// \return DataSet at didx.
     DataSet* operator[](int didx) const { return DataList_[didx]; } // FIXME: No bounds check
@@ -37,6 +36,10 @@ class DataSetList {
     const_iterator begin() const { return DataList_.begin(); }
     /// Iterator to end of dataset list
     const_iterator end()   const { return DataList_.end();   }
+    /// Clear all non-Topology and non-Reference DataSets
+    void Clear();
+    /// Sort sets in the DataSetList
+    void Sort();
     /// True if no DataSets in list.
     bool empty()           const { return DataList_.empty(); }
     /// \return number of datasets in the list 
@@ -46,11 +49,11 @@ class DataSetList {
     /// Set current ensemble number.
     void SetEnsembleNum(int i)   { ensembleNum_ = i;         }
     /// Set DataSetList and underlying DataSet debug level
-    void SetDebug(int);
+    void SetDebug(int d) { debug_ = d; }
     /// Set DataSets pending status.
     void SetDataSetsPending(bool b) { dataSetsPending_ = b; }
     /// Make all sets not part of an ensemble part of given ensemble.
-    void MakeDataSetsEnsemble(int);
+    //void MakeDataSetsEnsemble(int);
     /// \return Ensemble number; -1 if not an ensemble
     int EnsembleNum()      const { return ensembleNum_;      }
     /// \return True if Actions have indicated DataSets will be generated.
@@ -71,6 +74,8 @@ class DataSetList {
     DataSet* GetDataSet( std::string const& ) const;
     /// Get multiple DataSets matching specified argument.
     DataSetList GetMultipleSets( std::string const& ) const;
+    /// Get all DataSets matching specified argument and type.
+    DataSetList GetSetsOfType( std::string const&, DataSet::DataType ) const;
     /// Select multiple sets, no warning if none found.
     DataSetList SelectSets( std::string const& ) const;
     /// Select multiple sets by type.
@@ -96,12 +101,15 @@ class DataSetList {
     int AddOrAppendSets(std::string const&, Darray const&, DataListType const&);
     /// Add a copy of the DataSet to the list; memory for DataSet will not be freed.
     void AddCopyOfSet(DataSet*);
-
     /// Print info on DataSets in the list
     void List() const;
+    /// List all non-Topology/Reference data sets.
+    void ListDataOnly() const;
 #   ifdef MPI
+    /// Indicate whether sets added to the list need to be synced
+    void SetNewSetsNeedSync(bool b) { newSetsNeedSync_ = b; }
     /// Call sync for DataSets in the list (MPI only)
-    void SynchronizeData();
+    int SynchronizeData(Parallel::Comm const&);
 #   endif
 
     // REF_COORDS functions ----------------------
@@ -113,6 +121,8 @@ class DataSetList {
     int SetActiveReference( ArgList& );
     /// List all reference frames.
     void ListReferenceFrames() const;
+    /// Remove all reference frames.
+    void ClearRef();
     // TOPOLOGY functions ------------------------
     /// GetTopology arg help text
     static const char* TopArgs;
@@ -124,17 +134,27 @@ class DataSetList {
     Topology* GetTopByIndex(ArgList&) const;
     /// List all topologies
     void ListTopologies() const;
+    /// Remove all topologies.
+    void ClearTop();
 #   ifdef TIMER
     void Timing() const;
 #   endif
   private:
+    /// Clear entire DataSetList
+    void ClearAll();
+    /// Search for and remove specified data set if found, optionally free memory.
     DataSet* EraseSet( DataSet*, bool );
     /// Warn if DataSet not found but may be pending.
     inline void PendingWarning() const;
     /// Wrapper around DataList_.push_back() that does extra bookkeeping.
     void Push_Back(DataSet*);
+    /// Internal print routine
+    static inline void PrintList(DataListType const&);
+    /// Get reference using keywords; set error integer if error occurs.
     DataSet* GetReferenceSet(ArgList&, int&) const;
+    /// Set specified reference data set as the active reference.
     int SetActiveReference(DataSet*);
+    /// Get topology using keywords
     DataSet* GetTopByKeyword(ArgList&, int&) const;
 #   ifdef TIMER
     Timer time_total_;
@@ -142,24 +162,15 @@ class DataSetList {
     Timer time_setup_;
     Timer time_push_;
 #   endif
-    /// Current active reference for distance-based masks.
-    DataSet* activeRef_;
-    /// Hold number of frames from most recent AllocateSets() call.
-    long int maxFrames_;
-    /// DataSet debug level
-    int debug_;
-    /// Ensemble member number
-    int ensembleNum_;
-    /// True if list contains copies that should not be freed in destructor.
-    bool hasCopies_;
-    /// True if Actions will generate DataSets in the future.
-    bool dataSetsPending_;
-    /// List of DataSets
-    DataListType DataList_;
-    /// Pointers to reference data sets.
-    DataListType RefList_;
-    /// Pointers to topology data sets.
-    DataListType TopList_;
+    DataSet* activeRef_;    ///< Current active reference for distance-based masks.
+    long int maxFrames_;    ///< Hold number of frames from most recent AllocateSets() call.
+    int debug_;             ///< DataSet debug level
+    int ensembleNum_;       ///< Ensemble member number
+    bool hasCopies_;        ///< True if DataSets should not be freed.
+    bool dataSetsPending_;  ///< True if Actions will generate DataSets in the future.
+    DataListType DataList_; ///< List of DataSets
+    DataListType RefList_;  ///< Pointers to reference data sets.
+    DataListType TopList_;  ///< Pointers to topology data sets.
     /// Hold descriptions and allocators for all DataSet types.
     struct DataToken {
       const char* Description;
@@ -167,5 +178,8 @@ class DataSetList {
     };
     static const DataToken DataArray[];
     typedef const DataToken* TokenPtr;
+#   ifdef MPI
+    bool newSetsNeedSync_; ///< If true, any sets added need to be synced.
+#   endif
 };
 #endif

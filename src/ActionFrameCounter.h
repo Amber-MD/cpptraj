@@ -25,6 +25,7 @@ class ActionFrameCounter {
     }
     void FrameCounterInfo() const;
     void FrameCounterBrief() const;
+    bool DefaultSettings() const { return (start_ == 0 && stop_ == -1 && offset_ == 1); }
   private:
     int start_;
     int stop_;

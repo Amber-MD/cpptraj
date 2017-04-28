@@ -48,7 +48,6 @@ Analysis_Rotdif::Analysis_Rotdif() :
   amoeba_itmax_(10000),
   amoeba_nsearch_(1),
   do_gridsearch_( false ),
-  useMass_(false),
   usefft_( true ),
   outfile_(0),
   Rmatrices_(0)
@@ -166,9 +165,13 @@ Analysis::RetType Analysis_Rotdif::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (!randvecOut_.empty())
     mprintf("\tWriting vectors to file '%s'\n", randvecOut_.c_str());
   mprintf("\tMax length to compute vector time correlation functions:");
-  if (ncorr_ == 0)
-    mprintf(" Total # of frames.\n");
-  else
+  if (ncorr_ == 0) {
+    if (tfac_ > 0.0 && tf_ > 0.0) {
+      ncorr_ = (int)((tf_ - ti_) / tfac_);
+      mprintf(" %i frames based on ti/tf/dt.\n", ncorr_);
+    } else
+      mprintf(" Total # of frames.\n");
+  } else
     mprintf(" %i frames.\n",ncorr_);
   mprintf("\tVector time correlation function order: %i\n", olegendre_);
   if (usefft_) {
@@ -997,7 +1000,8 @@ int Analysis_Rotdif::fft_compute_corr(DataSet_Vector const& rotated_vectors, int
   pY.assign(nsteps, 0.0);
 
   // Calculate correlation fn
-  CorrF_FFT pubfft( n_of_vecs );
+  CorrF_FFT pubfft;
+  pubfft.CorrSetup( n_of_vecs );
   ComplexArray data1 = pubfft.Array();
   // Loop over m = -olegendre, ..., +olegendre
   for (int midx = -olegendre_; midx <= olegendre_; ++midx) { 
@@ -1395,13 +1399,16 @@ int Analysis_Rotdif::DetermineDeffsAlt() {
       namebuffer = corrOut_;
     else
       namebuffer = "CtFit.dat";
-    outfile.OpenWrite(namebuffer);
-    outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
-    CurveFit::Darray const& Ct_multi = fit.FinalY();
-    for (int n = 0; n != ctMax; n++)
-      outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
-                     Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
-    outfile.CloseFile();
+    if (outfile.OpenWrite(namebuffer))
+      mprinterr("Error: Could not write Ct and fit curves.\n");
+    else {
+      outfile.Printf("%-12s %20s %20s %20s\n", "#Time", "<Ct>", "SingleExp", "MultiExp");
+      CurveFit::Darray const& Ct_multi = fit.FinalY();
+      for (int n = 0; n != ctMax; n++)
+        outfile.Printf("%12.6g %20.8e %20.8e %20.8e\n",
+                       Xvals[n], CtTotal[n], Ct_single[n], Ct_multi[n]);
+      outfile.CloseFile();
+    }
   }
 
   return 0;
@@ -1596,11 +1603,14 @@ int Analysis_Rotdif::DetermineDeffs() {
         namebuffer = AppendNumber( corrOut_, nvec );
       else
         namebuffer = AppendNumber( "p1p2.dat", nvec );
-      outfile.OpenWrite(namebuffer);
-      for (int i = 0; i < maxdat; i++) 
-        //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
-        outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
-      outfile.CloseFile();
+      if (outfile.OpenWrite(namebuffer))
+        mprinterr("Error: Could not write PX to file.\n");
+      else {
+        for (int i = 0; i < maxdat; i++) 
+          //outfile.Printf("%lf %lf %lf\n",pX[i], p2[i], p1[i]);
+          outfile.Printf("%12.6g %20.8e\n",pX[i], pY[i]);
+        outfile.CloseFile();
+      }
       //    Write Mesh
       if (debug_>3) {
         namebuffer = AppendNumber( "mesh.dat", nvec );

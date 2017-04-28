@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles mv.in NH.dat V2.dat
-
+CheckNetcdf
 INPUT="-i mv.in"
 cat > mv.in <<EOF
 parm ../tz2.parm7

@@ -16,7 +16,9 @@ class DataSet_string : public DataSet {
     void Resize(size_t sizeIn)           { Data_.resize(sizeIn, "");  }
     // ----- DataSet functions -------------------
     size_t Size()                  const { return Data_.size();       }
-    int Sync();
+#   ifdef MPI
+    int Sync(size_t, std::vector<int> const&, Parallel::Comm const&);
+#   endif
     void Info()                    const { return;                    }
     int Allocate(SizeArray const&);
     void Add( size_t, const void* );

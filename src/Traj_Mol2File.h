@@ -17,13 +17,6 @@ class Traj_Mol2File : public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_Mol2File(); }
     static void WriteHelp();
   private:
-    MOL2WRITEMODE mol2WriteMode_;
-    Topology* mol2Top_;
-    int currentSet_;
-    bool hasCharges_;
-    bool useSybylTypes_;
-    Mol2File file_; 
-
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(FileName const&, Topology*);
@@ -37,5 +30,22 @@ class Traj_Mol2File : public TrajectoryIO {
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
     int processReadArgs(ArgList&) { return 0; }
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj() {}
+#   endif
+    MOL2WRITEMODE mol2WriteMode_;
+    Topology* mol2Top_;
+    std::string ac_filename_;
+    std::string bc_filename_;
+    int currentSet_;
+    bool hasCharges_;
+    bool useSybylTypes_;
+    bool prependExt_;
+    Mol2File file_; 
 };
 #endif

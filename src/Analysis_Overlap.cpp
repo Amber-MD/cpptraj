@@ -4,7 +4,8 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 
-Analysis_Overlap::Analysis_Overlap() : ds1_(0), ds2_(0), useDeviation_(false) {}
+Analysis_Overlap::Analysis_Overlap() : Analysis(HIDDEN),
+  ds1_(0), ds2_(0), useDeviation_(false) {}
 
 void Analysis_Overlap::Help() const {
   mprintf("\tds1 <ds1> ds2 <ds2> [rmsd]\n");

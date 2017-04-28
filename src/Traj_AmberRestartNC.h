@@ -23,20 +23,29 @@ class Traj_AmberRestartNC : public TrajectoryIO, private NetcdfFile {
     int processWriteArgs(ArgList&);
     int processReadArgs(ArgList&);
     void Info();
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj() {} 
+#   endif
   private:
     double restartTime_;
-    bool singleWrite_;
-    bool useVelAsCoords_;
-    bool outputTemp_;
-    bool outputVel_;
-    bool outputTime_;
-    bool readAccess_;
     double time0_;
     double dt_;
+    int n_atoms_;         ///< Write only - number of atoms.
+    bool singleWrite_;
+    bool useVelAsCoords_;
+    bool useFrcAsCoords_;
+    bool outputTemp_;
+    bool readAccess_;
+    bool prependExt_;
     FileName filename_;
 
     int readVelocity(int, Frame&) { return 1; }
     int readForce(int, Frame&)    { return 1; }
 };
 #endif
-#endif  
+#endif

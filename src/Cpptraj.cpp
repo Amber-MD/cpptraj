@@ -6,8 +6,12 @@
 #include "ReadLine.h"
 #include "Version.h"
 #include "ParmFile.h" // ProcessMask
+#include "TopInfo.h" // ProcessMask
 #include "Timer.h"
 #include "StringRoutines.h" // TimeString
+#ifdef CUDA
+# include <cuda_runtime_api.h>
+#endif
 
 /// CONSTRUCTOR - initializes all commands
 Cpptraj::Cpptraj() {
@@ -28,7 +32,7 @@ Cpptraj::~Cpptraj() { Command::Free(); }
 void Cpptraj::Usage() {
   mprinterr("\n"
             "Usage: cpptraj [-p <Top0>] [-i <Input0>] [-y <trajin>] [-x <trajout>]\n"
-            "               [-c <reference>]\n"
+            "               [-c <reference>] [-d <datain>] [-w <dataout>] [-o <output>]\n"
             "               [-h | --help] [-V | --version] [--defines] [-debug <#>]\n"
             "               [--interactive] [--log <logfile>] [-tl]\n"
             "               [-ms <mask>] [-mr <mask>] [--mask <mask>] [--resmask <mask>]\n"
@@ -38,6 +42,9 @@ void Cpptraj::Usage() {
             "\t-y <trajin>      : Read from trajectory file <trajin>; same as input 'trajin <trajin>'.\n"
             "\t-x <trajout>     : Write trajectory file <trajout>; same as input 'trajout <trajout>'.\n"
             "\t-c <reference>   : Read <reference> as reference coordinates; same as input 'reference <reference>'.\n"
+            "\t-d <datain>      : Read data in from file <datain> ('readdata <datain>').\n"
+            "\t-w <dataout>     : Write data from <datain> as file <dataout> ('writedata <dataout>).\n"
+            "\t-o <output>      : Write CPPTRAJ STDOUT output to file <output>.\n"
             "\t-h | --help      : Print command line help and exit.\n"
             "\t-V | --version   : Print version and exit.\n"
             "\t--defines        : Print compiler defines and exit.\n"
@@ -59,16 +66,30 @@ void Cpptraj::Intro() {
 # ifdef _OPENMP
           " OpenMP"
 # endif
+# ifdef CUDA
+          " CUDA"
+# endif
           "\n    ___  ___  ___  ___\n     | \\/ | \\/ | \\/ | \n    _|_/\\_|_/\\_|_/\\_|_\n\n",
           CPPTRAJ_VERSION_STRING);
 # ifdef MPI
-  mprintf("| Running on %i threads\n",CpptrajState::WorldSize());
+  mprintf("| Running on %i threads\n", Parallel::World().Size());
 # endif
   mprintf("| Date/time: %s\n", TimeString().c_str());
   std::string available_mem = AvailableMemoryStr();
   // If empty, available mem could not be calculated correctly.
   if (!available_mem.empty())
     mprintf(  "| Available memory: %s\n", available_mem.c_str());
+# ifdef CUDA
+  int device;
+  if ( cudaGetDevice( &device ) == cudaSuccess ) {
+    cudaDeviceProp deviceProp;
+    if ( cudaGetDeviceProperties( &deviceProp, device ) == cudaSuccess ) {
+      mprintf("| CUDA device: %s\n", deviceProp.name);
+      mprintf("| Available GPU memory: %s\n",
+              ByteString(deviceProp.totalGlobalMem, BYTE_DECIMAL).c_str());
+    }
+  }
+# endif
   mprintf("\n");
 }
 
@@ -80,20 +101,40 @@ void Cpptraj::Finalize() {
     "  Theory Comput., 2013, 9 (7), pp 3084-3095.\n");
 }
 
+/** Main routine for running cpptraj. */
 int Cpptraj::RunCpptraj(int argc, char** argv) {
   int err = 0;
   Timer total_time;
   total_time.Start();
+# ifdef CUDA
+  int nGPUs = 0;
+  if ( cudaGetDeviceCount( &nGPUs ) != cudaSuccess ) {
+    mprinterr("Error: Could not get # of GPU devices.\n");
+    return 1;
+  }
+  if (nGPUs < 1) {
+    mprinterr("Error: No CUDA-capable devices found.\n");
+    return 1;
+  }
+# endif
   Mode cmode = ProcessCmdLineArgs(argc, argv);
   if ( cmode == BATCH ) {
     // If State is not empty, run now.
     if (!State_.EmptyState())
       err = State_.Run();
   } else if ( cmode == INTERACTIVE ) {
+#   ifdef MPI
+    mprinterr("Error: MPI version of cpptraj cannot run in interactive mode.\n");
+    err = 1;
+#   else
     err = Interactive();
+#   endif
   } else if ( cmode == ERROR ) {
     err = 1;
   }
+  // Ensure all data has been written.
+  if (State_.DFL().UnwrittenData())
+    State_.DFL().WriteAllDF();
   total_time.Stop();
   if (cmode != INTERACTIVE)
     mprintf("TIME: Total execution time: %.4f seconds.\n", total_time.Total());
@@ -102,9 +143,11 @@ int Cpptraj::RunCpptraj(int argc, char** argv) {
   else
     mprinterr("Error: Error(s) occurred during execution.\n");
   mprintf("\n");
+  FinalizeIO();
   return err;
 }
 
+/** \return string containing preprocessor defines used to compile cpptraj. */
 std::string Cpptraj::Defines() {
     std::string defined_str ("");
 #ifdef DEBUG
@@ -125,6 +168,9 @@ std::string Cpptraj::Defines() {
 #ifdef _OPENMP
   defined_str.append(" -D_OPENMP");
 #endif
+#ifdef CUDA
+  defined_str.append(" -DCUDA"); //TODO SHADER_MODEL?
+#endif
 #ifdef NO_MATHLIB
   defined_str.append(" -DNO_MATHLIB");
 #endif
@@ -140,7 +186,10 @@ std::string Cpptraj::Defines() {
 #ifdef HAS_PNETCDF
   defined_str.append(" -DHAS_PNETCDF");
 #endif
-#ifdef USE_SANDERLIB
+#ifdef NO_XDRFILE
+  defined_str.append(" -DNO_XDRFILE");
+#endif
+#if defined(USE_SANDERLIB) && !defined(LIBCPPTRAJ)
   defined_str.append(" -DUSE_SANDERLIB");
 #endif
   return defined_str;
@@ -184,16 +233,27 @@ int Cpptraj::ProcessMask( Sarray const& topFiles, Sarray const& refFiles,
         loudPrintf(" %i", *atom + 1);
     loudPrintf("\n");
   } else {
+    TopInfo info(&parm);
     if (residue)
-      parm.PrintResidueInfo( maskexpr );
+      info.PrintResidueInfo( maskexpr );
     else
-      parm.PrintAtomInfo( maskexpr );
+      info.PrintAtomInfo( maskexpr );
   }
   return 0;
 }
 
+void Cpptraj::AddFiles(Sarray& Files, int argc, char** argv, int& idx) {
+  Files.push_back( argv[++idx] );
+  // Assume all following args without leading '-' are also files.
+  while (idx+1 != argc && argv[idx+1][0] != '-')
+    Files.push_back( argv[++idx] );
+}
+
 /** Read command line args. */
 Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
+  commandLine_.clear();
+  for (int i = 1; i < argc; i++)
+    commandLine_.append( " " + std::string(argv[i]) );
   bool hasInput = false;
   bool interactive = false;
   Sarray inputFiles;
@@ -201,6 +261,8 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   Sarray trajinFiles;
   Sarray trajoutFiles;
   Sarray refFiles;
+  Sarray dataFiles;
+  std::string dataOut;
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);
     if ( arg == "--help" || arg == "-h" ) {
@@ -240,7 +302,10 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
     if ( arg == "--interactive" )
       interactive = true;
-    else if ( arg == "-debug" && i+1 != argc) {
+    else if ( arg == "--suppress-all-output") {
+      mprintf("Info: All further output will be suppressed.\n");
+      SuppressAllOutput();
+    } else if ( arg == "-debug" && i+1 != argc) {
       // -debug: Set overall debug level
       ArgList dbgarg( argv[++i] );
       State_.SetListDebug( dbgarg );
@@ -249,19 +314,33 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
       logfilename_ = argv[++i];
     else if ( arg == "-p" && i+1 != argc) {
       // -p: Topology file
-      topFiles.push_back( argv[++i] );
+      AddFiles( topFiles, argc, argv, i );
+    } else if ( arg == "-d" && i+1 != argc) {
+      // -d: Read data file
+      AddFiles( dataFiles, argc, argv, i );
+    } else if ( arg == "-w" && i+1 != argc) {
+      // -w: Write data file. Only one allowed. For data file conversion.
+      dataOut.assign( argv[++i] );
     } else if ( arg == "-y" && i+1 != argc) {
-      // -y: Trajectory file in
-      trajinFiles.push_back( argv[++i] );
+      // -y: Trajectory file in.
+      AddFiles( trajinFiles, argc, argv, i );
     } else if ( arg == "-x" && i+1 != argc) {
       // -x: Trajectory file out
       trajoutFiles.push_back( argv[++i] );
     } else if ( arg == "-c" && i+1 != argc) {
       // -c: Reference file
-      refFiles.push_back( argv[++i] );
+      AddFiles( refFiles, argc, argv, i );
     } else if (arg == "-i" && i+1 != argc) {
       // -i: Input file(s)
-      inputFiles.push_back( argv[++i] );
+      AddFiles( inputFiles, argc, argv, i );
+    } else if (arg == "-o" && i+1 != argc) {
+      // -o: Output file
+      FileName ofilename(argv[++i]);
+      if (ofilename.empty()) {
+        mprinterr("Error: Could not set up output file with name '%s'\n", ofilename.full());
+        return ERROR;
+      }
+      if (OutputToFile(ofilename.full())) return ERROR;
     } else if (arg == "-ms" && i+1 != argc) {
       // -ms: Parse mask string, print selected atom #s
       if (ProcessMask( topFiles, refFiles, std::string(argv[++i]), false, false )) return ERROR;
@@ -292,6 +371,34 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
     }
   }
   Cpptraj::Intro();
+  // Add all data files specified on command lin.
+  for (Sarray::const_iterator dataFilename = dataFiles.begin();
+                              dataFilename != dataFiles.end();
+                            ++dataFilename)
+  {
+    DataFile dataIn;
+    dataIn.SetDebug( State_.Debug() );
+    if (dataIn.ReadDataIn( *dataFilename, ArgList(), State_.DSL()) != 0)
+      return ERROR;
+  }
+  // Write all data sets from input data files if output data specified
+  if (!dataOut.empty()) {
+    hasInput = true; // This allows direct data conversion with no other input
+    if (State_.DSL().empty()) {
+      mprinterr("Error: '-w' specified but no input data sets '-d'\n");
+      return ERROR;
+    }
+    DataFile DF;
+    if (DF.SetupDatafile( dataOut, State_.Debug() )) return ERROR;
+    for (DataSetList::const_iterator ds = State_.DSL().begin(); ds != State_.DSL().end(); ++ds)
+      if (DF.AddDataSet( *ds )) {
+        mprinterr("Error: Could not add data set '%s' to file '%s'\n", (*ds)->legend(),
+                  dataOut.c_str());
+        return ERROR;
+      }
+    mprintf("\tWriting sets to '%s', format '%s'\n", DF.DataFilename().full(), DF.FormatString());
+    DF.WriteDataOut();
+  }
   // Add all topology files specified on command line.
   for (Sarray::const_iterator topFilename = topFiles.begin();
                               topFilename != topFiles.end();
@@ -306,7 +413,7 @@ Cpptraj::Mode Cpptraj::ProcessCmdLineArgs(int argc, char** argv) {
   for (Sarray::const_iterator trajinName = trajinFiles.begin();
                               trajinName != trajinFiles.end();
                               ++trajinName)
-    if (State_.AddTrajin( *trajinName )) return ERROR;
+    if (State_.AddInputTrajectory( *trajinName )) return ERROR;
   // Add all output trajectories specified on command line.
   if (!trajoutFiles.empty()) {
     hasInput = true; // This allows direct traj conversion with no other input
@@ -353,6 +460,9 @@ int Cpptraj::Interactive() {
   CpptrajFile logfile_;
   if (logfilename_.empty())
     logfilename_.SetFileName("cpptraj.log");
+# if defined (NO_READLINE) || defined (LIBCPPTRAJ)
+  // No need to load history if not using readline (or this is libcpptraj)
+# else
   if (File::Exists(logfilename_)) {
     // Load previous history.
     if (logfile_.OpenRead(logfilename_)==0) {
@@ -371,9 +481,20 @@ int Cpptraj::Interactive() {
       logfile_.CloseFile();
     }
   }
+# endif
   logfile_.OpenAppend(logfilename_);
-  if (logfile_.IsOpen())
+  if (logfile_.IsOpen()) {
+    // Write logfile header entry: date, cmd line opts, topologies
     logfile_.Printf("# %s\n", TimeString().c_str());
+    if (!commandLine_.empty())
+      logfile_.Printf("#%s\n", commandLine_.c_str());
+    DataSetList tops = State_.DSL().GetSetsOfType("*", DataSet::TOPOLOGY);
+    if (!tops.empty()) {
+      logfile_.Printf("# Loaded topologies:\n");
+      for (DataSetList::const_iterator top = tops.begin(); top != tops.end(); ++top)
+        logfile_.Printf("#   %s\n", (*top)->Meta().Fname().full());
+    }
+  }
   CpptrajState::RetType readLoop = CpptrajState::OK;
   while ( readLoop != CpptrajState::QUIT ) {
     if (inputLine.GetInput()) {

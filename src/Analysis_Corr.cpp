@@ -6,6 +6,8 @@
 Analysis_Corr::Analysis_Corr() :
   D1_(0),
   D2_(0),
+  Ct_(0),
+  Coeff_(0),
   lagmax_(0),
   usefft_(true),
   calc_covar_(true)
@@ -63,14 +65,22 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     return Analysis::ERR;
   }
 
-  // Setup output dataset
-  std::string corrname = "C(" + D1_->Meta().Legend();
-  if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
-  corrname += ")";
+  // Setup output datasets
   Ct_ = setup.DSL().AddSet( DataSet::DOUBLE, dataset_name, "Corr" );
   if (Ct_ == 0) return Analysis::ERR;
-  Ct_->SetLegend( corrname );
+  if (dataset_name.empty()) {
+    std::string corrname = "C(" + D1_->Meta().Legend();
+    if (D2_ != D1_) corrname += ("-" + D2_->Meta().Legend());
+    corrname += ")";
+    Ct_->SetLegend( corrname );
+  }
   outfile->AddDataSet( Ct_ );
+  Coeff_ = 0;
+  if (D1_->Type() != DataSet::VECTOR) {
+    Coeff_ = setup.DSL().AddSet( DataSet::DOUBLE, MetaData(Ct_->Meta().Name(), "coeff") );
+    if (Coeff_ == 0) return Analysis::ERR;
+    Coeff_->Allocate( DataSet::SizeArray(1, 1) );
+  }
 
   if (calc_covar_)
     calctype = "covariance";
@@ -88,6 +98,9 @@ Analysis::RetType Analysis_Corr::Setup(ArgList& analyzeArgs, AnalysisSetup& setu
     mprintf("\tUsing FFT to calculate %s.\n", calctype);
   else
     mprintf("\tUsing direct method to calculate %s.\n", calctype);
+  mprintf("\tCorrelation function data set: %s\n", Ct_->Meta().PrintName().c_str());
+  if (Coeff_ != 0)
+    mprintf("\tCorrelation coefficient data set: %s\n", Coeff_->Meta().PrintName().c_str());
 
   return Analysis::OK;
 }
@@ -107,6 +120,7 @@ Analysis::RetType Analysis_Corr::Analyze() {
 
   mprintf("    CORR: %u elements, max lag %i\n",Nelements,lagmax_);
 
+  Analysis::RetType err = Analysis::OK;
   if (D1_->Type() == DataSet::VECTOR) {
     DataSet_Vector const& set1 = static_cast<DataSet_Vector const&>( *D1_ );
     DataSet_Vector const& set2 = static_cast<DataSet_Vector const&>( *D2_ );
@@ -114,10 +128,13 @@ Analysis::RetType Analysis_Corr::Analyze() {
   } else {
     DataSet_1D const& set1 = static_cast<DataSet_1D const&>( *D1_ );
     DataSet_1D const& set2 = static_cast<DataSet_1D const&>( *D2_ );
-    set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ );
-    mprintf("    CORRELATION COEFFICIENT %6s to %6s IS %10.4f\n",
-            D1_->legend(), D2_->legend(), set1.CorrCoeff( set2 ) );
+    if (set1.CrossCorr( set2, *((DataSet_1D*)Ct_), lagmax_, calc_covar_, usefft_ ))
+      err = Analysis::ERR;
+    double coeff = set1.CorrCoeff( set2 );
+    mprintf("    CORRELATION COEFFICIENT %s to %s IS %.4f\n",
+            D1_->legend(), D2_->legend(), coeff );
+    Coeff_->Add(0, &coeff);
   }
 
-  return Analysis::OK;
+  return err;
 }

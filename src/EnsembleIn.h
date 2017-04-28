@@ -5,14 +5,15 @@
 #include "FramePtrArray.h"
 #include "ReplicaInfo.h"
 #ifdef MPI
-#  ifdef TIMER
-#    include "Timer.h"
-#  endif
+# include "Parallel.h"
+# ifdef TIMER
+#   include "Timer.h"
+# endif
 #endif
 /// Read in an array of frames at a time.
 class EnsembleIn {
   public:
-    EnsembleIn() : targetType_(ReplicaInfo::NONE), badEnsemble_(0), debug_(0) {}
+    EnsembleIn();
     virtual ~EnsembleIn() {}
     virtual int SetupEnsembleRead(FileName const&, ArgList&, Topology*) = 0;
     virtual int ReadEnsemble(int, FrameArray&, FramePtrArray&) = 0;
@@ -39,7 +40,6 @@ class EnsembleIn {
 
     int SetTemperatureMap(std::vector<double> const&);
     int SetIndicesMap(std::vector<RemdIdxType> const&);
-
     InputTrajCommon& SetTraj() { return traj_; }
     /// For converting temperature to replica index
     ReplicaMap<double> TemperatureMap_;
@@ -51,8 +51,11 @@ class EnsembleIn {
 #   ifdef MPI
     RemdIdxType frameidx_;    ///< Hold position of each frame in ensemble.
 
-    static int GatherTemperatures(double*, std::vector<double>&);
-    static int GatherIndices(int*, std::vector<RemdIdxType>&, int);
+    void SetEnsembleMemberNum(int m)           { member_ = m;                     }
+    int Member()                         const { return member_;                  }
+    Parallel::Comm const& EnsembleComm() const { return Parallel::EnsembleComm(); }
+    static int GatherTemperatures(double*, std::vector<double>&, Parallel::Comm const&);
+    static int GatherIndices(int*, std::vector<RemdIdxType>&, int, Parallel::Comm const&);
 #   ifdef TIMER
     Timer mpi_allgather_timer_;
     Timer mpi_sendrecv_timer_;
@@ -65,6 +68,9 @@ class EnsembleIn {
     static void PrintReplicaImap(ReplicaMap<RemdIdxType> const&);
 
     InputTrajCommon traj_;
+#   ifdef MPI
+    int member_; ///< Internal ensemble member number.
+#   endif
 };
 // ----- INLINE FUNCTIONS ------------------------------------------------------
 int EnsembleIn::GetNextEnsemble(FrameArray& fa, FramePtrArray& fp) {

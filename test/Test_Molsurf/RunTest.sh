@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles molsurf.in msurf.dat
-
+CheckNetcdf
 # Molsurf test
 cat > molsurf.in <<EOF
 parm ../tz2.parm7

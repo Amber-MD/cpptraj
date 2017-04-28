@@ -6,7 +6,7 @@
 #include "Constants.h" // TWOPI, GASK_KCAL
 #include "HistBin.h"
 #ifdef _OPENMP
-#  include "omp.h"
+#  include <omp.h>
 #endif
 
 // CONSTRUCTOR

@@ -2,7 +2,12 @@
 
 . ../MasterTest.sh
 
-CleanFiles ptraj.in random.crd 
+CleanFiles ptraj.in random.crd
+MaxThreads 1 "randomizeions test"
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
 CheckZlib
 INPUT="ptraj.in"
 TOP="adh206.ff10.tip3p.parm7.gz"

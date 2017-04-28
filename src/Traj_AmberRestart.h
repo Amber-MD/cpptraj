@@ -10,7 +10,7 @@ class Traj_AmberRestart : public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberRestart(); }
     static void WriteHelp();
     static void ReadHelp();
-
+    // NOTE: below 4 are public for AmbPDB
     int setupTrajin(FileName const&, Topology*);
     int openTrajin();
     void closeTraj();
@@ -22,11 +22,17 @@ class Traj_AmberRestart : public TrajectoryIO {
     int setupTrajout(FileName const&, Topology*, CoordinateInfo const&,int, bool);
     int readVelocity(int, Frame&);
     int readForce(int, Frame&)     { return 1; }
-
     int writeFrame(int,Frame const&);
     int processWriteArgs(ArgList&);
     void Info();
-
+#   ifdef MPI
+    // Parallel functions
+    int parallelOpenTrajout(Parallel::Comm const&);
+    int parallelSetupTrajout(FileName const&, Topology*, CoordinateInfo const&,
+                             int, bool, Parallel::Comm const&);
+    int parallelWriteFrame(int, Frame const&);
+    void parallelCloseTraj() {}
+#   endif
     int getBoxAngles(std::string const&, Box&);
 
     std::vector<double> CRD_; ///< Store coords on read.
@@ -42,8 +48,8 @@ class Traj_AmberRestart : public TrajectoryIO {
     bool readAccess_;      ///< If true, presence/absence of velocity info is known
     bool useVelAsCoords_;  ///< If true read velocities in as coordinates.
     bool outputTemp_;
-    bool outputVel_;
     bool outputTime_;
+    bool prependExt_;    ///< If true prepend extension with # on write instead of append
     BufferedFrame file_; ///< Only needed for writes.
 };
 #endif

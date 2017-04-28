@@ -24,3 +24,25 @@ int DataSet_Mat3x3::Append(DataSet* dsIn) {
   std::copy( mIn.begin(), mIn.end(), data_.begin() + oldsize );
   return 0;
 }
+
+#ifdef MPI
+int DataSet_Mat3x3::Sync(size_t total, std::vector<int> const& rank_frames,
+                         Parallel::Comm const& commIn)
+{
+  if (commIn.Size()==1) return 0;
+  if (commIn.Master()) {
+    // Resize to accept data from other ranks.
+    data_.resize( total );
+    int midx = rank_frames[0]; // Index on master
+    for (int rank = 1; rank < commIn.Size(); rank++) {
+      for (int ridx = 0; ridx != rank_frames[rank]; ridx++, midx++)
+        // TODO: Consolidate to 1 send/recv via arrays?
+        commIn.SendMaster( data_[midx].Dptr(), 9, rank, MPI_DOUBLE );
+    }
+  } else { // Send data to master
+    for (unsigned int ridx = 0; ridx != data_.size(); ++ridx)
+      commIn.SendMaster( data_[ridx].Dptr(), 9, commIn.Rank(), MPI_DOUBLE );
+  }
+  return 0;
+}
+#endif

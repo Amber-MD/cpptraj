@@ -14,19 +14,28 @@ class Action_NativeContacts : public Action {
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_NativeContacts(); }
     void Help() const;
   private:
-    typedef std::vector<int> Iarray;
     Action::RetType Init(ArgList&, ActionInit&, int);
+#   ifdef MPI
+    int SyncAction();
+    Parallel::Comm trajComm_;
+#   endif
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
+    typedef std::vector<int> Iarray;
     Iarray SetupContactIndices(AtomMask const&, Topology const&);
     int SetupContactLists(Topology const&, Frame const&);
+    
     int DetermineNativeContacts(Topology const&, Frame const&);
     inline bool ValidContact(int, int, Topology const&) const;
+    void UpdateSeries();
+
+    enum RSType { NO_RESSERIES = 0, RES_PRESENT, RES_SUM };
 
     double distance_;     ///< Cutoff distance
     float pdbcut_;        ///< Only print pdb atoms with bfac > pdbcut.
+    RSType Rseries_;      ///< (series only) Determine whether and how to create residue time series
     int debug_;           ///< Action debug level.
     int matrix_min_;      ///< Used for map output
     int resoffset_;       ///< When byResidue, ignore residues spaced this far apart
@@ -36,15 +45,20 @@ class Action_NativeContacts : public Action {
     bool includeSolvent_; ///< If true include solvent residues
     bool series_;         ///< If true save time series of native contacts.
     bool usepdbcut_;      ///< If true only print pdb atoms with bfac > pdbcut.
+    bool seriesUpdated_;  ///< True once time series have been updated for total # frames.
+    bool saveNonNative_;  ///< If true save details for non native contacts as well.
     ImagedAction image_;  ///< Hold imaging-related info/routines.
     AtomMask Mask1_;      ///< First mask in which to search
     AtomMask Mask2_;      ///< Second mask in which to search
     Iarray contactIdx1_;  ///< Hold atom/residue indices for Mask1 (for map)
     Iarray contactIdx2_;  ///< Hold atom/residue indices for Mask2 (for map)
     CpptrajFile* cfile_;  ///< File to write native contact list to.
-    CpptrajFile* pfile_;  ///< File to write contact PDB to.
+    CpptrajFile* pfile_;  ///< File to write native contact PDB to.
+    CpptrajFile* nfile_;  ///< File to write non-native contact PDB to.
     CpptrajFile* rfile_;  ///< File to write total fraction frames for res pairs.
-    DataFile* seriesout_; ///< DataFile to write time series data to.
+    DataFile* seriesout_; ///< DataFile to write native time series data to.
+    DataFile* seriesNNout_; ///< DataFile to write non-native time series data to.
+    DataFile* seriesRout_;  ///< DataFile to write residue contact time series data to.
     DataSet* numnative_;  ///< Hold # of native contacts
     DataSet* nonnative_;  ///< Hold # of non-native contacts
     DataSet* mindist_;    ///< Hold minimum observed distance among contacts
@@ -66,31 +80,45 @@ class Action_NativeContacts : public Action {
     /// Define list of contacts.
     typedef std::map<Cpair, contactType> contactListType;
     contactListType nativeContacts_; ///< List of native contacts.
+    contactListType nonNativeContacts_; ///< List of non-native contacts.
+    typedef std::vector<DataSet_integer*> DSarray;
     /// Hold residue total contact frames and total # contacts.
     class resContact {
-    public:
-    resContact() : nframes_(0), ncontacts_(0) {}
-    resContact(int nf) : nframes_(nf), ncontacts_(1) {}
-    void Increment(int nf) { nframes_ += nf; ++ncontacts_; }
-    int Nframes() const { return nframes_; }
-    int Ncontacts() const { return ncontacts_; }
-    bool operator<(resContact const& rhs) const {
-      if (nframes_ == rhs.nframes_)
-        return (ncontacts_ > rhs.ncontacts_);
-      else
-        return (nframes_ > rhs.nframes_);
-    }
-    private:
-    int nframes_, ncontacts_;
+      // NOTE: Class must be defined here for subseqent Rpair typedef
+      public:
+        resContact() : nframes_(0), ncontacts_(0) {}
+        resContact(int nf, DataSet_integer* ds) : nframes_(nf), ncontacts_(1), sets_(1, ds) {}
+        void Increment(int nf, DataSet_integer* ds) { nframes_ += nf; ++ncontacts_; sets_.push_back(ds); }
+        int Nframes() const { return nframes_; }
+        int Ncontacts() const { return ncontacts_; }
+        bool operator<(resContact const& rhs) const {
+          if (nframes_ == rhs.nframes_)
+            return (ncontacts_ > rhs.ncontacts_);
+          else
+            return (nframes_ > rhs.nframes_);
+        }
+        bool operator==(resContact const& rhs) const {
+          return (nframes_ == rhs.nframes_ && ncontacts_ == rhs.ncontacts_);
+        }
+        DSarray const& Sets() const { return sets_; }
+      private:
+        int nframes_;   ///< Sum of all frames for which contacts present for this residue pair
+        int ncontacts_; ///< Total number of contacts between this residue pair
+        DSarray sets_;  ///< Hold individal sets of contacts belonging to this residue pair if series
     };
     /// For holding residue pair and total fraction contact.
     typedef std::pair<Cpair, resContact> Rpair;
     /// For sorting residue contact pairs.
     struct res_cmp {
-      inline bool operator()(Rpair const& first, Rpair const& second) const {
-        return (first.second < second.second);
+      inline bool operator()(Rpair const& P1, Rpair const& P2) const {
+        if (P1.second == P2.second) // if # frames and # contacts same
+          return (P1.first < P2.first); // sort by res numbers
+        else
+          return (P1.second < P2.second); // sort by # contacts, # frames
       }
     };
+    void WriteContacts(contactListType&, bool);
+    void WriteContactPDB(contactListType&, CpptrajFile*);
 };
 // ----- PRIVATE CLASS DEFINITIONS ---------------------------------------------
 class Action_NativeContacts::contactType {
@@ -104,7 +132,8 @@ class Action_NativeContacts::contactType {
     int Res2()       const { return res2_;       }
     double Avg()     const { return dist_;       }
     double Stdev()   const { return dist2_;      }
-    DataSet_integer& Data() { return *data_;     }
+    DataSet_integer& Data()          { return *data_; }
+    DataSet_integer* DataPtr() const { return data_;  }
     void Increment(int fnum, double d, double d2) {
       nframes_++;
       dist_ += d;
@@ -119,6 +148,11 @@ class Action_NativeContacts::contactType {
         return (nframes_ > rhs.nframes_);
     }
     void SetData(DataSet* ds) { data_ = (DataSet_integer*)ds; }
+#   ifdef MPI
+    void SetValues(double d, double d2, int n) {
+      dist_ = d; dist2_ = d2; nframes_ = n;
+    }
+#   endif
   private:
     double dist_;    ///< (For avg) contact distance when present.
     double dist2_;   ///< (For stdev) contact distance^2 when present.

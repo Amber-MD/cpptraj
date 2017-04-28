@@ -7,19 +7,14 @@
 #include <map>
 
 #include "Action.h"
-#include "ImagedAction.h"
 #include "OnlineVarT.h"
 
+#define ROUTINE_VERSION_STRING "1.0.2"
 
-
-/** \author Hannes H. Loeffler
+/** Calculate density along a coordinate.
+  * \author Hannes H. Loeffler.
   */
-
-#define ROUTINE_VERSION_STRING "1.0.1"
-
-typedef StatsMap<long,double> statmap;
-
-class Action_Density : public Action, ImagedAction {
+class Action_Density : public Action {
 public:
   Action_Density();
 
@@ -32,9 +27,13 @@ private:
   Action::RetType Setup(ActionSetup&);
   Action::RetType DoAction(int, ActionFrame&);
   void Print();
+
+  typedef StatsMap<long,double> statmap;
   void Output(long, long, std::vector<statmap>&);
 
   static const std::string emptystring;
+  static const char* PropertyStr_[];
+  static const char* AxisStr_[];
 
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
@@ -46,9 +45,11 @@ private:
   double delta_;
   Stats<double> area_;
 
-  CpptrajFile* output_;
-
   std::vector<AtomMask> masks_;
+
+  typedef std::vector<DataSet*> DSarray;
+  DSarray AvSets_; ///< Hold average data sets for each mask
+  DSarray SdSets_; ///< Hold SD data sets for each mask
 
   // std::unordered_map may be better but it is C++11, some STL's may have
   // hash_map but not same number of params,

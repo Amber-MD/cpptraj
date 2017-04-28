@@ -60,8 +60,13 @@ class Atom {
     void SetResNum(int resnumIn)             { resnum_ = resnumIn;  }
     void SetMol(int molIn)                   { mol_ = molIn;        }
     void SetCharge(double qin)               { charge_ = qin;       }
+    void SetPolar(double pin)                { polar_ = pin;        }
+    void SetMass(double min)                 { mass_ = min;         }
     void SetGBradius(double rin)             { gb_radius_ = rin;    }
+    void SetGBscreen(double sin)             { gb_screen_ = sin;    }
     void SetTypeIndex(int tin)               { atype_index_ = tin;  }
+    void SetName(NameType const& nin)        { aname_ = nin;        }
+    void SetTypeName(NameType const& tin)    { atype_ = tin;        }
     // Internal vars -----------------------------
     inline bool NoMol()                const { return ( mol_ < 0 ); }
     inline const char *c_str()         const { return *aname_; }
@@ -85,6 +90,8 @@ class Atom {
     static double GetBondLength(AtomicElementType, AtomicElementType);
     /// \return PARSE radius in Ang. based on element.
     double ParseRadius() const;
+    /// Determine element from given atomic number. Use mass/name if number < 1.
+    void DetermineElement(int);
   protected:
     static const size_t NUMELEMENTS = 76;
   private:
@@ -107,7 +114,6 @@ class Atom {
     std::vector<int> excluded_; ///< Indices of atoms excluded from nonbonded calc with this one.
 
     static void WarnBondLengthDefault(AtomicElementType, AtomicElementType, double);
-    void DetermineElement(int);
     void SetElementFromName();
     void SetElementFromSymbol(char,char);
     void SetElementFromMass();

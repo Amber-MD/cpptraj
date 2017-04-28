@@ -12,6 +12,12 @@ out4=sn2_dir.dat
 
 CleanFiles $in $out1 $oute1 $out2 $oute2 $out3 $out4
 
+NotParallel "Lipid Order Parameter Test."
+if [[ $? -ne 0 ]] ; then
+  EndTest
+  exit 0
+fi
+
 INPUT="-i $in"
 
 

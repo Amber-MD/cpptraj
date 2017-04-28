@@ -6,13 +6,22 @@
 bool Traj_CharmmCor::ID_TrajFormat(CpptrajFile& fileIn) {
   // File must already be set up for read.
   if (fileIn.OpenFile()) return false;
-  std::string buffer = fileIn.GetLine();
-  fileIn.CloseFile();
-  if (buffer.size() > 1) {
-    if (buffer[0] == '*' && buffer[1] == ' ') // FIXME: OK to check for space?
-      return true;
+  bool isCor = false;
+  const char* ptr = fileIn.NextLine();
+  // Must be at least 1 title line denoted with '*'
+  if (ptr != 0 && *ptr == '*') {
+    // Scan past all title lines
+    while (ptr != 0 && *ptr == '*') ptr = fileIn.NextLine();
+    if (ptr != 0) {
+      // Next line must be # atoms ONLY
+      int ibuf[2];
+      if (sscanf(ptr, "%i %i", ibuf, ibuf+1) == 1)
+        // make sure it was a valid integer
+        isCor = (ibuf[0] > 0);
+    }
   }
-  return false;
+  fileIn.CloseFile();
+  return isCor;
 }
 
 int Traj_CharmmCor::setupTrajin(FileName const& fname, Topology* trajParm)
@@ -44,6 +53,8 @@ int Traj_CharmmCor::setupTrajin(FileName const& fname, Topology* trajParm)
               corAtom_, trajParm->c_str(), trajParm->Natom());
     return TRAJIN_ERR;
   }
+  if (extendedFmt_)
+    mprintf("\tCOR file: extended format.\n");
   file_.CloseFile();
   // Just 1 frame.
   return 1;
@@ -76,9 +87,9 @@ int Traj_CharmmCor::readFrame(int set, Frame& frameIn) {
     }
     int ncrd;
     if (extendedFmt_)
-      ncrd = sscanf(buffer, "%*5i%*5i%*5s%*5s%10lf%10lf%10lf\n", xptr, xptr+1, xptr+2);
+      ncrd = sscanf(buffer, "%*10i%*10i%*10s%*10s%20lf%20lf%20lf", xptr, xptr+1, xptr+2);
     else
-      ncrd = sscanf(buffer, "%*10i%*10i%*10s%*10s%20lf%20lf%20lf\n", xptr, xptr+1, xptr+2);
+      ncrd = sscanf(buffer, "%*5i%*5i%*5s%*5s%10lf%10lf%10lf", xptr, xptr+1, xptr+2);
     if (ncrd != 3) {
       mprinterr("Error: Reading coordinates for COR atom %i (got %i)\n", at+1, ncrd);
       return 1;

@@ -10,25 +10,22 @@ Action_Rmsd::Action_Rmsd() :
   perrescenter_(false),
   perresinvert_(false),
   perresavg_(0),
-  RefParm_(0),
   masterDSL_(0),
   debug_(0),
+  mode_(ROT_AND_TRANS),
   fit_(true),
-  rotate_(true),
   useMass_(false),
   rmsd_(0),
   rmatrices_(0)
 { }
 
 void Action_Rmsd::Help() const {
-  mprintf("\t[<name>] <mask> [<refmask>] [out filename] [nofit | norotate]\n"
-          "\t[mass] [savematrices]\n"
-          "\t[ first | %s |\n"
-          "\t  reftraj <filename> [parm <parmname> | parmindex <#>] ]\n"
+  mprintf("\t[<name>] <mask> [<refmask>] [out <filename>] [nofit | norotate | nomod]\n"
+          "\t[mass] [savematrices]\n%s"
           "\t[perres perresout <filename> [perresavg <avgfile>]\n"
           "\t [range <resRange>] [refrange <refRange>]\n"
           "\t [perresmask <additional mask>] [perrescenter] [perresinvert]\n",
-          DataSetList::RefArgs);
+          ReferenceAction::Help());
   mprintf("  Calculate coordinate root-mean-squared deviation of atoms in <mask>\n");
 }
 
@@ -39,18 +36,17 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   debug_ = debugIn;
   // Check for keywords
   fit_ = !actionArgs.hasKey("nofit");
-  if (fit_)
-    rotate_ = !actionArgs.hasKey("norotate");
+  if (fit_) {
+    if (actionArgs.hasKey("norotate"))
+      mode_ = TRANS_ONLY;
+    else if (actionArgs.hasKey("nomod"))
+      mode_ = NONE;
+  }
   useMass_ = actionArgs.hasKey("mass");
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
   bool saveMatrices = actionArgs.hasKey("savematrices");
   // Reference keywords
-  bool previous = actionArgs.hasKey("previous");
-  bool first = actionArgs.hasKey("first");
-  ReferenceFrame refFrm = init.DSL().GetReferenceFrame( actionArgs );
-  std::string reftrajname = actionArgs.GetStringKey("reftraj");
-  if (!reftrajname.empty())
-    RefParm_ = init.DSL().GetTopology( actionArgs );
+  REF_.InitRef(actionArgs, init.DSL(), fit_, useMass_ );
   // Per-res keywords
   perres_ = actionArgs.hasKey("perres");
   if (perres_) {
@@ -76,13 +72,7 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
   std::string rMaskExpr = actionArgs.GetMaskNext();
   if (rMaskExpr.empty())
     rMaskExpr = tMaskExpr;
-  // Initialize reference
-  if (REF_.InitRef(previous, first, useMass_, fit_, reftrajname, refFrm, 
-                   RefParm_, rMaskExpr, actionArgs, "rmsd"))
-    return Action::ERR;
-  // Set RefParm for perres if not empty
-  if (perres_ && RefParm_ == 0 && !refFrm.empty())
-    RefParm_ = refFrm.ParmPtr();
+  REF_.SetRefMask( rMaskExpr );
 
   // Set up the RMSD data set.
   MetaData md( actionArgs.GetStringNext(), MetaData::M_RMS ); 
@@ -100,18 +90,25 @@ Action::RetType Action_Rmsd::Init(ArgList& actionArgs, ActionInit& init, int deb
     rmatrices_ = init.DSL().AddSet(DataSet::MAT3X3, md);
     if (rmatrices_ == 0) return Action::ERR;
   }
+# ifdef MPI
+  if (REF_.SetTrajComm( init.TrajComm() )) return Action::ERR;
+# endif
   mprintf("    RMSD: (%s), reference is %s", tgtMask_.MaskString(),
-          REF_.RefModeString());
-  if (!fit_)
-    mprintf(", no fitting");
-  else {
-    mprintf(", with fitting");
-    if (!rotate_)
-      mprintf(" (no rotation)");
-  }
+          REF_.RefModeString().c_str());
   if (useMass_)
     mprintf(", mass-weighted");
   mprintf(".\n");
+  if (!fit_)
+    mprintf("\tNo fitting will be performed.\n");
+  else {
+    mprintf("\tBest-fit RMSD will be calculated,");
+    if (mode_ == TRANS_ONLY)
+      mprintf(" coords will be translated but not rotated.\n");
+    else if (mode_ == NONE)
+      mprintf(" coords will not be modified.\n");
+    else if (mode_ == ROT_AND_TRANS)
+      mprintf(" coords will be rotated and translated.\n");
+  }
   if (rmatrices_ != 0)
     mprintf("\tRotation matrices will be saved to set '%s'\n", rmatrices_->legend());
   // Per-residue RMSD info.
@@ -283,24 +280,27 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
   // correct masses in based on the mask.
   tgtFrame_.SetupFrameFromMask(tgtMask_, setup.Top().Atoms());
   // Reference setup
-  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected(), "rmsd"))
+  if (REF_.SetupRef(setup.Top(), tgtMask_.Nselected()))
     return Action::SKIP;
  
   // Per residue rmsd setup
   if (perres_) {
+    Topology* RefParm = REF_.RefCrdTopPtr();
     // If RefParm is still NULL probably 'first', set now.
-    if (RefParm_ == 0)
-      RefParm_ = setup.TopAddress();
-    int err = perResSetup(setup.Top(), *RefParm_);
+    if (RefParm == 0)
+      RefParm = setup.TopAddress();
+    int err = perResSetup(setup.Top(), *RefParm);
     if      (err == 1) return Action::SKIP;
     else if (err == 2) return Action::ERR;
   }
 
   // Warn if PBC and rotating
-  if (rotate_ && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
-    mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
-            "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
-            "Warning:  after the RMS-fit is performed.\n");
+  if (fit_) {
+    if (mode_ == ROT_AND_TRANS && setup.CoordInfo().TrajBox().Type() != Box::NOBOX) {
+      mprintf("Warning: Coordinates are being rotated and box coordinates are present.\n"
+              "Warning: Unit cell vectors are NOT rotated; imaging will not be possible\n"
+              "Warning:  after the RMS-fit is performed.\n");
+    }
   }
 
   return Action::OK;
@@ -309,25 +309,29 @@ Action::RetType Action_Rmsd::Setup(ActionSetup& setup) {
 // Action_Rmsd::DoAction()
 Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
   // Perform any needed reference actions
-  REF_.ActionRef( frm.Frm(), fit_, useMass_ );
+  REF_.ActionRef( frm.TrajoutNum(), frm.Frm() );
   // Calculate RMSD
   double rmsdval;
-  Action::RetType err;
+  Action::RetType err = Action::OK;
   // Set selected frame atoms. Masses have already been set.
   tgtFrame_.SetCoordinates(frm.Frm(), tgtMask_);
-  if (!fit_) {
+  if (!fit_)
     rmsdval = tgtFrame_.RMSD_NoFit(REF_.SelectedRef(), useMass_);
-    err = Action::OK;
-  } else {
+  else {
     rmsdval = tgtFrame_.RMSD_CenteredRef(REF_.SelectedRef(), rot_, tgtTrans_, useMass_);
     if (rmatrices_ != 0) rmatrices_->Add(frameNum, rot_.Dptr());
-    if (rotate_)
-      frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
-    else {
-      tgtTrans_ += REF_.RefTrans();
-      frm.ModifyFrm().Translate(tgtTrans_);
+    switch (mode_) {
+      case ROT_AND_TRANS:
+        frm.ModifyFrm().Trans_Rot_Trans(tgtTrans_, rot_, REF_.RefTrans());
+        err = Action::MODIFY_COORDS;
+        break;
+      case TRANS_ONLY:
+        tgtTrans_ += REF_.RefTrans();
+        frm.ModifyFrm().Translate(tgtTrans_);
+        err = Action::MODIFY_COORDS;
+        break;
+      case NONE: break;
     }
-    err = Action::MODIFY_COORDS;
   }
   rmsd_->Add(frameNum, &rmsdval);
 
@@ -340,8 +344,8 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
                                      PerRes != ResidueRMS_.end(); ++PerRes)
     {
       if ( PerRes->isActive_ ) {
-        ResRefFrame_.SetFrame(REF_.RefFrame(), PerRes->refResMask_);
-        ResTgtFrame_.SetFrame(frm.Frm(),       PerRes->tgtResMask_);
+        ResRefFrame_.SetFrame(REF_.CurrentReference(), PerRes->refResMask_);
+        ResTgtFrame_.SetFrame(frm.Frm(),               PerRes->tgtResMask_);
         if (perrescenter_) {
           ResTgtFrame_.CenterOnOrigin( useMass_ );
           ResRefFrame_.CenterOnOrigin( useMass_ );
@@ -351,9 +355,7 @@ Action::RetType Action_Rmsd::DoAction(int frameNum, ActionFrame& frm) {
       }
     }
   }
-
-  if (REF_.Previous())
-    REF_.SetRefStructure( frm.Frm(), fit_, useMass_ );
+  REF_.PreviousRef( frm.Frm() );
 
   return err;
 }
@@ -385,6 +387,10 @@ void Action_Rmsd::Print() {
                                                                   MetaData(rmsd_->Meta().Name(),
                                                                            "Stdev"));
     PerResStdev->ModifyDim(Dimension::X).SetLabel("Residue");
+#   ifdef MPI
+    PerResAvg->SetNeedsSync( false );
+    PerResStdev->SetNeedsSync( false );
+#   endif
     // Add the average and stdev datasets to the master datafile list
     perresavg_->AddDataSet(PerResAvg);
     perresavg_->AddDataSet(PerResStdev);

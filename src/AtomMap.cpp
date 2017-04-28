@@ -29,25 +29,39 @@ bool AtomMap::InvalidElement() {
 }
 
 // AtomMap::Setup()
-int AtomMap::Setup(Topology const& TopIn) {
+int AtomMap::Setup(Topology const& TopIn, Frame const& FrameIn) {
+  if (TopIn.Natom() != FrameIn.Natom()) {
+    mprinterr("Error: Size of input topology '%s' (%i) != size of input frame (%i)\n",
+              TopIn.c_str(), TopIn.Natom(), FrameIn.Natom());
+    return 1;
+  }
   mapatoms_.clear();
-  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++) {
+  const double* xyz = FrameIn.xAddress();
+  for (Topology::atom_iterator atom = TopIn.begin(); atom != TopIn.end(); atom++, xyz+=3) {
     // This sets up 1 char atom name based on atom element
-    mapatoms_.push_back( *atom );
+    mapatoms_.push_back( MapAtom(*atom, xyz) );
     if (InvalidElement()) return 1;
   }
   return CheckBonds();
 }
 
 // AtomMap::SetupResidue()
-int AtomMap::SetupResidue(Topology const& topIn, int resnum) {
+int AtomMap::SetupResidue(Topology const& topIn, Frame const& FrameIn, int resnum) {
   mapatoms_.clear();
   int firstAtom = topIn.Res(resnum).FirstAtom();
   int lastAtom = topIn.Res(resnum).LastAtom();
-  //mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
+  if (debug_ > 0)
+    mprintf("DEBUG:\tResidue %i, atoms %i to %i\n", resnum + 1, firstAtom+1, lastAtom);
+  const double* xyz;
+  static const double ZERO[3] = {0.0, 0.0, 0.0};
+  if (FrameIn.Natom() < 1)
+    xyz = ZERO;
+  else
+    xyz = FrameIn.XYZ(firstAtom);
   for (int atom = firstAtom; atom < lastAtom; ++atom) {
-    mapatoms_.push_back( topIn[atom] );
+    mapatoms_.push_back( MapAtom(topIn[atom], xyz) );
     if (InvalidElement()) return 1;
+    if (FrameIn.Natom() > 0) xyz += 3;
     // Add bonds for this residue 
     mapatoms_.back().ClearBonds();
     for (Atom::bond_iterator bndatm = topIn[atom].bondbegin();
@@ -350,7 +364,7 @@ int AtomMap::SymmetricAtoms(Topology const& topIn,
 //  if (!atomsAreSelected) continue;
   if (debug_>0) mprintf("DEBUG: Residue %s\n", topIn.TruncResNameNum(res).c_str());
   // Create AtomMap of this residue to determine chiral centers, unique atom IDs etc
-  if (SetupResidue(topIn, res) != 0) return 1;
+  if (SetupResidue(topIn, Frame(), res) != 0) return 1;
   DetermineAtomIDs();
   // Potentially symmetric atom group; indices relative to this AtomMap.
   Iarray symmAtoms;

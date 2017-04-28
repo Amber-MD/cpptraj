@@ -9,6 +9,11 @@ fi
 # Clean
 CleanFiles general.in distance.dat rmsd.dat rmsda.dat phi2.dat PhiPsi.dat test.crd a1.dat Restart/* test.nc r4.dat a2.dat.gz a3.dat.bz2 r2.dat r3-nofit.dat
 
+NotParallel "General tests"
+if [[ $? -eq 1 ]] ; then
+  EndTest
+  exit 0
+fi
 # Check libraries
 CheckNetcdf
 CheckZlib
@@ -68,8 +73,11 @@ DoTest test.rst7.213.save Restart/test.rst7.213
 NcTest test.nc.save test.nc
 DoTest r4.dat.save r4.dat
 # NOTE: a2.dat.gz comparison allowed to fail on windows; differences caused
-#       by different newline characters in compressed file.
-DoTest a2.dat.gz.save a2.dat.gz allowfail windows
+#       by different newline characters in compressed file. Macs also seem to
+#       occasionally fail this test, even though decompressed diffs are the same
+if [[ $TEST_OS == "linux" ]] ; then
+  DoTest a2.dat.gz.save a2.dat.gz
+fi
 DoTest a3.dat.bz2.save a3.dat.bz2
 DoTest r2.dat.save r2.dat
 DoTest r3-nofit.dat.save r3-nofit.dat

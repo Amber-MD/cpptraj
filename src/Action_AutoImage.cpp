@@ -69,7 +69,8 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   *         selected molecule.
   */
 Action_AutoImage::pairList
-  Action_AutoImage::SetupAtomRanges( Topology const& currentParm, std::string const& maskexpr )
+  Action_AutoImage::SetupAtomRanges( Topology const& currentParm, std::string const& maskexpr,
+                                     bool strict )
 {
   pairList imageList;
   CharMask Mask1( maskexpr.c_str() );
@@ -80,12 +81,24 @@ Action_AutoImage::pairList
   {
     int firstAtom = mol->BeginAtom();
     int lastAtom = mol->EndAtom();
-    // Check that each atom in the range is in Mask1
-    bool rangeIsValid = true;
-    for (int atom = firstAtom; atom < lastAtom; ++atom) {
-      if (!Mask1.AtomInCharMask(atom)) {
-        rangeIsValid = false;
-        break;
+    bool rangeIsValid;
+    if (strict) {
+      rangeIsValid = true;
+      // Check that each atom in the range is in Mask1
+      for (int atom = firstAtom; atom < lastAtom; ++atom) {
+        if (!Mask1.AtomInCharMask(atom)) {
+          rangeIsValid = false;
+          break;
+        }
+      }
+    } else {
+      rangeIsValid = false;
+      // Check that any atom in the range is in Mask1
+      for (int atom = firstAtom; atom < lastAtom; ++atom) {
+        if (Mask1.AtomInCharMask(atom)) {
+          rangeIsValid = true;
+          break;
+        }
       }
     }
     if (rangeIsValid) {
@@ -95,6 +108,12 @@ Action_AutoImage::pairList
   }
   mprintf("\tMask [%s] corresponds to %zu molecules\n", Mask1.MaskString(), imageList.size()/2);
   return imageList;
+}
+
+Action_AutoImage::pairList
+  Action_AutoImage::SetupAtomRanges( Topology const& currentParm, std::string const& maskexpr )
+{
+  return SetupAtomRanges( currentParm, maskexpr, true );
 }
 
 // Action_AutoImage::Setup()
@@ -123,7 +142,8 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 
   // Set up anchor region
   if (!anchor_.empty()) {
-    anchorList_ = SetupAtomRanges( setup.Top(), anchor_ );
+    // Allow only part of an anchor molecule to be selected
+    anchorList_ = SetupAtomRanges( setup.Top(), anchor_, false );
   } else {
     anchorList_.clear();
     anchorList_.push_back( setup.Top().Mol(0).BeginAtom() );
@@ -136,7 +156,13 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   }
   // Set up mask for centering anchor
   anchorMask_.ResetMask();
-  anchorMask_.AddAtomRange( anchorList_[0], anchorList_[1] );
+  if (!anchor_.empty()) {
+    anchorMask_.SetMaskString( anchor_ );
+    if ( setup.Top().SetupIntegerMask( anchorMask_ ) ) return Action::ERR;
+    anchorMask_.MaskInfo();
+  } else {
+    anchorMask_.AddAtomRange( anchorList_[0], anchorList_[1] );
+  }
   int anchormolnum = setup.Top()[ anchorList_[0] ].MolNum();
   mprintf("\tAnchor molecule is %i\n", anchormolnum+1);
   // Set up fixed region

@@ -308,15 +308,22 @@ int DataIO_OpenDx::WriteGrid(DataSet const& setIn, CpptrajFile& outfile) const {
   // Print the OpenDX header
   WriteDxHeader(outfile, set.NX(), set.NY(), set.NZ(), set.NX(), set.NY(), set.NZ(),
                 set.Ucell(), oxyz);
-  // Now print out the data. It is already in row-major form (z-axis changes
-  // fastest), so no need to do any kind of data adjustment
+  // Now print out the data.
   size_t gridsize = set.Size();
-  for (size_t i = 0UL; i < gridsize - 2UL; i += 3UL)
-    outfile.Printf("%g %g %g\n", set[i], set[i+1], set[i+2]);
-  // Print out any points we may have missed
-  switch (gridsize % 3) {
-    case 2: outfile.Printf("%g %g\n", set[gridsize-2], set[gridsize-1]); break;
-    case 1: outfile.Printf("%g\n", set[gridsize-1]); break;
+  if (gridsize == 1)
+    outfile.Printf("%g\n", set[0]);
+  else if (gridsize == 2)
+    outfile.Printf("%g %g\n", set[0], set[1]);
+  else if (gridsize > 2) {
+    // Data is already in row-major form (z-axis changes
+    // fastest), so no need to do any kind of data adjustment
+    for (size_t i = 0UL; i < gridsize - 2UL; i += 3UL)
+      outfile.Printf("%g %g %g\n", set[i], set[i+1], set[i+2]);
+    // Print out any points we may have missed
+    switch (gridsize % 3) {
+      case 2: outfile.Printf("%g %g\n", set[gridsize-2], set[gridsize-1]); break;
+      case 1: outfile.Printf("%g\n", set[gridsize-1]); break;
+    }
   }
   return 0;
 }
