@@ -4,9 +4,12 @@
 #include "StringRoutines.h" // integerToString
 
 void Analysis_TI::Help() const {
-  mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>} [nskip <# to skip>]\n"
-          "\t[name <set name>] [out <file>]\n" 
-          "  Calculate free energy from Amber TI output.\n");
+  mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>}\n"
+          "\t[nskip <# to skip>] [name <set name>] [out <file>]\n" 
+          "  Calculate free energy from Amber TI output. If 'nskip' is specified\n"
+          "  (where <# to skip> may be a comma-separated list of numbers) the average\n"
+          "  DV/DL and final free energy will be calculated skipping over the specified\n"
+          "  number of points (for assessing convergence).\n");
 }
 
 // Analysis_TI::SetQuadAndWeights()
@@ -158,6 +161,12 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   mprintf("\n");
   if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
   if (curveout!= 0) mprintf("\tTI curve written to '%s'\n", curveout->DataFilename().full());
+  if (!nskip_.empty()) {
+    mprintf("\t<DV/DL> will be calculated skipping over");
+    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf(" points.\n");
+  }
   return Analysis::OK;
 }
 
@@ -174,6 +183,7 @@ Analysis::RetType Analysis_TI::Analyze() {
       mprinterr("Error: Set '%s' is empty.\n", ds.legend());
       return Analysis::ERR;
     }
+    mprintf("\t%s (%zu points).\n", ds.legend(), ds.Size());
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
