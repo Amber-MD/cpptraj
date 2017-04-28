@@ -1,5 +1,6 @@
 #include "DataFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // DigitWidth, integerToString
 #ifdef TIMER
 # include "Timer.h"
 #endif
@@ -113,10 +114,16 @@ void DataFile::SetDebug(int debugIn) {
 
 inline int Error(const char* msg) { mprinterr(msg); return 1; }
 
+int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn, 
+                         DataSetList& datasetlist)
+{
+  return ReadDataIn(fnameIn, argListIn, datasetlist, -1, -1);
+}
+
 // DataFile::ReadDataIn()
 // TODO: Should this read to internal DataSetList?
 int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn, 
-                         DataSetList& datasetlist)
+                         DataSetList& datasetlist, int idx, int maxidx)
 {
   if (fnameIn.empty()) return Error("Error: No input data file name given.\n"); 
   ArgList argIn = argListIn;
@@ -149,6 +156,8 @@ int DataFile::ReadDataIn(FileName const& fnameIn, ArgList const& argListIn,
   // Check if user specifed DataSet name; otherwise use filename base.
   std::string dsname = argIn.GetStringKey("name");
   if (dsname.empty()) dsname = filename_.Base();
+  if (idx > -1)
+    dsname.append("_" + integerToString(idx, DigitWidth(maxidx)));
   mprintf("\tReading '%s' as %s with name '%s'\n", filename_.full(), 
           FileTypes::FormatDescription(DF_AllocArray,dfType_), dsname.c_str());
   // Read data
