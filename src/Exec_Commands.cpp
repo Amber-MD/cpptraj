@@ -115,7 +115,7 @@ Exec::RetType Exec_SelectDS::Execute(CpptrajState& State, ArgList& argIn) {
   std::string dsarg = argIn.GetStringNext();
   DataSetList dsets = State.DSL().GetMultipleSets( dsarg );
   if (!dsets.empty()) {
-    mprintf("SelectDS: Arg '%s':", dsarg.c_str());
+    mprintf("SelectDS: Arg '%s':\n", dsarg.c_str());
     dsets.List();
   }
   return CpptrajState::OK;

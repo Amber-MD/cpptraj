@@ -231,15 +231,13 @@ int DataFile::SetupDatafile(FileName const& fnameIn, ArgList& argIn,
   return 0;
 }
 
-int DataFile::SetupStdout(ArgList const& argIn, int debugIn) {
+int DataFile::SetupStdout(ArgList& argIn, int debugIn) {
   SetDebug( debugIn );
   filename_.clear();
   dataio_ = (DataIO*)FileTypes::AllocIO( DF_AllocArray, DATAFILE, false );
   if (dataio_ == 0) return Error("Error: Data file allocation failed.\n");
-  if (!argIn.empty()) {
-    ArgList args( argIn );
-    ProcessArgs( args );
-  }
+  if (!argIn.empty())
+    ProcessArgs( argIn );
   return 0;
 }
 
