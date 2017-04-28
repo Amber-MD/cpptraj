@@ -60,7 +60,10 @@ UsageFull() {
   echo "  ENVIRONMENT VARIABLES (can also be passed to configure as <VAR>=<VALUE>):"
   echo "    CXX          : Name of the C++ compiler."
   echo "    CC           : Name of the C compiler."
-  echo "    FC           : Name of the fortran compiler."
+  echo "    FC           : Name of the Fortran compiler."
+  echo "    MPICXX       : Name of MPI C++ compiler."
+  echo "    MPICC        : Name of MPI C compiler."
+  echo "    MPIF90       : Name of MPI Fortran compiler."
   echo "    CXXFLAGS     : Flags to pass to the C++ compiler."
   echo "    CFLAGS       : Flags to pass to the C compiler."
   echo "    FFLAGS       : Flags to pass to the Fortran compiler."
@@ -187,7 +190,7 @@ EOF
 }
 
 TestMathlib() {
-  if [[ ! -z $BLAS || $USELIBSCI -eq 1 ]] ; then # ASSUME LAPACK also defined
+  if [[ ! -z $BLAS || $USELIBSCI -eq 1 || $USEMKL -eq 1 ]] ; then # ASSUME LAPACK also defined
     cat > testp.cpp <<EOF
 #include <cstdio>
 extern "C" {
