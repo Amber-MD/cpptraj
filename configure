@@ -1388,7 +1388,7 @@ cat > config.h <<EOF
 # config.h for cpptraj
 # configured using: $CONFIGURECMD
 EOF
-if [ "$USECUDA" -eq 1 ] ; then
+if [ "$USECUDA" -eq 1 -a ! -z "$SHADER_MODEL" ] ; then
   echo "# SHADER_MODEL=$SHADER_MODEL" >> config.h
 fi
 cat >> config.h <<EOF
