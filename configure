@@ -387,7 +387,7 @@ EOF
 SetCompilerOptions() {
   case "$1" in
     "gnu" )
-      echo "Using gnu compilers"
+      echo "Using GNU compilers"
       if [ -z "$CC" ]; then CC=gcc; fi
       if [ -z "$CXX" ]; then CXX=g++; fi
       if [ -z "$FC" ]; then FC=gfortran; fi
@@ -411,7 +411,7 @@ SetCompilerOptions() {
       PICFLAG="-fPIC"
       ;;
     "intel" )
-      echo "Using intel compilers"
+      echo "Using Intel compilers"
       if [ -z "$CC" ]; then CC=icc; fi
       if [ -z "$CXX" ]; then CXX=icpc; fi
       if [ -z "$FC" ]; then FC=ifort; fi
@@ -858,7 +858,7 @@ if [[ -z $COMPILERS ]] ; then
       *icpc*    ) COMPILERS='intel' ;;
       *pgc++*   ) COMPILERS='pgi' ;;
       *CC*      ) COMPILERS='cray' ;;
-      * ) echo "Warning: Could not detect compiler type ($CXX); assuming gnu" > /dev/stderr;;
+      * ) echo "Warning: Could not detect compiler type ($CXX); assuming GNU" > /dev/stderr;;
     esac
   else
     COMPILERS='gnu'
