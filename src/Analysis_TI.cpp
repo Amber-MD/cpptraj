@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
 #include "StringRoutines.h" // integerToString
+#include "Bootstrap.h"
 
 void Analysis_TI::Help() const {
   mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>}\n"
@@ -178,6 +179,12 @@ Analysis::RetType Analysis_TI::Analyze() {
     lastSkipPoint.push_back( *it - 1 );
   // Run for multiple skip values, helps test convergences.
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+    // DEBUG: Bootstrap for average DV/DL
+    Bootstrap BS;
+    BS.Init(input_dsets_[idx], (int)(0.75*(double)input_dsets_[idx]->Size()),
+            100, -1, debug_);
+    BS.Resample();
+    // END DEBUG
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (ds.Size() < 1) {
       mprinterr("Error: Set '%s' is empty.\n", ds.legend());

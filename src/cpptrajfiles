@@ -127,6 +127,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         AtomMask.cpp \
         AxisType.cpp \
         BondSearch.cpp \
+        Bootstrap.cpp \
         Box.cpp \
         BufferedFrame.cpp \
         BufferedLine.cpp \
