@@ -19,7 +19,8 @@ Analysis_TI::Analysis_TI() :
 void Analysis_TI::Help() const {
   mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>}\n"
           "\t[nskip <# to skip>] [name <set name>] [out <file>]\n"
-          "\t[nbootstrap_pts <points>] [nbootstrap_samples <samples>]\n"
+          "\t[curveout <ti curve file>] [bsout <bootstrap vals file>]\n"
+          "\t[bs_pts <points>] [bs_samples <samples>]\n"
           "  Calculate free energy from Amber TI output. If 'nskip' is specified\n"
           "  (where <# to skip> may be a comma-separated list of numbers) the average\n"
           "  DV/DL and final free energy will be calculated skipping over the specified\n"
@@ -47,11 +48,12 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     for (int i = 0; i != xArgs.Nargs(); i++)
       xval_.push_back( xArgs.getNextDouble(0.0) );
   }
-  n_bootstrap_pts_ = analyzeArgs.getKeyInt("nbootstrap_pts", -1);
-  n_bootstrap_samples_ = analyzeArgs.getKeyInt("nbootstrap_samples", 100);
+  n_bootstrap_pts_ = analyzeArgs.getKeyInt("bs_pts", -1);
+  n_bootstrap_samples_ = analyzeArgs.getKeyInt("bs_samples", 100);
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
+  DataFile* bsout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("bsout"), analyzeArgs);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -73,6 +75,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
                input_dsets_.size(), xval_.size());
     return Analysis::ERR;
   }
+  // Set up output data sets
   dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( dAout_ );
@@ -84,6 +87,17 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
     if (curveout != 0) curveout->AddDataSet( ds );
     curve_.push_back( ds );
+  }
+  if (n_bootstrap_samples_ > 0) {
+    orig_avg_ = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "oavg"));
+    bs_avg_   = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bsavg"));
+    bs_sd_    = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bssd"));
+    if (orig_avg_ == 0 || bs_avg_ == 0 || bs_sd_ == 0) return Analysis::ERR;
+    if (bsout != 0) {
+      bsout->AddDataSet(orig_avg_);
+      bsout->AddDataSet(bs_avg_);
+      bsout->AddDataSet(bs_sd_);
+    }
   }
 
   mprintf("    TI: Calculating TI");
@@ -214,8 +228,12 @@ Analysis::RetType Analysis_TI::Analyze() {
       }
       BS.Init(input_dsets_[idx], n_bootstrap_pts_, n_bootstrap_samples_, -1, debug_);
       double bs_sd = BS.Resample(bs_mean);
+      double avg0 = ds.Avg();
       mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
-              ds.Avg(), bs_mean, bs_sd);
+              avg0, bs_mean, bs_sd);
+      ((DataSet_Mesh*)orig_avg_)->AddXY(xval_[idx], avg0);
+      ((DataSet_Mesh*)bs_avg_)->AddXY(xval_[idx], bs_mean);
+      ((DataSet_Mesh*)bs_sd_)->AddXY(xval_[idx], bs_sd);
     }
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
