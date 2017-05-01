@@ -3,9 +3,8 @@
 #include "Analysis.h"
 #include "Array1D.h"
 class Analysis_TI : public Analysis {
-    enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
   public:
-    Analysis_TI() : Analysis(HIDDEN), nskip_(0), dAout_(0), mode_(GAUSSIAN_QUAD) {}
+    Analysis_TI();
     DispatchObject* Alloc() const { return (DispatchObject*)new Analysis_TI(); }
     void Help() const;
 
@@ -14,6 +13,7 @@ class Analysis_TI : public Analysis {
   private:
     int SetQuadAndWeights(int);
 
+    enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> DSarray;
@@ -26,5 +26,7 @@ class Analysis_TI : public Analysis {
     Darray wgt_;          ///< Hold Gaussian quadrature weights
     ModeType mode_;       ///< Integration mode
     int debug_;
+    int n_bootstrap_pts_; ///< # points for bootstrap error analysis
+    int n_bootstrap_samples_; ///< # of times to resample for bootstrap analysis
 };
 #endif

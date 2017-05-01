@@ -4,13 +4,122 @@
 #include "StringRoutines.h" // integerToString
 #include "Bootstrap.h"
 
+/// CONSTRUCTOR
+Analysis_TI::Analysis_TI() :
+  Analysis(HIDDEN),
+  nskip_(0),
+  dAout_(0),
+  mode_(GAUSSIAN_QUAD),
+  debug_(0),
+  n_bootstrap_pts_(0),
+  n_bootstrap_samples_(100)
+{}
+
+
 void Analysis_TI::Help() const {
   mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>}\n"
-          "\t[nskip <# to skip>] [name <set name>] [out <file>]\n" 
+          "\t[nskip <# to skip>] [name <set name>] [out <file>]\n"
+          "\t[nbootstrap_pts <points>] [nbootstrap_samples <samples>]\n"
           "  Calculate free energy from Amber TI output. If 'nskip' is specified\n"
           "  (where <# to skip> may be a comma-separated list of numbers) the average\n"
           "  DV/DL and final free energy will be calculated skipping over the specified\n"
           "  number of points (for assessing convergence).\n");
+}
+
+// Analysis_TI::Setup()
+Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
+{
+  debug_ = debugIn;
+  int nq = analyzeArgs.getKeyInt("nq", 0);
+  ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
+  if (nskipArg.empty())
+    nskip_.resize(1, 0);
+  else {
+    nskip_.clear();
+    for (int i = 0; i != nskipArg.Nargs(); i++) {
+      nskip_.push_back( nskipArg.getNextInteger(0) );
+      if (nskip_.back() < 0) nskip_.back() = 0;
+    }
+  }
+  ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
+  if (!xArgs.empty()) {
+    xval_.clear();
+    for (int i = 0; i != xArgs.Nargs(); i++)
+      xval_.push_back( xArgs.getNextDouble(0.0) );
+  }
+  n_bootstrap_pts_ = analyzeArgs.getKeyInt("nbootstrap_pts", -1);
+  n_bootstrap_samples_ = analyzeArgs.getKeyInt("nbootstrap_samples", 100);
+  std::string setname = analyzeArgs.GetStringKey("name");
+  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
+  DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
+  // Select datasets from remaining args
+  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
+    mprinterr("Error: Could not add data sets.\n");
+    return Analysis::ERR;
+  }
+  if (input_dsets_.empty()) {
+    mprinterr("Error: No input data sets.\n");
+    return Analysis::ERR;
+  }
+  if (SetQuadAndWeights(nq)) return Analysis::ERR;
+  // Determine integration mode
+  if (nq > 0)
+    mode_ = GAUSSIAN_QUAD;
+  else
+    mode_ = TRAPEZOID;
+  // Check that # abscissas matches # data sets
+  if (xval_.size() != input_dsets_.size()) {
+     mprinterr("Error: Expected %zu data sets for integration, got %zu\n",
+               input_dsets_.size(), xval_.size());
+    return Analysis::ERR;
+  }
+  dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
+  if (dAout_ == 0) return Analysis::ERR;
+  if (outfile != 0) outfile->AddDataSet( dAout_ );
+  MetaData md(dAout_->Meta().Name(), "TIcurve");
+  for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
+    md.SetIdx( *it );
+    DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
+    if (ds == 0) return Analysis::ERR;
+    ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
+    if (curveout != 0) curveout->AddDataSet( ds );
+    curve_.push_back( ds );
+  }
+
+  mprintf("    TI: Calculating TI");
+  if (mode_ == GAUSSIAN_QUAD) {
+    mprintf(" using Gaussian quadrature with %zu points.\n", xval_.size());
+    mprintf("\t%6s %8s %8s %s\n", "Point", "Abscissa", "Weight", "SetName");
+    for (unsigned int i = 0; i != xval_.size(); i++)
+      mprintf("\t%6i %8.5f %8.5f %s\n", i, xval_[i], wgt_[i], input_dsets_[i]->legend());
+  } else {
+    mprintf(" using the trapezoid rule.\n");
+    mprintf("\t%6s %8s %s\n", "Point", "Abscissa", "SetName");
+    for (unsigned int i = 0; i != xval_.size(); i++)
+      mprintf("\t%6i %8.5f %s\n", i, xval_[i], input_dsets_[i]->legend());
+  }
+  if (nskip_.front() > 0) {
+    mprintf("\tSkipping first");
+    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
+      mprintf(" %i", *it);
+    mprintf(" data points for <DV/DL> calc.\n");
+  }
+  mprintf("\tResults saved in set '%s'\n", dAout_->legend());
+  mprintf("\tTI curve(s) saved in set(s)");
+  for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
+    mprintf(" '%s'", (*ds)->legend());
+  mprintf("\n");
+  if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
+  if (curveout!= 0) mprintf("\tTI curve written to '%s'\n", curveout->DataFilename().full());
+  if (n_bootstrap_samples_ > 0) {
+    mprintf("\tBootstrap error analysis will be performed for <DV/DL> values.\n");
+    if (n_bootstrap_pts_ < 1)
+      mprintf("\t75%% of input data points will be used for each bootstrap resample.\n");
+    else
+      mprintf("\tBootstrap resample size is %i data points\n", n_bootstrap_pts_);
+    mprintf("\t%i bootstrap resamples.\n", n_bootstrap_samples_);
+  }
+  return Analysis::OK;
 }
 
 // Analysis_TI::SetQuadAndWeights()
@@ -79,98 +188,7 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
   return 0;
 }
 
-// Analysis_TI::Setup()
-Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup, int debugIn)
-{
-  debug_ = debugIn;
-  int nq = analyzeArgs.getKeyInt("nq", 0);
-  ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
-  if (nskipArg.empty())
-    nskip_.resize(1, 0);
-  else {
-    nskip_.clear();
-    for (int i = 0; i != nskipArg.Nargs(); i++) {
-      nskip_.push_back( nskipArg.getNextInteger(0) );
-      if (nskip_.back() < 0) nskip_.back() = 0;
-    }
-  }
-  ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
-  if (!xArgs.empty()) {
-    xval_.clear();
-    for (int i = 0; i != xArgs.Nargs(); i++)
-      xval_.push_back( xArgs.getNextDouble(0.0) );
-  }
-  std::string setname = analyzeArgs.GetStringKey("name");
-  DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
-  // Select datasets from remaining args
-  if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
-    mprinterr("Error: Could not add data sets.\n");
-    return Analysis::ERR;
-  }
-  if (input_dsets_.empty()) {
-    mprinterr("Error: No input data sets.\n");
-    return Analysis::ERR;
-  }
-  if (SetQuadAndWeights(nq)) return Analysis::ERR;
-  // Determine integration mode
-  if (nq > 0)
-    mode_ = GAUSSIAN_QUAD;
-  else
-    mode_ = TRAPEZOID;
-  // Check that # abscissas matches # data sets
-  if (xval_.size() != input_dsets_.size()) {
-     mprinterr("Error: Expected %zu data sets for integration, got %zu\n",
-               input_dsets_.size(), xval_.size());
-    return Analysis::ERR;
-  }
-  dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
-  if (dAout_ == 0) return Analysis::ERR;
-  if (outfile != 0) outfile->AddDataSet( dAout_ );
-  MetaData md(dAout_->Meta().Name(), "TIcurve");
-  for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
-    md.SetIdx( *it );
-    DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
-    if (ds == 0) return Analysis::ERR;
-    ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
-    if (curveout != 0) curveout->AddDataSet( ds );
-    curve_.push_back( ds );
-  }
-
-  mprintf("    TI: Calculating TI");
-  if (mode_ == GAUSSIAN_QUAD) {
-    mprintf(" using Gaussian quadrature with %zu points.\n", xval_.size());
-    mprintf("\t%6s %8s %8s %s\n", "Point", "Abscissa", "Weight", "SetName");
-    for (unsigned int i = 0; i != xval_.size(); i++)
-      mprintf("\t%6i %8.5f %8.5f %s\n", i, xval_[i], wgt_[i], input_dsets_[i]->legend());
-  } else {
-    mprintf(" using the trapezoid rule.\n");
-    mprintf("\t%6s %8s %s\n", "Point", "Abscissa", "SetName");
-    for (unsigned int i = 0; i != xval_.size(); i++)
-      mprintf("\t%6i %8.5f %s\n", i, xval_[i], input_dsets_[i]->legend());
-  }
-  if (nskip_.front() > 0) {
-    mprintf("\tSkipping first");
-    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
-      mprintf(" %i", *it);
-    mprintf(" data points for <DV/DL> calc.\n");
-  }
-  mprintf("\tResults saved in set '%s'\n", dAout_->legend());
-  mprintf("\tTI curve(s) saved in set(s)");
-  for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
-    mprintf(" '%s'", (*ds)->legend());
-  mprintf("\n");
-  if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
-  if (curveout!= 0) mprintf("\tTI curve written to '%s'\n", curveout->DataFilename().full());
-  if (!nskip_.empty()) {
-    mprintf("\t<DV/DL> will be calculated skipping over");
-    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
-      mprintf(" %i", *it);
-    mprintf(" points.\n");
-  }
-  return Analysis::OK;
-}
-
+// Analysis_TI::Analyze()
 Analysis::RetType Analysis_TI::Analyze() {
   Darray sum(nskip_.size(), 0.0);
   DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
@@ -179,18 +197,26 @@ Analysis::RetType Analysis_TI::Analyze() {
     lastSkipPoint.push_back( *it - 1 );
   // Run for multiple skip values, helps test convergences.
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
-    // DEBUG: Bootstrap for average DV/DL
-    Bootstrap BS;
-    BS.Init(input_dsets_[idx], (int)(0.75*(double)input_dsets_[idx]->Size()),
-            100, -1, debug_);
-    BS.Resample();
-    // END DEBUG
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (ds.Size() < 1) {
       mprinterr("Error: Set '%s' is empty.\n", ds.legend());
       return Analysis::ERR;
     }
     mprintf("\t%s (%zu points).\n", ds.legend(), ds.Size());
+    // Bootstrap error analysis for average DV/DL
+    if (n_bootstrap_samples_ > 0) {
+      mprintf("\tPerforming bootstrap error analysis of <DV/DL>\n");
+      Bootstrap BS;
+      double bs_mean = 0.0;
+      if (n_bootstrap_pts_ < 1) {
+        n_bootstrap_pts_ = (int)(0.75*(double)input_dsets_[idx]->Size());
+        mprintf("\t%i points used in each bootstrap resample.\n", n_bootstrap_pts_);
+      }
+      BS.Init(input_dsets_[idx], n_bootstrap_pts_, n_bootstrap_samples_, -1, debug_);
+      double bs_sd = BS.Resample(bs_mean);
+      mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
+              ds.Avg(), bs_mean, bs_sd);
+    }
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {

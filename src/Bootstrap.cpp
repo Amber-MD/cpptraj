@@ -37,7 +37,7 @@ int Bootstrap::Init(DataSet_1D* dataIn, int sIn, int nresampleIn, int seedIn, in
 }
 
 // Bootstrap::Resample()
-double Bootstrap::Resample() {
+double Bootstrap::Resample(double& Mean) {
   if (data_ == 0) {
     mprinterr("Error: Bootstrap has not been properly initialized.\n");
     return -1.0;
@@ -49,7 +49,7 @@ double Bootstrap::Resample() {
   // Hold averages for each resample
   std::vector<double> Avgs(n_resample_, 0.0);
   // Hold average of all resample averages
-  double Mean = 0.0;
+  Mean = 0.0;
   double d_ndata = (double)ds.Size();
   for (int nsample = 0; nsample != n_resample_; nsample++)
   {
@@ -73,16 +73,20 @@ double Bootstrap::Resample() {
 
   // Get the standard deviation of all the averages
   Mean /= (double)n_resample_;
-  mprintf("Overall Mean= %g\n", Mean);
+  if (debug_ > 0) {
+    mprintf("Original mean= %g\n", ds.Avg());
+    mprintf("Mean of all resamples= %g\n", Mean);
+  }
   double sumdiff2 = 0.0;
   for (int nsample = 0; nsample != n_resample_; nsample++)
   {
-    mprintf("\tMean %i = %g\n", nsample, Avgs[nsample]);
+    if (debug_ > 1) mprintf("\tMean %i = %g\n", nsample, Avgs[nsample]);
     double diff = Mean - Avgs[nsample];
     sumdiff2 += (diff * diff);
   }
   sumdiff2 /= (double)n_resample_;
   double SD = sqrt(sumdiff2);
-  mprintf("SD of all means= %g\n", SD);
+  if (debug_ > 0)
+    mprintf("SD of all resamples= %g\n", SD);
   return SD;
 }

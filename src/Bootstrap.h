@@ -7,8 +7,8 @@ class Bootstrap {
     Bootstrap() : sample_size_(0), n_resample_(0), debug_(0) {}
     /// Initialize: DataSet, sample size, number of resamples, random seed, debug
     int Init(DataSet_1D*, int, int, int, int);
-    /// \return Error estimation.
-    double Resample();
+    /// \return Error estimation. Variable is set with mean of resamples
+    double Resample(double&);
   private:
     Random_Number RN_; ///< Random number generator
     DataSet_1D* data_;
