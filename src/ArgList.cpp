@@ -43,6 +43,19 @@ std::string const& ArgList::operator[](int idx) const {
   return arglist_[idx];
 }
 
+// ArgList::ArgString()
+std::string ArgList::ArgString() const {
+  std::string out;
+  for (unsigned int idx = 0; idx != arglist_.size(); idx++)
+    if (!marked_[idx]) {
+      if (out.empty())
+        out.assign(arglist_[idx]);
+      else
+        out.append(" " + arglist_[idx]);
+    }
+  return out;
+}
+
 // ArgList::ClearList()
 void ArgList::ClearList() {
   argline_.clear();

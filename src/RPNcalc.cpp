@@ -11,7 +11,7 @@
 #include "Constants.h" // PI
 
 // CONSTRUCTOR
-RPNcalc::RPNcalc() {}
+RPNcalc::RPNcalc() : fmt_(TextFormat::DOUBLE) {}
 
 static inline bool isOpChar(char cIn) {
   return ( cIn == '(' || cIn == ')' || cIn == '+' || cIn == '-' ||
@@ -21,6 +21,19 @@ static inline bool isOpChar(char cIn) {
 std::string const& RPNcalc::FirstTokenName() const {
   return tokens_.front().Name();
 } 
+
+/** Process arguments */
+int RPNcalc::ProcessOptions(ArgList& argIn) {
+  std::string precArg = argIn.GetStringKey("prec");
+  if (!precArg.empty()) {
+    ArgList p0(precArg, ".");
+    int width = p0.getNextInteger(0);
+    int prec  = p0.getNextInteger(-1);
+    mprintf("Setting width/precision to %i.%i\n", width, prec);
+    fmt_.SetFormatWidthPrecision(width, prec);
+  }
+  return 0;
+}
 
 /** Convert infix expression to RPN in tokens_ array. This uses a
   * shunting-yard algorithm which has been slightly modified to
@@ -836,9 +849,11 @@ int RPNcalc::Evaluate(DataSetList& DSL) const {
     mprinterr("Error: Unbalanced expression.\n");
     return 1;
   }
-  if (output == 0)
-    mprintf("Result: %f\n", Stack.top().Value());
-  else
+  if (output == 0) {
+    mprintf("Result: ");
+    mprintf(fmt_.fmt(), Stack.top().Value());
+    mprintf("\n");
+  } else
     mprintf("Result stored in '%s'\n", output->legend());
   return 0;
 }
