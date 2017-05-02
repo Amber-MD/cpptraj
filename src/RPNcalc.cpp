@@ -24,12 +24,23 @@ std::string const& RPNcalc::FirstTokenName() const {
 
 /** Process arguments */
 int RPNcalc::ProcessOptions(ArgList& argIn) {
+  std::string fmtArg = argIn.GetStringKey("format");
+  if (fmtArg == "double")
+    fmt_ = TextFormat(TextFormat::DOUBLE);
+  else if (fmtArg == "general")
+    fmt_ = TextFormat(TextFormat::GDOUBLE);
+  else if (fmtArg == "scientific")
+    fmt_ = TextFormat(TextFormat::SCIENTIFIC);
+  else {
+    mprinterr("Error: Unrecognized 'format': %s\n", fmtArg.c_str());
+    return 1;
+  }
   std::string precArg = argIn.GetStringKey("prec");
   if (!precArg.empty()) {
     ArgList p0(precArg, ".");
     int width = p0.getNextInteger(0);
     int prec  = p0.getNextInteger(-1);
-    mprintf("Setting width/precision to %i.%i\n", width, prec);
+    //mprintf("Setting width/precision to %i.%i\n", width, prec);
     fmt_.SetFormatWidthPrecision(width, prec);
   }
   return 0;

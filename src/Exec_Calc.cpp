@@ -3,7 +3,7 @@
 #include "RPNcalc.h"
 
 void Exec_Calc::Help() const {
-  mprintf("\t<expression> [prec <width>.<precision>]\n"
+  mprintf("\t<expression>\n\t[prec <width>.<precision>] [format {double|general|scientific}]\n"
           "  Evaluate the given mathematical expression.\n");
 }
 
