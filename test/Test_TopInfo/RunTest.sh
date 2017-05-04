@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles info.in atoms.dat residues.dat bonds.dat angles.dat dihedrals.dat \
-           molecules.dat masscharge.dat values.dat
+           molecules.dat masscharge.dat values.dat molshort.dat
 
 INPUT="-i info.in"
 cat > info.in <<EOF
@@ -42,6 +42,8 @@ dihedrals @10 out values.dat reference
 parm ../dna30.parm7
 molinfo !:WAT 1
 molinfo !:WAT out molecules.dat 1
+molinfo short 1
+molinfo short out molshort.dat 1
 quit
 EOF
 RunCpptraj "Topology info print test."
@@ -53,6 +55,7 @@ DoTest dihedrals.dat.save dihedrals.dat
 DoTest masscharge.dat.save masscharge.dat
 DoTest molecules.dat.save molecules.dat
 DoTest values.dat.save values.dat
+DoTest molshort.dat.save molshort.dat
 
 EndTest
 exit 0
