@@ -13,6 +13,7 @@ class TopInfo {
     int PrintShortResInfo(std::string const&, int) const;
     int PrintResidueInfo(std::string const&) const;
     int PrintMoleculeInfo(std::string const&) const;
+    int PrintShortMolInfo(std::string const&) const;
     int PrintBondInfo(std::string const&, std::string const&) const;
     int PrintAngleInfo(std::string const&, std::string const&, std::string const&) const;
     int PrintDihedralInfo(std::string const&, std::string const&,

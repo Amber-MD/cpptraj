@@ -133,14 +133,21 @@ Exec::RetType Exec_ResInfo::Execute(CpptrajState& State, ArgList& argIn) {
 }
 // -----------------------------------------------------------------------------
 void Exec_MolInfo::Help() const {
-  mprintf("\t[%s] [<mask>] [out <file>]\n", DataSetList::TopIdxArgs);
-  mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n");
+  mprintf("\t[%s] [<mask>] [short] [out <file>]\n", DataSetList::TopIdxArgs);
+  mprintf("  Print info for molecules in <mask> for specfied topology (first by default).\n"
+          "  If 'short' is specified print counts of each unique molecule.\n");
 }
 
 Exec::RetType Exec_MolInfo::Execute(CpptrajState& State, ArgList& argIn) {
+  bool printShort = argIn.hasKey("short");
   TopInfo info;
   if (CommonSetup(info, State, argIn, "Molecule info")) return CpptrajState::ERR;
-  if (info.PrintMoleculeInfo( argIn.GetMaskNext() )) return CpptrajState::ERR;
+  int err;
+  if (printShort)
+    err = info.PrintShortMolInfo( argIn.GetMaskNext() );
+  else
+    err = info.PrintMoleculeInfo( argIn.GetMaskNext() );
+  if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 // -----------------------------------------------------------------------------
