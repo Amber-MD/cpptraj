@@ -209,7 +209,7 @@ Analysis::RetType Analysis_TI::Analyze() {
   Iarray lastSkipPoint; // Points after which averages can be recorded
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
     lastSkipPoint.push_back( *it - 1 );
-  // Run for multiple skip values, helps test convergences.
+  // Loop over input data sets. 
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (ds.Size() < 1) {
