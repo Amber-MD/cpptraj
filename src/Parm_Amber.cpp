@@ -423,7 +423,7 @@ int Parm_Amber::ReadNewParm(Topology& TopIn) {
             case F_PDB_ICODE: err = ReadPdbIcode(TopIn, FMT); break;
             case F_PDB_ALT:   err = ReadPdbAlt(TopIn, FMT); break;
             // CHAMBER
-            case F_FF_TYPE:   err = ReadChamberFFtype(TopIn); break;
+            case F_FF_TYPE:   err = ReadChamberFFtype(TopIn, FMT); break;
             case F_CHM_UBC:   err = ReadChamberUBCount(TopIn, FMT); break;
             case F_CHM_UB:    err = ReadChamberUBTerms(TopIn, FMT); break;
             case F_CHM_UBFC:  err = ReadChamberUBFC(TopIn, FMT); break;
@@ -993,17 +993,61 @@ int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
 }
 
 // ----- CHAMBER ---------------------------------
-// ReadChamberFFtype(Topology& TopIn)
-int Parm_Amber::ReadChamberFFtype(Topology& TopIn) {
-  const char* ptr = file_.NextLine();
-  char ff_verstr[3];
-  ff_verstr[0] = ptr[0];
-  ff_verstr[1] = ptr[1];
-  ff_verstr[2] = '\0';
-  int ff_verno = atoi(ff_verstr);
-  std::string fftype = NoTrailingWhitespace( ptr+2 );
-  TopIn.SetChamber().SetVersion( ff_verno, fftype );
-  mprintf("\tCHAMBER topology: %i: %s\n", ff_verno, fftype.c_str());
+static inline int fftype_err(const char* ptr, const char* Flag) {
+  if (ptr == 0) {
+    mprinterr("Error: Unexpected EOF when reading '%s'\n", Flag);
+    return 1;
+  }
+  if (ptr[0] == '%') {
+    mprintf("Warning: Section '%s' appears to have incorrect # lines.\n", Flag);
+    return 2;
+  }
+  return 0;
+}
+
+// ReadChamberFFtype()
+/** Format should be (nlines, text). Only the first nlines value is used
+  * to determine how many lines of text to read.
+  * Also set the number of LJ 1-4 terms.
+  * FIXME Should the LJ setup be somewhere else?
+  * NOTE: This fortran format is different than the others since it has
+  *       two mixed types. Assume the format is IX,A80-X (currently X=2).
+  *       If this fails print a warning and try to continue.
+  */
+int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
+  mprintf("\tCHAMBER topology:\n");
+  if (FMT.Ftype() != FINT)
+    mprintf("Warning: In '%s' expected format to begin with integer. Skipping.\n",
+            FLAGS_[F_FF_TYPE].Flag);
+  else {
+    const char* Flag = FLAGS_[F_FF_TYPE].Flag;
+    const char* ptr = file_.NextLine(); // Read first line
+    int err = fftype_err(ptr, Flag);
+    if (err == 1) return 1;
+    if (err == 0) {
+      char* tmpbuf = new char[ FMT.Width()+1 ];
+      tmpbuf[FMT.Width()] = '\0';
+      std::copy(ptr, ptr+FMT.Width(), tmpbuf);
+      int nlines = atoi(tmpbuf);
+      delete[] tmpbuf;
+      if (nlines > 0) {
+        std::string ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
+        mprintf("  %s\n", ff_desc.c_str());
+        TopIn.SetChamber().AddDescription( ff_desc );
+        for (int line = 1; line < nlines; line++) {
+          ptr = file_.NextLine();
+          err = fftype_err(ptr, Flag);
+          if (err == 1)
+            return 1;
+          else if (err == 2) break;
+          ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
+          mprintf("  %s\n", ff_desc.c_str());
+          TopIn.SetChamber().AddDescription( ff_desc );
+        }
+      }
+    }
+  }
+  TopIn.SetChamber().SetHasChamber( true );
   TopIn.SetChamber().SetNLJ14terms( numLJparm_ );
   return 0;
 }
@@ -1138,8 +1182,14 @@ int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, Fortr
   // CHARMM_CMAP_PARAMETER_XX
   int gridnum = convertToInteger( std::string( CmapFlag+22 ) ) - 1;
   if (gridnum < 0 || gridnum >= (int)TopIn.Chamber().CmapGrid().size()) {
-    mprinterr("Error: CMAP grid '%s' out of range.\n", CmapFlag);
-    return 1;
+    mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
+    if (TopIn.Chamber().HasCmap())
+      mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
+              TopIn.Chamber().CmapGrid().size(), gridnum+1);
+    else
+      mprintf("Warning: Missing previous %s section.\n", FLAGS_[F_CHM_CMAPC].Flag);
+    mprintf("Warning: Skipping read of CMAP grid.\n");
+    return 0;
   }
   CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
   if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
@@ -1476,11 +1526,17 @@ int Parm_Amber::WriteParm(FileName const& fname, Topology const& TopOut) {
   file_.IntToBuffer( TopOut.NextraPts() ); // NEXTRA
   file_.FlushBuffer();
  
-  // CHAMBER only - Version and FF type
-  if (ptype_ == CHAMBER)
-    file_.Printf("%%FLAG %-74s\n%-80s\n%2i%-78s\n", FLAGS_[F_FF_TYPE].Flag,
-                 FLAGS_[F_FF_TYPE].Fmt, TopOut.Chamber().FF_Version(),
-                 TopOut.Chamber().FF_Type().c_str());
+  // CHAMBER only - FF type description 
+  if (ptype_ == CHAMBER) {
+    file_.Printf("%%FLAG %-74s\n%-80s\n", FLAGS_[F_FF_TYPE].Flag, FLAGS_[F_FF_TYPE].Fmt);
+    int nlines = (int)TopOut.Chamber().Description().size();
+    if (nlines > 99) {
+      mprintf("Warning: Number of CHAMBER description lines > 99. Only writing 99.\n", nlines);
+      nlines = 99;
+    }
+    for (int line = 0; line != nlines; line++)
+      file_.Printf("%2i%-78s\n", nlines, TopOut.Chamber().Description()[line].c_str());
+  }
 
   // NAMES
   if (BufferAlloc(F_NAMES, TopOut.Natom())) return 1;

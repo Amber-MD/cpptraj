@@ -3,11 +3,10 @@
 . ../MasterTest.sh
 
 CleanFiles charmm.in test.ala3.pdb.? test.ala3.pdb.10 first.ala3.crd \
-           test.psf test.ala3.dcd second.ala3.crd
-CheckNetcdf
+           test.psf test.ala3.dcd second.ala3.crd strip.chamber.parm7
 
 MaxThreads 10 "Charmm DCD tests."
-if [[ $? -ne 0 ]] ; then
+if [ $? -ne 0 ] ; then
   EndTest
   exit 0
 fi
@@ -49,6 +48,16 @@ parminfo
 parmwrite out test.psf
 EOF
 #RunCpptraj "CHARMM PSF Write test."
+
+# CHAMBER strip test
+cat > charmm.in <<EOF
+parm chamber.ala3.parm7
+parmstrip :2-3
+parmwrite out strip.chamber.parm7
+quit
+EOF
+RunCpptraj "CHAMBER topology read/strip test."
+DoTest strip.chamber.parm7.save strip.chamber.parm7 -I %VERSION
 
 EndTest
 

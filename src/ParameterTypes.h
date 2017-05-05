@@ -397,12 +397,12 @@ class CmapType {
 typedef std::vector<CmapType> CmapArray;
 /// Hold CHAMBER parameters
 class ChamberParmType {
+    typedef std::vector<std::string> Sarray;
   public:
-    ChamberParmType() : chmff_verno_(-1) {}
-    bool                     HasChamber()   const { return chmff_verno_ > -1; }
+    ChamberParmType() : hasChamber_(false) {}
+    bool                     HasChamber()   const { return hasChamber_;   }
     bool                     HasCmap()      const { return !cmapGrid_.empty(); }
-    int                      FF_Version()   const { return chmff_verno_;  }
-    std::string       const& FF_Type()      const { return chmff_type_;   }
+    Sarray            const& Description()  const { return chmff_desc_;   }
     BondArray         const& UB()           const { return ub_;           }
     BondParmArray     const& UBparm()       const { return ubparm_;       }
     DihedralArray     const& Impropers()    const { return impropers_;    }
@@ -410,41 +410,34 @@ class ChamberParmType {
     NonbondArray      const& LJ14()         const { return lj14_;         }
     CmapGridArray     const& CmapGrid()     const { return cmapGrid_;     }
     CmapArray         const& Cmap()         const { return cmap_;         }
-    void SetLJ14(NonbondArray const& nb)          { lj14_ = nb;           }
     NonbondType& SetLJ14(int idx)                 { return lj14_[idx];    }
     CmapGridType& SetCmapGrid(int idx)            { return cmapGrid_[idx];}
+    void SetHasChamber(bool b)                { hasChamber_ = b;                  }
     /// Set expected number of LJ14 terms TODO combine with SetVersion?
-    void SetNLJ14terms(int n)                     { lj14_.assign( n, NonbondType() ); }
-    void SetVersion(int i, std::string const& s)  { 
-      chmff_verno_ = i;
-      chmff_type_ = s;
-    }
-    void ReserveUBterms(unsigned int n)       { ub_.reserve( n );         }
-    void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );     }
-    void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );      }
-    BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];      }
-    void SetUB(BondArray const& ub, BondParmArray const& ubp) {
-      ub_ = ub;
-      ubparm_ = ubp;
-    }
+    void SetNLJ14terms(int n)                 { lj14_.assign( n, NonbondType() ); }
+    void AddDescription(std::string const& s) { chmff_desc_.push_back( s );       }
+    void SetDescription(Sarray const& s)      { chmff_desc_ = s;                  }
+    void ReserveUBterms(unsigned int n)       { ub_.reserve( n );                 }
+    void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );             }
+    BondArray& SetUB()                        { return ub_;                       }
+    void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );              }
+    BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];              }
+    BondParmArray& SetUBparm()                { return ubparm_;                   }
     void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
     void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
+    DihedralArray& SetImpropers()                     { return impropers_;           }
     void ResizeImproperParm(unsigned int n)           { improperparm_.resize( n );   }
     DihedralParmType& SetImproperParm(unsigned int i) { return improperparm_[i];     }
-    void SetImproper(DihedralArray const& im, DihedralParmArray const& imp) {
-      impropers_ = im;
-      improperparm_ = imp;
-    }
+    DihedralParmArray& SetImproperParm()              { return improperparm_;        }
     void AddCmapGrid(CmapGridType const& g) { cmapGrid_.push_back(g); }
     void AddCmapTerm(CmapType const& c)     { cmap_.push_back(c);     }
     void Clear() {
-      chmff_verno_=-1; chmff_type_.clear(); ub_.clear(); ubparm_.clear();
+      chmff_desc_.clear(); ub_.clear(); ubparm_.clear();
       impropers_.clear(); improperparm_.clear(); lj14_.clear();
       cmapGrid_.clear(); cmap_.clear();
     } 
   private:
-    int chmff_verno_;                ///< CHARMM FF version number
-    std::string chmff_type_;         ///< CHARMM FF type 
+    Sarray chmff_desc_;              ///< CHARMM FF descriptions
     BondArray ub_;                   ///< Urey-Bradley terms
     BondParmArray ubparm_;           ///< Urey-Bradley parameters
     DihedralArray impropers_;        ///< Improper terms
@@ -452,5 +445,6 @@ class ChamberParmType {
     NonbondArray lj14_;              ///< Lennard-Jones 1-4 parameters
     CmapGridArray cmapGrid_;         ///< Hold CMAP grids
     CmapArray cmap_;                 ///< Hold atom indices and CMAP grid index
+    bool hasChamber_;                ///< True if using CHAMBER info
 };
 #endif
