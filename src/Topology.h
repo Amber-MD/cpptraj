@@ -187,6 +187,8 @@ class Topology {
     void StripBondParmArray(BondArray&, std::vector<int>&, BondParmArray&) const;
     void StripAngleParmArray(AngleArray&, std::vector<int>&, AngleParmArray&) const;
     void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&) const;
+    void StripDihedralParmArray(DihedralArray&, std::vector<int>&, DihedralParmArray&,
+                                DihedralParmArray const&) const;
     inline void AddBondArray(BondArray const&, BondParmArray const&, int);
     inline void AddAngleArray(AngleArray const&, AngleParmArray const&, int);
     inline void AddDihArray(DihedralArray const&, DihedralParmArray const&, int);

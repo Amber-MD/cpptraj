@@ -1250,6 +1250,8 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     //mprintf("DEBUG: # new types %zu\n", oldTypeArray.size());
     // Set up new nonbond and nonbond index arrays.
     newParm->nonbond_.SetNtypes( oldTypeArray.size() );
+    if (chamber_.HasChamber())
+      newParm->chamber_.SetNLJ14terms( (oldTypeArray.size()*(oldTypeArray.size()+1))/2 );
     for (int a1idx = 0; a1idx != (int)oldTypeArray.size(); a1idx++)
     {
       int atm1 = oldTypeArray[a1idx];
@@ -1271,6 +1273,17 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
         //int newnbidx = newParm->nonbond_.GetLJindex( a1idx, a2idx );
         //mprintf("DEBUG: oldtypei=%i oldtypej=%i Old NB index=%i, newtypi=%i newtypej=%i new NB idx=%i testidx=%i\n", 
         //        atm1, atm2, oldnbidx, a1idx, a2idx, newnbidx, testidx);
+        if (chamber_.HasChamber()) {
+          // Update LJ 1-4 as well. No need to worry about hbond terms here,
+          // just recalculate the old index and determine new one.
+          int ibig = std::max(atm1, atm2) + 1;
+          int isml = std::min(atm1, atm2) + 1;
+              oldnbidx = (ibig*(ibig-1)/2+isml)-1;
+              ibig = a2idx + 1;
+              isml = a1idx + 1;
+          int newnbidx = (ibig*(ibig-1)/2+isml)-1;
+          newParm->chamber_.SetLJ14( newnbidx ) = chamber_.LJ14()[oldnbidx];
+        }
       }
     }
     // Update atom type indices.
@@ -1295,9 +1308,12 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   if (chamber_.HasChamber()) {
     newParm->chamber_.SetVersion( chamber_.FF_Version(), chamber_.FF_Type() );
     newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
-    newParm->chamber_.SetImproper( StripDihedralArray(chamber_.Impropers(),atomMap),
-                                   chamber_.ImproperParm() );
-    newParm->chamber_.SetLJ14( chamber_.LJ14() );
+    newParm->chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
+    parmMap.assign( dihedralparm_.size(), -1 );
+    StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
+                            newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
+
+    // 1-4 LJ parameters handled above
     if (chamber_.HasCmap()) {
       for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
                                      cmap != chamber_.Cmap().end(); ++cmap)
@@ -1451,6 +1467,15 @@ void Topology::StripAngleParmArray(AngleArray& newAngleArray, std::vector<int>& 
 void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vector<int>& parmMap,
                                       DihedralParmArray& newDihedralParm) const
 {
+  StripDihedralParmArray(newDihedralArray, parmMap, newDihedralParm, dihedralparm_);
+}
+
+// Topology::StripDihedralParmArray()
+/** Create new dihedral parm array from old one; update indices in dihedral array. */
+void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vector<int>& parmMap,
+                                      DihedralParmArray& newDihedralParm,
+                                      DihedralParmArray const& oldParm) const
+{
   for (DihedralArray::iterator dih = newDihedralArray.begin();
                                dih != newDihedralArray.end(); ++dih)
   {
@@ -1459,7 +1484,7 @@ void Topology::StripDihedralParmArray(DihedralArray& newDihedralArray, std::vect
     if (newidx == -1) { // This needs to be added to new parameter array.
       newidx = (int)newDihedralParm.size();
       parmMap[oldidx] = newidx;
-      newDihedralParm.push_back( dihedralparm_[oldidx] );
+      newDihedralParm.push_back( oldParm[oldidx] );
     }
     //mprintf("DEBUG: Old dihedral parm index=%i, new dihedral parm index=%i\n", oldidx, newidx);
     dih->SetIdx( newidx );
