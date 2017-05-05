@@ -419,12 +419,10 @@ class ChamberParmType {
     void SetDescription(Sarray const& s)      { chmff_desc_ = s;                  }
     void ReserveUBterms(unsigned int n)       { ub_.reserve( n );                 }
     void AddUBterm(BondType const& bnd)       { ub_.push_back( bnd );             }
+    BondArray& SetUB()                        { return ub_;                       }
     void ResizeUBparm(unsigned int n)         { ubparm_.resize( n );              }
     BondParmType& SetUBparm(unsigned int idx) { return ubparm_[idx];              }
-    void SetUB(BondArray const& ub, BondParmArray const& ubp) {
-      ub_ = ub;
-      ubparm_ = ubp;
-    }
+    BondParmArray& SetUBparm()                { return ubparm_;                   }
     void ReserveImproperTerms(unsigned int n)         { impropers_.reserve( n );     }
     void AddImproperTerm(DihedralType const& dih)     { impropers_.push_back( dih ); }
     DihedralArray& SetImpropers()                     { return impropers_;           }

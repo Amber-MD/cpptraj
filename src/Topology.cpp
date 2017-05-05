@@ -1308,9 +1308,14 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   if (chamber_.HasChamber()) {
     newParm->chamber_.SetHasChamber( true );
     newParm->chamber_.SetDescription( chamber_.Description() );
-    newParm->chamber_.SetUB( StripBondArray(chamber_.UB(),atomMap), chamber_.UBparm() );
+    // Urey-Bradley
+    newParm->chamber_.SetUB() = StripBondArray(chamber_.UB(),atomMap);
+    parmMap.assign( chamber_.UBparm().size(), -1 ); // Map[oldidx] = newidx
+    StripBondParmArray( newParm->chamber_.SetUB(), parmMap,
+                        newParm->chamber_.SetUBparm(), chamber_.UBparm() );
+    // Impropers
     newParm->chamber_.SetImpropers() = StripDihedralArray(chamber_.Impropers(), atomMap);
-    parmMap.assign( dihedralparm_.size(), -1 );
+    parmMap.assign( chamber_.ImproperParm().size(), -1 );
     StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
                             newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
 
@@ -1430,6 +1435,14 @@ DihedralArray Topology::StripDihedralArray(DihedralArray const& dihIn, std::vect
 void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& parmMap,
                                   BondParmArray& newBondParm) const
 {
+  StripBondParmArray(newBondArray, parmMap, newBondParm, bondparm_);
+}
+
+// Topology::StripBondParmArray()
+void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& parmMap,
+                                  BondParmArray& newBondParm,
+                                  BondParmArray const& oldParm) const
+{
   for (BondArray::iterator bnd = newBondArray.begin();
                            bnd != newBondArray.end(); ++bnd)
   {
@@ -1438,7 +1451,7 @@ void Topology::StripBondParmArray(BondArray& newBondArray, std::vector<int>& par
     if (newidx == -1) { // This needs to be added to new parameter array.
       newidx = (int)newBondParm.size();
       parmMap[oldidx] = newidx;
-      newBondParm.push_back( bondparm_[oldidx] );
+      newBondParm.push_back( oldParm[oldidx] );
     }
     //mprintf("DEBUG: Old bond parm index=%i, new bond parm index=%i\n", oldidx, newidx);
     bnd->SetIdx( newidx );
