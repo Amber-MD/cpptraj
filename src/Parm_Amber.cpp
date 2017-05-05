@@ -993,6 +993,18 @@ int Parm_Amber::ReadPdbAlt(Topology& TopIn, FortranData const& FMT) {
 }
 
 // ----- CHAMBER ---------------------------------
+static inline int fftype_err(const char* ptr, const char* Flag) {
+  if (ptr == 0) {
+    mprinterr("Error: Unexpected EOF when reading '%s'\n", Flag);
+    return 1;
+  }
+  if (ptr[0] == '%') {
+    mprintf("Warning: Section '%s' appears to have incorrect # lines.\n", Flag);
+    return 2;
+  }
+  return 0;
+}
+
 // ReadChamberFFtype()
 /** Format should be (nlines, text). Only the first nlines value is used
   * to determine how many lines of text to read.
@@ -1008,25 +1020,30 @@ int Parm_Amber::ReadChamberFFtype(Topology& TopIn, FortranData const& FMT) {
     mprintf("Warning: In '%s' expected format to begin with integer. Skipping.\n",
             FLAGS_[F_FF_TYPE].Flag);
   else {
+    const char* Flag = FLAGS_[F_FF_TYPE].Flag;
     const char* ptr = file_.NextLine(); // Read first line
-    if (ptr == 0) {
-      mprinterr("Error: Unexpected EOF when reading '%s'\n", FLAGS_[F_FF_TYPE].Flag);
-      return 1;
-    }
-    char* tmpbuf = new char[ FMT.Width()+1 ];
-    tmpbuf[FMT.Width()] = '\0';
-    std::copy(ptr, ptr+FMT.Width(), tmpbuf);
-    int nlines = atoi(tmpbuf);
-    delete[] tmpbuf;
-    if (nlines > 0) {
-      std::string ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
-      mprintf("  %s\n", ff_desc.c_str());
-      TopIn.SetChamber().AddDescription( ff_desc );
-      for (int line = 1; line < nlines; line++) {
-        ptr = file_.NextLine();
-        ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
+    int err = fftype_err(ptr, Flag);
+    if (err == 1) return 1;
+    if (err == 0) {
+      char* tmpbuf = new char[ FMT.Width()+1 ];
+      tmpbuf[FMT.Width()] = '\0';
+      std::copy(ptr, ptr+FMT.Width(), tmpbuf);
+      int nlines = atoi(tmpbuf);
+      delete[] tmpbuf;
+      if (nlines > 0) {
+        std::string ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
         mprintf("  %s\n", ff_desc.c_str());
         TopIn.SetChamber().AddDescription( ff_desc );
+        for (int line = 1; line < nlines; line++) {
+          ptr = file_.NextLine();
+          err = fftype_err(ptr, Flag);
+          if (err == 1)
+            return 1;
+          else if (err == 2) break;
+          ff_desc = NoTrailingWhitespace( ptr + FMT.Width() );
+          mprintf("  %s\n", ff_desc.c_str());
+          TopIn.SetChamber().AddDescription( ff_desc );
+        }
       }
     }
   }
