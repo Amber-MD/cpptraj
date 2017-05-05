@@ -1182,8 +1182,14 @@ int Parm_Amber::ReadChamberCmapGrid(const char* CmapFlag, Topology& TopIn, Fortr
   // CHARMM_CMAP_PARAMETER_XX
   int gridnum = convertToInteger( std::string( CmapFlag+22 ) ) - 1;
   if (gridnum < 0 || gridnum >= (int)TopIn.Chamber().CmapGrid().size()) {
-    mprinterr("Error: CMAP grid '%s' out of range.\n", CmapFlag);
-    return 1;
+    mprintf("Warning: CMAP grid '%s' out of range.\n", CmapFlag);
+    if (TopIn.Chamber().HasCmap())
+      mprintf("Warning: Expected grid between 1 and %zu, got %i\n",
+              TopIn.Chamber().CmapGrid().size(), gridnum+1);
+    else
+      mprintf("Warning: Missing previous %s section.\n", FLAGS_[F_CHM_CMAPC].Flag);
+    mprintf("Warning: Skipping read of CMAP grid.\n");
+    return 0;
   }
   CmapGridType& GRID = TopIn.SetChamber().SetCmapGrid( gridnum );
   if (SetupBuffer(F_CHM_CMAPP, GRID.Size(), FMT)) return 1;
