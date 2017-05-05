@@ -107,7 +107,7 @@ class Parm_Amber : public ParmIO {
     int ReadPdbIcode(Topology&, FortranData const&);
     int ReadPdbAlt(Topology&, FortranData const&);
     // CHAMBER
-    int ReadChamberFFtype(Topology&);
+    int ReadChamberFFtype(Topology&, FortranData const&);
     int ReadChamberUBCount(Topology&, FortranData const&);
     int ReadChamberUBTerms(Topology&, FortranData const&);
     int ReadChamberUBFC(Topology&, FortranData const&);
