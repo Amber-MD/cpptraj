@@ -1304,7 +1304,7 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // CAP info - dont support stripping such topologies right now
   if (cap_.HasWaterCap())
     mprintf("Warning: Stripping of CAP info not supported. Removing CAP info.\n");
-  // CHAMBER info - Parameters remain intact
+  // CHAMBER info
   if (chamber_.HasChamber()) {
     newParm->chamber_.SetHasChamber( true );
     newParm->chamber_.SetDescription( chamber_.Description() );
@@ -1318,9 +1318,11 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
     parmMap.assign( chamber_.ImproperParm().size(), -1 );
     StripDihedralParmArray( newParm->chamber_.SetImpropers(), parmMap,
                             newParm->chamber_.SetImproperParm(), chamber_.ImproperParm() );
-
-    // 1-4 LJ parameters handled above
+    // NOTE 1-4 LJ parameters handled above
+    // CMAP terms
     if (chamber_.HasCmap()) {
+      // NOTE that atom indexing is updated but cmap indexing is not. So if
+      // any CMAP terms remain all CMAP entries remain.
       for (CmapArray::const_iterator cmap = chamber_.Cmap().begin();
                                      cmap != chamber_.Cmap().end(); ++cmap)
       {
