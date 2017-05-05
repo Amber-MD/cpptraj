@@ -12,7 +12,9 @@ class Analysis_TI : public Analysis {
     Analysis::RetType Analyze();
   private:
     int SetQuadAndWeights(int);
-
+    /// Averaging type
+    enum AvgType { AVG = 0, SKIP, INCREMENT };
+    /// Integration type
     enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
@@ -28,6 +30,7 @@ class Analysis_TI : public Analysis {
     Darray xval_;         ///< Hold abscissas corresponding to data sets.
     Darray wgt_;          ///< Hold Gaussian quadrature weights
     ModeType mode_;       ///< Integration mode
+    AvgType avgType_;     ///< Type of averaging to be performed.
     int debug_;
     int n_bootstrap_pts_; ///< # points for bootstrap error analysis
     int n_bootstrap_samples_; ///< # of times to resample for bootstrap analysis
