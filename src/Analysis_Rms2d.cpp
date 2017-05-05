@@ -197,8 +197,8 @@ Analysis::RetType Analysis_Rms2d::Analyze() {
   */
 int Analysis_Rms2d::CalcRmsToTraj() {
   float R = 0.0;
+  Frame RefFrame = RefTraj_->AllocateFrame();
   // Setup reference frame for selected reference atoms
-  Frame RefFrame( RefParm_->Atoms() );
   Frame SelectedRef( RefFrame, RefMask_ );
   size_t totalref = RefTraj_->Size();
   // Setup target from from Coords
