@@ -231,41 +231,48 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
   return 0;
 }
 
-// Analysis_TI::Analyze()
-Analysis::RetType Analysis_TI::Analyze() {
-  Darray sum(nskip_.size(), 0.0);
-  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
-  Iarray lastSkipPoint; // Points after which averages can be recorded
+void Analysis_TI::DoBootstrap(int idx, DataSet_1D* dsIn) {
+  mprintf("\tPerforming bootstrap error analysis of <DV/DL>\n");
+  Bootstrap BS;
+  double bs_mean = 0.0;
+  if (n_bootstrap_pts_ < 1) {
+    n_bootstrap_pts_ = (int)(0.75*(double)dsIn->Size());
+    mprintf("\t%i points used in each bootstrap resample.\n", n_bootstrap_pts_);
+  }
+  BS.Init(dsIn, n_bootstrap_pts_, n_bootstrap_samples_, bootstrap_seed_, debug_);
+  if (bootstrap_seed_ != -1) ++bootstrap_seed_;
+  double bs_sd = BS.Resample(bs_mean);
+  double avg0 = dsIn->Avg();
+  mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
+          avg0, bs_mean, bs_sd);
+  ((DataSet_Mesh*)orig_avg_)->AddXY(xval_[idx], avg0);
+  ((DataSet_Mesh*)bs_avg_)->AddXY(xval_[idx], bs_mean);
+  ((DataSet_Mesh*)bs_sd_)->AddXY(xval_[idx], bs_sd);
+}
+
+static inline int CheckSet(DataSet_1D const& ds) {
+  if (ds.Size() < 1) {
+    mprinterr("Error: Set '%s' is empty.\n", ds.legend());
+    return Analysis::ERR;
+  }
+  mprintf("\t%s (%zu points).\n", ds.legend(), ds.Size());
+  return 0;
+}
+
+/** \param sum Hold the results of Gaussian quadrature integration for each curve (skip value)
+  */
+int Analysis_TI::Calc_Nskip(Darray& sum) {
+  sum.assign(nskip_.size(), 0.0);
+  // lastSkipPoint: Points after which averages can be recorded
+  Iarray lastSkipPoint;
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
     lastSkipPoint.push_back( *it - 1 );
   // Loop over input data sets. 
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
-    if (ds.Size() < 1) {
-      mprinterr("Error: Set '%s' is empty.\n", ds.legend());
-      return Analysis::ERR;
-    }
-    mprintf("\t%s (%zu points).\n", ds.legend(), ds.Size());
+    if (CheckSet(ds)) return 1; 
     // Bootstrap error analysis for average DV/DL
-    if (n_bootstrap_samples_ > 0) {
-      mprintf("\tPerforming bootstrap error analysis of <DV/DL>\n");
-      Bootstrap BS;
-      double bs_mean = 0.0;
-      if (n_bootstrap_pts_ < 1) {
-        n_bootstrap_pts_ = (int)(0.75*(double)input_dsets_[idx]->Size());
-        mprintf("\t%i points used in each bootstrap resample.\n", n_bootstrap_pts_);
-      }
-      BS.Init(input_dsets_[idx], n_bootstrap_pts_, n_bootstrap_samples_, 
-              bootstrap_seed_, debug_);
-      if (bootstrap_seed_ != -1) ++bootstrap_seed_;
-      double bs_sd = BS.Resample(bs_mean);
-      double avg0 = ds.Avg();
-      mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
-              avg0, bs_mean, bs_sd);
-      ((DataSet_Mesh*)orig_avg_)->AddXY(xval_[idx], avg0);
-      ((DataSet_Mesh*)bs_avg_)->AddXY(xval_[idx], bs_mean);
-      ((DataSet_Mesh*)bs_sd_)->AddXY(xval_[idx], bs_sd);
-    }
+    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]); 
 
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
@@ -273,7 +280,7 @@ Analysis::RetType Analysis_TI::Analyze() {
       int np = (int)ds.Size() - *it;
       if (np < 1) {
         mprinterr("Error: Skipped too many points (set '%s' size is %zu)\n",ds.legend(),ds.Size());
-        return Analysis::ERR;
+        return 1;
       }
       Npoints.push_back((double)np);
     }
@@ -294,17 +301,57 @@ Analysis::RetType Analysis_TI::Analyze() {
       if (mode_ == GAUSSIAN_QUAD)
         sum[j] += (wgt_[idx] * avg[j]);
     }
+  } // END loop over input data sets
+  return 0;
+}
+
+int Analysis_TI::Calc_Avg(Darray& sum) {
+  sum.assign(1, 0.0);
+   // Loop over input data sets. 
+  for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
+    if (CheckSet(ds)) return 1; 
+    // Bootstrap error analysis for average DV/DL
+    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]); 
+    // Calculate average for this set
+    double avg_dvdl = ds.Avg();
+    ((DataSet_Mesh*)curve_[0])->AddXY( xval_[idx], avg_dvdl );
+    // Gaussian Quad.
+    if (mode_ == GAUSSIAN_QUAD)
+      sum[0] += (wgt_[idx] * avg_dvdl);
   }
+  return 0;
+}
+
+// Analysis_TI::Analyze()
+Analysis::RetType Analysis_TI::Analyze() {
+  // sum: Hold the results of integration for each curve
+  Darray sum;
+  int err = 0;
+  if (avgType_ == SKIP)
+    err = Calc_Nskip(sum);
+  else if (avgType_ == AVG)
+    err = Calc_Avg(sum);
+  if (err != 0) return Analysis::ERR;
+
   // Integrate each curve if not doing quadrature
   if (mode_ != GAUSSIAN_QUAD) {
-    for (unsigned int j = 0; j != nskip_.size(); j++) {
+    for (unsigned int j = 0; j != curve_.size(); j++) {
       DataSet_Mesh const& CR = static_cast<DataSet_Mesh const&>( *(curve_[j]) );
       sum[j] = CR.Integrate_Trapezoid();
     }
   }
-  DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
-  for (unsigned int j = 0; j != nskip_.size(); j++)
-    DA.AddXY(nskip_[j], sum[j]);
+
+  // Store final free energy/energies
+  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
+  if (avgType_ == SKIP) {
+    DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
+    for (unsigned int j = 0; j != nskip_.size(); j++)
+      DA.AddXY(nskip_[j], sum[j]);
+  } else if (avgType_ == AVG) {
+    DA.ModifyDim(Dimension::X).SetLabel("TI");
+    DA.AddXY(0, sum[0]);
+  }
 
   return Analysis::OK;
 }

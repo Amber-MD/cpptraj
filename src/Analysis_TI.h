@@ -11,7 +11,6 @@ class Analysis_TI : public Analysis {
     Analysis::RetType Setup(ArgList&, AnalysisSetup&, int);
     Analysis::RetType Analyze();
   private:
-    int SetQuadAndWeights(int);
     /// Averaging type: normal, skip #s of points, incremental avg
     enum AvgType { AVG = 0, SKIP, INCREMENT };
     /// Integration type
@@ -19,6 +18,11 @@ class Analysis_TI : public Analysis {
     typedef std::vector<int> Iarray;
     typedef std::vector<double> Darray;
     typedef std::vector<DataSet*> DSarray;
+
+    int SetQuadAndWeights(int);
+    void DoBootstrap(int, DataSet_1D*);
+    int Calc_Nskip(Darray&);
+    int Calc_Avg(Darray&);
 
     Array1D input_dsets_; ///< Input DV/DL data sets
     Iarray nskip_;        ///< Numbers of data points to skip in calculating <DV/DL>
