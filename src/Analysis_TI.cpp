@@ -10,6 +10,7 @@ Analysis_TI::Analysis_TI() :
   nskip_(0),
   dAout_(0),
   mode_(GAUSSIAN_QUAD),
+  avgType_(AVG),
   debug_(0),
   n_bootstrap_pts_(0),
   n_bootstrap_samples_(100)
@@ -33,15 +34,21 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   debug_ = debugIn;
   int nq = analyzeArgs.getKeyInt("nq", 0);
   ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
-  if (nskipArg.empty())
-    nskip_.resize(1, 0);
-  else {
+  avg_interval_ = analyzeArgs.getKeyInt("interval", -1);
+  avg_max_ = analyzeArgs.getKeyInt("avgmax", -1);
+  avg_skip_ = analyzeArgs.getKeyInt("avgskip", 0);
+  avgType_ = AVG;
+  if (!nskipArg.empty()) {
+    avgType_ = SKIP;
+    // Specified numbers of points to skip
     nskip_.clear();
     for (int i = 0; i != nskipArg.Nargs(); i++) {
       nskip_.push_back( nskipArg.getNextInteger(0) );
       if (nskip_.back() < 0) nskip_.back() = 0;
     }
-  }
+  } else if (avg_interval_ > 0)
+    avgType_ = INCREMENT;
+  // Get lambda values
   ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
   if (!xArgs.empty()) {
     xval_.clear();
@@ -50,6 +57,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   }
   n_bootstrap_pts_ = analyzeArgs.getKeyInt("bs_pts", -1);
   n_bootstrap_samples_ = analyzeArgs.getKeyInt("bs_samples", 100);
+  bootstrap_seed_ = analyzeArgs.getKeyInt("bs_seed", -1);
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
@@ -80,15 +88,24 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( dAout_ );
   MetaData md(dAout_->Meta().Name(), "TIcurve");
-  for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
-    md.SetIdx( *it );
-    DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
-    if (ds == 0) return Analysis::ERR;
-    ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
-    if (curveout != 0) curveout->AddDataSet( ds );
-    curve_.push_back( ds );
+  if (avgType_ == AVG) {
+    // Single curve
+    curve_.push_back( setup.DSL().AddSet(DataSet::XYMESH, md) );
+    if (curve_.back() == 0) return Analysis::ERR;
+  } else if (avgType_ == SKIP) {
+    // As many curves as skip values
+    for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
+      md.SetIdx( *it );
+      DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
+      if (ds == 0) return Analysis::ERR;
+      ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
+      if (curveout != 0) curveout->AddDataSet( ds );
+      curve_.push_back( ds );
+    }
   }
+  // NOTE: INCREMENT is set up once data set size is known 
   if (n_bootstrap_samples_ > 0) {
+    // Bootstrap data sets
     orig_avg_ = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "oavg"));
     bs_avg_   = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bsavg"));
     bs_sd_    = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bssd"));
@@ -112,19 +129,29 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     for (unsigned int i = 0; i != xval_.size(); i++)
       mprintf("\t%6i %8.5f %s\n", i, xval_[i], input_dsets_[i]->legend());
   }
-  if (nskip_.front() > 0) {
+  if (avgType_ == AVG)
+    mprintf("\tUsing all data points in <DV/DL> calc.\n");
+  else if (avgType_ == SKIP) {
     mprintf("\tSkipping first");
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
       mprintf(" %i", *it);
     mprintf(" data points for <DV/DL> calc.\n");
+  } else if (avgType_ == INCREMENT) {
+    mprintf("\tAveraging every %i points after skipping %i.",avg_interval_,avg_skip_);
+    if (avg_max_ != -1)
+      mprintf(" Max %i points.", avg_max_);
+    mprintf("\n");
   }
-  mprintf("\tResults saved in set '%s'\n", dAout_->legend());
+  mprintf("\tResult(s) of integration(s) saved in set '%s'\n", dAout_->legend());
   mprintf("\tTI curve(s) saved in set(s)");
-  for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
-    mprintf(" '%s'", (*ds)->legend());
+  if (avgType_ != INCREMENT)
+    for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
+      mprintf(" '%s'", (*ds)->legend());
+  else
+    mprintf(" named '%s'", md.PrintName().c_str());
   mprintf("\n");
   if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
-  if (curveout!= 0) mprintf("\tTI curve written to '%s'\n", curveout->DataFilename().full());
+  if (curveout!= 0) mprintf("\tTI curve(s) written to '%s'\n", curveout->DataFilename().full());
   if (n_bootstrap_samples_ > 0) {
     mprintf("\tBootstrap error analysis will be performed for <DV/DL> values.\n");
     if (n_bootstrap_pts_ < 1)
@@ -132,6 +159,8 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     else
       mprintf("\tBootstrap resample size is %i data points\n", n_bootstrap_pts_);
     mprintf("\t%i bootstrap resamples.\n", n_bootstrap_samples_);
+    if (bootstrap_seed_ != -1)
+      mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
   }
   return Analysis::OK;
 }
@@ -226,7 +255,9 @@ Analysis::RetType Analysis_TI::Analyze() {
         n_bootstrap_pts_ = (int)(0.75*(double)input_dsets_[idx]->Size());
         mprintf("\t%i points used in each bootstrap resample.\n", n_bootstrap_pts_);
       }
-      BS.Init(input_dsets_[idx], n_bootstrap_pts_, n_bootstrap_samples_, -1, debug_);
+      BS.Init(input_dsets_[idx], n_bootstrap_pts_, n_bootstrap_samples_, 
+              bootstrap_seed_, debug_);
+      if (bootstrap_seed_ != -1) ++bootstrap_seed_;
       double bs_sd = BS.Resample(bs_mean);
       double avg0 = ds.Avg();
       mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
@@ -235,6 +266,7 @@ Analysis::RetType Analysis_TI::Analyze() {
       ((DataSet_Mesh*)bs_avg_)->AddXY(xval_[idx], bs_mean);
       ((DataSet_Mesh*)bs_sd_)->AddXY(xval_[idx], bs_sd);
     }
+
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {

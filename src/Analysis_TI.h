@@ -12,7 +12,7 @@ class Analysis_TI : public Analysis {
     Analysis::RetType Analyze();
   private:
     int SetQuadAndWeights(int);
-    /// Averaging type
+    /// Averaging type: normal, skip #s of points, incremental avg
     enum AvgType { AVG = 0, SKIP, INCREMENT };
     /// Integration type
     enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
@@ -26,7 +26,7 @@ class Analysis_TI : public Analysis {
     DataSet* orig_avg_;   ///< Average DV/DL
     DataSet* bs_avg_;     ///< Bootstrap average DV/DL
     DataSet* bs_sd_;      ///< Bootstrap DV/DL standard deviation
-    DSarray curve_;       ///< TI curve data set for each skip value
+    DSarray curve_;       ///< TI curve data set for each skip/increment value
     Darray xval_;         ///< Hold abscissas corresponding to data sets.
     Darray wgt_;          ///< Hold Gaussian quadrature weights
     ModeType mode_;       ///< Integration mode
@@ -34,5 +34,9 @@ class Analysis_TI : public Analysis {
     int debug_;
     int n_bootstrap_pts_; ///< # points for bootstrap error analysis
     int n_bootstrap_samples_; ///< # of times to resample for bootstrap analysis
+    int bootstrap_seed_;  ///< # RNG seed. Input data set index added for each set.
+    int avg_interval_;    ///< # points to skip between each average calc
+    int avg_max_;         ///< Max number of points to use in average (default all) 
+    int avg_skip_;        ///< Number of points to skip when calculating the average.
 };
 #endif

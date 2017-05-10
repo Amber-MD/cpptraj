@@ -10,7 +10,7 @@ cat > ti.in <<EOF
 readdata dvdl.dat index 1 name TI
 ti TI nq 9 name Curve out skip.agr curveout curve.agr bsout bs.dat \
   nskip 0,5,10,15,20,30,40,50 \
-  bs_samples 20
+  bs_samples 20 bs_seed 10
 runanalysis
 EOF
 RunCpptraj "TI analysis test."
