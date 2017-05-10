@@ -48,6 +48,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     }
   } else if (avg_interval_ > 0)
     avgType_ = INCREMENT;
+  masterDSL_ = setup.DslPtr();
   // Get lambda values
   ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
   if (!xArgs.empty()) {
@@ -231,6 +232,7 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
   return 0;
 }
 
+// Analysis_TI::DoBootstrap()
 void Analysis_TI::DoBootstrap(int idx, DataSet_1D* dsIn) {
   mprintf("\tPerforming bootstrap error analysis of <DV/DL>\n");
   Bootstrap BS;
@@ -273,7 +275,6 @@ int Analysis_TI::Calc_Nskip(Darray& sum) {
     if (CheckSet(ds)) return 1; 
     // Bootstrap error analysis for average DV/DL
     if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]); 
-
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
@@ -305,6 +306,58 @@ int Analysis_TI::Calc_Nskip(Darray& sum) {
   return 0;
 }
 
+int Analysis_TI::Calc_Increment(Darray& sum) {
+  // Loop over input data sets. 
+  for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+    DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
+    if (CheckSet(ds)) return 1; 
+    // Bootstrap error analysis for average DV/DL
+    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]);
+    // Determine max pts if not given
+    int maxpts = avg_max_;
+    if (maxpts == -1)
+      maxpts = (int)ds.Size();
+    else if (maxpts > (int)ds.Size()) {
+      mprintf("Warning: 'avgmax' (%i) > data size (%zu); setting to %zu\n",
+              maxpts, ds.Size(), ds.Size());
+      maxpts = (int)ds.Size();
+    }
+    if (avg_skip_ >= maxpts) {
+      mprinterr("Error: 'avgskip' (%i) > max (%i).\n", avg_skip_, maxpts);
+      return 1;
+    }
+    // Calculate averages for each increment
+    Darray avg;
+    int count = 0;
+    int endpt = maxpts -1;
+    double currentSum = 0.0;
+    mprintf("DEBUG: Lambda %g\n", xval_[idx]);
+    for (int pt = avg_skip_; pt != maxpts; pt++, count++)
+    {
+      currentSum += ds.Dval(pt);
+      if (count == avg_interval_ || pt == endpt) {
+        avg.push_back( currentSum / ((double)(pt - avg_skip_ + 1)) );
+        mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
+        count = 0;
+      }
+    }
+    if (sum.empty())
+      sum.resize(avg.size());
+    else if (sum.size() != avg.size()) {
+      mprinterr("Error: Different # of increments for set '%s'; got %zu, expected %zu.\n",
+                ds.legend(), avg.size(), sum.size());
+      return 1;
+    }
+    for (unsigned int j = 0; j != avg.size(); j++) {
+      if (mode_ == GAUSSIAN_QUAD)
+        sum[j] += (wgt_[idx] * avg[j]);
+    }
+  } // END loop over data sets
+  return 0;
+}
+
+/** \param sum Hold the results of Gaussian quadrature integration for each curve (skip value)
+  */
 int Analysis_TI::Calc_Avg(Darray& sum) {
   sum.assign(1, 0.0);
    // Loop over input data sets. 
@@ -332,6 +385,8 @@ Analysis::RetType Analysis_TI::Analyze() {
     err = Calc_Nskip(sum);
   else if (avgType_ == AVG)
     err = Calc_Avg(sum);
+  else if (avgType_ == INCREMENT)
+    err = Calc_Increment(sum);
   if (err != 0) return Analysis::ERR;
 
   // Integrate each curve if not doing quadrature
