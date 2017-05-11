@@ -3,7 +3,7 @@
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
 #include "StringRoutines.h" // integerToString
-#include "Bootstrap.h"
+#include "Random.h"
 
 /// CONSTRUCTOR
 Analysis_TI::Analysis_TI() :
@@ -65,7 +65,6 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
   curveout_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
-  DataFile* bsout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("bsout"), analyzeArgs);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
     mprinterr("Error: Could not add data sets.\n");
@@ -118,18 +117,6 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     }
   }
   // NOTE: INCREMENT is set up once data set size is known 
-  if (n_bootstrap_samples_ > 0) {
-    // Bootstrap data sets
-    orig_avg_ = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "oavg"));
-    bs_avg_   = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bsavg"));
-    bs_sd_    = setup.DSL().AddSet(DataSet::XYMESH, MetaData(dAout_->Meta().Name(), "bssd"));
-    if (orig_avg_ == 0 || bs_avg_ == 0 || bs_sd_ == 0) return Analysis::ERR;
-    if (bsout != 0) {
-      bsout->AddDataSet(orig_avg_);
-      bsout->AddDataSet(bs_avg_);
-      bsout->AddDataSet(bs_sd_);
-    }
-  }
 
   mprintf("    TI: Calculating TI");
   if (mode_ == GAUSSIAN_QUAD) {
@@ -151,10 +138,16 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       mprintf(" %i", *it);
     mprintf(" data points for <DV/DL> calc.\n");
   } else if (avgType_ == INCREMENT) {
-    mprintf("\tCalculating average from point %i, increment by %i.", avg_skip_, avg_increment_);
+    mprintf("\tCalculating <DV/DL> starting from point %i, increment by %i.",
+            avg_skip_, avg_increment_);
     if (avg_max_ != -1)
       mprintf(" Max %i points.", avg_max_);
     mprintf("\n");
+  } else if (avgType_ == BOOTSTRAP) {
+    mprintf("\tCalculating <DV/DL> from %i bootstrap resamples.\n", n_bootstrap_samples_);
+    mprintf("\tBootstrap resample size is %i data points.\n", n_bootstrap_pts_);
+    if (bootstrap_seed_ != -1)
+      mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
   }
   mprintf("\tResult(s) of integration(s) saved in set '%s'\n", dAout_->legend());
   mprintf("\tTI curve(s) saved in set(s)");
@@ -166,16 +159,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   mprintf("\n");
   if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
   if (curveout_!= 0) mprintf("\tTI curve(s) written to '%s'\n", curveout_->DataFilename().full());
-  if (n_bootstrap_samples_ > 0) {
-    mprintf("\tBootstrap error analysis will be performed for <DV/DL> values.\n");
-    if (n_bootstrap_pts_ < 1)
-      mprintf("\t75%% of input data points will be used for each bootstrap resample.\n");
-    else
-      mprintf("\tBootstrap resample size is %i data points\n", n_bootstrap_pts_);
-    mprintf("\t%i bootstrap resamples.\n", n_bootstrap_samples_);
-    if (bootstrap_seed_ != -1)
-      mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
-  }
+
   return Analysis::OK;
 }
 
@@ -243,26 +227,6 @@ int Analysis_TI::SetQuadAndWeights(int nq) {
       return 1;
   }
   return 0;
-}
-
-// Analysis_TI::DoBootstrap()
-void Analysis_TI::DoBootstrap(int idx, DataSet_1D* dsIn) {
-  mprintf("\tPerforming bootstrap error analysis of <DV/DL>\n");
-  Bootstrap BS;
-  double bs_mean = 0.0;
-  if (n_bootstrap_pts_ < 1) {
-    n_bootstrap_pts_ = (int)(0.75*(double)dsIn->Size());
-    mprintf("\t%i points used in each bootstrap resample.\n", n_bootstrap_pts_);
-  }
-  BS.Init(dsIn, n_bootstrap_pts_, n_bootstrap_samples_, bootstrap_seed_, debug_);
-  if (bootstrap_seed_ != -1) ++bootstrap_seed_;
-  double bs_sd = BS.Resample(bs_mean);
-  double avg0 = dsIn->Avg();
-  mprintf("\tOriginal avg= %g  Resample avg= %g  Resample SD= %g\n",
-          avg0, bs_mean, bs_sd);
-  ((DataSet_Mesh*)orig_avg_)->AddXY(xval_[idx], avg0);
-  ((DataSet_Mesh*)bs_avg_)->AddXY(xval_[idx], bs_mean);
-  ((DataSet_Mesh*)bs_sd_)->AddXY(xval_[idx], bs_sd);
 }
 
 /** Integrate each curve in the curve_ array using trapezoid method. */
@@ -378,8 +342,6 @@ int Analysis_TI::Calc_Nskip() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (CheckSet(ds)) return 1; 
-    // Bootstrap error analysis for average DV/DL
-//    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]); 
     // Determine if skip values are valid for this set.
     Darray Npoints; // Number of points after skipping
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
@@ -428,8 +390,6 @@ int Analysis_TI::Calc_Increment() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (CheckSet(ds)) return 1; 
-    // Bootstrap error analysis for average DV/DL
-//    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]);
     // Determine max pts if not given
     int maxpts = avg_max_;
     if (maxpts == -1)
@@ -506,8 +466,6 @@ int Analysis_TI::Calc_Avg() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (CheckSet(ds)) return 1; 
-    // Bootstrap error analysis for average DV/DL
-//    if (n_bootstrap_samples_ > 0) DoBootstrap(idx, input_dsets_[idx]); 
     // Calculate average for this set
     double avg_dvdl = ds.Avg();
     ((DataSet_Mesh*)curve_[0])->AddXY( xval_[idx], avg_dvdl );

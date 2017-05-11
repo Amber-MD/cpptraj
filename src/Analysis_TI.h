@@ -20,7 +20,6 @@ class Analysis_TI : public Analysis {
     typedef std::vector<DataSet*> DSarray;
 
     int SetQuadAndWeights(int);
-    void DoBootstrap(int, DataSet_1D*);
     void Integrate_Trapezoid(Darray&) const;
     int Calc_Bootstrap();
     int Calc_Nskip();
@@ -30,9 +29,6 @@ class Analysis_TI : public Analysis {
     Array1D input_dsets_; ///< Input DV/DL data sets
     Iarray nskip_;        ///< Numbers of data points to skip in calculating <DV/DL>
     DataSet* dAout_;      ///< Free energy data set
-    DataSet* orig_avg_;   ///< Average DV/DL
-    DataSet* bs_avg_;     ///< Bootstrap average DV/DL
-    DataSet* bs_sd_;      ///< Bootstrap DV/DL standard deviation
     DataFile* curveout_;  ///< File to write DV/DL curves to.
     DataSetList* masterDSL_;
     DSarray curve_;       ///< TI curve data set for each skip/increment value
