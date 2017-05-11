@@ -61,7 +61,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   bootstrap_seed_ = analyzeArgs.getKeyInt("bs_seed", -1);
   std::string setname = analyzeArgs.GetStringKey("name");
   DataFile* outfile = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("out"), analyzeArgs);
-  DataFile* curveout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
+  curveout_ = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("curveout"), analyzeArgs);
   DataFile* bsout = setup.DFL().AddDataFile(analyzeArgs.GetStringKey("bsout"), analyzeArgs);
   // Select datasets from remaining args
   if (input_dsets_.AddSetsFromArgs( analyzeArgs.RemainingArgs(), setup.DSL() )) {
@@ -100,7 +100,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
       if (ds == 0) return Analysis::ERR;
       ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
-      if (curveout != 0) curveout->AddDataSet( ds );
+      if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
     }
   }
@@ -152,7 +152,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     mprintf(" named '%s'", md.PrintName().c_str());
   mprintf("\n");
   if (outfile != 0) mprintf("\tResults written to '%s'\n", outfile->DataFilename().full());
-  if (curveout!= 0) mprintf("\tTI curve(s) written to '%s'\n", curveout->DataFilename().full());
+  if (curveout_!= 0) mprintf("\tTI curve(s) written to '%s'\n", curveout_->DataFilename().full());
   if (n_bootstrap_samples_ > 0) {
     mprintf("\tBootstrap error analysis will be performed for <DV/DL> values.\n");
     if (n_bootstrap_pts_ < 1)
@@ -330,6 +330,7 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
     }
     // Calculate averages for each increment
     Darray avg;
+    Iarray increments;
     int count = 0;
     int endpt = maxpts -1;
     double currentSum = 0.0;
@@ -340,6 +341,7 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
       count++;
       if (count == avg_increment_ || pt == endpt) {
         avg.push_back( currentSum / ((double)(pt - avg_skip_ + 1)) );
+        increments.push_back(pt+1);
         mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
         count = 0;
       }
@@ -351,7 +353,21 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
                 ds.legend(), avg.size(), sum.size());
       return 1;
     }
+    // Create increment curve data sets
+    if (curve_.empty()) {
+      MetaData md(dAout_->Meta().Name(), "TIcurve");
+      for (unsigned int j = 0; j != avg.size(); j++) {
+        md.SetIdx( increments[j] );
+        DataSet* ds = masterDSL_->AddSet(DataSet::XYMESH, md);
+        if (ds == 0) return Analysis::ERR;
+        ds->SetLegend( md.Name() + "_Skip" + integerToString(increments[j]) );
+        if (curveout_ != 0) curveout_->AddDataSet( ds );
+        curve_.push_back( ds );
+      }
+    }
     for (unsigned int j = 0; j != avg.size(); j++) {
+      DataSet_Mesh& CR = static_cast<DataSet_Mesh&>( *(curve_[j]) );
+      CR.AddXY(xval_[idx], avg[j]);
       if (mode_ == GAUSSIAN_QUAD)
         sum[j] += (wgt_[idx] * avg[j]);
     }
@@ -359,7 +375,7 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
   return 0;
 }
 
-/** \param sum Hold the results of Gaussian quadrature integration for each curve (skip value)
+/** \param sum Hold the results of Gaussian quadrature integration single curve
   */
 int Analysis_TI::Calc_Avg(Darray& sum) {
   sum.assign(1, 0.0);

@@ -31,6 +31,7 @@ class Analysis_TI : public Analysis {
     DataSet* orig_avg_;   ///< Average DV/DL
     DataSet* bs_avg_;     ///< Bootstrap average DV/DL
     DataSet* bs_sd_;      ///< Bootstrap DV/DL standard deviation
+    DataFile* curveout_;  ///< File to write DV/DL curves to.
     DataSetList* masterDSL_;
     DSarray curve_;       ///< TI curve data set for each skip/increment value
     Darray xval_;         ///< Hold abscissas corresponding to data sets.
