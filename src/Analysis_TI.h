@@ -12,7 +12,7 @@ class Analysis_TI : public Analysis {
     Analysis::RetType Analyze();
   private:
     /// Averaging type: normal, skip #s of points, incremental avg
-    enum AvgType { AVG = 0, SKIP, INCREMENT };
+    enum AvgType { AVG = 0, SKIP, INCREMENT, BOOTSTRAP };
     /// Integration type
     enum ModeType { GAUSSIAN_QUAD = 0, TRAPEZOID };
     typedef std::vector<int> Iarray;
@@ -22,6 +22,7 @@ class Analysis_TI : public Analysis {
     int SetQuadAndWeights(int);
     void DoBootstrap(int, DataSet_1D*);
     void Integrate_Trapezoid(Darray&) const;
+    int Calc_Bootstrap();
     int Calc_Nskip();
     int Calc_Increment();
     int Calc_Avg();
