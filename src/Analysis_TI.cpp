@@ -409,7 +409,7 @@ int Analysis_TI::Calc_Increment() {
     int count = 0;
     int endpt = maxpts -1;
     double currentSum = 0.0;
-    mprintf("DEBUG: Lambda %g\n", xval_[idx]);
+    if (debug_ > 0) mprintf("DEBUG: Lambda %g\n", xval_[idx]);
     for (int pt = avg_skip_; pt != maxpts; pt++)
     {
       currentSum += ds.Dval(pt);
@@ -417,7 +417,8 @@ int Analysis_TI::Calc_Increment() {
       if (count == avg_increment_ || pt == endpt) {
         avg.push_back( currentSum / ((double)(pt - avg_skip_ + 1)) );
         increments.push_back(pt+1);
-        mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
+        if (debug_ > 0)
+          mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
         count = 0;
       }
     }
