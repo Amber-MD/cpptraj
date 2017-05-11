@@ -25,6 +25,7 @@ DoTest skip.agr.save skip.agr
 DoTest curve.agr.save curve.agr
 DoTest avg.dat.save avg.dat
 DoTest bs.dat.save bs.dat
+DoTest incr.crv.agr.save incr.crv.agr
 
 EndTest
 exit 0
