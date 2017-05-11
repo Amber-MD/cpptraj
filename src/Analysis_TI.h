@@ -29,6 +29,7 @@ class Analysis_TI : public Analysis {
     Array1D input_dsets_; ///< Input DV/DL data sets
     Iarray nskip_;        ///< Numbers of data points to skip in calculating <DV/DL>
     DataSet* dAout_;      ///< Free energy data set
+    DataSet* dA_SD_;      ///< Standard deviation of free energy
     DataFile* curveout_;  ///< File to write DV/DL curves to.
     DataSetList* masterDSL_;
     DSarray curve_;       ///< TI curve data set for each skip/increment value

@@ -87,6 +87,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     return Analysis::ERR;
   }
   // Set up output data sets
+  // FIXME: Use mesh for skip and increment, double otherwise
   dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( dAout_ );
@@ -95,6 +96,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     // Single curve
     curve_.push_back( setup.DSL().AddSet(DataSet::XYMESH, md) );
     if (curve_.back() == 0) return Analysis::ERR;
+    if (outfile != 0) outfile->ProcessArgs("noxcol");
   } else if (avgType_ == SKIP) {
     // As many curves as skip values
     for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it) {
@@ -115,6 +117,13 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
     }
+    // Standard devation of avg free energy over samples
+    dA_SD_ = setup.DSL().AddSet(DataSet::XYMESH, MetaData(md.Name(), "SD"));
+    if (dA_SD_ == 0) return Analysis::ERR;
+    if (outfile != 0) {
+      outfile->AddDataSet( dA_SD_ );
+      outfile->ProcessArgs("noxcol");
+    }
   }
   // NOTE: INCREMENT is set up once data set size is known 
 
@@ -130,6 +139,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     for (unsigned int i = 0; i != xval_.size(); i++)
       mprintf("\t%6i %8.5f %s\n", i, xval_[i], input_dsets_[i]->legend());
   }
+  mprintf("\tResult(s) of integration(s) saved in set '%s'\n", dAout_->legend());
   if (avgType_ == AVG)
     mprintf("\tUsing all data points in <DV/DL> calc.\n");
   else if (avgType_ == SKIP) {
@@ -144,12 +154,12 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       mprintf(" Max %i points.", avg_max_);
     mprintf("\n");
   } else if (avgType_ == BOOTSTRAP) {
+    mprintf("\tStandard devation of result stored in set '%s'\n", dA_SD_->legend());
     mprintf("\tCalculating <DV/DL> from %i bootstrap resamples.\n", n_bootstrap_samples_);
     mprintf("\tBootstrap resample size is %i data points.\n", n_bootstrap_pts_);
     if (bootstrap_seed_ != -1)
       mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
   }
-  mprintf("\tResult(s) of integration(s) saved in set '%s'\n", dAout_->legend());
   mprintf("\tTI curve(s) saved in set(s)");
   if (avgType_ != INCREMENT)
     for (DSarray::const_iterator ds = curve_.begin(); ds != curve_.end(); ++ds)
@@ -326,6 +336,8 @@ int Analysis_TI::Calc_Bootstrap() {
   DA.ModifyDim(Dimension::X).SetLabel("Bootstrap");
   mprintf("\tBootstrap avg +/- SD = %g +/- %g\n", DA_avg, DA_sd);
   DA.AddXY(0, DA_avg);
+  dA_SD_->ModifyDim(Dimension::X).SetLabel("Bootstrap");
+  ((DataSet_Mesh*)dA_SD_)->AddXY(0, DA_sd);
 
   return 0;
 }
