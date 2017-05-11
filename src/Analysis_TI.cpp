@@ -13,6 +13,7 @@ Analysis_TI::Analysis_TI() :
   dA_SD_(0),
   curveout_(0),
   masterDSL_(0),
+  bootstrap_fac_(0.0),
   mode_(GAUSSIAN_QUAD),
   avgType_(AVG),
   debug_(0),
@@ -24,16 +25,23 @@ Analysis_TI::Analysis_TI() :
   avg_skip_(0)
 {}
 
-
+// Analysis_TI::Help()
 void Analysis_TI::Help() const {
   mprintf("\t<dset0> [<dset1> ...] {nq <n quad pts> | xvals <x values>}\n"
-          "\t[nskip <# to skip>] [name <set name>] [out <file>]\n"
-          "\t[curveout <ti curve file>] [bsout <bootstrap vals file>]\n"
-          "\t[bs_pts <points>] [bs_samples <samples>]\n"
-          "  Calculate free energy from Amber TI output. If 'nskip' is specified\n"
-          "  (where <# to skip> may be a comma-separated list of numbers) the average\n"
-          "  DV/DL and final free energy will be calculated skipping over the specified\n"
-          "  number of points (for assessing convergence).\n");
+          "\t[name <set name>] [out <file>] [curveout <ti curve file>]\n"
+          "\t[nskip <#s to skip>]\n"
+          "\t[avgincrement <#> [avgmax <#>] [avgskip <#>]]\n"
+          "\t[bs_samples <samples> [bs_points <points>] [bs_seed <#>]\n"
+          "\t [bs_fac <factor>]]\n"
+          "  Calculate free energy from Amber TI output.\n"
+          "  If 'nskip' is specified (where <# to skip> may be a comma-separated\n"
+          "  list of numbers) the average DV/DL and final free energy will be\n"
+          "  calculated skipping over the specified number(s) of points.\n"
+          "  If 'avgincrement' is specified the average DV/DL and final free\n"
+          "  energy will be calculated from incremental averages.\n"
+          "  If 'bs_samples' is specified the average DV/DL will be calcuated\n"
+          "  in bootstrap fashion using <points> for <samples> samples.\n"
+          "  If <points> is not specified use the data size times <factor> points.\n");
 }
 
 // Analysis_TI::Setup()
@@ -48,7 +56,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   n_bootstrap_pts_ = analyzeArgs.getKeyInt("bs_pts", -1);
   n_bootstrap_samples_ = analyzeArgs.getKeyInt("bs_samples", 0);
   bootstrap_seed_ = analyzeArgs.getKeyInt("bs_seed", -1);
-  avgType_ = AVG;
+  bootstrap_fac_ = analyzeArgs.getKeyDouble("bs_fac", 0.75);
   if (!nskipArg.empty()) {
     avgType_ = SKIP;
     // Specified numbers of points to skip
@@ -61,6 +69,8 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     avgType_ = INCREMENT;
   else if (n_bootstrap_samples_ > 0)
     avgType_ = BOOTSTRAP;
+  else
+    avgType_ = AVG;
   masterDSL_ = setup.DslPtr();
   // Get lambda values
   ArgList xArgs(analyzeArgs.GetStringKey("xvals"), ","); // Also comma-separated
@@ -168,7 +178,8 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     if (n_bootstrap_pts_ > 0)
       mprintf("\tBootstrap resample size is %i data points.\n", n_bootstrap_pts_);
     else
-      mprintf("\tWill use bootstrap resample size of 75%% of total points.\n");
+      mprintf("\tWill use bootstrap resample size of %g%% of total points.\n",
+              bootstrap_fac_*100.0);
     if (bootstrap_seed_ != -1)
       mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
   }
@@ -287,7 +298,7 @@ int Analysis_TI::Calc_Bootstrap() {
     // Hold average of all resample averages
     double Mean = 0.0;
     if (n_bootstrap_pts_ < 1) {
-      n_bootstrap_pts_ = (int)(0.75 * (double)ds.Size());
+      n_bootstrap_pts_ = (int)(bootstrap_fac_ * (double)ds.Size());
       mprintf("\tUsing %i bootstrap points.\n", n_bootstrap_pts_);
     }
     if (n_bootstrap_pts_ < 1) {

@@ -35,6 +35,7 @@ class Analysis_TI : public Analysis {
     DSarray curve_;       ///< TI curve data set for each skip/increment value
     Darray xval_;         ///< Hold abscissas corresponding to data sets.
     Darray wgt_;          ///< Hold Gaussian quadrature weights
+    double bootstrap_fac_;///< Fraction of total points to use when # pts not specified.
     ModeType mode_;       ///< Integration mode
     AvgType avgType_;     ///< Type of averaging to be performed.
     int debug_;
