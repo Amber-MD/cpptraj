@@ -34,7 +34,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   debug_ = debugIn;
   int nq = analyzeArgs.getKeyInt("nq", 0);
   ArgList nskipArg(analyzeArgs.GetStringKey("nskip"), ","); // Comma-separated
-  avg_interval_ = analyzeArgs.getKeyInt("interval", -1);
+  avg_increment_ = analyzeArgs.getKeyInt("avgincrement", -1);
   avg_max_ = analyzeArgs.getKeyInt("avgmax", -1);
   avg_skip_ = analyzeArgs.getKeyInt("avgskip", 0);
   avgType_ = AVG;
@@ -46,7 +46,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       nskip_.push_back( nskipArg.getNextInteger(0) );
       if (nskip_.back() < 0) nskip_.back() = 0;
     }
-  } else if (avg_interval_ > 0)
+  } else if (avg_increment_ > 0)
     avgType_ = INCREMENT;
   masterDSL_ = setup.DslPtr();
   // Get lambda values
@@ -138,7 +138,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       mprintf(" %i", *it);
     mprintf(" data points for <DV/DL> calc.\n");
   } else if (avgType_ == INCREMENT) {
-    mprintf("\tAveraging every %i points after skipping %i.",avg_interval_,avg_skip_);
+    mprintf("\tCalculating average from point %i, increment by %i.", avg_skip_, avg_increment_);
     if (avg_max_ != -1)
       mprintf(" Max %i points.", avg_max_);
     mprintf("\n");
@@ -306,6 +306,8 @@ int Analysis_TI::Calc_Nskip(Darray& sum) {
   return 0;
 }
 
+/** \param sum Hold the results of Gaussian quadrature integration for each curve (increment)
+  */
 int Analysis_TI::Calc_Increment(Darray& sum) {
   // Loop over input data sets. 
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
@@ -336,7 +338,7 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
     {
       currentSum += ds.Dval(pt);
       count++;
-      if (count == avg_interval_ || pt == endpt) {
+      if (count == avg_increment_ || pt == endpt) {
         avg.push_back( currentSum / ((double)(pt - avg_skip_ + 1)) );
         mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
         count = 0;

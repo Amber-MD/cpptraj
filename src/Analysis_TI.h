@@ -41,7 +41,7 @@ class Analysis_TI : public Analysis {
     int n_bootstrap_pts_; ///< # points for bootstrap error analysis
     int n_bootstrap_samples_; ///< # of times to resample for bootstrap analysis
     int bootstrap_seed_;  ///< # RNG seed. Input data set index added for each set.
-    int avg_interval_;    ///< # points to skip between each average calc
+    int avg_increment_;   ///< # points to skip between each average calc
     int avg_max_;         ///< Max number of points to use in average (default all) 
     int avg_skip_;        ///< Number of points to skip when calculating the average.
 };
