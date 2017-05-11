@@ -261,10 +261,19 @@ static inline int CheckSet(DataSet_1D const& ds) {
   return 0;
 }
 
-/** \param sum Hold the results of Gaussian quadrature integration for each curve (skip value)
-  */
-int Analysis_TI::Calc_Nskip(Darray& sum) {
-  sum.assign(nskip_.size(), 0.0);
+/** Integrate each curve in the curve_ array using trapezoid method. */
+void Analysis_TI::Integrate_Trapezoid(Darray& sum) const {
+  // Integrate each curve if not doing quadrature
+  for (unsigned int j = 0; j != curve_.size(); j++) {
+    DataSet_Mesh const& CR = static_cast<DataSet_Mesh const&>( *(curve_[j]) );
+    sum[j] = CR.Integrate_Trapezoid();
+  }
+}
+
+// Analysis_TI::Calc_Nskip()
+int Analysis_TI::Calc_Nskip() {
+  // sum: Hold the results of Gaussian quadrature integration for each curve (skip value)
+  Darray sum(nskip_.size(), 0.0);
   // lastSkipPoint: Points after which averages can be recorded
   Iarray lastSkipPoint;
   for (Iarray::const_iterator it = nskip_.begin(); it != nskip_.end(); ++it)
@@ -303,12 +312,22 @@ int Analysis_TI::Calc_Nskip(Darray& sum) {
         sum[j] += (wgt_[idx] * avg[j]);
     }
   } // END loop over input data sets
+  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  // Store final TI integration values.
+  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
+  DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
+  for (unsigned int j = 0; j != nskip_.size(); j++)
+    DA.AddXY(nskip_[j], sum[j]);
+
   return 0;
 }
 
-/** \param sum Hold the results of Gaussian quadrature integration for each curve (increment)
-  */
-int Analysis_TI::Calc_Increment(Darray& sum) {
+// Analysis_TI::Calc_Increment()
+int Analysis_TI::Calc_Increment() {
+  // sum: Hold the results of Gaussian quadrature integration for each curve (increment)
+  Darray sum;
+  // points: Hold point values at which each avg is being calculated
+  Iarray points;
   // Loop over input data sets. 
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
@@ -346,9 +365,10 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
         count = 0;
       }
     }
-    if (sum.empty())
+    if (sum.empty()) {
       sum.resize(avg.size());
-    else if (sum.size() != avg.size()) {
+      points = increments;
+    } else if (sum.size() != avg.size()) {
       mprinterr("Error: Different # of increments for set '%s'; got %zu, expected %zu.\n",
                 ds.legend(), avg.size(), sum.size());
       return 1;
@@ -372,13 +392,20 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
         sum[j] += (wgt_[idx] * avg[j]);
     }
   } // END loop over data sets
+  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  // Store final integration values
+  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
+  DA.ModifyDim(Dimension::X).SetLabel("Point");
+  for (unsigned int j = 0; j != points.size(); j++)
+    DA.AddXY(points[j], sum[j]);
+
   return 0;
 }
 
-/** \param sum Hold the results of Gaussian quadrature integration single curve
-  */
-int Analysis_TI::Calc_Avg(Darray& sum) {
-  sum.assign(1, 0.0);
+// Analysis_TI::Calc_Avg()
+int Analysis_TI::Calc_Avg() {
+  // sum: Hold the results of Gaussian quadrature integration single curve
+  Darray sum(1, 0.0);
    // Loop over input data sets. 
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
@@ -392,40 +419,24 @@ int Analysis_TI::Calc_Avg(Darray& sum) {
     if (mode_ == GAUSSIAN_QUAD)
       sum[0] += (wgt_[idx] * avg_dvdl);
   }
+  if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
+  // Store final integration values
+  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
+  DA.ModifyDim(Dimension::X).SetLabel("TI");
+  DA.AddXY(0, sum[0]);
   return 0;
 }
 
 // Analysis_TI::Analyze()
 Analysis::RetType Analysis_TI::Analyze() {
-  // sum: Hold the results of integration for each curve
-  Darray sum;
   int err = 0;
   if (avgType_ == SKIP)
-    err = Calc_Nskip(sum);
+    err = Calc_Nskip();
   else if (avgType_ == AVG)
-    err = Calc_Avg(sum);
+    err = Calc_Avg();
   else if (avgType_ == INCREMENT)
-    err = Calc_Increment(sum);
+    err = Calc_Increment();
   if (err != 0) return Analysis::ERR;
-
-  // Integrate each curve if not doing quadrature
-  if (mode_ != GAUSSIAN_QUAD) {
-    for (unsigned int j = 0; j != curve_.size(); j++) {
-      DataSet_Mesh const& CR = static_cast<DataSet_Mesh const&>( *(curve_[j]) );
-      sum[j] = CR.Integrate_Trapezoid();
-    }
-  }
-
-  // Store final free energy/energies
-  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
-  if (avgType_ == SKIP) {
-    DA.ModifyDim(Dimension::X).SetLabel("PtsSkipped");
-    for (unsigned int j = 0; j != nskip_.size(); j++)
-      DA.AddXY(nskip_[j], sum[j]);
-  } else if (avgType_ == AVG) {
-    DA.ModifyDim(Dimension::X).SetLabel("TI");
-    DA.AddXY(0, sum[0]);
-  }
 
   return Analysis::OK;
 }

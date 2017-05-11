@@ -21,9 +21,10 @@ class Analysis_TI : public Analysis {
 
     int SetQuadAndWeights(int);
     void DoBootstrap(int, DataSet_1D*);
-    int Calc_Nskip(Darray&);
-    int Calc_Avg(Darray&);
-    int Calc_Increment(Darray&);
+    void Integrate_Trapezoid(Darray&) const;
+    int Calc_Nskip();
+    int Calc_Increment();
+    int Calc_Avg();
 
     Array1D input_dsets_; ///< Input DV/DL data sets
     Iarray nskip_;        ///< Numbers of data points to skip in calculating <DV/DL>
