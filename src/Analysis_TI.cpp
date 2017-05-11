@@ -10,11 +10,18 @@ Analysis_TI::Analysis_TI() :
   Analysis(HIDDEN),
   nskip_(0),
   dAout_(0),
+  dA_SD_(0),
+  curveout_(0),
+  masterDSL_(0),
   mode_(GAUSSIAN_QUAD),
   avgType_(AVG),
   debug_(0),
   n_bootstrap_pts_(0),
-  n_bootstrap_samples_(100)
+  n_bootstrap_samples_(0),
+  bootstrap_seed_(-1),
+  avg_increment_(0),
+  avg_max_(0),
+  avg_skip_(0)
 {}
 
 
@@ -39,7 +46,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   avg_max_ = analyzeArgs.getKeyInt("avgmax", -1);
   avg_skip_ = analyzeArgs.getKeyInt("avgskip", 0);
   n_bootstrap_pts_ = analyzeArgs.getKeyInt("bs_pts", -1);
-  n_bootstrap_samples_ = analyzeArgs.getKeyInt("bs_samples", 100);
+  n_bootstrap_samples_ = analyzeArgs.getKeyInt("bs_samples", 0);
   bootstrap_seed_ = analyzeArgs.getKeyInt("bs_seed", -1);
   avgType_ = AVG;
   if (!nskipArg.empty()) {
@@ -52,7 +59,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     }
   } else if (avg_increment_ > 0)
     avgType_ = INCREMENT;
-  else if (n_bootstrap_pts_ > -1)
+  else if (n_bootstrap_samples_ > 0)
     avgType_ = BOOTSTRAP;
   masterDSL_ = setup.DslPtr();
   // Get lambda values
@@ -158,7 +165,10 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
   } else if (avgType_ == BOOTSTRAP) {
     mprintf("\tStandard devation of result stored in set '%s'\n", dA_SD_->legend());
     mprintf("\tCalculating <DV/DL> from %i bootstrap resamples.\n", n_bootstrap_samples_);
-    mprintf("\tBootstrap resample size is %i data points.\n", n_bootstrap_pts_);
+    if (n_bootstrap_pts_ > 0)
+      mprintf("\tBootstrap resample size is %i data points.\n", n_bootstrap_pts_);
+    else
+      mprintf("\tWill use bootstrap resample size of 75%% of total points.\n");
     if (bootstrap_seed_ != -1)
       mprintf("\tBoostrap base seed is %i\n", bootstrap_seed_);
   }
@@ -276,6 +286,14 @@ int Analysis_TI::Calc_Bootstrap() {
     Darray Avgs(n_bootstrap_samples_, 0.0);
     // Hold average of all resample averages
     double Mean = 0.0;
+    if (n_bootstrap_pts_ < 1) {
+      n_bootstrap_pts_ = (int)(0.75 * (double)ds.Size());
+      mprintf("\tUsing %i bootstrap points.\n", n_bootstrap_pts_);
+    }
+    if (n_bootstrap_pts_ < 1) {
+      mprinterr("Error: Not enough bootstrap points.\n");
+      return 1;
+    }
     if (n_bootstrap_pts_ >= (int)ds.Size()) {
       mprinterr("Error: Bootstrap sample size (%i) must be less than data set size (%zu)\n",
                 n_bootstrap_pts_, ds.Size());
