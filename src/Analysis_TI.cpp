@@ -1,3 +1,4 @@
+#include <cmath> // sqrt
 #include "Analysis_TI.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"
@@ -282,6 +283,7 @@ static inline int CheckSet(DataSet_1D const& ds) {
   return 0;
 }
 
+// Analysis_TI::Calc_Bootstrap()
 int Analysis_TI::Calc_Bootstrap() {
   // sum: Hold the results of integration for each curve (bootstrap resample)
   Darray sum(n_bootstrap_samples_, 0.0);
@@ -329,6 +331,7 @@ int Analysis_TI::Calc_Bootstrap() {
     }
     // Mean of all resamples
     Mean /= (double)n_bootstrap_samples_;
+    mprintf("\tLambda %g: Avg of resamples= %g\n", xval_[idx], Mean);
     // Store average DV/DL for each resample 
     for (unsigned int j = 0; j != Avgs.size(); j++) {
       if (debug_ > 0)
@@ -340,11 +343,25 @@ int Analysis_TI::Calc_Bootstrap() {
     }
   } // END loop over input data sets
   if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
-  // Store final TI integration values.
+  // Calculate average DA from individual TI integration values.
+  double DA_avg = 0.0;
+  double DA_sd = 0.0;
+  for (unsigned int j = 0; j != sum.size(); j++) {
+    mprintf("\tResample %u DA= %g\n", j, sum[j]);
+    DA_avg += sum[j];
+    DA_sd += (sum[j] * sum[j]);
+  }
+  DA_avg /= (double)sum.size();
+  DA_sd /= (double)sum.size();
+  DA_sd -= (DA_avg * DA_avg);
+  if (DA_sd > 0.0)
+    DA_sd = sqrt(DA_sd);
+  else
+    DA_sd = 0.0;
   DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
-  DA.ModifyDim(Dimension::X).SetLabel("Resample");
-  for (unsigned int j = 0; j != sum.size(); j++)
-    DA.AddXY(j, sum[j]);
+  DA.ModifyDim(Dimension::X).SetLabel("Bootstrap");
+  mprintf("\tBootstrap avg +/- SD = %g +/- %g\n", DA_avg, DA_sd);
+  DA.AddXY(0, DA_avg);
 
   return 0;
 }
