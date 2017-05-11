@@ -16,7 +16,6 @@ ti TI nq 9 name Increment avgincrement 10 out incr.agr curveout incr.crv.agr
 ti TI nq 9 name Bootstrap bs_samples 20 bs_seed 10 bs_pts 70 out bs.dat curveout bs.crv.agr
 runanalysis
 list dataset
-printdata Avg
 writedata avg.dat.save Curve[TIcurve]:0 noheader
 writedata avg.dat      Avg[TIcurve]     noheader
 EOF

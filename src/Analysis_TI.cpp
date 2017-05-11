@@ -87,8 +87,10 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     return Analysis::ERR;
   }
   // Set up output data sets
-  // FIXME: Use mesh for skip and increment, double otherwise
-  dAout_ = setup.DSL().AddSet(DataSet::XYMESH, setname, "TI");
+  DataSet::DataType dtype = DataSet::DOUBLE;
+  if (avgType_ == SKIP || avgType_ == INCREMENT)
+    dtype = DataSet::XYMESH;
+  dAout_ = setup.DSL().AddSet(dtype, setname, "TI");
   if (dAout_ == 0) return Analysis::ERR;
   if (outfile != 0) outfile->AddDataSet( dAout_ );
   MetaData md(dAout_->Meta().Name(), "TIcurve");
@@ -118,7 +120,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       curve_.push_back( ds );
     }
     // Standard devation of avg free energy over samples
-    dA_SD_ = setup.DSL().AddSet(DataSet::XYMESH, MetaData(md.Name(), "SD"));
+    dA_SD_ = setup.DSL().AddSet(DataSet::DOUBLE, MetaData(md.Name(), "SD"));
     if (dA_SD_ == 0) return Analysis::ERR;
     if (outfile != 0) {
       outfile->AddDataSet( dA_SD_ );
@@ -332,12 +334,11 @@ int Analysis_TI::Calc_Bootstrap() {
     DA_sd = sqrt(DA_sd);
   else
     DA_sd = 0.0;
-  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
-  DA.ModifyDim(Dimension::X).SetLabel("Bootstrap");
   mprintf("\tBootstrap avg +/- SD = %g +/- %g\n", DA_avg, DA_sd);
-  DA.AddXY(0, DA_avg);
+  dAout_->ModifyDim(Dimension::X).SetLabel("Bootstrap");
+  dAout_->Add(0, &DA_avg);
   dA_SD_->ModifyDim(Dimension::X).SetLabel("Bootstrap");
-  ((DataSet_Mesh*)dA_SD_)->AddXY(0, DA_sd);
+  dA_SD_->Add(0, &DA_sd);
 
   return 0;
 }
@@ -488,9 +489,8 @@ int Analysis_TI::Calc_Avg() {
   }
   if (mode_ == TRAPEZOID) Integrate_Trapezoid(sum);
   // Store final integration values
-  DataSet_Mesh& DA = static_cast<DataSet_Mesh&>( *dAout_ );
-  DA.ModifyDim(Dimension::X).SetLabel("TI");
-  DA.AddXY(0, sum[0]);
+  dAout_->ModifyDim(Dimension::X).SetLabel("TI");
+  dAout_->Add(0, &(sum[0]));
   return 0;
 }
 
