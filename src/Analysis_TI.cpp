@@ -332,9 +332,10 @@ int Analysis_TI::Calc_Increment(Darray& sum) {
     int endpt = maxpts -1;
     double currentSum = 0.0;
     mprintf("DEBUG: Lambda %g\n", xval_[idx]);
-    for (int pt = avg_skip_; pt != maxpts; pt++, count++)
+    for (int pt = avg_skip_; pt != maxpts; pt++)
     {
       currentSum += ds.Dval(pt);
+      count++;
       if (count == avg_interval_ || pt == endpt) {
         avg.push_back( currentSum / ((double)(pt - avg_skip_ + 1)) );
         mprintf("DEBUG:\t\tAvg from %i to %i: %g\n", avg_skip_+1, pt+1, avg.back());
