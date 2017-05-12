@@ -7,7 +7,6 @@
 
 /// CONSTRUCTOR
 Analysis_TI::Analysis_TI() :
-  Analysis(HIDDEN),
   nskip_(0),
   dAout_(0),
   dA_SD_(0),
@@ -33,7 +32,12 @@ void Analysis_TI::Help() const {
           "\t[avgincrement <#> [avgmax <#>] [avgskip <#>]]\n"
           "\t[bs_samples <samples> [bs_points <points>] [bs_seed <#>]\n"
           "\t [bs_fac <factor>]]\n"
-          "  Calculate free energy from Amber TI output.\n"
+          "  Calculate free energy using DV/DL energies from thermodynamic integration.\n"
+          "  The results of integration of the DV/DL curve will be written to <file>,\n"
+          "  while the curves themselves will be written to <ti curve file>.\n"
+          "  Use 'nq' to specify number of Gaussian quadrature points; otherwise\n"
+          "  the lambda values should be specified by 'xvals', where <x values>\n"
+          "  is a comma-separated list.\n" 
           "  If 'nskip' is specified (where <# to skip> may be a comma-separated\n"
           "  list of numbers) the average DV/DL and final free energy will be\n"
           "  calculated skipping over the specified number(s) of points.\n"
