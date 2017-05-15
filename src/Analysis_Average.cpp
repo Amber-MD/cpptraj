@@ -210,7 +210,7 @@ Analysis::RetType Analysis_Average::Analyze() {
   }
   if (toStdout_) {
     DataFile OUT;
-    OUT.SetupStdout(ArgList(), 0); // TODO debug?
+    OUT.SetupStdout(0); // TODO debug?
     OUT.AddDataSet( data_avg_ );
     OUT.AddDataSet( data_sd_ );
     OUT.AddDataSet( data_ymin_ );

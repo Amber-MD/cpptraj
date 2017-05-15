@@ -7,6 +7,8 @@ class RPNcalc {
     typedef std::vector<double> Darray;
     RPNcalc();
     void SetDebug(int d) { debug_ = d; }
+    /// Set options
+    int ProcessOptions(ArgList&);
     /// Set RPNcalc with equation from expression.
     int ProcessExpression(std::string const&);
     /// Evaluate equation; variables = DataSets
@@ -53,6 +55,7 @@ class RPNcalc {
     typedef std::vector<Token> Tarray;
     Tarray tokens_;
     int debug_;
+    TextFormat fmt_; ///< Output format
 };
 /// Hold values/operators for RPN calculator.
 class RPNcalc::Token {

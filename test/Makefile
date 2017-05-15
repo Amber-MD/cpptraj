@@ -347,6 +347,9 @@ test.gromacs:
 test.ewald:
 	@-cd Test_Ewald && ./RunTest.sh $(OPT)
 
+test.ti:
+	@-cd Test_TI && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -433,7 +436,8 @@ SHORT_TESTS=test.general \
           test.comparetop \
           test.filter \
           test.combinecrd \
-          test.topinfo
+          test.topinfo \
+          test.ti
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -546,7 +550,8 @@ COMPLETETESTS=test.general \
               test.combinecrd \
               test.topinfo \
               test.gromacs \
-              test.ewald
+              test.ewald \
+              test.ti
 
 test: test.all 
 

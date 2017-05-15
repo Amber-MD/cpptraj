@@ -352,7 +352,7 @@ void Command::Init() {
   Command::AddCmd( new Analysis_RunningAvg(),  Cmd::ANA, 1, "runningavg" );
   Command::AddCmd( new Analysis_Spline(),      Cmd::ANA, 1, "spline" );
   Command::AddCmd( new Analysis_Statistics(),  Cmd::ANA, 2, "stat", "statistics" );
-  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" ); // HIDDEN
+  Command::AddCmd( new Analysis_TI(),          Cmd::ANA, 1, "ti" );
   Command::AddCmd( new Analysis_Timecorr(),    Cmd::ANA, 1, "timecorr" );
   Command::AddCmd( new Analysis_VectorMath(),  Cmd::ANA, 1, "vectormath" );
   Command::AddCmd( new Analysis_Wavelet(),     Cmd::ANA, 1, "wavelet" );
