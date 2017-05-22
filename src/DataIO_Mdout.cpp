@@ -227,9 +227,17 @@ int DataIO_Mdout::ReadData(FileName const& fname,
           FieldType Eindex = getEindex(Name);
           tkn = buffer.NextToken();
           ++tidx;
-          if (Eindex != N_FIELDTYPES) {
-            Energy[Eindex] = atof( tkn );
-            EnergyExists[Eindex] = true;
+          if (tkn == 0)
+            mprintf("Warning: No numerical value, line %i column %i. Skipping.\n",
+                    buffer.LineNumber(), tidx+1);
+          else if (tkn[0] == '*' || tkn[0] == 'N') // Assume if number begins with N it is NaN
+            mprintf("Warning: Numerical overflow detected, line %i column %i. Skipping.\n",
+                     buffer.LineNumber(), tidx+1);
+          else {
+            if (Eindex != N_FIELDTYPES) {
+              Energy[Eindex] = atof( tkn );
+              EnergyExists[Eindex] = true;
+            }
           }
           nidx = 0;
           Name[0].clear();
