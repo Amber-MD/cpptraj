@@ -317,12 +317,14 @@ int Topology::CommonSetup(bool molsearch) {
         int m1_resnum = atoms_[    mol->BeginAtom()].ResNum();
         if (m0_resnum == m1_resnum) {
           mols_share_residues = true;
+          unsigned int molnum = mol - molecules_.begin();
+          mprintf("Warning: 2 or more molecules (%u and %u) share residue numbers (%i).\n",
+                  molnum, molnum+1, m0_resnum+1);
           break;
         }
       }
     }
     if (mols_share_residues) {
-      mprintf("Warning: 2 or more molecules share residue numbers.\n");
       //if (bondsearch)
         mprintf("Warning:   Either residue information is incorrect or molecule determination"
                 " was inaccurate.\n");
