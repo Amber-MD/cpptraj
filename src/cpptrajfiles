@@ -212,6 +212,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Ewald.cpp \
         Exec_Analyze.cpp \
         Exec_Calc.cpp \
+        Exec_Change.cpp \
         Exec_ClusterMap.cpp \
         Exec_CombineCoords.cpp \
         Exec_Commands.cpp \
