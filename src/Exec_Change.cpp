@@ -5,7 +5,8 @@
 void Exec_Change::Help() const
 {
   mprintf("\t[%s]\n"
-          "\t{resname from <mask> to <value>}\n"
+          "\t{ resname from <mask> to <value> |\n"
+          "\t  atomname from <mask> to <value> }\n"
           "  Change specified parts of topology.\n", DataSetList::TopIdxArgs);
 }
 
@@ -27,8 +28,9 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
-    case RESNAME : err = ChangeResidueName(*parm, argIn); break;
-    case UNKNOWN : err = 1; // sanity check
+    case RESNAME  : err = ChangeResidueName(*parm, argIn); break;
+    case ATOMNAME : err = ChangeAtomName(*parm, argIn); break;
+    case UNKNOWN  : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
@@ -64,5 +66,37 @@ const
       mprintf("\tChanging residue %s to %s\n", topIn.Res(res).c_str(), *rname);
       topIn.SetRes(res).SetName( rname );
     }
+  return 0;
+}
+
+// Exec_Change::ChangeAtomName()
+int Exec_Change::ChangeAtomName(Topology& topIn, ArgList& argIn)
+const
+{
+  // Name to change to.
+  std::string name = argIn.GetStringKey("to");
+  if (name.empty()) {
+    mprinterr("Error: Specify atom name to change to ('to <name>').\n");
+    return 1;
+  }
+  NameType aname( name );
+  // Atoms to change
+  std::string mexpr = argIn.GetStringKey("from");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify atom(s) to change names of ('from <mask>').\n");
+    return 1;
+  }
+  AtomMask mask(mexpr);
+  if (topIn.SetupIntegerMask( mask )) return 1;
+  mask.MaskInfo();
+  if (mask.None()) {
+    mprinterr("Error: No atoms selected by mask.\n");
+    return 1;
+  }
+  for (AtomMask::const_iterator it = mask.begin(); it != mask.end(); ++it)
+  {
+    mprintf("\tChanging atom %s to %s\n", topIn[*it].c_str(), *aname);
+    topIn.SetAtom(*it).SetName( aname );
+  }
   return 0;
 }

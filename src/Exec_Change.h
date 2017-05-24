@@ -10,5 +10,6 @@ class Exec_Change : public Exec {
     RetType Execute(CpptrajState&, ArgList&);
   private:
     int ChangeResidueName(Topology&, ArgList&) const;
+    int ChangeAtomName(Topology&, ArgList&) const;
 };
 #endif
