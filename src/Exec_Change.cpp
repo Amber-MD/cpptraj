@@ -5,7 +5,7 @@
 void Exec_Change::Help() const
 {
   mprintf("\t[%s]\n"
-          "\t{resname <value> <mask>}\n"
+          "\t{resname from <mask> to <value>}\n"
           "  Change specified parts of topology.\n", DataSetList::TopIdxArgs);
 }
 
@@ -13,10 +13,12 @@ void Exec_Change::Help() const
 Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
 {
   // Change type
-  enum ChangeType { UNKNOWN = 0, RESNAME };
+  enum ChangeType { UNKNOWN = 0, RESNAME, ATOMNAME };
   ChangeType type = UNKNOWN;
-  std::string resname = argIn.GetStringKey("resname");
-  if (!resname.empty()) type = RESNAME;
+  if (argIn.hasKey("resname"))
+    type = RESNAME;
+  else if (argIn.hasKey("atomname"))
+    type = ATOMNAME;
   if (type == UNKNOWN) {
     mprinterr("Error: No change type specified.\n");
     return CpptrajState::ERR;
@@ -25,18 +27,31 @@ Exec::RetType Exec_Change::Execute(CpptrajState& State, ArgList& argIn)
   if (parm == 0) return CpptrajState::ERR;
   int err = 0;
   switch (type) {
-    case RESNAME : err = ChangeResidueName(resname, *parm, argIn); break;
+    case RESNAME : err = ChangeResidueName(*parm, argIn); break;
     case UNKNOWN : err = 1; // sanity check
   }
   if (err != 0) return CpptrajState::ERR;
   return CpptrajState::OK;
 }
 
-int Exec_Change::ChangeResidueName(std::string const& name, Topology& topIn, ArgList& argIn)
+// Exec_Change::ChangeResidueName()
+int Exec_Change::ChangeResidueName(Topology& topIn, ArgList& argIn)
 const
 {
+  // Name to change to.
+  std::string name = argIn.GetStringKey("to");
+  if (name.empty()) {
+    mprinterr("Error: Specify residue name to change to ('to <name>').\n");
+    return 1;
+  }
   NameType rname( name );
-  CharMask mask(argIn.GetMaskNext());
+  // Residues to change
+  std::string mexpr = argIn.GetStringKey("from");
+  if (mexpr.empty()) {
+    mprinterr("Error: Specify residue(s) to change names of ('from <mask>').\n");
+    return 1;
+  }
+  CharMask mask(mexpr);
   if (topIn.SetupCharMask( mask )) return 1;
   mask.MaskInfo();
   if (mask.None()) {
