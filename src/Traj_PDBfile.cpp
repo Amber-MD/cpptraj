@@ -624,6 +624,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H5T ") atomName = "HO5'";
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
+        // CHARMM atom names
+        else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
+                 atomName = "CD1";
       }
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),
