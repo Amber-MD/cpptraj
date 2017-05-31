@@ -30,6 +30,7 @@ Action_Closest::Action_Closest() :
   atomdata_(0),
   Nclosest_(0),
   closestWaters_(0),
+  targetNclosest_(0),
   firstAtom_(false),
   useMaskCenter_(false),
   newParm_(0),
@@ -68,6 +69,8 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
               closestWaters_);
     return Action::ERR;
   }
+  // Save target # closest in case it is changed in Setup().
+  targetNclosest_ = closestWaters_;
   if ( actionArgs.hasKey("oxygen") || actionArgs.hasKey("first") )
     firstAtom_=true;
   useMaskCenter_ = actionArgs.hasKey("center");
@@ -138,16 +141,21 @@ Action::RetType Action_Closest::Init(ArgList& actionArgs, ActionInit& init, int 
   * parm file. Atom masks for each solvent molecule will be set up.
   */
 Action::RetType Action_Closest::Setup(ActionSetup& setup) {
+  closestWaters_ = targetNclosest_;
   // If there are no solvent molecules this action is not valid.
   if (setup.Top().Nsolvent()==0) {
     mprintf("Warning: Parm %s does not contain solvent.\n",setup.Top().c_str());
     return Action::SKIP;
   }
   // If # solvent to keep >= solvent in this parm the action is not valid.
-  if (closestWaters_ >= setup.Top().Nsolvent()) {
-    mprintf("Warning: # solvent to keep (%i) >= # solvent molecules in '%s' (%i)\n",
+  if (closestWaters_ == setup.Top().Nsolvent()) {
+    mprintf("Warning: # solvent to keep (%i) == # solvent molecules in '%s' (%i)\n",
             closestWaters_, setup.Top().c_str(), setup.Top().Nsolvent());
-    return Action::SKIP;
+  } else if (closestWaters_ > setup.Top().Nsolvent()) {
+    mprintf("Warning: # solvent to keep (%i) > # solvent molecules in '%s' (%i)\n",
+              closestWaters_, setup.Top().c_str(), setup.Top().Nsolvent());
+    closestWaters_ = setup.Top().Nsolvent();
+    mprintf("Warning:  Keeping %i solvent molecules.\n", closestWaters_);
   }
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
   if (image_.ImagingEnabled())
