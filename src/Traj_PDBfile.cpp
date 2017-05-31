@@ -275,7 +275,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
       else if (rname == "HID " || rname == "HIE " ||
-               rname == "HIP " || rname == "HIC "   )
+               rname == "HIP " || rname == "HIC " ||
+               rname == "HSD " || rname == "HSE " ||
+               rname == "HSP " )
         rname = "HIS ";
       else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
