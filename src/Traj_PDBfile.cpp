@@ -275,7 +275,9 @@ int Traj_PDBfile::setupTrajout(FileName const& fname, Topology* trajParm,
         rname = "HOH ";
       // convert protein residue names back to more like PDBV3 format:
       else if (rname == "HID " || rname == "HIE " ||
-               rname == "HIP " || rname == "HIC "   )
+               rname == "HIP " || rname == "HIC " ||
+               rname == "HSD " || rname == "HSE " ||
+               rname == "HSP " )
         rname = "HIS ";
       else if (rname == "CYX " || rname == "CYM " || rname == "CYZ ")
         rname = "CYS ";
@@ -624,6 +626,9 @@ int Traj_PDBfile::writeFrame(int set, Frame const& frameOut) {
         else if (atomName == "H5T ") atomName = "HO5'";
         else if (atomName == "H3T ") atomName = "HO3'";
         else if (atomName == "HO'2") atomName = "HO2'";
+        // CHARMM atom names
+        else if (pdbTop_->Res(res).Name() == "ILE" && atomName == "CD")
+                 atomName = "CD1";
       }
       file_.WriteCoord(rectype, anum, atomName, altLoc, resNames_[res],
                        chainID_[res], pdbTop_->Res(res).OriginalResNum(),

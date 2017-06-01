@@ -33,7 +33,7 @@ void Action_Pairwise::Help() const {
           "  If 'eout' is specified individual interaction energies will be written to\n"
           "  <eout file>. If a reference structure is given the energies will be\n"
           "  Eref - Eframe. Only energies with absolute value greater than <ecut> and\n"
-          "  <vcut> will be printed.\n"
+          "  <vcut> (by default 1.0 kcal/mol) will be printed.\n"
           "  printmode only : Only print energy cutoff is satisfied.\n"
           "            or   : Print both energies if either cutoff is satisfied.\n"
           "            and  : Print both energies if both cutoffs are satisfied.\n");
@@ -143,8 +143,8 @@ Action::RetType Action_Pairwise::Init(ArgList& actionArgs, ActionInit& init, int
             ref_nonbondEnergy_.size(),
             ByteString(ref_nonbondEnergy_.size() * 2 * sizeof(double), BYTE_DECIMAL).c_str());
   }
-  mprintf("\tEelec absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
-  mprintf("\tEvdw absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
+  mprintf("\tEelec print absolute cutoff (kcal/mol): %.4f\n", cut_eelec_);
+  mprintf("\tEvdw print absolute cutoff (kcal/mol) : %.4f\n", cut_evdw_);
   if (!mol2Prefix_.empty())
     mprintf("\tAtoms satisfying cutoff will be printed to %s.e<type>.mol2\n",
             mol2Prefix_.c_str());
