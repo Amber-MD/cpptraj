@@ -119,6 +119,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     // Single curve
     curve_.push_back( setup.DSL().AddSet(DataSet::XYMESH, md) );
     if (curve_.back() == 0) return Analysis::ERR;
+    if (curveout_ != 0) curveout_->AddDataSet( curve_.back() );
     if (outfile != 0) outfile->ProcessArgs("noxcol");
   } else if (avgType_ == SKIP) {
     // As many curves as skip values
