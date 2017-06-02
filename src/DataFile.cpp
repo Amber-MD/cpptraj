@@ -348,7 +348,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
       return 1;
     }
     default_precision_ = prec_arg.getNextInteger(0);
-    setDataSetPrecision_ = true;
+    mprintf("\tSetting data file '%s' width.precision to %i.%i\n",
+            filename_.base(), default_width_, default_precision_);
+    SetDataFilePrecision(default_width_, default_precision_);
   } 
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   //if (debug_ > 0) argIn.CheckForMoreArgs();
