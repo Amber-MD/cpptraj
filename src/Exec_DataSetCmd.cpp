@@ -10,6 +10,7 @@ void Exec_DataSetCmd::Help() const {
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
           "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n"
           "\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
+          "\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
           "\t  {mode <mode> | type <type>} <set arg1> [<set arg 2> ...] }\n");
   mprintf("\t<criterion>: ");
   for (int i = 1; i < (int)N_C; i++)
@@ -25,40 +26,47 @@ void Exec_DataSetCmd::Help() const {
     mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
   mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n", AssociatedData_NOE::HelpText);
-  mprintf("  legend: Set the legend for a single data set\n"
-          "  makexy: Create new data set with X values from one set and Y values from another.\n"
-          "  cat   : Concatenate 2 or more data sets.\n"
-          "  make2d: Create new 2D data set from 1D data set, assumes row-major ordering.\n"
-          "  remove: Remove data sets according to specified criterion and selection.\n"
+  mprintf("  legend    : Set the legend for a single data set\n"
+          "  makexy    : Create new data set with X values from one set and Y values from another.\n"
+          "  cat       : Concatenate 2 or more data sets.\n"
+          "  make2d    : Create new 2D data set from 1D data set, assumes row-major ordering.\n"
+          "  remove    : Remove data sets according to specified criterion and selection.\n"
+          "  outformat : Change output format of double-precision data:\n"
+          "              double     - \"Normal\" output, e.g. 0.4032\n"
+          "              scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+          "              general    - Use 'double' or 'scientific', whichever is shortest.\n"
           "  Otherwise, change the mode/type for one or more data sets.\n");
 }
 
 // Exec_DataSetCmd::Execute()
 Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   RetType err = CpptrajState::OK;
-  if (argIn.Contains("legend")) {      // Set legend for one data set
+  if (argIn.Contains("legend")) {         // Set legend for one data set
     std::string legend = argIn.GetStringKey("legend");
     DataSet* ds = State.DSL().GetDataSet( argIn.GetStringNext() );
     if (ds == 0) return CpptrajState::ERR;
     mprintf("\tChanging legend '%s' to '%s'\n", ds->legend(), legend.c_str());
     ds->SetLegend( legend );
   // ---------------------------------------------
-  } else if (argIn.hasKey("remove")) { // Remove data sets by various criteria
+  } else if (argIn.hasKey("outformat")) { // Change double precision set output format
+    err = ChangeOutputFormat(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("remove")) {    // Remove data sets by various criteria
     err = Remove(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("makexy")) { // Combine values from two sets into 1
+  } else if (argIn.hasKey("makexy")) {    // Combine values from two sets into 1
     err = MakeXY(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("make2d")) { // Create 2D matrix from 1D set
+  } else if (argIn.hasKey("make2d")) {    // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("filter")) { // Filter points in data set to make new data set
+  } else if (argIn.hasKey("filter")) {    // Filter points in data set to make new data set
     err = Filter(State, argIn);
   // ---------------------------------------------
-  } else if (argIn.hasKey("cat")) {    // Concatenate two or more data sets
+  } else if (argIn.hasKey("cat")) {       // Concatenate two or more data sets
     err = Concatenate(State, argIn);
   // ---------------------------------------------
-  } else {                             // Default: change mode/type for one or more sets.
+  } else {                                // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
   }
   return err;
@@ -79,6 +87,33 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
   {OUTSIDE,      "outside"},
   {UNKNOWN_S,    0}
 };
+
+// Exec_DataSetCmd::ChangeOutputFormat()
+Exec::RetType Exec_DataSetCmd::ChangeOutputFormat(CpptrajState& State, ArgList& argIn)
+{
+  TextFormat::FmtType fmt;
+  if (argIn.hasKey("double"))
+    fmt = TextFormat::DOUBLE;
+  else if (argIn.hasKey("scientific"))
+    fmt = TextFormat::SCIENTIFIC;
+  else if (argIn.hasKey("general"))
+    fmt = TextFormat::GDOUBLE;
+  else {
+    mprinterr("Error: Expected either 'double', 'scientific', or 'general'\n");
+    return CpptrajState::ERR;
+  }
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+      if ((*ds)->SetupFormat().SetFormatType(fmt))
+        mprintf("\tSet '%s' output format changed to '%s'\n",
+                (*ds)->legend(), TextFormat::typeDescription(fmt));
+    ds_arg = argIn.GetStringNext();
+  }
+  return CpptrajState::OK;
+}
 
 // Exec_DataSetCmd::Remove()
 Exec::RetType Exec_DataSetCmd::Remove(CpptrajState& State, ArgList& argIn) {

@@ -3,6 +3,10 @@
 
 char TextFormat::TypeChar_[] = { 'f', 'E', 'g', 'i', 's' };
 
+const char* TextFormat::TypeDesc_[] = {
+  "DOUBLE", "SCIENTIFIC", "GENERAL", "INTEGER", "STRING"
+};
+
 // TODO benchmark - will using a big buffer and C string routines be better?
 void TextFormat::SetFormatString() {
   std::string width_arg, prec_arg, left_arg, long_arg;
@@ -31,6 +35,18 @@ void TextFormat::SetFormatString() {
     fmt_.append( "%" + left_arg + long_arg + width_arg + prec_arg + TypeChar_[type_] );
     colwidth_ += width_;
   }
+}
+
+bool TextFormat::IsDoubleType(FmtType typeIn) {
+  return (typeIn == DOUBLE || typeIn == SCIENTIFIC || typeIn == GDOUBLE);
+}
+
+int TextFormat::SetFormatType(FmtType typeIn) {
+  if (IsDoubleType(typeIn) && IsDoubleType(type_)) {
+    type_ = typeIn;
+    return 1;
+  }
+  return 0;
 }
 
 void TextFormat::SetCoordFormat(size_t maxFrames, double min, double step,
