@@ -664,8 +664,13 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
                   Ydim.Label().c_str(), set.legend());
-    xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
-    ycoord_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    if (XcolFmtSet()) {
+      xcoord_fmt = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
+      ycoord_fmt = xcoord_fmt;
+    } else {
+      xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+      ycoord_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    }
     std::string xy_fmt = xcoord_fmt.Fmt() + " " + ycoord_fmt.Fmt() + " ";
     for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
       for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
