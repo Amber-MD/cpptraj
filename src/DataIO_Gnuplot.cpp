@@ -442,8 +442,13 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) ); 
   Dimension Ydim( 1.0, 1.0 );
   TextFormat x_format, y_format;
-  x_format.SetCoordFormat( maxFrames,   Xdim.Min(), Xdim.Step(), 8, 3 );
-  y_format.SetCoordFormat( Sets.size(), Ydim.Min(), Ydim.Step(), 8, 3 );
+  if (XcolFmtSet()) {
+    x_format = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
+    y_format = x_format;
+  } else {
+    x_format.SetCoordFormat( maxFrames,   Xdim.Min(), Xdim.Step(), 8, 3 );
+    y_format.SetCoordFormat( Sets.size(), Ydim.Min(), Ydim.Step(), 8, 3 );
+  }
   std::string xyfmt = x_format.Fmt() + " " + y_format.Fmt() + " ";
 
   // Turn off labels if number of sets is too large since they 
@@ -618,8 +623,13 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
     // ----- ASCII FORMAT ------------------------
     // Setup XY coord format
     TextFormat x_fmt, y_fmt;
-    x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
-    y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    if (XcolFmtSet()) {
+      x_fmt = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
+      y_fmt = x_fmt;
+    } else {
+      x_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+      y_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    }
     std::string xyfmt = x_fmt.Fmt() + " " + y_fmt.Fmt(); // FIXME No trailing space for bkwds compat
 
     DataSet::SizeArray positions(2, 0);

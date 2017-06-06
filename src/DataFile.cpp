@@ -307,6 +307,18 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   return 0;
 }
 
+static inline int GetPrecisionArg(std::string const& prec_str, int& width, int& prec)
+{
+  ArgList prec_arg(prec_str, ".");
+  width = prec_arg.getNextInteger(-1);
+  if (width < 0) {
+    mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
+    return 1;
+  }
+  prec = prec_arg.getNextInteger(0);
+  return 0;
+}
+
 // DataFile::ProcessArgs() // FIXME make WriteArgs
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
@@ -341,17 +353,20 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
   if (!prec_str.empty()) {
-    ArgList prec_arg(prec_str, ".");
-    default_width_ = prec_arg.getNextInteger(-1);
-    if (default_width_ < 0) {
-      mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
-      return 1;
-    }
-    default_precision_ = prec_arg.getNextInteger(0);
+    if (GetPrecisionArg( prec_str, default_width_, default_precision_ )) return 1;
     mprintf("\tSetting data file '%s' width.precision to %i.%i\n",
             filename_.base(), default_width_, default_precision_);
     SetDataFilePrecision(default_width_, default_precision_);
-  } 
+  }
+  // X column width/precision
+  prec_str = argIn.GetStringKey("xprec");
+  if (!prec_str.empty()) {
+    int xw=0, xp=0;
+    if (GetPrecisionArg( prec_str, xw, xp )) return 1;
+    mprintf("\tSetting data file '%s' x column width.precision to %i.%i\n",
+            filename_.base(), xw, xp);
+    dataio_->SetXcolFmt(TextFormat::DOUBLE, xw, xp);
+  }
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;

@@ -7,9 +7,10 @@
 /// Base class that all DataIO objects inherit from.
 class DataIO : public BaseIOtype {
   public:
-    DataIO() : debug_(0), valid1d_(false), valid2d_(false), valid3d_(false) {}
+    DataIO() :
+      debug_(0), x_format_set_(false), valid1d_(false), valid2d_(false), valid3d_(false) {}
     DataIO(bool v1, bool v2, bool v3) :
-               valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
+      debug_(0), x_format_set_(false), valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
     virtual ~DataIO() {}
     // ----- Inherited Functions -----------------
     virtual int processReadArgs(ArgList&) = 0;
@@ -20,6 +21,10 @@ class DataIO : public BaseIOtype {
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;
     void SetDebug(int d) { debug_ = d; }
+    /// Set x column format, width, and precision
+    void SetXcolFmt(TextFormat::FmtType t, int w, int p) {
+      xcol_fmt_ = t; xcol_width_ = w; xcol_prec_ = p; x_format_set_ = true;
+    }
   protected:
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
@@ -32,9 +37,17 @@ class DataIO : public BaseIOtype {
     /// Convert flattened matrix array to matrix in DataSetList.
     static DataSet* DetermineMatrixType(std::vector<double> const&, int, int,
                                         DataSetList&, std::string const&);
+    TextFormat::FmtType XcolFmt() const { return xcol_fmt_; }
+    int XcolWidth()               const { return xcol_width_; }
+    int XcolPrec()                const { return xcol_prec_;  }
+    bool XcolFmtSet()             const { return x_format_set_; }
     int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
+    TextFormat::FmtType xcol_fmt_; ///< X column format type
+    int xcol_width_;               ///< X column width
+    int xcol_prec_;                ///< X column precision
+    bool x_format_set_;            ///< True if X column format has been explicitly set.
     bool valid1d_; ///< Valid for all 1D data sets. //TODO Remove
     bool valid2d_; ///< Valid for all 2D data sets.
     bool valid3d_; ///< Valid for all 3D data sets.

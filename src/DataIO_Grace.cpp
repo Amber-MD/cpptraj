@@ -131,7 +131,10 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
                    setnum, (*set)->legend(), setnum );
     // Setup set X coord format.
     TextFormat xfmt;
-    xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
+    if (XcolFmtSet())
+      xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
+    else
+      xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
     // Write Data for set
     for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {
       file.Printf(xfmt.fmt(), (*set)->Coord(0, frame[0]));
