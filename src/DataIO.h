@@ -7,10 +7,9 @@
 /// Base class that all DataIO objects inherit from.
 class DataIO : public BaseIOtype {
   public:
-    DataIO() :
-      debug_(0), x_format_set_(false), valid1d_(false), valid2d_(false), valid3d_(false) {}
-    DataIO(bool v1, bool v2, bool v3) :
-      debug_(0), x_format_set_(false), valid1d_(v1), valid2d_(v2), valid3d_(v3) {}
+    DataIO();
+    /// Valid for 1d, 2d, and/or 3d data sets.
+    DataIO(bool, bool, bool);
     virtual ~DataIO() {}
     // ----- Inherited Functions -----------------
     virtual int processReadArgs(ArgList&) = 0;
@@ -20,11 +19,18 @@ class DataIO : public BaseIOtype {
     virtual bool ID_DataFormat(CpptrajFile&) = 0; // TODO: -> BaseIOtype?
     /// \return True if this DataIO valid for given DataSet
     bool CheckValidFor(DataSet const&) const;
+    /// Set DataIO debug level.
     void SetDebug(int d) { debug_ = d; }
-    /// Set x column format, width, and precision
+    /// Set x column format, width, and precision.
     void SetXcolFmt(TextFormat::FmtType t, int w, int p) {
       xcol_fmt_ = t; xcol_width_ = w; xcol_prec_ = p; x_format_set_ = true;
     }
+    /// \return Current x column format
+    TextFormat::FmtType XcolFmt() const { return xcol_fmt_; }
+    /// \return Current x column width
+    int XcolWidth()               const { return xcol_width_; }
+    /// \return Current x column precision
+    int XcolPrec()                const { return xcol_prec_;  }
   protected:
     /// Indicate this DataIO is valid for given DataSet type
     void SetValid(DataSet::DataType t) { valid_.push_back( t ); }
@@ -37,9 +43,7 @@ class DataIO : public BaseIOtype {
     /// Convert flattened matrix array to matrix in DataSetList.
     static DataSet* DetermineMatrixType(std::vector<double> const&, int, int,
                                         DataSetList&, std::string const&);
-    TextFormat::FmtType XcolFmt() const { return xcol_fmt_; }
-    int XcolWidth()               const { return xcol_width_; }
-    int XcolPrec()                const { return xcol_prec_;  }
+    /// \return true if x column format/width/precision previously set TODO always use these values?
     bool XcolFmtSet()             const { return x_format_set_; }
     int debug_;
   private:

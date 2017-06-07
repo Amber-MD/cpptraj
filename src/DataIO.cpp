@@ -2,6 +2,30 @@
 #include "CpptrajStdio.h"
 #include "DataSet_MatrixDbl.h"
 
+// CONSTRUCTOR
+DataIO::DataIO() :
+  debug_(0),
+  xcol_fmt_(TextFormat::DOUBLE), // default
+  xcol_width_(8),                // default
+  xcol_prec_(3),                 // default
+  x_format_set_(false),
+  valid1d_(false),
+  valid2d_(false),
+  valid3d_(false)
+{}
+
+/** CONSTRUCTOR - Set valid for 1d, 2d, and/or 3d data sets */
+DataIO::DataIO(bool v1, bool v2, bool v3) :
+  debug_(0),
+  xcol_fmt_(TextFormat::DOUBLE), // default
+  xcol_width_(8),                // default
+  xcol_prec_(3),                 // default
+  x_format_set_(false),
+  valid1d_(v1),
+  valid2d_(v2),
+  valid3d_(v3)
+{}
+
 // DataIO::CheckValidFor()
 bool DataIO::CheckValidFor( DataSet const& dataIn ) const {
   if (valid1d_ && dataIn.Ndim() == 1) return true; 

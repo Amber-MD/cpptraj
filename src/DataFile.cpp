@@ -86,7 +86,8 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
 void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
           "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
-          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
+          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n"
+          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n");
 }
 
 // DataFile::DetectFormat()
@@ -358,15 +359,35 @@ int DataFile::ProcessArgs(ArgList &argIn) {
             filename_.base(), default_width_, default_precision_);
     SetDataFilePrecision(default_width_, default_precision_);
   }
+  // X column args. Start with defaults.
+  std::string fmt_str = argIn.GetStringKey("xfmt");
+  TextFormat::FmtType xfmt = dataio_->XcolFmt();
+  int xw = dataio_->XcolWidth();
+  int xp = dataio_->XcolPrec();
+  bool updateXcol = false;
+  // X column format
+  if (!fmt_str.empty()) {
+    if (fmt_str == "double")
+      xfmt = TextFormat::DOUBLE;
+    else if (fmt_str == "scientific")
+      xfmt = TextFormat::SCIENTIFIC;
+    else if (fmt_str == "general")
+      xfmt = TextFormat::GDOUBLE;
+    else
+      mprintf("Warning: Expected either 'double', 'scientific', or 'general'. Ignoring 'xfmt %s'.\n", fmt_str.c_str());
+    mprintf("\tSetting data file '%s' x column format to '%s'\n",
+            filename_.base(), TextFormat::typeDescription(xfmt));
+    updateXcol = true;
+  }
   // X column width/precision
   prec_str = argIn.GetStringKey("xprec");
   if (!prec_str.empty()) {
-    int xw=0, xp=0;
     if (GetPrecisionArg( prec_str, xw, xp )) return 1;
     mprintf("\tSetting data file '%s' x column width.precision to %i.%i\n",
             filename_.base(), xw, xp);
-    dataio_->SetXcolFmt(TextFormat::DOUBLE, xw, xp);
+    updateXcol = true;
   }
+  if (updateXcol) dataio_->SetXcolFmt(xfmt, xw, xp);
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;
