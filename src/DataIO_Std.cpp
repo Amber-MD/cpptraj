@@ -383,11 +383,19 @@ void DataIO_Std::WriteHelp() {
 
 // DataIO_Std::processWriteArgs()
 int DataIO_Std::processWriteArgs(ArgList &argIn) {
-  isInverted_ = argIn.hasKey("invert");
-  hasXcolumn_ = !argIn.hasKey("noxcol");
-  writeHeader_ = !argIn.hasKey("noheader");
-  square2d_ = argIn.hasKey("square2d");
-  if (argIn.hasKey("nosquare2d")) square2d_ = false;
+  if (!isInverted_ && argIn.hasKey("invert"))
+    isInverted_ = true;
+  if (hasXcolumn_ && argIn.hasKey("noxcol"))
+    hasXcolumn_ = false;
+  if (writeHeader_ && argIn.hasKey("noheader"))
+    writeHeader_ = false;
+  bool original_square2d = square2d_;
+  if (argIn.hasKey("square2d"))
+    square2d_ = true;
+  else if (argIn.hasKey("nosquare2d"))
+    square2d_ = false;
+  else
+    square2d_ = original_square2d;
   return 0;
 }
 
@@ -505,24 +513,28 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   size_t maxFrames = DetermineMax( Sets );
 
   // Set up X column.
-  TextFormat x_col_format;
+  TextFormat x_col_format(XcolFmt());
   if (hasXcolumn_) {
-    // Create format string for X column based on dimension in first data set.
-    // Adjust X col precision as follows: if the step is set and has a 
-    // fractional component set the X col width/precision to either the data
-    // width/precision or the current width/precision, whichever is larger. If
-    // the set is XYMESH but step has not been set (so we do not know spacing 
-    // between X values) use default precision. Otherwise the step has no
-    // fractional component so make the precision zero.
-    double step_i;
-    double step_f = modf( Xdim.Step(), &step_i );
-    double min_f  = modf( Xdim.Min(),  &step_i );
-    if (Xdim.Step() > 0.0 && (step_f > 0.0 || min_f > 0.0)) {
-      xcol_precision = std::max(xcol_precision, Xdata->Format().Precision());
-      xcol_width = std::max(xcol_width, Xdata->Format().Width());
-    } else if (Xdata->Type() != DataSet::XYMESH)
-      xcol_precision = 0;
-    x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
+    if (XcolPrecSet()) {
+      x_col_format = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
+    } else {
+      // Create format string for X column based on dimension in first data set.
+      // Adjust X col precision as follows: if the step is set and has a 
+      // fractional component set the X col width/precision to either the data
+      // width/precision or the current width/precision, whichever is larger. If
+      // the set is XYMESH but step has not been set (so we do not know spacing 
+      // between X values) use default precision. Otherwise the step has no
+      // fractional component so make the precision zero.
+      double step_i;
+      double step_f = modf( Xdim.Step(), &step_i );
+      double min_f  = modf( Xdim.Min(),  &step_i );
+      if (Xdim.Step() > 0.0 && (step_f > 0.0 || min_f > 0.0)) {
+        xcol_precision = std::max(xcol_precision, Xdata->Format().Precision());
+        xcol_width = std::max(xcol_width, Xdata->Format().Width());
+      } else if (Xdata->Type() != DataSet::XYMESH)
+        xcol_precision = 0;
+      x_col_format.SetCoordFormat( maxFrames, Xdim.Min(), Xdim.Step(), xcol_width, xcol_precision );
+    }
   } else {
     // If not writing an X-column, no leading space for the first dataset.
     Xdata->SetupFormat().SetFormatAlign( TextFormat::RIGHT );
@@ -625,7 +637,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (Xdim.Step() == 1.0) xcol_precision = 0;
   
   DataSet::SizeArray positions(2);
-  TextFormat ycoord_fmt, xcoord_fmt;
+  TextFormat ycoord_fmt(XcolFmt()), xcoord_fmt(XcolFmt());
   if (square2d_) {
     // Print XY values in a grid:
     // x0y0 x1y0 x2y0
@@ -660,8 +672,13 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
                   Ydim.Label().c_str(), set.legend());
-    xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
-    ycoord_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    if (XcolPrecSet()) {
+      xcoord_fmt = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
+      ycoord_fmt = xcoord_fmt;
+    } else {
+      xcoord_fmt.SetCoordFormat( set.Ncols(), Xdim.Min(), Xdim.Step(), 8, 3 );
+      ycoord_fmt.SetCoordFormat( set.Nrows(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    }
     std::string xy_fmt = xcoord_fmt.Fmt() + " " + ycoord_fmt.Fmt() + " ";
     for (positions[1] = 0; positions[1] < set.Nrows(); ++positions[1]) {
       for (positions[0] = 0; positions[0] < set.Ncols(); ++positions[0]) {
@@ -705,10 +722,16 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
-  TextFormat xfmt( set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
-  TextFormat yfmt( set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  TextFormat zfmt( set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
-  std::string xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
+  std::string xyz_fmt;
+  if (XcolPrecSet()) {
+    TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
+    xyz_fmt = nfmt.Fmt() + " " + nfmt.Fmt() + " " + nfmt.Fmt() + " ";
+  } else {
+    TextFormat xfmt( XcolFmt(), set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
+    TextFormat yfmt( XcolFmt(), set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    TextFormat zfmt( XcolFmt(), set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
+    xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
+  }
   for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
     for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
       for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {
