@@ -513,9 +513,9 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   size_t maxFrames = DetermineMax( Sets );
 
   // Set up X column.
-  TextFormat x_col_format;
+  TextFormat x_col_format(XcolFmt());
   if (hasXcolumn_) {
-    if (XcolFmtSet()) {
+    if (XcolPrecSet()) {
       x_col_format = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
     } else {
       // Create format string for X column based on dimension in first data set.
@@ -637,7 +637,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
   if (Xdim.Step() == 1.0) xcol_precision = 0;
   
   DataSet::SizeArray positions(2);
-  TextFormat ycoord_fmt, xcoord_fmt;
+  TextFormat ycoord_fmt(XcolFmt()), xcoord_fmt(XcolFmt());
   if (square2d_) {
     // Print XY values in a grid:
     // x0y0 x1y0 x2y0
@@ -672,7 +672,7 @@ int DataIO_Std::WriteSet2D( DataSet const& setIn, CpptrajFile& file ) {
     if (writeHeader_)
       file.Printf("#%s %s %s\n", Xdim.Label().c_str(), 
                   Ydim.Label().c_str(), set.legend());
-    if (XcolFmtSet()) {
+    if (XcolPrecSet()) {
       xcoord_fmt = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
       ycoord_fmt = xcoord_fmt;
     } else {
@@ -722,10 +722,16 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
   if (writeHeader_)
     file.Printf("#%s %s %s %s\n", Xdim.Label().c_str(), 
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
-  TextFormat xfmt( set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
-  TextFormat yfmt( set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
-  TextFormat zfmt( set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
-  std::string xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
+  std::string xyz_fmt;
+  if (XcolPrecSet()) {
+    TextFormat xfmt( XcolFmt(), set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
+    TextFormat yfmt( XcolFmt(), set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
+    TextFormat zfmt( XcolFmt(), set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
+    xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
+  } else {
+    TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
+    xyz_fmt = nfmt.Fmt() + " " + nfmt.Fmt() + " " + nfmt.Fmt() + " ";
+  }
   for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
     for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
       for (pos[0] = 0; pos[0] < set.NX(); ++pos[0]) {

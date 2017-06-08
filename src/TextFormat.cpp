@@ -73,7 +73,8 @@ void TextFormat::SetCoordFormat(size_t maxFrames, double min, double step,
   // Default width for column is at least default_width.
   if (col_width < default_width) col_width = default_width;
   // Set column data format string, left-aligned (no leading space).
-  type_ = DOUBLE;
+  if (type_ == INTEGER || type_ == STRING) // sanity check
+    type_ = DOUBLE;
   width_ = col_width;
   precision_ = col_precision;
   align_ = RIGHT;

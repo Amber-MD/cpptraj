@@ -21,10 +21,10 @@ class DataIO : public BaseIOtype {
     bool CheckValidFor(DataSet const&) const;
     /// Set DataIO debug level.
     void SetDebug(int d) { debug_ = d; }
-    /// Set x column format, width, and precision.
-    void SetXcolFmt(TextFormat::FmtType t, int w, int p) {
-      xcol_fmt_ = t; xcol_width_ = w; xcol_prec_ = p; x_format_set_ = true;
-    }
+    /// Set x column format.
+    void SetXcolFmt(TextFormat::FmtType t) { xcol_fmt_ = t; }
+    /// Set x column width, and precision.
+    void SetXcolPrec(int w, int p) { xcol_width_ = w; xcol_prec_ = p; x_prec_set_ = true; }
     /// \return Current x column format
     TextFormat::FmtType XcolFmt() const { return xcol_fmt_; }
     /// \return Current x column width
@@ -44,14 +44,14 @@ class DataIO : public BaseIOtype {
     static DataSet* DetermineMatrixType(std::vector<double> const&, int, int,
                                         DataSetList&, std::string const&);
     /// \return true if x column format/width/precision previously set TODO always use these values?
-    bool XcolFmtSet()             const { return x_format_set_; }
+    bool XcolPrecSet()            const { return x_prec_set_; }
     int debug_;
   private:
     std::vector<DataSet::DataType> valid_; ///< Data sets for which DataIO is valid writer.
     TextFormat::FmtType xcol_fmt_; ///< X column format type
     int xcol_width_;               ///< X column width
     int xcol_prec_;                ///< X column precision
-    bool x_format_set_;            ///< True if X column format has been explicitly set.
+    bool x_prec_set_;              ///< True if X column width/precision have been explicitly set.
     bool valid1d_; ///< Valid for all 1D data sets. //TODO Remove
     bool valid2d_; ///< Valid for all 2D data sets.
     bool valid3d_; ///< Valid for all 3D data sets.

@@ -32,6 +32,10 @@ class TextFormat {
     TextFormat(size_t z, double m, double s, int w, int p) : type_(DOUBLE), width_(w),
                precision_(p), nelements_(1), colwidth_(0), align_(RIGHT), isLong_(false)
       { SetCoordFormat( z, m, s, w, p ); }
+    /// CONSTRUCTOR - For output coords, type, size, min, step, width, precision
+    TextFormat(FmtType t, size_t z, double m, double s, int w, int p) : type_(t), width_(w),
+               precision_(p), nelements_(1), colwidth_(0), align_(RIGHT), isLong_(false)
+      { SetCoordFormat( z, m, s, w, p ); }
     /// Set double format string for size, min, step, default width and precision 
     void SetCoordFormat(size_t, double, double, int, int);
     /// Set format type. Only works for double-precision formats.

@@ -130,8 +130,8 @@ int DataIO_Grace::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
     file.Printf("@  s%u legend \"%s\"\n@target G0.S%u\n@type xy\n",
                    setnum, (*set)->legend(), setnum );
     // Setup set X coord format.
-    TextFormat xfmt;
-    if (XcolFmtSet())
+    TextFormat xfmt(XcolFmt());
+    if (XcolPrecSet())
       xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
     else
       xfmt.SetCoordFormat( maxFrames, (*set)->Dim(0).Min(), (*set)->Dim(0).Step(), 8, 3 );
@@ -163,8 +163,11 @@ int DataIO_Grace::WriteDataInverted(CpptrajFile& file, DataSetList const& Sets)
               "", Sets[0]->Dim(0).Label().c_str());
   // Setup set X coord format. 
   Dimension Xdim(0.0, 1.0);
-  TextFormat xfmt;
-  xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
+  TextFormat xfmt(XcolFmt());
+  if (XcolPrecSet())
+    xfmt = TextFormat( XcolFmt(), XcolWidth(), XcolPrec() );
+  else
+    xfmt.SetCoordFormat( Sets.size(), Xdim.Min(), Xdim.Step(), 8, 3 );
   // Loop over frames
   DataSet::SizeArray frame(1);
   for (frame[0] = 0; frame[0] < maxFrames; frame[0]++) {

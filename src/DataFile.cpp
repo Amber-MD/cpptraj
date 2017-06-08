@@ -32,7 +32,7 @@ DataFile::DataFile() :
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   sortSets_(false),
   default_width_(-1),
-  default_precision_(-1),
+  default_precision_(0),
   dataio_(0),
   defaultDim_(3), // default to X/Y/Z dims
   minIsSet_(3, false)
@@ -311,12 +311,12 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
 static inline int GetPrecisionArg(std::string const& prec_str, int& width, int& prec)
 {
   ArgList prec_arg(prec_str, ".");
-  width = prec_arg.getNextInteger(-1);
+  width = prec_arg.getNextInteger(width);
   if (width < 0) {
     mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
     return 1;
   }
-  prec = prec_arg.getNextInteger(0);
+  prec = prec_arg.getNextInteger(prec);
   return 0;
 }
 
@@ -361,12 +361,9 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   }
   // X column args. Start with defaults.
   std::string fmt_str = argIn.GetStringKey("xfmt");
-  TextFormat::FmtType xfmt = dataio_->XcolFmt();
-  int xw = dataio_->XcolWidth();
-  int xp = dataio_->XcolPrec();
-  bool updateXcol = false;
   // X column format
   if (!fmt_str.empty()) {
+    TextFormat::FmtType xfmt = dataio_->XcolFmt();
     if (fmt_str == "double")
       xfmt = TextFormat::DOUBLE;
     else if (fmt_str == "scientific")
@@ -377,17 +374,18 @@ int DataFile::ProcessArgs(ArgList &argIn) {
       mprintf("Warning: Expected either 'double', 'scientific', or 'general'. Ignoring 'xfmt %s'.\n", fmt_str.c_str());
     mprintf("\tSetting data file '%s' x column format to '%s'\n",
             filename_.base(), TextFormat::typeDescription(xfmt));
-    updateXcol = true;
+    dataio_->SetXcolFmt( xfmt ); 
   }
   // X column width/precision
   prec_str = argIn.GetStringKey("xprec");
   if (!prec_str.empty()) {
+    int xw = dataio_->XcolWidth();
+    int xp = dataio_->XcolPrec();
     if (GetPrecisionArg( prec_str, xw, xp )) return 1;
     mprintf("\tSetting data file '%s' x column width.precision to %i.%i\n",
             filename_.base(), xw, xp);
-    updateXcol = true;
+    dataio_->SetXcolPrec(xw, xp);
   }
-  if (updateXcol) dataio_->SetXcolFmt(xfmt, xw, xp);
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;

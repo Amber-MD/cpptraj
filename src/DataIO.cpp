@@ -8,7 +8,7 @@ DataIO::DataIO() :
   xcol_fmt_(TextFormat::DOUBLE), // default
   xcol_width_(8),                // default
   xcol_prec_(3),                 // default
-  x_format_set_(false),
+  x_prec_set_(false),
   valid1d_(false),
   valid2d_(false),
   valid3d_(false)
@@ -20,7 +20,7 @@ DataIO::DataIO(bool v1, bool v2, bool v3) :
   xcol_fmt_(TextFormat::DOUBLE), // default
   xcol_width_(8),                // default
   xcol_prec_(3),                 // default
-  x_format_set_(false),
+  x_prec_set_(false),
   valid1d_(v1),
   valid2d_(v2),
   valid3d_(v3)

@@ -441,8 +441,8 @@ int DataIO_Gnuplot::WriteSets1D(DataSetList const& Sets)
   DataSet* Xdata = Sets[0];
   Dimension const& Xdim = static_cast<Dimension const&>( Xdata->Dim(0) ); 
   Dimension Ydim( 1.0, 1.0 );
-  TextFormat x_format, y_format;
-  if (XcolFmtSet()) {
+  TextFormat x_format(XcolFmt()), y_format(XcolFmt());
+  if (XcolPrecSet()) {
     x_format = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
     y_format = x_format;
   } else {
@@ -622,8 +622,8 @@ int DataIO_Gnuplot::WriteSet2D( DataSet const& setIn ) {
   } else {
     // ----- ASCII FORMAT ------------------------
     // Setup XY coord format
-    TextFormat x_fmt, y_fmt;
-    if (XcolFmtSet()) {
+    TextFormat x_fmt(XcolFmt()), y_fmt(XcolFmt());
+    if (XcolPrecSet()) {
       x_fmt = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
       y_fmt = x_fmt;
     } else {
