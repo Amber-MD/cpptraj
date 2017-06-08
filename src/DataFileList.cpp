@@ -280,23 +280,37 @@ void DataFileList::ResetWriteStatus() {
 /** Process command relating to data files. */
 int DataFileList::ProcessDataFileArgs(ArgList& dataArg) {
   // Next string is DataFile name that command will be passed to.
-  std::string df_cmd = dataArg.GetStringNext();
-  if (df_cmd.empty()) {
+  std::string df_name = dataArg.GetStringNext();
+  if (df_name.empty()) {
     mprintf("Warning: datafile: No filename given.\n");
     return 0;
   }
   // Check for deprecated commands
-  if (df_cmd == "create" || df_cmd == "precision") 
-    mprintf("Warning: 'datafile %s' is deprecated; use %s instead.\n", 
-            df_cmd.c_str(), df_cmd.c_str());
+  if (df_name == "create" || df_name == "precision") 
+    mprintf("Warning: 'datafile %s' is deprecated; use '%s' instead.\n", 
+            df_name.c_str(), df_name.c_str());
   //mprintf("  [%s]\n",(*dataArg).ArgLine());
-  DataFile* df = GetDataFile( df_cmd.c_str() );
-  if (df == 0) {
-    mprinterr("Error: datafile: File %s not found.\n", df_cmd.c_str());
-    return 1;
+  int err = 0;
+  if ( df_name == "*" ) {
+    // All data files
+    ArgList df_args = dataArg.RemainingArgs();
+    for (DFarray::const_iterator it = fileList_.begin(); it != fileList_.end(); ++it)
+    {
+      ArgList args = df_args;
+      // Process command
+      err += (*it)->ProcessArgs( args );
+      if (args.CheckForMoreArgs()) err++;
+    }
+  } else {
+    // Single data file
+    DataFile* df = GetDataFile( df_name );
+    if (df == 0) {
+      mprinterr("Error: File '%s' not found.\n", df_name.c_str());
+      return 1;
+    }
+    // Process command
+    err = df->ProcessArgs( dataArg );
+    if (dataArg.CheckForMoreArgs()) err = 1;
   }
-  // Process command
-  int err = df->ProcessArgs( dataArg );
-  if (err != 0 || dataArg.CheckForMoreArgs()) return 1;
-  return 0;
+  return err;
 }
