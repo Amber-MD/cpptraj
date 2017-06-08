@@ -1,5 +1,5 @@
 @with g0
-@  xaxis label "Frame"
+@  xaxis label "Lambda"
 @  yaxis label ""
 @  legend 0.2, 0.995
 @  legend char size 0.60

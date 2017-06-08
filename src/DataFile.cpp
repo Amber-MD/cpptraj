@@ -32,7 +32,7 @@ DataFile::DataFile() :
   setDataSetPrecision_(false), //TODO: Just use default_width_ > -1?
   sortSets_(false),
   default_width_(-1),
-  default_precision_(-1),
+  default_precision_(0),
   dataio_(0),
   defaultDim_(3), // default to X/Y/Z dims
   minIsSet_(3, false)
@@ -86,7 +86,8 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
 void DataFile::WriteHelp() {
   mprintf("\t[<format keyword>]\n"
           "\t[{xlabel|ylabel|zlabel} <label>] [{xmin|ymin|zmin} <min>] [sort]\n"
-          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n");
+          "\t[{xstep|ystep|zstep} <step>] [time <dt>] [prec <width>[.<precision>]]\n"
+          "\t[xprec <width>[.<precision>]] [xfmt {double|scientific|general}]\n");
 }
 
 // DataFile::DetectFormat()
@@ -307,6 +308,18 @@ int DataFile::RemoveDataSet(DataSet* dataIn) {
   return 0;
 }
 
+static inline int GetPrecisionArg(std::string const& prec_str, int& width, int& prec)
+{
+  ArgList prec_arg(prec_str, ".");
+  width = prec_arg.getNextInteger(width);
+  if (width < 0) {
+    mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
+    return 1;
+  }
+  prec = prec_arg.getNextInteger(prec);
+  return 0;
+}
+
 // DataFile::ProcessArgs() // FIXME make WriteArgs
 int DataFile::ProcessArgs(ArgList &argIn) {
   if (dataio_==0) return 1;
@@ -341,15 +354,38 @@ int DataFile::ProcessArgs(ArgList &argIn) {
   // Default DataSet width/precision
   std::string prec_str = argIn.GetStringKey("prec");
   if (!prec_str.empty()) {
-    ArgList prec_arg(prec_str, ".");
-    default_width_ = prec_arg.getNextInteger(-1);
-    if (default_width_ < 0) {
-      mprinterr("Error: Invalid width in prec arg '%s'\n", prec_str.c_str());
-      return 1;
-    }
-    default_precision_ = prec_arg.getNextInteger(0);
-    setDataSetPrecision_ = true;
-  } 
+    if (GetPrecisionArg( prec_str, default_width_, default_precision_ )) return 1;
+    mprintf("\tSetting data file '%s' width.precision to %i.%i\n",
+            filename_.base(), default_width_, default_precision_);
+    SetDataFilePrecision(default_width_, default_precision_);
+  }
+  // X column args. Start with defaults.
+  std::string fmt_str = argIn.GetStringKey("xfmt");
+  // X column format
+  if (!fmt_str.empty()) {
+    TextFormat::FmtType xfmt = dataio_->XcolFmt();
+    if (fmt_str == "double")
+      xfmt = TextFormat::DOUBLE;
+    else if (fmt_str == "scientific")
+      xfmt = TextFormat::SCIENTIFIC;
+    else if (fmt_str == "general")
+      xfmt = TextFormat::GDOUBLE;
+    else
+      mprintf("Warning: Expected either 'double', 'scientific', or 'general'. Ignoring 'xfmt %s'.\n", fmt_str.c_str());
+    mprintf("\tSetting data file '%s' x column format to '%s'\n",
+            filename_.base(), TextFormat::typeDescription(xfmt));
+    dataio_->SetXcolFmt( xfmt ); 
+  }
+  // X column width/precision
+  prec_str = argIn.GetStringKey("xprec");
+  if (!prec_str.empty()) {
+    int xw = dataio_->XcolWidth();
+    int xp = dataio_->XcolPrec();
+    if (GetPrecisionArg( prec_str, xw, xp )) return 1;
+    mprintf("\tSetting data file '%s' x column width.precision to %i.%i\n",
+            filename_.base(), xw, xp);
+    dataio_->SetXcolPrec(xw, xp);
+  }
   if (dataio_->processWriteArgs(argIn)==1) return 1;
   //if (debug_ > 0) argIn.CheckForMoreArgs();
   return 0;

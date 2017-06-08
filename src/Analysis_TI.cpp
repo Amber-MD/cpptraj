@@ -119,6 +119,8 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
     // Single curve
     curve_.push_back( setup.DSL().AddSet(DataSet::XYMESH, md) );
     if (curve_.back() == 0) return Analysis::ERR;
+    curve_.back()->ModifyDim(Dimension::X).SetLabel("Lambda");
+    if (curveout_ != 0) curveout_->AddDataSet( curve_.back() );
     if (outfile != 0) outfile->ProcessArgs("noxcol");
   } else if (avgType_ == SKIP) {
     // As many curves as skip values
@@ -126,6 +128,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       md.SetIdx( *it );
       DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
       if (ds == 0) return Analysis::ERR;
+      ds->ModifyDim(Dimension::X).SetLabel("Lambda");
       ds->SetLegend( md.Name() + "_Skip" + integerToString(*it) );
       if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
@@ -136,6 +139,7 @@ Analysis::RetType Analysis_TI::Setup(ArgList& analyzeArgs, AnalysisSetup& setup,
       md.SetIdx(nsample);
       DataSet* ds = setup.DSL().AddSet(DataSet::XYMESH, md);
       if (ds == 0) return Analysis::ERR;
+      ds->ModifyDim(Dimension::X).SetLabel("Lambda");
       ds->SetLegend( md.Name() + "_Sample" + integerToString(nsample) );
       if (curveout_ != 0) curveout_->AddDataSet( ds );
       curve_.push_back( ds );
@@ -483,6 +487,7 @@ int Analysis_TI::Calc_Increment() {
         md.SetIdx( increments[j] );
         DataSet* ds = masterDSL_->AddSet(DataSet::XYMESH, md);
         if (ds == 0) return Analysis::ERR;
+        ds->ModifyDim(Dimension::X).SetLabel("Lambda");
         ds->SetLegend( md.Name() + "_Skip" + integerToString(increments[j]) );
         if (curveout_ != 0) curveout_->AddDataSet( ds );
         curve_.push_back( ds );
