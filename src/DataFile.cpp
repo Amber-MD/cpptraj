@@ -21,6 +21,7 @@
 #include "DataIO_CCP4.h"
 #include "DataIO_Cmatrix.h"
 #include "DataIO_NC_Cmatrix.h"
+#include "DataIO_CharmmRepLog.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -61,6 +62,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # else
   { "NetCDF Cluster matrix file", 0, 0, 0 },
 # endif
+  { "CHARMM REM log",     0,                       0,                        DataIO_CharmmRepLog::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -80,6 +82,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CCP4,         "ccp4",   ".ccp4"  },
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
+  { CHARMMREPD,   "charmmrepd",".exch" },
   { UNKNOWN_DATA, 0,        0        }
 };
 
