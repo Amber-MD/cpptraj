@@ -724,13 +724,13 @@ int DataIO_Std::WriteSet3D( DataSet const& setIn, CpptrajFile& file ) {
                 Ydim.Label().c_str(), Zdim.Label().c_str(), set.legend());
   std::string xyz_fmt;
   if (XcolPrecSet()) {
+    TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
+    xyz_fmt = nfmt.Fmt() + " " + nfmt.Fmt() + " " + nfmt.Fmt() + " ";
+  } else {
     TextFormat xfmt( XcolFmt(), set.NX(), Xdim.Min(), Xdim.Step(), 8, 3 );
     TextFormat yfmt( XcolFmt(), set.NY(), Ydim.Min(), Ydim.Step(), 8, 3 );
     TextFormat zfmt( XcolFmt(), set.NZ(), Zdim.Min(), Zdim.Step(), 8, 3 );
     xyz_fmt = xfmt.Fmt() + " " + yfmt.Fmt() + " " + zfmt.Fmt() + " ";
-  } else {
-    TextFormat nfmt( XcolFmt(), XcolWidth(), XcolPrec() );
-    xyz_fmt = nfmt.Fmt() + " " + nfmt.Fmt() + " " + nfmt.Fmt() + " ";
   }
   for (pos[2] = 0; pos[2] < set.NZ(); ++pos[2]) {
     for (pos[1] = 0; pos[1] < set.NY(); ++pos[1]) {
