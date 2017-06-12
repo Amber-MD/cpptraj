@@ -23,6 +23,7 @@ void DataSet_RemLog::SetupDim1Group(int group_size) {
   }
 }
 
+/** Allocate for 1D REMD. */ // TODO Pass in dimension type, not array
 void DataSet_RemLog::AllocateReplicas(int n_replicas, ReplicaDimArray const& repDimIn,
                                        int debugIn)
 {
@@ -65,7 +66,6 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
   }
 
   // Set up dimension topological info for each replica.
-//  repInfo_ = repInfoIn;
   repInfo_.clear();
   repInfo_.resize( n_replicas ); // [rep][dim]
   for (unsigned int dim = 0; dim != groupDims_.size(); dim++) {
@@ -101,6 +101,7 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
   repDims_ = repDimIn;
 }
 
+/** \return Total number of exchanges based on first replica. */
 int DataSet_RemLog::NumExchange() const {
   if (ensemble_.empty())
     return 0;
@@ -108,6 +109,7 @@ int DataSet_RemLog::NumExchange() const {
     return (int)ensemble_[0].size();
 }
 
+/** \return true if all replicas have same number of exchanges. */
 bool DataSet_RemLog::ValidEnsemble() const {
   ReplicaEnsemble::const_iterator member = ensemble_.begin();
   size_t first_size = (*member).size();
@@ -122,19 +124,23 @@ bool DataSet_RemLog::ValidEnsemble() const {
   return true;
 }
 
+/** Ensure all replicas have same number of exchanges by setting all to
+  * the minimum number of exchanges among all current replicas.
+  */
 void DataSet_RemLog::TrimLastExchange() {
   if (ensemble_.empty()) return;
   ReplicaEnsemble::iterator member = ensemble_.begin();
-  size_t min_size = (*member).size();
+  size_t min_size = member->size();
   ++member;
   for (; member != ensemble_.end(); ++member) {
-    if ((*member).size() < min_size) min_size = (*member).size();
+    if (member->size() < min_size) min_size = member->size();
   }
   // Resize all member arrays to minimum
   for (member = ensemble_.begin(); member != ensemble_.end(); ++member)
-    (*member).resize( min_size );
+    member->resize( min_size );
 }
 
+// DataSet_RemLog::PrintReplicaStats()
 void DataSet_RemLog::PrintReplicaStats() const {
   mprintf("Replica Stats:\n"
           "%-10s %2s %6s %6s %6s %12s %12s %12s S\n", "#Exchange", "#D",
