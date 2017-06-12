@@ -48,6 +48,8 @@ class DataSet_RemLog : public DataSet {
     void TrimLastExchange();
     /// Print data to stdout
     void PrintReplicaStats() const;
+    /// \return replica index offset
+    int Offset() const { return offset_; }
     
     // ----- DataSet routines --------------------
     size_t Size()                       const { return ensemble_.size(); }

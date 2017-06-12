@@ -192,13 +192,15 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     repFracSlope_->Printf("\n");
   }
 
+  int offset = remlog_->Offset();
   ProgressBar progress( remlog_->NumExchange() );
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
     progress.Update( frame );
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
       DataSet_RemLog::ReplicaFrame const& frm = remlog_->RepFrame( frame, replica );
-      int crdidx = frm.CoordsIdx() - 1;
-      int repidx = frm.ReplicaIdx() - 1;
+      // TODO: Dealing with offsets should probably be the responsibility of the DataIO object
+      int crdidx = frm.CoordsIdx() - offset;
+      int repidx = frm.ReplicaIdx() - offset;
       int dim = frm.Dim();
       // Exchange acceptance.
       // NOTE: Because currently the direction of the attempt is not always
@@ -240,7 +242,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
             if (printIndividualTrips_)
               statsout_->Printf("[%i] CRDIDX %i took %i exchanges to travel"
                                " up and down (exch %i to %i)\n",
-                               replica, crdidx+1, rtrip, trip.bottom_[crdidx]+1, frame+1);
+                               replica, crdidx+offset, rtrip, trip.bottom_[crdidx]+1, frame+1);
             trip.roundTrip_[crdidx].AddElement( rtrip );
             trip.status_[crdidx] = HIT_BOTTOM;
             trip.bottom_[crdidx] = frame;
@@ -273,7 +275,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
     double exchangeAttempts = (double)DimStats[dim].attempts_ / 2.0;
     for (int replica = 0; replica != (int)remlog_->Size(); replica++)
-      acceptout_->Printf("%8i %8.3f %8.3f\n", replica+1,
+      acceptout_->Printf("%8i %8.3f %8.3f\n", replica+offset,
             ((double)DimStats[dim].acceptUp_[replica] / exchangeAttempts) * 100.0,
             ((double)DimStats[dim].acceptDown_[replica] / exchangeAttempts) * 100.0);
   }
@@ -286,7 +288,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
         statsout_->Printf("#Round-trip stats:\n");
       statsout_->Printf("#%-8s %8s %12s %12s %12s %12s\n", "CRDIDX", "RndTrips", 
                        "AvgExch.", "SD_Exch.", "Min", "Max");
-      unsigned int idx = 1;
+      unsigned int idx = offset;
       for (DSI_array::const_iterator rt = DimTrips[dim].roundTrip_.begin();
                                      rt != DimTrips[dim].roundTrip_.end(); ++rt)
       {
@@ -298,11 +300,11 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     }
     reptime_->Printf("#Percent time spent at each replica:\n%-8s", "#Replica");
     for (int crd = 0; crd < (int)remlog_->Size(); crd++)
-      reptime_->Printf(" CRD_%04i", crd + 1);
+      reptime_->Printf(" CRD_%04i", crd + offset);
     reptime_->Printf("\n");
     double dframes = (double)remlog_->NumExchange();
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
-      reptime_->Printf("%8i", replica+1);
+      reptime_->Printf("%8i", replica+offset);
       for (int crd = 0; crd < (int)remlog_->Size(); crd++)
         reptime_->Printf(" %8.3f", ((double)replicaFrac[replica][crd] / dframes) * 100.0);
       reptime_->Printf("\n");
