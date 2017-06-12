@@ -102,6 +102,8 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   }
   // Loop over replica logs
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
+  int total_exchanges = -1;
+  bool needs_trim = false;
   for (int i = 0; i != nrep_; i++) {
     mprintf("DEBUG:\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
@@ -169,7 +171,14 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       ptr = infile.Line();
     }
     infile.CloseFile();
-  }
+    if (total_exchanges < 0)
+      total_exchanges = nexch;
+    else if (nexch != total_exchanges) {
+      mprintf("Warning: Number of exchanges %i != # in first file %i\n", nexch, total_exchanges);
+      needs_trim = true;
+    }
+  } // End loop over replica logs
+  if (needs_trim) ensemble.TrimLastExchange();
   ensemble.PrintReplicaStats();
 
   return 0;
