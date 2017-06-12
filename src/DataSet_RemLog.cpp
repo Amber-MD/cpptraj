@@ -3,7 +3,9 @@
 
 DataSet_RemLog::DataSet_RemLog() :
   // 0 dim indicates DataSet-specific write 
-  DataSet(REMLOG, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0)
+  DataSet(REMLOG, GENERIC, TextFormat(TextFormat::DOUBLE, 10, 4), 0),
+  offset_(0),
+  wrap_(false)
 {}
 
 /** Setup a single 1-dimension group.
@@ -14,31 +16,36 @@ void DataSet_RemLog::SetupDim1Group(int group_size) {
   groupDims_.resize( 1 );
   groupDims_[0].resize( 1 );
   for (int replica = 0; replica < group_size; replica++) {
-    int me = replica + 1;
+    int me = replica + offset_;
     int l_partner = me - 1;
-    if (l_partner < 1) l_partner = group_size;
+    if (wrap_ && l_partner < 1) l_partner = group_size - 1 + offset_;
     int r_partner = me + 1;
-    if (r_partner > group_size) r_partner = 1;
+    if (wrap_ && r_partner > group_size) r_partner = offset_;
     groupDims_[0][0].push_back( GroupReplica(l_partner, me, r_partner) );
   }
 }
 
 /** Allocate for 1D REMD. */ // TODO Pass in dimension type, not array
 void DataSet_RemLog::AllocateReplicas(int n_replicas, ReplicaDimArray const& repDimIn,
-                                       int debugIn)
+                                      int offsetIn, bool wrapIn, int debugIn)
 {
-  AllocateReplicas(n_replicas, GdimArray(), repDimIn, debugIn);
+  AllocateReplicas(n_replicas, GdimArray(), repDimIn, offsetIn, wrapIn, debugIn);
 }
 
 // DataSet_RemLog::AllocateReplicas()
 /** \param n_replicas Total number of replicas across all dimensions.
   * \param gdimIn Array describing layout of replicas; if empty assume simple 1D layout.
   * \param repDimIn Array describing each replica dimension.
+  * \param offsetIn Replica index offset
+  * \param wrapIn If true highest replica can exchange with lowest and vice versa
   * \param debugIn Debug level; higher means more info printed.
   */
 void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
-                                      ReplicaDimArray const& repDimIn, int debugIn)
+                                      ReplicaDimArray const& repDimIn, 
+                                      int offsetIn, bool wrapIn, int debugIn)
 {
+  offset_ = offsetIn;
+  wrap_ = wrapIn;
   ensemble_.clear();
   ensemble_.resize( n_replicas );
 
@@ -81,7 +88,8 @@ void DataSet_RemLog::AllocateReplicas(int n_replicas, GdimArray const& gdimIn,
         else
           loc = MIDDLE;
         GroupReplica const& Rep = static_cast<GroupReplica const&>( groupDims_[dim][grp][idx] );
-        repInfo_[ Rep.Me() - 1 ].push_back(RepInfo(grp, Rep.L_partner()-1, Rep.R_partner()-1, loc));
+        repInfo_[ Rep.Me() - offset_ ].push_back(
+          RepInfo(grp, Rep.L_partner()-offset_, Rep.R_partner()-offset_, loc) );
       }
     }
   }
@@ -112,12 +120,12 @@ int DataSet_RemLog::NumExchange() const {
 /** \return true if all replicas have same number of exchanges. */
 bool DataSet_RemLog::ValidEnsemble() const {
   ReplicaEnsemble::const_iterator member = ensemble_.begin();
-  size_t first_size = (*member).size();
+  size_t first_size = member->size();
   for (; member != ensemble_.end(); ++member) {
-    if ((*member).size() != first_size) {
-      mprinterr("Error: In remlog data set %s size of ensemble member %zu (%zu) !="
-                " size of first member (%zu)\n", Meta().Name().c_str(), // TODO: Change to legend
-                member - ensemble_.begin() + 1, (*member).size(), first_size);
+    if (member->size() != first_size) {
+      mprinterr("Error: In remlog data set '%s' size of ensemble member %zu (%zu) !="
+                " size of first member (%zu)\n", legend(),
+                member - ensemble_.begin() + offset_, member->size(), first_size);
       return false;
     }
   }

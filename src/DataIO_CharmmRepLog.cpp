@@ -87,7 +87,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     // FIXME assume temperature for now
     ReplicaDimArray DimTypes;
     DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
-    ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 1);
+    ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, 1);
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());

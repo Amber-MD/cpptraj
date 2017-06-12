@@ -626,7 +626,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     // New set
     ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
     if (ds == 0) return 1;
-    ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas, GroupDims, DimTypes, debug_);
+    ((DataSet_RemLog*)ds)->AllocateReplicas(n_mremd_replicas, GroupDims, DimTypes, 1, true, debug_);
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());

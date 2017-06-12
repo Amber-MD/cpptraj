@@ -37,9 +37,9 @@ class DataSet_RemLog : public DataSet {
 
     ReplicaDimArray const& DimTypes() const { return repDims_; }
     /// Allocate for given # of replicas, 1 dimension
-    void AllocateReplicas(int, ReplicaDimArray const&, int);
+    void AllocateReplicas(int, ReplicaDimArray const&, int, bool, int);
     /// Allocate for given # of replicas
-    void AllocateReplicas(int, GdimArray const&, ReplicaDimArray const&, int);
+    void AllocateReplicas(int, GdimArray const&, ReplicaDimArray const&, int, bool, int);
     /// \return number of exchanges
     int NumExchange() const;
     /// \return true if ensemble is valid.
@@ -74,6 +74,8 @@ class DataSet_RemLog : public DataSet {
     GdimArray groupDims_;      // [dim][group][idx]
     RepInfoArray repInfo_;     // [replica][dim]
     ReplicaDimArray repDims_;  // [dim]
+    int offset_;               ///< Replica number offset
+    bool wrap_;                ///< If true highest rep can exchange with lowest
 };
 // ----- Public Class Definitions ----------------------------------------------
 class DataSet_RemLog::ReplicaFrame {
