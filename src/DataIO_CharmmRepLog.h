@@ -16,14 +16,12 @@ class DataIO_CharmmRepLog : public DataIO {
     int WriteData(FileName const&, DataSetList const&) { return 1; }
     bool ID_DataFormat(CpptrajFile&);
   private:
-    typedef std::vector<BufferedLine> Farray;
     // NOTE: Must match LogDescription TODO Combine with DataIO_RemLog?
     enum LogType { UNKNOWN = 0, TREMD, HREMD, MREMD, RXSGLD, PHREMD };
     static const char* LogDescription[];
 
     int ReadReplogArray(FileName const&, DataSetList&, std::string const&);
 
-    Farray Logs_; ///< Hold replica logs
     int nrep_; ///< Number of replicas.
 };
 #endif

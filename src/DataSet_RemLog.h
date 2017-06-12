@@ -37,14 +37,18 @@ class DataSet_RemLog : public DataSet {
     ReplicaFrame const& LastRepFrame(int rep)       const { return ensemble_[rep].back(); }
 
     ReplicaDimArray const& DimTypes() const { return repDims_; }
+    /// Allocate for given # of replicas, 1 dimension
+    void AllocateReplicas(int, ReplicaDimArray const&, int);
     /// Allocate for given # of replicas
-    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&, ReplicaDimArray const&);
+    void AllocateReplicas(int, GdimArray const&, ReplicaDimArray const&, int);
     /// \return number of exchanges
     int NumExchange() const;
     /// \return true if ensemble is valid.
     bool ValidEnsemble() const;
     /// Trim last replica frame.
-    void TrimLastExchange(); 
+    void TrimLastExchange();
+    /// Print data to stdout
+    void PrintReplicaStats() const;
     
     // ----- DataSet routines --------------------
     size_t Size()                       const { return ensemble_.size(); }
@@ -62,6 +66,10 @@ class DataSet_RemLog : public DataSet {
     typedef std::vector<ReplicaFrame> ReplicaArray;
     /// Hold info for all exchanges of all replicas.
     typedef std::vector<ReplicaArray> ReplicaEnsemble;
+
+    /// Setup a single 1D group.
+    void SetupDim1Group(int);
+
     ReplicaEnsemble ensemble_; // [replica][exchange]
     GdimArray groupDims_;      // [dim][group][idx]
     RepInfoArray repInfo_;     // [replica][dim]

@@ -55,10 +55,7 @@ int DataIO_CharmmRepLog::ReadData(FileName const& fnameIn,
   if (nrep_ > 0)
     err = ReadReplogArray(fnameIn, datasetlist, dsname);
  
-  for (Farray::iterator it = Logs_.begin(); it != Logs_.end(); ++it)
-    it->CloseFile();
- 
-  return 1;
+  return err;
 }
 
 int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
@@ -69,16 +66,47 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   std::string prefix = fnameIn.Base().substr(0, pos+1);
   mprintf("DEBUG: prefix= '%s'\n", prefix.c_str());
   // Search for replica logs from 0 to nrep-1
+  typedef std::vector<FileName> Narray;
+  Narray Fnames;
   for (int i = 0; i != nrep_; i++) {
     FileName fname( prefix + integerToString(i) );
     if (!File::Exists(fname)) {
       mprinterr("Error: File '%s' not found.\n", fname.full());
       return 1;
     }
-    mprintf("DEBUG:\t\t%s\n", fname.full());
+    Fnames.push_back( fname );
+  }
+  mprintf("DEBUG: %zu replica logs.\n", Fnames.size());
+  // Allocate replica log DataSet
+  DataSet* ds = 0;
+  if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
+  if (ds == 0) {
+    // New set
+    ds = datasetlist.AddSet( DataSet::REMLOG, dsname, "remlog" );
+    if (ds == 0) return 1;
+    // FIXME assume temperature for now
+    ReplicaDimArray DimTypes;
+    DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
+    ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 1);
+  } else {
+    if (ds->Type() != DataSet::REMLOG) {
+      mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
+      return 1;
+    }
+    if ((int)ds->Size() != nrep_) {
+      mprinterr("Error: Replica log data '%s' is set up for %zu replicas,"
+                " current # replicas is %i\n", ds->legend(), ds->Size(),
+                nrep_);
+      return 1;
+    }
+  }
+  // Loop over replica logs
+  DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
+  for (int i = 0; i != nrep_; i++) {
+    mprintf("DEBUG:\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
     BufferedLine infile;
-    if (infile.OpenFileRead( fname )) return 1;
+    if (infile.OpenFileRead( Fnames[i] )) return 1;
     /*
     ------------- Replica Exchange ------------
     REX>EXCHANGE =          1  Step =       500
@@ -130,6 +158,11 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       bool result = (ptr[67]=='T');
       mprintf("%8i %3i %6.2f %12.4f %3i %6.2f %12.4f %12.4f %c\n",
               nexch++, ourrep, ourtemp, ourpe, nbrrep, nbrtemp, nbrpe, pe_x2, ptr[67]);
+      // FIXME: Need +1 for ourrep and nbrrep?
+      ensemble.AddRepFrame( ourrep,
+                            DataSet_RemLog::
+                            ReplicaFrame( ourrep, nbrrep, crdidx, 0,
+                                          result, ourtemp, ourpe, pe_x2 ) );
       // Next line is Replica Exchange End
       ptr = infile.Line();
       // Next line is beginning of next exchange
@@ -137,6 +170,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     }
     infile.CloseFile();
   }
+  ensemble.PrintReplicaStats();
 
-  return 1;
+  return 0;
 }
