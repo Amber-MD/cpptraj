@@ -209,7 +209,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       //       case the left partner is the right partner.
       if (replica == 0) DimStats[dim].attempts_++; // Assume same # attempts for every rep in dim
       if (frm.Success()) {
-        if (frm.PartnerIdx() - 1 == remlog_->ReplicaInfo()[replica][dim].RightID())
+        if (frm.PartnerIdx() - offset == remlog_->ReplicaInfo()[replica][dim].RightID())
           DimStats[dim].acceptUp_[replica]++;
         else // Assume down
           DimStats[dim].acceptDown_[replica]++;
@@ -270,7 +270,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     acceptout_->Printf("DIMENSION %i\n", dim+1);
     if (debug_ > 0) {
     for (int replica = 0; replica != (int)remlog_->Size(); replica++)
-      mprintf("Rep %i attempts %i up %i down %i\n", replica, DimStats[dim].attempts_, DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
+      mprintf("Rep %i total attempts %i succ. up %i succ. down %i\n", replica, DimStats[dim].attempts_, DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
     }
     acceptout_->Printf("%-8s %8s %8s\n", "#Replica", "%UP", "%DOWN");
     double exchangeAttempts = (double)DimStats[dim].attempts_ / 2.0;
