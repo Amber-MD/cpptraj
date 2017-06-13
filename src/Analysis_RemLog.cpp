@@ -267,7 +267,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
   for (int dim = 0; dim != Ndims; dim++) {
     // Assume number of exchange attempts is actually /2 since in Amber
     // attempts alternate up/down.
-    acceptout_->Printf("DIMENSION %i\n", dim+1);
+    acceptout_->Printf("# DIMENSION %i\n", dim+1);
     if (debug_ > 0) {
     for (int replica = 0; replica != (int)remlog_->Size(); replica++)
       mprintf("Rep %i total attempts %i succ. up %i succ. down %i\n", replica, DimStats[dim].attempts_, DimStats[dim].acceptUp_[replica], DimStats[dim].acceptDown_[replica]);
