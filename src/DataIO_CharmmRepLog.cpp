@@ -64,7 +64,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   // Expect 1 log for each replica with format <name>_<ext>
   size_t pos = fnameIn.Base().rfind('_');
   std::string prefix = fnameIn.Base().substr(0, pos+1);
-  mprintf("DEBUG: prefix= '%s'\n", prefix.c_str());
+  if (debug_ > 0) mprintf("DEBUG: Log file prefix= '%s'\n", prefix.c_str());
   // Search for replica logs from 0 to nrep-1
   typedef std::vector<FileName> Narray;
   Narray Fnames;
@@ -76,7 +76,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     }
     Fnames.push_back( fname );
   }
-  mprintf("DEBUG: %zu replica logs.\n", Fnames.size());
+  mprintf("\t%zu replica logs.\n", Fnames.size());
   // Allocate replica log DataSet
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
@@ -87,7 +87,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     // FIXME assume temperature for now
     ReplicaDimArray DimTypes;
     DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
-    ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, 1);
+    ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, debug_);
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
@@ -105,7 +105,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   int total_exchanges = -1;
   bool needs_trim = false;
   for (int i = 0; i != nrep_; i++) {
-    mprintf("DEBUG:\t\t%s\n", Fnames[i].full());
+    mprintf("\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
     BufferedLine infile;
     if (infile.OpenFileRead( Fnames[i] )) return 1;
@@ -158,8 +158,8 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       // Next line has result
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
-      mprintf("%8i %3i %6.2f %12.4f %3i %6.2f %12.4f %12.4f %c\n",
-              nexch++, ourrep, ourtemp, ourpe, nbrrep, nbrtemp, nbrpe, pe_x2, ptr[67]);
+//      mprintf("%8i %3i %6.2f %12.4f %3i %6.2f %12.4f %12.4f %c\n",
+//              nexch++, ourrep, ourtemp, ourpe, nbrrep, nbrtemp, nbrpe, pe_x2, ptr[67]);
       // FIXME: Need +1 for ourrep and nbrrep?
       ensemble.AddRepFrame( ourrep,
                             DataSet_RemLog::
@@ -179,7 +179,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     }
   } // End loop over replica logs
   if (needs_trim) ensemble.TrimLastExchange();
-  ensemble.PrintReplicaStats();
+  if (debug_ > 1) ensemble.PrintReplicaStats();
 
   return 0;
 }
