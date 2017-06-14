@@ -104,6 +104,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   int total_exchanges = -1;
   bool needs_trim = false;
+  bool isHREMD = false;
   for (int i = 0; i != nrep_; i++) {
     mprintf("\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
@@ -160,6 +161,9 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       if (ptr[0]=='T' && ptr[1]=='H') {
         sscanf(ptr, "%*6c%*12f%*12f%*12f%12lf", &pe_x2);
         ptr = infile.Line();
+        if (!isHREMD)
+          mprintf("Info: Hamiltonian (THAM) info detected in log.\n");
+        isHREMD = true;
       }
       // Now actually at the coordinate index
       int crdidx;
@@ -189,6 +193,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       needs_trim = true;
     }
   } // End loop over replica logs
+  if (isHREMD) ensemble.SetupDimTypes().ChangeRemdDim(0, ReplicaDimArray::HAMILTONIAN);
   if (needs_trim) ensemble.TrimLastExchange();
   if (debug_ > 1) ensemble.PrintReplicaStats();
 

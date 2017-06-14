@@ -34,11 +34,13 @@ class DataSet_RemLog : public DataSet {
     ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch];  }
     /// \return replica frame at last exchange in specified ensemble member.
     ReplicaFrame const& LastRepFrame(int rep)       const { return ensemble_[rep].back(); }
-
+    /// \return Replica dimensions types array
     ReplicaDimArray const& DimTypes() const { return repDims_; }
-    /// Allocate for given # of replicas, 1 dimension
+    /// Set up replica dimension types
+    ReplicaDimArray& SetupDimTypes() { return repDims_; }
+    /// Allocate for given # of 1D replicas, dim type, offset, wrap, debug
     void AllocateReplicas(int, ReplicaDimArray const&, int, bool, int);
-    /// Allocate for given # of replicas
+    /// Allocate for given # of replicas, dims, dim types, offset, wrap, debug
     void AllocateReplicas(int, GdimArray const&, ReplicaDimArray const&, int, bool, int);
     /// \return number of exchanges
     int NumExchange() const;
