@@ -69,7 +69,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   typedef std::vector<FileName> Narray;
   Narray Fnames;
   for (int i = 0; i != nrep_; i++) {
-    FileName fname( prefix + integerToString(i) );
+    FileName fname( fnameIn.DirPrefix() + prefix + integerToString(i) );
     if (!File::Exists(fname)) {
       mprinterr("Error: File '%s' not found.\n", fname.full());
       return 1;
@@ -130,12 +130,21 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       double ourtemp;
       double ourpe;
       sscanf(ptr, "%*15c%5i%*9c%7lf%*9c%20lf", &ourrep, &ourtemp, &ourpe);
+      if (ourrep < 0 || ourrep >= nrep_) {
+        mprinterr("Error: Replica number %i is out of range.\n", ourrep);
+        return 1;
+      }
       // Next line is neighbor, neighbor temp, neighbor PE
       ptr = infile.Line();
       int nbrrep;
       double nbrtemp;
       double nbrpe;
       sscanf(ptr, "%*15c%5i%*9c%7lf%*9c%20lf", &nbrrep, &nbrtemp, &nbrpe);
+      // Neighbor -1 is no neighbor
+      if (nbrrep < -1 || nbrrep >= nrep_) {
+        mprinterr("Error: Neighbor replica number %i is out of range.\n", nbrrep);
+        return 1;
+      }
       // Next line may be tag, i.e. coordinate index, but check some other stuff first
       ptr = infile.Line();
       if (ptr[0]=='R' && ptr[1]=='X') {
@@ -146,9 +155,9 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
         }
         ptr = infile.Line();
       }
+      // Check for HREMD info
       double pe_x2 = 0.0;
       if (ptr[0]=='T' && ptr[1]=='H') {
-        // Log has HREMD info
         sscanf(ptr, "%*6c%*12f%*12f%*12f%12lf", &pe_x2);
         ptr = infile.Line();
       }
@@ -159,14 +168,16 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
 //      mprintf("%8i %3i %6.2f %12.4f %3i %6.2f %12.4f %12.4f %c\n",
-//              nexch++, ourrep, ourtemp, ourpe, nbrrep, nbrtemp, nbrpe, pe_x2, ptr[67]);
+//              nexch, ourrep, ourtemp, ourpe, nbrrep, nbrtemp, nbrpe, pe_x2, ptr[67]);
       // FIXME: Need +1 for ourrep and nbrrep?
       ensemble.AddRepFrame( ourrep,
                             DataSet_RemLog::
                             ReplicaFrame( ourrep, nbrrep, crdidx, 0,
                                           result, ourtemp, ourpe, pe_x2 ) );
-      // Next line is Replica Exchange End
-      ptr = infile.Line();
+      // Scan to Replica Exchange End
+      while (ptr != 0 && *ptr != '-')
+        ptr = infile.Line();
+      nexch++;
       // Next line is beginning of next exchange
       ptr = infile.Line();
     }
