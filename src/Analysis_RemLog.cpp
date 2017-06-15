@@ -194,6 +194,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
 
   int offset = remlog_->Offset();
   ProgressBar progress( remlog_->NumExchange() );
+  // Loop over all exchanges
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {
     progress.Update( frame );
     for (int replica = 0; replica < (int)remlog_->Size(); replica++) {
