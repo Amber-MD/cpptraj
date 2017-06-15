@@ -432,6 +432,29 @@ int Analysis_TI::Calc_Nskip() {
 
 // Analysis_TI::Calc_Increment()
 int Analysis_TI::Calc_Increment() {
+  // Determine max points if not given.
+  int maxpts = avg_max_;
+  if (maxpts == -1) {
+    for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
+      DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
+      if (maxpts == -1)
+        maxpts = (int)ds.Size();
+      else if (maxpts != (int)ds.Size()) {
+        mprintf("Warning: # points in '%s' (%zu) is different than %i.\n",
+                ds.legend(), ds.Size(), maxpts);
+        maxpts = std::min( maxpts, (int)ds.Size() );
+        mprintf("Warning:   Will only use %i points.\n", maxpts);
+      }
+    }
+  }
+  if (maxpts < 1) {
+    mprinterr("Error: Max points to use is < 1.\n");
+    return 1;
+  }
+  if (avg_skip_ >= maxpts) {
+    mprinterr("Error: 'avgskip' (%i) > max (%i).\n", avg_skip_, maxpts);
+    return 1;
+  }
   // sum: Hold the results of integration for each curve (increment)
   Darray sum;
   // points: Hold point values at which each avg is being calculated
@@ -440,19 +463,6 @@ int Analysis_TI::Calc_Increment() {
   for (unsigned int idx = 0; idx != input_dsets_.size(); idx++) {
     DataSet_1D const& ds = static_cast<DataSet_1D const&>( *(input_dsets_[idx]) );
     if (CheckSet(ds)) return 1; 
-    // Determine max pts if not given
-    int maxpts = avg_max_;
-    if (maxpts == -1)
-      maxpts = (int)ds.Size();
-    else if (maxpts > (int)ds.Size()) {
-      mprintf("Warning: 'avgmax' (%i) > data size (%zu); setting to %zu\n",
-              maxpts, ds.Size(), ds.Size());
-      maxpts = (int)ds.Size();
-    }
-    if (avg_skip_ >= maxpts) {
-      mprinterr("Error: 'avgskip' (%i) > max (%i).\n", avg_skip_, maxpts);
-      return 1;
-    }
     // Calculate averages for each increment
     Darray avg;
     Iarray increments;
