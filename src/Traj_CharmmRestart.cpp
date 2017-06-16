@@ -14,7 +14,7 @@ bool Traj_CharmmRestart::ID_TrajFormat(CpptrajFile& fileIn) {
   if (ptr != 0 && ptr[0] == 'R' && ptr[1] == 'E' && ptr[2] == 'S' && ptr[3] == 'T') {
     // Check if we can read 2 integers.
     int vernum, ldyna;
-    if (sscanf(ptr, "%6i%6i", &vernum, &ldyna) == 2) {
+    if (sscanf(ptr+4, "%6i%6i", &vernum, &ldyna) == 2) {
       // Next line should be blank
       ptr = fileIn.NextLine();
       if (ptr != 0 && (ptr[0] == '\n' || ptr[0] == '\r')) {
