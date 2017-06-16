@@ -12,6 +12,8 @@ TinkerFile::TinkerFile() : natom_(0), hasBox_(false) {}
 /// \return 1 if problem with or not a Tinker Atom/Title line.
 static inline int SetNatomAndTitle(ArgList& lineIn, int& natom, std::string& title) {
   if (lineIn.Nargs() < 1) return 1;
+  // First argument should be an integer.
+  if (!validInteger(lineIn[0])) return 1;
   natom = lineIn.getNextInteger( -1 );
   if (natom < 1) return 1;
   std::string nextWord = lineIn.GetStringNext();
@@ -53,6 +55,9 @@ bool TinkerFile::ID_Tinker(CpptrajFile& fileIn) {
   ArgList secondLine( fileIn.NextLine() );
   ArgList thirdLine( fileIn.NextLine() );
   fileIn.CloseFile();
+  //mprintf("DEBUG: Tinker1(%i): %s\n", firstLine.Nargs(), firstLine.ArgLine());
+  //mprintf("DEBUG: Tinker2(%i): %s\n", secondLine.Nargs(), secondLine.ArgLine());
+  //mprintf("DEBUG: Tinker3(%i): %s\n", thirdLine.Nargs(), thirdLine.ArgLine());
   // First line should have <natom> <title> only
   int natom = 0;
   std::string title;
