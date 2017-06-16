@@ -28,6 +28,7 @@ class BufferedLine : private CpptrajFile {
     // Members of CpptrajFile that should be public
     using CpptrajFile::Filename;
     using CpptrajFile::CloseFile;
+    using CpptrajFile::IsOpen;
   private:
     int ResetBuffer();
     static const size_t DEFAULT_BUFFERSIZE = 16384;
