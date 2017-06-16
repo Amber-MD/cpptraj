@@ -1,6 +1,7 @@
 #include <cstdio> // sscanf
 #include "Traj_CharmmRestart.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h"
 
 /// CONSTRUCTOR
 Traj_CharmmRestart::Traj_CharmmRestart() {}
@@ -38,11 +39,12 @@ void Traj_CharmmRestart::Info() {
 
 /** Close file. */
 void Traj_CharmmRestart::closeTraj() {
-
+  if (infile_.IsOpen()) infile_.CloseFile();
 }
 
 // -----------------------------------------------------------------------------
 /** Open trajectory for reading. */
+// TODO should read past everything up to coords or box
 int Traj_CharmmRestart::openTrajin() {
 
   return 0;
@@ -64,7 +66,72 @@ int Traj_CharmmRestart::processReadArgs(ArgList& argIn) {
   */
 int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
 {
+  fname_ = fname;
+  if (infile_.OpenFileRead( fname_ )) return TRAJIN_ERR;
+  // Read past first line. No error checks here, assume ID has taken care of that.
+  infile_.Line();
+  // Read past second blank line.
+  infile_.Line();
+  // Read number of title lines.
+  const char* ptr = infile_.Line();
+  int ntitle;
+  sscanf(ptr, "%8i", &ntitle);
+  mprintf("DEBUG: %i title lines.\n", ntitle);
+  // Read title. Get rid of leading asterisks and trailing whitespace.
+  std::string title;
+  for (int i = 0; i != ntitle; i++) {
+    ptr = infile_.Line();
+    if (ptr == 0) {
+      mprinterr("Error: Could not read expected number of title lines.\n");
+      return TRAJIN_ERR;
+    }
+    int offset;
+    if (ptr[0] != '*')
+      offset = 0;
+    else
+      offset = 2;
+    title.append( NoTrailingWhitespace(ptr+offset) + " " );
+  }
+  mprintf("DEBUG: TITLE:\n%s\n", title.c_str());
+  SetTitle( title );
 
+  // Seek down to next relevant section; !CRYSTAL or !NATOM
+  Box cbox;
+  while (ptr != 0 && ptr[0] != ' ' && ptr[1] != '!')
+    ptr = infile_.Line();
+  if (ptr[2] == 'C' && ptr[3] == 'R' && ptr[4] == 'Y') {
+    // Has unit cell information. Read the shape matrix.
+    // NOTE: Seems that the scientific exponent rep in Fortran
+    //       can sometimes come out as 'D', which confuses
+    //       sscanf, so replace that.
+    // FIXME check for old version?
+    ptr = infile_.Line();
+    if (ptr == 0) return TRAJIN_ERR;
+    double* bp = cbox.boxPtr();
+    char buff[133];
+    buff[132] = '\0';
+    unsigned int idx = 0;
+    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
+      if (*p == 'D')
+        buff[idx] = 'E';
+      else
+        buff[idx] = *p;
+    }
+    ptr = infile_.Line();
+    if (ptr == 0) return TRAJIN_ERR;
+    for (const char* p = ptr; *p != '\0'; ++p, ++idx) {
+      if (*p == 'D')
+        buff[idx] = 'E';
+      else
+        buff[idx] = *p;
+    }
+    sscanf(buff, "%22lE%22lE%22lE%22lE%22lE%22lE",
+           bp, bp+1, bp+2, bp+3, bp+4, bp+5);
+    mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
+            bp[0], bp[1], bp[2], bp[3], bp[4], bp[5]);
+  }
+
+  closeTraj();
   return TRAJIN_ERR;
 }
 

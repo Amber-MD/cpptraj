@@ -1,6 +1,7 @@
 #ifndef INC_TRAJ_CHARMMRESTART_H
 #define INC_TRAJ_CHARMMRESTART_H
 #include "TrajectoryIO.h"
+#include "BufferedLine.h"
 /// <Enter description of Traj_CharmmRestart here>
 class Traj_CharmmRestart : public TrajectoryIO {
   public:
@@ -34,5 +35,8 @@ class Traj_CharmmRestart : public TrajectoryIO {
     void parallelCloseTraj();
     // -------------------------------------------
 #   endif
+
+    BufferedLine infile_;
+    FileName fname_;
 };
 #endif
