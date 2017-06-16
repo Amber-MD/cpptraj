@@ -107,7 +107,7 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
     // FIXME check for old version?
     ptr = infile_.Line();
     if (ptr == 0) return TRAJIN_ERR;
-    double* bp = cbox.boxPtr();
+    double bs[6];
     char buff[133];
     buff[132] = '\0';
     unsigned int idx = 0;
@@ -126,9 +126,15 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
         buff[idx] = *p;
     }
     sscanf(buff, "%22lE%22lE%22lE%22lE%22lE%22lE",
-           bp, bp+1, bp+2, bp+3, bp+4, bp+5);
+           bs, bs+1, bs+2, bs+3, bs+4, bs+5);
     mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
-            bp[0], bp[1], bp[2], bp[3], bp[4], bp[5]);
+            bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
+    double bp[6];
+    Box::ShapeToUcell( bp, bs );
+    cbox.SetBox( bp );
+    mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
+            cbox.BoxX(), cbox.BoxY(), cbox.BoxZ(),
+            cbox.Alpha(), cbox.Beta(), cbox.Gamma());
   }
 
   closeTraj();

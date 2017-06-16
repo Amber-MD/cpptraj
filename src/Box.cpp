@@ -338,6 +338,27 @@ Vec3 Box::RecipLengths(Matrix_3x3 const& recip) {
                1.0/sqrt(recip[6]*recip[6] + recip[7]*recip[7] + recip[8]*recip[8]) );
 }
 
+/** Convert symmetric shape matrix data to unit cell params (x, y, z, a, b, g) */
+void Box::ShapeToUcell(double* box, const double* boxtmp)
+{
+  double boxX = sqrt( boxtmp[0]*boxtmp[0] + boxtmp[1]*boxtmp[1] + boxtmp[3]*boxtmp[3] );
+  double boxY = sqrt( boxtmp[1]*boxtmp[1] + boxtmp[2]*boxtmp[2] + boxtmp[4]*boxtmp[4] );
+  double boxZ = sqrt( boxtmp[3]*boxtmp[3] + boxtmp[4]*boxtmp[4] + boxtmp[5]*boxtmp[5] );
+  double boxXY = boxtmp[1]*(boxtmp[0] + boxtmp[2]) + boxtmp[3]*boxtmp[4];
+  double boxYZ = boxtmp[4]*(boxtmp[2] + boxtmp[5]) + boxtmp[1]*boxtmp[3];
+  double boxXZ = boxtmp[3]*(boxtmp[0] + boxtmp[5]) + boxtmp[1]*boxtmp[4];
+  double alpha = acos( boxYZ / (boxY*boxZ) ) * Constants::RADDEG;
+  double beta  = acos( boxXZ / (boxX*boxZ) ) * Constants::RADDEG;
+  double gamma = acos( boxXY / (boxX*boxY) ) * Constants::RADDEG;
+  //mprintf("DEBUG: Box XYZ= %g %g %g  ABG= %g %g %g\n", boxX, boxY, boxZ, alpha, beta, gamma);
+  box[0] = boxX;
+  box[1] = boxY;
+  box[2] = boxZ;
+  box[3] = alpha;
+  box[4] = beta;
+  box[5] = gamma;
+}
+
 void Box::PrintInfo() const {
   mprintf("\tBox: '%s' XYZ= { %8.3f %8.3f %8.3f } ABG= { %6.2f %6.2f %6.2f }\n",
           BoxNames_[btype_], box_[0], box_[1], box_[2], box_[3], box_[4], box_[5]);

@@ -397,27 +397,6 @@ int Traj_CharmmDcd::readDcdHeader() {
   return 0;
 }
 
-/** Convert symmetric shape matrix data to unit cell params (x, y, z, a, b, g) */
-static inline void ShapeToUcell(double* box, const double* boxtmp)
-{
-  double boxX = sqrt( boxtmp[0]*boxtmp[0] + boxtmp[1]*boxtmp[1] + boxtmp[3]*boxtmp[3] );
-  double boxY = sqrt( boxtmp[1]*boxtmp[1] + boxtmp[2]*boxtmp[2] + boxtmp[4]*boxtmp[4] );
-  double boxZ = sqrt( boxtmp[3]*boxtmp[3] + boxtmp[4]*boxtmp[4] + boxtmp[5]*boxtmp[5] );
-  double boxXY = boxtmp[1]*(boxtmp[0] + boxtmp[2]) + boxtmp[3]*boxtmp[4];
-  double boxYZ = boxtmp[4]*(boxtmp[2] + boxtmp[5]) + boxtmp[1]*boxtmp[3];
-  double boxXZ = boxtmp[3]*(boxtmp[0] + boxtmp[5]) + boxtmp[1]*boxtmp[4];
-  double alpha = acos( boxYZ / (boxY*boxZ) ) * Constants::RADDEG;
-  double beta  = acos( boxXZ / (boxX*boxZ) ) * Constants::RADDEG;
-  double gamma = acos( boxXY / (boxX*boxY) ) * Constants::RADDEG;
-  //mprintf("DEBUG: Box XYZ= %g %g %g  ABG= %g %g %g\n", boxX, boxY, boxZ, alpha, beta, gamma);
-  box[0] = boxX;
-  box[1] = boxY;
-  box[2] = boxZ;
-  box[3] = alpha;
-  box[4] = beta;
-  box[5] = gamma;
-}
-
 /** Convert unit cell parameters (X, Y, Z, a, b, g) to symmetric shape matrix
   * (S11, S12, S22, S13, S23, S33).
   */
@@ -504,7 +483,7 @@ int Traj_CharmmDcd::ReadBox(double* box) {
   if (isBigEndian_) endian_swap8(boxtmp,6);
   if ( ReadBlock(-1) < 0) return 1;
   if (charmmCellType_ == SHAPE) {
-    ShapeToUcell(box, boxtmp);
+    Box::ShapeToUcell(box, boxtmp);
 /*
     mprintf("\nDEBUG: Original matrix: %g %g %g %g %g %g\n",
             boxtmp[0], boxtmp[1], boxtmp[2], boxtmp[3], boxtmp[4], boxtmp[5]);
