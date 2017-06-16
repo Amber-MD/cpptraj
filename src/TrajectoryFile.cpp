@@ -21,6 +21,7 @@
 #include "Traj_CharmmCor.h"
 #include "Traj_Gro.h"
 #include "Traj_GmxXtc.h"
+#include "Traj_CharmmRestart.h"
 
 // ----- STATIC VARS / ROUTINES ------------------------------------------------ 
 // NOTE: Must be in same order as TrajFormatType
@@ -52,6 +53,7 @@ const FileTypes::AllocToken TrajectoryFile::TF_AllocArray[] = {
   { "GRO file",           0, 0, Traj_Gro::Alloc            },
   { "Tinker file",        0, 0, Traj_Tinker::Alloc         },
   { "Charmm COR",         0, 0, Traj_CharmmCor::Alloc      },
+  { "Charmm Restart",     Traj_CharmmRestart::ReadHelp, Traj_CharmmRestart::WriteHelp, Traj_CharmmRestart::Alloc },
   { "Amber Trajectory",   0, Traj_AmberCoord::WriteHelp, Traj_AmberCoord::Alloc     },
   { "SQM Input",          0, Traj_SQM::WriteHelp, Traj_SQM::Alloc            },
   { "SDF",                0, 0, Traj_SDF::Alloc            },
