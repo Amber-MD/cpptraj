@@ -62,7 +62,7 @@ class TrajIOarray {
 /** Given lowest replica traj filename, split into components for search. */
 class TrajIOarray::RepName {
   public:
-    RepName() : ExtWidth_(0), lowestRepnum_(-1) {}
+    RepName() : ExtWidth_(0), lowestRepnum_(-1), extChar_('.') {}
     RepName(FileName const&, int);
     bool Error() const { return Prefix_.empty(); }
     /// \return Replica file name for given offset from lowest replica number.
@@ -73,5 +73,6 @@ class TrajIOarray::RepName {
     std::string CompressExt_; ///< Optional compression extension after numerical extension.
     int ExtWidth_;            ///< Width of the numerical extension. TODO remove
     int lowestRepnum_;        ///< Integer value of numerical extension.
+    char extChar_;            ///< Character preceding numerical extension
 };
 #endif
