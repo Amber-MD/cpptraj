@@ -25,7 +25,7 @@ bool Traj_CharmmRestart::ID_TrajFormat(CpptrajFile& fileIn) {
         ptr = fileIn.NextLine();
         if (ptr != 0 && ptr[8] == ' ' && ptr[9] == '!' && ptr[10] == 'N') {
           isCharmmRestart = true;
-          mprintf("DEBUG: Charmm restart file (%i): %s", vernum, ptr);
+          //mprintf("DEBUG: Charmm restart file (%i): %s", vernum, ptr);
         }
       }
     }
@@ -83,7 +83,7 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   const char* ptr = infile.Line();
   int ntitle;
   sscanf(ptr, "%8i", &ntitle);
-  mprintf("DEBUG: %i title lines.\n", ntitle);
+  if (debug_ > 0) mprintf("DEBUG: %i title lines.\n", ntitle);
   // Read title. Get rid of leading asterisks and trailing whitespace.
   std::string title;
   for (int i = 0; i != ntitle; i++) {
@@ -99,7 +99,7 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
       offset = 2;
     title.append( NoTrailingWhitespace(ptr+offset) + " " );
   }
-  mprintf("DEBUG: TITLE:\n%s\n", title.c_str());
+  mprintf("\tTITLE: '%s'\n", title.c_str());
   SetTitle( title );
 
   // Seek down to next relevant section; !CRYSTAL or !NATOM
@@ -135,14 +135,16 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
     }
     sscanf(buff, "%22lE%22lE%22lE%22lE%22lE%22lE",
            bs, bs+1, bs+2, bs+3, bs+4, bs+5);
-    mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
-            bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
+    if (debug_ > 0)
+      mprintf("DEBUG: Shape Matrix: %g %g %g %g %g %g\n",
+              bs[0], bs[1], bs[2], bs[3], bs[4], bs[5]);
     double bp[6];
     Box::ShapeToUcell( bp, bs );
     cbox_.SetBox( bp );
-    mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
-            cbox_.BoxX(), cbox_.BoxY(), cbox_.BoxZ(),
-            cbox_.Alpha(), cbox_.Beta(), cbox_.Gamma());
+    if (debug_ > 0)
+      mprintf("DEBUG: Unit cell: %g %g %g %g %g %g\n",
+              cbox_.BoxX(), cbox_.BoxY(), cbox_.BoxZ(),
+              cbox_.Alpha(), cbox_.Beta(), cbox_.Gamma());
     // Seek down to !NATOM
     while (ptr != 0 && ptr[1] != '!')
       ptr = infile.Line();
@@ -156,7 +158,7 @@ int Traj_CharmmRestart::setupTrajin(FileName const& fname, Topology* trajParm)
   ptr = infile.Line();
   int natom = 0;
   sscanf(ptr, "%12i", &natom);
-  mprintf("DEBUG: %i atoms.\n", natom);
+  if (debug_ > 0) mprintf("DEBUG: %i atoms.\n", natom);
   if (natom != trajParm->Natom()) {
     mprinterr("Error: Number of atoms in restart (%i) does not match # in\n", natom);
     mprinterr("Error:  associated topology %s (%i)\n", trajParm->c_str(),
@@ -199,7 +201,7 @@ int Traj_CharmmRestart::readFrame(int set, Frame& frameIn) {
   while (ptr != 0 && (ptr[0] != ' ' || ptr[1] != '!' ||
                       ptr[2] != 'X' || ptr[3] != 'O'))
     ptr = inframe_.NextLine();
-  mprintf("DEBUG: %s\n", ptr);
+  //mprintf("DEBUG: %s\n", ptr);
   // Read coords 
   ReadXYZ(frameIn.xAddress());
   // Read velocities
@@ -216,7 +218,7 @@ int Traj_CharmmRestart::readVelocity(int set, Frame& frameIn) {
   while (ptr != 0 && (ptr[0] != ' ' || ptr[1] != '!' ||
                       ptr[2] != 'V' || ptr[3] != 'X'))
     ptr = inframe_.NextLine();
-  mprintf("DEBUG: %s\n", ptr);
+  //mprintf("DEBUG: %s\n", ptr);
   // Read Velocities 
   ReadXYZ(frameIn.vAddress());
   return 0;
