@@ -408,7 +408,9 @@ TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) :
       Prefix_.assign( fname.Full().substr(0, uscore) );
       ReplicaExt_.assign( fname.Full().substr(uscore+1) );
       extChar_ = '_';
-      mprintf("DEBUG: '%s' '%s'\n", Prefix_.c_str(), ReplicaExt_.c_str());
+      if (debugIn > 0)
+        mprintf("\tREMDTRAJ: CHARMM style replica names detected, prefix='%s' ext='%s'\n",
+                Prefix_.c_str(), ReplicaExt_.c_str());
     }
   }
   // Check that the numerical extension is valid.
@@ -418,12 +420,12 @@ TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) :
     return;
   }
   ExtWidth_ = (int)ReplicaExt_.size();
-//  if (debugIn > 1)
+  if (debugIn > 1)
     mprintf("\tREMDTRAJ: Numerical Extension width=%i\n", ExtWidth_);
   // Store lowest replica number
   lowestRepnum_ = convertToInteger( ReplicaExt_ );
   // TODO: Do not allow negative replica numbers?
-//  if (debugIn > 1)
+  if (debugIn > 1)
     mprintf("\tREMDTRAJ: index of first replica = %i\n", lowestRepnum_);
 }
 

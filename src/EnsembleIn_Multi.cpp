@@ -6,6 +6,7 @@
 // EnsembleIn_Multi::SetupEnsembleRead()
 int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn, Topology *tparmIn)
 {
+  REMDtraj_.SetDebug(debug_);
   // Set file name and topology pointer.
   if (SetTraj().SetNameAndParm(tnameIn, tparmIn)) return 1;
   REMDtraj_.ClearIOarray();

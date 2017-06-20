@@ -39,6 +39,8 @@ class TrajIOarray {
     const char* f_name(unsigned int u)     const { return replica_filenames_[u].full(); }
     /// 'remdout' deprecated error message.
     static const char* DEPRECATED_remdout;
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
   private:
     /// Used for replica filename searching.
     class RepName;
