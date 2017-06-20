@@ -1,5 +1,6 @@
 #include "Exec_DataFile.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // integerToString
 
 /// Add DataSets specified by arguments to given DataFile.
 // NOTE: Used by Create_DataFile and Write_DataFile
@@ -63,6 +64,8 @@ Exec::RetType Exec_WriteDataFile::Execute(CpptrajState& State, ArgList& argIn)
   }
   DataFile* df = new DataFile();
   if (df == 0) return CpptrajState::ERR;
+  if (State.DFL().EnsembleNum() != -1)
+    name1.append( "." + integerToString(State.DFL().EnsembleNum()) );
   if (df->SetupDatafile( name1, argIn, State.Debug() )) {
     delete df;
     return CpptrajState::ERR;
