@@ -62,11 +62,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   }
   // Read the next natom lines
   int psfresnum = 0;
-  char psfresname[6];
-  char psfname[6];
-  char psftype[6];
+  char psfresname[9];
+  char psfname[9];
+  char psftype[9];
+  char segmentID[9];
   double psfcharge;
   double psfmass;
+  typedef std::vector<std::string> Sarray;
+  Sarray SegIDs;
   for (int atom=0; atom < natom; atom++) {
     if ( (buffer=infile.NextLine()) == 0 ) {
       mprinterr("Error: ReadParmPSF(): Reading atom %i\n",atom+1);
@@ -74,10 +77,22 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
     }
     // Read line
     // ATOM# SEGID RES# RES ATNAME ATTYPE CHRG MASS (REST OF COLUMNS ARE LIKELY FOR CMAP AND CHEQ)
-    sscanf(buffer,"%*i %*s %i %s %s %s %lf %lf",&psfresnum, psfresname, 
+    sscanf(buffer,"%*i %s %i %s %s %s %lf %lf", segmentID, &psfresnum, psfresname, 
            psfname, psftype, &psfcharge, &psfmass);
+    // Search for segment ID
+    int idx = -1;
+    for (int i = 0; i != (int)SegIDs.size(); i++)
+      if (SegIDs[i].compare( segmentID )==0) {
+        idx = i;
+        break;
+      }
+    if (idx == -1) {
+      idx = (int)SegIDs.size();
+      SegIDs.push_back( segmentID );
+      if (debug_>0) mprintf("DEBUG: New segment ID %i '%s'\n", idx, SegIDs.back().c_str());
+    }
     parmOut.AddTopAtom( Atom( psfname, psfcharge, psfmass, psftype), 
-                        Residue( psfresname, psfresnum, ' ', ' ') );
+                        Residue( psfresname, psfresnum, idx) );
   } // END loop over atoms 
   // Advance to <nbond> !NBOND
   int bondatoms[9];
