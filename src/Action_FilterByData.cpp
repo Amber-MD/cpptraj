@@ -14,11 +14,11 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
 {
   Npassed_ = 0;
   Nfiltered_ = 0;
-  maxmin_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringKey("name"), "Filter" );
-  if (maxmin_ == 0) return Action::ERR;
+  multi_ = actionArgs.hasKey("multi");
+  std::string dsname = actionArgs.GetStringKey("name");
+  if (dsname.empty())
+    dsname = init.DSL().GenerateDefaultName("Filter");
   DataFile* maxminfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
-  if (maxminfile != 0)
-    maxminfile->AddDataSet( maxmin_ );
   // Get min and max args.
   while (actionArgs.Contains("min"))
     Min_.push_back( actionArgs.getKeyDouble("min", 0.0) );
@@ -37,6 +37,7 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
               Min_.size(), Max_.size());
     return Action::ERR;
   }
+
   // Get DataSets from remaining arguments
   Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), init.DSL() );
 
@@ -62,6 +63,22 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
       Max_.push_back( useMax );
     }
   }
+  // Set up output data set(s)
+  if (!multi_) {
+    maxmin_ = init.DSL().AddSet( DataSet::INTEGER, dsname );
+    if (maxmin_ == 0) return Action::ERR;
+    if (maxminfile != 0)
+      maxminfile->AddDataSet( maxmin_ );
+  } else {
+    for (unsigned int idx = 0; idx < Dsets_.size(); idx++) {
+      DataSet* ds = init.DSL().AddSet(DataSet::INTEGER, MetaData(dsname, idx));
+      if (ds == 0) return Action::ERR;
+      ds->SetLegend("Filter("+ds->Meta().PrintName()+")");
+      outsets_.push_back( ds );
+      if (maxminfile != 0)
+        maxminfile->AddDataSet( ds );
+    }
+  }
 
   mprintf("    FILTER: Filtering out frames using %zu data sets.\n", Dsets_.size());
   for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
@@ -82,20 +99,31 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
 {
   static int ONE = 1;
   static int ZERO = 0;
-  // Check if frame is within max/min
-  for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
-  {
-    double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
-    //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
-    // If value from dataset not within min/max, exit now.
-    if (dVal < Min_[ds] || dVal > Max_[ds]) {
-      maxmin_->Add( frameNum, &ZERO );
-      Nfiltered_++;
-      return Action::SUPPRESS_COORD_OUTPUT;
+  if (!multi_) {
+    // Check if frame is within max/min
+    for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
+    {
+      double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
+      //mprintf("DBG: maxmin[%u]: dVal = %f, min = %f, max = %f\n",ds,dVal,Min_[ds],Max_[ds]);
+      // If value from dataset not within min/max, exit now.
+      if (dVal < Min_[ds] || dVal > Max_[ds]) {
+        maxmin_->Add( frameNum, &ZERO );
+        Nfiltered_++;
+        return Action::SUPPRESS_COORD_OUTPUT;
+      }
+    }
+    maxmin_->Add( frameNum, &ONE );
+    Npassed_++;
+  } else {
+    for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
+    {
+      double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
+      if (dVal < Min_[ds] || dVal > Max_[ds]) 
+        outsets_[ds]->Add( frameNum, &ZERO );
+      else
+        outsets_[ds]->Add( frameNum, &ONE  );
     }
   }
-  maxmin_->Add( frameNum, &ONE );
-  Npassed_++;
   return Action::OK;
 }
 
@@ -118,8 +146,10 @@ size_t Action_FilterByData::DetermineFrames() const {
 }
 
 void Action_FilterByData::Print() {
-  mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
-          Npassed_, Nfiltered_);
-  for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
-    mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
+  if (!multi_) {
+    mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
+            Npassed_, Nfiltered_);
+    for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
+      mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
+  }
 }
