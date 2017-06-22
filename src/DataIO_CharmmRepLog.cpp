@@ -77,6 +77,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     Fnames.push_back( fname );
   }
   mprintf("\t%zu replica logs.\n", Fnames.size());
+  std::vector<int> CoordinateIndices( nrep_ );
   // Allocate replica log DataSet
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
@@ -88,6 +89,8 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     ReplicaDimArray DimTypes;
     DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
     ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, debug_);
+    for (int repidx = 0; repidx != nrep_; repidx++)
+      CoordinateIndices[repidx] = repidx;
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
@@ -99,7 +102,15 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
                 nrep_);
       return 1;
     }
+    mprintf("\tReading final coordinate indices from last frame of existing set.\n");
+    for (int repidx = 0; repidx < nrep_; repidx++)
+      CoordinateIndices[repidx] = ((DataSet_RemLog*)ds)->LastRepFrame(repidx).CoordsIdx();
   }
+  mprintf("\tInitial coordinate indices:");
+  for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
+                                        c != CoordinateIndices.end(); ++c)
+    mprintf(" %i", *c);
+  mprintf("\n");
   // Loop over replica logs
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   int total_exchanges = -1;
@@ -167,7 +178,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       }
       // Now actually at the coordinate index
       int crdidx;
-      sscanf(ptr, "%*17c%5i", &crdidx);
+      sscanf(ptr, "%*31c%5i", &crdidx);
       // Next line has result
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
@@ -176,7 +187,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       // FIXME: Need +1 for ourrep and nbrrep?
       ensemble.AddRepFrame( ourrep,
                             DataSet_RemLog::
-                            ReplicaFrame( ourrep, nbrrep, crdidx, 0,
+                            ReplicaFrame( ourrep, nbrrep, CoordinateIndices[crdidx], 0,
                                           result, ourtemp, ourpe, pe_x2 ) );
       // Scan to Replica Exchange End
       while (ptr != 0 && *ptr != '-')

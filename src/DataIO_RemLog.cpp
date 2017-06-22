@@ -612,13 +612,6 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       // Default: starting crdidx = repidx
       CoordinateIndices[repidx] = repidx + 1;
   }
-//  if (!idxArgs.empty()) {
-    mprintf("\tInitial coordinate indices:");
-    for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
-                                          c != CoordinateIndices.end(); ++c)
-      mprintf(" %i", *c);
-    mprintf("\n");
-//  }
   // Allocate replica log DataSet
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
@@ -638,7 +631,17 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
                 n_mremd_replicas);
       return 1;
     }
+    mprintf("\tReading final coordinate indices from last frame of existing set.\n");
+    for (int repidx = 0; repidx < n_mremd_replicas; repidx++)
+      CoordinateIndices[repidx] = ((DataSet_RemLog*)ds)->LastRepFrame(repidx).CoordsIdx();
   }
+//  if (!idxArgs.empty()) {
+    mprintf("\tInitial coordinate indices:");
+    for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
+                                          c != CoordinateIndices.end(); ++c)
+      mprintf(" %i", *c);
+    mprintf("\n");
+//  }
   // Loop over all remlogs
   DataSet_RemLog& ensemble = static_cast<DataSet_RemLog&>( *ds );
   for (LogGroupType::const_iterator it = logFileGroups.begin(); it != logFileGroups.end(); ++it)
