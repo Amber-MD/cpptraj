@@ -16,7 +16,6 @@ bool DataIO_CharmmFastRep::ID_DataFormat(CpptrajFile& infile) {
   if (infile.OpenFile()) return false;
   std::string line = infile.GetLine();
   infile.CloseFile();
-  mprintf("DEBUG: '%s'\n", line.c_str());
   return (line.compare(0,64,"# replica temp. ener. neighbor ntemp nene prob p success? newrep")==0);
 }
 
@@ -102,7 +101,6 @@ std::vector<int> CoordinateIndices( nreps );
     while (ptr != 0 && !(ptr[0] == '#' && ptr[2] == 'E'))
       ptr = infile.Line();
     if (ptr == 0) break;
-    mprintf("%s\n", ptr);
     nexch++;
     int crdidx, nbridx;
     double ourtemp, ourpe, nbrtemp, nbrpe;

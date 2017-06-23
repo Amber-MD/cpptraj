@@ -73,8 +73,9 @@ int EnsembleIn_Multi::SetupEnsembleRead(FileName const& tnameIn, ArgList& argIn,
         mprinterr("Error: Could not read remlog data.\n");
         return 1;
       }
-      if (remlogFile.Type() != DataFile::REMLOG) {
-        mprinterr("Error: remlog: File was not of type remlog.\n");
+      if (tempDSL[0]->Type() != DataSet::REMLOG)
+      {
+        mprinterr("Error: remlog: File did not contain replica log data.\n");
         return 1;
       }
       if ( REMDtraj_.size() != tempDSL[0]->Size() ) {
