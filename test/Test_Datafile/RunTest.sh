@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles prec.in prec.dat a1.dat a1.agr
+CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat
 
 CheckNetcdf
 TOP="../tz2.truncoct.parm7"
