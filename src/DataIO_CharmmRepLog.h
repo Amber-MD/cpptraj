@@ -1,6 +1,5 @@
 #ifndef INC_DATAIO_CHARMMREPLOG_H
 #define INC_DATAIO_CHARMMREPLOG_H
-#include <map>
 #include "DataIO.h"
 /// Read CHARMM replica exchange log data.
 class DataIO_CharmmRepLog : public DataIO {
