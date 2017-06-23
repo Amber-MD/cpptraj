@@ -22,6 +22,7 @@
 #include "DataIO_Cmatrix.h"
 #include "DataIO_NC_Cmatrix.h"
 #include "DataIO_CharmmRepLog.h"
+#include "DataIO_CharmmFastRep.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -62,7 +63,8 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # else
   { "NetCDF Cluster matrix file", 0, 0, 0 },
 # endif
-  { "CHARMM REM log",     0,                       0,                        DataIO_CharmmRepLog::Alloc},
+  { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
+  { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
