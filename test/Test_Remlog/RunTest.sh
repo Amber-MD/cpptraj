@@ -15,7 +15,7 @@ remlog rem.log.1.save stats reptime mremdreptime.dat
 
 readdata ph.rem.log name PH
 runanalysis remlog PH out ph.repidx.agr repidx stats statsout ph.stats.dat \
-                   reptime ph.stats.dat name pHrem
+                   reptime ph.stats.dat name pHrem printtrips
 
 
 EOF
