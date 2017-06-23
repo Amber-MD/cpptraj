@@ -516,6 +516,7 @@ int DataIO_Std::WriteDataNormal(CpptrajFile& file, DataSetList const& Sets) {
   TextFormat x_col_format(XcolFmt());
   if (hasXcolumn_) {
     if (XcolPrecSet()) {
+      xcol_width = XcolWidth();
       x_col_format = TextFormat(XcolFmt(), XcolWidth(), XcolPrec());
     } else {
       // Create format string for X column based on dimension in first data set.
