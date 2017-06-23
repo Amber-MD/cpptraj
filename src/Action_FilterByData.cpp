@@ -2,11 +2,17 @@
 #include "CpptrajStdio.h"
 
 void Action_FilterByData::Help() const {
-  mprintf("\t<dataset arg> min <min> max <max> [out <file> [name <setname>]]\n"
-          "  For all following actions, only allow frames that are between <min>\n"
-          "  and <max> of data sets in <dataset arg>. There must be at least\n"
-          "  one <min> and <max> argument, and can be as many as there are\n"
-          "  specified data sets.\n");
+  mprintf("\t{<dataset arg> min <min> max <max> ...} [out <file>] [name <setname>]\n"
+          "\t[multi]\n"
+          "  This action has two modes. In the first mode, for all following actions\n"
+          "  only frames that are between <min> and <max> of all data sets selected\n"
+          "  by each <dataset arg> are allowed to pass. A data set with name <setname>\n"
+          "  will be created containing a 1 if the frame passed and 0 if the frame was\n"
+          "  filtered out.\n"
+          "  If 'multi' is specified then only filter data sets will be created for each\n"
+          "  data set instead.\n"
+          "  There must be at least one <min> and <max> argument, and can be as many as\n"
+          "  there are specified data sets.\n");
 }
 
 // Action_FilterByData::Init()
@@ -37,15 +43,13 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
               Min_.size(), Max_.size());
     return Action::ERR;
   }
-
   // Get DataSets from remaining arguments
   Dsets_.AddSetsFromArgs( actionArgs.RemainingArgs(), init.DSL() );
-
   if (Dsets_.empty()) {
     mprinterr("Error: No data sets specified.\n");
     return Action::ERR;
   }
-
+  // Check number of DataSets and min/max args.
   if ( Dsets_.size() < Min_.size() ) {
     mprinterr("Error: More 'min'/'max' args (%zu) than data sets (%zu).\n",
               Min_.size(), Dsets_.size());
@@ -80,13 +84,17 @@ Action::RetType Action_FilterByData::Init(ArgList& actionArgs, ActionInit& init,
     }
   }
 
-  mprintf("    FILTER: Filtering out frames using %zu data sets.\n", Dsets_.size());
+  mprintf("    FILTER:");
+  if (!multi_)
+    mprintf(" Filtering out frames using %zu data sets.\n", Dsets_.size());
+  else
+    mprintf(" Creating filter data sets for %zu data sets.\n", Dsets_.size());
   for (unsigned int ds = 0; ds < Dsets_.size(); ds++)
     mprintf("\t%.4f < '%s' < %.4f\n", Min_[ds], Dsets_[ds]->legend(), Max_[ds]);
   if (maxminfile != 0)
     mprintf("\tFilter frame info will be written to %s\n", maxminfile->DataFilename().full());
 # ifdef MPI
-  if (init.TrajComm().Size() > 1)
+  if (!multi_ && init.TrajComm().Size() > 1)
     mprintf("Warning: Trajectories written after 'filter' may have issues if\n"
             "Warning:   the number of threads writing is > 1 (currently %i threads)\n",
             init.TrajComm().Size());
@@ -100,7 +108,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
   static int ONE = 1;
   static int ZERO = 0;
   if (!multi_) {
-    // Check if frame is within max/min
+    // Check if frame is within max/min of every data set.
     for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     {
       double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
@@ -115,6 +123,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
     maxmin_->Add( frameNum, &ONE );
     Npassed_++;
   } else {
+    // For each data set 1 if within min/max, 0 otherwise.
     for (unsigned int ds = 0; ds < Dsets_.size(); ++ds)
     {
       double dVal = Dsets_[ds]->Dval(frm.TrajoutNum());
@@ -127,6 +136,7 @@ Action::RetType Action_FilterByData::DoAction(int frameNum, ActionFrame& frm)
   return Action::OK;
 }
 
+/** \return Minimum number of frames among all input data sets. */
 size_t Action_FilterByData::DetermineFrames() const {
   if (Dsets_.empty()) return 0;
   size_t nframes = Dsets_[0]->Size();
@@ -145,6 +155,7 @@ size_t Action_FilterByData::DetermineFrames() const {
   return nframes;
 }
 
+// Action_FilterByData::Print()
 void Action_FilterByData::Print() {
   if (!multi_) {
     mprintf("    FILTER: %i frames passed through, %i frames were filtered out.\n",
