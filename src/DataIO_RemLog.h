@@ -26,8 +26,6 @@ class DataIO_RemLog : public DataIO {
     int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
     /// Set up groups and dimensions from replica dim file
     int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&, ReplicaDimArray&);
-    /// Set up groups for single dimension.
-    int SetupDim1Group( int, DataSet_RemLog::GdimArray& );
 
     /// Set up replica temperature map
     TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
@@ -38,7 +36,6 @@ class DataIO_RemLog : public DataIO {
 
     /// Open replica logs for all dimensions.
     int OpenMremdDims(std::vector<BufferedLine>&, Sarray const&, LogType);
-    void PrintReplicaStats(DataSet_RemLog const&);
 
     Sarray logFilenames_; ///< Replica log file names.
     std::string dimfile_; ///< remd.dim file name

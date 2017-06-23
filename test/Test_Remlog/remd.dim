@@ -1,0 +1,14 @@
+Temperature REMD
+&multirem
+   exch_type = 'TEMPERATURE',
+   group(1,:) = 1,2,
+   group(2,:) = 3,4,
+   desc = 'Temperature exchange from 300K to 400K'
+/
+Hamiltonian REMD
+&multirem
+   exch_type='HAMILTONIAN',
+   group(1,:) = 1,3,
+   group(2,:) = 2,4,
+   desc = 'Protonated ASP to Deprotonated ASP mutation'
+/

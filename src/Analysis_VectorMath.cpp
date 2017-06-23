@@ -37,20 +37,25 @@ Analysis::RetType Analysis_VectorMath::Setup(ArgList& analyzeArgs, AnalysisSetup
   }
   std::string setname = analyzeArgs.GetStringKey("name");
   norm_ = analyzeArgs.hasKey("norm");
-  // Check for dotproduct/crossproduct keywords
+  // Check for dotproduct/crossproduct keywords. Default is dotproduct.
   DataOut_ = 0;
+  mode_ = DOTPRODUCT;
+  DataSet::DataType dtype = DataSet::DOUBLE;
+  const char* dname = "Dot";
   if (analyzeArgs.hasKey("dotproduct")) {
     mode_ = DOTPRODUCT;
-    if ((DataOut_ = setup.DSL().AddSet(DataSet::DOUBLE, setname, "Dot")) == 0) return Analysis::ERR;
   } else if (analyzeArgs.hasKey("dotangle")) {
     mode_ = DOTANGLE;
     norm_ = true; // Vecs must be normalized for angle calc to work
-    if ((DataOut_ = setup.DSL().AddSet(DataSet::DOUBLE, setname, "Angle")) == 0) return Analysis::ERR;
+    dname = "Angle";
   } else if (analyzeArgs.hasKey("crossproduct")) {
     mode_ = CROSSPRODUCT;
-    if ((DataOut_ = setup.DSL().AddSet(DataSet::VECTOR, setname, "Cross")) == 0) return Analysis::ERR;
-  } else
-    mode_ = DOTPRODUCT;
+    dtype = DataSet::VECTOR;
+    dname = "Cross";
+  }
+  // Set up output data set based on mode
+  DataOut_ = setup.DSL().AddSet(dtype, setname, dname);
+  if (DataOut_ == 0) return Analysis::ERR;
   // Set up output file in DataFileList if necessary
   DataFile* outfile = setup.DFL().AddDataFile( analyzeArgs.GetStringKey("out"), analyzeArgs );
   if (outfile != 0) outfile->AddDataSet( DataOut_ );

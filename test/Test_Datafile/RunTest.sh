@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles prec.in prec.dat a1.dat a1.agr
+CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat
 
 CheckNetcdf
 TOP="../tz2.truncoct.parm7"
@@ -35,6 +35,14 @@ quit
 EOF
 RunCpptraj "Grace -> Standard Data"
 DoTest ../Test_General/a1.dat.save a1.dat
+
+# xprec/xfmt
+cat > prec.in <<EOF
+readdata ../Test_General/a1.dat.save name A1
+writedata xprec.dat A1 xprec 16.7 xfmt scientific
+EOF
+RunCpptraj "X column format/precision test."
+DoTest xprec.dat.save xprec.dat
 
 EndTest
 

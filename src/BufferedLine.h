@@ -22,7 +22,7 @@ class BufferedLine : private CpptrajFile {
     }
     int LineNumber()          const { return nline_;          }
     const char* Buffer()      const { return buffer_;         }
-    // Pointer to current buffer position.
+    /// \return Pointer to current buffer position.
     const char* CurrentLine() const { return bufferPosition_; }
     inline std::string GetLine();
     // Members of CpptrajFile that should be public

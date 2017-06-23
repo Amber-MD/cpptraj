@@ -254,8 +254,10 @@ void Topology::Brief(const char* heading) const {
 int Topology::AddTopAtom(Atom const& atomIn, Residue const& resIn)
 {
   // If no residues or res num has changed, this is a new residue.
+  // TODO check chain ID?
   if ( residues_.empty() || 
        residues_.back().OriginalResNum() != resIn.OriginalResNum() ||
+       residues_.back().SegID() != resIn.SegID() ||
        residues_.back().Icode() != resIn.Icode() )
   {
     // Last atom of old residue is == current # atoms.

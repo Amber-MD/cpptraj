@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 # Clean
-CleanFiles filter.in filter.crd filter.dat
+CleanFiles filter.in filter.crd filter.dat datafilter.dat
 
 CheckNetcdf
 
@@ -25,6 +25,14 @@ EOF
 RunCpptraj "$TESTNAME"
 DoTest ../Test_Outtraj/maxmin.crd.save filter.crd
 DoTest filter.dat.save filter.dat
+
+# Data filter test
+cat > filter.in <<EOF
+readdata ../Test_Diffusion/diff_a.xmgr index 1 name A as dat
+datafilter A:2 A:3 min 0.0 max 1.2 out datafilter.dat multi name FA
+EOF
+RunCpptraj "Data filter test."
+DoTest datafilter.dat.save datafilter.dat
 
 EndTest
 

@@ -3,8 +3,8 @@
 #include <vector>
 #include "DataSet.h"
 #include "ReplicaDimArray.h"
-/** Store data from Amber REMD log. For each exchange, the replica index and
-  * coordinates index for each replica is stored. These indices start from 1.
+/** Store data from REMD log(s). For each exchange, the replica index and
+  * coordinates index for each replica is stored.
   */
 class DataSet_RemLog : public DataSet {
   public:
@@ -13,13 +13,12 @@ class DataSet_RemLog : public DataSet {
     /// Replica location in dimension
     enum LocationType { BOTTOM = 0, MIDDLE, TOP };
     // -------------------------------------------
-    /// Used to hold replica partner information.
+    /// Used to hold replica partner information. TODO may be redundant/only necessary for Amber remlog
     class GroupReplica;
     typedef std::vector<GroupReplica> GroupArray; ///< Used to hold rep partner info in a group 
     typedef std::vector<GroupArray> GroupDimType; ///< Used to hold group info in a dimension
-    typedef std::vector<GroupDimType> GdimArray;  ///< User to hold group info for all dimensions
+    typedef std::vector<GroupDimType> GdimArray;  ///< Used to hold group info for all dimensions
     GdimArray const& GroupDims() const { return groupDims_; }
-    //GdimArray& SetupGroupDims()        { return groupDims_; }
     // -------------------------------------------
     /// Hold topological info for replica in dimension.
     class RepInfo;
@@ -30,21 +29,29 @@ class DataSet_RemLog : public DataSet {
     /// Hold info for a single replica at one exchange.
     class ReplicaFrame;
     /// Add given replica frame to specified ensemble member.
-    void AddRepFrame(int rep, ReplicaFrame const& frm) { ensemble_[rep].push_back(frm); }
+    void AddRepFrame(int rep, ReplicaFrame const& frm)    { ensemble_[rep].push_back(frm); }
     /// \return replica frame at exchange in specified ensemble member.
     ReplicaFrame const& RepFrame(int exch, int rep) const { return ensemble_[rep][exch];  }
     /// \return replica frame at last exchange in specified ensemble member.
     ReplicaFrame const& LastRepFrame(int rep)       const { return ensemble_[rep].back(); }
-
+    /// \return Replica dimensions types array
     ReplicaDimArray const& DimTypes() const { return repDims_; }
-    /// Allocate for given # of replicas
-    void AllocateReplicas(int, GdimArray const&, RepInfoArray const&, ReplicaDimArray const&);
+    /// Set up replica dimension types
+    ReplicaDimArray& SetupDimTypes() { return repDims_; }
+    /// Allocate for given # of 1D replicas, dim type, offset, wrap, debug
+    void AllocateReplicas(int, ReplicaDimArray const&, int, bool, int);
+    /// Allocate for given # of replicas, dims, dim types, offset, wrap, debug
+    void AllocateReplicas(int, GdimArray const&, ReplicaDimArray const&, int, bool, int);
     /// \return number of exchanges
     int NumExchange() const;
     /// \return true if ensemble is valid.
     bool ValidEnsemble() const;
-    /// Trim last replica frame.
-    void TrimLastExchange(); 
+    /// Trim replica frames to minimum amongst all replicas.
+    void TrimLastExchange();
+    /// Print data to stdout
+    void PrintReplicaStats() const;
+    /// \return replica index offset
+    int Offset() const { return offset_; }
     
     // ----- DataSet routines --------------------
     size_t Size()                       const { return ensemble_.size(); }
@@ -57,15 +64,22 @@ class DataSet_RemLog : public DataSet {
     // TODO: Remove
     void Add( size_t, const void* ) { return;      }
     int Append(DataSet*) { return 1; }
+    // -------------------------------------------
   private:
     /// Hold info for all exchanges of a single replica.
     typedef std::vector<ReplicaFrame> ReplicaArray;
     /// Hold info for all exchanges of all replicas.
     typedef std::vector<ReplicaArray> ReplicaEnsemble;
+
+    /// Setup a single 1D group.
+    void SetupDim1Group(int);
+
     ReplicaEnsemble ensemble_; // [replica][exchange]
     GdimArray groupDims_;      // [dim][group][idx]
     RepInfoArray repInfo_;     // [replica][dim]
     ReplicaDimArray repDims_;  // [dim]
+    int offset_;               ///< Replica number offset
+    bool wrap_;                ///< If true highest rep can exchange with lowest
 };
 // ----- Public Class Definitions ----------------------------------------------
 class DataSet_RemLog::ReplicaFrame {
@@ -95,6 +109,7 @@ class DataSet_RemLog::ReplicaFrame {
     bool success_;   ///< Successfully exchanged?
 };
 
+/** For a single replica hold info on partners in a single group. */
 class DataSet_RemLog::GroupReplica {
   public:
     GroupReplica() : l_partner_(-1), me_(-1), r_partner_(-1) {}

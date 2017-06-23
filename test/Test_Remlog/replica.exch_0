@@ -1,0 +1,28 @@
+------------- Replica Exchange ------------
+REX>EXCHANGE =          1  Step =       500
+REX>REPL     =     0  Temp = 300.000  Epot =         -17.38015219
+REX>NEIGHBOR =    -1  Temp =   0.000  Epot =           0.00000000
+REX>ORIGINAL TAG     0 NEW TAG     0
+REX>PROB     =  0.00000 Rand =  0.37707 Tscale =  1.0000 Success = F
+------------- Replica Exchange End --------
+------------- Replica Exchange ------------
+REX>EXCHANGE =          2  Step =      1000
+REX>REPL     =     0  Temp = 300.000  Epot =         -18.13739839
+REX>NEIGHBOR =     1  Temp = 384.000  Epot =         -17.32410872
+REX>ORIGINAL TAG     0 NEW TAG     1
+REX>PROB     =  0.74199 Rand =  0.28377 Tscale =  0.8839 Success = T
+------------- Replica Exchange End --------
+------------- Replica Exchange ------------
+REX>EXCHANGE =          3  Step =      1500
+REX>REPL     =     0  Temp = 300.000  Epot =         -19.23612637
+REX>NEIGHBOR =    -1  Temp =   0.000  Epot =           0.00000000
+REX>ORIGINAL TAG     1 NEW TAG     1
+REX>PROB     =  0.00000 Rand =  0.56693 Tscale =  1.0000 Success = F
+------------- Replica Exchange End --------
+------------- Replica Exchange ------------
+REX>EXCHANGE =          4  Step =      2000
+REX>REPL     =     0  Temp = 300.000  Epot =         -18.35509292
+REX>NEIGHBOR =     1  Temp = 384.000  Epot =         -21.04251360
+REX>ORIGINAL TAG     1 NEW TAG     0
+REX>PROB     =  1.00000 Rand =  0.98285 Tscale =  0.8839 Success = T
+------------- Replica Exchange End --------

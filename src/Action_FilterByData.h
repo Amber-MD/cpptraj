@@ -16,11 +16,15 @@ class Action_FilterByData : public Action {
     Action::RetType Setup(ActionSetup&) { return Action::OK; }
     void Print();
 
+    typedef std::vector<DataSet*> DSarray;
+
     std::vector<double> Max_;
     std::vector<double> Min_;
     Array1D Dsets_;
+    DSarray outsets_;
     DataSet* maxmin_;
     int Npassed_;
     int Nfiltered_;
+    bool multi_;
 };
 #endif

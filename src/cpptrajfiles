@@ -158,6 +158,8 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         DataFileList.cpp \
         DataIO.cpp \
         DataIO_CCP4.cpp \
+        DataIO_CharmmFastRep.cpp \
+        DataIO_CharmmRepLog.cpp \
         DataIO_Cmatrix.cpp \
         DataIO_Evecs.cpp \
         DataIO_Gnuplot.cpp \
@@ -306,6 +308,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Traj_Binpos.cpp \
         Traj_CharmmCor.cpp \
         Traj_CharmmDcd.cpp \
+        Traj_CharmmRestart.cpp \
         Traj_CIF.cpp \
         Traj_Conflib.cpp \
         Traj_GmxTrX.cpp \

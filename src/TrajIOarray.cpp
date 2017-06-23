@@ -378,7 +378,9 @@ int TrajIOarray::SetupIOarray(ArgList& argIn, TrajFrameCounter& counter,
 
 // ----- RepName Class ---------------------------------------------------------
 // RepName CONSTRUCTOR
-TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) {
+TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) :
+  extChar_('.')
+{
   if (debugIn > 1)
     mprintf("\tREMDTRAJ: FileName=[%s]\n", fname.full());
   if ( fname.Ext().empty() ) {
@@ -399,6 +401,18 @@ TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) {
     mprintf("\tREMDTRAJ: Prefix=[%s], #Ext=[%s], CompressExt=[%s]\n",
             Prefix_.c_str(), ReplicaExt_.c_str(), CompressExt_.c_str());
   }
+  // CHARMM replica numbers are format <name>_<num>
+  if ( !validInteger(ReplicaExt_) ) {
+    size_t uscore = fname.Full().rfind('_');
+    if (uscore != std::string::npos) {
+      Prefix_.assign( fname.Full().substr(0, uscore) );
+      ReplicaExt_.assign( fname.Full().substr(uscore+1) );
+      extChar_ = '_';
+      if (debugIn > 0)
+        mprintf("\tREMDTRAJ: CHARMM style replica names detected, prefix='%s' ext='%s'\n",
+                Prefix_.c_str(), ReplicaExt_.c_str());
+    }
+  }
   // Check that the numerical extension is valid.
   if ( !validInteger(ReplicaExt_) ) {
     mprinterr("Error: Replica extension [%s] is not an integer.\n", ReplicaExt_.c_str());
@@ -418,7 +432,7 @@ TrajIOarray::RepName::RepName(FileName const& fname, int debugIn) {
 /** \return Replica file name for given offset from lowest replica number. */
 FileName TrajIOarray::RepName::RepFilename(int offset) const {
   FileName trajFilename;
-  trajFilename.SetFileName_NoExpansion( Prefix_ + "." +
+  trajFilename.SetFileName_NoExpansion( Prefix_ + extChar_ +
                                         integerToString(lowestRepnum_ + offset, ExtWidth_) +
                                         CompressExt_ );
   return trajFilename;

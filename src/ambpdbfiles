@@ -63,6 +63,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               Traj_AmberRestartNC.cpp \
               Traj_CharmmCor.cpp \
               Traj_CharmmDcd.cpp \
+              Traj_CharmmRestart.cpp \
               Traj_GmxTrX.cpp \
               Traj_GmxXtc.cpp \
               Traj_Gro.cpp \

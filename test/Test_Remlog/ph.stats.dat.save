@@ -1,0 +1,50 @@
+[0] CRDIDX 4 took 4 exchanges to travel up and down (exch 1 to 5)
+[0] CRDIDX 3 took 4 exchanges to travel up and down (exch 2 to 6)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 3 to 7)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 4 to 8)
+[0] CRDIDX 4 took 4 exchanges to travel up and down (exch 5 to 9)
+[0] CRDIDX 3 took 4 exchanges to travel up and down (exch 6 to 10)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 8 to 12)
+[0] CRDIDX 4 took 4 exchanges to travel up and down (exch 9 to 13)
+[0] CRDIDX 2 took 7 exchanges to travel up and down (exch 7 to 14)
+[0] CRDIDX 3 took 5 exchanges to travel up and down (exch 10 to 15)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 12 to 16)
+[0] CRDIDX 4 took 4 exchanges to travel up and down (exch 13 to 17)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 14 to 18)
+[0] CRDIDX 3 took 4 exchanges to travel up and down (exch 15 to 19)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 16 to 20)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 18 to 22)
+[0] CRDIDX 4 took 6 exchanges to travel up and down (exch 17 to 23)
+[0] CRDIDX 1 took 5 exchanges to travel up and down (exch 20 to 25)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 22 to 26)
+[0] CRDIDX 4 took 4 exchanges to travel up and down (exch 23 to 27)
+[0] CRDIDX 3 took 9 exchanges to travel up and down (exch 19 to 28)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 26 to 30)
+[0] CRDIDX 1 took 6 exchanges to travel up and down (exch 25 to 31)
+[0] CRDIDX 3 took 5 exchanges to travel up and down (exch 28 to 33)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 30 to 34)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 31 to 35)
+[0] CRDIDX 4 took 9 exchanges to travel up and down (exch 27 to 36)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 34 to 38)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 35 to 39)
+[0] CRDIDX 3 took 7 exchanges to travel up and down (exch 33 to 40)
+[0] CRDIDX 4 took 5 exchanges to travel up and down (exch 36 to 41)
+[0] CRDIDX 2 took 4 exchanges to travel up and down (exch 38 to 42)
+[0] CRDIDX 1 took 7 exchanges to travel up and down (exch 39 to 46)
+[0] CRDIDX 2 took 5 exchanges to travel up and down (exch 42 to 47)
+[0] CRDIDX 3 took 8 exchanges to travel up and down (exch 40 to 48)
+[0] CRDIDX 4 took 8 exchanges to travel up and down (exch 41 to 49)
+[0] CRDIDX 1 took 4 exchanges to travel up and down (exch 46 to 50)
+# 4 replicas, 50 exchanges.
+#Round-trip stats:
+#CRDIDX   RndTrips     AvgExch.     SD_Exch.          Min          Max
+1              10       4.6000       1.0198            4            7
+2              10       4.4000       0.9165            4            7
+3               8       5.7500       1.8540            4            9
+4               9       5.3333       1.8257            4            9
+#Percent time spent at each replica:
+#Replica CRD_0001 CRD_0002 CRD_0003 CRD_0004
+       1   24.000   24.000   24.000   28.000
+       2   24.000   24.000   24.000   28.000
+       3   24.000   26.000   28.000   22.000
+       4   28.000   26.000   24.000   22.000

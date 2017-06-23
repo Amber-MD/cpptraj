@@ -39,6 +39,8 @@ class TrajIOarray {
     const char* f_name(unsigned int u)     const { return replica_filenames_[u].full(); }
     /// 'remdout' deprecated error message.
     static const char* DEPRECATED_remdout;
+    /// Set debug level
+    void SetDebug(int d) { debug_ = d; }
   private:
     /// Used for replica filename searching.
     class RepName;
@@ -62,7 +64,7 @@ class TrajIOarray {
 /** Given lowest replica traj filename, split into components for search. */
 class TrajIOarray::RepName {
   public:
-    RepName() : ExtWidth_(0), lowestRepnum_(-1) {}
+    RepName() : ExtWidth_(0), lowestRepnum_(-1), extChar_('.') {}
     RepName(FileName const&, int);
     bool Error() const { return Prefix_.empty(); }
     /// \return Replica file name for given offset from lowest replica number.
@@ -73,5 +75,6 @@ class TrajIOarray::RepName {
     std::string CompressExt_; ///< Optional compression extension after numerical extension.
     int ExtWidth_;            ///< Width of the numerical extension. TODO remove
     int lowestRepnum_;        ///< Integer value of numerical extension.
+    char extChar_;            ///< Character preceding numerical extension
 };
 #endif
