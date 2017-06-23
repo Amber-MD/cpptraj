@@ -23,9 +23,17 @@ void Analysis_RemLog::Help() const {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
+          "\t[edata <set name> edataout <file>\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
-          "  Analyze previously read in replica log data.\n");
+          "  Analyze previously read in replica log data. The 'stats' keyword enables\n"
+          "  calculation of replica residence and round trip times. Overall exchange\n"
+          "  acceptance will be calculated and optionally written out to file specified\n"
+          "  by 'acceptout'. The 'reptimeslope' option can be used as a crude estimate of\n"
+          "  replica convergence by calculating the slope of coordinate residence at\n"
+          "  each replica vs number of exchanges; this should converge to 0. The 'edata'\n"
+          "  option can be used to extract replica energies from the logs into data sets\n"
+          "  for further analysis.\n");
 }
 
 // Analysis_RemLog::Setup()
@@ -106,7 +114,7 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
     }
     MetaData md(dsname_);
     for (int i = 0; i < (int)remlog_->Size(); i++) {
-      md.SetIdx(i+1);
+      md.SetIdx(i+remlog_->Offset());
       DataSet_integer* ds = (DataSet_integer*)setup.DSL().AddSet(DataSet::INTEGER, md);
       if (ds == 0) return Analysis::ERR;
       outputDsets_.push_back( (DataSet*)ds );
@@ -161,6 +169,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
                                                    it != replicaFrac.end(); ++it)
       it->resize( remlog_->Size(), 0 );
   }
+  int offset = remlog_->Offset();
   // Variables for calculating replica lifetimes
   Analysis_Lifetime Lifetime;
   Array1D dsLifetime;
@@ -173,7 +182,7 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       series[i].resize( remlog_->Size() );
       for (unsigned int j = 0; j < remlog_->Size(); j++) {
         series[i][j].Resize( remlog_->NumExchange() );
-        series[i][j].SetLegend("Rep"+integerToString(i+1)+",Crd"+integerToString(j+1));
+        series[i][j].SetLegend("Rep"+integerToString(i+offset)+",Crd"+integerToString(j+offset));
         dsLifetime.push_back( (DataSet_1D*)&(series[i][j]) );
       }
     }
@@ -188,11 +197,10 @@ Analysis::RetType Analysis_RemLog::Analyze() {
     mesh.CalculateMeshX( remlog_->Size(), 1, remlog_->Size() );
     repFracSlope_->Printf("%-8s", "#Exchg");
     for (int crdidx = 0; crdidx < (int)remlog_->Size(); crdidx++)
-      repFracSlope_->Printf("  C%07i_slope C%07i_corel", crdidx + 1, crdidx + 1);
+      repFracSlope_->Printf("  C%07i_slope C%07i_corel", crdidx + offset, crdidx + offset);
     repFracSlope_->Printf("\n");
   }
 
-  int offset = remlog_->Offset();
   ProgressBar progress( remlog_->NumExchange() );
   // Loop over all exchanges
   for (int frame = 0; frame < remlog_->NumExchange(); frame++) {

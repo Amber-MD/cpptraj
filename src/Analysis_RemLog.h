@@ -45,6 +45,7 @@ class Analysis_RemLog : public Analysis {
     DataSet_RemLog* remlog_;
     ModeType mode_;
     std::vector<DataSet*> outputDsets_;
+    std::vector<DataSet*> eSets_;  ///< Hold energies extracted from replica logs
     DataFile* lifetimes_;
     CpptrajFile* statsout_;
     CpptrajFile* reptime_;
