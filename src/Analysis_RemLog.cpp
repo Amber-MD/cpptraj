@@ -23,7 +23,7 @@ void Analysis_RemLog::Help() const {
   mprintf("\t{<remlog dataset> | <remlog filename>} [out <filename>] [crdidx | repidx]\n"
           "\t[stats [statsout <file>] [printtrips] [reptime <file>]] [lifetime <file>]\n"
           "\t[reptimeslope <n> reptimeslopeout <file>] [acceptout <file>] [name <setname>]\n"
-          "\t[edata <set name> edataout <file>\n"
+          "\t[edata [edataout <file>]]\n"
           "    crdidx: Print coordinate index vs exchange; output sets contain replica indices.\n"
           "    repidx: Print replica index vs exchange; output sets contain coordinate indices.\n"
           "  Analyze previously read in replica log data. The 'stats' keyword enables\n"
@@ -33,7 +33,7 @@ void Analysis_RemLog::Help() const {
           "  replica convergence by calculating the slope of coordinate residence at\n"
           "  each replica vs number of exchanges; this should converge to 0. The 'edata'\n"
           "  option can be used to extract replica energies from the logs into data sets\n"
-          "  for further analysis.\n");
+          "  named '<setname>[E]' for further analysis.\n");
 }
 
 // Analysis_RemLog::Setup()
@@ -102,6 +102,8 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   dsname_ = analyzeArgs.GetStringKey("name");
   if ((mode_ != NONE || calculateLifetimes_) && dsname_.empty())
     dsname_ = setup.DSL().GenerateDefaultName(def_name);
+  bool edata = analyzeArgs.hasKey("edata");
+  std::string edataout  = analyzeArgs.GetStringKey("edataout");
   // Set up an output set for each replica
   DataFile* dfout = 0;
   if (mode_ != NONE) {
@@ -122,6 +124,20 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
       ds->Resize( remlog_->NumExchange() ); 
     }
   }
+  // Set up output energy data sets/file
+  if (edata) {
+    DataFile* eout = setup.DFL().AddDataFile( edataout, analyzeArgs );
+    MetaData md(dsname_, "E");
+    for (int i = 0; i < (int)remlog_->Size(); i++) {
+      md.SetIdx(i+remlog_->Offset());
+      DataSet* ds = setup.DSL().AddSet(DataSet::DOUBLE, md);
+      if (ds == 0) return Analysis::ERR;
+      eSets_.push_back( ds );
+      if (eout != 0) eout->AddDataSet( ds );
+      ds->Allocate( DataSet::SizeArray(1, remlog_->NumExchange()) );
+    }
+  }
+
   mprintf("   REMLOG: %s, %i replicas, %i exchanges\n", remlog_->legend(),
           remlog_->Size(), remlog_->NumExchange());
   if (mode_ == CRDIDX)
@@ -141,6 +157,12 @@ Analysis::RetType Analysis_RemLog::Setup(ArgList& analyzeArgs, AnalysisSetup& se
   if (acceptout_ != 0)
     mprintf("\tOverall exchange acceptance % will be written to %s\n",
             acceptout_->Filename().full());
+  if (!eSets_.empty()) {
+    mprintf("\tPotential energies from replica log will be saved to sets named '%s[E]'\n",
+            eSets_[0]->Meta().Name().c_str());
+    if (!edataout.empty())
+      mprintf("\tPotential energies will be written to '%s'\n", edataout.c_str());
+  }
 
   return Analysis::OK;
 }
@@ -211,6 +233,11 @@ Analysis::RetType Analysis_RemLog::Analyze() {
       int crdidx = frm.CoordsIdx() - offset;
       int repidx = frm.ReplicaIdx() - offset;
       int dim = frm.Dim();
+      // Replica energy
+      if (!eSets_.empty()) {
+        double PE = frm.PE_X1();
+        eSets_[repidx]->Add( frame, &PE );
+      }
       // Exchange acceptance.
       // NOTE: Because currently the direction of the attempt is not always
       //       known unless the attempt succeeds for certain remlog types,
