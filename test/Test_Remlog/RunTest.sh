@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles log.in trepidx.agr mremdreptime.dat ph.repidx.agr ph.stats.dat \
-           accept.dat tcharmm.accept.dat
+           accept.dat tcharmm.accept.dat tcharmm.edata.dat
 
 INPUT="-i log.in"
 cat > log.in <<EOF
@@ -18,7 +18,8 @@ runanalysis remlog PH out ph.repidx.agr repidx stats statsout ph.stats.dat \
                    reptime ph.stats.dat name pHrem printtrips
 
 readdata replica.exch_0 nrep 4 name Tcharmm
-remlog Tcharmm acceptout tcharmm.accept.dat
+remlog Tcharmm acceptout tcharmm.accept.dat \
+       edata edataout tcharmm.edata.dat name Charmm
 
 EOF
 RunCpptraj "Replica log read/analyze test."
@@ -28,6 +29,7 @@ DoTest mremdreptime.dat.save mremdreptime.dat
 DoTest ph.repidx.agr.save ph.repidx.agr
 DoTest ph.stats.dat.save ph.stats.dat
 DoTest tcharmm.accept.dat.save tcharmm.accept.dat
+DoTest tcharmm.edata.dat.save tcharmm.edata.dat
 
 EndTest
 exit 0
