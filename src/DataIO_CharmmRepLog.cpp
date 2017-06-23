@@ -2,17 +2,14 @@
 #include "DataIO_CharmmRepLog.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "BufferedLine.h"
+#include "DataSet_RemLog.h"
 
 // CONSTRUCTOR
 DataIO_CharmmRepLog::DataIO_CharmmRepLog()
 {
   SetValid( DataSet::REMLOG );
 }
-
-// NOTE: Must match LogType
-const char* DataIO_CharmmRepLog::LogDescription[] = {
-  "Unknown", "Temperature", "Hamiltonian", "MultipleDim", "RXSGLD", "pH"
-};
 
 bool DataIO_CharmmRepLog::ID_DataFormat(CpptrajFile& infile) {
   // Assume file set up for read
