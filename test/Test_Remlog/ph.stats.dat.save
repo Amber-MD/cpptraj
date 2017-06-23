@@ -1,0 +1,13 @@
+# 4 replicas, 50 exchanges.
+#Round-trip stats:
+#CRDIDX   RndTrips     AvgExch.     SD_Exch.          Min          Max
+1              10       4.6000       1.0198            4            7
+2              10       4.4000       0.9165            4            7
+3               8       5.7500       1.8540            4            9
+4               9       5.3333       1.8257            4            9
+#Percent time spent at each replica:
+#Replica CRD_0001 CRD_0002 CRD_0003 CRD_0004
+       1   24.000   24.000   24.000   28.000
+       2   24.000   24.000   24.000   28.000
+       3   24.000   26.000   28.000   22.000
+       4   28.000   26.000   24.000   22.000
