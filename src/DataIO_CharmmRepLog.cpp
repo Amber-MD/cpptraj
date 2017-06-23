@@ -31,11 +31,7 @@ bool DataIO_CharmmRepLog::ID_DataFormat(CpptrajFile& infile) {
 
 // DataIO_CharmmRepLog::ReadHelp()
 void DataIO_CharmmRepLog::ReadHelp() {
-  mprintf("\tnosearch            : Do not automatically search for MREMD dimension logs.\n"
-          "\tdimfile <file>      : remd.dim file for processing MREMD logs.\n"
-          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
-          "\t                      coordinate indices.\n"
-          "\tMultiple REM logs may be specified.\n");
+  mprintf("\tnrep <#> : Number of replicas.\n");
 }
 
 // DataIO_CharmmRepLog::processReadArgs()
