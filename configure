@@ -114,7 +114,7 @@ int main() {
 }
 #endif
 EOF
-    $CXX -o testp $OMPFLAGS testp.cpp > /dev/null 2> /dev/null
+    $CXX -o testp $OMPFLAGS testp.cpp > /dev/null 2> compile.err
     ERR=$?
     if [[ $ERR -eq 0 ]] ; then
       ./testp | grep "Testing" > /dev/null
@@ -122,9 +122,10 @@ EOF
     fi
     if [[ $ERR -ne 0 ]] ; then
       echo "Error: OpenMP not supported for compiler $CXX"
+      cat compile.err
       exit 1
     fi
-    /bin/rm -f testp testp.cpp
+    /bin/rm -f testp testp.cpp compile.err
   fi
 }
 
@@ -139,7 +140,7 @@ TestCxxProgram() {
   if [[ $status -gt 0 ]] ; then
       CompileError "$COMPILELINE"
   fi
-  /bin/rm -f testp.cpp testp
+  /bin/rm -f testp.cpp testp compile.err
   echo "  OK"
 }
 
@@ -316,7 +317,7 @@ EOF
             CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
             CXXFLAGS=$CXXFLAGS" $SANDERINC -DUSE_SANDERLIB"
           fi
-          /bin/rm -f testp.cpp testp
+          /bin/rm -f testp.cpp testp compile.err
         else
           # No check
           CPPTRAJ_LIB=$CPPTRAJ_LIB" $SANDERLIB"
@@ -350,7 +351,7 @@ EOF
   if [[ $status -gt 0 ]] ; then
       CompileError "$CC $CFLAGS"
   fi
-  /bin/rm -f testp.c testp
+  /bin/rm -f testp.c testp compile.err
   echo "  OK"
   # C++
   echo "Testing C++ compiler:"
@@ -364,7 +365,7 @@ EOF
   if [[ $status -gt 0 ]] ; then
       CompileError "$CXX $CXXFLAGS"
   fi
-  /bin/rm -f testp.cpp testp
+  /bin/rm -f testp.cpp testp compile.err
   echo "  OK"
   # Fortran - only needed if pub_fft.F90 needs to be compiled.
   if [[ ! -z $FFT_DEPEND ]] ; then
@@ -380,7 +381,7 @@ EOF
     if [[ $status -gt 0 ]] ; then
         CompileError "$FC $FFLAGS"
     fi
-    /bin/rm -f testp.f testp
+    /bin/rm -f testp.f testp compile.err
     echo "  OK"
   fi
 }
@@ -451,6 +452,19 @@ SetCompilerOptions() {
       PICFLAG="-fpic"
       ;;
     * ) echo "Error: Unknown compilers: $1" > /dev/stderr ; exit 1 ;;
+  esac
+}
+
+#-------------------------------------------------------------------------------
+# Check any compiler version-specific stuff
+CheckCompilerVersion() {
+  case "$1" in
+    "intel" )
+      MAJOR_V=`$CXX -v 2>&1 | awk '{print $3}' | cut -d'.' -f1`
+      if [ $MAJOR_V -ge 16 ] ; then
+        OMPFLAGS='-qopenmp'
+      fi
+      ;;
   esac
 }
 
@@ -869,6 +883,8 @@ if [[ -z $COMPILERS ]] ; then
   fi
 fi
 SetCompilerOptions $COMPILERS
+
+CheckCompilerVersion $COMPILERS
 
 # Check that OpenMP will work if it was specified
 TestOpenMP
