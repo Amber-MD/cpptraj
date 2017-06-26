@@ -74,6 +74,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_SymmetricRmsd.cpp \
         Action_Temperature.cpp \
         Action_Translate.cpp \
+        Action_Unimage.cpp \
         Action_Unstrip.cpp \
         Action_Unwrap.cpp \
         Action_Vector.cpp \
