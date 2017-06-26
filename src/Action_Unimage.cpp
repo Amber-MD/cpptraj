@@ -118,6 +118,7 @@ Action::RetType Action_Unimage::DoAction(int frameNum, ActionFrame& frm)
   } else {
     Vec3 currXYZ, prevXYZ;
     boxCenter_ = frm.Frm().BoxCrd().Center();
+    boxCenter_.Print("boxTrans");
     // Calculate matrices if necessary
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
     // Perform unwrapping
@@ -144,10 +145,13 @@ Action::RetType Action_Unimage::DoAction(int frameNum, ActionFrame& frm)
         // and adjust the current position.
         if      (delx >  boxCenter_[0]) boxTrans_[0] = -frm.Frm().BoxCrd().BoxX();
         else if (delx < -boxCenter_[0]) boxTrans_[0] =  frm.Frm().BoxCrd().BoxX();
+        else                            boxTrans_[0] = 0.0;
         if      (dely >  boxCenter_[1]) boxTrans_[1] = -frm.Frm().BoxCrd().BoxY();
         else if (dely < -boxCenter_[1]) boxTrans_[1] =  frm.Frm().BoxCrd().BoxY();
+        else                            boxTrans_[1] = 0.0;
         if      (delz >  boxCenter_[2]) boxTrans_[2] = -frm.Frm().BoxCrd().BoxZ();
         else if (delz < -boxCenter_[2]) boxTrans_[2] =  frm.Frm().BoxCrd().BoxZ();
+        else                            boxTrans_[2] = 0.0;
       } else {
         // ----- Non-orthorhombic imaging --------
         // If the element moved more than half the box, assume it was imaged.
@@ -186,6 +190,8 @@ Action::RetType Action_Unimage::DoAction(int frameNum, ActionFrame& frm)
           boxTrans_[2] = minCurr[2] - currXYZ[2];
         }
       }
+      mprintf("DBG: %8i - %8i delx=%8.3f dely=%8.3f delz=%8.3f trans={%8.3f %8.3f %8.3f}\n",
+              *ap + 1, *(ap+1), delx, dely, delz, boxTrans_[0], boxTrans_[1], boxTrans_[2]);
       // Move each atom of the element
       frm.ModifyFrm().Translate(boxTrans_, *ap, *(ap+1));
       // Save the new positions
