@@ -36,10 +36,23 @@ Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
     mprintf("Warning: No atoms selected.\n");
     return Action::SKIP;
   }
+  // Figure out the first and last selected atoms.
+  firstSelected_ = -1;
+  lastSelected_ = -1;
+  for (int at = 0; at != setup.Top().Natom(); at++) {
+    if (mask_.AtomInCharMask( at )) {
+      if (firstSelected_ == -1)
+        firstSelected_ = at;
+      lastSelected_ = at;
+    }
+  }
+  mprintf("\tFirst selected atom %i, last selected atom %i\n", firstSelected_+1, lastSelected_+1);
   // Set up imaging info for this parm
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
 
   CurrentParm_ = setup.TopAddress();
+
+  atomVisited_.assign( lastSelected_+1, false );
 
   return Action::OK;
 }
@@ -60,27 +73,34 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
   // is moved then the atoms it is bonded to must move as well.
   std::stack<unsigned int> nextAtomToSearch;
   Topology const& Top = *CurrentParm_;
-  unsigned int Natoms = (unsigned int)Top.Natom();
-  std::vector<bool> atomVisited( Natoms, false );
+  unsigned int Natoms = (unsigned int)lastSelected_ + 1;
+  // Set any unselected atoms to true so they will be skipped, all others
+  // to false.
+  for (unsigned int i = 0; i != Natoms; i++)
+    if ( mask_.AtomInCharMask(i) )
+      atomVisited_[i] = false;
+    else
+      atomVisited_[i] = true;
+  
   bool uncheckedAtomsRemain = true;
-  unsigned int currentAtom = 0;
-  unsigned int lowestUnassignedAtom = 0;
+  unsigned int currentAtom = (unsigned int)firstSelected_;
+  unsigned int lowestUnassignedAtom = currentAtom;
   // BEGIN main loop
   while (uncheckedAtomsRemain) {
-    atomVisited[currentAtom] = true;
+    atomVisited_[currentAtom] = true;
     Atom const& AT = Top[currentAtom];
     Vec3 currXYZ( frm.Frm().XYZ( currentAtom ) );
     mprintf("ANCHOR: %i\n", currentAtom);
     // All atoms bonded to this one are in molecule.
     for (Atom::bond_iterator batom = AT.bondbegin(); batom != AT.bondend(); ++batom)
     {
-      if (!atomVisited[*batom]) {
+      if (!atomVisited_[*batom]) {
         if ( Top[*batom].Nbonds() > 1 )
           // Bonded atom has more than 1 bond; needs to be searched.
           nextAtomToSearch.push( *batom );
         else
           // Bonded atom only bonded to current atom. No more search needed.
-          atomVisited[*batom] = true;
+          atomVisited_[*batom] = true;
         // Check if bonded atom is too far away
         Vec3 bondXYZ( frm.Frm().XYZ( *batom ) );
         Vec3 delta = bondXYZ - currXYZ;
@@ -124,7 +144,7 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
       // No more atoms to search. Find next unmarked atom.
       unsigned int idx = lowestUnassignedAtom;
       for (; idx != Natoms; idx++)
-        if (!atomVisited[idx]) break;
+        if (!atomVisited_[idx]) break;
       if (idx == Natoms)
         uncheckedAtomsRemain = false;
       else {
