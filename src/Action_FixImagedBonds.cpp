@@ -4,7 +4,9 @@
 
 // Action_FixImagedBonds::Help()
 void Action_FixImagedBonds::Help() const {
-
+  mprintf("\t[<mask>]\n"
+          "  Attempt to fix bonds which have been distorted due to imaging artifacts.\n"
+          "  It may be desirable to reimage the coordinates after this with 'autoimage'.\n");
 }
 
 // Action_FixImagedBonds::Init()
@@ -12,10 +14,9 @@ Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& ini
 {
   // Always image
   image_.InitImaging( true );
-
   mask_.SetMaskString( actionArgs.GetMaskNext() );
 
-  mprintf("\tChecking all bonds selected by mask '%s'\n", mask_.MaskString());
+  mprintf("    FIXIMAGEDBONDS: Checking all bonds selected by mask '%s'\n", mask_.MaskString());
 
   return Action::OK;
 }
@@ -90,7 +91,7 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
     atomVisited_[currentAtom] = true;
     Atom const& AT = Top[currentAtom];
     Vec3 currXYZ( frm.Frm().XYZ( currentAtom ) );
-    mprintf("ANCHOR: %i\n", currentAtom);
+    //mprintf("ANCHOR: %i\n", currentAtom);
     // All atoms bonded to this one are in molecule.
     for (Atom::bond_iterator batom = AT.bondbegin(); batom != AT.bondend(); ++batom)
     {
@@ -131,12 +132,12 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
           while (fdelta[2] >  0.5) { fdelta[2] -= 1.0; boxTrans[2] -= 1.0; }
           while (fdelta[2] < -0.5) { fdelta[2] += 1.0; boxTrans[2] += 1.0; }
           boxTrans = ucell_.TransposeMult( boxTrans );
-          delta = ucell_.TransposeMult( fdelta ); // DEBUG
+//          delta = ucell_.TransposeMult( fdelta ); // DEBUG
         }
         // Translate the atom
-        if (boxTrans[0] != 0.0 || boxTrans[1] != 0.0 || boxTrans[2] != 0.0)
-          mprintf("\tMove atom %6i d={%8.3g %8.3g %8.3g} t={%8.3g %8.3g %8.3g}\n",
-                  *batom, delta[0], delta[1], delta[2], boxTrans[0], boxTrans[1], boxTrans[2]);
+//        if (boxTrans[0] != 0.0 || boxTrans[1] != 0.0 || boxTrans[2] != 0.0)
+//          mprintf("\tMove atom %6i d={%8.3g %8.3g %8.3g} t={%8.3g %8.3g %8.3g}\n",
+//                  *batom, delta[0], delta[1], delta[2], boxTrans[0], boxTrans[1], boxTrans[2]);
         frm.ModifyFrm().Translate(boxTrans, *batom);
       } // END if not visited
     } // END loop over bonded atoms
