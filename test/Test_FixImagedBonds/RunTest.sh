@@ -18,16 +18,15 @@ EOF
   DoTest fixed.rst7.save fixed.rst7
 fi
 
-MaxThreads 1 "Fix imaged bonds test (Non-ortho.)."
+MaxThreads 10 "Fix imaged bonds test (Non-ortho.)."
 if [ $? -eq 0 ] ; then
   cat > fix.in <<EOF
 parm ../tz2.truncoct.parm7
-
-loadcrd ../tz2.truncoct.nc name TZ2
-crdaction TZ2 strip :WAT
-crdaction TZ2 image byatom
-crdaction TZ2 fiximagedbonds
-crdout TZ2 unimage.crd
+trajin ../tz2.truncoct.nc
+strip :WAT
+image byatom
+fiximagedbonds
+trajout unimage.crd
 EOF
   RunCpptraj "Fix imaged bonds test (Non-ortho.)."
   DoTest unimage.crd.save unimage.crd
