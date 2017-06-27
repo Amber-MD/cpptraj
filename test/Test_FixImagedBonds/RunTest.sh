@@ -23,9 +23,9 @@ if [ $? -eq 0 ] ; then
   cat > fix.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
-strip :WAT
 image byatom
-fiximagedbonds
+fiximagedbonds :1-13
+strip :WAT
 trajout unimage.crd
 EOF
   RunCpptraj "Fix imaged bonds test (Non-ortho.)."
