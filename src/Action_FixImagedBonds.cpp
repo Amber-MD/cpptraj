@@ -1,14 +1,14 @@
 #include <stack>
-#include "Action_Unimage.h"
+#include "Action_FixImagedBonds.h"
 #include "CpptrajStdio.h"
 
-// Action_Unimage::Help()
-void Action_Unimage::Help() const {
+// Action_FixImagedBonds::Help()
+void Action_FixImagedBonds::Help() const {
 
 }
 
-// Action_Unimage::Init()
-Action::RetType Action_Unimage::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
+// Action_FixImagedBonds::Init()
+Action::RetType Action_FixImagedBonds::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Always image
   image_.InitImaging( true );
@@ -20,8 +20,8 @@ Action::RetType Action_Unimage::Init(ArgList& actionArgs, ActionInit& init, int 
   return Action::OK;
 }
 
-// Action_Unimage::Setup()
-Action::RetType Action_Unimage::Setup(ActionSetup& setup)
+// Action_FixImagedBonds::Setup()
+Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
 {
   // Need box info
   if (setup.CoordInfo().TrajBox().Type()==Box::NOBOX) {
@@ -44,8 +44,8 @@ Action::RetType Action_Unimage::Setup(ActionSetup& setup)
   return Action::OK;
 }
 
-// Action_Unimage::DoAction()
-Action::RetType Action_Unimage::DoAction(int frameNum, ActionFrame& frm)
+// Action_FixImagedBonds::DoAction()
+Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
 {
   Box const& box = frm.Frm().BoxCrd();
   // Calculate box info needed for imaging based on cell type

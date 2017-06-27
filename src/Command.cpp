@@ -125,7 +125,7 @@
 #include "Action_Align.h"
 #include "Action_Remap.h"
 #include "Action_HydrogenBond.h"
-#include "Action_Unimage.h"
+#include "Action_FixImagedBonds.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -272,6 +272,7 @@ void Command::Init() {
   Command::AddCmd( new Action_Esander(),       Cmd::ACT, 1, "esander" );
   Command::AddCmd( new Action_FilterByData(),  Cmd::ACT, 1, "filter" );
   Command::AddCmd( new Action_FixAtomOrder(),  Cmd::ACT, 1, "fixatomorder" );
+  Command::AddCmd( new Action_FixImagedBonds(),Cmd::ACT, 1, "fiximagedbonds" );
   Command::AddCmd( new Action_GIST(),          Cmd::ACT, 1, "gist" );
   Command::AddCmd( new Action_GridFreeEnergy(),Cmd::ACT, 1, "gfe" ); // HIDDEN
   Command::AddCmd( new Action_Grid(),          Cmd::ACT, 1, "grid" );
@@ -315,7 +316,6 @@ void Command::Init() {
   Command::AddCmd( new Action_Temperature(),   Cmd::ACT, 1, "temperature" );
   Command::AddCmd( new Action_Translate(),     Cmd::ACT, 2, "trans", "translate" );
   Command::AddCmd( new Action_Unstrip(),       Cmd::ACT, 1, "unstrip" );
-  Command::AddCmd( new Action_Unimage(),       Cmd::ACT, 1, "unimage" );
   Command::AddCmd( new Action_Unwrap(),        Cmd::ACT, 1, "unwrap" );
   Command::AddCmd( new Action_Vector(),        Cmd::ACT, 1, "vector" );
   Command::AddCmd( new Action_VelocityAutoCorr(),Cmd::ACT,1,"velocityautocorr" );

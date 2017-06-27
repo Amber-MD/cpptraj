@@ -1,13 +1,12 @@
-#ifndef INC_ACTION_UNIMAGE_H
-#define INC_ACTION_UNIMAGE_H
+#ifndef INC_ACTION_FIXIMAGEDBONDS_H
+#define INC_ACTION_FIXIMAGEDBONDS_H
 #include "Action.h"
 #include "ImagedAction.h"
-/// <Enter description of Action_Unimage here>
-class Action_Unimage : public Action {
+/// <Enter description of Action_FixImagedBonds here>
+class Action_FixImagedBonds : public Action {
   public:
-    //Action_Unimage() : natoms_(0), useCenter_(false) {}
-    Action_Unimage() {}
-    DispatchObject* Alloc() const { return (DispatchObject*)new Action_Unimage(); }
+    Action_FixImagedBonds() {}
+    DispatchObject* Alloc() const { return (DispatchObject*)new Action_FixImagedBonds(); }
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
