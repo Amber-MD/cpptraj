@@ -22,6 +22,6 @@ class Action_FixImagedBonds : public Action {
     Topology* CurrentParm_;
     std::vector<bool> atomVisited_;
     int firstSelected_;
-    int lastSelected_;
+    unsigned int Natoms_;
 };
 #endif

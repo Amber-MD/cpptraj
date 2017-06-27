@@ -38,21 +38,22 @@ Action::RetType Action_FixImagedBonds::Setup(ActionSetup& setup)
   }
   // Figure out the first and last selected atoms.
   firstSelected_ = -1;
-  lastSelected_ = -1;
+  int lastSelected = -1;
   for (int at = 0; at != setup.Top().Natom(); at++) {
     if (mask_.AtomInCharMask( at )) {
       if (firstSelected_ == -1)
         firstSelected_ = at;
-      lastSelected_ = at;
+      lastSelected = at;
     }
   }
-  mprintf("\tFirst selected atom %i, last selected atom %i\n", firstSelected_+1, lastSelected_+1);
+  Natoms_ = (unsigned int)lastSelected + 1;
+  mprintf("\tFirst selected atom %i, last selected atom %u\n", firstSelected_+1, Natoms_);
   // Set up imaging info for this parm
   image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
 
   CurrentParm_ = setup.TopAddress();
 
-  atomVisited_.assign( lastSelected_+1, false );
+  atomVisited_.assign( Natoms_, false );
 
   return Action::OK;
 }
@@ -73,10 +74,9 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
   // is moved then the atoms it is bonded to must move as well.
   std::stack<unsigned int> nextAtomToSearch;
   Topology const& Top = *CurrentParm_;
-  unsigned int Natoms = (unsigned int)lastSelected_ + 1;
   // Set any unselected atoms to true so they will be skipped, all others
   // to false.
-  for (unsigned int i = 0; i != Natoms; i++)
+  for (unsigned int i = 0; i != Natoms_; i++)
     if ( mask_.AtomInCharMask(i) )
       atomVisited_[i] = false;
     else
@@ -143,9 +143,9 @@ Action::RetType Action_FixImagedBonds::DoAction(int frameNum, ActionFrame& frm)
     if (nextAtomToSearch.empty()) {
       // No more atoms to search. Find next unmarked atom.
       unsigned int idx = lowestUnassignedAtom;
-      for (; idx != Natoms; idx++)
+      for (; idx != Natoms_; idx++)
         if (!atomVisited_[idx]) break;
-      if (idx == Natoms)
+      if (idx == Natoms_)
         uncheckedAtomsRemain = false;
       else {
         currentAtom = idx;
