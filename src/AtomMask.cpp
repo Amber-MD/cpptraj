@@ -155,6 +155,7 @@ void AtomMask::PrintMaskAtoms(const char *header) const {
       mprintf(" %i",*atom + 1);
   } else 
     mprintf("No atoms selected.");
+  mprintf("\n");
 }
 
 /** Set up an atom mask containing selected atom numbers given a char
