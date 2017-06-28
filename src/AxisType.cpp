@@ -534,8 +534,19 @@ int NA_Base::Setup_Base(RefBase const& REF, Residue const& RES, int resnum,
     md.SetLegend( basename_ );
     md.SetScalarType( MetaData::PUCKER );
     md.SetScalarMode( MetaData::M_PUCKER );
-    pucker_ = (DataSet_1D*)masterDSL.AddSet(DataSet::FLOAT, md);
-    if (pucker_ == 0) return 1;
+    // Check if pucker data set is already present
+    DataSet* ds = masterDSL.CheckForSet( md );
+    if (ds == 0) {
+      pucker_ = (DataSet_1D*)masterDSL.AddSet(DataSet::FLOAT, md);
+      if (pucker_ == 0) return 1;
+    } else {
+      // Check that it is the correct type.
+      if (ds->Type() != DataSet::FLOAT) {
+        mprinterr("Error: Set '%s' already present but is not FLOAT.\n", ds->legend());
+        return 1;
+      }
+      pucker_ = (DataSet_1D*)ds;
+    }
   } else
     pucker_ = 0;
   return 0;
