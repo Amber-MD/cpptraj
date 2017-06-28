@@ -1145,7 +1145,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
   unsigned int idx = 0;
   // Set up NA_base for each selected NA residue 
   for (Range::const_iterator resnum = actualRange.begin();
-                             resnum != actualRange.end(); ++resnum, ++idx)
+                             resnum != actualRange.end(); ++resnum)
   {
 #   ifdef NASTRUCTDEBUG
     mprintf(" ----- Setting up %i:%s -----\n", *resnum+1, setup.Top().Res(*resnum).c_str());
@@ -1179,11 +1179,13 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     } else {
       // Ensure base type has not changed. //TODO: Re-set up reference? Check # atoms etc?
       if (currentBase.Type() != Bases_[idx].Type()) {
-        mprinterr("Error: Residue %s base type has changed from %s\n",
-                  setup.Top().TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str());
+        mprinterr("Error: Residue %s base has changed from %s to %s\n",
+                  setup.Top().TruncResNameNum(*resnum).c_str(), Bases_[idx].BaseName().c_str(),
+                  currentBase.BaseName().c_str());
         return Action::ERR;
       }
     }
+    idx++;
   } // End Loop over NA residues
   mprintf("\tSet up %zu bases.\n", Bases_.size());
   if (Bases_.empty()) {
