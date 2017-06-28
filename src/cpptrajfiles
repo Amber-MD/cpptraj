@@ -32,6 +32,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Energy.cpp \
         Action_FilterByData.cpp \
         Action_FixAtomOrder.cpp \
+        Action_FixImagedBonds.cpp \
         Action_GIST.cpp \
         Action_Grid.cpp \
         Action_GridFreeEnergy.cpp \

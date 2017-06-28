@@ -350,6 +350,9 @@ test.ewald:
 test.ti:
 	@-cd Test_TI && ./RunTest.sh $(OPT)
 
+test.fiximagedbonds:
+	@-cd Test_FixImagedBonds && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -437,7 +440,8 @@ SHORT_TESTS=test.general \
           test.filter \
           test.combinecrd \
           test.topinfo \
-          test.ti
+          test.ti \
+          test.fiximagedbonds
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -551,7 +555,8 @@ COMPLETETESTS=test.general \
               test.topinfo \
               test.gromacs \
               test.ewald \
-              test.ti
+              test.ti \
+              test.fiximagedbonds
 
 test: test.all 
 
