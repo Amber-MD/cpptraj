@@ -18,29 +18,36 @@ class Action_Surf: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
+    /// Assign LCPO vdW radius and parameters 1-4.
+//    void AssignLCPO(SurfInfo*, double, double, double, double, double);
+//    void SetAtomLCPO(Topology const&,int, SurfInfo*);
 
-    DataSet* surf_;
-    AtomMask Mask1_;
-    AtomMask atomi_neighborMask_;
-    AtomMask atomi_noNeighborMask_;
-    AtomMask atomj_neighborMask_;
-    /// Contain data for an atoms LCPO SA calc
-    // TODO: Rework VDW storage
-    struct SurfInfo {
-      double vdwradii;
-      double P1;
-      double P2;
-      double P3;
-      double P4;
-    };
-    /// Contain LCPO data for all atoms in atomi_neighborMask
-    std::vector<SurfInfo> SurfaceInfo_neighbor_;
-    /// Contain LCPO data for all atoms in atomi_noNeighborMask
-    std::vector<SurfInfo> SurfaceInfo_noNeighbor_;
-    /// Contain vdw radii for all atoms
-    std::vector<double> VDW_;
+    /// Contain LCPO parameters
+    class SurfInfo;
 
-    void AssignLCPO(SurfInfo *, double, double, double, double , double );
-    void SetAtomLCPO(Topology const&,int, SurfInfo*);
+    DataSet* surf_;        ///< Hold LCPO surface area data
+    AtomMask Mask1_;       ///< Atoms to calculate SA for
+    AtomMask SoluteAtoms_; ///< All solute atoms
+
+};
+/// Hold LCPO parameters
+class Action_Surf::SurfInfo {
+  public:
+    SurfInfo() : vdw_(0.0), P1_(0.0), P2_(0.0), P3_(0.0), P4_(0.0) {}
+//    SurfInfo(double v, double p1, double p2, double p3, double p4) :
+//      vdw_(v), P1_(p1), P2_(p2), P3_(p3), P4_(p4) {}
+    /// CONSTRUCTOR - Set LCPO parameters from atom element/type/#bonds
+    SurfInfo(Atom const&);
+    double VDW() const { return vdw_; }
+    double P1()  const { return P1_; }
+    double P2()  const { return P2_; }
+    double P3()  const { return P3_; }
+    double P4()  const { return P4_; }
+  private:
+    double vdw_;
+    double P1_;
+    double P2_;
+    double P3_;
+    double P4_;
 };
 #endif
