@@ -18,36 +18,44 @@ class Action_Surf: public Action {
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
-    /// Assign LCPO vdW radius and parameters 1-4.
-//    void AssignLCPO(SurfInfo*, double, double, double, double, double);
-//    void SetAtomLCPO(Topology const&,int, SurfInfo*);
 
-    /// Contain LCPO parameters
-    class SurfInfo;
+    /// Struct for storing vdW and LCPO SA params for an atom
+    struct SurfInfo {
+      double vdwradii;
+      double P1;
+      double P2;
+      double P3;
+      double P4;
+    };
+    /// Assign LCPO vdW radius and parameters 1-4 to given SurfInfo.
+    void AssignLCPO(SurfInfo*, double, double, double, double, double);
+    /// Assign LCPO vdw and parameters to SurfInfo for specified atom.
+    void SetAtomLCPO(Topology const&,int, SurfInfo*);
 
-    DataSet* surf_;        ///< Hold LCPO surface area data
-    AtomMask Mask1_;       ///< Atoms to calculate SA for
-    AtomMask SoluteAtoms_; ///< All solute atoms
+    typedef std::vector<double> Darray;
+    typedef std::vector<int> Iarray;
+    typedef std::vector<SurfInfo> Parray;
 
-};
-/// Hold LCPO parameters
-class Action_Surf::SurfInfo {
-  public:
-    SurfInfo() : vdw_(0.0), P1_(0.0), P2_(0.0), P3_(0.0), P4_(0.0) {}
-//    SurfInfo(double v, double p1, double p2, double p3, double p4) :
-//      vdw_(v), P1_(p1), P2_(p2), P3_(p3), P4_(p4) {}
-    /// CONSTRUCTOR - Set LCPO parameters from atom element/type/#bonds
-    SurfInfo(Atom const&);
-    double VDW() const { return vdw_; }
-    double P1()  const { return P1_; }
-    double P2()  const { return P2_; }
-    double P3()  const { return P3_; }
-    double P4()  const { return P4_; }
-  private:
-    double vdw_;
-    double P1_;
-    double P2_;
-    double P3_;
-    double P4_;
+    DataSet* surf_;       ///< Hold LCPO surface area data
+    AtomMask Mask1_;      ///< Atoms to calculate SA for.
+    AtomMask SoluteMask_; ///< Used to select solute atoms.
+    Iarray HeavyAtoms_;   ///< Solute atoms with vdW > neighborCut (need vdW radii only)
+    Darray VDW_;          ///< Hold vdW radii for HeavyAtoms_
+    Iarray SA_Atoms_;     ///< Selected solute atoms with vdW > neighborCut (need vdW + SA params)
+    Parray Params_;       ///< Hold vdW + SA params for atoms in SA_Atoms_ 
+    double neighborCut_;    ///< Atoms with vdW > this have neighbors.
+    double noNeighborTerm_; ///< SA contribution from atoms with no neighbors.
+    /// Hold indices of atoms that are neighbors to the current atom.
+#   ifdef _OPENMP
+    std::vector<Iarray> Ineighbor_;
+#   else
+    Iarray Ineighbor_;
+#   endif
+    /// Hold distances from current atom to neighbors.
+#   ifdef _OPENMP
+    std::vector<Darray> DIJ_;
+#   else
+    Darray DIJ_;
+#   endif
 };
 #endif
