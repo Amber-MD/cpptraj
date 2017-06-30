@@ -16,9 +16,11 @@ Action_Surf::Action_Surf() :
 
 // Action_Surf::Help()
 void Action_Surf::Help() const {
-  mprintf("\t<name> [<mask1>] [out <filename>]\n"
-          "  Calculate LCPO surface area of atoms in <mask1>, or all solute\n"
-          "  atoms if no mask specified.\n");
+  mprintf("\t<name> [<mask1>] [out <filename>] [solutemask <mask>]\n"
+          "  Calculate LCPO surface area of atoms in <mask1>. If 'solutemask'\n"
+          "  is specified, calculate the contribution of <mask1> to selected\n"
+          "  solute atoms. If solute is not specified, it is considered to be\n"
+          "  any molecule not marked as solvent > 1 atom in size.\n");
 }
 
 // Action_Surf::Init()
@@ -30,6 +32,8 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
   // Get Masks
   std::string maskexp = actionArgs.GetMaskNext();
   if (!maskexp.empty()) Mask1_.SetMaskString( maskexp );
+  maskexp = actionArgs.GetStringKey("solutemask");
+  if (!maskexp.empty()) SoluteMask_.SetMaskString( maskexp );
 
   // Dataset to store surface area 
   surf_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "SA");
@@ -42,6 +46,10 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("Calculating LCPO surface area for all solute atoms.\n");
   else
     mprintf("Calculating LCPO surface area for atoms in mask '%s'\n", Mask1_.MaskString());
+  if (!SoluteMask_.MaskStringSet())
+    mprintf("\tSolute will be all molecules not marked as solvent with size > 1 atom.\n");
+  else
+    mprintf("\tSolute will be atoms selected by mask '%s'\n", SoluteMask_.MaskString());
   if (outfile != 0) mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"
           "#          surfaces from linear combinations of pairwise overlaps (LCPO).\"\n"
