@@ -126,7 +126,7 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
     int atom = SoluteMask_[idx];
     // TODO streamline SurfInfo
     SetAtomLCPO( setup.Top(), atom, &SI );
-    mprintf("Atom %i vdw %f\n", atom, SI.vdwradii);
+//    mprintf("Atom %i vdw %f\n", atom, SI.vdwradii);
     if (SI.vdwradii > neighborCut_) {
       // Atom has neighbors.
       HeavyAtoms_.push_back( atom );
@@ -142,7 +142,7 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
         // Calculate surface area of atom i
         double vdwi2 = SI.vdwradii * SI.vdwradii;
         double Si = vdwi2 * Constants::FOURPI; 
-        mprintf("DBG: AtomNoNbr %i P1 %g Si %g\n", atom, SI.P1, Si);
+//        mprintf("DBG: AtomNoNbr %i P1 %g Si %g\n", atom, SI.P1, Si);
         noNeighborTerm_ += (SI.P1 * Si);
       }
     }
@@ -157,8 +157,10 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
   {
 # pragma omp master
   {
-  Ineighbor_.resize( omp_get_num_threads() );
-  DIJ_.resize( omp_get_num_threads() );
+  int nthreads = omp_get_num_threads();
+  Ineighbor_.resize( nthreads );
+  DIJ_.resize( nthreads );
+  mprintf("\tParallelizing calculation with %i threads.\n", nthreads);
   }
   }
 # endif
