@@ -140,7 +140,7 @@ Action::RetType Action_Surf::Setup(ActionSetup& setup) {
       // Atom has no neighbors
       if ( cmask1.AtomInCharMask( atom ) ) {
         // Calculate surface area of atom i
-        double vdwi2 = VDW_.back() * VDW_.back();
+        double vdwi2 = SI.vdwradii * SI.vdwradii;
         double Si = vdwi2 * Constants::FOURPI; 
         mprintf("DBG: AtomNoNbr %i P1 %g Si %g\n", atom, SI.P1, Si);
         noNeighborTerm_ += (SI.P1 * Si);
