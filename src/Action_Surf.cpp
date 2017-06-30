@@ -11,16 +11,22 @@
 Action_Surf::Action_Surf() :
   surf_(0),
   neighborCut_(2.5),
-  noNeighborTerm_(0.0)
+  noNeighborTerm_(0.0),
+  offset_(1.4)
 {} 
 
 // Action_Surf::Help()
 void Action_Surf::Help() const {
   mprintf("\t<name> [<mask1>] [out <filename>] [solutemask <mask>]\n"
+          "\t[offset <offset>] [nbrcut <cut>]\n"
           "  Calculate LCPO surface area of atoms in <mask1>. If 'solutemask'\n"
           "  is specified, calculate the contribution of <mask1> to selected\n"
           "  solute atoms. If solute is not specified, it is considered to be\n"
-          "  any molecule not marked as solvent > 1 atom in size.\n");
+          "  any molecule not marked as solvent > 1 atom in size.\n"
+          "  All van der Waals radii are incremented by <offset>; 1.4 Ang\n"
+          "  is the default used in Amber. Only atoms with van der Waals radii\n"
+          "  greater than <nbrcut> (2.5 Ang. Amber default) are considered to\n"
+          "  have neighbors. In most cases <offset> and <cut> should not be changed.\n");
 }
 
 // Action_Surf::Init()
@@ -28,7 +34,8 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
 {
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
-
+  offset_ = actionArgs.getKeyDouble("offset", 1.4);
+  neighborCut_ = actionArgs.getKeyDouble("nbrcut", 2.5);
   // Get Masks
   std::string maskexp = actionArgs.GetMaskNext();
   if (!maskexp.empty()) Mask1_.SetMaskString( maskexp );
@@ -50,6 +57,8 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tSolute will be all molecules not marked as solvent with size > 1 atom.\n");
   else
     mprintf("\tSolute will be atoms selected by mask '%s'\n", SoluteMask_.MaskString());
+  mprintf("\tvan der Waals offset is %g Ang.\n", offset_);
+  mprintf("\tCutoff for determining whether atoms have neighbors is %g Ang.\n", neighborCut_);
   if (outfile != 0) mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"
           "#          surfaces from linear combinations of pairwise overlaps (LCPO).\"\n"
@@ -277,11 +286,11 @@ Action::RetType Action_Surf::DoAction(int frameNum, ActionFrame& frm) {
 
 // -----------------------------------------------------------------------------
 // Action_Surf::AssignLCPO()
-/** Assign parameters for LCPO method. All radii are incremented by 1.4 Ang. */
+/** Assign parameters for LCPO method. All radii are incremented by offset_ Ang. */
 void Action_Surf::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
                       double P3, double P4) 
 {
-  S->vdwradii = vdwradii + 1.4;
+  S->vdwradii = vdwradii + offset_;
   S->P1 = P1;
   S->P2 = P2;
   S->P3 = P3;

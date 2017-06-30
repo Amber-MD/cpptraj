@@ -45,6 +45,7 @@ class Action_Surf: public Action {
     Parray Params_;       ///< Hold vdW + SA params for atoms in SA_Atoms_ 
     double neighborCut_;    ///< Atoms with vdW > this have neighbors.
     double noNeighborTerm_; ///< SA contribution from atoms with no neighbors.
+    double offset_;         ///< vdW offset; Amber default is 1.4 Ang.
     /// Hold indices of atoms that are neighbors to the current atom.
 #   ifdef _OPENMP
     std::vector<Iarray> Ineighbor_;
