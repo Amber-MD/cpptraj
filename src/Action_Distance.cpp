@@ -3,8 +3,14 @@
 #include "CpptrajStdio.h"
 
 // CONSTRUCTOR
-Action_Distance::Action_Distance() : dist_(0), useMass_(true) {} 
+Action_Distance::Action_Distance() :
+  dist_(0),
+  mode_(NORMAL),
+  plane_(XY),
+  useMass_(true)
+{}
 
+// Action_Distance::Help()
 void Action_Distance::Help() const {
   mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"
           "\tOptions for 'type noe':\n"
@@ -20,6 +26,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
   // Get Keywords
   image_.InitImaging( !(actionArgs.hasKey("noimage")) );
   useMass_ = !(actionArgs.hasKey("geom"));
+  std::string modestring = actionArgs.GetStringKey("mode");
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   MetaData::scalarType stype = MetaData::UNDEFINED;
   std::string stypename = actionArgs.GetStringKey("type");
