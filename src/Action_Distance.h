@@ -20,6 +20,7 @@ class Action_Distance: public Action {
     AtomMask Mask1_;     ///< Mask selecting first point
     AtomMask Mask2_;     ///< Mask selecting second point
     ImagedAction image_; ///< Imaging routines.
+    Vec3 refCenter_;     ///< Hold reference XYZ for REF
     DataSet* dist_;      ///< Will hold DataSet of calculated distances.
     ModeType mode_;      ///< Type of distance calculation.
     PlaneType plane_;    ///< If PLANE, which plane to calc distance to.
