@@ -525,8 +525,8 @@ int Action_NAstruct::DetermineBasePairing() {
   return 0;
 }
 
-/** Try to guess base pairing based on molecule layout. Assume NA molecules
-  * are laid out 5' to 3', and that consecutive molecules are supposed to
+/** Try to guess base pairing based on strand layout. Assume NA strands
+  * are laid out 5' to 3', and that consecutive strands are supposed to
   * base pair.
   */
 int Action_NAstruct::GuessBasePairing() {
@@ -563,14 +563,14 @@ int Action_NAstruct::GuessBasePairing() {
     int idx1 = s1end;
     for (int idx0 = s0beg; idx0 < s0end + 1; idx0++, idx1--)
     {
-        BPmap::iterator entry =AddBasePair(idx0, Bases_[idx0], idx1, Bases_[idx1]);
-#       ifdef NASTRUCTDEBUG
-        mprintf("\n");
-#       endif
-        // Assume WC and anti-parallel for now
-        entry->second.nhb_ = 0;
-        entry->second.n_wc_hb_ = 0;
-        entry->second.isAnti_ = true;
+      BPmap::iterator entry = AddBasePair(idx0, Bases_[idx0], idx1, Bases_[idx1]);
+#     ifdef NASTRUCTDEBUG
+      mprintf("\n");
+#     endif
+      // Assume WC and anti-parallel for now
+      entry->second.nhb_ = 0;
+      entry->second.n_wc_hb_ = 0;
+      entry->second.isAnti_ = true;
     }
   }
 
