@@ -508,6 +508,12 @@ int Action_NAstruct::DetermineBasePairing() {
   return 0;
 }
 
+/** Try to guess base pairing based on molecule layout. Assume NA molecules
+  * are laid out 5' to 3', and that consecutive molecules are supposed to
+  * base pair.
+  */
+//int Action_NAstruct::GuessBasePairing()
+
 // -----------------------------------------------------------------------------
 // AverageMatrices()
 static Matrix_3x3 AverageMatrices(Matrix_3x3 const& RotatedR1, Matrix_3x3 const& RotatedR2) {
@@ -1193,6 +1199,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
     return Action::SKIP;
   }
   // Determine base connectivity.
+  int strandNum = 0;
   std::vector<int> Visited( setup.Top().Res(Bases_.back().ResNum()).LastAtom(), 0 );
   for (Barray::iterator base = Bases_.begin(); base != Bases_.end(); ++base) {
     Residue const& res = setup.Top().Res( base->ResNum() );
@@ -1215,6 +1222,9 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       if (c5neighbor == Bases_[idx].ResNum()) base->SetC5Idx( idx );
       if (c3neighbor == Bases_[idx].ResNum()) base->SetC3Idx( idx );
     }
+    // Set NA strand number. If no 3' neighbor increment the strand number.
+    base->SetStrandNum( strandNum );
+    if (c3neighbor == -1) strandNum++;
   }
   // DEBUG - Print base connectivity.
   if (debug_ > 0) {
@@ -1225,7 +1235,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
         mprintf(" (5'= %s)", setup.Top().TruncResNameNum( Bases_[base->C5resIdx()].ResNum() ).c_str());
       if (base->C3resIdx() != -1)
         mprintf(" (3'= %s)", setup.Top().TruncResNameNum( Bases_[base->C3resIdx()].ResNum() ).c_str());
-      mprintf("\n");
+      mprintf(" %i\n", base->StrandNum());
     }
   }
   return Action::OK;  
