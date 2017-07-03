@@ -50,6 +50,7 @@ class NA_Base {
     void SetInputFrame(Frame const&);
     void SetC3Idx(int i)                 { c3idx_ = i;             }
     void SetC5Idx(int i)                 { c5idx_ = i;             }
+    void SetStrandNum(int i)             { strandNum_ = i;         }
     void PrintAtomNames() const;
     NA_Axis&       Axis()                { return axis_;           } //TODO: Remove?
     NA_Axis const& Axis()          const { return axis_;           }
@@ -57,6 +58,7 @@ class NA_Base {
     int ResNum()                   const { return rnum_;           }
     int C3resIdx()                 const { return c3idx_;          }
     int C5resIdx()                 const { return c5idx_;          }
+    int StrandNum()                const { return strandNum_;      }
     char BaseChar()                const { return bchar_;          }
     Frame const& Ref()             const { return Ref_;            }
     Frame const& Input()           const { return Inp_;            }
@@ -90,6 +92,7 @@ class NA_Base {
     int rnum_;                      ///< Original residue number
     int c3idx_;                     ///< Index of c3' neighbor res.
     int c5idx_;                     ///< Index of c5' neighbor res.
+    int strandNum_;                 ///< Internal NA strand number.
     char bchar_;                    ///< 1 char base name.
     NAType type_;                   ///< Base type.
     Frame Ref_;                     ///< Reference coords.
