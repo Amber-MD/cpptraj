@@ -8,11 +8,25 @@
 #  include <omp.h>
 #endif
 // CONSTRUCTOR
-Action_Surf::Action_Surf() : surf_(0) {} 
+Action_Surf::Action_Surf() :
+  surf_(0),
+  neighborCut_(2.5),
+  noNeighborTerm_(0.0),
+  offset_(1.4)
+{} 
 
+// Action_Surf::Help()
 void Action_Surf::Help() const {
-  mprintf("\t<name> <mask1> [out filename]\n"
-          "  Calculate LCPO surface area of atoms in <mask1>\n");
+  mprintf("\t<name> [<mask1>] [out <filename>] [solutemask <mask>]\n"
+          "\t[offset <offset>] [nbrcut <cut>]\n"
+          "  Calculate LCPO surface area of atoms in <mask1>. If 'solutemask'\n"
+          "  is specified, calculate the contribution of <mask1> to selected\n"
+          "  solute atoms. If solute is not specified, it is considered to be\n"
+          "  any molecule not marked as solvent > 1 atom in size.\n"
+          "  All van der Waals radii are incremented by <offset>; 1.4 Ang\n"
+          "  is the default used in Amber. Only atoms with van der Waals radii\n"
+          "  greater than <nbrcut> (2.5 Ang. Amber default) are considered to\n"
+          "  have neighbors. In most cases <offset> and <cut> should not be changed.\n");
 }
 
 // Action_Surf::Init()
@@ -20,17 +34,32 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
 {
   // Get keywords
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs);
-
+  offset_ = actionArgs.getKeyDouble("offset", 1.4);
+  neighborCut_ = actionArgs.getKeyDouble("nbrcut", 2.5);
   // Get Masks
-  Mask1_.SetMaskString( actionArgs.GetMaskNext() );
+  std::string maskexp = actionArgs.GetMaskNext();
+  if (!maskexp.empty()) Mask1_.SetMaskString( maskexp );
+  maskexp = actionArgs.GetStringKey("solutemask");
+  if (!maskexp.empty()) SoluteMask_.SetMaskString( maskexp );
 
   // Dataset to store surface area 
   surf_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "SA");
   if (surf_==0) return Action::ERR;
-  // Add dataset to data file list
+  // Add DataSet to DataFileList
   if (outfile != 0) outfile->AddDataSet( surf_ );
 
-  mprintf("    SURF: Calculating surface area for atoms in mask [%s]\n",Mask1_.MaskString());
+  mprintf("    SURF: ");
+  if (!Mask1_.MaskStringSet())
+    mprintf("Calculating LCPO surface area for all solute atoms.\n");
+  else
+    mprintf("Calculating LCPO surface area for atoms in mask '%s'\n", Mask1_.MaskString());
+  if (!SoluteMask_.MaskStringSet())
+    mprintf("\tSolute will be all molecules not marked as solvent with size > 1 atom.\n");
+  else
+    mprintf("\tSolute will be atoms selected by mask '%s'\n", SoluteMask_.MaskString());
+  mprintf("\tvan der Waals offset is %g Ang.\n", offset_);
+  mprintf("\tCutoff for determining whether atoms have neighbors is %g Ang.\n", neighborCut_);
+  if (outfile != 0) mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
   mprintf("#Citation: Weiser, J.; Shenkin, P. S.; Still, W. C.; \"Approximate atomic\n"
           "#          surfaces from linear combinations of pairwise overlaps (LCPO).\"\n"
           "#          J. Comp. Chem. (1999), V.20, pp.217-230.\n");
@@ -39,213 +68,229 @@ Action::RetType Action_Surf::Init(ArgList& actionArgs, ActionInit& init, int deb
 }
 
 // Action_Surf::Setup()
-/** Set LCPO surface area calc parameters for this parmtop if not already set. 
-  * Get the mask, and check that the atoms in mask belong to solute. 
+/** There are two modes. If a mask has been specified, want surface area of
+  * only atoms in mask. Otherwise want surface area of all solute atoms. In
+  * either case attempt to identify solute atoms (i.e. exclude solvent/ions).
   */
 Action::RetType Action_Surf::Setup(ActionSetup& setup) {
-  SurfInfo SI;
-
-  if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
-  if (Mask1_.None()) {
-    mprintf("Warning: Mask '%s' corresponds to 0 atoms.\n", Mask1_.MaskString());
-    return Action::SKIP;
-  }
-  mprintf("\tLCPO surface area will be calculated for %i atoms.\n",Mask1_.Nselected());
-
-  // Setup surface area calc for this parm.
-  // Check that each atom in Mask1 is part of solute
-  // Create a separate mask for building the atom neighbor list that only
-  // includes atoms with vdw radius > 2.5. Consider all atoms for icosa, only
-  // non-H's for LCPO
-  atomi_neighborMask_.ResetMask();
-  atomi_noNeighborMask_.ResetMask();
-  atomj_neighborMask_.ResetMask();
-  SurfaceInfo_neighbor_.clear();
-  SurfaceInfo_noNeighbor_.clear();
-  int soluteAtoms = 0;
-  for (AtomMask::const_iterator atomi = Mask1_.begin(); atomi!=Mask1_.end(); atomi++) {
-    int molNum = setup.Top()[ *atomi ].MolNum();
-    if (setup.Top().Mol( molNum ).IsSolvent()) {
-      mprinterr("Error: Atom %i in mask %s does not belong to solute.\n",
-                *atomi+1, Mask1_.MaskString());
-      return Action::ERR;
+  if (Mask1_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( Mask1_ )) return Action::ERR;
+    if (Mask1_.None()) {
+      mprintf("Warning: Mask '%s' corresponds to 0 atoms.\n", Mask1_.MaskString());
+      return Action::SKIP;
     }
-    ++soluteAtoms;
-    SetAtomLCPO( setup.Top(), *atomi, &SI ); 
-    if (SI.vdwradii > 2.5) {
-      atomi_neighborMask_.AddAtom(*atomi);
-      SurfaceInfo_neighbor_.push_back( SI );
+    Mask1_.MaskInfo();
+  }
+ 
+  // Determine solute atoms.
+  if (SoluteMask_.MaskStringSet()) {
+    if (setup.Top().SetupIntegerMask( SoluteMask_ )) return Action::ERR;
+    SoluteMask_.MaskInfo();
+    if (SoluteMask_.None()) {
+      mprintf("Warning: Solute mask selects no atoms.\n");
+      return Action::SKIP;
+    }
+  } else {
+    SoluteMask_.ResetMask();
+    SoluteMask_.SetNatoms( setup.Top().Natom() );
+    if ( setup.Top().Nmol() > 0) {
+      mprintf("\tConsidering only non-solvent molecules with size > 1 as solute.\n");
+      for (int at = 0; at != setup.Top().Natom(); at++)
+      {
+        Molecule const& mol = setup.Top().Mol( setup.Top()[at].MolNum() );
+        if (!mol.IsSolvent() && mol.NumAtoms() > 1)
+          SoluteMask_.AddSelectedAtom( at );
+      }
     } else {
-      atomi_noNeighborMask_.AddAtom(*atomi);
-      SurfaceInfo_noNeighbor_.push_back( SI );
+      mprintf("Warning: No molecule info in '%s'. Considering all atoms as solute.\n");
+      for (int at = 0; at != setup.Top().Natom(); at++)
+        SoluteMask_.AddSelectedAtom( at );
     }
   }
-  mprintf("\t%i solute atoms.\n",soluteAtoms);
-  if (soluteAtoms <= 0) {
-    mprinterr("Error: No solute atoms in %s.\n",setup.Top().c_str());
-    return Action::ERR;
-  }
-  // From all solute atoms, create a second mask for building atom 
-  // neighbor list that only includes atoms with vdw radius > 2.5.
+
+  // If no SA mask specified use all solute atoms.
+  if (!Mask1_.MaskStringSet())
+    Mask1_ = SoluteMask_;
+  mprintf("\t%i solute atoms. Calculating LCPO surface area for %i atoms.\n",
+          SoluteMask_.Nselected(), Mask1_.Nselected());
+  CharMask cmask1( Mask1_.ConvertToCharMask(), Mask1_.Nselected() );
+
+  // Store vdW radii for all solute atoms with radii greater than neighborCut_.
+  // If that atom will have its SA contribution calculated also store SA
+  // params. The contribution from atoms without neighbors depends only on 
+  // their vdW radii and P1 parameter so calculate that now.
+  SurfInfo SI;
+  SI.vdwradii = 0.0;
+  SI.P1 = 0.0;
+  SI.P2 = 0.0;
+  SI.P3 = 0.0;
+  SI.P4 = 0.0;
+  noNeighborTerm_ = 0.0;
+  HeavyAtoms_.clear();
   VDW_.clear();
-  VDW_.reserve( soluteAtoms );
-  if (setup.Top().Nmol() < 1) {
-    mprinterr("Error: Topology %s has no molecule information, LCPO surface area\n"
-              "Error:   cannot be calculated. Try using 'fixatomorder' prior to 'surf' command.\n",
-              setup.Top().c_str());
-    return Action::ERR;
-  }
-  for (Topology::mol_iterator mol = setup.Top().MolStart(); 
-                              mol != setup.Top().MolEnd(); ++mol)
+  SA_Atoms_.clear();
+  Params_.clear();
+  for (int idx = 0; idx != SoluteMask_.Nselected(); ++idx)
   {
-    if (!mol->IsSolvent()) {
-      for (int atomj=mol->BeginAtom(); atomj != mol->EndAtom(); atomj++) {
-        SetAtomLCPO( setup.Top(), atomj, &SI );
-        VDW_.push_back( SI.vdwradii );
-        if (SI.vdwradii > 2.5)
-          atomj_neighborMask_.AddAtom(atomj);
+    int atom = SoluteMask_[idx];
+    // TODO streamline SurfInfo
+    SetAtomLCPO( setup.Top(), atom, &SI );
+//    mprintf("Atom %i vdw %f\n", atom, SI.vdwradii);
+    if (SI.vdwradii > neighborCut_) {
+      // Atom has neighbors.
+      HeavyAtoms_.push_back( atom );
+      VDW_.push_back( SI.vdwradii );
+      if ( cmask1.AtomInCharMask( atom ) ) {
+        // This is an atom for which we want the SA
+        SA_Atoms_.push_back( atom );
+        Params_.push_back( SI );
+      }
+    } else {
+      // Atom has no neighbors
+      if ( cmask1.AtomInCharMask( atom ) ) {
+        // Calculate surface area of atom i
+        double vdwi2 = SI.vdwradii * SI.vdwradii;
+        double Si = vdwi2 * Constants::FOURPI; 
+//        mprintf("DBG: AtomNoNbr %i P1 %g Si %g\n", atom, SI.P1, Si);
+        noNeighborTerm_ += (SI.P1 * Si);
       }
     }
+  } // END loop over solute atoms
+  mprintf("\t%zu atoms with neighbors.\n", HeavyAtoms_.size());
+  mprintf("\tCalculating SA for %zu atoms with neighbors.\n", SA_Atoms_.size());
+  mprintf("\tContribution from atoms with no neighbors is %g\n", noNeighborTerm_);
+# ifdef _OPENMP
+  // Each thread needs temp. space to store neighbor list and distances for
+  // each atom to avoid memory clashes.
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  int nthreads = omp_get_num_threads();
+  Ineighbor_.resize( nthreads );
+  DIJ_.resize( nthreads );
+  mprintf("\tParallelizing calculation with %i threads.\n", nthreads);
   }
+  }
+# endif
+
   return Action::OK;  
 }
 
 // Action_Surf::DoAction()
 /** Calculate surface area. */
 Action::RetType Action_Surf::DoAction(int frameNum, ActionFrame& frm) {
-  double SA;
-  int atomi, idx;
-  AtomMask::const_iterator atomj; 
-  std::vector<int> ineighbor; // TODO: Class var
-  std::vector<double> Distances_i_j; // TODO: Class var
-  int max_atomi_neighbormask = atomi_neighborMask_.Nselected();
-
-  // Set up neighbor list for each atom in mask and calc its surface 
-  // area contribution. Sum these up to get the total surface area.
-  SA = 0.0;
-#ifdef _OPENMP
-#pragma omp parallel private(atomi,idx,atomj,ineighbor,Distances_i_j) reduction(+: SA)
-{
-#pragma omp for 
-#endif
-  for (idx = 0; idx < max_atomi_neighbormask; idx++) {
-    atomi = atomi_neighborMask_[idx];
-    // Vdw of atom i
-    double vdwi = VDW_[atomi];
-    // Set up neighbor list for atom i
+  int idx; // Index into SA_Atoms_ and Params_
+  double SA = 0.0;
+  int maxIdx = (int)SA_Atoms_.size();
+# ifdef _OPENMP
+# pragma omp parallel private(idx) reduction(+:SA)
+  {
+  int mythread = omp_get_thread_num();
+  Iarray& ineighbor = Ineighbor_[mythread];
+  Darray& Distances_i_j = DIJ_[mythread];
+# pragma omp for
+# else
+  Iarray& ineighbor = Ineighbor_;
+  Darray& Distances_i_j = DIJ_;
+# endif
+  for (idx = 0; idx < maxIdx; idx++)
+  {
+    int atomi = SA_Atoms_[idx];
+    double vdwi = Params_[idx].vdwradii;
+    // Search all heavy solute atoms for neighbors of atomi.
     ineighbor.clear();
     Distances_i_j.clear();
-    for (atomj = atomj_neighborMask_.begin(); atomj != atomj_neighborMask_.end(); atomj++)
+    for (unsigned int jdx = 0; jdx != HeavyAtoms_.size(); jdx++)
     {
-      if (atomi != *atomj) {
-        double dij = sqrt( DIST2_NoImage(frm.Frm().XYZ(atomi), frm.Frm().XYZ(*atomj)) );
-        // Count atoms as neighbors if their VDW radii touch
-        if ( (vdwi + VDW_[*atomj]) > dij ) {
-          ineighbor.push_back(*atomj);
-          Distances_i_j.push_back(dij);
+      int atomj = HeavyAtoms_[jdx];
+      if (atomi != atomj) {
+        double dij = sqrt( DIST2_NoImage(frm.Frm().XYZ(atomi), frm.Frm().XYZ(atomj)) );
+        // Count atoms as neighbors if their vdW radii touch
+        if ( (vdwi + VDW_[jdx]) > dij ) {
+          ineighbor.push_back( jdx );
+          Distances_i_j.push_back( dij );
         }
-        //mprintf("SURF_NEIG:  %i %i %lf\n",atomi,*atomj,dij);
+//        mprintf("SURF_NEIG:  %i %i %f %f %f\n",atomi,atomj,dij,vdwi,VDW_[jdx]);
       }
     }
-    // Calculate surface area
-    // -------------------------------------------------------------------------
-    // Calculate LCPO surface area Ai for atomi:
+    // DEBUG - print neighbor list
+//    mprintf("SURF: Neighbors for atom %i:",atomi);
+//    for (Iarray::const_iterator jt = ineighbor.begin(); jt != ineighbor.end(); jt++)
+//      mprintf(" %i",HeavyAtoms_[*jt]);
+//    mprintf("\n");
+    // Calculate surface area Ai for atomi:
     // Ai = P1*S1 + P2*Sum(Aij) + P3*Sum(Ajk) + P4*Sum(Aij * Sum(Ajk))
     double sumaij = 0.0;
     double sumajk = 0.0;
     double sumaijajk = 0.0;
-
-    // DEBUG - print neighbor list
-    //mprintf("SURF: Neighbors for atom %i:",atomi);
-    //for (std::vector<int>::iterator jt = ineighbor.begin(); jt != ineighbor.end(); jt++) {
-    //  mprintf(" %i",*jt);
-    //}
-    //mprintf("\n");
-
-    // Calculate surface area of atom i
     double vdwi2 = vdwi * vdwi;
     double Si = vdwi2 * Constants::FOURPI;
-
     // Loop over all neighbors of atomi (j)
-    // NOTE: Factor through the 2 in aij and ajk?
-    std::vector<double>::const_iterator Dij = Distances_i_j.begin();
-    for (std::vector<int>::const_iterator jt = ineighbor.begin(); 
-                                          jt != ineighbor.end(); 
-                                          ++jt, ++Dij) 
+    for (unsigned int mm = 0; mm < ineighbor.size(); mm++)
     {
-      //printf("i,j %i %i\n",atomi + 1,(*jt)+1);
-      double vdwj = VDW_[*jt];
+      double dij = Distances_i_j[mm];
+      int jdx = ineighbor[mm];
+      int atomj = HeavyAtoms_[jdx];
+//      mprintf("i,j %i %i\n",atomi + 1,atomj+1);
+      double vdwj = VDW_[jdx];
       double vdwj2 = vdwj * vdwj;
-      double dij = *Dij;
       double tmpaij = vdwi - (dij * 0.5) - ( (vdwi2 - vdwj2)/(2.0 * dij) );
       double aij = Constants::TWOPI * vdwi * tmpaij;
       sumaij += aij;
-
-      // Find which neighbors of atom i (j and k) are themselves neighbors
+      // Find which neighbors of atom i (j and k) are themselves neighbors.
       double sumajk_2 = 0.0;
-      for (std::vector<int>::const_iterator kt = ineighbor.begin(); 
-                                            kt != ineighbor.end(); 
-                                            kt++) 
+      // FIXME should this start at mm+1?
+      for (unsigned int nn = 0; nn < ineighbor.size(); nn++)
       {
-        if ( (*kt) == (*jt) ) continue;
-        //printf("i,j,k %i %i %i\n",atomi + 1,(*jt)+1,(*kt)+1);
-        double vdwk = VDW_[*kt];
-        double djk = sqrt(DIST2_NoImage(frm.Frm().XYZ(*jt), frm.Frm().XYZ(*kt)));
-        //printf("%4s%6i%6i%12.8lf\n","DJK ",(*jt)+1,(*kt)+1,djk);
-        //printf("%6s%6.2lf%6.2lf\n","AVD ",vdwj,vdwk);
-        if ( (vdwj + vdwk) > djk ) {
-          double vdw2dif = vdwj2 - (vdwk * vdwk);
-          double tmpajk = (2.0*vdwj) - djk - (vdw2dif / djk);
-          double ajk = Constants::PI*vdwj*tmpajk;
-          //tmpajk = vdwj - (djk *0.5) - ( (vdwj2 - (vdwk * vdwk))/(2.0 * djk) );
-          //ajk = 2.0 * PI * vdwi * tmpajk;
-          //printf("%4s%6i%6i%12.8lf%12.8lf%12.8lf\n","AJK ",(*jt)+1,(*kt)+1,ajk,vdw2dif,tmpajk);
-          sumajk += ajk;
-          sumajk_2 += ajk;
+        int kdx = ineighbor[nn];
+        if (mm != nn)
+        {
+          int atomk = HeavyAtoms_[kdx];
+//          mprintf("i,j,k %i %i %i\n",atomi + 1,atomj+1,atomk+1);
+          double vdwk = VDW_[kdx];
+          double djk = sqrt(DIST2_NoImage(frm.Frm().XYZ(atomj), frm.Frm().XYZ(atomk)));
+//          mprintf("%4s%6i%6i%12.8lf\n","DJK ",atomj+1,atomk+1,djk);
+//          mprintf("%6s%6.2lf%6.2lf\n","AVD ",vdwj,vdwk);
+          if ( (vdwj + vdwk) > djk ) {
+            double vdw2dif = vdwj2 - (vdwk * vdwk);
+            double tmpajk = (2.0*vdwj) - djk - (vdw2dif / djk);
+            double ajk = Constants::PI*vdwj*tmpajk;
+            //tmpajk = vdwj - (djk *0.5) - ( (vdwj2 - (vdwk * vdwk))/(2.0 * djk) );
+            //ajk = 2.0 * PI * vdwi * tmpajk;
+            //printf("%4s%6i%6i%12.8lf%12.8lf%12.8lf\n","AJK ",(*jt)+1,(*kt)+1,ajk,vdw2dif,tmpajk);
+            sumajk += ajk;
+            sumajk_2 += ajk;
+          }
         }
-      } // END loop over neighbor-neighbor pairs of atom i (kt)
-
+      } // END loop over neighbor-neighbor pairs of atom i (j to k)
       sumaijajk += (aij * sumajk_2);
-
       // DEBUG
-      //printf("%4s%20.8lf %20.8lf %20.8lf\n","AJK ",aij,sumajk,sumaijajk);
-
-    } // END Loop over neighbors of atom i (jt)
-    SA += ( (SurfaceInfo_neighbor_[idx].P1 * Si       ) +
-            (SurfaceInfo_neighbor_[idx].P2 * sumaij   ) +
-            (SurfaceInfo_neighbor_[idx].P3 * sumajk   ) +
-            (SurfaceInfo_neighbor_[idx].P4 * sumaijajk) 
-          );
-    // -------------------------------------------------------------------------
-  } // END Loop over atoms in mask (atomi) 
-#ifdef _OPENMP
-} // END pragma omp parallel
-#endif
-  // Second loop over atoms with no neighbors (vdw <= 2.5)
-  int idxj=0;
-  for (atomj = atomi_noNeighborMask_.begin(); atomj != atomi_noNeighborMask_.end(); atomj++)
-  {
-    // Vdw of atom i
-    double vdwi = VDW_[*atomj];
-    // Calculate surface area of atom i
-    double vdwi2 = vdwi * vdwi;
-    double Si = vdwi2 * Constants::FOURPI; 
-    SA += (SurfaceInfo_noNeighbor_[idxj++].P1 * Si);
-  }
+//      mprintf("%4s%20.8lf %20.8lf %20.8lf\n","AJK ",aij,sumajk,sumaijajk);
+    } // END Loop over neighbors of atom i (j)
+    SA += ( (Params_[idx].P1 * Si       ) +
+            (Params_[idx].P2 * sumaij   ) +
+            (Params_[idx].P3 * sumajk   ) +
+            (Params_[idx].P4 * sumaijajk) +
+            noNeighborTerm_
+          ) ;
+  } // END loop over atoms in mask (i)
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
 
   surf_->Add(frameNum, &SA);
-
+    
   return Action::OK;
 } 
 
 // -----------------------------------------------------------------------------
 // Action_Surf::AssignLCPO()
-/** Assign parameters for LCPO method. All radii are incremented by 1.4 Ang.
-  */
+/** Assign parameters for LCPO method. All radii are incremented by offset_ Ang. */
 void Action_Surf::AssignLCPO(SurfInfo *S, double vdwradii, double P1, double P2,
                       double P3, double P4) 
 {
-  S->vdwradii = vdwradii + 1.4;
+  S->vdwradii = vdwradii + offset_;
   S->P1 = P1;
   S->P2 = P2;
   S->P3 = P3;
@@ -283,10 +328,10 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
     case Atom::CARBON:
       if (atom.Nbonds() == 4) {
         switch ( numBonds ) {
-          case 1: AssignLCPO(SIptr, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328); break;
-          case 2: AssignLCPO(SIptr, 1.70, 0.56482, -0.19608, -0.0010219, 0.0002658);  break;
+          case 1: AssignLCPO(SIptr, 1.70, 0.77887, -0.28063,  -0.0012968,  0.00039328); break;
+          case 2: AssignLCPO(SIptr, 1.70, 0.56482, -0.19608,  -0.0010219,  0.0002658);  break;
           case 3: AssignLCPO(SIptr, 1.70, 0.23348, -0.072627, -0.00020079, 0.00007967); break;
-          case 4: AssignLCPO(SIptr, 1.70, 0.00000, 0.00000, 0.00000, 0.00000); break;
+          case 4: AssignLCPO(SIptr, 1.70, 0.00000,  0.00000,   0.00000,    0.00000); break;
           default: WarnLCPO(atom.Type(),atidx + 1,numBonds);
                    AssignLCPO(SIptr, 1.70, 0.77887, -0.28063, -0.0012968, 0.00039328);
         }
@@ -301,12 +346,12 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       break;
     case Atom::OXYGEN:
       if (atype0=='O' && atype1==' ') 
-        AssignLCPO(SIptr, 1.60, 0.68563, -0.1868, -0.00135573, 0.00023743);
+        AssignLCPO(SIptr, 1.60, 0.68563, -0.1868,  -0.00135573, 0.00023743);
       else if (atype0=='O' && atype1=='2')
-        AssignLCPO(SIptr, 1.60, 0.88857, -0.33421, -0.0018683, 0.00049372);
+        AssignLCPO(SIptr, 1.60, 0.88857, -0.33421, -0.0018683,  0.00049372);
       else {
         switch ( numBonds ) {
-          case 1: AssignLCPO(SIptr, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071); break;
+          case 1: AssignLCPO(SIptr, 1.60, 0.77914, -0.25262, -0.0016056,  0.00035071); break;
           case 2: AssignLCPO(SIptr, 1.60, 0.49392, -0.16038, -0.00015512, 0.00016453); break;
           default: WarnLCPO(atom.Type(),atidx + 1,numBonds);
                    AssignLCPO(SIptr, 1.60, 0.77914, -0.25262, -0.0016056, 0.00035071);
@@ -316,17 +361,17 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
     case Atom::NITROGEN:
       if (atype0=='N' && atype1=='3') {
         switch ( numBonds ) {
-          case 1: AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247); break;
-          case 2: AssignLCPO(SIptr, 1.65, 0.22599, -0.036648, -0.0012297, 0.000080038); break;
+          case 1: AssignLCPO(SIptr, 1.65, 0.078602, -0.29198,  -0.0006537,  0.00036247); break;
+          case 2: AssignLCPO(SIptr, 1.65, 0.22599,  -0.036648, -0.0012297,  0.000080038); break;
           case 3: AssignLCPO(SIptr, 1.65, 0.051481, -0.012603, -0.00032006, 0.000024774); break;
           default: WarnLCPO(atom.Type(),atidx + 1,numBonds);
                    AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
         }
       } else {
         switch ( numBonds ) {
-          case 1: AssignLCPO(SIptr, 1.65, 0.73511, -0.22116, -0.00089148, 0.0002523); break;
-          case 2: AssignLCPO(SIptr, 1.65, 0.41102, -0.12254, -0.000075448, 0.00011804); break;
-          case 3: AssignLCPO(SIptr, 1.65, 0.062577, -0.017874, -0.00008312, 0.000019849); break;
+          case 1: AssignLCPO(SIptr, 1.65, 0.73511,  -0.22116,  -0.00089148,  0.0002523); break;
+          case 2: AssignLCPO(SIptr, 1.65, 0.41102,  -0.12254,  -0.000075448, 0.00011804); break;
+          case 3: AssignLCPO(SIptr, 1.65, 0.062577, -0.017874, -0.00008312,  0.000019849); break;
           default: WarnLCPO(atom.Type(),atidx + 1,numBonds);
                    AssignLCPO(SIptr, 1.65, 0.078602, -0.29198, -0.0006537, 0.00036247);
         }
@@ -334,13 +379,13 @@ void Action_Surf::SetAtomLCPO(Topology const& currentParm, int atidx, SurfInfo* 
       break;
     case Atom::SULFUR:
       if (atype0=='S' && atype1=='H') 
-        AssignLCPO(SIptr, 1.90, 0.7722, -0.26393, 0.0010629, 0.0002179);
+        AssignLCPO(SIptr, 1.90, 0.7722,  -0.26393,  0.0010629, 0.0002179);
       else 
         AssignLCPO(SIptr, 1.90, 0.54581, -0.19477, -0.0012873, 0.00029247);
       break;
     case Atom::PHOSPHORUS:
       switch ( numBonds ) {
-        case 3: AssignLCPO(SIptr, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264); break;
+        case 3: AssignLCPO(SIptr, 1.90, 0.3865,  -0.18249,  -0.0036598,    0.0004264); break;
         case 4: AssignLCPO(SIptr, 1.90, 0.03873, -0.0089339, 0.0000083582, 0.0000030381); break;
         default: WarnLCPO(atom.Type(),atidx + 1,numBonds);
                  AssignLCPO(SIptr, 1.90, 0.3865, -0.18249, -0.0036598, 0.0004264);
