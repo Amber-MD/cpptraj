@@ -40,11 +40,21 @@ void Action_NAstruct::Help() const {
           "\t[baseref <file>] ...\n"
           "\t[hbcut <hbcut>] [origincut <origincut>] [altona | cremer]\n"
           "\t[zcut <zcut>] [zanglecut <zanglecut>] [groovecalc {simple | 3dna}]\n"
-          "\t[{ %s | allframes}]\n", DataSetList::RefArgs);
-  mprintf("  Perform nucleic acid structure analysis. Base pairing is determined\n"
-          "  from specified reference or first frame. If 'calcnohb' is specified\n"
-          "  parameters will be calculated even if no hydrogen bonds present between\n"
-          "  base pairs.\n"
+          "\t[{ %s | allframes | guessbp}]\n", DataSetList::RefArgs);
+  mprintf("\t[bptype {anti | para} ...]\n");
+  mprintf("  Perform nucleic acid structure analysis. Base pairing can be determined\n"
+          "  in multiple ways:\n"
+          "    - If 'first' (default) or a reference is specified, determine base\n"
+          "      pairing using geometric criteria in a manner similar to 3DNA.\n"
+          "    - If 'allframes' is specified, base pairing will be determined\n"
+          "      using geometric criteria for every single frame.\n"
+          "    - If 'guessbp' is specified, base pairing will be determined based\n"
+          "      on selected NA strands. It is assumed that consecutive strands will\n"
+          "      be base-paired and that they are arranged 5' to 3'. The type of base\n"
+          "      pairing between strands can be specified with one or more 'bptype'\n"
+          "      arguments.\n"
+          "  If 'calcnohb' is specified NA parameters will be calculated even if no\n"
+          "  hydrogen bonds present between base pairs.\n"
           "  Base pair parameters are written to 'BP.<suffix>', base pair step parameters\n"
           "  are written to 'BPstep.<suffix>', and helix parameters are written to\n"
           "  Helix.<suffix>'\n");
@@ -108,6 +118,8 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     findBPmode_ = ALL;
   else if (actionArgs.hasKey("guessbp"))
     findBPmode_ = GUESS;
+  else if (actionArgs.hasKey("first"))
+    findBPmode_ = FIRST;
   else 
     findBPmode_ = FIRST;
 # ifdef MPI
@@ -117,6 +129,18 @@ Action::RetType Action_NAstruct::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
 # endif
+  // For guess/specify modes, get base pairing type
+  std::string bptype = actionArgs.GetStringKey("bptype");
+  while (!bptype.empty()) {
+    if (bptype == "anti")
+      BpTypes_.push_back( true );
+    else if (bptype == "para")
+      BpTypes_.push_back( false );
+    else {
+      mprinterr("Error: Expected 'anti' or 'para' for 'bptype'\n");
+      return Action::ERR;
+    }
+  }
   // Get custom residue maps
   ArgList maplist;
   NA_Base::NAType mapbase;
@@ -529,7 +553,7 @@ int Action_NAstruct::DetermineBasePairing() {
   * are laid out 5' to 3', and that consecutive strands are supposed to
   * base pair.
   */
-int Action_NAstruct::GuessBasePairing() {
+int Action_NAstruct::GuessBasePairing(Topology const& Top) {
 # ifdef NASTRUCTDEBUG
   mprintf("\n=================== Setup Base Pairing ===================\n");
 # endif
@@ -538,7 +562,20 @@ int Action_NAstruct::GuessBasePairing() {
               Strands_.size());
     return 1;
   }
-  for (unsigned int sidx0 = 0; sidx0 < Strands_.size(); sidx0 += 2)
+  unsigned int nspairs = Strands_.size() / 2;
+  if (BpTypes_.empty()) {
+    mprintf("Warning: No 'bptype' args specified; assuming all strands anti-parallel.\n");
+    BpTypes_.assign( nspairs, true );
+  } else if (BpTypes_.size() < nspairs) {
+    mprintf("Warning: # 'bptype' args < # strands to pair (%u);", nspairs);
+    if (BpTypes_.back())
+      mprintf(" assume remaining pairs are anti-parallel.\n");
+    else
+      mprintf(" assume remaining pairs are parallel.\n");
+    BpTypes_.resize( nspairs, BpTypes_.back() );
+  }
+  std::vector<bool>::const_iterator bptype = BpTypes_.begin();
+  for (unsigned int sidx0 = 0; sidx0 < Strands_.size(); sidx0 += 2, ++bptype)
   {
     unsigned int sidx1 = sidx0 + 1;
     int s0beg = Strands_[sidx0].first;
@@ -551,6 +588,18 @@ int Action_NAstruct::GuessBasePairing() {
             Bases_[s0end].ResNum()+1, Bases_[s0end].ResName(),
             Bases_[s1beg].ResNum()+1, Bases_[s1beg].ResName(),
             Bases_[s1end].ResNum()+1, Bases_[s1end].ResName());
+#   else
+    mprintf("\tStrand %u (%s-%s) to %u (%s-%s)",
+            sidx0,
+            Top.TruncResNameNum(Bases_[s0beg].ResNum()).c_str(),
+            Top.TruncResNameNum(Bases_[s0end].ResNum()).c_str(),
+            sidx1,
+            Top.TruncResNameNum(Bases_[s1beg].ResNum()).c_str(),
+            Top.TruncResNameNum(Bases_[s1end].ResNum()).c_str());
+    if (*bptype)
+      mprintf(", anti-parallel.\n");
+    else
+      mprintf(", parallel.\n");
 #   endif
     int nstrand0 = s0end - s0beg;
     int nstrand1 = s1end - s1beg;
@@ -567,10 +616,10 @@ int Action_NAstruct::GuessBasePairing() {
 #     ifdef NASTRUCTDEBUG
       mprintf("\n");
 #     endif
-      // Assume WC and anti-parallel for now
+      // Assume WC for now
       entry->second.nhb_ = 0;
       entry->second.n_wc_hb_ = 0;
-      entry->second.isAnti_ = true;
+      entry->second.isAnti_ = *bptype;
     }
   }
 
@@ -1311,7 +1360,7 @@ Action::RetType Action_NAstruct::Setup(ActionSetup& setup) {
       mprintf("\t  %u: Base index %i to %i\n", st-Strands_.begin(), st->first, st->second);
   }
   if (findBPmode_ == GUESS) {
-    if (GuessBasePairing()) return Action::ERR;
+    if (GuessBasePairing(setup.Top())) return Action::ERR;
     findBPmode_ = REFERENCE;
   }
   return Action::OK;  

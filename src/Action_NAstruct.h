@@ -116,7 +116,7 @@ class Action_NAstruct: public Action {
     /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
     /// Guess which bases are paired based on strand layout.
-    int GuessBasePairing();
+    int GuessBasePairing(Topology const&);
     /// Calculate translational/rotational parameters between two axes.
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     /// Calculate helical parameters between two axes.
@@ -157,6 +157,7 @@ class Action_NAstruct: public Action {
     CpptrajFile* stepout_;              ///< Base pair step out (BPstep.<suffix>).
     CpptrajFile* helixout_;             ///< Helical parameters out (Helix.<suffix>).
     std::string dataname_;              ///< NA DataSet name (default NA).
+    std::vector<bool> BpTypes_;         ///< Hold specified base pairing types for strands
     // TODO: Replace these with new DataSet type
     DataSetList* masterDSL_;
 #   ifdef NASTRUCTDEBUG
