@@ -508,50 +508,9 @@ int Action_NAstruct::DetermineBasePairing() {
           if (t_delta < z_angle_cut_) {
             int NHB = CalcNumHB(*base1, *base2, n_wc_hb);
             if (NHB > 0) {
-              Rpair respair(base1->ResNum(), base2->ResNum());
-              // Bases are paired. Try to find existing base pair.
-              BPmap::iterator entry = BasePairs_.find( respair );
-              if (entry == BasePairs_.end()) {
-                // New base pair
-#               ifdef NASTRUCTDEBUG
-                mprintf("      New base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
-#               endif
-                MetaData md(dataname_, BasePairs_.size() + 1); // Name, index
-                md.SetLegend( base1->BaseName() + base2->BaseName() );
-                BPtype BP;
-                md.SetAspect("shear");
-                BP.shear_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("stretch");
-                BP.stretch_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("stagger");
-                BP.stagger_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("buckle");
-                BP.buckle_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("prop");
-                BP.prop_    = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("open");
-                BP.opening_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                md.SetAspect("hb");
-                BP.hbonds_  = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
-                md.SetAspect("bp");
-                BP.isBP_ = (DataSet_1D*)masterDSL_->AddSet(DataSet::INTEGER, md);
-                if (grooveCalcType_ == PP_OO) {
-                  md.SetAspect("major");
-                  BP.major_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                  md.SetAspect("minor");
-                  BP.minor_   = (DataSet_1D*)masterDSL_->AddSet(DataSet::FLOAT, md);
-                } else {
-                  BP.major_ = 0;
-                  BP.minor_ = 0;
-                }
-                BP.bpidx_ = BasePairs_.size();
-                BP.base1idx_ = base1 - Bases_.begin();
-                BP.base2idx_ = base2 - Bases_.begin();
-                entry = BasePairs_.insert( entry, std::pair<Rpair, BPtype>(respair, BP) ); // FIXME does entry make more efficient?
-              }
+              BPmap::iterator entry = AddBasePair(base1-Bases_.begin(), *base1,
+                                                  base2-Bases_.begin(), *base2);
 #             ifdef NASTRUCTDEBUG
-              else
-                mprintf("      Existing base pair: %i to %i", base1->ResNum()+1, base2->ResNum()+1);
               mprintf(", %i hbonds.\n", NHB);
 #             endif
               entry->second.nhb_ = NHB;
