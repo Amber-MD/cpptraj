@@ -40,8 +40,8 @@ class Action_NAstruct: public Action {
     // ----- Enumerations ------------------------
     enum HbondType { WC = 0, HOOG, OTHER };
     enum GrooveType { PP_OO = 0, HASSAN_CALLADINE };
-    /// How to find base pairs: first frame, reference structure, all frames.
-    enum FindType { FIRST = 0, REFERENCE, ALL };
+    /// How to find base pairs: first frame, reference structure, all frames, guess.
+    enum FindType { FIRST = 0, REFERENCE, ALL, GUESS };
     // ----- Data Structures ---------------------
     /// Hold a base pair.
     struct BPtype {
@@ -97,6 +97,7 @@ class Action_NAstruct: public Action {
     typedef std::pair<int,int> Rpair;         ///< Pair of residue numbers / BP indices
     typedef std::map<Rpair,BPtype> BPmap;     ///< Map of residue numbers to BP
     typedef std::map<Rpair,StepType> StepMap; ///< Map of BP indices to Steps
+    typedef std::vector<Rpair> StrandArray;   ///< Hold indices into Bases_ for strand beg/end
     // ----- Functions ---------------------------
     /// Recursively travel sugar-phosphate backbone to find the next residue in a strand.
     static int TravelBackbone(Topology const&, int, std::vector<int>&);
@@ -110,8 +111,12 @@ class Action_NAstruct: public Action {
     static HbondType ID_HBtype(NA_Base const&, int, NA_Base const&, int);
     /// Calculate the total number of hydrogen bonds and WC hbonds between two bases.
     int CalcNumHB(NA_Base const&, NA_Base const&, int&);
-    /// Determine which bases are paired, set base pair data .
+    /// \return New/existing base pair corresponding to given bases.
+    BPmap::iterator AddBasePair(int, NA_Base const&, int, NA_Base const&);
+    /// Determine which bases are paired geometrically, set base pair data.
     int DetermineBasePairing();
+    /// Guess which bases are paired based on strand layout.
+    int GuessBasePairing();
     /// Calculate translational/rotational parameters between two axes.
     int calculateParameters(NA_Axis const&, NA_Axis const&, NA_Axis*, double*);
     /// Calculate helical parameters between two axes.
@@ -133,6 +138,7 @@ class Action_NAstruct: public Action {
     Barray Bases_;                      ///< Hold nucleobases
     BPmap BasePairs_;                   ///< Hold base pairs
     StepMap Steps_;                     ///< Hold base pair steps.
+    StrandArray Strands_;               ///< Hold strand info
     NA_Base::PmethodType puckerMethod_; ///< Pucker calculation method.
     double HBdistCut2_;                 ///< distance Cutoff^2 for determining hydrogen bonds
     double originCut2_;                 ///< Cutoff^2 for determining base-pairing vi origins
