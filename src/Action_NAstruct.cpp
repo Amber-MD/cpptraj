@@ -555,7 +555,7 @@ int Action_NAstruct::DetermineBasePairing() {
               mprintf(", %i hbonds.\n", NHB);
 #             endif
               entry->second.nhb_ = NHB;
-              entry->second.n_wc_hb_ = 2;
+              entry->second.n_wc_hb_ = n_wc_hb;
               entry->second.isAnti_ = AntiParallel;
             } // END if # hydrogen bonds > 0
           } // END if Z angle < cut
@@ -586,11 +586,13 @@ int Action_NAstruct::GuessBasePairing() {
     int s0end = Strands_[sidx0].second;
     int s1beg = Strands_[sidx1].first;
     int s1end = Strands_[sidx1].second;
+#   ifdef NASTRUCTDEBUG
     mprintf("\tStrand %u: %i:%s to %i:%s\n", sidx0,
             Bases_[s0beg].ResNum()+1, Bases_[s0beg].ResName(),
             Bases_[s0end].ResNum()+1, Bases_[s0end].ResName(),
             Bases_[s1beg].ResNum()+1, Bases_[s1beg].ResName(),
             Bases_[s1end].ResNum()+1, Bases_[s1end].ResName());
+#   endif
     int nstrand0 = s0end - s0beg;
     int nstrand1 = s1end - s1beg;
     if (nstrand0 != nstrand1) {
