@@ -4,18 +4,22 @@
 
 // CONSTRUCTOR
 Action_Distance::Action_Distance() :
+  a2_(0.0),
   dist_(0),
   mode_(NORMAL),
-  plane_(XY),
   useMass_(true)
 {}
 
 // Action_Distance::Help()
 void Action_Distance::Help() const {
-  mprintf("\t[<name>] <mask1> <mask2> [out <filename>] [geom] [noimage] [type noe]\n"
+  mprintf("\t[<name>] <mask1> [<mask2>] [point <X> <Y> <Z>]\n"
+          "\t[ %s ]\n", DataSetList::RefArgs);
+  mprintf("\t[out <filename>] [geom] [noimage] [type noe]\n"
           "\tOptions for 'type noe':\n"
           "\t  %s\n"
-          "  Calculate distance between atoms in <mask1> and <mask2>\n", 
+          "  Calculate distance between atoms in <mask1> and <mask2>, between\n"
+          "  atoms in <mask1> and atoms in <mask2> in specified reference, or\n"
+          "  atoms in <mask1> and the specified point.\n",
           AssociatedData_NOE::HelpText);
 }
 
@@ -39,21 +43,11 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
   mode_ = NORMAL;
   if (!refFrm.empty())
     mode_ = REF;
-  else {
-    std::string pstr = actionArgs.GetStringKey("plane");
-    if (!pstr.empty()) {
-      mode_ = PLANE;
-      if (pstr == "xy")
-        plane_ = XY;
-      else if (pstr == "yz")
-        plane_ = YZ;
-      else if (pstr == "xz")
-        plane_ = XZ;
-      else {
-        mprinterr("Error: Unrecognized argument for 'plane' (%s)\n", pstr.c_str());
-        return Action::ERR;
-      }
-    }
+  else if (actionArgs.hasKey("point")) {
+    mode_ = POINT;
+    a2_[0] = actionArgs.getNextDouble(0.0);
+    a2_[1] = actionArgs.getNextDouble(0.0);
+    a2_[2] = actionArgs.getNextDouble(0.0);
   }
 
   // Get Masks
@@ -63,7 +57,7 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
     return Action::ERR;
   }
   Mask1_.SetMaskString(maskexp);
-  if (mode_ != PLANE) {
+  if (mode_ != POINT) {
     maskexp = actionArgs.GetMaskNext();
     if (maskexp.empty()) {
       mprinterr("Error: Need 2 atom masks.\n");
@@ -77,9 +71,9 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
     if (refFrm.Parm().SetupIntegerMask( Mask2_, refFrm.Coord() ))
       return Action::ERR;
     if (useMass_)
-      refCenter_ = refFrm.Coord().VCenterOfMass( Mask2_ );
+      a2_ = refFrm.Coord().VCenterOfMass( Mask2_ );
     else
-      refCenter_ = refFrm.Coord().VGeometricCenter( Mask2_ );
+      a2_ = refFrm.Coord().VGeometricCenter( Mask2_ );
   }
 
   // Dataset to store distances TODO store masks in data set?
@@ -99,10 +93,8 @@ Action::RetType Action_Distance::Init(ArgList& actionArgs, ActionInit& init, int
   else if (mode_ == REF)
     mprintf(" %s to %s (%i atoms) in %s", Mask1_.MaskString(),
             Mask2_.MaskString(), Mask2_.Nselected(), refFrm.refName());
-  else if (mode_ == PLANE) {
-    static const char* PLANE[3] = { "YZ", "XZ", "XY" };
-    mprintf(" %s to the %s plane", Mask1_.MaskString(), PLANE[plane_]);
-  }
+  else if (mode_ == POINT)
+    mprintf(" %s to point {%g %g %g}", Mask1_.MaskString(), a2_[0], a2_[1], a2_[2]);
   if (!image_.UseImage()) 
     mprintf(", non-imaged");
   if (useMass_) 
@@ -151,44 +143,33 @@ Action::RetType Action_Distance::Setup(ActionSetup& setup) {
 Action::RetType Action_Distance::DoAction(int frameNum, ActionFrame& frm) {
   double Dist;
   Matrix_3x3 ucell, recip;
-  Vec3 a1, a2;
+  Vec3 a1;
 
-  switch ( mode_ ) {
-    case NORMAL:
-      if (useMass_) {
-        a1 = frm.Frm().VCenterOfMass( Mask1_ );
-        a2 = frm.Frm().VCenterOfMass( Mask2_ );
-      } else {
-        a1 = frm.Frm().VGeometricCenter( Mask1_ );
-        a2 = frm.Frm().VGeometricCenter( Mask2_ );
-      }
-      break;
-    case REF:
-      if (useMass_)
-        a1 = frm.Frm().VCenterOfMass( Mask1_ );
-      else
-        a1 = frm.Frm().VGeometricCenter( Mask1_ );
-      a2 = refCenter_;
-      break;
-    case PLANE:
-      if (useMass_)
-        a1 = frm.Frm().VCenterOfMass( Mask1_ );
-      else
-        a1 = frm.Frm().VGeometricCenter( Mask1_ );
-      a1[plane_] = 0.0;
-      break;
+  if ( mode_ == NORMAL ) {
+    if (useMass_) {
+      a1  = frm.Frm().VCenterOfMass( Mask1_ );
+      a2_ = frm.Frm().VCenterOfMass( Mask2_ );
+    } else {
+      a1  = frm.Frm().VGeometricCenter( Mask1_ );
+      a2_ = frm.Frm().VGeometricCenter( Mask2_ );
+    }
+  } else { // REF, POINT
+    if (useMass_)
+      a1 = frm.Frm().VCenterOfMass( Mask1_ );
+    else
+      a1 = frm.Frm().VGeometricCenter( Mask1_ );
   }
 
   switch ( image_.ImageType() ) {
     case NONORTHO:
       frm.Frm().BoxCrd().ToRecip(ucell, recip);
-      Dist = DIST2_ImageNonOrtho(a1, a2, ucell, recip);
+      Dist = DIST2_ImageNonOrtho(a1, a2_, ucell, recip);
       break;
     case ORTHO:
-      Dist = DIST2_ImageOrtho(a1, a2, frm.Frm().BoxCrd());
+      Dist = DIST2_ImageOrtho(a1, a2_, frm.Frm().BoxCrd());
       break;
     case NOIMAGE:
-      Dist = DIST2_NoImage(a1, a2);
+      Dist = DIST2_NoImage(a1, a2_);
       break;
   }
   Dist = sqrt(Dist);

@@ -14,16 +14,14 @@ class Action_Distance: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    enum ModeType { NORMAL = 0, REF, PLANE };
-    enum PlaneType { YZ = 0, XZ, XY };
+    enum ModeType { NORMAL = 0, REF, POINT };
 
     AtomMask Mask1_;     ///< Mask selecting first point
     AtomMask Mask2_;     ///< Mask selecting second point
     ImagedAction image_; ///< Imaging routines.
-    Vec3 refCenter_;     ///< Hold reference XYZ for REF
+    Vec3 a2_;            ///< Hold reference XYZ for REF or point XYZ
     DataSet* dist_;      ///< Will hold DataSet of calculated distances.
     ModeType mode_;      ///< Type of distance calculation.
-    PlaneType plane_;    ///< If PLANE, which plane to calc distance to.
     bool useMass_;       ///< If true, mass-weight distances.
 };
 #endif  
