@@ -16,6 +16,7 @@ Action_Vector::Action_Vector() :
   outfile_(0)
 {}
 
+// Action_Vector::Help()
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
@@ -319,6 +320,7 @@ Vec3 Action_Vector::leastSquaresPlane(int n, const double* vcorr) {
 }
 
 // -----------------------------------------------------------------------------
+// Action_Vector::Mask()
 void Action_Vector::Mask(Frame const& currentFrame) {
   Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
   Vec3 VXYZ = currentFrame.VCenterOfMass(mask2_);
@@ -326,6 +328,7 @@ void Action_Vector::Mask(Frame const& currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
+// Action_Vector::Dipole()
 void Action_Vector::Dipole(Frame const& currentFrame) {
   Vec3 VXYZ(0.0, 0.0, 0.0);
   Vec3 CXYZ(0.0, 0.0, 0.0);
@@ -345,6 +348,7 @@ void Action_Vector::Dipole(Frame const& currentFrame) {
   Vec_->AddVxyz( VXYZ, CXYZ );
 }
 
+// Action_Vector::Principal()
 void Action_Vector::Principal(Frame const& currentFrame) {
   Matrix_3x3 Inertia;
   Vec3 Eval;
@@ -363,6 +367,7 @@ void Action_Vector::Principal(Frame const& currentFrame) {
     Vec_->AddVxyz( Inertia.Row3(), OXYZ ); // Third row = third eigenvector
 }
 
+// Action_Vector::CorrPlane()
 void Action_Vector::CorrPlane(Frame const& currentFrame) {
   Vec3 CXYZ = currentFrame.VCenterOfMass(mask_);
   int idx = 0;
@@ -379,6 +384,7 @@ void Action_Vector::CorrPlane(Frame const& currentFrame) {
   Vec_->AddVxyz(VXYZ, CXYZ);
 }
 
+//  Action_Vector::UnitCell()
 void Action_Vector::UnitCell(Box const& box) {
   Matrix_3x3 ucell, recip;
   box.ToRecip( ucell, recip );
@@ -391,6 +397,7 @@ void Action_Vector::UnitCell(Box const& box) {
   }
 }
 
+// Action_Vector::MinImage()
 void Action_Vector::MinImage(Frame const& frm) {
   Matrix_3x3 ucell, recip;
   frm.BoxCrd().ToRecip( ucell, recip );

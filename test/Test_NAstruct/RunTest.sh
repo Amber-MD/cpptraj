@@ -16,6 +16,7 @@ trajin ../adh026.3.pdb
 nastruct naout adh026.dat
 nastruct naout baseref.dat baseref Atomic_G.pdb.nastruct
 nastruct naout groove.dat groovecalc 3dna
+nastruct naout GuessBP.dat guessbp
 EOF
   RunCpptraj "NAstruct command test."
   DoTest BP.adh026.dat.save BP.adh026.dat
@@ -25,6 +26,9 @@ EOF
   DoTest BPstep.adh026.dat.save BPstep.baseref.dat
   DoTest Helix.adh026.dat.save Helix.baseref.dat
   DoTest BPstep.groove.dat.save BPstep.groove.dat
+  DoTest BP.adh026.dat.save BP.GuessBP.dat
+  DoTest BPstep.adh026.dat.save BPstep.GuessBP.dat
+  DoTest Helix.adh026.dat.save Helix.GuessBP.dat
 fi
 EndTest
 

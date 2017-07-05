@@ -353,6 +353,9 @@ test.ti:
 test.fiximagedbonds:
 	@-cd Test_FixImagedBonds && ./RunTest.sh $(OPT)
 
+test.distance:
+	@-cd Test_Distance && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -441,7 +444,8 @@ SHORT_TESTS=test.general \
           test.combinecrd \
           test.topinfo \
           test.ti \
-          test.fiximagedbonds
+          test.fiximagedbonds \
+          test.distance
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -556,7 +560,8 @@ COMPLETETESTS=test.general \
               test.gromacs \
               test.ewald \
               test.ti \
-              test.fiximagedbonds
+              test.fiximagedbonds \
+              test.distance
 
 test: test.all 
 
