@@ -2,11 +2,13 @@
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
 #include "DataSet_MatrixDbl.h"
+#include "DataSet_Vector.h"
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
   mprintf("\t{ legend <legend> <set> |\n"
           "\t  makexy <Xset> <Yset> [name <name>] |\n"
+          "\t  vectorcoord {X|Y|Z} [name <name>] |\n"
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
           "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n"
           "\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
@@ -26,15 +28,16 @@ void Exec_DataSetCmd::Help() const {
     mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
   mprintf("\n\tOptions for 'type noe':\n"
           "\t  %s\n", AssociatedData_NOE::HelpText);
-  mprintf("  legend    : Set the legend for a single data set\n"
-          "  makexy    : Create new data set with X values from one set and Y values from another.\n"
-          "  cat       : Concatenate 2 or more data sets.\n"
-          "  make2d    : Create new 2D data set from 1D data set, assumes row-major ordering.\n"
-          "  remove    : Remove data sets according to specified criterion and selection.\n"
-          "  outformat : Change output format of double-precision data:\n"
-          "              double     - \"Normal\" output, e.g. 0.4032\n"
-          "              scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
-          "              general    - Use 'double' or 'scientific', whichever is shortest.\n"
+  mprintf("  legend      : Set the legend for a single data set\n"
+          "  makexy      : Create new data set with X values from one set and Y values from another.\n"
+          "  vectorcoord : Extract X, Y, or Z component of vector data into new set.\n"
+          "  cat         : Concatenate 2 or more data sets.\n"
+          "  make2d      : Create new 2D data set from 1D data set, assumes row-major ordering.\n"
+          "  remove      : Remove data sets according to specified criterion and selection.\n"
+          "  outformat   : Change output format of double-precision data:\n"
+          "                double     - \"Normal\" output, e.g. 0.4032\n"
+          "                scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+          "                general    - Use 'double' or 'scientific', whichever is shortest.\n"
           "  Otherwise, change the mode/type for one or more data sets.\n");
 }
 
@@ -59,6 +62,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else if (argIn.hasKey("make2d")) {    // Create 2D matrix from 1D set
     err = Make2D(State, argIn);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("vectorcoord")) { // Extract vector X/Y/Z coord as new set
+    err = VectorCoord(State, argIn);
   // ---------------------------------------------
   } else if (argIn.hasKey("filter")) {    // Filter points in data set to make new data set
     err = Filter(State, argIn);
@@ -88,8 +94,49 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
   {UNKNOWN_S,    0}
 };
 
+// Exec_DataSetCmd::VectorCoord()
+Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) {
+  // Keywords
+  std::string name = argIn.GetStringKey("name");
+  int idx;
+  if (argIn.hasKey("X"))
+    idx = 0;
+  else if (argIn.hasKey("Y"))
+    idx = 1;
+  else if (argIn.hasKey("Z"))
+    idx = 2;
+  else {
+    mprinterr("Error: 'vectorcoord' requires specifying X, Y, or Z.\n");
+    return CpptrajState::ERR;
+  }
+  // Data set
+  DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
+  if (ds1 == 0) return CpptrajState::ERR;
+  if (ds1->Type() != DataSet::VECTOR) {
+    mprinterr("Error: 'vectorcoord' only works with vector data sets.\n");
+    return CpptrajState::ERR;
+  }
+  if (ds1->Size() < 1) {
+    mprinterr("Error: '%s' is empty.\n", ds1->legend());
+    return CpptrajState::ERR;
+  }
+  // Create output set.
+  static const char* XYZ[3] = { "X", "Y", "Z" };
+  DataSet* out = State.DSL().AddSet( DataSet::DOUBLE, name, "COORD");
+  if (out == 0) return CpptrajState::ERR;
+  // Extract data
+  mprintf("\tExtracting %s coordinate from vector %s to %s\n",
+          XYZ[idx], ds1->legend(), out->Meta().PrintName().c_str());
+  DataSet_Vector const& vec = static_cast<DataSet_Vector const&>( *ds1 );
+  for (unsigned int n = 0; n != vec.Size(); n++) {
+    double d = vec.VXYZ(n)[idx];
+    out->Add( n, &d );
+  }
+  return CpptrajState::OK;
+}
+
 // Exec_DataSetCmd::ChangeOutputFormat()
-Exec::RetType Exec_DataSetCmd::ChangeOutputFormat(CpptrajState& State, ArgList& argIn)
+Exec::RetType Exec_DataSetCmd::ChangeOutputFormat(CpptrajState const& State, ArgList& argIn)
 {
   TextFormat::FmtType fmt;
   if (argIn.hasKey("double"))
@@ -464,7 +511,7 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
 }
 
 // Exec_DataSetCmd::ChangeModeType()
-Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState& State, ArgList& argIn) {
+Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList& argIn) {
   std::string modeKey = argIn.GetStringKey("mode");
   std::string typeKey = argIn.GetStringKey("type");
   if (modeKey.empty() && typeKey.empty()) {
