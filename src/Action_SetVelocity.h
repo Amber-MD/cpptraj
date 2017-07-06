@@ -2,7 +2,8 @@
 #define INC_ACTION_SETVELOCITY_H
 #include "Action.h"
 #include "Random.h"
-/// Calculate the temperature of parts of a system.
+#include "Constraints.h"
+/// Set velocities for selected atoms in a system. 
 class Action_SetVelocity : public Action {
   public:
     Action_SetVelocity();
@@ -14,33 +15,12 @@ class Action_SetVelocity : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    int AddBonds(BondArray const&, Topology const&, CharMask const&);
-    int Rattle2(Frame&) const;
-
-    /// Hold atom indices and bond eq. length for each constrained bond
-    class Cbond {
-      public:
-        Cbond() : req_(0.0), at1_(-1), at2_(-1) {}
-        Cbond(int a1, int a2, double req) : req_(req), at1_(a1), at2_(a2) {}
-        bool operator<(Cbond const& rhs) const {
-          if (at1_ == rhs.at1_)
-            return (at2_ < rhs.at2_);
-          else
-            return (at1_ < rhs.at1_);
-        }
-        double req_;
-        int at1_;
-        int at2_;
-    };
-    typedef std::vector<Cbond> Carray;
     typedef std::vector<double> Darray;
 
-    AtomMask Mask_;
-    Darray SD_;      ///< Hold sqrt(kB*(1/mass)) for each atom
-    Carray Bonds_;   ///< Hold constrained bonds
-    double tempi_;
-    double EPS_;
-    int ntc_;        ///< Constraint type: 1=None, 2=Hydrogen, 3=All
+    AtomMask Mask_;    ///< Atoms to set velocities of
+    Darray SD_;        ///< Hold sqrt(kB*(1/mass)) for each atom
+    double tempi_;     ///< Temperature to generate velocity distribution at.
+    Constraints cons_; ///< Hold constraint info 
     Random_Number RN_;
     CoordinateInfo cInfo_;
     Frame newFrame_;
