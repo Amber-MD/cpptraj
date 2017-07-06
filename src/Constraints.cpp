@@ -90,7 +90,7 @@ int Constraints::SetupConstraints(AtomMask const& mask, Topology const& top)
       if (AddBonds(top.Bonds(), top, cMask)) return 1;
       constrained_heavy_bonds = Bonds_.size() - constrained_bonds_to_h;
       std::sort( Bonds_.begin(), Bonds_.end() );
-      mprintf("%u heavy atom bonds, %zu bonds total", constrained_heavy_bonds, Bonds_.size());
+      mprintf(", %u heavy atom bonds, %zu bonds total", constrained_heavy_bonds, Bonds_.size());
     }
     mprintf(".\n");
   }
