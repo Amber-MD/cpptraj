@@ -17,18 +17,18 @@ class Action_SetVelocity : public Action {
     int AddBonds(BondArray const&, Topology const&, CharMask const&);
     int Rattle2(Frame&) const;
 
-    /// Hold atom indices and bond force constant for each constrained bond
+    /// Hold atom indices and bond eq. length for each constrained bond
     class Cbond {
       public:
-        Cbond() : rk_(0.0), at1_(-1), at2_(-1) {}
-        Cbond(int a1, int a2, double rk) : rk_(rk), at1_(a1), at2_(a2) {}
+        Cbond() : req_(0.0), at1_(-1), at2_(-1) {}
+        Cbond(int a1, int a2, double req) : req_(req), at1_(a1), at2_(a2) {}
         bool operator<(Cbond const& rhs) const {
           if (at1_ == rhs.at1_)
             return (at2_ < rhs.at2_);
           else
             return (at1_ < rhs.at1_);
         }
-        double rk_;
+        double req_;
         int at1_;
         int at2_;
     };

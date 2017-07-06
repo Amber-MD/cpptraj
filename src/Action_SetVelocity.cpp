@@ -58,12 +58,14 @@ int Action_SetVelocity::AddBonds(BondArray const& bonds, Topology const& Top,
                   Top.TruncAtomNameNum(bnd->A2()).c_str());
         return 1;
       }
-      double rk = Top.BondParm()[idx].Rk();
-      if (rk < Constants::SMALL)
-        mprintf("Warning: Zero bond force constant for %s to %s\n",
-                Top.TruncAtomNameNum(bnd->A1()).c_str(),
-                Top.TruncAtomNameNum(bnd->A2()).c_str());
-      Bonds_.push_back( Cbond(bnd->A1(), bnd->A2(), rk) );
+      double req = Top.BondParm()[idx].Req();
+      if (req < Constants::SMALL) {
+        mprinterr("Error: Zero bond length for %s to %s\n",
+                  Top.TruncAtomNameNum(bnd->A1()).c_str(),
+                  Top.TruncAtomNameNum(bnd->A2()).c_str());
+        return Action::ERR;
+      }
+      Bonds_.push_back( Cbond(bnd->A1(), bnd->A2(), req) );
     }
   }
   return 0;
@@ -131,8 +133,8 @@ const
     // Loop over selected constrained bonds
     for (Carray::const_iterator bnd = Bonds_.begin(); bnd != Bonds_.end(); ++bnd)
     {
-        // Get the force constant.
-        double rk = bnd->rk_;
+        // Get the bond equilibrium length
+        double req = bnd->req_;
         // Calculate bond vector
         Vec3 dR = Vec3(frameIn.XYZ( bnd->at2_)) - Vec3(frameIn.XYZ( bnd->at1_ ));
         // Get velocities for atom 1 (A)
@@ -144,7 +146,7 @@ const
         double dot = dR * dV;
         double rma = 1.0 / frameIn.Mass( bnd->at1_ );
         double rmb = 1.0 / frameIn.Mass( bnd->at2_ );
-        double term = -dot * FAC / ((rma + rmb) * rk * rk);
+        double term = -dot * FAC / ((rma + rmb) * req * req);
         if (fabs(term) > EPS_) {
           done = false;
           Vec3 dTerm = dR * term;
