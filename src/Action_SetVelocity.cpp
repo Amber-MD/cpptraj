@@ -18,11 +18,20 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
   int ig_ = actionArgs.getKeyInt("ig", -1);
   RN_.rn_set( ig_ );
-  double dt = actionArgs.getKeyDouble("dt", 0.002);
-  // FIXME
-  dt *= Constants::AMBERTIME_TO_PS; // dtx
-  double epsilon = actionArgs.getKeyDouble("epsilon", 0.0000001);
-  EPS_ = epsilon / dt;
+  ntc_ = actionArgs.getKeyInt("ntc", 1);
+  if (ntc_ < 1 || ntc_ > 3) {
+    mprinterr("Error: 'ntc' must be between 1 and 3.\n");
+    return Action::ERR;
+  }
+  // If bonds will be constrained, get some more info.
+  if (ntc_ > 1) {
+    double dt = actionArgs.getKeyDouble("dt", 0.002);
+    // FIXME - check this conversion
+    dt *= Constants::AMBERTIME_TO_PS; // dtx
+    double epsilon = actionArgs.getKeyDouble("epsilon", 0.0000001);
+    EPS_ = epsilon / dt;
+  } else
+    EPS_ = 1.0;
   // Masks
   Mask_.SetMaskString( actionArgs.GetMaskNext() );
 
@@ -42,9 +51,11 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected in [%s]\n", Mask_.MaskString());
     return Action::SKIP;
   }
-  cMask_ = CharMask(Mask_.ConvertToCharMask(), Mask_.Nselected());
   SD_.clear();
   SD_.reserve( Mask_.Nselected() );
+  InvMass_.clear();
+  InvMass_.reserve( Mask_.Nselected() );
+  // Store mass-related values for atoms
   double boltz = Constants::GASK_KCAL * tempi_;
   for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
   {
@@ -54,7 +65,12 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
       mass_inv = 0.0;
     else
       mass_inv = 1.0 / mass;
+    InvMass_.push_back( mass_inv );
     SD_.push_back( sqrt(boltz * mass_inv) );
+  }
+  // Save bond info if using constraints
+  if (ntc_ > 1) {
+    CharMask cMask(Mask_.ConvertToCharMask(), Mask_.Nselected());
   }
   // Always add velocity info even if not strictly necessary
   cInfo_ = setup.CoordInfo();
@@ -131,7 +147,7 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
       V[2] = 0.0;
     }
   } else {
-    std::vector<double>::const_iterator sd = SD_.begin(); 
+    Darray::const_iterator sd = SD_.begin(); 
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom, ++sd)
     {
       double* V = newFrame_.vAddress() + (*atom * 3);
