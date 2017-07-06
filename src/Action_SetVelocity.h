@@ -14,9 +14,13 @@ class Action_SetVelocity : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    int Rattle2(Frame&, BondParmArray const&, BondArray const&) const;
+
     AtomMask Mask_;
+    CharMask cMask_;
     std::vector<double> SD_;
     double tempi_;
+    double EPS_;
     Random_Number RN_;
     CoordinateInfo cInfo_;
     Frame newFrame_;
