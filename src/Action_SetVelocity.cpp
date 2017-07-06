@@ -1,4 +1,5 @@
 #include <cmath> // sqrt
+#include <algorithm> // sort
 #include "Action_SetVelocity.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"
@@ -42,6 +43,32 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
   return Action::OK;
 }
 
+//  Action_SetVelocity::AddBonds()
+int Action_SetVelocity::AddBonds(BondArray const& bonds, Topology const& Top,
+                                 CharMask const& cMask)
+{
+  for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+  {
+    if (cMask.AtomInCharMask(bnd->A1()) && cMask.AtomInCharMask(bnd->A2()))
+    {
+      int idx = bnd->Idx();
+      if (idx < 0) {
+        mprinterr("Error: No bond parameters for atoms %s and %s\n",
+                  Top.TruncAtomNameNum(bnd->A1()).c_str(),
+                  Top.TruncAtomNameNum(bnd->A2()).c_str());
+        return 1;
+      }
+      double rk = Top.BondParm()[idx].Rk();
+      if (rk < Constants::SMALL)
+        mprintf("Warning: Zero bond force constant for %s to %s\n",
+                Top.TruncAtomNameNum(bnd->A1()).c_str(),
+                Top.TruncAtomNameNum(bnd->A2()).c_str());
+      Bonds_.push_back( Cbond(bnd->A1(), bnd->A2(), rk) );
+    }
+  }
+  return 0;
+}
+
 // Action_SetVelocity::Setup()
 Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
   // Masks
@@ -53,8 +80,6 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
   }
   SD_.clear();
   SD_.reserve( Mask_.Nselected() );
-  InvMass_.clear();
-  InvMass_.reserve( Mask_.Nselected() );
   // Store mass-related values for atoms
   double boltz = Constants::GASK_KCAL * tempi_;
   for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
@@ -65,12 +90,21 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
       mass_inv = 0.0;
     else
       mass_inv = 1.0 / mass;
-    InvMass_.push_back( mass_inv );
     SD_.push_back( sqrt(boltz * mass_inv) );
   }
   // Save bond info if using constraints
   if (ntc_ > 1) {
+    Bonds_.clear();
+    // Both bonds must be in the mask. TODO warn about partial bonds?
     CharMask cMask(Mask_.ConvertToCharMask(), Mask_.Nselected());
+    if (AddBonds(setup.Top().BondsH(), setup.Top(), cMask)) return Action::ERR;
+    mprintf("\tConstraints on %zu bonds to hydrogen", Bonds_.size());
+    if (ntc_ > 2) {
+      if (AddBonds(setup.Top().Bonds(), setup.Top(), cMask)) return Action::ERR;
+      std::sort( Bonds_.begin(), Bonds_.end() );
+      mprintf(", %zu bonds total", Bonds_.size());
+    }
+    mprintf(".\n");
   }
   // Always add velocity info even if not strictly necessary
   cInfo_ = setup.CoordInfo();
@@ -80,7 +114,8 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
   return Action::MODIFY_TOPOLOGY;
 }
 
-int Action_SetVelocity::Rattle2(Frame& frameIn, BondParmArray const& parmIn, BondArray const& bonds)
+// Action_SetVelocity::Rattle2()
+int Action_SetVelocity::Rattle2(Frame& frameIn)
 const
 {
   static const double FAC = 1.2;
@@ -93,25 +128,22 @@ const
   {
     niterations++;
     done = true;
-    // Loop over bonds
-    for (BondArray::const_iterator bnd = bonds.begin(); bnd != bonds.end(); ++bnd)
+    // Loop over selected constrained bonds
+    for (Carray::const_iterator bnd = Bonds_.begin(); bnd != Bonds_.end(); ++bnd)
     {
-      // Both atoms must be selected
-      if (cMask_.AtomInCharMask(bnd->A1()) && cMask_.AtomInCharMask(bnd->A2()))
-      {
-        // Get the force constant. Assume they were checked for in Setup()
-        double rk = parmIn[bnd->Idx()].Rk();
+        // Get the force constant.
+        double rk = bnd->rk_;
         // Calculate bond vector
-        Vec3 dR = Vec3(frameIn.XYZ( bnd->A2())) - Vec3(frameIn.XYZ( bnd->A1()));
+        Vec3 dR = Vec3(frameIn.XYZ( bnd->at2_)) - Vec3(frameIn.XYZ( bnd->at1_ ));
         // Get velocities for atom 1 (A)
-        double* VA = Vel + (bnd->A1()*3);
+        double* VA = Vel + (bnd->at1_*3);
         // Get velocities for atom 2 (B)
-        double* VB = Vel + (bnd->A2()*3);
+        double* VB = Vel + (bnd->at2_*3);
         // Calculate delta V
         Vec3 dV = Vec3(VB) - Vec3(VA);
         double dot = dR * dV;
-        double rma = 1.0 / frameIn.Mass(bnd->A1());
-        double rmb = 1.0 / frameIn.Mass(bnd->A2());
+        double rma = 1.0 / frameIn.Mass( bnd->at1_ );
+        double rmb = 1.0 / frameIn.Mass( bnd->at2_ );
         double term = -dot * FAC / ((rma + rmb) * rk * rk);
         if (fabs(term) > EPS_) {
           done = false;
@@ -125,9 +157,12 @@ const
           VB[1] += dTerm[1] * rmb; 
           VB[2] += dTerm[2] * rmb;
         }
-      } // END both atoms selected 
     } // END loop over bonds
   } // END main rattle loop
+  if (niterations > maxIterations) {
+    mprinterr("Error: RATTLE took more than %i iterations.\n", maxIterations);
+    return 1;
+  }
   return 0;
 }
 
@@ -156,6 +191,8 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
       V[2] = RN_.rn_gauss(0.0, *sd);
     }
   }
+  if (ntc_ > 1)
+    Rattle2( newFrame_ );
   frm.SetFrame( &newFrame_ );
   return Action::MODIFY_COORDS;
 }
