@@ -19,9 +19,11 @@ Action_Density::Action_Density() :
 }
 
 void Action_Density::Help() const {
-  mprintf("\t[out <filename>] [name <set name>] [delta <resolution>] [x|y|z]\n"
-          "\t[number|mass|charge|electron] <mask1> ... <maskN>\n"
-          "  Calculate density along a coordinate.\n");
+  mprintf("\t[out <filename>]\n"
+          "\t[ <mask1> ... <maskN> [name <set name>] [delta <resolution>] [x|y|z]\n"
+          "\t  [number|mass|charge|electron] ]\n"
+          "  If one or more masks are specified, calculate specified density of selected\n"
+          "  atoms along a coordinate. Otherwise calculate the total system density.\n");
 }
 
 const char* Action_Density::PropertyStr_[] = {
@@ -94,7 +96,9 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     idx++;
   }
   if (masks_.empty()) {
-    density_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "DENSITY");
+    if (dsname.empty())
+      dsname = actionArgs.GetStringNext();
+    density_ = init.DSL().AddSet(DataSet::DOUBLE, dsname, "DENSITY");
     if (density_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( density_ );
     image_.InitImaging( true );
