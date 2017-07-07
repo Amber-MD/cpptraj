@@ -24,5 +24,6 @@ class Action_SetVelocity : public Action {
     Random_Number RN_;
     CoordinateInfo cInfo_;
     Frame newFrame_;
+    bool zeroMomentum_;
 };
 #endif

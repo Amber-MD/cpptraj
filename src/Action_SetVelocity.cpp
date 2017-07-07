@@ -3,14 +3,17 @@
 #include "CpptrajStdio.h"
 #include "Constants.h"
 
-Action_SetVelocity::Action_SetVelocity() : tempi_(0.0) {}
+Action_SetVelocity::Action_SetVelocity() : tempi_(0.0), zeroMomentum_(false) {}
 
 void Action_SetVelocity::Help() const {
   mprintf("\t[<mask>] [tempi <temperature>] [ig <random seed>]\n"
           "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
+  mprintf("\t[zeromomentum]\n");
   mprintf("  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
           "  based on given temperature. If tempi is 0.0 set velocities to 0.0.\n"
-          "  If 'ntc' is specified attempt to correct velocities for constraints.\n");
+          "  If 'ntc' is specified attempt to correct velocities for constraints.\n"
+          "  If 'zeromomentum' is specified adjust total momentum of atoms in <mask> to\n"
+          "  zero.\n");
 }
 
 // Action_SetVelocity::Init()
@@ -20,6 +23,7 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
   int ig_ = actionArgs.getKeyInt("ig", -1);
   RN_.rn_set( ig_ );
+  zeroMomentum_ = actionArgs.hasKey("zeromomentum");
   if (cons_.InitConstraints(actionArgs)) return Action::ERR;
   // If bonds will be constrained, get some more info.
   if (cons_.Type() != Constraints::OFF) {
@@ -36,6 +40,8 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
     mprintf("\tConstraints on %s\n", cons_.shakeString());
     mprintf("\tTime step= %g ps, epsilon = %g\n", cons_.DT(), cons_.Epsilon());
   }
+  if (zeroMomentum_)
+    mprintf("\tMomentum of atoms in mask will be zeroed.\n");
   return Action::OK;
 }
 
@@ -101,6 +107,19 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
   // Correct velocities for constraints
   if (cons_.Type() != Constraints::OFF)
     cons_.Rattle2( newFrame_ );
+  // Zero momentum if specified
+  if (zeroMomentum_) {
+    double sumMass = 0.0;
+    Vec3 moment = newFrame_.VMomentum( Mask_, sumMass );
+    moment /= sumMass;
+    for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
+    {
+      double* V = newFrame_.vAddress() + (*atom * 3);
+      V[0] -= moment[0];
+      V[1] -= moment[1];
+      V[2] -= moment[2];
+    }
+  }
   frm.SetFrame( &newFrame_ );
   return Action::MODIFY_COORDS;
 }
