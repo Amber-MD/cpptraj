@@ -163,7 +163,11 @@ class Frame {
     void Divide(double);
     void Multiply(double);
     /// Increment atoms in this frame by the selected atoms in given frame.
-    int AddByMask(Frame const&, AtomMask const&); 
+    int AddByMask(Frame const&, AtomMask const&);
+    /// \return Total momentum vector for atoms in mask
+    Vec3 VMomentum(AtomMask const&) const;
+    /// \return Total momentum vector for atoms in mask; also set total mass.
+    Vec3 VMomentum(AtomMask const&, double&) const;
     // -------------------------------------------------------------------------
     // NOTE: These functions are placed in the header since most modern 
     //       compilers will try to inline them which results in a decent

@@ -839,6 +839,32 @@ int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   return 0;
 }
 
+// Frame::VMomentum()
+Vec3 Frame::VMomentum(AtomMask const& mask) const {
+  if (V_ == 0) { // SANITY CHECK
+    mprinterr("Error: Frame has no velocity information; cannot calculate momentum.\n");
+    return Vec3(0.0);
+  }
+  Vec3 sum(0.0);
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+  return sum;
+}
+
+// Frame::VMomentum()
+Vec3 Frame::VMomentum(AtomMask const& mask, double& sumMass) const {
+  if (V_ == 0) { // SANITY CHECK
+    mprinterr("Error: Frame has no velocity information; cannot calculate momentum.\n");
+    return Vec3(0.0);
+  }
+  Vec3 sum(0.0);
+  sumMass = 0.0;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+    sumMass += Mass_[*at];
+  }
+  return sum;
+}
 // ---------- COORDINATE MANIPULATION ------------------------------------------
 // Frame::Scale()
 void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {
