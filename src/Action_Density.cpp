@@ -102,6 +102,8 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     if (density_ == 0) return Action::ERR;
     if (outfile != 0) outfile->AddDataSet( density_ );
     image_.InitImaging( true );
+    // Hijack delta for storing sum of masses
+    delta_ = 0.0;
   } else {
 #   ifdef MPI
     if (init.TrajComm().Size() > 1) {
@@ -186,6 +188,11 @@ Action::RetType Action_Density::DensitySetup(ActionSetup& setup) {
             setup.Top().c_str());
     return Action::SKIP;
   }
+  // delta_ will hold sum of masses
+  delta_ = 0.0;
+  for (int idx = 0; idx != setup.Top().Natom(); idx++)
+    delta_ += setup.Top()[idx].Mass();
+  mprintf("\tSum of masses is %g amu\n", delta_);
 
   return Action::OK;
 }
@@ -259,10 +266,8 @@ Action::RetType Action_Density::DensityAction(int frameNum, ActionFrame& frm) {
              frm.Frm().BoxCrd().BoxZ();
   else if (image_.ImageType() == NONORTHO)
     volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );
-  double totalMass = 0.0;
-  for (int idx = 0; idx != frm.Frm().Natom(); idx++)
-    totalMass += frm.Frm().Mass(idx);
-  double density = totalMass / (volume * AMU_ANG_TO_G_CM3);
+  // Total mass is in delta_
+  double density = delta_ / (volume * AMU_ANG_TO_G_CM3);
   density_->Add(frameNum, &density);
   return Action::OK;
 }
