@@ -6,11 +6,14 @@
 Action_SetVelocity::Action_SetVelocity() : tempi_(0.0), zeroMomentum_(false) {}
 
 void Action_SetVelocity::Help() const {
-  mprintf("\t[<mask>] [tempi <temperature>] [ig <random seed>]\n"
+  mprintf("\t[<mask>] [{tempi <temperature> | modify}] [ig <random seed>]\n"
           "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
   mprintf("\t[zeromomentum]\n");
   mprintf("  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
-          "  based on given temperature. If tempi is 0.0 set velocities to 0.0.\n"
+          "  based on given temperature; default 300.0 K. If tempi is 0.0 set\n"
+          "  velocities of atoms in mask to 0.0.\n"
+          "  If 'modify' is specified do not set; only modify existing velocities.\n"
+          "  This is useful e.g. with 'ntc' or 'zeromomentum'.\n"
           "  If 'ntc' is specified attempt to correct velocities for constraints.\n"
           "  If 'zeromomentum' is specified adjust total momentum of atoms in <mask> to\n"
           "  zero.\n");
@@ -21,6 +24,12 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
 {
   // Keywords
   tempi_ = actionArgs.getKeyDouble("tempi", 300.0);
+  if (tempi_ < Constants::SMALL)
+    mode_ = ZERO;
+  else if (actionArgs.hasKey("modify"))
+    mode_ = MODIFY;
+  else
+    mode_ = SET;
   int ig_ = actionArgs.getKeyInt("ig", -1);
   RN_.rn_set( ig_ );
   zeroMomentum_ = actionArgs.hasKey("zeromomentum");
@@ -29,13 +38,26 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
   if (cons_.Type() != Constraints::OFF) {
     if (cons_.InitRattle( actionArgs )) return Action::ERR;
   }
+  if (mode_ == MODIFY &&
+      cons_.Type() == Constraints::OFF &&
+      !zeroMomentum_)
+  {
+    mprinterr("Error: 'modify' specified but not 'ntc' or 'zeromomentum'. Nothing to do.\n");
+    return Action::ERR;
+  }
   // Masks
   Mask_.SetMaskString( actionArgs.GetMaskNext() );
 
-  mprintf("    SETVELOCITY: Assigning velocities for atoms in mask '%s'\n", Mask_.MaskString());
-  mprintf("\tTemperature= %.2f, using Maxwellian distribution.\n", tempi_);
-  if (ig_ != -1)
-    mprintf("\tRandom seed is %i\n", ig_);
+  mprintf("    SETVELOCITY:");
+  if (mode_ == SET) {
+    mprintf(" Assigning velocities for atoms in mask '%s'\n", Mask_.MaskString());
+    mprintf("\tTemperature= %.2f, using Maxwellian distribution.\n", tempi_);
+    if (ig_ != -1)
+      mprintf("\tRandom seed is %i\n", ig_);
+  } else if (mode_ == MODIFY)
+    mprintf(" Modifying any existing velocities for atoms in mask '%s'\n", Mask_.MaskString());
+  else if (mode_ == ZERO)
+    mprintf(" Zeroing velocities for atoms in mask '%s'\n", Mask_.MaskString());
   if (cons_.Type() != Constraints::OFF) {
     mprintf("\tConstraints on %s\n", cons_.shakeString());
     mprintf("\tTime step= %g ps, epsilon = %g\n", cons_.DT(), cons_.Epsilon());
@@ -54,23 +76,30 @@ Action::RetType Action_SetVelocity::Setup(ActionSetup& setup) {
     mprintf("Warning: No atoms selected in [%s]\n", Mask_.MaskString());
     return Action::SKIP;
   }
-  SD_.clear();
-  SD_.reserve( Mask_.Nselected() );
-  // Store mass-related values for atoms
-  double boltz = Constants::GASK_KCAL * tempi_;
-  for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
-  {
-    double mass_inv;
-    double mass = setup.Top()[*atom].Mass();
-    if ( mass < Constants::SMALL )
-      mass_inv = 0.0;
-    else
-      mass_inv = 1.0 / mass;
-    SD_.push_back( sqrt(boltz * mass_inv) );
+  if (mode_ == SET) {
+    SD_.clear();
+    SD_.reserve( Mask_.Nselected() );
+    // Store mass-related values for atoms
+    double boltz = Constants::GASK_KCAL * tempi_;
+    for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
+    {
+      double mass_inv;
+      double mass = setup.Top()[*atom].Mass();
+      if ( mass < Constants::SMALL )
+        mass_inv = 0.0;
+      else
+        mass_inv = 1.0 / mass;
+      SD_.push_back( sqrt(boltz * mass_inv) );
+    }
   }
   // Save bond info if using constraints
   if (cons_.Type() != Constraints::OFF) {
     if (cons_.SetupConstraints( Mask_, setup.Top() )) return Action::ERR;
+  }
+  // If modify need to have existing velocity info
+  if (mode_ == MODIFY && !setup.CoordInfo().HasVel()) {
+    mprintf("Warning: 'modify' specified but no velocity info, skipping.\n");
+    return Action::SKIP;
   }
   // Always add velocity info even if not strictly necessary
   cInfo_ = setup.CoordInfo();
@@ -86,7 +115,7 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
   if (frm.Frm().HasVelocity())
     std::copy( frm.Frm().vAddress(), frm.Frm().vAddress() + frm.Frm().size(),
                newFrame_.vAddress() );
-  if (tempi_ < Constants::SMALL) {
+  if (mode_ == ZERO) {
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom)
     {
       double* V = newFrame_.vAddress() + (*atom * 3);
@@ -94,7 +123,7 @@ Action::RetType Action_SetVelocity::DoAction(int frameNum, ActionFrame& frm) {
       V[1] = 0.0;
       V[2] = 0.0;
     }
-  } else {
+  } else if (mode_ == SET) {
     Darray::const_iterator sd = SD_.begin(); 
     for (AtomMask::const_iterator atom = Mask_.begin(); atom != Mask_.end(); ++atom, ++sd)
     {
