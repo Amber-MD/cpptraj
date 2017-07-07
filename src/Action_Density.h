@@ -8,6 +8,7 @@
 
 #include "Action.h"
 #include "OnlineVarT.h"
+#include "ImagedAction.h"
 
 #define ROUTINE_VERSION_STRING "1.0.2"
 
@@ -28,12 +29,20 @@ private:
   Action::RetType DoAction(int, ActionFrame&);
   void Print();
 
+  Action::RetType HistSetup(ActionSetup&);
+  Action::RetType DensitySetup(ActionSetup&);
+  Action::RetType HistAction(int, ActionFrame&);
+  Action::RetType DensityAction(int, ActionFrame&);
+  void PrintHist();
+  void PrintDensity();
+
   typedef StatsMap<long,double> statmap;
   void Output(long, long, std::vector<statmap>&);
 
   static const std::string emptystring;
   static const char* PropertyStr_[];
   static const char* AxisStr_[];
+  static const double AMU_ANG_TO_G_CM3;
 
   enum DirectionType {DX = 0, DY, DZ};
   enum PropertyType {NUMBER = 0, MASS, CHARGE, ELECTRON};
@@ -58,5 +67,9 @@ private:
   std::vector<statmap> minus_histograms_, plus_histograms_;
 
   std::vector<std::vector<double> > properties_;
+
+  /// Hold total system density, separate calc
+  DataSet* density_;
+  ImagedAction image_;
 };
 #endif    

@@ -2,6 +2,8 @@
 #include "Action_Density.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // NoWhitespace()
+#include "Constants.h"
+#include "DataSet_1D.h"
 
 const std::string Action_Density::emptystring = "";
 
@@ -10,7 +12,8 @@ Action_Density::Action_Density() :
   axis_(DZ),
   //area_coord_{DZ, DY},    // this is C++11!
   property_(NUMBER),
-  delta_(0.0)
+  delta_(0.0),
+  density_(0)
 {
   area_coord_[0] = DX; area_coord_[1] = DY;
 }
@@ -30,19 +33,9 @@ const char* Action_Density::AxisStr_[] = { "X", "Y", "Z" };
 // Action_Density::Init()
 Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-# ifdef MPI
-  if (init.TrajComm().Size() > 1) {
-    mprinterr("Error: 'density' action does not work with > 1 thread (%i threads currently).\n",
-              init.TrajComm().Size());
-    return Action::ERR;
-  }
-# endif
-
   DataFile* outfile = init.DFL().AddDataFile(actionArgs.GetStringKey("out"), actionArgs);
 
   std::string dsname = actionArgs.GetStringKey("name");
-  if (dsname.empty())
-    dsname = init.DSL().GenerateDefaultName("DENSITY");
 
   if (actionArgs.hasKey("x") ) {
     axis_ = DX;
@@ -77,6 +70,8 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
   unsigned int idx = 1;
   while ( (maskstr = actionArgs.GetMaskNext() ) != emptystring) {
     masks_.push_back( AtomMask(maskstr) );
+    if (dsname.empty())
+      dsname = init.DSL().GenerateDefaultName("DENSITY");
     MetaData MD(dsname, "avg", idx);
     MD.SetTimeSeries( MetaData::NOT_TS );
     // Hold average density
@@ -99,27 +94,42 @@ Action::RetType Action_Density::Init(ArgList& actionArgs, ActionInit& init, int 
     idx++;
   }
   if (masks_.empty()) {
-    mprinterr("Error: No masks specified.\n");
-    return Action::ERR;
+    density_ = init.DSL().AddSet(DataSet::DOUBLE, actionArgs.GetStringNext(), "DENSITY");
+    if (density_ == 0) return Action::ERR;
+    if (outfile != 0) outfile->AddDataSet( density_ );
+    image_.InitImaging( true );
+  } else {
+#   ifdef MPI
+    if (init.TrajComm().Size() > 1) {
+      mprinterr("Error: 'density' with masks does not work with > 1 thread"
+                " (%i threads currently).\n", init.TrajComm().Size());
+      return Action::ERR;
+    }
+# endif
+    density_ = 0;
+    minus_histograms_.resize(masks_.size() );
+    plus_histograms_.resize(masks_.size() );
   }
 
-  minus_histograms_.resize(masks_.size() );
-  plus_histograms_.resize(masks_.size() );
-
-  mprintf("    DENSITY: Determining %s density for %zu masks.\n", PropertyStr_[property_],
-          masks_.size());
-  mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
-  mprintf("\tDelta is %f\n", delta_);
-  mprintf("\tAxis is %s\n", AxisStr_[axis_]);
-  mprintf("\tData set name is '%s'\n", dsname.c_str());
+  mprintf("    DENSITY:");
+  if (density_ == 0) {
+    mprintf(" Determining %s density for %zu masks.\n", PropertyStr_[property_], masks_.size());
+    mprintf("\troutine version: %s\n", ROUTINE_VERSION_STRING);
+    mprintf("\tDelta is %f\n", delta_);
+    mprintf("\tAxis is %s\n", AxisStr_[axis_]);
+    mprintf("\tData set name is '%s'\n", dsname.c_str());
+  } else {
+    mprintf(" No masks specified, calculating total system density in g/cm^3.\n");
+    mprintf("\tData set name is '%s'\n", density_->legend());
+  }
   if (outfile != 0)
     mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
 
   return Action::OK;
 }
 
-// Action_Density::Setup()
-Action::RetType Action_Density::Setup(ActionSetup& setup) {
+// Action_Density::HistSetup()
+Action::RetType Action_Density::HistSetup(ActionSetup& setup) {
   properties_.resize(0);
 
   for (std::vector<AtomMask>::iterator mask = masks_.begin();
@@ -163,8 +173,29 @@ Action::RetType Action_Density::Setup(ActionSetup& setup) {
   return Action::OK;  
 }
 
-// Action_Density::DoAction()
-Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
+// Action_Density::DensitySetup()
+Action::RetType Action_Density::DensitySetup(ActionSetup& setup) {
+  // Total system density setup
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  if (!image_.ImagingEnabled()) {
+    mprintf("Warning: No unit cell information, total density cannot be calculated for '%s'\n",
+            setup.Top().c_str());
+    return Action::SKIP;
+  }
+
+  return Action::OK;
+}
+
+// Action_Density::Setup()
+Action::RetType Action_Density::Setup(ActionSetup& setup) {
+  if (density_ == 0)
+    return HistSetup(setup);
+  else
+    return DensitySetup(setup);
+}
+
+// Action_Density::HistAction()
+Action::RetType Action_Density::HistAction(int frameNum, ActionFrame& frm) {
   long slice;
   unsigned long i, j;
   Vec3 coord;
@@ -211,9 +242,37 @@ Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
   return Action::OK;
 }
 
+/** Convert units from amu/Ang^3 to g/cm^3 */
+const double Action_Density::AMU_ANG_TO_G_CM3 = Constants::NA * 1E-24;
 
-// Action_Density::Print()
-void Action_Density::Print()
+// Action_Density::DensityAction()
+Action::RetType Action_Density::DensityAction(int frameNum, ActionFrame& frm) {
+  Matrix_3x3 ucell, recip;
+  double volume = 0.0;
+  if (image_.ImageType() == ORTHO)
+    volume = frm.Frm().BoxCrd().BoxX() *
+             frm.Frm().BoxCrd().BoxY() *
+             frm.Frm().BoxCrd().BoxZ();
+  else if (image_.ImageType() == NONORTHO)
+    volume = frm.Frm().BoxCrd().ToRecip( ucell, recip );
+  double totalMass = 0.0;
+  for (int idx = 0; idx != frm.Frm().Natom(); idx++)
+    totalMass += frm.Frm().Mass(idx);
+  double density = totalMass / (volume * AMU_ANG_TO_G_CM3);
+  density_->Add(frameNum, &density);
+  return Action::OK;
+}
+
+// Action_Density::DoAction()
+Action::RetType Action_Density::DoAction(int frameNum, ActionFrame& frm) {
+  if (density_ == 0)
+    return HistAction(frameNum, frm);
+  else
+    return DensityAction(frameNum, frm);
+}
+
+// Action_Density::PrintHist()
+void Action_Density::PrintHist()
 {
   const unsigned int SMALL = 1.0;
 
@@ -312,4 +371,22 @@ void Action_Density::Print()
     }
 
   }
+}
+
+// Action_Density::PrintDensity()
+void Action_Density::PrintDensity() {
+  if (density_->Size() > 0) {
+    double stdev;
+    double avg = ((DataSet_1D*)density_)->Avg(stdev);
+    mprintf("    DENSITY: Avg= %g  Stdev= %g (%zu elements), g/cm^3\n",
+            avg, stdev, density_->Size());
+  }
+}
+
+// Action_Density::Print()
+void Action_Density::Print() {
+  if (density_ == 0)
+    PrintHist();
+  else
+    PrintDensity();
 }
