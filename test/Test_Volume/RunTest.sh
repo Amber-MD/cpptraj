@@ -17,12 +17,8 @@ loadcrd ../tz2.ortho.nc name T2 parm [ORTHO]
 
 crdaction T1 volume Oct out vol.dat
 crdaction T2 volume Ortho out vol.dat
-crdaction T1 volume density dOct out vol.dat
-crdaction T2 volume density dOrtho out vol.dat
-crdaction T1 density D1 out D.dat
-crdaction T2 density D2 out D.dat
 EOF
-RunCpptraj "Volume/density tests."
+RunCpptraj "Volume tests."
 DoTest vol.dat.save vol.dat
 
 EndTest
