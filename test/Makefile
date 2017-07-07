@@ -359,6 +359,9 @@ test.distance:
 test.volume:
 	@-cd Test_Volume && ./RunTest.sh $(OPT)
 
+test.setvelocity:
+	@-cd Test_SetVelocity && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -449,7 +452,8 @@ SHORT_TESTS=test.general \
           test.ti \
           test.fiximagedbonds \
           test.distance \
-          test.volume
+          test.volume \
+          test.setvelocity
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -566,7 +570,8 @@ COMPLETETESTS=test.general \
               test.ti \
               test.fiximagedbonds \
               test.distance \
-              test.volume
+              test.volume \
+              test.setvelocity
 
 test: test.all 
 
