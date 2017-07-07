@@ -6,7 +6,9 @@
 
 /// CONSTRUCTOR
 Constraints::Constraints() :
-  EPS_(0.0000001 / (0.002 * Constants::AMBERTIME_TO_PS)),
+  dt_(0.002),
+  epsilon_(0.0000001),
+  EPS_(epsilon_ / (dt_ * Constants::AMBERTIME_TO_PS)),
   shakeType_(OFF),
   degrees_of_freedom_(0)
 {}
@@ -38,11 +40,11 @@ const char* Constraints::rattleArgs = "[dt <time>] [epsilon <eps>]";
 
 //  Constraints::InitRattle()
 int Constraints::InitRattle(ArgList& argIn) {
-  double dt = argIn.getKeyDouble("dt", 0.002);
+  dt_ = argIn.getKeyDouble("dt", 0.002);
   // FIXME - check this conversion
-  dt *= Constants::AMBERTIME_TO_PS; // dtx
-  double epsilon = argIn.getKeyDouble("epsilon", 0.0000001);
-  EPS_ = epsilon / dt;
+  double dtx = dt_ * Constants::AMBERTIME_TO_PS;
+  epsilon_ = argIn.getKeyDouble("epsilon", 0.0000001);
+  EPS_ = epsilon_ / dtx;
   return 0;
 }
 

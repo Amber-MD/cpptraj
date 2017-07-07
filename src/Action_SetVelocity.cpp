@@ -7,8 +7,10 @@ Action_SetVelocity::Action_SetVelocity() : tempi_(0.0) {}
 
 void Action_SetVelocity::Help() const {
   mprintf("\t[<mask>] [tempi <temperature>] [ig <random seed>]\n"
-          "  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
-          "  based on given temperature.\n");
+          "\t[%s] [%s]\n", Constraints::constraintArgs, Constraints::rattleArgs);
+  mprintf("  Set velocities in frame for atoms in <mask> using Maxwellian distribution\n" 
+          "  based on given temperature. If tempi is 0.0 set velocities to 0.0.\n"
+          "  If 'ntc' is specified attempt to correct velocities for constraints.\n");
 }
 
 // Action_SetVelocity::Init()
@@ -30,8 +32,10 @@ Action::RetType Action_SetVelocity::Init(ArgList& actionArgs, ActionInit& init, 
   mprintf("\tTemperature= %.2f, using Maxwellian distribution.\n", tempi_);
   if (ig_ != -1)
     mprintf("\tRandom seed is %i\n", ig_);
-  if (cons_.Type() != Constraints::OFF)
+  if (cons_.Type() != Constraints::OFF) {
     mprintf("\tConstraints on %s\n", cons_.shakeString());
+    mprintf("\tTime step= %g ps, epsilon = %g\n", cons_.DT(), cons_.Epsilon());
+  }
   return Action::OK;
 }
 

@@ -15,6 +15,8 @@ class Constraints {
     int Rattle2(Frame&) const;
     ShakeType Type()       const { return shakeType_;          }
     int DegreesOfFreedom() const { return degrees_of_freedom_; }
+    double DT()            const { return dt_;                 }
+    double Epsilon()       const { return epsilon_;            }
     const char* shakeString() const;
   private:
     int AddBonds(BondArray const&, Topology const&, CharMask const&);
@@ -37,6 +39,8 @@ class Constraints {
     typedef std::vector<Cbond> Carray;
 
     Carray Bonds_;           ///< Hold constrained bonds
+    double dt_;              ///< Time step
+    double epsilon_;         ///< epsilon
     double EPS_;             ///< Hold epsilon / dt
     ShakeType shakeType_;    ///< What bonds constraints being applied to.
     int degrees_of_freedom_; ///< Unconstrained deg. of freedom.
