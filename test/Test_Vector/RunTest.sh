@@ -46,6 +46,19 @@ RunCpptraj "AvgCoord test."
 DoTest avgcoord.out.save avgcoord.out
 DoTest res5.out.save res5.out
 
+# Test momentum vector.
+TESTNAME="Momentum vector test."
+MaxThreads 1 "$TESTNAME"
+if [ "$?" -eq 0 ] ; then
+  cat > vector.in <<EOF
+parm ../tz2.parm7
+trajin ../Test_SetVelocity/tz2.vel.rst7.save
+vector v9 momentum out vtest.dat.9
+EOF
+  RunCpptraj "$TESTNAME"
+  DoTest vtest.dat.9.save vtest.dat.9
+fi
+
 EndTest
   
 exit 0
