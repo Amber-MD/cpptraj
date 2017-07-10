@@ -645,6 +645,10 @@ SetBinaries() {
 # CheckDefines(): Check how CPPTRAJ was compiled.
 CheckDefines() {
   echo "DEBUG: Getting defines"
+  echo "$CPPTRAJ --defines"
+  $CPPTRAJ --defines
+  echo "$CPPTRAJ --defines | grep Compiled"
+  $CPPTRAJ --defines | grep Compiled
   DEFINES=`$CPPTRAJ --defines | grep Compiled`
   ZLIB=`echo $DEFINES | grep DHASGZ`
   BZLIB=`echo $DEFINES | grep DHASBZ2`
