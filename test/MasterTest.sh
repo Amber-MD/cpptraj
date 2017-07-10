@@ -646,20 +646,31 @@ SetBinaries() {
 CheckDefines() {
   echo "DEBUG: Getting defines"
   echo "$CPPTRAJ --defines"
-  $CPPTRAJ --defines
-  echo "$CPPTRAJ --defines | grep Compiled"
-  $CPPTRAJ --defines | grep Compiled
-  DEFINES=`$CPPTRAJ --defines | grep Compiled`
-  ZLIB=`echo $DEFINES | grep DHASGZ`
-  BZLIB=`echo $DEFINES | grep DHASBZ2`
-  NETCDFLIB=`echo $DEFINES | grep DBINTRAJ`
-  MPILIB=`echo $DEFINES | grep DMPI`
-  NOMATHLIB=`echo $DEFINES | grep DNO_MATHLIB`
-  OPENMP=`echo $DEFINES | grep D_OPENMP`
-  PNETCDFLIB=`echo $DEFINES | grep DHAS_PNETCDF`
-  SANDERLIB=`echo $DEFINES | grep DUSE_SANDERLIB`
-  CUDA=`echo $DEFINES | grep DCUDA`
-  NO_XDRFILE=`echo $DEFINES | grep DNO_XDRFILE`
+  ZLIB=''
+  BZLIB=''
+  NETCDFLIB=''
+  MPILIB=''
+  NOMATHLIB=''
+  OPENMP=''
+  PNETCDFLIB=''
+  SANDERLIB=''
+  CUDA=''
+  NO_XDRFILE=''
+  for DEFINE in `$CPPTRAJ --defines` ; do
+    case "$DEFINE" in
+      '-DHASGZ'         ) ZLIB=$DEFINE ;;
+      '-DHASBZ2'        ) BZLIB=$DEFINE ;;
+      '-DBINTRAJ'       ) NETCDFLIB=$DEFINE ;;
+      '-DMPI'           ) MPILIB=$DEFINE ;;
+      '-DNO_MATHLIB'    ) NOMATHLIB=$DEFINE ;;
+      '-D_OPENMP'       ) OPENMP=$DEFINE ;;
+      '-DHAS_PNETCDF'   ) PNETCDFLIB=$DEFINE ;;
+      '-DUSE_SANDERLIB' ) SANDERLIB=$DEFINE ;;
+      '-DCUDA'          ) CUDA=$DEFINE ;;
+      '-DNO_XDRFILE'    ) NO_XDRFILE=$DEFINE ;;
+    esac
+  done
+  echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
 }
 
 #===============================================================================
