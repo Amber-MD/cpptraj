@@ -598,21 +598,6 @@ SetBinaries() {
   if [ ! -z "$NDIFF" ] ; then
     NDIFF="awk -f $NDIFF"
   fi
-  # Print DEBUG info
-  if [[ ! -z $DEBUG ]] ; then
-    if [[ $STANDALONE -eq 1 ]] ; then
-      echo "DEBUG: Standalone mode."
-    else
-      echo "DEBUG: AmberTools mode."
-    fi
-    echo "DEBUG: CPPTRAJ: $CPPTRAJ"
-    echo "DEBUG: AMBPDB:  $AMBPDB"
-    echo "DEBUG: NPROC:   $NPROC"
-    echo "DEBUG: NCDUMP:  $NCDUMP"
-    echo "DEBUG: DIFFCMD: $DIFFCMD"
-    echo "DEBUG: DACDIF:  $DACDIF"
-    echo "DEBUG: NDIFF:   $NDIFF"
-  fi
   # Check binaries
   if [ ! -f "$NCDUMP" ] ; then
     echo "Warning: 'ncdump' not found; NetCDF file comparisons cannot be performed."
@@ -639,6 +624,21 @@ SetBinaries() {
       AMBPDB=""
     fi
   fi
+  # Print DEBUG info
+  #if [[ ! -z $DEBUG ]] ; then
+    if [[ $STANDALONE -eq 1 ]] ; then
+      echo "DEBUG: Standalone mode."
+    else
+      echo "DEBUG: AmberTools mode."
+    fi
+    echo "DEBUG: CPPTRAJ: $CPPTRAJ"
+    echo "DEBUG: AMBPDB:  $AMBPDB"
+    echo "DEBUG: NPROC:   $NPROC"
+    echo "DEBUG: NCDUMP:  $NCDUMP"
+    echo "DEBUG: DIFFCMD: $DIFFCMD"
+    echo "DEBUG: DACDIF:  $DACDIF"
+    echo "DEBUG: NDIFF:   $NDIFF"
+  #fi
 }
 
 #-------------------------------------------------------------------------------
