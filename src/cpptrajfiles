@@ -149,6 +149,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         CmdInput.cpp \
         CmdList.cpp \
         ComplexArray.cpp \
+        Constraints.cpp \
         CoordinateInfo.cpp \
         Corr.cpp \
         CpptrajFile.cpp \

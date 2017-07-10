@@ -635,30 +635,36 @@ void Frame::SetCoordinatesByMap(Frame const& tgtIn, std::vector<int> const& mapI
   T_ = tgtIn.T_;
   time_ = tgtIn.time_;
   remd_indices_ = tgtIn.remd_indices_;
+  // Copy Coords/Mass
   double* newXptr = X_;
   Darray::iterator newmass = Mass_.begin();
+  for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
+                                        refatom != mapIn.end(); ++refatom)
+  {
+    memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
+    newXptr += 3;
+    *(newmass++) = tgtIn.Mass_[*refatom];
+  }
   if (tgtIn.V_ != 0 && V_ != 0) {
-    // Copy Coords/Mass/Velo
+    // Copy Velocities
     double *newVptr = V_;
     for (std::vector<int>::const_iterator refatom = mapIn.begin();
                                           refatom != mapIn.end(); ++refatom)
     {
-      int idx = ((*refatom) * 3);
-      memcpy( newXptr, tgtIn.X_ + idx, COORDSIZE_ );
-      newXptr += 3;
-      memcpy( newVptr, tgtIn.V_ + idx, COORDSIZE_ );
+      memcpy( newVptr, tgtIn.V_ + ((*refatom) * 3), COORDSIZE_ );
       newVptr += 3;
-      *(newmass++) = tgtIn.Mass_[*refatom];
     }
-  } else {
-    // Copy Coords/Mass only
-    for (std::vector<int>::const_iterator refatom = mapIn.begin(); 
+  }
+  if (tgtIn.F_ != 0 && F_ != 0) {
+    // Copy Forces
+    double *newFptr = F_;
+    for (std::vector<int>::const_iterator refatom = mapIn.begin();
                                           refatom != mapIn.end(); ++refatom)
     {
-      memcpy( newXptr, tgtIn.X_ + ((*refatom) * 3), COORDSIZE_ );
-      newXptr += 3;
-      *(newmass++) = tgtIn.Mass_[*refatom];
+      memcpy( newFptr, tgtIn.F_ + ((*refatom) * 3), COORDSIZE_ );
+      newFptr += 3;
     }
+
   }
 }
 
@@ -833,6 +839,32 @@ int Frame::AddByMask(Frame const& frameIn, AtomMask const& maskIn) {
   return 0;
 }
 
+// Frame::VMomentum()
+Vec3 Frame::VMomentum(AtomMask const& mask) const {
+  if (V_ == 0) { // SANITY CHECK
+    mprinterr("Error: Frame has no velocity information; cannot calculate momentum.\n");
+    return Vec3(0.0);
+  }
+  Vec3 sum(0.0);
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at)
+    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+  return sum;
+}
+
+// Frame::VMomentum()
+Vec3 Frame::VMomentum(AtomMask const& mask, double& sumMass) const {
+  if (V_ == 0) { // SANITY CHECK
+    mprinterr("Error: Frame has no velocity information; cannot calculate momentum.\n");
+    return Vec3(0.0);
+  }
+  Vec3 sum(0.0);
+  sumMass = 0.0;
+  for (AtomMask::const_iterator at = mask.begin(); at != mask.end(); ++at) {
+    sum += (Vec3(VXYZ(*at)) * Mass_[*at]);
+    sumMass += Mass_[*at];
+  }
+  return sum;
+}
 // ---------- COORDINATE MANIPULATION ------------------------------------------
 // Frame::Scale()
 void Frame::Scale(AtomMask const& maskIn, double sx, double sy, double sz) {

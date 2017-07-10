@@ -3,41 +3,25 @@
 
 Action_Temperature::Action_Temperature() :
   Tdata_(0),
-  getTempFromFrame_(false),
-  shakeType_(OFF),
-  degrees_of_freedom_(0)
+  getTempFromFrame_(false)
 {}
 
 void Action_Temperature::Help() const {
-  mprintf("\t[<name>] {frame | [<mask>] [ntc <#>]} [out <filename>]\n"
-          "  Calculate temperature in frame based on velocity information.\n"
+  mprintf("\t[<name>] {frame | [<mask>] %s} [out <filename>]\n", Constraints::constraintArgs);
+  mprintf("  Calculate temperature in frame based on velocity information.\n"
           "  If 'frame' is specified just use frame temperature (read in from\n"
           "  e.g. REMD trajectory)\n");
 }
-
-static const char* ShakeString[] = {
-  "off", "bonds to H", "all bonds"
-};
 
 // Action_Temperature::Init()
 Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
   // Keywords
-  if (actionArgs.hasKey("frame")) {
+  if (actionArgs.hasKey("frame"))
     getTempFromFrame_ = true;
-    shakeType_ = OFF;
-    degrees_of_freedom_ = 0;
-  } else {
+  else {
     getTempFromFrame_ = false;
-    int ntc = actionArgs.getKeyInt("ntc",-1);
-    if (ntc != -1) {
-      if (ntc < 1 || ntc > 3) {
-        mprinterr("Error: temperature: ntc must be 1, 2, or 3\n");
-        return Action::ERR;
-      }
-      shakeType_ = (ShakeType)(ntc - 1);
-    } else
-      shakeType_ = OFF;
+    if (cons_.InitConstraints( actionArgs )) return Action::ERR;
   }
   DataFile* outfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   // Masks
@@ -53,7 +37,7 @@ Action::RetType Action_Temperature::Init(ArgList& actionArgs, ActionInit& init, 
              Tdata_->legend());
   } else {
     mprintf("    TEMPERATURE: Calculate temperature for atoms in mask [%s]\n", Mask_.MaskString());
-    mprintf("\tUsing SHAKE (ntc) value of [%s]\n", ShakeString[shakeType_]);
+    mprintf("\tConstraints: %s\n", cons_.shakeString());
   }
   return Action::OK;
 }
@@ -68,23 +52,8 @@ Action::RetType Action_Temperature::Setup(ActionSetup& setup) {
       mprintf("Warning: temperature: No atoms selected in [%s]\n", Mask_.MaskString());
       return Action::SKIP;
     }
-    // Calculate degrees of freedom
-    // If SHAKE is on, add up all bonds which cannot move because of SHAKE.
-    // NOTE: For now, dont distinguish between solute/solvent.
-    int constrained_bonds_to_h = 0;
-    int constrained_heavy_bonds = 0;
-    if (shakeType_ >= BONDS_TO_H) {
-      constrained_bonds_to_h = (int)setup.Top().BondsH().size();
-      mprintf("\t%i bonds to hydrogen constrained.\n", constrained_bonds_to_h);
-      if (shakeType_ >= ALL_BONDS) {
-        constrained_heavy_bonds = (int)setup.Top().Bonds().size();
-        mprintf("\t%i bonds to heavy atoms constrained.\n", constrained_heavy_bonds);
-      }
-    }
-    // Just estimate for now, 3N - 6
-    degrees_of_freedom_ = (3 * Mask_.Nselected()) - constrained_bonds_to_h
-                          - constrained_heavy_bonds - 6;
-    mprintf("\t# of degrees of freedom = %i\n", degrees_of_freedom_);
+    // Calculate degrees of freedom taking into account constraints
+    if (cons_.SetupConstraints( Mask_, setup.Top() )) return Action::ERR;
   }
   return Action::OK;
 }
@@ -95,7 +64,7 @@ Action::RetType Action_Temperature::DoAction(int frameNum, ActionFrame& frm) {
   if (getTempFromFrame_)
     tdata = frm.Frm().Temperature();
   else
-    tdata = frm.Frm().CalcTemperature(Mask_, degrees_of_freedom_);
+    tdata = frm.Frm().CalcTemperature(Mask_, cons_.DegreesOfFreedom());
   Tdata_->Add(frameNum, &tdata);
   return Action::OK;
 }

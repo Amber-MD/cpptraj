@@ -14,14 +14,7 @@ class Action_Volume: public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print();
 
-    static const double AMU_ANG_TO_G_CM3;
-
     ImagedAction image_;
-    AtomMask mask_;
     DataSet *vol_;
-    double sum_;
-    double sum2_;
-    int nframes_;
-    bool calcDensity_;
 };
 #endif

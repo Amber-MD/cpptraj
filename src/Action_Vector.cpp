@@ -20,9 +20,9 @@ Action_Vector::Action_Vector() :
 void Action_Vector::Help() const {
   mprintf("\t[<name>] <Type> [out <filename> [ptrajoutput]] [<mask1>] [<mask2>]\n"
           "\t[magnitude] [ired]\n"
-          "\t<Type> = { mask | minimage  | dipole | center | corrplane | \n"
-          "\t           box  | boxcenter | ucellx | ucelly | ucellz\n"
-          "\t           principal [x|y|z] }\n" 
+          "\t<Type> = { mask     | minimage  | dipole | center | corrplane | \n"
+          "\t           box      | boxcenter | ucellx | ucelly | ucellz    | \n"
+          "\t           momentum | principal [x|y|z] }\n" 
           "  Calculate the specified coordinate vector.\n"
           "    mask: (Default) Vector from <mask1> to <mask2>.\n"
           "    minimage: Store the minimum image vector between atoms in <mask1> and <mask2>.\n"
@@ -32,6 +32,7 @@ void Action_Vector::Help() const {
           "    box: (No mask needed) Store the box lengths of the trajectory.\n"
           "    boxcenter: (No mask needed) Store box center as vector.\n"
           "    ucell{x|y|z}: (No mask needed) Store specified unit cell vector.\n"
+          "    momentum : Store total momentum vector of atoms in <mask1> (requires velocities).\n"
           "    principal [x|y|z]: X, Y, or Z principal axis vector for atoms in <mask1>.\n");
 }
 
@@ -44,7 +45,7 @@ const char* Action_Vector::ModeString[] = {
   "NO_OP", "Principal X", "Principal Y", "Principal Z",
   "Dipole", "Box", "Mask", "Ired",
   "CorrPlane", "Center", "Unit cell X", "Unit cell Y", "Unit cell Z",
-  "Box Center", "MinImage"
+  "Box Center", "MinImage", "Momentum"
 };
 
 static Action::RetType WarnDeprecated() {
@@ -93,6 +94,8 @@ Action::RetType Action_Vector::Init(ArgList& actionArgs, ActionInit& init, int d
     if ( actionArgs.hasKey("z") ) mode_ = PRINCIPAL_Z;
   } else if (actionArgs.hasKey("center"))
     mode_ = CENTER;
+  else if (actionArgs.hasKey("momentum"))
+    mode_ = MOMENTUM;
   else if (actionArgs.hasKey("dipole"))
     mode_ = DIPOLE;
   else if (actionArgs.hasKey("box"))
@@ -409,7 +412,8 @@ void Action_Vector::MinImage(Frame const& frm) {
 Action::RetType Action_Vector::DoAction(int frameNum, ActionFrame& frm) {
   switch ( mode_ ) {
     case MASK        : Mask(frm.Frm()); break;
-    case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break; 
+    case CENTER      : Vec_->AddVxyz( frm.Frm().VCenterOfMass(mask_) ); break;
+    case MOMENTUM    : Vec_->AddVxyz( frm.Frm().VMomentum(mask_) ); break; 
     case DIPOLE      : Dipole(frm.Frm()); break;
     case PRINCIPAL_X :
     case PRINCIPAL_Y :

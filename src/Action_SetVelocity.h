@@ -2,7 +2,8 @@
 #define INC_ACTION_SETVELOCITY_H
 #include "Action.h"
 #include "Random.h"
-/// Calculate the temperature of parts of a system.
+#include "Constraints.h"
+/// Set velocities for selected atoms in a system. 
 class Action_SetVelocity : public Action {
   public:
     Action_SetVelocity();
@@ -14,11 +15,18 @@ class Action_SetVelocity : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
-    AtomMask Mask_;
-    std::vector<double> SD_;
-    double tempi_;
+    enum ModeType { SET = 0, ZERO, MODIFY };
+
+    typedef std::vector<double> Darray;
+
+    AtomMask Mask_;    ///< Atoms to set/modify velocities of
+    Darray SD_;        ///< Hold sqrt(kB*(1/mass)) for each atom
+    double tempi_;     ///< Temperature to generate velocity distribution at.
+    ModeType mode_;    ///< Set velocity, zero velocity, modify existing velocity.
+    Constraints cons_; ///< Hold constraint info 
     Random_Number RN_;
     CoordinateInfo cInfo_;
     Frame newFrame_;
+    bool zeroMomentum_;
 };
 #endif
