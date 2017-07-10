@@ -547,6 +547,7 @@ CmdLineOpts() {
 #-------------------------------------------------------------------------------
 # SetBinaries(): Set and check CPPTRAJ etc binaries
 SetBinaries() {
+  echo "DEBUG: Setting binaries"
   # Set default command locations
   DIFFCMD=`which diff`
   NCDUMP=`which ncdump`
@@ -643,6 +644,7 @@ SetBinaries() {
 #-------------------------------------------------------------------------------
 # CheckDefines(): Check how CPPTRAJ was compiled.
 CheckDefines() {
+  echo "DEBUG: Getting defines"
   DEFINES=`$CPPTRAJ --defines | grep Compiled`
   ZLIB=`echo $DEFINES | grep DHASGZ`
   BZLIB=`echo $DEFINES | grep DHASBZ2`
