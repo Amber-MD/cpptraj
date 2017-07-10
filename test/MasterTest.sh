@@ -547,7 +547,6 @@ CmdLineOpts() {
 #-------------------------------------------------------------------------------
 # SetBinaries(): Set and check CPPTRAJ etc binaries
 SetBinaries() {
-  echo "DEBUG: Setting binaries"
   # Set default command locations
   DIFFCMD=`which diff`
   NCDUMP=`which ncdump`
@@ -625,8 +624,8 @@ SetBinaries() {
     fi
   fi
   # Print DEBUG info
-  #if [[ ! -z $DEBUG ]] ; then
-    if [[ $STANDALONE -eq 1 ]] ; then
+  if [ ! -z "$DEBUG" ] ; then
+    if [ $STANDALONE -eq 1 ] ; then
       echo "DEBUG: Standalone mode."
     else
       echo "DEBUG: AmberTools mode."
@@ -638,14 +637,12 @@ SetBinaries() {
     echo "DEBUG: DIFFCMD: $DIFFCMD"
     echo "DEBUG: DACDIF:  $DACDIF"
     echo "DEBUG: NDIFF:   $NDIFF"
-  #fi
+  fi
 }
 
 #-------------------------------------------------------------------------------
 # CheckDefines(): Check how CPPTRAJ was compiled.
 CheckDefines() {
-  echo "DEBUG: Getting defines"
-  echo "$CPPTRAJ --defines"
   ZLIB=''
   BZLIB=''
   NETCDFLIB=''
@@ -670,7 +667,7 @@ CheckDefines() {
       '-DNO_XDRFILE'    ) NO_XDRFILE=$DEFINE ;;
     esac
   done
-  echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
 }
 
 #===============================================================================
