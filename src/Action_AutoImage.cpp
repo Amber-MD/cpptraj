@@ -221,15 +221,36 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+/// Round floating point to nearest whole number.
+static inline int ANINT(double xIn) {
+  double fpart, ipart;
+  fpart = modf(xIn, &ipart);
+  if (fpart < 0.0) fpart = -fpart;
+  if (fpart < 0.5)
+    return ipart;
+  if (xIn > 0.0)
+    return ipart + 1.0;
+  else
+    return ipart - 1.0;
+}
+
 static inline int Round(double d, int& dir) {
-  if (d < 0.0) {
+  dir = ANINT(d);
+  if (dir == 0) {
+    dir = 1;
+    return 1;
+  } else
+    return dir + dir;
+/*  if (d < 0.0) {
     dir = -1;
     return floor(d) - 1;
   } else {
     dir = 1;
     return ceil(d) + 1;
   }
+*/
 }
+
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
