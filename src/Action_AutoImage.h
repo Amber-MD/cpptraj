@@ -26,6 +26,7 @@ class Action_AutoImage : public Action {
     bool usecom_;         ///< If true imaging of mobile region uses molecule center.
     bool truncoct_;       ///< If true image into truncated octahedron shape.
     bool useMass_;        ///< If true use center of mass
+    bool movingAnchor_;   ///< If true anchor position set to previous fixed molecule
     enum TriclinicArg {OFF, FORCE, FAMILIAR};
     TriclinicArg triclinic_; ///< Determine whether triclinic code should be used.
 

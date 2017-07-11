@@ -1,8 +1,8 @@
+#include <cmath> // modf
 #include "Action_AutoImage.h"
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
-#include <cmath> // DEBUG
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -12,18 +12,23 @@ Action_AutoImage::Action_AutoImage() :
   usecom_(true),
   truncoct_(false),
   useMass_(false),
+  movingAnchor_(false),
   triclinic_(OFF)
 {}
 
 void Action_AutoImage::Help() const {
   mprintf("\t[<mask> | anchor <mask> [fixed <fmask>] [mobile <mmask>]]\n"
-          "\t[origin] [firstatom] [familiar | triclinic]\n"
+          "\t[origin] [firstatom] [familiar | triclinic] [moveanchor]\n"
           "  Automatically center and image periodic trajectory.\n"
-          "  The 'anchor' molecule (default the first molecule) will be centered;\n"
-          "  all 'fixed' molecules will be imaged only if imaging brings them closer\n"
-          "  to the 'anchor' molecule; default for 'fixed' molecules is all\n"
+          "  The \"anchor\" molecule (default the first molecule) will be centered;\n"
+          "  all \"fixed\" molecules will be imaged only if imaging brings them closer\n"
+          "  to the \"anchor\" molecule; default for \"fixed\" molecules is all\n"
           "  non-solvent non-ion molecules. All other molecules (referred to as\n"
-          "  'mobile') will be imaged freely.\n");
+          "  \"mobile\") will be imaged freely.\n"
+          "  If 'moveanchor' is specified the anchor point will be set to the\n"
+          "  previous \"fixed\" molecule; this is only expected to work well\n"
+          "  when \"fixed\" molecules that are sequential are also geometrically\n"
+          "  close.\n");
 }
 
 // Action_AutoImage::Init()
@@ -33,6 +38,7 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   // Get keywords
   origin_ = actionArgs.hasKey("origin");
   usecom_ = !actionArgs.hasKey("firstatom");
+  movingAnchor_ = actionArgs.hasKey("moveanchor");
   if (actionArgs.hasKey("familiar")) triclinic_ = FAMILIAR;
   if (actionArgs.hasKey("triclinic")) triclinic_ = FORCE;
   anchor_ = actionArgs.GetStringKey("anchor");
@@ -61,6 +67,8 @@ Action::RetType Action_AutoImage::Init(ArgList& actionArgs, ActionInit& init, in
   if (!mobile_.empty())
     mprintf("\tAtoms in mask [%s] will be imaged independently of anchor region.\n",
             mobile_.c_str());
+  if (movingAnchor_)
+    mprintf("\tWhen imaging fixed molecules anchor will be set to previous fixed molecule.\n");
 
   return Action::OK;
 }
@@ -222,7 +230,7 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
 }
 
 /// Round floating point to nearest whole number.
-static inline int ANINT(double xIn) {
+static inline double ANINT(double xIn) {
   double fpart, ipart;
   fpart = modf(xIn, &ipart);
   if (fpart < 0.0) fpart = -fpart;
@@ -233,24 +241,6 @@ static inline int ANINT(double xIn) {
   else
     return ipart - 1.0;
 }
-
-static inline int Round(double d, int& dir) {
-  dir = ANINT(d);
-  if (dir == 0) {
-    dir = 1;
-    return 1;
-  } else
-    return dir + dir;
-/*  if (d < 0.0) {
-    dir = -1;
-    return floor(d) - 1;
-  } else {
-    dir = 1;
-    return ceil(d) + 1;
-  }
-*/
-}
-
 
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
@@ -283,8 +273,8 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   }
   frm.ModifyFrm().Translate(fcom);
 
-  // Setup imaging, and image everything in current Frame 
-  // according to mobileList_. 
+  // Setup imaging, and image everything in current Frame
+  // according to mobileList_.
   if (ortho_) {
     if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
@@ -299,149 +289,80 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
                     usecom_, useMass_, mobileList_);
   }
 
-  // Loop over fixed molecules
-  for (pairList::const_iterator atom1 = fixedList_.begin();
-                                atom1 != fixedList_.end(); atom1 += 2)
-  {
-    int firstAtom = *atom1;
-    int lastAtom = *(atom1+1);
-    if (useMass_) 
-      framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
-    else
-      framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
+  if (movingAnchor_) {
+    // TODO I think the way the translation is calculated here is robust and
+    //      more efficient than the !movingAnchor_ case but more testing is
+    //      needed.
+    // Loop over fixed molecules
+    for (pairList::const_iterator atom1 = fixedList_.begin();
+                                  atom1 != fixedList_.end(); atom1 += 2)
+    {
+      int firstAtom = *atom1;
+      int lastAtom = *(atom1+1);
+      if (useMass_)
+        framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
+      else
+        framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
 
-    // Determine direction from molecule to anchor
-    Vec3 delta = anchorcenter - framecenter;
-    mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
-    // Determine distance in terms of box lengths
-    Vec3 Dxyz;
-    if (ortho_)
-      Dxyz = delta / frm.Frm().BoxCrd().Lengths();
-    else
-      Dxyz = recip * delta;
-    Dxyz.Print("Dxyz");
-    int dirx, diry, dirz;
-    int maxx = Round(Dxyz[0], dirx);
-    int maxy = Round(Dxyz[1], diry);
-    int maxz = Round(Dxyz[2], dirz);
-    mprintf("DEBUG: maxxyz= %i %i %i", maxx, maxy, maxz);
-    mprintf("  dirxyz= %i %i %i\n", dirx, diry, dirz);
-
-    // Determine which translation would bring molecule center closer to anchor
-    double mindist2 = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxY() * frm.Frm().BoxCrd().BoxZ();
-    mindist2 *= mindist2;
-    Vec3 minTrans(0.0);
-    Vec3 minImage(0.0);
-    // FIXME this only looks one cell over. Be smarter.
-    for (int iz = 0; iz != maxz; iz += dirz) {
-      for (int iy = 0; iy != maxy; iy += diry) {
-        for (int ix = 0; ix != maxx; ix += dirx) {
-          if (ortho_)
-            Trans = Vec3( frm.Frm().BoxCrd().BoxX() * ix,
-                          frm.Frm().BoxCrd().BoxY() * iy,
-                          frm.Frm().BoxCrd().BoxZ() * iz );
-          else
-            Trans = ucell.TransposeMult( Vec3(ix, iy, iz) );
-          Vec3 imagedCenter = framecenter + Trans;
-          double dist2 = DIST2_NoImage( anchorcenter, imagedCenter );
-          mprintf("DBG:\t\t%u to anchor, {%2i %2i %2i} = %6.2f\n",
-                  (atom1-fixedList_.begin())/2, ix, iy, iz, sqrt(dist2));
-          if (dist2 < mindist2) {
-            mindist2 = dist2; 
-            minTrans = Trans;
-            minImage = imagedCenter;
-          }
-        }
+      // Determine direction from molecule to anchor
+      Vec3 delta = anchorcenter - framecenter;
+//      mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
+      // Determine distance in terms of box lengths
+      Vec3 Dxyz, minTrans;
+      if (ortho_) {
+        Dxyz = delta / frm.Frm().BoxCrd().Lengths();
+        minTrans = Vec3(ANINT(Dxyz[0]) * frm.Frm().BoxCrd().BoxX(),
+                        ANINT(Dxyz[1]) * frm.Frm().BoxCrd().BoxY(),
+                        ANINT(Dxyz[2]) * frm.Frm().BoxCrd().BoxZ());
+      } else {
+        Dxyz = recip * delta;
+        minTrans = ucell.TransposeMult( Vec3(ANINT(Dxyz[0]),
+                                             ANINT(Dxyz[1]),
+                                             ANINT(Dxyz[2])) );
       }
-    }
-    mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f} mindist=%6.2f\n",
-            frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
-            minTrans[0], minTrans[1], minTrans[2], sqrt(mindist2));
-    //if (imageddist2 < framedist2) {
-      // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
+//      Dxyz.Print("Dxyz");
+      Vec3 minImage = framecenter + minTrans;
+//      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
+//              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+//              minTrans[0], minTrans[1], minTrans[2]);
+      // Move atoms closer to anchor. Update coords in currentFrame.
       frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
       // New anchor is previous fixed mol
       anchorcenter = minImage;
-    //}
-  }
-
-/*
-  // Loop over fixed molecules
-  std::vector<Vec3> fixedPoints( 1, anchorcenter );
-  for (pairList::const_iterator atom1 = fixedList_.begin();
-                                atom1 != fixedList_.end(); atom1 += 2)
-  {
-    int firstAtom = *atom1;
-    int lastAtom = *(atom1+1);
-    if (useMass_) 
-      framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
-    else
-      framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
-    // Determine if molecule would be imaged.
-    if (ortho_)
-      Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
-    else
-      Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
-    // If molecule was imaged, determine if total cumulative distance to points is lower or not. 
-    if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
-      imagedcenter = framecenter + Trans;
-      double frameDist2 = 0.0;
-      double imagedDist2 = 0.0;
-      for (std::vector<Vec3>::const_iterator pt = fixedPoints.begin();
-                                             pt != fixedPoints.end(); ++pt)
-      {
-        double fd2 = DIST2_NoImage( *pt, framecenter  );
-        frameDist2  += fd2;
-        double id2 = DIST2_NoImage( *pt, imagedcenter );
-        imagedDist2 += id2;
-        mprintf("DBG:\t\t%3u to pt %3u: f=%6.2f i=%6.2f\n",
-                (atom1-fixedList_.begin())/2, pt - fixedPoints.begin(), sqrt(fd2), sqrt(id2));
-      }
-      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f} frameDist=%6.2f, imagedDist=%6.2f\n",
-              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
-              Trans[0], Trans[1], Trans[2], sqrt(frameDist2), sqrt(imagedDist2));
-      if (imagedDist2 < frameDist2) {
-        // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-        frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
-        framecenter = imagedcenter;
-      }
     }
-    fixedPoints.push_back( framecenter );
-  }
-*/
-
-/*
-  // For each molecule defined by atom pairs in fixedList, determine if the
-  // imaged position is closer to anchor center than the current position.
-  // Always use molecule center when imaging fixedList.
-  for (pairList::const_iterator atom1 = fixedList_.begin();
-                                atom1 != fixedList_.end(); atom1 += 2)
-  {
-    int firstAtom = *atom1;
-    int lastAtom = *(atom1+1);
-    if (useMass_) 
-      framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
-    else
-      framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
-    // Determine if molecule would be imaged.
-    if (ortho_)
-      Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
-    else
-      Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
-    // If molecule was imaged, determine whether imaged position is closer to anchor.
-    if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
-      imagedcenter = framecenter + Trans;
-      double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
-      double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
-//      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f} frame dist2=%6.2f, imaged dist2=%6.2f\n",
-//              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
-//              Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
-      if (imageddist2 < framedist2) {
-        // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
-        frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+  } else {
+    // For each molecule defined by atom pairs in fixedList, determine if the
+    // imaged position is closer to anchor center than the current position.
+    // Always use molecule center when imaging fixedList.
+    for (pairList::const_iterator atom1 = fixedList_.begin();
+                                  atom1 != fixedList_.end(); atom1 += 2)
+    {
+      int firstAtom = *atom1;
+      int lastAtom = *(atom1+1);
+      if (useMass_)
+        framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
+      else
+        framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
+      // Determine if molecule would be imaged.
+      if (ortho_)
+        Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
+      else
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+      // If molecule was imaged, determine whether imaged position is closer to anchor.
+      if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
+        imagedcenter = framecenter + Trans;
+        double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
+        double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
+//        mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f} frame dist2=%6.2f, imaged dist2=%6.2f\n",
+//                frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+//                Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
+        if (imageddist2 < framedist2) {
+          // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
+          frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+        }
       }
     }
   }
-*/
+
   return Action::MODIFY_COORDS;
 }
