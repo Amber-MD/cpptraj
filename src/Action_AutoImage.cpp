@@ -2,6 +2,7 @@
 #include "CpptrajStdio.h"
 #include "DistRoutines.h"
 #include "ImageRoutines.h"
+//#incl ude <cmath> // DEBUG
 
 // CONSTRUCTOR
 Action_AutoImage::Action_AutoImage() :
@@ -289,8 +290,9 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       imagedcenter = framecenter + Trans;
       double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
       double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
-//      mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%12.4f, imaged dist2=%12.4f\n",
-//              frameNum, firstAtom+1, lastAtom, framedist2, imageddist2);
+//      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f} frame dist2=%6.2f, imaged dist2=%6.2f\n",
+//              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+//              Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
       if (imageddist2 < framedist2) {
         // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
         frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
