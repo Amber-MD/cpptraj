@@ -289,8 +289,8 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       imagedcenter = framecenter + Trans;
       double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
       double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
-      mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%12.4f, imaged dist2=%12.4f\n",
-              frameNum, firstAtom+1, lastAtom+1, framedist2, imageddist2);
+//      mprintf("DBG: [%5i] Fixed @%i-%i frame dist2=%12.4f, imaged dist2=%12.4f\n",
+//              frameNum, firstAtom+1, lastAtom+1, framedist2, imageddist2);
       if (imageddist2 < framedist2) {
         // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
         frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
