@@ -56,6 +56,7 @@ SANDERLIB=""
 #   H. F. Beebe's ndiff.awk script. The remaining args can be used to pass
 #   options to DIFFCMD.
 DoTest() {
+  echo "DEBUG: DoTest $1 $2"
   if [[ ! -z $DACDIF ]] ; then
     # AmberTools - use dacdif. Use any '-r <X>' or '-a <X>' args found.
     # Ignore the rest.
@@ -120,6 +121,7 @@ DoTest() {
 # NcTest(): Compare NetCDF files <1> and <2>. Use NCDUMP to convert to ASCII
 # first, removing ==> line and :programVersion attribute.
 NcTest() {
+  echo "DEBUG: NcTest $1 $2"
   if [[ -z $1 || -z $2 ]] ; then
     echo "Error: NcTest(): One or both files not specified." > /dev/stderr
     exit 1
@@ -187,11 +189,12 @@ RunCpptraj() {
   if [[ -z $DACDIF ]] ; then
     echo "  CPPTRAJ: $1" >> $TEST_RESULTS
   fi
-  if [[ ! -z $DEBUG ]] ; then
+#  if [[ ! -z $DEBUG ]] ; then
     echo "$TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR"
-  fi
+#  fi
   $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $OUTPUT 2>>$ERROR
   STATUS=$?
+  echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ "$STATUS" -ne 0 ] ; then
     echo "Error: cpptraj exited with status $STATUS" 2> /dev/stderr
     echo "Error: cpptraj exited with status $STATUS" > $TEST_RESULTS
@@ -201,6 +204,7 @@ RunCpptraj() {
 # ------------------------------------------------------------------------------
 # EndTest(): Called at the end of every test script if no errors found.
 EndTest() {
+  echo "DEBUG: EndTest"
   # Report only when not using dacdif 
   if [[ -z $DACDIF ]] ; then
     if [[ $ERRCOUNT -gt 0 ]] ; then
