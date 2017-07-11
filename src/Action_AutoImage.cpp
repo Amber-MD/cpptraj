@@ -221,6 +221,16 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
+static inline int Round(double d, int& dir) {
+  if (d < 0.0) {
+    dir = -1;
+    return floor(d) - 1;
+  } else {
+    dir = 1;
+    return ceil(d) + 1;
+  }
+}
+
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
@@ -278,15 +288,33 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       framecenter = frm.Frm().VCenterOfMass(firstAtom, lastAtom);
     else
       framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
+
+    // Determine direction from molecule to anchor
+    Vec3 delta = anchorcenter - framecenter;
+    mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
+    // Determine distance in terms of box lengths
+    Vec3 Dxyz;
+    if (ortho_)
+      Dxyz = delta / frm.Frm().BoxCrd().Lengths();
+    else
+      Dxyz = recip * delta;
+    Dxyz.Print("Dxyz");
+    int dirx, diry, dirz;
+    int maxx = Round(Dxyz[0], dirx);
+    int maxy = Round(Dxyz[1], diry);
+    int maxz = Round(Dxyz[2], dirz);
+    mprintf("DEBUG: maxxyz= %i %i %i", maxx, maxy, maxz);
+    mprintf("  dirxyz= %i %i %i\n", dirx, diry, dirz);
+
     // Determine which translation would bring molecule center closer to anchor
     double mindist2 = frm.Frm().BoxCrd().BoxX() * frm.Frm().BoxCrd().BoxY() * frm.Frm().BoxCrd().BoxZ();
     mindist2 *= mindist2;
     Vec3 minTrans(0.0);
     Vec3 minImage(0.0);
     // FIXME this only looks one cell over. Be smarter.
-    for (int iz = -1; iz != 2; iz++) {
-      for (int iy = -1; iy != 2; iy++) {
-        for (int ix = -1; ix != 2; ix++) {
+    for (int iz = 0; iz != maxz; iz += dirz) {
+      for (int iy = 0; iy != maxy; iy += diry) {
+        for (int ix = 0; ix != maxx; ix += dirx) {
           if (ortho_)
             Trans = Vec3( frm.Frm().BoxCrd().BoxX() * ix,
                           frm.Frm().BoxCrd().BoxY() * iy,
@@ -295,8 +323,8 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
             Trans = ucell.TransposeMult( Vec3(ix, iy, iz) );
           Vec3 imagedCenter = framecenter + Trans;
           double dist2 = DIST2_NoImage( anchorcenter, imagedCenter );
-//          mprintf("DBG:\t\t%u to anchor, {%2i %2i %2i} = %6.2f\n",
-//                  (atom1-fixedList_.begin())/2, ix, iy, iz, sqrt(dist2));
+          mprintf("DBG:\t\t%u to anchor, {%2i %2i %2i} = %6.2f\n",
+                  (atom1-fixedList_.begin())/2, ix, iy, iz, sqrt(dist2));
           if (dist2 < mindist2) {
             mindist2 = dist2; 
             minTrans = Trans;
