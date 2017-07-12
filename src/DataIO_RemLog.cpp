@@ -599,8 +599,8 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   for (int repidx = 0; repidx < n_mremd_replicas; repidx++) {
     if (!idxArgs.empty()) {
       // User-specified starting coord indices
-      CoordinateIndices[repidx] = idxArgs.getNextInteger(0);
-      if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] > n_mremd_replicas )
+      CoordinateIndices[repidx] = idxArgs.getNextInteger(-1);
+      if (CoordinateIndices[repidx] < 1 || CoordinateIndices[repidx] > n_mremd_replicas )
       {
         mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
         return 1;
