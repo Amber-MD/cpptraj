@@ -44,11 +44,7 @@ int DataIO_CharmmRepLog::processReadArgs(ArgList& argIn) {
 int DataIO_CharmmRepLog::ReadData(FileName const& fnameIn, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  int err = 0;
-  if (nrep_ > 0)
-    err = ReadReplogArray(fnameIn, datasetlist, dsname);
- 
-  return err;
+  return ReadReplogArray(fnameIn, datasetlist, dsname);
 }
 
 int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
@@ -61,13 +57,23 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   // Search for replica logs from 0 to nrep-1
   typedef std::vector<FileName> Narray;
   Narray Fnames;
-  for (int i = 0; i != nrep_; i++) {
-    FileName fname( fnameIn.DirPrefix() + prefix + integerToString(i) );
-    if (!File::Exists(fname)) {
-      mprinterr("Error: File '%s' not found.\n", fname.full());
-      return 1;
+  if (nrep_ == 0) {
+    mprintf("\tSearching for replica logs with prefix '%s'\n", prefix.c_str());
+    FileName fname( fnameIn.DirPrefix() + prefix + integerToString(0) );
+    while (File::Exists(fname)) {
+      nrep_++;
+      Fnames.push_back( fname );
+      fname = FileName( fnameIn.DirPrefix() + prefix + integerToString(nrep_) );
     }
-    Fnames.push_back( fname );
+  } else {
+    for (int i = 0; i != nrep_; i++) {
+      FileName fname( fnameIn.DirPrefix() + prefix + integerToString(i) );
+      if (!File::Exists(fname)) {
+        mprinterr("Error: File '%s' not found.\n", fname.full());
+        return 1;
+      }
+      Fnames.push_back( fname );
+    }
   }
   mprintf("\t%zu replica logs.\n", Fnames.size());
   std::vector<int> CoordinateIndices( nrep_ );
