@@ -193,9 +193,12 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
           mprintf("Info: Hamiltonian (THAM) info detected in log.\n");
         isHREMD = true;
       }
-      // Now actually at the coordinate index
+      // Now actually at the coordinate index (tag)
       int crdidx;
-      sscanf(ptr, "%*31c%5i", &crdidx);
+      // NOTE: We want the tag BEFORE exchange since this is what corresponds
+      //       to any trajectory frames written.
+      //sscanf(ptr, "%*31c%5i", &crdidx);
+      sscanf(ptr, "%*16c%5i", &crdidx);
       // Next line has result
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
