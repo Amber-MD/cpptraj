@@ -220,7 +220,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     else if (targetType_ == ReplicaInfo::CRDIDX) {
       int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
-      fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
+      fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
     }
 #   ifndef MPI
