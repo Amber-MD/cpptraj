@@ -31,12 +31,16 @@ bool DataIO_CharmmRepLog::ID_DataFormat(CpptrajFile& infile) {
 
 // DataIO_CharmmRepLog::ReadHelp()
 void DataIO_CharmmRepLog::ReadHelp() {
-  mprintf("\tnrep <#> : Number of replicas.\n");
+  mprintf("\tnrep <#>            : Number of replicas.\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices.\n");
+
 }
 
 // DataIO_CharmmRepLog::processReadArgs()
 int DataIO_CharmmRepLog::processReadArgs(ArgList& argIn) {
   nrep_ = argIn.getKeyInt("nrep", 0);
+  crdidx_ = argIn.GetStringKey("crdidx");
   return 0;
 }
 
@@ -47,6 +51,7 @@ int DataIO_CharmmRepLog::ReadData(FileName const& fnameIn,
   return ReadReplogArray(fnameIn, datasetlist, dsname);
 }
 
+// DataIO_CharmmRepLog::ReadReplogArray()
 int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
@@ -88,8 +93,21 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     ReplicaDimArray DimTypes;
     DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
     ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, debug_);
-    for (int repidx = 0; repidx != nrep_; repidx++)
-      CoordinateIndices[repidx] = repidx;
+    if (crdidx_.empty()) {
+      for (int repidx = 0; repidx != nrep_; repidx++)
+        CoordinateIndices[repidx] = repidx;
+    } else {
+      // User-specified starting coord indices
+      ArgList idxArgs( crdidx_, "," );
+      for (int repidx = 0; repidx != nrep_; repidx++) {
+        CoordinateIndices[repidx] = idxArgs.getNextInteger(-1);
+        if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] >= nrep_ )
+        {
+          mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
+          return 1;
+        }
+      }
+    }
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());

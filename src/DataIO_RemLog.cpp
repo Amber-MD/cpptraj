@@ -417,8 +417,6 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
     }
     mprintf("\tExpecting %zu replica dimensions.\n", GroupDims.size());
   }
-  // Split up crdidx arg
-  ArgList idxArgs( crdidx_, "," );
   mprintf("\tReading from log files:");
   for (Sarray::const_iterator it = logFilenames_.begin(); it != logFilenames_.end(); ++it)
     mprintf(" %s", it->c_str());
@@ -596,6 +594,8 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
 
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
   std::vector<int> CoordinateIndices( n_mremd_replicas );
+  // Split up crdidx arg
+  ArgList idxArgs( crdidx_, "," );
   for (int repidx = 0; repidx < n_mremd_replicas; repidx++) {
     if (!idxArgs.empty()) {
       // User-specified starting coord indices
