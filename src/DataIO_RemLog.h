@@ -4,7 +4,7 @@
 #include "DataIO.h"
 #include "BufferedLine.h"
 #include "DataSet_RemLog.h"
-/// Read replica exchange log data.
+/// Read Amber replica exchange log data.
 class DataIO_RemLog : public DataIO {
   public:
     DataIO_RemLog();

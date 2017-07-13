@@ -90,6 +90,7 @@ class DataSet_RemLog : public DataSet {
     bool wrap_;                ///< If true highest rep can exchange with lowest
 };
 // ----- Public Class Definitions ----------------------------------------------
+/** Hold information for one exchange of a single replica. */
 class DataSet_RemLog::ReplicaFrame {
   public:
     ReplicaFrame() :
