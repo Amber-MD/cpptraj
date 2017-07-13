@@ -81,7 +81,8 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     }
   }
   mprintf("\t%zu replica logs.\n", Fnames.size());
-  std::vector<int> CoordinateIndices( nrep_ );
+  typedef DataSet_RemLog::IdxArray IdxArray;
+  IdxArray CoordinateIndices( nrep_ );
   // Allocate replica log DataSet
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
@@ -120,12 +121,11 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       return 1;
     }
     mprintf("\tReading final coordinate indices from last frame of existing set.\n");
-    for (int repidx = 0; repidx < nrep_; repidx++)
-      CoordinateIndices[repidx] = ((DataSet_RemLog*)ds)->LastRepFrame(repidx).CoordsIdx();
+    CoordinateIndices = ((DataSet_RemLog*)ds)->RestartCrdIndices();
   }
   mprintf("\tInitial coordinate indices:");
-  for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
-                                        c != CoordinateIndices.end(); ++c)
+  for (IdxArray::const_iterator c = CoordinateIndices.begin();
+                                c != CoordinateIndices.end(); ++c)
     mprintf(" %i", *c);
   mprintf("\n");
   // Loop over replica logs
@@ -133,6 +133,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   int total_exchanges = -1;
   bool needs_trim = false;
   bool isHREMD = false;
+  IdxArray FinalCrdIdx(nrep_, -1);
   for (int i = 0; i != nrep_; i++) {
     mprintf("\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
@@ -194,11 +195,12 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
         isHREMD = true;
       }
       // Now actually at the coordinate index (tag)
-      int crdidx;
+      int crdidx, finalcrd;
       // NOTE: We want the tag BEFORE exchange since this is what corresponds
       //       to any trajectory frames written.
       //sscanf(ptr, "%*31c%5i", &crdidx);
-      sscanf(ptr, "%*16c%5i", &crdidx);
+      sscanf(ptr, "%*16c%5i%*9c%5i", &crdidx, &finalcrd);
+      FinalCrdIdx[ourrep] = CoordinateIndices[finalcrd];
       // Next line has result
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
@@ -224,6 +226,12 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       needs_trim = true;
     }
   } // End loop over replica logs
+  mprintf("\tFinal crd indices:");
+  for (IdxArray::const_iterator it = FinalCrdIdx.begin();
+                                it != FinalCrdIdx.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+  ensemble.SetRestartCrdIndices( FinalCrdIdx );
   if (isHREMD) ensemble.SetupDimTypes().ChangeRemdDim(0, ReplicaDimArray::HAMILTONIAN);
   if (needs_trim) ensemble.TrimLastExchange();
   if (debug_ > 1) ensemble.PrintReplicaStats();

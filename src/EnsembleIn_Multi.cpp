@@ -342,10 +342,10 @@ void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
 std::string EnsembleIn_Multi::FinalCrdIndices() const {
   if (remlogData_.Empty()) return std::string();
   std::string arg("crdidx ");
-  int finalExchg = remlogData_.NumExchange() - 1;
+  DataSet_RemLog::IdxArray rst = remlogData_.CrdIndicesArg();
   for (unsigned int rep = 0; rep < remlogData_.Size(); rep++) {
     if (rep > 0) arg += ",";
-    arg += ( integerToString( remlogData_.RepFrame(finalExchg, rep).CoordsIdx() ) );
+    arg += integerToString( rst[rep] );
   }
   return arg;
 }
