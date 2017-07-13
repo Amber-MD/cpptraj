@@ -57,7 +57,7 @@ class DataSet_RemLog : public DataSet {
     int SetRestartCrdIndices(IdxArray const&);
     /// \return Final coordinate indices. Clear any restart coordinate indices.
     IdxArray RestartCrdIndices();
-     /// \return Final coordinate indices. Clear any restart coordinate indices.
+     /// \return Final coordinate indices. Do not clear restart coordinate indices.
     IdxArray CrdIndicesArg() const;
    
     // ----- DataSet routines --------------------

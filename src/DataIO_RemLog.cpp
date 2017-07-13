@@ -146,7 +146,7 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
             return 0;
           }
           //mprintf("\t\tGroup %i\n", group_num);
-          std::vector<int> indices;
+          IdxArray indices;
           int group_index = rd_arg.getNextInteger(-1);
           while (group_index != -1) {
             indices.push_back( group_index );
@@ -206,7 +206,7 @@ int DataIO_RemLog::ReadRemdDimFile(FileName const& rd_name,
 /** buffer should be positioned at the first exchange. */
 DataIO_RemLog::TmapType 
   DataIO_RemLog::SetupTemperatureMap(BufferedLine& buffer,
-                                     std::vector<int>& CrdIdxs) const
+                                     IdxArray& CrdIdxs) const
 {
   TmapType TemperatureMap;
   std::vector<TlogType> tList; // Hold temps and associated coord idxs
@@ -250,7 +250,7 @@ DataIO_RemLog::TmapType
 // DataIO_RemLog::Setup_pH_Map()
 /** buffer should be positioned at the first exchange. */
 DataIO_RemLog::TmapType 
-  DataIO_RemLog::Setup_pH_Map(BufferedLine& buffer, std::vector<int>& CrdIdxs) const
+  DataIO_RemLog::Setup_pH_Map(BufferedLine& buffer, IdxArray& CrdIdxs) const
 {
   TmapType pH_Map;
   std::vector<TlogType> pList; // Hold temps and associated coord idxs
@@ -427,7 +427,7 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   // Temperature map for dimensions (if needed) 
   std::vector<TmapType> TemperatureMap;
   // Coordinate indices for temperature dimensions (if needed)
-  std::vector< std::vector<int> > TempCrdIdxs;
+  std::vector< IdxArray > TempCrdIdxs;
   // Log files for each dimension
   std::vector<BufferedLine> buffer( GroupDims.size() );
   // logFileGroups will be used to hold all dimension replica logs for all runs.
@@ -593,7 +593,8 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
   }
 
   // Coordinate indices for each replica. Start crdidx = repidx (from 1) for now.
-  std::vector<int> CoordinateIndices( n_mremd_replicas );
+  typedef DataSet_RemLog::IdxArray IdxArray;
+  IdxArray CoordinateIndices( n_mremd_replicas );
   // Split up crdidx arg
   ArgList idxArgs( crdidx_, "," );
   for (int repidx = 0; repidx < n_mremd_replicas; repidx++) {
@@ -632,13 +633,12 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
       return 1;
     }
     mprintf("\tReading final coordinate indices from last frame of existing set.\n");
-    for (int repidx = 0; repidx < n_mremd_replicas; repidx++)
-      CoordinateIndices[repidx] = ((DataSet_RemLog*)ds)->LastRepFrame(repidx).CoordsIdx();
+    CoordinateIndices = ((DataSet_RemLog*)ds)->RestartCrdIndices();
   }
 //  if (!idxArgs.empty()) {
     mprintf("\tInitial coordinate indices:");
-    for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
-                                          c != CoordinateIndices.end(); ++c)
+    for (IdxArray::const_iterator c = CoordinateIndices.begin();
+                                  c != CoordinateIndices.end(); ++c)
       mprintf(" %i", *c);
     mprintf("\n");
 //  }

@@ -21,6 +21,7 @@ class DataIO_RemLog : public DataIO {
     static const char* LogDescription[];
     typedef std::vector<std::string> Sarray; // TODO FileName array?
     typedef std::map<double,int> TmapType; // FIXME: Use ReplicaMap
+    typedef DataSet_RemLog::IdxArray IdxArray;
 
     /// Read remlog header
     int ReadRemlogHeader(BufferedLine&, LogType&, unsigned int) const;
@@ -28,9 +29,9 @@ class DataIO_RemLog : public DataIO {
     int ReadRemdDimFile(FileName const&, DataSet_RemLog::GdimArray&, ReplicaDimArray&);
 
     /// Set up replica temperature map
-    TmapType SetupTemperatureMap(BufferedLine&,std::vector<int>&) const;
+    TmapType SetupTemperatureMap(BufferedLine&, IdxArray&) const;
     /// Set up replica pH map
-    TmapType Setup_pH_Map(BufferedLine&, std::vector<int>&) const;
+    TmapType Setup_pH_Map(BufferedLine&, IdxArray&) const;
     /// Count number of Hamiltonian replicas
     int CountHamiltonianReps(BufferedLine&) const;
 
