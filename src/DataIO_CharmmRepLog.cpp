@@ -31,12 +31,16 @@ bool DataIO_CharmmRepLog::ID_DataFormat(CpptrajFile& infile) {
 
 // DataIO_CharmmRepLog::ReadHelp()
 void DataIO_CharmmRepLog::ReadHelp() {
-  mprintf("\tnrep <#> : Number of replicas.\n");
+  mprintf("\tnrep <#>            : Number of replicas.\n"
+          "\tcrdidx <crd indices>: Use comma-separated list of indices as the initial\n"
+          "\t                      coordinate indices.\n");
+
 }
 
 // DataIO_CharmmRepLog::processReadArgs()
 int DataIO_CharmmRepLog::processReadArgs(ArgList& argIn) {
   nrep_ = argIn.getKeyInt("nrep", 0);
+  crdidx_ = argIn.GetStringKey("crdidx");
   return 0;
 }
 
@@ -44,13 +48,10 @@ int DataIO_CharmmRepLog::processReadArgs(ArgList& argIn) {
 int DataIO_CharmmRepLog::ReadData(FileName const& fnameIn, 
                             DataSetList& datasetlist, std::string const& dsname)
 {
-  int err = 0;
-  if (nrep_ > 0)
-    err = ReadReplogArray(fnameIn, datasetlist, dsname);
- 
-  return err;
+  return ReadReplogArray(fnameIn, datasetlist, dsname);
 }
 
+// DataIO_CharmmRepLog::ReadReplogArray()
 int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
                             DataSetList& datasetlist, std::string const& dsname)
 {
@@ -61,16 +62,27 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   // Search for replica logs from 0 to nrep-1
   typedef std::vector<FileName> Narray;
   Narray Fnames;
-  for (int i = 0; i != nrep_; i++) {
-    FileName fname( fnameIn.DirPrefix() + prefix + integerToString(i) );
-    if (!File::Exists(fname)) {
-      mprinterr("Error: File '%s' not found.\n", fname.full());
-      return 1;
+  if (nrep_ == 0) {
+    mprintf("\tSearching for replica logs with prefix '%s'\n", prefix.c_str());
+    FileName fname( fnameIn.DirPrefix() + prefix + integerToString(0) );
+    while (File::Exists(fname)) {
+      nrep_++;
+      Fnames.push_back( fname );
+      fname = FileName( fnameIn.DirPrefix() + prefix + integerToString(nrep_) );
     }
-    Fnames.push_back( fname );
+  } else {
+    for (int i = 0; i != nrep_; i++) {
+      FileName fname( fnameIn.DirPrefix() + prefix + integerToString(i) );
+      if (!File::Exists(fname)) {
+        mprinterr("Error: File '%s' not found.\n", fname.full());
+        return 1;
+      }
+      Fnames.push_back( fname );
+    }
   }
   mprintf("\t%zu replica logs.\n", Fnames.size());
-  std::vector<int> CoordinateIndices( nrep_ );
+  typedef DataSet_RemLog::IdxArray IdxArray;
+  IdxArray CoordinateIndices( nrep_ );
   // Allocate replica log DataSet
   DataSet* ds = 0;
   if (!dsname.empty()) ds = datasetlist.CheckForSet( dsname );
@@ -82,8 +94,21 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
     ReplicaDimArray DimTypes;
     DimTypes.AddRemdDimension( ReplicaDimArray::TEMPERATURE );
     ((DataSet_RemLog*)ds)->AllocateReplicas(nrep_, DimTypes, 0, false, debug_);
-    for (int repidx = 0; repidx != nrep_; repidx++)
-      CoordinateIndices[repidx] = repidx;
+    if (crdidx_.empty()) {
+      for (int repidx = 0; repidx != nrep_; repidx++)
+        CoordinateIndices[repidx] = repidx;
+    } else {
+      // User-specified starting coord indices
+      ArgList idxArgs( crdidx_, "," );
+      for (int repidx = 0; repidx != nrep_; repidx++) {
+        CoordinateIndices[repidx] = idxArgs.getNextInteger(-1);
+        if (CoordinateIndices[repidx] < 0 || CoordinateIndices[repidx] >= nrep_ )
+        {
+          mprinterr("Error: Given coordinate index out of range or not enough indices given.\n");
+          return 1;
+        }
+      }
+    }
   } else {
     if (ds->Type() != DataSet::REMLOG) {
       mprinterr("Error: Set '%s' is not replica log data.\n", ds->legend());
@@ -96,12 +121,11 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       return 1;
     }
     mprintf("\tReading final coordinate indices from last frame of existing set.\n");
-    for (int repidx = 0; repidx < nrep_; repidx++)
-      CoordinateIndices[repidx] = ((DataSet_RemLog*)ds)->LastRepFrame(repidx).CoordsIdx();
+    CoordinateIndices = ((DataSet_RemLog*)ds)->RestartCrdIndices();
   }
   mprintf("\tInitial coordinate indices:");
-  for (std::vector<int>::const_iterator c = CoordinateIndices.begin();
-                                        c != CoordinateIndices.end(); ++c)
+  for (IdxArray::const_iterator c = CoordinateIndices.begin();
+                                c != CoordinateIndices.end(); ++c)
     mprintf(" %i", *c);
   mprintf("\n");
   // Loop over replica logs
@@ -109,6 +133,7 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
   int total_exchanges = -1;
   bool needs_trim = false;
   bool isHREMD = false;
+  IdxArray FinalCrdIdx(nrep_, -1);
   for (int i = 0; i != nrep_; i++) {
     mprintf("\t\t%s\n", Fnames[i].full());
     bool warnsgld = false;
@@ -169,9 +194,13 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
           mprintf("Info: Hamiltonian (THAM) info detected in log.\n");
         isHREMD = true;
       }
-      // Now actually at the coordinate index
-      int crdidx;
-      sscanf(ptr, "%*31c%5i", &crdidx);
+      // Now actually at the coordinate index (tag)
+      int crdidx, finalcrd;
+      // NOTE: We want the tag BEFORE exchange since this is what corresponds
+      //       to any trajectory frames written.
+      //sscanf(ptr, "%*31c%5i", &crdidx);
+      sscanf(ptr, "%*16c%5i%*9c%5i", &crdidx, &finalcrd);
+      FinalCrdIdx[ourrep] = CoordinateIndices[finalcrd];
       // Next line has result
       ptr = infile.Line();
       bool result = (ptr[67]=='T');
@@ -197,6 +226,12 @@ int DataIO_CharmmRepLog::ReadReplogArray(FileName const& fnameIn,
       needs_trim = true;
     }
   } // End loop over replica logs
+  mprintf("\tFinal crd indices:");
+  for (IdxArray::const_iterator it = FinalCrdIdx.begin();
+                                it != FinalCrdIdx.end(); ++it)
+    mprintf(" %i", *it);
+  mprintf("\n");
+  ensemble.SetRestartCrdIndices( FinalCrdIdx );
   if (isHREMD) ensemble.SetupDimTypes().ChangeRemdDim(0, ReplicaDimArray::HAMILTONIAN);
   if (needs_trim) ensemble.TrimLastExchange();
   if (debug_ > 1) ensemble.PrintReplicaStats();

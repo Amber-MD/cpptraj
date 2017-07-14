@@ -12,6 +12,7 @@ class DataSet_RemLog : public DataSet {
     static DataSet* Alloc() { return (DataSet*)new DataSet_RemLog();}
     /// Replica location in dimension
     enum LocationType { BOTTOM = 0, MIDDLE, TOP };
+    typedef std::vector<int> IdxArray;
     // -------------------------------------------
     /// Used to hold replica partner information. TODO may be redundant/only necessary for Amber remlog
     class GroupReplica;
@@ -52,7 +53,13 @@ class DataSet_RemLog : public DataSet {
     void PrintReplicaStats() const;
     /// \return replica index offset
     int Offset() const { return offset_; }
-    
+    /// Set final coordinate indices if exchanged before final restart written.
+    int SetRestartCrdIndices(IdxArray const&);
+    /// \return Final coordinate indices. Clear any restart coordinate indices.
+    IdxArray RestartCrdIndices();
+     /// \return Final coordinate indices. Do not clear restart coordinate indices.
+    IdxArray CrdIndicesArg() const;
+   
     // ----- DataSet routines --------------------
     size_t Size()                       const { return ensemble_.size(); }
 #   ifdef MPI
@@ -74,14 +81,16 @@ class DataSet_RemLog : public DataSet {
     /// Setup a single 1D group.
     void SetupDim1Group(int);
 
-    ReplicaEnsemble ensemble_; // [replica][exchange]
-    GdimArray groupDims_;      // [dim][group][idx]
-    RepInfoArray repInfo_;     // [replica][dim]
-    ReplicaDimArray repDims_;  // [dim]
+    IdxArray finalCrdIdx_;
+    ReplicaEnsemble ensemble_; ///< [replica][exchange]
+    GdimArray groupDims_;      ///< [dim][group][idx]
+    RepInfoArray repInfo_;     ///< [replica][dim]
+    ReplicaDimArray repDims_;  ///< [dim]
     int offset_;               ///< Replica number offset
     bool wrap_;                ///< If true highest rep can exchange with lowest
 };
 // ----- Public Class Definitions ----------------------------------------------
+/** Hold information for one exchange of a single replica. */
 class DataSet_RemLog::ReplicaFrame {
   public:
     ReplicaFrame() :
