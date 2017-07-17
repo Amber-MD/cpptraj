@@ -5,14 +5,18 @@
 /// <Enter description of Action_LipidOrder here>
 class Action_LipidOrder : public Action {
   public:
-    Action_LipidOrder() {}
+    Action_LipidOrder();
     DispatchObject* Alloc() const { return (DispatchObject*)new Action_LipidOrder(); }
     void Help() const;
   private:
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
+
+    static const unsigned int MAX_H_;
+
+    enum AxisType { DX = 0, DY, DZ };
 
     /// Hold information for a single lipid carbon site
     class CarbonSite;
@@ -32,44 +36,50 @@ class Action_LipidOrder : public Action {
 
     CharMask mask_;
     Cmap Carbons_;
+    AxisType axis_;
 };
 
 /// Hold information for a lipid carbon site.
 class Action_LipidOrder::CarbonSite {
   public:
-    CarbonSite() : c_idx_(-1), h1_idx_(-1), h2_idx_(-1), h3_idx_(-1) {}
-    CarbonSite(int c) : c_idx_(c), h1_idx_(-1), h2_idx_(-1), h3_idx_(-1) {}
-    int Cidx()  const { return c_idx_;  }
-    int H1idx() const { return h1_idx_; }
-    int H2idx() const { return h2_idx_; }
-    int H3idx() const { return h3_idx_; }
-    void AddHindex(int h) {
-      if      (h1_idx_ == -1) h1_idx_ = h;
-      else if (h2_idx_ == -1) h2_idx_ = h;
-      else                    h3_idx_ = h; // TODO check for 4+ h?
-    }
+    CarbonSite();
+    /// Create site with carbon atom index
+    CarbonSite(int);
+    bool operator<(CarbonSite const& rhs) const { return (c_idx_ < rhs.c_idx_); }
+    unsigned int NumH() const { return nH_; }
+    int Cidx()          const { return c_idx_;  }
+    int Hidx(int i)     const { return h_idx_[i]; }
+    void AddHindex(int);
   private:
-    int c_idx_;  ///< Carbon atom index
-    int h1_idx_; ///< First hydrogen index
-    int h2_idx_; ///< Second hydrogen index if present.
-    int h3_idx_; ///< Third hydrogen index if present.
+    int c_idx_;       ///< Carbon atom index.
+    int h_idx_[3];    ///< Hydrogen atom indices.
+    unsigned int nH_; ///< Number of hydrogen atom indices.
 };
 
 /// Hold information for all carbons with the same name.
 class Action_LipidOrder::CarbonList {
   public:
-    CarbonList() {}
-    CarbonList(NameType const& n) : resname_(n) {}
+    CarbonList();
+    CarbonList(NameType const&);
     const char* resName() const { return *resname_; }
     unsigned int Nsites() const { return sites_.size(); }
-    CarbonSite& AddSite(int cidx) {
-      sites_.push_back( CarbonSite(cidx) );
-      return sites_.back();
-    }
+    unsigned int Nvals()  const { return nvals_; }
+    CarbonSite& AddSite(int);
     Carray::const_iterator begin() const { return sites_.begin(); }
     Carray::const_iterator end()   const { return sites_.end();   }
+    Carray::iterator begin()             { return sites_.begin(); }
+    Carray::iterator end()               { return sites_.end();   }
+    void UpdateAngle(int i, double val) {
+      sum_[i] += val;
+      sum2_[i] += val * val;
+    }
+    void UpdateNvals() { nvals_++; }
+    double Avg(int, double&) const;
   private:
     NameType resname_;
     Carray sites_;
+    double sum_[3];
+    double sum2_[3];
+    unsigned int nvals_; ///< Number of times list has been updated, used to calc avg.
 };
 #endif

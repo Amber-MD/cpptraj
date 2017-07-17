@@ -256,6 +256,7 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum, ActionFrame& frm) 
 	}
 
 	sx /= len;
+        mprintf("DBG: %8i %8i %8.3f\n",*C_atom, *H1_atom, sx[axis_]); 
 	Sx += 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0);
 
 	// C-H2 unit vector
@@ -270,7 +271,8 @@ Action::RetType Action_OrderParameter::DoAction(int frameNum, ActionFrame& frm) 
 		  C_mask->MaskString(), H2_mask->MaskString() );
 	}
 
-	sy /= len;
+        sy /= len;
+	mprintf("DBG: %8i %8i %8.3f\n",*C_atom, *H2_atom, sy[axis_]);
 	Sy += 0.5 * (3.0 * sy[axis_] * sy[axis_] - 1.0);
       }
 

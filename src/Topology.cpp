@@ -124,7 +124,7 @@ Range Topology::SoluteResidues() const {
 /** Given an atom number, return a string containing the corresponding 
   * residue name and number (starting from 1) along with the atom name 
   * with format: 
-  * "<resname><resnum>@<atomname>", e.g. "ARG_11@CA".
+  * "<resname>_<resnum>@<atomname>", e.g. "ARG_11@CA".
   * Truncate the residue and atom names so there are no blanks.
   */
 std::string Topology::TruncResAtomName(int atom) const {
@@ -142,6 +142,17 @@ std::string Topology::TruncResAtomName(int atom) const {
   res_name += "@";
   res_name += atom_name;
   return res_name;
+}
+
+// Topology::TruncResAtomNameNum()
+/** Given an atom number, return a string containing the corresponding 
+  * residue name and number (starting from 1) along with the atom name 
+  * and number with format: 
+  * "<resname>_<resnum>@<atomname>_<atomnum>", e.g. "ARG_11@CA_256".
+  * Truncate the residue and atom names so there are no blanks.
+  */
+std::string Topology::TruncResAtomNameNum(int atom) const {
+  return TruncResAtomName(atom) + "_" + integerToString(atom+1);
 }
 
 // Topology::AtomMaskName()
