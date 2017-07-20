@@ -529,6 +529,11 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
                       Both_.size()         * SolventSites_.size(),
                       masterDSL_->MaxFrames()).c_str());
 
+  if (Both_.empty() && Acceptor_.empty() && SolventSites_.empty()) {
+    mprintf("Warning: Nothing selected for hydrogen bond analysis.\n");
+    return Action::SKIP;
+  }
+
   return Action::OK;
 }
 
