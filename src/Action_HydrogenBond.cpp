@@ -260,6 +260,9 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     }
     AcceptorMask_.SetNatoms( Mask_.NmaskAtoms() );
   }
+  int lastAcceptor = -1;
+  if (!AcceptorMask_.None())
+    lastAcceptor = AcceptorMask_.back();
 
   // Clear existing sites
   Both_.clear();
@@ -288,7 +291,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
                   DonorHmask_.Nselected());
         return Action::ERR;
       }
-      int maxAtom = std::max( AcceptorMask_.back(), DonorMask_.back() ) + 1;
+      int maxAtom = std::max( lastAcceptor, DonorMask_.back() ) + 1;
       AtomMask::const_iterator a_atom = AcceptorMask_.begin();
       AtomMask::const_iterator d_atom = DonorMask_.begin();
       AtomMask::const_iterator h_atom = DonorHmask_.begin();
@@ -316,7 +319,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
       }
     } else {
       // No donor hydrogen mask; use any hydrogens bonded to donor heavy atoms.
-      int maxAtom = std::max( AcceptorMask_.back(), DonorMask_.back() ) + 1;
+      int maxAtom = std::max( lastAcceptor, DonorMask_.back() ) + 1;
       AtomMask::const_iterator a_atom = AcceptorMask_.begin();
       AtomMask::const_iterator d_atom = DonorMask_.begin();
       bool isDonor, isAcceptor;
@@ -347,7 +350,7 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
     }
   } else {
     // No specified donor mask; search generic mask.
-    int maxAtom = std::max( AcceptorMask_.back(), Mask_.back() ) + 1;
+    int maxAtom = std::max( lastAcceptor, Mask_.back() ) + 1;
     AtomMask::const_iterator a_atom = AcceptorMask_.begin();
     AtomMask::const_iterator d_atom = Mask_.begin();
     bool isDonor, isAcceptor;
@@ -525,6 +528,11 @@ Action::RetType Action_HydrogenBond::Setup(ActionSetup& setup) {
                       SolventSites_.size() * bothEnd_+Acceptor_.size() +
                       Both_.size()         * SolventSites_.size(),
                       masterDSL_->MaxFrames()).c_str());
+
+  if (Both_.empty() && Acceptor_.empty() && SolventSites_.empty()) {
+    mprintf("Warning: Nothing selected for hydrogen bond analysis.\n");
+    return Action::SKIP;
+  }
 
   return Action::OK;
 }
