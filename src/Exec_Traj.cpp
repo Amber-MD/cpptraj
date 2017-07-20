@@ -8,7 +8,9 @@ void Exec_Trajin::Help() const {
           "\t           [ <Format Options> ]\n"
           "\t           [ remdtraj [remdtrajtemp <T> | remdtrajidx <#>]\n"
           "\t             [trajnames <rep1>,<rep2>,...,<repN> ] ]\n"
-          "  Load trajectory specified by <filename> to the input trajectory list.\n");
+          "  Load trajectory specified by <filename> to the input trajectory list.\n"
+          "  If desired, additional velocity or force information can be read from\n"
+          "  files specified by 'mdvel' and/or 'mdfrc'.\n");
   TrajectoryFile::ReadOptions();
 }
 // -----------------------------------------------------------------------------
@@ -16,9 +18,15 @@ void Exec_Ensemble::Help() const {
   mprintf("\t<file0> {[<start>] [<stop> | last] [offset]} | lastframe\n"
           "\t        [%s]\n", DataSetList::TopArgs);
   mprintf("\t        [trajnames <file1>,<file2>,...,<fileN>]\n"
-          "\t        [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]\n"
+          "\t        [nosort | [remlog <remlogfile> [nstlim <nstlim> ntwx <ntwx>]]]\n"
           "  Load an ensemble of trajectories starting with <file0> that will be\n"
           "  processed together as an ensemble.\n"
+          "  The default behavior is to sort the ensemble by replica. If 'nosort'\n"
+          "  is specified the incoming ensemble will not be sorted; this is useful\n"
+          "  if the ensemble is already sorted or the trajectories are independent.\n"
+          "  If 'remlog' is specified the ensemble will be sorted by coordinate index;\n"
+          "  'nstlim' specifies the number of steps between exchanges and 'ntwx'\n"
+          "  specifies the number of steps between trajectory writes.\n"
           "  When running in parallel, the 'ensemblesize' command can be used to specify\n"
           "  the number of members in the ensemble, which may improve set-up performance.\n");
 }

@@ -220,7 +220,7 @@ int EnsembleIn_Multi::ReadEnsemble(int currentFrame, FrameArray& f_ensemble,
     else if (targetType_ == ReplicaInfo::CRDIDX) {
       int currentRemExchange = (int)((double)currentFrame * remdFrameFactor_) + remdFrameOffset_;
       //mprintf("DEBUG:\tTrajFrame#=%i  RemdExch#=%i\n", currentFrame+1, currentRemExchange+1);
-      fidx = remlogData_.RepFrame( currentRemExchange, repIdx++ ).CoordsIdx() - 1;
+      fidx = remlogData_.RepFrame(currentRemExchange, repIdx++).CoordsIdx() - remlogData_.Offset();
       //mprintf("DEBUG:\tFrame %i\tPosition %u is assigned index %i\n", currentFrame, member, fidx);
     }
 #   ifndef MPI
@@ -342,10 +342,10 @@ void EnsembleIn_Multi::EnsembleInfo(int showExtended) const {
 std::string EnsembleIn_Multi::FinalCrdIndices() const {
   if (remlogData_.Empty()) return std::string();
   std::string arg("crdidx ");
-  int finalExchg = remlogData_.NumExchange() - 1;
+  DataSet_RemLog::IdxArray rst = remlogData_.CrdIndicesArg();
   for (unsigned int rep = 0; rep < remlogData_.Size(); rep++) {
     if (rep > 0) arg += ",";
-    arg += ( integerToString( remlogData_.RepFrame(finalExchg, rep).CoordsIdx() ) );
+    arg += integerToString( rst[rep] );
   }
   return arg;
 }

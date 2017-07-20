@@ -15,6 +15,7 @@ class DataIO_CharmmRepLog : public DataIO {
   private:
     int ReadReplogArray(FileName const&, DataSetList&, std::string const&);
 
-    int nrep_; ///< Number of replicas.
+    std::string crdidx_; ///< Hold user-specified starting coord indices arg
+    int nrep_;           ///< Number of replicas.
 };
 #endif

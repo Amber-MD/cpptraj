@@ -162,3 +162,51 @@ void DataSet_RemLog::PrintReplicaStats() const {
     }
   }
 }
+
+/** Set final restart coordinate indices if coordinates modified after last
+  * trajectory frame but before restart is written.
+  */
+int DataSet_RemLog::SetRestartCrdIndices(IdxArray const& finalCrdIdx) {
+  if (finalCrdIdx.size() != ensemble_.size()) {
+    mprinterr("Internal Error: SetRestartCrdIndices(): # final indices %zu != # replicas %zu\n",
+              finalCrdIdx.size(), ensemble_.size());
+    return 1;
+  }
+  finalCrdIdx_ = finalCrdIdx;
+  return 0;
+}
+
+/** \return Final restart indices or final frame indices if restart indices
+  *         are not set.
+  * If restart indices are set they will be cleared. This way a remlog DataSet
+  * can be used with rem data that either sets or does not set restart info.
+  */
+DataSet_RemLog::IdxArray DataSet_RemLog::RestartCrdIndices() {
+  IdxArray rst;
+  rst.reserve( ensemble_.size() );
+  if (finalCrdIdx_.empty()) {
+    for (unsigned int repidx = 0; repidx != ensemble_.size(); ++repidx)
+      rst.push_back( LastRepFrame(repidx).CoordsIdx() );
+  } else {
+    rst = finalCrdIdx_;
+    finalCrdIdx_.clear();
+  }
+  return rst;
+}
+
+// CRDIDXARG
+/** \return Final restart indices or final frame indices if restart indices
+  *         are not set.
+  * Existing restart indices are *not* cleared. This is only intended for use
+  * with EnsembleIn_* classes.
+  */
+DataSet_RemLog::IdxArray DataSet_RemLog::CrdIndicesArg() const {
+  if (finalCrdIdx_.empty()) {
+    IdxArray rst;
+    rst.reserve( ensemble_.size() );
+    for (unsigned int repidx = 0; repidx != ensemble_.size(); ++repidx)
+      rst.push_back( LastRepFrame(repidx).CoordsIdx() );
+    return rst;
+  } else
+    return finalCrdIdx_;
+}

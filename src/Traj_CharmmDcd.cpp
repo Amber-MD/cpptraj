@@ -330,8 +330,8 @@ int Traj_CharmmDcd::readDcdHeader() {
     }
   } else
     boxBytes_ = 0;
-  // Timestep
-  float timestep = buffer.f[9];
+  // Timestep - convert from AKMA to ps
+  float timestep = buffer.f[9] / Constants::AMBERTIME_TO_PS;
   if (debug_>0) mprintf("\tTimestep is %f\n",timestep);
   // Read end size of first block, should also be 84
   if (ReadBlock(84)<0) return 1;
