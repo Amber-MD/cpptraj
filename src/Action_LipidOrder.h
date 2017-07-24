@@ -18,6 +18,9 @@ class Action_LipidOrder : public Action {
 
     enum AxisType { DX = 0, DY, DZ };
 
+    /// Identify a unique carbon type
+    class CarbonType;
+
     /// Hold information for a single lipid carbon site
     class CarbonSite;
     typedef std::vector<CarbonSite> Carray;
@@ -25,11 +28,11 @@ class Action_LipidOrder : public Action {
     /// Hold information for all carbons with the same name.
     class CarbonList;
 
-    /// Pair a carbon name with all carbon sites with that name.
-    typedef std::pair<NameType, CarbonList> Cpair;
+    /// Pair a carbon name with all carbon sites of that type.
+    typedef std::pair<CarbonType, CarbonList> Cpair;
 
-    /// Map carbon name to all carbon sites with that name.
-    typedef std::map<NameType, CarbonList> Cmap;
+    /// Map carbon type to all carbon sites with that type.
+    typedef std::map<CarbonType, CarbonList> Cmap;
 
     /// Create carbon site with hydrogens, then follow remaining carbon chain
     void FollowChain(int, Topology const&, std::vector<bool>, int);
@@ -37,6 +40,22 @@ class Action_LipidOrder : public Action {
     CharMask mask_;
     Cmap Carbons_;
     AxisType axis_;
+};
+
+/// Identify a unique carbon type
+class Action_LipidOrder::CarbonType {
+  public:
+    CarbonType() : idx_(-1) {}
+    CarbonType(NameType const& n, int i) : name_(n), idx_(i) {}
+    NameType const& Name() const { return name_;  }
+    const char* name()     const { return *name_; }
+    int Idx()              const { return idx_;   }
+    bool operator<(CarbonType const& rhs)  const { return idx_ < rhs.idx_;  }
+    bool operator==(CarbonType const& rhs) const { return idx_ == rhs.idx_; }
+    bool operator!=(CarbonType const& rhs) const { return idx_ != rhs.idx_; }
+  private:
+    NameType name_;
+    int idx_;
 };
 
 /// Hold information for a single lipid carbon site.

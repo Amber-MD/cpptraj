@@ -38,10 +38,11 @@ void Action_LipidOrder::FollowChain(int idx, Topology const& top, std::vector<bo
   Visited[idx - offset] = true;
   Atom const& atom = top[idx];
   // Get site
-  Cmap::iterator it = Carbons_.lower_bound( atom.Name() );
-  if (it == Carbons_.end() || it->first != atom.Name())
+  CarbonType Ctype( atom.Name(), idx - offset );
+  Cmap::iterator it = Carbons_.lower_bound( Ctype );
+  if (it == Carbons_.end() || it->first != Ctype)
     // New site 
-    it = Carbons_.insert( it, Cpair(atom.Name(), CarbonList(top.Res(atom.ResNum()).Name())) );
+    it = Carbons_.insert( it, Cpair(Ctype, CarbonList(top.Res(atom.ResNum()).Name())) );
 
   // Add this site
   mprintf("\t\t%s\n", top.TruncResAtomNameNum(idx).c_str());
@@ -120,7 +121,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   mprintf("\t%zu carbon types:\n", Carbons_.size());
   for (Cmap::const_iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
   {
-    mprintf("\t%s %s (%zu)\n", it->second.resName(), *(it->first), it->second.Nsites());
+    mprintf("\t%s %s (%zu)\n", it->second.resName(), it->first.name(), it->second.Nsites());
     for (Carray::const_iterator site = it->second.begin(); site != it->second.end(); ++site)
     {
       mprintf("\t%20s", setup.Top().TruncResAtomNameNum(site->Cidx()).c_str());
@@ -162,11 +163,11 @@ void Action_LipidOrder::Print() {
   mprintf("    LIPIDORDER:\n");
   for (Cmap::const_iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
   {
-    mprintf("\t%s %s (%zu)", it->second.resName(), *(it->first), it->second.Nvals());
+    mprintf("\t%s %s (%zu)", it->second.resName(), it->first.name(), it->second.Nvals());
     if (it->second.Nvals() > 0) {
-      Carray::const_iterator first = it->second.begin();
+      Carray::const_iterator firstsite = it->second.begin();
       // FIXME assuming all sites have same # H
-      for (unsigned int i = 0; i != first->NumH(); i++) {
+      for (unsigned int i = 0; i != firstsite->NumH(); i++) {
         //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
         double avg, stdev;
         avg = it->second.Avg(i, stdev);
