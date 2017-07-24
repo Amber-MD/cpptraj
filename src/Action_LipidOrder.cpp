@@ -146,9 +146,9 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
       for (unsigned int i = 0; i != site->NumH(); i++)
       {
         // C-H unit vector
-        Vec3 sx = Cvec - Vec3(frm.Frm().XYZ( site->Hidx(i) ));
+        Vec3 sx = Vec3(frm.Frm().XYZ( site->Hidx(i) )) - Cvec;
         sx.Normalize();
-        mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]); 
+//        mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]); 
         it->second.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
       }
       it->second.UpdateNvals();

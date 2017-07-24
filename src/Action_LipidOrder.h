@@ -39,7 +39,7 @@ class Action_LipidOrder : public Action {
     AxisType axis_;
 };
 
-/// Hold information for a lipid carbon site.
+/// Hold information for a single lipid carbon site.
 class Action_LipidOrder::CarbonSite {
   public:
     CarbonSite();
@@ -76,10 +76,10 @@ class Action_LipidOrder::CarbonList {
     void UpdateNvals() { nvals_++; }
     double Avg(int, double&) const;
   private:
-    NameType resname_;
-    Carray sites_;
-    double sum_[3];
-    double sum2_[3];
-    unsigned int nvals_; ///< Number of times list has been updated, used to calc avg.
+    NameType resname_;   ///< Residue name associated with this carbon (for output purposes)
+    Carray sites_;       ///< List of carbon sites
+    double sum_[3];      ///< Hold order param sum for each C-HX
+    double sum2_[3];     ///< Hold order param sum^2 for each C-HX
+    unsigned int nvals_; ///< # times this list has been updated, used to calc avg. from sum
 };
 #endif
