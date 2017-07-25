@@ -451,8 +451,10 @@ set_property(TARGET cpptraj_common_obj PROPERTY POSITION_INDEPENDENT_CODE ${SHAR
 # NOTE: there is a CMake bug where if we were to set these as a directory-scope includes, the CUDA build would fail (on some platforms only???)
 # it turns out that CMake's cuda library passes the include paths after the first one from each of these generator expressions to nvcc without the -I flag
 # This causes the error "A single input file is required for a non-link phase when an outputfile is specified"
-target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,INTERFACE_INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:netcdf,INTERFACE_INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)
-
+target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:xdrfile,INTERFACE_INCLUDE_DIRECTORIES> $<TARGET_PROPERTY:netcdf,INTERFACE_INCLUDE_DIRECTORIES>)
+if(fftw_ENABLED)
+	target_include_directories(cpptraj_common_obj PRIVATE $<TARGET_PROPERTY:fftw,INTERFACE_INCLUDE_DIRECTORIES>)
+endif()
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 add_executable(cpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${CPPTRAJ_LIBDIFFERENT_CXX_SOURCES} ${CPPTRAJ_EXEONLY_CXX_SOURCES})
@@ -551,7 +553,12 @@ if(CUDA)
 endif()
 
 # FFTW
-if(USE_FFT)	
+if(fftw_ENABLED)	
 	set_property(SOURCE PubFFT.cpp PROPERTY COMPILE_DEFINITIONS FFTW_FFT)
 	targets_link_libraries(cpptraj libcpptraj LIBRARIES fftw)
+endif()
+
+# arpack
+if(arpack_DISABLED)
+	add_definitions(-DNOARPACK)
 endif()
