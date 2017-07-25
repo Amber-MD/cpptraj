@@ -1,4 +1,5 @@
 #include <cmath>
+#include <stack>
 #include "Action_LipidOrder.h"
 #include "CpptrajStdio.h"
 
@@ -31,44 +32,33 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   return Action::OK;
 }
 
-//  Action_LipidOrder::FollowChain()
-void Action_LipidOrder::FollowChain(int idx, Topology const& top, std::vector<bool> Visited,
-                                    int offset)
-{
-  Visited[idx - offset] = true;
-  Atom const& atom = top[idx];
-  // Get site
-  CarbonType Ctype( atom.Name(), idx - offset );
-  Cmap::iterator it = Carbons_.lower_bound( Ctype );
-  if (it == Carbons_.end() || it->first != Ctype)
-    // New site 
-    it = Carbons_.insert( it, Cpair(Ctype, CarbonList(top.Res(atom.ResNum()).Name())) );
-
-  // Add this site
-  mprintf("\t\t%s\n", top.TruncResAtomNameNum(idx).c_str());
-  CarbonSite& site = it->second.AddSite( idx );
-  // Loop over bonded atoms 
-  for (Atom::bond_iterator bnd = top[idx].bondbegin();
-                           bnd != top[idx].bondend(); ++bnd)
-  {
-    if (top[*bnd].Element() == Atom::HYDROGEN)
-      site.AddHindex( *bnd );
-    else if (!Visited[*bnd - offset] && top[*bnd].Element() == Atom::CARBON)
-      FollowChain(*bnd, top, Visited, offset);
-  }
+// Action_LipidOrder::FindChain()
+int Action_LipidOrder::FindChain( Npair const& chain ) {
+  for (unsigned int idx = 0; idx != Types_.size(); idx++)
+    if ( Types_[idx] == chain ) {
+      mprintf("DEBUG: Existing chain: %s %s\n", *(Types_[idx].first), *(Types_[idx].second));
+      return idx;
+    }
+  // New chain type
+  mprintf("DEBIG: New chain: %s %s\n", *(chain.first), *(chain.second));
+  Types_.push_back( chain );
+  Chains_.push_back( ChainType() );
+  return Types_.size()-1;
 }
 
 // Action_LipidOrder::Setup()
+/** Within atom selection, attempt to identify C-HX in lipids "south"
+  * of carbonyl.
+  */
 Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
 {
-  // Within selection, attempt to identify C-H in lipids
-  // "south" of the carbonyl
   if (setup.Top().SetupCharMask( mask_ )) return Action::ERR;
   mask_.MaskInfo();
   if (mask_.None()) {
     mprintf("Warning: No atoms selected.\n");
     return Action::SKIP;
   }
+  // Loop over all molecules.
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol)
   {
@@ -107,10 +97,55 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
             }
             if (n_O == 2 && n_C == 1 && mask_.AtomInCharMask(C_idx)) {
               Visited[at - offset] = true;
+              // Determine if this is a new or existing chain type
+              int chainIdx = FindChain( Npair(setup.Top().Res(atom.ResNum()).Name(), atom.Name()) );
+              ChainType& Chain = Chains_[chainIdx];
               // Starting at the bonded carbon follow the chain down
-              mprintf("DEBUG: Lipid chain starting at %s\n",
-                      setup.Top().TruncResAtomName(C_idx).c_str());
-              FollowChain(C_idx, setup.Top(), Visited, offset);
+              mprintf("DEBUG: Lipid chain type %i (%zu atoms) starting at (but not including) %s\n",
+                      chainIdx, Chains_[chainIdx].size(), setup.Top().TruncResAtomName(at).c_str());
+              int position = 0;
+              std::stack<int> nextAtom;
+              nextAtom.push( C_idx );
+              while (!nextAtom.empty()) {
+                int current_at = nextAtom.top();
+                nextAtom.pop();
+                Visited[current_at - offset] = true;
+                // -------------------------------
+                Atom const& curr_atm = setup.Top()[current_at];
+                // Get site
+                if (position >= (int)Chain.size())
+                  Chain.resize( position+1 );
+                CarbonData& Cdata = Chain[position];
+                if (!Cdata.Init())
+                  Cdata.SetName( curr_atm.Name() );
+                else if (Cdata.Name() != curr_atm.Name())
+                  mprintf("Warning: Atom name %s at position %i (#%i) does not match %s\n",
+                          *(curr_atm.Name()), position+1, current_at+1, Cdata.name());
+                // Add site
+                Sites_.push_back( CarbonSite(current_at, chainIdx, position) );
+                CarbonSite& site = Sites_.back();
+                mprintf("\t\t%i %s %s %i %i\n", position,
+                        setup.Top().TruncResAtomNameNum(current_at).c_str(),
+                        Cdata.name(), current_at, chainIdx);
+
+                // Loop over bonded atoms 
+                for (Atom::bond_iterator bnd = setup.Top()[current_at].bondbegin();
+                                         bnd != setup.Top()[current_at].bondend(); ++bnd)
+                {
+                  if (setup.Top()[*bnd].Element() == Atom::HYDROGEN)
+                    site.AddHindex( *bnd );
+                  else if (!Visited[*bnd - offset] &&
+                           setup.Top()[*bnd].Element() == Atom::CARBON)
+                  {
+                    nextAtom.push( *bnd );
+                  }
+                }
+                // Update number of hydrogens in chain
+                Cdata.SetNumH( site.NumH() );
+                position++;
+                // -------------------------------
+              }
+              //FollowChain(C_idx, setup.Top(), chainIdx, Visited, offset, position);
             }
           } // END if Carbon
         } // END if selected
@@ -118,7 +153,15 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     } // END mol not solvent and some of mol selected
   } // END loop over molecules
 
-  mprintf("\t%zu carbon types:\n", Carbons_.size());
+  mprintf("\t%zu chain types:\n", Types_.size());
+  for (unsigned int idx = 0; idx != Types_.size(); idx++)
+  {
+    mprintf("\t[%u] %s %s (%zu)\n", idx, *(Types_[idx].first), *(Types_[idx].second),
+            Chains_[idx].size());
+    for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
+      mprintf("\t  %s\n", it->name());
+  }
+/*
   for (Cmap::const_iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
   {
     mprintf("\t%s %s (%zu)\n", it->second.resName(), it->first.name(), it->second.Nsites());
@@ -130,12 +173,29 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
       mprintf("\n");
     }
   }
+*/
   return Action::OK;
 }
 
 // Action_LipidOrder::DoAction()
 Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 {
+  for (Carray::const_iterator site = Sites_.begin(); site != Sites_.end(); ++site)
+  {
+    Vec3 Cvec( frm.Frm().XYZ( site->Cidx() ) );
+    CarbonData& cdata = Chains_[site->ChainIdx()][site->Position()];
+    // Loop over hydrogens
+    for (unsigned int i = 0; i != site->NumH(); i++)
+    {
+      // C-H unit vector
+      Vec3 sx = Vec3(frm.Frm().XYZ( site->Hidx(i) )) - Cvec;
+      sx.Normalize();
+//      mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]);
+      cdata.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+    }
+    cdata.UpdateNvals();
+  }
+/*
   // Loop over types
   for (Cmap::iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
   {
@@ -155,25 +215,28 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
       it->second.UpdateNvals();
     }
   }
-  return Action::ERR;
+*/
+  return Action::OK;
 }
 
 //  Action_LipidOrder::Print()
 void Action_LipidOrder::Print() {
   mprintf("    LIPIDORDER:\n");
-  for (Cmap::const_iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
+  for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    mprintf("\t%s %s (%zu)", it->second.resName(), it->first.name(), it->second.Nvals());
-    if (it->second.Nvals() > 0) {
-      Carray::const_iterator firstsite = it->second.begin();
-      // FIXME assuming all sites have same # H
-      for (unsigned int i = 0; i != firstsite->NumH(); i++) {
-        //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
-        double avg, stdev;
-        avg = it->second.Avg(i, stdev);
-        mprintf("  %10.7f %10.7f  ", avg, stdev);
+    const char* resName = *(Types_[idx].first);
+    for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
+    {
+      mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
+      if (it->Nvals() > 0) {
+        for (unsigned int i = 0; i != it->NumH(); i++) {
+          //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
+          double avg, stdev;
+          avg = it->Avg(i, stdev);
+          mprintf("  %10.7f %10.7f  ", avg, stdev);
+        }
+        mprintf("\n");
       }
-      mprintf("\n");
     }
   }
 }
@@ -182,12 +245,15 @@ void Action_LipidOrder::Print() {
 // =============================================================================
 
 /// CONSTRUCTOR
-Action_LipidOrder::CarbonSite::CarbonSite() : c_idx_(-1), nH_(0) {
+Action_LipidOrder::CarbonSite::CarbonSite() : c_idx_(-1), chainIdx_(-1), position_(-1), nH_(0)
+{
   std::fill(h_idx_, h_idx_ + MAX_H_, -1);
 }
 
 /** CONSTRUCTOR - take carbon index */
-Action_LipidOrder::CarbonSite::CarbonSite(int c) : c_idx_(c), nH_(0) {
+Action_LipidOrder::CarbonSite::CarbonSite(int c, int i, int p) :
+  c_idx_(c), chainIdx_(i), position_(p), nH_(0)
+{
   std::fill(h_idx_, h_idx_ + MAX_H_, -1);
 }
 
@@ -203,21 +269,15 @@ void Action_LipidOrder::CarbonSite::AddHindex(int h) {
 }
 
 // =============================================================================
-// CONSTRUCTOR
-Action_LipidOrder::CarbonList::CarbonList() : nvals_(0) {
-  std::fill(sum_, sum_ + MAX_H_, 0.0);
-  std::fill(sum2_, sum2_ + MAX_H_, 0.0);
-}
-
-/** CONSTRUCTOR - Take residue name associated with carbon site. */
-Action_LipidOrder::CarbonList::CarbonList(NameType const& n) : resname_(n), nvals_(0)
+Action_LipidOrder::CarbonData::CarbonData() :
+  nvals_(0), nH_(0), init_(false)
 {
-  std::fill(sum_, sum_ + MAX_H_, 0.0);
-  std::fill(sum2_, sum2_ + MAX_H_, 0.0);
+  std::fill( sum_,  sum_  + MAX_H_, 0.0 );
+  std::fill( sum2_, sum2_ + MAX_H_, 0.0 );
 }
 
 /** \return average for hydrogen */
-double Action_LipidOrder::CarbonList::Avg(int i, double& stdev) const {
+double Action_LipidOrder::CarbonData::Avg(int i, double& stdev) const {
   double avg = sum_[i] / (double)nvals_;
   stdev = sum2_[i] / (double)nvals_;
   stdev -= (avg * avg);
@@ -226,14 +286,4 @@ double Action_LipidOrder::CarbonList::Avg(int i, double& stdev) const {
   else
     stdev = 0.0;
   return avg;
-}
-
-// Action_LipidOrder::CarbonList::AddSite()
-Action_LipidOrder::CarbonSite& Action_LipidOrder::CarbonList::AddSite(int cidx) {
-  // Does this site already exist?
-  for (Carray::const_iterator site = sites_.begin(); site != sites_.end(); ++site)
-    if (site->Cidx() == cidx) return sites_[site - sites_.begin()];
-  // Does not exist, add.
-  sites_.push_back( CarbonSite(cidx) );
-  return sites_.back();
 }
