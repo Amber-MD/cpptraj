@@ -7,7 +7,7 @@ extern "C"
 #endif
 
 // for int64_t on older M$ Visual Studio
-#if _MSC_VER && _MSVC_VER < 1600 && !__INTEL_COMPILER
+#if _MSC_VER && _MSC_VER < 1600 && !__INTEL_COMPILER
 	#include "ms_stdint.h"
 #else
 	#include <stdint.h>

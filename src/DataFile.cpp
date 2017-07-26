@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "DataFile.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // DigitWidth, integerToString

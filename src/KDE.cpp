@@ -1,5 +1,5 @@
 #include <cmath>
-//#inc lude <algorithm>
+#include <algorithm> // std::min, std::max
 #include "KDE.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"

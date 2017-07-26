@@ -2,6 +2,7 @@
 # include <cstdio> // DEBUG
 # include <cstdarg> // DEBUG
 #endif
+#include <algorithm> // std::min, std::max
 #include <cmath> //sqrt
 #include <cfloat> // DBL_MIN
 #include "CurveFit.h"

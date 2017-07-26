@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "Analysis_VectorMath.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"

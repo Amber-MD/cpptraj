@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm> // std::min, std::max
 #include <cfloat> // DBL_MAX
 #include "Action_MinImage.h"
 #include "CpptrajStdio.h"
