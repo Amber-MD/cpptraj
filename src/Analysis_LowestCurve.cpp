@@ -1,4 +1,4 @@
-#include <algorithm>> // std::min, std::max
+#include <algorithm> // std::min, std::max
 #include "Analysis_LowestCurve.h"
 #include "CpptrajStdio.h"
 #include "HistBin.h"
