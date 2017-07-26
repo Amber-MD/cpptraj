@@ -1,5 +1,5 @@
 #include <cmath> // pow
-#include <algorithm>> // std::min, std::max
+#include <algorithm> // std::min, std::max
 #include <limits> // Minimum double val for checking zero
 #include "Analysis_KDE.h"
 #include "CpptrajStdio.h"
