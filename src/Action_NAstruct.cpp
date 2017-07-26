@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm>> // std::min, std::max
 #include "Action_NAstruct.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // integerToString

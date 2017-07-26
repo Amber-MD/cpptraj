@@ -3,7 +3,12 @@
     \author Daniel R. Roe
  */
 #include <cstdio> // stdin, fileno
-#include <unistd.h> // isatty
+#ifdef _WIN32
+	#include <io.h>
+	#define isatty _isatty
+#else
+	#include <unistd.h> // isatty
+#endif
 #include "CpptrajStdio.h"
 #include "ParmFile.h"
 #include "Trajin_Single.h"

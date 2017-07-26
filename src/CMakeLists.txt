@@ -487,6 +487,7 @@ add_library(libcpptraj $<TARGET_OBJECTS:cpptraj_common_obj> ${CPPTRAJ_LIBDIFFERE
 set_property(TARGET libcpptraj PROPERTY COMPILE_DEFINITIONS LIBCPPTRAJ)
 target_link_libraries(libcpptraj netcdf netlib)
 remove_prefix(libcpptraj)
+install_libraries(libcpptraj)
 set_property(TARGET libcpptraj PROPERTY LINK_FLAGS ${OpenMP_CXX_FLAGS})
 
 #tell others where to find the cpptraj includes
@@ -560,5 +561,5 @@ endif()
 
 # arpack
 if(arpack_DISABLED)
-	add_definitions(-DNOARPACK)
+	add_definitions(-DNO_ARPACK)
 endif()

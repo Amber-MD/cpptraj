@@ -2,6 +2,7 @@
 #include <cstdio> // sscanf
 #include <cctype> // toupper, isdigit
 #include <cstdlib>  // atoi
+#include <algorithm> // std::min, std::max
 #include "Parm_Amber.h"
 #include "CpptrajStdio.h"
 #include "Constants.h" // ELECTOAMBER, AMBERTOELEC

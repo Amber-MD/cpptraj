@@ -1,6 +1,7 @@
 // Action_Spam
 #include <cmath> // sqrt
 #include <cstdio> // sscanf
+#include <algorithm> // std::min, std::max
 #include "Action_Spam.h"
 #include "Box.h"
 #include "CpptrajFile.h"

@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "Exec_DataSetCmd.h"
 #include "CpptrajStdio.h"
 #include "DataSet_1D.h"
