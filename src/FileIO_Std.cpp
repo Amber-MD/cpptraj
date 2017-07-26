@@ -1,4 +1,5 @@
 // FileIO_Std: Standard C file operations
+#include <algorithm> // std::min, std::max
 #include "FileIO_Std.h" // FileIO.h, cstdio
 
 // CONSTRUCTOR

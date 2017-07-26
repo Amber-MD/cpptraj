@@ -2,7 +2,9 @@
 # include <time.h>
 #else
 # include <cstddef>
-# include <sys/time.h>
+# ifndef _MSC_VER
+#  include <sys/time.h>
+# endif
 #endif
 #ifdef _MSC_VER
    // tw struct timeval is in there on windows

@@ -1,4 +1,5 @@
 #include <cmath> // log
+#include <algorithm>> // std::min, std::max
 #include "Analysis_Divergence.h"
 #include "DataSet_1D.h"
 #include "CpptrajStdio.h"

@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include <cfloat> // DBL_MAX
 #include "Cluster_HierAgglo.h"
 #include "CpptrajStdio.h"

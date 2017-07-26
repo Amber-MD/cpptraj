@@ -1,5 +1,10 @@
 #include <cstdio> // stdin, fileno
-#include <unistd.h> // isatty
+#ifdef _WIN32
+	#include <io.h>
+	#define isatty _isatty
+#else
+	#include <unistd.h> // isatty
+#endif
 #include "Cpptraj.h"
 #include "CpptrajStdio.h"
 #include "Command.h"

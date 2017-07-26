@@ -1,4 +1,5 @@
 #include <cmath> // sqrt
+#include <algorithm> // std::min, std::max
 #include "Analysis_TI.h"
 #include "CpptrajStdio.h"
 #include "DataSet_Mesh.h"

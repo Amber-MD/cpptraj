@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm> // std::min, std::max
 #include "Ewald.h"
 #include "CpptrajStdio.h"
 #include "Constants.h"

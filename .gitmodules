@@ -1,0 +1,3 @@
+[submodule "CMakeConfigScripts"]
+	path = cmake
+	url = https://github.com/Amber-MD/CMakeConfigScripts.git

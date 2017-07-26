@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "Exec_CombineCoords.h"
 #include "CpptrajStdio.h"
 
