@@ -47,6 +47,7 @@ class Action_LipidOrder : public Action {
     DataFile* outfile_;
     int debug_;
 #   ifdef MPI
+    int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
 };

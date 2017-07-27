@@ -218,7 +218,7 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 int Action_LipidOrder::SyncAction() {
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
+    for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
       double buf[3];
       trajComm_.Reduce( buf, it->Sptr(), 3, MPI_DOUBLE, MPI_SUM );
@@ -226,8 +226,8 @@ int Action_LipidOrder::SyncAction() {
       trajComm_.Reduce( buf, it->S2ptr(), 3, MPI_DOUBLE, MPI_SUM );
       if (trajComm_.Master()) std::copy( buf, buf+3, it->S2ptr() );
       unsigned int total_vals = 0;
-      trajComm_.Reduce( &total_vals, it->Nptr(), 1, MPI_UNSIGNED );
-      if (trajComm_>master()) it->SetNvals( total_vals );
+      trajComm_.Reduce( &total_vals, it->Nptr(), 1, MPI_UNSIGNED, MPI_SUM );
+      if (trajComm_.Master()) it->SetNvals( total_vals );
     }
   }
   return 0;
