@@ -23,6 +23,9 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
 {
   debug_ = debugIn;
   masterDSL_ = init.DslPtr();
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   if (actionArgs.hasKey("x") )
     axis_ = DX;
   else if (actionArgs.hasKey("y") )
@@ -210,6 +213,26 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
   }
   return Action::OK;
 }
+
+#ifdef MPI
+int Action_LipidOrder::SyncAction() {
+  for (unsigned int idx = 0; idx != Types_.size(); idx++)
+  {
+    for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
+    {
+      double buf[3];
+      trajComm_.Reduce( buf, it->Sptr(), 3, MPI_DOUBLE, MPI_SUM );
+      if (trajComm_.Master()) std::copy( buf, buf+3, it->Sptr() );
+      trajComm_.Reduce( buf, it->S2ptr(), 3, MPI_DOUBLE, MPI_SUM );
+      if (trajComm_.Master()) std::copy( buf, buf+3, it->S2ptr() );
+      unsigned int total_vals = 0;
+      trajComm_.Reduce( &total_vals, it->Nptr(), 1, MPI_UNSIGNED );
+      if (trajComm_>master()) it->SetNvals( total_vals );
+    }
+  }
+  return 0;
+}
+#endif
 
 //  Action_LipidOrder::Print()
 void Action_LipidOrder::Print() {

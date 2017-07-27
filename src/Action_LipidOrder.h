@@ -46,6 +46,9 @@ class Action_LipidOrder : public Action {
     DataSetList* masterDSL_;
     DataFile* outfile_;
     int debug_;
+#   ifdef MPI
+    Parallel::Comm trajComm_;
+#   endif
 };
 
 /// Hold data for carbon position in a chain.
@@ -68,6 +71,12 @@ class Action_LipidOrder::CarbonData {
     }
     void SetNumH(unsigned int n) { nH_ = n; }
     double Avg(int, double&) const;
+#   ifdef MPI
+    double* Sptr()       { return sum_;    }
+    double* S2ptr()      { return sum2_;   }
+    unsigned int* Nptr() { return &nvals_; }
+    void SetNvals(unsigned int n) { nvals_ = n; }
+#   endif
   private:
     NameType name_;      ///< Carbon name
     double sum_[3];      ///< Hold order param sum for each C-HX
