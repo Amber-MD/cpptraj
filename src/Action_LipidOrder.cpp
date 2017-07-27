@@ -10,7 +10,7 @@ Action_LipidOrder::Action_LipidOrder() : axis_(DX) {}
 
 // Action_LipidOrder::Help()
 void Action_LipidOrder::Help() const {
-  mprintf("\t[<mask>] [{x|y|z}]\n");
+  mprintf("\t[<name>] [<mask>] [{x|y|z}] [out <file>]\n");
 }
 
 // Action_LipidOrder::Init()
@@ -24,7 +24,10 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     axis_ = DZ;
   else
     axis_ = DZ;
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
   mask_.SetMaskString( actionArgs.GetMaskNext() );
+  dsname_ = actionArgs.GetStringNext();
+  masterDSL_ = init.DslPtr();
 
   mprintf("    LIPIDORDER:\n");
   mprintf("\tCalculating lipid order parameters for lipids in mask '%s'\n", mask_.MaskString());
@@ -189,15 +192,40 @@ void Action_LipidOrder::Print() {
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     const char* resName = *(Types_[idx].first);
+    const char* atmName = *(Types_[idx].second);
+    // Create data set for chain type. Each hydrogen gets its own set.
+    if (dsname_.empty())
+      dsname_ = masterDSL_->GenerateDefaultName("LIPID");
+    DataSet* DS[3];
+    DS[0] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H1", idx));
+    DS[1] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H2", idx));
+    DS[2] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H3", idx));
+    if (DS[0] == 0 || DS[1] == 0 || DS[2] == 0) {
+      mprinterr("Error: Could not create data sets for chain %s %s\n", resName, atmName);
+      continue;
+    }
+    if (outfile_ != 0) {
+      outfile_->AddDataSet( DS[0] );
+      outfile_->AddDataSet( DS[1] );
+      outfile_->AddDataSet( DS[2] );
+    }
+    std::string prefix = Types_[idx].first.Truncated() + "_" + Types_[idx].second.Truncated();
+    DS[0]->SetLegend( prefix + "_H1" );
+    DS[1]->SetLegend( prefix + "_H2" );
+    DS[2]->SetLegend( prefix + "_H3" );
+    // Loop over carbons in chain
+    int pos = 0;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
       mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
       if (it->Nvals() > 0) {
-        for (unsigned int i = 0; i != it->NumH(); i++) {
+        double avg, stdev;
+        for (unsigned int i = 0; i != MAX_H_; i++) {
           //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
-          double avg, stdev;
-          avg = it->Avg(i, stdev);
+          if ( i < it->NumH() )
+            avg = it->Avg(i, stdev);
           mprintf("  %10.7f %10.7f  ", avg, stdev);
+          DS[i]->Add(pos, &avg);
         }
         mprintf("\n");
       }
@@ -207,7 +235,6 @@ void Action_LipidOrder::Print() {
 
 
 // =============================================================================
-
 /// CONSTRUCTOR
 Action_LipidOrder::CarbonSite::CarbonSite() : c_idx_(-1), chainIdx_(-1), position_(-1), nH_(0)
 {
@@ -233,6 +260,7 @@ void Action_LipidOrder::CarbonSite::AddHindex(int h) {
 }
 
 // =============================================================================
+/// CONSTRUCTOR
 Action_LipidOrder::CarbonData::CarbonData() :
   nvals_(0), nH_(0), init_(false)
 {
@@ -240,7 +268,7 @@ Action_LipidOrder::CarbonData::CarbonData() :
   std::fill( sum2_, sum2_ + MAX_H_, 0.0 );
 }
 
-/** \return average for hydrogen */
+/** \return average and calc standard dev. for specified hydrogen */
 double Action_LipidOrder::CarbonData::Avg(int i, double& stdev) const {
   double avg = sum_[i] / (double)nvals_;
   stdev = sum2_[i] / (double)nvals_;

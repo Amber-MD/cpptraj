@@ -42,6 +42,9 @@ class Action_LipidOrder : public Action {
     ChainArray Chains_; ///< Hold unique chains
     Carray Sites_;      ///< Hold all carbon sites
     AxisType axis_;
+    std::string dsname_;
+    DataSetList* masterDSL_;
+    DataFile* outfile_;
 };
 
 /// Hold data for carbon position in a chain.
