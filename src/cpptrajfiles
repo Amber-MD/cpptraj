@@ -265,6 +265,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
+        Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NC_Cmatrix.cpp \

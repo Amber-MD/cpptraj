@@ -23,6 +23,7 @@ AMBPDBSOURCES=AmbPDB.cpp \
               InputTrajCommon.cpp \
               MaskToken.cpp \
               Matrix_3x3.cpp \
+              Mol.cpp \
               Mol2File.cpp \
               NameType.cpp \
               NC_Routines.cpp \

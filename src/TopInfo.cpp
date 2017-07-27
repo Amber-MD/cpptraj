@@ -5,6 +5,7 @@
 #include "Constants.h" // RADDEG
 #include "DistRoutines.h" // DIST_NoImage
 #include "TorsionRoutines.h" // CalcAngle, Torsion
+#include "Mol.h"
 
 /// DESTRUCTOR
 TopInfo::~TopInfo() {
@@ -13,10 +14,10 @@ TopInfo::~TopInfo() {
 }
 
 /// CONSTRUCTOR - To Stdout
-TopInfo::TopInfo(Topology* pIn) { SetupTopInfo( 0, pIn, 0 ); }
+TopInfo::TopInfo(Topology const* pIn) { SetupTopInfo( 0, pIn, 0 ); }
 
 // TopInfo::SetupTopInfo()
-int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology* pIn, DataSet_Coords* cIn) {
+int TopInfo::SetupTopInfo(CpptrajFile* fIn, Topology const* pIn, DataSet_Coords* cIn) {
   if (cIn == 0 && pIn == 0) {
     mprinterr("Internal Error: TopInfo: Null topology\n");
     return 1;
@@ -199,59 +200,6 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
   return 0;
 }
 
-/** \return An array of unique molecule types selected by mask. */
-TopInfo::Marray TopInfo::UniqueMolCount(Topology const& top, CharMask const& mask) const
-{
-  Marray mols;
-  typedef std::vector<int> Iarray;
-  // Hold begin residue for each molecule type
-  Iarray Res0;
-  // Hold end residue for each molecule type
-  Iarray Res1;
-  for (Topology::mol_iterator CurMol = top.MolStart();
-                              CurMol != top.MolEnd(); ++CurMol)
-  {
-    if ( mask.AtomsInCharMask( CurMol->BeginAtom(), CurMol->EndAtom() ) ) {
-      // Has this molecule been seen before?
-      int natom = CurMol->NumAtoms();
-      int res0 = top[ CurMol->BeginAtom() ].ResNum(); // CurMol first residue
-      int res1 = top[ CurMol->EndAtom()-1 ].ResNum(); // CurMol last residue
-      int nres = res1 - res0 + 1;
-      int matchIdx = -1;
-      for (int idx = 0; idx != (int)mols.size(); idx++)
-      {
-        // First check number of atoms, then number residues, then residue names.
-        if ( mols[idx].natom_ == natom ) {
-          if ( mols[idx].nres_ == nres ) {
-            matchIdx = idx;
-            int cridx = res0; // current molecule residue index
-            for (int rridx = Res0[idx]; rridx <= Res1[idx]; rridx++, cridx++)
-            {
-              if ( top.Res(rridx).Name() != top.Res(cridx).Name() ) {
-                // Residue name mismatch.
-                matchIdx = -1;
-                break;
-              }
-            } // END loop over all residues
-          }
-        }
-        if (matchIdx != -1) break;
-      } // END loop over found molecule types
-      if (matchIdx == -1) {
-        // New molecule
-        mols.push_back(
-          MolType(CurMol-top.MolStart(), natom, nres, top.Res(res0).Name().Truncated()));
-        Res0.push_back( res0 );
-        Res1.push_back( res1 );
-      } else {
-        // Existing molecule. Update count.
-        mols[matchIdx].UpdateCount();
-      }
-    } // END molecule in mask
-  } // END loop over all molecules
-  return mols;
-} 
-
 // TopInfo::PrintShortMolInfo()
 int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
   if (parm_->Nmol() < 1)
@@ -262,24 +210,24 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
     if ( mask.None() )
       mprintf("\tSelection is empty.\n");
     else {
-      Marray mols = MolCount(*parm_, mask);
+      Mol::Marray mols = Mol::UniqueCount(*parm_, mask);
       // Determine max counts for nice output formatting
       int maxNatom = 0;
       int maxNres = 0;
-      int maxCount = 0;
-      for (Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol) {
-        maxNatom = std::max( maxNatom, mol->natom_  );
-        maxNres  = std::max( maxNres,  mol->nres_   );
-        maxCount = std::max( maxCount, mol->count_  );
+      unsigned int maxCount = 0;
+      for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol) {
+        maxNatom = std::max( maxNatom, mol->natom_ );
+        maxNres  = std::max( maxNres,  mol->nres_  );
+        maxCount = std::max( maxCount, (unsigned int)mol->idxs_.size() );
       }
       int awidth = std::max(5, DigitWidth(maxNatom));
       int rwidth = std::max(5, DigitWidth(maxNres ));
       int mwidth = std::max(5, DigitWidth(maxCount));
       outfile_->Printf("%-4s %*s %*s %*s\n", "#Mol", mwidth, "Count", 
                        awidth, "Natom", rwidth, "Nres");
-      for (Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
-        outfile_->Printf("%-4s %*i %*i %*i\n", mol->name_.c_str(),
-                         mwidth, mol->count_,
+      for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
+        outfile_->Printf("%-4s %*u %*i %*i\n", mol->name_.c_str(),
+                         mwidth, mol->idxs_.size(),
                          awidth, mol->natom_,
                          rwidth, mol->nres_);
     } // END selection not empty
