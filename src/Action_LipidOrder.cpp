@@ -5,11 +5,12 @@
 
 const unsigned int Action_LipidOrder::MAX_H_ = 3;
 
+/// CONSTRUCTOR
 Action_LipidOrder::Action_LipidOrder() : axis_(DX) {}
 
 // Action_LipidOrder::Help()
 void Action_LipidOrder::Help() const {
-
+  mprintf("\t[<mask>] [{x|y|z}]\n");
 }
 
 // Action_LipidOrder::Init()
@@ -58,6 +59,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     mprintf("Warning: No atoms selected.\n");
     return Action::SKIP;
   }
+  // Clear existing sites, but not data.
+  Sites_.clear();
   // Loop over all molecules.
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol)
@@ -110,9 +113,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 int current_at = nextAtom.top();
                 nextAtom.pop();
                 Visited[current_at - offset] = true;
-                // -------------------------------
                 Atom const& curr_atm = setup.Top()[current_at];
-                // Get site
+                // Add carbon if it does not yet exist in chain.
                 if (position >= (int)Chain.size())
                   Chain.resize( position+1 );
                 CarbonData& Cdata = Chain[position];
@@ -127,8 +129,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 mprintf("\t\t%i %s %s %i %i\n", position,
                         setup.Top().TruncResAtomNameNum(current_at).c_str(),
                         Cdata.name(), current_at, chainIdx);
-
-                // Loop over bonded atoms 
+                // Loop over atoms bonded to this carbon, add hydrogens to site
                 for (Atom::bond_iterator bnd = setup.Top()[current_at].bondbegin();
                                          bnd != setup.Top()[current_at].bondend(); ++bnd)
                 {
@@ -136,18 +137,14 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                     site.AddHindex( *bnd );
                   else if (!Visited[*bnd - offset] &&
                            setup.Top()[*bnd].Element() == Atom::CARBON)
-                  {
                     nextAtom.push( *bnd );
-                  }
                 }
-                // Update number of hydrogens in chain
+                // Update number of hydrogens in carbon data
                 Cdata.SetNumH( site.NumH() );
                 position++;
-                // -------------------------------
-              }
-              //FollowChain(C_idx, setup.Top(), chainIdx, Visited, offset, position);
-            }
-          } // END if Carbon
+              } // END loop over atom number stack
+            } // END carbon is carbonyl
+          } // END if carbon
         } // END if selected
       } // END loop over molecule atoms
     } // END mol not solvent and some of mol selected
@@ -161,25 +158,13 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
       mprintf("\t  %s\n", it->name());
   }
-/*
-  for (Cmap::const_iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
-  {
-    mprintf("\t%s %s (%zu)\n", it->second.resName(), it->first.name(), it->second.Nsites());
-    for (Carray::const_iterator site = it->second.begin(); site != it->second.end(); ++site)
-    {
-      mprintf("\t%20s", setup.Top().TruncResAtomNameNum(site->Cidx()).c_str());
-      for (unsigned int i = 0; i != site->NumH(); i++)
-        mprintf(" %20s", setup.Top().TruncResAtomNameNum(site->Hidx(i)).c_str());
-      mprintf("\n");
-    }
-  }
-*/
   return Action::OK;
 }
 
 // Action_LipidOrder::DoAction()
 Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 {
+  // Loop over all carbon sites
   for (Carray::const_iterator site = Sites_.begin(); site != Sites_.end(); ++site)
   {
     Vec3 Cvec( frm.Frm().XYZ( site->Cidx() ) );
@@ -195,27 +180,6 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
     }
     cdata.UpdateNvals();
   }
-/*
-  // Loop over types
-  for (Cmap::iterator it = Carbons_.begin(); it != Carbons_.end(); ++it)
-  {
-    // Loop over sites
-    for (Carray::iterator site = it->second.begin(); site != it->second.end(); ++site)
-    {
-      Vec3 Cvec( frm.Frm().XYZ( site->Cidx() ) );
-      // Loop over hydrogens
-      for (unsigned int i = 0; i != site->NumH(); i++)
-      {
-        // C-H unit vector
-        Vec3 sx = Vec3(frm.Frm().XYZ( site->Hidx(i) )) - Cvec;
-        sx.Normalize();
-//        mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]); 
-        it->second.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
-      }
-      it->second.UpdateNvals();
-    }
-  }
-*/
   return Action::OK;
 }
 
