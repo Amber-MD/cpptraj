@@ -6,7 +6,7 @@
 const unsigned int Action_LipidOrder::MAX_H_ = 3;
 
 /// CONSTRUCTOR
-Action_LipidOrder::Action_LipidOrder() : axis_(DX) {}
+Action_LipidOrder::Action_LipidOrder() : axis_(DX), outfile_(0), debug_(0) {}
 
 // Action_LipidOrder::Help()
 void Action_LipidOrder::Help() const {
@@ -16,6 +16,8 @@ void Action_LipidOrder::Help() const {
 // Action_LipidOrder::Init()
 Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+  debug_ = debugIn;
+  masterDSL_ = init.DslPtr();
   if (actionArgs.hasKey("x") )
     axis_ = DX;
   else if (actionArgs.hasKey("y") )
@@ -27,12 +29,16 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   dsname_ = actionArgs.GetStringNext();
-  masterDSL_ = init.DslPtr();
 
   mprintf("    LIPIDORDER:\n");
   mprintf("\tCalculating lipid order parameters for lipids in mask '%s'\n", mask_.MaskString());
   const char AXISSTRING[3] = { 'X', 'Y', 'Z' };
   mprintf("\tCalculating with respect to the %c axis.\n", AXISSTRING[axis_]);
+  if (!dsname_.empty())
+    mprintf("\tData saved in sets named '%s'\n", dsname_.c_str());
+  if (outfile_ != 0)
+    mprintf("\tOutput to file '%s'\n", outfile_->DataFilename().full());
+
   return Action::OK;
 }
 
@@ -40,11 +46,13 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
 int Action_LipidOrder::FindChain( Npair const& chain ) {
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
     if ( Types_[idx] == chain ) {
-      mprintf("DEBUG: Existing chain: %s %s\n", *(Types_[idx].first), *(Types_[idx].second));
+      if (debug_ > 0)
+        mprintf("DEBUG: Existing chain: %s %s\n", *(Types_[idx].first), *(Types_[idx].second));
       return idx;
     }
   // New chain type
-  mprintf("DEBIG: New chain: %s %s\n", *(chain.first), *(chain.second));
+  if (debug_ > 0)
+    mprintf("DEBUG: New chain: %s %s\n", *(chain.first), *(chain.second));
   Types_.push_back( chain );
   Chains_.push_back( ChainType() );
   return Types_.size()-1;
@@ -70,7 +78,8 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   {
     if (!mol->IsSolvent() && mask_.AtomsInCharMask(mol->BeginAtom(), mol->EndAtom()))
     {
-      mprintf("  Mol %zu\n", mol - setup.Top().MolStart() + 1);
+      if (debug_ > 0)
+        mprintf("  Mol %zu\n", mol - setup.Top().MolStart() + 1);
       std::vector<bool> Visited(mol->NumAtoms(), false);
       int offset = mol->BeginAtom();
       // First mark any atoms not in the mask as visited.
@@ -107,8 +116,10 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
               int chainIdx = FindChain( Npair(setup.Top().Res(atom.ResNum()).Name(), atom.Name()) );
               ChainType& Chain = Chains_[chainIdx];
               // Starting at the bonded carbon follow the chain down
-              mprintf("DEBUG: Lipid chain type %i (%zu atoms) starting at (but not including) %s\n",
-                      chainIdx, Chains_[chainIdx].size(), setup.Top().TruncResAtomName(at).c_str());
+              if (debug_ > 0)
+                mprintf("DEBUG: Lipid chain type %i (%zu atoms) starting at"
+                        " (but not including) %s\n", chainIdx, Chains_[chainIdx].size(),
+                        setup.Top().TruncResAtomName(at).c_str());
               int position = 0;
               std::stack<int> nextAtom;
               nextAtom.push( C_idx );
@@ -129,9 +140,10 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 // Add site
                 Sites_.push_back( CarbonSite(current_at, chainIdx, position) );
                 CarbonSite& site = Sites_.back();
-                mprintf("\t\t%i %s %s %i %i\n", position,
-                        setup.Top().TruncResAtomNameNum(current_at).c_str(),
-                        Cdata.name(), current_at, chainIdx);
+                if (debug_ > 1)
+                  mprintf("\t\t%i %s %s %i %i\n", position,
+                          setup.Top().TruncResAtomNameNum(current_at).c_str(),
+                          Cdata.name(), current_at, chainIdx);
                 // Loop over atoms bonded to this carbon, add hydrogens to site
                 for (Atom::bond_iterator bnd = setup.Top()[current_at].bondbegin();
                                          bnd != setup.Top()[current_at].bondend(); ++bnd)
@@ -195,10 +207,10 @@ void Action_LipidOrder::Print() {
     const char* resName = *(Types_[idx].first);
     const char* atmName = *(Types_[idx].second);
     // Create data set for chain type. Each hydrogen gets its own set.
-    if (dsname_.empty())
-      dsname_ = masterDSL_->GenerateDefaultName("LIPID");
     DataSet* DS[3];
     DataSet* SD[3];
+    if (dsname_.empty())
+      dsname_ = masterDSL_->GenerateDefaultName("LIPID");
     DS[0] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H1", idx));
     SD[0] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "SDH1", idx));
     DS[1] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H2", idx));
@@ -232,18 +244,20 @@ void Action_LipidOrder::Print() {
     int pos = 0;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
-      mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
+      if (debug_ > 0)
+        mprintf("\t%s %s (%zu)", resName, it->name(), it->Nvals());
       if (it->Nvals() > 0) {
         double avg, stdev;
         for (unsigned int i = 0; i != MAX_H_; i++) {
           //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
           if ( i < it->NumH() )
             avg = it->Avg(i, stdev);
-          mprintf("  %10.7f %10.7f  ", avg, stdev);
+          if (debug_ > 0)
+            mprintf("  %10.7f %10.7f  ", avg, stdev);
           DS[i]->Add(pos, &avg);
           SD[i]->Add(pos, &stdev);
         }
-        mprintf("\n");
+        if (debug_ > 0) mprintf("\n");
       }
     }
   }

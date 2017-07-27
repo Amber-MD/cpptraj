@@ -45,6 +45,7 @@ class Action_LipidOrder : public Action {
     std::string dsname_;
     DataSetList* masterDSL_;
     DataFile* outfile_;
+    int debug_;
 };
 
 /// Hold data for carbon position in a chain.
