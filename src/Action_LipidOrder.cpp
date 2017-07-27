@@ -10,7 +10,12 @@ Action_LipidOrder::Action_LipidOrder() : axis_(DX), outfile_(0), debug_(0) {}
 
 // Action_LipidOrder::Help()
 void Action_LipidOrder::Help() const {
-  mprintf("\t[<name>] [<mask>] [{x|y|z}] [out <file>]\n");
+  mprintf("\t[<name>] [<mask>] [{x|y|z}] [out <file>]\n"
+          "  Calculate lipid order parameters -SCD for lipid chains in mask\n"
+          "  <mask>. Lipid chains are identified by carboxyl groups, i.e.\n"
+          "  O-(C=O)-C1-...-CN, where C1 is the first carbon in the acyl chain\n"
+          "  and CN is the last. Order parameters will be determined for each\n"
+          "  hydrogen bonded to each carbon.\n");
 }
 
 // Action_LipidOrder::Init()
