@@ -36,6 +36,7 @@ trajin dopc.charmm.nc
 lipidscd DOPC out dopc.agr xydy prec 10.7 xprec 3.0
 EOF
 RunCpptraj "New Lipid Order Parameter Test, DOPC."
+DoTest dopc.agr.save dopc.agr
 
 EndTest
 
