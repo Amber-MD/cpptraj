@@ -31,7 +31,8 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   dsname_ = actionArgs.GetStringNext();
 
   mprintf("    LIPIDORDER:\n");
-  mprintf("\tCalculating lipid order parameters for lipids in mask '%s'\n", mask_.MaskString());
+  mprintf("\tCalculating lipid order parameters (-SCD) for lipids in mask '%s'\n",
+          mask_.MaskString());
   const char AXISSTRING[3] = { 'X', 'Y', 'Z' };
   mprintf("\tCalculating with respect to the %c axis.\n", AXISSTRING[axis_]);
   if (!dsname_.empty())
@@ -257,7 +258,7 @@ void Action_LipidOrder::Print() {
         for (unsigned int i = 0; i != MAX_H_; i++) {
           //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
           if ( i < it->NumH() )
-            avg = it->Avg(i, stdev);
+            avg = -(it->Avg(i, stdev));
           if (debug_ > 0)
             mprintf("  %10.7f %10.7f  ", avg, stdev);
           DS[i]->Add(pos, &avg);
