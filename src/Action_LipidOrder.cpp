@@ -31,7 +31,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     axis_ = DZ;
   else
     axis_ = DZ;
-  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out") );
+  outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   dsname_ = actionArgs.GetStringNext();
 
