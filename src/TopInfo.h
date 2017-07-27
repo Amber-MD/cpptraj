@@ -4,15 +4,26 @@
 /// Class for printing formatted topology info to a file.
 class TopInfo {
   public:
-    typedef std::vector<int> Iarray;
-    typedef std::vector<std::string> Sarray;
     TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
     ~TopInfo();
     TopInfo(Topology*);
     int SetupTopInfo(CpptrajFile*, Topology*, DataSet_Coords*);
     int SetupTopInfo(Topology* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
-    void MolCount(Topology const&, CharMask const&,
-                  Iarray&, Iarray&, Iarray&, Iarray&, Sarray&) const;
+
+    class MolType {
+      public:
+      MolType(int i,int a,int r,std::string const& n) :
+        idx_(i), count_(1), natom_(a), nres_(r), name_(n) {}
+      void UpdateCount() { count_++; }
+      int idx_;          ///< Molecule index for first molecule of this type
+      int count_;        ///< Count for molecule type
+      int natom_;        ///< Number of atoms in molecule
+      int nres_;         ///< Number of residues in molecule
+      std::string name_; ///< Molecule type name
+    };
+    typedef std::vector<MolType> Marray;
+
+    Marray MolCount(Topology const&, CharMask const&) const;
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int) const;
     int PrintResidueInfo(std::string const&) const;
