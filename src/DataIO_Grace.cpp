@@ -88,8 +88,8 @@ void DataIO_Grace::WriteHelp() {
 
 // DataIO_Grace::processWriteArgs()
 int DataIO_Grace::processWriteArgs(ArgList &argIn) {
-  isInverted_ = argIn.hasKey("invert");
-  isXYDY_ = argIn.hasKey("xydy");
+  if (argIn.hasKey("invert")) isInverted_ = true;
+  if (argIn.hasKey("xydy")) isXYDY_ = true;
   if (isInverted_ && isXYDY_) {
     mprinterr("Error: 'invert' not compatible with 'xydy'\n");
     return 1;
