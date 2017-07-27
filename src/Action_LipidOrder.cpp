@@ -60,7 +60,7 @@ int Action_LipidOrder::FindChain( Npair const& chain ) {
 
 // Action_LipidOrder::Setup()
 /** Within atom selection, attempt to identify C-HX in lipids "south"
-  * of carbonyl.
+  * of carboxyl.
   */
 Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
 {
@@ -115,7 +115,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
               nChains++;
               Visited[at - offset] = true;
               // Determine if this is a new or existing chain type by first
-              // carbon residue name and carbonyl carbon atom name.
+              // carbon residue name and carboxyl carbon atom name.
               int cresnum = setup.Top()[C_idx].ResNum();
               int chainIdx = FindChain( Npair(setup.Top().Res(cresnum).Name(), atom.Name()) );
               ChainType& Chain = Chains_[chainIdx];
@@ -162,7 +162,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 Cdata.SetNumH( site.NumH() );
                 position++;
               } // END loop over atom number stack
-            } // END carbon is carbonyl
+            } // END carbon is carboxyl
           } // END if carbon
         } // END if selected
       } // END loop over molecule atoms
@@ -173,8 +173,9 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   mprintf("\t%zu chain types:\n", Types_.size());
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    mprintf("\t[%u] Res %s Atom %s (%zu)\n", idx, *(Types_[idx].first), *(Types_[idx].second),
-            Chains_[idx].size());
+    mprintf("\t[%u] Residue %s, carboxyl atom %s (%zu)\n", idx,
+            Types_[idx].first.Truncated().c_str(),
+            Types_[idx].second.Truncated().c_str(), Chains_[idx].size());
     mprintf("\t  %-4s %2s\n", "Name", "#H");
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
       mprintf("\t  %-4s %2u\n", it->name(), it->NumH());
@@ -206,7 +207,7 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 
 //  Action_LipidOrder::Print()
 void Action_LipidOrder::Print() {
-  mprintf("    LIPIDORDER:\n");
+  if (debug_ > 0) mprintf("    LIPIDORDER:\n");
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     const char* resName = *(Types_[idx].first);
