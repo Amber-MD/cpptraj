@@ -11,7 +11,7 @@ class TopInfo {
     TopInfo(Topology*);
     int SetupTopInfo(CpptrajFile*, Topology*, DataSet_Coords*);
     int SetupTopInfo(Topology* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
-    void MolCount(Topology const&, CharMask const&, int&, int&, int&,
+    void MolCount(Topology const&, CharMask const&,
                   Iarray&, Iarray&, Iarray&, Iarray&, Sarray&) const;
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int) const;
