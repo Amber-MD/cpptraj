@@ -198,22 +198,36 @@ void Action_LipidOrder::Print() {
     if (dsname_.empty())
       dsname_ = masterDSL_->GenerateDefaultName("LIPID");
     DataSet* DS[3];
+    DataSet* SD[3];
     DS[0] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H1", idx));
+    SD[0] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "SDH1", idx));
     DS[1] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H2", idx));
+    SD[1] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "SDH2", idx));
     DS[2] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "H3", idx));
-    if (DS[0] == 0 || DS[1] == 0 || DS[2] == 0) {
+    SD[2] = masterDSL_->AddSet(DataSet::DOUBLE, MetaData(dsname_, "SDH3", idx));
+    if (DS[0] == 0 || DS[1] == 0 || DS[2] == 0 || SD[0] == 0 || SD[1] == 0 || SD[2] == 0) {
       mprinterr("Error: Could not create data sets for chain %s %s\n", resName, atmName);
       continue;
     }
     if (outfile_ != 0) {
       outfile_->AddDataSet( DS[0] );
+      outfile_->AddDataSet( SD[0] );
       outfile_->AddDataSet( DS[1] );
+      outfile_->AddDataSet( SD[1] );
       outfile_->AddDataSet( DS[2] );
+      outfile_->AddDataSet( SD[2] );
     }
     std::string prefix = Types_[idx].first.Truncated() + "_" + Types_[idx].second.Truncated();
     DS[0]->SetLegend( prefix + "_H1" );
     DS[1]->SetLegend( prefix + "_H2" );
     DS[2]->SetLegend( prefix + "_H3" );
+    SD[0]->SetLegend( "sd(" + prefix + "_H1)" );
+    SD[1]->SetLegend( "sd(" + prefix + "_H2)" );
+    SD[2]->SetLegend( "sd(" + prefix + "_H3)" );
+    for (unsigned int nn = 0; nn != MAX_H_; nn++) {
+      DS[0]->ModifyDim(Dimension::X).SetLabel("Cn");
+      SD[0]->ModifyDim(Dimension::X).SetLabel("Cn");
+    }
     // Loop over carbons in chain
     int pos = 0;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
@@ -227,6 +241,7 @@ void Action_LipidOrder::Print() {
             avg = it->Avg(i, stdev);
           mprintf("  %10.7f %10.7f  ", avg, stdev);
           DS[i]->Add(pos, &avg);
+          SD[i]->Add(pos, &stdev);
         }
         mprintf("\n");
       }
