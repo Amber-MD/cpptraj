@@ -73,6 +73,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   // Clear existing sites, but not data.
   Sites_.clear();
   // Loop over all molecules.
+  unsigned int nChains = 0;
   for (Topology::mol_iterator mol = setup.Top().MolStart();
                               mol != setup.Top().MolEnd(); ++mol)
   {
@@ -111,9 +112,12 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
               }
             }
             if (n_O == 2 && n_C == 1 && mask_.AtomInCharMask(C_idx)) {
+              nChains++;
               Visited[at - offset] = true;
-              // Determine if this is a new or existing chain type
-              int chainIdx = FindChain( Npair(setup.Top().Res(atom.ResNum()).Name(), atom.Name()) );
+              // Determine if this is a new or existing chain type by first
+              // carbon residue name and carbonyl carbon atom name.
+              int cresnum = setup.Top()[C_idx].ResNum();
+              int chainIdx = FindChain( Npair(setup.Top().Res(cresnum).Name(), atom.Name()) );
               ChainType& Chain = Chains_[chainIdx];
               // Starting at the bonded carbon follow the chain down
               if (debug_ > 0)
@@ -165,6 +169,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
     } // END mol not solvent and some of mol selected
   } // END loop over molecules
 
+  mprintf("\t%u chains.\n", nChains);
   mprintf("\t%zu chain types:\n", Types_.size());
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
