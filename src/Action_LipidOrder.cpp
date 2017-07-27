@@ -156,10 +156,11 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
   mprintf("\t%zu chain types:\n", Types_.size());
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
-    mprintf("\t[%u] %s %s (%zu)\n", idx, *(Types_[idx].first), *(Types_[idx].second),
+    mprintf("\t[%u] Res %s Atom %s (%zu)\n", idx, *(Types_[idx].first), *(Types_[idx].second),
             Chains_[idx].size());
+    mprintf("\t  %-4s %2s\n", "Name", "#H");
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
-      mprintf("\t  %s\n", it->name());
+      mprintf("\t  %-4s %2u\n", it->name(), it->NumH());
   }
   return Action::OK;
 }
