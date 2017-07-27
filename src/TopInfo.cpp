@@ -199,6 +199,82 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
   return 0;
 }
 
+/**
+  * \param molIdxs Hold molecule index for first molecule of each kind
+  * \param molCounts Hold molecule count for each molecule type
+  * \param molNatom Hold number of atoms for each molecule type
+  * \param molNres Hold number of residues for each molecule type
+  * \param molNames Hold names for each molecule type
+  */
+void TopInfo::MolCount(Topology const& top, CharMask const& mask,
+                       int& maxNatom, int& maxNres, int& maxCount,
+                       Iarray& molIdxs, Iarray& molCounts, Iarray& molNatom,
+                       Iarray& molNres, Sarray& molNames) const
+{
+      maxNatom = 0;
+      maxNres = 0;
+      maxCount = 0;
+      molIdxs.clear();
+      // Hold molecule count for each molecule type
+      molCounts.clear();
+      // Hold number of atoms for each molecule type
+      molNatom.clear();
+      // Hold number of residues for each molecule type
+      molNres.clear();
+      // Hold begin residue for each molecule type
+      Iarray Res0;
+      // Hold end residue for each molecule type
+      Iarray Res1;
+      for (Topology::mol_iterator CurMol = top.MolStart();
+                                  CurMol != top.MolEnd(); ++CurMol)
+      {
+        if ( mask.AtomsInCharMask( CurMol->BeginAtom(), CurMol->EndAtom() ) ) {
+          // Has this molecule been seen before?
+          int natom = CurMol->NumAtoms();
+          int res0 = top[ CurMol->BeginAtom() ].ResNum(); // CurMol first residue
+          int res1 = top[ CurMol->EndAtom()-1 ].ResNum(); // CurMol last residue
+          int nres = res1 - res0 + 1;
+          int matchIdx = -1;
+          for (int idx = 0; idx != (int)molIdxs.size(); idx++)
+          {
+            // First check number of atoms, then number residues, then residue names.
+            if ( molNatom[idx] == natom ) {
+              if ( molNres[idx] == nres ) {
+                matchIdx = idx;
+                int cridx = res0; // current molecule residue index
+                for (int rridx = Res0[idx]; rridx <= Res1[idx]; rridx++, cridx++)
+                {
+                  if ( top.Res(rridx).Name() != top.Res(cridx).Name() ) {
+                    // Residue name mismatch.
+                    matchIdx = -1;
+                    break;
+                  }
+                } // END loop over all residues
+              }
+            }
+            if (matchIdx != -1) break;
+          } // END loop over found molecule types
+          if (matchIdx == -1) {
+            // New molecule
+            molIdxs.push_back( CurMol - top.MolStart() );
+            molCounts.push_back( 1 );
+            molNatom.push_back( natom );
+            molNres.push_back( nres );
+            molNames.push_back( top.Res(res0).Name().Truncated() );
+            Res0.push_back( res0 );
+            Res1.push_back( res1 );
+            maxNatom = std::max( natom, maxNatom );
+            maxNres  = std::max( nres,  maxNres  );
+            maxCount = std::max( 1,     maxCount );
+          } else {
+            // Existing molecule. Update count.
+            molCounts[matchIdx]++;
+            maxCount = std::max( molCounts[matchIdx], maxCount );
+          }
+        } // END molecule in mask
+      } // END loop over all molecules
+} 
+
 int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
@@ -220,6 +296,11 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
       Iarray molNatom;
       // Hold number of residues for each molecule type
       Iarray molNres;
+      // Hold names of each molecule type
+      Sarray molNames;
+      MolCount(*parm_, mask, maxNatom, maxNres, maxCount,
+               molIdxs, molCounts, molNatom, molNres, molNames);
+/*
       // Hold begin residue for each molecule type
       Iarray Res0;
       // Hold end residue for each molecule type
@@ -271,13 +352,14 @@ int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
           }
         } // END molecule in mask
       } // END loop over all molecules 
+*/
       int awidth = std::max(5, DigitWidth(maxNatom));
       int rwidth = std::max(5, DigitWidth(maxNres ));
       int mwidth = std::max(5, DigitWidth(maxCount));
       outfile_->Printf("%-4s %*s %*s %*s\n", "#Mol", mwidth, "Count", 
                        awidth, "Natom", rwidth, "Nres");
       for (int idx = 0; idx != (int)molIdxs.size(); idx++)
-        outfile_->Printf("%4s %*i %*i %*i\n", parm_->Res(Res0[idx]).c_str(),
+        outfile_->Printf("%-4s %*i %*i %*i\n", molNames[idx].c_str(),
                          mwidth, molCounts[idx],
                          awidth, molNatom[idx],
                          rwidth, molNres[idx]);

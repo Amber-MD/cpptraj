@@ -4,11 +4,15 @@
 /// Class for printing formatted topology info to a file.
 class TopInfo {
   public:
+    typedef std::vector<int> Iarray;
+    typedef std::vector<std::string> Sarray;
     TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
     ~TopInfo();
     TopInfo(Topology*);
     int SetupTopInfo(CpptrajFile*, Topology*, DataSet_Coords*);
     int SetupTopInfo(Topology* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
+    void MolCount(Topology const&, CharMask const&, int&, int&, int&,
+                  Iarray&, Iarray&, Iarray&, Iarray&, Sarray&) const;
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int) const;
     int PrintResidueInfo(std::string const&) const;
