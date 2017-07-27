@@ -199,14 +199,8 @@ int TopInfo::PrintMoleculeInfo(std::string const& maskString) const {
   return 0;
 }
 
-/**
-  * \param molIdxs Hold molecule index for first molecule of each kind
-  * \param molCounts Hold molecule count for each molecule type
-  * \param molNatom Hold number of atoms for each molecule type
-  * \param molNres Hold number of residues for each molecule type
-  * \param molNames Hold names for each molecule type
-  */
-TopInfo::Marray TopInfo::MolCount(Topology const& top, CharMask const& mask) const
+/** \return An array of unique molecule types selected by mask. */
+TopInfo::Marray TopInfo::UniqueMolCount(Topology const& top, CharMask const& mask) const
 {
   Marray mols;
   typedef std::vector<int> Iarray;
@@ -258,6 +252,7 @@ TopInfo::Marray TopInfo::MolCount(Topology const& top, CharMask const& mask) con
   return mols;
 } 
 
+// TopInfo::PrintShortMolInfo()
 int TopInfo::PrintShortMolInfo(std::string const& maskString) const {
   if (parm_->Nmol() < 1)
     mprintf("\t'%s' No molecule info.\n", parm_->c_str());
