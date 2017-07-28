@@ -50,6 +50,10 @@ class Action_LipidOrder : public Action {
     int SyncAction();
     Parallel::Comm trajComm_;
 #   endif
+#   ifdef _OPENMP
+    std::vector<std::vector<double>> scratch_sum_;
+    std::vector<std::vector<double>> scratch_sum2_;
+#   endif
 };
 
 /// Hold data for carbon position in a chain.

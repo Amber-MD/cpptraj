@@ -2,6 +2,9 @@
 #include <stack>
 #include "Action_LipidOrder.h"
 #include "CpptrajStdio.h"
+#ifdef _OPENMP
+# include <omp.h>
+#endif
 
 const unsigned int Action_LipidOrder::MAX_H_ = 3;
 
@@ -37,6 +40,18 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   dsname_ = actionArgs.GetStringNext();
+
+# ifdef _OPENMP
+  // Each thread needs space to calc sum/sum2
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  scratch_sum_.resize( omp_get_num_threads() );
+  scratch_sum2_.resize( omp_get_num_threads() );
+  }
+  }
+# endif
 
   mprintf("    LIPIDORDER:\n");
   mprintf("\tCalculating lipid order parameters (-SCD) for lipids in mask '%s'\n",
