@@ -51,6 +51,8 @@ class Action_LipidOrder : public Action {
     Parallel::Comm trajComm_;
 #   endif
 #   ifdef _OPENMP
+    typedef std::vector<double> Darray;
+    typedef std::vector<unsigned int> Uarray;
     int nthreads_;
 #   endif
 };
@@ -94,8 +96,6 @@ class Action_LipidOrder::CarbonData {
   private:
     NameType name_;      ///< Carbon name
 #   ifdef _OPENMP
-    typedef std::vector<double> Darray;
-    typedef std::vector<unsigned int> Uarray;
     Darray sum_;
     Darray sum2_;
     Uarray nvals_;

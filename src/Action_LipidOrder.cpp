@@ -267,8 +267,10 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 int Action_LipidOrder::SyncAction() {
 # ifdef _OPENMP
   int total = nthreads_ * 3;
-  Darray dbuf(total);
-  Uarray ubuf(nthreads_);
+  Darray DBUFFER(total);
+  Uarray UBUFFER(nthreads_);
+  double* dbuf = &DBUFFER[0];
+  unsigned int* ubuf = &UBUFFER[0];
 # else
   int nthreads_ = 1;
   int total = 3;
