@@ -61,6 +61,10 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     mprintf("\tData saved in sets named '%s'\n", dsname_.c_str());
   if (outfile_ != 0)
     mprintf("\tOutput to file '%s'\n", outfile_->DataFilename().full());
+# ifdef _OPENMP
+  if (nthreads_ > 1)
+    mprintf("\tParallelizing calculation with %i threads.\n", nthreads_);
+# endif
 
   return Action::OK;
 }
@@ -221,7 +225,6 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
   {
     mythread = omp_get_thread_num();
     offset = mythread * 3;
-    mprintf("DBG: [%i] offset= %i\n", mythread, offset);
 #   pragma omp for
     for (idx = 0; idx < maxIdx; idx++)
     {
@@ -400,10 +403,6 @@ Action_LipidOrder::CarbonData::CarbonData(int nthreads) :
 
 // Action_LipidOrder::CarbonData::Consolidate()
 void Action_LipidOrder::CarbonData::Consolidate() {
-  if (nvals_.size() == 1)
-    mprintf("DBG: %4s %12.4f %8u\n", *name_, sum_[0], nvals_[0]);
-  else if (nvals_.size() == 2)
-    mprintf("DBG: %4s %12.4f %8u %12.4f %8u\n", *name_, sum_[0], nvals_[0], sum_[3], nvals_[1]);
   unsigned int idx = 3;
   for (unsigned int thread = 1; thread != nvals_.size(); thread++, idx += 3) {
     sum_[0] += sum_[idx  ];
