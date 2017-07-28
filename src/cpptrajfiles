@@ -41,6 +41,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         Action_Jcoupling.cpp \
         Action_LESsplit.cpp \
         Action_LIE.cpp \
+        Action_LipidOrder.cpp \
         Action_MakeStructure.cpp \
         Action_Mask.cpp \
         Action_Matrix.cpp \
@@ -264,6 +265,7 @@ COMMON_SOURCES=ActionFrameCounter.cpp \
         MaskToken.cpp \
         Matrix_3x3.cpp \
         MetaData.cpp \
+        Mol.cpp \
         Mol2File.cpp \
         NameType.cpp \
         NC_Cmatrix.cpp \

@@ -6,9 +6,10 @@ class TopInfo {
   public:
     TopInfo () : outfile_(0), parm_(0), toStdout_(false) {}
     ~TopInfo();
-    TopInfo(Topology*);
-    int SetupTopInfo(CpptrajFile*, Topology*, DataSet_Coords*);
-    int SetupTopInfo(Topology* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
+    TopInfo(Topology const*);
+    int SetupTopInfo(CpptrajFile*, Topology const*, DataSet_Coords*);
+    int SetupTopInfo(Topology const* p, DataSet_Coords* c) { return SetupTopInfo(0, p, c); }
+
     int PrintAtomInfo(std::string const&) const;
     int PrintShortResInfo(std::string const&, int) const;
     int PrintResidueInfo(std::string const&) const;
@@ -33,7 +34,7 @@ class TopInfo {
                         CharMask const&, CharMask const&, int, int&) const;
 
     CpptrajFile* outfile_;
-    Topology* parm_;
+    Topology const* parm_;
     Frame coords_;
     int Awidth_; ///< Max width of field for holding atom numbers.
     int Rwidth_; ///< Max width of AtomMaskName for topology
