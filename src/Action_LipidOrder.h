@@ -83,11 +83,14 @@ class Action_LipidOrder::CarbonData {
     void SetNumH(unsigned int n) { nH_ = n; }
     double Avg(int, double&) const;
 #   ifdef MPI
-    double* Sptr()       { return sum_;    }
-    double* S2ptr()      { return sum2_;   }
-    unsigned int* Nptr() { return &nvals_; }
-    void SetNvals(unsigned int n) { nvals_ = n; }
+    double* Sptr()       { return &sum_[0];    }
+    double* S2ptr()      { return &sum2_[0];   }
+#   ifdef _OPENMP
+    unsigned int* Nptr() { return &nvals_[0];  }
+#   else
+    unsigned int* Nptr() { return &nvals_;     }
 #   endif
+#   endif /* MPI */
   private:
     NameType name_;      ///< Carbon name
 #   ifdef _OPENMP

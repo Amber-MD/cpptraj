@@ -265,23 +265,31 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 #ifdef MPI
 // Action_LipidOrder::SyncAction()
 int Action_LipidOrder::SyncAction() {
-  double buf[3];
+# ifdef _OPENMP
+  int total = nthreads_ * 3;
+  Darray dbuf(total);
+  Uarray ubuf(nthreads_);
+# else
+  int nthreads_ = 1;
+  int total = 3;
+  double dbuf[3];
+  unsigned int ubuf[1];
+# endif
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
-      trajComm_.Reduce( buf, it->Sptr(), 3, MPI_DOUBLE, MPI_SUM );
-      if (trajComm_.Master()) std::copy( buf, buf+3, it->Sptr() );
-      trajComm_.Reduce( buf, it->S2ptr(), 3, MPI_DOUBLE, MPI_SUM );
-      if (trajComm_.Master()) std::copy( buf, buf+3, it->S2ptr() );
-      unsigned int total_vals = 0;
-      trajComm_.Reduce( &total_vals, it->Nptr(), 1, MPI_UNSIGNED, MPI_SUM );
-      if (trajComm_.Master()) it->SetNvals( total_vals );
+      trajComm_.Reduce( dbuf, it->Sptr(), total, MPI_DOUBLE, MPI_SUM );
+      if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->Sptr() );
+      trajComm_.Reduce( dbuf, it->S2ptr(), total, MPI_DOUBLE, MPI_SUM );
+      if (trajComm_.Master()) std::copy( dbuf, dbuf+total, it->S2ptr() );
+      trajComm_.Reduce( ubuf, it->Nptr(), nthreads_, MPI_UNSIGNED, MPI_SUM );
+      if (trajComm_.Master()) std::copy( ubuf, ubuf+nthreads_, it->Nptr() );
     }
   }
   return 0;
 }
-#endif
+#endif /* MPI */
 
 //  Action_LipidOrder::Print()
 void Action_LipidOrder::Print() {
