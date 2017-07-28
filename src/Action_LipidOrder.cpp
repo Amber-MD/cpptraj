@@ -263,12 +263,13 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 }
 
 #ifdef MPI
+// Action_LipidOrder::SyncAction()
 int Action_LipidOrder::SyncAction() {
+  double buf[3];
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
     {
-      double buf[3];
       trajComm_.Reduce( buf, it->Sptr(), 3, MPI_DOUBLE, MPI_SUM );
       if (trajComm_.Master()) std::copy( buf, buf+3, it->Sptr() );
       trajComm_.Reduce( buf, it->S2ptr(), 3, MPI_DOUBLE, MPI_SUM );
@@ -387,6 +388,7 @@ Action_LipidOrder::CarbonData::CarbonData(int nthreads) :
   init_(false)
 {}
 
+// Action_LipidOrder::CarbonData::Consolidate()
 void Action_LipidOrder::CarbonData::Consolidate() {
   if (nvals_.size() == 1)
     mprintf("DBG: %4s %12.4f %8u\n", *name_, sum_[0], nvals_[0]);
