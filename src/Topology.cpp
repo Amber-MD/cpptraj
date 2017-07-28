@@ -1236,15 +1236,19 @@ Topology* Topology::ModifyByMap(std::vector<int> const& MapIn, bool setupFullPar
   // Set up new angle info
   newParm->angles_ = StripAngleArray( angles_, atomMap );
   newParm->anglesh_ = StripAngleArray( anglesh_, atomMap );
-  parmMap.assign( angleparm_.size(), -1 );
-  StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
-  StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
+  if (!angleparm_.empty()) {
+    parmMap.assign( angleparm_.size(), -1 );
+    StripAngleParmArray( newParm->angles_,  parmMap, newParm->angleparm_ );
+    StripAngleParmArray( newParm->anglesh_, parmMap, newParm->angleparm_ );
+  }
   // Set up new dihedral info
   newParm->dihedrals_ = StripDihedralArray( dihedrals_, atomMap );
   newParm->dihedralsh_ = StripDihedralArray( dihedralsh_, atomMap );
-  parmMap.assign( dihedralparm_.size(), -1 );
-  StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
-  StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
+  if (!dihedralparm_.empty()) {
+    parmMap.assign( dihedralparm_.size(), -1 );
+    StripDihedralParmArray( newParm->dihedrals_,  parmMap, newParm->dihedralparm_ );
+    StripDihedralParmArray( newParm->dihedralsh_, parmMap, newParm->dihedralparm_ );
+  }
   // Set up nonbond info. First determine which atom types remain.
   if (nonbond_.HasNonbond()) {
     parmMap.clear();               // parmMap[oldtype]      = newtype
