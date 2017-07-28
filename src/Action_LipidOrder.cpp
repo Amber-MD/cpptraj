@@ -9,16 +9,22 @@
 const unsigned int Action_LipidOrder::MAX_H_ = 3;
 
 /// CONSTRUCTOR
-Action_LipidOrder::Action_LipidOrder() : axis_(DX), outfile_(0), debug_(0) {}
+Action_LipidOrder::Action_LipidOrder() :
+  axis_(DX),
+  outfile_(0),
+  debug_(0),
+  report_p2_(false)
+{}
 
 // Action_LipidOrder::Help()
 void Action_LipidOrder::Help() const {
-  mprintf("\t[<name>] [<mask>] [{x|y|z}] [out <file>]\n"
-          "  Calculate lipid order parameters -SCD for lipid chains in mask\n"
+  mprintf("\t[<name>] [<mask>] [{x|y|z}] [out <file>] [p2]\n"
+          "  Calculate lipid order parameters SCD (|<P2>|) for lipid chains in mask\n"
           "  <mask>. Lipid chains are identified by carboxyl groups, i.e.\n"
           "  O-(C=O)-C1-...-CN, where C1 is the first carbon in the acyl chain\n"
           "  and CN is the last. Order parameters will be determined for each\n"
-          "  hydrogen bonded to each carbon.\n");
+          "  hydrogen bonded to each carbon. If 'p2' is specified the raw <P2>\n"
+          "  values will be reported.\n");
 }
 
 // Action_LipidOrder::Init()
@@ -37,6 +43,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
     axis_ = DZ;
   else
     axis_ = DZ;
+  report_p2_ = actionArgs.hasKey("p2");
   outfile_ = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   dsname_ = actionArgs.GetStringNext();
@@ -53,8 +60,13 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
 # endif
 
   mprintf("    LIPIDORDER:\n");
-  mprintf("\tCalculating lipid order parameters (-SCD) for lipids in mask '%s'\n",
-          mask_.MaskString());
+  const char* typestr;
+  if (report_p2_)
+    typestr = "<P2>";
+  else
+    typestr = "SCD=|<P2>|";
+  mprintf("\tCalculating lipid order parameters (%s) for lipids in mask '%s'\n",
+          typestr, mask_.MaskString());
   const char AXISSTRING[3] = { 'X', 'Y', 'Z' };
   mprintf("\tCalculating with respect to the %c axis.\n", AXISSTRING[axis_]);
   if (!dsname_.empty())
@@ -353,8 +365,12 @@ void Action_LipidOrder::Print() {
         double avg, stdev;
         for (unsigned int i = 0; i != MAX_H_; i++) {
           //mprintf(" %15s", setup.Top().TruncResAtomName(site->Hidx(i)).c_str());
-          if ( i < it->NumH() )
-            avg = -(it->Avg(i, stdev));
+          if ( i < it->NumH() ) {
+            if (report_p2_)
+              avg = it->Avg(i, stdev);
+            else
+              avg = fabs(it->Avg(i, stdev));
+          }
           if (debug_ > 0)
             mprintf("  %10.7f %10.7f  ", avg, stdev);
           DS[i]->Add(pos, &avg);

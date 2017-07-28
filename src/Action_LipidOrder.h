@@ -46,6 +46,7 @@ class Action_LipidOrder : public Action {
     DataSetList* masterDSL_;
     DataFile* outfile_;
     int debug_;
+    bool report_p2_;    ///> If true report raw <P2> instead of |<P2>|
 #   ifdef MPI
     int SyncAction();
     Parallel::Comm trajComm_;
