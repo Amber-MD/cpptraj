@@ -220,7 +220,7 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
             Types_[idx].first.Truncated().c_str(),
             Types_[idx].second.Truncated().c_str(), Chains_[idx].size());
     mprintf("\t  %-4s %-4s %2s\n", "Pos.", "Name", "#H");
-    unsigned int pos = 1;
+    unsigned int pos = 2;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it, ++pos)
       mprintf("\t  %-4u %-4s %2u\n", pos, it->name(), it->NumH());
   }
@@ -312,6 +312,7 @@ int Action_LipidOrder::SyncAction() {
 //  Action_LipidOrder::Print()
 void Action_LipidOrder::Print() {
   if (debug_ > 0) mprintf("    LIPIDORDER:\n");
+  Dimension Xaxis(2, 1, "Cn");
   for (unsigned int idx = 0; idx != Types_.size(); idx++)
   {
     const char* resName = *(Types_[idx].first);
@@ -347,8 +348,8 @@ void Action_LipidOrder::Print() {
     SD[1]->SetLegend( "sd(" + prefix + "_H2)" );
     SD[2]->SetLegend( "sd(" + prefix + "_H3)" );
     for (unsigned int nn = 0; nn != MAX_H_; nn++) {
-      DS[0]->ModifyDim(Dimension::X).SetLabel("Cn");
-      SD[0]->ModifyDim(Dimension::X).SetLabel("Cn");
+      DS[nn]->SetDim(Dimension::X, Xaxis);
+      SD[nn]->SetDim(Dimension::X, Xaxis);
     }
 #   ifdef _OPENMP
     // This sums individual thread values back to thread 0.
