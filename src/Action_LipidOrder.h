@@ -51,16 +51,23 @@ class Action_LipidOrder : public Action {
     Parallel::Comm trajComm_;
 #   endif
 #   ifdef _OPENMP
-    std::vector<std::vector<double>> scratch_sum_;
-    std::vector<std::vector<double>> scratch_sum2_;
+    int nthreads_;
 #   endif
 };
 
 /// Hold data for carbon position in a chain.
 class Action_LipidOrder::CarbonData {
   public:
+#   ifdef _OPENMP
+    CarbonData(int);
+    unsigned int Nvals()   const { return nvals_[0]; }
+    void UpdateNvals(int thread) { nvals_[thread]++; }
+    void Consolidate();
+#   else
     CarbonData();
     unsigned int Nvals()   const { return nvals_; }
+    void UpdateNvals() { nvals_++; }
+#   endif
     bool Init()            const { return init_;  }
     NameType const& Name() const { return name_;  }
     const char* name()     const { return *name_; }
@@ -69,7 +76,6 @@ class Action_LipidOrder::CarbonData {
       sum_[i] += val;
       sum2_[i] += val * val;
     }
-    void UpdateNvals() { nvals_++; }
     void SetName( NameType const& n) {
       name_ = n;
       init_ = true;
@@ -84,9 +90,17 @@ class Action_LipidOrder::CarbonData {
 #   endif
   private:
     NameType name_;      ///< Carbon name
+#   ifdef _OPENMP
+    typedef std::vector<double> Darray;
+    typedef std::vector<unsigned int> Uarray;
+    Darray sum_;
+    Darray sum2_;
+    Uarray nvals_;
+#   else
     double sum_[3];      ///< Hold order param sum for each C-HX
     double sum2_[3];     ///< Hold order param sum^2 for each C-HX
     unsigned int nvals_; ///< # times this list has been updated, used to calc avg. from sum
+#   endif
     unsigned int nH_;    ///< Number of hydrogens
     bool init_;          ///< False if name has not yet been set.
 };

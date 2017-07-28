@@ -47,8 +47,7 @@ Action::RetType Action_LipidOrder::Init(ArgList& actionArgs, ActionInit& init, i
   {
 # pragma omp master
   {
-  scratch_sum_.resize( omp_get_num_threads() );
-  scratch_sum2_.resize( omp_get_num_threads() );
+  nthreads_ = omp_get_num_threads();
   }
   }
 # endif
@@ -158,7 +157,11 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
                 Atom const& curr_atm = setup.Top()[current_at];
                 // Add carbon if it does not yet exist in chain.
                 if (position >= (int)Chain.size())
+#                 ifdef _OPENMP
+                  Chain.resize( position+1, CarbonData(nthreads_) );
+#                 else
                   Chain.resize( position+1 );
+#                 endif
                 CarbonData& Cdata = Chain[position];
                 if (!Cdata.Init())
                   Cdata.SetName( curr_atm.Name() );
@@ -211,6 +214,32 @@ Action::RetType Action_LipidOrder::Setup(ActionSetup& setup)
 Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 {
   // Loop over all carbon sites
+# ifdef _OPENMP
+  int maxIdx = (int)Sites_.size();
+  int idx, mythread, offset;
+# pragma omp parallel private(mythread, offset, idx)
+  {
+    mythread = omp_get_thread_num();
+    offset = mythread * 3;
+    mprintf("DBG: [%i] offset= %i\n", mythread, offset);
+#   pragma omp for
+    for (idx = 0; idx < maxIdx; idx++)
+    {
+      CarbonSite const& site = Sites_[idx];
+      Vec3 Cvec( frm.Frm().XYZ( site.Cidx() ) );
+      CarbonData& cdata = Chains_[site.ChainIdx()][site.Position()];
+      // Loop over hydrogens
+      for (unsigned int i = 0; i != site.NumH(); i++)
+      {
+        // C-H unit vector
+        Vec3 sx = Vec3(frm.Frm().XYZ( site.Hidx(i) )) - Cvec; 
+        sx.Normalize();
+        cdata.UpdateAngle(offset+i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
+      }
+      cdata.UpdateNvals( mythread );
+    }
+  } // END pragma omp parallel
+# else
   for (Carray::const_iterator site = Sites_.begin(); site != Sites_.end(); ++site)
   {
     Vec3 Cvec( frm.Frm().XYZ( site->Cidx() ) );
@@ -224,8 +253,12 @@ Action::RetType Action_LipidOrder::DoAction(int frameNum, ActionFrame& frm)
 //      mprintf("DBG: %8i %8i %8.3f\n",site->Cidx(), site->Hidx(i), sx[axis_]);
       cdata.UpdateAngle(i, 0.5 * (3.0 * sx[axis_] * sx[axis_] - 1.0));
     }
+    // NOTE: # values is stored with each carbon data instead of for each
+    //       chain to allow chain types to "disappear" between Setup() calls,
+    //       i.e. to allow for different topologies. May be overkill.
     cdata.UpdateNvals();
   }
+# endif
   return Action::OK;
 }
 
@@ -290,6 +323,11 @@ void Action_LipidOrder::Print() {
       DS[0]->ModifyDim(Dimension::X).SetLabel("Cn");
       SD[0]->ModifyDim(Dimension::X).SetLabel("Cn");
     }
+#   ifdef _OPENMP
+    // This sums individual thread values back to thread 0.
+    for (ChainType::iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
+      it->Consolidate();
+#   endif
     // Loop over carbons in chain
     int pos = 0;
     for (ChainType::const_iterator it = Chains_[idx].begin(); it != Chains_[idx].end(); ++it)
@@ -312,7 +350,6 @@ void Action_LipidOrder::Print() {
     }
   }
 }
-
 
 // =============================================================================
 /// CONSTRUCTOR
@@ -340,6 +377,34 @@ void Action_LipidOrder::CarbonSite::AddHindex(int h) {
 }
 
 // =============================================================================
+# ifdef _OPENMP
+/// CONSTRUCTOR
+Action_LipidOrder::CarbonData::CarbonData(int nthreads) :
+  sum_(nthreads*3, 0.0),
+  sum2_(nthreads*3, 0.0),
+  nvals_(nthreads, 0),
+  nH_(0),
+  init_(false)
+{}
+
+void Action_LipidOrder::CarbonData::Consolidate() {
+  if (nvals_.size() == 1)
+    mprintf("DBG: %4s %12.4f %8u\n", *name_, sum_[0], nvals_[0]);
+  else if (nvals_.size() == 2)
+    mprintf("DBG: %4s %12.4f %8u %12.4f %8u\n", *name_, sum_[0], nvals_[0], sum_[3], nvals_[1]);
+  unsigned int idx = 3;
+  for (unsigned int thread = 1; thread != nvals_.size(); thread++, idx += 3) {
+    sum_[0] += sum_[idx  ];
+    sum_[1] += sum_[idx+1];
+    sum_[2] += sum_[idx+2];
+    sum2_[0] += sum2_[idx  ];
+    sum2_[1] += sum2_[idx+1];
+    sum2_[2] += sum2_[idx+2];
+    nvals_[0] += nvals_[thread];
+  }
+}
+
+#else
 /// CONSTRUCTOR
 Action_LipidOrder::CarbonData::CarbonData() :
   nvals_(0), nH_(0), init_(false)
@@ -347,11 +412,17 @@ Action_LipidOrder::CarbonData::CarbonData() :
   std::fill( sum_,  sum_  + MAX_H_, 0.0 );
   std::fill( sum2_, sum2_ + MAX_H_, 0.0 );
 }
+#endif
 
 /** \return average and calc standard dev. for specified hydrogen */
 double Action_LipidOrder::CarbonData::Avg(int i, double& stdev) const {
-  double avg = sum_[i] / (double)nvals_;
-  stdev = sum2_[i] / (double)nvals_;
+# ifdef _OPENMP
+  double dnvals = (double)nvals_[0];
+# else
+  double dnvals = (double)nvals_;
+# endif
+  double avg = sum_[i] / dnvals;
+  stdev = sum2_[i] / dnvals;
   stdev -= (avg * avg);
   if (stdev > 0.0)
     stdev = sqrt( stdev );
