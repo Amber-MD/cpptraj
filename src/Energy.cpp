@@ -227,6 +227,8 @@ double Energy_Amber::E_Nonbond(Frame const& fIn, Topology const& tIn, AtomMask c
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom.
       if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
         ++excluded_atom;
@@ -285,6 +287,8 @@ double Energy_Amber::E_VDW(Frame const& fIn, Topology const& tIn, AtomMask const
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom.
       if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
         ++excluded_atom;
@@ -334,6 +338,8 @@ double Energy_Amber::E_Elec(Frame const& fIn, Topology const& tIn, AtomMask cons
     for (int idx2 = idx1 + 1; idx2 < mask.Nselected(); idx2++)
     {
       int atom2 = mask[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_atom != tIn[atom1].excludedend() && *excluded_atom < atom2) ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom.
       if (excluded_atom != tIn[atom1].excludedend() && atom2 == *excluded_atom)
         ++excluded_atom;

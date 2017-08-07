@@ -172,6 +172,8 @@ int Action_Pairwise::SetupNonbondParm(AtomMask const& maskIn, Topology const& Pa
   for (AtomMask::const_iterator at0 = maskIn.begin(); at0 != maskIn.end(); ++at0) {
     Atom::excluded_iterator ex = ParmIn[*at0].excludedbegin();
     for (AtomMask::const_iterator at1 = at0 + 1; at1 != maskIn.end(); ++at1) {
+      // Advance excluded list up to current selected atom
+      while (ex != ParmIn[*at0].excludedend() && *ex < *at1) ++ex;
       if (ex != ParmIn[*at0].excludedend() && *at1 == *ex)
         // Atom 1 is excluded from Atom0; just increment to next excluded atom.
         ++ex;
@@ -301,6 +303,9 @@ void Action_Pairwise::NonbondEnergy(Frame const& frameIn, Topology const& parmIn
     for (int idx2 = idx1 + 1; idx2 != maskIn.Nselected(); idx2++)
     {
       int maskatom2 = maskIn[idx2];
+      // Advance excluded list up to current selected atom
+      while (excluded_atom != parmIn[maskatom1].excludedend() && *excluded_atom < maskatom2)
+        ++excluded_atom;
       // If atom is excluded, just increment to next excluded atom;
       // otherwise perform energy calc.
       if ( excluded_atom != parmIn[maskatom1].excludedend() && maskatom2 == *excluded_atom )
