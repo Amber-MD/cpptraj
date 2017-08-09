@@ -105,19 +105,25 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
             i+1, LineHeaders[i].c_str(), nTermsInLine[i]);
 
   // Read data.
-  int step = 0;
+  int set = 0;
+  int lastStep = -1;
   bool readFile = true;
+  bool isRepD = false;
   while (readFile) {
     // Scan to next DYNA> section
     while (ptr != 0) {
       if (ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' && ptr[4] == '>' )
         break;
+      if (ptr[0] == 'R' && ptr[1] == 'E' && ptr[2] == 'P' && ptr[3] == 'D' && ptr[4] == '>' )
+        isRepD = true;
       ptr = buffer.Line();
     }
     if (ptr == 0)
       readFile = false;
     else {
+      int step;
       double dvals[5];
+      bool ignoreStep = false;
       std::fill(dvals, dvals+5, 0.0); // DEBUG
       mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
       int idx = 0; // Index into inputSets
@@ -128,8 +134,20 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
         if (i > 0) {
           lineIsPresent = (LineHeaders[i].compare(0, LineHeaders[i].size(),
                                                   ptr+5, LineHeaders[i].size()) == 0);
+        } else {
+          // Line 0 should have the step
+          sscanf(ptr+5, "%9i", &step);
+          mprintf("DEBUG: Step %i\n", step);
+          if (step == lastStep) {
+            if (isRepD)
+              ignoreStep = true;
+            else
+              mprintf("Warning: Repeated step detected: %i\n", step);
+          }
         }
-        if (lineIsPresent) {
+        if (ignoreStep) {
+          ptr = buffer.Line();
+        } else if (lineIsPresent) {
           int nvals = sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf",
                              dvals, dvals+1, dvals+2, dvals+3, dvals+4);
           // SANITY CHECK
@@ -141,17 +159,19 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           mprintf("DEBUG: %8s", LineHeaders[i].c_str());
           for (int val = 0; val < nvals; val++) {
             mprintf(" %13.5f", dvals[val]);
-            inputSets[idx+val]->Add(step, dvals + val);
+            inputSets[idx+val]->Add(set, dvals + val);
           }
           mprintf("\n");
           ptr = buffer.Line();
         }
         idx += nTermsInLine[i];
       } // END loop over DYNA> lines
-      step++;
+      if (step != lastStep) set++;
+      lastStep = step;
     } // END start DYNA> section
   }
-
+  if (isRepD)
+    mprintf("\tREPD run detected. Repeated steps were ignored.\n");
   buffer.CloseFile();
   // Separate out time values.
   
