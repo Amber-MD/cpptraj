@@ -94,7 +94,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it) {
     mprintf(" %s", it->c_str());
     inputSets.push_back( new DataSet_double() );
-    inputSets.back()->SetMeta( MetaData(dsname, it->substr(0, 4)) );
+    inputSets.back()->SetMeta( MetaData(dsname, *it) );
   }
   mprintf("\n");
   mprintf("DEBUG: Time index: %i\n", timeIdx);
@@ -139,6 +139,8 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           sscanf(ptr+5, "%9i", &step);
           mprintf("DEBUG: Step %i\n", step);
           if (step == lastStep) {
+            // If REPD, dynamics are restarted after exchange, so the output
+            // from the last step is repeated and should be ignored.
             if (isRepD)
               ignoreStep = true;
             else
