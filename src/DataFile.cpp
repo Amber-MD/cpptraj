@@ -88,6 +88,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
+  { CHARMMOUT,    "charmmout", ".charmmout"},
   { UNKNOWN_DATA, 0,        0        }
 };
 

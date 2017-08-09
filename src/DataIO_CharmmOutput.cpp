@@ -5,10 +5,7 @@
 #include "DataSet_double.h"
 
 /// CONSTRUCTOR
-DataIO_CharmmOutput::DataIO_CharmmOutput()
-{
-
-}
+DataIO_CharmmOutput::DataIO_CharmmOutput() { }
 
 // DataIO_CharmmOutput::ID_DataFormat()
 bool DataIO_CharmmOutput::ID_DataFormat(CpptrajFile& infile)
@@ -34,15 +31,11 @@ bool DataIO_CharmmOutput::ID_DataFormat(CpptrajFile& infile)
 }
 
 // DataIO_CharmmOutput::ReadHelp()
-void DataIO_CharmmOutput::ReadHelp()
-{
-
-}
+void DataIO_CharmmOutput::ReadHelp() { }
 
 // DataIO_CharmmOutput::processReadArgs()
 int DataIO_CharmmOutput::processReadArgs(ArgList& argIn)
 {
-
   return 0;
 }
 
@@ -191,21 +184,16 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
 }
 
 // DataIO_CharmmOutput::WriteHelp()
-void DataIO_CharmmOutput::WriteHelp()
-{
-
-}
+void DataIO_CharmmOutput::WriteHelp() { }
 
 // DataIO_CharmmOutput::processWriteArgs()
 int DataIO_CharmmOutput::processWriteArgs(ArgList& argIn)
 {
-
   return 0;
 }
 
 // DataIO_CharmmOutput::WriteData()
 int DataIO_CharmmOutput::WriteData(FileName const& fname, DataSetList const& dsl)
 {
-
   return 1;
 }
