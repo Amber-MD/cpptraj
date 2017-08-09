@@ -359,6 +359,7 @@ $CLASS::$CLASS()
 
 }
 
+// $CLASS::ID_DataFormat()
 bool $CLASS::ID_DataFormat(CpptrajFile& infile)
 {
 
