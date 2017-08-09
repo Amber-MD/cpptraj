@@ -1,5 +1,6 @@
 #include "DataIO_CharmmOutput.h"
 #include "CpptrajStdio.h"
+#include "BufferedLine.h"
 
 /// CONSTRUCTOR
 DataIO_CharmmOutput::DataIO_CharmmOutput()
@@ -36,12 +37,6 @@ void DataIO_CharmmOutput::ReadHelp()
 
 }
 
-// DataIO_CharmmOutput::WriteHelp()
-void DataIO_CharmmOutput::WriteHelp()
-{
-
-}
-
 // DataIO_CharmmOutput::processReadArgs()
 int DataIO_CharmmOutput::processReadArgs(ArgList& argIn)
 {
@@ -52,8 +47,43 @@ int DataIO_CharmmOutput::processReadArgs(ArgList& argIn)
 // DataIO_CharmmOutput::ReadData()
 int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::string const& dsname)
 {
+  BufferedLine buffer;
+  if (buffer.OpenFileRead( fname )) return 1;
+  const char* ptr = buffer.Line();
+  // Need to scan down until we get to DYNA
+  bool DYNA = false;
+  while (ptr != 0) {
+    if ( ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' ) {
+      DYNA = true;
+      break;
+    }
+    ptr = buffer.Line();
+  }
+  if (!DYNA) {
+    mprinterr("Error: 'DYNA' not found in output file '%s'.\n", fname.full());
+    return 1;
+  }
+  // Figure out what terms we have. Format is 'DYNA <Type>: E0 E1 ...'
+  typedef std::vector<std::string> Sarray;
+  Sarray Terms;
+  while (ptr != 0 && ptr[1] != '-') {
+    ArgList line( ptr );
+    for (int col = 2; col < line.Nargs(); col++)
+      Terms.push_back( line[col] );
+    ptr = buffer.Line();
+  }
+  mprintf("\t%zu terms:", Terms.size());
+  for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it)
+    mprintf(" %s", it->c_str());
+  mprintf("\n");
+  
+  return 0;
+}
 
-  return 1;
+// DataIO_CharmmOutput::WriteHelp()
+void DataIO_CharmmOutput::WriteHelp()
+{
+
 }
 
 // DataIO_CharmmOutput::processWriteArgs()
