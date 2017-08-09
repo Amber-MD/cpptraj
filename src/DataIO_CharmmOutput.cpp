@@ -118,6 +118,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       int step;
       double dvals[5];
       bool ignoreStep = false;
+      bool repeatedStep = false;
       std::fill(dvals, dvals+5, 0.0); // DEBUG
       //mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
       int idx = 0; // Index into inputSets
@@ -134,11 +135,15 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
           //mprintf("DEBUG: Step %i\n", step);
           if (step == lastStep) {
             // If REPD, dynamics are restarted after exchange, so the output
-            // from the last step is repeated and should be ignored.
+            // from the last step is repeated and should be ignored. Steps
+            // can also be repeated after e.g. velocity scaling, so those
+            // values should overwrite previous ones.
             if (isRepD)
               ignoreStep = true;
-            else
-              mprintf("Warning: Repeated step detected in non-REPD run: %i\n", step);
+            else {
+              repeatedStep = true;
+              set--;
+            }
           }
         }
         if (ignoreStep) {
@@ -153,11 +158,18 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
             return 1; // TODO carry on?
           }
           //mprintf("DEBUG: %8s", LineHeaders[i].c_str());
-          for (int val = 0; val < nvals; val++) {
-            //mprintf(" %13.5f", dvals[val]);
-            inputSets[idx+val]->Add(set, dvals + val);
+          if (repeatedStep) {
+            for (int val = 0; val < nvals; val++) {
+              DataSet_double& dset = static_cast<DataSet_double&>( *(inputSets[idx+val]) );
+              dset[set] = dvals[val];
+            }
+          } else {
+            for (int val = 0; val < nvals; val++) {
+              //mprintf(" %13.5f", dvals[val]);
+              inputSets[idx+val]->Add(set, dvals + val);
+            }
+            //mprintf("\n");
           }
-          //mprintf("\n");
           ptr = buffer.Line();
         }
         idx += nTermsInLine[i];
@@ -179,6 +191,8 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   }
   DataSetList::Darray const& timeVals = ((DataSet_double*)inputSets[timeIdx])->Data();
   if (dsl.AddOrAppendSets( "Time", timeVals, dataSets )) return 1;
+  // Delete the time value data set
+  delete inputSets[timeIdx];
   
   return 0;
 }
