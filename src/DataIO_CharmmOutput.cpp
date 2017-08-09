@@ -73,22 +73,16 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   int timeIdx = -1;
   typedef std::vector<int> Iarray;
   Iarray nTermsInLine;
-  // CHARMM data does not appear to have consistent formatting,
-  // e.g. in the XTLE> line numbers can start at the 2nd data column, so
-  // need to determine start column.
-  Iarray startColumn;
   while (ptr != 0 && ptr[1] != '-') {
-    // Determine line header. DYN gets no header.
+    // Determine line header.
+    // NOTE DYN gets no header in DYNA> section.
     std::string headerLine(ptr+5, 8);
     ArgList header(headerLine, " :");
-    mprintf("DEBUG: header '%s'\n", header[0].c_str());
+    LineHeaders.push_back( header[0] );
     ArgList line( ptr+14 );
     for (int col = 0; col < line.Nargs(); col++) {
       if (line[col] == "Time") timeIdx = (int)Terms.size();
     }
-    size_t c0 = line.ArgLineStr().find( line[0] );
-    startColumn.push_back( (int)(c0 / 13) );
-    mprintf("DEBUG: c0= %zu\n", c0);
     // Next line
     ptr = buffer.Line();
     nTermsInLine.push_back( line.Nargs() );
@@ -106,7 +100,8 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   mprintf("DEBUG: [%s]\n", ptr);
   mprintf("DEBUG: %zu lines:\n", nTermsInLine.size());
   for (unsigned int i = 0; i != nTermsInLine.size(); i++)
-    mprintf("DEBUG:\t\t[%u] %i terms, start col %i.\n", i+1, nTermsInLine[i], startColumn[i]);
+    mprintf("DEBUG:\t\t[%u] '%s' %i terms.\n",
+            i+1, LineHeaders[i].c_str(), nTermsInLine[i]);
 /*
   // Read data.
   int step = 0;
