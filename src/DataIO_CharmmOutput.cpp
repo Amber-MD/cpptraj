@@ -195,5 +195,6 @@ int DataIO_CharmmOutput::processWriteArgs(ArgList& argIn)
 // DataIO_CharmmOutput::WriteData()
 int DataIO_CharmmOutput::WriteData(FileName const& fname, DataSetList const& dsl)
 {
+  mprinterr("Error: Charmm output write not supported.\n");
   return 1;
 }

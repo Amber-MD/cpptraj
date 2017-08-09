@@ -1,7 +1,7 @@
 #ifndef INC_DATAIO_CHARMMOUTPUT_H
 #define INC_DATAIO_CHARMMOUTPUT_H
 #include "DataIO.h"
-/// <Enter description of DataIO_CharmmOutput here>
+/// Read energy terms from CHARMM output
 class DataIO_CharmmOutput : public DataIO {
   public:
     DataIO_CharmmOutput();
