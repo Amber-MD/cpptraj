@@ -84,12 +84,19 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   mprintf("\t%zu terms:", Terms.size());
   DataSetList::DataListType inputSets;
   inputSets.reserve( Terms.size() );
+  bool isRestart = false;
   for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it) {
     mprintf(" %s", it->c_str());
     inputSets.push_back( new DataSet_double() );
-    inputSets.back()->SetMeta( MetaData(dsname, *it) );
+    MetaData md(dsname, *it);
+    DataSet* ds = dsl.CheckForSet( md );
+    if (ds != 0 && !isRestart)
+      isRestart = true;
+    inputSets.back()->SetMeta( md );
   }
   mprintf("\n");
+  if (isRestart)
+    mprintf("\tWill append to existing set; skipping step 0.\n");
   if (debug_ > 0) {
     mprintf("DEBUG: Time index: %i\n", timeIdx);
     mprintf("DEBUG: [%s]\n", ptr);
@@ -144,6 +151,9 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
               repeatedStep = true;
               set--;
             }
+          } else if (step == 0 && isRestart) {
+            // First step of restarted run is pretty much same as last step of previous.
+            ignoreStep = true;
           }
         }
         if (ignoreStep) {
@@ -174,7 +184,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
         }
         idx += nTermsInLine[i];
       } // END loop over DYNA> lines
-      if (step != lastStep) set++;
+      if (!ignoreStep) set++;
       lastStep = step;
     } // END start DYNA> section
   }
