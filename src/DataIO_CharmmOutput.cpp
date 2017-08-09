@@ -1,6 +1,8 @@
+#include <cstdlib> // atof
 #include "DataIO_CharmmOutput.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
+#include "DataSet_double.h"
 
 /// CONSTRUCTOR
 DataIO_CharmmOutput::DataIO_CharmmOutput()
@@ -64,18 +66,63 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
     return 1;
   }
   // Figure out what terms we have. Format is 'DYNA <Type>: E0 E1 ...'
+  // CHARMM is inconsistent in that the 'DYNA DYN:' header line does not
+  // match the corresponding 'DYNA>' line; it is missing 'DYN>'. This
+  // is OK since we do not really care about the Step anyway, but
+  // this means 'Step' is skipped so do not create a DataSet for it.
   typedef std::vector<std::string> Sarray;
   Sarray Terms;
+  int timeIdx = -1;
   while (ptr != 0 && ptr[1] != '-') {
     ArgList line( ptr );
-    for (int col = 2; col < line.Nargs(); col++)
-      Terms.push_back( line[col] );
+    for (int col = 2; col < line.Nargs(); col++) {
+      if (line[col] == "Time") timeIdx = (int)Terms.size();
+      if (line[col] != "Step")
+        Terms.push_back( line[col] );
+    }
     ptr = buffer.Line();
   }
   mprintf("\t%zu terms:", Terms.size());
-  for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it)
+  DataSetList::DataListType inputSets;
+  inputSets.reserve( Terms.size() );
+  for (Sarray::const_iterator it = Terms.begin(); it != Terms.end(); ++it) {
     mprintf(" %s", it->c_str());
+    inputSets.push_back( new DataSet_double() );
+    inputSets.back()->SetMeta( MetaData(dsname, it->substr(0, 4)) );
+  }
   mprintf("\n");
+  mprintf("DEBUG: Time index: %i\n", timeIdx);
+  mprintf("DEBUG: [%s]\n", ptr);
+
+  // Read data
+  int step = 0;
+  bool readFile = true;
+  while (readFile) {
+    // Scan to next DYNA> section
+    while (ptr != 0 &&
+           ptr[0] != 'D' && ptr[1] != 'Y' && ptr[2] != 'N' && ptr[3] != 'A' && ptr[4] != '>' )
+      ptr = buffer.Line();
+    mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
+    if (ptr == 0)
+      readFile = false;
+    else {
+      int idx = 0;
+      while (ptr != 0 && ptr[1] != '-') {
+        int ntoken = buffer.TokenizeLine(" ");
+        buffer.NextToken(); // DYNA
+        buffer.NextToken(); // <type>
+        for (int token = 2; token < ntoken; token++) {
+          double dval = atof( buffer.NextToken() );
+          mprintf("DEBUG: [%i] '%s' %12.5f\n", idx, Terms[idx].c_str(), dval);
+          inputSets[idx++]->Add(step, &dval);
+        }
+        ptr = buffer.Line();
+      }
+    }
+  }
+  mprintf("\n");
+  buffer.CloseFile();
+
   
   return 0;
 }
