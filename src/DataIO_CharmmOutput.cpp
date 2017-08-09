@@ -69,6 +69,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   // Terms start at character 14.
   typedef std::vector<std::string> Sarray;
   Sarray Terms;
+  Sarray LineHeaders;
   int timeIdx = -1;
   typedef std::vector<int> Iarray;
   Iarray nTermsInLine;
@@ -77,6 +78,10 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   // need to determine start column.
   Iarray startColumn;
   while (ptr != 0 && ptr[1] != '-') {
+    // Determine line header. DYN gets no header.
+    std::string headerLine(ptr+5, 8);
+    ArgList header(headerLine, " :");
+    mprintf("DEBUG: header '%s'\n", header[0].c_str());
     ArgList line( ptr+14 );
     for (int col = 0; col < line.Nargs(); col++) {
       if (line[col] == "Time") timeIdx = (int)Terms.size();
@@ -102,7 +107,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   mprintf("DEBUG: %zu lines:\n", nTermsInLine.size());
   for (unsigned int i = 0; i != nTermsInLine.size(); i++)
     mprintf("DEBUG:\t\t[%u] %i terms, start col %i.\n", i+1, nTermsInLine[i], startColumn[i]);
-
+/*
   // Read data.
   int step = 0;
   bool readFile = true;
@@ -120,12 +125,23 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       std::fill(dvals, dvals+5, 0.0); // DEBUG
       mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
       for (unsigned int i = 0; i != nTermsInLine.size(); i++) {
-        sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf", dvals, dvals+1, dvals+2, dvals+3, dvals+4);
-        mprintf("DEBUG: %13.5f %13.5f %13.5f %13.5f %13.5f\n", dvals[0], dvals[1], dvals[2], dvals[3], dvals[4]);
+        int nvals = sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf",
+                           dvals, dvals+1, dvals+2, dvals+3, dvals+4);
+        // SANITY CHECK
+        if (nvals != nTermsInLine[i]) {
+          mprinterr("Error: Number of terms in line %i (%i) != expected terms (%i)\n",
+                    buffer.LineNumber(), nvals, nTermsInLine[i]);
+          return 1; // TODO carry on?
+        }
+        mprintf("DEBUG:");
+        for (int val = 0; val < nvals; val++)
+          mprintf(" %13.5f", dvals[val]);
+        mprintf("\n");
         ptr = buffer.Line();
       }
     }
   }
+*/
   buffer.CloseFile();
 
   
