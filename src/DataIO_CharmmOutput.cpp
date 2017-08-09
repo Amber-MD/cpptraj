@@ -1,4 +1,4 @@
-#include <cstdlib> // atof
+#include <cstdio> // sscanf
 #include "DataIO_CharmmOutput.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
@@ -66,21 +66,27 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
     return 1;
   }
   // Figure out what terms we have. Format is 'DYNA <Type>: E0 E1 ...'
-  // CHARMM is inconsistent in that the 'DYNA DYN:' header line does not
-  // match the corresponding 'DYNA>' line; it is missing 'DYN>'. This
-  // is OK since we do not really care about the Step anyway, but
-  // this means 'Step' is skipped so do not create a DataSet for it.
+  // Terms start at character 14.
   typedef std::vector<std::string> Sarray;
   Sarray Terms;
   int timeIdx = -1;
+  typedef std::vector<int> Iarray;
+  Iarray nTermsInLine;
+  // CHARMM data does not appear to have consistent formatting,
+  // e.g. in the XTLE> line numbers can start at the 2nd data column, so
+  // need to determine start column.
+  Iarray startColumn;
   while (ptr != 0 && ptr[1] != '-') {
-    ArgList line( ptr );
-    for (int col = 2; col < line.Nargs(); col++) {
+    ArgList line( ptr+14 );
+    for (int col = 0; col < line.Nargs(); col++) {
       if (line[col] == "Time") timeIdx = (int)Terms.size();
-      if (line[col] != "Step")
-        Terms.push_back( line[col] );
     }
+    size_t c0 = line.ArgLineStr().find( line[0] );
+    startColumn.push_back( (int)(c0 / 13) );
+    mprintf("DEBUG: c0= %zu\n", c0);
+    // Next line
     ptr = buffer.Line();
+    nTermsInLine.push_back( line.Nargs() );
   }
   mprintf("\t%zu terms:", Terms.size());
   DataSetList::DataListType inputSets;
@@ -93,34 +99,33 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
   mprintf("\n");
   mprintf("DEBUG: Time index: %i\n", timeIdx);
   mprintf("DEBUG: [%s]\n", ptr);
+  mprintf("DEBUG: %zu lines:\n", nTermsInLine.size());
+  for (unsigned int i = 0; i != nTermsInLine.size(); i++)
+    mprintf("DEBUG:\t\t[%u] %i terms, start col %i.\n", i+1, nTermsInLine[i], startColumn[i]);
 
-  // Read data
+  // Read data.
   int step = 0;
   bool readFile = true;
   while (readFile) {
     // Scan to next DYNA> section
-    while (ptr != 0 &&
-           ptr[0] != 'D' && ptr[1] != 'Y' && ptr[2] != 'N' && ptr[3] != 'A' && ptr[4] != '>' )
+    while (ptr != 0) {
+      if (ptr[0] == 'D' && ptr[1] == 'Y' && ptr[2] == 'N' && ptr[3] == 'A' && ptr[4] == '>' )
+        break;
       ptr = buffer.Line();
-    mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
+    }
     if (ptr == 0)
       readFile = false;
     else {
-      int idx = 0;
-      while (ptr != 0 && ptr[1] != '-') {
-        int ntoken = buffer.TokenizeLine(" ");
-        buffer.NextToken(); // DYNA
-        buffer.NextToken(); // <type>
-        for (int token = 2; token < ntoken; token++) {
-          double dval = atof( buffer.NextToken() );
-          mprintf("DEBUG: [%i] '%s' %12.5f\n", idx, Terms[idx].c_str(), dval);
-          inputSets[idx++]->Add(step, &dval);
-        }
+      double dvals[5];
+      std::fill(dvals, dvals+5, 0.0); // DEBUG
+      mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
+      for (unsigned int i = 0; i != nTermsInLine.size(); i++) {
+        sscanf(ptr+14,"%13lf%13lf%13lf%13lf%13lf", dvals, dvals+1, dvals+2, dvals+3, dvals+4);
+        mprintf("DEBUG: %13.5f %13.5f %13.5f %13.5f %13.5f\n", dvals[0], dvals[1], dvals[2], dvals[3], dvals[4]);
         ptr = buffer.Line();
       }
     }
   }
-  mprintf("\n");
   buffer.CloseFile();
 
   

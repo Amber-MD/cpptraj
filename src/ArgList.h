@@ -40,6 +40,7 @@ class ArgList {
     bool empty()           const { return arglist_.empty();     }
     /// \return the argument string
     const char *ArgLine()  const { return argline_.c_str();     }
+    std::string const& ArgLineStr() const { return argline_; }
     /// \return all unmarked arguments as a string
     std::string ArgString() const;
     /// Clear list
