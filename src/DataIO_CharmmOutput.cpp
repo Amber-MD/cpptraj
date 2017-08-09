@@ -97,13 +97,14 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
     inputSets.back()->SetMeta( MetaData(dsname, *it) );
   }
   mprintf("\n");
-  mprintf("DEBUG: Time index: %i\n", timeIdx);
-  mprintf("DEBUG: [%s]\n", ptr);
-  mprintf("DEBUG: %zu lines:\n", nTermsInLine.size());
-  for (unsigned int i = 0; i != nTermsInLine.size(); i++)
-    mprintf("DEBUG:\t\t[%u] '%s' %i terms.\n",
-            i+1, LineHeaders[i].c_str(), nTermsInLine[i]);
-
+  if (debug_ > 0) {
+    mprintf("DEBUG: Time index: %i\n", timeIdx);
+    mprintf("DEBUG: [%s]\n", ptr);
+    mprintf("DEBUG: %zu lines:\n", nTermsInLine.size());
+    for (unsigned int i = 0; i != nTermsInLine.size(); i++)
+      mprintf("DEBUG:\t\t[%u] '%s' %i terms.\n",
+              i+1, LineHeaders[i].c_str(), nTermsInLine[i]);
+  }
   // Read data.
   int set = 0;
   int lastStep = -1;
@@ -125,7 +126,7 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
       double dvals[5];
       bool ignoreStep = false;
       std::fill(dvals, dvals+5, 0.0); // DEBUG
-      mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
+      //mprintf("%i [%s]\n", buffer.LineNumber(), ptr);
       int idx = 0; // Index into inputSets
       for (unsigned int i = 0; i != nTermsInLine.size(); i++) {
         // Determine if this line is present. First line should always
@@ -137,14 +138,14 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
         } else {
           // Line 0 should have the step
           sscanf(ptr+5, "%9i", &step);
-          mprintf("DEBUG: Step %i\n", step);
+          //mprintf("DEBUG: Step %i\n", step);
           if (step == lastStep) {
             // If REPD, dynamics are restarted after exchange, so the output
             // from the last step is repeated and should be ignored.
             if (isRepD)
               ignoreStep = true;
             else
-              mprintf("Warning: Repeated step detected: %i\n", step);
+              mprintf("Warning: Repeated step detected in non-REPD run: %i\n", step);
           }
         }
         if (ignoreStep) {
@@ -158,12 +159,12 @@ int DataIO_CharmmOutput::ReadData(FileName const& fname, DataSetList& dsl, std::
                       buffer.LineNumber(), nvals, nTermsInLine[i]);
             return 1; // TODO carry on?
           }
-          mprintf("DEBUG: %8s", LineHeaders[i].c_str());
+          //mprintf("DEBUG: %8s", LineHeaders[i].c_str());
           for (int val = 0; val < nvals; val++) {
-            mprintf(" %13.5f", dvals[val]);
+            //mprintf(" %13.5f", dvals[val]);
             inputSets[idx+val]->Add(set, dvals + val);
           }
-          mprintf("\n");
+          //mprintf("\n");
           ptr = buffer.Line();
         }
         idx += nTermsInLine[i];
