@@ -11,10 +11,11 @@ void Exec_DataSetCmd::Help() const {
           "\t  makexy <Xset> <Yset> [name <name>] |\n"
           "\t  vectorcoord {X|Y|Z} [name <name>] |\n"
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
-          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n"
-          "\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
-          "\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
-          "\t  {mode <mode> | type <type>} <set arg1> [<set arg 2> ...] }\n");
+          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n");
+  Help_DropPoints();
+  mprintf("\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
+          "\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...] |\n"
+          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n");
   mprintf("\t<criterion>: ");
   for (int i = 1; i < (int)N_C; i++)
     mprintf(" '%s'", CriterionKeys[i]);
@@ -34,12 +35,14 @@ void Exec_DataSetCmd::Help() const {
           "  vectorcoord : Extract X, Y, or Z component of vector data into new set.\n"
           "  cat         : Concatenate 2 or more data sets.\n"
           "  make2d      : Create new 2D data set from 1D data set, assumes row-major ordering.\n"
+          "  droppoints  : Drop specified points from data set.\n"
+          "  keeppoints  : Keep specified points in data set.\n"
           "  remove      : Remove data sets according to specified criterion and selection.\n"
           "  outformat   : Change output format of double-precision data:\n"
           "                double     - \"Normal\" output, e.g. 0.4032\n"
           "                scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
           "                general    - Use 'double' or 'scientific', whichever is shortest.\n"
-          "  Otherwise, change the mode/type for one or more data sets.\n");
+          "  Otherwise, change the mode and/or type for one or more data sets.\n");
 }
 
 // Exec_DataSetCmd::Execute()
@@ -73,6 +76,12 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   } else if (argIn.hasKey("cat")) {       // Concatenate two or more data sets
     err = Concatenate(State, argIn);
   // ---------------------------------------------
+  } else if (argIn.hasKey("droppoints")) { // Drop points from set
+    err = DropPoints(State, argIn, true);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("keeppoints")) { // Keep points in set
+    err = DropPoints(State, argIn, false);
+  // ---------------------------------------------
   } else {                                // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
   }
@@ -94,6 +103,81 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
   {OUTSIDE,      "outside"},
   {UNKNOWN_S,    0}
 };
+
+void Exec_DataSetCmd::Help_DropPoints() {
+  mprintf("\t  {drop|keep}points { range <range arg> | [start <#>] [stop <#>] [offset <#>]\n"
+          "\t                      [name <output set>] <data set arg> } |\n");
+}
+
+Exec::RetType Exec_DataSetCmd::DropPoints(CpptrajState& State, ArgList& argIn, bool drop) {
+  const char* mode;
+  if (drop)
+    mode = "Drop";
+  else
+    mode = "Keep";
+  // Keywords
+  std::string name = argIn.GetStringKey("name");
+  int start = argIn.getKeyInt("start", 0) - 1;
+  int stop = argIn.getKeyInt("stop", -1);
+  int offset = argIn.getKeyInt("offset", -1);
+  Range points;
+  if (start < 0 && stop < 0 && offset < 0) {
+    std::string rangearg = argIn.GetStringKey("range");
+    if (rangearg.empty()) {
+      mprinterr("Error: Must specify range or start/stop/offset.\n");
+      return CpptrajState::ERR;
+    }
+    points.SetRange( rangearg );
+    if (points.Empty()) {
+      mprinterr("Error: Range '%s' is empty.\n", rangearg.c_str());
+      return CpptrajState::ERR;
+    }
+    mprintf("\t%sping points in range %s\n", mode, rangearg.c_str());
+    // User args start from 1
+    points.ShiftBy(-1);
+  }
+  // Get data set to drop/keep points from
+  DataSet* ds1 = State.DSL().GetDataSet( argIn.GetStringNext() );
+  if (ds1 == 0) return CpptrajState::ERR;
+  if (ds1->Size() < 1) {
+    mprinterr("Error: Set '%s' is empty.\n", ds1->legend());
+    return CpptrajState::ERR;
+  }
+  if (points.Empty()) {
+    // Drop by start/stop/offset. Set defaults if needed
+    if (start < 0)  start = 0;
+    if (stop < 0)   stop = ds1->Size();
+    if (offset < 0) offset = 1;
+    mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
+    for (int idx = start; idx < stop; idx += offset)
+      points.AddToRange( idx );
+  } // TODO check that range values are valid?
+  mprintf("DEBUG: Keeping points:");
+  Range::const_iterator pt = points.begin();
+  int idx = 0;
+  if (drop) {
+    // Drop points
+    for (; idx < (int)ds1->Size(); idx++) {
+      if (pt == points.end()) break;
+      if (*pt != idx)
+        mprintf(" %i", idx + 1);
+      else
+        ++pt;
+    }
+    // Keep all remaining points
+    for (; idx < (int)ds1->Size(); idx++)
+      mprintf(" %i", idx + 1);
+  } else {
+    // Keep points
+    for (; pt != points.end(); pt++) {
+      if (*pt >= (int)ds1->Size()) break;
+      mprintf(" %i", *pt + 1);
+    }
+  }
+  mprintf("\n");
+
+  return CpptrajState::OK;
+}
 
 // Exec_DataSetCmd::VectorCoord()
 Exec::RetType Exec_DataSetCmd::VectorCoord(CpptrajState& State, ArgList& argIn) {

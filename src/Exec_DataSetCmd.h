@@ -18,6 +18,8 @@ class Exec_DataSetCmd : public Exec {
     };
     static SelectPairType SelectKeys[];
 
+    static void Help_DropPoints();
+    RetType DropPoints(CpptrajState&, ArgList&, bool);
     RetType VectorCoord(CpptrajState&, ArgList&);
     RetType ChangeOutputFormat(CpptrajState const&, ArgList&);
     RetType Remove(CpptrajState&, ArgList&);
