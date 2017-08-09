@@ -372,12 +372,6 @@ void $CLASS::ReadHelp()
 
 }
 
-// $CLASS::WriteHelp()
-void $CLASS::WriteHelp()
-{
-
-}
-
 // $CLASS::processReadArgs()
 int $CLASS::processReadArgs(ArgList& argIn)
 {
@@ -390,6 +384,12 @@ int $CLASS::ReadData(FileName const& fname, DataSetList& dsl, std::string const&
 {
 
   return 1;
+}
+
+// $CLASS::WriteHelp()
+void $CLASS::WriteHelp()
+{
+
 }
 
 // $CLASS::processWriteArgs()

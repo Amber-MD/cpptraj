@@ -7,6 +7,7 @@ DataIO_CharmmOutput::DataIO_CharmmOutput()
 
 }
 
+// DataIO_CharmmOutput::ID_DataFormat()
 bool DataIO_CharmmOutput::ID_DataFormat(CpptrajFile& infile)
 {
   // Assume file set up for read.
