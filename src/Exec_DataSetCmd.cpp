@@ -182,7 +182,7 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     for (int idx = start; idx < stop; idx += offset)
       points.AddToRange( idx );
   } // TODO check that range values are valid?
-  mprintf("DEBUG: Keeping points:");
+  if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
   Range::const_iterator pt = points.begin();
   int idx = 0;
   int odx = 0;
@@ -191,25 +191,25 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     for (; idx < (int)ds1->Size(); idx++) {
       if (pt == points.end()) break;
       if (*pt != idx) {
-        mprintf(" %i", idx + 1);
+        if (State.Debug() > 0) mprintf(" %i", idx + 1);
         KeepPoint(ds1, out, idx, odx);
       } else
         ++pt;
     }
     // Keep all remaining points
     for (; idx < (int)ds1->Size(); idx++) {
-      mprintf(" %i", idx + 1);
+      if (State.Debug() > 0) mprintf(" %i", idx + 1);
       KeepPoint(ds1, out, idx, odx);
     }
   } else {
     // Keep points
     for (; pt != points.end(); pt++) {
       if (*pt >= (int)ds1->Size()) break;
-      mprintf(" %i", *pt + 1);
+      if (State.Debug() > 0) mprintf(" %i", *pt + 1);
       KeepPoint(ds1, out, *pt, odx);
     }
   }
-  mprintf("\n");
+  if (State.Debug() > 0) mprintf("\n");
   if (name.empty()) {
     // Replace old set with new set
     State.DSL().RemoveSet( ds1 );
