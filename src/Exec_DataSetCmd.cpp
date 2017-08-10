@@ -634,6 +634,69 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
   return CpptrajState::OK;
 }
 
+Exec::RetType Exec_DataSetCmd::ChangeDim(CpptrajState const& State, ArgList& argIn) {
+  int ndim = -1;
+  if (argIn.hasKey("xdim"))
+    ndim = 0;
+  else if (argIn.hasKey("ydim"))
+    ndim = 1;
+  else if (argIn.hasKey("zdim"))
+    ndim = 2;
+  else
+    ndim = argIn.getKeyInt("ndim", -1);
+  if (ndim < 0) {
+    mprinterr("Error: Specify xdim/ydim/zdim or dimension number with ndim.\n");
+    return CpptrajState::ERR;
+  }
+  if (ndim < 3) {
+    static const char DIMSTR[3] = { 'X', 'Y', 'Z' };
+    mprintf("\tChanging the following in the %c dimension:\n", DIMSTR[ndim]);
+  } else
+    mprintf("\tChanging the following in dimension %i\n", ndim);
+
+  bool changeLabel, changeMin, changeStep;
+  std::string label;
+  double min = 0.0;
+  double step = 0.0;
+  if (argIn.Contains("label")) {
+    label = argIn.GetStringKey("label");
+    changeLabel = true;
+    mprintf("\tNew Label: %s\n", label.c_str());
+  } else
+    changeLabel = false;
+  if (argIn.Contains("step")) {
+    step = argIn.getKeyDouble("step", 0.0);
+    changeStep = true;
+    mprintf("\tNew step: %g\n", step);
+  } else
+    changeStep = false;
+  if (argIn.Contains("min")) {
+    min = argIn.getKeyDouble("min", 0.0);
+    changeMin = true;
+    mprintf("\tNew min: %g\n", min);
+  } else
+    changeMin = false;
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
+    {
+      if (ndim < (int)(*ds)->Ndim()) {
+        Dimension dim = (*ds)->Dim(ndim);
+        if (changeLabel) dim.SetLabel( label );
+        if (changeMin)   dim.ChangeMin( min );
+        if (changeStep)  dim.ChangeStep( step );
+        (*ds)->SetDim(ndim, dim);
+      } else
+        mprintf("Warning: Set '%s' has fewer then %i dimensions - skipping.\n",
+                (*ds)->legend(), ndim);
+    }
+    ds_arg = argIn.GetStringNext();
+  }
+  return CpptrajState::OK;
+}
+
 // Exec_DataSetCmd::ChangeModeType()
 Exec::RetType Exec_DataSetCmd::ChangeModeType(CpptrajState const& State, ArgList& argIn) {
   std::string modeKey = argIn.GetStringKey("mode");
