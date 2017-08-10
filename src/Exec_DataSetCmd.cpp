@@ -105,7 +105,7 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 };
 
 void Exec_DataSetCmd::Help_ModifyPoints() {
-  mprintf("\t  {drop|keep}points { range <range arg> | [start <#>] [stop <#>] [offset <#>]\n"
+  mprintf("\t  {drop|keep}points { {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
           "\t                      [name <output set>] <data set arg> } |\n");
 }
 
