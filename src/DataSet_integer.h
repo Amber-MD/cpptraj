@@ -25,7 +25,8 @@ class DataSet_integer : public DataSet_1D {
     int Append(DataSet*);
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)     const { return (double)Data_[idx]; }
-    double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  } 
+    double Xcrd(size_t idx)     const { return Dim(0).Coord(idx);  }
+    const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     // -------------------------------------------
     typedef std::vector<int>::iterator iterator;
     iterator begin()                  { return Data_.begin();      }

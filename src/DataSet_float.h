@@ -25,6 +25,7 @@ class DataSet_float : public DataSet_1D {
     // ----- DataSet_1D functions ----------------
     double Dval(size_t idx)        const { return (double)Data_[idx]; }
     double Xcrd(size_t idx)        const { return Dim(0).Coord(idx);  }
+    const void* VoidPtr(size_t idx) const { return (void*)(&(Data_[0])+idx); }
     // -------------------------------------------
     float* Ptr()                         { return &(Data_[0]);        }
   private:

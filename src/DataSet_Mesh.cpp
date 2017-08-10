@@ -3,11 +3,20 @@
 #include "CpptrajStdio.h"
 #include "Constants.h" // regression
 
-// CONSTRUCTOR - Create X mesh
+/// For VoidPtr
+static double buf_[2];
+
+/// CONSTRUCTOR - Create X mesh
 DataSet_Mesh::DataSet_Mesh(int sizeIn, double ti, double tf) :
   DataSet_1D(XYMESH, TextFormat(TextFormat::DOUBLE, 12, 4))
 {
   CalculateMeshX(sizeIn, ti, tf);
+}
+
+const void* DataSet_Mesh::VoidPtr(size_t idx) const {
+  buf_[0] = mesh_x_[idx];
+  buf_[1] = mesh_y_[idx];
+  return (const void*)buf_;
 }
 
 // DataSet_Mesh::Allocate()
