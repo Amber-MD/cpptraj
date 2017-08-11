@@ -12,7 +12,7 @@ class DataSet_1D : public DataSet {
     virtual double Dval(size_t) const = 0;
     /// \return the value of the X coordinate at position.
     virtual double Xcrd(size_t) const = 0;
-    /// \return Memory address at position case to void *.
+    /// \return Memory address at position cast to void *.
     virtual const void* VoidPtr(size_t) const = 0;
     // -------------------------------------------
     double Avg()           const { return Avg( 0 ); }
