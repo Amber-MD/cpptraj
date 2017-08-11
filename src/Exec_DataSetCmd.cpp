@@ -7,43 +7,43 @@
 #include "StringRoutines.h"
 
 void Exec_DataSetCmd::Help() const {
-  mprintf("\t{ legend <legend> <set> |\n"
-          "\t  makexy <Xset> <Yset> [name <name>] |\n"
-          "\t  vectorcoord {X|Y|Z} [name <name>] |\n"
-          "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
-          "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n");
+  mprintf("\t{legend|makexy|vectorcoord|cat|make2d|droppoints|keeppoints|remove|\n"
+          "\t dim|outformat|mode|type} <options>\n");
+  mprintf("  legend <legend> <set>\n"
+          "    Set the legend for a single data set.\n");
+  mprintf("  makexy <Xset> <Yset> [name <name>]\n"
+          "    Create new data set with X values from one set and Y values from another.\n");
+  mprintf("  vectorcoord {X|Y|Z} [name <name>]\n"
+          "    Extract X, Y, or Z component of vector data into new set.\n");
+  mprintf("  cat <set0> <set1> ... [name <name>] [nooffset]\n"
+          "    Concatenate 2 or more data sets.\n");
+  mprintf("  make2d <1D set> cols <ncols> rows <nrows> [name <name>]\n"
+          "    Create new 2D data set from 1D data set, assumes row-major ordering.\n");
   Help_ModifyPoints();
-  mprintf("\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n");
-  Help_ChangeDim();
-  mprintf("\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...] |\n"
-          "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n");
-  mprintf("\t<criterion>: ");
+  mprintf("  remove <criterion> <select> <value> [and <value2>] [<set selection>]\n"
+          "      <criterion>: ");
   for (int i = 1; i < (int)N_C; i++)
     mprintf(" '%s'", CriterionKeys[i]);
-  mprintf("\n\t<select>   : ");
+  mprintf("\n      <select>   : ");
   for (SelectPairType const* ptr = SelectKeys; ptr->key_ != 0; ptr++)
     mprintf(" '%s'", ptr->key_);
-  mprintf("\n\t<mode>: ");
+  mprintf("\n    Remove data sets according to specified criterion and selection.\n");
+  Help_ChangeDim();
+  mprintf("  outformat {double|scientific|general} <set arg1> [<set arg 2> ...]\n"
+          "    Change output format of double-precision data:\n"
+          "      double     - \"Normal\" output, e.g. 0.4032\n"
+          "      scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
+          "      general    - Use 'double' or 'scientific', whichever is shortest.\n");
+  mprintf("  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...]\n");
+  mprintf("      <mode>: ");
   for (int i = 0; i != (int)MetaData::UNKNOWN_MODE; i++)
     mprintf(" '%s'", MetaData::ModeString((MetaData::scalarMode)i));
-  mprintf("\n\t<type>: ");
+  mprintf("\n      <type>: ");
   for (int i = 0; i != (int)MetaData::UNDEFINED; i++)
     mprintf(" '%s'", MetaData::TypeString((MetaData::scalarType)i));
-  mprintf("\n\tOptions for 'type noe':\n"
-          "\t  %s\n", AssociatedData_NOE::HelpText);
-  mprintf("  legend      : Set the legend for a single data set\n"
-          "  makexy      : Create new data set with X values from one set and Y values from another.\n"
-          "  vectorcoord : Extract X, Y, or Z component of vector data into new set.\n"
-          "  cat         : Concatenate 2 or more data sets.\n"
-          "  make2d      : Create new 2D data set from 1D data set, assumes row-major ordering.\n"
-          "  droppoints  : Drop specified points from data set.\n"
-          "  keeppoints  : Keep specified points in data set.\n"
-          "  remove      : Remove data sets according to specified criterion and selection.\n"
-          "  outformat   : Change output format of double-precision data:\n"
-          "                double     - \"Normal\" output, e.g. 0.4032\n"
-          "                scientific - Scientific \"E\" notation output, e.g. 4.032E-1\n"
-          "                general    - Use 'double' or 'scientific', whichever is shortest.\n"
-          "  Otherwise, change the mode and/or type for one or more data sets.\n");
+  mprintf("\n    Options for 'type noe':\n"
+          "      %s\n", AssociatedData_NOE::HelpText);
+  mprintf("    Change the mode and/or type for one or more data sets.\n");
 }
 
 // Exec_DataSetCmd::Execute()
@@ -109,8 +109,9 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 };
 
 void Exec_DataSetCmd::Help_ModifyPoints() {
-  mprintf("\t  {drop|keep}points { {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
-          "\t                      [name <output set>] <set arg1> ... } |\n");
+  mprintf("  drop|keep}points {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
+          "                   [name <output set>] <set arg1> ...\n"
+          "    Drop specified points from or keep specified points in data set(s).\n");
 }
 
 static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx, int& odx) {
@@ -645,7 +646,8 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
 }
 
 void Exec_DataSetCmd::Help_ChangeDim() {
-  mprintf("\tdim {xdim|ydim|zdim|ndim <#>} [label <label>] [min <min>] [step <step>] |\n");
+  mprintf("  dim {xdim|ydim|zdim|ndim <#>} [label <label>] [min <min>] [step <step>]\n"
+          "    Change specified dimension in set(s).\n");
 }
 
 // Exec_DataSetCmd::ChangeDim()
@@ -698,6 +700,7 @@ Exec::RetType Exec_DataSetCmd::ChangeDim(CpptrajState const& State, ArgList& arg
     for (DataSetList::const_iterator ds = dsl.begin(); ds != dsl.end(); ++ds)
     {
       if (ndim < (int)(*ds)->Ndim()) {
+        mprintf("\t%s\n", (*ds)->legend());
         Dimension dim = (*ds)->Dim(ndim);
         if (changeLabel) dim.SetLabel( label );
         if (changeMin)   dim.ChangeMin( min );
