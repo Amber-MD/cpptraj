@@ -123,7 +123,7 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
   if (drop)
     mode = "Drop";
   else
-    mode = "Keep";
+    mode = "Kee";
   // Keywords
   std::string name = argIn.GetStringKey("name");
   int start = argIn.getKeyInt("start", 0) - 1;
