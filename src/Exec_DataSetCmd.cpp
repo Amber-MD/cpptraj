@@ -110,13 +110,14 @@ Exec_DataSetCmd::SelectPairType Exec_DataSetCmd::SelectKeys[] = {
 
 void Exec_DataSetCmd::Help_ModifyPoints() {
   mprintf("\t  {drop|keep}points { {range <range arg> | [start <#>] [stop <#>] [offset <#>]}\n"
-          "\t                      [name <output set>] <data set arg> } |\n");
+          "\t                      [name <output set>] <set arg1> ... } |\n");
 }
 
 static inline void KeepPoint(DataSet_1D* in, DataSet* out, int idx, int& odx) {
   out->Add(odx++, in->VoidPtr(idx));
 }
 
+// Exec_DataSetCmd::ModifyPoints()
 Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn, bool drop) {
   const char* mode;
   if (drop)
@@ -145,80 +146,85 @@ Exec::RetType Exec_DataSetCmd::ModifyPoints(CpptrajState& State, ArgList& argIn,
     points.ShiftBy(-1);
   }
   // Get data set to drop/keep points from
-  DataSet* DS = State.DSL().GetDataSet( argIn.GetStringNext() );
-  if (DS == 0) {
-    mprinterr("Error: Input data set not found.\n");
-    return CpptrajState::ERR;
-  }
-  if (DS->Size() < 1) {
-    mprinterr("Error: Set '%s' is empty.\n", DS->legend());
-    return CpptrajState::ERR;
-  }
-  // Restrict to 1D sets for now TODO more types
-  if (DS->Group() != DataSet::SCALAR_1D) {
-    mprinterr("Error: Currently only works for 1D scalar data sets.\n");
-    return CpptrajState::ERR;
-  }
-  DataSet_1D* ds1 = (DataSet_1D*)DS;
-  // Output data set
-  DataSet* out = 0;
-  if (name.empty()) {
-    // Modifying this set. Create new temporary set.
-    out = State.DSL().Allocate( ds1->Type() );
-    if (out == 0) return CpptrajState::ERR;
-    *out = *ds1;
-    mprintf("\tOverwriting set '%s'\n", ds1->legend());
-  } else {
-    // Write to new set
-    MetaData md = ds1->Meta();
-    md.SetName( name );
-    out = State.DSL().AddSet(ds1->Type(), md);
-    if (out == 0) return CpptrajState::ERR;
-    mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
-  }
-  out->Allocate(DataSet::SizeArray(1, ds1->Size()));
-  if (points.Empty()) {
-    // Drop by start/stop/offset. Set defaults if needed
-    if (start < 0)  start = 0;
-    if (stop < 0)   stop = ds1->Size();
-    if (offset < 0) offset = 1;
-    mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
-    for (int idx = start; idx < stop; idx += offset)
-      points.AddToRange( idx );
-  } // TODO check that range values are valid?
-  if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
-  Range::const_iterator pt = points.begin();
-  int idx = 0;
-  int odx = 0;
-  if (drop) {
-    // Drop points
-    for (; idx < (int)ds1->Size(); idx++) {
-      if (pt == points.end()) break;
-      if (*pt != idx) {
-        if (State.Debug() > 0) mprintf(" %i", idx + 1);
-        KeepPoint(ds1, out, idx, odx);
-      } else
-        ++pt;
-    }
-    // Keep all remaining points
-    for (; idx < (int)ds1->Size(); idx++) {
-      if (State.Debug() > 0) mprintf(" %i", idx + 1);
-      KeepPoint(ds1, out, idx, odx);
-    }
-  } else {
-    // Keep points
-    for (; pt != points.end(); pt++) {
-      if (*pt >= (int)ds1->Size()) break;
-      if (State.Debug() > 0) mprintf(" %i", *pt + 1);
-      KeepPoint(ds1, out, *pt, odx);
-    }
-  }
-  if (State.Debug() > 0) mprintf("\n");
-  if (name.empty()) {
-    // Replace old set with new set
-    State.DSL().RemoveSet( ds1 );
-    State.DSL().AddSet( out );
-  }
+  // Loop over all DataSet arguments 
+  std::string ds_arg = argIn.GetStringNext();
+  while (!ds_arg.empty()) {
+    DataSetList dsl = State.DSL().GetMultipleSets( ds_arg );
+    for (DataSetList::const_iterator it = dsl.begin(); it != dsl.end(); ++it)
+    {
+      DataSet* DS = *it;
+      if (DS->Size() < 1) {
+        mprinterr("Error: Set '%s' is empty.\n", DS->legend());
+        return CpptrajState::ERR;
+      }
+      // Restrict to 1D sets for now TODO more types
+      if (DS->Group() != DataSet::SCALAR_1D) {
+        mprinterr("Error: Currently only works for 1D scalar data sets.\n");
+        return CpptrajState::ERR;
+      }
+      DataSet_1D* ds1 = (DataSet_1D*)DS;
+      // Output data set
+      DataSet* out = 0;
+      if (name.empty()) {
+        // Modifying this set. Create new temporary set.
+        out = State.DSL().Allocate( ds1->Type() );
+        if (out == 0) return CpptrajState::ERR;
+        *out = *ds1;
+        mprintf("\tOverwriting set '%s'\n", ds1->legend());
+      } else {
+        // Write to new set
+        MetaData md = ds1->Meta();
+        md.SetName( name );
+        out = State.DSL().AddSet(ds1->Type(), md);
+        if (out == 0) return CpptrajState::ERR;
+        mprintf("\tNew set is '%s'\n", out->Meta().PrintName().c_str());
+      }
+      out->Allocate(DataSet::SizeArray(1, ds1->Size()));
+      if (points.Empty()) {
+        // Drop by start/stop/offset. Set defaults if needed
+        if (start < 0)  start = 0;
+        if (stop < 0)   stop = ds1->Size();
+        if (offset < 0) offset = 1;
+        mprintf("\t%sping points from %i to %i, step %i\n", mode, start+1, stop, offset);
+        for (int idx = start; idx < stop; idx += offset)
+          points.AddToRange( idx );
+      } // TODO check that range values are valid?
+      if (State.Debug() > 0) mprintf("DEBUG: Keeping points:");
+      Range::const_iterator pt = points.begin();
+      int idx = 0;
+      int odx = 0;
+      if (drop) {
+        // Drop points
+        for (; idx < (int)ds1->Size(); idx++) {
+          if (pt == points.end()) break;
+          if (*pt != idx) {
+            if (State.Debug() > 0) mprintf(" %i", idx + 1);
+            KeepPoint(ds1, out, idx, odx);
+          } else
+            ++pt;
+        }
+        // Keep all remaining points
+        for (; idx < (int)ds1->Size(); idx++) {
+          if (State.Debug() > 0) mprintf(" %i", idx + 1);
+          KeepPoint(ds1, out, idx, odx);
+        }
+      } else {
+        // Keep points
+        for (; pt != points.end(); pt++) {
+          if (*pt >= (int)ds1->Size()) break;
+          if (State.Debug() > 0) mprintf(" %i", *pt + 1);
+          KeepPoint(ds1, out, *pt, odx);
+        }
+      }
+      if (State.Debug() > 0) mprintf("\n");
+      if (name.empty()) {
+        // Replace old set with new set
+        State.DSL().RemoveSet( ds1 );
+        State.DSL().AddSet( out );
+      }
+    } // END loop over sets
+    ds_arg = argIn.GetStringNext();
+  } // END loop over set args
   return CpptrajState::OK;
 }
 
