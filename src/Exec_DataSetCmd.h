@@ -27,6 +27,7 @@ class Exec_DataSetCmd : public Exec {
     RetType Make2D(CpptrajState&, ArgList&);
     RetType Filter(CpptrajState&, ArgList&);
     RetType Concatenate(CpptrajState&, ArgList&);
+    static void Help_ChangeDim();
     RetType ChangeDim(CpptrajState const&, ArgList&);
     RetType ChangeModeType(CpptrajState const&, ArgList&);
 };

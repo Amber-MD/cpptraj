@@ -13,8 +13,9 @@ void Exec_DataSetCmd::Help() const {
           "\t  cat <set0> <set1> ... [name <name>] [nooffset] |\n"
           "\t  make2d <1D set> cols <ncols> rows <nrows> [name <name>] |\n");
   Help_ModifyPoints();
-  mprintf("\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n"
-          "\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...] |\n"
+  mprintf("\t  remove <criterion> <select> <value> [and <value2>] [<set selection>] |\n");
+  Help_ChangeDim();
+  mprintf("\t  outformat {double|scientific|general} <set arg1> [<set arg 2> ...] |\n"
           "\t  [mode <mode>] [type <type>] <set arg1> [<set arg 2> ...] }\n");
   mprintf("\t<criterion>: ");
   for (int i = 1; i < (int)N_C; i++)
@@ -81,6 +82,9 @@ Exec::RetType Exec_DataSetCmd::Execute(CpptrajState& State, ArgList& argIn) {
   // ---------------------------------------------
   } else if (argIn.hasKey("keeppoints")) { // Keep points in set
     err = ModifyPoints(State, argIn, false);
+  // ---------------------------------------------
+  } else if (argIn.hasKey("dim")) {        // Modify dimension of set(s)
+    err = ChangeDim(State, argIn);
   // ---------------------------------------------
   } else {                                // Default: change mode/type for one or more sets.
     err = ChangeModeType(State, argIn);
@@ -634,6 +638,11 @@ Exec::RetType Exec_DataSetCmd::Concatenate(CpptrajState& State, ArgList& argIn) 
   return CpptrajState::OK;
 }
 
+void Exec_DataSetCmd::Help_ChangeDim() {
+  mprintf("\tdim {xdim|ydim|zdim|ndim <#>} [label <label>] [min <min>] [step <step>] |\n");
+}
+
+// Exec_DataSetCmd::ChangeDim()
 Exec::RetType Exec_DataSetCmd::ChangeDim(CpptrajState const& State, ArgList& argIn) {
   int ndim = -1;
   if (argIn.hasKey("xdim"))
