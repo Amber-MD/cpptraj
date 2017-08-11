@@ -18,6 +18,8 @@ class Exec_DataSetCmd : public Exec {
     };
     static SelectPairType SelectKeys[];
 
+    static void Help_ModifyPoints();
+    RetType ModifyPoints(CpptrajState&, ArgList&, bool);
     RetType VectorCoord(CpptrajState&, ArgList&);
     RetType ChangeOutputFormat(CpptrajState const&, ArgList&);
     RetType Remove(CpptrajState&, ArgList&);
@@ -25,6 +27,8 @@ class Exec_DataSetCmd : public Exec {
     RetType Make2D(CpptrajState&, ArgList&);
     RetType Filter(CpptrajState&, ArgList&);
     RetType Concatenate(CpptrajState&, ArgList&);
+    static void Help_ChangeDim();
+    RetType ChangeDim(CpptrajState const&, ArgList&);
     RetType ChangeModeType(CpptrajState const&, ArgList&);
 };
 #endif

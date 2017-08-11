@@ -24,6 +24,7 @@
 #include "DataIO_NC_Cmatrix.h"
 #include "DataIO_CharmmRepLog.h"
 #include "DataIO_CharmmFastRep.h"
+#include "DataIO_CharmmOutput.h"
 
 // CONSTRUCTOR
 DataFile::DataFile() :
@@ -66,6 +67,7 @@ const FileTypes::AllocToken DataFile::DF_AllocArray[] = {
 # endif
   { "CHARMM REM log",     DataIO_CharmmRepLog::ReadHelp, 0,             DataIO_CharmmRepLog::Alloc},
   { "CHARMM Fast REM log",0,                             0,            DataIO_CharmmFastRep::Alloc},
+  { "CHARMM Output",      0,                             0,             DataIO_CharmmOutput::Alloc},
   { "Unknown Data file",  0,                       0,                        0                    }
 };
 
@@ -86,6 +88,7 @@ const FileTypes::KeyToken DataFile::DF_KeyArray[] = {
   { CMATRIX,      "cmatrix",".cmatrix" },
   { NCCMATRIX,    "nccmatrix", ".nccmatrix" },
   { CHARMMREPD,   "charmmrepd",".exch" },
+  { CHARMMOUT,    "charmmout", ".charmmout"},
   { UNKNOWN_DATA, 0,        0        }
 };
 
