@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles data.in avg.dat matrix.dat matrix2.dat VXYZ.dat Keep?.dat Drop?.dat
+CleanFiles data.in avg.dat matrix.dat matrix2.dat VXYZ.dat Keep?.dat Drop?.dat D4.dat
 
 INPUT='-i data.in'
 cat > data.in <<EOF
@@ -11,6 +11,7 @@ readdata data.dat name MyData2
 readdata data1.dat name D1
 readdata data2.dat name D2
 readdata data3.dat name D3
+readdata data3.dat name D4
 readdata ../Test_Vector/vtest.dat.6.save name Vec vector
 
 # Test mode/type setting
@@ -27,6 +28,10 @@ dataset makexy D1 D2 name Dxy
 
 # Test Make2D
 dataset make2d D12 name Dmat ncols 2 nrows 2
+
+# Test X dimension modify
+dataset dim xdim min 4 step 0.5 D4
+writedata D4.dat D4
 
 # Test removal of points
 dataset keeppoints D3 range 3,5,8-10 name Keep1
@@ -58,6 +63,7 @@ list dataset
 EOF
 RunCpptraj "Data Set commands test"
 DoTest avg.dat.save avg.dat
+DoTest D4.dat.save D4.dat
 DoTest matrix.dat.save matrix.dat
 DoTest matrix.dat.save matrix2.dat
 DoTest Keep1.dat.save Keep1.dat
