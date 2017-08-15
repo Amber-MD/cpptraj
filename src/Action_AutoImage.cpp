@@ -292,32 +292,41 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       else
         framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
 
-      // Determine direction from molecule to anchor
-      Vec3 delta = anchorcenter - framecenter;
-      //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
       // Determine distance in terms of box lengths
-      Vec3 Dxyz, minTrans;
       if (ortho_) {
-        minTrans[0] = floor(delta[0]/box.BoxX()+0.5)*box.BoxX();
-        minTrans[1] = floor(delta[1]/box.BoxY()+0.5)*box.BoxY();
-        minTrans[2] = floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ();
+        // Determine direction from molecule to anchor
+        Vec3 delta = anchorcenter - framecenter;
+        //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
+        Vec3 minTrans( floor(delta[0]/box.BoxX()+0.5)*box.BoxX(),
+                       floor(delta[1]/box.BoxY()+0.5)*box.BoxY(),
+                       floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ() );
+        Vec3 minImage = framecenter + minTrans;
+        //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
+        //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+        //        minTrans[0], minTrans[1], minTrans[2]);
+        // Move atoms closer to anchor. Update coords in currentFrame.
+        frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
+        // New anchor is previous fixed mol
+        anchorcenter = minImage;
       } else {
-        Vec3 fDelta = (recip * delta) + 0.5;
-        fDelta[0] = floor(fDelta[0]);
-        fDelta[1] = floor(fDelta[1]);
-        fDelta[2] = floor(fDelta[2]);
-        //fDelta.Print("floor(fDelta+0.5)");
-        minTrans = ucell.TransposeMult( fDelta );
-        //minTrans.Print("minTrans");
+        anchorcenter = framecenter;
+        Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
+        // If molecule was imaged, determine whether imaged position is closer to anchor.
+        if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
+          imagedcenter = framecenter + Trans;
+          double framedist2 = DIST2_NoImage( anchorcenter, framecenter );
+          double imageddist2 = DIST2_NoImage( anchorcenter, imagedcenter );
+          //mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}"
+          //        " frame dist2=%6.2f, imaged dist2=%6.2f\n",
+          //        frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
+          //        Trans[0], Trans[1], Trans[2], sqrt(framedist2), sqrt(imageddist2));
+          if (imageddist2 < framedist2) {
+            // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
+            frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
+            anchorcenter = imagedcenter;
+          }
+        }
       }
-      Vec3 minImage = framecenter + minTrans;
-//      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
-//              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
-//              minTrans[0], minTrans[1], minTrans[2]);
-      // Move atoms closer to anchor. Update coords in currentFrame.
-      frm.ModifyFrm().Translate(minTrans, firstAtom, lastAtom);
-      // New anchor is previous fixed mol
-      anchorcenter = minImage;
     }
   } else {
     // For each molecule defined by atom pairs in fixedList, determine if the
