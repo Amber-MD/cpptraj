@@ -311,10 +311,9 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
       // Determine distance in terms of box lengths
       Vec3 Dxyz, minTrans;
       if (ortho_) {
-        Dxyz = delta / frm.Frm().BoxCrd().Lengths();
-        minTrans = Vec3(ANINT(Dxyz[0]) * frm.Frm().BoxCrd().BoxX(),
-                        ANINT(Dxyz[1]) * frm.Frm().BoxCrd().BoxY(),
-                        ANINT(Dxyz[2]) * frm.Frm().BoxCrd().BoxZ());
+        minTrans[0] = floor(delta[0]/box.BoxX()+0.5)*box.BoxX();
+        minTrans[1] = floor(delta[1]/box.BoxY()+0.5)*box.BoxY();
+        minTrans[2] = floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ();
       } else {
         Dxyz = recip * delta;
         minTrans = ucell.TransposeMult( Vec3(ANINT(Dxyz[0]),
