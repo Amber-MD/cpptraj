@@ -249,7 +249,8 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Vec3 bp, bm, offset(0.0);
   Vec3 Trans, framecenter, imagedcenter, anchorcenter;
 
-  if (!ortho_) frm.Frm().BoxCrd().ToRecip(ucell, recip);
+  Box const& box = frm.Frm().BoxCrd();
+  if (!ortho_) box.ToRecip(ucell, recip);
   // Store anchor point in fcom for now.
   if (useMass_)
     fcom = frm.Frm().VCenterOfMass( anchorMask_ );
@@ -265,7 +266,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
     // Center on box center
     if (ortho_ || truncoct_)
       // Center is box xyz over 2
-      anchorcenter = frm.Frm().BoxCrd().Center();
+      anchorcenter = box.Center();
     else
       // Center in frac coords is (0.5,0.5,0.5)
       anchorcenter = ucell.TransposeMult(Vec3(0.5));
@@ -276,7 +277,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   // Setup imaging, and image everything in current Frame
   // according to mobileList_.
   if (ortho_) {
-    if (Image::SetupOrtho(frm.Frm().BoxCrd(), bp, bm, origin_)) {
+    if (Image::SetupOrtho(box, bp, bm, origin_)) {
       mprintf("Warning: Frame %i imaging failed, box lengths are zero.\n",frameNum+1);
       // TODO: Return OK for now so next frame is tried; eventually indicate SKIP?
       return Action::OK; // FIXME return MODIFY_COORDS instead?
@@ -345,7 +346,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         framecenter = frm.Frm().VGeometricCenter(firstAtom, lastAtom);
       // Determine if molecule would be imaged.
       if (ortho_)
-        Trans = Image::Ortho(framecenter, bp, bm, frm.Frm().BoxCrd());
+        Trans = Image::Ortho(framecenter, bp, bm, box);
       else
         Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
       // If molecule was imaged, determine whether imaged position is closer to anchor.
