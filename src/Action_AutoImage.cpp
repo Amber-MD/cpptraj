@@ -309,7 +309,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         // New anchor is previous fixed mol
         anchorcenter = minImage;
       } else {
-        anchorcenter = framecenter;
+        Vec3 newAnchor = framecenter;
         Trans = Image::Nonortho(framecenter, truncoct_, origin_, ucell, recip, fcom, -1.0);
         // If molecule was imaged, determine whether imaged position is closer to anchor.
         if (Trans[0] != 0 || Trans[1] != 0 || Trans[2] != 0) {
@@ -323,9 +323,10 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
           if (imageddist2 < framedist2) {
             // Imaging these atoms moved them closer to anchor. Update coords in currentFrame.
             frm.ModifyFrm().Translate(Trans, firstAtom, lastAtom);
-            anchorcenter = imagedcenter;
+            newAnchor = imagedcenter;
           }
         }
+        anchorcenter = newAnchor;
       }
     }
   } else {
