@@ -229,19 +229,6 @@ Action::RetType Action_AutoImage::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
-/// Round floating point to nearest whole number.
-static inline double ANINT(double xIn) {
-  double fpart, ipart;
-  fpart = modf(xIn, &ipart);
-  if (fpart < 0.0) fpart = -fpart;
-  if (fpart < 0.5)
-    return ipart;
-  if (xIn > 0.0)
-    return ipart + 1.0;
-  else
-    return ipart - 1.0;
-}
-
 // Action_AutoImage::DoAction()
 Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
   Matrix_3x3 ucell, recip;
@@ -307,7 +294,7 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
 
       // Determine direction from molecule to anchor
       Vec3 delta = anchorcenter - framecenter;
-//      mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
+      //mprintf("DEBUG: anchorcenter - framecenter = %g %g %g\n", delta[0], delta[1], delta[2]);
       // Determine distance in terms of box lengths
       Vec3 Dxyz, minTrans;
       if (ortho_) {
@@ -315,12 +302,14 @@ Action::RetType Action_AutoImage::DoAction(int frameNum, ActionFrame& frm) {
         minTrans[1] = floor(delta[1]/box.BoxY()+0.5)*box.BoxY();
         minTrans[2] = floor(delta[2]/box.BoxZ()+0.5)*box.BoxZ();
       } else {
-        Dxyz = recip * delta;
-        minTrans = ucell.TransposeMult( Vec3(ANINT(Dxyz[0]),
-                                             ANINT(Dxyz[1]),
-                                             ANINT(Dxyz[2])) );
+        Vec3 fDelta = (recip * delta) + 0.5;
+        fDelta[0] = floor(fDelta[0]);
+        fDelta[1] = floor(fDelta[1]);
+        fDelta[2] = floor(fDelta[2]);
+        //fDelta.Print("floor(fDelta+0.5)");
+        minTrans = ucell.TransposeMult( fDelta );
+        //minTrans.Print("minTrans");
       }
-//      Dxyz.Print("Dxyz");
       Vec3 minImage = framecenter + minTrans;
 //      mprintf("DBG: %5i %3u %6i %6i {%8.2f %8.2f %8.2f}\n",
 //              frameNum, (atom1-fixedList_.begin())/2, firstAtom+1, lastAtom,
