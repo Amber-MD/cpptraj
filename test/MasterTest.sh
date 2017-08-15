@@ -516,9 +516,9 @@ CmdLineOpts() {
     echo "Warning: Using OpenMP but OMP_NUM_THREADS is not set."
   fi
   # Set up SFX
+  if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
   if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
-  if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   # Set up valgrind if necessary
   if [[ $VGMODE -ne 0 ]] ; then
     VG=`which valgrind`

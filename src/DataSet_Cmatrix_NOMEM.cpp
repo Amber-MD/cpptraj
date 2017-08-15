@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "DataSet_Cmatrix_NOMEM.h"
 
 DataSet_Cmatrix_NOMEM::~DataSet_Cmatrix_NOMEM() {

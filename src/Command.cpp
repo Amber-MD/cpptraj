@@ -126,6 +126,7 @@
 #include "Action_Remap.h"
 #include "Action_HydrogenBond.h"
 #include "Action_FixImagedBonds.h"
+#include "Action_LipidOrder.h"
 // ----- ANALYSIS --------------------------------------------------------------
 #include "Analysis_Hist.h"
 #include "Analysis_Corr.h"
@@ -282,6 +283,7 @@ void Command::Init() {
   Command::AddCmd( new Action_LESsplit(),      Cmd::ACT, 1, "lessplit" );
   Command::AddCmd( new Action_LIE(),           Cmd::ACT, 1, "lie" );
   Command::AddCmd( new Action_OrderParameter(),Cmd::ACT, 1, "lipidorder" );
+  Command::AddCmd( new Action_LipidOrder(),    Cmd::ACT, 1, "lipidscd" );
   Command::AddCmd( new Action_MakeStructure(), Cmd::ACT, 1, "makestructure" );
   Command::AddCmd( new Action_Mask(),          Cmd::ACT, 1, "mask" );
   Command::AddCmd( new Action_Matrix(),        Cmd::ACT, 1, "matrix" );

@@ -1,4 +1,5 @@
 #include <cmath>
+#include <algorithm> // std::min, std::max
 #include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"

@@ -5,6 +5,7 @@
 #include "Parm_CharmmPsf.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h"
+#include "Mol.h" // UniqueCount()
 
 bool Parm_CharmmPsf::ID_ParmFormat(CpptrajFile& fileIn) {
   // Assumes already set up
@@ -170,6 +171,14 @@ int Parm_CharmmPsf::ReadParm(FileName const& fname, Topology &parmOut) {
   return 0;
 }
 
+static int FindMolType(int molNum, Mol::Marray const& mols) {
+  for (Mol::Marray::const_iterator mol = mols.begin(); mol != mols.end(); ++mol)
+    for (Mol::Iarray::const_iterator it = mol->idxs_.begin();
+                                     it != mol->idxs_.end(); ++it)
+      if (*it == molNum) return (mol - mols.begin());
+  return -1;
+}
+
 int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // TODO: CMAP etc info
   CpptrajFile outfile;
@@ -183,22 +192,23 @@ int Parm_CharmmPsf::WriteParm(FileName const& fname, Topology const& parm) {
   // Write NATOM section
   outfile.Printf("%8i !NATOM\n", parm.Natom());
   unsigned int idx = 1;
-  // Make fake segment ids for now.
-  char segid[2];
-  segid[0] = 'A';
-  segid[1] = '\0';
-  mprintf("Warning: Assigning single letter segment IDs.\n");
+  // Make segment ids based on molecule type for now.
+  Mol::Marray mols = Mol::UniqueCount(parm);
+  mprintf("Warning: Assigning segment IDs based on molecule type.\n");
   int currentMol = 0;
-  bool inSolvent = false;
+  int currentMtype = FindMolType(currentMol, mols);
+  const char* segid = mols[currentMtype].name_.c_str();
+  Mol::Iarray::const_iterator mit = mols[currentMtype].idxs_.begin();
+//  bool inSolvent = false;
   for (Topology::atom_iterator atom = parm.begin(); atom != parm.end(); ++atom, ++idx) {
     int resnum = atom->ResNum();
     if (atom->MolNum() != currentMol) {
-      if (!inSolvent) {
-        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
-        currentMol = atom->MolNum();
-        segid[0]++;
-      } else
-        inSolvent = parm.Mol(atom->MolNum()).IsSolvent();
+      currentMol = atom->MolNum();
+      ++mit;
+      if (mit == mols[currentMtype].idxs_.end() || *mit != currentMol) {
+        currentMtype = FindMolType(currentMol, mols);
+        segid = mols[currentMtype].name_.c_str();
+      }
     }
     // TODO: Print type name for xplor-like PSF
     int typeindex = atom->TypeIndex() + 1;

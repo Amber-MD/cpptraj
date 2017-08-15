@@ -185,6 +185,7 @@ test.density:
 
 test.lipidorder:
 	@-cd Test_LipidOrder && ./RunTest.sh $(OPT)
+	@-cd Test_LipidSCD && ./RunTest.sh $(OPT)
 
 test.pairdist:
 	@-cd Test_PairDist && ./RunTest.sh $(OPT)

@@ -112,8 +112,10 @@ class Topology {
     ChamberParmType const& Chamber()        const { return chamber_;      }
     ChamberParmType& SetChamber()                 { return chamber_;      }
     // ----- Misc routines -----------------------
-    /// Format: <res name><res num>@<atom name>
+    /// Format: <res name>_<res num>@<atom name>
     std::string TruncResAtomName(int) const;
+    /// Format:  <res name>_<res num>@<atom name>_<atom num>
+    std::string TruncResAtomNameNum(int) const;
     /// Format: :<res num>@<atom name>
     std::string AtomMaskName(int) const;
     /// Format: <atom name>_<atom num>

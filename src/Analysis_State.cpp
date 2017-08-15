@@ -1,3 +1,4 @@
+#include <algorithm> // std::min, std::max
 #include "Analysis_State.h"
 #include "CpptrajStdio.h"
 
