@@ -67,6 +67,7 @@ class PairList2::AtmType {
     AtmType() : idx_(-1) {}
     AtmType(int i, Vec3 const& f, Vec3 const& c) :
       imageCoords_(c), fracCoords_(f), idx_(i) {}
+      Vec3 const& ImageCoords() const { return imageCoords_; }
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
     Vec3 fracCoords_;  ///< Fractional coordinates
@@ -77,10 +78,19 @@ class PairList2::CellType {
   public:
     CellType() {}
     void AddAtom(AtmType const& a) { atoms_.push_back( a ); }
+
+    unsigned int NatomsInGrid() const { return atoms_.size();  }
+    Iarray const& CellList()    const { return neighborPtr_;   }
+    Iarray const& TransList()   const { return neighborTrans_; }
     size_t MemSize() const {
       return ((neighborPtr_.size() + neighborTrans_.size()) * sizeof(int)) +
              (2 * sizeof(Iarray)) + (atoms_.size() * sizeof(AtmType)) + sizeof(Aarray);
     }
+
+    typedef Aarray::const_iterator const_iterator;
+    const_iterator begin() const { return atoms_.begin(); }
+    const_iterator end()   const { return atoms_.end();   }
+
     friend class PairList2;
   private:
     Iarray neighborPtr_;   ///< Indices of neighbor cells "forward" of this cell.
