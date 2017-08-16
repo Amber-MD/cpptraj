@@ -81,7 +81,7 @@ void PairList2::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
               idx, cells_.size());
     return;
   }
-  cells_[idx].AddAtom( Atm(atomIdx, frac, cart) );
+  cells_[idx].AddAtom( AtmType(atomIdx, frac, cart) );
 }
 
 /** Convert to fractional coords, wrap into primary cell. */

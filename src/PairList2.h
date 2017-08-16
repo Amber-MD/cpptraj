@@ -11,10 +11,10 @@
 class PairList2 {
   public:
     typedef std::vector<int> Iarray;
-    class Atm;
-    typedef std::vector<Atm> Aarray;
-    class Cell;
-    typedef std::vector<Cell> Carray;
+    class AtmType;
+    typedef std::vector<AtmType> Aarray;
+    class CellType;
+    typedef std::vector<CellType> Carray;
 
     PairList2();
     /// Initialize pair list with given cutoff, "skin", and debug level.
@@ -28,6 +28,8 @@ class PairList2 {
     /// Print memory usage.
     void PrintMemory() const;
 
+    int NGridMax()                const { return (int)cells_.size(); }
+    CellType const& Cell(int idx) const { return cells_[idx];        }
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
@@ -60,10 +62,10 @@ class PairList2 {
     Timer t_total_;
 };
 /// PairList Atom
-class PairList2::Atm {
+class PairList2::AtmType {
   public:
-    Atm() : idx_(-1) {}
-    Atm(int i, Vec3 const& f, Vec3 const& c) :
+    AtmType() : idx_(-1) {}
+    AtmType(int i, Vec3 const& f, Vec3 const& c) :
       imageCoords_(c), fracCoords_(f), idx_(i) {}
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
@@ -71,13 +73,13 @@ class PairList2::Atm {
     int idx_;          ///< Atom index
 };
 /// PairList Cell
-class PairList2::Cell {
+class PairList2::CellType {
   public:
-    Cell() {}
-    void AddAtom(Atm const& a) { atoms_.push_back( a ); }
+    CellType() {}
+    void AddAtom(AtmType const& a) { atoms_.push_back( a ); }
     size_t MemSize() const {
       return ((neighborPtr_.size() + neighborTrans_.size()) * sizeof(int)) +
-             (2 * sizeof(Iarray)) + (atoms_.size() * sizeof(Atm)) + sizeof(Aarray);
+             (2 * sizeof(Iarray)) + (atoms_.size() * sizeof(AtmType)) + sizeof(Aarray);
     }
     friend class PairList2;
   private:
