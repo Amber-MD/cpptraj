@@ -33,9 +33,16 @@ class PairList2 {
     void CalcGridPointers(int,int);
     /// Check grid dimensions using given recip lengths and (re)allocate mem if necessary.
     int SetupGrids(Vec3 const&);
-
+    /// Update the translation vectors based on given unit cell matrix.
+    void FillTranslateVec(Matrix_3x3 const&);
+    /// Add atoms to grid cells.
+    void GridUnitCell(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
+    /// Calculate cell index based on given coords and add to cell
+    inline void GridAtom(int, Vec3 const&, Vec3 const&);
 
     Carray cells_;            ///< Hold all cells in grid
+
+    Vec3 translateVec_[18];   ///< Translate vector array
 
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int debug_;
@@ -55,7 +62,9 @@ class PairList2 {
 /// PairList Atom
 class PairList2::Atm {
   public:
-    Atm() {}
+    Atm() : idx_(-1) {}
+    Atm(int i, Vec3 const& f, Vec3 const& c) :
+      imageCoords_(c), fracCoords_(f), idx_(i) {}
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
     Vec3 fracCoords_;  ///< Fractional coordinates
@@ -65,6 +74,12 @@ class PairList2::Atm {
 class PairList2::Cell {
   public:
     Cell() {}
+    void AddAtom(Atm const& a) { atoms_.push_back( a ); }
+    size_t MemSize() const {
+      return ((neighborPtr_.size() + neighborTrans_.size()) * sizeof(int)) +
+             (2 * sizeof(Iarray)) + (atoms_.size() * sizeof(Atm)) + sizeof(Aarray);
+    }
+    friend class PairList2;
   private:
     Iarray neighborPtr_;   ///< Indices of neighbor cells "forward" of this cell.
     Iarray neighborTrans_; ///< Index pointing to translate vector for each neighbor cell.

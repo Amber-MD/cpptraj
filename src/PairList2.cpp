@@ -1,5 +1,7 @@
+#include <cmath> // floor
 #include "PairList2.h"
 #include "CpptrajStdio.h"
+#include "StringRoutines.h" // ByteString()
 
 PairList2::PairList2() :
   cutList_(0.0),
@@ -31,13 +33,26 @@ int PairList2::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
   return 0;
 }
 
+// PairList::FillTranslateVec()
+/** Fill the translate vector array with offset values based on this
+  * unit cell. Only need forward direction, so no -Z.
+  */
+void PairList2::FillTranslateVec(Matrix_3x3 const& ucell) {
+  int iv = 0;
+  for (int i3 = 0; i3 < 2; i3++)
+    for (int i2 = -1; i2 < 2; i2++)
+      for (int i1 = -1; i1 < 2; i1++)
+        translateVec_[iv++] = ucell.TransposeMult( Vec3(i1, i2, i3) );
+  //for (int i = 0; i < 18; i++)
+  //  mprintf("TRANVEC %3i%12.5f%12.5f%12.5f\n", i+1, translateVec_[i][0],
+  //          translateVec_[i][1], translateVec_[i][2]);
+}
+
 // PairList::CreatePairList()
 int PairList2::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
   t_total_.Start();
-  // Convert to fractional coords, wrap into primary cell.
-  MapCoords(frmIn, ucell, recip, maskIn);
   // Calculate translation vectors based on current unit cell.
   FillTranslateVec(ucell);
   // If box size has changed a lot this will reallocate grid
@@ -45,10 +60,54 @@ int PairList2::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
   if (SetupGrids(frmIn.BoxCrd().RecipLengths(recip))) return 1;
   t_gridpointers_.Stop();
   // Place atoms in grid cells
-  GridUnitCell();
-
+  t_map_.Start();
+  GridUnitCell(frmIn, ucell, recip, maskIn);
+  t_map_.Stop();
   t_total_.Stop();
   return 0;
+}
+
+// PairList::GridAtom()
+void PairList2::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
+  // NOTE no shift by 0.5
+  int i1 = (int)((frac[0]) * (double)nGridX_);
+  int i2 = (int)((frac[1]) * (double)nGridY_);
+  int i3 = (int)((frac[2]) * (double)nGridZ_);
+  int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
+  mprintf("GRID atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n",
+          atomIdx+1, idx+1, frac[0], frac[1], frac[2]);
+  if (idx < 0 || idx >= (int)cells_.size()) { // Sanity check
+    mprinterr("Internal Error: Grid %i is out of range (>= %zu || < 0)\n",
+              idx, cells_.size());
+    return;
+  }
+  cells_[idx].AddAtom( Atm(atomIdx, frac, cart) );
+}
+
+/** Convert to fractional coords, wrap into primary cell. */
+void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
+                             Matrix_3x3 const& recip, AtomMask const& maskIn)
+{
+  if (frmIn.BoxCrd().Type() == Box::ORTHO) {
+    // Orthogonal imaging
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      const double* XYZ = frmIn.XYZ(*atom);
+      Vec3 fc( XYZ[0]*recip[0],    XYZ[1]*recip[4],    XYZ[2]*recip[8]   );
+      Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
+      Vec3 cc( fcw[0]*ucell[0],    fcw[1]*ucell[4],    fcw[2]*ucell[8]   );
+      GridAtom( *atom, fc, cc );
+    }
+  } else {
+    // Non-orthogonal imaging
+    for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)
+    {
+      Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
+      Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
+      Vec3 cc = ucell.TransposeMult( fcw );
+      GridAtom( *atom, fc, cc );
+    }
+  }
 }
 
 // PairList::SetupGrids()
@@ -93,9 +152,9 @@ int PairList2::SetupGrids(Vec3 const& recipLengths) {
   if (offsetZ*dc3 < cut)
     cut = (double)offsetZ*dc3;
   //if(nogrdptrs)cut=cutlist
-  int nGridMax_ = nGridX_ * nGridY_ * nGridZ_;
+  int nGridMax = nGridX_ * nGridY_ * nGridZ_;
   cells_.clear();
-  cells_.resize( nGridMax_ );
+  cells_.resize( nGridMax );
   if (debug_ > 0) {
     mprintf("DEBUG: Number of grids per unit cell in each dimension: %i %i %i\n",
             nGridX_, nGridY_, nGridZ_);
@@ -105,7 +164,7 @@ int PairList2::SetupGrids(Vec3 const& recipLengths) {
     mprintf("DEBUG: Distance between faces of short range grid subcells: %9.3f %9.3f %9.3f\n",
             dc1, dc2, dc3);
     mprintf("DEBUG: Resulting cutoff from subcell neighborhoods is %f\n", cut);
-    mprintf("%i total grid cells\n", nGridMax_);
+    mprintf("%zu total grid cells\n", cells_.size());
   }
   if (cut < cutList_) {
     mprinterr("Error: Resulting cutoff %f too small for lower limit %f\n", cut, cutList_);
@@ -126,7 +185,7 @@ int PairList2::SetupGrids(Vec3 const& recipLengths) {
 
   // NOTE: myindex are for parallelization later (maybe).
   int myindexlo = 0;
-  int myindexhi = nGridMax_;
+  int myindexhi = (int)cells_.size();
   CalcGridPointers(myindexlo, myindexhi);
 
   PrintMemory();
@@ -303,4 +362,17 @@ void PairList2::CalcGridPointers(int myindexlo, int myindexhi) {
       } // nx
     } // ny
   } // nz
+}
+
+void PairList2::Timing(double total) const {
+  t_total_.WriteTiming(2, "Pair List: ", total);
+  t_map_.WriteTiming(3,          "Map Coords:      ", t_total_.Total());
+  t_gridpointers_.WriteTiming( 3,"Recalc Grid Ptrs:", t_total_.Total());
+}
+
+void PairList2::PrintMemory() const {
+  size_t total = 0;
+  for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
+    total += cell->MemSize();
+  mprintf("\tTotal Grid memory: %s\n", ByteString(total, BYTE_DECIMAL).c_str());
 }
