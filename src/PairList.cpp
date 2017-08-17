@@ -44,6 +44,7 @@ int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
   if (SetupGrids(recipLengthsIn)) return 1;
   t_setup.Stop();
   t_setup.WriteTiming(1, "Pair List Setup:");
+  mprintf("\tGrid dimensions: %i %i %i (%zu total).\n", nGridX_, nGridY_, nGridZ_, cells_.size());
   return 0;
 }
 
