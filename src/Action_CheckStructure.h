@@ -20,6 +20,7 @@ class Action_CheckStructure : public Action {
     Action::RetType DoAction(int, ActionFrame&);
     void Print() {}
 
+    /// Store problems between atoms. Also used to cache bond parameters.
     class Problem {
       public:
         Problem() : dist_(0.0), atom1_(-1), atom2_(-1) {}
@@ -40,7 +41,7 @@ class Action_CheckStructure : public Action {
         int A1()    const { return atom1_; }
         int A2()    const { return atom2_; }
       private:
-        double dist_; ///< Distance
+        double dist_; ///< Distance / Bond cutoff (Req+bondoffset)^2
         int atom1_;   ///< First atom
         int atom2_;   ///< Second atom
     };
@@ -54,17 +55,10 @@ class Action_CheckStructure : public Action {
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     void SetupBondList(AtomMask const&, Topology const&);
     void WriteProblems(const char*, int, Topology const&);
-    /// Used to cache bond parameters
-    struct BondType {
-      double Req_off2_; ///< Bond cutoff (Req+bondoffset)^2
-      int a1_;          ///< First atom in bond
-      int a2_;          ///< Second atom in bond
-    };
-    typedef std::vector<BondType> BondList;
 
     PairList pairList_;
     ImagedAction image_; ///< Hold imaging routines and info.
-    BondList bondList_;  ///< Array of bonds to check.
+    Parray bondList_;    ///< Array of bonds to check.
     AtomMask Mask1_;     ///< Mask of atoms to check.
     AtomMask Mask2_;     ///< Optional mask of atoms to check against atoms in Mask1
     AtomMask OuterMask_; ///< Mask with the most atoms.

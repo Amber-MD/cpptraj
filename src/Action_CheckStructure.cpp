@@ -123,7 +123,6 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
 void Action_CheckStructure::ProcessBondArray(BondArray const& Bonds, BondParmArray const& Parm,
                                          CharMask const& cMask)
 {
-  BondType BT;
   for (BondArray::const_iterator bnd = Bonds.begin(); bnd != Bonds.end(); ++bnd)
   {
     if ( cMask.AtomInCharMask(bnd->A1()) && cMask.AtomInCharMask(bnd->A2()) ) {
@@ -131,11 +130,8 @@ void Action_CheckStructure::ProcessBondArray(BondArray const& Bonds, BondParmArr
         mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
                 bnd->A1()+1, bnd->A2()+1);
       else {
-        BT.Req_off2_ = Parm[ bnd->Idx() ].Req() + bondoffset_;
-        BT.Req_off2_ *= BT.Req_off2_; // Store squared values.
-        BT.a1_ = bnd->A1();
-        BT.a2_ = bnd->A2();
-        bondList_.push_back(BT);
+        double Req_off = Parm[ bnd->Idx() ].Req() + bondoffset_;
+        bondList_.push_back( Problem(bnd->A1(), bnd->A2(), Req_off*Req_off) );
       }
     }
   }
@@ -228,9 +224,9 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
 # pragma omp for
 # endif
   for (idx = 0; idx < bond_max; idx++) {
-    double D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].a1_),
-                               currentFrame.XYZ(bondList_[idx].a2_) );
-    if (D2 > bondList_[idx].Req_off2_) {
+    double D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].A1()),
+                               currentFrame.XYZ(bondList_[idx].A2()) );
+    if (D2 > bondList_[idx].D()) {
       ++Nproblems;
       if (outfile_ != 0) {
 #       ifdef _OPENMP
@@ -238,7 +234,7 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
 #       else
         problemAtoms_
 #       endif
-          .push_back(Problem(bondList_[idx].a1_, bondList_[idx].a2_, sqrt(D2)));
+          .push_back(Problem(bondList_[idx].A1(), bondList_[idx].A2(), sqrt(D2)));
       }
     }
   } // END loop over bonds
