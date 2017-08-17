@@ -72,16 +72,14 @@ class PairList {
 class PairList::AtmType {
   public:
     AtmType() : idx_(-1) {}
-    /// CONSTRUCTOR - Atom index, wrapped fractional coords, wrapped Cart. coords
-    AtmType(int i, Vec3 const& f, Vec3 const& c) :
-      imageCoords_(c), fracCoords_(f), idx_(i) {}
+    /// CONSTRUCTOR - Atom index, wrapped Cart. coords
+    AtmType(int i, Vec3 const& c) : imageCoords_(c), idx_(i) {}
     /// \return Wrapped Cart. coords
     Vec3 const& ImageCoords() const { return imageCoords_; }
     /// \return Atom index.
     int Idx()                 const { return idx_;         }
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
-    Vec3 fracCoords_;  ///< Fractional coordinates
     int idx_;          ///< Atom index
 };
 // -----------------------------------------------------------------------------

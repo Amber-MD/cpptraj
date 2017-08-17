@@ -95,7 +95,7 @@ void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
               idx, cells_.size());
     return;
   }
-  cells_[idx].AddAtom( AtmType(atomIdx, frac, cart) );
+  cells_[idx].AddAtom( AtmType(atomIdx, cart) );
   Frac_.push_back( frac );
 }
 
@@ -394,5 +394,6 @@ void PairList::PrintMemory() const {
   size_t total = 0;
   for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
     total += cell->MemSize();
+  total += ((Frac_.size() * sizeof(Vec3)) + sizeof(Varray));
   mprintf("\tTotal Grid memory: %s\n", ByteString(total, BYTE_DECIMAL).c_str());
 }
