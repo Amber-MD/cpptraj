@@ -736,7 +736,7 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
 
 double Ewald::Direct2(PairList2 const& PL, double& e_adjust_out)
 {
-//  t_direct_.Start();
+  t_direct2_.Start();
   double cut2 = cutoff_ * cutoff_;
   double Eelec = 0.0;
   double e_adjust = 0.0;
@@ -851,7 +851,7 @@ double Ewald::Direct2(PairList2 const& PL, double& e_adjust_out)
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
-  t_direct_.Stop();
+  t_direct2_.Stop();
   e_adjust_out = e_adjust;
   return Eelec;
 }
@@ -973,7 +973,8 @@ void Ewald::Timing(double total) const {
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
-  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct :    ", t_total_.Total());
+  t_direct2_.WriteTiming(2,"Direct2:    ", t_total_.Total());
 # ifndef _OPENMP
   t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
   t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());

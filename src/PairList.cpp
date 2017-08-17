@@ -372,8 +372,8 @@ void PairList::GridUnitCell() {
     int i3 = (int)((frac[2] + shift) * (double)nGridZ_);
     int idx = (i3*nGridX_*nGridY_)+(i2*nGridX_)+i1;
     atomCell_[i] = idx;
-//    mprintf("GRID atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n", i+1, idx+1,
-//            frac[0],frac[1],frac[2]);
+    //mprintf("GRID1 atom assigned to cell %6i%6i%10.5f%10.5f%10.5f\n", i+1, idx+1,
+    //        frac[0],frac[1],frac[2]);
     if (idx < 0 || idx >= nGridMax_) { // Sanity check
       mprinterr("Internal Error: Grid is out of range (>= %i || < 0)\n", nGridMax_);
       return;
