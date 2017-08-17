@@ -57,7 +57,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
                 actionArgs.getKeyDouble("offset",1.15),
                 actionArgs.hasKey("silent"), init.DFL() );
   // DoAction-only keywords.
-  plcut_ = actionArgs.getKeyDouble("plcut", 4.0);
+  plcut_ = actionArgs.getKeyDouble("plcut", std::max(4.0, sqrt(nonbondcut2_)));
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
