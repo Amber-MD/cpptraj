@@ -10,6 +10,7 @@
 Action_CheckStructure::Action_CheckStructure() :
   bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
+  plcut_(1.6),
   outfile_(0),
   CurrentParm_(0),
   num_problems_(0),
@@ -54,6 +55,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
                 actionArgs.getKeyDouble("offset",1.15),
                 actionArgs.hasKey("silent"), init.DFL() );
   // DoAction-only keywords.
+  plcut_ = actionArgs.getKeyDouble("plcut", 2.0*sqrt(nonbondcut2_));
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
@@ -105,6 +107,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   }
   if (silent_)
     mprintf("\tStructure warning messages will be suppressed.\n");
+  mprintf("\tCutoff for building pair list is %f Ang.\n", plcut_);
 # ifdef _OPENMP
   mprintf("\tParallelizing calculation with %zu threads.\n", thread_problemAtoms_.size());
 # endif
@@ -196,7 +199,7 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   // Set up pairlist TODO in separate setup
   usePairList_ = false;
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
-    if (pairList_.InitPairList( 2*sqrt(nonbondcut2_), 0.1, 0 )) return Action::ERR;
+    if (pairList_.InitPairList( plcut_, 0.1, 0 )) return Action::ERR;
     Matrix_3x3 ucell, recip;
     Box const& box = setup.CoordInfo().TrajBox();
     box.ToRecip(ucell, recip);
@@ -245,7 +248,9 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
   return Nproblems;   
 }
 
-/** Check for bad overlaps; use a pair list to speed things up. */
+/** Check for bad overlaps; use a pair list to speed things up.
+  * \return Number of bad overlaps.
+  */
 int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFrame,
                                            Topology const& top)
 {
@@ -303,7 +308,6 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
           PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
           // Translate vector for neighbor cell
           Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
-          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
           // Loop over every atom in nbrCell
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)

@@ -70,6 +70,7 @@ class Action_CheckStructure : public Action {
     AtomMask InnerMask_; ///< Mask with fewer atoms.
     double bondoffset_;  ///< Report bonds larger than Req + bondoffset
     double nonbondcut2_; ///< Report distance^2 less than nonbondcut2
+    double plcut_;       ///< Pairlist cutoff
     CpptrajFile* outfile_;  ///< Report file.
     Topology* CurrentParm_; ///< Current topology.
     DataSet* num_problems_; ///< Save number of problems each frame
