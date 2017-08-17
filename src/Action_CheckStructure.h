@@ -53,6 +53,7 @@ class Action_CheckStructure : public Action {
     int PL_CheckOverlap(int, Frame const&, Topology const&);
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     void SetupBondList(AtomMask const&, Topology const&);
+    void WriteProblems(int, Topology const&);
     /// Used to cache bond parameters
     struct BondType {
       double Req_off2_; ///< Bond cutoff (Req+bondoffset)^2

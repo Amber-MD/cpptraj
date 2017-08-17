@@ -347,21 +347,23 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  if (outfile_ != 0) {
-#   ifdef _OPENMP
-    for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
-      for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
-                                  p != thread_problemAtoms_[thread].end(); ++p)
-        problemAtoms_.push_back( *p );
-#   endif
-    std::sort( problemAtoms_.begin(), problemAtoms_.end() );
-    for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
-      outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
-                      p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
-                      p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
-  }
+  if (outfile_ != 0) WriteProblems(frameNum, top); 
 
   return Nproblems;
+}
+
+void Action_CheckStructure::WriteProblems(int frameNum, Topology const& top) {
+# ifdef _OPENMP
+  for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
+    for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
+                                p != thread_problemAtoms_[thread].end(); ++p)
+      problemAtoms_.push_back( *p );
+# endif
+  std::sort( problemAtoms_.begin(), problemAtoms_.end() );
+  for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
+    outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
+                    p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                    p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
 }
 
 /** Check for bad overlaps. */
@@ -372,6 +374,7 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
   int nmask1, nmask2;
   int atom1, atom2;
   int Nproblems = 0;
+  problemAtoms_.clear();
 
   // Get imaging info for non-orthogonal box // TODO Check volume
   if (image_.ImageType()==NONORTHO)
@@ -381,10 +384,11 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
     int outer_max = OuterMask_.Nselected();
     int inner_max = InnerMask_.Nselected();
 #   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
+    int mythread;
+#   pragma omp parallel private(mythread,nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
     {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    //mythread = omp_get_thread_num();
+    mythread = omp_get_thread_num();
+    thread_problemAtoms_[mythread].clear();
 #   pragma omp for
 #   endif
     for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
@@ -398,12 +402,11 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
             ++Nproblems;
             if (outfile_ != 0) {
 #             ifdef _OPENMP
-#             pragma omp critical
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
 #             endif
-              outfile_->Printf(
-                    "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                    atom1+1, top.TruncResAtomName(atom1).c_str(),
-                    atom2+1, top.TruncResAtomName(atom2).c_str(), sqrt(D2));
+                .push_back(Problem(atom1, atom2, sqrt(D2)));
             }
           }
         }
@@ -416,10 +419,11 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
     // Calculation of atoms in Mask1 to all other atoms in Mask1
     int mask1_max = Mask1_.Nselected();
 #   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
+    int mythread;
+#   pragma omp parallel private(mythread,nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
     {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    //mythread = omp_get_thread_num();
+    mythread = omp_get_thread_num();
+    thread_problemAtoms_[mythread].clear();
 #   pragma omp for schedule(dynamic)
 #   endif
     for (nmask1 = 0; nmask1 < mask1_max; nmask1++) {
@@ -431,13 +435,12 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
         if (D2 < nonbondcut2_) {
           ++Nproblems;
           if (outfile_ != 0) {
-#           ifdef _OPENMP
-#           pragma omp critical
-#           endif
-            outfile_->Printf(
-                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                  atom1+1, top.TruncResAtomName(atom1).c_str(),
-                  atom2+1, top.TruncResAtomName(atom2).c_str(), sqrt(D2));
+#             ifdef _OPENMP
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
+#             endif
+                .push_back(Problem(atom1, atom2, sqrt(D2)));
           }
         }
       } // END inner loop over Mask1
@@ -446,6 +449,7 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
     } // END pragma omp parallel
 #   endif
   }
+  if (outfile_ != 0) WriteProblems(frameNum, top);
 
   return Nproblems;
 }
