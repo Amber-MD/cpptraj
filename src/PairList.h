@@ -1,5 +1,5 @@
-#ifndef INC_PAIRLIST2_H
-#define INC_PAIRLIST2_H
+#ifndef INC_PAIRLIST_H
+#define INC_PAIRLIST_H
 #include "Topology.h"
 #include "Timer.h"
 /// Class for creating a lists of potential pairing atoms via spatial grid.
@@ -8,7 +8,7 @@
   *       However, it is more memory-hungry since it stores full cell
   *       neighbor lists instead of cell centers.
   */
-class PairList2 {
+class PairList {
   public:
     typedef std::vector<int> Iarray;
     /// PairList Atom
@@ -18,7 +18,7 @@ class PairList2 {
     class CellType;
     typedef std::vector<CellType> Carray;
 
-    PairList2();
+    PairList();
     /// Initialize pair list with given cutoff, "skin", and debug level.
     int InitPairList(double,double,int);
     /// Setup pair list grid cells based on given box and vector of recip lengths.
@@ -65,7 +65,7 @@ class PairList2 {
 };
 // -----------------------------------------------------------------------------
 /** PairList Atom. Holds atom index and wrapped coordinates. */
-class PairList2::AtmType {
+class PairList::AtmType {
   public:
     AtmType() : idx_(-1) {}
     /// CONSTRUCTOR - Atom index, wrapped fractional coords, wrapped Cart. coords
@@ -82,7 +82,7 @@ class PairList2::AtmType {
 };
 // -----------------------------------------------------------------------------
 /** PairList Cell. Holds list of atoms and neighbor cells. */
-class PairList2::CellType {
+class PairList::CellType {
   public:
     CellType() {}
     /// Add given atom to this cell
@@ -106,8 +106,8 @@ class PairList2::CellType {
     const_iterator begin() const { return atoms_.begin(); }
     /// \return Iterator to end of atom list.
     const_iterator end()   const { return atoms_.end();   }
-    // PairList2 is a friend so it can access neighborPtr_ and neighborTrans_
-    friend class PairList2;
+    // PairList is a friend so it can access neighborPtr_ and neighborTrans_
+    friend class PairList;
   private:
     Iarray neighborPtr_;   ///< Indices of neighbor cells "forward" of this cell.
     Iarray neighborTrans_; ///< Index pointing to translate vector for each neighbor cell.

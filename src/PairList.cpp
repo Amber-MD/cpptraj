@@ -1,9 +1,9 @@
 #include <cmath> // floor
-#include "PairList2.h"
+#include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString()
 
-PairList2::PairList2() :
+PairList::PairList() :
   cutList_(0.0),
   debug_(0),
   nGridX_(-1),
@@ -15,10 +15,10 @@ PairList2::PairList2() :
 {}
 
 /** This leads to cellNeighbor_ dimensions of 7x10 */
-const int PairList2::cellOffset_ = 3;
+const int PairList::cellOffset_ = 3;
 
 // PairList::InitPairList()
-int PairList2::InitPairList(double cutIn, double skinNBin, int debugIn) {
+int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
   debug_ = debugIn;
   std::fill(translateVec_, translateVec_+18, Vec3(0.0));
   //if (Fill_CellNeighbor()) return 1;
@@ -32,7 +32,7 @@ int PairList2::InitPairList(double cutIn, double skinNBin, int debugIn) {
 }
 
 // PairList::SetupPairList()
-int PairList2::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
+int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
   Timer t_setup;
   t_setup.Start();
   if (typeIn == Box::NOBOX) {
@@ -51,7 +51,7 @@ int PairList2::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
 /** Fill the translate vector array with offset values based on this
   * unit cell. Only need forward direction, so no -Z.
   */
-void PairList2::FillTranslateVec(Matrix_3x3 const& ucell) {
+void PairList::FillTranslateVec(Matrix_3x3 const& ucell) {
   int iv = 0;
   for (int i3 = 0; i3 < 2; i3++)
     for (int i2 = -1; i2 < 2; i2++)
@@ -63,7 +63,7 @@ void PairList2::FillTranslateVec(Matrix_3x3 const& ucell) {
 }
 
 // PairList::CreatePairList()
-int PairList2::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
+int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
   t_total_.Start();
@@ -82,7 +82,7 @@ int PairList2::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
 }
 
 // PairList::GridAtom()
-void PairList2::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
+void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   // NOTE no shift by 0.5
   int i1 = (int)((frac[0]) * (double)nGridX_);
   int i2 = (int)((frac[1]) * (double)nGridY_);
@@ -99,7 +99,7 @@ void PairList2::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
 }
 
 /** Convert to fractional coords, wrap into primary cell. */
-void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
+void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
   // Clear any existing atoms in cells.
@@ -132,7 +132,7 @@ void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
   * or the grid sizes have changed (re)allocate the grid and set up the
   * grid pointers.
   */
-int PairList2::SetupGrids(Vec3 const& recipLengths) {
+int PairList::SetupGrids(Vec3 const& recipLengths) {
   int offsetX = cellOffset_;
   int offsetY = cellOffset_;
   int offsetZ = cellOffset_;
@@ -227,7 +227,7 @@ static inline void CheckOffset(int nGrid, int& offset, char dir) {
   * via idx = oz*3*3 + oy*3 + ox. oz is either 0 or 1 since we only
   * care about forward direction.
   */
-void PairList2::CalcGridPointers(int myindexlo, int myindexhi) {
+void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   //Matrix<bool> PairCalcd;
   //PairCalcd.resize(nGridMax_, 0); // Half matrix
   //std::fill(PairCalcd.begin(), PairCalcd.end(), false);
@@ -381,13 +381,13 @@ void PairList2::CalcGridPointers(int myindexlo, int myindexhi) {
   } // nz
 }
 
-void PairList2::Timing(double total) const {
+void PairList::Timing(double total) const {
   t_total_.WriteTiming(2, "Pair List: ", total);
   t_map_.WriteTiming(3,          "Map Coords:      ", t_total_.Total());
   t_gridpointers_.WriteTiming( 3,"Recalc Grid Ptrs:", t_total_.Total());
 }
 
-void PairList2::PrintMemory() const {
+void PairList::PrintMemory() const {
   size_t total = 0;
   for (Carray::const_iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
     total += cell->MemSize();

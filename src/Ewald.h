@@ -3,7 +3,6 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
-#include "PairList2.h"
 /// Class for calculating electrostatics using Ewald summation.
 class Ewald {
   public:
@@ -46,7 +45,6 @@ class Ewald {
 #   endif
     /// Fast version of direct space energy using a pairlist
     double Direct(PairList const&, double&);
-    double Direct2(PairList2 const&, double&);
     /// \return adjusted energy for excluded atom pair
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
@@ -73,7 +71,6 @@ class Ewald {
     Darray c3_;
     Darray s3_;
     PairList pairList_;   ///< Atom pair list for direct sum.
-    PairList2 pairList2_;
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
 #   ifdef _OPENMP
