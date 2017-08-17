@@ -60,6 +60,16 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   num_problems_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringNext(), "CHECK" );
   if (num_problems_ == 0) return Action::ERR;
   if (dfile != 0) dfile->AddDataSet( num_problems_ );
+# ifdef _OPENMP
+  // Each thread needs space to store problems to prevent clashes
+# pragma omp parallel
+  {
+# pragma omp master
+  {
+  thread_problemAtoms_.resize( omp_get_num_threads() );
+  }
+  }
+# endif
 
   mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'",Mask1_.MaskString());
   if (Mask2_.MaskStringSet())
@@ -96,13 +106,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (silent_)
     mprintf("\tStructure warning messages will be suppressed.\n");
 # ifdef _OPENMP
-# pragma omp parallel
-  {
-#   pragma omp master
-    {
-    mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
-    }
-  }
+  mprintf("\tParallelizing calculation with %zu threads.\n", thread_problemAtoms_.size());
 # endif
   return Action::OK;
 }
@@ -241,6 +245,7 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
   return Nproblems;   
 }
 
+/** Check for bad overlaps; use a pair list to speed things up. */
 int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFrame,
                                            Topology const& top)
 {
@@ -252,10 +257,13 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
 
   int cidx;
 # ifdef _OPENMP
-# pragma omp parallel private(cidx) reduction(+: Nproblems)
+  int mythread;
+# pragma omp parallel private(cidx,mythread) reduction(+: Nproblems)
   {
+  mythread = omp_get_thread_num();
+  thread_problemAtoms_[mythread].clear();
 # pragma omp for
-# endif
+# endif 
   for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
@@ -280,7 +288,12 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
           if (D2 < nonbondcut2_) {
             ++Nproblems;
             if (outfile_ != 0) {
-              problemAtoms_.push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+#             ifdef _OPENMP
+              thread_problemAtoms_[mythread]
+#             else
+              problemAtoms_
+#             endif
+                .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
             }
           }
         } // END loop over all other atoms in thisCell
@@ -301,7 +314,12 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
             if (D2 < nonbondcut2_) {
               ++Nproblems;
               if (outfile_ != 0) {
-                problemAtoms_.push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+#               ifdef _OPENMP
+                  thread_problemAtoms_[mythread]
+#               else
+                problemAtoms_
+#               endif
+                  .push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
               }
             }
           } // END loop over atoms in neighbor cell
@@ -313,6 +331,12 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
   } // END omp parallel
 # endif
   if (outfile_ != 0) {
+#   ifdef _OPENMP
+    for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
+      for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
+                                  p != thread_problemAtoms_[thread].end(); ++p)
+        problemAtoms_.push_back( *p );
+#   endif
     std::sort( problemAtoms_.begin(), problemAtoms_.end() );
     for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
       outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
@@ -322,7 +346,6 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
 
   return Nproblems;
 }
-
 
 /** Check for bad overlaps. */
 int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame, Topology const& top)

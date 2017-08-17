@@ -45,6 +45,9 @@ class Action_CheckStructure : public Action {
         int atom2_;   ///< Second atom
     };
     typedef std::vector<Problem> Parray;
+#   ifdef _OPENMP
+    std::vector<Parray> thread_problemAtoms_;
+#   endif
     Parray problemAtoms_;
 
     int PL_CheckOverlap(int, Frame const&, Topology const&);
