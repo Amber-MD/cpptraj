@@ -11,8 +11,10 @@
 class PairList2 {
   public:
     typedef std::vector<int> Iarray;
+    /// PairList Atom
     class AtmType;
     typedef std::vector<AtmType> Aarray;
+    /// PairList Cell
     class CellType;
     typedef std::vector<CellType> Carray;
 
@@ -33,7 +35,6 @@ class PairList2 {
     CellType const& Cell(int idx) const { return cells_[idx];        }
     /// \return Translation vector for given translation index (from TransList()).
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
-
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
@@ -47,9 +48,7 @@ class PairList2 {
     inline void GridAtom(int, Vec3 const&, Vec3 const&);
 
     Carray cells_;            ///< Hold all cells in grid
-
     Vec3 translateVec_[18];   ///< Translate vector array
-
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int debug_;
     int nGridX_;              ///< Number of grid cells in X direction.
@@ -58,45 +57,56 @@ class PairList2 {
     int nGridX_0_;            ///< Previous number of cells in X direction
     int nGridY_0_;            ///< Previous number of cells in Y direction
     int nGridZ_0_;            ///< Previous number of cells in Z direction
-
     static const int cellOffset_; ///< Number of cells in forward direction to check
 
     Timer t_map_;
     Timer t_gridpointers_;
     Timer t_total_;
 };
-/// PairList Atom
+// -----------------------------------------------------------------------------
+/** PairList Atom. Holds atom index and wrapped coordinates. */
 class PairList2::AtmType {
   public:
     AtmType() : idx_(-1) {}
+    /// CONSTRUCTOR - Atom index, wrapped fractional coords, wrapped Cart. coords
     AtmType(int i, Vec3 const& f, Vec3 const& c) :
       imageCoords_(c), fracCoords_(f), idx_(i) {}
+    /// \return Wrapped Cart. coords
     Vec3 const& ImageCoords() const { return imageCoords_; }
+    /// \return Atom index.
     int Idx()                 const { return idx_;         }
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
     Vec3 fracCoords_;  ///< Fractional coordinates
     int idx_;          ///< Atom index
 };
-/// PairList Cell
+// -----------------------------------------------------------------------------
+/** PairList Cell. Holds list of atoms and neighbor cells. */
 class PairList2::CellType {
   public:
     CellType() {}
+    /// Add given atom to this cell
     void AddAtom(AtmType const& a) { atoms_.push_back( a ); }
+    /// Clear all atoms in this cell
     void ClearAtoms()              { atoms_.clear();        }
-
+    /// \return Number of atoms in the cell
     unsigned int NatomsInGrid() const { return atoms_.size();  }
+    /// \return List of cell neighbors - starts with this cell
     Iarray const& CellList()    const { return neighborPtr_;   }
+    /// \return List of translations for neighbors - starts with this cell
     Iarray const& TransList()   const { return neighborTrans_; }
+    /// \return Memory used by this cell in bytes
     size_t MemSize() const {
       return ((neighborPtr_.size() + neighborTrans_.size()) * sizeof(int)) +
              (2 * sizeof(Iarray)) + (atoms_.size() * sizeof(AtmType)) + sizeof(Aarray);
     }
-
+    /// Atom list iterator
     typedef Aarray::const_iterator const_iterator;
+    /// \return Iterator to beginning of atom list.
     const_iterator begin() const { return atoms_.begin(); }
+    /// \return Iterator to end of atom list.
     const_iterator end()   const { return atoms_.end();   }
-
+    // PairList2 is a friend so it can access neighborPtr_ and neighborTrans_
     friend class PairList2;
   private:
     Iarray neighborPtr_;   ///< Indices of neighbor cells "forward" of this cell.
