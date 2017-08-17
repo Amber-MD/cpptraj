@@ -10,7 +10,9 @@
 Action_CheckStructure::Action_CheckStructure() :
   bondoffset_(1.15),
   nonbondcut2_(0.64), // 0.8^2
-  plcut_(1.6),
+  // NOTE: Default of 4.0 Ang for cutoff is from trial and error; seems
+  //       to give a good balance between speed and grid size.
+  plcut_(4.0),
   outfile_(0),
   CurrentParm_(0),
   num_problems_(0),
@@ -55,7 +57,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
                 actionArgs.getKeyDouble("offset",1.15),
                 actionArgs.hasKey("silent"), init.DFL() );
   // DoAction-only keywords.
-  plcut_ = actionArgs.getKeyDouble("plcut", 2.0*sqrt(nonbondcut2_));
+  plcut_ = actionArgs.getKeyDouble("plcut", 4.0);
   bondcheck_ = !actionArgs.hasKey("nobondcheck");
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
