@@ -17,6 +17,20 @@ PairList2::PairList2() :
 /** This leads to cellNeighbor_ dimensions of 7x10 */
 const int PairList2::cellOffset_ = 3;
 
+// PairList::InitPairList()
+int PairList2::InitPairList(double cutIn, double skinNBin, int debugIn) {
+  debug_ = debugIn;
+  std::fill(translateVec_, translateVec_+18, Vec3(0.0));
+  //if (Fill_CellNeighbor()) return 1;
+  cutList_ = cutIn + skinNBin;
+  nGridX_0_ = -1;
+  nGridY_0_ = -1;
+  nGridZ_0_ = -1;
+  //maxNptrs_ = ((2*cellOffset_ + 1) * (2*cellOffset_ + 1) + 1 ) / 2;
+  //mprintf("DEBUG: max number of pointers= %i\n", maxNptrs_);
+  return 0;
+}
+
 // PairList::SetupPairList()
 int PairList2::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
   Timer t_setup;

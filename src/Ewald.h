@@ -73,6 +73,7 @@ class Ewald {
     Darray c3_;
     Darray s3_;
     PairList pairList_;   ///< Atom pair list for direct sum.
+    PairList2 pairList2_;
     Darray erfc_table_;   ///< Hold Erfc cubic spline Y values and coefficients (Y B C D).
     Iarray2D Excluded_;   ///< Full exclusion list for each atom.
 #   ifdef _OPENMP

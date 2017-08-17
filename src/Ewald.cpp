@@ -321,6 +321,8 @@ int Ewald::EwaldInit(Box const& boxIn, double cutoffIn, double dsumTolIn, double
   // Set up pair list
   if (pairList_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
   if (pairList_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
+  if (pairList2_.InitPairList(cutoff_, skinnbIn, debugIn)) return 1;
+  if (pairList2_.SetupPairList( boxIn.Type(), recipLengths )) return 1;
 
   return 0;
 }
@@ -863,11 +865,17 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
   double e_self = Self( volume );
 
   pairList_.CreatePairList(frameIn, ucell, recip, maskIn);
+  pairList2_.CreatePairList(frameIn, ucell, recip, maskIn);
 
 //  MapCoords(frameIn, ucell, recip, maskIn);
   double e_recip = Recip_Regular( recip, volume );
   double e_adjust = 0.0;
   double e_direct = Direct( pairList_, e_adjust );
+
+  double e_adjust2 = 0.0;
+  double e_direct2 = Direct2( pairList2_, e_adjust2 );
+  mprintf("DEBUG: edirect= %f %f  eadjust= %f %f\n", e_direct, e_direct2, e_adjust, e_adjust2);
+
   if (debug_ > 0)
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
             e_self, e_recip, e_direct, e_adjust);
@@ -971,4 +979,5 @@ void Ewald::Timing(double total) const {
   t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());
 # endif
   pairList_.Timing(total);
+  pairList2_.Timing(total);
 }
