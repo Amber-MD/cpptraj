@@ -732,6 +732,128 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
   return Eelec;
 }
 
+double Ewald::Direct2(PairList2 const& PL, double& e_adjust_out)
+{
+//  t_direct_.Start();
+  double cut2 = cutoff_ * cutoff_;
+  double Eelec = 0.0;
+  double e_adjust = 0.0;
+  int cidx;
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Eelec, e_adjust)
+  {
+# pragma omp for
+# endif
+  for (cidx = 0; cidx < PL.NGridMax(); cidx++)
+  {
+    PairList2::CellType const& thisCell = PL.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList2::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList2::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList2::CellType::const_iterator it0 = thisCell.begin();
+                                               it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        double q0 = Charge_[it0->Idx()];
+        // Exclusion list for this atom
+        Iset const& excluded = Excluded_[it0->Idx()];
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList2::CellType::const_iterator it1 = it0 + 1;
+                                                 it1 != thisCell.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          double q1 = Charge_[it1->Idx()];
+          Vec3 dxyz = xyz1 - xyz0;
+          double rij2 = dxyz.Magnitude2();
+          // If atom excluded, calc adjustment, otherwise calc elec. energy.
+          if (excluded.find( it1->Idx() ) == excluded.end())
+          {
+            if ( rij2 < cut2 ) {
+              double rij = sqrt( rij2 );
+              double qiqj = q0 * q1;
+#             ifndef _OPENMP
+              t_erfc_.Start();
+#             endif
+              //double erfc = erfc_func(ew_coeff_ * rij);
+              double erfc = ERFC(ew_coeff_ * rij);
+#             ifndef _OPENMP
+              t_erfc_.Stop();
+#             endif
+              double e_elec = qiqj * erfc / rij;
+              Eelec += e_elec;
+              //int ta0, ta1;
+              //if (atnum0 < atnum1) {
+              //  ta0=atnum0; ta1=atnum1;
+              //} else {
+              //  ta1=atnum0; ta0=atnum1;
+              //}
+              //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+            }
+          } else
+            e_adjust += Adjust(q0, q1, sqrt(rij2));
+        } // END loop over other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList2::CellType const& nbrCell = PL.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = PL.TransVec( transList[nidx] );
+          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+          // Loop over every atom in nbrCell
+          for (PairList2::CellType::const_iterator it1 = nbrCell.begin();
+                                                   it1 != nbrCell.end(); ++it1)
+          {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            double q1 = Charge_[it1->Idx()];
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double rij2 = dxyz.Magnitude2();
+            //mprintf("\t\tNbrAtom %06i\n",atnum1);
+            // If atom excluded, calc adjustment, otherwise calc elec. energy.
+            // TODO Is there better way of checking this?
+            if (excluded.find( it1->Idx() ) == excluded.end())
+            {
+              //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+              if ( rij2 < cut2 ) {
+                double rij = sqrt( rij2 );
+                double qiqj = q0 * q1;
+#               ifndef _OPENMP
+                t_erfc_.Start();
+#               endif
+                //double erfc = erfc_func(ew_coeff_ * rij);
+                double erfc = ERFC(ew_coeff_ * rij);
+#               ifndef _OPENMP
+                t_erfc_.Stop();
+#               endif
+                double e_elec = qiqj * erfc / rij;
+                Eelec += e_elec;
+                //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
+                //int ta0, ta1;
+                //if (atnum0 < atnum1) {
+                //  ta0=atnum0; ta1=atnum1;
+                //} else {
+                //  ta1=atnum0; ta0=atnum1;
+                //}
+                //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
+              }
+            } else
+              e_adjust += Adjust(q0, q1, sqrt(rij2));
+          } // END loop over neighbor cell atoms
+        } // END Loop over neighbor cells
+      } // Loop over thisCell atoms
+    } // END if thisCell is not empty
+  } // Loop over cells
+# ifdef _OPENMP
+  } // END pragma omp parallel
+# endif
+  t_direct_.Stop();
+  e_adjust_out = e_adjust;
+  return Eelec;
+}
+
 /** Calculate Ewald energy. Faster version that uses pair list. */
 double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
 {

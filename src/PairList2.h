@@ -27,9 +27,13 @@ class PairList2 {
     void Timing(double) const;
     /// Print memory usage.
     void PrintMemory() const;
-
+    /// \return Number of grid cells.
     int NGridMax()                const { return (int)cells_.size(); }
+    /// \return Specified grid cell.
     CellType const& Cell(int idx) const { return cells_[idx];        }
+    /// \return Translation vector for given translation index (from TransList()).
+    Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
+
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
@@ -67,7 +71,8 @@ class PairList2::AtmType {
     AtmType() : idx_(-1) {}
     AtmType(int i, Vec3 const& f, Vec3 const& c) :
       imageCoords_(c), fracCoords_(f), idx_(i) {}
-      Vec3 const& ImageCoords() const { return imageCoords_; }
+    Vec3 const& ImageCoords() const { return imageCoords_; }
+    int Idx()                 const { return idx_;         }
   private:
     Vec3 imageCoords_; ///< Imaged Cartesian coordinates
     Vec3 fracCoords_;  ///< Fractional coordinates

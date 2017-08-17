@@ -3,6 +3,7 @@
 #include "Topology.h"
 #include "Timer.h"
 #include "PairList.h"
+#include "PairList2.h"
 /// Class for calculating electrostatics using Ewald summation.
 class Ewald {
   public:
@@ -45,6 +46,7 @@ class Ewald {
 #   endif
     /// Fast version of direct space energy using a pairlist
     double Direct(PairList const&, double&);
+    double Direct2(PairList2 const&, double&);
     /// \return adjusted energy for excluded atom pair
 #   ifdef _OPENMP
     inline double Adjust(double,double,double) const;
@@ -53,7 +55,8 @@ class Ewald {
 #   endif
     typedef std::vector<double> Darray;
     typedef std::vector<Vec3> Varray;
-    typedef std::vector< std::set<int> > Iarray2D;
+    typedef std::set<int> Iset;
+    typedef std::vector<Iset> Iarray2D;
 #   ifdef DEBUG_EWALD
     Varray Cells_;  ///< Hold fractional translations to neighbor cells (non-pairlist only)
 #   endif
