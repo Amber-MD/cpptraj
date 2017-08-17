@@ -102,6 +102,9 @@ void PairList2::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
 void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
+  // Clear any existing atoms in cells.
+  for (Carray::iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
+    cell->ClearAtoms();
   if (frmIn.BoxCrd().Type() == Box::ORTHO) {
     // Orthogonal imaging
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)

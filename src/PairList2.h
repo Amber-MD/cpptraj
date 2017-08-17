@@ -83,6 +83,7 @@ class PairList2::CellType {
   public:
     CellType() {}
     void AddAtom(AtmType const& a) { atoms_.push_back( a ); }
+    void ClearAtoms()              { atoms_.clear();        }
 
     unsigned int NatomsInGrid() const { return atoms_.size();  }
     Iarray const& CellList()    const { return neighborPtr_;   }
