@@ -1,4 +1,5 @@
 #include <cmath> //sqrt
+#include <algorithm> // sort
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
 #ifdef _OPENMP
@@ -14,7 +15,8 @@ Action_CheckStructure::Action_CheckStructure() :
   num_problems_(0),
   silent_(false),
   skipBadFrames_(false),
-  bondcheck_(true)
+  bondcheck_(true),
+  usePairList_(false)
 {}
 
 void Action_CheckStructure::Help() const {
@@ -187,6 +189,17 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");
+  // Set up pairlist TODO in separate setup
+  usePairList_ = false;
+  if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
+    if (pairList_.InitPairList( 2*sqrt(nonbondcut2_), 0.1, 0 )) return Action::ERR;
+    Matrix_3x3 ucell, recip;
+    Box const& box = setup.CoordInfo().TrajBox();
+    box.ToRecip(ucell, recip);
+    if (pairList_.SetupPairList( box.Type(), box.RecipLengths(recip) )) return Action::ERR;
+    mprintf("\tUsing pair list.\n");
+    usePairList_ = true;
+  }
   return Action::OK;
 }
 
@@ -227,6 +240,89 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
 # endif
   return Nproblems;   
 }
+
+int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFrame,
+                                           Topology const& top)
+{
+  int Nproblems = 0;
+  Matrix_3x3 ucell, recip; // ToFrac, ToCart
+  currentFrame.BoxCrd().ToRecip(ucell, recip);
+  pairList_.CreatePairList(currentFrame, ucell, recip, Mask1_);
+  problemAtoms_.clear();
+
+  int cidx;
+# ifdef _OPENMP
+# pragma omp parallel private(cidx) reduction(+: Nproblems)
+  {
+# pragma omp for
+# endif
+  for (cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = pairList_.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          Vec3 dxyz = xyz1 - xyz0;
+          double D2 = dxyz.Magnitude2();
+          if (D2 < nonbondcut2_) {
+            ++Nproblems;
+            if (outfile_ != 0) {
+              problemAtoms_.push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+            }
+          }
+        } // END loop over all other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 + tVec - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < nonbondcut2_) {
+              ++Nproblems;
+              if (outfile_ != 0) {
+                problemAtoms_.push_back(Problem(Mask1_[it0->Idx()], Mask1_[it1->Idx()], sqrt(D2)));
+              }
+            }
+          } // END loop over atoms in neighbor cell
+        } // END loop over neighbor cells
+      } // END loop over atoms in thisCell
+    } // END cell not empty
+  } // END loop over cells
+# ifdef _OPENMP
+  } // END omp parallel
+# endif
+  if (outfile_ != 0) {
+    std::sort( problemAtoms_.begin(), problemAtoms_.end() );
+    for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
+      outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
+                      p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                      p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
+  }
+
+  return Nproblems;
+}
+
 
 /** Check for bad overlaps. */
 int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame, Topology const& top)
@@ -316,7 +412,11 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
 
 // Action_CheckStructure::DoAction()
 Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) {
-  int total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
+  int total_problems;
+  if (usePairList_)
+    total_problems = PL_CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
+  else
+    total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
   if (bondcheck_)
     total_problems += CheckBonds(frameNum+1, frm.Frm(), *CurrentParm_);
   num_problems_->Add( frameNum, &total_problems );
