@@ -245,19 +245,8 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
-  if (outfile_ != 0) {
-#   ifdef _OPENMP
-    for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
-      for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
-                                  p != thread_problemAtoms_[thread].end(); ++p)
-        problemAtoms_.push_back( *p );
-#   endif
-    std::sort( problemAtoms_.begin(), problemAtoms_.end() );
-    for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
-      outfile_->Printf("%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                       p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
-                       p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
-  }
+  if (outfile_ != 0) WriteProblems(BondFmt_, frameNum, top); 
+
   return Nproblems;   
 }
 
@@ -347,12 +336,19 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  if (outfile_ != 0) WriteProblems(frameNum, top); 
+  if (outfile_ != 0) WriteProblems(AtomFmt_, frameNum, top); 
 
   return Nproblems;
 }
 
-void Action_CheckStructure::WriteProblems(int frameNum, Topology const& top) {
+const char* Action_CheckStructure::BondFmt_ =
+  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n";
+
+const char* Action_CheckStructure::AtomFmt_ =
+  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n";
+
+/** Consolidate problems from different threads if necessary and write out. */
+void Action_CheckStructure::WriteProblems(const char* fmt, int frameNum, Topology const& top) {
 # ifdef _OPENMP
   for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
     for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
@@ -361,7 +357,8 @@ void Action_CheckStructure::WriteProblems(int frameNum, Topology const& top) {
 # endif
   std::sort( problemAtoms_.begin(), problemAtoms_.end() );
   for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
-    outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
+    //outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
+    outfile_->Printf(fmt, frameNum,
                     p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
                     p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
 }
@@ -449,7 +446,7 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
     } // END pragma omp parallel
 #   endif
   }
-  if (outfile_ != 0) WriteProblems(frameNum, top);
+  if (outfile_ != 0) WriteProblems(AtomFmt_, frameNum, top);
 
   return Nproblems;
 }

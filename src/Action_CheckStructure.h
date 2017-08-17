@@ -53,7 +53,7 @@ class Action_CheckStructure : public Action {
     int PL_CheckOverlap(int, Frame const&, Topology const&);
     void ProcessBondArray(BondArray const&, BondParmArray const&, CharMask const&);
     void SetupBondList(AtomMask const&, Topology const&);
-    void WriteProblems(int, Topology const&);
+    void WriteProblems(const char*, int, Topology const&);
     /// Used to cache bond parameters
     struct BondType {
       double Req_off2_; ///< Bond cutoff (Req+bondoffset)^2
@@ -79,5 +79,7 @@ class Action_CheckStructure : public Action {
     bool skipBadFrames_;    ///< If true skip frames with problems
     bool bondcheck_;        ///< If true check bonds as well (default)
     bool usePairList_;
+    static const char* BondFmt_;
+    static const char* AtomFmt_;
 };
 #endif
