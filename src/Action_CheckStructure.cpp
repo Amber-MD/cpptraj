@@ -191,14 +191,14 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
   if (SeparateSetup( setup.Top(), setup.CoordInfo().TrajBox().Type(),bondcheck_ ))
     return Action::ERR;
-  // Print imaging info for this parm
   if (bondcheck_)
     mprintf("\tChecking %u bonds.\n", bondList_.size());
+  // Print imaging info for this parm
   if (image_.ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");
-  // Set up pairlist TODO in separate setup
+  // Set up pairlist. Only use if imaging and not using second mask.
   usePairList_ = false;
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
     if (pairList_.InitPairList( plcut_, 0.1, 0 )) return Action::ERR;
@@ -215,38 +215,49 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
 /** Check for bad bond lengths. */
 int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, Topology const& top)
 {
-  double D2;
-  int idx;
   int Nproblems = 0;
-
+  problemAtoms_.clear();
   int bond_max = (int)bondList_.size();
+  int idx;
 # ifdef _OPENMP
-# pragma omp parallel private(idx,D2) reduction(+: Nproblems)
+  int mythread;
+# pragma omp parallel private(idx,mythread) reduction(+: Nproblems)
   {
-  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-  //mythread = omp_get_thread_num();
+  mythread = omp_get_thread_num();
+  thread_problemAtoms_[mythread].clear();
 # pragma omp for
 # endif
   for (idx = 0; idx < bond_max; idx++) {
-    D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].a1_),
-                        currentFrame.XYZ(bondList_[idx].a2_) );
+    double D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].a1_),
+                               currentFrame.XYZ(bondList_[idx].a2_) );
     if (D2 > bondList_[idx].Req_off2_) {
       ++Nproblems;
       if (outfile_ != 0) {
 #       ifdef _OPENMP
-#       pragma omp critical
+        thread_problemAtoms_[mythread]
+#       else
+        problemAtoms_
 #       endif
-        outfile_->Printf(
-                    "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                    bondList_[idx].a1_+1, top.TruncResAtomName(bondList_[idx].a1_).c_str(),
-                    bondList_[idx].a2_+1, top.TruncResAtomName(bondList_[idx].a2_).c_str(),
-                    sqrt(D2));
+          .push_back(Problem(bondList_[idx].a1_, bondList_[idx].a2_, sqrt(D2)));
       }
     }
   } // END loop over bonds
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
+  if (outfile_ != 0) {
+#   ifdef _OPENMP
+    for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
+      for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
+                                  p != thread_problemAtoms_[thread].end(); ++p)
+        problemAtoms_.push_back( *p );
+#   endif
+    std::sort( problemAtoms_.begin(), problemAtoms_.end() );
+    for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
+      outfile_->Printf("%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
+                       p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                       p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
+  }
   return Nproblems;   
 }
 
@@ -321,7 +332,7 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
               ++Nproblems;
               if (outfile_ != 0) {
 #               ifdef _OPENMP
-                  thread_problemAtoms_[mythread]
+                thread_problemAtoms_[mythread]
 #               else
                 problemAtoms_
 #               endif
