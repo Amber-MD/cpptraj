@@ -874,7 +874,7 @@ double Ewald::CalcEnergy(Frame const& frameIn, AtomMask const& maskIn)
 
   double e_adjust2 = 0.0;
   double e_direct2 = Direct2( pairList2_, e_adjust2 );
-  mprintf("DEBUG: edirect= %f %f  eadjust= %f %f\n", e_direct, e_direct2, e_adjust, e_adjust2);
+  mprintf("DEBUG: deltaEdirect = %16.8E  deltaEadjust= %16.8E\n", e_direct-e_direct2, e_adjust-e_adjust2);
 
   if (debug_ > 0)
     mprintf("DEBUG: Eself= %20.10f   Erecip= %20.10f   Edirect= %20.10f  Eadjust= %20.10f\n",
