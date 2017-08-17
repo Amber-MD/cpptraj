@@ -96,6 +96,7 @@ void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
     return;
   }
   cells_[idx].AddAtom( AtmType(atomIdx, frac, cart) );
+  Frac_.push_back( frac );
 }
 
 /** Convert to fractional coords, wrap into primary cell. */
@@ -105,6 +106,8 @@ void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
   // Clear any existing atoms in cells.
   for (Carray::iterator cell = cells_.begin(); cell != cells_.end(); ++cell)
     cell->ClearAtoms();
+  Frac_.clear();
+  Frac_.reserve( maskIn.Nselected() );
   if (frmIn.BoxCrd().Type() == Box::ORTHO) {
     // Orthogonal imaging
     for (AtomMask::const_iterator atom = maskIn.begin(); atom != maskIn.end(); ++atom)

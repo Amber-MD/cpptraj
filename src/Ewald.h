@@ -97,7 +97,6 @@ class Ewald {
     Timer t_recip_;
     Timer t_trig_tables_;
     Timer t_direct_;
-    Timer t_direct2_;
     Timer t_erfc_;
     Timer t_adjust_;
 };

@@ -11,6 +11,7 @@
 class PairList {
   public:
     typedef std::vector<int> Iarray;
+    typedef std::vector<Vec3> Varray;
     /// PairList Atom
     class AtmType;
     typedef std::vector<AtmType> Aarray;
@@ -35,6 +36,8 @@ class PairList {
     CellType const& Cell(int idx) const { return cells_[idx];        }
     /// \return Translation vector for given translation index (from TransList()).
     Vec3 const& TransVec(int t)    const { return translateVec_[t];  }
+    /// \return Array containing wrapped fractional coords.
+    Varray const& FracCoords()     const { return Frac_;  }
   private:
     /// Determine neighbors and translation vectors for each cell.
     void CalcGridPointers(int,int);
@@ -49,6 +52,7 @@ class PairList {
 
     Carray cells_;            ///< Hold all cells in grid
     Vec3 translateVec_[18];   ///< Translate vector array
+    Varray Frac_;             ///< Hold fractional coords back in primary cell.
     double cutList_;          ///< Direct space cutoff plus non-bond "skin"
     int debug_;
     int nGridX_;              ///< Number of grid cells in X direction.
