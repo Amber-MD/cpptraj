@@ -83,7 +83,6 @@ int PairList::CreatePairList(Frame const& frmIn, Matrix_3x3 const& ucell,
 
 // PairList::GridAtom()
 void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
-  // NOTE no shift by 0.5
   int i1 = (int)((frac[0]) * (double)nGridX_);
   int i2 = (int)((frac[1]) * (double)nGridY_);
   int i3 = (int)((frac[2]) * (double)nGridZ_);
@@ -99,7 +98,9 @@ void PairList::GridAtom(int atomIdx, Vec3 const& frac, Vec3 const& cart) {
   Frac_.push_back( frac );
 }
 
-/** Convert to fractional coords, wrap into primary cell. */
+/** Place selected atoms into grid cells. Convert to fractional coords, wrap
+  * into primary cell, then determine grid cell.
+  */
 void PairList::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
                              Matrix_3x3 const& recip, AtomMask const& maskIn)
 {
@@ -172,6 +173,7 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
   if (offsetZ*dc3 < cut)
     cut = (double)offsetZ*dc3;
   //if(nogrdptrs)cut=cutlist
+  // Allocation
   int nGridMax = nGridX_ * nGridY_ * nGridZ_;
   cells_.clear();
   cells_.resize( nGridMax );
@@ -190,18 +192,6 @@ int PairList::SetupGrids(Vec3 const& recipLengths) {
     mprinterr("Error: Resulting cutoff %f too small for lower limit %f\n", cut, cutList_);
     return 1;
   }
-  // Allocation
-//  nLoGrid_.resize( nGridMax_ );
-//  nHiGrid_.resize( nGridMax_ );
-//  nAtomsInGrid_.resize( nGridMax_ );
-//  idxOffset_.resize( nGridMax_ );
-//  myGrids_.resize( nGridMax_ );
-//  neighborPtr_.resize( nGridMax_ );
-//  neighborTrans_.resize( nGridMax_ );
-//  for (int i = 0; i != nGridMax_; i++) {
-//    neighborPtr_[i].clear();
-//    neighborTrans_[i].clear();
-//  }
 
   // NOTE: myindex are for parallelization later (maybe).
   int myindexlo = 0;
