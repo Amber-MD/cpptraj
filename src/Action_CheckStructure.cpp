@@ -187,8 +187,10 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
   if (SeparateSetup( setup.Top(), setup.CoordInfo().TrajBox().Type(),bondcheck_ ))
     return Action::ERR;
-  if (bondcheck_)
+  if (bondcheck_) {
     mprintf("\tChecking %u bonds.\n", bondList_.size());
+    std::sort(bondList_.begin(), bondList_.end());
+  }
   // Print imaging info for this parm
   if (image_.ImagingEnabled())
     mprintf("\tImaging on.\n");
