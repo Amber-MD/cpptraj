@@ -112,8 +112,8 @@ void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
       const double* XYZ = frmIn.XYZ(*atom);
       Vec3 fc( XYZ[0]*recip[0],    XYZ[1]*recip[4],    XYZ[2]*recip[8]   );
       Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
-      Vec3 cc( fcw[0]*ucell[0],    fcw[1]*ucell[4],    fcw[2]*ucell[8]   );
-      GridAtom( atom-maskIn.begin(), fcw, cc );
+      Vec3 ccw(fcw[0]*ucell[0],    fcw[1]*ucell[4],    fcw[2]*ucell[8]   );
+      GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   } else {
     // Non-orthogonal imaging
@@ -121,8 +121,8 @@ void PairList2::GridUnitCell(Frame const& frmIn, Matrix_3x3 const& ucell,
     {
       Vec3 fc = recip * Vec3(frmIn.XYZ(*atom));
       Vec3 fcw(fc[0]-floor(fc[0]), fc[1]-floor(fc[1]), fc[2]-floor(fc[2]));
-      Vec3 cc = ucell.TransposeMult( fcw );
-      GridAtom( atom-maskIn.begin(), fcw, cc );
+      Vec3 ccw = ucell.TransposeMult( fcw );
+      GridAtom( atom-maskIn.begin(), fcw, ccw );
     }
   }
 }
