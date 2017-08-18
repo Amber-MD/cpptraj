@@ -61,11 +61,11 @@ class StructureCheck {
     /// Add selected bonds in topology to list to be checked.
     void SetupBondList(AtomMask const&, Topology const&);
     /// PairList version of CheckOverlap, 1 mask
-    int PL1_CheckOverlap(Frame const&);
+    int PL1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
     /// Non-pairlist version of CheckOverlap, 1 mask
-    int Mask1_CheckOverlap(Frame const&);
+    int Mask1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
     /// Non-pairlist version of CheckOverlap, 2 masks
-    int Mask2_CheckOverlap(Frame const&);
+    int Mask2_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
 
 #   ifdef _OPENMP
     void ConsolidateProblems();
