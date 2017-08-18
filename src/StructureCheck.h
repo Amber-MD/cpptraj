@@ -16,6 +16,17 @@ class StructureCheck {
     /// \return Number of atomic overlaps.
     int CheckOverlaps(Frame const&);
 
+    AtomMask const& Mask1()     const { return Mask1_; }
+    AtomMask const& Mask2()     const { return Mask2_; }
+    ImagedAction const& Image() const { return image_; }
+    bool CheckBonds()           const { return bondcheck_; }
+    double BondOffset()         const { return bondoffset_; }
+    double NonBondCut2()        const { return nonbondcut2_; }
+    double PairListCut()        const { return plcut_; }
+    unsigned int Nbonds()       const { return bondList_.size(); }
+#   ifdef _OPENMP
+    unsigned int Nthreads()     const { return thread_problemAtoms_.size(); }
+#   endif
     // -------------------------------------------
     /// Store problems between atoms. Also used to cache bond parameters.
     class Problem {
