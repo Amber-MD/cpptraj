@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles check.in report.dat nprob.dat tz2.dat
+CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat
 
 INPUT="-i check.in"
 
@@ -39,6 +39,16 @@ check reportfile around.dat offset 1.0 :WAT around :1
 EOF
   RunCpptraj "Structure Check with Around"
   DoTest around.dat.save around.dat
+
+  # Around test with skip
+  cat > check.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+scale :1 x 2.0 y 1.2 z 1.2
+check nobondcheck :WAT around :1 out skip.dat
+EOF
+  RunCpptraj "Structure Check with Around and Skip"
+  DoTest skip.dat.save skip.dat
 fi
 
 EndTest
