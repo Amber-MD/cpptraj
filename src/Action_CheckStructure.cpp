@@ -16,9 +16,20 @@ Action_CheckStructure::Action_CheckStructure() :
 {}
 
 void Action_CheckStructure::Help() const {
-  mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]\n"
-          "\t[offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
-          "  Check frames for atomic overlaps and unusual bond lengths\n");
+  mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage]\n"
+          "\t[skipbadframes] [offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
+          "\t[plcut <cut>]\n"
+          "  Check atoms in <mask> for atomic overlaps less than <cut> (default 0.8 Ang)\n"
+          "  and unusual bond lengths greater than equilibrium length + <offset>\n"
+          "  (default 1.15 Ang). If 'around' is specified, check between atoms in\n"
+          "  <mask1> and <mask2>. If the frame has box info and 'around' is not\n"
+          "  specified a pair list will be used to speed up the calculation. The\n"
+          "  cutoff used to build the pair list can be adjusted with 'plcut'\n"
+          "  (default 4.0 Ang. or <cut>, whichever is greater).\n"
+          "  Warnings will go to the file specified by 'reportfile', STDOUT,\n"
+          "  or will be suppressed if 'silent' is specified. If 'skipbadframes'\n"
+          "  is specified, subsequent Actions will be skipped if any problems\n"
+          "  are detected.\n");
 }
 
 // Action_CheckStructure::Init()
@@ -94,7 +105,7 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (!check_.CheckBonds())
     mprintf("\tChecking inter-atomic distances only.\n");
   else
-    mprintf("\tChecking for bond lengths > eq + %.2f Ang\n",
+    mprintf("\tChecking for bond lengths > Req + %.2f Ang\n",
             check_.BondOffset());
   mprintf("\tChecking for inter-atomic distances < %.2f Ang.\n",
           nonbondcut);
@@ -132,7 +143,7 @@ Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   return Action::OK;
 }
 
-
+/// Output format strings for warnings.
 const char* Action_CheckStructure::Fmt_[] = {
   "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",
   "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n"
