@@ -5,6 +5,11 @@
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
+#ifdef MPI
+# include "DataSet_integer.h"
+# include "DataSet_double.h"
+# include "DataSet_string.h"
+#endif
 
 // CONSTRUCTOR
 Action_CheckStructure::Action_CheckStructure() :
@@ -49,6 +54,9 @@ int Action_CheckStructure::SeparateInit(bool imageOn, std::string const& mask1,
 // Action_CheckStructure::Init()
 Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   // Get Keywords
   std::string around = actionArgs.GetStringKey("around");
   SeparateInit( !(actionArgs.hasKey("noimage")), actionArgs.GetMaskNext(),
@@ -62,6 +70,28 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   num_problems_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringNext(), "CHECK" );
+# ifdef MPI
+  idx_ = 0;
+  if (outfile_ != 0) {
+    MetaData md(num_problems_->Meta().Name(), "frame");
+    ds_fn_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("type");
+    ds_pt_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("a1");
+    ds_a1_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("n1");
+    ds_n1_ = init.DSL().AddSet(DataSet::STRING, md);
+    md.SetAspect("a2");
+    ds_a2_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("n2");
+    ds_n2_ = init.DSL().AddSet(DataSet::STRING, md);
+    md.SetAspect("dist");
+    ds_d_  = init.DSL().AddSet(DataSet::DOUBLE, md);
+    if (ds_fn_ == 0 || ds_pt_ == 0 || ds_a1_ == 0 || ds_n1_ == 0 ||
+        ds_a2_ == 0 || ds_n2_ == 0 || ds_d_ == 0)
+      return Action::ERR;
+  }
+# endif
   if (num_problems_ == 0) return Action::ERR;
   if (dfile != 0) dfile->AddDataSet( num_problems_ );
 # ifdef _OPENMP
@@ -243,7 +273,7 @@ int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, T
 # ifdef _OPENMP
   } // END pragma omp parallel
 # endif
-  if (outfile_ != 0) WriteProblems(BondFmt_, frameNum, top); 
+  if (outfile_ != 0) WriteProblems(F_BOND, frameNum, top); 
 
   return Nproblems;   
 }
@@ -334,19 +364,18 @@ int Action_CheckStructure::PL_CheckOverlap(int frameNum, Frame const& currentFra
 # ifdef _OPENMP
   } // END omp parallel
 # endif
-  if (outfile_ != 0) WriteProblems(AtomFmt_, frameNum, top); 
+  if (outfile_ != 0) WriteProblems(F_ATOM, frameNum, top); 
 
   return Nproblems;
 }
 
-const char* Action_CheckStructure::BondFmt_ =
-  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n";
-
-const char* Action_CheckStructure::AtomFmt_ =
-  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n";
+const char* Action_CheckStructure::Fmt_[] = {
+  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",
+  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n"
+};
 
 /** Consolidate problems from different threads if necessary and write out. */
-void Action_CheckStructure::WriteProblems(const char* fmt, int frameNum, Topology const& top) {
+void Action_CheckStructure::WriteProblems(FmtType ft, int frameNum, Topology const& top) {
 # ifdef _OPENMP
   for (unsigned int thread = 0; thread != thread_problemAtoms_.size(); ++thread)
     for (Parray::const_iterator p = thread_problemAtoms_[thread].begin();
@@ -354,11 +383,24 @@ void Action_CheckStructure::WriteProblems(const char* fmt, int frameNum, Topolog
       problemAtoms_.push_back( *p );
 # endif
   std::sort( problemAtoms_.begin(), problemAtoms_.end() );
-  for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p)
-    //outfile_->Printf("%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n", frameNum,
-    outfile_->Printf(fmt, frameNum,
+  for (Parray::const_iterator p = problemAtoms_.begin(); p != problemAtoms_.end(); ++p) {
+#   ifdef MPI
+    int atom1 = p->A1() + 1;
+    int atom2 = p->A2() + 1;
+    ds_fn_->Add(idx_, &frameNum);
+    ds_pt_->Add(idx_, &ft);
+    ds_a1_->Add(idx_, &atom1);
+    ds_n1_->Add(idx_, top.TruncResAtomName(p->A1()).c_str());
+    ds_a2_->Add(idx_, &atom2);
+    ds_n2_->Add(idx_, top.TruncResAtomName(p->A2()).c_str());
+    ds_d_->Add(idx_,  p->Dptr());
+    idx_++;
+#   else
+    outfile_->Printf(Fmt_[ft], frameNum,
                     p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
                     p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
+#   endif
+  }
 }
 
 /** Check for bad overlaps. */
@@ -444,7 +486,7 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
     } // END pragma omp parallel
 #   endif
   }
-  if (outfile_ != 0) WriteProblems(AtomFmt_, frameNum, top);
+  if (outfile_ != 0) WriteProblems(F_ATOM, frameNum, top);
 
   return Nproblems;
 }
@@ -452,14 +494,61 @@ int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame,
 // Action_CheckStructure::DoAction()
 Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) {
   int total_problems;
+  int fnum = frm.TrajoutNum() + 1;
   if (usePairList_)
-    total_problems = PL_CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
+    total_problems = PL_CheckOverlap(fnum, frm.Frm(), *CurrentParm_);
   else
-    total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
+    total_problems = CheckOverlap(fnum, frm.Frm(), *CurrentParm_);
   if (bondcheck_)
-    total_problems += CheckBonds(frameNum+1, frm.Frm(), *CurrentParm_);
+    total_problems += CheckBonds(fnum, frm.Frm(), *CurrentParm_);
   num_problems_->Add( frameNum, &total_problems );
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;
   return Action::OK;
+}
+
+#ifdef MPI
+int Action_CheckStructure::SyncAction() {
+  if (outfile_ == 0) return 0;
+  // Get total number of problems
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &idx_, 1, MPI_INT, &(rank_frames[0]) );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    idx_ += rank_frames[ rank ];
+  ds_fn_->Sync( idx_, rank_frames, trajComm_ );
+  ds_pt_->Sync( idx_, rank_frames, trajComm_ );
+  ds_a1_->Sync( idx_, rank_frames, trajComm_ );
+  ds_n1_->Sync( idx_, rank_frames, trajComm_ );
+  ds_a2_->Sync( idx_, rank_frames, trajComm_ );
+  ds_n2_->Sync( idx_, rank_frames, trajComm_ );
+  ds_d_->Sync(  idx_, rank_frames, trajComm_ );
+  ds_fn_->SetNeedsSync( false );
+  ds_pt_->SetNeedsSync( false );
+  ds_a1_->SetNeedsSync( false );
+  ds_n1_->SetNeedsSync( false );
+  ds_a2_->SetNeedsSync( false );
+  ds_n2_->SetNeedsSync( false );
+  ds_d_->SetNeedsSync(  false );
+  return 0;
+}
+#endif
+
+void Action_CheckStructure::Print() {
+# ifdef MPI
+  if (outfile_ != 0) {
+    mprintf("    CHECKSTRUCTURE: Writing to %s\n", outfile_->Filename().full());
+    for (unsigned int idx = 0; idx != ds_fn_->Size(); idx++) {
+      // TODO without casts?
+      DataSet_integer const& FN = static_cast<DataSet_integer const&>( *ds_fn_ );
+      DataSet_integer const& PT = static_cast<DataSet_integer const&>( *ds_pt_ );
+      DataSet_integer const& A1 = static_cast<DataSet_integer const&>( *ds_a1_ );
+      DataSet_string  const& N1 = static_cast<DataSet_string  const&>( *ds_n1_ );
+      DataSet_integer const& A2 = static_cast<DataSet_integer const&>( *ds_a2_ );
+      DataSet_string  const& N2 = static_cast<DataSet_string  const&>( *ds_n2_ );
+      DataSet_double  const& DV = static_cast<DataSet_double  const&>( *ds_d_  );
+      outfile_->Printf(Fmt_[PT[idx]], FN[idx], A1[idx], N1[idx].c_str(),
+                       A2[idx], N2[idx].c_str(), DV[idx]);
+    }
+  }
+# endif
 }
