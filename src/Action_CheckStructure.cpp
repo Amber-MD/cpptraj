@@ -132,6 +132,9 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
 Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
   if (check_.Setup( setup.Top(), setup.CoordInfo().TrajBox() )) return Action::ERR;
+  check_.Mask1().MaskInfo();
+  if (check_.Mask2().MaskStringSet())
+    check_.Mask2().MaskInfo();
   if (check_.CheckBonds())
     mprintf("\tChecking %u bonds.\n", check_.Nbonds());
   // Print imaging info for this parm

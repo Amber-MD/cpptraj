@@ -82,7 +82,6 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   bondList_.clear();
   // Set up first mask
   if ( topIn.SetupIntegerMask( Mask1_ ) ) return 1;
-  Mask1_.MaskInfo();
   if (Mask1_.None()) {
     mprinterr("Error: Mask '%s' has no atoms.\n", Mask1_.MaskString());
     return 1;
@@ -93,7 +92,6 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   // Set up second mask if specified.
   if ( Mask2_.MaskStringSet() ) {
     if (topIn.SetupIntegerMask( Mask2_ ) ) return 1;
-    Mask2_.MaskInfo();
     if (Mask2_.None()) {
       mprinterr("Error: Mask '%s' has no atoms.\n", Mask2_.MaskString());
       return 1;
