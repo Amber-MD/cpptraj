@@ -45,10 +45,12 @@ EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 scale :1 x 2.0 y 1.2 z 1.2
-check nobondcheck :WAT around :1 out skip.dat
+check nobondcheck :WAT around :1 out skip.dat skipbadframes
+distance d1 out d1.dat :1 :12
 EOF
   RunCpptraj "Structure Check with Around and Skip"
   DoTest skip.dat.save skip.dat
+  DoTest d1.dat.save d1.dat
 fi
 
 EndTest
