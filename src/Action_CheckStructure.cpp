@@ -29,8 +29,11 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
 # endif
   // Get Keywords
   std::string around = actionArgs.GetStringKey("around");
-  outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("reportfile"),
-                                       "Structure check", DataFileList::TEXT, true);
+  if (!actionArgs.hasKey("silent"))
+    outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("reportfile"),
+                                         "Structure check", DataFileList::TEXT, true);
+  else
+    outfile_ = 0;
   double nonbondcut =  actionArgs.getKeyDouble("cut",0.8);
   // Structure checker setup
   int err = check_.SetOptions(
@@ -79,7 +82,9 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (!check_.Image().UseImage())
     mprintf(", imaging off");
   if (outfile_ != 0)
-    mprintf(", output to %s", outfile_->Filename().full());
+    mprintf(", warnings output to %s", outfile_->Filename().full());
+  else
+    mprintf(", warnings suppressed");
   mprintf(".\n");
   mprintf("\tNumber of problems in each frame will be saved to set '%s'\n",
           num_problems_->legend());
@@ -89,9 +94,9 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   if (!check_.CheckBonds())
     mprintf("\tChecking inter-atomic distances only.\n");
   else
-    mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
+    mprintf("\tChecking for bond lengths > eq + %.2f Ang\n",
             check_.BondOffset());
-  mprintf("\tWarnings will be printed for inter-atomic distances < %.2f Ang.\n",
+  mprintf("\tChecking for inter-atomic distances < %.2f Ang.\n",
           nonbondcut);
   if (skipBadFrames_) {
     mprintf("\tFrames with problems will be skipped.\n");
