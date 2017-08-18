@@ -175,7 +175,7 @@ int StructureCheck::CheckBonds(Frame const& currentFrame)
 # endif
   ConsolidateProblems();
 
-  return Nproblems;   //TODO problemAtoms_.size()?
+  return Nproblems;
 }
 
 /** Check for bad overlaps; use a pair list to speed things up.
@@ -271,6 +271,7 @@ int StructureCheck::PL1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const
 int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
                                        Matrix_3x3 const& recip)
 {
+  problemAtoms_.clear();
   int Nproblems = 0;
   // Calculation of all atoms in Mask1 to all atoms in Mask2
   int outer_max = OuterMask_.Nselected();
@@ -317,6 +318,7 @@ int StructureCheck::Mask2_CheckOverlap(Frame const& currentFrame, Matrix_3x3 con
 int StructureCheck::Mask1_CheckOverlap(Frame const& currentFrame, Matrix_3x3 const& ucell,
                                        Matrix_3x3 const& recip)
 {
+  problemAtoms_.clear();
   int Nproblems = 0;
   // Calculation of atoms in Mask1 to all other atoms in Mask1
   int mask1_max = Mask1_.Nselected();

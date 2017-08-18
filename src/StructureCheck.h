@@ -77,9 +77,9 @@ class StructureCheck {
     int Mask1_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
     /// Non-pairlist version of CheckOverlap, 2 masks
     int Mask2_CheckOverlap(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&);
-
-#   ifdef _OPENMP
+    /// Sort problem list; combine results from threads for OpenMP
     void ConsolidateProblems();
+#   ifdef _OPENMP
     std::vector<Parray> thread_problemAtoms_;
 #   endif
     Parray problemAtoms_;
