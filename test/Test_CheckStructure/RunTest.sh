@@ -28,6 +28,17 @@ check reportfile tz2.dat offset 1.0
 EOF
   RunCpptraj "Structure Check with PBC"
   DoTest tz2.dat.save tz2.dat
+
+  # Around test
+  cat > check.in <<EOF
+parm ../tz2.truncoct.parm7
+trajin ../tz2.truncoct.nc
+rms first :1-13
+scale :1 x 2.0 y 1.2 z 1.2
+check reportfile around.dat offset 1.0 :WAT around :1
+EOF
+  RunCpptraj "Structure Check with Around"
+  DoTest around.dat.save around.dat
 fi
 
 EndTest
