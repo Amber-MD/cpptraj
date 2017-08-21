@@ -173,13 +173,12 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
     // Increment backtrack by 1 since we need to skip over current res
     ++backtrack_;
     // Initialize CheckStructure
-    if (checkStructure_.SeparateInit( false, "*", "", "", 0.8, 1.15, false, State.DFL() )) {
+    if (checkStructure_.SetOptions( false, false, false, "*", "", 0.8, 1.15, 4.0 )) {
       mprinterr("Error: Could not set up structure check.\n");
       return CpptrajState::ERR;
     }
     // Set up CheckStructure for this parm (false = nobondcheck)
-    if (checkStructure_.SeparateSetup(CRD->Top(),
-                                      CRD->CoordsInfo().TrajBox().Type(), false) != Action::OK)
+    if (checkStructure_.Setup(CRD->Top(), CRD->CoordsInfo().TrajBox()))
       return CpptrajState::ERR;
   }
 
@@ -275,7 +274,7 @@ Exec::RetType Exec_PermuteDihedrals::Execute(CpptrajState& State, ArgList& argIn
       case RANDOM:
         RandomizeAngles(currentFrame, CRD->Top());
         // Check the resulting structure
-        n_problems = checkStructure_.CheckOverlap( set+1, currentFrame, CRD->Top() );
+        n_problems = checkStructure_.CheckOverlaps( currentFrame );
         //mprintf("%i\tResulting structure has %i problems.\n",frameNum,n_problems);
         number_of_problems_->Add(set, &n_problems);
         if (outtraj_.IsInitialized()) outtraj_.WriteSingle(outframe_++, currentFrame);

@@ -620,30 +620,31 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
 # endif
   for (cidx = 0; cidx < PL.NGridMax(); cidx++)
   {
-    if (PL.NatomsInGrid( cidx ) > 0)
+    PairList::CellType const& thisCell = PL.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
     {
-      // cell contains this cell index and all neighbors.
-      PairList::Iarray const& cell = PL.Cell( cidx );
-      // trans contains index to translation for the neighbor.
-      PairList::Iarray const& trans = PL.Trans( cidx );
-      // Loop through all atoms of this cell. Calculate between all
-      // atoms of this cell and all neighbors.
-      int myCell = cell[0];
-      int beg0 = PL.IdxOffset( myCell );           // Start index into AtomGridIdx
-      int end0 = beg0 + PL.NatomsInGrid( myCell ); // End index into AtomGridIdx
-//      mprintf("CELL %i (idxs %i - %i)\n", myCell, beg0, end0);
-      // Calc interaction of all atoms in this cell with each other.
-      for (int atidx0 = beg0; atidx0 < end0; atidx0++) {
-        int atnum0 = PL.AtomGridIdx( atidx0 );
-        Vec3 const& at0 = PL.ImageCoords( atnum0 );
-        double q0 = Charge_[atnum0];
-        for (int atidx1 = atidx0 + 1; atidx1 < end0; atidx1++) {
-          int atnum1 = PL.AtomGridIdx( atidx1 );
-          Vec3 const& at1 = PL.ImageCoords( atnum1 );
-          double q1 = Charge_[atnum1];
-          Vec3 dxyz = at1 - at0;
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        Vec3 const& xyz0 = it0->ImageCoords();
+        double q0 = Charge_[it0->Idx()];
+        // Exclusion list for this atom
+        Iset const& excluded = Excluded_[it0->Idx()];
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          Vec3 const& xyz1 = it1->ImageCoords();
+          double q1 = Charge_[it1->Idx()];
+          Vec3 dxyz = xyz1 - xyz0;
           double rij2 = dxyz.Magnitude2();
-          if (Excluded_[atnum0].find( atnum1 ) == Excluded_[atnum0].end())
+          // If atom excluded, calc adjustment, otherwise calc elec. energy.
+          if (excluded.find( it1->Idx() ) == excluded.end())
           {
             if ( rij2 < cut2 ) {
               double rij = sqrt( rij2 );
@@ -658,41 +659,38 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
 #             endif
               double e_elec = qiqj * erfc / rij;
               Eelec += e_elec;
-/*
-              int ta0, ta1;
-              if (atnum0 < atnum1) {
-                ta0=atnum0; ta1=atnum1;
-              } else {
-                ta1=atnum0; ta0=atnum1;
-              }
-              mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
-*/
+              //int ta0, ta1;
+              //if (atnum0 < atnum1) {
+              //  ta0=atnum0; ta1=atnum1;
+              //} else {
+              //  ta1=atnum0; ta0=atnum1;
+              //}
+              //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
             }
           } else
             e_adjust += Adjust(q0, q1, sqrt(rij2));
-        }
+        } // END loop over other atoms in thisCell
         // Loop over all neighbor cells
-        for (unsigned int nidx = 1; nidx != cell.size(); nidx++)
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
         {
-          int nbrCell = cell[nidx];
-          int beg1 = PL.IdxOffset( nbrCell );           // Start index for nbr
-          int end1 = beg1 + PL.NatomsInGrid( nbrCell ); // End index for nbr
-//          mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
-          int tidx = trans[nidx];
-          Vec3 const& tVec = PL.TransVec( tidx );       // Translate vector for nbr
+          PairList::CellType const& nbrCell = PL.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = PL.TransVec( transList[nidx] );
+          //mprintf("\tNEIGHBOR %i (idxs %i - %i)\n", nbrCell, beg1, end1);
           // Loop over every atom in nbrCell
-          for (int atidx1 = beg1; atidx1 < end1; atidx1++)
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
           {
-            int atnum1 = PL.AtomGridIdx( atidx1 );
-            Vec3 const& at1 = PL.ImageCoords( atnum1 );
-            double q1 = Charge_[atnum1];
-            Vec3 dxyz = at1 + tVec - at0;
+            Vec3 const& xyz1 = it1->ImageCoords();
+            double q1 = Charge_[it1->Idx()];
+            Vec3 dxyz = xyz1 + tVec - xyz0;
             double rij2 = dxyz.Magnitude2();
+            //mprintf("\t\tNbrAtom %06i\n",atnum1);
+            // If atom excluded, calc adjustment, otherwise calc elec. energy.
             // TODO Is there better way of checking this?
-//            mprintf("\t\tNbrAtom %06i\n",atnum1);
-            if (Excluded_[atnum0].find( atnum1 ) == Excluded_[atnum0].end())
+            if (excluded.find( it1->Idx() ) == excluded.end())
             {
-//              mprintf("\t\t\tdist= %f\n", sqrt(rij2));
+              //mprintf("\t\t\tdist= %f\n", sqrt(rij2));
               if ( rij2 < cut2 ) {
                 double rij = sqrt( rij2 );
                 double qiqj = q0 * q1;
@@ -707,22 +705,20 @@ double Ewald::Direct(PairList const& PL, double& e_adjust_out)
                 double e_elec = qiqj * erfc / rij;
                 Eelec += e_elec;
                 //mprintf("EELEC %4i%4i%12.5f%12.5f%12.5f%3.0f%3.0f%3.0f\n",
-/*
-                int ta0, ta1;
-                if (atnum0 < atnum1) {
-                  ta0=atnum0; ta1=atnum1;
-                } else {
-                  ta1=atnum0; ta0=atnum1;
-                }
-                mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
-*/
+                //int ta0, ta1;
+                //if (atnum0 < atnum1) {
+                //  ta0=atnum0; ta1=atnum1;
+                //} else {
+                //  ta1=atnum0; ta0=atnum1;
+                //}
+                //mprintf("PELEC %6i%6i%12.5f%12.5f%12.5f\n", ta0, ta1, rij, erfc, e_elec);
               }
             } else
               e_adjust += Adjust(q0, q1, sqrt(rij2));
-          } // Loop over nbrCell atoms
-        } // Loop over neighbor cells
-      } // Loop over myCell atoms
-    } // END if cell is not empty
+          } // END loop over neighbor cell atoms
+        } // END Loop over neighbor cells
+      } // Loop over thisCell atoms
+    } // END if thisCell is not empty
   } // Loop over cells
 # ifdef _OPENMP
   } // END pragma omp parallel
@@ -843,7 +839,7 @@ void Ewald::Timing(double total) const {
   t_self_.WriteTiming(2,   "Self:      ", t_total_.Total());
   t_recip_.WriteTiming(2,  "Recip:     ", t_total_.Total());
   t_trig_tables_.WriteTiming(3, "Calc trig tables:", t_recip_.Total());
-  t_direct_.WriteTiming(2, "Direct:    ", t_total_.Total());
+  t_direct_.WriteTiming(2, "Direct :    ", t_total_.Total());
 # ifndef _OPENMP
   t_erfc_.WriteTiming(3,  "ERFC:  ", t_direct_.Total());
   t_adjust_.WriteTiming(3,"Adjust:", t_direct_.Total());

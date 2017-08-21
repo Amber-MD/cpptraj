@@ -1,86 +1,114 @@
-#include <cmath> //sqrt
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
-#ifdef _OPENMP
-#  include <omp.h>
+#ifdef MPI
+# include "DataSet_integer.h"
+# include "DataSet_double.h"
+# include "DataSet_string.h"
 #endif
 
 // CONSTRUCTOR
 Action_CheckStructure::Action_CheckStructure() :
-  bondoffset_(1.15),
-  nonbondcut2_(0.64), // 0.8^2
   outfile_(0),
   CurrentParm_(0),
   num_problems_(0),
   silent_(false),
-  skipBadFrames_(false),
-  bondcheck_(true)
+  skipBadFrames_(false)
 {}
 
 void Action_CheckStructure::Help() const {
-  mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage] [skipbadframes]\n"
-          "\t[offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
-          "  Check frames for atomic overlaps and unusual bond lengths\n");
-}
-
-// Action_CheckStructure::SeparateInit()
-int Action_CheckStructure::SeparateInit(bool imageOn, std::string const& mask1,
-                                        std::string const& mask2, std::string const& fname,
-                                        double cutIn, double offsetIn, bool silentIn,
-                                        DataFileList& DFL)
-{
-  image_.InitImaging( imageOn );
-  bondoffset_ = offsetIn;
-  nonbondcut2_ = cutIn * cutIn; // Save cutoff squared.
-  silent_ = silentIn;
-  if (!silent_)
-    outfile_ = DFL.AddCpptrajFile(fname, "Structure check", DataFileList::TEXT, true);
-  Mask1_.SetMaskString( mask1 );
-  if (!mask2.empty())
-    Mask2_.SetMaskString( mask2 );
-  return 0;
+  mprintf("\t[<mask>] [around <mask2>] [reportfile <report>] [noimage]\n"
+          "\t[skipbadframes] [offset <offset>] [cut <cut>] [nobondcheck] [silent]\n"
+          "\t[plcut <cut>]\n"
+          "  Check atoms in <mask> for atomic overlaps less than <cut> (default 0.8 Ang)\n"
+          "  and unusual bond lengths greater than equilibrium length + <offset>\n"
+          "  (default 1.15 Ang). If 'around' is specified, check between atoms in\n"
+          "  <mask1> and <mask2>. If the frame has box info and 'around' is not\n"
+          "  specified a pair list will be used to speed up the calculation. The\n"
+          "  cutoff used to build the pair list can be adjusted with 'plcut'\n"
+          "  (default 4.0 Ang. or <cut>, whichever is greater).\n"
+          "  Warnings will go to the file specified by 'reportfile', STDOUT,\n"
+          "  or will be suppressed if 'silent' is specified. If 'skipbadframes'\n"
+          "  is specified, subsequent Actions will be skipped if any problems\n"
+          "  are detected.\n");
 }
 
 // Action_CheckStructure::Init()
 Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
+# ifdef MPI
+  trajComm_ = init.TrajComm();
+# endif
   // Get Keywords
   std::string around = actionArgs.GetStringKey("around");
-  SeparateInit( !(actionArgs.hasKey("noimage")), actionArgs.GetMaskNext(),
-                around, actionArgs.GetStringKey("reportfile"),
-                actionArgs.getKeyDouble("cut",0.8),
-                actionArgs.getKeyDouble("offset",1.15),
-                actionArgs.hasKey("silent"), init.DFL() );
-  // DoAction-only keywords.
-  bondcheck_ = !actionArgs.hasKey("nobondcheck");
+  if (!actionArgs.hasKey("silent"))
+    outfile_ = init.DFL().AddCpptrajFile(actionArgs.GetStringKey("reportfile"),
+                                         "Structure check", DataFileList::TEXT, true);
+  else
+    outfile_ = 0;
+  double nonbondcut =  actionArgs.getKeyDouble("cut",0.8);
+  // Structure checker setup
+  int err = check_.SetOptions(
+    !(actionArgs.hasKey("noimage")),
+    !actionArgs.hasKey("nobondcheck"),
+    (outfile_ != 0), // saveProblems
+    actionArgs.GetMaskNext(),
+    around,
+    nonbondcut,
+    actionArgs.getKeyDouble("offset",1.15),
+    actionArgs.getKeyDouble("plcut", std::max(4.0, nonbondcut))
+  );
+  if (err != 0) return Action::ERR;
+  // Remaining keywords
   skipBadFrames_ = actionArgs.hasKey("skipbadframes");
   DataFile* dfile = init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   num_problems_ = init.DSL().AddSet( DataSet::INTEGER, actionArgs.GetStringNext(), "CHECK" );
   if (num_problems_ == 0) return Action::ERR;
   if (dfile != 0) dfile->AddDataSet( num_problems_ );
+# ifdef MPI
+  idx_ = 0;
+  if (outfile_ != 0) {
+    MetaData md(num_problems_->Meta().Name(), "frame");
+    ds_fn_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("type");
+    ds_pt_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("a1");
+    ds_a1_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("n1");
+    ds_n1_ = init.DSL().AddSet(DataSet::STRING, md);
+    md.SetAspect("a2");
+    ds_a2_ = init.DSL().AddSet(DataSet::INTEGER, md);
+    md.SetAspect("n2");
+    ds_n2_ = init.DSL().AddSet(DataSet::STRING, md);
+    md.SetAspect("dist");
+    ds_d_  = init.DSL().AddSet(DataSet::DOUBLE, md);
+    if (ds_fn_ == 0 || ds_pt_ == 0 || ds_a1_ == 0 || ds_n1_ == 0 ||
+        ds_a2_ == 0 || ds_n2_ == 0 || ds_d_ == 0)
+      return Action::ERR;
+  }
+# endif
 
-  mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'",Mask1_.MaskString());
-  if (Mask2_.MaskStringSet())
-    mprintf(" around mask '%s'", Mask2_.MaskString());
-  if (!image_.UseImage())
+  mprintf("    CHECKSTRUCTURE: Checking atoms in mask '%s'", check_.Mask1().MaskString());
+  if (check_.Mask2().MaskStringSet())
+    mprintf(" around mask '%s'", check_.Mask2().MaskString());
+  if (!check_.Image().UseImage())
     mprintf(", imaging off");
   if (outfile_ != 0)
-    mprintf(", output to %s", outfile_->Filename().full());
+    mprintf(", warnings output to %s", outfile_->Filename().full());
+  else
+    mprintf(", warnings suppressed");
   mprintf(".\n");
   mprintf("\tNumber of problems in each frame will be saved to set '%s'\n",
           num_problems_->legend());
   if (dfile != 0)
     mprintf("\tNumber of problems each frame will be written to '%s'\n",
             dfile->DataFilename().full());
-  if (!bondcheck_) {
+  if (!check_.CheckBonds())
     mprintf("\tChecking inter-atomic distances only.\n");
-    mprintf("\tWarnings will be printed for non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
-  } else {
-    mprintf("\tChecking inter-atomic and bond distances.\n");
-    mprintf("\tWarnings will be printed for bond lengths > eq + %.2f Ang\n",
-            bondoffset_);
-    mprintf("\tand non-bond distances < %.2f Ang.\n", sqrt(nonbondcut2_));
-  }
+  else
+    mprintf("\tChecking for bond lengths > Req + %.2f Ang\n",
+            check_.BondOffset());
+  mprintf("\tChecking for inter-atomic distances < %.2f Ang.\n",
+          nonbondcut);
   if (skipBadFrames_) {
     mprintf("\tFrames with problems will be skipped.\n");
 #   ifdef MPI
@@ -93,234 +121,117 @@ Action::RetType Action_CheckStructure::Init(ArgList& actionArgs, ActionInit& ini
   }
   if (silent_)
     mprintf("\tStructure warning messages will be suppressed.\n");
+  mprintf("\tCutoff for building pair list is %f Ang.\n", check_.PairListCut());
 # ifdef _OPENMP
-# pragma omp parallel
-  {
-#   pragma omp master
-    {
-    mprintf("\tParallelizing calculation with %i threads.\n", omp_get_num_threads());
-    }
-  }
+  mprintf("\tParallelizing calculation with %u threads.\n", check_.Nthreads());
 # endif
   return Action::OK;
-}
-
-/** Set up bond arrays in a sorted list for easy access during loop
-  * over all pairs of atoms. Only use bonds for which both atoms are in
-  * the mask.
-  */
-void Action_CheckStructure::ProcessBondArray(BondArray const& Bonds, BondParmArray const& Parm,
-                                         CharMask const& cMask)
-{
-  BondType BT;
-  for (BondArray::const_iterator bnd = Bonds.begin(); bnd != Bonds.end(); ++bnd)
-  {
-    if ( cMask.AtomInCharMask(bnd->A1()) && cMask.AtomInCharMask(bnd->A2()) ) {
-      if (bnd->Idx() < 0)
-        mprintf("Warning: Bond parameters not present for atoms %i-%i, skipping.\n",
-                bnd->A1()+1, bnd->A2()+1);
-      else {
-        BT.Req_off2_ = Parm[ bnd->Idx() ].Req() + bondoffset_;
-        BT.Req_off2_ *= BT.Req_off2_; // Store squared values.
-        BT.a1_ = bnd->A1();
-        BT.a2_ = bnd->A2();
-        bondList_.push_back(BT);
-      }
-    }
-  }
-}
-
-/** Set up bond parameters for bonds for which both atoms present in mask. */
-void Action_CheckStructure::SetupBondList(AtomMask const& iMask, Topology const& top) {
-  CharMask cMask( iMask.ConvertToCharMask(), iMask.Nselected() );
- 
-  ProcessBondArray(top.Bonds(),  top.BondParm(), cMask);
-  ProcessBondArray(top.BondsH(), top.BondParm(), cMask);
-}
-
-// Action_CheckStructure::SeparateSetup()
-int Action_CheckStructure::SeparateSetup(Topology const& top, Box::BoxType btype, bool checkBonds)
-{
-  image_.SetupImaging( btype );
-  bondList_.clear();
-  // Set up masks
-  if ( top.SetupIntegerMask( Mask1_ ) ) return 1;
-  Mask1_.MaskInfo();
-  if (Mask1_.None()) {
-    mprinterr("Error: Mask '%s' has no atoms.\n", Mask1_.MaskString());
-    return 1;
-  }
-  if (checkBonds) SetupBondList(Mask1_, top);
-  if ( Mask2_.MaskStringSet() ) {
-    if (top.SetupIntegerMask( Mask2_ ) ) return 1;
-    Mask2_.MaskInfo();
-    if (Mask2_.None()) {
-      mprinterr("Error: Mask '%s' has no atoms.\n", Mask2_.MaskString());
-      return 1;
-    }
-    int common = Mask1_.NumAtomsInCommon( Mask2_ );
-    if (common > 0)
-      mprintf("Warning: '%s' has %i atoms in common with '%s'. Some problems may be reported\n"
-              "Warning:   more than once.\n", Mask1_.MaskString(), common, Mask2_.MaskString());
-    // Outer mask should be the one with the most atoms.
-    if ( Mask2_.Nselected() > Mask1_.Nselected() ) {
-      OuterMask_ = Mask2_;
-      InnerMask_ = Mask1_;
-    } else {
-      OuterMask_ = Mask1_;
-      InnerMask_ = Mask2_;
-    }
-    if (checkBonds) SetupBondList(Mask2_, top);
-  }
-  return 0;
 }
 
 // Action_CheckStructure::Setup()
 Action::RetType Action_CheckStructure::Setup(ActionSetup& setup) {
   CurrentParm_ = setup.TopAddress();
-  if (SeparateSetup( setup.Top(), setup.CoordInfo().TrajBox().Type(),bondcheck_ ))
-    return Action::ERR;
+  if (check_.Setup( setup.Top(), setup.CoordInfo().TrajBox() )) return Action::ERR;
+  check_.Mask1().MaskInfo();
+  if (check_.Mask2().MaskStringSet())
+    check_.Mask2().MaskInfo();
+  if (check_.CheckBonds())
+    mprintf("\tChecking %u bonds.\n", check_.Nbonds());
   // Print imaging info for this parm
-  if (bondcheck_)
-    mprintf("\tChecking %u bonds.\n", bondList_.size());
-  if (image_.ImagingEnabled())
+  if (check_.Image().ImagingEnabled())
     mprintf("\tImaging on.\n");
   else
     mprintf("\timaging off.\n");
+
   return Action::OK;
 }
 
-/** Check for bad bond lengths. */
-int Action_CheckStructure::CheckBonds(int frameNum, Frame const& currentFrame, Topology const& top)
-{
-  double D2;
-  int idx;
-  int Nproblems = 0;
+/// Output format strings for warnings.
+const char* Action_CheckStructure::Fmt_[] = {
+  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2f)\n",
+  "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2f)\n"
+};
 
-  int bond_max = (int)bondList_.size();
-# ifdef _OPENMP
-# pragma omp parallel private(idx,D2) reduction(+: Nproblems)
-  {
-  //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-  //mythread = omp_get_thread_num();
-# pragma omp for
-# endif
-  for (idx = 0; idx < bond_max; idx++) {
-    D2 = DIST2_NoImage( currentFrame.XYZ(bondList_[idx].a1_),
-                        currentFrame.XYZ(bondList_[idx].a2_) );
-    if (D2 > bondList_[idx].Req_off2_) {
-      ++Nproblems;
-      if (outfile_ != 0) {
-#       ifdef _OPENMP
-#       pragma omp critical
-#       endif
-        outfile_->Printf(
-                    "%i\t Warning: Unusual bond length %i:%s to %i:%s (%.2lf)\n", frameNum,
-                    bondList_[idx].a1_+1, top.TruncResAtomName(bondList_[idx].a1_).c_str(),
-                    bondList_[idx].a2_+1, top.TruncResAtomName(bondList_[idx].a2_).c_str(),
-                    sqrt(D2));
-      }
-    }
-  } // END loop over bonds
-# ifdef _OPENMP
-  } // END pragma omp parallel
-# endif
-  return Nproblems;   
-}
-
-/** Check for bad overlaps. */
-int Action_CheckStructure::CheckOverlap(int frameNum, Frame const& currentFrame, Topology const& top)
-{
-  double D2;
-  Matrix_3x3 ucell, recip; // ToFrac, ToCart
-  int nmask1, nmask2;
-  int atom1, atom2;
-  int Nproblems = 0;
-
-  // Get imaging info for non-orthogonal box // TODO Check volume
-  if (image_.ImageType()==NONORTHO)
-    currentFrame.BoxCrd().ToRecip(ucell, recip);
-  if ( Mask2_.MaskStringSet() ) {
-    // Calculation of all atoms in Mask1 to all atoms in Mask2
-    int outer_max = OuterMask_.Nselected();
-    int inner_max = InnerMask_.Nselected();
-#   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
-    {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    //mythread = omp_get_thread_num();
-#   pragma omp for
-#   endif
-    for (nmask1 = 0; nmask1 < outer_max; nmask1++) {
-      atom1 = OuterMask_[nmask1];
-      for (nmask2 = 0; nmask2 < inner_max; nmask2++) {
-        atom2 = InnerMask_[nmask2];
-        if (atom1 != atom2) {
-          D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                      image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-          if (D2 < nonbondcut2_) {
-            ++Nproblems;
-            if (outfile_ != 0) {
-#             ifdef _OPENMP
-#             pragma omp critical
-#             endif
-              outfile_->Printf(
-                    "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                    atom1+1, top.TruncResAtomName(atom1).c_str(),
-                    atom2+1, top.TruncResAtomName(atom2).c_str(), sqrt(D2));
-            }
-          }
-        }
-      } // END loop over inner mask
-    } // END loop over outer mask
-#   ifdef _OPENMP
-    } // END pragma omp parallel
-#   endif
-  } else {
-    // Calculation of atoms in Mask1 to all other atoms in Mask1
-    int mask1_max = Mask1_.Nselected();
-#   ifdef _OPENMP
-#   pragma omp parallel private(nmask1,nmask2,atom1,atom2,D2) reduction(+: Nproblems)
-    {
-    //mprintf("OPENMP: %i threads\n",omp_get_num_threads());
-    //mythread = omp_get_thread_num();
-#   pragma omp for schedule(dynamic)
-#   endif
-    for (nmask1 = 0; nmask1 < mask1_max; nmask1++) {
-      atom1 = Mask1_[nmask1];
-      for (nmask2 = nmask1 + 1; nmask2 < mask1_max; nmask2++) {
-        atom2 = Mask1_[nmask2];
-        D2 = DIST2( currentFrame.XYZ(atom1), currentFrame.XYZ(atom2),
-                    image_.ImageType(), currentFrame.BoxCrd(), ucell, recip);
-        if (D2 < nonbondcut2_) {
-          ++Nproblems;
-          if (outfile_ != 0) {
-#           ifdef _OPENMP
-#           pragma omp critical
-#           endif
-            outfile_->Printf(
-                  "%i\t Warning: Atoms %i:%s and %i:%s are close (%.2lf)\n", frameNum,
-                  atom1+1, top.TruncResAtomName(atom1).c_str(),
-                  atom2+1, top.TruncResAtomName(atom2).c_str(), sqrt(D2));
-          }
-        }
-      } // END inner loop over Mask1
-    } // END outer loop over Mask1
-#   ifdef _OPENMP
-    } // END pragma omp parallel
+/** Consolidate problems from different threads if necessary and write out. */
+void Action_CheckStructure::WriteProblems(FmtType ft, int frameNum, Topology const& top) {
+  for (StructureCheck::const_iterator p = check_.begin(); p != check_.end(); ++p) {
+#   ifdef MPI
+    int atom1 = p->A1() + 1;
+    int atom2 = p->A2() + 1;
+    ds_fn_->Add(idx_, &frameNum);
+    ds_pt_->Add(idx_, &ft);
+    ds_a1_->Add(idx_, &atom1);
+    ds_n1_->Add(idx_, top.TruncResAtomName(p->A1()).c_str());
+    ds_a2_->Add(idx_, &atom2);
+    ds_n2_->Add(idx_, top.TruncResAtomName(p->A2()).c_str());
+    ds_d_->Add(idx_,  p->Dptr());
+    idx_++;
+#   else
+    outfile_->Printf(Fmt_[ft], frameNum,
+                    p->A1()+1, top.TruncResAtomName(p->A1()).c_str(),
+                    p->A2()+1, top.TruncResAtomName(p->A2()).c_str(), p->D());
 #   endif
   }
-
-  return Nproblems;
 }
 
 // Action_CheckStructure::DoAction()
 Action::RetType Action_CheckStructure::DoAction(int frameNum, ActionFrame& frm) {
-  int total_problems = CheckOverlap(frameNum+1, frm.Frm(), *CurrentParm_);
-  if (bondcheck_)
-    total_problems += CheckBonds(frameNum+1, frm.Frm(), *CurrentParm_);
+  int fnum = frm.TrajoutNum() + 1;
+
+  int total_problems = check_.CheckOverlaps(frm.Frm());
+  if (outfile_ != 0) WriteProblems(F_ATOM, fnum, *CurrentParm_);
+  if (check_.CheckBonds()) {
+    total_problems += check_.CheckBonds(frm.Frm());
+    if (outfile_ != 0) WriteProblems(F_BOND, fnum, *CurrentParm_);
+  }
   num_problems_->Add( frameNum, &total_problems );
   if (total_problems > 0 && skipBadFrames_)
     return Action::SUPPRESS_COORD_OUTPUT;
   return Action::OK;
+}
+
+#ifdef MPI
+int Action_CheckStructure::SyncAction() {
+  if (outfile_ == 0) return 0;
+  // Get total number of problems
+  std::vector<int> rank_frames( trajComm_.Size() );
+  trajComm_.GatherMaster( &idx_, 1, MPI_INT, &(rank_frames[0]) );
+  for (int rank = 1; rank < trajComm_.Size(); rank++)
+    idx_ += rank_frames[ rank ];
+  ds_fn_->Sync( idx_, rank_frames, trajComm_ );
+  ds_pt_->Sync( idx_, rank_frames, trajComm_ );
+  ds_a1_->Sync( idx_, rank_frames, trajComm_ );
+  ds_n1_->Sync( idx_, rank_frames, trajComm_ );
+  ds_a2_->Sync( idx_, rank_frames, trajComm_ );
+  ds_n2_->Sync( idx_, rank_frames, trajComm_ );
+  ds_d_->Sync(  idx_, rank_frames, trajComm_ );
+  ds_fn_->SetNeedsSync( false );
+  ds_pt_->SetNeedsSync( false );
+  ds_a1_->SetNeedsSync( false );
+  ds_n1_->SetNeedsSync( false );
+  ds_a2_->SetNeedsSync( false );
+  ds_n2_->SetNeedsSync( false );
+  ds_d_->SetNeedsSync(  false );
+  return 0;
+}
+#endif
+
+void Action_CheckStructure::Print() {
+# ifdef MPI
+  if (outfile_ != 0) {
+    mprintf("    CHECKSTRUCTURE: Writing to %s\n", outfile_->Filename().full());
+    for (unsigned int idx = 0; idx != ds_fn_->Size(); idx++) {
+      // TODO without casts?
+      DataSet_integer const& FN = static_cast<DataSet_integer const&>( *ds_fn_ );
+      DataSet_integer const& PT = static_cast<DataSet_integer const&>( *ds_pt_ );
+      DataSet_integer const& A1 = static_cast<DataSet_integer const&>( *ds_a1_ );
+      DataSet_string  const& N1 = static_cast<DataSet_string  const&>( *ds_n1_ );
+      DataSet_integer const& A2 = static_cast<DataSet_integer const&>( *ds_a2_ );
+      DataSet_string  const& N2 = static_cast<DataSet_string  const&>( *ds_n2_ );
+      DataSet_double  const& DV = static_cast<DataSet_double  const&>( *ds_d_  );
+      outfile_->Printf(Fmt_[PT[idx]], FN[idx], A1[idx], N1[idx].c_str(),
+                       A2[idx], N2[idx].c_str(), DV[idx]);
+    }
+  }
+# endif
 }
