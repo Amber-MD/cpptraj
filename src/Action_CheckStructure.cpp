@@ -1,3 +1,5 @@
+#include <algorithm> // min and max
+
 #include "Action_CheckStructure.h"
 #include "CpptrajStdio.h"
 #ifdef MPI

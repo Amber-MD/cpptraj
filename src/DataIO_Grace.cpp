@@ -1,4 +1,5 @@
 #include <cstdio> // sscanf
+#include <algorithm>
 #include "DataIO_Grace.h"
 #include "CpptrajStdio.h"
 #include "BufferedLine.h"
