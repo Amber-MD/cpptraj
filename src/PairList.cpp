@@ -1,4 +1,5 @@
 #include <cmath> // floor
+#include <algorithm> // min and max
 #include "PairList.h"
 #include "CpptrajStdio.h"
 #include "StringRoutines.h" // ByteString()
