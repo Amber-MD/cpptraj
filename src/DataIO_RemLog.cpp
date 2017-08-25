@@ -1,4 +1,5 @@
 #include <cstdio> // sscanf
+#include <cstdlib> // atoi
 #include <algorithm> // sort
 #include "DataIO_RemLog.h"
 #include "CpptrajStdio.h" 
@@ -212,17 +213,32 @@ DataIO_RemLog::TmapType
   std::vector<TlogType> tList; // Hold temps and associated coord idxs
   TlogType tlog;
   CrdIdxs.clear();
+  bool overflow = false;
+  char cbuf[3];
+  cbuf[2] = '\0';
+  int cidx = 1;
   const char* ptr = buffer.Line();
   while (ptr != 0 && ptr[0] != '#') {
     // For temperature remlog create temperature map. 
     //mprintf("DEBUG: Temp0= %s", ptr+32);
-    if ( sscanf(ptr, "%2i%*10f%*10f%*10f%10lf", &tlog.crdidx, &tlog.t0) != 2 ) {
+    if ( sscanf(ptr, "%2c%*10f%*10f%*10f%10lf", cbuf, &tlog.t0) != 2 ) {
       mprinterr("Error: could not read temperature from T-REMD log.\n"
-                "Error: Line: %s", ptr);
+                "Error: Line: %s\n", ptr);
       return TemperatureMap;
     }
+    if (cbuf[0] == '*') {
+      if (!overflow) {
+        mprintf("Warning: Overflow detected for coord index in line:\n"
+                "Warning: %s\n"
+                "Warning: Assuming replica %i\n", ptr, cidx);
+        overflow = true;
+      }
+      tlog.crdidx = cidx;
+    } else
+      tlog.crdidx = atoi( cbuf );
     tList.push_back( tlog );
     ptr = buffer.Line();
+    cidx++;
   }
   // Sort temperatures and associated coord indices
   std::sort( tList.begin(), tList.end(), TlogType_cmp() );
@@ -679,8 +695,9 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
           // Read remlog line.
           ptr = buffer[current_dim].Line();
           if (ptr == 0) {
-            mprinterr("Error: reading remlog; unexpected EOF. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
-                      current_dim+1, exchg+1, grp+1, replica+1);
+            mprintf("Warning: Unexpected end of file reading remlog: "
+                    "Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
+                    current_dim+1, exchg+1, grp+1, replica+1);
             fileEOF = true;
             // If this is not the first replica remove all partial replicas
             if (replica > 0) ensemble.TrimLastExchange();
@@ -695,14 +712,14 @@ int DataIO_RemLog::ReadData(FileName const& fnameIn,
            * simulated. TODO: Is that valid?
            */
           if (DimTypes[current_dim] == ReplicaDimArray::TEMPERATURE) {
-            int tremd_crdidx, current_crdidx; // TODO: Remove tremd_crdidx
+            int current_crdidx;
             double tremd_scaling, tremd_pe, tremd_temp0, tremd_tempP;
-            if ( sscanf(ptr, "%2i%10lf%*10f%10lf%10lf%10lf", &tremd_crdidx, &tremd_scaling,
-                        &tremd_pe, &tremd_temp0, &tremd_tempP) != 5 )
+            if ( sscanf(ptr, "%*2c%10lf%*10f%10lf%10lf%10lf", &tremd_scaling,
+                        &tremd_pe, &tremd_temp0, &tremd_tempP) != 4 )
             {
               mprinterr("Error reading TREMD line from rem log. Dim=%u, Exchg=%i, grp=%u, rep=%u\n",
                         current_dim+1, exchg+1, grp+1, replica+1);
-              mprinterr("Error: Line: %s", ptr);
+              mprinterr("Error: Line: %s\n", ptr);
               return 1;
             }
             // Figure out my position within the group.
