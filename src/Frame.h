@@ -82,9 +82,9 @@ class Frame {
     /// \return pointer to specified coordinate.
     const double* CRD(int idx)        const { return X_ + idx;       }
     /// \return pointer to start of velocity XYZ for given atom.
-    const double* VXYZ(int atnum)     const { return V_ + (atnum*3); }
+    const double* VelXYZ(int atnum)     const { return V_ + (atnum*3); }
     /// \return pointer to start of force XYZ for given atom.
-    const double* FXYZ(int atnum)     const { return F_ + (atnum*3); }
+    const double* FrcXYZ(int atnum)     const { return F_ + (atnum*3); }
     /// \return mass of specified atom.
     double Mass(int atnum)            const { return Mass_[atnum];   }
     /// \return Box information
