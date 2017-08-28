@@ -22,7 +22,7 @@ Action_VelocityAutoCorr::Action_VelocityAutoCorr() :
 {}
 
 void Action_VelocityAutoCorr::Help() const {
-  mprintf("\t[<set name>] [<mask>] [usevelocity] [out <filename>] [diffout <file>]\n"
+  mprintf("\t[<set name>] [<mask>] [usecoords] [out <filename>] [diffout <file>]\n"
           "\t[maxlag <frames>] [tstep <timestep>] [direct] [norm]\n"
           "  Calculate velocity auto-correlation function for atoms in <mask>. If\n"
           "  'diffout' specified write calculated diffusion constants to <file>,\n"
@@ -32,7 +32,14 @@ void Action_VelocityAutoCorr::Help() const {
 // Action_VelocityAutoCorr::Init()
 Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& init, int debugIn)
 {
-  useVelInfo_ = actionArgs.hasKey("usevelocity");
+  if (actionArgs.hasKey("usevelocity")) {
+    mprinterr("Error: The 'usevelocity' keyword is deprecated. Velocity information\n"
+              "Error:   is now used by default if present. To force cpptraj to use\n"
+              "Error:   coordinates to estimate velocities (not recommended) use the\n"
+              "Error:   'usecoords' keyword.\n");
+    return Action::ERR;
+  }
+  useVelInfo_ = !actionArgs.hasKey("usecoords");
   mask_.SetMaskString( actionArgs.GetMaskNext() );
   DataFile* outfile =  init.DFL().AddDataFile( actionArgs.GetStringKey("out"), actionArgs );
   diffout_ = init.DFL().AddCpptrajFile( actionArgs.GetStringKey("diffout"),
@@ -63,7 +70,7 @@ Action::RetType Action_VelocityAutoCorr::Init(ArgList& actionArgs, ActionInit& i
   if (useVelInfo_)
     mprintf("\tUsing velocity information present in frames.\n");
   else
-    mprintf("\tCalculating velocities between consecutive frames.\n");
+    mprintf("\tCalculating velocities between consecutive frames from coordinates.\n");
   if (outfile != 0)
     mprintf("\tOutput velocity autocorrelation function '%s' to '%s'\n", VAC_->legend(), 
             outfile->DataFilename().full());
@@ -93,8 +100,7 @@ Action::RetType Action_VelocityAutoCorr::Setup(ActionSetup& setup) {
   }
   // If using velocity info, check that it is present.
   if (useVelInfo_ && !setup.CoordInfo().HasVel()) {
-    mprinterr("Error: 'usevelocity' specified but no velocity info assocated with %s\n",
-              setup.Top().c_str());
+    mprinterr("Error: No velocity info present in frames.\n");
     return Action::ERR;
   }
   // If we have already started recording velocities, check that the current 
@@ -136,10 +142,20 @@ Action::RetType Action_VelocityAutoCorr::DoAction(int frameNum, ActionFrame& frm
 }
 
 #ifdef MPI
+// Action_VelocityAutoCorr::ParallelPreviousFramesRequired()
+int Action_VelocityAutoCorr::ParallelPreviousFramesRequired() const {
+  if (useVelInfo_)
+    return 0;
+  else
+    return 1;
+}
+
 // Action_VelocityAutoCorr::ParallelPreloadFrames()
 int Action_VelocityAutoCorr::ParallelPreloadFrames(FArray const& preload_frames) {
-  unsigned int idx = preload_frames.size() - 1;
-  previousFrame_ = preload_frames[idx];
+  if (!useVelInfo_) {
+    unsigned int idx = preload_frames.size() - 1;
+    previousFrame_ = preload_frames[idx];
+  }
   return 0;
 }
 
