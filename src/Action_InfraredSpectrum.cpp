@@ -57,10 +57,12 @@ Action::RetType Action_InfraredSpectrum::Init(ArgList& actionArgs, ActionInit& i
     mprintf("\tUsing FFT to calculate autocorrelation function.\n");
   else
     mprintf("\tUsing direct method to calculate autocorrelation function.\n");
+  mprintf("\tAutocorrelation function data in '%s'\n", VAC_->Meta().PrintName().c_str());
   if (outfile != 0)
-    mprintf("\tOutput to '%s'\n", outfile->DataFilename().full());
-  mprintf("\tRaw velocity*charge data in '%s'\n", Vel_->Meta().PrintName().c_str());
-  mprintf("\tAutocorrelation function in '%s'\n", VAC_->Meta().PrintName().c_str());
+    mprintf("\tAutocorrelation function output to '%s'\n", outfile->DataFilename().full());
+  mprintf("\tRaw velocity*charge vector data in '%s'\n", Vel_->Meta().PrintName().c_str());
+  if (rawfile != 0)
+    mprintf("\tRaw velocity*charge vector output to '%s'\n", rawfile->DataFilename().full());
   return Action::OK;
 }
 
@@ -97,8 +99,10 @@ Action::RetType Action_InfraredSpectrum::DoAction(int frameNum, ActionFrame& frm
   return Action::OK;
 }
 
+// Action_InfraredSpectrum::Print()
 void Action_InfraredSpectrum::Print() {
   if (Vel_ == 0 || Vel_->Size() < 1) return;
+  mprintf("    INFRARED SPECTRUM:\n");
   int maxlag;
   if (maxLag_ <= 0) {
     maxlag = (int)Vel_->Size() / 2;
@@ -128,6 +132,7 @@ void Action_InfraredSpectrum::Print() {
         dtmax = Vel_->Size() - t;
         for (dt = 0; dt < dtmax; ++dt)
           Ct[t] += (*Vel_)[dt] * (*Vel_)[dt + t];
+        Ct[t] /= (double)dtmax;
         //mprintf("\tCt[%i]= %f\n", t, Ct[t]); // DEBUG
       }
 #   ifdef _OPENMP
