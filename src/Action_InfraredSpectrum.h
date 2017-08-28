@@ -12,12 +12,14 @@ class Action_InfraredSpectrum : public Action {
     Action::RetType Init(ArgList&, ActionInit&, int);
     Action::RetType Setup(ActionSetup&);
     Action::RetType DoAction(int, ActionFrame&);
-    void Print() {}
+    void Print();
 
     typedef DataSet_Vector VelArray;
     VelArray* Vel_;         ///< Hold velocity*charge for selected atoms at each frame.
+    DataSet* VAC_;
     AtomMask mask_;         ///< Atoms to calculate VAC fn for.
     Topology* currentTop_;
+    double tstep_;
     int maxLag_;            ///< Maximum lag to calculate VAC fn for.
     int previousNselected_; ///< Used to check if selected # atoms has changed.
     bool useFFT_;           ///< Use FFT to calculate VAC functions
