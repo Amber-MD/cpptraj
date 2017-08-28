@@ -149,9 +149,6 @@ void Action_InfraredSpectrum::Print() {
     pubfft.CorrSetup( total_length );
     ComplexArray data1 = pubfft.Array();
     //mprintf("Complex Array Size is %i (%i actual)\n", data1.size(), data1.size()*2);
-    //ProgressBar progress( Vel_.size() );
-    //mprintf("Vector %u\n", vel - Vel_.begin()); // DEBUG
-    //progress.Update( nvel );
     // Place vector from each frame into 1D array
     unsigned int nd = 0; // Will be used to index complex data
     for (DataSet_Vector::const_iterator vec = Vel_->begin(); vec != Vel_->end(); ++vec, nd+=6)
@@ -162,12 +159,9 @@ void Action_InfraredSpectrum::Print() {
     }
     data1.PadWithZero( total_length );
     pubfft.AutoCorr( data1 );
+    // Normalization
     nd = 0;
     for (int t = 0; t < maxlag; t++, nd += 3)
-      Ct[t] += data1[nd*2];
-    // Normalization
-    for (int t = 0, nd = 0; t < maxlag; t++, nd += 3)
-      Ct[t] *= ( 3.0 / (double)((total_length - nd)) );
-      //Ct[t] /= (double)Vel_.size();
+      Ct[t] = data1[nd*2] * ( 3.0 / (double)((total_length - nd)) );
   }
 }
