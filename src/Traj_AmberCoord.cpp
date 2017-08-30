@@ -471,7 +471,7 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
       file_.SetupAppend( fname, debug_ );
     else
       file_.SetupWrite( fname, debug_ );
-    if (highPrecision_) outFmt_ = "%8.6f";
+    if (highPrecision_) outfmt_ = "%8.6f";
   }
   // For parallel output we will need to seek. Set up the buffer again with correct offsets.
   // Figure out the size of the written title.
