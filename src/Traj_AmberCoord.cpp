@@ -9,10 +9,13 @@ const size_t Traj_AmberCoord::RXSGLD_HEADER_SIZE = 44;
 
 // CONSTRUCTOR
 Traj_AmberCoord::Traj_AmberCoord() :
-  natom3_(0),
+  outfmt_("%8.3f"),
   headerSize_(0),
+  tStart_(0),
+  tEnd_(0),
+  natom3_(0),
   numBoxCoords_(0),
-  outfmt_("%8.3lf"),
+  writeType_(COORDS),
   highPrecision_(false),
   outputTemp_(false)
 {
@@ -121,6 +124,15 @@ int Traj_AmberCoord::readVelocity(int set, Frame& frameIn) {
   return 0;
 }
 
+int Traj_AmberCoord::readForce(int set, Frame& frameIn) {
+  file_.SeekToFrame( set );
+  // Read frame into the char buffer
+  if (file_.ReadFrame()) return 1;
+  file_.BufferBeginAt(headerSize_);
+  file_.BufferToDouble(frameIn.fAddress(), natom3_);
+  return 0;
+}
+
 // Traj_AmberCoord::writeFrame()
 /** Write coordinates from Frame to frameBuffer. frameBuffer must be large
   * enough to accomodate all coords in F (handled by SetupWrite).
@@ -131,7 +143,12 @@ int Traj_AmberCoord::writeFrame(int set, Frame const& frameOut) {
     file_.Printf("REMD  %8i %8i %8i %8.3f\n", 0, set+1, set+1, frameOut.Temperature());
 
   file_.BufferBegin();
-  file_.DoubleToBuffer(frameOut.xAddress(), natom3_, outfmt_);
+  switch (writeType_) {
+    case COORDS : file_.DoubleToBuffer(frameOut.xAddress(), natom3_, outfmt_); break;
+    case VEL    : file_.DoubleToBuffer(frameOut.vAddress(), natom3_, outfmt_); break;
+    case FRC    : file_.DoubleToBuffer(frameOut.fAddress(), natom3_, outfmt_); break;
+  }
+  
   if (numBoxCoords_ != 0) 
     file_.DoubleToBuffer(frameOut.bAddress(), numBoxCoords_, outfmt_);
 
@@ -298,16 +315,21 @@ int Traj_AmberCoord::setupTrajin(FileName const& fname, Topology* trajParm)
 
 void Traj_AmberCoord::WriteHelp() {
   mprintf("\tremdtraj     : Write temperature to trajectory (makes REMD trajectory).\n"
-          "\thighprecision: (ADVANCED USE ONLY) Write 8.6 instead of 8.3 format.\n");
+          "\thighprecision: (ADVANCED USE ONLY) Write 8.6 instead of 8.3 format.\n"
+          "\tmdvel        : Write velocities instead of coordinates.\n"
+          "\tmdfrc        : Write forces instead of coordinates.\n");
 }
 
 // Traj_AmberCoord::processWriteArgs()
 int Traj_AmberCoord::processWriteArgs(ArgList& argIn) {
   outputTemp_ = argIn.hasKey("remdtraj");
   if (argIn.hasKey("highprecision")) { 
-    outfmt_ = "%8.6lf";
+    outfmt_ = "%8.6f";
     highPrecision_ = true;
   }
+  if      (argIn.hasKey("mdvel")) writeType_ = VEL;
+  else if (argIn.hasKey("mdfrc")) writeType_ = FRC;
+  else if (argIn.hasKey("mdcrd")) writeType_ = COORDS;
   return 0;
 }
 
@@ -380,6 +402,8 @@ void Traj_AmberCoord::Info() {
   else
     mprintf("is an AMBER trajectory");
   if (highPrecision_) mprintf(" (high precision)");
+  if (writeType_ == VEL) mprintf(" (MDVEL)");
+  else if (writeType_ == FRC) mprintf(" (MDFRC)");
 }
 #ifdef MPI
 // =============================================================================
@@ -418,7 +442,7 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
   // Synchronize info on non-master threads.
   SyncTrajIO( commIn );
   // TODO For simplicity convert everything to double. Is this just lazy?
-  double tmpArray[8];
+  double tmpArray[10];
   if (commIn.Master()) {
     tmpArray[0] = (double)natom3_;
     tmpArray[1] = (double)headerSize_;
@@ -428,21 +452,26 @@ int Traj_AmberCoord::parallelSetupTrajout(FileName const& fname, Topology* trajP
     tmpArray[5] = boxAngle_[0];
     tmpArray[6] = boxAngle_[1];
     tmpArray[7] = boxAngle_[2];
-    commIn.MasterBcast(tmpArray, 8, MPI_DOUBLE);
+    tmpArray[8] = (double)writeType_;
+    tmpArray[9] = (double)highPrecision_;
+    commIn.MasterBcast(tmpArray, 10, MPI_DOUBLE);
   } else {
-    commIn.MasterBcast(tmpArray, 8, MPI_DOUBLE);
-    natom3_       = (int)tmpArray[0];
-    headerSize_   = (size_t)tmpArray[1];
-    tStart_       = (size_t)tmpArray[2];
-    tEnd_         = (size_t)tmpArray[3];
-    numBoxCoords_ = (int)tmpArray[4];
-    boxAngle_[0]  = tmpArray[5];
-    boxAngle_[1]  = tmpArray[6];
-    boxAngle_[2]  = tmpArray[7];
+    commIn.MasterBcast(tmpArray, 10, MPI_DOUBLE);
+    natom3_        = (int)tmpArray[0];
+    headerSize_    = (size_t)tmpArray[1];
+    tStart_        = (size_t)tmpArray[2];
+    tEnd_          = (size_t)tmpArray[3];
+    numBoxCoords_  = (int)tmpArray[4];
+    boxAngle_[0]   = tmpArray[5];
+    boxAngle_[1]   = tmpArray[6];
+    boxAngle_[2]   = tmpArray[7];
+    writeType_     = (WriteType)tmpArray[8];
+    highPrecision_ = (bool)tmpArray[9];
     if (append)
       file_.SetupAppend( fname, debug_ );
     else
       file_.SetupWrite( fname, debug_ );
+    if (highPrecision_) outFmt_ = "%8.6f";
   }
   // For parallel output we will need to seek. Set up the buffer again with correct offsets.
   // Figure out the size of the written title.
