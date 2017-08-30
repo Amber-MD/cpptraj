@@ -1,5 +1,6 @@
 #ifndef INC_COORDINATEINFO_H
 #define INC_COORDINATEINFO_H
+#include <string>
 #include "ReplicaDimArray.h"
 #include "Box.h"
 #ifdef MPI
@@ -43,6 +44,8 @@ class CoordinateInfo {
     void SetReplicaDims(ReplicaDimArray const& r) { remdDim_ = r; }
     /// Print coordinate info to STDOUT
     void PrintCoordInfo(const char*, const char*) const;
+    /// \return string containing info on present metadata
+    std::string InfoString() const;
 #   ifdef MPI
     int SyncCoordInfo(Parallel::Comm const&);
 #   endif
