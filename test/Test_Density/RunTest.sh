@@ -8,7 +8,7 @@ out2=mass_density.dat
 out3=charge_density.dat
 out4=electron_density.dat
 
-CleanFiles $in $out1 $out2 $out3 $out4
+CleanFiles $in $out1 $out2 $out3 $out4 total.dat
 
 INPUT="-i $in"
 NotParallel "Density test."
