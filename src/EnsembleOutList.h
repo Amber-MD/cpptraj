@@ -24,6 +24,8 @@ class EnsembleOutList {
     int ParallelSetupEnsembleOut(Topology*, CoordinateInfo const&, int, Parallel::Comm const&);
 #   endif
   private:
+    void ListActive() const;
+
     int debug_;
     typedef std::vector<Topology*> TopArray;
     typedef std::vector<EnsembleOut*> EnsArray;

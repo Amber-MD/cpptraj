@@ -9,21 +9,7 @@ class Traj_AmberCoord: public TrajectoryIO {
     static BaseIOtype* Alloc() { return (BaseIOtype*)new Traj_AmberCoord(); }
     static void WriteHelp();
   private:
-    int natom3_;          ///< Number of coords (# atoms X 3)
-    // TODO: Replace hasREMD with REMD_HEADER_SIZE/HasT()
-    size_t headerSize_;   ///< REMD header size if present
-    size_t tStart_;       ///< Start position for T-value in header
-    size_t tEnd_;         ///< End position for T-value in header
-    int numBoxCoords_;    ///< Number of box coords, 3 (ortho or truncoct) or 6 (triclinic)
-    const char* outfmt_;  ///< Format string for writing coordinates
-    bool highPrecision_;  ///< If true output format will be 8.6 instead of 8.3
-    bool outputTemp_;     ///< If true temperature will be out to REMD line.
-    BufferedFrame file_;  ///< Buffer reads/writes
-    double boxAngle_[3];  ///< Hold default box angles in case traj has only box lengths
-
-    static const size_t REMD_HEADER_SIZE;
-    static const size_t RXSGLD_HEADER_SIZE;
-
+    enum WriteType { COORDS= 0, VEL, FRC };
     // Inherited functions
     bool ID_TrajFormat(CpptrajFile&);
     int setupTrajin(FileName const&, Topology*);
@@ -35,7 +21,7 @@ class Traj_AmberCoord: public TrajectoryIO {
     void Info();
     int processWriteArgs(ArgList&);
     int readVelocity(int, Frame&);
-    int readForce(int, Frame&)     { return 1; }
+    int readForce(int, Frame&);
     int processReadArgs(ArgList&)  { return 0; }
 #   ifdef MPI
     // Parallel functions
@@ -47,5 +33,20 @@ class Traj_AmberCoord: public TrajectoryIO {
     int parallelWriteFrame(int, Frame const&);
     void parallelCloseTraj();
 #   endif
+
+    static const size_t REMD_HEADER_SIZE;
+    static const size_t RXSGLD_HEADER_SIZE;
+
+    BufferedFrame file_;  ///< Buffer reads/writes
+    const char* outfmt_;  ///< Format string for writing coordinates
+    size_t headerSize_;   ///< REMD header size if present
+    size_t tStart_;       ///< Start position for T-value in header
+    size_t tEnd_;         ///< End position for T-value in header
+    double boxAngle_[3];  ///< Hold default box angles in case traj has only box lengths
+    int natom3_;          ///< Number of coords (# atoms X 3)
+    int numBoxCoords_;    ///< Number of box coords, 3 (ortho or truncoct) or 6 (triclinic)
+    WriteType writeType_; ///< What to write out (coordinates/velocities/forces)
+    bool highPrecision_;  ///< If true output format will be 8.6 instead of 8.3
+    bool outputTemp_;     ///< If true temperature will be out to REMD line.
 };
 #endif

@@ -54,6 +54,7 @@ int EnsembleOutList::AddEnsembleOut(std::string const& fname, ArgList const& arg
   return 0;
 }
 
+// EnsembleOutList::SetupEnsembleOut()
 int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo const& cInfo,
                                       int Nframes)
 {
@@ -72,7 +73,26 @@ int EnsembleOutList::SetupEnsembleOut(Topology* CurrentParm, CoordinateInfo cons
       active_.push_back( ensout_[i] );
     }
   }
+  ListActive();
   return 0;
+}
+
+/** List only active output trajectories. */
+void EnsembleOutList::ListActive() const {
+  if (!ensout_.empty()) {
+    mprintf(".....................................................\n");
+    if (!active_.empty()) {
+      mprintf("ACTIVE OUTPUT ENSEMBLES (%zu):\n", active_.size());
+      for (EnsArray::const_iterator it = active_.begin(); it != active_.end(); ++it)
+      {
+        mprintf("  %s", (*it)->Traj().Filename().full());
+        std::string meta = (*it)->Traj().CoordInfo().InfoString();
+        if (!meta.empty()) mprintf(" (%s)", meta.c_str());
+        mprintf("\n");
+      }
+    } else
+      mprintf("NO ACTIVE OUTPUT ENSEMBLES.\n");
+  }
 }
 
 /** Go through each active output traj, call write. */
@@ -130,6 +150,7 @@ int EnsembleOutList::ParallelSetupEnsembleOut(Topology* CurrentParm,
       active_.push_back( ensout_[i] );
     }
   }
+  ListActive();
   return 0;
 }
 #endif
