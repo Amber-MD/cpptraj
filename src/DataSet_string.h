@@ -8,8 +8,10 @@ class DataSet_string : public DataSet {
   public:
     DataSet_string() : DataSet(STRING, GENERIC, TextFormat(TextFormat::STRING, 1), 1) {}
     static DataSet* Alloc() { return (DataSet*)new DataSet_string();}
-    std::vector<std::string> const& Data() { return Data_; }
-    std::string& operator[](size_t idx)  { return Data_[idx];         }
+    std::vector<std::string> const& Data()          { return Data_;      }
+    std::string& operator[](size_t idx)             { return Data_[idx]; }
+    std::string const& operator[](size_t idx) const { return Data_[idx]; }
+
     void operator=(std::vector<std::string> const& rhs) { Data_ = rhs;}
     void AddElement(std::string const& s){ Data_.push_back( s );      }
     /// Make set size sizeIn, all values set to blank

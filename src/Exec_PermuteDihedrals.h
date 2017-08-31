@@ -1,7 +1,7 @@
 #ifndef INC_EXEC_PERMUTEDIHEDRALS_H
 #define INC_EXEC_PERMUTEDIHEDRALS_H
 #include "Exec.h"
-#include "Action_CheckStructure.h"
+#include "StructureCheck.h"
 #include "Random.h"
 #include "Trajout_Single.h"
 #include "DataSet_Coords_CRD.h"
@@ -58,7 +58,7 @@ class Exec_PermuteDihedrals : public Exec {
     int increment_;     ///< Value in degrees to increment random dihedral by if clash happens
     int max_increment_; ///< 360 / increment
     DataSet* number_of_problems_;
-    Action_CheckStructure checkStructure_;
+    StructureCheck checkStructure_;
     Random_Number RN_;
 };
 #endif

@@ -12,6 +12,25 @@ void CoordinateInfo::PrintCoordInfo(const char* name, const char* parm) const {
   mprintf(" }\n");
 }
 
+static inline void Append(std::string& meta, std::string const& str) {
+  if (meta.empty())
+    meta.assign( str );
+  else
+    meta.append(", " + str);
+}
+
+std::string CoordinateInfo::InfoString() const {
+  std::string meta;
+  if ( HasCrd() )         Append(meta, "coordinates");
+  if ( HasVel() )         Append(meta, "velocities");
+  if ( HasForce() )       Append(meta, "forces");
+  if ( HasTemp() )        Append(meta, "temperature");
+  if ( HasTime() )        Append(meta, "time");
+  if ( HasReplicaDims() ) Append(meta, "replicaDims");
+  if ( HasBox() )         Append(meta, "box");
+  return meta;
+}
+
 #ifdef MPI
 int CoordinateInfo::SyncCoordInfo(Parallel::Comm const& commIn) {
   // ensSize, hasvel, hastemp, hastime, hasfrc, NrepDims, Dim1, ..., DimN, 
