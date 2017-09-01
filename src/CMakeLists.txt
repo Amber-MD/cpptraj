@@ -156,21 +156,26 @@ endif()
 targets_link_libraries(cpptraj libcpptraj ambpdb LIBRARIES xdrfile)
 
 # libsander
-if(INSIDE_AMBER AND ("${AMBER_TOOLS}" MATCHES "sander" AND BUILD_SANDER_API))
+if(BUILD_SANDER_API)
 	#add the sander-specific definitions and libraries
 	set_property(TARGET cpptraj PROPERTY COMPILE_DEFINITIONS USE_SANDERLIB)
 	target_link_libraries(cpptraj libsander)
 endif()
 
+# CUDA
+if(CUDA)
+	add_subdirectory(cuda_kernels)
+	
+	add_definitions(-DCUDA)
+	include_directories(${CUDA_INCLUDE_DIRS})
+	targets_link_libraries(cpptraj libcpptraj LIBRARIES cpptraj_cuda)
+endif()
 
 # arpack
 if(arpack_DISABLED)
 	add_definitions(-DNO_ARPACK)
 endif()
 
-# --------------------------------------------------------------------
-# Parallel Versions
-# --------------------------------------------------------------------
 
 if(MPI)
 	make_mpi_version(cpptraj_common_obj cpptraj_common_obj_mpi LANGUAGES CXX)
@@ -191,21 +196,4 @@ if(OPENMP)
 	make_openmp_version(cpptraj cpptraj.OMP LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp> INSTALL)
 	make_openmp_version(libcpptraj libcpptraj_omp LANGUAGES CXX SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_openmp> INSTALL)
 endif()
-
-# CUDA
-if(CUDA)
-	add_subdirectory(cuda_kernels)
-	
-	include_directories(${CUDA_INCLUDE_DIRS})
-	
-	copy_target(cpptraj_common_obj cpptraj_common_obj_cuda)
-	target_compile_definitions(cpptraj_common_obj_cuda PRIVATE CUDA)
-	
-	copy_target(cpptraj cpptraj.cuda SWAP_SOURCES $<TARGET_OBJECTS:cpptraj_common_obj> TO $<TARGET_OBJECTS:cpptraj_common_obj_cuda>)
-	target_compile_definitions(cpptraj.cuda PRIVATE CUDA)
-	target_link_libraries(cpptraj.cuda cpptraj_cuda)
-	
-	install(TARGETS cpptraj.cuda DESTINATION ${BINDIR} COMPONENT CUDA)
-endif()
-
 	
