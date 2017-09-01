@@ -2,7 +2,7 @@
 
 . ../MasterTest.sh
 
-CleanFiles apm.in apm.dat box.dat areaxy.dat mask.dat
+CleanFiles apm.in apm.dat box.dat areaxy.dat mask.dat mask2.dat
 
 INPUT='-i apm.in'
 MaxThreads 1 "Area per molecule test."
@@ -12,6 +12,7 @@ parm ../DOPC.parm7
 trajin ../DOPC.rst7
 areapermol DOPC1 nmols 36 out apm.dat noheader
 areapermol DOPC2 :OL nlayers 2 out mask.dat noheader
+areapermol DOPC3 :OL,PC,OL2 nlayers 2 out mask2.dat noheader
 vector box out box.dat prec 16.8
 run
 
@@ -25,6 +26,7 @@ EOF
   DoTest apm.dat.save apm.dat
   DoTest apm.dat.save areaxy.dat
   DoTest apm.dat.save mask.dat
+  DoTest apm.dat.save mask2.dat
 fi
 
 EndTest
