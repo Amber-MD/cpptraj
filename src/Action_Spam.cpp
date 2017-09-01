@@ -346,7 +346,10 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
         double r6 = r2 * r2 * r2;
         // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
-        result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        //mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        result += eval;
       }
     }
   }
@@ -360,7 +363,9 @@ double Action_Spam::Ecalc(int i, int j, double dist2) const {
         double r6 = r2 * r2 * r2;
         // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
-        return (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
+        double eval = (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
+        //mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        return eval;
 }
 
 
@@ -391,13 +396,14 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
-  int wat = 0;
+  int wat = 0, wat1 = 0;
   int maxwat = (int)solvent_residues_.size();
   int basenum = frameNum * solvent_residues_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
   t_energy_.Start();
+
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
@@ -418,12 +424,15 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
         for (PairList::CellType::const_iterator it1 = it0 + 1;
                                                 it1 != thisCell.end(); ++it1)
         {
-          if ( wat != watidx_[it1->Idx()] ) {
+          wat1 = watidx_[it1->Idx()];
+          if ( wat != wat1 ) {
             Vec3 const& xyz1 = it1->ImageCoords();
             Vec3 dxyz = xyz1 - xyz0;
             double D2 = dxyz.Magnitude2();
-            if (D2 < cut2_)
+            if (D2 < cut2_) {
               evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+              evals[basenum + wat1] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+            }
           }
         } // END loop over all other atoms in thisCell
         // Loop over all neighbor cells
@@ -436,12 +445,15 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
           for (PairList::CellType::const_iterator it1 = nbrCell.begin();
                                                   it1 != nbrCell.end(); ++it1)
           {
-            if ( wat != watidx_[it1->Idx()] ) {
+            wat1 = watidx_[it1->Idx()];
+            if ( wat != wat1 ) {
               Vec3 const& xyz1 = it1->ImageCoords();
               Vec3 dxyz = xyz1 + tVec - xyz0;
               double D2 = dxyz.Magnitude2();
-              if (D2 < cut2_)
+              if (D2 < cut2_) {
                 evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+                evals[basenum + wat1] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+              }
             }
           } // END loop over atoms in neighbor cell
         } // END loop over neighbor cells
