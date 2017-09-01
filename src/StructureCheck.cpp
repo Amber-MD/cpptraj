@@ -114,9 +114,7 @@ int StructureCheck::Setup(Topology const& topIn, Box const& boxIn)
   // Check if pairlist should be used.
   if (image_.ImagingEnabled() && !Mask2_.MaskStringSet()) {
     if (pairList_.InitPairList( plcut_, 0.1, 0 )) return 1;
-    Matrix_3x3 ucell, recip;
-    boxIn.ToRecip(ucell, recip);
-    if (pairList_.SetupPairList( boxIn.Type(), boxIn.RecipLengths(recip) )) return 1;
+    if (pairList_.SetupPairList( boxIn )) return 1;
     mprintf("\tUsing pair list.\n");
     checkType_ = PL_1_MASK;
   }

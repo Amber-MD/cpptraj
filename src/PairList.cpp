@@ -32,6 +32,12 @@ int PairList::InitPairList(double cutIn, double skinNBin, int debugIn) {
   return 0;
 }
 
+int PairList::SetupPairList(Box const& boxIn) {
+  Matrix_3x3 ucell, recip;
+  boxIn.ToRecip(ucell, recip);
+  return SetupPairList( boxIn.Type(), boxIn.RecipLengths(recip) );
+}
+
 // PairList::SetupPairList()
 int PairList::SetupPairList(Box::BoxType typeIn, Vec3 const& recipLengthsIn) {
   Timer t_setup;

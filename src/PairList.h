@@ -22,8 +22,10 @@ class PairList {
     PairList();
     /// Initialize pair list with given cutoff, "skin", and debug level.
     int InitPairList(double,double,int);
-    /// Setup pair list grid cells based on given box and vector of recip lengths.
+    /// Setup pair list grid cells based on given box type and vector of recip lengths.
     int SetupPairList(Box::BoxType, Vec3 const&);
+    /// Setup pair list grid cells using given box
+    int SetupPairList(Box const&);
     /// Create pair list from Frame, unit cell and recip matrices, and mask.
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
     /// Print timing info.

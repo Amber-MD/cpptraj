@@ -4,6 +4,7 @@
 #include "ImagedAction.h"
 #include "Vec3.h"
 #include "Timer.h"
+#include "PairList.h"
 /**
 SPAM is a water profiling technique developed by Guanglei Cui at
 GlaxoSmithKline (GSK). The original implementation involved a set of specialized
@@ -51,10 +52,13 @@ class Action_Spam: public Action {
     typedef bool (Action_Spam::*FxnType)(Vec3, Vec3, double) const;
     bool inside_box(Vec3, Vec3, double) const;
     bool inside_sphere(Vec3, Vec3, double) const;
+    inline double Ecalc(int, int, double) const;
 
     int debug_;
     FxnType Inside_;        ///< Function for determining if water is inside peak.
     ImagedAction image_;    ///< Imaging routines.
+    PairList pairList_;     ///< Atom pair list
+    std::vector<int> watidx_;
     Matrix_3x3 ucell_;      ///< Unit cell matrix
     Matrix_3x3 recip_;      ///< Fractional matrix
     std::string solvname_;  ///< Name of the solvent residues

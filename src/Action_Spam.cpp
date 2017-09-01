@@ -87,6 +87,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get energy cutoff
   double cut = actionArgs.getKeyDouble("cut", 12.0);
+  if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
   cut2_ = cut * cut;
   doublecut_ = 2 * cut;
   onecut2_ = 1 / cut2_;
@@ -262,7 +263,9 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     return Action::ERR;
   }
   // Set up the solvent_residues_ vector
-  int resnum = 0;
+  mask_.ResetMask();
+  int idx = 0;
+  watidx_.resize( setup.Top().Natom(), -1 );
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
@@ -270,10 +273,13 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       solvent_residues_.push_back(*res);
       // Tabulate COM
       double mass = 0.0;
-      for (int i = res->FirstAtom(); i < res->LastAtom(); i++)
+      for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
+        mask_.AddAtom( i );
+        watidx_[i] = idx;
         mass += setup.Top()[i].Mass();
+      }
+      idx++;
     }
-    resnum++;
   }
   if (solvent_residues_.empty()) {
     mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
@@ -284,6 +290,9 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 
   mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
           solvname_.c_str());
+
+  // Set up pair list
+  if (pairList_.SetupPairList( currentBox )) return Action::ERR;
 
   // Set up the charge array and check that we have enough info
   if (SetupParms(setup.Top())) return Action::ERR;
@@ -344,12 +353,24 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   return result;
 }
 
+double Action_Spam::Ecalc(int i, int j, double dist2) const {
+        double qiqj = atom_charge_[i] * atom_charge_[j];
+        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
+        double r2 = 1 / dist2;
+        double r6 = r2 * r2 * r2;
+        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+        double shift = (1 - dist2 * onecut2_);
+        return (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
+}
+
+
 // Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
   // Calculate unit cell and fractional matrices for non-orthorhombic system
-  if ( image_.ImageType() == NONORTHO )
+  //if ( image_.ImageType() == NONORTHO )
     frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
+  pairList_.CreatePairList(frm.Frm(), ucell_, recip_, mask_);
   // Check that our box is still big enough...
   overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
                            frm.Frm().BoxCrd().BoxY() < doublecut_ ||
@@ -377,6 +398,57 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
   t_energy_.Start();
+  for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = pairList_.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        wat = watidx_[it0->Idx()];
+        int atomi = mask_[it0->Idx()];
+        Vec3 const& xyz0 = it0->ImageCoords();
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          if ( wat != watidx_[it1->Idx()] ) {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < cut2_)
+              evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+          }
+        } // END loop over all other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            if ( wat != watidx_[it1->Idx()] ) {
+              Vec3 const& xyz1 = it1->ImageCoords();
+              Vec3 dxyz = xyz1 + tVec - xyz0;
+              double D2 = dxyz.Magnitude2();
+              if (D2 < cut2_)
+                evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+            }
+          } // END loop over atoms in neighbor cell
+        } // END loop over neighbor cells
+      } // END loop over atoms in thisCell
+    } // END cell not empty
+  } // END loop over grid cells
+/*
 # ifdef _OPENMP
 # pragma omp parallel private(wat)
   {
@@ -387,6 +459,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 # ifdef _OPENMP
   }
 # endif
+*/
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
