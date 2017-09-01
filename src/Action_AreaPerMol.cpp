@@ -84,7 +84,8 @@ Action::RetType Action_AreaPerMol::Setup(ActionSetup& setup) {
     if (Nmols_ < 1.0) return Action::SKIP;
     Nmols_ /= Nlayers_;
     mprintf("\tArea per %.0f molecules (%0.f layers) will be determined.\n", Nmols_, Nlayers_);
-  }
+  } else
+    mprintf("\tArea per %.0f molecules will be determined.\n", Nmols_);
   return Action::OK;
 }
 
