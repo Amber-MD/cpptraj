@@ -99,6 +99,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
     if (ds == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet( ds );
+    ds->ModifyDim(Dimension::X).SetLabel("Index");
     myDSL_.push_back( ds );
     DG_BULK_ = 0.0;
     DH_BULK_ = 0.0;
@@ -208,6 +209,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tCalculating bulk value for pure solvent\n");
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
+    mprintf("\tData set '%s' index is water # * frame.\n", myDSL_[0]->legend());
     mprintf("\tUsing a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
