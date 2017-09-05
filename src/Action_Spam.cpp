@@ -87,7 +87,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get energy cutoff
   double cut = actionArgs.getKeyDouble("cut", 12.0);
-  if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
+  if (purewater_) {
+    if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
+  }
   cut2_ = cut * cut;
   doublecut_ = 2 * cut;
   onecut2_ = 1 / cut2_;
@@ -282,7 +284,7 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       double mass = 0.0;
       for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
         mask_.AddAtom( i );
-        watidx_[i] = idx;
+        watidx_[i] = idx; // TODO currently purewater only - skip if not purewater?
         mass += setup.Top()[i].Mass();
       }
       idx++;
@@ -299,7 +301,9 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
           solvname_.c_str());
 
   // Set up pair list
-  if (pairList_.SetupPairList( currentBox )) return Action::ERR;
+  if (purewater_) {
+    if (pairList_.SetupPairList( currentBox )) return Action::ERR;
+  }
 
   // Set up the charge array and check that we have enough info
   if (SetupParms(setup.Top())) return Action::ERR;
@@ -327,70 +331,9 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
   return 0;
 }
 
-// Action_Spam::Calculate_Energy()
-double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
-  // The first atom of the solvent residue we want the energy from
-  double result = 0;
-
-  // Now loop through all atoms in the residue and loop through the pairlist to
-  // get the energies
-  for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
-    Vec3 atm1 = Vec3(frameIn.XYZ(i));
-    for (int j = 0; j < CurrentParm_->Natom(); j++) {
-      if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
-      Vec3 atm2 = Vec3(frameIn.XYZ(j));
-      double dist2;
-      // Get imaged distance
-      switch( image_.ImageType() ) {
-        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell_, recip_); break;
-        case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
-        default       : dist2 = DIST2_NoImage(atm1, atm2); break;
-      }
-      if (i == 3 && j == 129) mprintf("AT 3 and 129 %f\n", sqrt(dist2));
-      if (dist2 < cut2_) {
-        double qiqj = atom_charge_[i] * atom_charge_[j];
-        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
-        double r2 = 1 / dist2;
-        double r6 = r2 * r2 * r2;
-        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
-        double shift = (1 - dist2 * onecut2_);
-        //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-        double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-        //if (i > 2 && i < 6)
-        //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
-        result += eval;
-      }
-    }
-  }
-  return result;
-}
-
-double Action_Spam::Ecalc(int i, int j, double dist2) const {
-        double qiqj = atom_charge_[i] * atom_charge_[j];
-        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
-        double r2 = 1 / dist2;
-        double r6 = r2 * r2 * r2;
-        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
-        double shift = (1 - dist2 * onecut2_);
-        double eval = (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
-        //if (i < j) {
-        //  if (i > 2 && i < 6)
-        //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
-        //} else {
-        //  if (j > 2 && j < 6)
-        //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", j, i, sqrt(dist2), eval);
-        //}
-        return eval;
-}
-
-
 // Action_Spam::DoAction()
 Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
   Nframes_++;
-  // Calculate unit cell and fractional matrices for non-orthorhombic system
-  //if ( image_.ImageType() == NONORTHO )
-    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
-  pairList_.CreatePairList(frm.Frm(), ucell_, recip_, mask_);
   // Check that our box is still big enough...
   overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
                            frm.Frm().BoxCrd().BoxY() < doublecut_ ||
@@ -401,24 +344,47 @@ Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
     return DoSPAM(frameNum, frm.ModifyFrm());
 }
 
+/** \return Energy between atoms i and j with given distance squared.
+  * \param i Absolute atom index for atom i.
+  * \param j Absolute atom index for atom j.
+  * \param dist2 Distance squared between atoms i and j.
+  */
+double Action_Spam::Ecalc(int i, int j, double dist2) const {
+  double qiqj = atom_charge_[i] * atom_charge_[j];
+  NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
+  double r2 = 1 / dist2;
+  double r6 = r2 * r2 * r2;
+  // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+  double shift = (1 - dist2 * onecut2_);
+  double eval = (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
+  //if (i < j) {
+  //  if (i > 2 && i < 6)
+  //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+  //} else {
+  //  if (j > 2 && j < 6)
+  //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", j, i, sqrt(dist2), eval);
+  //}
+  return eval;
+}
+
 // Action_Spam::DoPureWater
-/** Carries out SPAM analysis for pure water to parametrize bulk */
-  /* This is relatively simple... We have to loop through every water molecule
-   * for every frame, calculate the energy of that solvent molecule, and add
-   * that to our one data set. Therefore we will have NFRAMES * NWATER data
-   * points
-   */
+/** Carries out SPAM analysis for pure water to parametrize bulk.
+  * This is relatively simple. For each frame, calculate the interaction
+  * energy for every water to every other water in the system. Therefore
+  * we will have NFRAMES * NWATER data points total.
+  */
 Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 {
   t_action_.Start();
+  frameIn.BoxCrd().ToRecip(ucell_, recip_);
+  pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
   int wat = 0, wat1 = 0;
-  int maxwat = (int)solvent_residues_.size();
   int basenum = frameNum * solvent_residues_.size();
   DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
   t_energy_.Start();
-
+  // Loop over all grid cells
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
@@ -477,19 +443,6 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       } // END loop over atoms in thisCell
     } // END cell not empty
   } // END loop over grid cells
-
-/*
-# ifdef _OPENMP
-# pragma omp parallel private(wat)
-  {
-# pragma omp for
-# endif
-  for (wat = 0; wat < maxwat; wat++)
-    evals[basenum + wat] = Calculate_Energy(frameIn, solvent_residues_[wat]);
-# ifdef _OPENMP
-  }
-# endif
-*/
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
@@ -508,10 +461,53 @@ bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
            (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
 }
 
+// Action_Spam::Calculate_Energy()
+/** Calculate energy between given residue and all other residues in the
+  * system within the cutoff.
+  */
+double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
+  // The first atom of the solvent residue we want the energy from
+  double result = 0;
+
+  // Now loop through all atoms in the residue and loop through the pairlist to
+  // get the energies
+  for (int i = res.FirstAtom(); i < res.LastAtom(); i++) {
+    Vec3 atm1 = Vec3(frameIn.XYZ(i));
+    for (int j = 0; j < CurrentParm_->Natom(); j++) {
+      if (j >= res.FirstAtom() && j < res.LastAtom()) continue;
+      Vec3 atm2 = Vec3(frameIn.XYZ(j));
+      double dist2;
+      // Get imaged distance
+      switch( image_.ImageType() ) {
+        case NONORTHO : dist2 = DIST2_ImageNonOrtho(atm1, atm2, ucell_, recip_); break;
+        case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
+        default       : dist2 = DIST2_NoImage(atm1, atm2); break;
+      }
+      if (dist2 < cut2_) {
+        double qiqj = atom_charge_[i] * atom_charge_[j];
+        NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
+        double r2 = 1 / dist2;
+        double r6 = r2 * r2 * r2;
+        // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+        double shift = (1 - dist2 * onecut2_);
+        //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        //if (i > 2 && i < 6)
+        //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        result += eval;
+      }
+    }
+  }
+  return result;
+}
+
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_action_.Start();
+  // Calculate unit cell and fractional matrices for non-orthorhombic system
+  if ( image_.ImageType() == NONORTHO )
+    frameIn.BoxCrd().ToRecip(ucell_, recip_);
   t_resCom_.Start();
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
