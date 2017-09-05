@@ -262,6 +262,13 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
+  // Set up imaging info for this parm
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  // SANITY CHECK - imaging should always be active.
+  if (!image_.ImagingEnabled()) {
+    mprinterr("Interal Error: Imaging info not properly set up for Action_Spam\n");
+    return Action::ERR;
+  }
   // Set up the solvent_residues_ vector
   mask_.ResetMask();
   int idx = 0;
@@ -339,6 +346,7 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
         case ORTHO    : dist2 = DIST2_ImageOrtho(atm1, atm2, frameIn.BoxCrd()); break;
         default       : dist2 = DIST2_NoImage(atm1, atm2); break;
       }
+      if (i == 3 && j == 129) mprintf("AT 3 and 129 %f\n", sqrt(dist2));
       if (dist2 < cut2_) {
         double qiqj = atom_charge_[i] * atom_charge_[j];
         NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
@@ -348,7 +356,8 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
         double shift = (1 - dist2 * onecut2_);
         //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
         double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
-        //mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        //if (i > 2 && i < 6)
+        //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
         result += eval;
       }
     }
@@ -364,7 +373,13 @@ double Action_Spam::Ecalc(int i, int j, double dist2) const {
         // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
         double eval = (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
-        //mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        //if (i < j) {
+        //  if (i > 2 && i < 6)
+        //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        //} else {
+        //  if (j > 2 && j < 6)
+        //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", j, i, sqrt(dist2), eval);
+        //}
         return eval;
 }
 
@@ -403,7 +418,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
   t_energy_.Start();
-
+/*
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
@@ -430,8 +445,9 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
             Vec3 dxyz = xyz1 - xyz0;
             double D2 = dxyz.Magnitude2();
             if (D2 < cut2_) {
-              evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
-              evals[basenum + wat1] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+              double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+              evals[basenum + wat] += eval;
+              evals[basenum + wat1] += eval;
             }
           }
         } // END loop over all other atoms in thisCell
@@ -451,8 +467,9 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
               Vec3 dxyz = xyz1 + tVec - xyz0;
               double D2 = dxyz.Magnitude2();
               if (D2 < cut2_) {
-                evals[basenum + wat] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
-                evals[basenum + wat1] +=  Ecalc(atomi, mask_[it1->Idx()], D2);
+                double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+                evals[basenum + wat] += eval;
+                evals[basenum + wat1] += eval;
               }
             }
           } // END loop over atoms in neighbor cell
@@ -460,7 +477,8 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       } // END loop over atoms in thisCell
     } // END cell not empty
   } // END loop over grid cells
-/*
+*/
+
 # ifdef _OPENMP
 # pragma omp parallel private(wat)
   {
@@ -471,7 +489,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 # ifdef _OPENMP
   }
 # endif
-*/
+
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
