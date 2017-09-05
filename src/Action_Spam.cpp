@@ -87,6 +87,9 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
 
   // Get energy cutoff
   double cut = actionArgs.getKeyDouble("cut", 12.0);
+  if (purewater_) {
+    if (pairList_.InitPairList( cut, 0.1, debug_ )) return Action::ERR;
+  }
   cut2_ = cut * cut;
   doublecut_ = 2 * cut;
   onecut2_ = 1 / cut2_;
@@ -96,6 +99,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     DataSet* ds = init.DSL().AddSet(DataSet::DOUBLE, MetaData(ds_name));
     if (ds == 0) return Action::ERR;
     if (datafile != 0) datafile->AddDataSet( ds );
+    ds->ModifyDim(Dimension::X).SetLabel("Index");
     myDSL_.push_back( ds );
     DG_BULK_ = 0.0;
     DH_BULK_ = 0.0;
@@ -205,6 +209,7 @@ Action::RetType Action_Spam::Init(ArgList& actionArgs, ActionInit& init, int deb
     mprintf("\tCalculating bulk value for pure solvent\n");
     if (datafile != 0)
       mprintf("\tPrinting solvent energies to %s\n", datafile->DataFilename().full());
+    mprintf("\tData set '%s' index is water # * frame.\n", myDSL_[0]->legend());
     mprintf("\tUsing a %.2f Angstrom non-bonded cutoff with shifted EEL.\n",
             sqrt(cut2_));
     if (reorder_)
@@ -261,8 +266,17 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
     mprinterr("Error: SPAM: The box appears to be too small for your cutoff!\n");
     return Action::ERR;
   }
+  // Set up imaging info for this parm
+  image_.SetupImaging( setup.CoordInfo().TrajBox().Type() );
+  // SANITY CHECK - imaging should always be active.
+  if (!image_.ImagingEnabled()) {
+    mprinterr("Interal Error: Imaging info not properly set up for Action_Spam\n");
+    return Action::ERR;
+  }
   // Set up the solvent_residues_ vector
-  int resnum = 0;
+  mask_.ResetMask();
+  int idx = 0;
+  watidx_.resize( setup.Top().Natom(), -1 );
   for (Topology::res_iterator res = setup.Top().ResStart();
                               res != setup.Top().ResEnd(); res++)
   {
@@ -270,10 +284,13 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
       solvent_residues_.push_back(*res);
       // Tabulate COM
       double mass = 0.0;
-      for (int i = res->FirstAtom(); i < res->LastAtom(); i++)
+      for (int i = res->FirstAtom(); i < res->LastAtom(); i++) {
+        mask_.AddAtom( i );
+        watidx_[i] = idx; // TODO currently purewater only - skip if not purewater?
         mass += setup.Top()[i].Mass();
+      }
+      idx++;
     }
-    resnum++;
   }
   if (solvent_residues_.empty()) {
     mprinterr("Error: No solvent residues found with name '%s'\n", solvname_.c_str());
@@ -284,6 +301,11 @@ Action::RetType Action_Spam::Setup(ActionSetup& setup) {
 
   mprintf("\tFound %zu solvent residues [%s]\n", solvent_residues_.size(),
           solvname_.c_str());
+
+  // Set up pair list
+  if (purewater_) {
+    if (pairList_.SetupPairList( currentBox )) return Action::ERR;
+  }
 
   // Set up the charge array and check that we have enough info
   if (SetupParms(setup.Top())) return Action::ERR;
@@ -311,7 +333,140 @@ int Action_Spam::SetupParms(Topology const& ParmIn) {
   return 0;
 }
 
+// Action_Spam::DoAction()
+Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
+  Nframes_++;
+  // Check that our box is still big enough...
+  overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
+                           frm.Frm().BoxCrd().BoxY() < doublecut_ ||
+                           frm.Frm().BoxCrd().BoxZ() < doublecut_;
+  if (purewater_)
+    return DoPureWater(frameNum, frm.Frm());
+  else
+    return DoSPAM(frameNum, frm.ModifyFrm());
+}
+
+/** \return Energy between atoms i and j with given distance squared.
+  * \param i Absolute atom index for atom i.
+  * \param j Absolute atom index for atom j.
+  * \param dist2 Distance squared between atoms i and j.
+  */
+double Action_Spam::Ecalc(int i, int j, double dist2) const {
+  double qiqj = atom_charge_[i] * atom_charge_[j];
+  NonbondType const& LJ = CurrentParm_->GetLJparam(i, j);
+  double r2 = 1 / dist2;
+  double r6 = r2 * r2 * r2;
+  // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
+  double shift = (1 - dist2 * onecut2_);
+  double eval = (qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6);
+  //if (i < j) {
+  //  if (i > 2 && i < 6)
+  //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+  //} else {
+  //  if (j > 2 && j < 6)
+  //    mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", j, i, sqrt(dist2), eval);
+  //}
+  return eval;
+}
+
+// Action_Spam::DoPureWater
+/** Carries out SPAM analysis for pure water to parametrize bulk.
+  * This is relatively simple. For each frame, calculate the interaction
+  * energy for every water to every other water in the system. Therefore
+  * we will have NFRAMES * NWATER data points total.
+  */
+Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
+{
+  t_action_.Start();
+  frameIn.BoxCrd().ToRecip(ucell_, recip_);
+  pairList_.CreatePairList(frameIn, ucell_, recip_, mask_);
+  int wat = 0, wat1 = 0;
+  int basenum = frameNum * solvent_residues_.size();
+  DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
+  // Make room for each solvent residue energy this frame.
+  evals.Resize( evals.Size() + solvent_residues_.size() );
+  t_energy_.Start();
+  // Loop over all grid cells
+  for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
+  {
+    PairList::CellType const& thisCell = pairList_.Cell( cidx );
+    if (thisCell.NatomsInGrid() > 0)
+    {
+      // cellList contains this cell index and all neighbors.
+      PairList::Iarray const& cellList = thisCell.CellList();
+      // transList contains index to translation for the neighbor.
+      PairList::Iarray const& transList = thisCell.TransList();
+      // Loop over all atoms of thisCell.
+      for (PairList::CellType::const_iterator it0 = thisCell.begin();
+                                              it0 != thisCell.end(); ++it0)
+      {
+        wat = watidx_[it0->Idx()];
+        int atomi = mask_[it0->Idx()];
+        Vec3 const& xyz0 = it0->ImageCoords();
+        // Calc interaction of atom to all other atoms in thisCell.
+        for (PairList::CellType::const_iterator it1 = it0 + 1;
+                                                it1 != thisCell.end(); ++it1)
+        {
+          wat1 = watidx_[it1->Idx()];
+          if ( wat != wat1 ) {
+            Vec3 const& xyz1 = it1->ImageCoords();
+            Vec3 dxyz = xyz1 - xyz0;
+            double D2 = dxyz.Magnitude2();
+            if (D2 < cut2_) {
+              double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+              evals[basenum + wat] += eval;
+              evals[basenum + wat1] += eval;
+            }
+          }
+        } // END loop over all other atoms in thisCell
+        // Loop over all neighbor cells
+        for (unsigned int nidx = 1; nidx != cellList.size(); nidx++)
+        {
+          PairList::CellType const& nbrCell = pairList_.Cell( cellList[nidx] );
+          // Translate vector for neighbor cell
+          Vec3 const& tVec = pairList_.TransVec( transList[nidx] );
+          // Loop over every atom in nbrCell
+          for (PairList::CellType::const_iterator it1 = nbrCell.begin();
+                                                  it1 != nbrCell.end(); ++it1)
+          {
+            wat1 = watidx_[it1->Idx()];
+            if ( wat != wat1 ) {
+              Vec3 const& xyz1 = it1->ImageCoords();
+              Vec3 dxyz = xyz1 + tVec - xyz0;
+              double D2 = dxyz.Magnitude2();
+              if (D2 < cut2_) {
+                double eval = Ecalc(atomi, mask_[it1->Idx()], D2);
+                evals[basenum + wat] += eval;
+                evals[basenum + wat1] += eval;
+              }
+            }
+          } // END loop over atoms in neighbor cell
+        } // END loop over neighbor cells
+      } // END loop over atoms in thisCell
+    } // END cell not empty
+  } // END loop over grid cells
+  t_energy_.Stop();
+  t_action_.Stop();
+  return Action::OK;
+}
+
+// Action_Spam::inside_box()
+bool Action_Spam::inside_box(Vec3 gp, Vec3 pt, double edge) const {
+  return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
+          gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
+          gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
+}
+
+// Action_Spam::inside_sphere()
+bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
+  return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
+           (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
+}
+
 // Action_Spam::Calculate_Energy()
+/** Calculate energy between given residue and all other residues in the
+  * system within the cutoff.
+  */
 double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
   // The first atom of the solvent residue we want the energy from
   double result = 0;
@@ -337,78 +492,24 @@ double Action_Spam::Calculate_Energy(Frame const& frameIn, Residue const& res) {
         double r6 = r2 * r2 * r2;
         // Shifted electrostatics: qiqj/r * (1-r/rcut)^2 + VDW
         double shift = (1 - dist2 * onecut2_);
-        result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        //result += qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        double eval = qiqj / sqrt(dist2) * shift * shift + LJ.A() * r6 * r6 - LJ.B() * r6;
+        //if (i > 2 && i < 6)
+        //  mprintf("DEBUG: %6i %6i %8.3f %8.3f\n", i, j, sqrt(dist2), eval);
+        result += eval;
       }
     }
   }
   return result;
 }
 
-// Action_Spam::DoAction()
-Action::RetType Action_Spam::DoAction(int frameNum, ActionFrame& frm) {
-  Nframes_++;
-  // Calculate unit cell and fractional matrices for non-orthorhombic system
-  if ( image_.ImageType() == NONORTHO )
-    frm.Frm().BoxCrd().ToRecip(ucell_, recip_);
-  // Check that our box is still big enough...
-  overflow_ = overflow_ || frm.Frm().BoxCrd().BoxX() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxY() < doublecut_ ||
-                           frm.Frm().BoxCrd().BoxZ() < doublecut_;
-  if (purewater_)
-    return DoPureWater(frameNum, frm.Frm());
-  else
-    return DoSPAM(frameNum, frm.ModifyFrm());
-}
-
-// Action_Spam::DoPureWater
-/** Carries out SPAM analysis for pure water to parametrize bulk */
-  /* This is relatively simple... We have to loop through every water molecule
-   * for every frame, calculate the energy of that solvent molecule, and add
-   * that to our one data set. Therefore we will have NFRAMES * NWATER data
-   * points
-   */
-Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
-{
-  t_action_.Start();
-  int wat = 0;
-  int maxwat = (int)solvent_residues_.size();
-  int basenum = frameNum * solvent_residues_.size();
-  DataSet_double& evals = static_cast<DataSet_double&>( *myDSL_[0] );
-  // Make room for each solvent residue energy this frame.
-  evals.Resize( evals.Size() + solvent_residues_.size() );
-  t_energy_.Start();
-# ifdef _OPENMP
-# pragma omp parallel private(wat)
-  {
-# pragma omp for
-# endif
-  for (wat = 0; wat < maxwat; wat++)
-    evals[basenum + wat] = Calculate_Energy(frameIn, solvent_residues_[wat]);
-# ifdef _OPENMP
-  }
-# endif
-  t_energy_.Stop();
-  t_action_.Stop();
-  return Action::OK;
-}
-
-// Action_Spam::inside_box()
-bool Action_Spam::inside_box(Vec3 gp, Vec3 pt, double edge) const {
-  return (gp[0] + edge > pt[0] && gp[0] - edge < pt[0] &&
-          gp[1] + edge > pt[1] && gp[1] - edge < pt[1] &&
-          gp[2] + edge > pt[2] && gp[2] - edge < pt[2]);
-}
-
-// Action_Spam::inside_sphere()
-bool Action_Spam::inside_sphere(Vec3 gp, Vec3 pt, double rad2) const {
-  return ( (gp[0]-pt[0])*(gp[0]-pt[0]) + (gp[1]-pt[1])*(gp[1]-pt[1]) +
-           (gp[2]-pt[2])*(gp[2]-pt[2]) < rad2 );
-}
-
 // Action_Spam::DoSPAM
 /** Carries out SPAM analysis on a typical system */
 Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   t_action_.Start();
+  // Calculate unit cell and fractional matrices for non-orthorhombic system
+  if ( image_.ImageType() == NONORTHO )
+    frameIn.BoxCrd().ToRecip(ucell_, recip_);
   t_resCom_.Start();
   /* A list of all solvent residues and the sites that they are reserved for. An
    * unreserved solvent residue has an index -1. At the end, we will go through
@@ -417,8 +518,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   resPeakNum_.assign(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
   comlist_.clear();
-  for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
-                                            res != solvent_residues_.end(); res++)
+  for (Rarray::const_iterator res = solvent_residues_.begin();
+                              res != solvent_residues_.end(); res++)
     comlist_.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
   t_resCom_.Stop();
   t_assign_.Start();
@@ -450,8 +551,9 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    * this peak's data set in peakFrameData_. If a site is double-occupied, add
    * -frameNum to this peak's data set in peakFrameData_.
    */
-  std::vector<bool> occupied(peaks_.size(), false);
-  std::vector<bool> doubled(peaks_.size(), false); // to avoid double-additions
+  typedef std::vector<bool> Barray;
+  Barray occupied(peaks_.size(), false);
+  Barray doubled(peaks_.size(), false); // to avoid double-additions
   for (Iarray::const_iterator it = resPeakNum_.begin();
                               it != resPeakNum_.end(); it++)
   {
@@ -648,7 +750,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 #ifdef MPI
 int Action_Spam::SyncAction() {
   // Get total number of frames.
-  std::vector<int> frames_on_rank( trajComm_.Size() );
+  Iarray frames_on_rank( trajComm_.Size() );
   int myframes = Nframes_;
   trajComm_.GatherMaster( &myframes, 1, MPI_INT, &frames_on_rank[0] );
   if (trajComm_.Master())
@@ -656,7 +758,7 @@ int Action_Spam::SyncAction() {
       Nframes_ += frames_on_rank[rank];
 
   // Sync peakFrameData_
-  std::vector<int> size_on_rank( trajComm_.Size() );
+  Iarray size_on_rank( trajComm_.Size() );
   for (unsigned int i = 0; i != peakFrameData_.size(); i++)
   {
     Iarray& Data = peakFrameData_[i];
@@ -695,6 +797,8 @@ void Action_Spam::Print() {
   t_assign_.WriteTiming(2, "Peak assignment    :", t_action_.Total());
   t_occupy_.WriteTiming(2, "Occupancy calc.    :", t_action_.Total());
   t_energy_.WriteTiming(2, "Energy calc        :", t_action_.Total());
+  if (purewater_)
+    pairList_.Timing(t_energy_.Total(), 3);
   t_reordr_.WriteTiming(2, "Residue reordering :", t_action_.Total());
   t_action_.WriteTiming(1, "SPAM Action Total:");
   // Print the spam info file if we didn't do pure water
@@ -729,7 +833,7 @@ void Action_Spam::Print() {
 
     unsigned int p = 0;
     int n_peaks_no_energy = 0;
-    for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
+    for (DSarray::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
     {
       int err = Calc_G_Wat( *ds, p );
       if (err == 1)
