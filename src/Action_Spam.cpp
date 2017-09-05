@@ -518,8 +518,8 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
   resPeakNum_.assign(solvent_residues_.size(), -1);
   // Tabulate all of the COMs
   comlist_.clear();
-  for (std::vector<Residue>::const_iterator res = solvent_residues_.begin();
-                                            res != solvent_residues_.end(); res++)
+  for (Rarray::const_iterator res = solvent_residues_.begin();
+                              res != solvent_residues_.end(); res++)
     comlist_.push_back(frameIn.VCenterOfMass(res->FirstAtom(), res->LastAtom()));
   t_resCom_.Stop();
   t_assign_.Start();
@@ -551,8 +551,9 @@ Action::RetType Action_Spam::DoSPAM(int frameNum, Frame& frameIn) {
    * this peak's data set in peakFrameData_. If a site is double-occupied, add
    * -frameNum to this peak's data set in peakFrameData_.
    */
-  std::vector<bool> occupied(peaks_.size(), false);
-  std::vector<bool> doubled(peaks_.size(), false); // to avoid double-additions
+  typedef std::vector<bool> Barray;
+  Barray occupied(peaks_.size(), false);
+  Barray doubled(peaks_.size(), false); // to avoid double-additions
   for (Iarray::const_iterator it = resPeakNum_.begin();
                               it != resPeakNum_.end(); it++)
   {
@@ -749,7 +750,7 @@ int Action_Spam::Calc_G_Wat(DataSet* dsIn, unsigned int peaknum)
 #ifdef MPI
 int Action_Spam::SyncAction() {
   // Get total number of frames.
-  std::vector<int> frames_on_rank( trajComm_.Size() );
+  Iarray frames_on_rank( trajComm_.Size() );
   int myframes = Nframes_;
   trajComm_.GatherMaster( &myframes, 1, MPI_INT, &frames_on_rank[0] );
   if (trajComm_.Master())
@@ -757,7 +758,7 @@ int Action_Spam::SyncAction() {
       Nframes_ += frames_on_rank[rank];
 
   // Sync peakFrameData_
-  std::vector<int> size_on_rank( trajComm_.Size() );
+  Iarray size_on_rank( trajComm_.Size() );
   for (unsigned int i = 0; i != peakFrameData_.size(); i++)
   {
     Iarray& Data = peakFrameData_[i];
@@ -830,7 +831,7 @@ void Action_Spam::Print() {
 
     unsigned int p = 0;
     int n_peaks_no_energy = 0;
-    for (std::vector<DataSet*>::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
+    for (DSarray::const_iterator ds = myDSL_.begin(); ds != myDSL_.end(); ++ds, ++p)
     {
       int err = Calc_G_Wat( *ds, p );
       if (err == 1)
