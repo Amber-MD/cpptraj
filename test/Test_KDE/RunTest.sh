@@ -6,7 +6,7 @@ CleanFiles kde.in kde.dat kl.dat final.dat
 
 INPUT="-i kde.in"
 cat > kde.in <<EOF
-readdata ../Test_SPAM/spampure.dat.save name SPAM
+readdata ../Test_SPAM/spampure.dat.save name SPAM index 1
 runanalysis kde SPAM min -37 max 5 bins 100 out kde.dat name KDE_SPAM
 EOF
 RunCpptraj "KDE test."
