@@ -418,7 +418,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
   // Make room for each solvent residue energy this frame.
   evals.Resize( evals.Size() + solvent_residues_.size() );
   t_energy_.Start();
-/*
+
   for (int cidx = 0; cidx < pairList_.NGridMax(); cidx++)
   {
     PairList::CellType const& thisCell = pairList_.Cell( cidx );
@@ -477,8 +477,8 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
       } // END loop over atoms in thisCell
     } // END cell not empty
   } // END loop over grid cells
-*/
 
+/*
 # ifdef _OPENMP
 # pragma omp parallel private(wat)
   {
@@ -489,7 +489,7 @@ Action::RetType Action_Spam::DoPureWater(int frameNum, Frame const& frameIn)
 # ifdef _OPENMP
   }
 # endif
-
+*/
   t_energy_.Stop();
   t_action_.Stop();
   return Action::OK;
