@@ -55,25 +55,25 @@ class Action_Spam: public Action {
     inline double Ecalc(int, int, double) const;
 
     int debug_;
-    FxnType Inside_;        ///< Function for determining if water is inside peak.
-    ImagedAction image_;    ///< Imaging routines.
-    PairList pairList_;     ///< Atom pair list
-    std::vector<int> watidx_;
-    Matrix_3x3 ucell_;      ///< Unit cell matrix
-    Matrix_3x3 recip_;      ///< Fractional matrix
-    std::string solvname_;  ///< Name of the solvent residues
-    double DG_BULK_;        ///< SPAM free energy of the bulk solvent
-    double DH_BULK_;        ///< SPAM enthalpy of the bulk solvent
-    double temperature_;    ///< Temperature at which SPAM simulation was run
-    bool purewater_;        ///< True if running a pure water simulation to derive bulk properties
-    bool reorder_;          ///< True if solvent should be reordered
-    bool calcEnergy_;       ///< True if energy needs to be calculated.
-    double cut2_;           ///< Non-bonded cutoff in Angstroms (squared)
-    double onecut2_;        ///< 1 / cut2_
-    double doublecut_;      ///< twice the cutoff (to test if boxes are big enough)
-    CpptrajFile* infofile_; ///< SPAM info file
-    AtomMask mask_;         ///< Mask for selecting individual solvent residues
-    Iarray resPeakNum_;     ///< Peak that each solvent residue is assigned to; -1 is unassigned
+    FxnType Inside_;          ///< Function for determining if water is inside peak.
+    ImagedAction image_;      ///< Imaging routines.
+    PairList pairList_;       ///< Atom pair list (purewater_ only)
+    std::vector<int> watidx_; ///< Hold water index for each atom (starting from 0).
+    Matrix_3x3 ucell_;        ///< Unit cell matrix
+    Matrix_3x3 recip_;        ///< Fractional matrix
+    std::string solvname_;    ///< Name of the solvent residues
+    double DG_BULK_;          ///< SPAM free energy of the bulk solvent
+    double DH_BULK_;          ///< SPAM enthalpy of the bulk solvent
+    double temperature_;      ///< Temperature at which SPAM simulation was run
+    bool purewater_;          ///< True if running a pure water simulation to derive bulk properties
+    bool reorder_;            ///< True if solvent should be reordered
+    bool calcEnergy_;         ///< True if energy needs to be calculated.
+    double cut2_;             ///< Non-bonded cutoff in Angstroms (squared)
+    double onecut2_;          ///< 1 / cut2_
+    double doublecut_;        ///< twice the cutoff (to test if boxes are big enough)
+    CpptrajFile* infofile_;   ///< SPAM info file
+    AtomMask mask_;           ///< Mask for selecting individual solvent residues
+    Iarray resPeakNum_;       ///< Peak that each solvent residue is assigned to; -1 is unassigned
     std::string summaryfile_; ///< File containing the summary of all SPAM statistics
     double site_size_;        ///< Size of the water site. This is a full edge length or diameter
     std::vector<Iarray> peakFrameData_; ///< A list of all omitted frames for each peak
