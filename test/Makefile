@@ -367,6 +367,9 @@ test.setvelocity:
 test.remlog:
 	@-cd Test_Remlog && ./RunTest.sh $(OPT)
 
+test.areapermol:
+	@-cd Test_AreaPerMol && ./RunTest.sh $(OPT)
+
 # Only non-time-consuming tests should go here.
 SHORT_TESTS=test.general \
           test.strip \
@@ -459,7 +462,8 @@ SHORT_TESTS=test.general \
           test.distance \
           test.volume \
           test.setvelocity \
-          test.remlog
+          test.remlog \
+          test.areapermol
 
 # Every test should go here.
 COMPLETETESTS=test.general \
@@ -578,7 +582,8 @@ COMPLETETESTS=test.general \
               test.distance \
               test.volume \
               test.setvelocity \
-              test.remlog
+              test.remlog \
+              test.areapermol
 
 test: test.all 
 
