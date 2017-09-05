@@ -28,7 +28,7 @@ DoTest filter.dat.save filter.dat
 
 # Data filter test
 cat > filter.in <<EOF
-readdata ../Test_Diffusion/diff_a.xmgr index 1 name A as dat
+readdata ../Test_Diffusion/diff_a.xmgr.save index 1 name A as dat
 datafilter A:2 A:3 min 0.0 max 1.2 out datafilter.dat multi name FA
 EOF
 RunCpptraj "Data filter test."
