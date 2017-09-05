@@ -7,7 +7,7 @@ CleanFiles hbond.in nhb.dat avghb.dat solvhb.dat solvavg.dat \
            nbb.dat hbavg.dat solutehb.agr lifehb.gnu avg.lifehb.gnu max.lifehb.gnu \
            crv.lifehb.gnu hb?.dat hbond.mol.dat mol.avg.dat \
            ud.dat uh.dat ua.dat \
-           bridgeintermol.dat avgbridgeintermol.dat
+           bridgeintermol.dat avgbridgeintermol.dat noacut.dat
 
 INPUT="-i hbond.in"
 CheckNetcdf
