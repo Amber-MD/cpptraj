@@ -797,6 +797,8 @@ void Action_Spam::Print() {
   t_assign_.WriteTiming(2, "Peak assignment    :", t_action_.Total());
   t_occupy_.WriteTiming(2, "Occupancy calc.    :", t_action_.Total());
   t_energy_.WriteTiming(2, "Energy calc        :", t_action_.Total());
+  if (purewater_)
+    pairList_.Timing(t_energy_.Total(), 3);
   t_reordr_.WriteTiming(2, "Residue reordering :", t_action_.Total());
   t_action_.WriteTiming(1, "SPAM Action Total:");
   // Print the spam info file if we didn't do pure water

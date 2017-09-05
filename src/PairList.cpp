@@ -382,10 +382,12 @@ void PairList::CalcGridPointers(int myindexlo, int myindexhi) {
   } // nz
 }
 
-void PairList::Timing(double total) const {
-  t_total_.WriteTiming(2, "Pair List: ", total);
-  t_map_.WriteTiming(3,          "Map Coords:      ", t_total_.Total());
-  t_gridpointers_.WriteTiming( 3,"Recalc Grid Ptrs:", t_total_.Total());
+void PairList::Timing(double total) const { Timing(total, 2); }
+
+void PairList::Timing(double total, int ntabs) const {
+  t_total_.WriteTiming(ntabs, "Pair List: ", total);
+  t_map_.WriteTiming(ntabs+1,          "Map Coords:      ", t_total_.Total());
+  t_gridpointers_.WriteTiming( ntabs+1,"Recalc Grid Ptrs:", t_total_.Total());
 }
 
 void PairList::PrintMemory() const {

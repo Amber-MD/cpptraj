@@ -28,8 +28,10 @@ class PairList {
     int SetupPairList(Box const&);
     /// Create pair list from Frame, unit cell and recip matrices, and mask.
     int CreatePairList(Frame const&, Matrix_3x3 const&, Matrix_3x3 const&, AtomMask const&);
-    /// Print timing info.
+    /// Print timing info as percent of given total.
     void Timing(double) const;
+    /// Print timing into as percent of given total with specified number of tab indents.
+    void Timing(double, int) const;
     /// Print memory usage.
     void PrintMemory() const;
     /// \return Number of grid cells.
