@@ -470,6 +470,71 @@ SetBinaries() {
     fi
   fi
 }
+# ------------------------------------------------------------------------------
+# Library Checks - Tests that depend on certain libraries like Zlib can run
+# these to make sure cpptraj was compiled with that library - exit gracefully
+# if not.
+# Should not be called if CLEAN==1, CleanFiles should always be called first.
+CheckZlib() {
+  if [ -z "$CPPTRAJ_ZLIB" ] ; then
+    echo "This test requires zlib. Cpptraj was compiled without zlib support."
+    echo "Skipping test."
+    exit 0
+  fi
+}
+
+CheckBzlib() {
+  if [ -z "$CPPTRAJ_BZLIB" ] ; then
+    echo "This test requires bzlib. Cpptraj was compiled without bzlib support."
+    echo "Skipping test."
+    exit 0
+  fi
+}
+
+CheckNetcdf() {
+  if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
+    echo "This test requires NetCDF. Cpptraj was compiled without NetCDF support."
+    echo "Skipping test."
+    exit 0
+  fi
+}
+
+CheckPtrajAnalyze() {
+  if [ ! -z "$CPPTRAJ_NOMATHLIB" ] ; then
+    echo "This test requires LAPACK/ARPACK/BLAS routines."
+    echo "Cpptraj was compiled with -DNO_MATHLIB. Skipping test."
+    exit 0
+  fi
+}
+
+CheckSanderlib() {
+  if [ -z "$CPPTRAJ_SANDERLIB" ] ; then
+    if [ ! -z "$1" ] ; then
+      DESCRIP=$1
+    else
+      DESCRIP="This test"
+    fi
+    echo "$DESCRIP requires compilation with the Sander API from AmberTools."
+    echo "Skipping test."
+    return 1
+  fi
+  return 0
+}
+
+CheckPnetcdf() {
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    DESCRIP="This test"
+    if [ ! -z "$1" ] ; then
+      DESCRIP="Test '$1'"
+    fi
+    if [ -z "$CPPTRAJ_PNETCDFLIB" ] ; then
+      echo "$DESCRIP requires compilation with parallel NetCDF."
+      echo "Cpptraj was compiled without parallel NetCDF support. Skipping test."
+      return 1
+    fi
+  fi
+  return 0
+}
 
 #-------------------------------------------------------------------------------
 # CheckDefines()
