@@ -89,6 +89,11 @@ OutBoth() {
   ERR "$1"
 }
 
+# FIXME This is a stub and should be removed
+CheckTest() {
+  CHECKTEST=1
+}
+
 # ------------------------------------------------------------------------------
 # DoTest() <File1> <File2> [-r <relative err>] [-a <absolute err>] [<arg1>] ... [<argN>]
 #   Compare File1 (the 'save' file) to File2 (test output), print an error if
@@ -181,9 +186,13 @@ NcTest() {
   done
   # Prepare files.
   if [ ! -e "$F1" ] ; then
-    echo "Error: $F1 missing." >> $CPPTRAJ_TEST_ERROR
+    OutBoth "  Save file '$F1' not found."
+    ((NUMCOMPARISONS++))
+    ((ERRCOUNT++))
   elif [ ! -e "$F2" ] ; then
-    echo "Error: $F2 missing." >> $CPPTRAJ_TEST_ERROR
+    OutBoth "  Test output '$F2' not found."
+    ((NUMCOMPARISONS++))
+    ((ERRCOUNT++))
   else
     if [ $CALC_NUM_ERR -eq 1 ] ; then
       # FIXME: Must remove commas here because I cannot figure out how to pass
@@ -235,6 +244,7 @@ EndTest() {
   #echo "DEBUG: EndTest"
   # Report only when not using dacdif 
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    echo ""
     if [ $PROGERROR -gt 0 ] ; then
       echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
     fi
@@ -657,7 +667,7 @@ CheckPnetcdf() {
 
 #echo "DEBUG: Begin MasterTest.sh."
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  #echo "DEBUG: Initial test setup."
+  echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
