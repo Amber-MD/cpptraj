@@ -55,7 +55,8 @@ USE_DACDIF=1             # If 0 do not use dacdif even if in AmberTools
 GET_TIMING=0             # If 1 time cpptraj with the CPPTRAJ_TIME binary
 SFX=""                   # CPPTRAJ binary suffix
 # Variables local to single test.
-NUMTEST=0                # Total number of times DoTest has been called this test.
+TEST_WORKDIR=''          # Test working directory
+NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
 ERRCOUNT=0               # Total number of errors detected by DoTest this test.
 WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
 PROGERROR=0              # Total number of program errors this test
@@ -76,6 +77,12 @@ ERR() {
 OutBoth() {
   OUT "$1"
   ERR "$1"
+}
+
+# TestHeader() <outfile>
+TestHeader() {
+  echo "**************************************************************" > $1
+  echo "TEST: $TEST_WORKDIR" >> $1
 }
 
 # ------------------------------------------------------------------------------
@@ -104,7 +111,7 @@ DoTest() {
     $CPPTRAJ_DACDIF $DIFFARGS
   else
     # Standalone - will use diff, or ndiff where '-r' or '-a' specified.
-    ((NUMTEST++))
+    ((NUMCOMPARISONS++))
     DIFFARGS='--strip-trailing-cr'
     NDIFFARGS=""
     # First two arguments are files to compare.
@@ -121,10 +128,10 @@ DoTest() {
       shift
     done
     if [ ! -f "$F1" ] ; then
-      OutBoth "  $F1 not found."
+      OutBoth "  Save file '$F1' not found."
       ((ERRCOUNT++))
     elif [ ! -f "$F2" ] ; then
-      OutBoth "  $F2 not found."
+      OutBoth "  Test output '$F2' not found."
       ((ERRCOUNT++))
     else
       if [ $USE_NDIFF -eq 0 ] ; then
@@ -201,7 +208,7 @@ RunCpptraj() {
   echo ""
   echo "  CPPTRAJ: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
-    echo "  CPPTRAJ: $1" >> $CPPTRAJ_TEST_RESULTS
+    OUT "  CPPTRAJ: $1"
   fi
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
     echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
@@ -210,8 +217,9 @@ RunCpptraj() {
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
-    echo "Error: cpptraj exited with status $STATUS" 2> /dev/stderr
-    echo "Error: cpptraj exited with status $STATUS" > $CPPTRAJ_TEST_RESULTS
+    echo "Error: cpptraj exited with status $STATUS"
+    OutBoth "Error: cpptraj exited with status $STATUS"
+    ((PROGERROR++))
   fi
 }
 
@@ -223,16 +231,15 @@ EndTest() {
   # Report only when not using dacdif 
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     if [ $ERRCOUNT -gt 0 ] ; then
-      echo "  $ERRCOUNT out of $NUMTEST comparisons failed."
-      echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $CPPTRAJ_TEST_RESULTS
-      echo "  $ERRCOUNT out of $NUMTEST comparisons failed." >> $CPPTRAJ_TEST_ERROR
+      echo    "  $ERRCOUNT out of $NUMCOMPARISONS comparisons failed."
+      OutBoth "  $ERRCOUNT out of $NUMCOMPARISONS comparisons failed."
     elif [ $WARNCOUNT -gt 0 ] ; then
-      ((PASSCOUNT = $NUMTEST - $WARNCOUNT))
-      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings."
-      echo "  $PASSCOUNT out of $NUMTEST passing comparisons. $WARNCOUNT warnings." >> $CPPTRAJ_TEST_RESULTS
+      ((PASSCOUNT = $NUMCOMPARISONS - $WARNCOUNT))
+      echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
+      echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings." >> $CPPTRAJ_TEST_RESULTS
     else 
-      echo "All $NUMTEST comparisons passed." 
-      echo "All $NUMTEST comparisons passed." >> $CPPTRAJ_TEST_RESULTS 
+      echo "All $NUMCOMPARISONS comparisons passed." 
+      echo "All $NUMCOMPARISONS comparisons passed." >> $CPPTRAJ_TEST_RESULTS 
     fi
     echo ""
     if [ ! -z "$VALGRIND" ] ; then
@@ -735,12 +742,10 @@ if [ -f 'RunTest.sh' ] ; then
     $CPPTRAJ_RM valgrind.out
   fi
   if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
-    # Start test results file
-    echo "**************************************************************"
-    echo "TEST: `pwd`"
+    TEST_WORKDIR=`pwd`
+    TestHeader '/dev/stdout'
     if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      echo "**************************************************************" > $CPPTRAJ_TEST_RESULTS
-      echo "TEST: `pwd`" >> $CPPTRAJ_TEST_RESULTS
+      TestHeader "$CPPTRAJ_TEST_RESULTS"
     fi
   fi
 else
