@@ -15,6 +15,7 @@
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   CPPTRAJ_RM           : Command used to remove files
 #   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
+#   CPPTRAJ_NPROC        : nproc binary for counting threads in parallel tests.
 # Test output locations
 #   CPPTRAJ_TEST_RESULTS : File to record test results to.
 #   CPPTRAJ_TEST_ERROR   : File to record test errors/diffs to.
@@ -54,7 +55,6 @@ GET_TIMING=0   # If 1 time cpptraj with the CPPTRAJ_TIME binary
 SFX=""              # CPPTRAJ binary suffix
 #SUMMARY=0           # If 1, only summary of results needs to be performed.
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
-#NPROC=""            # nproc binary for counting threads in parallel tests.
 
 # Variables local to single test.
 NUMTEST=0           # Total number of times DoTest has been called this test.
@@ -281,13 +281,14 @@ NotParallel() {
 
 #-------------------------------------------------------------------------------
 # SetNthreads()
-# Use NPROC to set N_THREADS if not already set.
+# Use CPPTRAJ_NPROC to set N_THREADS if not already set.
 SetNthreads() {
   if [ -z "$N_THREADS" ] ; then
-    if [ ! -f "$NPROC" ] ; then
+    if [ ! -f "$CPPTRAJ_NPROC" ] ; then
       return 1
     fi
-    N_THREADS=`$DO_PARALLEL $NPROC`
+    export N_THREADS=`$DO_PARALLEL $CPPTRAJ_NPROC`
+    echo "  $N_THREADS MPI threads."
   fi
   return 0
 }
@@ -298,7 +299,7 @@ RequiresThreads() {
   if [ ! -z "$DO_PARALLEL" ] ; then
     SetNthreads
     if [ $? -ne 0 ] ; then
-      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Program to find # threads not found ($CPPTRAJ_NPROC)" > /dev/stderr
       echo "Error: Test requires $1 parallel threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
@@ -321,7 +322,7 @@ MaxThreads() {
   if [ ! -z "$DO_PARALLEL" ] ; then
     SetNthreads
     if [ $? -ne 0 ] ; then
-      echo "Error: Program to find # threads not found ($NPROC)" > /dev/stderr
+      echo "Error: Program to find # threads not found ($CPPTRAJ_NPROC)" > /dev/stderr
       echo "Error: Test can only run with $1 or fewer threads. Attempting to run test anyway." > /dev/stderr
       return 0
     fi
@@ -519,6 +520,22 @@ SetBinaries() {
     fi
     export CPPTRAJ_NDIFF
   fi
+  # Determine location of nproc/numprocs
+  if [ -z "$CPPTRAJ_NPROC" ] ; then
+    if [ ! -z "$DO_PARALLEL" ] ; then
+      if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+        CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
+      else
+        CPPTRAJ_NPROC=$DIRPREFIX/test/nproc
+      fi
+      if [ -z "$CPPTRAJ_NPROC" ] ; then
+        echo "Error: nproc $CPPTRAJ_NPROC not found." > /dev/stderr
+        exit 1
+      fi
+      export CPPTRAJ_NPROC
+      SetNthreads
+    fi
+  fi
   # Determine timing if necessary
   if [ $GET_TIMING -eq 1 ] ; then
     Required "time"
@@ -540,7 +557,7 @@ SetBinaries() {
     fi
     echo "DEBUG: CPPTRAJ: $CPPTRAJ"
     echo "DEBUG: AMBPDB:  $AMBPDB"
-#    echo "DEBUG: NPROC:   $NPROC"
+    echo "DEBUG: NPROC:   $CPPTRAJ_NPROC"
     echo "DEBUG: NCDUMP:  $CPPTRAJ_NCDUMP"
     echo "DEBUG: DIFFCMD: $CPPTRAJ_DIFF"
     echo "DEBUG: DACDIF:  $CPPTRAJ_DACDIF"
