@@ -12,7 +12,7 @@
 #   CPPTRAJ_DIFF         : Command used to check for test differences.
 #   CPPTRAJ_DACDIF       : Set if using 'dacdif' in AmberTools to checkout for test differences.
 #   NDIFF                : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
-#   NCDUMP               : Set to ncdump command; needed for NcTest()
+#   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   REMOVE               : Command used to remove files
 #   TIME                 : Set to the 'time' command if timing requested.
 # Test output locations
@@ -46,7 +46,7 @@ SUMMARY=0           # If 1, only summary of results needs to be performed.
 SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 CPPTRAJ_PROFILE=0           # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1         # If 0 do not use dacdif even if in AmberTools
-#SFX=""              # CPPTRAJ binary suffix
+SFX=""              # CPPTRAJ binary suffix
 #NPROC=""            # nproc binary for counting threads in parallel tests.
 
 # Variables local to single test.
@@ -134,7 +134,7 @@ DoTest() {
 
 # ------------------------------------------------------------------------------
 # NcTest() <1> <2>
-#   Compare NetCDF files <1> and <2>. Use NCDUMP to convert to ASCII
+#   Compare NetCDF files <1> and <2>. Use CPPTRAJ_NCDUMP to convert to ASCII
 #   first, removing ==> line and :programVersion attribute.
 NcTest() {
   echo "DEBUG: NcTest $1 $2"
@@ -142,7 +142,7 @@ NcTest() {
     echo "Error: NcTest(): One or both files not specified." > /dev/stderr
     exit 1
   fi
-  if [ -z "$NCDUMP" -o ! -e "$NCDUMP" ] ; then
+  if [ -z "$CPPTRAJ_NCDUMP" -o ! -e "$CPPTRAJ_NCDUMP" ] ; then
     echo "ncdump missing." > /dev/stderr
     exit 1
   fi
@@ -171,11 +171,11 @@ NcTest() {
       # the regular expression to ndiff.awk FS without the interpreter giving
       # this error for FS='[ \t,()]':
       # awk: fatal: Invalid regular expression: /'[/
-      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
-      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" | sed 's/,/ /g' > nc0
     else
-      $NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
-      $NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
+      $CPPTRAJ_NCDUMP -n nctest $F1 | grep -v "==>\|:programVersion" > nc0.save
+      $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
     fi
     DoTest $DIFFARGS 
     $REMOVE nc0.save nc0
@@ -376,9 +376,9 @@ CmdLineOpts() {
 #     "summary"   ) SUMMARY=1 ;;
 #     "showerrors") SHOWERRORS=1 ;;
 #     "stdout"    ) OUTPUT="/dev/stdout" ;;
-#     "openmp"    ) SFX_OMP=1 ;;
-#     "cuda"      ) SFX_CUDA=1 ;;
-#     "mpi"       ) SFX_MPI=1 ;;
+     "openmp"    ) SFX_OMP=1 ;;
+     "cuda"      ) SFX_CUDA=1 ;;
+     "mpi"       ) SFX_MPI=1 ;;
 #     "vg"        ) VGMODE=1 ;;
 #     "vgh"       ) VGMODE=2 ;;
 #     "time"      ) GET_TIMING=0 ;;
@@ -395,13 +395,32 @@ CmdLineOpts() {
     shift
   done
   export CPPTRAJ_TEST_CLEAN
+  # Set up SFX
+  if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
+  if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
+  if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
 }
 
 #-------------------------------------------------------------------------------
 # SetBinaries()
 #   Set paths for all binaries if not already set.
 SetBinaries() {
-  echo Set Binaries
+  # Determine location of CPPTRAJ if not specified.
+  if [ -z "$CPPTRAJ" ] ; then
+     if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+       DIRPREFIX=$AMBERHOME
+     elif [ -z "$CPPTRAJHOME" ] ; then
+       DIRPREFIX=../../
+     else
+       DIRPREFIX=$CPPTRAJHOME
+     fi
+     CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
+     if [ ! -f "$CPPTRAJ" ] ; then
+       echo "Error: CPPTRAJ $CPPTRAJ not found." > /dev/stderr
+       exit 1
+     fi
+     export CPPTRAJ
+  fi
 }
 
 #-------------------------------------------------------------------------------
