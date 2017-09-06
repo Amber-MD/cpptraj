@@ -40,6 +40,8 @@
 #   CPPTRAJ_OPENMP
 #   CPPTRAJ_PNETCDFLIB
 #   CPPTRAJ_SANDERLIB
+#   CPPTRAJ_CUDA
+#   CPPTRAJ_NO_XDRFILE
 # Variables that can be set by individual tests
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
@@ -426,6 +428,27 @@ SetBinaries() {
 }
 
 #-------------------------------------------------------------------------------
+# CheckDefines()
+#   Check how CPPTRAJ was compiled.
+CheckDefines() {
+  for DEFINE in `$CPPTRAJ --defines` ; do
+    case "$DEFINE" in
+      '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
+      '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
+      '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
+      '-DNO_MATHLIB'    ) export CPPTRAJ_NOMATHLIB=$DEFINE ;;
+      '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
+      '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
+      '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
+      '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
+      '-DNO_XDRFILE'    ) export CPPTRAJ_NO_XDRFILE=$DEFINE ;;
+    esac
+  done
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
+}
+
+#-------------------------------------------------------------------------------
 # Required() <binary>
 #   Insure that specified binary is in the PATH
 Required() {
@@ -496,6 +519,8 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     export CPPTRAJ_DIFF
     # Determine binary locations
     SetBinaries
+    # Check how CPPTRAJ was compiled
+    CheckDefines
     # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
     if [ -z "$CPPTRAJ_TEST_OS" ] ; then
       export CPPTRAJ_TEST_OS='linux'
