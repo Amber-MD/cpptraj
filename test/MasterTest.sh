@@ -683,6 +683,15 @@ if [ -f 'RunTest.sh' ] ; then
   if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
     $REMOVE $CPPTRAJ_TEST_ERROR
   fi
+  if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
+    # Start test results file
+    echo "**************************************************************"
+    echo "TEST: `pwd`"
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      echo "**************************************************************" > $CPPTRAJ_TEST_RESULTS
+      echo "TEST: `pwd`" >> $CPPTRAJ_TEST_RESULTS
+    fi
+  fi
 else
   # Assume we are executing multiple tests. Need a Makefile.
   if [ ! -f 'Makefile' ] ; then
