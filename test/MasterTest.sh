@@ -46,6 +46,7 @@
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
 # FIXME Variables to check
+VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
 CPPTRAJ_PROFILE=0           # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1         # If 0 do not use dacdif even if in AmberTools
 SFX=""              # CPPTRAJ binary suffix
@@ -144,10 +145,6 @@ NcTest() {
   echo "DEBUG: NcTest $1 $2"
   if [ -z "$1" -o -z "$2" ] ; then
     echo "Error: NcTest(): One or both files not specified." > /dev/stderr
-    exit 1
-  fi
-  if [ -z "$CPPTRAJ_NCDUMP" -o ! -e "$CPPTRAJ_NCDUMP" ] ; then
-    echo "ncdump missing." > /dev/stderr
     exit 1
   fi
   # Save remaining args for DoTest
@@ -369,7 +366,6 @@ Help() {
 #   is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
-  VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
   SFX_OMP=0
   SFX_CUDA=0
   SFX_MPI=0
@@ -383,8 +379,8 @@ CmdLineOpts() {
      "openmp"    ) SFX_OMP=1 ;;
      "cuda"      ) SFX_CUDA=1 ;;
      "mpi"       ) SFX_MPI=1 ;;
-#     "vg"        ) VGMODE=1 ;;
-#     "vgh"       ) VGMODE=2 ;;
+     "vg"        ) VGMODE=1 ;;
+     "vgh"       ) VGMODE=2 ;;
 #     "time"      ) GET_TIMING=0 ;;
 #      "-at"       ) FORCE_AMBERTOOLS=1 ;;
 #     "-d"        ) DEBUG="-debug 4" ;;
@@ -399,10 +395,28 @@ CmdLineOpts() {
     shift
   done
   export CPPTRAJ_TEST_CLEAN
+  # If DO_PARALLEL has been set force MPI
+  if [ ! -z "$DO_PARALLEL" ] ; then
+    SFX_MPI=1
+  fi
+  # Warn if using OpenMP but OMP_NUM_THREADS not set.
+  if [ "$SFX_OMP" -eq 1 -a -z "$OMP_NUM_THREADS" ] ; then
+    echo "Warning: Using OpenMP but OMP_NUM_THREADS is not set."
+  fi
   # Set up SFX
   if [ "$SFX_MPI"  -eq 1 ] ; then SFX="$SFX.MPI"  ; fi
   if [ "$SFX_OMP"  -eq 1 ] ; then SFX="$SFX.OMP"  ; fi
   if [ "$SFX_CUDA" -eq 1 ] ; then SFX="$SFX.cuda" ; fi
+}
+
+#-------------------------------------------------------------------------------
+# Required() <binary>
+#   Insure that specified binary is in the PATH
+Required() {
+  if [ -z "`which $1`" ] ; then
+    echo "Error: Required binary '$1' not found." > /dev/stderr
+    exit 1
+  fi
 }
 
 #-------------------------------------------------------------------------------
@@ -425,6 +439,7 @@ SetBinaries() {
      fi
      export CPPTRAJ
   fi
+
 }
 
 #-------------------------------------------------------------------------------
@@ -446,16 +461,6 @@ CheckDefines() {
     esac
   done
   #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
-}
-
-#-------------------------------------------------------------------------------
-# Required() <binary>
-#   Insure that specified binary is in the PATH
-Required() {
-  if [ -z "`which $1`" ] ; then
-    echo "Error: Required binary '$1' not found." > /dev/stderr
-    exit 1
-  fi
 }
 
 # ==============================================================================
@@ -521,6 +526,36 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     SetBinaries
     # Check how CPPTRAJ was compiled
     CheckDefines
+    # If compiled with NetCDF support ensure ncdump is available
+    if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
+      Required "ncdump"
+      export CPPTRAJ_NCDUMP=`which ncdump`
+    fi
+    # Set up valgrind if necessary
+    if [ $VGMODE -ne 0 ] ; then
+      echo "  Using valgrind."
+      CPPTRAJ_ERROR='valgrind.out'
+      if [ ! -z "$CPPTRAJ_CUDA" ] ; then
+        if [ $VGMODE -eq 1 ] ; then
+          Required "cuda-memcheck"
+          VALGRIND='cuda-memcheck'
+        else
+          echo "Error: 'helgrind' not supported for CUDA." > /dev/stderr
+          exit 1
+        fi
+      else
+        Required "valgrind"
+        if [ $VGMODE -eq 1 ] ; then
+          VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes"
+        elif [ $VGMODE -eq 2 ] ; then
+          VALGRIND="valgrind --tool=helgrind"
+        else
+          echo "Error: Unsupported VGMODE $VGMODE" > /dev/stderr
+          exit 1
+        fi
+      fi
+      export VALGRIND
+    fi
     # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
     if [ -z "$CPPTRAJ_TEST_OS" ] ; then
       export CPPTRAJ_TEST_OS='linux'
