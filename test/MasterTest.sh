@@ -78,7 +78,7 @@ Output() {
 #   H. F. Beebe's ndiff.awk script. The remaining args can be used to pass
 #   options to CPPTRAJ_DIFF.
 DoTest() {
-  echo "DEBUG: DoTest $1 $2"
+  #echo "DEBUG: DoTest $1 $2"
   if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
     # AmberTools - use dacdif. Use any '-r <X>' or '-a <X>' args found.
     # Ignore the rest.
@@ -144,7 +144,7 @@ DoTest() {
 #   Compare NetCDF files <1> and <2>. Use CPPTRAJ_NCDUMP to convert to ASCII
 #   first, removing ==> line and :programVersion attribute.
 NcTest() {
-  echo "DEBUG: NcTest $1 $2"
+  #echo "DEBUG: NcTest $1 $2"
   if [ -z "$1" -o -z "$2" ] ; then
     echo "Error: NcTest(): One or both files not specified." > /dev/stderr
     exit 1
@@ -199,11 +199,11 @@ RunCpptraj() {
     echo "  CPPTRAJ: $1" >> $CPPTRAJ_TEST_RESULTS
   fi
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
-    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
+    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
   fi
-  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
+  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $TOP $INPUT $CPPTRAJ_DEBUG>> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
   STATUS=$?
-  echo "DEBUG: Cpptraj exited with status $STATUS"
+  #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
     echo "Error: cpptraj exited with status $STATUS" 2> /dev/stderr
     echo "Error: cpptraj exited with status $STATUS" > $CPPTRAJ_TEST_RESULTS
@@ -214,7 +214,7 @@ RunCpptraj() {
 # EndTest()
 #   Called at the end of every test script if no errors found.
 EndTest() {
-  echo "DEBUG: EndTest"
+  #echo "DEBUG: EndTest"
   # Report only when not using dacdif 
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     if [ $ERRCOUNT -gt 0 ] ; then
@@ -531,7 +531,23 @@ SetBinaries() {
       ls -l $AMBPDB
     fi
   fi
+  # Print DEBUG info
+  if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
+    if [ $CPPTRAJ_STANDALONE -eq 1 ] ; then
+      echo "DEBUG: Standalone mode."
+    else
+      echo "DEBUG: AmberTools mode."
+    fi
+    echo "DEBUG: CPPTRAJ: $CPPTRAJ"
+    echo "DEBUG: AMBPDB:  $AMBPDB"
+#    echo "DEBUG: NPROC:   $NPROC"
+    echo "DEBUG: NCDUMP:  $CPPTRAJ_NCDUMP"
+    echo "DEBUG: DIFFCMD: $CPPTRAJ_DIFF"
+    echo "DEBUG: DACDIF:  $CPPTRAJ_DACDIF"
+    echo "DEBUG: NDIFF:   $CPPTRAJ_NDIFF"
+  fi
 }
+
 # ------------------------------------------------------------------------------
 # Library Checks - Tests that depend on certain libraries like Zlib can run
 # these to make sure cpptraj was compiled with that library - exit gracefully
