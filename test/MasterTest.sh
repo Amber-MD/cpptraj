@@ -57,6 +57,7 @@ GET_TIMING=0             # If 1 time cpptraj with the CPPTRAJ_TIME binary
 SUMMARY=0                # If 1 print summary of CPPTRAJ_TEST_RESULTS only
 SHOWERRORS=0             # If 1, print test errors to STDOUT after summary.
 SFX=""                   # CPPTRAJ binary suffix
+TARGET=""                # Make target if multiple tests being run
 # Variables local to single test.
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -146,7 +147,7 @@ DoTest() {
       if [ $USE_NDIFF -eq 0 ] ; then
         $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
       else
-        $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+        awk -f $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
       fi
       if [ -s 'temp.diff' ] ; then
         OutBoth "  $F1 $F2 are different."
@@ -499,7 +500,7 @@ CmdLineOpts() {
   GET_TIMING=0
   while [ ! -z "$1" ] ; do
     case "$1" in
-      "clean"     ) CPPTRAJ_TEST_CLEAN=1 ; break ;;
+      "clean"     ) CPPTRAJ_TEST_CLEAN=1 ;;
       "summary"   ) SUMMARY=1 ;;
       "showerrors") SHOWERRORS=1 ;;
       "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
@@ -514,6 +515,7 @@ CmdLineOpts() {
       "-nodacdif" ) USE_DACDIF=0 ;;
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
+      "--target"  ) shift ; TARGET=$1 ;;
 #     "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
@@ -877,7 +879,11 @@ else
   #echo "DEBUG: Executing multiple tests."
   # Running multiple tests, execute now.
   Required "make"
-  make test.test # FIXME should be test.all or something
+  if [ -z "$TARGET" ] ; then
+    echo "Error: '--target' not specified." > /dev/stderr
+    exit 1
+  fi
+  make $TARGET # FIXME should be test.all or something
   if [ $? -ne 0 ] ; then
     exit 1
   fi

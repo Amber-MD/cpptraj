@@ -602,7 +602,10 @@ test.cuda:
 test.libcpptraj:
 	@-cd Test_Libcpptraj && ./RunTest.sh $(OPT)
 
-test.complete: $(COMPLETETESTS)
+test.complete: CpptrajTest.sh MasterTest.sh
+	@./CpptrajTest.sh --target test.cpptraj $(OPT)
+
+test.cpptraj: $(COMPLETETESTS)
 
 test.showerrors:
 	$(MAKE) test.complete summary OPT="$(OPT) showerrors"
@@ -612,8 +615,8 @@ test.short:
 
 test.shorttests: $(SHORT_TESTS)
 
-summary: Summary.sh MasterTest.sh
-	@./Summary.sh summary $(OPT)
+summary: CpptrajTest.sh MasterTest.sh
+	@./CpptrajTest.sh summary $(OPT)
 
 test.vg:
 	$(MAKE) test.complete summary OPT="$(OPT) vg"
