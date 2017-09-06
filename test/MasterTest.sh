@@ -59,17 +59,27 @@ TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
 ERRCOUNT=0               # Total number of errors detected by DoTest this test.
 WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
+PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
 # FIXME Variables to check
 #SUMMARY=0           # If 1, only summary of results needs to be performed.
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 
 # ==============================================================================
+# TestHeader() <outfile>
+TestHeader() {
+  echo "**************************************************************" > $1
+  echo "TEST: $TEST_WORKDIR" >> $1
+}
+
 OUT() {
   echo "$1" >> $CPPTRAJ_TEST_RESULTS
 }
 
 ERR() {
+  if [ $ERRCOUNT -eq 0 ] ; then
+    TestHeader "$CPPTRAJ_TEST_ERROR"
+  fi
   echo "$1" >> $CPPTRAJ_TEST_ERROR
 }
 
@@ -77,12 +87,6 @@ ERR() {
 OutBoth() {
   OUT "$1"
   ERR "$1"
-}
-
-# TestHeader() <outfile>
-TestHeader() {
-  echo "**************************************************************" > $1
-  echo "TEST: $TEST_WORKDIR" >> $1
 }
 
 # ------------------------------------------------------------------------------
@@ -205,6 +209,7 @@ RunCpptraj() {
   if [ $CPPTRAJ_TEST_CLEAN -eq 1 ] ; then
     exit 0
   fi
+  ((PROGCOUNT++))
   echo ""
   echo "  CPPTRAJ: $1"
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
@@ -230,16 +235,19 @@ EndTest() {
   #echo "DEBUG: EndTest"
   # Report only when not using dacdif 
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
+    if [ $PROGERROR -gt 0 ] ; then
+      echo "  $PROGERROR out of $PROGCOUNT executions exited with an error."
+    fi
     if [ $ERRCOUNT -gt 0 ] ; then
       echo    "  $ERRCOUNT out of $NUMCOMPARISONS comparisons failed."
       OutBoth "  $ERRCOUNT out of $NUMCOMPARISONS comparisons failed."
     elif [ $WARNCOUNT -gt 0 ] ; then
       ((PASSCOUNT = $NUMCOMPARISONS - $WARNCOUNT))
       echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
-      echo "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings." >> $CPPTRAJ_TEST_RESULTS
+      OUT  "  $PASSCOUNT out of $NUMCOMPARISONS passing comparisons. $WARNCOUNT warnings."
     else 
       echo "All $NUMCOMPARISONS comparisons passed." 
-      echo "All $NUMCOMPARISONS comparisons passed." >> $CPPTRAJ_TEST_RESULTS 
+      OUT  "All $NUMCOMPARISONS comparisons passed."
     fi
     echo ""
     if [ ! -z "$VALGRIND" ] ; then
