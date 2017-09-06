@@ -683,6 +683,9 @@ if [ -f 'RunTest.sh' ] ; then
   if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
     $REMOVE $CPPTRAJ_TEST_ERROR
   fi
+  if [ -f 'valgrind.out' ] ; then
+    $REMOVE valgrind.out
+  fi
   if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
     # Start test results file
     echo "**************************************************************"
