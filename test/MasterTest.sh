@@ -54,6 +54,8 @@ VGMODE=0                 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
 CPPTRAJ_PROFILE=0        # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1             # If 0 do not use dacdif even if in AmberTools
 GET_TIMING=0             # If 1 time cpptraj with the CPPTRAJ_TIME binary
+SUMMARY=0                # If 1 print summary of CPPTRAJ_TEST_RESULTS only
+SHOWERRORS=0             # If 1, print test errors to STDOUT after summary.
 SFX=""                   # CPPTRAJ binary suffix
 # Variables local to single test.
 TEST_WORKDIR=''          # Test working directory
@@ -62,8 +64,6 @@ ERRCOUNT=0               # Total number of errors detected by DoTest this test.
 WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
-# FIXME Variables to check
-#SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 
 # ==============================================================================
 # TestHeader() <outfile>
@@ -235,8 +235,7 @@ Summary() {
   fi
   if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
     GetResultsFiles $MODE $CPPTRAJ_TEST_RESULTS
-
-    echo "DEBUG: Getting results from $RESULTSFILES"
+    #echo "DEBUG: Getting results from $RESULTSFILES"
     if [ ! -z "$RESULTSFILES" ] ; then
       if [ "$MODE" = 'multi' ] ; then
         cat $RESULTSFILES > $CPPTRAJ_TEST_RESULTS
@@ -280,6 +279,24 @@ Summary() {
       echo "No test results files ($CPPTRAJ_TEST_RESULTS) found."
     fi
   fi
+  # Error summary
+  if [ ! -z "$CPPTRAJ_TEST_ERROR" ] ; then
+    GetResultsFiles $MODE $CPPTRAJ_TEST_ERROR
+    #echo "DEBUG: Getting errors from $RESULTSFILES"
+    if [ ! -z "$RESULTSFILES" ] ; then
+      if [ "$MODE" = 'multi' ] ; then
+        cat $RESULTSFILES > $CPPTRAJ_TEST_ERROR
+      fi
+      if [ $SHOWERRORS -eq 1 ] ; then
+        echo ""
+        echo "Obtained the following errors:"
+        echo "---------------------------------------------------------"
+        cat $CPPTRAJ_TEST_ERROR
+        echo "---------------------------------------------------------"
+      fi
+    fi
+  fi
+
 }
 
 # ------------------------------------------------------------------------------
@@ -483,26 +500,31 @@ CmdLineOpts() {
   while [ ! -z "$1" ] ; do
     case "$1" in
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ; break ;;
-     "summary"   ) Summary ; exit 0 ;;
-#     "showerrors") SHOWERRORS=1 ;;
-     "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
-     "openmp"    ) SFX_OMP=1 ;;
-     "cuda"      ) SFX_CUDA=1 ;;
-     "mpi"       ) SFX_MPI=1 ;;
-     "vg"        ) VGMODE=1 ;;
-     "vgh"       ) VGMODE=2 ;;
-     "time"      ) GET_TIMING=1 ;;
-     "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
-     "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
-     "-nodacdif" ) USE_DACDIF=0 ;;
-     "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
-     "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
+      "summary"   ) SUMMARY=1 ;;
+      "showerrors") SHOWERRORS=1 ;;
+      "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
+      "openmp"    ) SFX_OMP=1 ;;
+      "cuda"      ) SFX_CUDA=1 ;;
+      "mpi"       ) SFX_MPI=1 ;;
+      "vg"        ) VGMODE=1 ;;
+      "vgh"       ) VGMODE=2 ;;
+      "time"      ) GET_TIMING=1 ;;
+      "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
+      "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
+      "-nodacdif" ) USE_DACDIF=0 ;;
+      "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
+      "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
 #     "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
     esac
     shift
   done
+  # If summary requested just do that and exit.
+  if [ $SUMMARY -ne 0 ] ; then
+    Summary
+    exit 0
+  fi
   export CPPTRAJ_TEST_CLEAN
   export CPPTRAJ_DEBUG
   # If DO_PARALLEL has been set force MPI
@@ -742,9 +764,9 @@ CheckPnetcdf() {
 # M A I N
 # ==============================================================================
 
-#echo "DEBUG: Begin MasterTest.sh."
+#echo "DEBUG: Begin MasterTest.sh. $*"
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  #echo "DEBUG: Initial test setup."
+  echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
