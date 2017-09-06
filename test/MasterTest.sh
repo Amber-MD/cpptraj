@@ -63,7 +63,6 @@ WARNCOUNT=0              # Total number of warnings detected by DoTest this test
 PROGCOUNT=0              # Total number of times RunCpptraj has been called this test.
 PROGERROR=0              # Total number of program errors this test
 # FIXME Variables to check
-#SUMMARY=0           # If 1, only summary of results needs to be performed.
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 
 # ==============================================================================
@@ -212,6 +211,74 @@ NcTest() {
     fi
     DoTest $DIFFARGS 
     $CPPTRAJ_RM nc0.save nc0
+  fi
+}
+
+# GetResultsFiles() <mode> <base>
+GetResultsFiles() {
+    if [ "$1" = 'single' ] ; then
+      RESULTSFILES=`ls $2 2> /dev/null`
+    else
+      RESULTSFILES=`ls */$2 2> /dev/null`
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Summary()
+#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files.
+Summary() {
+  MODE=''
+  if [ -f 'RunTest.sh' ] ; then
+    MODE='single'
+  else
+    MODE='multi'
+  fi
+  if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
+    GetResultsFiles $MODE $CPPTRAJ_TEST_RESULTS
+
+    echo "DEBUG: Getting results from $RESULTSFILES"
+    if [ ! -z "$RESULTSFILES" ] ; then
+      if [ "$MODE" = 'multi' ] ; then
+        cat $RESULTSFILES > $CPPTRAJ_TEST_RESULTS
+      fi
+      echo "===================== TEST SUMMARY ======================"
+      awk 'BEGIN{
+        comparisons_ok = 0;   # Number of OK comparisons
+        comparisons_warn = 0; # Number of comparisons with a warning
+        comparisons_diff = 0; # Number of comparisons with diff/error
+        program_err = 0;      # Number of program errors.
+        program_exe = 0;      # Number of program executions.
+        ntests = 0;           # Number of tests.
+        ok_tests = 0;         # Number of completely OK tests.
+      }{
+        if ( $1 == "TEST:" )
+          ntests++;
+        else if ($1 == "Warning:")
+          comparisons_warn++;
+        else if ($1 == "CPPTRAJ:")
+          program_exe++;
+        else if ($1 == "Error:")
+          program_err++;
+        else if ($NF == "OK.")
+          comparisons_ok++;
+        else if ($NF == "different.")
+          comparisons_diff++;
+        else if ($(NF-1) == "not" && $NF == "found.")
+          comparisons_diff++;
+        else if ($(NF-1) == "comparisons" && $NF == "passed.")
+          ok_tests++;
+      }END{
+        n_comps = comparisons_ok + comparisons_warn + comparisons_diff;
+        printf("  %i out of %i comparisons OK (%i failed, %i warnings).\n",
+               comparisons_ok, n_comps, comparisons_diff, comparisons_warn);
+        printf("  %i out of %i program executions completed.\n",
+               program_exe - program_err, program_exe);
+        printf("  %i out of %i tests completed with no issues.\n",
+               ok_tests, ntests);
+      }' $CPPTRAJ_TEST_RESULTS 
+    else
+      echo "No test results files ($CPPTRAJ_TEST_RESULTS) found."
+    fi
   fi
 }
 
@@ -416,7 +483,7 @@ CmdLineOpts() {
   while [ ! -z "$1" ] ; do
     case "$1" in
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ; break ;;
-#     "summary"   ) SUMMARY=1 ;;
+     "summary"   ) Summary ; exit 0 ;;
 #     "showerrors") SHOWERRORS=1 ;;
      "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
      "openmp"    ) SFX_OMP=1 ;;
@@ -677,7 +744,7 @@ CheckPnetcdf() {
 
 #echo "DEBUG: Begin MasterTest.sh."
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  echo "DEBUG: Initial test setup."
+  #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
@@ -694,6 +761,8 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   Required "awk"
   Required "rmdir"
   # Set some defaults
+  export CPPTRAJ_TEST_RESULTS='Test_Results.dat'
+  export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   CPPTRAJ_OUTPUT='test.out'
   CPPTRAJ_ERROR='/dev/stderr'
   # Process command line options
@@ -742,8 +811,6 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     fi
   fi # END if not cleaning
   # Export test output and error file names
-  export CPPTRAJ_TEST_RESULTS='Test_Results.dat'
-  export CPPTRAJ_TEST_ERROR='Test_Error.dat'
   export CPPTRAJ_OUTPUT
   export CPPTRAJ_ERROR
   # Initial setup complete
