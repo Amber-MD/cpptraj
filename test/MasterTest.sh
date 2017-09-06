@@ -17,8 +17,8 @@
 #   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
 #   CPPTRAJ_NPROC        : nproc binary for counting threads in parallel tests.
 # Test output locations
-#   CPPTRAJ_TEST_RESULTS : File to record test results to.
-#   CPPTRAJ_TEST_ERROR   : File to record test errors/diffs to.
+#   CPPTRAJ_TEST_RESULTS : File to record individual test results to.
+#   CPPTRAJ_TEST_ERROR   : File to record individual test errors/diffs to.
 #   CPPTRAJ_OUTPUT       : File to direct cpptraj STDOUT to.
 #   CPPTRAJ_ERROR        : File to direct cpptraj STDERR to.
 # Other variables
@@ -47,20 +47,21 @@
 # Variables that can be set by individual tests
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
+
+# Local setup variables
+VGMODE=0                 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
+CPPTRAJ_PROFILE=0        # If 1, end of test profiling with gprof performed #FIXME
+USE_DACDIF=1             # If 0 do not use dacdif even if in AmberTools
+GET_TIMING=0             # If 1 time cpptraj with the CPPTRAJ_TIME binary
+SFX=""                   # CPPTRAJ binary suffix
+# Variables local to single test.
+NUMTEST=0                # Total number of times DoTest has been called this test.
+ERRCOUNT=0               # Total number of errors detected by DoTest this test.
+WARNCOUNT=0              # Total number of warnings detected by DoTest this test.
+PROGERROR=0              # Total number of program errors this test
 # FIXME Variables to check
-VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
-CPPTRAJ_PROFILE=0           # If 1, end of test profiling with gprof performed #FIXME
-USE_DACDIF=1         # If 0 do not use dacdif even if in AmberTools
-GET_TIMING=0   # If 1 time cpptraj with the CPPTRAJ_TIME binary
-SFX=""              # CPPTRAJ binary suffix
 #SUMMARY=0           # If 1, only summary of results needs to be performed.
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
-
-# Variables local to single test.
-NUMTEST=0           # Total number of times DoTest has been called this test.
-ERRCOUNT=0          # Total number of errors detected by DoTest this test.
-WARNCOUNT=0         # Total number of warnings detected by DoTest this test.
-PROGERROR=0         # Total number of program errors this test
 
 # ==============================================================================
 # Output() <Message>
@@ -746,6 +747,7 @@ else
   fi
   echo "DEBUG: Executing multiple tests."
   # Running multiple tests, execute now.
+  Required "make"
   make test.test # FIXME should be test.all or something
   if [ $? -ne 0 ] ; then
     exit 1
