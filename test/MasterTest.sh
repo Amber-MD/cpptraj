@@ -14,7 +14,7 @@
 #   CPPTRAJ_NDIFF        : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   REMOVE               : Command used to remove files
-#   TIME                 : Set to the 'time' command if timing requested.
+#   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
 # Test output locations
 #   CPPTRAJ_TEST_RESULTS : File to record test results to.
 #   CPPTRAJ_TEST_ERROR   : File to record test errors/diffs to.
@@ -50,6 +50,7 @@
 VGMODE=0 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
 CPPTRAJ_PROFILE=0           # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1         # If 0 do not use dacdif even if in AmberTools
+GET_TIMING=0   # If 1 time cpptraj with the CPPTRAJ_TIME binary
 SFX=""              # CPPTRAJ binary suffix
 #SUMMARY=0           # If 1, only summary of results needs to be performed.
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
@@ -197,10 +198,10 @@ RunCpptraj() {
   if [ -z "$CPPTRAJ_DACDIF" ] ; then
     echo "  CPPTRAJ: $1" >> $CPPTRAJ_TEST_RESULTS
   fi
-#  if [[ ! -z $DEBUG ]] ; then
-    echo "$TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
-#  fi
-  $TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
+  if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
+    echo "$CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR"
+  fi
+  $CPPTRAJ_TIME $DO_PARALLEL $VALGRIND $CPPTRAJ $CPPTRAJ_DEBUG $TOP $INPUT >> $CPPTRAJ_OUTPUT 2>>$CPPTRAJ_ERROR
   STATUS=$?
   echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
@@ -382,10 +383,10 @@ CmdLineOpts() {
      "mpi"       ) SFX_MPI=1 ;;
      "vg"        ) VGMODE=1 ;;
      "vgh"       ) VGMODE=2 ;;
-#     "time"      ) GET_TIMING=0 ;;
+     "time"      ) GET_TIMING=1 ;;
 #      "-at"       ) FORCE_AMBERTOOLS=1 ;;
-#     "-d"        ) DEBUG="-debug 4" ;;
-#     "-debug"    ) shift ; DEBUG="-debug $1" ;;
+     "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
+     "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
      "-nodacdif" ) USE_DACDIF=0 ;;
      "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
 #     "-ambpdb"   ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
@@ -396,6 +397,7 @@ CmdLineOpts() {
     shift
   done
   export CPPTRAJ_TEST_CLEAN
+  export CPPTRAJ_DEBUG
   # If DO_PARALLEL has been set force MPI
   if [ ! -z "$DO_PARALLEL" ] ; then
     SFX_MPI=1
@@ -421,6 +423,27 @@ Required() {
 }
 
 #-------------------------------------------------------------------------------
+# CheckDefines()
+#   Check how CPPTRAJ was compiled.
+CheckDefines() {
+  for DEFINE in `$CPPTRAJ --defines` ; do
+    case "$DEFINE" in
+      '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
+      '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
+      '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
+      '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
+      '-DNO_MATHLIB'    ) export CPPTRAJ_NOMATHLIB=$DEFINE ;;
+      '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
+      '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
+      '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
+      '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
+      '-DNO_XDRFILE'    ) export CPPTRAJ_NO_XDRFILE=$DEFINE ;;
+    esac
+  done
+  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
+}
+
+#-------------------------------------------------------------------------------
 # SetBinaries()
 #   Set paths for all binaries if not already set.
 SetBinaries() {
@@ -440,6 +463,38 @@ SetBinaries() {
       exit 1
     fi
     export CPPTRAJ
+  fi
+  # Check how cpptraj was compiled.
+  CheckDefines
+  # If compiled with NetCDF support ensure ncdump is available
+  if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
+    Required "ncdump"
+    export CPPTRAJ_NCDUMP=`which ncdump`
+  fi
+  # Set up valgrind if necessary.
+  if [ $VGMODE -ne 0 ] ; then
+    echo "  Using valgrind."
+    CPPTRAJ_ERROR='valgrind.out'
+    if [ ! -z "$CPPTRAJ_CUDA" ] ; then
+      if [ $VGMODE -eq 1 ] ; then
+        Required "cuda-memcheck"
+        VALGRIND='cuda-memcheck'
+      else
+        echo "Error: 'helgrind' not supported for CUDA." > /dev/stderr
+        exit 1
+      fi
+    else
+      Required "valgrind"
+      if [ $VGMODE -eq 1 ] ; then
+        VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes"
+      elif [ $VGMODE -eq 2 ] ; then
+        VALGRIND="valgrind --tool=helgrind"
+      else
+        echo "Error: Unsupported VGMODE $VGMODE" > /dev/stderr
+        exit 1
+      fi
+    fi
+    export VALGRIND
   fi
   # Determine location of AMBPDB if not specified.
   if [ -z "$AMBPDB" ] ; then
@@ -461,6 +516,11 @@ SetBinaries() {
       exit 1
     fi
     export CPPTRAJ_NDIFF
+  fi
+  # Determine timing if necessary
+  if [ $GET_TIMING -eq 1 ] ; then
+    Required "time"
+    export CPPTRAJ_TIME=`which time`
   fi
   # Report binary details
   if [ $CPPTRAJ_STANDALONE -eq 1 ] ; then
@@ -536,27 +596,6 @@ CheckPnetcdf() {
   return 0
 }
 
-#-------------------------------------------------------------------------------
-# CheckDefines()
-#   Check how CPPTRAJ was compiled.
-CheckDefines() {
-  for DEFINE in `$CPPTRAJ --defines` ; do
-    case "$DEFINE" in
-      '-DHASGZ'         ) export CPPTRAJ_ZLIB=$DEFINE ;;
-      '-DHASBZ2'        ) export CPPTRAJ_BZLIB=$DEFINE ;;
-      '-DBINTRAJ'       ) export CPPTRAJ_NETCDFLIB=$DEFINE ;;
-      '-DMPI'           ) export CPPTRAJ_MPILIB=$DEFINE ;;
-      '-DNO_MATHLIB'    ) export CPPTRAJ_NOMATHLIB=$DEFINE ;;
-      '-D_OPENMP'       ) export CPPTRAJ_OPENMP=$DEFINE ;;
-      '-DHAS_PNETCDF'   ) export CPPTRAJ_PNETCDFLIB=$DEFINE ;;
-      '-DUSE_SANDERLIB' ) export CPPTRAJ_SANDERLIB=$DEFINE ;;
-      '-DCUDA'          ) export CPPTRAJ_CUDA=$DEFINE ;;
-      '-DNO_XDRFILE'    ) export CPPTRAJ_NO_XDRFILE=$DEFINE ;;
-    esac
-  done
-  #echo "DEBUG: $ZLIB $BZLIB $NETCDFLIB $MPILIB $NOMATHLIB $OPENMP $PNETCDFLIB $SANDERLIB $CUDA $NO_XDRFILE"
-}
-
 # ==============================================================================
 # M A I N
 # ==============================================================================
@@ -618,38 +657,6 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     export CPPTRAJ_DIFF
     # Determine binary locations
     SetBinaries
-    # Check how CPPTRAJ was compiled
-    CheckDefines
-    # If compiled with NetCDF support ensure ncdump is available
-    if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
-      Required "ncdump"
-      export CPPTRAJ_NCDUMP=`which ncdump`
-    fi
-    # Set up valgrind if necessary
-    if [ $VGMODE -ne 0 ] ; then
-      echo "  Using valgrind."
-      CPPTRAJ_ERROR='valgrind.out'
-      if [ ! -z "$CPPTRAJ_CUDA" ] ; then
-        if [ $VGMODE -eq 1 ] ; then
-          Required "cuda-memcheck"
-          VALGRIND='cuda-memcheck'
-        else
-          echo "Error: 'helgrind' not supported for CUDA." > /dev/stderr
-          exit 1
-        fi
-      else
-        Required "valgrind"
-        if [ $VGMODE -eq 1 ] ; then
-          VALGRIND="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes"
-        elif [ $VGMODE -eq 2 ] ; then
-          VALGRIND="valgrind --tool=helgrind"
-        else
-          echo "Error: Unsupported VGMODE $VGMODE" > /dev/stderr
-          exit 1
-        fi
-      fi
-      export VALGRIND
-    fi
     # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
     if [ -z "$CPPTRAJ_TEST_OS" ] ; then
       export CPPTRAJ_TEST_OS='linux'
