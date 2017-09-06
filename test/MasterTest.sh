@@ -11,7 +11,7 @@
 #   VALGRIND             : Set to 'valgrind' command if memory check requested.
 #   CPPTRAJ_DIFF         : Command used to check for test differences.
 #   CPPTRAJ_DACDIF       : Set if using 'dacdif' in AmberTools to checkout for test differences.
-#   NDIFF                : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
+#   CPPTRAJ_NDIFF        : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
 #   REMOVE               : Command used to remove files
 #   TIME                 : Set to the 'time' command if timing requested.
@@ -23,6 +23,7 @@
 # Other variables
 #   CPPTRAJ_TEST_ROOT    : Test root directory.
 #   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
+# FIXME CPPTRAJ_STANDALONE could just be script var
 #   CPPTRAJ_STANDALONE   : If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
@@ -122,7 +123,7 @@ DoTest() {
       if [ $USE_NDIFF -eq 0 ] ; then
         $CPPTRAJ_DIFF $DIFFARGS $DIFFOPTS $F1 $F2 > temp.diff 2>&1
       else
-        $NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
+        $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
       fi
       if [ -s 'temp.diff' ] ; then
         echo "  $F1 $F2 are different." >> $CPPTRAJ_TEST_RESULTS
@@ -423,23 +424,51 @@ Required() {
 # SetBinaries()
 #   Set paths for all binaries if not already set.
 SetBinaries() {
+  # Guess where things might be depending on if we are in AT or not, etc.
+  if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+    DIRPREFIX=$AMBERHOME
+  elif [ -z "$CPPTRAJHOME" ] ; then
+    DIRPREFIX=../../
+  else
+    DIRPREFIX=$CPPTRAJHOME
+  fi
   # Determine location of CPPTRAJ if not specified.
   if [ -z "$CPPTRAJ" ] ; then
-     if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
-       DIRPREFIX=$AMBERHOME
-     elif [ -z "$CPPTRAJHOME" ] ; then
-       DIRPREFIX=../../
-     else
-       DIRPREFIX=$CPPTRAJHOME
-     fi
-     CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
-     if [ ! -f "$CPPTRAJ" ] ; then
-       echo "Error: CPPTRAJ $CPPTRAJ not found." > /dev/stderr
-       exit 1
-     fi
-     export CPPTRAJ
+    CPPTRAJ=$DIRPREFIX/bin/cpptraj$SFX
+    if [ ! -f "$CPPTRAJ" ] ; then
+      echo "Error: CPPTRAJ $CPPTRAJ not found." > /dev/stderr
+      exit 1
+    fi
+    export CPPTRAJ
   fi
-
+  # Determine location of AMBPDB if not specified.
+  if [ -z "$AMBPDB" ] ; then
+    AMBPDB=$DIRPREFIX/bin/ambpdb
+    if [ ! -f "$AMBPDB" ] ; then
+      echo "Warning: AMBPDB not present."
+    fi
+    export AMBPDB
+  fi
+  # Determine location of ndiff.awk
+  if [ -z "$CPPTRAJ_NDIFF" ] ; then
+    if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+      CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
+    else
+      CPPTRAJ_NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
+    fi
+    if [ ! -f "$CPPTRAJ_NDIFF" ] ; then
+      echo "Error: 'ndiff.awk' not present: $CPPTRAJ_NDIFF" > /dev/stderr
+      exit 1
+    fi
+    export CPPTRAJ_NDIFF
+  fi
+  # Report binary details
+  if [ $CPPTRAJ_STANDALONE -eq 1 ] ; then
+    ls -l $CPPTRAJ
+    if [ ! -z "$AMBPDB" ] ; then
+      ls -l $AMBPDB
+    fi
+  fi
 }
 
 #-------------------------------------------------------------------------------
