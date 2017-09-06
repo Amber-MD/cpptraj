@@ -22,10 +22,10 @@
 #   CPPTRAJ_ERROR        : File to direct cpptraj STDERR to.
 # Other variables
 #   CPPTRAJ_TEST_ROOT    : Test root directory.
-#   CPPTRAJ_TEST_MODE    : 'single' or 'multiple'.
+#   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
 #   CPPTRAJ_STANDALONE   : If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
-#   TEST_OS              : Operating system on which tests are being run. If blank assume linux.
+#   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
 #   N_THREADS            : Set to number of MPI threads if parallel.
 #   OMP_NUM_THREADS      : Set to max number of OpenMP threads.
 #   DO_PARALLEL          : Set to the MPI run command (e.g. 'mpirun -n 11')
@@ -363,7 +363,7 @@ Help() {
 
 #-------------------------------------------------------------------------------
 # CmdLineOpts()
-#   Process test script command line options. Only executed if CPPTRAJ_TEST_MODE
+#   Process test script command line options. Only executed if CPPTRAJ_TEST_SETUP
 #   is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
@@ -439,22 +439,10 @@ Required() {
 # M A I N
 # ==============================================================================
 
-if [ -z "$CPPTRAJ_TEST_MODE" ] ; then
+echo "DEBUG: Begin MasterTest.sh."
+if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
-  # Determine mode of execution: individual test or multiple tests.
-  if [ -f 'RunTest.sh' ] ; then
-    # Assume we are only executing a single test.
-    CPPTRAJ_TEST_MODE='single'
-  else
-    # Assume we are executing multiple tests. Need a Makefile.
-    if [ ! -f 'Makefile' ] ; then
-      echo "Error: test Makefile not found." > /dev/stderr
-      exit 1
-    fi
-    CPPTRAJ_TEST_MODE='multiple'
-  fi
-  export CPPTRAJ_TEST_MODE
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
   if [ -z "$REMOVE" ] ; then
@@ -506,31 +494,53 @@ if [ -z "$CPPTRAJ_TEST_MODE" ] ; then
     fi
     export CPPTRAJ_DACDIF
     export CPPTRAJ_DIFF
-    # Determine test output and error files: standalone only
-    if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      if [ -z "$CPPTRAJ_TEST_RESULTS"  -o -z "$CPPTRAJ_TEST_ERROR" ] ; then
-        export CPPTRAJ_TEST_RESULTS='Test_Results.dat'
-        export CPPTRAJ_TEST_ERROR='Test_Error.dat'
-      fi
-    fi
-    export CPPTRAJ_OUTPUT
-    export CPPTRAJ_ERROR
     # Determine binary locations
     SetBinaries
+    # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
+    if [ -z "$CPPTRAJ_TEST_OS" ] ; then
+      export CPPTRAJ_TEST_OS='linux'
+    fi
   fi # END if not cleaning
+  # Export test output and error file names
+  export CPPTRAJ_TEST_RESULTS='Test_Results.dat'
+  export CPPTRAJ_TEST_ERROR='Test_Error.dat'
+  export CPPTRAJ_OUTPUT
+  export CPPTRAJ_ERROR
+  # Initial setup complete
   echo "DEBUG: Initial test setup complete."
-  # If running multiple tests execute now.
-  if [ "$CPPTRAJ_TEST_MODE" = 'multiple' ] ; then
-    make test.test
-  fi
+  export CPPTRAJ_TEST_SETUP='yes'
 fi # END initial setup
 
-# Always clean up test output and error files
-if [ "$CPPTRAJ_OUTPUT" != '/dev/stdout' -a -f "$CPPTRAJ_OUTPUT" ] ; then
-  $REMOVE $CPPTRAJ_OUTPUT
-fi
-if [ "$CPPTRAJ_ERROR" != '/dev/stderr' -a -f "$CPPTRAJ_ERROR" ] ; then
-  $REMOVE $CPPTRAJ_ERROR
+# Determine mode of execution: individual test or multiple tests.
+if [ -f 'RunTest.sh' ] ; then
+  # Assume we are only executing a single test.
+  echo "DEBUG: Executing single test."
+  # Single test.
+  # Always clean up individual test output and error files
+  if [ "$CPPTRAJ_OUTPUT" != '/dev/stdout' -a -f "$CPPTRAJ_OUTPUT" ] ; then
+    $REMOVE $CPPTRAJ_OUTPUT
+  fi
+  if [ "$CPPTRAJ_ERROR" != '/dev/stderr' -a -f "$CPPTRAJ_ERROR" ] ; then
+    $REMOVE $CPPTRAJ_ERROR
+  fi
+  if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
+    $REMOVE $CPPTRAJ_TEST_RESULTS
+  fi
+  if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
+    $REMOVE $CPPTRAJ_TEST_ERROR
+  fi
+else
+  # Assume we are executing multiple tests. Need a Makefile.
+  if [ ! -f 'Makefile' ] ; then
+    echo "Error: test Makefile not found." > /dev/stderr
+    exit 1
+  fi
+  echo "DEBUG: Executing multiple tests."
+  # Running multiple tests, execute now.
+  make test.test # FIXME should be test.all or something
+  if [ $? -ne 0 ] ; then
+    exit 1
+  fi
 fi
 
-echo "DEBUG: Test mode is $CPPTRAJ_TEST_MODE"
+echo "DEBUG: End MasterTest.sh."
