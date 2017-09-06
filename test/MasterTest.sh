@@ -237,7 +237,7 @@ RunCpptraj() {
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
     if [ -z "$CPPTRAJ_DACDIF" ] ; then
-      echo "Error: cpptraj exited with status $STATUS"
+      echo "Error: cpptraj exited with status $STATUS" > /dev/stderr
       OutBoth "Error: cpptraj exited with status $STATUS"
     else
       echo "$CPPTRAJ: Program error"
@@ -441,9 +441,12 @@ CmdLineOpts() {
   # If DO_PARALLEL has been set force MPI
   if [ ! -z "$DO_PARALLEL" ] ; then
     SFX_MPI=1
+  elif [ $SFX_MPI -eq 1 ] ; then
+    echo "Error: 'mpi' specified but DO_PARALLEL not set." > /dev/stderr
+    exit 1
   fi
   # Warn if using OpenMP but OMP_NUM_THREADS not set.
-  if [ "$SFX_OMP" -eq 1 -a -z "$OMP_NUM_THREADS" ] ; then
+  if [ $SFX_OMP -eq 1 -a -z "$OMP_NUM_THREADS" ] ; then
     echo "Warning: Using OpenMP but OMP_NUM_THREADS is not set."
   fi
   # Set up SFX
