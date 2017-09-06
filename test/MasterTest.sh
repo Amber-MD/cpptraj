@@ -78,7 +78,7 @@ OUT() {
 }
 
 ERR() {
-  if [ $ERRCOUNT -eq 0 ] ; then
+  if [ $ERRCOUNT -eq 0 -a -z "$CPPTRAJ_DACDIF" ] ; then
     TestHeader "$CPPTRAJ_TEST_ERROR"
   fi
   echo "$1" >> $CPPTRAJ_TEST_ERROR
@@ -187,11 +187,15 @@ NcTest() {
   done
   # Prepare files.
   if [ ! -e "$F1" ] ; then
-    OutBoth "  Save file '$F1' not found."
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      OutBoth "  Save file '$F1' not found."
+    fi
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
   elif [ ! -e "$F2" ] ; then
-    OutBoth "  Test output '$F2' not found."
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      OutBoth "  Test output '$F2' not found."
+    fi
     ((NUMCOMPARISONS++))
     ((ERRCOUNT++))
   else
@@ -232,8 +236,12 @@ RunCpptraj() {
   STATUS=$?
   #echo "DEBUG: Cpptraj exited with status $STATUS"
   if [ $STATUS -ne 0 ] ; then
-    echo "Error: cpptraj exited with status $STATUS"
-    OutBoth "Error: cpptraj exited with status $STATUS"
+    if [ -z "$CPPTRAJ_DACDIF" ] ; then
+      echo "Error: cpptraj exited with status $STATUS"
+      OutBoth "Error: cpptraj exited with status $STATUS"
+    else
+      echo "$CPPTRAJ: Program error"
+    fi
     ((PROGERROR++))
   fi
 }
