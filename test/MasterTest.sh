@@ -64,11 +64,18 @@ PROGERROR=0              # Total number of program errors this test
 #SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 
 # ==============================================================================
-# Output() <Message>
-#   Send <Message> to CPPTRAJ_TEST_RESULTS and CPPTRAJ_TEST_ERROR
-Output() {
+OUT() {
   echo "$1" >> $CPPTRAJ_TEST_RESULTS
+}
+
+ERR() {
   echo "$1" >> $CPPTRAJ_TEST_ERROR
+}
+
+#   Send <Message> to CPPTRAJ_TEST_RESULTS and CPPTRAJ_TEST_ERROR
+OutBoth() {
+  OUT "$1"
+  ERR "$1"
 }
 
 # ------------------------------------------------------------------------------
@@ -114,12 +121,10 @@ DoTest() {
       shift
     done
     if [ ! -f "$F1" ] ; then
-      echo "  $F1 not found." >> $CPPTRAJ_TEST_RESULTS
-      echo "  $F1 not found." >> $CPPTRAJ_TEST_ERROR
+      OutBoth "  $F1 not found."
       ((ERRCOUNT++))
     elif [ ! -f "$F2" ] ; then
-      echo "  $F2 not found." >> $CPPTRAJ_TEST_RESULTS
-      echo "  $F2 not found." >> $CPPTRAJ_TEST_ERROR
+      OutBoth "  $F2 not found."
       ((ERRCOUNT++))
     else
       if [ $USE_NDIFF -eq 0 ] ; then
@@ -128,12 +133,11 @@ DoTest() {
         $CPPTRAJ_NDIFF $NDIFFARGS $F1 $F2 > temp.diff 2>&1
       fi
       if [ -s 'temp.diff' ] ; then
-        echo "  $F1 $F2 are different." >> $CPPTRAJ_TEST_RESULTS
-        echo "  $F1 $F2 are different." >> $CPPTRAJ_TEST_ERROR
+        OutBoth "  $F1 $F2 are different."
         cat temp.diff >> $CPPTRAJ_TEST_ERROR
         ((ERRCOUNT++))
       else
-        echo "  $F2 OK." >> $CPPTRAJ_TEST_RESULTS
+        OUT  "  $F2 OK."
       fi
       $CPPTRAJ_RM temp.diff
     fi
@@ -636,9 +640,9 @@ CheckPnetcdf() {
 # M A I N
 # ==============================================================================
 
-echo "DEBUG: Begin MasterTest.sh."
+#echo "DEBUG: Begin MasterTest.sh."
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
-  echo "DEBUG: Initial test setup."
+  #echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
@@ -705,14 +709,14 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   export CPPTRAJ_OUTPUT
   export CPPTRAJ_ERROR
   # Initial setup complete
-  echo "DEBUG: Initial test setup complete."
+  #echo "DEBUG: Initial test setup complete."
   export CPPTRAJ_TEST_SETUP='yes'
 fi # END initial setup
 
 # Determine mode of execution: individual test or multiple tests.
 if [ -f 'RunTest.sh' ] ; then
   # Assume we are only executing a single test.
-  echo "DEBUG: Executing single test."
+  #echo "DEBUG: Executing single test."
   # Single test.
   # Always clean up individual test output and error files
   if [ "$CPPTRAJ_OUTPUT" != '/dev/stdout' -a -f "$CPPTRAJ_OUTPUT" ] ; then
@@ -745,7 +749,7 @@ else
     echo "Error: test Makefile not found." > /dev/stderr
     exit 1
   fi
-  echo "DEBUG: Executing multiple tests."
+  #echo "DEBUG: Executing multiple tests."
   # Running multiple tests, execute now.
   Required "make"
   make test.test # FIXME should be test.all or something
@@ -754,4 +758,4 @@ else
   fi
 fi
 
-echo "DEBUG: End MasterTest.sh."
+#echo "DEBUG: End MasterTest.sh."
