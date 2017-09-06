@@ -254,7 +254,9 @@ EndTest() {
 #   For every arg passed to the function, check for the file and remove it.
 CleanFiles() {
   while [ ! -z "$1" ] ; do
-    if [ -e "$1" ] ; then
+    if [ -d "$1" ] ; then
+      rmdir $1
+    elif [ -f "$1" ] ; then
       $CPPTRAJ_RM $1
     fi
     shift
@@ -617,6 +619,7 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   Required "grep"
   Required "sed"
   Required "awk"
+  Required "rmdir"
   # Set some defaults
   CPPTRAJ_OUTPUT='test.out'
   CPPTRAJ_ERROR='/dev/stderr'
