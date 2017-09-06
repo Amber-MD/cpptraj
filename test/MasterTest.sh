@@ -40,13 +40,15 @@
 #   CPPTRAJ_OPENMP
 #   CPPTRAJ_PNETCDFLIB
 #   CPPTRAJ_SANDERLIB
-
+# Variables that can be set by individual tests
+#   TOP                  : Topology file for cpptraj
+#   INPUT                : Input file for cpptraj
 # FIXME Variables to check
-SUMMARY=0           # If 1, only summary of results needs to be performed.
-SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 CPPTRAJ_PROFILE=0           # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1         # If 0 do not use dacdif even if in AmberTools
 SFX=""              # CPPTRAJ binary suffix
+#SUMMARY=0           # If 1, only summary of results needs to be performed.
+#SHOWERRORS=0        # If 1, print test errors to STDOUT after summary.
 #NPROC=""            # nproc binary for counting threads in parallel tests.
 
 # Variables local to single test.
@@ -375,7 +377,7 @@ CmdLineOpts() {
       "clean"     ) CPPTRAJ_TEST_CLEAN=1 ; break ;;
 #     "summary"   ) SUMMARY=1 ;;
 #     "showerrors") SHOWERRORS=1 ;;
-#     "stdout"    ) OUTPUT="/dev/stdout" ;;
+     "stdout"    ) CPPTRAJ_OUTPUT='/dev/stdout' ;;
      "openmp"    ) SFX_OMP=1 ;;
      "cuda"      ) SFX_CUDA=1 ;;
      "mpi"       ) SFX_MPI=1 ;;
@@ -466,6 +468,9 @@ if [ -z "$CPPTRAJ_TEST_MODE" ] ; then
   Required "grep"
   Required "sed"
   Required "awk"
+  # Set some defaults
+  CPPTRAJ_OUTPUT='test.out'
+  CPPTRAJ_ERROR='/dev/stderr'
   # Process command line options
   CmdLineOpts $*
   # If not cleaning see what else needs to be set up. 
@@ -508,7 +513,8 @@ if [ -z "$CPPTRAJ_TEST_MODE" ] ; then
         export CPPTRAJ_TEST_ERROR='Test_Error.dat'
       fi
     fi
-
+    export CPPTRAJ_OUTPUT
+    export CPPTRAJ_ERROR
     # Determine binary locations
     SetBinaries
   fi # END if not cleaning
