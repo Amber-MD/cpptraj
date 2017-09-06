@@ -13,7 +13,7 @@
 #   CPPTRAJ_DACDIF       : Set if using 'dacdif' in AmberTools to checkout for test differences.
 #   CPPTRAJ_NDIFF        : Set to Nelson H. F. Beebe's ndiff.awk for numerical diff calc.
 #   CPPTRAJ_NCDUMP       : Set to ncdump command; needed for NcTest()
-#   REMOVE               : Command used to remove files
+#   CPPTRAJ_RM           : Command used to remove files
 #   CPPTRAJ_TIME         : Set to the 'time' command if timing requested.
 # Test output locations
 #   CPPTRAJ_TEST_RESULTS : File to record test results to.
@@ -134,7 +134,7 @@ DoTest() {
       else
         echo "  $F2 OK." >> $CPPTRAJ_TEST_RESULTS
       fi
-      $REMOVE temp.diff
+      $CPPTRAJ_RM temp.diff
     fi
   fi
 }
@@ -181,7 +181,7 @@ NcTest() {
       $CPPTRAJ_NCDUMP -n nctest $F2 | grep -v "==>\|:programVersion" > nc0
     fi
     DoTest $DIFFARGS 
-    $REMOVE nc0.save nc0
+    $CPPTRAJ_RM nc0.save nc0
   fi
 }
 
@@ -255,7 +255,7 @@ EndTest() {
 CleanFiles() {
   while [ ! -z "$1" ] ; do
     if [ -e "$1" ] ; then
-      $REMOVE $1
+      $CPPTRAJ_RM $1
     fi
     shift
   done
@@ -606,13 +606,13 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   # MasterTest.sh has not been called yet; set up test environment.
   export CPPTRAJ_TEST_ROOT=`pwd`
   # Ensure required binaries are set up
-  if [ -z "$REMOVE" ] ; then
+  if [ -z "$CPPTRAJ_RM" ] ; then
     # TODO is this being too paranoid?
     if [ ! -f '/bin/rm' ] ; then
       echo "Error: Required binary '/bin/rm' not found." > /dev/stderr
       exit 1
     fi
-    export REMOVE='/bin/rm -f'
+    export CPPTRAJ_RM='/bin/rm -f'
   fi
   Required "grep"
   Required "sed"
@@ -679,19 +679,19 @@ if [ -f 'RunTest.sh' ] ; then
   # Single test.
   # Always clean up individual test output and error files
   if [ "$CPPTRAJ_OUTPUT" != '/dev/stdout' -a -f "$CPPTRAJ_OUTPUT" ] ; then
-    $REMOVE $CPPTRAJ_OUTPUT
+    $CPPTRAJ_RM $CPPTRAJ_OUTPUT
   fi
   if [ "$CPPTRAJ_ERROR" != '/dev/stderr' -a -f "$CPPTRAJ_ERROR" ] ; then
-    $REMOVE $CPPTRAJ_ERROR
+    $CPPTRAJ_RM $CPPTRAJ_ERROR
   fi
   if [ -f "$CPPTRAJ_TEST_RESULTS" ] ; then
-    $REMOVE $CPPTRAJ_TEST_RESULTS
+    $CPPTRAJ_RM $CPPTRAJ_TEST_RESULTS
   fi
   if [ -f "$CPPTRAJ_TEST_ERROR" ] ; then
-    $REMOVE $CPPTRAJ_TEST_ERROR
+    $CPPTRAJ_RM $CPPTRAJ_TEST_ERROR
   fi
   if [ -f 'valgrind.out' ] ; then
-    $REMOVE valgrind.out
+    $CPPTRAJ_RM valgrind.out
   fi
   if [ "$CPPTRAJ_TEST_CLEAN" -eq 0 ] ; then
     # Start test results file
