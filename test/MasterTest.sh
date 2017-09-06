@@ -391,10 +391,9 @@ Help() {
   echo "  vgh        : Run test with valgrind helgrind."
   echo "  time       : Time the test."
   echo "  clean      : Clean test output."
-  #echo "  -at        : Force AmberTools tests."
   echo "  -nodacdif  : Do not use dacdif for test comparisons."
-  #echo "  -d         : Run CPPTRAJ with global debug level 4."
-  #echo "  -debug <#> : Run CPPTRAJ with global debug level #."
+  echo "  -d         : Run CPPTRAJ with global debug level 4."
+  echo "  -debug <#> : Run CPPTRAJ with global debug level #."
   echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
   #echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
   echo "  -profile        : Profile results with 'gprof' (requires special compile)."
@@ -426,12 +425,11 @@ CmdLineOpts() {
      "vg"        ) VGMODE=1 ;;
      "vgh"       ) VGMODE=2 ;;
      "time"      ) GET_TIMING=1 ;;
-#      "-at"       ) FORCE_AMBERTOOLS=1 ;;
      "-d"        ) CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug 4" ;;
      "-debug"    ) shift ; CPPTRAJ_DEBUG="$CPPTRAJ_DEBUG -debug $1" ;;
      "-nodacdif" ) USE_DACDIF=0 ;;
      "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
-#     "-ambpdb"   ) shift ; AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
+     "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
 #     "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       *           ) echo "Error: Unknown opt: $1" > /dev/stderr ; exit 1 ;;
