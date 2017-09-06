@@ -28,10 +28,11 @@
 #   CPPTRAJ_STANDALONE   : If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
-#   N_THREADS            : Set to number of MPI threads if parallel.
-#   OMP_NUM_THREADS      : Set to max number of OpenMP threads.
-#   DO_PARALLEL          : Set to the MPI run command (e.g. 'mpirun -n 11')
+#   N_THREADS            : Number of MPI threads if parallel.
+#   OMP_NUM_THREADS      : Max number of OpenMP threads.
+#   DO_PARALLEL          : MPI run command (e.g. 'mpirun -n 11')
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
+#   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
 # Cpptraj binary characteristics 
 #   CPPTRAJ_DEFINES      : Set to the output of 'CPPTRAJ --defines'
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
@@ -726,6 +727,9 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
     # If CPPTRAJ_TEST_OS is not set, assume linux. FIXME needed?
     if [ -z "$CPPTRAJ_TEST_OS" ] ; then
       export CPPTRAJ_TEST_OS='linux'
+    fi
+    if [ ! -z "$DIFFOPTS" ] ; then
+      echo "Warning: DIFFOPTS is set to '$DIFFOPTS'"
     fi
   fi # END if not cleaning
   # Export test output and error file names
