@@ -7,10 +7,7 @@ CleanFiles atommap.in initial.mol2 atommap.dat reordered.pdb reordered.mol2 \
            fit.mol2 rmsd.dat map.chm_to_amb.dat mapped.pdb.? rmsout.dat \
            map.byres.chm_to_amb.dat
 
-MaxThreads 3 "Atom map tests"
-if [ $? -ne 0 ] ; then
-  SkipTest "Atom map tests"
-fi
+RequiresMaxThreads 3 "Atom map tests"
 
 INPUT="-i atommap.in"
 MaxThreads 1 "AtomMap Test"
