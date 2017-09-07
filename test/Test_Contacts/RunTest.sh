@@ -3,11 +3,11 @@
 . ../MasterTest.sh
 
 CleanFiles ptraj.in contacts.dat byres.dat byres.dat.native
-CheckNetcdf
-NotParallel "Contacts test."
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
+TESTNAME='Contacts test'
+CheckNetcdf "$TESTNAME"
+NotParallel "$TESTNAME"
+if [ $CHECKERR -ne 0 ] ; then
+  SkipTest "$TESTNAME"
 fi
 TOP="../tz2.truncoct.parm7"
 INPUT="ptraj.in"
@@ -23,7 +23,6 @@ RunCpptraj "Contacts test."
 DoTest contacts.dat.save contacts.dat
 DoTest byres.dat.save byres.dat
 DoTest byres.dat.native.save byres.dat.native
-CheckTest
 EndTest
 
 exit 0

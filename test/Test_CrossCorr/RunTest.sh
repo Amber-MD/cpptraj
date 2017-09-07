@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles cc.in cc.gnu dist.agr
-CheckNetcdf
+RequiresNetcdf "CrossCorr test"
 INPUT="-i cc.in"
 cat > cc.in <<EOF
 parm ../tz2.parm7

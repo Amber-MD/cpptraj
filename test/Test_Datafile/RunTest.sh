@@ -5,20 +5,24 @@
 # Clean
 CleanFiles prec.in prec.dat a1.dat a1.agr xprec.dat
 
-CheckNetcdf
 TOP="../tz2.truncoct.parm7"
+INPUT="prec.in"
 
 # Test 1
-cat > prec.in <<EOF
+TESTNAME='Data file output precision test'
+CheckNetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipCheck "$TESTNAME"
+else
+  cat > prec.in <<EOF
 noprogress
 trajin ../tz2.truncoct.nc
 rms R0 first :2-11 out prec.dat
 precision prec.dat * 8 3
 EOF
-INPUT="prec.in"
-RunCpptraj "Data file output precision test."
-DoTest prec.dat.save prec.dat
-CheckTest
+  RunCpptraj "$TESTNAME"
+  DoTest prec.dat.save prec.dat
+fi
 
 # ReadData test
 cat > prec.in <<EOF
