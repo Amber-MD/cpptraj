@@ -764,8 +764,8 @@ CheckPnetcdf() {
 # ==============================================================================
 # M A I N
 # ==============================================================================
-
 #echo "DEBUG: Begin MasterTest.sh. $*"
+echo "DEBUG: CPPTRAJ_TEST_MODE: $CPPTRAJ_TEST_MODE"
 if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   echo "DEBUG: Initial test setup."
   # MasterTest.sh has not been called yet; set up test environment.
@@ -839,7 +839,25 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
 fi # END initial setup
 
 # Determine mode of execution: individual test or multiple tests.
-if [ -f 'RunTest.sh' ] ; then
+if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
+  # Executed from CpptrajTest.sh. Assume we are executing multiple
+  # tests. Need a Makefile.
+  if [ ! -f 'Makefile' ] ; then
+    echo "Error: test Makefile not found." > /dev/stderr
+    exit 1
+  fi
+  #echo "DEBUG: Executing multiple tests."
+  # Running multiple tests, execute now.
+  Required "make"
+  if [ -z "$TARGET" ] ; then
+    echo "Error: '--target' not specified." > /dev/stderr
+    exit 1
+  fi
+  make $TARGET # FIXME should be test.all or something
+  if [ $? -ne 0 ] ; then
+    exit 1
+  fi
+else
   # Assume we are only executing a single test.
   #echo "DEBUG: Executing single test."
   # Single test.
@@ -865,23 +883,6 @@ if [ -f 'RunTest.sh' ] ; then
     if [ -z "$CPPTRAJ_DACDIF" ] ; then
       TestHeader "$CPPTRAJ_TEST_RESULTS"
     fi
-  fi
-else
-  # Assume we are executing multiple tests. Need a Makefile.
-  if [ ! -f 'Makefile' ] ; then
-    echo "Error: test Makefile not found." > /dev/stderr
-    exit 1
-  fi
-  #echo "DEBUG: Executing multiple tests."
-  # Running multiple tests, execute now.
-  Required "make"
-  if [ -z "$TARGET" ] ; then
-    echo "Error: '--target' not specified." > /dev/stderr
-    exit 1
-  fi
-  make $TARGET # FIXME should be test.all or something
-  if [ $? -ne 0 ] ; then
-    exit 1
   fi
 fi
 
