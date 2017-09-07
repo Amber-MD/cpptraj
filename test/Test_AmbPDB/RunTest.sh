@@ -14,7 +14,7 @@ if [ ! -f "$AMBPDB" ] ; then
 else
   echo ""
   echo "  AMBPDB: AmbPDB tests."
-  if [ -z "$DACDIF" ] ; then
+  if [ -z "$CPPTRAJ_DACDIF" ] ; then
     echo "  AMBPDB: AmbPDB tests." >> $CPPTRAJ_TEST_RESULTS
   fi
 

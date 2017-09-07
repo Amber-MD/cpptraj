@@ -304,6 +304,7 @@ Summary() {
     MODE='single'
   fi
   ERR_STATUS=0
+  PRINT_FOOTER=0
   if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
     GetResultsFiles $MODE $CPPTRAJ_TEST_RESULTS
     #echo "DEBUG: Getting results from $RESULTSFILES"
@@ -311,6 +312,7 @@ Summary() {
       if [ "$MODE" = 'multi' ] ; then
         cat $RESULTSFILES > $CPPTRAJ_TEST_RESULTS
       fi
+      PRINT_FOOTER=1
       echo "===================== TEST SUMMARY ======================"
       awk 'BEGIN{
         comparisons_ok = 0;   # Number of OK comparisons
@@ -348,8 +350,6 @@ Summary() {
         exit (comparisons_diff + program_err);
       }' $CPPTRAJ_TEST_RESULTS
       ERR_STATUS=$?
-    else
-      echo "No test results files ($CPPTRAJ_TEST_RESULTS) found."
     fi
   fi
   # Error summary
@@ -391,7 +391,9 @@ Summary() {
       }'
     fi
   fi
-  echo "========================================================="
+  if [ $PRINT_FOOTER -eq 1 ] ; then
+    echo "========================================================="
+  fi
   exit $ERR_STATUS
 }
 
