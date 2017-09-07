@@ -910,6 +910,13 @@ CheckSanderlib() {
   return 0
 }
 
+RequiresSanderlib() {
+  CheckSanderlib "$1"
+  if [ $? -ne 0 ] ; then
+    SkipTest "$DESCRIP"
+  fi
+}
+
 CheckPnetcdf() {
   if [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
     SetDescription "$1"

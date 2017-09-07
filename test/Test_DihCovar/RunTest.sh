@@ -9,7 +9,8 @@ TESTNAME='Dihedral Covariance Matrix Test'
 RequiresMathlib "$TESTNAME" 
 
 INPUT="-i matrix.in"
-if [[ -z $DO_PARALLEL ]] ; then
+if [ -z "$DO_PARALLEL" ] ; then
+  # Serial version. Can do everything in one run.
   cat > matrix.in <<EOF
 parm ../Test_Matrix/1rrb_vac.prmtop
 trajin ../Test_Matrix/1rrb_vac.mdcrd
@@ -25,6 +26,7 @@ projection evecs DIHMODES out dih.project.dat beg 1 end 4 dihedrals BB[*]
 EOF
   RunCpptraj "Dihedral Covariance Matrix Test"
 else
+  # Parallel version. Need two runs.
   cat > matrix.in <<EOF
 parm ../Test_Matrix/1rrb_vac.prmtop
 trajin ../Test_Matrix/1rrb_vac.mdcrd
@@ -36,7 +38,7 @@ diagmatrix DIH vecs 4 out modes.dihcovar.dat name DIHMODES
 run
 EOF
   RunCpptraj "Dihedral Covariance Matrix Test (parallel, create matrix)"
-cat > matrix.in <<EOF
+  cat > matrix.in <<EOF
 parm ../Test_Matrix/1rrb_vac.prmtop
 trajin ../Test_Matrix/1rrb_vac.mdcrd
 readdata dihedrals.dat name BB 

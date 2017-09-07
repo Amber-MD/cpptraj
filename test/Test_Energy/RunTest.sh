@@ -6,7 +6,7 @@ CleanFiles ene.in ene.agr
 
 INPUT="-i ene.in"
 
-CheckNetcdf
+RequiresNetcdf "Simple Energy test"
 
 cat > ene.in <<EOF
 parm ../DPDP.parm7

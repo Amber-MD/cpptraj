@@ -4,11 +4,8 @@
 
 CleanFiles ene.in Esander.dat force.nc Edpdp.dat CpptrajEsander.parm7 NoWat.dat
 
-CheckSanderlib "SANDER energy tests"
-if [[ $? -ne 0 ]] ; then
-  EndTest
-  exit 0
-fi
+RequiresSanderlib "SANDER energy tests"
+RequiresNetcdf "SANDER energy tests"
 
 INPUT="-i ene.in"
 
