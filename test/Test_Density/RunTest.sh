@@ -38,7 +38,11 @@ EOF
 fi
 
 # Total system density test
-if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
+TESTNAME="Total system density test"
+CheckNetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipCheck "$TESTNAME"
+else
   cat > $in <<EOF
 parm ../tz2.truncoct.parm7 [OCT]
 trajin ../tz2.truncoct.nc parm [OCT]
@@ -55,8 +59,6 @@ writedata total.dat D1 D2
 EOF
   RunCpptraj "Total system density test"
   DoTest total.dat.save total.dat
-else
-  echo "Warning: Total system density test requires NetCDF, skipping."
 fi
 
 EndTest

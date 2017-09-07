@@ -4,24 +4,26 @@
 
 CleanFiles ptraj.in cpptraj.nc mop.xtc temp.crd total?.out
 
-if [ ! -z "$CPPTRAJ_NO_XDRFILE" ] ; then
-  echo ""
-  echo "Cpptraj was compiled without XDR file support. Skipping XTC tests."
-  echo ""
-  EndTest
-  exit 0
+TESTNAME='XTC tests'
+CheckXdr "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipTest "$TESTNAME"
 fi
 
 INPUT="-i ptraj.in"
 
 GmxXtcRead() {
-  MaxThreads 2 "XTC read/write"
-  if [ $? -eq 0 ] ; then
-    if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
-      echo "XTC read/write test requires NetCDF, skipping."
-    elif [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
-      echo "XTC read/write test requires parallel NetCDF, skipping."
-    else
+  TESTNAME='XTC read/write test'
+  ERR=0
+  MaxThreads 2 "$TESTNAME"
+  ((ERR = ERR + $?))
+  CheckNetcdf "$TESTNAME"
+  ((ERR = ERR + $?))
+  CheckPnetcdf "$TESTNAME"
+  ((ERR = ERR + $?))
+  if [ $ERR -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
       cat > ptraj.in <<EOF
 parm ../Test_GromacsTrr/nvt.protein.mol2
 trajin nvt.2frame.xtc
@@ -29,7 +31,6 @@ trajout cpptraj.nc
 EOF
       RunCpptraj "XTC read test"
       NcTest cpptraj.nc.save cpptraj.nc
-    fi
   fi
 }
 

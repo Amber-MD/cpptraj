@@ -6,11 +6,7 @@ CleanFiles out.pdb out1.pdb out.mol2 fabi.pdb
 
 if [ ! -f "$AMBPDB" ] ; then
   echo "Warning: AMBPDB is not correctly set. Skipping."
-  if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
-    echo "Warning: AMBPDB is not correctly set. Skipping." >> $CPPTRAJ_TEST_RESULTS
-  fi
-  EndTest
-  exit 0
+  SkipTest "AMBPDB tests"
 else
   echo ""
   echo "  AMBPDB: AmbPDB tests."
@@ -24,7 +20,11 @@ else
   $VALGRIND $AMBPDB -p ../tz2.parm7 < ../tz2.rst7 > out1.pdb 2>> $CPPTRAJ_ERROR
   DoTest out.pdb.save out1.pdb
 
-  if [ ! -z "$CPPTRAJ_NETCDFLIB" ] ; then
+  TESTNAME='Convert NetCDF to PDB with ambpdb'
+  CheckNetcdf "$TESTNAME"
+  if [ $? -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
     $VALGRIND $AMBPDB -p ../FtuFabI.NAD.TCL.parm7 -c ../FtuFabI.NAD.TCL.nc -bres > fabi.pdb 2>> $CPPTRAJ_ERROR
     DoTest fabi.pdb.save fabi.pdb
   fi
