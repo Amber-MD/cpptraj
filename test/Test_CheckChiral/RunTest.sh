@@ -3,7 +3,7 @@
 . ../MasterTest.sh
 
 CleanFiles ci.in chiral.dat
-CheckNetcdf
+RequiresNetcdf "Check chirality test"
 INPUT="-i ci.in"
 cat > ci.in <<EOF
 parm ../DPDP.parm7

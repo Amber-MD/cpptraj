@@ -6,8 +6,12 @@ CleanFiles check.in report.dat nprob.dat tz2.dat skip.dat around.dat
 
 INPUT="-i check.in"
 
+RequiresMaxThreads 10 "Structure check tests"
+
 MaxThreads 1 "Structure Check"
-if [ $? -eq 0 ] ; then
+if [ $? -ne 0 ] ; then
+  SkipCheck "Structure Check"
+else
   # Test 1
   cat > check.in <<EOF
 parm ../tz2.parm7
@@ -18,20 +22,29 @@ EOF
   DoTest report.dat.save report.dat
   DoTest nprob.dat.save nprob.dat
   # Around test with skip
-  cat > check.in <<EOF
+  TESTNAME='Structure Check with Around and Skip'
+  CheckNetcdf "$TESTNAME"
+  if [ $? -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
+    cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
 scale :1 x 2.0 y 1.2 z 1.2
 check nobondcheck :WAT around :1 out skip.dat skipbadframes silent
 distance d1 out d1.dat :1 :12
 EOF
-  RunCpptraj "Structure Check with Around and Skip"
-  DoTest skip.dat.save skip.dat
-  DoTest d1.dat.save d1.dat
+    RunCpptraj "Structure Check with Around and Skip"
+    DoTest skip.dat.save skip.dat
+    DoTest d1.dat.save d1.dat
+  fi
 fi
 
-MaxThreads 10 "Structure Check with PBC"
-if [ $? -eq 0 ] ; then
+TESTNAME='Structure check with PBC/around tests'
+CheckNetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipCheck "$TESTNAME"
+else
   cat > check.in <<EOF
 parm ../tz2.truncoct.parm7
 trajin ../tz2.truncoct.nc
@@ -53,7 +66,6 @@ EOF
   RunCpptraj "Structure Check with Around"
   DoTest around.dat.save around.dat
 fi
-
 EndTest
 
 exit 0
