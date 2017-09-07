@@ -292,8 +292,8 @@ ParseValgrindOut() {
 
 # ------------------------------------------------------------------------------
 # Summary()
-#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files. Optionally
-#  print an error summary and/or valgrind summary.
+#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files and exit.
+#  Optionally print an error summary and/or valgrind summary.
 Summary() {
   MODE=''
   if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
@@ -301,6 +301,7 @@ Summary() {
   else
     MODE='single'
   fi
+  ERR_STATUS=0
   if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
     GetResultsFiles $MODE $CPPTRAJ_TEST_RESULTS
     #echo "DEBUG: Getting results from $RESULTSFILES"
@@ -342,7 +343,9 @@ Summary() {
                program_exe - program_err, program_exe);
         printf("  %i out of %i tests completed with no issues.\n",
                ok_tests, ntests);
-      }' $CPPTRAJ_TEST_RESULTS 
+        exit (comparisons_diff + program_err);
+      }' $CPPTRAJ_TEST_RESULTS
+      ERR_STATUS=$?
     else
       echo "No test results files ($CPPTRAJ_TEST_RESULTS) found."
     fi
@@ -364,6 +367,30 @@ Summary() {
       fi
     fi
   fi
+  # Valgrind summary
+  if [ ! -z "$VALGRIND" ] ; then
+    GetResultsFiles $MODE $CPPTRAJ_ERROR
+    if [ ! -z "$RESULTSFILES" ] ; then
+      echo "---------------------------------------------------------"
+      echo "Valgrind summary:"
+      cat $RESULTSFILES | awk 'BEGIN{
+        n_vg_err = 0;
+        n_vg_leaks = 0;
+      }{
+        if ($2 == "ERROR" && $3 == "SUMMARY:") {
+          gsub(/,/,"");
+          n_vg_err += $4;
+        } else if ($2 == "LEAK" && $3 == "SUMMARY:") {
+          n_vg_leaks++;
+        }
+      }END{
+        printf("    %i errors,", n_vg_err);
+        printf(" %i memory leak reports.\n", n_vg_leaks);
+      }'
+    fi
+  fi
+  echo "========================================================="
+  exit $ERR_STATUS
 }
 
 # ------------------------------------------------------------------------------
@@ -946,7 +973,6 @@ if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     # If summary requested just do that and exit.
      if [ $SUMMARY -ne 0 ] ; then
       Summary
-      exit 0
     fi
     # Need a Makefile.
     if [ ! -f 'Makefile' ] ; then
