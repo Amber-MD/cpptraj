@@ -242,7 +242,7 @@ GetResultsFiles() {
 
 # ------------------------------------------------------------------------------
 ParseValgrindOut() {
-  awk 'BEGIN{
+  awk -v resultsfile="$CPPTRAJ_TEST_RESULTS" 'BEGIN{
     ntests = 0;
     #n_vg_err = 0;
     #n_vg_allocs = 0;
@@ -251,7 +251,22 @@ ParseValgrindOut() {
     #n_vg_leaks = 0;
     currentTest = "";
     byte_to_mb = 1.0 / (1024.0 * 1024.0);
-  }{
+  }
+  function WriteOut(outfile)
+  {
+    printf("Valgrind summary for %i program executions:\n", ntests) >> outfile;
+    for (i = 1; i <= ntests; i++) {
+      printf("  %s %i errors,", vg_id[i], n_vg_err[i]) >> outfile;
+      printf(" %i allocs, %i frees,",  n_vg_allocs[i], n_vg_frees[i]) >> outfile;
+      if (n_vg_allocated[i] > 1000) {
+        size_in_mb = n_vg_allocated[i] * byte_to_mb;
+        printf(" %.3f MB allocated,", size_in_mb) >> outfile;
+      } else
+        printf(" %i bytes allocated,", n_vg_allocated[i]) >> outfile;
+      printf(" %i memory leaks.\n", n_vg_leaks[i]) >> outfile;
+    }
+  }
+  {
     if ($1 != currentTest) {
       ntests++;
       currentTest = $1;
@@ -270,17 +285,8 @@ ParseValgrindOut() {
       n_vg_leaks[ntests]++;
     }
   }END{
-    printf("Valgrind summary for %i program executions:\n", ntests);
-    for (i = 1; i <= ntests; i++) {
-      printf("%s %i errors,", vg_id[i], n_vg_err[i]);
-      printf(" %i allocs, %i frees,",  n_vg_allocs[i], n_vg_frees[i]);
-      if (n_vg_allocated[i] > 1000) {
-        size_in_mb = n_vg_allocated[i] * byte_to_mb;
-        printf(" %.3f MB allocated,", size_in_mb);
-      } else
-        printf(" %i bytes allocated,", n_vg_allocated[i]);
-      printf(" %i memory leaks.\n", n_vg_leaks[i]);
-    }
+    WriteOut("/dev/stdout");
+    WriteOut(resultsfile);
   }' $1
 }
 
@@ -416,16 +422,8 @@ EndTest() {
     fi
     echo ""
     if [ ! -z "$VALGRIND" ] ; then
-      echo "Valgrind summary:"
-      grep ERROR $CPPTRAJ_ERROR
-      grep heap $CPPTRAJ_ERROR
-      grep LEAK $CPPTRAJ_ERROR
-      echo ""
-      echo "Valgrind summary:" >> $CPPTRAJ_TEST_RESULTS
-      grep ERROR $CPPTRAJ_ERROR >> $CPPTRAJ_TEST_RESULTS
-      grep heap $CPPTRAJ_ERROR >> $CPPTRAJ_TEST_RESULTS
-      grep LEAK $CPPTRAJ_ERROR >> $CPPTRAJ_TEST_RESULTS
       ParseValgrindOut $CPPTRAJ_ERROR
+      echo ""
     fi
     if [ $CPPTRAJ_PROFILE -eq 1 ] ; then
       if [ -e 'gmon.out' ] ; then
