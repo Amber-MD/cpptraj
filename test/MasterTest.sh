@@ -24,8 +24,6 @@
 # Other variables
 #   CPPTRAJ_TEST_ROOT    : Test root directory.
 #   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
-# FIXME CPPTRAJ_STANDALONE could just be script var
-#   CPPTRAJ_STANDALONE   : If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
 #   N_THREADS            : Number of MPI threads if parallel.
@@ -58,6 +56,7 @@ SUMMARY=0                # If 1 print summary of CPPTRAJ_TEST_RESULTS only
 SHOWERRORS=0             # If 1, print test errors to STDOUT after summary.
 SFX=""                   # CPPTRAJ binary suffix
 TARGET=""                # Make target if multiple tests being run
+STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
 # Variables local to single test.
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
@@ -582,7 +581,7 @@ CheckDefines() {
 #   Set paths for all binaries if not already set.
 SetBinaries() {
   # Guess where things might be depending on if we are in AT or not, etc.
-  if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+  if [ $STANDALONE -eq 0 ] ; then
     DIRPREFIX=$AMBERHOME
   elif [ -z "$CPPTRAJHOME" ] ; then
     DIRPREFIX=../../
@@ -640,7 +639,7 @@ SetBinaries() {
   fi
   # Determine location of ndiff.awk
   if [ -z "$CPPTRAJ_NDIFF" ] ; then
-    if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+    if [ $STANDALONE -eq 0 ] ; then
       CPPTRAJ_NDIFF=$DIRPREFIX/test/ndiff.awk
     else
       CPPTRAJ_NDIFF=$DIRPREFIX/util/ndiff/ndiff.awk
@@ -654,7 +653,7 @@ SetBinaries() {
   # Determine location of nproc/numprocs
   if [ -z "$CPPTRAJ_NPROC" ] ; then
     if [ ! -z "$DO_PARALLEL" ] ; then
-      if [ $CPPTRAJ_STANDALONE -eq 0 ] ; then
+      if [ $STANDALONE -eq 0 ] ; then
         CPPTRAJ_NPROC=$DIRPREFIX/AmberTools/test/numprocs
       else
         CPPTRAJ_NPROC=$DIRPREFIX/test/nproc
@@ -673,7 +672,7 @@ SetBinaries() {
     export CPPTRAJ_TIME=`which time`
   fi
   # Report binary details
-  if [ $CPPTRAJ_STANDALONE -eq 1 ] ; then
+  if [ $STANDALONE -eq 1 ] ; then
     ls -l $CPPTRAJ
     if [ ! -z "$AMBPDB" ] ; then
       ls -l $AMBPDB
@@ -681,7 +680,7 @@ SetBinaries() {
   fi
   # Print DEBUG info
   if [ ! -z "$CPPTRAJ_DEBUG" ] ; then
-    if [ $CPPTRAJ_STANDALONE -eq 1 ] ; then
+    if [ $STANDALONE -eq 1 ] ; then
       echo "DEBUG: Standalone mode."
     else
       echo "DEBUG: AmberTools mode."
@@ -794,20 +793,17 @@ if [ -z "$CPPTRAJ_TEST_SETUP" ] ; then
   # If not cleaning see what else needs to be set up. 
   if [ $CPPTRAJ_TEST_CLEAN -eq 0 ] ; then
     # Determine standalone or AmberTools
-    if [ -z "$CPPTRAJ_STANDALONE" ] ; then # FIXME check needed?
-      if [ ! -z "`echo "$CPPTRAJ_TEST_ROOT" | grep AmberTools`" ] ; then
-        # Assume AmberTools. Need AMBERHOME.
-        CPPTRAJ_STANDALONE=0
-        if [ -z "$AMBERHOME" ] ; then
-          echo "Error: In AmberTools and AMBERHOME is not set. Required for tests." > /dev/stderr
-          exit 1
-        fi
-      else
-        # Standalone. Never use dacdif.
-        CPPTRAJ_STANDALONE=1
-        USE_DACDIF=0
+    if [ ! -z "`echo "$CPPTRAJ_TEST_ROOT" | grep AmberTools`" ] ; then
+      # Assume AmberTools. Need AMBERHOME.
+      STANDALONE=0
+      if [ -z "$AMBERHOME" ] ; then
+        echo "Error: In AmberTools and AMBERHOME is not set. Required for tests." > /dev/stderr
+        exit 1
       fi
-      export CPPTRAJ_STANDALONE
+    else
+      # Standalone. Never use dacdif.
+      STANDALONE=1
+      USE_DACDIF=0
     fi
     # Determine if diff or dacdif will be used.
     CPPTRAJ_DIFF=''
