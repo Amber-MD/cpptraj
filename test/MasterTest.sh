@@ -320,9 +320,11 @@ Summary() {
         comparisons_ok = 0;   # Number of OK comparisons
         comparisons_warn = 0; # Number of comparisons with a warning
         comparisons_diff = 0; # Number of comparisons with diff/error
+        comparisons_skip = 0; # Number of comparisons skipped.
         program_err = 0;      # Number of program errors.
         program_exe = 0;      # Number of program executions.
         ntests = 0;           # Number of tests.
+        skip_tests = 0;       # Number of tests completely skipped.
         ok_tests = 0;         # Number of completely OK tests.
       }{
         if ( $1 == "TEST:" )
@@ -331,6 +333,8 @@ Summary() {
           comparisons_warn++;
         else if ($1 == "CPPTRAJ:")
           program_exe++;
+        else if ($1 == "SKIP:")
+          skip_tests++;
         else if ($1 == "Error:")
           program_err++;
         else if ($NF == "OK.")
@@ -339,16 +343,26 @@ Summary() {
           comparisons_diff++;
         else if ($(NF-1) == "not" && $NF == "found.")
           comparisons_diff++;
-        else if ($(NF-1) == "comparisons" && $NF == "passed.")
-          ok_tests++;
+        else if ($(NF-1) == "comparisons") {
+          if ($NF == "passed.")
+            ok_tests++;
+          else if ($NF == "skipped.")
+            comparisons_skip += $1;
+        }
       }END{
         n_comps = comparisons_ok + comparisons_warn + comparisons_diff;
-        printf("  %i out of %i comparisons OK (%i failed, %i warnings).\n",
-               comparisons_ok, n_comps, comparisons_diff, comparisons_warn);
-        printf("  %i out of %i program executions completed.\n",
-               program_exe - program_err, program_exe);
+        if (n_comps > 0)
+          printf("  %i out of %i comparisons OK (%i failed, %i warnings).\n",
+                 comparisons_ok, n_comps, comparisons_diff, comparisons_warn);
+        if (comparisons_skip > 0)
+          printf("  %i comparisons skipped.\n", comparisons_skip);
+        if (program_exe > 0)
+          printf("  %i out of %i program executions completed.\n",
+                 program_exe - program_err, program_exe);
         printf("  %i out of %i tests completed with no issues.\n",
                ok_tests, ntests);
+        if (skip_tests > 0)
+          printf("  %i tests skipped.\n", skip_tests);
         exit (comparisons_diff + program_err);
       }' $CPPTRAJ_TEST_RESULTS
       ERR_STATUS=$?
