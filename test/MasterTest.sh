@@ -785,6 +785,8 @@ SetBinaries() {
 # require having the environment set up a certain way (e.g. having a certain
 # number of MPI threads). Each time a required condition is not met, CHECKERR
 # will be incremented.
+# The RequiresX versions of the Routines will skip the entire test if the
+# check does not pass.
 
 SetDescription() {
   if [ ! -z "$1" ] ; then
@@ -929,6 +931,13 @@ NotParallel() {
     return 1
  fi
  return 0
+}
+
+RequiresNotParallel() {
+  NotParallel "$1"
+  if [ $? -ne 0 ] ; then
+    SkipTest "$DESCRIP"
+  fi
 }
 
 # CheckNthreads() <# threads> <Test title>

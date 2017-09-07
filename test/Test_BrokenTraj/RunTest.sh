@@ -4,11 +4,8 @@
 
 # Clean
 CleanFiles goodrmsd.dat badrmsd.dat goodtraj.in brokentraj.in zip.gz zip.in ziprmsd.dat
-NotParallel "Broken Traj"
-if [[ $? -eq 1 ]] ; then
-  EndTest
-  exit 0
-fi
+RequiresNotParallel "Broken Traj"
+
 # Test 1
 cat > goodtraj.in <<EOF
 noprogress

@@ -5,7 +5,7 @@
 # Clean
 CleanFiles rmsavg.in rmsavg.dat tz2.ncrst
 
-CheckNetcdf
+RequiresNetcdf "Averaged reference coordinates tests"
 TOP="../tz2.parm7"
 
 INPUT="rmsavg.in"
