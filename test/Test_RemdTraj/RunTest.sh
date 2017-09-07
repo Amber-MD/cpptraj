@@ -32,15 +32,20 @@ RunCpptraj "CRD Replica Trajectory Run"
 DoTest d1.crd.dat.save d1.crd.dat
 
 # Test 2
-CheckNetcdf
-cat > remd.in <<EOF
+TESTNAME='NETCDF Replica Trajectory Run test'
+CheckNetcdf "$TESTNAME"
+if [ $? -ne 0 ] ; then
+  SkipCheck "$TESTNAME"
+else
+  cat > remd.in <<EOF
 noprogress
 parm ala2.99sb.mbondi2.parm7 
 trajin rem.nc.000 remdtraj remdtrajtemp 492.2
 distance d1 out d1.nc.dat @1 @21
 EOF
-RunCpptraj "NETCDF Replica Trajectory Run"
-DoTest d1.nc.dat.save d1.nc.dat
+  RunCpptraj "$TESTNAME"
+  DoTest d1.nc.dat.save d1.nc.dat
+fi
 
 # Remdout test
 CheckNthreads 4 "CRD Replica Trajectory Run with remdout"
