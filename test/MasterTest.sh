@@ -31,6 +31,7 @@
 #   DO_PARALLEL          : MPI run command (e.g. 'mpirun -n 11')
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
+#   CPPTRAJ_PROFILE      : If 1, end of test profiling with gprof performed.
 # Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
 #   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
@@ -48,7 +49,6 @@
 #   CPPTRAJ_TEST_MODE    : Set to 'master' if executed from CpptrajTest.sh.
 # ----- Local setup variables ------------------------------
 VGMODE=0                 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
-CPPTRAJ_PROFILE=0        # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1             # If 0 do not use dacdif even if in AmberTools
 GET_TIMING=0             # If 1 time cpptraj with the CPPTRAJ_TIME binary
 SUMMARY=0                # If 1 print summary of CPPTRAJ_TEST_RESULTS only
@@ -507,6 +507,7 @@ Help() {
 #   CPPTRAJ_TEST_SETUP is not already set.
 CmdLineOpts() {
   CPPTRAJ_TEST_CLEAN=0 # Will be exported
+  CPPTRAJ_PROFILE=0    # Will be exported
   SFX_OMP=0
   SFX_CUDA=0
   SFX_MPI=0
@@ -529,14 +530,14 @@ CmdLineOpts() {
       "-cpptraj"  ) shift ; export CPPTRAJ=$1 ; echo "Using cpptraj: $CPPTRAJ" ;;
       "-ambpdb"   ) shift ; export AMBPDB=$1  ; echo "Using ambpdb: $AMBPDB" ;;
       "--target"  ) shift ; TARGET=$1 ;;
-#     "-profile"  ) PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
+     "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
       *           )
         if [ -d "$1" -a -f "$1/RunTest.sh" ] ; then
           # Assume this is a test we want to run.
           TEST_DIRS="$TEST_DIRS $1"
         else
-          echo "Error: Unknown opt: $1" > /dev/stderr
+          echo "Error: Unknown option: $1" > /dev/stderr
           exit 1
         fi
         ;;
@@ -548,8 +549,12 @@ CmdLineOpts() {
     Summary
     exit 0
   fi
+  if [ $CPPTRAJ_PROFILE -eq 1 ] ; then
+    Required "gprof"
+  fi
   export CPPTRAJ_TEST_CLEAN
   export CPPTRAJ_DEBUG
+  export CPPTRAJ_PROFILE
   # If DO_PARALLEL has been set force MPI
   if [ ! -z "$DO_PARALLEL" ] ; then
     SFX_MPI=1
