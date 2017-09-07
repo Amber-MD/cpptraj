@@ -7,13 +7,13 @@ CleanFiles ptraj.in cpptraj.nc mop.trr temp.crd total?.out
 INPUT="-i ptraj.in"
 
 GmxTrrRead() {
-  MaxThreads 2 "TRR force/velocity read/write"
-  if [ "$?" -eq 0 ] ; then
-    if [ -z "$CPPTRAJ_NETCDFLIB" ] ; then
-      echo "TRR force/velocity read/write test requires NetCDF, skipping."
-    elif [ ! -z "$DO_PARALLEL" -a -z "$CPPTRAJ_PNETCDFLIB" ] ; then
-      echo "TRR force/velocity read/write test requires parallel NetCDF, skipping."
-    else
+  TESTNAME='TRR force/velocity read/write'
+  MaxThreads 2 "$TESTNAME"
+  CheckNetcdf "$TESTNAME"
+  CheckPnetcdf "$TESTNAME"
+  if [ $CHECKERR -ne 0 ] ; then
+    SkipCheck "$TESTNAME"
+  else
       cat > ptraj.in <<EOF
 parm nvt.protein.mol2
 trajin nvt.2frame.trr
@@ -21,7 +21,6 @@ trajout cpptraj.nc
 EOF
       RunCpptraj "TRR coords/force/velocity read test"
       NcTest cpptraj.nc.save cpptraj.nc
-    fi
   fi
 }
 

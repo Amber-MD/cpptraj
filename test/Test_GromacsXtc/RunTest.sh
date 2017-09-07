@@ -14,14 +14,10 @@ INPUT="-i ptraj.in"
 
 GmxXtcRead() {
   TESTNAME='XTC read/write test'
-  ERR=0
   MaxThreads 2 "$TESTNAME"
-  ((ERR = ERR + $?))
   CheckNetcdf "$TESTNAME"
-  ((ERR = ERR + $?))
   CheckPnetcdf "$TESTNAME"
-  ((ERR = ERR + $?))
-  if [ $ERR -ne 0 ] ; then
+  if [ $CHECKERR -ne 0 ] ; then
     SkipCheck "$TESTNAME"
   else
       cat > ptraj.in <<EOF

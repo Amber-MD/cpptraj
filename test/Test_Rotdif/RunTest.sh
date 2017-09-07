@@ -4,12 +4,9 @@
 
 CleanFiles rotdif.in rvecs.dat matrices.dat deffs.dat rotdif.out
 TESTNAME='Rotational diffusion calculation test'
-ERR=0
 CheckNetcdf "$TESTNAME"
-((ERR = ERR + $?))
-CheckMathlib
-((ERR = ERR + $?))
-if [ $ERR -ne 0 ] ; then
+CheckMathlib "$TESTNAME"
+if [ $CHECKERR -ne 0 ] ; then
   SkipTest "$TESTNAME"
 fi
 
