@@ -4,7 +4,7 @@
 # by all tests, including environment setup and collecting test results.
 # Requires awk, grep, sed, diff (if not AmberTools), rm, make (multiple tests)
 #
-# -----===== Environment variables =====-----
+# ----- Environment variables ------------------------------
 # Binary locations
 #   CPPTRAJ              : Set to cpptraj binary being tested.
 #   AMBPDB               : Set to ambpdb binary being tested.
@@ -22,7 +22,7 @@
 #   CPPTRAJ_OUTPUT       : File to direct cpptraj STDOUT to.
 #   CPPTRAJ_ERROR        : File to direct cpptraj STDERR to.
 # Other variables
-#   CPPTRAJ_TEST_ROOT    : Test root directory.
+#   CPPTRAJ_TEST_ROOT    : Test root directory. FIXME make local?
 #   CPPTRAJ_TEST_SETUP   : 'yes' if setup is complete.
 #   CPPTRAJ_TEST_CLEAN   : If 1, only cleaning tests; do not run them.
 #   CPPTRAJ_TEST_OS      : Operating system on which tests are being run. If blank assume linux.
@@ -31,23 +31,22 @@
 #   DO_PARALLEL          : MPI run command (e.g. 'mpirun -n 11')
 #   CPPTRAJ_DEBUG        : Can be set to pass global debug flag to cpptraj.
 #   DIFFOPTS             : Additional options to pass to CPPTRAJ_DIFF
-# Cpptraj binary characteristics 
-#   CPPTRAJ_DEFINES      : Set to the output of 'CPPTRAJ --defines'
+# Cpptraj binary characteristics
 #   CPPTRAJ_ZLIB         : If set CPPTRAJ has zlib support.
-#   CPPTRAJ_BZLIB
-#   CPPTRAJ_NETCDFLIB
-#   CPPTRAJ_MPILIB
-#   CPPTRAJ_NOMATHLIB
-#   CPPTRAJ_OPENMP
-#   CPPTRAJ_PNETCDFLIB
-#   CPPTRAJ_SANDERLIB
-#   CPPTRAJ_CUDA
-#   CPPTRAJ_NO_XDRFILE
-# Variables that can be set by individual tests
+#   CPPTRAJ_BZLIB        : If set CPPTRAJ has bzip support.
+#   CPPTRAJ_NETCDFLIB    : If set CPPTRAJ has NetCDF support.
+#   CPPTRAJ_MPILIB       : If set CPPTRAJ has MPI support.
+#   CPPTRAJ_NOMATHLIB    : If set CPPTRAJ was compiled without math libraries.
+#   CPPTRAJ_OPENMP       : If set CPPTRAJ has OpenMP support.
+#   CPPTRAJ_PNETCDFLIB   : If set CPPTRAJ has parallel NetCDF support.
+#   CPPTRAJ_SANDERLIB    : If set CPPTRAJ was compiled with the sander API from AT.
+#   CPPTRAJ_CUDA         : If set CPPTRAJ has CUDA support.
+#   CPPTRAJ_NO_XDRFILE   : If set CPPTRAJ was compiled without XDR file support.
+# ----- Variables that can be set by individual scripts ----
 #   TOP                  : Topology file for cpptraj
 #   INPUT                : Input file for cpptraj
-
-# Local setup variables
+#   CPPTRAJ_TEST_MODE    : Set to 'master' if executed from CpptrajTest.sh.
+# ----- Local setup variables ------------------------------
 VGMODE=0                 # Valgrind mode: 0 none, 1 memcheck, 2 helgrind
 CPPTRAJ_PROFILE=0        # If 1, end of test profiling with gprof performed #FIXME
 USE_DACDIF=1             # If 0 do not use dacdif even if in AmberTools
@@ -57,7 +56,7 @@ SHOWERRORS=0             # If 1, print test errors to STDOUT after summary.
 SFX=""                   # CPPTRAJ binary suffix
 TARGET=""                # Make target if multiple tests being run
 STANDALONE=1             # If 0, part of AmberTools. If 1, stand-alone (e.g. from GitHub).
-# Variables local to single test.
+# ----- Variables local to single test ---------------------
 TEST_WORKDIR=''          # Test working directory
 NUMCOMPARISONS=0         # Total number of times DoTest has been called this test.
 ERRCOUNT=0               # Total number of errors detected by DoTest this test.
@@ -228,10 +227,10 @@ GetResultsFiles() {
 #  Print a summary of results in all CPPTRAJ_TEST_RESULTS files.
 Summary() {
   MODE=''
-  if [ -f 'RunTest.sh' ] ; then
-    MODE='single'
-  else
+  if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
     MODE='multi'
+  else
+    MODE='single'
   fi
   if [ ! -z "$CPPTRAJ_TEST_RESULTS" ] ; then
     GetResultsFiles $MODE $CPPTRAJ_TEST_RESULTS
