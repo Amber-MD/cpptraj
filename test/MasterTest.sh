@@ -66,15 +66,20 @@ PROGERROR=0              # Total number of program errors this test
 
 # ==============================================================================
 # TestHeader() <outfile>
+#   Write test header (working directory) to specified file.
 TestHeader() {
   echo "**************************************************************" > $1
   echo "TEST: $TEST_WORKDIR" >> $1
 }
 
+# OUT() <message>
+#   Write message to CPPTRAJ_TEST_RESULTS
 OUT() {
   echo "$1" >> $CPPTRAJ_TEST_RESULTS
 }
 
+# ERR() <message>
+#   Write message to CPPTRAJ_TEST_ERROR. Write header if this is the first error.
 ERR() {
   if [ $ERRCOUNT -eq 0 -a -z "$CPPTRAJ_DACDIF" ] ; then
     TestHeader "$CPPTRAJ_TEST_ERROR"
@@ -82,7 +87,8 @@ ERR() {
   echo "$1" >> $CPPTRAJ_TEST_ERROR
 }
 
-#   Send <Message> to CPPTRAJ_TEST_RESULTS and CPPTRAJ_TEST_ERROR
+# OutBoth() <message>
+#   Send <message> to CPPTRAJ_TEST_RESULTS and CPPTRAJ_TEST_ERROR
 OutBoth() {
   OUT "$1"
   ERR "$1"
@@ -103,8 +109,7 @@ CheckTest() {
 DoTest() {
   #echo "DEBUG: DoTest $1 $2"
   if [ ! -z "$CPPTRAJ_DACDIF" ] ; then
-    # AmberTools - use dacdif. Use any '-r <X>' or '-a <X>' args found.
-    # Ignore the rest.
+    # Use dacdif. Use any '-r <X>' or '-a <X>' args found. Ignore the rest.
     DIFFARGS="$1 $2"
     shift # Save file
     shift # Test file
@@ -118,7 +123,7 @@ DoTest() {
     done
     $CPPTRAJ_DACDIF $DIFFARGS
   else
-    # Standalone - will use diff, or ndiff where '-r' or '-a' specified.
+    # Use diff, or ndiff where '-r' or '-a' specified.
     ((NUMCOMPARISONS++))
     DIFFARGS='--strip-trailing-cr'
     NDIFFARGS=""
@@ -213,7 +218,10 @@ NcTest() {
   fi
 }
 
+# ------------------------------------------------------------------------------
 # GetResultsFiles() <mode> <base>
+#   Consolidate files with name <base>. If <mode> is 'single' assume one file in
+#   the current directory, otherwise assume files are in subdirectories.
 GetResultsFiles() {
     if [ "$1" = 'single' ] ; then
       RESULTSFILES=`ls $2 2> /dev/null`
@@ -224,7 +232,8 @@ GetResultsFiles() {
 
 # ------------------------------------------------------------------------------
 # Summary()
-#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files.
+#  Print a summary of results in all CPPTRAJ_TEST_RESULTS files. Optionally
+#  print an error summary and/or valgrind summary.
 Summary() {
   MODE=''
   if [ "$CPPTRAJ_TEST_MODE" = 'master' ] ; then
@@ -295,7 +304,6 @@ Summary() {
       fi
     fi
   fi
-
 }
 
 # ------------------------------------------------------------------------------
@@ -331,7 +339,8 @@ RunCpptraj() {
 
 # ------------------------------------------------------------------------------
 # EndTest()
-#   Called at the end of every test script if no errors found.
+#   Print a summary of the current tests results. Should be called at the end of
+#   every test script.
 EndTest() {
   #echo "DEBUG: EndTest"
   # Report only when not using dacdif 
@@ -373,7 +382,8 @@ EndTest() {
 
 # ------------------------------------------------------------------------------
 # CleanFiles() <file1> ... <fileN>
-#   For every arg passed to the function, check for the file and remove it.
+#   For every arg passed to the function, check for the file or directory and
+#   remove it.
 CleanFiles() {
   while [ ! -z "$1" ] ; do
     if [ -d "$1" ] ; then
@@ -391,6 +401,7 @@ CleanFiles() {
 
 #-------------------------------------------------------------------------------
 # NotParallel() <Test title>
+#   Used to indicate a test should not be run in parallel.
 NotParallel() {
   if [ ! -z "$DO_PARALLEL" ] ; then
     echo ""
@@ -403,10 +414,11 @@ NotParallel() {
 
 #-------------------------------------------------------------------------------
 # SetNthreads()
-# Use CPPTRAJ_NPROC to set N_THREADS if not already set.
+#   Use CPPTRAJ_NPROC to set N_THREADS if not already set.
 SetNthreads() {
   if [ -z "$N_THREADS" ] ; then
     if [ ! -f "$CPPTRAJ_NPROC" ] ; then
+      export N_THREADS=1
       return 1
     fi
     export N_THREADS=`$DO_PARALLEL $CPPTRAJ_NPROC`
@@ -463,26 +475,28 @@ MaxThreads() {
 #-------------------------------------------------------------------------------
 # Help(): Print help
 Help() {
-  echo "Command line flags:"
-  echo "  summary    : Print summary of test results only."
-  echo "  showerrors : (summary only) Print all test errors to STDOUT after summary."
-  echo "  stdout     : Print CPPTRAJ test output to STDOUT."
-  echo "  mpi        : Use MPI version of CPPTRAJ (automatically triggered if DO_PARALLEL set)."
-  echo "  openmp     : Use OpenMP version of CPPTRAJ."
-  echo "  cuda       : Use CUDA version of CPPTRAJ."
-  echo "  vg         : Run test with valgrind memcheck."
-  echo "  vgh        : Run test with valgrind helgrind."
-  echo "  time       : Time the test."
-  echo "  clean      : Clean test output."
-  echo "  -nodacdif  : Do not use dacdif for test comparisons."
-  echo "  -d         : Run CPPTRAJ with global debug level 4."
-  echo "  -debug <#> : Run CPPTRAJ with global debug level #."
+  echo "Command line flags"
+  echo "  summary         : Print summary of test results only."
+  echo "  showerrors      : (summary only) Print all test errors to STDOUT after summary."
+  echo "  stdout          : Print CPPTRAJ test output to STDOUT."
+  echo "  mpi             : Use MPI version of CPPTRAJ (automatically used if DO_PARALLEL set)."
+  echo "  openmp          : Use OpenMP version of CPPTRAJ."
+  echo "  cuda            : Use CUDA version of CPPTRAJ."
+  echo "  vg              : Run test with 'valgrind' memcheck."
+  echo "  vgh             : Run test with 'valgrind' helgrind."
+  echo "  time            : Time the test with 'time'."
+  echo "  clean           : Clean test output."
+  echo "  -nodacdif       : Do not use dacdif for test comparisons (AmberTools only)."
+  echo "  -d              : Run CPPTRAJ with global debug level 4."
+  echo "  -debug <#>      : Run CPPTRAJ with global debug level #."
   echo "  -cpptraj <file> : Use CPPTRAJ binary <file>."
-  #echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
+  echo "  -ambpdb <file>  : Use AMBPDB binary <file>."
   echo "  -profile        : Profile results with 'gprof' (requires special compile)."
-  echo "Important environment variables:"
-  echo "  DO_PARALLEL: MPI run command."
-  echo "  N_THREADS  : Number of MPI threads (only needed if 'DO_PARALLEL nproc' fails)."
+  echo "Important environment variables"
+  echo "  DO_PARALLEL     : MPI run command."
+  echo "  N_THREADS       : Number of MPI threads (only needed if 'DO_PARALLEL nproc' fails)."
+  echo "  OMP_NUM_THREADS : Number of OpenMP threads to use."
+  echo "  CPPTRAJ_DEBUG   : Can be used to pass extra flags to CPPTRAJ."
   echo ""
 }
 
