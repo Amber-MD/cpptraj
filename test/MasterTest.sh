@@ -351,12 +351,10 @@ Summary() {
             comparisons_skip += $1;
         }
       }END{
-        n_comps = comparisons_ok + comparisons_warn + comparisons_diff;
+        n_comps = comparisons_ok + comparisons_warn + comparisons_diff + comparisons_skip;
         if (n_comps > 0)
-          printf("  %i out of %i comparisons OK (%i failed, %i warnings).\n",
-                 comparisons_ok, n_comps, comparisons_diff, comparisons_warn);
-        if (comparisons_skip > 0)
-          printf("  %i comparisons skipped.\n", comparisons_skip);
+          printf("  %i out of %i comparisons OK (%i failed, %i warnings, %i skipped).\n",
+                 comparisons_ok, n_comps, comparisons_diff, comparisons_warn, comparisons_skip);
         if (program_exe > 0)
           printf("  %i out of %i program executions completed.\n",
                  program_exe - program_err, program_exe);
