@@ -535,6 +535,14 @@ CmdLineOpts() {
       "--target"  ) shift ; TARGET=$1 ;;
      "-profile"   ) CPPTRAJ_PROFILE=1 ; echo "Performing gnu profiling during EndTest." ;;
       "-h" | "--help" ) Help ; exit 0 ;;
+      "alltests"  )
+        echo "Running all tests in Test_* directories."
+        for DIR in `ls -d Test_*` ; do
+          if [ -f "$DIR/RunTest.sh" ] ; then
+            TEST_DIRS="$TEST_DIRS $DIR"
+          fi
+        done
+        ;;
       *           )
         if [ -d "$1" -a -f "$1/RunTest.sh" ] ; then
           # Assume this is a test we want to run.
